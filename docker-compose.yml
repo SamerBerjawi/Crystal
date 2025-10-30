@@ -1,0 +1,11 @@
+version: '3.8'
+
+services:
+  finaura:
+    build: .
+    container_name: finaura
+    ports:
+      - "4173:4173"
+    environment:
+      - NODE_ENV=production
+    restart: unless-stopped
