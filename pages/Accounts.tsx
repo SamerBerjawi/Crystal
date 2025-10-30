@@ -50,40 +50,42 @@ const AccountsListSection: React.FC<{
     return (
         <section>
             <h3 className="text-2xl font-bold text-light-text dark:text-dark-text mb-4">{title}</h3>
-            <Card className="p-2">
-                {groupOrder.length > 0 ? groupOrder.map(groupName => {
-                    const accountsInGroup = groupedAccounts[groupName as AccountType];
-                    const groupTotal = accountsInGroup.reduce((sum, acc) => sum + convertToEur(acc.balance, acc.currency), 0);
-                    return (
-                        <div key={groupName} className="border-b border-black/5 dark:border-white/5 last:border-b-0 py-2">
-                            <div onClick={() => toggleGroup(groupName)} className="flex justify-between items-center px-2 py-1 cursor-pointer hover:bg-black/5 dark:hover:bg-white/5 rounded-md">
-                                <div className="flex items-center gap-2">
-                                    <span className={`material-symbols-outlined transition-transform duration-200 ${expandedGroups[groupName] ? 'rotate-90' : ''}`}>chevron_right</span>
-                                    <h4 className="font-semibold text-light-text dark:text-dark-text">{groupName} ({accountsInGroup.length})</h4>
+            <Card className="p-0">
+                <div className="divide-y divide-light-separator dark:divide-dark-separator">
+                    {groupOrder.length > 0 ? groupOrder.map(groupName => {
+                        const accountsInGroup = groupedAccounts[groupName as AccountType];
+                        const groupTotal = accountsInGroup.reduce((sum, acc) => sum + convertToEur(acc.balance, acc.currency), 0);
+                        return (
+                            <div key={groupName} className="py-2 px-4">
+                                <div onClick={() => toggleGroup(groupName)} className="flex justify-between items-center py-2 cursor-pointer">
+                                    <div className="flex items-center gap-2">
+                                        <span className={`material-symbols-outlined transition-transform duration-200 ${expandedGroups[groupName] ? 'rotate-90' : ''}`}>chevron_right</span>
+                                        <h4 className="font-semibold text-light-text dark:text-dark-text">{groupName} ({accountsInGroup.length})</h4>
+                                    </div>
+                                    <span className="font-mono text-sm">{formatCurrency(groupTotal, 'EUR')}</span>
                                 </div>
-                                <span className="font-mono text-sm">{formatCurrency(groupTotal, 'EUR')}</span>
+                                {expandedGroups[groupName] && (
+                                    <div className="mt-2 space-y-1">
+                                        {accountsInGroup.map(acc => (
+                                        <AccountRow
+                                                key={acc.id}
+                                                account={acc}
+                                                transactions={transactions.filter(t => t.accountId === acc.id)}
+                                                onClick={() => onAccountClick(acc.id)}
+                                                onEdit={() => onEditClick(acc)}
+                                                onAdjustBalance={() => onAdjustBalanceClick(acc)}
+                                            />
+                                        ))}
+                                    </div>
+                                )}
                             </div>
-                            {expandedGroups[groupName] && (
-                                <div className="mt-2 space-y-1">
-                                    {accountsInGroup.map(acc => (
-                                       <AccountRow
-                                            key={acc.id}
-                                            account={acc}
-                                            transactions={transactions.filter(t => t.accountId === acc.id)}
-                                            onClick={() => onAccountClick(acc.id)}
-                                            onEdit={() => onEditClick(acc)}
-                                            onAdjustBalance={() => onAdjustBalanceClick(acc)}
-                                        />
-                                    ))}
-                                </div>
-                            )}
+                        );
+                    }) : (
+                        <div className="text-center py-8 text-light-text-secondary dark:text-dark-text-secondary">
+                            <p>No {title.toLowerCase()} found.</p>
                         </div>
-                    );
-                }) : (
-                     <div className="text-center py-8 text-light-text-secondary dark:text-dark-text-secondary">
-                        <p>No {title.toLowerCase()} found.</p>
-                    </div>
-                )}
+                    )}
+                </div>
             </Card>
         </section>
     );
@@ -190,7 +192,7 @@ const Accounts: React.FC<AccountsProps> = ({ accounts, transactions, setAccounts
 
       <header className="flex flex-wrap justify-between items-center gap-4">
         <div>
-          <h2 className="text-3xl font-bold text-light-text dark:text-dark-text">Accounts</h2>
+          
           <p className="text-light-text-secondary dark:text-dark-text-secondary mt-1">Manage your financial accounts and connections.</p>
         </div>
         <div className="flex items-center gap-4">

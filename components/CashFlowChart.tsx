@@ -20,10 +20,10 @@ const CustomTooltip = ({ active, payload, label }: any) => {
       const expenses = payload.find((p: any) => p.dataKey === 'expenses')?.value || 0;
 
       return (
-        <div className="bg-light-card dark:bg-dark-card p-3 rounded-lg shadow-lg border border-black/5 dark:border-white/5">
+        <div className="bg-light-card dark:bg-dark-card p-3 rounded-lg shadow-modal border border-light-separator dark:border-dark-separator">
           <p className="font-semibold mb-2">{formattedDate}</p>
-          {income > 0 && <p className="text-green-500">Income: {formatCurrency(income, 'EUR')}</p>}
-          {expenses > 0 && <p className="text-red-500">Expenses: {formatCurrency(expenses, 'EUR')}</p>}
+          {income > 0 && <p className="text-semantic-green">Income: {formatCurrency(income, 'EUR')}</p>}
+          {expenses > 0 && <p className="text-semantic-red">Expenses: {formatCurrency(expenses, 'EUR')}</p>}
         </div>
       );
     }
@@ -80,13 +80,15 @@ const CashFlowChart: React.FC<CashFlowChartProps> = ({ transactions, duration })
       <div className="flex-grow" style={{ width: '100%', minHeight: 300 }}>
         <ResponsiveContainer>
           <BarChart data={chartData} margin={{ top: 5, right: 20, left: 0, bottom: 5 }}>
-            <CartesianGrid strokeDasharray="3 3" stroke="currentColor" opacity={0.1} vertical={false} />
+            <CartesianGrid strokeDasharray="3 3" stroke="var(--light-separator, #E5E7EB)" opacity={0.5} vertical={false} />
             <XAxis 
                 dataKey="date" 
                 tickFormatter={tickFormatter} 
                 fontSize={12} 
                 stroke="currentColor" 
-                opacity={0.6}
+                tick={{ fill: 'currentColor', opacity: 0.6 }}
+                axisLine={false}
+                tickLine={false}
                 minTickGap={20}
             />
             <YAxis 
@@ -94,13 +96,15 @@ const CashFlowChart: React.FC<CashFlowChartProps> = ({ transactions, duration })
                 fontSize={12} 
                 width={80} 
                 stroke="currentColor" 
-                opacity={0.6}
+                tick={{ fill: 'currentColor', opacity: 0.6 }}
+                axisLine={false}
+                tickLine={false}
             />
             <Tooltip content={<CustomTooltip />} cursor={{ fill: 'rgba(128, 128, 128, 0.1)' }} />
             <Legend wrapperStyle={{ fontSize: '14px' }} />
             <ReferenceLine y={0} stroke="currentColor" opacity={0.3} />
-            <Bar dataKey="income" fill="#22C55E" name="Income" radius={[4, 4, 0, 0]} />
-            <Bar dataKey="expenses" fill="#EF4444" name="Expenses" radius={[4, 4, 0, 0]} />
+            <Bar dataKey="income" fill="#34C759" name="Income" radius={[4, 4, 0, 0]} />
+            <Bar dataKey="expenses" fill="#FF3B30" name="Expenses" radius={[4, 4, 0, 0]} />
           </BarChart>
         </ResponsiveContainer>
       </div>

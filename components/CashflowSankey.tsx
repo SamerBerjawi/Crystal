@@ -97,7 +97,7 @@ const CashflowSankey: React.FC<CashflowSankeyProps> = ({ transactions, expenseCa
         const expenseByParentCategory = transactions
             .filter(tx => tx.type === 'expense' && !tx.transferId)
             // FIX: Explicitly typing the accumulator for `reduce` to resolve 'unknown' type errors.
-            .reduce((acc: Record<string, { value: number; color: string; }>, tx) => {
+            .reduce((acc, tx) => {
                 const parentCat = findParentCategory(tx.category, expenseCategories);
                 const categoryName = parentCat ? parentCat.name : 'Miscellaneous';
                 const color = parentCat ? parentCat.color : '#A0AEC0';
@@ -106,7 +106,8 @@ const CashflowSankey: React.FC<CashflowSankeyProps> = ({ transactions, expenseCa
                 }
                 acc[categoryName].value += Math.abs(convertToEur(tx.amount, tx.currency));
                 return acc;
-            }, {} as Record<string, { value: number, color: string }>);
+            // FIX: Type the initial value of reduce to ensure type inference for the accumulator.
+            }, {} as Record<string, { value: number; color: string; }>);
 
         const sortedExpenses = Object.entries(expenseByParentCategory).sort((a, b) => b[1].value - a[1].value);
 

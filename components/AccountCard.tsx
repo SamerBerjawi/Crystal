@@ -71,7 +71,7 @@ const AccountCard: React.FC<AccountCardProps> = ({
             className={`transition-all duration-150 ${dragOverClasses}`}
         >
             <Card 
-                className={`flex items-center justify-between h-full hover:shadow-neu-inset-light dark:hover:shadow-neu-inset-dark transition-shadow duration-200 cursor-pointer group ${dragClasses}`} 
+                className={`flex items-center justify-between h-full hover:shadow-lg transition-shadow duration-200 cursor-pointer group ${dragClasses}`} 
                 onClick={onClick}
             >
                 {/* Left side: Icon, Name, Type */}

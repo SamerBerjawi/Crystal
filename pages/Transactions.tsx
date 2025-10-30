@@ -310,7 +310,7 @@ const Transactions: React.FC<TransactionsProps> = ({ transactions, saveTransacti
                   <button type="button" onClick={() => setIsDeleteConfirmOpen(false)} className={BTN_SECONDARY_STYLE}>
                       Cancel
                   </button>
-                  <button type="button" onClick={handleConfirmBulkDelete} className="bg-red-500 text-white font-semibold py-2 px-4 rounded-lg shadow-card hover:bg-red-600 transition-all duration-200">
+                  <button type="button" onClick={handleConfirmBulkDelete} className="bg-semantic-red text-white font-semibold py-2 px-4 rounded-lg shadow-card hover:bg-red-600 transition-all duration-200">
                       Delete
                   </button>
               </div>
@@ -318,7 +318,7 @@ const Transactions: React.FC<TransactionsProps> = ({ transactions, saveTransacti
       )}
       <header className="flex justify-between items-center">
         <div>
-            <h2 className="text-3xl font-bold text-light-text dark:text-dark-text">Transactions</h2>
+            
             <p className="text-light-text-secondary dark:text-dark-text-secondary mt-1">View and manage all your transactions.</p>
         </div>
         <button onClick={handleOpenAddModal} className={BTN_PRIMARY_STYLE}>
@@ -382,7 +382,7 @@ const Transactions: React.FC<TransactionsProps> = ({ transactions, saveTransacti
             <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                 <div className="md:col-span-1">
                     <label className={labelStyle}>Type</label>
-                    <div className="flex bg-light-bg dark:bg-dark-bg p-1 rounded-lg shadow-neu-inset-light dark:shadow-neu-inset-dark h-11 items-center">
+                    <div className="flex bg-light-fill dark:bg-dark-fill p-1 rounded-lg">
                         {typeFilterOptions.map(opt => (
                             <button
                                 key={opt.value}
@@ -390,7 +390,7 @@ const Transactions: React.FC<TransactionsProps> = ({ transactions, saveTransacti
                                 onClick={() => setTypeFilter(opt.value)}
                                 className={`w-full text-center text-sm font-semibold py-1.5 px-3 rounded-md transition-all duration-200 ${
                                     typeFilter === opt.value
-                                    ? 'bg-light-card dark:bg-dark-card shadow-neu-raised-light dark:shadow-neu-raised-dark'
+                                    ? 'bg-light-card dark:bg-dark-card shadow-sm'
                                     : 'text-light-text-secondary dark:text-dark-text-secondary'
                                 }`}
                                 aria-pressed={typeFilter === opt.value}
@@ -428,7 +428,7 @@ const Transactions: React.FC<TransactionsProps> = ({ transactions, saveTransacti
         <div className="overflow-x-auto">
           <table className="w-full text-left">
             <thead>
-              <tr className="border-b border-black/10 dark:border-white/10">
+              <tr className="border-b border-light-separator dark:border-dark-separator">
                 <th className="p-4">
                   <input
                       type="checkbox"
@@ -450,17 +450,17 @@ const Transactions: React.FC<TransactionsProps> = ({ transactions, saveTransacti
             <tbody>
               {filteredTransactions.map(tx => {
                 let amount = tx.amount;
-                let amountColor = tx.type === 'income' ? 'text-green-500' : 'text-red-500';
+                let amountColor = tx.type === 'income' ? 'text-semantic-green' : 'text-semantic-red';
 
                 if (tx.isTransfer) {
                     amountColor = 'text-light-text dark:text-dark-text'; // Neutral color
                     if (accountFilter) {
                         if (accountFilter === tx.fromAccountName) {
                             amount = -tx.amount;
-                            amountColor = 'text-red-500';
+                            amountColor = 'text-semantic-red';
                         } else if (accountFilter === tx.toAccountName) {
                             amount = tx.amount;
-                            amountColor = 'text-green-500';
+                            amountColor = 'text-semantic-green';
                         }
                     }
                 }
@@ -469,7 +469,7 @@ const Transactions: React.FC<TransactionsProps> = ({ transactions, saveTransacti
                 const categoryColor = category?.color || '#A0AEC0';
                 
                 return (
-                <tr key={tx.id} className="border-b border-black/5 dark:border-white/5 last:border-b-0 hover:bg-black/5 dark:hover:bg-white/5 transition-colors duration-150 group">
+                <tr key={tx.id} className="border-b border-light-separator dark:border-dark-separator last:border-b-0 hover:bg-light-fill dark:hover:bg-dark-fill transition-colors duration-150 group">
                   <td className="p-4">
                     <input
                         type="checkbox"
@@ -539,7 +539,7 @@ const Transactions: React.FC<TransactionsProps> = ({ transactions, saveTransacti
                         </button>
                         <button
                             onClick={handleOpenDeleteModal}
-                            className="flex items-center gap-1 p-2 rounded-lg text-sm font-semibold text-red-500 hover:bg-red-500/10"
+                            className="flex items-center gap-1 p-2 rounded-lg text-sm font-semibold text-semantic-red hover:bg-semantic-red/10"
                         >
                             <span className="material-symbols-outlined text-base">delete</span>
                             Delete

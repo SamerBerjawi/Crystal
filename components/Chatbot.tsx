@@ -120,8 +120,8 @@ const Chatbot: React.FC<ChatbotProps> = ({ isOpen, onClose, financialData }) => 
 
   return (
     <div className="fixed bottom-24 right-6 w-full max-w-sm h-[60vh] z-50 flex flex-col">
-      <div className="bg-light-card dark:bg-dark-card rounded-xl shadow-2xl border border-black/10 dark:border-white/10 flex flex-col h-full">
-        <header className="flex items-center justify-between p-4 border-b border-black/10 dark:border-white/10">
+      <div className="bg-light-card dark:bg-dark-card rounded-xl shadow-2xl border border-light-separator dark:border-dark-separator flex flex-col h-full">
+        <header className="flex items-center justify-between p-4 border-b border-light-separator dark:border-dark-separator">
           <h2 className="text-lg font-semibold">Finaura AI Assistant</h2>
           <button onClick={onClose} className="p-1 rounded-full hover:bg-black/5 dark:hover:bg-white/5">
             <span className="material-symbols-outlined">close</span>
@@ -137,7 +137,7 @@ const Chatbot: React.FC<ChatbotProps> = ({ isOpen, onClose, financialData }) => 
             </div>
           ) : messages.map((msg, index) => (
             <div key={index} className={`flex items-end gap-2 ${msg.sender === 'user' ? 'justify-end' : 'justify-start'}`}>
-              <div className={`max-w-xs lg:max-w-sm px-4 py-2 rounded-2xl ${msg.sender === 'user' ? 'bg-primary-500 text-white rounded-br-none' : 'bg-light-bg dark:bg-dark-bg shadow-sm rounded-bl-none'}`}>
+              <div className={`max-w-xs lg:max-w-sm px-4 py-2 rounded-2xl ${msg.sender === 'user' ? 'bg-primary-500 text-white rounded-br-none' : 'bg-light-fill dark:bg-dark-fill shadow-sm rounded-bl-none'}`}>
                 {msg.text ? (
                     <p className="text-sm" dangerouslySetInnerHTML={{ __html: simpleMarkdownToHtml(msg.text) }} />
                 ) : (
@@ -152,14 +152,14 @@ const Chatbot: React.FC<ChatbotProps> = ({ isOpen, onClose, financialData }) => 
           ))}
           <div ref={messagesEndRef} />
         </div>
-        <div className="p-4 border-t border-black/10 dark:border-white/10">
+        <div className="p-4 border-t border-light-separator dark:border-dark-separator">
           <form onSubmit={handleSendMessage} className="flex items-center gap-2">
             <input
               type="text"
               value={input}
               onChange={(e) => setInput(e.target.value)}
               placeholder="Ask about your finances..."
-              className="flex-1 bg-light-bg dark:bg-dark-bg rounded-full py-2 px-4 focus:outline-none focus:ring-2 focus:ring-primary-500 border border-transparent focus:border-transparent"
+              className="flex-1 bg-light-fill dark:bg-dark-fill rounded-full py-2 px-4 focus:outline-none focus:ring-2 focus:ring-primary-500 border border-transparent focus:border-transparent"
               disabled={isStreaming || isLoading}
             />
             <button
@@ -167,7 +167,7 @@ const Chatbot: React.FC<ChatbotProps> = ({ isOpen, onClose, financialData }) => 
               className="w-10 h-10 flex-shrink-0 bg-primary-500 text-white rounded-full flex items-center justify-center hover:bg-primary-600 disabled:bg-primary-300 disabled:cursor-not-allowed transition-colors"
               disabled={isStreaming || isLoading || !input.trim()}
             >
-              <span className="material-symbols-outlined">send</span>
+              <span className="material-symbols-outlined">arrow_upward</span>
             </button>
           </form>
         </div>

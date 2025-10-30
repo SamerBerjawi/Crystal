@@ -112,7 +112,7 @@ const Investments: React.FC<InvestmentsProps> = ({ investmentAccounts, cashAccou
             )}
             <header className="flex justify-between items-center">
                 <div>
-                    <h2 className="text-3xl font-bold text-light-text dark:text-dark-text">Investments</h2>
+                    
                     <p className="text-light-text-secondary dark:text-dark-text-secondary mt-1">Track your portfolio performance and transactions.</p>
                 </div>
                 <button onClick={() => handleOpenModal()} className={BTN_PRIMARY_STYLE}>Add Transaction</button>

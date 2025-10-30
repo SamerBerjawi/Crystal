@@ -13,41 +13,41 @@ export function FinauraLogo({ theme }: { theme: Theme }) {
   );
 }
 
-// Common Styles
-export const BTN_PRIMARY_STYLE = "bg-primary-500 text-white font-semibold py-2 px-4 rounded-lg shadow-card hover:bg-primary-600 transition-all duration-200";
-export const BTN_SECONDARY_STYLE = "bg-light-card dark:bg-dark-card text-light-text dark:text-dark-text font-semibold py-2 px-4 rounded-lg shadow-card hover:bg-gray-50 dark:hover:bg-dark-border transition-colors duration-200";
-export const BTN_DANGER_STYLE = "text-red-500 hover:text-red-400 font-semibold py-2 px-4 rounded-lg hover:bg-red-500/10 transition-colors";
-export const INPUT_BASE_STYLE = "w-full appearance-none bg-light-bg dark:bg-dark-bg text-light-text dark:text-dark-text rounded-lg py-2 px-4 border border-gray-200 dark:border-dark-border focus:outline-none focus:ring-2 focus:ring-primary-500 transition-shadow duration-200";
+// Common Styles based on Apple HIG
+export const BTN_PRIMARY_STYLE = "bg-primary-500 text-white font-semibold py-2 px-4 rounded-lg hover:bg-primary-600 shadow-md hover:shadow-lg transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-primary-500 focus:ring-offset-2 focus:ring-offset-light-bg dark:focus:ring-offset-dark-card";
+export const BTN_SECONDARY_STYLE = "bg-light-fill dark:bg-dark-fill text-light-text dark:text-dark-text font-semibold py-2 px-4 rounded-lg hover:bg-gray-500/20 dark:hover:bg-gray-400/20 transition-colors duration-200 focus:outline-none focus:ring-2 focus:ring-primary-500";
+export const BTN_DANGER_STYLE = "text-semantic-red hover:bg-semantic-red/10 font-semibold py-2 px-4 rounded-lg transition-colors";
+export const INPUT_BASE_STYLE = "w-full appearance-none bg-light-fill dark:bg-dark-fill text-light-text dark:text-dark-text rounded-lg py-2 px-3 border border-light-separator/50 dark:border-dark-separator/50 focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-primary-500 transition-shadow duration-200";
 export const SELECT_WRAPPER_STYLE = "relative w-full";
 export const SELECT_ARROW_STYLE = "pointer-events-none absolute inset-y-0 right-0 flex items-center px-2 text-light-text-secondary dark:text-dark-text-secondary";
 
 export interface NavItem {
   name: Page;
-  icon: React.ReactElement;
+  icon: string;
   subItems?: NavItem[];
 }
 
 export const NAV_ITEMS: NavItem[] = [
-  { name: 'Dashboard', icon: <span className="material-symbols-outlined">dashboard</span> },
-  { name: 'Accounts', icon: <span className="material-symbols-outlined">wallet</span> },
-  { name: 'Transactions', icon: <span className="material-symbols-outlined">receipt_long</span> },
-  { name: 'Budget', icon: <span className="material-symbols-outlined">pie_chart</span> },
-  { name: 'Forecasting', icon: <span className="material-symbols-outlined">trending_up</span> },
-  { name: 'Investments', icon: <span className="material-symbols-outlined">show_chart</span> },
-  { name: 'Warrants', icon: <span className="material-symbols-outlined">verified</span> },
-  { name: 'Schedule & Bills', icon: <span className="material-symbols-outlined">calendar_month</span> },
-  { name: 'Tasks', icon: <span className="material-symbols-outlined">task_alt</span> },
+  { name: 'Dashboard', icon: 'space_dashboard' },
+  { name: 'Accounts', icon: 'wallet' },
+  { name: 'Transactions', icon: 'receipt_long' },
+  { name: 'Budget', icon: 'pie_chart' },
+  { name: 'Forecasting', icon: 'show_chart' },
+  { name: 'Investments', icon: 'candlestick_chart' },
+  { name: 'Warrants', icon: 'verified' },
+  { name: 'Schedule & Bills', icon: 'calendar_month' },
+  { name: 'Tasks', icon: 'task_alt' },
   { 
     name: 'Settings', 
-    icon: <span className="material-symbols-outlined">settings</span>,
+    icon: 'settings',
     subItems: [
-      { name: 'Preferences', icon: <span className="material-symbols-outlined">tune</span> },
-      { name: 'Personal Info', icon: <span className="material-symbols-outlined">person</span> },
-      { name: 'Categories', icon: <span className="material-symbols-outlined">category</span> },
-      { name: 'Tags', icon: <span className="material-symbols-outlined">label</span> },
-      { name: 'User Management', icon: <span className="material-symbols-outlined">manage_accounts</span> },
-      { name: 'Enable Banking', icon: <span className="material-symbols-outlined">sync</span> },
-      { name: 'Data Management', icon: <span className="material-symbols-outlined">settings_backup_restore</span> },
+      { name: 'Preferences', icon: 'tune' },
+      { name: 'Personal Info', icon: 'person' },
+      { name: 'Categories', icon: 'category' },
+      { name: 'Tags', icon: 'label' },
+      { name: 'User Management', icon: 'manage_accounts' },
+      { name: 'Enable Banking', icon: 'sync' },
+      { name: 'Data Management', icon: 'database' },
     ]
   },
 ];
@@ -74,13 +74,13 @@ export const ACCOUNT_TYPE_STYLES: { [key in AccountType]: { icon: string; color:
     'Checking': { icon: 'account_balance', color: 'text-blue-500' },
     'Savings': { icon: 'savings', color: 'text-green-500' },
     'Credit Card': { icon: 'credit_card', color: 'text-orange-500' },
-    'Investment': { icon: 'trending_up', color: 'text-purple-500' },
+    'Investment': { icon: 'show_chart', color: 'text-purple-500' },
     'Loan': { icon: 'request_quote', color: 'text-red-500' },
     'Property': { icon: 'home', color: 'text-yellow-500' },
     'Crypto': { icon: 'currency_bitcoin', color: 'text-amber-500' },
     'Vehicle': { icon: 'directions_car', color: 'text-cyan-500' },
     'Other Assets': { icon: 'category', color: 'text-lime-500' },
-    'Other Liabilities': { icon: 'receipt_long', color: 'text-pink-500' },
+    'Other Liabilities': { icon: 'receipt', color: 'text-pink-500' },
 };
 
 export const MOCK_INCOME_CATEGORIES: Category[] = [
@@ -106,17 +106,17 @@ export const MOCK_EXPENSE_CATEGORIES: Category[] = [
 ];
 
 export const ACCOUNT_ICON_LIST: string[] = [
-    'account_balance', 'savings', 'credit_card', 'trending_up', 'request_quote', 'home', 'currency_bitcoin', 'directions_car', 'palette', 'school', 'receipt_long', 'category', 'wallet', 'paid', 'account_balance_wallet', 'monetization_on', 'euro_symbol', 'payments', 'store', 'apartment', 'business_center', 'cottage', 'flight', 'local_gas_station', 'local_mall', 'restaurant', 'shopping_cart', 'work', 'build'
+    'account_balance', 'savings', 'credit_card', 'show_chart', 'request_quote', 'home', 'currency_bitcoin', 'directions_car', 'palette', 'school', 'receipt', 'category', 'wallet', 'paid', 'account_balance_wallet', 'monetization_on', 'euro_symbol', 'payments', 'store', 'apartment', 'business_center', 'cottage', 'flight', 'local_gas_station', 'local_mall', 'restaurant', 'shopping_cart', 'work', 'build'
 ];
 
 export const CATEGORY_ICON_LIST: string[] = [
     'restaurant', 'local_cafe', 'local_bar', 'shopping_cart', 'local_mall', 'store', 'house', 'apartment',
-    'home_work', 'paid', 'savings', 'trending_up', 'credit_card', 'receipt_long', 'request_quote',
+    'home_work', 'paid', 'savings', 'show_chart', 'credit_card', 'receipt_long', 'request_quote',
     'flight', 'directions_car', 'train', 'local_taxi', 'commute', 'local_gas_station', 'ev_station', 'local_shipping',
     'healing', 'medication', 'local_hospital', 'health_and_safety', 'monitor_heart', 'volunteer_activism',
     'subscriptions', 'movie', 'music_note', 'sports_esports', 'stadia_controller', 'fitness_center', 'sports_soccer',
     'phone_iphone', 'computer', 'desktop_windows', 'devices', 'videogame_asset', 'checkroom', 'styler', 'diamond', 'wc',
     'child_care', 'pets', 'school', 'card_giftcard', 'redeem', 'celebration', 'family_restroom', 'construction',
-    'attach_money', 'work', 'payments', 'account_balance', 'currency_exchange', 'show_chart', 'sell',
+    'attach_money', 'work', 'payments', 'account_balance', 'currency_exchange', 'sell',
     'miscellaneous_services', 'emergency', 'report', 'design_services'
 ];

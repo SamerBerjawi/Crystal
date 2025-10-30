@@ -22,7 +22,6 @@ const CategoryItem: React.FC<CategoryItemProps> = ({ category, onEdit, onDelete,
                     style={{
                         fontSize: '24px',
                         color: category.color,
-                        fontVariationSettings: "'FILL' 1, 'wght' 300, 'GRAD' 0, 'opsz' 24"
                     }}
                 >
                     {category.icon || 'category'}

@@ -1,5 +1,3 @@
-
-
 import React, { useMemo, useState, useCallback } from 'react';
 import { User, Transaction, Account, Category, Duration, CategorySpending, Widget, WidgetConfig } from '../types';
 import { formatCurrency, getDateRange, calculateAccountTotals, convertToEur } from '../utils';
@@ -338,7 +336,7 @@ const Dashboard: React.FC<DashboardProps> = ({ user, transactions, accounts, sav
     if (netWorthData.length < 2) return '#6366F1';
     const startValue = netWorthData[0].value;
     const endValue = netWorthData[netWorthData.length - 1].value;
-    return endValue >= startValue ? '#22C55E' : '#EF4444';
+    return endValue >= startValue ? '#34C759' : '#FF3B30';
   }, [netWorthData]);
 
   // --- Widget Management ---
@@ -428,7 +426,7 @@ const Dashboard: React.FC<DashboardProps> = ({ user, transactions, accounts, sav
       {/* Header */}
       <div className="flex flex-wrap justify-between items-center gap-4">
         <div>
-          <h2 className="text-3xl font-bold text-light-text dark:text-dark-text">Dashboard</h2>
+          
           <p className="text-light-text-secondary dark:text-dark-text-secondary mt-1">Welcome back, {user.firstName}!</p>
         </div>
         <div className="flex items-center gap-4">

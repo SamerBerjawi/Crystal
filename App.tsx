@@ -836,7 +836,7 @@ You have been automatically logged in.`);
   }
 
   return (
-    <div className={`flex h-screen bg-light-bg dark:bg-dark-bg text-light-text dark:text-dark-text font-sans antialiased`}>
+    <div className={`flex h-screen text-light-text dark:text-dark-text font-sans antialiased`}>
       <EnableBankingConnectModal 
         isOpen={isConnectModalOpen}
         onClose={() => setConnectModalOpen(false)}
@@ -936,7 +936,14 @@ You have been automatically logged in.`);
         user={user}
       />
       <div className="flex-1 flex flex-col overflow-hidden">
-        <main className="flex-1 overflow-x-hidden overflow-y-auto p-4 md:p-8">
+        <Header 
+            currentPage={currentPage} 
+            user={user} 
+            setSidebarOpen={setSidebarOpen} 
+            theme={theme} 
+            setTheme={setTheme} 
+        />
+        <main className="flex-1 overflow-x-hidden overflow-y-auto p-4 md:p-8 bg-light-bg dark:bg-dark-bg">
             {renderPage()}
         </main>
       </div>

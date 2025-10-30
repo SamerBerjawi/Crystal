@@ -24,8 +24,9 @@ const findCategoryDetails = (name: string, categories: Category[]): { icon?: str
 const TransactionList: React.FC<TransactionListProps> = ({ transactions, allCategories, onTransactionClick }) => {
   
   const getIconForCategory = (categoryName: string) => {
+    if (categoryName === 'Transfer') return 'swap_horiz';
     const { icon, parentIcon } = findCategoryDetails(categoryName, allCategories);
-    return icon || parentIcon || 'receipt';
+    return icon || parentIcon || 'sell';
   };
 
   const formatDate = (dateString: string) => {
@@ -38,11 +39,11 @@ const TransactionList: React.FC<TransactionListProps> = ({ transactions, allCate
         {transactions.map((tx) => (
           <li 
             key={tx.id} 
-            className="flex items-center justify-between group cursor-pointer hover:bg-black/5 dark:hover:bg-white/5 hover:shadow-card p-2 -m-2 rounded-lg transition-all duration-200"
+            className="flex items-center justify-between group cursor-pointer hover:bg-light-fill dark:hover:bg-dark-fill p-2 -m-2 rounded-lg transition-colors duration-200"
             onClick={() => onTransactionClick?.(tx)}
           >
             <div className="flex items-center">
-              <div className="flex-shrink-0 h-10 w-10 rounded-full bg-light-bg dark:bg-dark-bg shadow-neu-inset-light dark:shadow-neu-inset-dark flex items-center justify-center">
+              <div className="flex-shrink-0 h-10 w-10 rounded-full bg-light-fill dark:bg-dark-fill flex items-center justify-center">
                 <span className="material-symbols-outlined text-primary-500">
                     {getIconForCategory(tx.category)}
                 </span>
@@ -55,7 +56,7 @@ const TransactionList: React.FC<TransactionListProps> = ({ transactions, allCate
             <div className="flex items-center gap-2">
               <p
                 className={`text-base font-semibold ${
-                  tx.type === 'income' ? 'text-green-500' : 'text-red-500'
+                  tx.type === 'income' ? 'text-semantic-green' : 'text-semantic-red'
                 }`}
               >
                 {formatCurrency(convertToEur(tx.amount, tx.currency), 'EUR')}

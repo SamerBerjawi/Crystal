@@ -13,36 +13,30 @@ interface BalanceCardProps {
 
 const BalanceCard: React.FC<BalanceCardProps> = ({ title, amount, change, changeType, sparklineData }) => {
   const isPositive = changeType === 'positive';
-  
-  // Define gradient and text classes based on the type
-  const cardClasses = isPositive
-    ? 'bg-gradient-to-br from-emerald-400 to-teal-600 dark:from-emerald-500 dark:to-teal-700'
-    : 'bg-gradient-to-br from-rose-400 to-red-600 dark:from-rose-500 dark:to-red-700';
 
-  const textPrimary = 'text-white';
-  const textSecondary = 'text-white/80';
+  const iconColor = 'text-white';
+  const iconBgColor = isPositive ? 'bg-semantic-green' : 'bg-semantic-red';
+  const sparklineStroke = isPositive ? '#34C759' : '#FF3B30';
 
-  // The Card component's default gradient will be overridden by cardClasses.
-  // The default text colors will be overridden by the text-white on the Card and the specific text classes inside.
   return (
-    <Card className={`flex flex-col justify-between h-full ${cardClasses} text-white`}>
+    <Card className={`flex flex-col justify-between h-full`}>
       <div>
         <div className="flex items-start justify-between">
-          <div className={`w-12 h-12 rounded-full flex items-center justify-center bg-white/20`}>
-            <span className={`material-symbols-outlined text-3xl ${textPrimary}`}>
-              {isPositive ? 'arrow_upward' : 'arrow_downward'}
-            </span>
-          </div>
-          <div className="text-right">
-            <h3 className={`text-base font-medium ${textSecondary}`}>{title}</h3>
-            <p className={`text-2xl font-semibold mt-1 ${textPrimary}`}>{formatCurrency(amount, 'EUR')}</p>
-            {change && (
-              <p className={`text-sm font-medium mt-1 ${textSecondary}`}>
-                {change}
-              </p>
-            )}
-          </div>
+            <div>
+                <h3 className={`text-base font-semibold text-light-text-secondary dark:text-dark-text-secondary`}>{title}</h3>
+                <p className={`text-2xl font-bold mt-1 text-light-text dark:text-dark-text`}>{formatCurrency(amount, 'EUR')}</p>
+            </div>
+            <div className={`w-10 h-10 rounded-full flex items-center justify-center ${iconBgColor}`}>
+                <span className={`material-symbols-outlined text-2xl ${iconColor}`}>
+                {isPositive ? 'north' : 'south'}
+                </span>
+            </div>
         </div>
+         {change && (
+              <p className={`text-sm font-medium mt-1 ${isPositive ? 'text-semantic-green' : 'text-semantic-red'}`}>
+                {change} vs. last period
+              </p>
+        )}
       </div>
       <div className="h-16 -mb-6 -mx-6 mt-4">
         <ResponsiveContainer width="100%" height="100%">
@@ -50,7 +44,7 @@ const BalanceCard: React.FC<BalanceCardProps> = ({ title, amount, change, change
             <Line
               type="natural"
               dataKey="value"
-              stroke="#FFFFFF"
+              stroke={sparklineStroke}
               strokeOpacity={0.8}
               strokeWidth={2.5}
               dot={false}

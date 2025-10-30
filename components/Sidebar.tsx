@@ -59,6 +59,12 @@ const Sidebar: React.FC<SidebarProps> = ({ currentPage, setCurrentPage, isSideba
     const isParentActive = !isSubItem && item.subItems?.some(sub => sub.name === currentPage);
     const isSubMenuOpen = openSubMenu === item.name;
 
+    const iconEl = (
+        <span className={`material-symbols-outlined ${(isActive || isParentActive) ? 'material-symbols-filled' : ''}`}>
+            {item.icon}
+        </span>
+    );
+
     if (item.subItems) {
       return (
         <li key={item.name} title={isSidebarCollapsed ? item.name : undefined}>
@@ -68,18 +74,18 @@ const Sidebar: React.FC<SidebarProps> = ({ currentPage, setCurrentPage, isSideba
               e.preventDefault();
               handleNavClick(item.name, true);
             }}
-            className={`flex items-center justify-between px-4 py-3 rounded-lg transition-colors duration-200 ${
-              isParentActive ? 'text-primary-600 font-semibold dark:text-white hover:bg-gray-100 dark:hover:bg-gray-700' : 'text-light-text-secondary hover:bg-gray-100 dark:text-gray-400 dark:hover:bg-gray-700 dark:hover:text-white'
+            className={`flex items-center justify-between p-3 rounded-lg transition-colors duration-200 ${
+              isParentActive ? 'text-primary-600 font-semibold dark:text-primary-300 bg-primary-500/10' : 'text-light-text-secondary hover:bg-black/5 dark:text-dark-text-secondary dark:hover:bg-white/10'
             } ${isSidebarCollapsed ? 'md:px-2' : ''}`}
           >
-            <div className={`flex items-center ${isSidebarCollapsed ? 'md:w-full md:justify-center' : 'gap-4'}`}>
-              {item.icon}
+            <div className={`flex items-center ${isSidebarCollapsed ? 'md:w-full md:justify-center' : 'gap-3'}`}>
+              {iconEl}
               <span className={`font-medium transition-opacity ${isSidebarCollapsed ? 'md:hidden' : ''}`}>{item.name}</span>
             </div>
             <span className={`material-symbols-outlined transition-transform duration-300 ${isSubMenuOpen ? 'rotate-180' : ''} ${isSidebarCollapsed ? 'md:hidden' : ''}`}>expand_more</span>
           </a>
           {isSubMenuOpen && !isSidebarCollapsed && (
-            <ul className="pl-4 pt-2 space-y-1">
+            <ul className="pl-4 pt-1 space-y-1">
               {item.subItems.map(sub => renderNavItem(sub, true))}
             </ul>
           )}
@@ -95,13 +101,13 @@ const Sidebar: React.FC<SidebarProps> = ({ currentPage, setCurrentPage, isSideba
             e.preventDefault();
             handleNavClick(item.name);
           }}
-          className={`flex items-center py-3 rounded-lg transition-colors duration-200 ${ isSidebarCollapsed ? `md:px-2 md:justify-center md:gap-0` : `px-4 gap-4 ${isSubItem ? 'pl-8' : ''}`} ${
+          className={`flex items-center p-3 rounded-lg transition-colors duration-200 ${ isSidebarCollapsed ? `md:px-2 md:justify-center md:gap-0` : `px-3 gap-3 ${isSubItem ? 'pl-7' : ''}`} ${
             isActive
-              ? 'bg-gradient-to-r from-primary-500 to-primary-700 text-white shadow-lg'
-              : `text-light-text-secondary hover:bg-gray-100 dark:text-gray-400 dark:hover:bg-gray-700 dark:hover:text-white`
+              ? 'bg-primary-500 text-white font-semibold shadow-md'
+              : `text-light-text-secondary hover:bg-black/5 dark:text-dark-text-secondary dark:hover:bg-white/10 dark:hover:text-dark-text`
           }`}
         >
-          {item.icon}
+          {iconEl}
           <span className={`font-medium transition-opacity ${isSidebarCollapsed ? 'md:hidden' : ''}`}>{item.name}</span>
         </a>
       </li>
@@ -114,30 +120,30 @@ const Sidebar: React.FC<SidebarProps> = ({ currentPage, setCurrentPage, isSideba
         className={`fixed inset-0 z-30 bg-black/30 transition-opacity md:hidden ${isSidebarOpen ? 'opacity-100' : 'opacity-0 pointer-events-none'}`} 
         onClick={() => setSidebarOpen(false)}
       ></div>
-      <aside className={`fixed top-0 left-0 z-40 h-screen bg-light-card dark:bg-dark-card flex flex-col transition-all duration-300 ease-in-out md:relative md:translate-x-0 ${isSidebarOpen ? 'translate-x-0 w-64' : '-translate-x-full w-64'} ${isSidebarCollapsed ? 'md:w-20' : 'md:w-64'} border-r border-black/5 dark:border-white/10`}>
-        <div className="flex items-center justify-center h-24 flex-shrink-0">
+      <aside className={`fixed top-0 left-0 z-40 h-screen bg-light-card dark:bg-dark-card flex flex-col transition-all duration-300 ease-in-out md:relative md:translate-x-0 ${isSidebarOpen ? 'translate-x-0 w-64' : '-translate-x-full w-64'} ${isSidebarCollapsed ? 'md:w-20' : 'md:w-64'} border-r border-light-separator dark:border-dark-separator`}>
+        <div className="flex items-center justify-center h-20 flex-shrink-0">
             <div className={`flex items-center transition-all duration-300 ${isSidebarCollapsed ? 'md:gap-0' : 'gap-3'}`}>
                 <FinauraLogo theme={theme} />
                 <span className={`text-2xl font-bold text-light-text dark:text-white transition-opacity duration-200 ${isSidebarCollapsed ? 'md:hidden md:opacity-0' : 'opacity-100'}`}>Finaura</span>
             </div>
         </div>
-        <nav className={`flex-1 py-6 transition-all duration-300 ${isSidebarCollapsed ? 'px-2' : 'px-4'}`}>
+        <nav className={`flex-1 py-4 transition-all duration-300 ${isSidebarCollapsed ? 'px-2' : 'px-4'}`}>
           <ul className="space-y-2">
             {navItems.map((item) => renderNavItem(item))}
           </ul>
         </nav>
-        <div className={`px-4 py-6 flex-shrink-0 border-t border-black/5 dark:border-white/10 ${isSidebarCollapsed ? 'md:px-2' : ''}`}>
+        <div className={`px-4 py-4 flex-shrink-0 border-t border-light-separator dark:border-dark-separator ${isSidebarCollapsed ? 'md:px-2' : ''}`}>
           <button
             onClick={() => setSidebarCollapsed(!isSidebarCollapsed)}
-            className={`hidden md:flex items-center gap-4 w-full px-4 py-3 rounded-lg text-light-text-secondary hover:bg-gray-100 dark:text-gray-400 dark:hover:bg-gray-700 dark:hover:text-white transition-colors duration-200 mb-2 ${isSidebarCollapsed ? 'md:justify-center md:px-2' : ''}`}
+            className={`hidden md:flex items-center gap-3 w-full p-3 rounded-lg text-light-text-secondary hover:bg-black/5 dark:text-dark-text-secondary dark:hover:bg-white/10 transition-colors duration-200 mb-2 ${isSidebarCollapsed ? 'md:justify-center' : ''}`}
             title={isSidebarCollapsed ? 'Expand sidebar' : 'Collapse sidebar'}
           >
             <span className="material-symbols-outlined">
-              {isSidebarCollapsed ? 'keyboard_double_arrow_right' : 'keyboard_double_arrow_left'}
+              {isSidebarCollapsed ? 'side_navigation' : 'menu_open'}
             </span>
             <span className={`font-medium transition-opacity ${isSidebarCollapsed ? 'md:hidden md:opacity-0' : 'opacity-100'}`}>Collapse</span>
           </button>
-          <button onClick={onLogout} className={`w-full flex items-center gap-4 px-4 py-3 rounded-lg text-light-text-secondary hover:bg-gray-100 dark:text-gray-400 dark:hover:bg-gray-700 dark:hover:text-white transition-colors duration-200 ${isSidebarCollapsed ? 'md:justify-center md:px-2' : ''}`} title={isSidebarCollapsed ? 'Logout' : 'Logout'}>
+          <button onClick={onLogout} className={`w-full flex items-center gap-3 p-3 rounded-lg text-light-text-secondary hover:bg-black/5 dark:text-dark-text-secondary dark:hover:bg-white/10 transition-colors duration-200 ${isSidebarCollapsed ? 'md:justify-center' : ''}`} title={isSidebarCollapsed ? 'Logout' : 'Logout'}>
             <span className="material-symbols-outlined">logout</span>
             <span className={`font-medium transition-opacity ${isSidebarCollapsed ? 'md:hidden md:opacity-0' : 'opacity-100'}`}>Logout</span>
           </button>
