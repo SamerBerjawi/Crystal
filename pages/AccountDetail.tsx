@@ -81,7 +81,7 @@ const AccountDetail: React.FC<AccountDetailProps> = ({ account, transactions, al
         const accountTransactions = transactions.filter(tx => tx.accountId === account.id);
 
         const txsInPeriod = accountTransactions.filter(tx => {
-            const txDate = new Date(tx.date);
+            const txDate = new Date(tx.date.replace(/-/g, '/'));
             return txDate >= start && txDate <= end;
         });
     
@@ -157,7 +157,7 @@ const AccountDetail: React.FC<AccountDetailProps> = ({ account, transactions, al
         const expenseBuckets = Array(NUM_POINTS).fill(0);
     
         for (const tx of filteredTransactions) {
-            const txTime = new Date(tx.date).getTime();
+            const txTime = new Date(tx.date.replace(/-/g, '/')).getTime();
             const index = Math.floor((txTime - start.getTime()) / interval);
             const convertedAmount = convertToEur(tx.amount, tx.currency);
             if (index >= 0 && index < NUM_POINTS) {
@@ -182,7 +182,7 @@ const AccountDetail: React.FC<AccountDetailProps> = ({ account, transactions, al
     
         const transactionsInPeriod = transactions.filter(tx => {
             if (tx.accountId !== account.id) return false;
-            const txDate = new Date(tx.date);
+            const txDate = new Date(tx.date.replace(/-/g, '/'));
             return txDate >= start && txDate <= end;
         });
     

@@ -15,11 +15,6 @@ interface WarrantsProps {
   saveScraperConfig: (config: ScraperConfig) => void;
 }
 
-const MOCK_WARRANT_PRICES: Record<string, number> = {
-  'NL0015001WR5': 14.50,
-  'BE0974344568': 8.75,
-};
-
 const COLORS = ['#6366F1', '#FBBF24', '#10B981', '#EF4444', '#3B82F6', '#8B5CF6'];
 
 const SkeletonLoader: React.FC<{ className?: string }> = ({ className = 'w-24' }) => (
@@ -36,24 +31,49 @@ const Warrants: React.FC<WarrantsProps> = ({ warrants, saveWarrant, deleteWarran
 
     const refreshPrices = useCallback(async () => {
         setIsLoading(true);
-        // Simulate network delay
-        await new Promise(resolve => setTimeout(resolve, 1500));
+    
+        const scrapePrice = async (config: ScraperConfig): Promise<{ isin: string, price: number | null }> => {
+            try {
+                const response = await fetch(config.resource.url);
+                if (!response.ok) throw new Error(`Request failed with status ${response.status}`);
+                
+                const htmlString = await response.text();
+                const parser = new DOMParser();
+                const doc = parser.parseFromString(htmlString, 'text/html');
+                
+                const elements = doc.querySelectorAll(config.options.select);
+                if (elements.length === 0 || config.options.index >= elements.length) {
+                    throw new Error(`Element not found with selector "${config.options.select}" and index ${config.options.index}.`);
+                }
+                
+                const targetElement = elements[config.options.index];
+                const rawValue = config.options.attribute ? targetElement.getAttribute(config.options.attribute) : targetElement.textContent;
+    
+                if (!rawValue) throw new Error('No value or text content found in the selected element.');
+                
+                const priceString = rawValue.match(/[0-9.,\s]+/)?.[0]?.trim() || '';
+                if (!priceString) throw new Error(`Could not find a number in the raw value: "${rawValue}"`);
+                
+                const numberString = priceString.replace(/\./g, '').replace(',', '.');
+                const price = parseFloat(numberString);
+    
+                if (isNaN(price)) throw new Error(`Could not parse a valid number from: "${rawValue}"`);
+                
+                return { isin: config.id, price };
+            } catch (error: any) {
+                console.error(`Error scraping ${config.id} from ${config.resource.url}:`, error.message);
+                return { isin: config.id, price: null };
+            }
+        };
+        
+        const pricePromises = scraperConfigs.map(scrapePrice);
+        
+        const results = await Promise.all(pricePromises);
         
         const newPrices: Record<string, number | null> = {};
-        const uniqueIsins = [...new Set(warrants.map(w => w.isin))];
-        
-        uniqueIsins.forEach((isin: string) => {
-            const config = scraperConfigs.find(c => c.id === isin);
-            if (config) {
-                // Simulate scraping
-                const basePrice = MOCK_WARRANT_PRICES[isin] || 10;
-                const randomFactor = 1 + (Math.random() - 0.5) * 0.2; // +/- 10%
-                newPrices[isin] = parseFloat((basePrice * randomFactor).toFixed(2));
-            } else {
-                newPrices[isin] = null;
-            }
-        });
-
+        warrants.forEach(w => { newPrices[w.isin] = null; });
+        results.forEach(result => { newPrices[result.isin] = result.price; });
+    
         setPrices(newPrices);
         setLastUpdated(new Date());
         setIsLoading(false);

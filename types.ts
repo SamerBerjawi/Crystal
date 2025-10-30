@@ -1,6 +1,6 @@
 import React from 'react';
 
-export type Page = 'Dashboard' | 'Accounts' | 'Transactions' | 'Budget' | 'Forecasting' | 'Settings' | 'Schedule' | 'Payment Plan' | 'Tasks' | 'Categories' | 'Tags' | 'Personal Info' | 'Data Management' | 'Preferences' | 'Enable Banking' | 'AccountDetail' | 'Investments' | 'Warrants';
+export type Page = 'Dashboard' | 'Accounts' | 'Transactions' | 'Budget' | 'Forecasting' | 'Settings' | 'Schedule & Bills' | 'Tasks' | 'Categories' | 'Tags' | 'Personal Info' | 'Data Management' | 'Preferences' | 'Enable Banking' | 'AccountDetail' | 'Investments' | 'Warrants' | 'User Management';
 
 export type AccountType = 'Checking' | 'Savings' | 'Credit Card' | 'Investment' | 'Loan' | 'Property' | 'Crypto' | 'Vehicle' | 'Other Assets' | 'Other Liabilities';
 
@@ -39,6 +39,7 @@ export interface Account {
   enableBankingId?: string;
   enableBankingInstitution?: string;
   lastSync?: string;
+  sureId?: string;
 }
 
 export type RecurrenceFrequency = 'daily' | 'weekly' | 'monthly' | 'yearly';
@@ -75,6 +76,7 @@ export interface Transaction {
   transferId?: string;
   recurringSourceId?: string;
   importId?: string;
+  sureId?: string;
 }
 
 export interface InvestmentTransaction {
@@ -100,6 +102,12 @@ export interface User {
   lastName: string;
   email: string;
   profilePictureUrl: string;
+  role: 'Administrator' | 'Member';
+  phone?: string;
+  address?: string;
+  is2FAEnabled: boolean;
+  status: 'Active' | 'Inactive';
+  lastLogin: string;
 }
 
 export interface Widget {
@@ -211,21 +219,38 @@ export interface EnableBankingSettings {
   syncFrequency: 'daily' | 'twice_daily';
 }
 
-export interface Backup {
-  id: string;
-  date: string;
-  data: {
+// New types for Bills & Payments
+export type BillPaymentStatus = 'unpaid' | 'paid';
+
+export interface BillPayment {
+    id: string;
+    description: string;
+    amount: number; // positive for deposit, negative for payment
+    type: 'deposit' | 'payment';
+    currency: Currency;
+    dueDate: string;
+    status: BillPaymentStatus;
+    accountId?: string; // The account it was paid from/to
+}
+
+
+// FIX: Move FinancialData interface from App.tsx to types.ts to resolve import error in mockData.ts
+export interface FinancialData {
     accounts: Account[];
     transactions: Transaction[];
-    budgets: Budget[];
+    investmentTransactions: InvestmentTransaction[];
     recurringTransactions: RecurringTransaction[];
+    financialGoals: FinancialGoal[];
+    budgets: Budget[];
+    tasks: Task[];
+    warrants: Warrant[];
+    scraperConfigs: ScraperConfig[];
+    importExportHistory: ImportExportHistoryItem[];
     incomeCategories: Category[];
     expenseCategories: Category[];
-    financialGoals: FinancialGoal[];
-    importExportHistory: ImportExportHistoryItem[];
-    investmentTransactions: InvestmentTransaction[];
-    scraperConfigs: ScraperConfig[];
-  };
+    preferences: AppPreferences;
+    enableBankingSettings: EnableBankingSettings;
+    billsAndPayments: BillPayment[];
 }
 
 // New types for Tasks feature

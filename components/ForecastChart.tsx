@@ -1,5 +1,5 @@
 import React from 'react';
-import { AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, ReferenceLine, Label } from 'recharts';
+import { AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, ReferenceLine, Label, ReferenceDot } from 'recharts';
 import { formatCurrency } from '../utils';
 import { FinancialGoal } from '../types';
 
@@ -11,6 +11,10 @@ interface ChartData {
 interface ForecastChartProps {
   data: ChartData[];
   oneTimeGoals: FinancialGoal[];
+  lowestPoint: {
+      value: number;
+      date: string;
+  };
 }
 
 const CustomTooltip = ({ active, payload, label }: any) => {
@@ -29,7 +33,7 @@ const CustomTooltip = ({ active, payload, label }: any) => {
     return null;
 };
 
-const ForecastChart: React.FC<ForecastChartProps> = ({ data, oneTimeGoals }) => {
+const ForecastChart: React.FC<ForecastChartProps> = ({ data, oneTimeGoals, lowestPoint }) => {
   if (!data || data.length === 0) {
     return <div className="flex items-center justify-center h-full text-light-text-secondary dark:text-dark-text-secondary">Select accounts and a period to generate a forecast.</div>;
   }
@@ -59,7 +63,7 @@ const ForecastChart: React.FC<ForecastChartProps> = ({ data, oneTimeGoals }) => 
             fontSize={12} 
             tickFormatter={(value) => formatCurrency(value as number, 'EUR').replace(/\.00$/, '').replace('€', '€ ')}
             domain={['dataMin', 'dataMax']}
-            width={80}
+            width={90}
           />
           <Tooltip content={<CustomTooltip />} />
           <ReferenceLine y={0} stroke="currentColor" strokeDasharray="4 4" opacity={0.5} />
@@ -68,6 +72,19 @@ const ForecastChart: React.FC<ForecastChartProps> = ({ data, oneTimeGoals }) => 
                   <Label value={goal.name} position="insideTopRight" fill="#FBBF24" fontSize={12} angle={-90} dx={10} dy={10} />
               </ReferenceLine>
           ))}
+          {data.length > 0 && lowestPoint && (
+              <ReferenceDot
+                  x={lowestPoint.date}
+                  y={lowestPoint.value}
+                  r={8}
+                  fill="#F97316"
+                  stroke="white"
+                  strokeWidth={2}
+                  isFront={true}
+              >
+                  <Label value="Lowest Point" position="top" offset={15} fill="#F97316" fontSize={12} fontWeight="bold" />
+              </ReferenceDot>
+          )}
           <Area type="monotone" dataKey="value" name="Projected Balance" stroke="#6366F1" fill="url(#colorValue)" strokeWidth={2.5} dot={false} activeDot={{ r: 5 }} />
         </AreaChart>
       </ResponsiveContainer>

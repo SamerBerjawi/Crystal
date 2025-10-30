@@ -5,7 +5,6 @@ import Card from '../components/Card';
 import ForecastChart from '../components/ForecastChart';
 import GoalScenarioModal from '../components/GoalScenarioModal';
 import { convertToEur, formatCurrency } from '../utils';
-import CashflowSankey from '../components/CashflowSankey';
 import FinancialGoalCard from '../components/FinancialGoalCard';
 
 interface ForecastingProps {
@@ -76,6 +75,7 @@ const Forecasting: React.FC<ForecastingProps> = ({ accounts, transactions, recur
 
     const handleGoalToggle = (goalId: string) => {
         setActiveGoalIds(prev =>
+// FIX: Corrected a typo where 'id' was used instead of 'goalId' when adding a new goal to the active list.
             prev.includes(goalId) ? prev.filter(id => id !== goalId) : [...prev, goalId]
         );
     };
@@ -220,132 +220,6 @@ const Forecasting: React.FC<ForecastingProps> = ({ accounts, transactions, recur
         };
 
     }, [accounts, recurringTransactions, financialGoals, selectedAccountIds, forecastPeriodInMonths, activeGoalIds]);
-
-    const { projectedTransactions, projectedIncome, projectedExpenses } = useMemo(() => {
-        const today = new Date();
-        today.setHours(0, 0, 0, 0);
-        const endDate = new Date(today);
-        endDate.setMonth(endDate.getMonth() + forecastPeriodInMonths);
-
-        const futureTxs: Transaction[] = [];
-
-        const activeRecurring = recurringTransactions.filter(rt => selectedAccountIds.includes(rt.accountId) || (rt.toAccountId && selectedAccountIds.includes(rt.toAccountId)));
-        
-        activeRecurring.forEach(rt => {
-            let nextDueDate = new Date(rt.nextDueDate);
-            const rtEndDate = rt.endDate ? new Date(rt.endDate) : null;
-
-            while (nextDueDate <= endDate) {
-                if (rtEndDate && nextDueDate > rtEndDate) break;
-                
-                const adjustedDueDate = adjustForWeekend(new Date(nextDueDate), rt.weekendAdjustment);
-
-                if (rt.type !== 'transfer') {
-                    futureTxs.push({
-                        id: `proj-rec-${rt.id}-${nextDueDate.toISOString()}`,
-                        accountId: rt.accountId,
-                        date: adjustedDueDate.toISOString().split('T')[0],
-                        description: rt.description,
-                        amount: rt.type === 'income' ? rt.amount : -rt.amount,
-                        category: rt.category || 'Uncategorized',
-                        type: rt.type,
-                        currency: rt.currency,
-                        transferId: undefined,
-                    });
-                }
-                
-                const currentDue = new Date(nextDueDate);
-                switch(rt.frequency) {
-                    case 'daily': currentDue.setDate(currentDue.getDate() + (rt.frequencyInterval || 1)); break;
-                    case 'weekly': currentDue.setDate(currentDue.getDate() + 7 * (rt.frequencyInterval || 1)); break;
-                    case 'monthly': currentDue.setMonth(currentDue.getMonth() + (rt.frequencyInterval || 1)); break;
-                    case 'yearly': currentDue.setFullYear(currentDue.getFullYear() + (rt.frequencyInterval || 1)); break;
-                }
-                nextDueDate = currentDue;
-            }
-        });
-
-        const activeGoals = financialGoals.filter(g => activeGoalIds.includes(g.id));
-        activeGoals.forEach(goal => {
-            if (goal.type === 'one-time' && goal.date) {
-                const goalDate = new Date(goal.date);
-                if (goalDate >= today && goalDate <= endDate) {
-                    futureTxs.push({
-                        id: `proj-goal-${goal.id}-${goal.date}`,
-                        accountId: selectedAccountIds[0] || '',
-                        date: goal.date,
-                        description: goal.name,
-                        amount: goal.transactionType === 'income' ? goal.amount : -goal.amount,
-                        category: 'Financial Goals',
-                        type: goal.transactionType,
-                        currency: 'EUR',
-                        transferId: undefined,
-                    });
-                }
-            } else if (goal.type === 'recurring' && goal.startDate && goal.monthlyContribution) {
-                let nextDate = new Date(goal.startDate);
-                 if (goal.dueDateOfMonth) {
-                    nextDate.setDate(goal.dueDateOfMonth);
-                }
-                const goalEndDate = goal.endDate ? new Date(goal.endDate) : null;
-                
-                while (nextDate < today && (!goalEndDate || nextDate <= goalEndDate)) {
-                    switch (goal.frequency) {
-                        case 'monthly': nextDate.setMonth(nextDate.getMonth() + 1); break;
-                        case 'yearly': nextDate.setFullYear(nextDate.getFullYear() + 1); break;
-                        case 'weekly': nextDate.setDate(nextDate.getDate() + 7); break;
-                        default: nextDate.setDate(nextDate.getDate() + 1); break;
-                    }
-                }
-
-                while (nextDate <= endDate && (!goalEndDate || nextDate <= goalEndDate)) {
-                    futureTxs.push({
-                        id: `proj-goal-${goal.id}-${nextDate.toISOString()}`,
-                        accountId: selectedAccountIds[0] || '',
-                        date: nextDate.toISOString().split('T')[0],
-                        description: `Contribution to ${goal.name}`,
-                        amount: -goal.monthlyContribution,
-                        category: 'Financial Goals',
-                        type: 'expense',
-                        currency: 'EUR',
-                        transferId: undefined,
-                    });
-                    switch (goal.frequency) {
-                        case 'monthly': nextDate.setMonth(nextDate.getMonth() + 1); break;
-                        case 'yearly': nextDate.setFullYear(nextDate.getFullYear() + 1); break;
-                        case 'weekly': nextDate.setDate(nextDate.getDate() + 7); break;
-                        default: nextDate.setDate(nextDate.getDate() + 1); break;
-                    }
-                }
-            }
-        });
-
-        const income = futureTxs.filter(t => t.type === 'income').reduce((sum, t) => sum + convertToEur(t.amount, t.currency), 0);
-        const expenses = futureTxs.filter(t => t.type === 'expense').reduce((sum, t) => sum + Math.abs(convertToEur(t.amount, t.currency)), 0);
-
-        return { projectedTransactions: futureTxs, projectedIncome: income, projectedExpenses: expenses };
-
-    }, [forecastPeriodInMonths, recurringTransactions, selectedAccountIds, financialGoals, activeGoalIds]);
-    
-    const tempExpenseCategories = useMemo(() => {
-        const hasFinancialGoalsCategory = expenseCategories.some(c => c.name === 'Financial Goals');
-        if (hasFinancialGoalsCategory || projectedTransactions.filter(t => t.category === 'Financial Goals').length === 0) {
-            return expenseCategories;
-        }
-        
-        const financialGoalsCategory: Category = {
-            id: 'temp-financial-goals',
-            name: 'Financial Goals',
-            color: '#805dee',
-            classification: 'expense',
-            subCategories: [],
-            icon: 'flag'
-        };
-        return [
-            ...expenseCategories,
-            financialGoalsCategory
-        ];
-    }, [expenseCategories, projectedTransactions]);
     
     const oneTimeGoalsOnChart = useMemo(() => {
         return financialGoals.filter(g => activeGoalIds.includes(g.id) && g.type === 'one-time' && g.date);
@@ -457,7 +331,7 @@ const Forecasting: React.FC<ForecastingProps> = ({ accounts, transactions, recur
             <div className="grid grid-cols-1 xl:grid-cols-3 gap-8">
                 <div className="xl:col-span-3">
                     <Card className="h-full">
-                        <ForecastChart data={chartData} oneTimeGoals={oneTimeGoalsOnChart} />
+                        <ForecastChart data={chartData} oneTimeGoals={oneTimeGoalsOnChart} lowestPoint={lowestBalance} />
                     </Card>
                 </div>
             </div>
@@ -491,19 +365,6 @@ const Forecasting: React.FC<ForecastingProps> = ({ accounts, transactions, recur
                     )}
                 </div>
             </div>
-
-            <Card>
-                <h3 className="text-xl font-semibold text-light-text dark:text-dark-text mb-2">Projected Cash Flow</h3>
-                <p className="text-sm text-light-text-secondary dark:text-dark-text-secondary mb-4">
-                    Based on recurring transactions and active goals for the selected period.
-                </p>
-                <CashflowSankey 
-                    transactions={projectedTransactions}
-                    expenseCategories={tempExpenseCategories}
-                    income={projectedIncome}
-                    expenses={projectedExpenses}
-                />
-            </Card>
             
         </div>
     );

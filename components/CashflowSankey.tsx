@@ -1,7 +1,7 @@
 import React, { useMemo } from 'react';
 import { ResponsiveContainer, Sankey, Tooltip } from 'recharts';
 import { Transaction, Category, SankeyNode as SankeyNodeType, SankeyLink } from '../types';
-import { formatCurrency, convertToEur } from '../utils';
+import { convertToEur } from '../utils';
 import SankeyNode from './SankeyNode';
 
 interface CashflowSankeyProps {
@@ -12,60 +12,93 @@ interface CashflowSankeyProps {
 }
 
 // Custom link component for gradients
-const CustomLink = ({ sourceX, sourceY, sourceControlX, targetX, targetY, targetControlX, linkWidth, index, payload }: any) => {
-    const path = `M${sourceX},${sourceY}C${sourceControlX},${sourceY} ${targetControlX},${targetY} ${targetX},${targetY}`;
-    const gradientId = `gradient-${index}`;
+const CustomLink = ({ sourceX, sourceY, sourceControlX, targetX, targetY, targetControlX, linkWidth, index, payload, nodes }: any) => {
+    const gradientId = `gradient-link-${index}`;
+    
+    const path = `
+        M${sourceX},${sourceY}
+        C${sourceControlX},${sourceY}
+        ${targetControlX},${targetY}
+        ${targetX},${targetY}
+        L${targetX},${targetY + linkWidth}
+        C${targetControlX},${targetY + linkWidth}
+        ${sourceControlX},${sourceY + linkWidth}
+        ${sourceX},${sourceY + linkWidth}
+        Z
+    `;
+
+    if (!nodes || !payload || payload.source === undefined || payload.target === undefined) {
+        return <path d={path} fill="#E5E7EB" opacity={0.6} strokeWidth="0" />;
+    }
+
+    const sourceNode = nodes[payload.source];
+    const targetNode = nodes[payload.target];
+
+    if (!sourceNode || !targetNode) {
+        return <path d={path} fill="#E5E7EB" opacity={0.6} strokeWidth="0" />;
+    }
+
+    const sourceColor = sourceNode.color;
+    const targetColor = targetNode.color;
 
     return (
-        <>
+        <g>
             <defs>
-                <linearGradient id={gradientId} x1="0%" y1="0%" x2="100%" y2="0%">
-                    <stop offset="5%" stopColor={payload.sourceColor} stopOpacity={0.6} />
-                    <stop offset="95%" stopColor={payload.targetColor} stopOpacity={0.4} />
+                <linearGradient id={gradientId} gradientUnits="userSpaceOnUse" x1={sourceX} y1={sourceY} x2={targetX} y2={targetY}>
+                    <stop offset="0%" stopColor={sourceColor} stopOpacity={0.7} />
+                    <stop offset="100%" stopColor={targetColor} stopOpacity={0.7} />
                 </linearGradient>
             </defs>
             <path
                 d={path}
-                fill="none"
-                stroke={`url(#${gradientId})`}
-                strokeWidth={linkWidth}
+                fill={`url(#${gradientId})`}
+                strokeWidth="0"
             />
-        </>
+        </g>
     );
 };
 
 const findParentCategory = (categoryName: string, categories: Category[]): Category | undefined => {
     for (const cat of categories) {
-        if (cat.name === categoryName) return cat; // It's a parent itself
-        // FIX: Explicitly type `forEach` parameter to resolve 'unknown' type error.
+        if (cat.name === categoryName) return cat;
         const foundInSub = cat.subCategories.find((sub: Category) => sub.name === categoryName);
         if (foundInSub) return cat;
     }
-    // FIX: Corrected typo from undefiend to undefined.
     return undefined;
 };
 
 const CashflowSankey: React.FC<CashflowSankeyProps> = ({ transactions, expenseCategories, income, expenses }) => {
 
     const sankeyData = useMemo(() => {
-        type NodeWithColor = SankeyNodeType & { color: string };
-        type LinkWithColor = Omit<SankeyLink, 'color'> & { sourceColor: string; targetColor: string };
-
+        type NodeWithColor = SankeyNodeType & { color: string, value?: number };
         const nodes: NodeWithColor[] = [];
-        const links: LinkWithColor[] = [];
+        const links: Omit<SankeyLink, 'color'>[] = [];
+        const nodeMap = new Map<string, number>();
 
-        const incomeColor = '#22C55E'; // Green
-        const deficitColor = '#EF4444'; // Red
-        const surplus = income - expenses;
-        const cashflowColor = surplus >= 0 ? '#6366F1' : deficitColor; 
+        const addNode = (name: string, color: string) => {
+            if (!nodeMap.has(name)) {
+                nodeMap.set(name, nodes.length);
+                nodes.push({ name, color });
+            }
+            return nodeMap.get(name)!;
+        };
 
-        // --- NODES ---
-        nodes.push({ name: 'Income', color: incomeColor });
-        nodes.push({ name: 'Cash Flow', color: cashflowColor });
+        const incomeColor = '#22C55E';
+        const cashFlowColor = '#6366F1';
+        const surplusColor = '#10B981';
+        const deficitColor = '#EF4444';
 
+        // 1. Add Core Nodes
+        const incomeNodeIndex = addNode('Income', incomeColor);
+        const cashFlowNodeIndex = addNode('Cash Flow', cashFlowColor);
+
+        // 2. Process expenses and add expense nodes
+        // The reduce<T>() syntax for generics is not supported in this environment. Switched to typing the accumulator argument `acc` instead. This resolves cascading type errors.
+        // The type of `acc` was not being correctly inferred. Typing the initial value of `reduce` ensures `expenseByParentCategory` has the correct type.
         const expenseByParentCategory = transactions
             .filter(tx => tx.type === 'expense' && !tx.transferId)
-            .reduce((acc, tx) => {
+            // FIX: Explicitly typing the accumulator `acc` ensures that `expenseByParentCategory` has the correct type, resolving subsequent type errors.
+            .reduce((acc: Record<string, { value: number, color: string }>, tx) => {
                 const parentCat = findParentCategory(tx.category, expenseCategories);
                 const categoryName = parentCat ? parentCat.name : 'Miscellaneous';
                 const color = parentCat ? parentCat.color : '#A0AEC0';
@@ -74,97 +107,57 @@ const CashflowSankey: React.FC<CashflowSankeyProps> = ({ transactions, expenseCa
                 }
                 acc[categoryName].value += Math.abs(convertToEur(tx.amount, tx.currency));
                 return acc;
-            }, {} as { [key: string]: { value: number, color: string } });
+            }, {});
 
-        // FIX: Explicitly type sort parameters to resolve 'unknown' type errors.
-        const sortedExpenses = Object.entries(expenseByParentCategory)
-            .sort(([, a]: [string, any], [, b]: [string, any]) => b.value - a.value)
-            .slice(0, 7);
+        // The type of `b[1]` was 'unknown' due to the previous error. With the reduce function fixed, this now correctly infers the type.
+        const sortedExpenses = Object.entries(expenseByParentCategory).sort((a, b) => b[1].value - a[1].value);
 
-        // FIX: Explicitly type forEach parameter to resolve 'unknown' type errors.
-        sortedExpenses.forEach(([name, data]: [string, any]) => {
-            nodes.push({ name, color: data.color });
+        // The type of `data` was 'unknown'. This is also resolved by fixing the initial `reduce` function.
+        sortedExpenses.forEach(([name, data]) => {
+            if (data.value > 0) addNode(name, data.color);
         });
         
-        // FIX: Explicitly type reduce parameter to resolve 'unknown' type error.
-        const totalLinkedExpenses = sortedExpenses.reduce((sum, [, data]: [string, any]) => sum + data.value, 0);
-        const otherExpenses = expenses - totalLinkedExpenses;
-        if (otherExpenses > 1) {
-            const miscIndex = nodes.findIndex(n => n.name === 'Miscellaneous');
-            if (miscIndex === -1) {
-                nodes.push({ name: 'Miscellaneous', color: '#A0AEC0' });
-            }
+        const surplus = income - expenses;
+        if (surplus > 0) {
+            addNode('Surplus', surplusColor);
         }
+
+        // 3. Create Links
+        if (income > 0) {
+            links.push({ source: incomeNodeIndex, target: cashFlowNodeIndex, value: income });
+        }
+        
+        sortedExpenses.forEach(([name, data]) => {
+            if (data.value > 0) {
+                const targetIndex = nodeMap.get(name)!;
+                links.push({ source: cashFlowNodeIndex, target: targetIndex, value: data.value });
+            }
+        });
 
         if (surplus > 0) {
-            nodes.push({ name: 'Surplus', color: incomeColor });
+            const surplusIndex = nodeMap.get('Surplus')!;
+            links.push({ source: cashFlowNodeIndex, target: surplusIndex, value: surplus });
         }
         
-        // --- LINKS ---
-        const incomeNodeIndex = 0;
-        const cashFlowNodeIndex = 1;
-
-        // 1. Income to Cash Flow
-        links.push({
-            source: incomeNodeIndex,
-            target: cashFlowNodeIndex,
-            value: income,
-            sourceColor: nodes[incomeNodeIndex].color,
-            targetColor: nodes[cashFlowNodeIndex].color,
+        // Add values to nodes for display
+        nodes.forEach((node) => {
+            // FIX: Explicitly type 'l' in reduce callback to fix 'unknown' type error.
+            const totalOut = links.filter(l => l.source === nodeMap.get(node.name)).reduce((sum, l: Omit<SankeyLink, 'color'>) => sum + l.value, 0);
+            // FIX: Explicitly type 'l' in reduce callback to fix 'unknown' type error.
+            const totalIn = links.filter(l => l.target === nodeMap.get(node.name)).reduce((sum, l: Omit<SankeyLink, 'color'>) => sum + l.value, 0);
+            node.value = Math.max(totalIn, totalOut);
         });
         
-        // 2. Cash Flow to Expenses
-        // FIX: Explicitly type forEach parameter to resolve 'unknown' type errors.
-        sortedExpenses.forEach(([name, data]: [string, any]) => {
-            const targetIndex = nodes.findIndex(n => n.name === name);
-            if (targetIndex !== -1) {
-                links.push({
-                    source: cashFlowNodeIndex,
-                    target: targetIndex,
-                    value: data.value,
-                    sourceColor: nodes[cashFlowNodeIndex].color,
-                    targetColor: nodes[targetIndex].color,
-                });
-            }
-        });
-        
-        if (otherExpenses > 1) {
-            const miscIndex = nodes.findIndex(n => n.name === 'Miscellaneous');
-            if(miscIndex !== -1) {
-                const existingLink = links.find(l => l.target === miscIndex);
-                if (existingLink) {
-                    existingLink.value += otherExpenses;
-                } else {
-                    links.push({
-                        source: cashFlowNodeIndex,
-                        target: miscIndex,
-                        value: otherExpenses,
-                        sourceColor: nodes[cashFlowNodeIndex].color,
-                        targetColor: nodes[miscIndex].color,
-                    });
-                }
-            }
-        }
-
-        // 3. Cash Flow to Surplus
-        if (surplus > 0) {
-            const surplusIndex = nodes.findIndex(n => n.name === 'Surplus');
-            if (surplusIndex !== -1) {
-                 links.push({
-                    source: cashFlowNodeIndex,
-                    target: surplusIndex,
-                    value: surplus,
-                    sourceColor: nodes[cashFlowNodeIndex].color,
-                    targetColor: nodes[surplusIndex].color,
-                });
-            }
+        // Handle deficit case where income is less than expenses
+        if (income > 0 && surplus < 0) {
+            nodes[cashFlowNodeIndex].color = deficitColor;
         }
 
         return { nodes, links };
     }, [income, expenses, transactions, expenseCategories]);
 
     if (income === 0 && expenses === 0) {
-        return <div className="flex items-center justify-center h-full text-light-text-secondary dark:text-dark-text-secondary">No data for this period.</div>
+        return <div className="flex items-center justify-center h-full text-light-text-secondary dark:text-dark-text-secondary">No projected cash flow data for this period.</div>;
     }
 
     return (
@@ -173,9 +166,10 @@ const CashflowSankey: React.FC<CashflowSankeyProps> = ({ transactions, expenseCa
                 <Sankey
                     data={sankeyData}
                     node={<SankeyNode />}
-                    link={<CustomLink />}
+                    link={<CustomLink nodes={sankeyData.nodes} />}
                     nodePadding={50}
                     margin={{ top: 20, right: 120, bottom: 20, left: 120 }}
+                    iterations={32}
                 >
                     <Tooltip />
                 </Sankey>

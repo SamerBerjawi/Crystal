@@ -66,13 +66,13 @@ const NetWorthChart: React.FC<NetWorthChartProps> = ({ data, lineColor = '#6366F
         >
           <defs>
             <linearGradient id={gradientId} x1="0" y1="0" x2="0" y2="1">
-              <stop offset="5%" stopColor={lineColor} stopOpacity={0.4}/>
-              <stop offset="95%" stopColor={lineColor} stopOpacity={0}/>
+              <stop offset="5%" stopColor={lineColor} stopOpacity={0.8}/>
+              <stop offset="95%" stopColor={lineColor} stopOpacity={0.1}/>
             </linearGradient>
           </defs>
           <CartesianGrid strokeDasharray="3 3" stroke="currentColor" opacity={0.1} vertical={false} />
           <XAxis dataKey="name" stroke="currentColor" opacity={0.6} fontSize={12} tickFormatter={tickFormatter} minTickGap={40} axisLine={false} tickLine={false} />
-          <YAxis stroke="currentColor" opacity={0.6} fontSize={12} tickFormatter={yAxisTickFormatter} axisLine={false} tickLine={false} width={60} />
+          <YAxis stroke="currentColor" opacity={0.6} fontSize={12} tickFormatter={yAxisTickFormatter} axisLine={false} tickLine={false} width={80} />
           <Tooltip 
             cursor={{ stroke: lineColor, strokeWidth: 1, strokeDasharray: '3 3' }}
             content={<CustomTooltip />} 

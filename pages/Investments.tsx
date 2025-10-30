@@ -4,6 +4,7 @@ import { BTN_PRIMARY_STYLE } from '../constants';
 import Card from '../components/Card';
 import { formatCurrency } from '../utils';
 import AddInvestmentTransactionModal from '../components/AddInvestmentTransactionModal';
+import PortfolioDistributionChart from '../components/PortfolioDistributionChart';
 
 interface InvestmentsProps {
     investmentAccounts: Account[];
@@ -22,6 +23,8 @@ const MOCK_CURRENT_PRICES: Record<string, number> = {
   'BTC': 68000.00,
 };
 
+const COLORS = ['#6366F1', '#FBBF24', '#10B981', '#EF4444', '#3B82F6', '#8B5CF6'];
+
 const InvestmentSummaryCard: React.FC<{ title: string; value: string; change?: string; changeColor?: string; icon: string }> = ({ title, value, change, changeColor, icon }) => (
     <Card className="flex items-start justify-between">
         <div>
@@ -39,7 +42,7 @@ const Investments: React.FC<InvestmentsProps> = ({ investmentAccounts, cashAccou
     const [isModalOpen, setIsModalOpen] = useState(false);
     const [editingTransaction, setEditingTransaction] = useState<InvestmentTransaction | null>(null);
 
-    const { holdings, totalValue, totalCostBasis } = useMemo(() => {
+    const { holdings, totalValue, totalCostBasis, distributionData } = useMemo(() => {
         const holdingsMap: Record<string, {
             symbol: string;
             name: string;
@@ -74,7 +77,16 @@ const Investments: React.FC<InvestmentsProps> = ({ investmentAccounts, cashAccou
         
         const totalCostBasis = filteredHoldings.reduce((sum, holding) => sum + holding.totalCost, 0);
 
-        return { holdings: filteredHoldings, totalValue, totalCostBasis };
+        const distributionData = filteredHoldings.map((holding, index) => {
+            const currentPrice = MOCK_CURRENT_PRICES[holding.symbol] || 0;
+            return {
+                name: holding.symbol,
+                value: holding.quantity * currentPrice,
+                color: COLORS[index % COLORS.length]
+            };
+        }).filter(d => d.value > 0).sort((a,b) => b.value - a.value);
+
+        return { holdings: filteredHoldings, totalValue, totalCostBasis, distributionData };
     }, [investmentTransactions]);
 
     const handleOpenModal = (tx?: InvestmentTransaction) => {
@@ -119,12 +131,17 @@ const Investments: React.FC<InvestmentsProps> = ({ investmentAccounts, cashAccou
                 <InvestmentSummaryCard title="Investment Accounts" value={String(investmentAccounts.length)} icon="wallet" />
             </div>
             
-            <div className="grid grid-cols-1 xl:grid-cols-2 gap-8">
-                {/* Holdings Section */}
-                <div className="space-y-4">
-                     <h3 className="text-xl font-semibold">Holdings</h3>
-                     <Card>
-                         <div className="divide-y divide-black/5 dark:divide-white/5">
+            <div className="grid grid-cols-1 lg:grid-cols-5 gap-8">
+                <div className="lg:col-span-2">
+                    <Card className="h-full">
+                        <h3 className="text-xl font-semibold text-light-text dark:text-dark-text mb-4">Portfolio Distribution</h3>
+                        <PortfolioDistributionChart data={distributionData} totalValue={totalValue} />
+                    </Card>
+                </div>
+                <div className="lg:col-span-3">
+                    <Card>
+                        <h3 className="text-xl font-semibold text-light-text dark:text-dark-text mb-4">Holdings</h3>
+                        <div className="divide-y divide-black/5 dark:divide-white/5">
                             {holdings.map(holding => {
                                 const currentValue = (MOCK_CURRENT_PRICES[holding.symbol] || 0) * holding.quantity;
                                 const gainLoss = currentValue - holding.totalCost;
@@ -150,39 +167,36 @@ const Investments: React.FC<InvestmentsProps> = ({ investmentAccounts, cashAccou
                             )})}
                          </div>
                          {holdings.length === 0 && <p className="text-center py-8 text-light-text-secondary dark:text-dark-text-secondary">No holdings to display.</p>}
-                     </Card>
-                </div>
-
-                {/* Recent Transactions Section */}
-                <div className="space-y-4">
-                    <h3 className="text-xl font-semibold">Recent Transactions</h3>
-                    <Card>
-                        <table className="w-full text-left text-sm">
-                            <thead>
-                                <tr className="border-b border-black/10 dark:border-white/10">
-                                    <th className="p-2 font-semibold">Date</th>
-                                    <th className="p-2 font-semibold">Symbol</th>
-                                    <th className="p-2 font-semibold">Type</th>
-                                    <th className="p-2 font-semibold text-right">Amount</th>
-                                    <th className="p-2 font-semibold text-right">Total</th>
-                                </tr>
-                            </thead>
-                            <tbody>
-                                {sortedTransactions.slice(0, 10).map(tx => (
-                                <tr key={tx.id} className="border-b border-black/5 dark:border-white/5 last:border-b-0 hover:bg-black/5 dark:hover:bg-white/5">
-                                    <td className="p-2">{new Date(tx.date).toLocaleDateString()}</td>
-                                    <td className="p-2 font-bold">{tx.symbol}</td>
-                                    <td className={`p-2 font-semibold capitalize ${tx.type === 'buy' ? 'text-green-500' : 'text-red-500'}`}>{tx.type}</td>
-                                    <td className="p-2 text-right">{tx.quantity} @ {formatCurrency(tx.price, 'EUR')}</td>
-                                    <td className="p-2 font-semibold text-right">{formatCurrency(tx.quantity * tx.price, 'EUR')}</td>
-                                </tr>
-                                ))}
-                            </tbody>
-                        </table>
-                        {investmentTransactions.length === 0 && <p className="text-center py-8 text-light-text-secondary dark:text-dark-text-secondary">No investment transactions yet.</p>}
                     </Card>
                 </div>
             </div>
+
+            <Card>
+                <h3 className="text-xl font-semibold text-light-text dark:text-dark-text mb-4">Recent Transactions</h3>
+                <table className="w-full text-left text-sm">
+                    <thead>
+                        <tr className="border-b border-black/10 dark:border-white/10">
+                            <th className="p-2 font-semibold">Date</th>
+                            <th className="p-2 font-semibold">Symbol</th>
+                            <th className="p-2 font-semibold">Type</th>
+                            <th className="p-2 font-semibold text-right">Amount</th>
+                            <th className="p-2 font-semibold text-right">Total</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {sortedTransactions.slice(0, 10).map(tx => (
+                        <tr key={tx.id} className="border-b border-black/5 dark:border-white/5 last:border-b-0 hover:bg-black/5 dark:hover:bg-white/5">
+                            <td className="p-2">{new Date(tx.date).toLocaleDateString()}</td>
+                            <td className="p-2 font-bold">{tx.symbol}</td>
+                            <td className={`p-2 font-semibold capitalize ${tx.type === 'buy' ? 'text-green-500' : 'text-red-500'}`}>{tx.type}</td>
+                            <td className="p-2 text-right">{tx.quantity} @ {formatCurrency(tx.price, 'EUR')}</td>
+                            <td className="p-2 font-semibold text-right">{formatCurrency(tx.quantity * tx.price, 'EUR')}</td>
+                        </tr>
+                        ))}
+                    </tbody>
+                </table>
+                {investmentTransactions.length === 0 && <p className="text-center py-8 text-light-text-secondary dark:text-dark-text-secondary">No investment transactions yet.</p>}
+            </Card>
         </div>
     );
 };

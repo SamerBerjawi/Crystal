@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { BTN_PRIMARY_STYLE, INPUT_BASE_STYLE, FinuaLogo } from '../constants';
+import { BTN_PRIMARY_STYLE, INPUT_BASE_STYLE, FinauraLogo } from '../constants';
 import { Theme } from '../types';
 import Card from '../components/Card';
 
@@ -9,8 +9,8 @@ interface SignInProps {
 }
 
 const SignIn: React.FC<SignInProps> = ({ onSignIn, onNavigateToSignUp }) => {
-  const [email, setEmail] = useState('austin.hammond@example.com');
-  const [password, setPassword] = useState('password123');
+  const [email, setEmail] = useState('');
+  const [password, setPassword] = useState('');
   const theme = document.documentElement.classList.contains('dark') ? 'dark' : 'light';
 
   const handleSubmit = (e: React.FormEvent) => {
@@ -23,8 +23,8 @@ const SignIn: React.FC<SignInProps> = ({ onSignIn, onNavigateToSignUp }) => {
       <div className="w-full max-w-md">
         <div className="flex justify-center mb-6">
           <div className="flex items-center gap-3">
-            <FinuaLogo theme={theme as Theme} />
-            <span className="text-3xl font-bold text-light-text dark:text-white">Finua</span>
+            <FinauraLogo theme={theme as Theme} />
+            <span className="text-3xl font-bold text-light-text dark:text-white">Finaura</span>
           </div>
         </div>
         <Card>

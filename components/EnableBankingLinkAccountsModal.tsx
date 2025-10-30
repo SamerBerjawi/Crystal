@@ -1,26 +1,41 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import Modal from './Modal';
 import { Account, RemoteAccount } from '../types';
 import { BTN_PRIMARY_STYLE, BTN_SECONDARY_STYLE, SELECT_WRAPPER_STYLE, INPUT_BASE_STYLE, SELECT_ARROW_STYLE } from '../constants';
 import { formatCurrency } from '../utils';
 
 interface EnableBankingLinkAccountsModalProps {
+  // FIX: Add isOpen prop to control modal visibility from parent component.
+  isOpen: boolean;
   onClose: () => void;
   remoteAccounts: RemoteAccount[];
   existingAccounts: Account[];
   onLinkAndSync: (links: Record<string, string>) => void;
 }
 
-const EnableBankingLinkAccountsModal: React.FC<EnableBankingLinkAccountsModalProps> = ({ onClose, remoteAccounts, existingAccounts, onLinkAndSync }) => {
-  const [links, setLinks] = useState<Record<string, string>>(() =>
-    remoteAccounts.reduce((acc, ra) => {
-      acc[ra.id] = 'CREATE_NEW';
-      return acc;
-    }, {} as Record<string, string>)
-  );
+const EnableBankingLinkAccountsModal: React.FC<EnableBankingLinkAccountsModalProps> = ({ isOpen, onClose, remoteAccounts, existingAccounts, onLinkAndSync }) => {
+  // FIX: Initialize state to an empty object.
+  const [links, setLinks] = useState<Record<string, string>>({});
 
-  const handleLinkChange = (remoteAccountId: string, finuaAccountId: string) => {
-    setLinks(prev => ({ ...prev, [remoteAccountId]: finuaAccountId }));
+  // FIX: Use useEffect to reset the state when the modal is opened or when remoteAccounts change. This avoids violating hook rules.
+  useEffect(() => {
+    if (isOpen) {
+      setLinks(
+        remoteAccounts.reduce((acc, ra) => {
+          acc[ra.id] = 'CREATE_NEW';
+          return acc;
+        }, {} as Record<string, string>)
+      );
+    }
+  }, [isOpen, remoteAccounts]);
+
+  // FIX: Conditionally render the modal based on the isOpen prop, after hooks are called.
+  if (!isOpen) {
+    return null;
+  }
+
+  const handleLinkChange = (remoteAccountId: string, finauraAccountId: string) => {
+    setLinks(prev => ({ ...prev, [remoteAccountId]: finauraAccountId }));
   };
 
   const unlinkedAccounts = existingAccounts.filter(acc => !acc.enableBankingId);
@@ -33,7 +48,7 @@ const EnableBankingLinkAccountsModal: React.FC<EnableBankingLinkAccountsModalPro
     <Modal onClose={onClose} title="Link Found Accounts">
       <div className="space-y-4">
         <p className="text-sm text-light-text-secondary dark:text-dark-text-secondary">
-          We found {remoteAccounts.length} account(s) at the selected institution. Please link them to your Finua accounts or create new ones.
+          We found {remoteAccounts.length} account(s) at the selected institution. Please link them to your Finaura accounts or create new ones.
         </p>
         <div className="space-y-4 max-h-80 overflow-y-auto pr-2">
           {remoteAccounts.map(remoteAcc => (
@@ -49,11 +64,11 @@ const EnableBankingLinkAccountsModal: React.FC<EnableBankingLinkAccountsModalPro
                  <span className="material-symbols-outlined text-xl text-primary-500">link</span>
                  <div className={SELECT_WRAPPER_STYLE}>
                     <select
-                        value={links[remoteAcc.id]}
+                        value={links[remoteAcc.id] || 'CREATE_NEW'}
                         onChange={(e) => handleLinkChange(remoteAcc.id, e.target.value)}
                         className={INPUT_BASE_STYLE}
                     >
-                        <option value="CREATE_NEW">Create New Account in Finua</option>
+                        <option value="CREATE_NEW">Create New Account in Finaura</option>
                         <optgroup label="Link to Existing Account">
                             {unlinkedAccounts.map(existingAcc => (
                                 <option key={existingAcc.id} value={existingAcc.id}>

@@ -60,7 +60,7 @@ const Chatbot: React.FC<ChatbotProps> = ({ isOpen, onClose, financialData }) => 
               recurring_transactions: financialData.recurringTransactions.map(({ description, amount, type, frequency, nextDueDate }) => ({ description, amount, type, frequency, nextDueDate })),
           };
 
-          const systemInstruction = `You are a helpful personal finance assistant for an app called Finua. Analyze the user's financial data provided in the following JSON to answer their questions. Your answers must be short, straightforward, and easy to understand. Use markdown for emphasis if needed (e.g., **bold**). Avoid long paragraphs. Today's date is ${new Date().toLocaleDateString()}. Financial Data: ${JSON.stringify(dataSummary)}`;
+          const systemInstruction = `You are a helpful personal finance assistant for an app called Finaura. Analyze the user's financial data provided in the following JSON to answer their questions. Your answers must be short, straightforward, and easy to understand. Use markdown for emphasis if needed (e.g., **bold**). Avoid long paragraphs. Today's date is ${new Date().toLocaleDateString()}. Financial Data: ${JSON.stringify(dataSummary)}`;
           
           const newChat = ai.chats.create({
             model: 'gemini-flash-lite-latest',
@@ -70,7 +70,7 @@ const Chatbot: React.FC<ChatbotProps> = ({ isOpen, onClose, financialData }) => 
           });
           chatRef.current = newChat;
 
-          setMessages([{ sender: 'ai', text: "Hello! I'm your Finua AI assistant. How can I help you with your finances today?" }]);
+          setMessages([{ sender: 'ai', text: "Hello! I'm your Finaura AI assistant. How can I help you with your finances today?" }]);
         } catch (error) {
           console.error("Failed to initialize AI chat:", error);
           setMessages([{ sender: 'ai', text: "Sorry, I'm having trouble connecting right now. Please try again later." }]);
@@ -122,7 +122,7 @@ const Chatbot: React.FC<ChatbotProps> = ({ isOpen, onClose, financialData }) => 
     <div className="fixed bottom-24 right-6 w-full max-w-sm h-[60vh] z-50 flex flex-col">
       <div className="bg-light-card dark:bg-dark-card rounded-xl shadow-2xl border border-black/10 dark:border-white/10 flex flex-col h-full">
         <header className="flex items-center justify-between p-4 border-b border-black/10 dark:border-white/10">
-          <h2 className="text-lg font-semibold">Finua AI Assistant</h2>
+          <h2 className="text-lg font-semibold">Finaura AI Assistant</h2>
           <button onClick={onClose} className="p-1 rounded-full hover:bg-black/5 dark:hover:bg-white/5">
             <span className="material-symbols-outlined">close</span>
           </button>
@@ -131,7 +131,7 @@ const Chatbot: React.FC<ChatbotProps> = ({ isOpen, onClose, financialData }) => 
           {isLoading ? (
             <div className="flex justify-center items-center h-full">
               <div className="text-center text-light-text-secondary dark:text-dark-text-secondary">
-                <svg className="animate-spin h-6 w-6 mx-auto mb-2" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24"><circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle><path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path></svg>
+                <svg className="animate-spin h-6 w-6 mx-auto mb-2" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24"><circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle><path className="opacity-75" fill="currentColor" d="M4 12a8 8 * 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path></svg>
                 <p>Assistant is getting ready...</p>
               </div>
             </div>

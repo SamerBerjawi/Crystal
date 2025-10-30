@@ -1,8 +1,9 @@
 import React, { useState, useMemo } from 'react';
 import { Task, TaskStatus, TaskPriority } from '../types';
-import { BTN_PRIMARY_STYLE, INPUT_BASE_STYLE, SELECT_ARROW_STYLE, SELECT_WRAPPER_STYLE, BTN_SECONDARY_STYLE } from '../constants';
+import { BTN_PRIMARY_STYLE, INPUT_BASE_STYLE, SELECT_ARROW_STYLE, SELECT_WRAPPER_STYLE, BTN_SECONDARY_STYLE, BTN_DANGER_STYLE } from '../constants';
 import Card from '../components/Card';
 import Modal from '../components/Modal';
+import TasksHeatmap from '../components/TasksHeatmap';
 
 interface TasksProps {
   tasks: Task[];
@@ -19,7 +20,7 @@ const PRIORITY_STYLES: Record<TaskPriority, { text: string; bg: string }> = {
 const PRIORITY_ORDER: Record<TaskPriority, number> = { 'High': 3, 'Medium': 2, 'Low': 1 };
 const STATUS_ORDER: TaskStatus[] = ['To Do', 'In Progress', 'Done'];
 
-const TaskForm: React.FC<{ task?: Task | null, onSave: (task: Omit<Task, 'id'> & { id?: string }) => void, onClose: () => void }> = ({ task, onSave, onClose }) => {
+const TaskForm: React.FC<{ task?: Task | null, onSave: (task: Omit<Task, 'id'> & { id?: string }) => void, onClose: () => void, onDelete: (id: string) => void }> = ({ task, onSave, onClose, onDelete }) => {
     const [title, setTitle] = useState(task?.title || '');
     const [description, setDescription] = useState(task?.description || '');
     const [dueDate, setDueDate] = useState(task?.dueDate || '');
@@ -30,6 +31,12 @@ const TaskForm: React.FC<{ task?: Task | null, onSave: (task: Omit<Task, 'id'> &
     const handleSubmit = (e: React.FormEvent) => {
         e.preventDefault();
         onSave({ id: task?.id, title, description, dueDate, status, priority, reminderDate: dueDate ? reminderDate : '' });
+    };
+
+    const handleDelete = () => {
+        if (task?.id && window.confirm('Are you sure you want to delete this task?')) {
+            onDelete(task.id);
+        }
     };
 
     return (
@@ -91,9 +98,16 @@ const TaskForm: React.FC<{ task?: Task | null, onSave: (task: Omit<Task, 'id'> &
                         </div>
                     </div>
                 </div>
-                <div className="flex justify-end gap-4 pt-4">
-                    <button type="button" onClick={onClose} className={BTN_SECONDARY_STYLE}>Cancel</button>
-                    <button type="submit" className={BTN_PRIMARY_STYLE}>{task ? 'Save Changes' : 'Add Task'}</button>
+                <div className="flex justify-between items-center pt-4">
+                    <div>
+                        {task?.id && (
+                            <button type="button" onClick={handleDelete} className={BTN_DANGER_STYLE}>Delete Task</button>
+                        )}
+                    </div>
+                    <div className="flex gap-4">
+                        <button type="button" onClick={onClose} className={BTN_SECONDARY_STYLE}>Cancel</button>
+                        <button type="submit" className={BTN_PRIMARY_STYLE}>{task ? 'Save Changes' : 'Add Task'}</button>
+                    </div>
                 </div>
             </form>
         </Modal>
@@ -152,6 +166,11 @@ const Tasks: React.FC<TasksProps> = ({ tasks, saveTask, deleteTask }) => {
         saveTask(taskData);
         setIsModalOpen(false);
     };
+    
+    const handleDelete = (id: string) => {
+        deleteTask(id);
+        setIsModalOpen(false);
+    };
 
     const groupedAndSortedTasks = useMemo(() => {
         const grouped = tasks.reduce((acc, task) => {
@@ -177,7 +196,10 @@ const Tasks: React.FC<TasksProps> = ({ tasks, saveTask, deleteTask }) => {
 
     return (
         <div className="space-y-6">
-            {isModalOpen && <TaskForm task={editingTask} onSave={handleSave} onClose={() => setIsModalOpen(false)} />}
+            {isModalOpen && <TaskForm task={editingTask} onSave={handleSave} onClose={() => setIsModalOpen(false)} onDelete={handleDelete} />}
+            
+            <TasksHeatmap tasks={tasks} />
+
             <header className="flex flex-wrap justify-between items-center gap-4">
                 <div>
                     <h2 className="text-3xl font-bold">Tasks</h2>

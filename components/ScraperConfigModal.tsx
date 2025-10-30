@@ -64,14 +64,62 @@ const ScraperConfigModal: React.FC<ScraperConfigModalProps> = ({ isOpen, onClose
         onClose();
     };
 
-    const handleTest = () => {
+    const handleTest = async () => {
         setIsTesting(true);
         setTestResult(null);
-        setTimeout(() => {
-            const mockPrice = (Math.random() * 20 + 5).toFixed(2);
-            setTestResult(`Simulated scraped value: €${mockPrice}`);
+    
+        if (!resource.url || !options.select) {
+            setTestResult('Error: URL and Selector are required.');
             setIsTesting(false);
-        }, 1500);
+            return;
+        }
+    
+        try {
+            const response = await fetch(resource.url);
+            if (!response.ok) {
+                throw new Error(`Request failed with status ${response.status}`);
+            }
+            const htmlString = await response.text();
+            const parser = new DOMParser();
+            const doc = parser.parseFromString(htmlString, 'text/html');
+    
+            const elements = doc.querySelectorAll(options.select);
+            if (elements.length === 0 || options.index >= elements.length) {
+                throw new Error(`Element not found with selector "${options.select}" and index ${options.index}.`);
+            }
+            
+            const targetElement = elements[options.index];
+            const rawValue = options.attribute ? targetElement.getAttribute(options.attribute) : targetElement.textContent;
+    
+            if (!rawValue) {
+                throw new Error('No value or text content found in the selected element.');
+            }
+    
+            // Handle European number format (e.g., "13,61 €" -> 13.61)
+            const priceString = rawValue.match(/[0-9.,\s]+/)?.[0]?.trim() || '';
+            if (!priceString) {
+                throw new Error(`Could not find a number in the raw value: "${rawValue}"`);
+            }
+            
+            // Remove thousand separators (dots), then replace decimal comma with a dot
+            const numberString = priceString.replace(/\./g, '').replace(',', '.');
+            const price = parseFloat(numberString);
+    
+            if (isNaN(price)) {
+                throw new Error(`Could not parse a valid number from: "${rawValue}"`);
+            }
+    
+            setTestResult(`Successfully scraped value: €${price.toFixed(2)}`);
+        } catch (error: any) {
+            console.error('Scraping test failed:', error);
+            if (error.message.includes('Failed to fetch')) {
+                 setTestResult('Error: Failed to fetch the URL. This might be a CORS issue. Check the browser console for more details.');
+            } else {
+                 setTestResult(`Error: ${error.message}`);
+            }
+        } finally {
+            setIsTesting(false);
+        }
     };
 
     const labelStyle = "block text-sm font-medium text-light-text-secondary dark:text-dark-text-secondary mb-1";
@@ -139,7 +187,7 @@ const ScraperConfigModal: React.FC<ScraperConfigModalProps> = ({ isOpen, onClose
                                             {isTesting ? <svg className="animate-spin h-5 w-5" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24"><circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle><path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path></svg> : <span className="material-symbols-outlined">science</span>}
                                             Test
                                         </button>
-                                        {testResult && <p className="mt-2 text-sm p-2 bg-light-bg dark:bg-dark-bg rounded-md">{testResult}</p>}
+                                        {testResult && <p className={`mt-2 text-sm p-2 rounded-md ${testResult.startsWith('Error') ? 'bg-red-100 dark:bg-red-900/40 text-red-700 dark:text-red-200' : 'bg-light-bg dark:bg-dark-bg'}`}>{testResult}</p>}
                                     </div>
                                 )}
                             </div>

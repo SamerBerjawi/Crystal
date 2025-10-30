@@ -1,7 +1,9 @@
-import React, { useState } from 'react';
-import { Account, Transaction, Budget, RecurringTransaction, ImportExportHistoryItem, HistoryStatus, ImportDataType, Category, Backup } from '../types';
+
+import React, { useState, useRef } from 'react';
+import { Account, Transaction, Budget, RecurringTransaction, ImportExportHistoryItem, HistoryStatus, ImportDataType, Category } from '../types';
 import Card from '../components/Card';
-import { BTN_PRIMARY_STYLE } from '../constants';
+// FIX: Import INPUT_BASE_STYLE to resolve undefined variable error.
+import { BTN_PRIMARY_STYLE, INPUT_BASE_STYLE } from '../constants';
 import Modal from '../components/Modal';
 import ImportWizard from '../components/ImportWizard';
 import ExportModal from '../components/ExportModal';
@@ -20,11 +22,15 @@ interface DataManagementProps {
   onDeleteHistoryItem: (id: string) => void;
   onDeleteImportedTransactions: (importId: string) => void;
   onResetAccount: () => void;
-  onResetAndPreload: () => void;
-  backups: Backup[];
-  onCreateBackup: () => void;
-  onRestoreBackup: (id: string) => void;
-  onDeleteBackup: (id: string) => void;
+  onExportAllData: () => void;
+  onImportAllData: (file: File) => void;
+  onExportCSV: (types: ImportDataType[]) => void;
+  sureApiUrl: string;
+  setSureApiUrl: (url: string) => void;
+  sureApiKey: string;
+  setSureApiKey: (key: string) => void;
+  onSureSync: () => void;
+  isSureSyncing: boolean;
 }
 
 const HistoryItem: React.FC<{ item: ImportExportHistoryItem; onDelete: (id: string) => void; onView: (item: ImportExportHistoryItem) => void; }> = ({ item, onDelete, onView }) => {
@@ -104,13 +110,15 @@ const NewImportModal: React.FC<{ onClose: () => void, onSelect: (type: ImportDat
 };
 
 const DataManagement: React.FC<DataManagementProps> = (props) => {
+    const { sureApiUrl, setSureApiUrl, sureApiKey, setSureApiKey, onSureSync, isSureSyncing } = props;
     const [isNewImportModalOpen, setNewImportModalOpen] = useState(false);
     const [isExportModalOpen, setExportModalOpen] = useState(false);
     const [isWizardOpen, setWizardOpen] = useState(false);
     const [importType, setImportType] = useState<'transactions' | 'accounts' | null>(null);
     const [viewingDetails, setViewingDetails] = useState<ImportExportHistoryItem | null>(null);
-    const [confirmingAction, setConfirmingAction] = useState<{ type: 'restore' | 'deleteBackup' | 'reset' | 'preload', id?: string } | null>(null);
+    const [confirmingAction, setConfirmingAction] = useState<{ type: 'reset' } | null>(null);
     const [isFinalConfirmOpen, setFinalConfirmOpen] = useState(false);
+    const fileInputRef = useRef<HTMLInputElement>(null);
 
     const importHistory = props.history.filter(h => h.type === 'import');
     const exportHistory = props.history.filter(h => h.type === 'export');
@@ -122,29 +130,32 @@ const DataManagement: React.FC<DataManagementProps> = (props) => {
             setWizardOpen(true);
         }
     };
+    
+    const handleRestoreClick = () => {
+        fileInputRef.current?.click();
+    };
+
+    const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+        const file = e.target.files?.[0];
+        if (file) {
+            props.onImportAllData(file);
+            // Reset file input to allow uploading the same file again
+            if(fileInputRef.current) {
+                fileInputRef.current.value = "";
+            }
+        }
+    };
 
     const handleWizardClose = () => {
         setWizardOpen(false);
         setImportType(null);
     };
 
-    const handleCreateBackup = () => {
-        props.onCreateBackup();
-        alert('Backup snapshot created successfully.');
-    };
-
     const handleConfirmAction = () => {
         if (!confirmingAction) return;
 
         switch (confirmingAction.type) {
-            case 'restore':
-                if (confirmingAction.id) props.onRestoreBackup(confirmingAction.id);
-                break;
-            case 'deleteBackup':
-                if (confirmingAction.id) props.onDeleteBackup(confirmingAction.id);
-                break;
             case 'reset':
-            case 'preload':
                 setFinalConfirmOpen(true); // Move to final confirmation step
                 return; // Don't close the first modal yet
         }
@@ -157,9 +168,6 @@ const DataManagement: React.FC<DataManagementProps> = (props) => {
         if (confirmingAction.type === 'reset') {
             props.onResetAccount();
             alert('Account has been reset.');
-        } else if (confirmingAction.type === 'preload') {
-            props.onResetAndPreload();
-            alert('Account has been reset and preloaded with sample data.');
         }
         setFinalConfirmOpen(false);
         setConfirmingAction(null);
@@ -168,10 +176,7 @@ const DataManagement: React.FC<DataManagementProps> = (props) => {
     const getConfirmationDetails = () => {
         if (!confirmingAction) return null;
         switch (confirmingAction.type) {
-            case 'restore': return { title: 'Confirm Restore', message: 'Restoring from this backup will overwrite all current data. This action cannot be undone. Are you sure you want to continue?', confirmText: 'Restore' };
-            case 'deleteBackup': return { title: 'Confirm Delete', message: 'Are you sure you want to delete this backup snapshot? This is permanent.', confirmText: 'Delete' };
             case 'reset': return { title: 'Confirm Account Reset', message: 'This action will delete all your data. This cannot be undone. You will be asked for a final confirmation.', confirmText: 'Continue', variant: 'primary' as const };
-            case 'preload': return { title: 'Confirm Reset & Preload', message: 'This action will delete all current data and load sample data. This cannot be undone. You will be asked for a final confirmation.', confirmText: 'Continue', variant: 'primary' as const };
             default: return null;
         }
     };
@@ -179,7 +184,7 @@ const DataManagement: React.FC<DataManagementProps> = (props) => {
   return (
     <div className="space-y-8">
       {isNewImportModalOpen && <NewImportModal onClose={() => setNewImportModalOpen(false)} onSelect={handleSelectImportType} />}
-      {isExportModalOpen && <ExportModal onClose={() => setExportModalOpen(false)} onExport={() => {}} />}
+      {isExportModalOpen && <ExportModal onClose={() => setExportModalOpen(false)} onExport={props.onExportCSV} />}
       {viewingDetails && <ImportDetailsModal item={viewingDetails} onClose={() => setViewingDetails(null)} onDeleteImport={props.onDeleteImportedTransactions} />}
       {isWizardOpen && importType && (
             <ImportWizard 
@@ -211,7 +216,7 @@ const DataManagement: React.FC<DataManagementProps> = (props) => {
           title="Final Confirmation"
           message={<p>This is your last chance. Once you confirm, the action will be executed permanently.</p>}
           requiredText="RESET"
-          confirmButtonText={confirmingAction.type === 'reset' ? 'Reset account' : 'Reset and preload'}
+          confirmButtonText={'Reset account'}
         />
       )}
 
@@ -235,35 +240,75 @@ const DataManagement: React.FC<DataManagementProps> = (props) => {
 
       <div className="space-y-8">
             <Card>
-                <div className="flex justify-between items-center mb-4">
-                    <h3 className="text-xl font-semibold">Backup & Restore</h3>
-                    <button onClick={handleCreateBackup} className={`${BTN_PRIMARY_STYLE} flex items-center gap-2`}>
-                        <span className="material-symbols-outlined">add</span>
-                        Create New Backup
-                    </button>
+                <h3 className="text-xl font-semibold">Third-Party Integrations</h3>
+                <p className="text-sm text-light-text-secondary dark:text-dark-text-secondary mt-2 mb-4">
+                    Connect to other financial services to import your data automatically.
+                </p>
+                <div className="p-4 border border-black/10 dark:border-white/10 rounded-lg">
+                    <h4 className="font-semibold text-lg mb-1">Sure Finance</h4>
+                    <p className="text-sm text-light-text-secondary dark:text-dark-text-secondary mb-4">
+                        Enter your Sure API credentials to sync your accounts and transactions. You can find your API key in your Sure developer settings.
+                    </p>
+                    <div className="space-y-4">
+                        <div>
+                            <label htmlFor="sure-url" className="block text-sm font-medium text-light-text-secondary dark:text-dark-text-secondary mb-1">Sure API URL</label>
+                            <input
+                                id="sure-url"
+                                type="text"
+                                value={sureApiUrl}
+                                onChange={(e) => setSureApiUrl(e.target.value)}
+                                className={INPUT_BASE_STYLE}
+                                placeholder="https://domain/api/v1"
+                            />
+                        </div>
+                        <div>
+                            <label htmlFor="sure-key" className="block text-sm font-medium text-light-text-secondary dark:text-dark-text-secondary mb-1">Sure API Key</label>
+                            <input
+                                id="sure-key"
+                                type="password"
+                                value={sureApiKey}
+                                onChange={(e) => setSureApiKey(e.target.value)}
+                                className={INPUT_BASE_STYLE}
+                                placeholder="xxxKEYxxx"
+                            />
+                        </div>
+                        <div className="flex justify-end">
+                            <button onClick={onSureSync} className={`${BTN_PRIMARY_STYLE} flex items-center gap-2 w-36 justify-center`} disabled={isSureSyncing}>
+                                {isSureSyncing ? (
+                                    <>
+                                        <svg className="animate-spin h-5 w-5" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24"><circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle><path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path></svg>
+                                        Syncing...
+                                    </>
+                                ) : (
+                                    'Save & Sync'
+                                )}
+                            </button>
+                        </div>
+                    </div>
                 </div>
-                <div>
-                    {props.backups.length > 0 ? (
-                        props.backups.map(backup => (
-                            <div key={backup.id} className="flex items-center justify-between p-3 rounded-lg hover:bg-black/5 dark:hover:bg-white/5">
-                                <div>
-                                    <p className="font-semibold text-light-text dark:text-dark-text">Snapshot from {new Date(backup.date).toLocaleString()}</p>
-                                </div>
-                                <div className="flex items-center gap-2">
-                                    <button onClick={() => setConfirmingAction({ type: 'restore', id: backup.id })} className="font-semibold text-primary-600 dark:text-primary-400 text-sm">Restore</button>
-                                    <button onClick={() => setConfirmingAction({ type: 'deleteBackup', id: backup.id })} className="p-2 text-red-500/80 hover:bg-red-500/10 rounded-full"><span className="material-symbols-outlined text-base">delete</span></button>
-                                </div>
-                            </div>
-                        ))
-                    ) : (
-                        <p className="text-center py-4 text-light-text-secondary dark:text-dark-text-secondary">No backups created yet.</p>
-                    )}
+            </Card>
+
+            <Card>
+                <h3 className="text-xl font-semibold">Migrate or Backup Data</h3>
+                <p className="text-sm text-light-text-secondary dark:text-dark-text-secondary mt-2 mb-4">
+                    Use these tools to save a complete snapshot of all your data to a single file. This is useful for moving your data to a new device or browser, or restoring your data after an application update causes a URL change.
+                </p>
+                <div className="flex flex-wrap gap-4">
+                    <button onClick={props.onExportAllData} className={`${BTN_PRIMARY_STYLE} flex items-center gap-2`}>
+                        <span className="material-symbols-outlined">download</span>
+                        Download Backup File
+                    </button>
+                    <button onClick={handleRestoreClick} className={`${BTN_PRIMARY_STYLE} flex items-center gap-2`}>
+                        <span className="material-symbols-outlined">upload</span>
+                        Restore from File
+                    </button>
+                    <input type="file" ref={fileInputRef} onChange={handleFileChange} className="hidden" accept=".json"/>
                 </div>
             </Card>
 
             <Card>
                 <div className="flex justify-between items-center mb-4">
-                    <h3 className="text-xl font-semibold">Imports</h3>
+                    <h3 className="text-xl font-semibold">CSV Imports</h3>
                     <button onClick={() => setNewImportModalOpen(true)} className={`${BTN_PRIMARY_STYLE} flex items-center gap-2`}>
                         <span className="material-symbols-outlined">add</span>
                         New Import
@@ -280,9 +325,9 @@ const DataManagement: React.FC<DataManagementProps> = (props) => {
 
             <Card>
                 <div className="flex justify-between items-center mb-4">
-                    <h3 className="text-xl font-semibold">Exports</h3>
+                    <h3 className="text-xl font-semibold">CSV Exports</h3>
                     <button onClick={() => setExportModalOpen(true)} className={`${BTN_PRIMARY_STYLE} flex items-center gap-2`}>
-                       <span className="material-symbols-outlined">add</span>
+                       <span className="material-symbols-outlined">file_download</span>
                         New Export
                     </button>
                 </div>
@@ -304,13 +349,6 @@ const DataManagement: React.FC<DataManagementProps> = (props) => {
                             <p className="text-sm text-light-text-secondary dark:text-dark-text-secondary max-w-2xl mt-1">Resetting your account will delete all your accounts, categories, merchants, tags, and other data, but keep your user account intact.</p>
                         </div>
                         <button onClick={() => setConfirmingAction({ type: 'reset' })} className="bg-red-500 text-white font-semibold py-2 px-4 rounded-lg hover:bg-red-600 transition-colors duration-200 shrink-0">Reset account</button>
-                    </div>
-                    <div className="pt-4 flex flex-wrap gap-4 justify-between items-center">
-                        <div>
-                            <h4 className="font-semibold text-light-text dark:text-dark-text">Reset and preload</h4>
-                            <p className="text-sm text-light-text-secondary dark:text-dark-text-secondary max-w-2xl mt-1">Delete all your existing data and then load fresh sample data so you can explore with a pre-filled environment.</p>
-                        </div>
-                        <button onClick={() => setConfirmingAction({ type: 'preload' })} className="bg-red-500 text-white font-semibold py-2 px-4 rounded-lg hover:bg-red-600 transition-colors duration-200 shrink-0">Reset and preload</button>
                     </div>
                 </div>
             </Card>

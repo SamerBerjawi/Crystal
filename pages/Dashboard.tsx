@@ -92,7 +92,7 @@ const Dashboard: React.FC<DashboardProps> = ({ user, transactions, accounts, sav
   const { filteredTransactions, income, expenses } = useMemo(() => {
     const { start, end } = getDateRange(duration, transactions);
     const txsInPeriod = transactions.filter(tx => {
-        const txDate = new Date(tx.date);
+        const txDate = new Date(tx.date.replace(/-/g, '/'));
         return txDate >= start && txDate <= end;
     });
 
@@ -153,7 +153,7 @@ const Dashboard: React.FC<DashboardProps> = ({ user, transactions, accounts, sav
     const prevEnd = new Date(start.getTime() - 1);
 
     const txsInPrevPeriod = transactions.filter(tx => {
-      const txDate = new Date(tx.date);
+      const txDate = new Date(tx.date.replace(/-/g, '/'));
       return txDate >= prevStart && txDate <= prevEnd;
     });
 
@@ -277,7 +277,7 @@ const Dashboard: React.FC<DashboardProps> = ({ user, transactions, accounts, sav
     const relevantTxs = filteredTransactions.filter(tx => !tx.transferId);
 
     for (const tx of relevantTxs) {
-        const txTime = new Date(tx.date).getTime();
+        const txTime = new Date(tx.date.replace(/-/g, '/')).getTime();
         const index = Math.floor((txTime - start.getTime()) / interval);
         const convertedAmount = convertToEur(tx.amount, tx.currency);
         if (index >= 0 && index < NUM_POINTS) {
@@ -305,7 +305,7 @@ const Dashboard: React.FC<DashboardProps> = ({ user, transactions, accounts, sav
 
     const transactionsInPeriod = transactions.filter(tx => {
         if (!selectedAccountIds.includes(tx.accountId)) return false;
-        const txDate = new Date(tx.date);
+        const txDate = new Date(tx.date.replace(/-/g, '/'));
         return txDate >= start && txDate <= end;
     });
 

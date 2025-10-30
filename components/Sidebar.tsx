@@ -1,6 +1,6 @@
-import React, { useState } from 'react';
-import { Page, Theme } from '../types';
-import { NAV_ITEMS, FinuaLogo, NavItem } from '../constants';
+import React, { useState, useMemo } from 'react';
+import { Page, Theme, User } from '../types';
+import { NAV_ITEMS, FinauraLogo, NavItem } from '../constants';
 
 interface SidebarProps {
   currentPage: Page;
@@ -11,13 +11,30 @@ interface SidebarProps {
   isSidebarCollapsed: boolean;
   setSidebarCollapsed: (isCollapsed: boolean) => void;
   onLogout: () => void;
+  user: User;
 }
 
-const Sidebar: React.FC<SidebarProps> = ({ currentPage, setCurrentPage, isSidebarOpen, setSidebarOpen, theme, isSidebarCollapsed, setSidebarCollapsed, onLogout }) => {
+const Sidebar: React.FC<SidebarProps> = ({ currentPage, setCurrentPage, isSidebarOpen, setSidebarOpen, theme, isSidebarCollapsed, setSidebarCollapsed, onLogout, user }) => {
   const [openSubMenu, setOpenSubMenu] = useState<string | null>(() => {
     const activeParent = NAV_ITEMS.find(item => item.subItems?.some(sub => sub.name === currentPage));
     return activeParent ? activeParent.name : null;
   });
+  
+  const navItems = useMemo(() => {
+    if (user.role !== 'Administrator') {
+      return NAV_ITEMS.map(item => {
+        if (item.name === 'Settings' && item.subItems) {
+          return {
+            ...item,
+            subItems: item.subItems.filter(sub => sub.name !== 'User Management')
+          };
+        }
+        return item;
+      }).filter(Boolean) as NavItem[];
+    }
+    return NAV_ITEMS;
+  }, [user.role]);
+
 
   const handleNavClick = (page: Page, hasSubItems?: boolean) => {
     if (isSidebarCollapsed && hasSubItems) {
@@ -100,13 +117,13 @@ const Sidebar: React.FC<SidebarProps> = ({ currentPage, setCurrentPage, isSideba
       <aside className={`fixed top-0 left-0 z-40 h-screen bg-light-card dark:bg-dark-card flex flex-col transition-all duration-300 ease-in-out md:relative md:translate-x-0 ${isSidebarOpen ? 'translate-x-0 w-64' : '-translate-x-full w-64'} ${isSidebarCollapsed ? 'md:w-20' : 'md:w-64'} border-r border-black/5 dark:border-white/10`}>
         <div className="flex items-center justify-center h-24 flex-shrink-0">
             <div className={`flex items-center transition-all duration-300 ${isSidebarCollapsed ? 'md:gap-0' : 'gap-3'}`}>
-                <FinuaLogo theme={theme} />
-                <span className={`text-2xl font-bold text-light-text dark:text-white transition-opacity duration-200 ${isSidebarCollapsed ? 'md:hidden md:opacity-0' : 'opacity-100'}`}>Finua</span>
+                <FinauraLogo theme={theme} />
+                <span className={`text-2xl font-bold text-light-text dark:text-white transition-opacity duration-200 ${isSidebarCollapsed ? 'md:hidden md:opacity-0' : 'opacity-100'}`}>Finaura</span>
             </div>
         </div>
         <nav className={`flex-1 py-6 transition-all duration-300 ${isSidebarCollapsed ? 'px-2' : 'px-4'}`}>
           <ul className="space-y-2">
-            {NAV_ITEMS.map((item) => renderNavItem(item))}
+            {navItems.map((item) => renderNavItem(item))}
           </ul>
         </nav>
         <div className={`px-4 py-6 flex-shrink-0 border-t border-black/5 dark:border-white/10 ${isSidebarCollapsed ? 'md:px-2' : ''}`}>

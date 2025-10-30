@@ -1,8 +1,10 @@
 import React, { useState } from 'react';
 import Modal from './Modal';
 import { BTN_PRIMARY_STYLE, BTN_SECONDARY_STYLE } from '../constants';
+import { ImportDataType } from '../types';
 
-type ExportableData = 'accounts' | 'transactions' | 'budgets' | 'recurringTransactions' | 'categories';
+// FIX: Changed 'recurringTransactions' to 'schedule' to align with ImportDataType
+type ExportableData = 'accounts' | 'transactions' | 'budgets' | 'schedule' | 'categories' | 'investments';
 
 interface ExportModalProps {
   onClose: () => void;
@@ -12,8 +14,10 @@ interface ExportModalProps {
 const EXPORT_OPTIONS: { id: ExportableData; label: string }[] = [
     { id: 'accounts', label: 'Accounts' },
     { id: 'transactions', label: 'Transactions' },
+    { id: 'investments', label: 'Investment Transactions' },
     { id: 'budgets', label: 'Budgets' },
-    { id: 'recurringTransactions', label: 'Recurring Transactions (Schedule)' },
+    // FIX: Changed id to 'schedule' to match data mapping and type definitions
+    { id: 'schedule', label: 'Recurring Transactions (Schedule)' },
     { id: 'categories', label: 'Categories' },
 ];
 
@@ -28,6 +32,7 @@ const ExportModal: React.FC<ExportModalProps> = ({ onClose, onExport }) => {
 
     const handleExport = () => {
         onExport(selected);
+        onClose();
     };
 
     return (
