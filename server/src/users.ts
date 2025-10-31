@@ -1,5 +1,4 @@
-// FIX: Use default import for express to avoid type conflicts.
-// FIX: Import Response type directly to resolve type conflicts.
+// FIX: Consolidate express imports into a single statement to resolve type conflicts and errors related to Request and Response objects.
 import express, { Response } from 'express';
 import { pool } from './database';
 import { authMiddleware, adminMiddleware, AuthRequest } from './middleware';

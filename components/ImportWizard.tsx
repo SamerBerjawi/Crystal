@@ -240,7 +240,7 @@ const ImportWizard: React.FC<ImportWizardProps> = ({ importType, onClose, onPubl
     
         const fieldPriority = importType === 'transactions' 
             ? ['date', 'amount', 'amountIn', 'amountOut', 'name', 'account', 'category', 'currency']
-            : ['name', 'balance', 'type', 'currency'];
+            : ['name', 'type', 'currency', 'balance'];
     
         for (const field of fieldPriority) {
             if (!keywords[field as keyof typeof keywords]) continue;
@@ -610,65 +610,74 @@ const Step1Upload: React.FC<{ setRawCSV: (csv: string) => void, setFileName: (na
 
 const Step2Configure: React.FC<{ headers: string[], columnMap: any, setColumnMap: any, importType: string, dateFormat: string, setDateFormat: any, amountConfig: string, setAmountConfig: any, delimiter: string, setDelimiter: any, accountSource: 'column' | 'single', setAccountSource: (source: 'column' | 'single') => void, selectedSingleAccountId: string, setSelectedSingleAccountId: (id: string) => void, existingAccounts: Account[] }> = ({ headers, columnMap, setColumnMap, importType, dateFormat, setDateFormat, amountConfig, setAmountConfig, delimiter, setDelimiter, accountSource, setAccountSource, selectedSingleAccountId, setSelectedSingleAccountId, existingAccounts }) => {
     
-    const fields = useMemo(() => {
+    const handleMappingChange = (field: string, csvHeader: string) => setColumnMap((prev: any) => ({ ...prev, [field]: csvHeader }));
+
+    const { requiredFields, optionalFields, accountFieldUI } = useMemo(() => {
         if (importType === 'transactions') {
-            const baseRequired = ['date', 'name'];
-            if (accountSource === 'column') {
-                baseRequired.push('account');
-            }
-            const baseOptional = ['category', 'currency'];
+            const required: string[] = ['date', 'name'];
+            const optional: string[] = ['category', 'currency'];
 
             if (amountConfig === 'double_entry') {
-                return { required: [...baseRequired, 'amountIn', 'amountOut'], optional: baseOptional };
+                required.push('amountIn', 'amountOut');
+            } else {
+                required.push('amount');
             }
-            return { required: [...baseRequired, 'amount'], optional: baseOptional };
-        }
-        return { required: ['name', 'balance'], optional: ['type', 'currency'] };
-    }, [importType, amountConfig, accountSource]);
-    
-    const handleMappingChange = (field: string, csvHeader: string) => setColumnMap((prev: any) => ({ ...prev, [field]: csvHeader }));
-    const allFields = [...fields.required, ...fields.optional];
-    const regularFields = allFields.filter(f => !(importType === 'transactions' && f === 'account'));
+            
+            const accountFieldNode = (
+                <div className="md:col-span-2">
+                    <label className="font-semibold mb-2 block">Account Source *</label>
+                    <div className="flex bg-light-bg dark:bg-dark-bg p-1 rounded-lg shadow-inner mb-2">
+                        <button type="button" onClick={() => setAccountSource('column')} className={`w-full text-center text-sm font-semibold py-1.5 px-3 rounded-md transition-all ${accountSource === 'column' ? 'bg-light-card dark:bg-dark-card shadow-sm' : 'text-light-text-secondary'}`}>From File Column</button>
+                        <button type="button" onClick={() => setAccountSource('single')} className={`w-full text-center text-sm font-semibold py-1.5 px-3 rounded-md transition-all ${accountSource === 'single' ? 'bg-light-card dark:bg-dark-card shadow-sm' : 'text-light-text-secondary'}`}>Assign Single Account</button>
+                    </div>
+                    {accountSource === 'column' ? (
+                       <div className={SELECT_WRAPPER_STYLE}>
+                           <select value={columnMap['account'] || ''} onChange={(e) => handleMappingChange('account', e.target.value)} className={INPUT_BASE_STYLE}><option value="">Select column for Account</option>{headers.map(header => <option key={header} value={header}>{header}</option>)}</select>
+                           <div className={SELECT_ARROW_STYLE}><span className="material-symbols-outlined">expand_more</span></div>
+                       </div>
+                    ) : (
+                       <div className={SELECT_WRAPPER_STYLE}>
+                           <select value={selectedSingleAccountId} onChange={e => setSelectedSingleAccountId(e.target.value)} className={INPUT_BASE_STYLE}><option value="">Select an account</option>{existingAccounts.map(acc => <option key={acc.id} value={acc.id}>{acc.name}</option>)}</select>
+                           <div className={SELECT_ARROW_STYLE}><span className="material-symbols-outlined">expand_more</span></div>
+                       </div>
+                    )}
+                </div>
+            );
+            
+            return { requiredFields: required, optionalFields: optional, accountFieldUI: accountFieldNode };
 
+        } else { // 'accounts'
+            return {
+                requiredFields: ['name', 'balance'],
+                optionalFields: ['type', 'currency'],
+                accountFieldUI: null
+            };
+        }
+    }, [importType, amountConfig, accountSource, columnMap, headers, existingAccounts, selectedSingleAccountId]);
+
+    const allFields = [...requiredFields, ...optionalFields];
+
+    const FieldSelect: React.FC<{field: string}> = ({field}) => (
+        <div>
+            <label className="font-semibold capitalize mb-1 block">{field.replace('amountIn', 'Amount In (Credit)').replace('amountOut', 'Amount Out (Debit)')} {requiredFields.includes(field) && '*'}</label>
+            <div className={SELECT_WRAPPER_STYLE}>
+                <select value={columnMap[field] || ''} onChange={(e) => handleMappingChange(field, e.target.value)} className={INPUT_BASE_STYLE}>
+                    <option value="">Select column</option>
+                    {headers.map(header => <option key={header} value={header}>{header}</option>)}
+                </select>
+                <div className={SELECT_ARROW_STYLE}><span className="material-symbols-outlined">expand_more</span></div>
+            </div>
+        </div>
+    );
+    
     return (
         <div className="max-w-3xl mx-auto">
             <h2 className="text-3xl font-bold mb-2 text-center">Configure Columns</h2>
             <p className="text-light-text-secondary dark:text-dark-text-secondary mb-8 text-center">Match the columns from your CSV to the required fields. We've tried to guess for you.</p>
             <div className="space-y-6">
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-6 p-4 bg-light-card dark:bg-dark-card rounded-lg">
-                    {importType === 'transactions' && (
-                         <div className="md:col-span-2">
-                             <label className="font-semibold mb-2 block">Account Source *</label>
-                             <div className="flex bg-light-bg dark:bg-dark-bg p-1 rounded-lg shadow-inner mb-2">
-                                 <button type="button" onClick={() => setAccountSource('column')} className={`w-full text-center text-sm font-semibold py-1.5 px-3 rounded-md transition-all ${accountSource === 'column' ? 'bg-light-card dark:bg-dark-card shadow-sm' : 'text-light-text-secondary'}`}>From File Column</button>
-                                 <button type="button" onClick={() => setAccountSource('single')} className={`w-full text-center text-sm font-semibold py-1.5 px-3 rounded-md transition-all ${accountSource === 'single' ? 'bg-light-card dark:bg-dark-card shadow-sm' : 'text-light-text-secondary'}`}>Assign Single Account</button>
-                             </div>
-                             {accountSource === 'column' ? (
-                                <div className={SELECT_WRAPPER_STYLE}>
-                                    <select value={columnMap['account'] || ''} onChange={(e) => handleMappingChange('account', e.target.value)} className={INPUT_BASE_STYLE}><option value="">Select column for Account</option>{headers.map(header => <option key={header} value={header}>{header}</option>)}</select>
-                                    <div className={SELECT_ARROW_STYLE}><span className="material-symbols-outlined">expand_more</span></div>
-                                </div>
-                             ) : (
-                                <div className={SELECT_WRAPPER_STYLE}>
-                                    <select value={selectedSingleAccountId} onChange={e => setSelectedSingleAccountId(e.target.value)} className={INPUT_BASE_STYLE}><option value="">Select an account</option>{existingAccounts.map(acc => <option key={acc.id} value={acc.id}>{acc.name}</option>)}</select>
-                                    <div className={SELECT_ARROW_STYLE}><span className="material-symbols-outlined">expand_more</span></div>
-                                </div>
-                             )}
-                         </div>
-                    )}
-
-                    {regularFields.map(field => (
-                        <div key={field}>
-                            <label className="font-semibold capitalize mb-1 block">{field.replace('amountIn', 'Amount In (Credit)').replace('amountOut', 'Amount Out (Debit)')} {fields.required.includes(field) && '*'}</label>
-                            <div className={SELECT_WRAPPER_STYLE}>
-                                <select value={columnMap[field] || ''} onChange={(e) => handleMappingChange(field, e.target.value)} className={INPUT_BASE_STYLE}>
-                                    <option value="">Select column</option>
-                                    {headers.map(header => <option key={header} value={header}>{header}</option>)}
-                                </select>
-                                <div className={SELECT_ARROW_STYLE}><span className="material-symbols-outlined">expand_more</span></div>
-                            </div>
-                        </div>
-                    ))}
+                    {accountFieldUI}
+                    {allFields.map(field => <FieldSelect key={field} field={field} />)}
                 </div>
                 <div className="grid grid-cols-1 md:grid-cols-3 gap-6 p-4 bg-light-card dark:bg-dark-card rounded-lg">
                     {importType === 'transactions' && <>

@@ -1,6 +1,5 @@
-// FIX: Changed express import to use default import to avoid type conflicts with global DOM types.
-// FIX: Import Request, Response, and NextFunction types directly from express to resolve type conflicts.
-import express, { Request, Response, NextFunction } from 'express';
+// FIX: Consolidate express imports into a single statement to resolve type conflicts and errors related to Request and Response objects.
+import { Request, Response, NextFunction } from 'express';
 import jwt from 'jsonwebtoken';
 
 const JWT_SECRET = process.env.JWT_SECRET || 'your-secret-key';
