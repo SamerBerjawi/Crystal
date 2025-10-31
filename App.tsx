@@ -31,10 +31,10 @@ import EnableBankingLinkAccountsModal from './components/EnableBankingLinkAccoun
 import { GoogleGenAI, FunctionDeclaration, Type } from '@google/genai';
 import ChatFab from './components/ChatFab';
 import Chatbot from './components/Chatbot';
-import { convertToEur, CONVERSION_RATES, arrayToCSV, downloadCSV } from './utils';
+import { convertToEur, CONVERSION_RATES, arrayToCSV, downloadCSV, getApiBaseUrl } from './utils';
 import { useDebounce } from './hooks/useDebounce';
 
-const API_BASE_URL = 'http://localhost:3000/api';
+const API_BASE_URL = getApiBaseUrl();
 
 const getBankAccountsFunctionDeclaration: FunctionDeclaration = {
   name: 'get_bank_accounts',

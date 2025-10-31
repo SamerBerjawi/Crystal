@@ -2,11 +2,12 @@ import React, { useState, useRef, useEffect, useCallback } from 'react';
 import { User } from '../types';
 import Card from '../components/Card';
 import { BTN_PRIMARY_STYLE, BTN_SECONDARY_STYLE } from '../constants';
+import { getApiBaseUrl } from '../utils';
 import ConfirmationModal from '../components/ConfirmationModal';
 import InviteUserModal from '../components/InviteUserModal';
 import EditUserModal from '../components/EditUserModal';
 
-const API_BASE_URL = 'http://localhost:3000/api';
+const API_BASE_URL = getApiBaseUrl();
 
 interface UserManagementProps {
   currentUser: User;
