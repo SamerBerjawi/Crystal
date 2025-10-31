@@ -1,8 +1,8 @@
 // This is a new file: components/ImportWizard.tsx
 import React, { useState, useMemo, useCallback, useRef, useEffect } from 'react';
 import { v4 as uuidv4 } from 'uuid';
-import { Account, Category, Transaction, Currency } from '../types';
-import { BTN_PRIMARY_STYLE, BTN_SECONDARY_STYLE, INPUT_BASE_STYLE, SELECT_WRAPPER_STYLE, SELECT_ARROW_STYLE, CURRENCIES } from '../constants';
+import { Account, Category, Transaction, Currency, AccountType } from '../types';
+import { BTN_PRIMARY_STYLE, BTN_SECONDARY_STYLE, INPUT_BASE_STYLE, SELECT_WRAPPER_STYLE, SELECT_ARROW_STYLE, CURRENCIES, ALL_ACCOUNT_TYPES } from '../constants';
 import { flattenCategories } from '../utils';
 
 
@@ -205,6 +205,7 @@ const ImportWizard: React.FC<ImportWizardProps> = ({ importType, onClose, onPubl
     const [excludedRows, setExcludedRows] = useState<Set<number>>(new Set());
     const [categoryMap, setCategoryMap] = useState<Record<string, string>>({});
     const [accountMap, setAccountMap] = useState<Record<string, string>>({});
+    const [accountTypeMap, setAccountTypeMap] = useState<Record<string, string>>({});
     const [currencyMap, setCurrencyMap] = useState<Record<string, string>>({});
     const [isPublishing, setIsPublishing] = useState(false);
 
@@ -232,7 +233,7 @@ const ImportWizard: React.FC<ImportWizardProps> = ({ importType, onClose, onPubl
             amountOut: ['debit', 'dr', 'out', 'outflow', 'payment', 'expense', 'withdrawal', 'debit amount', 'débit', 'soll', 'debito'],
         } : {
             name: ['account name', 'name', 'nom du compte'],
-            type: ['account type', 'type', 'type de compte'],
+            type: ['account type', 'type', 'type de compte', 'subtype'],
             balance: ['balance', 'current balance', 'amount', 'solde', 'saldo'],
             currency: ['currency', 'curr', 'devise', 'währung'],
         };
@@ -282,12 +283,14 @@ const ImportWizard: React.FC<ImportWizardProps> = ({ importType, onClose, onPubl
 
     useEffect(() => {
         if (parsedData.length > 0) {
-            const detectedDate = detectDateFormat(parsedData, columnMap.date);
-            const detectedAmount = detectAmountFormat(columnMap);
-            setDateFormat(detectedDate);
-            setAmountConfig(detectedAmount);
+            if (importType === 'transactions') {
+                const detectedDate = detectDateFormat(parsedData, columnMap.date);
+                const detectedAmount = detectAmountFormat(columnMap);
+                setDateFormat(detectedDate);
+                setAmountConfig(detectedAmount);
+            }
         }
-    }, [parsedData, columnMap]);
+    }, [parsedData, columnMap, importType]);
 
 
     const processConfiguredData = () => {
@@ -373,11 +376,19 @@ const ImportWizard: React.FC<ImportWizardProps> = ({ importType, onClose, onPubl
                     }
                 }
 
-            } else { // Account import logic (simplified)
+            } else { // Account import logic
                 newRow.name = row[columnMap.name];
                 newRow.type = row[columnMap.type];
-                newRow.balance = parseFloat(row[columnMap.balance] || '0');
                 newRow.currency = row[columnMap.currency] || 'EUR';
+                
+                const balanceVal = row[columnMap.balance];
+                if (columnMap.balance && balanceVal !== undefined && !isNaN(parseFloat(balanceVal))) {
+                    newRow.balance = parseFloat(balanceVal);
+                } else {
+                    errorDetails.balance = `Invalid balance: ${balanceVal || 'missing'}`;
+                    rowHasErrors = true;
+                }
+                
                 if (!newRow.name) {
                     errorDetails.name = 'Account name is missing';
                     rowHasErrors = true;
@@ -396,11 +407,38 @@ const ImportWizard: React.FC<ImportWizardProps> = ({ importType, onClose, onPubl
         setCleanedData(cleaned);
         setCategoryMap({});
         setAccountMap({});
+        setAccountTypeMap({});
         setCurrencyMap({});
     };
     
     const handleProcessCleaning = () => {
         const validData = cleanedData.filter(row => !excludedRows.has(row.originalIndex));
+        
+        const findBestMatch = (value: string, options: readonly string[]) => {
+            let bestMatch = '';
+            let bestScore = 0.5; // Threshold
+            for (const option of options) {
+                const distance = levenshteinDistance(value.toLowerCase().replace(/\s/g, ''), option.toLowerCase().replace(/\s/g, ''));
+                const similarity = 1 - (distance / Math.max(value.length, option.length));
+                if (similarity > bestScore) {
+                    bestScore = similarity;
+                    bestMatch = option;
+                }
+            }
+            return bestMatch;
+        };
+        
+        const uniqueCurrencies = new Set(validData.map(d => d.currency).filter(Boolean));
+        const CURRENCIES_SET = new Set(CURRENCIES);
+        const unrecognizedCurrencies = Array.from(uniqueCurrencies).filter(c => !CURRENCIES_SET.has(c as Currency));
+        
+        // FIX: Explicitly type `curr` as string to resolve 'unknown' type errors.
+        const initialCurrencyMap = unrecognizedCurrencies.reduce((acc, curr: string) => {
+            acc[curr] = findBestMatch(curr, CURRENCIES);
+            return acc;
+        }, {} as Record<string, string>);
+        setCurrencyMap(initialCurrencyMap);
+
         if (importType === 'transactions') {
             const flatAllCategories = flattenCategories(allCategories);
 
@@ -425,27 +463,14 @@ const ImportWizard: React.FC<ImportWizardProps> = ({ importType, onClose, onPubl
             } else {
                 setAccountMap({});
             }
-            
-            const uniqueCurrencies = new Set(validData.map(d => d.currency).filter(Boolean));
-            const CURRENCIES_SET = new Set(CURRENCIES);
-            const unrecognizedCurrencies = Array.from(uniqueCurrencies).filter(c => !CURRENCIES_SET.has(c as Currency));
-            
-            // FIX: Explicitly type `curr` as string to resolve 'unknown' type errors.
-            const initialCurrencyMap = unrecognizedCurrencies.reduce((acc, curr: string) => {
-                let bestMatch = '';
-                let bestScore = 0.5;
-                for (const validCurr of CURRENCIES) {
-                    const distance = levenshteinDistance(curr.toLowerCase(), validCurr.toLowerCase());
-                    const similarity = 1 - (distance / Math.max(curr.length, validCurr.length));
-                    if (similarity > bestScore) {
-                        bestScore = similarity;
-                        bestMatch = validCurr;
-                    }
-                }
-                acc[curr] = bestMatch;
+        } else if (importType === 'accounts') {
+            const uniqueTypes = new Set(validData.map(d => d.type).filter(Boolean));
+            const initialAccountTypeMap = Array.from(uniqueTypes).reduce((acc, typeString) => {
+                const typeName = typeString as string;
+                acc[typeName] = findBestMatch(typeName, ALL_ACCOUNT_TYPES) || `_UNASSIGNED_`;
                 return acc;
             }, {} as Record<string, string>);
-            setCurrencyMap(initialCurrencyMap);
+            setAccountTypeMap(initialAccountTypeMap);
         }
     };
     
@@ -462,10 +487,19 @@ const ImportWizard: React.FC<ImportWizardProps> = ({ importType, onClose, onPubl
     };
 
     const handlePublish = () => {
-        const CURRENCIES_SET = new Set(CURRENCIES);
         const dataToPublish = cleanedData
           .filter(row => !excludedRows.has(row.originalIndex))
           .map(row => {
+              
+              const originalCurrency = row.currency;
+              let finalCurrency = originalCurrency;
+              if (currencyMap.hasOwnProperty(originalCurrency)) {
+                  const mappedValue = currencyMap[originalCurrency];
+                  if (mappedValue === '_SKIP_' || !mappedValue) return null;
+                  finalCurrency = mappedValue;
+              }
+              if (!CURRENCIES.includes(finalCurrency as Currency)) return null;
+
               if (importType === 'transactions') {
                   let accountId;
                   if (accountSource === 'single') {
@@ -488,19 +522,6 @@ const ImportWizard: React.FC<ImportWizardProps> = ({ importType, onClose, onPubl
                       }
                   }
 
-                  const originalCurrency = row.currency;
-                  let finalCurrency = originalCurrency;
-                  if (currencyMap.hasOwnProperty(originalCurrency)) {
-                      const mappedValue = currencyMap[originalCurrency];
-                      if (mappedValue === '_SKIP_' || !mappedValue) {
-                          return null;
-                      }
-                      finalCurrency = mappedValue;
-                  }
-                  if (!CURRENCIES_SET.has(finalCurrency as Currency)) {
-                      return null;
-                  }
-
                   const newTx: Omit<Transaction, 'id'> = {
                       accountId: accountId,
                       date: row.date,
@@ -512,9 +533,18 @@ const ImportWizard: React.FC<ImportWizardProps> = ({ importType, onClose, onPubl
                       currency: finalCurrency as Currency,
                   };
                   return newTx;
+              } else { // Accounts
+                  const typeValue = accountTypeMap[row.type];
+                  if (!typeValue || typeValue === '_UNASSIGNED_') return null;
+                  
+                  const newAcc: Omit<Account, 'id'> = {
+                      name: row.name,
+                      type: typeValue as AccountType,
+                      balance: row.balance,
+                      currency: finalCurrency as Currency,
+                  };
+                  return newAcc;
               }
-              // Account logic would go here
-              return null;
           }).filter(Boolean);
 
         setIsPublishing(true);
@@ -527,10 +557,10 @@ const ImportWizard: React.FC<ImportWizardProps> = ({ importType, onClose, onPubl
         switch (currentStep) {
             case 1: return <Step1Upload setRawCSV={setRawCSV} setFileName={setFileName} fileName={fileName} />;
             case 2: return <Step2Configure headers={csvHeaders} columnMap={columnMap} setColumnMap={setColumnMap} importType={importType} dateFormat={dateFormat} setDateFormat={setDateFormat} amountConfig={amountConfig} setAmountConfig={setAmountConfig} delimiter={delimiter} setDelimiter={setDelimiter} accountSource={accountSource} setAccountSource={setAccountSource} selectedSingleAccountId={selectedSingleAccountId} setSelectedSingleAccountId={setSelectedSingleAccountId} existingAccounts={existingAccounts} />;
-            case 3: return <Step3Preview parsedData={parsedData} cleanedData={cleanedData} dataErrors={dataErrors} columnMap={columnMap} />;
-            case 4: return <Step4Clean data={cleanedData} setData={setCleanedData} errors={dataErrors} excludedRows={excludedRows} setExcludedRows={setExcludedRows} />;
-            case 5: return <Step5Map categories={Object.keys(categoryMap)} setCategoryMap={setCategoryMap} categoryMap={categoryMap} allCategories={allCategories} accounts={Object.keys(accountMap)} setAccountMap={setAccountMap} accountMap={accountMap} existingAccounts={existingAccounts} currencies={Object.keys(currencyMap)} setCurrencyMap={setCurrencyMap} currencyMap={currencyMap} />;
-            case 6: return <Step6Confirm data={cleanedData.filter(row => !excludedRows.has(row.originalIndex))} />;
+            case 3: return <Step3Preview parsedData={parsedData} cleanedData={cleanedData} dataErrors={dataErrors} columnMap={columnMap} importType={importType} />;
+            case 4: return <Step4Clean data={cleanedData} setData={setCleanedData} errors={dataErrors} excludedRows={excludedRows} setExcludedRows={setExcludedRows} importType={importType} />;
+            case 5: return <Step5Map importType={importType} categories={Object.keys(categoryMap)} setCategoryMap={setCategoryMap} categoryMap={categoryMap} allCategories={allCategories} accounts={Object.keys(accountMap)} setAccountMap={setAccountMap} accountMap={accountMap} existingAccounts={existingAccounts} accountTypes={Object.keys(accountTypeMap)} accountTypeMap={accountTypeMap} setAccountTypeMap={setAccountTypeMap} currencies={Object.keys(currencyMap)} setCurrencyMap={setCurrencyMap} currencyMap={currencyMap} />;
+            case 6: return <Step6Confirm data={cleanedData.filter(row => !excludedRows.has(row.originalIndex))} importType={importType} />;
             default: return null;
         }
     };
@@ -593,7 +623,7 @@ const Step2Configure: React.FC<{ headers: string[], columnMap: any, setColumnMap
             }
             return { required: [...baseRequired, 'amount'], optional: baseOptional };
         }
-        return { required: ['name', 'type', 'balance'], optional: ['currency'] };
+        return { required: ['name', 'balance'], optional: ['type', 'currency'] };
     }, [importType, amountConfig, accountSource]);
     
     const handleMappingChange = (field: string, csvHeader: string) => setColumnMap((prev: any) => ({ ...prev, [field]: csvHeader }));
@@ -641,27 +671,29 @@ const Step2Configure: React.FC<{ headers: string[], columnMap: any, setColumnMap
                     ))}
                 </div>
                 <div className="grid grid-cols-1 md:grid-cols-3 gap-6 p-4 bg-light-card dark:bg-dark-card rounded-lg">
-                    <div>
-                        <label className="font-semibold mb-1 block">Date Format</label>
-                        <div className={SELECT_WRAPPER_STYLE}>
-                            <select value={dateFormat} onChange={e => setDateFormat(e.target.value)} className={INPUT_BASE_STYLE}>
-                                <option value="YYYY-MM-DD">YYYY-MM-DD</option>
-                                <option value="MM/DD/YYYY">MM/DD/YYYY</option>
-                                <option value="DD/MM/YYYY">DD/MM/YYYY</option>
-                            </select>
-                            <div className={SELECT_ARROW_STYLE}><span className="material-symbols-outlined">expand_more</span></div>
+                    {importType === 'transactions' && <>
+                        <div>
+                            <label className="font-semibold mb-1 block">Date Format</label>
+                            <div className={SELECT_WRAPPER_STYLE}>
+                                <select value={dateFormat} onChange={e => setDateFormat(e.target.value)} className={INPUT_BASE_STYLE}>
+                                    <option value="YYYY-MM-DD">YYYY-MM-DD</option>
+                                    <option value="MM/DD/YYYY">MM/DD/YYYY</option>
+                                    <option value="DD/MM/YYYY">DD/MM/YYYY</option>
+                                </select>
+                                <div className={SELECT_ARROW_STYLE}><span className="material-symbols-outlined">expand_more</span></div>
+                            </div>
                         </div>
-                    </div>
-                    <div>
-                        <label className="font-semibold mb-1 block">Amount Format</label>
-                        <div className={SELECT_WRAPPER_STYLE}>
-                            <select value={amountConfig} onChange={e => setAmountConfig(e.target.value)} className={INPUT_BASE_STYLE}>
-                                <option value="single_signed">Single column with +/-</option>
-                                <option value="double_entry">Two columns (In/Out)</option>
-                            </select>
-                            <div className={SELECT_ARROW_STYLE}><span className="material-symbols-outlined">expand_more</span></div>
+                        <div>
+                            <label className="font-semibold mb-1 block">Amount Format</label>
+                            <div className={SELECT_WRAPPER_STYLE}>
+                                <select value={amountConfig} onChange={e => setAmountConfig(e.target.value)} className={INPUT_BASE_STYLE}>
+                                    <option value="single_signed">Single column with +/-</option>
+                                    <option value="double_entry">Two columns (In/Out)</option>
+                                </select>
+                                <div className={SELECT_ARROW_STYLE}><span className="material-symbols-outlined">expand_more</span></div>
+                            </div>
                         </div>
-                    </div>
+                    </>}
                      <div>
                         <label className="font-semibold mb-1 block">Delimiter</label>
                         <div className={SELECT_WRAPPER_STYLE}>
@@ -678,7 +710,10 @@ const Step2Configure: React.FC<{ headers: string[], columnMap: any, setColumnMap
     );
 };
 
-const Step3Preview: React.FC<{ parsedData: any[], cleanedData: any[], dataErrors: any, columnMap: any }> = ({ parsedData, cleanedData, dataErrors, columnMap }) => {
+const Step3Preview: React.FC<{ parsedData: any[], cleanedData: any[], dataErrors: any, columnMap: any, importType: 'accounts' | 'transactions' }> = ({ parsedData, cleanedData, dataErrors, columnMap, importType }) => {
+    const transactionHeaders = ['date', 'account', 'name', 'category', 'amount', 'currency'];
+    const accountHeaders = ['name', 'type', 'balance', 'currency'];
+    const previewHeaders = importType === 'transactions' ? transactionHeaders : accountHeaders;
      return (
         <div className="max-w-7xl mx-auto">
             <h2 className="text-3xl font-bold mb-2 text-center">Preview Processed Data</h2>
@@ -691,12 +726,9 @@ const Step3Preview: React.FC<{ parsedData: any[], cleanedData: any[], dataErrors
                     <thead>
                         <tr className="border-b border-black/10 dark:border-white/10">
                             <th className="p-2 font-semibold text-left w-12">Row #</th>
-                            <th className="p-2 font-semibold text-left">Date</th>
-                            <th className="p-2 font-semibold text-left">Account</th>
-                            <th className="p-2 font-semibold text-left">Name</th>
-                            <th className="p-2 font-semibold text-left">Category</th>
-                            <th className="p-2 font-semibold text-left">Amount</th>
-                            <th className="p-2 font-semibold text-left">Currency</th>
+                            {previewHeaders.map(header => (
+                                <th key={header} className="p-2 font-semibold text-left capitalize">{header}</th>
+                            ))}
                         </tr>
                     </thead>
                     <tbody>
@@ -707,7 +739,7 @@ const Step3Preview: React.FC<{ parsedData: any[], cleanedData: any[], dataErrors
                             return (
                                 <tr key={index} className={`border-b border-black/5 dark:border-white/5 last:border-b-0 ${errors ? 'bg-red-500/10' : ''}`}>
                                     <td className="p-2 font-mono text-gray-500">{index + 2}</td>
-                                    {['date', 'account', 'name', 'category', 'amount', 'currency'].map(field => {
+                                    {previewHeaders.map(field => {
                                         const cellError = errors?.[field];
                                         let cellValue;
 
@@ -742,7 +774,7 @@ const Step3Preview: React.FC<{ parsedData: any[], cleanedData: any[], dataErrors
     );
 };
 
-const Step4Clean: React.FC<{ data: any[], setData: any, errors: any, excludedRows: any, setExcludedRows: any }> = ({ data, setData, errors, excludedRows, setExcludedRows }) => {
+const Step4Clean: React.FC<{ data: any[], setData: any, errors: any, excludedRows: any, setExcludedRows: any, importType: 'accounts' | 'transactions' }> = ({ data, setData, errors, excludedRows, setExcludedRows, importType }) => {
     const [filters, setFilters] = useState<Record<string, { type: string, value: string }>>({});
     const [activePopover, setActivePopover] = useState<string | null>(null);
     const popoverRef = useRef<HTMLDivElement>(null);
@@ -785,7 +817,7 @@ const Step4Clean: React.FC<{ data: any[], setData: any, errors: any, excludedRow
                         default: return true;
                     }
                 } catch { return false; }
-            } else if (header === 'amount') {
+            } else if (header === 'amount' || header === 'balance') {
                 const rowAmount = parseFloat(rowValue);
                 const filterAmount = parseFloat(filter.value);
                 if (isNaN(rowAmount) || isNaN(filterAmount)) return true;
@@ -818,7 +850,7 @@ const Step4Clean: React.FC<{ data: any[], setData: any, errors: any, excludedRow
         );
     };
 
-    return (<div className="max-w-7xl mx-auto"><h2 className="text-3xl font-bold mb-2 text-center">Review & Clean Data</h2><p className="text-light-text-secondary dark:text-dark-text-secondary mb-8 text-center">Correct any errors and exclude rows you don't want to import.</p><div className="overflow-x-auto bg-light-card dark:bg-dark-card p-4 rounded-lg"><table className="w-full text-sm table-fixed"><thead><tr className="border-b border-black/10 dark:border-white/10"><th className="p-2 font-semibold text-left w-12">Skip</th>{headers.map(h => <th key={h} className="p-2 font-semibold text-left capitalize">{h}</th>)}</tr><tr className="border-b border-black/10 dark:border-white/10"><th className="p-1"></th>{headers.map(h => (<th key={h} className="p-1 align-top font-normal"><div className="relative">{h==='date'?<button onClick={()=>setActivePopover(h)} className={`${INPUT_BASE_STYLE} text-xs py-1 text-left w-full flex justify-between items-center`}><span>{filters[h]?`${filters[h].type}: ${filters[h].value}`:'Filter date...'}</span><span className="material-symbols-outlined text-sm">filter_list</span></button> : h==='amount'?<div className="flex"><select value={filters[h]?.type||'eq'} onChange={e=>handleFilterChange(h, e.target.value, filters[h]?.value||'')} className={`${INPUT_BASE_STYLE} text-xs py-1 rounded-r-none w-1/3`}><option value="eq">=</option><option value="gt">&gt;</option><option value="lt">&lt;</option></select><input type="number" placeholder="Value" value={filters[h]?.value||''} onChange={e=>handleFilterChange(h, filters[h]?.type||'eq', e.target.value)} className={`${INPUT_BASE_STYLE} text-xs py-1 rounded-l-none`}/></div>:<input type="text" placeholder={`Filter ${h}...`} value={filters[h]?.value||''} onChange={e=>handleFilterChange(h, 'contains', e.target.value)} className={`${INPUT_BASE_STYLE} text-xs py-1`}/>}{activePopover === h && h === 'date' && <DateFilterPopover header={h}/>}</div></th>))}</tr></thead><tbody>{filteredData.map(row => (<tr key={row.originalIndex} className={`border-b border-black/5 dark:border-white/5 last:border-b-0 ${excludedRows.has(row.originalIndex) ? 'opacity-40 bg-gray-100 dark:bg-gray-800' : ''}`}><td className="p-2 text-center"><input type="checkbox" checked={excludedRows.has(row.originalIndex)} onChange={() => toggleExclude(row.originalIndex)} className="w-4 h-4 rounded text-primary-500 bg-transparent border-gray-400 focus:ring-primary-500" /></td>{headers.map(header => { const hasError = errors[row.originalIndex]?.[header]; return <td key={header} className="p-0"><input value={row[header]} onChange={e => handleCellChange(row.originalIndex, header, e.target.value)} className={`w-full h-full p-2 bg-transparent focus:outline-none focus:bg-primary-500/10 ${hasError ? 'bg-red-500/20 text-red-800 dark:text-red-200' : ''}`} title={hasError || ''} /></td> })}</tr>))}</tbody></table></div></div>);
+    return (<div className="max-w-7xl mx-auto"><h2 className="text-3xl font-bold mb-2 text-center">Review & Clean Data</h2><p className="text-light-text-secondary dark:text-dark-text-secondary mb-8 text-center">Correct any errors and exclude rows you don't want to import.</p><div className="overflow-x-auto bg-light-card dark:bg-dark-card p-4 rounded-lg"><table className="w-full text-sm table-fixed"><thead><tr className="border-b border-black/10 dark:border-white/10"><th className="p-2 font-semibold text-left w-12">Skip</th>{headers.map(h => <th key={h} className="p-2 font-semibold text-left capitalize">{h}</th>)}</tr><tr className="border-b border-black/10 dark:border-white/10"><th className="p-1"></th>{headers.map(h => (<th key={h} className="p-1 align-top font-normal"><div className="relative">{h==='date'?<button onClick={()=>setActivePopover(h)} className={`${INPUT_BASE_STYLE} text-xs py-1 text-left w-full flex justify-between items-center`}><span>{filters[h]?`${filters[h].type}: ${filters[h].value}`:'Filter date...'}</span><span className="material-symbols-outlined text-sm">filter_list</span></button> : (h==='amount' || h === 'balance')?<div className="flex"><select value={filters[h]?.type||'eq'} onChange={e=>handleFilterChange(h, e.target.value, filters[h]?.value||'')} className={`${INPUT_BASE_STYLE} text-xs py-1 rounded-r-none w-1/3`}><option value="eq">=</option><option value="gt">&gt;</option><option value="lt">&lt;</option></select><input type="number" placeholder="Value" value={filters[h]?.value||''} onChange={e=>handleFilterChange(h, filters[h]?.type||'eq', e.target.value)} className={`${INPUT_BASE_STYLE} text-xs py-1 rounded-l-none`}/></div>:<input type="text" placeholder={`Filter ${h}...`} value={filters[h]?.value||''} onChange={e=>handleFilterChange(h, 'contains', e.target.value)} className={`${INPUT_BASE_STYLE} text-xs py-1`}/>}{activePopover === h && h === 'date' && <DateFilterPopover header={h}/>}</div></th>))}</tr></thead><tbody>{filteredData.map(row => (<tr key={row.originalIndex} className={`border-b border-black/5 dark:border-white/5 last:border-b-0 ${excludedRows.has(row.originalIndex) ? 'opacity-40 bg-gray-100 dark:bg-gray-800' : ''}`}><td className="p-2 text-center"><input type="checkbox" checked={excludedRows.has(row.originalIndex)} onChange={() => toggleExclude(row.originalIndex)} className="w-4 h-4 rounded text-primary-500 bg-transparent border-gray-400 focus:ring-primary-500" /></td>{headers.map(header => { const hasError = errors[row.originalIndex]?.[header]; return <td key={header} className="p-0"><input value={row[header]} onChange={e => handleCellChange(row.originalIndex, header, e.target.value)} className={`w-full h-full p-2 bg-transparent focus:outline-none focus:bg-primary-500/10 ${hasError ? 'bg-red-500/20 text-red-800 dark:text-red-200' : ''}`} title={hasError || ''} /></td> })}</tr>))}</tbody></table></div></div>);
 };
 
 const RecursiveCategoryOptions: React.FC<{ categories: Category[], level: number }> = ({ categories, level }) => {
@@ -845,17 +877,22 @@ const CategoryOptionsGroup: React.FC<{ categories: Category[], label: string }> 
 
 
 const Step5Map: React.FC<{
+    importType: 'accounts' | 'transactions',
     categories: string[], setCategoryMap: any, categoryMap: any, allCategories: Category[],
     accounts: string[], setAccountMap: any, accountMap: any, existingAccounts: Account[],
+    accountTypes: string[], setAccountTypeMap: any, accountTypeMap: any,
     currencies: string[], setCurrencyMap: any, currencyMap: any
 }> = ({
+    importType,
     categories, setCategoryMap, categoryMap, allCategories,
     accounts, setAccountMap, accountMap, existingAccounts,
+    accountTypes, setAccountTypeMap, accountTypeMap,
     currencies, setCurrencyMap, currencyMap
 }) => (
     <div className="max-w-3xl mx-auto space-y-8">
-        {categories.length > 0 && <div><h2 className="text-2xl font-bold mb-2 text-center">Map Categories</h2><p className="text-light-text-secondary dark:text-dark-text-secondary mb-4 text-center">Assign imported categories to your existing ones, or create new ones.</p><div className="space-y-2 p-4 bg-light-card dark:bg-dark-card rounded-lg">{categories.map(cat => (<div key={cat} className="grid grid-cols-2 gap-4 items-center p-2 rounded"><p>{cat}</p><div className={SELECT_WRAPPER_STYLE}><select value={categoryMap[cat]} onChange={e => setCategoryMap((p:any) => ({...p, [cat]: e.target.value}))} className={INPUT_BASE_STYLE}><option value="_UNASSIGNED_">Uncategorized (Skip)</option><option value={`_CREATE_NEW_:${cat}`}>Create new category '{cat}'</option><CategoryOptionsGroup categories={allCategories.filter(c => c.classification === 'expense')} label="--- EXPENSES ---" /><CategoryOptionsGroup categories={allCategories.filter(c => c.classification === 'income')} label="--- INCOME ---" /></select><div className={SELECT_ARROW_STYLE}><span className="material-symbols-outlined">expand_more</span></div></div></div>))}</div></div>}
-        {accounts.length > 0 && <div><h2 className="text-2xl font-bold mb-2 text-center">Map Accounts</h2><p className="text-light-text-secondary dark:text-dark-text-secondary mb-4 text-center">Assign imported accounts to your existing ones, or create new ones.</p><div className="space-y-2 p-4 bg-light-card dark:bg-dark-card rounded-lg">{accounts.map(acc => (<div key={acc} className="grid grid-cols-2 gap-4 items-center p-2 rounded"><p>{acc}</p><div className={SELECT_WRAPPER_STYLE}><select value={accountMap[acc]} onChange={e => setAccountMap((p:any) => ({...p, [acc]: e.target.value}))} className={INPUT_BASE_STYLE}><option value="_UNASSIGNED_">Unassigned (Skip rows)</option><option value={`_CREATE_NEW_:${acc}`}>Create new account '{acc}'</option>{existingAccounts.map(a => <option key={a.id} value={a.id}>{a.name}</option>)}</select><div className={SELECT_ARROW_STYLE}><span className="material-symbols-outlined">expand_more</span></div></div></div>))}</div></div>}
+        {importType === 'transactions' && categories.length > 0 && <div><h2 className="text-2xl font-bold mb-2 text-center">Map Categories</h2><p className="text-light-text-secondary dark:text-dark-text-secondary mb-4 text-center">Assign imported categories to your existing ones, or create new ones.</p><div className="space-y-2 p-4 bg-light-card dark:bg-dark-card rounded-lg">{categories.map(cat => (<div key={cat} className="grid grid-cols-2 gap-4 items-center p-2 rounded"><p>{cat}</p><div className={SELECT_WRAPPER_STYLE}><select value={categoryMap[cat]} onChange={e => setCategoryMap((p:any) => ({...p, [cat]: e.target.value}))} className={INPUT_BASE_STYLE}><option value="_UNASSIGNED_">Uncategorized (Skip)</option><option value={`_CREATE_NEW_:${cat}`}>Create new category '{cat}'</option><CategoryOptionsGroup categories={allCategories.filter(c => c.classification === 'expense')} label="--- EXPENSES ---" /><CategoryOptionsGroup categories={allCategories.filter(c => c.classification === 'income')} label="--- INCOME ---" /></select><div className={SELECT_ARROW_STYLE}><span className="material-symbols-outlined">expand_more</span></div></div></div>))}</div></div>}
+        {importType === 'transactions' && accounts.length > 0 && <div><h2 className="text-2xl font-bold mb-2 text-center">Map Accounts</h2><p className="text-light-text-secondary dark:text-dark-text-secondary mb-4 text-center">Assign imported accounts to your existing ones, or create new ones.</p><div className="space-y-2 p-4 bg-light-card dark:bg-dark-card rounded-lg">{accounts.map(acc => (<div key={acc} className="grid grid-cols-2 gap-4 items-center p-2 rounded"><p>{acc}</p><div className={SELECT_WRAPPER_STYLE}><select value={accountMap[acc]} onChange={e => setAccountMap((p:any) => ({...p, [acc]: e.target.value}))} className={INPUT_BASE_STYLE}><option value="_UNASSIGNED_">Unassigned (Skip rows)</option><option value={`_CREATE_NEW_:${acc}`}>Create new account '{acc}'</option>{existingAccounts.map(a => <option key={a.id} value={a.id}>{a.name}</option>)}</select><div className={SELECT_ARROW_STYLE}><span className="material-symbols-outlined">expand_more</span></div></div></div>))}</div></div>}
+        {importType === 'accounts' && accountTypes.length > 0 && <div><h2 className="text-2xl font-bold mb-2 text-center">Map Account Types</h2><p className="text-light-text-secondary dark:text-dark-text-secondary mb-4 text-center">Match the account types from your file to Finaura's types.</p><div className="space-y-2 p-4 bg-light-card dark:bg-dark-card rounded-lg">{accountTypes.map(type => (<div key={type} className="grid grid-cols-2 gap-4 items-center p-2 rounded"><p>{type}</p><div className={SELECT_WRAPPER_STYLE}><select value={accountTypeMap[type]} onChange={e => setAccountTypeMap((p:any) => ({...p, [type]: e.target.value}))} className={INPUT_BASE_STYLE}><option value="_UNASSIGNED_">Unassigned (Skip)</option>{ALL_ACCOUNT_TYPES.map(a => <option key={a} value={a}>{a}</option>)}</select><div className={SELECT_ARROW_STYLE}><span className="material-symbols-outlined">expand_more</span></div></div></div>))}</div></div>}
         {currencies.length > 0 && (
             <div>
                 <h2 className="text-2xl font-bold mb-2 text-center">Map Currencies</h2>
@@ -888,8 +925,19 @@ const Step5Map: React.FC<{
     </div>
 );
 
-const Step6Confirm: React.FC<{ data: any[] }> = ({ data }) => (
-    <div className="max-w-xl mx-auto text-center"><h2 className="text-3xl font-bold mb-2">Confirm Import</h2><p className="text-light-text-secondary dark:text-dark-text-secondary mb-8">Review the summary before publishing to your account.</p><div className="p-4 bg-light-card dark:bg-dark-card rounded-lg text-left"><div className="flex justify-between items-center p-2 border-b border-black/10 dark:border-white/10 font-semibold"><p>Item</p><p>Count</p></div><div className="flex justify-between items-center p-2"><p className="flex items-center gap-2"><span className="material-symbols-outlined text-primary-500">receipt_long</span>Transactions to Import</p><p className="font-bold text-lg">{data.length}</p></div></div></div>
+const Step6Confirm: React.FC<{ data: any[], importType: 'accounts' | 'transactions' }> = ({ data, importType }) => (
+    <div className="max-w-xl mx-auto text-center"><h2 className="text-3xl font-bold mb-2">Confirm Import</h2><p className="text-light-text-secondary dark:text-dark-text-secondary mb-8">Review the summary before publishing to your account.</p>
+        <div className="p-4 bg-light-card dark:bg-dark-card rounded-lg text-left">
+            <div className="flex justify-between items-center p-2 border-b border-black/10 dark:border-white/10 font-semibold"><p>Item</p><p>Count</p></div>
+            <div className="flex justify-between items-center p-2">
+                <p className="flex items-center gap-2">
+                    <span className="material-symbols-outlined text-primary-500">{importType === 'transactions' ? 'receipt_long' : 'wallet'}</span>
+                    {importType === 'transactions' ? 'Transactions to Import' : 'Accounts to Import'}
+                </p>
+                <p className="font-bold text-lg">{data.length}</p>
+            </div>
+        </div>
+    </div>
 );
 
 const StepPublishing = () => (

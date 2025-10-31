@@ -1,4 +1,5 @@
 
+
 import React, { useState, useRef } from 'react';
 import { Account, Transaction, Budget, RecurringTransaction, ImportExportHistoryItem, HistoryStatus, ImportDataType, Category } from '../types';
 import Card from '../components/Card';
@@ -10,6 +11,7 @@ import ExportModal from '../components/ExportModal';
 import ImportDetailsModal from '../components/ImportDetailsModal';
 import ConfirmationModal from '../components/ConfirmationModal';
 import FinalConfirmationModal from '../components/FinalConfirmationModal';
+import { v4 as uuidv4 } from 'uuid';
 
 interface DataManagementProps {
   accounts: Account[];
@@ -55,7 +57,7 @@ const HistoryItem: React.FC<{ item: ImportExportHistoryItem; onDelete: (id: stri
     return (
         <div className="flex items-center justify-between p-4 border-b border-black/5 dark:border-white/5 last:border-b-0">
             <div>
-                <p className="font-semibold text-base text-light-text dark:text-dark-text">{type === 'import' ? `Transaction Import` : `Export from`} {formattedDate}</p>
+                <p className="font-semibold text-base text-light-text dark:text-dark-text">{type === 'import' ? `Import: ${item.dataType}` : `Export from`} {formattedDate}</p>
                 <div className="flex items-center gap-2 text-sm">
                     {type === 'export' && <p className="text-light-text-secondary dark:text-dark-text-secondary">{fileName}</p>}
                     <span className={`font-semibold ${color}`}>{status}</span>
