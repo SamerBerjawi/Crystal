@@ -170,3 +170,20 @@ export const downloadCSV = (csvString: string, filename: string) => {
         document.body.removeChild(link);
     }
 };
+
+export const getApiBaseUrl = (): string => {
+    const envValue = import.meta.env?.VITE_API_BASE_URL as string | undefined;
+    if (envValue) {
+        return envValue.replace(/\/$/, '');
+    }
+
+    if (typeof window !== 'undefined') {
+        const { origin } = window.location;
+        if (origin.includes('localhost')) {
+            return 'http://localhost:3000/api';
+        }
+        return `${origin}/api`;
+    }
+
+    return 'http://localhost:3000/api';
+};
