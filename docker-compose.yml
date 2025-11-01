@@ -50,5 +50,5 @@ volumes:
     driver_opts:
       type: none
       o: bind
-      device: ${DATA_ROOT:-/volume1/docker/finaura}/postgres
+      device: ${DATA_ROOT:-./docker-data}/postgres
 
