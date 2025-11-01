@@ -46,4 +46,11 @@ services:
       - "${FRONTEND_PORT:-7157}:80"
 
 
+volumes:
+  db_data:
+    driver: local
+    driver_opts:
+      type: none
+      o: bind
+      device: ${DATA_ROOT:-./docker-data}/postgres
 
