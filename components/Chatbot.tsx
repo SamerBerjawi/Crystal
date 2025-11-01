@@ -1,6 +1,7 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { GoogleGenAI, Chat } from '@google/genai';
-import { Account, Transaction, Budget, FinancialGoal, RecurringTransaction } from '../types';
+// FIX: Import InvestmentTransaction type to use in the ChatbotProps interface.
+import { Account, Transaction, Budget, FinancialGoal, RecurringTransaction, InvestmentTransaction } from '../types';
 
 interface ChatbotProps {
   isOpen: boolean;
@@ -11,6 +12,8 @@ interface ChatbotProps {
     budgets: Budget[];
     financialGoals: FinancialGoal[];
     recurringTransactions: RecurringTransaction[];
+    // FIX: Add investmentTransactions to the financialData prop to match the data passed from App.tsx.
+    investmentTransactions: InvestmentTransaction[];
   };
 }
 
@@ -26,12 +29,23 @@ const Chatbot: React.FC<ChatbotProps> = ({ isOpen, onClose, financialData }) => 
   const [isStreaming, setIsStreaming] = useState(false); // For message responses
   const chatRef = useRef<Chat | null>(null);
   const messagesEndRef = useRef<HTMLDivElement>(null);
+  const [isMounted, setIsMounted] = useState(false);
 
   const scrollToBottom = () => {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
   };
 
   useEffect(scrollToBottom, [messages]);
+
+  useEffect(() => {
+    if (isOpen) {
+      // Use a timeout to allow the component to mount before starting the transition
+      const timer = setTimeout(() => setIsMounted(true), 10);
+      return () => clearTimeout(timer);
+    } else {
+      setIsMounted(false); // Reset on close
+    }
+  }, [isOpen]);
 
   // A simple markdown to HTML converter
   const simpleMarkdownToHtml = (text: string) => {
@@ -55,6 +69,7 @@ const Chatbot: React.FC<ChatbotProps> = ({ isOpen, onClose, financialData }) => 
           const dataSummary = {
               accounts: financialData.accounts.map(({ name, type, balance, currency }) => ({ name, type, balance, currency })),
               recent_transactions: recentTransactions.map(({ id, importId, ...rest }) => rest),
+              investment_transactions: financialData.investmentTransactions.map(({ id, ...rest }) => rest),
               budgets: financialData.budgets.map(({ categoryName, amount }) => ({ categoryName, amount })),
               financial_goals: financialData.financialGoals.map(({ name, type, amount, currentAmount, date, startDate }) => ({ name, type, amount, currentAmount, date, startDate })),
               recurring_transactions: financialData.recurringTransactions.map(({ description, amount, type, frequency, nextDueDate }) => ({ description, amount, type, frequency, nextDueDate })),
@@ -119,7 +134,7 @@ const Chatbot: React.FC<ChatbotProps> = ({ isOpen, onClose, financialData }) => 
   if (!isOpen) return null;
 
   return (
-    <div className="fixed bottom-24 right-6 w-full max-w-sm h-[60vh] z-50 flex flex-col">
+    <div className={`fixed bottom-24 right-6 w-full max-w-sm h-[60vh] z-50 flex flex-col transition-all duration-300 ease-out ${isMounted ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-4'}`}>
       <div className="bg-light-card/80 dark:bg-dark-card/80 backdrop-blur-xl rounded-xl shadow-2xl border border-light-separator dark:border-dark-separator flex flex-col h-full">
         <header className="flex items-center justify-between p-4 border-b border-light-separator dark:border-dark-separator">
           <h2 className="text-lg font-semibold">Finaura AI Assistant</h2>

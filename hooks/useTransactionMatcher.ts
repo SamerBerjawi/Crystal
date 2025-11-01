@@ -19,44 +19,81 @@ export const useTransactionMatcher = (
   const suggestions = useMemo(() => {
     const potentialMatches: Suggestion[] = [];
     const ONE_DAY_MS = 24 * 60 * 60 * 1000;
-    
-    // Only consider recent transactions for performance and relevance
-    const twoWeeksAgo = new Date();
-    twoWeeksAgo.setDate(twoWeeksAgo.getDate() - 14);
 
-    const candidates = transactions.filter(tx => !tx.transferId && new Date(tx.date) >= twoWeeksAgo);
+    // 1. Get all non-transfer transactions
+    const candidates = transactions.filter(tx => !tx.transferId);
     
     const expenses = candidates.filter(tx => tx.type === 'expense');
     const incomes = candidates.filter(tx => tx.type === 'income');
 
-    for (const expense of expenses) {
-      for (const income of incomes) {
-        // Basic checks
-        if (expense.accountId === income.accountId) continue;
-
-        const suggestionId = [expense.id, income.id].sort().join('|');
-        if (potentialMatches.some(p => p.id === suggestionId) || ignoredSuggestionIds.includes(suggestionId)) continue;
-        
-        // Amount check (compare in EUR)
-        const expenseAmount = Math.abs(convertToEur(expense.amount, expense.currency));
-        const incomeAmount = convertToEur(income.amount, income.currency);
-        const amountDifference = Math.abs(expenseAmount - incomeAmount);
-
-        // Date check (within +/- 1 day)
-        const expenseDate = new Date(expense.date);
-        const incomeDate = new Date(income.date);
-        const dateDifference = Math.abs(expenseDate.getTime() - incomeDate.getTime());
-
-        if (amountDifference < 0.01 && dateDifference <= ONE_DAY_MS) {
-          potentialMatches.push({
-            expenseTx: expense,
-            incomeTx: income,
-            id: suggestionId,
-          });
+    // 2. Create a lookup map for incomes for faster searching.
+    // Key: "amount|date" (e.g., "123.45|2023-10-27")
+    // Amount is in EUR and positive.
+    const incomeMap = new Map<string, Transaction[]>();
+    for (const income of incomes) {
+        const amountKey = convertToEur(income.amount, income.currency).toFixed(2);
+        const dateKey = income.date;
+        const key = `${amountKey}|${dateKey}`;
+        if (!incomeMap.has(key)) {
+            incomeMap.set(key, []);
         }
-      }
+        incomeMap.get(key)!.push(income);
     }
-    
+
+    // 3. Iterate through expenses and check for matches in the map.
+    for (const expense of expenses) {
+        const expenseAmountKey = Math.abs(convertToEur(expense.amount, expense.currency)).toFixed(2);
+        // Using replace for date string to avoid timezone issues.
+        const expenseDate = new Date(expense.date.replace(/-/g, '/'));
+
+        // Dates to check: same day, one day before, one day after.
+        const datesToCheck = [
+            expenseDate,
+            new Date(expenseDate.getTime() - ONE_DAY_MS),
+            new Date(expenseDate.getTime() + ONE_DAY_MS)
+        ];
+
+        let foundMatchForExpense = false;
+
+        for (const date of datesToCheck) {
+            if (foundMatchForExpense) break;
+
+            const dateKey = date.toISOString().split('T')[0];
+            const key = `${expenseAmountKey}|${dateKey}`;
+
+            if (incomeMap.has(key)) {
+                const potentialIncomes = incomeMap.get(key)!;
+                
+                // Iterate backwards because we might remove items from the array
+                for (let i = potentialIncomes.length - 1; i >= 0; i--) {
+                    const income = potentialIncomes[i];
+
+                    // Final checks
+                    if (expense.accountId === income.accountId) continue;
+
+                    const suggestionId = [expense.id, income.id].sort().join('|');
+                    if (ignoredSuggestionIds.includes(suggestionId)) continue;
+                    
+                    // We found a match
+                    potentialMatches.push({
+                        expenseTx: expense,
+                        incomeTx: income,
+                        id: suggestionId,
+                    });
+                    
+                    // Remove this income from the map to prevent it from being matched again
+                    potentialIncomes.splice(i, 1);
+                    if(potentialIncomes.length === 0) {
+                        incomeMap.delete(key);
+                    }
+                    
+                    foundMatchForExpense = true;
+                    break; // Move to the next expense
+                }
+            }
+        }
+    }
+
     return potentialMatches;
   }, [transactions, ignoredSuggestionIds]);
 

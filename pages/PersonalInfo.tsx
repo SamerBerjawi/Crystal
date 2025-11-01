@@ -6,8 +6,10 @@ import ChangePasswordModal from '../components/ChangePasswordModal';
 
 interface PersonalInfoProps {
   user: User;
-  setUser: (email: string, updates: Partial<User>) => void;
-  onChangePassword: (email: string, current: string, newPass: string) => boolean;
+  // FIX: Update setUser prop type to match the one from useAuth hook (it doesn't need an email).
+  setUser: (updates: Partial<User>) => void;
+  // FIX: Update onChangePassword prop to handle an async function returning a Promise.
+  onChangePassword: (current: string, newPass: string) => Promise<boolean>;
   setCurrentPage: (page: Page) => void;
 }
 
@@ -24,7 +26,7 @@ const PersonalInfo: React.FC<PersonalInfoProps> = ({ user, setUser, onChangePass
   const handle2FAToggle = () => {
     const updatedUser = { ...formData, is2FAEnabled: !formData.is2FAEnabled };
     setFormData(updatedUser);
-    setUser(user.email, { is2FAEnabled: updatedUser.is2FAEnabled }); // Save immediately
+    setUser({ is2FAEnabled: updatedUser.is2FAEnabled }); // Save immediately
     alert(`Two-Factor Authentication ${updatedUser.is2FAEnabled ? 'enabled' : 'disabled'}.`);
   };
 
@@ -45,7 +47,7 @@ const PersonalInfo: React.FC<PersonalInfoProps> = ({ user, setUser, onChangePass
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    setUser(user.email, formData);
+    setUser(formData);
     alert('Profile updated successfully!');
   };
 
@@ -57,7 +59,7 @@ const PersonalInfo: React.FC<PersonalInfoProps> = ({ user, setUser, onChangePass
         <ChangePasswordModal 
           isOpen={isPasswordModalOpen}
           onClose={() => setPasswordModalOpen(false)}
-          onChangePassword={(current, newPass) => onChangePassword(user.email, current, newPass)}
+          onChangePassword={onChangePassword}
         />
       )}
       <header>

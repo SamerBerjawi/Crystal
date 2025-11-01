@@ -67,7 +67,7 @@ const AccountRow: React.FC<AccountRowProps> = ({ account, transactions, onClick,
 
     return (
         <div 
-            className="flex items-center justify-between p-4 rounded-lg hover:bg-black/5 dark:hover:bg-white/5 transition-colors duration-200 cursor-pointer group" 
+            className="flex items-center justify-between p-4 rounded-lg hover:bg-black/5 dark:hover:bg-white/5 transition-all duration-200 cursor-pointer group hover:-translate-y-0.5 hover:shadow-md" 
             onClick={onClick}
         >
             {/* Left side: Icon, Name, Type */}

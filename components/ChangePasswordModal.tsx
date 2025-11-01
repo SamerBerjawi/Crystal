@@ -5,7 +5,8 @@ import { INPUT_BASE_STYLE, BTN_PRIMARY_STYLE, BTN_SECONDARY_STYLE } from '../con
 interface ChangePasswordModalProps {
   isOpen: boolean;
   onClose: () => void;
-  onChangePassword: (current: string, newPass: string) => boolean;
+  // FIX: Update prop type to handle async function from useAuth hook.
+  onChangePassword: (current: string, newPass: string) => Promise<boolean>;
 }
 
 const ChangePasswordModal: React.FC<ChangePasswordModalProps> = ({ isOpen, onClose, onChangePassword }) => {
@@ -15,7 +16,8 @@ const ChangePasswordModal: React.FC<ChangePasswordModalProps> = ({ isOpen, onClo
   const [error, setError] = useState('');
   const [success, setSuccess] = useState('');
 
-  const handleSubmit = (e: React.FormEvent) => {
+  // FIX: Make handleSubmit async to await the result of onChangePassword.
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setError('');
     setSuccess('');
@@ -29,7 +31,7 @@ const ChangePasswordModal: React.FC<ChangePasswordModalProps> = ({ isOpen, onClo
         return;
     }
 
-    const wasSuccessful = onChangePassword(currentPassword, newPassword);
+    const wasSuccessful = await onChangePassword(currentPassword, newPassword);
 
     if (wasSuccessful) {
       setSuccess('Password updated successfully!');

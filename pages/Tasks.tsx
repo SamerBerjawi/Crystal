@@ -4,18 +4,13 @@ import { BTN_PRIMARY_STYLE, INPUT_BASE_STYLE, SELECT_ARROW_STYLE, SELECT_WRAPPER
 import Card from '../components/Card';
 import Modal from '../components/Modal';
 import TasksHeatmap from '../components/TasksHeatmap';
+import TaskItem from '../components/TaskItem';
 
 interface TasksProps {
   tasks: Task[];
   saveTask: (task: Omit<Task, 'id'> & { id?: string }) => void;
   deleteTask: (id: string) => void;
 }
-
-const PRIORITY_STYLES: Record<TaskPriority, { text: string; bg: string }> = {
-    'High': { text: 'text-red-700 dark:text-red-300', bg: 'bg-red-100 dark:bg-red-900/40' },
-    'Medium': { text: 'text-yellow-700 dark:text-yellow-300', bg: 'bg-yellow-100 dark:bg-yellow-900/40' },
-    'Low': { text: 'text-blue-700 dark:text-blue-300', bg: 'bg-blue-100 dark:bg-blue-900/40' },
-};
 
 const PRIORITY_ORDER: Record<TaskPriority, number> = { 'High': 3, 'Medium': 2, 'Low': 1 };
 const STATUS_ORDER: TaskStatus[] = ['To Do', 'In Progress', 'Done'];
@@ -114,36 +109,6 @@ const TaskForm: React.FC<{ task?: Task | null, onSave: (task: Omit<Task, 'id'> &
     );
 };
 
-interface TaskItemProps {
-    task: Task;
-    onEdit: (task: Task) => void;
-    isJustCompleted: boolean;
-}
-
-const TaskItem: React.FC<TaskItemProps> = ({ task, onEdit, isJustCompleted }) => (
-    <Card onClick={() => onEdit(task)} className={`p-4 cursor-pointer hover:shadow-lg dark:hover:bg-dark-border/50 transition-all duration-300 ${isJustCompleted ? 'animate-celebrate' : ''}`}>
-        <div className="flex justify-between items-start">
-            <p className="font-semibold text-light-text dark:text-dark-text pr-2">{task.title}</p>
-            <div className={`px-2 py-0.5 text-xs font-semibold rounded-full ${PRIORITY_STYLES[task.priority].bg} ${PRIORITY_STYLES[task.priority].text}`}>{task.priority}</div>
-        </div>
-        {task.description && <p className="text-sm text-light-text-secondary dark:text-dark-text-secondary mt-1">{task.description}</p>}
-        <div className="flex items-center gap-4 mt-2">
-            {task.dueDate && (
-                <div className="flex items-center gap-1 text-xs text-light-text-secondary dark:text-dark-text-secondary">
-                    <span className="material-symbols-outlined text-sm">event</span>
-                    <span>{new Date(task.dueDate).toLocaleDateString()}</span>
-                </div>
-            )}
-            {task.reminderDate && (
-                <div className="flex items-center gap-1 text-xs text-yellow-600 dark:text-yellow-400">
-                    <span className="material-symbols-outlined text-sm">notifications</span>
-                    <span>{new Date(task.reminderDate).toLocaleDateString()}</span>
-                </div>
-            )}
-        </div>
-    </Card>
-);
-
 const Tasks: React.FC<TasksProps> = ({ tasks, saveTask, deleteTask }) => {
     const [isModalOpen, setIsModalOpen] = useState(false);
     const [editingTask, setEditingTask] = useState<Task | null>(null);
@@ -205,7 +170,7 @@ const Tasks: React.FC<TasksProps> = ({ tasks, saveTask, deleteTask }) => {
                     {/* <h2 className="text-3xl font-bold">Tasks</h2> */}
                     <p className="text-light-text-secondary dark:text-dark-text-secondary mt-1">Manage your financial to-dos.</p>
                 </div>
-                <div className="flex items-center gap-4">
+                <div className="flex items-end gap-4">
                      <div className={SELECT_WRAPPER_STYLE}>
                         <select value={sortBy} onChange={e => setSortBy(e.target.value as any)} className={INPUT_BASE_STYLE}>
                             <option value="priority-desc">Sort by Priority</option>

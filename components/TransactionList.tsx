@@ -44,7 +44,7 @@ const TransactionList: React.FC<TransactionListProps> = ({ transactions, allCate
           return (
             <li 
               key={tx.id} 
-              className="flex items-center justify-between group cursor-pointer hover:bg-light-fill dark:hover:bg-dark-fill p-2 -m-2 rounded-lg transition-colors duration-200"
+              className="flex items-center justify-between group cursor-pointer hover:bg-light-fill dark:hover:bg-dark-fill p-2 -m-2 rounded-lg transition-all duration-200 hover:shadow-sm"
               onClick={() => onTransactionClick?.(tx)}
             >
               <div className="flex items-center">

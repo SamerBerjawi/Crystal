@@ -48,6 +48,7 @@ const AssetDebtDonutChart: React.FC<DonutChartProps> = ({ assets, debt }) => {
               innerRadius="70%"
               outerRadius="90%"
               fill="#8884d8"
+              animationDuration={800}
               paddingAngle={data.length > 1 ? 5 : 0}
               dataKey="value"
               startAngle={90}

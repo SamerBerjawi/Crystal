@@ -40,6 +40,7 @@ const PortfolioDistributionChart: React.FC<PortfolioDistributionChartProps> = ({
                     innerRadius="60%"
                     outerRadius="80%"
                     fill="#8884d8"
+                    animationDuration={800}
                     paddingAngle={5}
                     dataKey="value"
                     startAngle={90}

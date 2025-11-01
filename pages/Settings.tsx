@@ -30,13 +30,13 @@ const Settings: React.FC<SettingsProps> = ({ setCurrentPage, user }) => {
   return (
     <div className="space-y-8">
       <header>
-        {/* <h2 className="text-3xl font-bold text-light-text dark:text-dark-text">Settings</h2> */}
+        
         <p className="text-light-text-secondary dark:text-dark-text-secondary mt-1">Select a category to configure application settings.</p>
       </header>
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
         {settingsLinks.map(link => {
           return (
-            <Card key={link.page} onClick={() => handleNavigation(link.page as Page)} className="cursor-pointer hover:shadow-lg dark:hover:bg-dark-card/60 transition-all duration-200 group">
+            <Card key={link.page} onClick={() => handleNavigation(link.page as Page)} className="cursor-pointer hover:shadow-lg dark:hover:bg-dark-card/60 transition-all duration-200 group hover:-translate-y-1">
               <div className="flex items-center justify-between">
                 <div className="flex items-center gap-4">
                   <div className="bg-primary-100 dark:bg-primary-900/50 p-3 rounded-lg group-hover:bg-primary-200/80 dark:group-hover:bg-primary-900/80 transition-colors">

@@ -28,7 +28,7 @@ const FinancialGoalCard: React.FC<FinancialGoalCardProps> = ({ goal, isActive, o
   };
 
   return (
-    <Card className="flex flex-col justify-between group">
+    <Card className="flex flex-col justify-between group transition-transform duration-200 hover:-translate-y-1">
       <div>
         <div className="flex justify-between items-start">
           <h4 className="font-semibold text-lg text-light-text dark:text-dark-text pr-2">{goal.name}</h4>

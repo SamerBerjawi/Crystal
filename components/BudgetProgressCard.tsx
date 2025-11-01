@@ -23,7 +23,7 @@ const BudgetProgressCard: React.FC<BudgetProgressCardProps> = ({ category, budge
   else if (remaining < budgeted * 0.2) remainingColor = 'text-yellow-600 dark:text-yellow-400';
 
   return (
-    <Card className="flex flex-col gap-4 group">
+    <Card className="flex flex-col gap-4 group transition-transform duration-200 hover:-translate-y-1">
       <div className="flex justify-between items-start">
         <div className="flex items-center gap-3">
           <div className="flex-shrink-0 h-10 w-10 rounded-full bg-light-bg dark:bg-dark-bg shadow-neu-inset-light dark:shadow-neu-inset-dark flex items-center justify-center">

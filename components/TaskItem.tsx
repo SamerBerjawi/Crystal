@@ -15,7 +15,7 @@ const PRIORITY_STYLES: Record<TaskPriority, { text: string; bg: string }> = {
 };
 
 const TaskItem: React.FC<TaskItemProps> = ({ task, onEdit, isJustCompleted }) => (
-    <Card onClick={() => onEdit(task)} className={`p-4 cursor-pointer hover:shadow-lg dark:hover:bg-dark-border/50 transition-all duration-300 ${isJustCompleted ? 'animate-celebrate' : ''} ${task.status === 'Done' ? 'opacity-60' : ''}`}>
+    <Card onClick={() => onEdit(task)} className={`p-4 cursor-pointer hover:shadow-lg hover:-translate-y-1 dark:hover:bg-dark-border/50 transition-all duration-300 ${isJustCompleted ? 'animate-celebrate' : ''} ${task.status === 'Done' ? 'opacity-60' : ''}`}>
         <div className="flex justify-between items-start">
             <p className={`font-semibold text-light-text dark:text-dark-text pr-2 ${task.status === 'Done' ? 'line-through' : ''}`}>{task.title}</p>
             <div className={`px-2 py-0.5 text-xs font-semibold rounded-full ${PRIORITY_STYLES[task.priority].bg} ${PRIORITY_STYLES[task.priority].text}`}>{task.priority}</div>

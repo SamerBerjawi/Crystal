@@ -14,9 +14,9 @@ export function FinauraLogo({ theme }: { theme: Theme }) {
 }
 
 // Common Styles based on Apple HIG
-export const BTN_PRIMARY_STYLE = "bg-primary-500 text-white font-semibold py-2 px-4 rounded-lg hover:bg-primary-600 shadow-md hover:shadow-lg transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-primary-500 focus:ring-offset-2 focus:ring-offset-light-bg dark:focus:ring-offset-dark-card";
-export const BTN_SECONDARY_STYLE = "bg-light-fill dark:bg-dark-fill text-light-text dark:text-dark-text font-semibold py-2 px-4 rounded-lg hover:bg-gray-500/20 dark:hover:bg-gray-400/20 transition-colors duration-200 focus:outline-none focus:ring-2 focus:ring-primary-500";
-export const BTN_DANGER_STYLE = "text-semantic-red hover:bg-semantic-red/10 font-semibold py-2 px-4 rounded-lg transition-colors";
+export const BTN_PRIMARY_STYLE = "bg-primary-500 text-white font-semibold py-2 px-4 rounded-lg hover:bg-primary-600 shadow-md hover:shadow-lg transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-primary-500 focus:ring-offset-2 focus:ring-offset-light-bg dark:focus:ring-offset-dark-card active:scale-95 whitespace-nowrap";
+export const BTN_SECONDARY_STYLE = "bg-light-fill dark:bg-dark-fill text-light-text dark:text-dark-text font-semibold py-2 px-4 rounded-lg hover:bg-gray-500/20 dark:hover:bg-gray-400/20 transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-primary-500 active:scale-95 whitespace-nowrap";
+export const BTN_DANGER_STYLE = "text-semantic-red hover:bg-semantic-red/10 font-semibold py-2 px-4 rounded-lg transition-colors active:scale-95 whitespace-nowrap";
 export const INPUT_BASE_STYLE = "w-full appearance-none bg-light-fill dark:bg-dark-fill text-light-text dark:text-dark-text rounded-lg py-2 px-3 border border-light-separator/50 dark:border-dark-separator/50 focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-primary-500 transition-shadow duration-200";
 export const SELECT_WRAPPER_STYLE = "relative w-full";
 export const SELECT_ARROW_STYLE = "pointer-events-none absolute inset-y-0 right-0 flex items-center px-2 text-light-text-secondary dark:text-dark-text-secondary";

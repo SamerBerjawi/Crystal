@@ -122,6 +122,7 @@ const EnableBankingConsent: React.FC<{ onAuthorize: () => void; onDeny: () => vo
 export const App: React.FC = () => {
   const { user, setUser, token, isAuthenticated, isLoading: isAuthLoading, error: authError, signIn, signUp, signOut, checkAuthStatus, setError: setAuthError, changePassword } = useAuth();
   const [authPage, setAuthPage] = useState<'signIn' | 'signUp'>('signIn');
+  const [isDataLoaded, setIsDataLoaded] = useState(false);
 
   const [currentPage, setCurrentPage] = useState<Page>('Dashboard');
   const [isSidebarOpen, setSidebarOpen] = useState(false);
@@ -210,9 +211,11 @@ export const App: React.FC = () => {
         if (data) {
           loadAllFinancialData(data);
         }
+        setIsDataLoaded(true);
     };
     authAndLoad();
-  }, [checkAuthStatus, loadAllFinancialData]);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
     const processOAuthCallback = useCallback(async (codeOverride?: string, stateOverride?: string) => {
         const urlParams = new URLSearchParams(window.location.search);
@@ -312,11 +315,10 @@ export const App: React.FC = () => {
 
     // Handle Enable Banking OAuth callback on initial page load
     useEffect(() => {
-        // Only run after the initial auth check is complete.
-        if (!isAuthLoading) {
+        if (isDataLoaded) {
             processOAuthCallback();
         }
-    }, [isAuthLoading, processOAuthCallback]);
+    }, [isDataLoaded, processOAuthCallback]);
 
 
   const dataToSave: FinancialData = useMemo(() => ({
@@ -350,24 +352,28 @@ export const App: React.FC = () => {
   }, [token]);
 
   useEffect(() => {
-    if (!isAuthLoading && isAuthenticated) {
+    if (isDataLoaded && isAuthenticated) {
         saveData(debouncedDataToSave);
     }
-  }, [debouncedDataToSave, isAuthLoading, isAuthenticated, saveData]);
+  }, [debouncedDataToSave, isDataLoaded, isAuthenticated, saveData]);
 
   // Auth handlers
   const handleSignIn = async (email: string, password: string) => {
+    setIsDataLoaded(false);
     const financialData = await signIn(email, password);
     if (financialData) {
       loadAllFinancialData(financialData);
     }
+    setIsDataLoaded(true);
   };
 
   const handleSignUp = async (newUserData: { firstName: string, lastName: string, email: string, password: string }) => {
+    setIsDataLoaded(false);
     const financialData = await signUp(newUserData);
     if (financialData) {
       loadAllFinancialData(financialData);
     }
+    setIsDataLoaded(true);
   };
 
   const handleLogout = () => {
@@ -461,8 +467,6 @@ export const App: React.FC = () => {
     }
   };
   
-  // FIX: Completed the function definition which was truncated in the original file.
-  // This resolves the incomplete Omit type error and the cascading error that caused the App component to have a 'void' return type.
   const handleSaveInvestmentTransaction = (
     invTxData: Omit<InvestmentTransaction, 'id'> & { id?: string },
     cashTxData?: Omit<Transaction, 'id'>
@@ -690,7 +694,7 @@ export const App: React.FC = () => {
       types.forEach(type => {
           const key = type as keyof typeof dataMap;
           if (dataMap[key] && Array.isArray(dataMap[key])) {
-              const csv = arrayToCSV(dataMap[key] as any[]);
+              const csv = arrayToCSV(dataMap[key]);
               downloadCSV(csv, `finaura_${type}_${new Date().toISOString().split('T')[0]}.csv`);
           }
       });
@@ -864,7 +868,7 @@ export const App: React.FC = () => {
     setAccounts(prev => prev.map(acc => {
       if (acc.id === accountId) {
         const { enableBankingId, enableBankingInstitution, lastSync, ...rest } = acc;
-        return rest as Account;
+        return rest;
       }
       return acc;
     }));
@@ -942,8 +946,7 @@ export const App: React.FC = () => {
   };
 
   // Loading state
-  /*
-  if (isAuthLoading) {
+  if (isAuthLoading || !isDataLoaded) {
     return (
       <div className="flex items-center justify-center min-h-screen bg-light-bg dark:bg-dark-bg">
         <svg className="animate-spin h-10 w-10 text-primary-500" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
@@ -953,7 +956,6 @@ export const App: React.FC = () => {
       </div>
     );
   }
-  */
 
   // Auth pages
   if (!isAuthenticated) {

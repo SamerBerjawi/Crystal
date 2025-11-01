@@ -47,7 +47,7 @@ const Sidebar: React.FC<SidebarProps> = ({ currentPage, setCurrentPage, isSideba
     const isSubMenuOpen = openSubMenu === item.name;
 
     const iconEl = (
-        <span className={`material-symbols-outlined ${(isActive || isParentActive) ? 'material-symbols-filled' : ''}`}>
+        <span className={`material-symbols-outlined ${(isActive || isParentActive) ? 'material-symbols-filled' : ''} transition-transform duration-200 group-hover:scale-110`}>
             {item.icon}
         </span>
     );
@@ -61,7 +61,7 @@ const Sidebar: React.FC<SidebarProps> = ({ currentPage, setCurrentPage, isSideba
               e.preventDefault();
               handleNavClick(item.name, true);
             }}
-            className={`flex items-center justify-between p-3 rounded-lg transition-colors duration-200 ${
+            className={`group flex items-center justify-between p-3 rounded-lg transition-colors duration-200 ${
               isParentActive ? 'text-primary-600 font-semibold dark:text-primary-300 bg-primary-500/10' : 'text-light-text-secondary hover:bg-black/5 dark:text-dark-text-secondary dark:hover:bg-white/10'
             } ${isSidebarCollapsed ? 'md:px-2' : ''}`}
           >
@@ -88,10 +88,10 @@ const Sidebar: React.FC<SidebarProps> = ({ currentPage, setCurrentPage, isSideba
             e.preventDefault();
             handleNavClick(item.name);
           }}
-          className={`flex items-center p-3 rounded-lg transition-colors duration-200 ${ isSidebarCollapsed ? `md:px-2 md:justify-center md:gap-0` : `px-3 gap-3 ${isSubItem ? 'pl-7' : ''}`} ${
+          className={`group flex items-center p-3 rounded-lg transition-colors duration-200 ${ isSidebarCollapsed ? `md:px-2 md:justify-center md:gap-0` : `px-3 gap-3 ${isSubItem ? 'pl-7' : ''}`} ${
             isActive
               ? 'bg-primary-500 text-white font-semibold shadow-md'
-              : `text-light-text-secondary hover:bg-black/5 dark:text-dark-text-secondary dark:hover:bg-white/10 dark:hover:text-dark-text`
+              : `text-light-text-secondary hover:bg-black/5 dark:text-dark-text-secondary dark:hover:bg-white/10`
           }`}
         >
           {iconEl}
