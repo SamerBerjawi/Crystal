@@ -3,41 +3,52 @@ version: '3.8'
 services:
   db:
     image: postgres:15-alpine
-    restart: always
+    restart: unless-stopped
     environment:
-      POSTGRES_DB: finaura
-      POSTGRES_USER: finaura_user
-      POSTGRES_PASSWORD: strong_password_change_me
+      POSTGRES_DB: ${POSTGRES_DB:-finaura}
+      POSTGRES_USER: ${POSTGRES_USER:-finaura_user}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-strong_password_change_me}
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-finaura_user} -d ${POSTGRES_DB:-finaura}"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
     volumes:
-      - postgres_data:/var/lib/postgresql/data
-    # You can uncomment the ports section if you want to connect to the DB from your host machine
-    # ports:
-    #   - "5432:5432"
+      - db_data:/var/lib/postgresql/data
 
   backend:
-    build: ./server
-    restart: always
+    build:
+      context: ./server
+    restart: unless-stopped
     depends_on:
-      - db
+      db:
+        condition: service_healthy
     ports:
       - "3001:3001"
     environment:
-      - JWT_SECRET=a-very-secret-and-secure-key-that-you-should-change
-      - NODE_ENV=production
-      - DATABASE_HOST=db
-      - DATABASE_PORT=5432
-      - DATABASE_USER=finaura_user
-      - DATABASE_PASSWORD=strong_password_change_me
-      - DATABASE_NAME=finaura
+      NODE_ENV: production
+      JWT_SECRET: ${JWT_SECRET:-a-very-secret-and-secure-key-that-you-should-change}
+      DATABASE_HOST: db
+      DATABASE_PORT: 5432
+      DATABASE_USER: ${POSTGRES_USER:-finaura_user}
+      DATABASE_PASSWORD: ${POSTGRES_PASSWORD:-strong_password_change_me}
+      DATABASE_NAME: ${POSTGRES_DB:-finaura}
 
   frontend:
     build:
       context: .
-      dockerfile: frontend.Dockerfile
-    ports:
-      - "3220:80"
+      dockerfile: Dockerfile
+    restart: unless-stopped
     depends_on:
       - backend
+    ports:
+      - "3220:80"
 
 volumes:
-  postgres_data:
+  db_data:
+    driver: local
+    driver_opts:
+      type: none
+      o: bind
+      device: ${DATA_ROOT:-/volume1/docker/finaura}/postgres
+
