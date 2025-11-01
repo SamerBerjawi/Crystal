@@ -72,10 +72,18 @@
     </script>
     <script>
       // Apply theme from localStorage on initial load to prevent flashing
-      if (localStorage.theme === 'light' || (localStorage.theme === 'system' && !window.matchMedia('(prefers-color-scheme: dark)').matches) || (!('theme' in localStorage) && !window.matchMedia('(prefers-color-scheme: dark)').matches)) {
-        document.documentElement.classList.remove('dark');
-      } else {
+      try {
+        const storedTheme = localStorage.getItem('theme');
+        const prefersDark = typeof window.matchMedia === 'function' && window.matchMedia('(prefers-color-scheme: dark)').matches;
+        const shouldUseLight =
+          storedTheme === 'light' ||
+          (storedTheme === 'system' && !prefersDark) ||
+          (!storedTheme && !prefersDark);
+
+        document.documentElement.classList.toggle('dark', !shouldUseLight);
+      } catch (error) {
         document.documentElement.classList.add('dark');
+        console.warn('Unable to read theme preference from localStorage.', error);
       }
     </script>
   <script type="importmap">

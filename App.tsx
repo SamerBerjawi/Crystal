@@ -84,6 +84,35 @@ const mapEnableBankingAccountType = (cashAccountType?: string): AccountType => {
 };
 
 
+const safeLocalStorage = {
+  getItem: (key: string): string | null => {
+    if (typeof window === 'undefined') return null;
+    try {
+      return window.localStorage.getItem(key);
+    } catch (error) {
+      console.warn(`Failed to read "${key}" from localStorage.`, error);
+      return null;
+    }
+  },
+  setItem: (key: string, value: string) => {
+    if (typeof window === 'undefined') return;
+    try {
+      window.localStorage.setItem(key, value);
+    } catch (error) {
+      console.warn(`Failed to write "${key}" to localStorage.`, error);
+    }
+  },
+  removeItem: (key: string) => {
+    if (typeof window === 'undefined') return;
+    try {
+      window.localStorage.removeItem(key);
+    } catch (error) {
+      console.warn(`Failed to remove "${key}" from localStorage.`, error);
+    }
+  },
+};
+
+
 const EnableBankingConsent: React.FC<{ onAuthorize: () => void; onDeny: () => void; }> = ({ onAuthorize, onDeny }) => {
   return (
     <div className="fixed inset-0 bg-light-bg dark:bg-dark-bg z-[999] flex items-center justify-center p-4">
@@ -128,9 +157,10 @@ export const App: React.FC = () => {
   const [isSidebarCollapsed, setSidebarCollapsed] = useState(false);
   const [accountFilter, setAccountFilter] = useState<string | null>(null);
   const [viewingAccountId, setViewingAccountId] = useState<string | null>(null);
-  const [theme, setTheme] = useState<Theme>(
-    (localStorage.getItem('theme') as Theme) || 'system'
-  );
+  const [theme, setTheme] = useState<Theme>(() => {
+    const storedTheme = safeLocalStorage.getItem('theme');
+    return storedTheme === 'light' || storedTheme === 'dark' || storedTheme === 'system' ? storedTheme : 'system';
+  });
   
   // All financial data states
   const [preferences, setPreferences] = useState<AppPreferences>(initialFinancialData.preferences);
@@ -168,20 +198,20 @@ export const App: React.FC = () => {
 
   // Load/save Sure settings from/to localStorage
   useEffect(() => {
-    const storedUrl = localStorage.getItem('finaura_sure_api_url');
-    const storedKey = localStorage.getItem('finaura_sure_api_key');
+    const storedUrl = safeLocalStorage.getItem('finaura_sure_api_url');
+    const storedKey = safeLocalStorage.getItem('finaura_sure_api_key');
     if (storedUrl) setSureApiUrl(storedUrl);
     if (storedKey) setSureApiKey(storedKey);
   }, []);
 
   const handleSetSureApiUrl = (url: string) => {
     setSureApiUrl(url);
-    localStorage.setItem('finaura_sure_api_url', url);
+    safeLocalStorage.setItem('finaura_sure_api_url', url);
   };
-  
+
   const handleSetSureApiKey = (key: string) => {
     setSureApiKey(key);
-    localStorage.setItem('finaura_sure_api_key', key);
+    safeLocalStorage.setItem('finaura_sure_api_key', key);
   };
 
   const loadAllFinancialData = useCallback((data: FinancialData | null) => {
@@ -218,12 +248,12 @@ export const App: React.FC = () => {
         const urlParams = new URLSearchParams(window.location.search);
         const code = codeOverride ?? urlParams.get('code');
         const returnedState = stateOverride ?? urlParams.get('state');
-        const savedState = localStorage.getItem('eb_oauth_state');
+        const savedState = safeLocalStorage.getItem('eb_oauth_state');
         const isFromUrl = !codeOverride && urlParams.has('code');
 
         if (code && returnedState && savedState) {
             // Clean up URL and state from storage immediately
-            localStorage.removeItem('eb_oauth_state');
+            safeLocalStorage.removeItem('eb_oauth_state');
             if (isFromUrl) {
                 try {
                     window.history.pushState({}, document.title, window.location.pathname);
@@ -790,7 +820,7 @@ export const App: React.FC = () => {
     } else {
       document.documentElement.classList.toggle('dark', theme === 'dark');
     }
-    localStorage.setItem('theme', theme);
+    safeLocalStorage.setItem('theme', theme);
   }, [theme]);
   
   const viewingAccount = useMemo(() => accounts.find(a => a.id === viewingAccountId), [accounts, viewingAccountId]);
@@ -805,7 +835,7 @@ export const App: React.FC = () => {
     
     // Generate and save state for CSRF protection
     const state = uuidv4();
-    localStorage.setItem('eb_oauth_state', state);
+    safeLocalStorage.setItem('eb_oauth_state', state);
 
     const authUrl = 'https://api.enablebanking.com/oauth/v2/auth';
     const params = new URLSearchParams({
