@@ -15,6 +15,7 @@ services:
       retries: 5
     volumes:
       - db_data:/var/lib/postgresql/data
+      - ./data/postgres:/var/lib/postgresql/data
 
   backend:
     build:
