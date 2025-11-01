@@ -14,8 +14,8 @@ services:
       timeout: 5s
       retries: 5
     volumes:
+      # Persist Postgres data directly on your NAS
       - ${DATA_ROOT:-/volume1/docker/finaura}/db:/var/lib/postgresql/data:rw
-      - db_data:/var/lib/postgresql/data
 
   backend:
     build:
@@ -44,13 +44,3 @@ services:
       - backend
     ports:
       - "${FRONTEND_PORT:-7157}:80"
-
-
-volumes:
-  db_data:
-    driver: local
-    driver_opts:
-      type: none
-      o: bind
-      device: ${DATA_ROOT:-./docker-data}/postgres
-
