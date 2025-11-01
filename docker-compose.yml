@@ -14,6 +14,7 @@ services:
       timeout: 5s
       retries: 5
     volumes:
+      - ${DATA_ROOT:-/volume1/docker/finaura}/db:/var/lib/postgresql/data:rw
       - db_data:/var/lib/postgresql/data
 
   backend:
@@ -43,6 +44,7 @@ services:
       - backend
     ports:
       - "${FRONTEND_PORT:-7157}:80"
+
 
 volumes:
   db_data:
