@@ -44,7 +44,6 @@ services:
       - backend
     ports:
       - "${FRONTEND_PORT:-3220}:80"
-      - "3220:80"
 
 volumes:
   db_data:
