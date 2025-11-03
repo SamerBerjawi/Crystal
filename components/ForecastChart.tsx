@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useMemo } from 'react';
 import { AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, ReferenceLine, Label, ReferenceDot } from 'recharts';
 import { formatCurrency } from '../utils';
 import { FinancialGoal } from '../types';
@@ -19,7 +19,8 @@ interface ForecastChartProps {
 
 const CustomTooltip = ({ active, payload, label }: any) => {
     if (active && payload && payload.length) {
-      const formattedDate = new Date(label).toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' });
+      const [year, month, day] = label.split('-').map(Number);
+      const formattedDate = new Date(Date.UTC(year, month - 1, day)).toLocaleDateString('en-US', { timeZone: 'UTC', year: 'numeric', month: 'long', day: 'numeric' });
       return (
         <div className="bg-light-card dark:bg-dark-card p-3 rounded-lg shadow-lg border border-black/5 dark:border-white/5">
           <p className="label font-bold text-light-text dark:text-dark-text mb-2">{formattedDate}</p>
@@ -44,6 +45,43 @@ const ForecastChart: React.FC<ForecastChartProps> = ({ data, oneTimeGoals, lowes
     return <div className="flex items-center justify-center h-full text-light-text-secondary dark:text-dark-text-secondary">Select accounts and a period to generate a forecast.</div>;
   }
   
+  const { ticks, tickFormatter } = useMemo(() => {
+    if (data.length < 2) return { ticks: [], tickFormatter: () => '' };
+
+    const startDate = new Date(data[0].date.replace(/-/g, '/'));
+    const endDate = new Date(data[data.length - 1].date.replace(/-/g, '/'));
+    const rangeInDays = (endDate.getTime() - startDate.getTime()) / (1000 * 3600 * 24);
+
+    if (rangeInDays > 120) { // For ranges longer than ~4 months, show one tick per month.
+        const newTicks: string[] = [];
+        const monthSet = new Set<string>();
+
+        for (const item of data) {
+            const date = new Date(item.date.replace(/-/g, '/'));
+            const monthKey = `${date.getFullYear()}-${date.getMonth()}`;
+            if (!monthSet.has(monthKey)) {
+                newTicks.push(item.date);
+                monthSet.add(monthKey);
+            }
+        }
+        
+        const formatter = (dateStr: string) => {
+            const [year, month] = dateStr.split('-').map(Number);
+            const utcDate = new Date(Date.UTC(year, month - 1, 1));
+            return utcDate.toLocaleDateString('en-US', { timeZone: 'UTC', month: 'short', year: '2-digit' });
+        };
+        return { ticks: newTicks, tickFormatter: formatter };
+
+    } else { // For shorter ranges, show day and month, let recharts decide tick placement.
+        const formatter = (dateStr: string) => {
+            const [year, month, day] = dateStr.split('-').map(Number);
+            const utcDate = new Date(Date.UTC(year, month - 1, day));
+            return utcDate.toLocaleDateString('en-US', { timeZone: 'UTC', month: 'short', day: 'numeric' });
+        };
+        return { ticks: undefined, tickFormatter: formatter };
+    }
+  }, [data]);
+  
   return (
     <div style={{ width: '100%', height: '400px' }}>
       <ResponsiveContainer>
@@ -60,8 +98,9 @@ const ForecastChart: React.FC<ForecastChartProps> = ({ data, oneTimeGoals, lowes
             stroke="currentColor" 
             opacity={0.6} 
             fontSize={12} 
-            tickFormatter={(dateStr) => new Date(dateStr).toLocaleDateString('en-US', { month: 'short', year: 'numeric' })}
-            minTickGap={60}
+            tickFormatter={tickFormatter}
+            ticks={ticks}
+            minTickGap={80}
           />
           <YAxis 
             stroke="currentColor" 

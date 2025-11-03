@@ -11,9 +11,8 @@ interface CashFlowChartProps {
 
 const CustomTooltip = ({ active, payload, label }: any) => {
     if (active && payload && payload.length) {
-      // The label is a date string 'YYYY-MM-DD'. To avoid timezone issues, parse it as UTC.
-      const dateParts = label.split('-').map(Number);
-      const date = new Date(Date.UTC(dateParts[0], dateParts[1] - 1, dateParts[2]));
+      // The label is a timestamp.
+      const date = new Date(label);
       const formattedDate = date.toLocaleDateString('en-US', { timeZone: 'UTC', month: 'short', day: 'numeric', year: 'numeric' });
       
       const income = payload.find((p: any) => p.dataKey === 'income')?.value || 0;
@@ -33,12 +32,12 @@ const CustomTooltip = ({ active, payload, label }: any) => {
 const CashFlowChart: React.FC<CashFlowChartProps> = ({ transactions, duration }) => {
   const chartData = useMemo(() => {
     const { start, end } = getDateRange(duration, transactions);
-    const dataMap: { [key: string]: { date: string; income: number; expenses: number } } = {};
+    const dataMap: { [key: string]: { date: string; timestamp: number; income: number; expenses: number } } = {};
 
     let currentDate = new Date(start);
     while (currentDate <= end) {
       const dateKey = currentDate.toISOString().split('T')[0];
-      dataMap[dateKey] = { date: dateKey, income: 0, expenses: 0 };
+      dataMap[dateKey] = { date: dateKey, timestamp: currentDate.getTime(), income: 0, expenses: 0 };
       currentDate.setDate(currentDate.getDate() + 1);
     }
     
@@ -63,9 +62,8 @@ const CashFlowChart: React.FC<CashFlowChartProps> = ({ transactions, duration })
     return Object.values(dataMap);
   }, [transactions, duration]);
   
-  const tickFormatter = (dateStr: string) => {
-    const dateParts = dateStr.split('-').map(Number);
-    const date = new Date(Date.UTC(dateParts[0], dateParts[1] - 1, dateParts[2]));
+  const tickFormatter = (timestamp: number) => {
+    const date = new Date(timestamp);
     return date.toLocaleDateString('en-US', { timeZone: 'UTC', month: 'short', day: 'numeric' });
   };
   
@@ -82,7 +80,9 @@ const CashFlowChart: React.FC<CashFlowChartProps> = ({ transactions, duration })
           <BarChart data={chartData} margin={{ top: 5, right: 20, left: 0, bottom: 5 }}>
             <CartesianGrid strokeDasharray="3 3" stroke="var(--light-separator, #E5E7EB)" opacity={0.5} vertical={false} />
             <XAxis 
-                dataKey="date" 
+                dataKey="timestamp"
+                type="number"
+                domain={['dataMin', 'dataMax']}
                 tickFormatter={tickFormatter} 
                 fontSize={12} 
                 stroke="currentColor" 

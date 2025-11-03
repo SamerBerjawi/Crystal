@@ -7,8 +7,8 @@ const settingsLinks = [
   { page: 'Personal Info', icon: 'person', title: 'Personal Info', description: 'Update your profile and security settings.' },
   { page: 'Categories', icon: 'category', title: 'Categories', description: 'Manage your income and expense categories.' },
   { page: 'Tags', icon: 'label', title: 'Tags', description: 'Organize transactions with custom tags.' },
-  { page: 'Enable Banking', icon: 'sync', title: 'Enable Banking', description: 'Connect your bank accounts for auto-sync.' },
   { page: 'Data Management', icon: 'database', title: 'Data Management', description: 'Import, export, or reset your account data.' },
+  { page: 'Documentation', icon: 'menu_book', title: 'Documentation', description: 'Learn about Finaura\'s features.' },
 ];
 
 interface SettingsProps {

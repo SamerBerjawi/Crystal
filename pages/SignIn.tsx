@@ -1,16 +1,17 @@
 import React, { useState } from 'react';
-import { BTN_PRIMARY_STYLE, INPUT_BASE_STYLE, FinauraLogo } from '../constants';
+import { BTN_PRIMARY_STYLE, INPUT_BASE_STYLE, FinauraLogo, BTN_SECONDARY_STYLE } from '../constants';
 import { Theme } from '../types';
 import Card from '../components/Card';
 
 interface SignInProps {
   onSignIn: (email: string, password: string) => void;
   onNavigateToSignUp: () => void;
+  onEnterDemoMode: () => void;
   isLoading: boolean;
   error: string | null;
 }
 
-const SignIn: React.FC<SignInProps> = ({ onSignIn, onNavigateToSignUp, isLoading, error }) => {
+const SignIn: React.FC<SignInProps> = ({ onSignIn, onNavigateToSignUp, onEnterDemoMode, isLoading, error }) => {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const theme = document.documentElement.classList.contains('dark') ? 'dark' : 'light';
@@ -79,6 +80,14 @@ const SignIn: React.FC<SignInProps> = ({ onSignIn, onNavigateToSignUp, isLoading
               ) : 'Sign In'}
             </button>
           </form>
+          <div className="relative flex py-5 items-center">
+              <div className="flex-grow border-t border-gray-300 dark:border-gray-600"></div>
+              <span className="flex-shrink mx-4 text-gray-500 dark:text-gray-400 text-sm">Or</span>
+              <div className="flex-grow border-t border-gray-300 dark:border-gray-600"></div>
+          </div>
+          <button onClick={onEnterDemoMode} className={`${BTN_SECONDARY_STYLE} w-full !py-3 !text-base`}>
+              Continue in Demo Mode
+          </button>
           <p className="text-center text-sm text-light-text-secondary dark:text-dark-text-secondary mt-6">
             Don't have an account?{' '}
             <button onClick={onNavigateToSignUp} className="font-semibold text-primary-500 hover:underline">

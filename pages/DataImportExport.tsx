@@ -1,7 +1,3 @@
-
-
-
-
 import React, { useState, useRef } from 'react';
 import { Account, Transaction, Budget, RecurringTransaction, ImportExportHistoryItem, HistoryStatus, ImportDataType, Category, Page } from '../types';
 import Card from '../components/Card';
@@ -29,12 +25,6 @@ interface DataManagementProps {
   onExportAllData: () => void;
   onImportAllData: (file: File) => void;
   onExportCSV: (types: ImportDataType[]) => void;
-  sureApiUrl: string;
-  setSureApiUrl: (url: string) => void;
-  sureApiKey: string;
-  setSureApiKey: (key: string) => void;
-  onSureSync: () => void;
-  isSureSyncing: boolean;
   setCurrentPage: (page: Page) => void;
 }
 
@@ -115,7 +105,6 @@ const NewImportModal: React.FC<{ onClose: () => void, onSelect: (type: ImportDat
 };
 
 const DataManagement: React.FC<DataManagementProps> = (props) => {
-    const { sureApiUrl, setSureApiUrl, sureApiKey, setSureApiKey, onSureSync, isSureSyncing } = props;
     const [isNewImportModalOpen, setNewImportModalOpen] = useState(false);
     const [isExportModalOpen, setExportModalOpen] = useState(false);
     const [isWizardOpen, setWizardOpen] = useState(false);
@@ -244,55 +233,6 @@ const DataManagement: React.FC<DataManagementProps> = (props) => {
       </header>
 
       <div className="space-y-8">
-            <Card>
-                <h3 className="text-xl font-semibold">Third-Party Integrations</h3>
-                <p className="text-sm text-light-text-secondary dark:text-dark-text-secondary mt-2 mb-4">
-                    Connect to other financial services to import your data automatically.
-                </p>
-                <div className="p-4 border border-black/10 dark:border-white/10 rounded-lg">
-                    <h4 className="font-semibold text-lg mb-1">Sure Finance</h4>
-                    <p className="text-sm text-light-text-secondary dark:text-dark-text-secondary mb-4">
-                        Enter your Sure API credentials to sync your accounts and transactions. You can find your API key in your Sure developer settings.
-                    </p>
-                    <div className="space-y-4">
-                        <div>
-                            <label htmlFor="sure-url" className="block text-sm font-medium text-light-text-secondary dark:text-dark-text-secondary mb-1">Sure API URL</label>
-                            <input
-                                id="sure-url"
-                                type="text"
-                                value={sureApiUrl}
-                                onChange={(e) => setSureApiUrl(e.target.value)}
-                                className={INPUT_BASE_STYLE}
-                                placeholder="https://domain/api/v1"
-                            />
-                        </div>
-                        <div>
-                            <label htmlFor="sure-key" className="block text-sm font-medium text-light-text-secondary dark:text-dark-text-secondary mb-1">Sure API Key</label>
-                            <input
-                                id="sure-key"
-                                type="password"
-                                value={sureApiKey}
-                                onChange={(e) => setSureApiKey(e.target.value)}
-                                className={INPUT_BASE_STYLE}
-                                placeholder="xxxKEYxxx"
-                            />
-                        </div>
-                        <div className="flex justify-end">
-                            <button onClick={onSureSync} className={`${BTN_PRIMARY_STYLE} flex items-center gap-2 w-36 justify-center`} disabled={isSureSyncing}>
-                                {isSureSyncing ? (
-                                    <>
-                                        <svg className="animate-spin h-5 w-5" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24"><circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle><path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path></svg>
-                                        Syncing...
-                                    </>
-                                ) : (
-                                    'Save & Sync'
-                                )}
-                            </button>
-                        </div>
-                    </div>
-                </div>
-            </Card>
-
             <Card>
                 <h3 className="text-xl font-semibold">Migrate or Backup Data</h3>
                 <p className="text-sm text-light-text-secondary dark:text-dark-text-secondary mt-2 mb-4">

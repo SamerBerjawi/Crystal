@@ -2,22 +2,25 @@ import React, { useState, useMemo, useEffect } from 'react';
 import { Account, Page, AccountType, Transaction } from '../types';
 import AddAccountModal from '../components/AddAccountModal';
 import EditAccountModal from '../components/EditAccountModal';
-import { ASSET_TYPES, DEBT_TYPES, BTN_PRIMARY_STYLE, ACCOUNT_TYPE_STYLES, BTN_SECONDARY_STYLE } from '../constants';
+import { ASSET_TYPES, DEBT_TYPES, BTN_PRIMARY_STYLE, ACCOUNT_TYPE_STYLES, BTN_SECONDARY_STYLE, INPUT_BASE_STYLE, SELECT_WRAPPER_STYLE, SELECT_ARROW_STYLE } from '../constants';
 import { calculateAccountTotals, convertToEur, formatCurrency } from '../utils';
 import Card from '../components/Card';
 import AccountBreakdownCard from '../components/AccountBreakdownCard';
 import AccountRow from '../components/AccountRow';
 import BalanceAdjustmentModal from '../components/BalanceAdjustmentModal';
+import useLocalStorage from '../hooks/useLocalStorage';
 
 interface AccountsProps {
     accounts: Account[];
     transactions: Transaction[];
-    setAccounts: React.Dispatch<React.SetStateAction<Account[]>>;
+    saveAccount: (account: Omit<Account, 'id'> & { id?: string }) => void;
+    deleteAccount: (accountId: string) => void;
     setCurrentPage: (page: Page) => void;
     setAccountFilter: (accountName: string | null) => void;
-    onStartConnection: () => void;
     setViewingAccountId: (id: string) => void;
     saveTransaction: (transactions: (Omit<Transaction, 'id'> & { id?: string })[], idsToDelete?: string[]) => void;
+    accountOrder: string[];
+    setAccountOrder: React.Dispatch<React.SetStateAction<string[]>>;
 }
 
 // A new component for the list section
@@ -28,24 +31,70 @@ const AccountsListSection: React.FC<{
     onAccountClick: (id: string) => void;
     onEditClick: (account: Account) => void;
     onAdjustBalanceClick: (account: Account) => void;
-}> = ({ title, accounts, transactions, onAccountClick, onEditClick, onAdjustBalanceClick }) => {
+    sortBy: 'name' | 'balance' | 'manual';
+    accountOrder: string[];
+    setAccountOrder: React.Dispatch<React.SetStateAction<string[]>>;
+}> = ({ title, accounts, transactions, onAccountClick, onEditClick, onAdjustBalanceClick, sortBy, accountOrder, setAccountOrder }) => {
     const [expandedGroups, setExpandedGroups] = useState<Record<string, boolean>>({});
+    const [draggedId, setDraggedId] = useState<string | null>(null);
+    const [dragOverId, setDragOverId] = useState<string | null>(null);
 
-    const groupedAccounts = useMemo(() => accounts.reduce((acc, account) => {
+    const sortedAccounts = useMemo(() => {
+        const accountsToSort = [...accounts];
+        if (sortBy === 'manual') {
+            return accountsToSort.sort((a,b) => {
+                const aIndex = accountOrder.indexOf(a.id);
+                const bIndex = accountOrder.indexOf(b.id);
+                if (aIndex === -1 && bIndex === -1) return 0;
+                if (aIndex === -1) return 1;
+                if (bIndex === -1) return -1;
+                return aIndex - bIndex;
+            });
+        }
+        if (sortBy === 'name') {
+            return accountsToSort.sort((a,b) => a.name.localeCompare(b.name));
+        }
+        if (sortBy === 'balance') {
+            return accountsToSort.sort((a,b) => convertToEur(b.balance, b.currency) - convertToEur(a.balance, a.currency));
+        }
+        return accountsToSort;
+    }, [accounts, sortBy, accountOrder]);
+
+
+    const groupedAccounts = useMemo(() => sortedAccounts.reduce((acc, account) => {
         (acc[account.type] = acc[account.type] || []).push(account);
         return acc;
-    }, {} as Record<AccountType, Account[]>), [accounts]);
+    }, {} as Record<AccountType, Account[]>), [sortedAccounts]);
 
     const groupOrder = useMemo(() => Object.keys(groupedAccounts).sort(), [groupedAccounts]);
 
     useEffect(() => {
-        // Default all groups to open
         const initialExpanded: Record<string, boolean> = {};
         groupOrder.forEach(key => initialExpanded[key] = true);
         setExpandedGroups(initialExpanded);
     }, [groupOrder]);
 
     const toggleGroup = (groupName: string) => setExpandedGroups(prev => ({ ...prev, [groupName]: !prev[groupName] }));
+
+    const handleDragStart = (e: React.DragEvent, accountId: string) => { if (sortBy === 'manual') setDraggedId(accountId); };
+    const handleDragOver = (e: React.DragEvent, accountId: string) => { if (sortBy === 'manual') { e.preventDefault(); if (draggedId && draggedId !== accountId) setDragOverId(accountId); }};
+    const handleDragLeave = () => setDragOverId(null);
+    const handleDragEnd = () => { setDraggedId(null); setDragOverId(null); };
+    const handleDrop = (e: React.DragEvent, targetAccountId: string) => {
+        e.preventDefault();
+        if (sortBy !== 'manual' || !draggedId || draggedId === targetAccountId) return;
+
+        const newOrder = [...accountOrder];
+        const draggedIndex = newOrder.indexOf(draggedId);
+        const targetIndex = newOrder.indexOf(targetAccountId);
+
+        if (draggedIndex > -1 && targetIndex > -1) {
+            const [draggedItem] = newOrder.splice(draggedIndex, 1);
+            newOrder.splice(targetIndex, 0, draggedItem);
+            setAccountOrder(newOrder);
+        }
+        handleDragEnd();
+    };
 
     return (
         <section>
@@ -68,13 +117,21 @@ const AccountsListSection: React.FC<{
                                     <div className="mt-2 space-y-1">
                                         {accountsInGroup.map(acc => (
                                         <AccountRow
-                                                key={acc.id}
-                                                account={acc}
-                                                transactions={transactions.filter(t => t.accountId === acc.id)}
-                                                onClick={() => onAccountClick(acc.id)}
-                                                onEdit={() => onEditClick(acc)}
-                                                onAdjustBalance={() => onAdjustBalanceClick(acc)}
-                                            />
+                                            key={acc.id}
+                                            account={acc}
+                                            transactions={transactions.filter(t => t.accountId === acc.id)}
+                                            onClick={() => onAccountClick(acc.id)}
+                                            onEdit={() => onEditClick(acc)}
+                                            onAdjustBalance={() => onAdjustBalanceClick(acc)}
+                                            isDraggable={sortBy === 'manual'}
+                                            isBeingDragged={draggedId === acc.id}
+                                            isDragOver={dragOverId === acc.id}
+                                            onDragStart={(e) => handleDragStart(e, acc.id)}
+                                            onDragOver={(e) => handleDragOver(e, acc.id)}
+                                            onDragLeave={handleDragLeave}
+                                            onDrop={(e) => handleDrop(e, acc.id)}
+                                            onDragEnd={handleDragEnd}
+                                        />
                                         ))}
                                     </div>
                                 )}
@@ -91,20 +148,22 @@ const AccountsListSection: React.FC<{
     );
 };
 
-const Accounts: React.FC<AccountsProps> = ({ accounts, transactions, setAccounts, setCurrentPage, setAccountFilter, onStartConnection, setViewingAccountId, saveTransaction }) => {
+const Accounts: React.FC<AccountsProps> = ({ accounts, transactions, saveAccount, deleteAccount, setCurrentPage, setAccountFilter, setViewingAccountId, saveTransaction, accountOrder, setAccountOrder }) => {
   const [isAddModalOpen, setAddModalOpen] = useState(false);
   const [isEditModalOpen, setEditModalOpen] = useState(false);
   const [editingAccount, setEditingAccount] = useState<Account | null>(null);
   const [isAdjustModalOpen, setAdjustModalOpen] = useState(false);
   const [adjustingAccount, setAdjustingAccount] = useState<Account | null>(null);
+  const [sortBy, setSortBy] = useLocalStorage<'name' | 'balance' | 'manual'>('finaura-accounts-sortby', 'manual');
 
 
   // --- Data Processing ---
   const { assetAccounts, debtAccounts, totalAssets, totalDebt, assetBreakdown, debtBreakdown } = useMemo(() => {
-    const assets = accounts.filter(acc => ASSET_TYPES.includes(acc.type));
-    const debts = accounts.filter(acc => DEBT_TYPES.includes(acc.type));
+    const safeAccounts = accounts || [];
+    const assets = safeAccounts.filter(acc => ASSET_TYPES.includes(acc.type));
+    const debts = safeAccounts.filter(acc => DEBT_TYPES.includes(acc.type));
 
-    const { totalAssets, totalDebt } = calculateAccountTotals(accounts);
+    const { totalAssets, totalDebt } = calculateAccountTotals(safeAccounts);
 
     const colorClassToHex: { [key: string]: string } = {
         'text-blue-500': '#3b82f6', 'text-green-500': '#22c55e', 'text-orange-500': '#f97316',
@@ -174,9 +233,9 @@ const Accounts: React.FC<AccountsProps> = ({ accounts, transactions, setAccounts
   };
 
 
-  const handleAddAccount = (account: Omit<Account, 'id'>) => { setAccounts(prev => [...prev, { ...account, id: new Date().toISOString() }]); setAddModalOpen(false); };
-  const handleUpdateAccount = (updatedAccount: Account) => { setAccounts(prev => prev.map(acc => acc.id === updatedAccount.id ? updatedAccount : acc)); setEditModalOpen(false); setEditingAccount(null); };
-  const handleDeleteAccount = (accountId: string) => { setAccounts(prev => prev.filter(acc => acc.id !== accountId)); setEditModalOpen(false); setEditingAccount(null); }
+  const handleAddAccount = (account: Omit<Account, 'id'>) => { saveAccount(account); setAddModalOpen(false); };
+  const handleUpdateAccount = (updatedAccount: Account) => { saveAccount(updatedAccount); setEditModalOpen(false); setEditingAccount(null); };
+  const handleDeleteAccount = (accountId: string) => { deleteAccount(accountId); setEditModalOpen(false); setEditingAccount(null); }
 
   return (
     <div className="space-y-8">
@@ -196,7 +255,14 @@ const Accounts: React.FC<AccountsProps> = ({ accounts, transactions, setAccounts
           <p className="text-light-text-secondary dark:text-dark-text-secondary mt-1">Manage your financial accounts and connections.</p>
         </div>
         <div className="flex items-center gap-4">
-          <button onClick={onStartConnection} className={BTN_SECONDARY_STYLE}>Link Bank Account</button>
+            <div className={`${SELECT_WRAPPER_STYLE} w-48`}>
+                <select value={sortBy} onChange={e => setSortBy(e.target.value as any)} className={INPUT_BASE_STYLE}>
+                    <option value="manual">Sort: Manual</option>
+                    <option value="name">Sort: Name (A-Z)</option>
+                    <option value="balance">Sort: Balance (High-Low)</option>
+                </select>
+                <div className={SELECT_ARROW_STYLE}><span className="material-symbols-outlined">expand_more</span></div>
+            </div>
           <button onClick={() => setAddModalOpen(true)} className={BTN_PRIMARY_STYLE}>Add Manual Account</button>
         </div>
       </header>
@@ -216,6 +282,9 @@ const Accounts: React.FC<AccountsProps> = ({ accounts, transactions, setAccounts
             onAccountClick={handleAccountClick}
             onEditClick={openEditModal}
             onAdjustBalanceClick={openAdjustModal}
+            sortBy={sortBy}
+            accountOrder={accountOrder}
+            setAccountOrder={setAccountOrder}
         />
         <AccountsListSection 
             title="Liability Accounts" 
@@ -224,6 +293,9 @@ const Accounts: React.FC<AccountsProps> = ({ accounts, transactions, setAccounts
             onAccountClick={handleAccountClick}
             onEditClick={openEditModal}
             onAdjustBalanceClick={openAdjustModal}
+            sortBy={sortBy}
+            accountOrder={accountOrder}
+            setAccountOrder={setAccountOrder}
         />
       </div>
     </div>

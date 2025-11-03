@@ -1,6 +1,7 @@
-import React, { useMemo, useState, useCallback } from 'react';
-import { User, Transaction, Account, Category, Duration, CategorySpending, Widget, WidgetConfig, DisplayTransaction } from '../types';
-import { formatCurrency, getDateRange, calculateAccountTotals, convertToEur } from '../utils';
+import React, { useMemo, useState, useCallback, useEffect } from 'react';
+// FIX: Import 'RecurringTransaction' to resolve 'Cannot find name' error.
+import { User, Transaction, Account, Category, Duration, CategorySpending, Widget, WidgetConfig, DisplayTransaction, FinancialGoal, RecurringTransaction, BillPayment } from '../types';
+import { formatCurrency, getDateRange, calculateAccountTotals, convertToEur, calculateStatementPeriods, generateBalanceForecast } from '../utils';
 import AddTransactionModal from '../components/AddTransactionModal';
 import { BTN_PRIMARY_STYLE, BTN_SECONDARY_STYLE, LIQUID_ACCOUNT_TYPES } from '../constants';
 import TransactionDetailModal from '../components/TransactionDetailModal';
@@ -19,6 +20,8 @@ import AddWidgetModal from '../components/AddWidgetModal';
 import { useTransactionMatcher } from '../hooks/useTransactionMatcher';
 import TransactionMatcherModal from '../components/TransactionMatcherModal';
 import Card from '../components/Card';
+import CreditCardStatementCard from '../components/CreditCardStatementCard';
+import LowestBalanceForecastCard from '../components/LowestBalanceForecastCard';
 
 
 interface DashboardProps {
@@ -28,6 +31,11 @@ interface DashboardProps {
   saveTransaction: (transactions: (Omit<Transaction, 'id'> & { id?: string })[], idsToDelete?: string[]) => void;
   incomeCategories: Category[];
   expenseCategories: Category[];
+  financialGoals: FinancialGoal[];
+  recurringTransactions: RecurringTransaction[];
+  billsAndPayments: BillPayment[];
+  selectedAccountIds: string[];
+  setSelectedAccountIds: (ids: string[]) => void;
 }
 
 const findCategoryDetails = (name: string, categories: Category[]): Category | undefined => {
@@ -52,7 +60,14 @@ const findCategoryById = (id: string, categories: Category[]): Category | undefi
     return undefined;
 }
 
-const Dashboard: React.FC<DashboardProps> = ({ user, transactions, accounts, saveTransaction, incomeCategories, expenseCategories }) => {
+const toYYYYMMDD = (date: Date) => {
+    const y = date.getFullYear();
+    const m = (date.getMonth() + 1).toString().padStart(2, '0');
+    const d = date.getDate().toString().padStart(2, '0');
+    return `${y}-${m}-${d}`;
+};
+
+const Dashboard: React.FC<DashboardProps> = ({ user, transactions, accounts, saveTransaction, incomeCategories, expenseCategories, financialGoals, recurringTransactions, billsAndPayments, selectedAccountIds, setSelectedAccountIds }) => {
   const [isTransactionModalOpen, setTransactionModalOpen] = useState(false);
   const [editingTransaction, setEditingTransaction] = useState<Transaction | null>(null);
   
@@ -61,9 +76,6 @@ const Dashboard: React.FC<DashboardProps> = ({ user, transactions, accounts, sav
   const [modalTitle, setModalTitle] = useState('');
 
   const [duration, setDuration] = useState<Duration>('1Y');
-  const [selectedAccountIds, setSelectedAccountIds] = useState<string[]>(() => 
-    accounts.filter(a => LIQUID_ACCOUNT_TYPES.includes(a.type)).map(a => a.id)
-  );
   
   const [isAddWidgetModalOpen, setIsAddWidgetModalOpen] = useState(false);
   const [isEditMode, setIsEditMode] = useState(false);
@@ -353,7 +365,22 @@ const Dashboard: React.FC<DashboardProps> = ({ user, transactions, accounts, sav
   const netWorthData = useMemo(() => {
     const { start, end } = getDateRange(duration, transactions);
     const currentNetWorth = netWorth;
+    const today = new Date(); // A consistent "now"
 
+    // Reverse transactions from start date up to now to find starting balance
+    const transactionsToReverse = transactions.filter(tx => {
+        if (!selectedAccountIds.includes(tx.accountId)) return false;
+        const txDate = new Date(tx.date.replace(/-/g, '/'));
+        return txDate >= start && txDate <= today;
+    });
+
+    const totalChangeSinceStart = transactionsToReverse.reduce((sum, tx) => {
+        return sum + convertToEur(tx.amount, tx.currency);
+    }, 0);
+
+    const startingNetWorth = currentNetWorth - totalChangeSinceStart;
+
+    // Now, get all transactions within the chart's display period (start to end)
     const transactionsInPeriod = transactions.filter(tx => {
         if (!selectedAccountIds.includes(tx.accountId)) return false;
         const txDate = new Date(tx.date.replace(/-/g, '/'));
@@ -367,19 +394,23 @@ const Dashboard: React.FC<DashboardProps> = ({ user, transactions, accounts, sav
         dailyChanges.set(dateStr, (dailyChanges.get(dateStr) || 0) + change);
     }
     
-    const totalChangeInPeriod = Array.from(dailyChanges.values()).reduce((sum, val) => sum + val, 0);
-    const startingNetWorth = currentNetWorth - totalChangeInPeriod;
-
     const data: { name: string, value: number }[] = [];
     let runningBalance = startingNetWorth;
     
     let currentDate = new Date(start);
 
     while (currentDate <= end) {
-        const dateStr = currentDate.toISOString().split('T')[0];
+        const dateStr = toYYYYMMDD(currentDate);
         runningBalance += dailyChanges.get(dateStr) || 0;
         data.push({ name: dateStr, value: parseFloat(runningBalance.toFixed(2)) });
         currentDate.setDate(currentDate.getDate() + 1);
+    }
+    
+    // After the loop, the last value should be very close to currentNetWorth.
+    // Let's ensure it is exactly currentNetWorth to avoid floating point inaccuracies.
+    const todayStr = toYYYYMMDD(new Date());
+    if (data.length > 0 && data[data.length - 1].name === todayStr) {
+      data[data.length - 1].value = parseFloat(currentNetWorth.toFixed(2));
     }
 
     return data;
@@ -391,6 +422,108 @@ const Dashboard: React.FC<DashboardProps> = ({ user, transactions, accounts, sav
     const endValue = netWorthData[netWorthData.length - 1].value;
     return endValue >= startValue ? '#34C759' : '#FF3B30';
   }, [netWorthData]);
+  
+  const configuredCreditCards = useMemo(() => {
+    return accounts.filter(acc => acc.type === 'Credit Card' && acc.statementStartDate && acc.paymentDate && selectedAccountIds.includes(acc.id));
+  }, [accounts, selectedAccountIds]);
+
+  const creditCardStatements = useMemo(() => {
+      if (configuredCreditCards.length === 0) return [];
+      
+      return configuredCreditCards.map(account => {
+          const periods = calculateStatementPeriods(account.statementStartDate!, account.paymentDate!, new Date());
+
+          const calculateBalance = (start: Date, end: Date) => {
+              return transactions
+                  .filter(tx => {
+                      if (tx.accountId !== account.id) return false;
+                      const [year, month, day] = tx.date.split('-').map(Number);
+                      const txDate = new Date(Date.UTC(year, month - 1, day));
+                      return txDate >= start && txDate <= end;
+                  })
+                  .reduce((sum, tx) => sum + tx.amount, 0);
+          };
+          
+          const currentBalance = calculateBalance(periods.current.start, periods.current.end);
+          const futureBalance = calculateBalance(periods.future.start, periods.future.end);
+          
+          const formatDate = (date: Date) => date.toLocaleDateString('en-US', { month: 'short', day: 'numeric', timeZone: 'UTC' });
+          const formatFullDate = (date: Date) => date.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric', timeZone: 'UTC' });
+
+          return {
+              accountName: account.name,
+              currency: account.currency,
+              current: {
+                  balance: currentBalance,
+                  period: `${formatDate(periods.current.start)} - ${formatDate(periods.current.end)}`,
+                  paymentDue: formatFullDate(periods.current.paymentDue)
+              },
+              future: {
+                  balance: futureBalance,
+                  period: `${formatDate(periods.future.start)} - ${formatDate(periods.future.end)}`,
+                  paymentDue: formatFullDate(periods.future.paymentDue)
+              }
+          };
+      });
+  }, [configuredCreditCards, transactions]);
+
+    const lowestBalanceForecasts = useMemo(() => {
+        const forecastEndDate = new Date();
+        forecastEndDate.setFullYear(forecastEndDate.getFullYear() + 1);
+        
+        // Key change: Use selectedAccounts for the forecast calculation.
+        const forecastData = generateBalanceForecast(selectedAccounts, recurringTransactions, financialGoals, billsAndPayments, forecastEndDate);
+        const today = new Date();
+
+        const getInitialBalance = () => {
+            return selectedAccounts
+                .filter(a => LIQUID_ACCOUNT_TYPES.includes(a.type))
+                .reduce((sum, acc) => sum + convertToEur(acc.balance, acc.currency), 0);
+        };
+
+        if (forecastData.length === 0) {
+            const initialBalance = getInitialBalance();
+            const todayStr = today.toISOString().split('T')[0];
+            const periods = ['This Month', 'Next 3 Months', 'Next 6 Months', 'Next Year'];
+            return periods.map(period => ({
+                period,
+                lowestBalance: initialBalance,
+                date: todayStr,
+            }));
+        }
+
+        const endOfMonth = new Date(today.getFullYear(), today.getMonth() + 1, 0);
+        const end3Months = new Date(today); end3Months.setMonth(today.getMonth() + 3);
+        const end6Months = new Date(today); end6Months.setMonth(today.getMonth() + 6);
+        const end1Year = new Date(today); end1Year.setFullYear(today.getFullYear() + 1);
+
+        const periods = [
+            { label: 'This Month', endDate: endOfMonth },
+            { label: 'Next 3 Months', endDate: end3Months },
+            { label: 'Next 6 Months', endDate: end6Months },
+            { label: 'Next Year', endDate: end1Year },
+        ];
+        
+        return periods.map(period => {
+            const dataForPeriod = forecastData.filter(d => new Date(d.date) <= period.endDate);
+            if (dataForPeriod.length === 0) {
+                return {
+                    period: period.label,
+                    lowestBalance: getInitialBalance(), // Use initial balance of selected liquid accounts
+                    date: today.toISOString().split('T')[0]
+                };
+            }
+            
+            const lowestPoint = dataForPeriod.reduce((min, p) => p.value < min.value ? { value: p.value, date: p.date } : min, { value: dataForPeriod[0].value, date: dataForPeriod[0].date });
+
+            return {
+                period: period.label,
+                lowestBalance: lowestPoint.value,
+                date: lowestPoint.date,
+            };
+        });
+
+    }, [selectedAccounts, recurringTransactions, financialGoals, billsAndPayments]);
 
   // --- Widget Management ---
   const allWidgets: Widget[] = useMemo(() => [
@@ -548,6 +681,50 @@ const Dashboard: React.FC<DashboardProps> = ({ user, transactions, accounts, sav
         <NetBalanceCard netBalance={income - expenses} totalIncome={income} duration={duration} />
         <CurrentBalanceCard balance={netWorth} currency="EUR" title="Net Worth" />
       </div>
+      
+      {/* Lowest Balance Forecast */}
+      {lowestBalanceForecasts && lowestBalanceForecasts.length > 0 && (
+        <div>
+            <h3 className="text-xl font-semibold mb-4 text-light-text dark:text-dark-text">Lowest Balance Forecast</h3>
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+                {lowestBalanceForecasts.map(forecast => (
+                    <LowestBalanceForecastCard 
+                        key={forecast.period}
+                        period={forecast.period}
+                        lowestBalance={forecast.lowestBalance}
+                        date={forecast.date}
+                    />
+                ))}
+            </div>
+        </div>
+       )}
+
+      {/* Credit Card Statements Section */}
+      {creditCardStatements.length > 0 && (
+          <div className="space-y-6">
+              {creditCardStatements.map(statement => (
+                  <div key={statement.accountName}>
+                      <h3 className="text-xl font-semibold mb-2 text-light-text dark:text-dark-text">{statement.accountName} Statements</h3>
+                      <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                          <CreditCardStatementCard
+                              title="Current Statement"
+                              balance={statement.current.balance}
+                              currency={statement.currency}
+                              statementPeriod={statement.current.period}
+                              paymentDueDate={statement.current.paymentDue}
+                          />
+                          <CreditCardStatementCard
+                              title="Next Statement"
+                              balance={statement.future.balance}
+                              currency={statement.currency}
+                              statementPeriod={statement.future.period}
+                              paymentDueDate={statement.future.paymentDue}
+                          />
+                      </div>
+                  </div>
+              ))}
+          </div>
+      )}
 
       {/* Customizable Widget Grid */}
       <div className="grid grid-cols-1 md:grid-cols-4 gap-6" style={{ gridAutoRows: 'minmax(200px, auto)' }}>

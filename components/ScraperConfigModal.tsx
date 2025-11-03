@@ -67,6 +67,7 @@ const ScraperConfigModal: React.FC<ScraperConfigModalProps> = ({ isOpen, onClose
     const handleTest = async () => {
         setIsTesting(true);
         setTestResult(null);
+        const proxyUrl = 'https://cors.eu.org/';
     
         if (!resource.url || !options.select) {
             setTestResult('Error: URL and Selector are required.');
@@ -75,7 +76,7 @@ const ScraperConfigModal: React.FC<ScraperConfigModalProps> = ({ isOpen, onClose
         }
     
         try {
-            const response = await fetch(resource.url);
+            const response = await fetch(`${proxyUrl}${resource.url}`);
             if (!response.ok) {
                 throw new Error(`Request failed with status ${response.status}`);
             }

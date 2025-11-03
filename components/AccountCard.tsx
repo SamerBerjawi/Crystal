@@ -85,12 +85,6 @@ const AccountCard: React.FC<AccountCardProps> = ({
                         <p className="font-semibold text-light-text dark:text-dark-text truncate">{account.name}</p>
                         <div className="flex items-center gap-2 text-sm text-light-text-secondary dark:text-dark-text-secondary">
                            <span>{account.type} {account.last4 ? `•••• ${account.last4}` : ''}</span>
-                            {account.enableBankingId && (
-                                <div className="flex items-center gap-1">
-                                    <span className="material-symbols-outlined text-sm text-primary-500">sync</span>
-                                    <span>{account.enableBankingInstitution}</span>
-                                </div>
-                            )}
                         </div>
                     </div>
                 </div>

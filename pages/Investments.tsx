@@ -7,21 +7,12 @@ import AddInvestmentTransactionModal from '../components/AddInvestmentTransactio
 import PortfolioDistributionChart from '../components/PortfolioDistributionChart';
 
 interface InvestmentsProps {
-    investmentAccounts: Account[];
+    accounts: Account[];
     cashAccounts: Account[];
     investmentTransactions: InvestmentTransaction[];
-    saveInvestmentTransaction: (invTx: Omit<InvestmentTransaction, 'id'> & { id?: string }, cashTx?: Omit<Transaction, 'id'>) => void;
+    saveInvestmentTransaction: (invTx: Omit<InvestmentTransaction, 'id'> & { id?: string }, cashTx?: Omit<Transaction, 'id'>, newAccount?: Omit<Account, 'id'>) => void;
     deleteInvestmentTransaction: (id: string) => void;
 }
-
-// Mock data for current prices, as we don't have a live API
-const MOCK_CURRENT_PRICES: Record<string, number> = {
-  'AAPL': 175.50,
-  'GOOGL': 115.20,
-  'TSLA': 240.80,
-  'MSFT': 310.00,
-  'BTC': 68000.00,
-};
 
 const COLORS = ['#6366F1', '#FBBF24', '#10B981', '#EF4444', '#3B82F6', '#8B5CF6'];
 
@@ -38,9 +29,11 @@ const InvestmentSummaryCard: React.FC<{ title: string; value: string; change?: s
     </Card>
 );
 
-const Investments: React.FC<InvestmentsProps> = ({ investmentAccounts, cashAccounts, investmentTransactions, saveInvestmentTransaction, deleteInvestmentTransaction }) => {
+const Investments: React.FC<InvestmentsProps> = ({ accounts, cashAccounts, investmentTransactions, saveInvestmentTransaction, deleteInvestmentTransaction }) => {
     const [isModalOpen, setIsModalOpen] = useState(false);
     const [editingTransaction, setEditingTransaction] = useState<InvestmentTransaction | null>(null);
+
+    const investmentAccounts = useMemo(() => (accounts || []).filter(a => a.type === 'Investment' || a.type === 'Crypto'), [accounts]);
 
     const { holdings, totalValue, totalCostBasis, distributionData } = useMemo(() => {
         const holdingsMap: Record<string, {
@@ -48,46 +41,49 @@ const Investments: React.FC<InvestmentsProps> = ({ investmentAccounts, cashAccou
             name: string;
             quantity: number;
             totalCost: number;
+            currentValue: number;
         }> = {};
 
-        // Sort transactions by date to process them chronologically
-        [...investmentTransactions].sort((a,b) => new Date(a.date).getTime() - new Date(b.date).getTime()).forEach(tx => {
-            if (!holdingsMap[tx.symbol]) {
-                holdingsMap[tx.symbol] = { symbol: tx.symbol, name: tx.name, quantity: 0, totalCost: 0 };
+        // Initialize from accounts
+        investmentAccounts.forEach(acc => {
+            if (acc.symbol) {
+                holdingsMap[acc.symbol] = {
+                    symbol: acc.symbol,
+                    name: acc.name,
+                    quantity: 0,
+                    totalCost: 0,
+                    currentValue: acc.balance,
+                };
             }
+        });
+        
+        [...investmentTransactions].sort((a,b) => new Date(a.date).getTime() - new Date(b.date).getTime()).forEach(tx => {
+            if (!holdingsMap[tx.symbol]) return; // Should not happen if accounts are created correctly
+            
             const holding = holdingsMap[tx.symbol];
             if (tx.type === 'buy') {
                 holding.quantity += tx.quantity;
                 holding.totalCost += tx.quantity * tx.price;
             } else { // sell
-                // Reduce cost basis proportionally on sell
                 const avgCost = holding.quantity > 0 ? holding.totalCost / holding.quantity : 0;
                 holding.totalCost -= tx.quantity * avgCost;
                 holding.quantity -= tx.quantity;
             }
         });
 
-        // Filter out holdings with zero or negative quantity
-        const filteredHoldings = Object.values(holdingsMap).filter(h => h.quantity > 0.000001); // Use a small epsilon for floating point comparison
+        const filteredHoldings = Object.values(holdingsMap).filter(h => h.quantity > 0.000001);
 
-        const totalValue = filteredHoldings.reduce((sum, holding) => {
-            const currentPrice = MOCK_CURRENT_PRICES[holding.symbol] || 0;
-            return sum + (holding.quantity * currentPrice);
-        }, 0);
-        
+        const totalValue = filteredHoldings.reduce((sum, holding) => sum + holding.currentValue, 0);
         const totalCostBasis = filteredHoldings.reduce((sum, holding) => sum + holding.totalCost, 0);
 
-        const distributionData = filteredHoldings.map((holding, index) => {
-            const currentPrice = MOCK_CURRENT_PRICES[holding.symbol] || 0;
-            return {
+        const distributionData = filteredHoldings.map((holding, index) => ({
                 name: holding.symbol,
-                value: holding.quantity * currentPrice,
+                value: holding.currentValue,
                 color: COLORS[index % COLORS.length]
-            };
-        }).filter(d => d.value > 0).sort((a,b) => b.value - a.value);
+            })).filter(d => d.value > 0).sort((a,b) => b.value - a.value);
 
         return { holdings: filteredHoldings, totalValue, totalCostBasis, distributionData };
-    }, [investmentTransactions]);
+    }, [investmentAccounts, investmentTransactions]);
 
     const handleOpenModal = (tx?: InvestmentTransaction) => {
         setEditingTransaction(tx || null);
@@ -105,7 +101,7 @@ const Investments: React.FC<InvestmentsProps> = ({ investmentAccounts, cashAccou
                 <AddInvestmentTransactionModal
                     onClose={() => setIsModalOpen(false)}
                     onSave={saveInvestmentTransaction}
-                    investmentAccounts={investmentAccounts}
+                    accounts={accounts}
                     cashAccounts={cashAccounts}
                     transactionToEdit={editingTransaction}
                 />
@@ -143,8 +139,8 @@ const Investments: React.FC<InvestmentsProps> = ({ investmentAccounts, cashAccou
                         <h3 className="text-xl font-semibold text-light-text dark:text-dark-text mb-4">Holdings</h3>
                         <div className="divide-y divide-black/5 dark:divide-white/5">
                             {holdings.map(holding => {
-                                const currentValue = (MOCK_CURRENT_PRICES[holding.symbol] || 0) * holding.quantity;
-                                const gainLoss = currentValue - holding.totalCost;
+                                const gainLoss = holding.currentValue - holding.totalCost;
+                                const avgPrice = holding.quantity > 0 ? holding.currentValue / holding.quantity : 0;
                                 return (
                                 <div key={holding.symbol} className="grid grid-cols-3 items-center p-4">
                                     <div>
@@ -154,11 +150,11 @@ const Investments: React.FC<InvestmentsProps> = ({ investmentAccounts, cashAccou
                                     <div className="text-center">
                                         <p className="font-semibold">{holding.quantity.toLocaleString(undefined, { maximumFractionDigits: 8 })}</p>
                                         <p className="text-xs text-light-text-secondary dark:text-dark-text-secondary">
-                                            @ {formatCurrency(MOCK_CURRENT_PRICES[holding.symbol] || 0, 'EUR')}
+                                            @ {formatCurrency(avgPrice, 'EUR')}
                                         </p>
                                     </div>
                                     <div className="text-right">
-                                        <p className="font-bold">{formatCurrency(currentValue, 'EUR')}</p>
+                                        <p className="font-bold">{formatCurrency(holding.currentValue, 'EUR')}</p>
                                         <p className={`text-sm font-semibold ${gainLoss >= 0 ? 'text-green-500' : 'text-red-500'}`}>
                                             {gainLoss >= 0 ? '+' : ''}{formatCurrency(gainLoss, 'EUR')}
                                         </p>

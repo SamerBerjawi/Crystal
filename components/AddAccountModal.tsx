@@ -20,6 +20,7 @@ const AddAccountModal: React.FC<AddAccountModalProps> = ({ onClose, onAdd, accou
   const [statementStartDate, setStatementStartDate] = useState<string>('');
   const [paymentDate, setPaymentDate] = useState<string>('');
   const [settlementAccountId, setSettlementAccountId] = useState<string>('');
+  const [isPrimary, setIsPrimary] = useState(false);
   
   const [isIconPickerOpen, setIconPickerOpen] = useState(false);
 
@@ -41,6 +42,7 @@ const AddAccountModal: React.FC<AddAccountModalProps> = ({ onClose, onAdd, accou
       statementStartDate: type === 'Credit Card' && statementStartDate ? parseInt(statementStartDate) : undefined,
       paymentDate: type === 'Credit Card' && paymentDate ? parseInt(paymentDate) : undefined,
       settlementAccountId: type === 'Credit Card' && settlementAccountId ? settlementAccountId : undefined,
+      isPrimary,
     };
     onAdd(newAccountData);
   };
@@ -154,6 +156,21 @@ const AddAccountModal: React.FC<AddAccountModalProps> = ({ onClose, onAdd, accou
                 </div>
             </div>
           )}
+
+          <div className="p-4 bg-black/5 dark:bg-white/5 rounded-lg">
+            <div className="flex justify-between items-center">
+                <div>
+                    <p className="font-medium text-light-text dark:text-dark-text">Primary Account</p>
+                    <p className="text-sm text-light-text-secondary dark:text-dark-text-secondary">Set as the default account for dashboard filters.</p>
+                </div>
+                <div 
+                  onClick={() => setIsPrimary(!isPrimary)}
+                  className={`w-12 h-6 rounded-full p-1 flex items-center cursor-pointer transition-colors ${isPrimary ? 'bg-primary-500' : 'bg-gray-300 dark:bg-gray-700'}`}
+                >
+                  <div className={`w-4 h-4 rounded-full bg-white shadow-md transform transition-transform ${isPrimary ? 'translate-x-6' : 'translate-x-0'}`}></div>
+                </div>
+            </div>
+          </div>
 
           <div className="flex justify-end gap-4 pt-4">
             <button type="button" onClick={onClose} className={BTN_SECONDARY_STYLE}>Cancel</button>

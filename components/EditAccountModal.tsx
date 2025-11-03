@@ -22,8 +22,11 @@ const EditAccountModal: React.FC<EditAccountModalProps> = ({ onClose, onSave, on
   const [statementStartDate, setStatementStartDate] = useState<string>(String(account.statementStartDate || ''));
   const [paymentDate, setPaymentDate] = useState<string>(String(account.paymentDate || ''));
   const [settlementAccountId, setSettlementAccountId] = useState<string>(account.settlementAccountId || '');
+  const [isPrimary, setIsPrimary] = useState(account.isPrimary || false);
   
   const [isIconPickerOpen, setIconPickerOpen] = useState(false);
+
+  const isComputedAccount = type === 'Investment' || type === 'Crypto';
 
   useEffect(() => {
     // only change icon if it's the default one for the previous type
@@ -41,13 +44,15 @@ const EditAccountModal: React.FC<EditAccountModalProps> = ({ onClose, onSave, on
       ...account,
       name,
       type,
-      balance: parseFloat(balance),
+      // Only update balance if it's not a computed account
+      balance: isComputedAccount ? account.balance : parseFloat(balance),
       currency,
       icon,
       last4: last4 || undefined,
       statementStartDate: type === 'Credit Card' && statementStartDate ? parseInt(statementStartDate) : undefined,
       paymentDate: type === 'Credit Card' && paymentDate ? parseInt(paymentDate) : undefined,
       settlementAccountId: type === 'Credit Card' && settlementAccountId ? settlementAccountId : undefined,
+      isPrimary,
     };
     onSave(updatedAccount);
   };
@@ -114,18 +119,22 @@ const EditAccountModal: React.FC<EditAccountModalProps> = ({ onClose, onSave, on
                   onChange={(e) => setBalance(e.target.value)}
                   className={`${INPUT_BASE_STYLE} rounded-r-none`}
                   required
+                  readOnly={isComputedAccount}
+                  disabled={isComputedAccount}
                 />
                 <div className={`${SELECT_WRAPPER_STYLE} w-24`}>
                     <select
                       value={currency}
                       onChange={(e) => setCurrency(e.target.value as Currency)}
                       className={`${INPUT_BASE_STYLE} rounded-l-none border-l-2 border-transparent`}
+                      disabled={isComputedAccount}
                     >
                       {CURRENCIES.map(c => <option key={c} value={c}>{c}</option>)}
                     </select>
                      <div className={SELECT_ARROW_STYLE}><span className="material-symbols-outlined">expand_more</span></div>
                 </div>
               </div>
+              {isComputedAccount && <p className="text-xs text-light-text-secondary dark:text-dark-text-secondary mt-1">Balance is calculated automatically from holdings.</p>}
             </div>
           </div>
           
@@ -166,6 +175,22 @@ const EditAccountModal: React.FC<EditAccountModalProps> = ({ onClose, onSave, on
                 </div>
             </div>
           )}
+
+          <div className="p-4 bg-black/5 dark:bg-white/5 rounded-lg">
+            <div className="flex justify-between items-center">
+                <div>
+                    <p className="font-medium text-light-text dark:text-dark-text">Primary Account</p>
+                    <p className="text-sm text-light-text-secondary dark:text-dark-text-secondary">Set as the default account for dashboard filters.</p>
+                </div>
+                <div 
+                  onClick={() => setIsPrimary(!isPrimary)}
+                  className={`w-12 h-6 rounded-full p-1 flex items-center cursor-pointer transition-colors ${isPrimary ? 'bg-primary-500' : 'bg-gray-300 dark:bg-gray-700'}`}
+                >
+                  <div className={`w-4 h-4 rounded-full bg-white shadow-md transform transition-transform ${isPrimary ? 'translate-x-6' : 'translate-x-0'}`}></div>
+                </div>
+            </div>
+          </div>
+
 
           <div className="flex justify-between items-center pt-4">
             <button type="button" onClick={handleDelete} className={BTN_DANGER_STYLE}>Delete Account</button>

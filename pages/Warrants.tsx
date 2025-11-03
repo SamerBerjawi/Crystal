@@ -13,6 +13,11 @@ interface WarrantsProps {
   deleteWarrant: (id: string) => void;
   scraperConfigs: ScraperConfig[];
   saveScraperConfig: (config: ScraperConfig) => void;
+  // Props lifted up to App.tsx
+  prices: Record<string, number | null>;
+  isLoadingPrices: boolean;
+  lastUpdated: Date | null;
+  refreshPrices: () => void;
 }
 
 const COLORS = ['#6366F1', '#FBBF24', '#10B981', '#EF4444', '#3B82F6', '#8B5CF6'];
@@ -21,68 +26,11 @@ const SkeletonLoader: React.FC<{ className?: string }> = ({ className = 'w-24' }
     <div className={`h-6 bg-gray-200 dark:bg-gray-700 rounded-md animate-pulse ${className}`} />
 );
 
-const Warrants: React.FC<WarrantsProps> = ({ warrants, saveWarrant, deleteWarrant, scraperConfigs, saveScraperConfig }) => {
+const Warrants: React.FC<WarrantsProps> = ({ warrants, saveWarrant, deleteWarrant, scraperConfigs, saveScraperConfig, prices, isLoadingPrices, lastUpdated, refreshPrices }) => {
     const [isWarrantModalOpen, setWarrantModalOpen] = useState(false);
     const [isScraperModalOpen, setIsScraperModalOpen] = useState(false);
     const [editingWarrant, setEditingWarrant] = useState<Warrant | null>(null);
-    const [prices, setPrices] = useState<Record<string, number | null>>({});
-    const [isLoading, setIsLoading] = useState(true);
-    const [lastUpdated, setLastUpdated] = useState<Date | null>(null);
-
-    const refreshPrices = useCallback(async () => {
-        setIsLoading(true);
     
-        const scrapePrice = async (config: ScraperConfig): Promise<{ isin: string, price: number | null }> => {
-            try {
-                const response = await fetch(config.resource.url);
-                if (!response.ok) throw new Error(`Request failed with status ${response.status}`);
-                
-                const htmlString = await response.text();
-                const parser = new DOMParser();
-                const doc = parser.parseFromString(htmlString, 'text/html');
-                
-                const elements = doc.querySelectorAll(config.options.select);
-                if (elements.length === 0 || config.options.index >= elements.length) {
-                    throw new Error(`Element not found with selector "${config.options.select}" and index ${config.options.index}.`);
-                }
-                
-                const targetElement = elements[config.options.index];
-                const rawValue = config.options.attribute ? targetElement.getAttribute(config.options.attribute) : targetElement.textContent;
-    
-                if (!rawValue) throw new Error('No value or text content found in the selected element.');
-                
-                const priceString = rawValue.match(/[0-9.,\s]+/)?.[0]?.trim() || '';
-                if (!priceString) throw new Error(`Could not find a number in the raw value: "${rawValue}"`);
-                
-                const numberString = priceString.replace(/\./g, '').replace(',', '.');
-                const price = parseFloat(numberString);
-    
-                if (isNaN(price)) throw new Error(`Could not parse a valid number from: "${rawValue}"`);
-                
-                return { isin: config.id, price };
-            } catch (error: any) {
-                console.error(`Error scraping ${config.id} from ${config.resource.url}:`, error.message);
-                return { isin: config.id, price: null };
-            }
-        };
-        
-        const pricePromises = scraperConfigs.map(scrapePrice);
-        
-        const results = await Promise.all(pricePromises);
-        
-        const newPrices: Record<string, number | null> = {};
-        warrants.forEach(w => { newPrices[w.isin] = null; });
-        results.forEach(result => { newPrices[result.isin] = result.price; });
-    
-        setPrices(newPrices);
-        setLastUpdated(new Date());
-        setIsLoading(false);
-    }, [warrants, scraperConfigs]);
-
-    useEffect(() => {
-        refreshPrices();
-    }, [refreshPrices]);
-
     const { holdings, totalCurrentValue, totalGrantValue, distributionData } = useMemo(() => {
         const holdingsMap: Record<string, {
             isin: string;
@@ -144,15 +92,15 @@ const Warrants: React.FC<WarrantsProps> = ({ warrants, saveWarrant, deleteWarran
                 <div>
                     {/* <h2 className="text-3xl font-bold text-light-text dark:text-dark-text">Warrants</h2> */}
                     <p className="text-light-text-secondary dark:text-dark-text-secondary mt-1">Track your employee warrants portfolio.</p>
-                     {lastUpdated && !isLoading && (
+                     {lastUpdated && !isLoadingPrices && (
                         <p className="text-xs text-light-text-secondary dark:text-dark-text-secondary mt-1">
                             Last updated: {lastUpdated.toLocaleString()}
                         </p>
                     )}
                 </div>
                 <div className="flex items-center gap-4">
-                    <button onClick={refreshPrices} className={`${BTN_SECONDARY_STYLE} flex items-center gap-2`} disabled={isLoading}>
-                         {isLoading ? (
+                    <button onClick={refreshPrices} className={`${BTN_SECONDARY_STYLE} flex items-center gap-2`} disabled={isLoadingPrices}>
+                         {isLoadingPrices ? (
                             <>
                                 <svg className="animate-spin h-5 w-5" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24"><circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle><path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path></svg>
                                 Refreshing...
@@ -172,11 +120,11 @@ const Warrants: React.FC<WarrantsProps> = ({ warrants, saveWarrant, deleteWarran
             <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
                 <Card>
                     <p className="text-sm text-light-text-secondary dark:text-dark-text-secondary">Portfolio Value</p>
-                    {isLoading ? <SkeletonLoader className="w-40 mt-1" /> : <p className="text-2xl font-bold">{formatCurrency(totalCurrentValue, 'EUR')}</p>}
+                    {isLoadingPrices ? <SkeletonLoader className="w-40 mt-1" /> : <p className="text-2xl font-bold">{formatCurrency(totalCurrentValue, 'EUR')}</p>}
                 </Card>
                 <Card>
                     <p className="text-sm text-light-text-secondary dark:text-dark-text-secondary">Total Gain/Loss</p>
-                    {isLoading ? (
+                    {isLoadingPrices ? (
                         <>
                             <SkeletonLoader className="w-32 mt-1" />
                             <SkeletonLoader className="w-16 mt-2 h-4" />
@@ -211,17 +159,17 @@ const Warrants: React.FC<WarrantsProps> = ({ warrants, saveWarrant, deleteWarran
                                     <div><p className="font-bold text-lg">{holding.isin}</p><p className="text-sm text-light-text-secondary dark:text-dark-text-secondary truncate">{holding.name}</p></div>
                                     <div className="text-center">
                                         <p className="font-semibold">{holding.quantity}</p>
-                                        {isLoading ? <SkeletonLoader className="w-16 h-4 mx-auto mt-1" /> : (
+                                        {isLoadingPrices ? <SkeletonLoader className="w-16 h-4 mx-auto mt-1" /> : (
                                             <p className="text-xs text-light-text-secondary dark:text-dark-text-secondary">
                                                 @ {currentPrice !== null ? formatCurrency(currentPrice, 'EUR') : 'N/A'}
                                             </p>
                                         )}
                                     </div>
                                     <div className="text-right">
-                                        {isLoading ? <SkeletonLoader className="w-24 ml-auto" /> : (
+                                        {isLoadingPrices ? <SkeletonLoader className="w-24 ml-auto" /> : (
                                             <p className="font-bold">{currentPrice !== null ? formatCurrency(currentValue, 'EUR') : 'N/A'}</p>
                                         )}
-                                        {isLoading ? <SkeletonLoader className="w-16 h-4 ml-auto mt-1" /> : (
+                                        {isLoadingPrices ? <SkeletonLoader className="w-16 h-4 ml-auto mt-1" /> : (
                                             currentPrice !== null ? (
                                                 <p className={`text-sm font-semibold ${gainLoss >= 0 ? 'text-green-500' : 'text-red-500'}`}>{gainLoss >= 0 ? '+' : ''}{formatCurrency(gainLoss, 'EUR')}</p>
                                             ) : (

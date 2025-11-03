@@ -27,8 +27,6 @@ export const useTransactionMatcher = (
     const incomes = candidates.filter(tx => tx.type === 'income');
 
     // 2. Create a lookup map for incomes for faster searching.
-    // Key: "amount|date" (e.g., "123.45|2023-10-27")
-    // Amount is in EUR and positive.
     const incomeMap = new Map<string, Transaction[]>();
     for (const income of incomes) {
         const amountKey = convertToEur(income.amount, income.currency).toFixed(2);
@@ -46,7 +44,6 @@ export const useTransactionMatcher = (
         // Using replace for date string to avoid timezone issues.
         const expenseDate = new Date(expense.date.replace(/-/g, '/'));
 
-        // Dates to check: same day, one day before, one day after.
         const datesToCheck = [
             expenseDate,
             new Date(expenseDate.getTime() - ONE_DAY_MS),
@@ -64,31 +61,27 @@ export const useTransactionMatcher = (
             if (incomeMap.has(key)) {
                 const potentialIncomes = incomeMap.get(key)!;
                 
-                // Iterate backwards because we might remove items from the array
                 for (let i = potentialIncomes.length - 1; i >= 0; i--) {
                     const income = potentialIncomes[i];
 
-                    // Final checks
                     if (expense.accountId === income.accountId) continue;
 
                     const suggestionId = [expense.id, income.id].sort().join('|');
                     if (ignoredSuggestionIds.includes(suggestionId)) continue;
                     
-                    // We found a match
                     potentialMatches.push({
                         expenseTx: expense,
                         incomeTx: income,
                         id: suggestionId,
                     });
                     
-                    // Remove this income from the map to prevent it from being matched again
                     potentialIncomes.splice(i, 1);
                     if(potentialIncomes.length === 0) {
                         incomeMap.delete(key);
                     }
                     
                     foundMatchForExpense = true;
-                    break; // Move to the next expense
+                    break; 
                 }
             }
         }
@@ -99,17 +92,45 @@ export const useTransactionMatcher = (
 
   const confirmMatch = (suggestion: Suggestion) => {
     const transferId = `xfer-${uuidv4()}`;
-    const fromAccount = accounts.find(a => a.id === suggestion.expenseTx.accountId);
-    const toAccount = accounts.find(a => a.id === suggestion.incomeTx.accountId);
+    
+    let { expenseTx, incomeTx } = suggestion;
+
+    // Heuristic to detect reversed sign conventions by checking descriptions
+    const incomeAccount = accounts.find(a => a.id === incomeTx.accountId);
+    const expenseAccount = accounts.find(a => a.id === expenseTx.accountId);
+    
+    if (expenseAccount && incomeAccount) {
+        const keywordsTo = ['to ', 'transfer to ', 'naar '];
+        const keywordsFrom = ['from ', 'transfer from ', 'van '];
+
+        // Check if the descriptions are the "wrong" way around for the types
+        const expenseDescImpliesFrom = keywordsFrom.some(k => expenseTx.description.toLowerCase().includes(k + incomeAccount.name.toLowerCase()));
+        const incomeDescImpliesTo = keywordsTo.some(k => incomeTx.description.toLowerCase().includes(k + expenseAccount.name.toLowerCase()));
+        
+        if (expenseDescImpliesFrom && incomeDescImpliesTo) {
+            // The roles are reversed based on descriptions. Swap them.
+            [expenseTx, incomeTx] = [incomeTx, expenseTx];
+        }
+    }
+    
+    // After potential swapping, `expenseTx` is the true outgoing transaction
+    // and `incomeTx` is the true incoming transaction.
+    const fromAccount = accounts.find(a => a.id === expenseTx.accountId);
+    const toAccount = accounts.find(a => a.id === incomeTx.accountId);
 
     const expenseUpdate = {
-      ...suggestion.expenseTx,
+      ...expenseTx,
+      amount: -Math.abs(expenseTx.amount), // Ensure amount is negative
+      type: 'expense' as 'expense',
       category: 'Transfer',
       transferId,
       description: `Transfer to ${toAccount?.name || 'account'}`
     };
+
     const incomeUpdate = {
-      ...suggestion.incomeTx,
+      ...incomeTx,
+      amount: Math.abs(incomeTx.amount), // Ensure amount is positive
+      type: 'income' as 'income',
       category: 'Transfer',
       transferId,
       description: `Transfer from ${fromAccount?.name || 'account'}`
@@ -117,7 +138,6 @@ export const useTransactionMatcher = (
     
     saveTransaction([expenseUpdate, incomeUpdate]);
     
-    // The suggestion will disappear on next render because the transactions now have a transferId
     setIgnoredSuggestionIds(prev => [...prev, suggestion.id]);
   };
 
@@ -130,18 +150,38 @@ export const useTransactionMatcher = (
     const suggestionIdsToIgnore: string[] = [];
 
     suggestions.forEach(suggestion => {
+        let { expenseTx, incomeTx } = suggestion;
+
+        // Same reversal logic as in `confirmMatch`
+        const incomeAccount = accounts.find(a => a.id === incomeTx.accountId);
+        const expenseAccount = accounts.find(a => a.id === expenseTx.accountId);
+        
+        if (expenseAccount && incomeAccount) {
+            const keywordsTo = ['to ', 'transfer to ', 'naar '];
+            const keywordsFrom = ['from ', 'transfer from ', 'van '];
+            const expenseDescImpliesFrom = keywordsFrom.some(k => expenseTx.description.toLowerCase().includes(k + incomeAccount.name.toLowerCase()));
+            const incomeDescImpliesTo = keywordsTo.some(k => incomeTx.description.toLowerCase().includes(k + expenseAccount.name.toLowerCase()));
+            if (expenseDescImpliesFrom && incomeDescImpliesTo) {
+                [expenseTx, incomeTx] = [incomeTx, expenseTx];
+            }
+        }
+
+        const fromAccount = accounts.find(a => a.id === expenseTx.accountId);
+        const toAccount = accounts.find(a => a.id === incomeTx.accountId);
         const transferId = `xfer-${uuidv4()}`;
-        const fromAccount = accounts.find(a => a.id === suggestion.expenseTx.accountId);
-        const toAccount = accounts.find(a => a.id === suggestion.incomeTx.accountId);
 
         transactionsToUpdate.push({
-            ...suggestion.expenseTx,
+            ...expenseTx,
+            amount: -Math.abs(expenseTx.amount),
+            type: 'expense',
             category: 'Transfer',
             transferId,
             description: `Transfer to ${toAccount?.name || 'account'}`
         });
         transactionsToUpdate.push({
-            ...suggestion.incomeTx,
+            ...incomeTx,
+            amount: Math.abs(incomeTx.amount),
+            type: 'income',
             category: 'Transfer',
             transferId,
             description: `Transfer from ${fromAccount?.name || 'account'}`

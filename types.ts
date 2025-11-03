@@ -1,6 +1,7 @@
-import React from 'react';
+import React, { Dispatch, SetStateAction } from 'react';
 
-export type Page = 'Dashboard' | 'Accounts' | 'Transactions' | 'Budget' | 'Forecasting' | 'Settings' | 'Schedule & Bills' | 'Tasks' | 'Categories' | 'Tags' | 'Personal Info' | 'Data Management' | 'Preferences' | 'Enable Banking' | 'AccountDetail' | 'Investments' | 'Warrants' | 'User Management';
+// FIX: Add 'Enable Banking' to Page type
+export type Page = 'Dashboard' | 'Accounts' | 'Transactions' | 'Budget' | 'Forecasting' | 'Settings' | 'Schedule & Bills' | 'Tasks' | 'Categories' | 'Tags' | 'Personal Info' | 'Data Management' | 'Preferences' | 'AccountDetail' | 'Investments' | 'Warrants' | 'User Management' | 'Documentation' | 'Enable Banking';
 
 export type AccountType = 'Checking' | 'Savings' | 'Credit Card' | 'Investment' | 'Loan' | 'Property' | 'Crypto' | 'Vehicle' | 'Other Assets' | 'Other Liabilities';
 
@@ -28,14 +29,16 @@ export interface Account {
   currency: Currency;
   icon?: string;
   last4?: string;
+  symbol?: string; // Ticker symbol for investments/warrants
   // Credit Card specific fields
   statementStartDate?: number; // Day of the month (1-31)
   paymentDate?: number; // Day of themonth (1-31)
   settlementAccountId?: string; // ID of a checking account
-  // Bank Sync Integration
+  // FIX: Add properties for Enable Banking integration
   enableBankingId?: string;
   enableBankingInstitution?: string;
   lastSync?: string;
+  isPrimary?: boolean;
   sureId?: string;
 }
 
@@ -86,7 +89,6 @@ export interface DisplayTransaction extends Transaction {
 
 export interface InvestmentTransaction {
   id: string;
-  accountId: string;
   symbol: string;
   name: string;
   quantity: number;
@@ -162,6 +164,14 @@ export interface FinancialGoal {
   projection?: GoalProjection;
 }
 
+export interface ContributionPlanStep {
+  goalName: string;
+  date: string; 
+  amount: number;
+  accountName: string;
+  notes?: string;
+}
+
 export interface Budget {
   id: string;
   categoryName: string; // Budget by parent category name for simplicity
@@ -196,24 +206,6 @@ export interface AppPreferences {
   country: string;
 }
 
-// For Enable Banking simulation
-export interface RemoteAccount {
-    id: string;
-    name: string;
-    balance: number;
-    currency: Currency;
-    institution: string;
-    type: AccountType;
-    last4: string;
-}
-
-export interface EnableBankingSettings {
-  autoSyncEnabled: boolean;
-  syncFrequency: 'daily' | 'twice_daily';
-  clientId?: string;
-  clientSecret?: string;
-}
-
 // New types for Bills & Payments
 export type BillPaymentStatus = 'unpaid' | 'paid';
 
@@ -226,6 +218,25 @@ export interface BillPayment {
     dueDate: string;
     status: BillPaymentStatus;
     accountId?: string; // The account it was paid from/to
+}
+
+// FIX: Add RemoteAccount interface for Enable Banking flow.
+export interface RemoteAccount {
+  id: string;
+  name: string;
+  balance: number;
+  currency: Currency;
+  institution: string;
+  type: AccountType;
+  last4: string;
+}
+
+// FIX: Add EnableBankingSettings interface.
+export interface EnableBankingSettings {
+  autoSyncEnabled: boolean;
+  syncFrequency: 'daily' | 'twice_daily';
+  clientId: string;
+  clientSecret: string;
 }
 
 
@@ -244,8 +255,10 @@ export interface FinancialData {
     incomeCategories: Category[];
     expenseCategories: Category[];
     preferences: AppPreferences;
-    enableBankingSettings: EnableBankingSettings;
     billsAndPayments: BillPayment[];
+    accountOrder?: string[];
+    // FIX: Add enableBankingSettings property.
+    enableBankingSettings?: EnableBankingSettings;
 }
 
 // New types for Tasks feature

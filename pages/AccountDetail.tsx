@@ -1,9 +1,6 @@
-
-
-
 import React, { useMemo, useState, useCallback } from 'react';
 import { Account, Transaction, Category, Duration, Page, CategorySpending, Widget, WidgetConfig, DisplayTransaction } from '../types';
-import { formatCurrency, getDateRange, convertToEur } from '../utils';
+import { formatCurrency, getDateRange, convertToEur, calculateStatementPeriods } from '../utils';
 import AddTransactionModal from '../components/AddTransactionModal';
 import { BTN_PRIMARY_STYLE, MOCK_EXPENSE_CATEGORIES, BTN_SECONDARY_STYLE } from '../constants';
 import TransactionDetailModal from '../components/TransactionDetailModal';
@@ -17,6 +14,7 @@ import TransactionList from '../components/TransactionList';
 import CurrentBalanceCard from '../components/CurrentBalanceCard';
 import useLocalStorage from '../hooks/useLocalStorage';
 import AddWidgetModal from '../components/AddWidgetModal';
+import CreditCardStatementCard from '../components/CreditCardStatementCard';
 
 interface AccountDetailProps {
   account: Account;
@@ -49,6 +47,13 @@ const findCategoryById = (id: string, categories: Category[]): Category | undefi
     return undefined;
 }
 
+const toYYYYMMDD = (date: Date) => {
+    const y = date.getFullYear();
+    const m = (date.getMonth() + 1).toString().padStart(2, '0');
+    const d = date.getDate().toString().padStart(2, '0');
+    return `${y}-${m}-${d}`;
+};
+
 const AccountDetail: React.FC<AccountDetailProps> = ({ account, accounts, transactions, allCategories, setCurrentPage, saveTransaction }) => {
     const [isTransactionModalOpen, setTransactionModalOpen] = useState(false);
     const [editingTransaction, setEditingTransaction] = useState<Transaction | null>(null);
@@ -60,6 +65,44 @@ const AccountDetail: React.FC<AccountDetailProps> = ({ account, accounts, transa
     const [duration, setDuration] = useState<Duration>('1Y');
     const [isAddWidgetModalOpen, setIsAddWidgetModalOpen] = useState(false);
     const [isEditMode, setIsEditMode] = useState(false);
+
+    const isConfiguredCreditCard = account.type === 'Credit Card' && account.statementStartDate && account.paymentDate;
+
+    const statementData = useMemo(() => {
+        if (!isConfiguredCreditCard) return null;
+    
+        const periods = calculateStatementPeriods(account.statementStartDate!, account.paymentDate!, new Date());
+        
+        const calculateBalance = (start: Date, end: Date) => {
+            return transactions
+                .filter(tx => {
+                    if (tx.accountId !== account.id) return false;
+                    const [year, month, day] = tx.date.split('-').map(Number);
+                    const txDate = new Date(Date.UTC(year, month - 1, day));
+                    return txDate >= start && txDate <= end;
+                })
+                .reduce((sum, tx) => sum + tx.amount, 0);
+        };
+    
+        const currentBalance = calculateBalance(periods.current.start, periods.current.end);
+        const futureBalance = calculateBalance(periods.future.start, periods.future.end);
+        
+        const formatDate = (date: Date) => date.toLocaleDateString('en-US', { month: 'short', day: 'numeric', timeZone: 'UTC' });
+        const formatFullDate = (date: Date) => date.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric', timeZone: 'UTC' });
+    
+        return {
+            current: {
+                balance: currentBalance,
+                period: `${formatDate(periods.current.start)} - ${formatDate(periods.current.end)}`,
+                paymentDue: formatFullDate(periods.current.paymentDue)
+            },
+            future: {
+                balance: futureBalance,
+                period: `${formatDate(periods.future.start)} - ${formatDate(periods.future.end)}`,
+                paymentDue: formatFullDate(periods.future.paymentDue)
+            }
+        };
+    }, [isConfiguredCreditCard, account, transactions]);
 
     const handleOpenTransactionModal = (tx?: Transaction) => {
         setEditingTransaction(tx || null);
@@ -226,7 +269,20 @@ const AccountDetail: React.FC<AccountDetailProps> = ({ account, accounts, transa
       const balanceOverTimeData = useMemo(() => {
         const { start, end } = getDateRange(duration, transactions);
         const currentBalance = convertToEur(account.balance, account.currency);
+        const today = new Date(); // A consistent "now"
     
+        const transactionsToReverse = transactions.filter(tx => {
+            if (tx.accountId !== account.id) return false;
+            const txDate = new Date(tx.date.replace(/-/g, '/'));
+            return txDate >= start && txDate <= today;
+        });
+    
+        const totalChangeSinceStart = transactionsToReverse.reduce((sum, tx) => {
+            return sum + convertToEur(tx.amount, tx.currency);
+        }, 0);
+    
+        const startingBalance = currentBalance - totalChangeSinceStart;
+
         const transactionsInPeriod = transactions.filter(tx => {
             if (tx.accountId !== account.id) return false;
             const txDate = new Date(tx.date.replace(/-/g, '/'));
@@ -240,25 +296,24 @@ const AccountDetail: React.FC<AccountDetailProps> = ({ account, accounts, transa
             dailyChanges.set(dateStr, (dailyChanges.get(dateStr) || 0) + change);
         }
         
-        const totalChangeInPeriod = Array.from(dailyChanges.values()).reduce((sum, val) => sum + val, 0);
-        const startingBalance = currentBalance - totalChangeInPeriod;
-    
         const data: { name: string, value: number }[] = [];
         let runningBalance = startingBalance;
         
         let currentDate = new Date(start);
     
         while (currentDate <= end) {
-            const dateStr = currentDate.toISOString().split('T')[0];
-            
+            const dateStr = toYYYYMMDD(currentDate);
             runningBalance += dailyChanges.get(dateStr) || 0;
-            
             data.push({
                 name: dateStr,
                 value: parseFloat(runningBalance.toFixed(2))
             });
-            
             currentDate.setDate(currentDate.getDate() + 1);
+        }
+
+        const todayStr = toYYYYMMDD(new Date());
+        if (data.length > 0 && data[data.length-1].name === todayStr) {
+            data[data.length-1].value = parseFloat(currentBalance.toFixed(2));
         }
     
         return data;
@@ -390,16 +445,35 @@ const AccountDetail: React.FC<AccountDetailProps> = ({ account, accounts, transa
             </div>
 
             {/* Top Summary Grid */}
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-                <BalanceCard title="Income" amount={income} changeType="positive" sparklineData={incomeSparkline} />
-                <BalanceCard title="Expenses" amount={expenses} changeType="negative" sparklineData={expenseSparkline} />
-                <NetBalanceCard 
-                    netBalance={income - expenses}
-                    totalIncome={income}
-                    duration={duration}
-                />
-                <CurrentBalanceCard balance={account.balance} currency={account.currency} />
-            </div>
+            {isConfiguredCreditCard && statementData ? (
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                    <CreditCardStatementCard
+                        title="Current Statement"
+                        balance={statementData.current.balance}
+                        currency={account.currency}
+                        statementPeriod={statementData.current.period}
+                        paymentDueDate={statementData.current.paymentDue}
+                    />
+                    <CreditCardStatementCard
+                        title="Next Statement"
+                        balance={statementData.future.balance}
+                        currency={account.currency}
+                        statementPeriod={statementData.future.period}
+                        paymentDueDate={statementData.future.paymentDue}
+                    />
+                </div>
+            ) : (
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+                    <BalanceCard title="Income" amount={income} changeType="positive" sparklineData={incomeSparkline} />
+                    <BalanceCard title="Expenses" amount={expenses} changeType="negative" sparklineData={expenseSparkline} />
+                    <NetBalanceCard 
+                        netBalance={income - expenses}
+                        totalIncome={income}
+                        duration={duration}
+                    />
+                    <CurrentBalanceCard balance={account.balance} currency={account.currency} />
+                </div>
+            )}
             
             {/* Customizable Widget Grid */}
             <div className="grid grid-cols-1 md:grid-cols-4 gap-6" style={{ gridAutoRows: 'minmax(200px, auto)' }}>

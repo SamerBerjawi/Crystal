@@ -16,26 +16,25 @@ import Tags from './pages/Tags';
 import PersonalInfo from './pages/PersonalInfo';
 import DataManagement from './pages/DataImportExport';
 import Preferences from './pages/Preferences';
-import EnableBankingSettingsPage from './pages/EnableBankingSettings';
 import AccountDetail from './pages/AccountDetail';
 import Investments from './pages/Investments';
 import Tasks from './pages/Tasks';
 import Warrants from './pages/Warrants';
+import Documentation from './pages/Documentation';
 // UserManagement is removed
 // FIX: Import FinancialData from types.ts
-import { Page, Theme, Category, User, Transaction, Account, RecurringTransaction, WeekendAdjustment, FinancialGoal, Budget, ImportExportHistoryItem, AppPreferences, RemoteAccount, AccountType, EnableBankingSettings, InvestmentTransaction, Task, Warrant, ScraperConfig, ImportDataType, FinancialData, Currency, BillPayment, BillPaymentStatus } from './types';
+import { Page, Theme, Category, User, Transaction, Account, RecurringTransaction, WeekendAdjustment, FinancialGoal, Budget, ImportExportHistoryItem, AppPreferences, AccountType, InvestmentTransaction, Task, Warrant, ScraperConfig, ImportDataType, FinancialData, Currency, BillPayment, BillPaymentStatus } from './types';
 // FIX: Import Card component and BTN_PRIMARY_STYLE constant to resolve 'Cannot find name' errors.
-import { MOCK_INCOME_CATEGORIES, MOCK_EXPENSE_CATEGORIES, BTN_PRIMARY_STYLE, BTN_SECONDARY_STYLE } from './constants';
+import { MOCK_INCOME_CATEGORIES, MOCK_EXPENSE_CATEGORIES, BTN_PRIMARY_STYLE, BTN_SECONDARY_STYLE, LIQUID_ACCOUNT_TYPES } from './constants';
 import Card from './components/Card';
 import { v4 as uuidv4 } from 'uuid';
-import EnableBankingConnectModal from './components/EnableBankingConnectModal';
-import EnableBankingLinkAccountsModal from './components/EnableBankingLinkAccountsModal';
 import { GoogleGenAI, FunctionDeclaration, Type } from '@google/genai';
 import ChatFab from './components/ChatFab';
 import Chatbot from './components/Chatbot';
 import { convertToEur, CONVERSION_RATES, arrayToCSV, downloadCSV } from './utils';
 import { useDebounce } from './hooks/useDebounce';
 import { useAuth } from './hooks/useAuth';
+import useLocalStorage from './hooks/useLocalStorage';
 
 const initialFinancialData: FinancialData = {
     accounts: [],
@@ -51,6 +50,7 @@ const initialFinancialData: FinancialData = {
     incomeCategories: MOCK_INCOME_CATEGORIES, // Keep default categories
     expenseCategories: MOCK_EXPENSE_CATEGORIES,
     billsAndPayments: [],
+    accountOrder: [],
     preferences: {
         currency: 'EUR (€)',
         language: 'English (en)',
@@ -60,29 +60,7 @@ const initialFinancialData: FinancialData = {
         defaultAccountOrder: 'Name (A-Z)',
         country: 'Belgium',
     },
-    enableBankingSettings: {
-        autoSyncEnabled: true,
-        syncFrequency: 'daily',
-        clientId: '',
-        clientSecret: '',
-    },
 };
-
-const mapEnableBankingAccountType = (cashAccountType?: string): AccountType => {
-  switch (cashAccountType) {
-    case 'CACC': // Current Account
-      return 'Checking';
-    case 'SVGS': // Savings Account
-      return 'Savings';
-    case 'CARD': // Card Account
-      return 'Credit Card';
-    case 'CASH': // Cash Account, often used for investments in PSD2 context
-      return 'Investment';
-    default:
-      return 'Other Assets';
-  }
-};
-
 
 const safeLocalStorage = {
   getItem: (key: string): string | null => {
@@ -113,44 +91,13 @@ const safeLocalStorage = {
 };
 
 
-const EnableBankingConsent: React.FC<{ onAuthorize: () => void; onDeny: () => void; }> = ({ onAuthorize, onDeny }) => {
-  return (
-    <div className="fixed inset-0 bg-light-bg dark:bg-dark-bg z-[999] flex items-center justify-center p-4">
-      <Card className="max-w-md w-full">
-        <div className="text-center">
-          <h2 className="text-2xl font-bold">Enable Banking</h2>
-          <p className="text-light-text-secondary dark:text-dark-text-secondary mt-2">
-            Finaura is requesting access to your account information.
-          </p>
-        </div>
-        <div className="mt-6 p-4 bg-light-fill dark:bg-dark-fill rounded-lg">
-          <h3 className="font-semibold">Finaura wants to:</h3>
-          <ul className="mt-2 space-y-2 text-sm text-light-text-secondary dark:text-dark-text-secondary">
-            <li className="flex items-start gap-2">
-              <span className="material-symbols-outlined text-green-500">check_circle</span>
-              <span>View your account balances and details</span>
-            </li>
-            <li className="flex items-start gap-2">
-              <span className="material-symbols-outlined text-green-500">check_circle</span>
-              <span>View your transaction history</span>
-            </li>
-          </ul>
-          <p className="text-xs mt-4">This is a read-only connection. Finaura will not be able to move money or make changes to your accounts.</p>
-        </div>
-        <div className="flex justify-end gap-4 mt-6">
-          <button onClick={onDeny} className={BTN_SECONDARY_STYLE}>Deny</button>
-          <button onClick={onAuthorize} className={BTN_PRIMARY_STYLE}>Authorize</button>
-        </div>
-      </Card>
-    </div>
-  );
-};
-
-
 // FIX: Add export to create a named export for the App component.
 export const App: React.FC = () => {
   const { user, setUser, token, isAuthenticated, isLoading: isAuthLoading, error: authError, signIn, signUp, signOut, checkAuthStatus, setError: setAuthError, changePassword } = useAuth();
   const [authPage, setAuthPage] = useState<'signIn' | 'signUp'>('signIn');
+  const [isDemoMode, setIsDemoMode] = useState(false);
+  const [demoUser, setDemoUser] = useState<User | null>(null);
+  const [isDataLoaded, setIsDataLoaded] = useState(false);
 
   const [currentPage, setCurrentPage] = useState<Page>('Dashboard');
   const [isSidebarOpen, setSidebarOpen] = useState(false);
@@ -164,7 +111,6 @@ export const App: React.FC = () => {
   
   // All financial data states
   const [preferences, setPreferences] = useState<AppPreferences>(initialFinancialData.preferences);
-  const [enableBankingSettings, setEnableBankingSettings] = useState<EnableBankingSettings>(initialFinancialData.enableBankingSettings);
   const [incomeCategories, setIncomeCategories] = useState<Category[]>(initialFinancialData.incomeCategories);
   const [expenseCategories, setExpenseCategories] = useState<Category[]>(initialFinancialData.expenseCategories);
   const [transactions, setTransactions] = useState<Transaction[]>(initialFinancialData.transactions);
@@ -178,41 +124,105 @@ export const App: React.FC = () => {
   const [scraperConfigs, setScraperConfigs] = useState<ScraperConfig[]>(initialFinancialData.scraperConfigs);
   const [importExportHistory, setImportExportHistory] = useState<ImportExportHistoryItem[]>(initialFinancialData.importExportHistory);
   const [billsAndPayments, setBillsAndPayments] = useState<BillPayment[]>(initialFinancialData.billsAndPayments);
+  const [accountOrder, setAccountOrder] = useLocalStorage<string[]>('finaura-account-order', []);
   
-  // State for Bank Sync Flow
-  const [isConnectModalOpen, setConnectModalOpen] = useState(false);
-  const [isLinkModalOpen, setLinkModalOpen] = useState(false);
-  const [remoteAccounts, setRemoteAccounts] = useState<RemoteAccount[]>([]);
-  const [isProcessingOAuth, setIsProcessingOAuth] = useState(false);
-  const [oauthError, setOauthError] = useState<string | null>(null);
-  const [isConsentScreenOpen, setConsentScreenOpen] = useState(false);
-
-
   // State for AI Chat
   const [isChatOpen, setIsChatOpen] = useState(false);
   
-  // State for Sure integration
-  const [sureApiUrl, setSureApiUrl] = useState('https://finance.samxr.com/api/v1');
-  const [sureApiKey, setSureApiKey] = useState('');
-  const [isSureSyncing, setIsSureSyncing] = useState(false);
+  // State for Warrant prices
+  const [warrantPrices, setWarrantPrices] = useState<Record<string, number | null>>({});
+  const [isLoadingPrices, setIsLoadingPrices] = useState(false);
+  const [lastUpdated, setLastUpdated] = useState<Date | null>(null);
+  
+  // States lifted up for persistence
+  const [dashboardAccountIds, setDashboardAccountIds] = useState<string[]>([]);
+  const [activeGoalIds, setActiveGoalIds] = useState<string[]>([]);
 
-  // Load/save Sure settings from/to localStorage
   useEffect(() => {
-    const storedUrl = safeLocalStorage.getItem('finaura_sure_api_url');
-    const storedKey = safeLocalStorage.getItem('finaura_sure_api_key');
-    if (storedUrl) setSureApiUrl(storedUrl);
-    if (storedKey) setSureApiKey(storedKey);
-  }, []);
+    // Set default dashboard account filter only on initial load
+    if (accounts.length > 0 && dashboardAccountIds.length === 0) {
+        const primaryAccount = accounts.find(a => a.isPrimary);
+        if (primaryAccount) {
+            setDashboardAccountIds([primaryAccount.id]);
+        } else {
+            setDashboardAccountIds(accounts.filter(a => LIQUID_ACCOUNT_TYPES.includes(a.type)).map(a => a.id));
+        }
+    }
+  }, [accounts, dashboardAccountIds.length]);
+  
+  useEffect(() => {
+    // Set default active goals only on initial load
+    if (financialGoals.length > 0 && activeGoalIds.length === 0) {
+        setActiveGoalIds(financialGoals.map(g => g.id));
+    }
+  }, [financialGoals, activeGoalIds.length]);
 
-  const handleSetSureApiUrl = (url: string) => {
-    setSureApiUrl(url);
-    safeLocalStorage.setItem('finaura_sure_api_url', url);
-  };
+  const fetchWarrantPrices = useCallback(async () => {
+    const uniqueIsins = [...new Set(warrants.map(w => w.isin))];
+    const configsToRun = scraperConfigs.filter(c => uniqueIsins.includes(c.id));
+    if (isLoadingPrices || configsToRun.length === 0) return;
 
-  const handleSetSureApiKey = (key: string) => {
-    setSureApiKey(key);
-    safeLocalStorage.setItem('finaura_sure_api_key', key);
-  };
+    setIsLoadingPrices(true);
+    const newPrices: Record<string, number | null> = {};
+    const proxyUrl = 'https://cors.eu.org/';
+
+    for (const config of configsToRun) {
+        try {
+            const response = await fetch(`${proxyUrl}${config.resource.url}`);
+            if (!response.ok) { newPrices[config.id] = null; continue; }
+            const htmlString = await response.text();
+            const parser = new DOMParser();
+            const doc = parser.parseFromString(htmlString, 'text/html');
+            const elements = doc.querySelectorAll(config.options.select);
+
+            if (elements.length > config.options.index) {
+                const targetElement = elements[config.options.index];
+                const rawValue = config.options.attribute ? targetElement.getAttribute(config.options.attribute) : targetElement.textContent;
+                if (rawValue) {
+                    const priceString = rawValue.match(/[0-9.,\s]+/)?.[0]?.trim() || '';
+                    const numberString = priceString.replace(/\./g, '').replace(',', '.');
+                    const price = parseFloat(numberString);
+                    newPrices[config.id] = isNaN(price) ? null : price;
+                } else { newPrices[config.id] = null; }
+            } else { newPrices[config.id] = null; }
+        } catch (error) {
+            console.error(`Failed to scrape ${config.id}:`, error);
+            newPrices[config.id] = null;
+        }
+    }
+    setWarrantPrices(prev => ({...prev, ...newPrices}));
+    setLastUpdated(new Date());
+    setIsLoadingPrices(false);
+  }, [scraperConfigs, warrants, isLoadingPrices]);
+
+  useEffect(() => {
+    if (warrants.length > 0) {
+        fetchWarrantPrices();
+    }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [warrants, scraperConfigs]);
+
+  useEffect(() => {
+    const updatedAccounts = accounts.map(account => {
+        if (account.symbol && (account.type === 'Investment' || account.type === 'Crypto') && warrantPrices[account.symbol] !== undefined) {
+            const price = warrantPrices[account.symbol];
+            const quantity = investmentTransactions
+                .filter(tx => tx.symbol === account.symbol)
+                .reduce((total, tx) => total + (tx.type === 'buy' ? tx.quantity : -tx.quantity), 0)
+                + warrants
+                .filter(w => w.isin === account.symbol)
+                .reduce((total, w) => total + w.quantity, 0);
+            
+            return { ...account, balance: price !== null ? quantity * price : 0 };
+        }
+        return account;
+    });
+
+    if (JSON.stringify(updatedAccounts) !== JSON.stringify(accounts)) {
+        setAccounts(updatedAccounts);
+    }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [warrantPrices]);
 
   const loadAllFinancialData = useCallback((data: FinancialData | null) => {
     const dataToLoad = data || initialFinancialData;
@@ -230,9 +240,28 @@ export const App: React.FC = () => {
     setIncomeCategories(dataToLoad.incomeCategories && dataToLoad.incomeCategories.length > 0 ? dataToLoad.incomeCategories : MOCK_INCOME_CATEGORIES);
     setExpenseCategories(dataToLoad.expenseCategories && dataToLoad.expenseCategories.length > 0 ? dataToLoad.expenseCategories : MOCK_EXPENSE_CATEGORIES);
     setPreferences(dataToLoad.preferences || initialFinancialData.preferences);
-    setEnableBankingSettings(dataToLoad.enableBankingSettings || initialFinancialData.enableBankingSettings);
-  }, []);
+    setAccountOrder(dataToLoad.accountOrder || []);
+  }, [setAccountOrder]);
   
+  const handleEnterDemoMode = () => {
+    loadAllFinancialData(null); // This will load initialFinancialData
+    const mockUser: User = {
+        firstName: 'Demo',
+        lastName: 'User',
+        email: 'demo@finaura.app',
+        profilePictureUrl: `https://i.pravatar.cc/150?u=demo@finaura.app`,
+        role: 'Member',
+        phone: undefined,
+        address: undefined,
+        is2FAEnabled: false,
+        status: 'Active',
+        lastLogin: new Date().toISOString(),
+    };
+    setDemoUser(mockUser);
+    setIsDemoMode(true);
+    setIsDataLoaded(true); // Manually set data as loaded for demo
+  };
+
   // Check auth status and load data on initial load
   useEffect(() => {
     const authAndLoad = async () => {
@@ -240,130 +269,30 @@ export const App: React.FC = () => {
         if (data) {
           loadAllFinancialData(data);
         }
+        setIsDataLoaded(true);
     };
-    authAndLoad();
-  }, [checkAuthStatus, loadAllFinancialData]);
-
-    const processOAuthCallback = useCallback(async (codeOverride?: string, stateOverride?: string) => {
-        const urlParams = new URLSearchParams(window.location.search);
-        const code = codeOverride ?? urlParams.get('code');
-        const returnedState = stateOverride ?? urlParams.get('state');
-        const savedState = safeLocalStorage.getItem('eb_oauth_state');
-        const isFromUrl = !codeOverride && urlParams.has('code');
-
-        if (code && returnedState && savedState) {
-            // Clean up URL and state from storage immediately
-            safeLocalStorage.removeItem('eb_oauth_state');
-            if (isFromUrl) {
-                try {
-                    window.history.pushState({}, document.title, window.location.pathname);
-                } catch (e) {
-                    console.warn("Could not clean up URL history state:", e);
-                }
-            }
-
-            if (returnedState !== savedState) {
-                setOauthError("Invalid state parameter. Possible CSRF attack. Please try connecting again.");
-                return;
-            }
-
-            // Now, exchange the code for a token
-            setIsProcessingOAuth(true);
-            setOauthError(null);
-
-            const { clientId, clientSecret } = enableBankingSettings;
-            if (!clientId || !clientSecret) {
-                setOauthError("Client ID or Client Secret are not configured. Please go to Settings > Enable Banking.");
-                setIsProcessingOAuth(false);
-                return;
-            }
-
-            try {
-                const tokenUrl = 'https://api.enablebanking.com/oauth/v2/token';
-                const proxiedTokenUrl = `https://corsproxy.io/?${encodeURIComponent(tokenUrl)}`;
-                
-                const tokenResponse = await fetch(proxiedTokenUrl, {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
-                    body: new URLSearchParams({
-                        grant_type: 'authorization_code',
-                        code: code,
-                        client_id: clientId,
-                        client_secret: clientSecret,
-                        redirect_uri: window.location.origin
-                    })
-                });
-                
-                if (!tokenResponse.ok) {
-                    const errorData = await tokenResponse.json();
-                    throw new Error(errorData.error_description || 'Failed to exchange authorization code for token.');
-                }
-                
-                const { access_token } = await tokenResponse.json();
-
-                // Now fetch accounts with the access token
-                const accountsUrl = 'https://api.enablebanking.com/v1/accounts';
-                const proxiedAccountsUrl = `https://corsproxy.io/?${encodeURIComponent(accountsUrl)}`;
-                
-                const accountsResponse = await fetch(proxiedAccountsUrl, {
-                    headers: { 'Authorization': `Bearer ${access_token}` }
-                });
-
-                if (!accountsResponse.ok) {
-                     const errorData = await accountsResponse.json();
-                    throw new Error(errorData.message || 'Failed to fetch accounts.');
-                }
-                
-                const enableBankingData = await accountsResponse.json();
-
-                const mappedAccounts: RemoteAccount[] = enableBankingData.accounts.map((acc: any) => {
-                    const identifier = acc.iban || acc.bban || acc.masked_pan || `acc${Math.random()}`;
-                    return {
-                        id: acc.resource_id,
-                        name: acc.name,
-                        balance: acc.balances?.interim_available?.amount ?? 0,
-                        currency: acc.currency as Currency,
-                        institution: 'Enable Bank', // Hardcoded as the API response doesn't contain this per account
-                        type: mapEnableBankingAccountType(acc.cash_account_type),
-                        last4: identifier.slice(-4),
-                    };
-                });
-                
-                setRemoteAccounts(mappedAccounts);
-                setLinkModalOpen(true);
-
-            } catch (err: any) {
-                setOauthError(err.message || "An unknown error occurred during the bank connection process.");
-            } finally {
-                setIsProcessingOAuth(false);
-            }
-        }
-    }, [enableBankingSettings]);
-
-    // Handle Enable Banking OAuth callback on initial page load
-    useEffect(() => {
-        // Only run after the initial auth check is complete.
-        if (!isAuthLoading) {
-            processOAuthCallback();
-        }
-    }, [isAuthLoading, processOAuthCallback]);
+    if (!isDemoMode) { // Only run if not in demo mode
+      authAndLoad();
+    }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [isDemoMode]);
 
 
   const dataToSave: FinancialData = useMemo(() => ({
     accounts, transactions, investmentTransactions, recurringTransactions,
     financialGoals, budgets, tasks, warrants, scraperConfigs, importExportHistory, incomeCategories,
-    expenseCategories, preferences, enableBankingSettings, billsAndPayments
+    expenseCategories, preferences, billsAndPayments, accountOrder,
   }), [
     accounts, transactions, investmentTransactions,
     recurringTransactions, financialGoals, budgets, tasks, warrants, scraperConfigs, importExportHistory,
-    incomeCategories, expenseCategories, preferences, enableBankingSettings, billsAndPayments
+    incomeCategories, expenseCategories, preferences, billsAndPayments, accountOrder,
   ]);
 
   const debouncedDataToSave = useDebounce(dataToSave, 1500);
 
   // Persist data to backend on change
   const saveData = useCallback(async (data: FinancialData) => {
-    if (!token) return;
+    if (!token || isDemoMode) return;
     try {
         await fetch('/api/data', {
             method: 'POST',
@@ -377,34 +306,87 @@ export const App: React.FC = () => {
         console.error("Failed to save data:", error);
         // Optionally show an error to the user
     }
-  }, [token]);
+  }, [token, isDemoMode]);
 
   useEffect(() => {
-    if (!isAuthLoading && isAuthenticated) {
+    if (isDataLoaded && (isAuthenticated || isDemoMode)) {
         saveData(debouncedDataToSave);
     }
-  }, [debouncedDataToSave, isAuthLoading, isAuthenticated, saveData]);
+  }, [debouncedDataToSave, isDataLoaded, isAuthenticated, isDemoMode, saveData]);
+  
+  // Keep accountOrder in sync with accounts list
+  useEffect(() => {
+    if (accounts.length > accountOrder.length) {
+        const orderedAccountIds = new Set(accountOrder);
+        const newAccountIds = accounts.filter(acc => !orderedAccountIds.has(acc.id)).map(acc => acc.id);
+        setAccountOrder(prev => [...prev, ...newAccountIds]);
+    } else if (accounts.length < accountOrder.length) {
+        const accountIds = new Set(accounts.map(a => a.id));
+        setAccountOrder(prev => prev.filter(id => accountIds.has(id)));
+    }
+  }, [accounts, accountOrder, setAccountOrder]);
 
   // Auth handlers
   const handleSignIn = async (email: string, password: string) => {
+    setIsDataLoaded(false);
     const financialData = await signIn(email, password);
     if (financialData) {
       loadAllFinancialData(financialData);
     }
+    setIsDataLoaded(true);
   };
 
   const handleSignUp = async (newUserData: { firstName: string, lastName: string, email: string, password: string }) => {
+    setIsDataLoaded(false);
     const financialData = await signUp(newUserData);
     if (financialData) {
       loadAllFinancialData(financialData);
     }
+    setIsDataLoaded(true);
   };
 
   const handleLogout = () => {
     signOut();
     loadAllFinancialData(null); // Reset all states
     setAuthPage('signIn');
+    setIsDemoMode(false);
+    setDemoUser(null);
   };
+
+  const handleSetUser = useCallback((updates: Partial<User>) => {
+    if (isDemoMode) {
+        setDemoUser(prev => prev ? {...prev, ...updates} as User : null);
+    } else {
+        setUser(updates);
+    }
+  }, [isDemoMode, setUser]);
+
+  const handleSaveAccount = (accountData: Omit<Account, 'id'> & { id?: string }) => {
+    if (accountData.id) { // UPDATE
+        setAccounts(prev => {
+            const updatedAccounts = prev.map(acc => acc.id === accountData.id ? { ...acc, ...accountData } as Account : acc);
+            if (accountData.isPrimary) {
+                return updatedAccounts.map(acc => acc.id === accountData.id ? acc : { ...acc, isPrimary: false });
+            }
+            return updatedAccounts;
+        });
+    } else { // ADD
+        const newAccount = { ...accountData, id: `acc-${uuidv4()}` } as Account;
+        setAccounts(prev => {
+            const newAccounts = [...prev, newAccount];
+            if (newAccount.isPrimary) {
+                return newAccounts.map(acc => acc.id === newAccount.id ? acc : { ...acc, isPrimary: false });
+            }
+            return newAccounts;
+        });
+    }
+  };
+
+  const handleDeleteAccount = (accountId: string) => {
+    setAccounts(prev => prev.filter(acc => acc.id !== accountId));
+  };
+
+
     const handleSaveTransaction = (
     transactionDataArray: (Omit<Transaction, 'id'> & { id?: string })[],
     transactionIdsToDelete: string[] = []
@@ -491,14 +473,12 @@ export const App: React.FC = () => {
     }
   };
   
-  // FIX: Completed the function definition which was truncated in the original file.
-  // This resolves the incomplete Omit type error and the cascading error that caused the App component to have a 'void' return type.
   const handleSaveInvestmentTransaction = (
     invTxData: Omit<InvestmentTransaction, 'id'> & { id?: string },
-    cashTxData?: Omit<Transaction, 'id'>
+    cashTxData?: Omit<Transaction, 'id'>,
+    newAccount?: Omit<Account, 'id'>
   ) => {
       if (invTxData.id) { 
-           // For simplicity, editing an investment transaction won't automatically update a previously linked cash transaction.
            setInvestmentTransactions(prev => prev.map(t => t.id === invTxData.id ? {...t, ...invTxData} as InvestmentTransaction : t));
       } else { // Adding new
           const newInvTx = { ...invTxData, id: `inv-txn-${uuidv4()}` } as InvestmentTransaction;
@@ -506,21 +486,21 @@ export const App: React.FC = () => {
           if (cashTxData) {
               handleSaveTransaction([cashTxData]);
           }
+          if (newAccount) {
+              handleSaveAccount(newAccount);
+          }
       }
   };
 
   const handleDeleteInvestmentTransaction = (id: string) => {
-      // Deleting an investment transaction will not automatically delete its linked cash transaction for simplicity.
       setInvestmentTransactions(prev => prev.filter(t => t.id !== id));
   };
 
 
   const handleSaveRecurringTransaction = (recurringData: Omit<RecurringTransaction, 'id'> & { id?: string }) => {
     if (recurringData.id) {
-        // Update
         setRecurringTransactions(prev => prev.map(rt => rt.id === recurringData.id ? { ...rt, ...recurringData } as RecurringTransaction : rt));
     } else {
-        // Add
         const newRecurringTx: RecurringTransaction = {
             ...recurringData,
             id: `rec-${uuidv4()}`,
@@ -573,11 +553,25 @@ export const App: React.FC = () => {
   };
 
   const handleSaveWarrant = (warrantData: Omit<Warrant, 'id'> & { id?: string }) => {
-    if (warrantData.id) {
+    const isNewWarrant = !warrantData.id;
+
+    if (!isNewWarrant) { // Editing
         setWarrants(prev => prev.map(w => w.id === warrantData.id ? { ...w, ...warrantData } as Warrant : w));
-    } else {
+    } else { // Adding new
         const newWarrant: Warrant = { ...warrantData, id: `warr-${uuidv4()}` } as Warrant;
         setWarrants(prev => [...prev, newWarrant]);
+
+        const accountExists = accounts.some(acc => acc.symbol === warrantData.isin.toUpperCase());
+        if (!accountExists) {
+            const newAccount: Omit<Account, 'id'> = {
+                name: warrantData.name,
+                type: 'Investment', 
+                symbol: warrantData.isin.toUpperCase(),
+                balance: 0, 
+                currency: 'EUR',
+            };
+            handleSaveAccount(newAccount);
+        }
     }
   };
 
@@ -645,7 +639,7 @@ export const App: React.FC = () => {
       const importId = `imp-${uuidv4()}`;
       if (dataType === 'accounts') {
           const newAccounts = items as Omit<Account, 'id'>[];
-          setAccounts(prev => [...prev, ...newAccounts.map(a => ({...a, id: `acc-${uuidv4()}`}))]);
+          newAccounts.forEach(acc => handleSaveAccount(acc));
       } 
       else if (dataType === 'transactions') {
           const newTransactions = items as Omit<Transaction, 'id'>[];
@@ -669,7 +663,7 @@ export const App: React.FC = () => {
   };
 
   const handleResetAccount = () => {
-    if (user) {
+    if (user || isDemoMode) {
         loadAllFinancialData(initialFinancialData);
         alert("Client-side data has been reset.");
     }
@@ -688,7 +682,7 @@ export const App: React.FC = () => {
   };
 
   const handleImportAllData = (file: File) => {
-    if (!user) return;
+    if (!user && !isDemoMode) return;
     const reader = new FileReader();
     reader.onload = (event) => {
         try {
@@ -720,97 +714,10 @@ export const App: React.FC = () => {
       types.forEach(type => {
           const key = type as keyof typeof dataMap;
           if (dataMap[key] && Array.isArray(dataMap[key])) {
-              const csv = arrayToCSV(dataMap[key] as any[]);
+              const csv = arrayToCSV(dataMap[key]);
               downloadCSV(csv, `finaura_${type}_${new Date().toISOString().split('T')[0]}.csv`);
           }
       });
-  };
-
-  const handleSureSync = async () => {
-    if (!sureApiKey || !sureApiUrl) {
-      alert('Please set your Sure API URL and Key in Data Management settings.');
-      return;
-    }
-    setIsSureSyncing(true);
-    
-    const proxy = 'https://corsproxy.io/?';
-    const baseUrl = sureApiUrl.endsWith('/') ? sureApiUrl.slice(0, -1) : sureApiUrl;
-
-    try {
-      // Fetch accounts
-      const accountsUrl = `${baseUrl}/accounts`;
-      const proxiedAccountsUrl = `${proxy}${encodeURIComponent(accountsUrl)}`;
-      const accountsResponse = await fetch(proxiedAccountsUrl, { headers: { 'Authorization': `Bearer ${sureApiKey}` } });
-
-      if (!accountsResponse.ok) {
-        const errorText = await accountsResponse.text();
-        let displayError = `Sure API Accounts Fetch Error: ${accountsResponse.statusText}.`;
-        if (accountsResponse.status === 403) {
-          displayError = `Permission Denied: 403 Forbidden. Your API key may lack permissions. Please check the key's 'read' scope for accounts and transactions in your Sure dashboard.`;
-        } else if (errorText) {
-          displayError += ` Server response: "${errorText}"`;
-        }
-        throw new Error(displayError);
-      }
-      const sureAccounts: any[] = await accountsResponse.json();
-
-      // Fetch transactions
-      const transactionsUrl = `${baseUrl}/transactions`;
-      const proxiedTransactionsUrl = `${proxy}${encodeURIComponent(transactionsUrl)}`;
-      const transactionsResponse = await fetch(proxiedTransactionsUrl, { headers: { 'Authorization': `Bearer ${sureApiKey}` } });
-
-
-      if (!transactionsResponse.ok) {
-        const errorText = await transactionsResponse.text();
-        let displayError = `Sure API Transactions Fetch Error: ${transactionsResponse.statusText}.`;
-        if (transactionsResponse.status === 403) {
-          displayError = `Permission Denied: 403 Forbidden. Your API key may lack permissions. Please check the key's 'read' scope for accounts and transactions in your Sure dashboard.`;
-        } else if (errorText) {
-          displayError += ` Server response: "${errorText}"`;
-        }
-        throw new Error(displayError);
-      }
-      const sureTransactions: any[] = await transactionsResponse.json();
-
-      const updatedAccounts = [...accounts];
-      const newTransactions: Omit<Transaction, 'id'>[] = [];
-
-      sureAccounts.forEach((sureAcc) => {
-        const existingAccount = updatedAccounts.find(a => a.sureId === sureAcc.id);
-        if (existingAccount) {
-          existingAccount.balance = sureAcc.balance;
-        } else {
-          updatedAccounts.push({
-            id: `acc-${uuidv4()}`, sureId: sureAcc.id, name: sureAcc.name, type: sureAcc.type as AccountType || 'Checking',
-            balance: sureAcc.balance, currency: sureAcc.currency as Currency || 'EUR', last4: sureAcc.last4,
-          });
-        }
-      });
-
-      sureTransactions.forEach((sureTx) => {
-        if (!transactions.some(t => t.sureId === sureTx.id)) {
-          const targetAccount = updatedAccounts.find(a => a.sureId === sureTx.account_id);
-          if (targetAccount) {
-            newTransactions.push({
-              sureId: sureTx.id, accountId: targetAccount.id, date: new Date(sureTx.date).toISOString().split('T')[0],
-              description: sureTx.description, merchant: sureTx.merchant, amount: sureTx.amount,
-              category: sureTx.category || 'Uncategorized', type: sureTx.amount >= 0 ? 'income' : 'expense',
-              currency: targetAccount.currency,
-            });
-          }
-        }
-      });
-
-      setAccounts(updatedAccounts);
-      if (newTransactions.length > 0) handleSaveTransaction(newTransactions);
-
-      alert(`Sync successful! ${newTransactions.length} new transactions imported.`);
-
-    } catch (e: any) {
-      alert(`Sure sync failed:\n${e.message || String(e)}`);
-    } finally {
-      setIsSureSyncing(false);
-    }
   };
 
   useEffect(() => {
@@ -824,92 +731,7 @@ export const App: React.FC = () => {
   }, [theme]);
   
   const viewingAccount = useMemo(() => accounts.find(a => a.id === viewingAccountId), [accounts, viewingAccountId]);
-
-  const handleStartBankConnection = () => {
-    const { clientId } = enableBankingSettings;
-    if (!clientId) {
-      alert("Please configure your Enable Banking Client ID in Settings first.");
-      setCurrentPage('Enable Banking');
-      return;
-    }
-    
-    // Generate and save state for CSRF protection
-    const state = uuidv4();
-    safeLocalStorage.setItem('eb_oauth_state', state);
-
-    const authUrl = 'https://api.enablebanking.com/oauth/v2/auth';
-    const params = new URLSearchParams({
-        response_type: 'code',
-        client_id: clientId,
-        redirect_uri: window.location.origin, // Assumes redirect is to the app's root
-        scope: 'accounts balances transactions',
-        state: state,
-    });
-
-    window.location.href = `${authUrl}?${params.toString()}`;
-  };
-
-  const handleLinkAccountsAndSync = (links: Record<string, string>) => {
-    const newAccounts: Account[] = [];
-    const updatedAccounts = [...accounts];
-
-    Object.entries(links).forEach(([remoteId, finauraId]) => {
-      const remoteAccount = remoteAccounts.find(ra => ra.id === remoteId);
-      if (!remoteAccount) return;
-
-      if (finauraId === 'CREATE_NEW') {
-        newAccounts.push({
-          id: `acc-${uuidv4()}`,
-          name: remoteAccount.name,
-          balance: remoteAccount.balance,
-          currency: remoteAccount.currency,
-          type: remoteAccount.type,
-          last4: remoteAccount.last4,
-          enableBankingId: remoteAccount.id,
-          enableBankingInstitution: remoteAccount.institution,
-          lastSync: new Date().toISOString(),
-        });
-      } else {
-        const existingAccountIndex = updatedAccounts.findIndex(acc => acc.id === finauraId);
-        if (existingAccountIndex > -1) {
-          updatedAccounts[existingAccountIndex] = {
-            ...updatedAccounts[existingAccountIndex],
-            enableBankingId: remoteAccount.id,
-            enableBankingInstitution: remoteAccount.institution,
-            lastSync: new Date().toISOString(),
-            // Optionally update balance here, or wait for first transaction sync
-            balance: remoteAccount.balance,
-          };
-        }
-      }
-    });
-
-    setAccounts([...updatedAccounts, ...newAccounts]);
-    setLinkModalOpen(false);
-    // TODO: In a real app, trigger a transaction sync for these new accounts.
-    alert(`${Object.keys(links).length} account(s) linked successfully!`);
-  };
-  
-  const handleUnlinkAccount = (accountId: string) => {
-    setAccounts(prev => prev.map(acc => {
-      if (acc.id === accountId) {
-        const { enableBankingId, enableBankingInstitution, lastSync, ...rest } = acc;
-        return rest as Account;
-      }
-      return acc;
-    }));
-  };
-
-  const handleManualSync = (accountId: string) => {
-    // This is a placeholder for a more complex sync logic
-    alert(`Manual sync for account ${accountId} is not yet implemented.`);
-     setAccounts(prev => prev.map(acc => {
-      if (acc.id === accountId) {
-        return { ...acc, lastSync: new Date().toISOString() };
-      }
-      return acc;
-    }));
-  };
+  const currentUser = useMemo(() => isDemoMode ? demoUser : user, [isDemoMode, demoUser, user]);
 
   const renderPage = () => {
     if (viewingAccountId) {
@@ -930,17 +752,17 @@ export const App: React.FC = () => {
 
     switch (currentPage) {
       case 'Dashboard':
-        return <Dashboard user={user!} transactions={transactions} accounts={accounts} saveTransaction={handleSaveTransaction} incomeCategories={incomeCategories} expenseCategories={expenseCategories} />;
+        return <Dashboard user={currentUser!} transactions={transactions} accounts={accounts} saveTransaction={handleSaveTransaction} incomeCategories={incomeCategories} expenseCategories={expenseCategories} financialGoals={financialGoals} recurringTransactions={recurringTransactions} billsAndPayments={billsAndPayments} selectedAccountIds={dashboardAccountIds} setSelectedAccountIds={setDashboardAccountIds} />;
       case 'Accounts':
-        return <Accounts accounts={accounts} transactions={transactions} setAccounts={setAccounts} setCurrentPage={setCurrentPage} setAccountFilter={setAccountFilter} onStartConnection={() => setConsentScreenOpen(true)} setViewingAccountId={setViewingAccountId} saveTransaction={handleSaveTransaction} />;
+        return <Accounts accounts={accounts} transactions={transactions} saveAccount={handleSaveAccount} deleteAccount={handleDeleteAccount} setCurrentPage={setCurrentPage} setAccountFilter={setAccountFilter} setViewingAccountId={setViewingAccountId} saveTransaction={handleSaveTransaction} accountOrder={accountOrder} setAccountOrder={setAccountOrder} />;
       case 'Transactions':
         return <Transactions transactions={transactions} saveTransaction={handleSaveTransaction} deleteTransactions={handleDeleteTransactions} accounts={accounts} accountFilter={accountFilter} setAccountFilter={setAccountFilter} incomeCategories={incomeCategories} expenseCategories={expenseCategories} />;
       case 'Budget':
         return <Budgeting budgets={budgets} transactions={transactions} expenseCategories={expenseCategories} saveBudget={handleSaveBudget} deleteBudget={handleDeleteBudget} accounts={accounts} />;
       case 'Forecasting':
-        return <Forecasting accounts={accounts} transactions={transactions} recurringTransactions={recurringTransactions} financialGoals={financialGoals} saveFinancialGoal={handleSaveFinancialGoal} deleteFinancialGoal={handleDeleteFinancialGoal} expenseCategories={expenseCategories} />;
+        return <Forecasting accounts={accounts} transactions={transactions} recurringTransactions={recurringTransactions} financialGoals={financialGoals} saveFinancialGoal={handleSaveFinancialGoal} deleteFinancialGoal={handleDeleteFinancialGoal} expenseCategories={expenseCategories} billsAndPayments={billsAndPayments} activeGoalIds={activeGoalIds} setActiveGoalIds={setActiveGoalIds} />;
       case 'Settings':
-        return <Settings setCurrentPage={setCurrentPage} user={user!} />;
+        return <Settings setCurrentPage={setCurrentPage} user={currentUser!} />;
       case 'Schedule & Bills':
         return <Schedule recurringTransactions={recurringTransactions} saveRecurringTransaction={handleSaveRecurringTransaction} deleteRecurringTransaction={handleDeleteRecurringTransaction} billsAndPayments={billsAndPayments} saveBillPayment={handleSaveBillPayment} deleteBillPayment={handleDeleteBillPayment} markBillAsPaid={handleMarkBillAsPaid} accounts={accounts} incomeCategories={incomeCategories} expenseCategories={expenseCategories} />;
       case 'Categories':
@@ -948,32 +770,31 @@ export const App: React.FC = () => {
       case 'Tags':
         return <Tags setCurrentPage={setCurrentPage} />;
       case 'Personal Info':
-        return <PersonalInfo user={user!} setUser={setUser} onChangePassword={changePassword} setCurrentPage={setCurrentPage} />;
+        return <PersonalInfo user={currentUser!} setUser={handleSetUser} onChangePassword={changePassword} setCurrentPage={setCurrentPage} />;
       case 'Data Management':
         return <DataManagement 
             accounts={accounts} transactions={transactions} budgets={budgets} recurringTransactions={recurringTransactions} allCategories={[...incomeCategories, ...expenseCategories]} history={importExportHistory} 
             onPublishImport={handlePublishImport} onDeleteHistoryItem={handleDeleteHistoryItem} onDeleteImportedTransactions={handleDeleteImportedTransactions}
             onResetAccount={handleResetAccount} onExportAllData={handleExportAllData} onImportAllData={handleImportAllData} onExportCSV={handleExportCSV}
-            sureApiUrl={sureApiUrl} setSureApiUrl={handleSetSureApiUrl} sureApiKey={sureApiKey} setSureApiKey={handleSetSureApiKey} onSureSync={handleSureSync} isSureSyncing={isSureSyncing} setCurrentPage={setCurrentPage}
+            setCurrentPage={setCurrentPage}
             />;
       case 'Preferences':
         return <Preferences preferences={preferences} setPreferences={setPreferences} theme={theme} setTheme={setTheme} setCurrentPage={setCurrentPage} />;
-      case 'Enable Banking':
-        return <EnableBankingSettingsPage settings={enableBankingSettings} setSettings={setEnableBankingSettings} linkedAccounts={accounts.filter(a => a.enableBankingId)} onStartConnection={() => setConsentScreenOpen(true)} onUnlinkAccount={handleUnlinkAccount} onManualSync={handleManualSync} setCurrentPage={setCurrentPage} />;
       case 'Investments':
-        return <Investments investmentAccounts={accounts.filter(a => a.type === 'Investment' || a.type === 'Crypto')} cashAccounts={accounts.filter(a => a.type === 'Checking' || a.type === 'Savings')} investmentTransactions={investmentTransactions} saveInvestmentTransaction={handleSaveInvestmentTransaction} deleteInvestmentTransaction={handleDeleteInvestmentTransaction} />;
+        return <Investments accounts={accounts} cashAccounts={accounts.filter(a => a.type === 'Checking' || a.type === 'Savings')} investmentTransactions={investmentTransactions} saveInvestmentTransaction={handleSaveInvestmentTransaction} deleteInvestmentTransaction={handleDeleteInvestmentTransaction} />;
       case 'Warrants':
-        return <Warrants warrants={warrants} saveWarrant={handleSaveWarrant} deleteWarrant={handleDeleteWarrant} scraperConfigs={scraperConfigs} saveScraperConfig={handleSaveScraperConfig} />;
+        return <Warrants warrants={warrants} saveWarrant={handleSaveWarrant} deleteWarrant={handleDeleteWarrant} scraperConfigs={scraperConfigs} saveScraperConfig={handleSaveScraperConfig} prices={warrantPrices} isLoadingPrices={isLoadingPrices} lastUpdated={lastUpdated} refreshPrices={fetchWarrantPrices} />;
       case 'Tasks':
         return <Tasks tasks={tasks} saveTask={handleSaveTask} deleteTask={handleDeleteTask} />;
+      case 'Documentation':
+        return <Documentation setCurrentPage={setCurrentPage} />;
       default:
         return <div>Page not found</div>;
     }
   };
 
   // Loading state
-  /*
-  if (isAuthLoading) {
+  if (isAuthLoading || !isDataLoaded) {
     return (
       <div className="flex items-center justify-center min-h-screen bg-light-bg dark:bg-dark-bg">
         <svg className="animate-spin h-10 w-10 text-primary-500" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
@@ -983,12 +804,11 @@ export const App: React.FC = () => {
       </div>
     );
   }
-  */
 
   // Auth pages
-  if (!isAuthenticated) {
+  if (!isAuthenticated && !isDemoMode) {
     if (authPage === 'signIn') {
-      return <SignIn onSignIn={handleSignIn} onNavigateToSignUp={() => setAuthPage('signUp')} isLoading={isAuthLoading} error={authError} />;
+      return <SignIn onSignIn={handleSignIn} onNavigateToSignUp={() => setAuthPage('signUp')} onEnterDemoMode={handleEnterDemoMode} isLoading={isAuthLoading} error={authError} />;
     }
     return <SignUp onSignUp={handleSignUp} onNavigateToSignIn={() => setAuthPage('signIn')} isLoading={isAuthLoading} error={authError} />;
   }
@@ -1005,11 +825,11 @@ export const App: React.FC = () => {
         isSidebarCollapsed={isSidebarCollapsed}
         setSidebarCollapsed={setSidebarCollapsed}
         onLogout={handleLogout}
-        user={user!}
+        user={currentUser!}
       />
       <div className="flex-1 flex flex-col overflow-hidden">
         <Header 
-          user={user!}
+          user={currentUser!}
           setSidebarOpen={setSidebarOpen}
           theme={theme}
           setTheme={setTheme}
@@ -1020,39 +840,6 @@ export const App: React.FC = () => {
           {renderPage()}
         </main>
       </div>
-
-      {isConsentScreenOpen && (
-        <EnableBankingConsent 
-          onAuthorize={() => {
-            setConsentScreenOpen(false);
-            handleStartBankConnection();
-          }} 
-          onDeny={() => setConsentScreenOpen(false)}
-        />
-      )}
-
-      <EnableBankingConnectModal
-          isOpen={isConnectModalOpen}
-          onClose={() => setConnectModalOpen(false)}
-          onConnect={handleStartBankConnection}
-          isConnecting={isProcessingOAuth}
-      />
-      
-      <EnableBankingLinkAccountsModal
-          isOpen={isLinkModalOpen}
-          onClose={() => setLinkModalOpen(false)}
-          remoteAccounts={remoteAccounts}
-          existingAccounts={accounts}
-          onLinkAndSync={handleLinkAccountsAndSync}
-      />
-
-      {oauthError && (
-          <div className="fixed bottom-4 right-4 bg-red-500 text-white p-4 rounded-lg shadow-lg z-50">
-              <p className="font-bold">Bank Connection Error</p>
-              <p>{oauthError}</p>
-              <button onClick={() => setOauthError(null)} className="absolute top-2 right-2 text-white/80 hover:text-white">&times;</button>
-          </div>
-      )}
 
       {/* AI Chat */}
       <ChatFab onClick={() => setIsChatOpen(prev => !prev)} />

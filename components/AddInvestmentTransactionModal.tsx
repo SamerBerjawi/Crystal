@@ -1,36 +1,50 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import Modal from './Modal';
-import { Account, InvestmentTransaction, Transaction } from '../types';
+import { Account, InvestmentTransaction, Transaction, AccountType } from '../types';
 import { INPUT_BASE_STYLE, BTN_PRIMARY_STYLE, BTN_SECONDARY_STYLE, SELECT_WRAPPER_STYLE, SELECT_ARROW_STYLE } from '../constants';
 import { formatCurrency } from '../utils';
+import { v4 as uuidv4 } from 'uuid';
 
 interface AddInvestmentTransactionModalProps {
   onClose: () => void;
-  onSave: (invTx: Omit<InvestmentTransaction, 'id'> & { id?: string }, cashTx?: Omit<Transaction, 'id'>) => void;
-  investmentAccounts: Account[];
+  onSave: (invTx: Omit<InvestmentTransaction, 'id'> & { id?: string }, cashTx?: Omit<Transaction, 'id'>, newAccount?: Omit<Account, 'id'>) => void;
+  accounts: Account[];
   cashAccounts: Account[];
   transactionToEdit?: InvestmentTransaction | null;
 }
 
-const AddInvestmentTransactionModal: React.FC<AddInvestmentTransactionModalProps> = ({ onClose, onSave, investmentAccounts, cashAccounts, transactionToEdit }) => {
+const AddInvestmentTransactionModal: React.FC<AddInvestmentTransactionModalProps> = ({ onClose, onSave, accounts, cashAccounts, transactionToEdit }) => {
     const isEditing = !!transactionToEdit;
     
     const [type, setType] = useState<'buy' | 'sell'>(isEditing ? transactionToEdit.type : 'buy');
-    const [accountId, setAccountId] = useState(isEditing ? transactionToEdit.accountId : (investmentAccounts.length > 0 ? investmentAccounts[0].id : ''));
     const [symbol, setSymbol] = useState(isEditing ? transactionToEdit.symbol : '');
     const [name, setName] = useState(isEditing ? transactionToEdit.name : '');
     const [quantity, setQuantity] = useState(isEditing ? String(transactionToEdit.quantity) : '');
     const [price, setPrice] = useState(isEditing ? String(transactionToEdit.price) : '');
     const [date, setDate] = useState(isEditing ? transactionToEdit.date : new Date().toISOString().split('T')[0]);
-    const [createCashTx, setCreateCashTx] = useState(!isEditing); // Default to true for new, false for edits to prevent accidental duplicates
+    const [createCashTx, setCreateCashTx] = useState(!isEditing);
     const [cashAccountId, setCashAccountId] = useState(cashAccounts.length > 0 ? cashAccounts[0].id : '');
+    const [newAccountType, setNewAccountType] = useState<AccountType>('Investment');
+
+    const isNewSymbol = useMemo(() => {
+        if (isEditing || !symbol) return false;
+        return !(accounts || []).some(acc => acc.symbol?.toUpperCase() === symbol.toUpperCase());
+    }, [symbol, accounts, isEditing]);
+
+    useEffect(() => {
+        if (!isEditing && symbol && accounts) {
+            const existingAccount = accounts.find(acc => acc.symbol?.toUpperCase() === symbol.toUpperCase());
+            if (existingAccount) {
+                setName(existingAccount.name);
+            }
+        }
+    }, [symbol, accounts, isEditing]);
 
     const handleSubmit = (e: React.FormEvent) => {
         e.preventDefault();
         
         const invTxData: Omit<InvestmentTransaction, 'id'> & { id?: string } = {
             id: isEditing ? transactionToEdit.id : undefined,
-            accountId,
             symbol: symbol.toUpperCase(),
             name,
             quantity: parseFloat(quantity),
@@ -40,7 +54,7 @@ const AddInvestmentTransactionModal: React.FC<AddInvestmentTransactionModalProps
         };
 
         let cashTxData: Omit<Transaction, 'id'> | undefined;
-        if (createCashTx && !isEditing) { // Only create linked tx on add, not on edit
+        if (createCashTx && !isEditing) {
             const value = parseFloat(quantity) * parseFloat(price);
             const amount = type === 'buy' ? -value : value;
             const cashAccount = cashAccounts.find(a => a.id === cashAccountId);
@@ -57,7 +71,18 @@ const AddInvestmentTransactionModal: React.FC<AddInvestmentTransactionModalProps
             }
         }
 
-        onSave(invTxData, cashTxData);
+        let newAccountData: Omit<Account, 'id'> | undefined;
+        if (isNewSymbol) {
+            newAccountData = {
+                name: name,
+                type: newAccountType,
+                symbol: symbol.toUpperCase(),
+                balance: 0, // Will be dynamically calculated
+                currency: 'EUR',
+            };
+        }
+
+        onSave(invTxData, cashTxData, newAccountData);
         onClose();
     };
 
@@ -74,26 +99,31 @@ const AddInvestmentTransactionModal: React.FC<AddInvestmentTransactionModalProps
                 </div>
                 
                 <div>
-                    <label htmlFor="inv-account" className={labelStyle}>Investment Account</label>
-                    <div className={SELECT_WRAPPER_STYLE}>
-                        <select id="inv-account" value={accountId} onChange={e => setAccountId(e.target.value)} className={INPUT_BASE_STYLE} required>
-                            <option value="">Select account</option>
-                            {investmentAccounts.map(acc => <option key={acc.id} value={acc.id}>{acc.name}</option>)}
-                        </select>
-                        <div className={SELECT_ARROW_STYLE}><span className="material-symbols-outlined">expand_more</span></div>
-                    </div>
+                    <label htmlFor="inv-symbol" className={labelStyle}>Symbol / Ticker</label>
+                    <input id="inv-symbol" type="text" value={symbol} onChange={e => setSymbol(e.target.value)} className={INPUT_BASE_STYLE} placeholder="e.g., AAPL" required />
                 </div>
 
-                <div className="grid grid-cols-2 gap-4">
-                    <div>
-                        <label htmlFor="inv-symbol" className={labelStyle}>Symbol</label>
-                        <input id="inv-symbol" type="text" value={symbol} onChange={e => setSymbol(e.target.value)} className={INPUT_BASE_STYLE} placeholder="e.g., AAPL" required />
+                {isNewSymbol && (
+                    <div className="p-4 bg-primary-500/10 rounded-lg space-y-4">
+                        <h4 className="font-semibold text-primary-700 dark:text-primary-200">New Asset Detected</h4>
+                        <div className="grid grid-cols-2 gap-4">
+                            <div>
+                                <label htmlFor="inv-name" className={labelStyle}>Asset Name</label>
+                                <input id="inv-name" type="text" value={name} onChange={e => setName(e.target.value)} className={INPUT_BASE_STYLE} placeholder="e.g., Apple Inc." required />
+                            </div>
+                            <div>
+                                <label htmlFor="inv-type" className={labelStyle}>Asset Type</label>
+                                <div className={SELECT_WRAPPER_STYLE}>
+                                    <select id="inv-type" value={newAccountType} onChange={e => setNewAccountType(e.target.value as AccountType)} className={INPUT_BASE_STYLE} required>
+                                        <option value="Investment">Investment (Stock, ETF)</option>
+                                        <option value="Crypto">Crypto</option>
+                                    </select>
+                                    <div className={SELECT_ARROW_STYLE}><span className="material-symbols-outlined">expand_more</span></div>
+                                </div>
+                            </div>
+                        </div>
                     </div>
-                    <div>
-                        <label htmlFor="inv-name" className={labelStyle}>Asset Name</label>
-                        <input id="inv-name" type="text" value={name} onChange={e => setName(e.target.value)} className={INPUT_BASE_STYLE} placeholder="e.g., Apple Inc." required />
-                    </div>
-                </div>
+                )}
 
                  <div className="grid grid-cols-2 gap-4">
                     <div>

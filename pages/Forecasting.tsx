@@ -1,371 +1,272 @@
-import React, { useState, useMemo } from 'react';
-import { Account, FinancialGoal, RecurringTransaction, Transaction, WeekendAdjustment, Category, GoalProjection } from '../types';
-import { BTN_PRIMARY_STYLE, LIQUID_ACCOUNT_TYPES } from '../constants';
+import React, { useState, useMemo, useCallback, Dispatch, SetStateAction } from 'react';
+import { Account, Transaction, RecurringTransaction, FinancialGoal, Category, Page, ContributionPlanStep, BillPayment } from '../types';
+import { BTN_PRIMARY_STYLE, BTN_SECONDARY_STYLE, LIQUID_ACCOUNT_TYPES } from '../constants';
+import { formatCurrency, convertToEur, generateBalanceForecast } from '../utils';
 import Card from '../components/Card';
-import ForecastChart from '../components/ForecastChart';
-import GoalScenarioModal from '../components/GoalScenarioModal';
-import { convertToEur, formatCurrency } from '../utils';
+import MultiAccountFilter from '../components/MultiAccountFilter';
 import FinancialGoalCard from '../components/FinancialGoalCard';
+import GoalScenarioModal from '../components/GoalScenarioModal';
+import ForecastChart from '../components/ForecastChart';
+import GoalContributionPlan from '../components/GoalContributionPlan';
+import { GoogleGenAI, Type } from '@google/genai';
+
+type ForecastDuration = '3M' | '6M' | 'EOY' | '1Y' | '2Y';
 
 interface ForecastingProps {
-    accounts: Account[];
-    transactions: Transaction[];
-    recurringTransactions: RecurringTransaction[];
-    financialGoals: FinancialGoal[];
-    saveFinancialGoal: (goalData: Omit<FinancialGoal, 'id'> & { id?: string }) => void;
-    deleteFinancialGoal: (id: string) => void;
-    expenseCategories: Category[];
+  accounts: Account[];
+  transactions: Transaction[];
+  recurringTransactions: RecurringTransaction[];
+  financialGoals: FinancialGoal[];
+  saveFinancialGoal: (goalData: Omit<FinancialGoal, 'id'> & { id?: string }) => void;
+  deleteFinancialGoal: (id: string) => void;
+  expenseCategories: Category[];
+  billsAndPayments: BillPayment[];
+  activeGoalIds: string[];
+  // FIX: Update the type of the `setActiveGoalIds` prop to `React.Dispatch<React.SetStateAction<string[]>>` to correctly handle state updates.
+  setActiveGoalIds: Dispatch<SetStateAction<string[]>>;
 }
 
-const FORECAST_PERIODS = [
-    { label: '3M', months: 3 },
-    { label: '6M', months: 6 },
-    { label: '1Y', months: 12 },
-    { label: '2Y', months: 24 },
-    { label: '5Y', months: 60 },
-];
+const useSmartGoalPlanner = (
+    accounts: Account[],
+    recurringTransactions: RecurringTransaction[],
+    financialGoals: FinancialGoal[]
+) => {
+    const [plan, setPlan] = useState<Record<string, ContributionPlanStep[]> | null>(null);
+    const [isLoading, setIsLoading] = useState(false);
+    const [error, setError] = useState<string | null>(null);
 
+    const generatePlan = useCallback(async () => {
+        setIsLoading(true);
+        setError(null);
+        setPlan(null);
 
-const adjustForWeekend = (date: Date, adjustment: WeekendAdjustment): Date => {
-    const adjustedDate = new Date(date.getTime());
-    const day = adjustedDate.getDay();
-    if (day === 0) { // Sunday
-        if (adjustment === 'before') adjustedDate.setDate(adjustedDate.getDate() - 2);
-        if (adjustment === 'after') adjustedDate.setDate(adjustedDate.getDate() + 1);
-    } else if (day === 6) { // Saturday
-        if (adjustment === 'before') adjustedDate.setDate(adjustedDate.getDate() - 1);
-        if (adjustment === 'after') adjustedDate.setDate(adjustedDate.getDate() + 2);
-    }
-    return adjustedDate;
+        try {
+            const ai = new GoogleGenAI({ apiKey: process.env.API_KEY });
+            
+            const liquidAccounts = accounts.filter(a => LIQUID_ACCOUNT_TYPES.includes(a.type));
+            const context = {
+                current_date: new Date().toISOString().split('T')[0],
+                liquid_accounts: liquidAccounts.map(({ name, balance, currency }) => ({ name, balance, currency })),
+                recurring_transactions: recurringTransactions.map(({ description, amount, type, frequency, nextDueDate }) => ({ description, amount, type, frequency, nextDueDate })),
+                financial_goals: financialGoals.filter(g => g.projection).map(({ name, amount, currentAmount, date, projection }) => ({ name, target_amount: amount, current_amount: currentAmount, target_date: date, projected_status: projection?.status })),
+            };
+
+            const prompt = `You are a financial planner. Based on the user's financial data, create a smart contribution plan to help them achieve their goals. 
+            Prioritize goals that are "at-risk" or "off-track". Suggest an "Upfront Contribution" if there's enough cash in checking/savings accounts. 
+            For shortfalls, add a final step with accountName "Unfunded Shortfall" and notes explaining the situation.
+            
+            User's Data: ${JSON.stringify(context, null, 2)}`;
+            
+            const responseSchema = {
+                type: Type.OBJECT,
+                properties: {
+                    plan: {
+                        type: Type.ARRAY,
+                        description: "The array of contribution plans for each goal.",
+                        items: {
+                            type: Type.OBJECT,
+                            properties: {
+                                goalName: { type: Type.STRING },
+                                steps: {
+                                    type: Type.ARRAY,
+                                    items: {
+                                        type: Type.OBJECT,
+                                        properties: {
+                                            date: { type: Type.STRING, description: "Contribution date (YYYY-MM) or 'Upfront Contribution'." },
+                                            amount: { type: Type.NUMBER },
+                                            accountName: { type: Type.STRING, description: "The name of the account to contribute from, or 'Unfunded Shortfall'." },
+                                            notes: { type: Type.STRING, description: "Optional notes or warnings." }
+                                        },
+                                        required: ['date', 'amount', 'accountName']
+                                    }
+                                }
+                            },
+                            required: ['goalName', 'steps']
+                        }
+                    }
+                },
+                required: ['plan']
+            };
+
+            const response = await ai.models.generateContent({
+                model: 'gemini-2.5-pro',
+                contents: prompt,
+                config: {
+                    responseMimeType: 'application/json',
+                    responseSchema
+                }
+            });
+            
+            const parsedJson = JSON.parse(response.text);
+            
+            const planObject = parsedJson.plan.reduce((acc: any, goalPlan: {goalName: string, steps: any[]}) => {
+                acc[goalPlan.goalName] = goalPlan.steps;
+                return acc;
+            }, {} as Record<string, ContributionPlanStep[]>);
+
+            setPlan(planObject);
+
+        } catch (err: any) {
+            console.error("Error generating smart plan:", err);
+            setError(err.message || "An error occurred while generating the plan.");
+        } finally {
+            setIsLoading(false);
+        }
+    }, [accounts, recurringTransactions, financialGoals]);
+    
+    return { generatePlan, plan, isLoading, error };
 };
 
 
-const Forecasting: React.FC<ForecastingProps> = ({ accounts, transactions, recurringTransactions, financialGoals, saveFinancialGoal, deleteFinancialGoal, expenseCategories }) => {
-    const [selectedAccountIds, setSelectedAccountIds] = useState<string[]>(() => accounts.map(a => a.id));
-    const [forecastPeriodInMonths, setForecastPeriodInMonths] = useState(12);
-    const [activeGoalIds, setActiveGoalIds] = useState<string[]>(() => financialGoals.map(g => g.id));
-    
+const Forecasting: React.FC<ForecastingProps> = ({ accounts, transactions, recurringTransactions, financialGoals, saveFinancialGoal, deleteFinancialGoal, expenseCategories, billsAndPayments, activeGoalIds, setActiveGoalIds }) => {
     const [isModalOpen, setIsModalOpen] = useState(false);
     const [editingGoal, setEditingGoal] = useState<FinancialGoal | null>(null);
-
-    const { liquidAccounts, otherAccounts } = useMemo(() => {
-        const liquid: Account[] = [];
-        const other: Account[] = [];
-        accounts.forEach(acc => {
-            if (LIQUID_ACCOUNT_TYPES.includes(acc.type)) {
-                liquid.push(acc);
-            } else {
-                other.push(acc);
-            }
-        });
-        return { liquidAccounts: liquid, otherAccounts: other };
-    }, [accounts]);
-
-    const handleAccountToggle = (accountId: string) => {
-        setSelectedAccountIds(prev =>
-            prev.includes(accountId) ? prev.filter(id => id !== accountId) : [...prev, accountId]
-        );
-    };
-
-    const handleSelectAllAccounts = (e: React.ChangeEvent<HTMLInputElement>) => {
-        setSelectedAccountIds(e.target.checked ? accounts.map(a => a.id) : []);
-    };
-    
-    const allAccountsSelected = accounts.length > 0 && selectedAccountIds.length === accounts.length;
-
-    const handleGoalToggle = (goalId: string) => {
-        setActiveGoalIds(prev =>
-// FIX: Corrected a typo where 'id' was used instead of 'goalId' when adding a new goal to the active list.
-            prev.includes(goalId) ? prev.filter(id => id !== goalId) : [...prev, goalId]
-        );
-    };
-    
-    const handleOpenModal = (goal: FinancialGoal | null) => {
-        setEditingGoal(goal);
-        setIsModalOpen(true);
-    };
-
-    const { chartData, summary, projectedGoals, lowestBalance } = useMemo(() => {
-        const selectedAccounts = accounts.filter(a => selectedAccountIds.includes(a.id));
-        
-        const today = new Date();
-        today.setHours(0, 0, 0, 0);
-        const initialBalance = selectedAccounts.reduce((sum, acc) => sum + convertToEur(acc.balance, acc.currency), 0);
-        let lowestBalance = { value: initialBalance, date: today.toISOString().split('T')[0] };
-
-        if (selectedAccounts.length === 0) {
-            return { chartData: [], summary: { finalBalance: 0 }, projectedGoals: financialGoals, lowestBalance };
+    const [selectedAccountIds, setSelectedAccountIds] = useState<string[]>(() => {
+        const primaryAccount = accounts.find(a => a.isPrimary);
+        if (primaryAccount) {
+            return [primaryAccount.id];
         }
-        
-        const endDate = new Date(today);
-        endDate.setMonth(endDate.getMonth() + forecastPeriodInMonths);
+        return accounts.filter(a => LIQUID_ACCOUNT_TYPES.includes(a.type)).map(a => a.id)
+    });
+    const [forecastDuration, setForecastDuration] = useState<ForecastDuration>('1Y');
+    
+    const selectedAccounts = useMemo(() => 
+      accounts.filter(a => selectedAccountIds.includes(a.id)),
+    [accounts, selectedAccountIds]);
 
-        const chartDataPoints: { date: string, value: number }[] = [];
-        let finalBalance: number = 0;
-        
-        const initialActiveGoals = financialGoals.filter(g => activeGoalIds.includes(g.id));
-        const goalProjections: { [goalId: string]: GoalProjection } = {};
-        
-        let runningBalance = initialBalance;
-        let futureRecurring = JSON.parse(JSON.stringify(recurringTransactions.filter(rt => selectedAccountIds.includes(rt.accountId) || (rt.toAccountId && selectedAccountIds.includes(rt.toAccountId)))));
-        
-        const goalsForScenario = JSON.parse(JSON.stringify(initialActiveGoals)).map((g: any) => {
-            g.runningAmount = g.currentAmount;
-            if (g.type === 'recurring' && g.startDate) {
-                let nextDue = new Date(g.startDate);
-                if (g.dueDateOfMonth) nextDue.setDate(g.dueDateOfMonth);
-                while (nextDue < today) {
-                    switch(g.frequency) {
-                        case 'weekly': nextDue.setDate(nextDue.getDate() + 7); break;
-                        case 'monthly': nextDue.setMonth(nextDue.getMonth() + 1); break;
-                        case 'yearly': nextDue.setFullYear(nextDue.getFullYear() + 1); break;
-                        default: nextDue.setDate(nextDue.getDate() + 1); break;
-                    }
-                }
-                g.nextDueDate = nextDue;
-            }
-            return g;
-        });
+    const activeGoals = useMemo(() => financialGoals.filter(g => activeGoalIds.includes(g.id)), [financialGoals, activeGoalIds]);
 
-        let currentDate = new Date(today);
-        while (currentDate <= endDate) {
-            const dateStr = currentDate.toISOString().split('T')[0];
-            let dailyChange = 0;
+    const { forecastData, lowestPoint, goalsWithProjections } = useMemo(() => {
+        const projectionEndDate = new Date();
+        projectionEndDate.setFullYear(new Date().getFullYear() + 10);
 
-            futureRecurring.forEach((rt: any) => {
-                const nextDueDate = new Date(rt.nextDueDate);
-                if (nextDueDate > endDate || (rt.endDate && nextDueDate > new Date(rt.endDate))) return;
-                const adjustedDueDate = adjustForWeekend(nextDueDate, rt.weekendAdjustment);
-                if (adjustedDueDate.toISOString().split('T')[0] === dateStr) {
-                    const rtAmount = convertToEur(rt.amount, rt.currency);
-                    if (rt.type === 'transfer') {
-                        if (selectedAccountIds.includes(rt.accountId)) dailyChange -= rtAmount;
-                        if (rt.toAccountId && selectedAccountIds.includes(rt.toAccountId)) dailyChange += rtAmount;
-                    } else if (rt.type === 'income' && selectedAccountIds.includes(rt.accountId)) {
-                        dailyChange += rtAmount;
-                    } else if (rt.type === 'expense' && selectedAccountIds.includes(rt.accountId)) {
-                        dailyChange -= rtAmount;
-                    }
-                    const currentDue = new Date(rt.nextDueDate);
-                    switch(rt.frequency) {
-                        case 'daily': currentDue.setDate(currentDue.getDate() + (rt.frequencyInterval || 1)); break;
-                        case 'weekly': currentDue.setDate(currentDue.getDate() + 7 * (rt.frequencyInterval || 1)); break;
-                        case 'monthly': currentDue.setMonth(currentDue.getMonth() + (rt.frequencyInterval || 1)); break;
-                        case 'yearly': currentDue.setFullYear(currentDue.getFullYear() + (rt.frequencyInterval || 1)); break;
-                    }
-                    rt.nextDueDate = currentDue.toISOString().split('T')[0];
-                }
-            });
+        const fullData = generateBalanceForecast(
+            selectedAccounts,
+            recurringTransactions,
+            activeGoals,
+            billsAndPayments,
+            projectionEndDate
+        );
 
-            goalsForScenario.forEach((goal: any) => {
-                if (goal.runningAmount >= goal.amount) return;
-                let contribution = 0;
-                if (goal.type === 'one-time' && goal.date === dateStr) {
-                    contribution = goal.amount - goal.runningAmount;
-                } else if (goal.type === 'recurring' && goal.nextDueDate && goal.monthlyContribution) {
-                    if (currentDate.toISOString().split('T')[0] === new Date(goal.nextDueDate).toISOString().split('T')[0]) {
-                        contribution = Math.min(goal.monthlyContribution, goal.amount - goal.runningAmount);
-                        const currentDue = new Date(goal.nextDueDate);
-                        switch(goal.frequency) {
-                            case 'weekly': currentDue.setDate(currentDue.getDate() + 7); break;
-                            case 'monthly': currentDue.setMonth(currentDue.getMonth() + 1); break;
-                            case 'yearly': currentDue.setFullYear(currentDue.getFullYear() + 1); break;
-                            default: currentDue.setDate(currentDue.getDate() + 1); break;
+        const goalsWithProjections = financialGoals.map(goal => {
+            const goalDate = goal.date ? new Date(goal.date) : null;
+            let projectedDate = 'Beyond forecast';
+            let status: 'on-track' | 'at-risk' | 'off-track' = 'off-track';
+
+            for (const point of fullData) {
+                if (point.value >= goal.amount) {
+                    projectedDate = point.date;
+                    if (goalDate) {
+                        const projDate = new Date(projectedDate);
+                        if (projDate <= goalDate) {
+                            status = 'on-track';
+                        } else {
+                            const diffDays = (projDate.getTime() - goalDate.getTime()) / (1000 * 3600 * 24);
+                            status = diffDays <= 90 ? 'at-risk' : 'off-track';
                         }
-                        goal.nextDueDate = currentDue;
                     }
+                    break;
                 }
-                if (contribution > 0) {
-                    dailyChange -= contribution;
-                    goal.runningAmount += contribution;
-                    if (goal.runningAmount >= goal.amount && !goal.projectedDate) {
-                        goal.projectedDate = dateStr;
-                    }
-                }
-            });
-            
-            runningBalance += dailyChange;
-
-            if (runningBalance < lowestBalance.value) {
-                lowestBalance = { value: runningBalance, date: dateStr };
             }
-
-            chartDataPoints.push({ date: dateStr, value: runningBalance });
-            currentDate.setDate(currentDate.getDate() + 1);
-        }
-        finalBalance = runningBalance;
-        
-        goalsForScenario.forEach((goal: any) => {
-            const projectedDate = goal.projectedDate || 'Beyond forecast';
-            let status: GoalProjection['status'] = 'on-track';
-            if (projectedDate === 'Beyond forecast') {
-                status = 'off-track';
-            } else if (goal.date) {
-                const targetDate = new Date(goal.date);
-                const projDate = new Date(projectedDate);
-                const diffMonths = (targetDate.getFullYear() - projDate.getFullYear()) * 12 + targetDate.getMonth() - projDate.getMonth();
-                if (projDate > targetDate) status = 'off-track';
-                else if (diffMonths < 3) status = 'at-risk';
-            }
-            goalProjections[goal.id] = { projectedDate, status };
+            return { ...goal, projection: { projectedDate, status } };
         });
 
-        const finalProjectedGoals = financialGoals.map(g => ({ ...g, projection: goalProjections[g.id] }));
+        const endDate = new Date();
+        switch (forecastDuration) {
+            case '3M': endDate.setMonth(endDate.getMonth() + 3); break;
+            case '6M': endDate.setMonth(endDate.getMonth() + 6); break;
+            case 'EOY': endDate.setFullYear(endDate.getFullYear(), 11, 31); break;
+            case '1Y': endDate.setFullYear(endDate.getFullYear() + 1); break;
+            case '2Y': endDate.setFullYear(endDate.getFullYear() + 2); break;
+        }
 
-        return {
-            chartData: chartDataPoints,
-            summary: { finalBalance },
-            projectedGoals: finalProjectedGoals,
-            lowestBalance,
-        };
+        const forecastData = fullData.filter(d => new Date(d.date) <= endDate);
 
-    }, [accounts, recurringTransactions, financialGoals, selectedAccountIds, forecastPeriodInMonths, activeGoalIds]);
-    
-    const oneTimeGoalsOnChart = useMemo(() => {
-        return financialGoals.filter(g => activeGoalIds.includes(g.id) && g.type === 'one-time' && g.date);
-    }, [financialGoals, activeGoalIds]);
+        let lowestPoint = { value: Infinity, date: '' };
+        if (forecastData.length > 0) {
+            lowestPoint = forecastData.reduce((min, p) => p.value < min.value ? { value: p.value, date: p.date } : min, { value: forecastData[0].value, date: forecastData[0].date });
+        }
 
-    const formatDateForDisplay = (dateStr: string) => {
-        const date = new Date(dateStr);
-        return date.toLocaleDateString('en-us', { month: 'short', day: 'numeric', year: 'numeric' });
+        return { forecastData, lowestPoint, goalsWithProjections };
+    }, [selectedAccounts, recurringTransactions, activeGoals, billsAndPayments, financialGoals, forecastDuration]);
+
+    const { generatePlan, plan, isLoading: isPlanLoading, error: planError } = useSmartGoalPlanner(selectedAccounts, recurringTransactions, goalsWithProjections.filter(g => activeGoalIds.includes(g.id)));
+
+
+    const handleToggleGoal = (id: string) => {
+        setActiveGoalIds(prev => prev.includes(id) ? prev.filter(gid => gid !== id) : [...prev, id]);
     };
 
+    const durationOptions: { label: string; value: ForecastDuration }[] = [
+        { label: '3M', value: '3M' },
+        { label: '6M', value: '6M' },
+        { label: 'EOY', value: 'EOY' },
+        { label: '1Y', value: '1Y' },
+        { label: '2Y', value: '2Y' },
+    ];
+    
     return (
         <div className="space-y-8">
-            {isModalOpen && <GoalScenarioModal onClose={() => setIsModalOpen(false)} onSave={saveFinancialGoal} goalToEdit={editingGoal} />}
-            <header>
-                {/* <h2 className="text-3xl font-bold text-light-text dark:text-dark-text">Financial Forecasting</h2> */}
-                <p className="text-light-text-secondary dark:text-dark-text-secondary mt-1">Project your financial future based on your data.</p>
-            </header>
-            
-            <Card className="p-6">
-                <div className="flex flex-col xl:flex-row justify-between items-start gap-8">
-                    {/* CONTROLS SECTION */}
-                    <div className="w-full xl:max-w-md space-y-6 flex-shrink-0">
-                        <div>
-                            <h4 className="text-sm font-semibold text-light-text-secondary dark:text-dark-text-secondary mb-2">Forecast Period</h4>
-                            <div className="bg-light-bg dark:bg-dark-bg p-1 rounded-lg flex items-center shadow-neu-inset-light dark:shadow-neu-inset-dark">
-                                {FORECAST_PERIODS.map(period => (
-                                    <button
-                                        key={period.months}
-                                        onClick={() => setForecastPeriodInMonths(period.months)}
-                                        className={`flex-1 text-center py-2 px-3 rounded-md text-sm font-semibold transition-all duration-200 ${
-                                            forecastPeriodInMonths === period.months
-                                            ? 'bg-light-card dark:bg-dark-card shadow-neu-raised-light dark:shadow-neu-raised-dark text-primary-600 dark:text-primary-400'
-                                            : 'text-light-text-secondary dark:text-dark-text-secondary hover:text-light-text dark:hover:text-dark-text'
-                                        }`}
-                                    >
-                                        {period.label}
-                                    </button>
-                                ))}
-                            </div>
-                        </div>
-                        <div>
-                            <h4 className="text-sm font-semibold text-light-text-secondary dark:text-dark-text-secondary mb-2">Accounts to Include</h4>
-                            <div className="space-y-2 max-h-48 overflow-y-auto pr-2 bg-light-bg/50 dark:bg-dark-bg/50 p-3 rounded-lg border border-black/5 dark:border-white/10">
-                                <label className="flex items-center gap-2 cursor-pointer font-semibold pb-2 border-b border-black/10 dark:border-white/10">
-                                    <input
-                                        type="checkbox"
-                                        checked={allAccountsSelected}
-                                        onChange={handleSelectAllAccounts}
-                                        className="w-4 h-4 rounded text-primary-500 bg-transparent border-gray-400 focus:ring-primary-500"
-                                    />
-                                    <span>Select All</span>
-                                </label>
-                                <div className="pt-2">
-                                    {liquidAccounts.length > 0 && (
-                                        <div className="mb-2">
-                                             <h5 className="px-1 text-xs font-bold text-light-text-secondary dark:text-dark-text-secondary uppercase mb-1">Liquid Accounts</h5>
-                                             <div className="grid grid-cols-1 sm:grid-cols-2 gap-x-4 gap-y-2">
-                                                {liquidAccounts.map(acc => (
-                                                    <label key={acc.id} className="flex items-center gap-2 cursor-pointer text-sm">
-                                                        <input type="checkbox" checked={selectedAccountIds.includes(acc.id)} onChange={() => handleAccountToggle(acc.id)} className="w-4 h-4 rounded text-primary-500 bg-transparent border-gray-400 focus:ring-primary-500" />
-                                                        <span className="truncate" title={acc.name}>{acc.name}</span>
-                                                    </label>
-                                                ))}
-                                            </div>
-                                        </div>
-                                    )}
-                                     {otherAccounts.length > 0 && (
-                                        <div>
-                                             <h5 className="px-1 text-xs font-bold text-light-text-secondary dark:text-dark-text-secondary uppercase mb-1">Other Assets & Liabilities</h5>
-                                             <div className="grid grid-cols-1 sm:grid-cols-2 gap-x-4 gap-y-2">
-                                                {otherAccounts.map(acc => (
-                                                    <label key={acc.id} className="flex items-center gap-2 cursor-pointer text-sm">
-                                                        <input type="checkbox" checked={selectedAccountIds.includes(acc.id)} onChange={() => handleAccountToggle(acc.id)} className="w-4 h-4 rounded text-primary-500 bg-transparent border-gray-400 focus:ring-primary-500" />
-                                                        <span className="truncate" title={acc.name}>{acc.name}</span>
-                                                    </label>
-                                                ))}
-                                            </div>
-                                        </div>
-                                    )}
-                                </div>
-                            </div>
-                        </div>
-                    </div>
+            {isModalOpen && <GoalScenarioModal onClose={() => setIsModalOpen(false)} onSave={(d) => { saveFinancialGoal(d); setIsModalOpen(false); }} goalToEdit={editingGoal} />}
 
-                    {/* STATS SECTION */}
-                    <div className="w-full grid grid-cols-1 sm:grid-cols-2 gap-6">
-                        <div className="p-6 rounded-xl text-white bg-gradient-to-br from-blue-400 to-purple-600">
-                            <div className="flex items-center gap-2 text-white/80">
-                                <span className="material-symbols-outlined text-base">trending_up</span>
-                                <h4 className="text-sm font-semibold">Final Balance</h4>
-                            </div>
-                            <p className="text-3xl font-bold mt-1 text-white">{summary.finalBalance !== undefined ? formatCurrency(summary.finalBalance, 'EUR') : 'N/A'}</p>
-                            <p className="text-xs text-white/80 mt-1">in {forecastPeriodInMonths} months</p>
-                        </div>
-                        <div className="p-6 rounded-xl text-white bg-gradient-to-br from-orange-400 to-red-500">
-                            <div className="flex items-center gap-2 text-white/80">
-                                <span className="material-symbols-outlined text-base">trending_down</span>
-                                <h4 className="text-sm font-semibold">Lowest Point</h4>
-                            </div>
-                            <p className="text-3xl font-bold mt-1 text-white">
-                                {lowestBalance !== undefined ? formatCurrency(lowestBalance.value, 'EUR') : 'N/A'}
-                            </p>
-                            <p className="text-xs text-white/80 mt-1">on {formatDateForDisplay(lowestBalance.date)}</p>
-                        </div>
-                    </div>
+            <header className="flex flex-wrap justify-between items-center gap-4">
+                <div>
+                    <p className="text-light-text-secondary dark:text-dark-text-secondary mt-1">Project your financial future and plan for your goals.</p>
                 </div>
+                <div className="flex items-center gap-4">
+                    <MultiAccountFilter accounts={accounts.filter(a => LIQUID_ACCOUNT_TYPES.includes(a.type))} selectedAccountIds={selectedAccountIds} setSelectedAccountIds={setSelectedAccountIds} />
+                    
+                    <div className="hidden sm:flex bg-light-bg dark:bg-dark-bg p-1 rounded-lg">
+                        {durationOptions.map(opt => (
+                            <button
+                                key={opt.value}
+                                onClick={() => setForecastDuration(opt.value)}
+                                className={`px-3 py-1.5 text-sm font-semibold rounded-md transition-colors ${
+                                    forecastDuration === opt.value
+                                        ? 'bg-light-card dark:bg-dark-card shadow-sm'
+                                        : 'text-light-text-secondary dark:text-dark-text-secondary'
+                                }`}
+                            >
+                                {opt.label}
+                            </button>
+                        ))}
+                    </div>
+                    
+                    <button onClick={() => { setEditingGoal(null); setIsModalOpen(true); }} className={BTN_PRIMARY_STYLE}>Add Goal / Scenario</button>
+                </div>
+            </header>
+
+            <Card>
+                <h3 className="text-xl font-semibold mb-4 text-light-text dark:text-dark-text">Cash Flow Forecast</h3>
+                <ForecastChart data={forecastData} lowestPoint={lowestPoint} oneTimeGoals={activeGoals.filter(g => g.type === 'one-time')} />
             </Card>
 
-            <div className="grid grid-cols-1 xl:grid-cols-3 gap-8">
-                <div className="xl:col-span-3">
-                    <Card className="h-full">
-                        <ForecastChart data={chartData} oneTimeGoals={oneTimeGoalsOnChart} lowestPoint={lowestBalance} />
-                    </Card>
-                </div>
-            </div>
-
-            <div className="space-y-4">
-                <div className="flex justify-between items-center">
-                    <h3 className="text-2xl font-bold text-light-text dark:text-dark-text">Financial Goals</h3>
-                    <button onClick={() => handleOpenModal(null)} className={BTN_PRIMARY_STYLE}>
-                        Add Goal
-                    </button>
-                </div>
-                <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-6">
-                    {projectedGoals.map(goal => (
+            <div className="space-y-6">
+                <h3 className="text-2xl font-bold text-light-text dark:text-dark-text">Financial Goals</h3>
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                    {goalsWithProjections.map(goal => (
                         <FinancialGoalCard 
                             key={goal.id} 
-                            goal={goal}
+                            goal={goal} 
                             isActive={activeGoalIds.includes(goal.id)}
-                            onToggle={handleGoalToggle}
-                            onEdit={handleOpenModal}
+                            onToggle={handleToggleGoal}
+                            onEdit={(g) => { setEditingGoal(g); setIsModalOpen(true); }}
                             onDelete={deleteFinancialGoal}
                         />
                     ))}
-                    {financialGoals.length === 0 && (
-                        <Card className="md:col-span-2 xl:col-span-3">
-                            <div className="text-center py-12 text-light-text-secondary dark:text-dark-text-secondary">
-                                <span className="material-symbols-outlined text-5xl mb-2">flag</span>
-                                <p className="font-semibold">No financial goals set yet.</p>
-                                <p className="text-sm">Click "Add Goal" to start planning your future.</p>
-                            </div>
-                        </Card>
-                    )}
                 </div>
             </div>
-            
+
+            <Card>
+                <div className="flex justify-between items-center">
+                    <div>
+                        <h3 className="text-xl font-semibold text-light-text dark:text-dark-text">Smart Contribution Plan</h3>
+                        <p className="text-sm text-light-text-secondary dark:text-dark-text-secondary mt-1">Let AI generate a step-by-step plan to reach your goals.</p>
+                    </div>
+                    <button onClick={generatePlan} className={BTN_PRIMARY_STYLE} disabled={isPlanLoading}>Generate Smart Plan</button>
+                </div>
+                <GoalContributionPlan plan={plan} isLoading={isPlanLoading} error={planError} />
+            </Card>
         </div>
     );
 };

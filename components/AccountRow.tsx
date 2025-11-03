@@ -10,9 +10,17 @@ interface AccountRowProps {
     onClick: () => void;
     onEdit: () => void;
     onAdjustBalance: () => void;
+    isDraggable: boolean;
+    isBeingDragged: boolean;
+    isDragOver: boolean;
+    onDragStart: (e: React.DragEvent) => void;
+    onDragOver: (e: React.DragEvent) => void;
+    onDragLeave: (e: React.DragEvent) => void;
+    onDrop: (e: React.DragEvent) => void;
+    onDragEnd: (e: React.DragEvent) => void;
 }
 
-const AccountRow: React.FC<AccountRowProps> = ({ account, transactions, onClick, onEdit, onAdjustBalance }) => {
+const AccountRow: React.FC<AccountRowProps> = ({ account, transactions, onClick, onEdit, onAdjustBalance, isDraggable, isBeingDragged, isDragOver, onDragStart, onDragOver, onDragLeave, onDrop, onDragEnd }) => {
     const handleEditClick = (e: React.MouseEvent) => {
         e.stopPropagation();
         onEdit();
@@ -62,12 +70,24 @@ const AccountRow: React.FC<AccountRowProps> = ({ account, transactions, onClick,
     }, [account, transactions]);
     
     const isAsset = account.balance >= 0;
+    const isComputedAccount = account.type === 'Investment' || account.type === 'Crypto';
     const sparklineColor = isAsset ? '#22C55E' : '#F43F5E';
     const style = ACCOUNT_TYPE_STYLES[account.type];
+    
+    const dragClasses = isBeingDragged ? 'opacity-30' : '';
+    const dragOverClasses = isDragOver ? 'outline-2 outline-dashed outline-primary-500 bg-primary-500/5' : '';
+    const cursorClass = isDraggable ? 'cursor-grab' : 'cursor-pointer';
+
 
     return (
         <div 
-            className="flex items-center justify-between p-4 rounded-lg hover:bg-black/5 dark:hover:bg-white/5 transition-all duration-200 cursor-pointer group hover:-translate-y-0.5 hover:shadow-md" 
+            draggable={isDraggable}
+            onDragStart={onDragStart}
+            onDragOver={onDragOver}
+            onDragLeave={onDragLeave}
+            onDrop={onDrop}
+            onDragEnd={onDragEnd}
+            className={`flex items-center justify-between p-4 rounded-lg hover:bg-black/5 dark:hover:bg-white/5 transition-all duration-200 group hover:-translate-y-0.5 hover:shadow-md ${cursorClass} ${dragClasses} ${dragOverClasses}`} 
             onClick={onClick}
         >
             {/* Left side: Icon, Name, Type */}
@@ -78,15 +98,13 @@ const AccountRow: React.FC<AccountRowProps> = ({ account, transactions, onClick,
                     </span>
                 </div>
                 <div className="min-w-0">
-                    <p className="font-semibold text-light-text dark:text-dark-text truncate">{account.name}</p>
+                    <p className="font-semibold text-light-text dark:text-dark-text truncate flex items-center gap-2">
+                      {account.name}
+                      {account.isPrimary && <span className="material-symbols-outlined text-yellow-500 text-base" title="Primary Account">star</span>}
+                    </p>
                     <div className="flex items-center gap-2 text-sm text-light-text-secondary dark:text-dark-text-secondary">
                        <span>{account.type} {account.last4 ? `•••• ${account.last4}` : ''}</span>
-                        {account.enableBankingId && (
-                            <div className="flex items-center gap-1">
-                                <span className="material-symbols-outlined text-sm text-primary-500">sync</span>
-                                <span>{account.enableBankingInstitution}</span>
-                            </div>
-                        )}
+                       {account.symbol && <span className="font-mono bg-gray-200 dark:bg-gray-700 px-1.5 py-0.5 rounded text-xs">{account.symbol}</span>}
                     </div>
                 </div>
             </div>
@@ -110,7 +128,12 @@ const AccountRow: React.FC<AccountRowProps> = ({ account, transactions, onClick,
                         </p>
                     )}
                 </div>
-                <button onClick={handleAdjustBalanceClick} className="opacity-0 group-hover:opacity-100 transition-opacity text-light-text-secondary dark:text-dark-text-secondary p-2 rounded-full hover:bg-black/10 dark:hover:bg-white/10" title="Adjust Balance">
+                <button 
+                    onClick={handleAdjustBalanceClick} 
+                    className="opacity-0 group-hover:opacity-100 transition-opacity text-light-text-secondary dark:text-dark-text-secondary p-2 rounded-full hover:bg-black/10 dark:hover:bg-white/10 disabled:opacity-20 disabled:cursor-not-allowed" 
+                    title={isComputedAccount ? "Balance is computed automatically" : "Adjust Balance"}
+                    disabled={isComputedAccount}
+                >
                     <span className="material-symbols-outlined">tune</span>
                 </button>
                 <button onClick={handleEditClick} className="opacity-0 group-hover:opacity-100 transition-opacity text-light-text-secondary dark:text-dark-text-secondary p-2 rounded-full hover:bg-black/10 dark:hover:bg-white/10" title="Edit Account">
