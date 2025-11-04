@@ -1,6 +1,6 @@
 import React, { useState, useMemo } from 'react';
 import { Task, TaskStatus, TaskPriority } from '../types';
-import { BTN_PRIMARY_STYLE, INPUT_BASE_STYLE, SELECT_ARROW_STYLE, SELECT_WRAPPER_STYLE, BTN_SECONDARY_STYLE, BTN_DANGER_STYLE } from '../constants';
+import { BTN_PRIMARY_STYLE, INPUT_BASE_STYLE, SELECT_ARROW_STYLE, SELECT_WRAPPER_STYLE, BTN_SECONDARY_STYLE, BTN_DANGER_STYLE, SELECT_STYLE } from '../constants';
 import Card from '../components/Card';
 import Modal from '../components/Modal';
 import TasksHeatmap from '../components/TasksHeatmap';
@@ -172,7 +172,7 @@ const Tasks: React.FC<TasksProps> = ({ tasks, saveTask, deleteTask }) => {
                 </div>
                 <div className="flex items-end gap-4">
                      <div className={SELECT_WRAPPER_STYLE}>
-                        <select value={sortBy} onChange={e => setSortBy(e.target.value as any)} className={INPUT_BASE_STYLE}>
+                        <select value={sortBy} onChange={e => setSortBy(e.target.value as any)} className={SELECT_STYLE}>
                             <option value="priority-desc">Sort by Priority</option>
                             <option value="dueDate-asc">Sort by Due Date</option>
                         </select>

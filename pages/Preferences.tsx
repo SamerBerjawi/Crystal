@@ -1,7 +1,7 @@
 import React from 'react';
 import { AppPreferences, Theme, Page } from '../types';
 import Card from '../components/Card';
-import { SELECT_WRAPPER_STYLE, INPUT_BASE_STYLE, SELECT_ARROW_STYLE } from '../constants';
+import { SELECT_WRAPPER_STYLE, INPUT_BASE_STYLE, SELECT_ARROW_STYLE, CURRENCY_OPTIONS, TIMEZONE_OPTIONS, COUNTRY_OPTIONS, DURATION_OPTIONS, DEFAULT_ACCOUNT_ORDER_OPTIONS } from '../constants';
 
 interface PreferencesProps {
   preferences: AppPreferences;
@@ -85,7 +85,7 @@ const ThemeCard: React.FC<{
 const Preferences: React.FC<PreferencesProps> = ({ preferences, setPreferences, theme, setTheme, setCurrentPage }) => {
   const handleChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
     const { name, value } = e.target;
-    setPreferences({ ...preferences, [name]: value });
+    setPreferences({ ...preferences, [name]: value as any });
   };
 
   return (
@@ -114,9 +114,7 @@ const Preferences: React.FC<PreferencesProps> = ({ preferences, setPreferences, 
           <PreferenceRow label="Currency">
             <div className={SELECT_WRAPPER_STYLE}>
               <select name="currency" value={preferences.currency} onChange={handleChange} className={INPUT_BASE_STYLE}>
-                <option>EUR (€)</option>
-                <option>USD ($)</option>
-                <option>GBP (£)</option>
+                {CURRENCY_OPTIONS.map(c => <option key={c} value={c}>{c}</option>)}
               </select>
               <div className={SELECT_ARROW_STYLE}><span className="material-symbols-outlined">expand_more</span></div>
             </div>
@@ -134,9 +132,7 @@ const Preferences: React.FC<PreferencesProps> = ({ preferences, setPreferences, 
           <PreferenceRow label="Timezone">
              <div className={SELECT_WRAPPER_STYLE}>
               <select name="timezone" value={preferences.timezone} onChange={handleChange} className={INPUT_BASE_STYLE}>
-                <option>(+01:00) Brussels</option>
-                <option>(-05:00) Eastern Time (US & Canada)</option>
-                <option>(+00:00) Greenwich Mean Time</option>
+                {TIMEZONE_OPTIONS.map(tz => <option key={tz} value={tz}>{tz.replace(/_/g, ' ')}</option>)}
               </select>
               <div className={SELECT_ARROW_STYLE}><span className="material-symbols-outlined">expand_more</span></div>
             </div>
@@ -154,9 +150,7 @@ const Preferences: React.FC<PreferencesProps> = ({ preferences, setPreferences, 
           <PreferenceRow label="Default Period">
             <div className={SELECT_WRAPPER_STYLE}>
               <select name="defaultPeriod" value={preferences.defaultPeriod} onChange={handleChange} className={INPUT_BASE_STYLE}>
-                <option>Current Year</option>
-                <option>Current Month</option>
-                <option>Last 30 Days</option>
+                {DURATION_OPTIONS.map(opt => <option key={opt.value} value={opt.value}>{opt.label}</option>)}
               </select>
               <div className={SELECT_ARROW_STYLE}><span className="material-symbols-outlined">expand_more</span></div>
             </div>
@@ -164,8 +158,7 @@ const Preferences: React.FC<PreferencesProps> = ({ preferences, setPreferences, 
           <PreferenceRow label="Default Account Order">
             <div className={SELECT_WRAPPER_STYLE}>
               <select name="defaultAccountOrder" value={preferences.defaultAccountOrder} onChange={handleChange} className={INPUT_BASE_STYLE}>
-                <option>Name (A-Z)</option>
-                <option>Balance (High-Low)</option>
+                {DEFAULT_ACCOUNT_ORDER_OPTIONS.map(opt => <option key={opt.value} value={opt.value}>{opt.label}</option>)}
               </select>
               <div className={SELECT_ARROW_STYLE}><span className="material-symbols-outlined">expand_more</span></div>
             </div>
@@ -173,9 +166,7 @@ const Preferences: React.FC<PreferencesProps> = ({ preferences, setPreferences, 
           <PreferenceRow label="Country">
             <div className={SELECT_WRAPPER_STYLE}>
               <select name="country" value={preferences.country} onChange={handleChange} className={INPUT_BASE_STYLE}>
-                <option>Belgium</option>
-                <option>United States</option>
-                <option>United Kingdom</option>
+                {COUNTRY_OPTIONS.map(c => <option key={c} value={c}>{c}</option>)}
               </select>
               <div className={SELECT_ARROW_STYLE}><span className="material-symbols-outlined">expand_more</span></div>
             </div>

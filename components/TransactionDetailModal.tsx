@@ -1,7 +1,7 @@
 import React from 'react';
 import Modal from './Modal';
 import { Transaction, Account } from '../types';
-import { formatCurrency } from '../utils';
+import { formatCurrency, parseDateAsUTC } from '../utils';
 
 interface TransactionDetailModalProps {
   isOpen: boolean;
@@ -15,7 +15,7 @@ const TransactionDetailModal: React.FC<TransactionDetailModalProps> = ({ isOpen,
   if (!isOpen) return null;
 
   const formatDate = (dateString: string) => {
-    return new Date(dateString).toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric' });
+    return parseDateAsUTC(dateString).toLocaleDateString('en-US', { timeZone: 'UTC', month: 'long', day: 'numeric', year: 'numeric' });
   };
   
   if (transactions.length === 1) {
@@ -57,7 +57,7 @@ const TransactionDetailModal: React.FC<TransactionDetailModalProps> = ({ isOpen,
       <div className="max-h-[60vh] overflow-y-auto pr-2">
         {transactions.length > 0 ? (
           <ul className="space-y-4">
-            {transactions.sort((a,b) => new Date(b.date).getTime() - new Date(a.date).getTime()).map((tx) => {
+            {transactions.sort((a,b) => parseDateAsUTC(b.date).getTime() - parseDateAsUTC(a.date).getTime()).map((tx) => {
               const account = accounts.find(a => a.id === tx.accountId);
               return (
               <li key={tx.id} className="flex items-center justify-between">

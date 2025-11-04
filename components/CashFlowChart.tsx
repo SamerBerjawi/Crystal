@@ -1,7 +1,7 @@
 import React, { useMemo } from 'react';
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Legend, ReferenceLine } from 'recharts';
 import { Transaction, Duration } from '../types';
-import { formatCurrency, getDateRange, convertToEur } from '../utils';
+import { formatCurrency, getDateRange, convertToEur, parseDateAsUTC } from '../utils';
 import Card from './Card';
 
 interface CashFlowChartProps {
@@ -11,7 +11,6 @@ interface CashFlowChartProps {
 
 const CustomTooltip = ({ active, payload, label }: any) => {
     if (active && payload && payload.length) {
-      // The label is a timestamp.
       const date = new Date(label);
       const formattedDate = date.toLocaleDateString('en-US', { timeZone: 'UTC', month: 'short', day: 'numeric', year: 'numeric' });
       
@@ -38,13 +37,11 @@ const CashFlowChart: React.FC<CashFlowChartProps> = ({ transactions, duration })
     while (currentDate <= end) {
       const dateKey = currentDate.toISOString().split('T')[0];
       dataMap[dateKey] = { date: dateKey, timestamp: currentDate.getTime(), income: 0, expenses: 0 };
-      currentDate.setDate(currentDate.getDate() + 1);
+      currentDate.setUTCDate(currentDate.getUTCDate() + 1);
     }
     
     transactions.forEach(tx => {
-      // Parse the transaction date string as UTC to avoid timezone shifts
-      const dateParts = tx.date.split('-').map(Number);
-      const txDate = new Date(Date.UTC(dateParts[0], dateParts[1] - 1, dateParts[2]));
+      const txDate = parseDateAsUTC(tx.date);
 
       if (txDate >= start && txDate <= end) {
         const dateKey = tx.date;

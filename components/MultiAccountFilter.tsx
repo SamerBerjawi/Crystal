@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useRef, useMemo } from 'react';
 import { Account } from '../types';
-import { LIQUID_ACCOUNT_TYPES } from '../constants';
+import { LIQUID_ACCOUNT_TYPES, ASSET_TYPES, DEBT_TYPES } from '../constants';
 
 interface MultiAccountFilterProps {
   accounts: Account[];
@@ -8,9 +8,19 @@ interface MultiAccountFilterProps {
   setSelectedAccountIds: (ids: string[]) => void;
 }
 
+const QuickFilterButton: React.FC<{ onClick: () => void; children: React.ReactNode }> = ({ onClick, children }) => (
+  <button
+    onClick={onClick}
+    className="w-full text-center text-sm font-semibold py-1.5 px-2 rounded-md transition-colors bg-light-fill dark:bg-dark-fill hover:bg-black/10 dark:hover:bg-white/10"
+  >
+    {children}
+  </button>
+);
+
 const MultiAccountFilter: React.FC<MultiAccountFilterProps> = ({ accounts, selectedAccountIds, setSelectedAccountIds }) => {
   const [isOpen, setIsOpen] = useState(false);
   const wrapperRef = useRef<HTMLDivElement>(null);
+  const INVESTMENT_ACCOUNT_TYPES = ['Investment', 'Crypto'];
 
   useEffect(() => {
     function handleClickOutside(event: MouseEvent) {
@@ -38,34 +48,28 @@ const MultiAccountFilter: React.FC<MultiAccountFilterProps> = ({ accounts, selec
   }, [accounts]);
 
   const handleToggle = (accountId: string) => {
-    if (selectedAccountIds.includes(accountId)) {
-      setSelectedAccountIds(selectedAccountIds.filter(id => id !== accountId));
-    } else {
-      setSelectedAccountIds([...selectedAccountIds, accountId]);
-    }
+    setSelectedAccountIds(
+      selectedAccountIds.includes(accountId)
+        ? selectedAccountIds.filter(id => id !== accountId)
+        : [...selectedAccountIds, accountId]
+    );
   };
 
-  const handleSelectAll = (e: React.ChangeEvent<HTMLInputElement>) => {
-    if (e.target.checked) {
-      setSelectedAccountIds(accounts.map(a => a.id));
-    } else {
-      setSelectedAccountIds([]);
-    }
-  };
-  
-  const handleSelectAllLiquid = () => {
-    setSelectedAccountIds(liquidAccounts.map(a => a.id));
-  };
+  // Quick Filter handlers
+  const handleSelectAll = () => setSelectedAccountIds(accounts.map(a => a.id));
+  const handleSelectLiquid = () => setSelectedAccountIds(accounts.filter(a => LIQUID_ACCOUNT_TYPES.includes(a.type)).map(a => a.id));
+  const handleSelectAssets = () => setSelectedAccountIds(accounts.filter(a => ASSET_TYPES.includes(a.type)).map(a => a.id));
+  const handleSelectLiabilities = () => setSelectedAccountIds(accounts.filter(a => DEBT_TYPES.includes(a.type)).map(a => a.id));
+  const handleSelectInvestments = () => setSelectedAccountIds(accounts.filter(a => INVESTMENT_ACCOUNT_TYPES.includes(a.type)).map(a => a.id));
+  const handleClearAll = () => setSelectedAccountIds([]);
 
-
-  const allSelected = accounts.length > 0 && selectedAccountIds.length === accounts.length;
   const buttonText = () => {
     if (selectedAccountIds.length === accounts.length) return "All Accounts";
     if (selectedAccountIds.length === 1) {
         const selectedAccount = accounts.find(a => a.id === selectedAccountIds[0]);
         return selectedAccount ? selectedAccount.name : "1 Account";
     }
-    if (selectedAccountIds.length === 0) return "No Accounts";
+    if (selectedAccountIds.length === 0) return "No Accounts Selected";
     return `${selectedAccountIds.length} Accounts`;
   };
 
@@ -82,36 +86,33 @@ const MultiAccountFilter: React.FC<MultiAccountFilterProps> = ({ accounts, selec
   );
 
   return (
-    <div className="relative h-10" ref={wrapperRef}>
+    <div className="relative" ref={wrapperRef}>
       <button
         onClick={() => setIsOpen(!isOpen)}
-        className="flex items-center gap-2 bg-light-bg dark:bg-dark-bg text-sm font-semibold text-light-text dark:text-dark-text rounded-md pl-3 pr-2 border border-gray-200 dark:border-dark-border focus:outline-none focus:ring-1 focus:ring-primary-500 transition-shadow duration-200 h-full w-full"
+        className="h-10 w-48 flex items-center justify-between bg-light-fill dark:bg-dark-fill text-light-text dark:text-dark-text font-semibold pl-4 pr-2 rounded-lg hover:bg-gray-500/20 dark:hover:bg-gray-400/20 transition-colors duration-200 focus:outline-none focus:ring-2 focus:ring-primary-500"
       >
         <span className="truncate">{buttonText()}</span>
         <span className="material-symbols-outlined text-base">expand_more</span>
       </button>
       {isOpen && (
-        <div className="absolute top-full right-0 mt-2 w-72 bg-light-card dark:bg-dark-card rounded-lg shadow-lg border border-black/5 dark:border-white/10 z-10 p-2">
-          <div className="max-h-80 overflow-y-auto space-y-1">
-            <div className="flex items-center justify-between p-2">
-              <label className="flex items-center gap-2 font-semibold cursor-pointer">
-                <input
-                  type="checkbox"
-                  checked={allSelected}
-                  onChange={handleSelectAll}
-                  className="w-4 h-4 rounded text-primary-500 bg-transparent border-gray-400 focus:ring-primary-500"
-                />
-                <span>Select All</span>
-              </label>
-              <button 
-                onClick={handleSelectAllLiquid}
-                className="text-xs font-semibold text-primary-600 dark:text-primary-400 hover:underline"
-              >
-                Select Liquid Only
-              </button>
+        <div className="absolute top-full right-0 mt-2 w-80 bg-light-card dark:bg-dark-card rounded-lg shadow-lg border border-black/5 dark:border-white/10 z-10">
+          {/* Quick Filters */}
+          <div className="p-3">
+            <h4 className="px-1 pb-2 text-xs font-bold text-light-text-secondary dark:text-dark-text-secondary uppercase">Quick Filters</h4>
+            <div className="grid grid-cols-2 gap-2">
+              <QuickFilterButton onClick={handleSelectAll}>All Accounts</QuickFilterButton>
+              <QuickFilterButton onClick={handleSelectLiquid}>Liquid Only</QuickFilterButton>
+              <QuickFilterButton onClick={handleSelectAssets}>All Assets</QuickFilterButton>
+              <QuickFilterButton onClick={handleSelectLiabilities}>All Liabilities</QuickFilterButton>
+              <QuickFilterButton onClick={handleSelectInvestments}>Investments</QuickFilterButton>
+              <QuickFilterButton onClick={handleClearAll}>Clear All</QuickFilterButton>
             </div>
-            <hr className="border-black/10 dark:border-white/10 my-1" />
-            
+          </div>
+          
+          <hr className="border-black/10 dark:border-white/10" />
+
+          {/* Individual Selection */}
+          <div className="max-h-64 overflow-y-auto space-y-1 p-2">
             {liquidAccounts.length > 0 && (
               <div>
                 <h4 className="px-2 py-1 text-xs font-bold text-light-text-secondary dark:text-dark-text-secondary uppercase">Liquid Accounts</h4>
@@ -125,7 +126,6 @@ const MultiAccountFilter: React.FC<MultiAccountFilterProps> = ({ accounts, selec
                 {otherAccounts.map(account => <AccountCheckbox key={account.id} account={account} />)}
               </div>
             )}
-
           </div>
         </div>
       )}

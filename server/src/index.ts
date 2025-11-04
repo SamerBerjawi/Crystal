@@ -1,4 +1,4 @@
-import express from 'express';
+import express, { RequestHandler } from 'express';
 import cors from 'cors';
 import authRouter from './auth';
 import dataRouter from './data';
@@ -15,8 +15,8 @@ const startServer = async () => {
         const port = 3001;
 
         app.use(cors());
-        // FIX: Replaced deprecated body-parser with express.json(). This resolves a potential type conflict causing an error on app.use(cors()).
-        app.use(express.json({ limit: '10mb' }));
+        // FIX: A type conflict requires casting the middleware to RequestHandler to ensure correct type inference by TypeScript.
+        app.use(express.json({ limit: '10mb' }) as RequestHandler);
 
         app.get('/api', (req, res) => {
             res.send('Finaura API is running.');

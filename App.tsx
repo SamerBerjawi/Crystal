@@ -23,7 +23,7 @@ import Warrants from './pages/Warrants';
 import Documentation from './pages/Documentation';
 // UserManagement is removed
 // FIX: Import FinancialData from types.ts
-import { Page, Theme, Category, User, Transaction, Account, RecurringTransaction, WeekendAdjustment, FinancialGoal, Budget, ImportExportHistoryItem, AppPreferences, AccountType, InvestmentTransaction, Task, Warrant, ScraperConfig, ImportDataType, FinancialData, Currency, BillPayment, BillPaymentStatus } from './types';
+import { Page, Theme, Category, User, Transaction, Account, RecurringTransaction, WeekendAdjustment, FinancialGoal, Budget, ImportExportHistoryItem, AppPreferences, AccountType, InvestmentTransaction, Task, Warrant, ScraperConfig, ImportDataType, FinancialData, Currency, BillPayment, BillPaymentStatus, Duration, InvestmentSubType } from './types';
 // FIX: Import Card component and BTN_PRIMARY_STYLE constant to resolve 'Cannot find name' errors.
 import { MOCK_INCOME_CATEGORIES, MOCK_EXPENSE_CATEGORIES, BTN_PRIMARY_STYLE, BTN_SECONDARY_STYLE, LIQUID_ACCOUNT_TYPES } from './constants';
 import Card from './components/Card';
@@ -31,7 +31,7 @@ import { v4 as uuidv4 } from 'uuid';
 import { GoogleGenAI, FunctionDeclaration, Type } from '@google/genai';
 import ChatFab from './components/ChatFab';
 import Chatbot from './components/Chatbot';
-import { convertToEur, CONVERSION_RATES, arrayToCSV, downloadCSV } from './utils';
+import { convertToEur, CONVERSION_RATES, arrayToCSV, downloadCSV, parseDateAsUTC } from './utils';
 import { useDebounce } from './hooks/useDebounce';
 import { useAuth } from './hooks/useAuth';
 import useLocalStorage from './hooks/useLocalStorage';
@@ -54,10 +54,10 @@ const initialFinancialData: FinancialData = {
     preferences: {
         currency: 'EUR (€)',
         language: 'English (en)',
-        timezone: '(+01:00) Brussels',
+        timezone: 'Europe/Brussels',
         dateFormat: 'DD/MM/YYYY',
-        defaultPeriod: 'Current Year',
-        defaultAccountOrder: 'Name (A-Z)',
+        defaultPeriod: 'MTD',
+        defaultAccountOrder: 'name',
         country: 'Belgium',
     },
 };
@@ -134,9 +134,12 @@ export const App: React.FC = () => {
   const [isLoadingPrices, setIsLoadingPrices] = useState(false);
   const [lastUpdated, setLastUpdated] = useState<Date | null>(null);
   
-  // States lifted up for persistence
+  // States lifted up for persistence & preference linking
   const [dashboardAccountIds, setDashboardAccountIds] = useState<string[]>([]);
   const [activeGoalIds, setActiveGoalIds] = useState<string[]>([]);
+  const [dashboardDuration, setDashboardDuration] = useState<Duration>(preferences.defaultPeriod as Duration);
+  const [accountsSortBy, setAccountsSortBy] = useState<'name' | 'balance' | 'manual'>(preferences.defaultAccountOrder);
+
 
   useEffect(() => {
     // Set default dashboard account filter only on initial load
@@ -204,7 +207,9 @@ export const App: React.FC = () => {
 
   useEffect(() => {
     const updatedAccounts = accounts.map(account => {
-        if (account.symbol && (account.type === 'Investment' || account.type === 'Crypto') && warrantPrices[account.symbol] !== undefined) {
+        // FIX: The type 'Crypto' is not a valid AccountType. 'Crypto' is a subtype of 'Investment'.
+        // The check is simplified to only verify if the account type is 'Investment'.
+        if (account.symbol && account.type === 'Investment' && warrantPrices[account.symbol] !== undefined) {
             const price = warrantPrices[account.symbol];
             const quantity = investmentTransactions
                 .filter(tx => tx.symbol === account.symbol)
@@ -239,7 +244,12 @@ export const App: React.FC = () => {
     setBillsAndPayments(dataToLoad.billsAndPayments || []);
     setIncomeCategories(dataToLoad.incomeCategories && dataToLoad.incomeCategories.length > 0 ? dataToLoad.incomeCategories : MOCK_INCOME_CATEGORIES);
     setExpenseCategories(dataToLoad.expenseCategories && dataToLoad.expenseCategories.length > 0 ? dataToLoad.expenseCategories : MOCK_EXPENSE_CATEGORIES);
-    setPreferences(dataToLoad.preferences || initialFinancialData.preferences);
+    
+    const loadedPrefs = dataToLoad.preferences || initialFinancialData.preferences;
+    setPreferences(loadedPrefs);
+    setDashboardDuration(loadedPrefs.defaultPeriod as Duration);
+    setAccountsSortBy(loadedPrefs.defaultAccountOrder);
+
     setAccountOrder(dataToLoad.accountOrder || []);
   }, [setAccountOrder]);
   
@@ -400,7 +410,12 @@ export const App: React.FC = () => {
         const currentTransactions = transactions; // Use a snapshot of current state
         const transactionsToDelete = currentTransactions.filter(t => transactionIdsToDelete.includes(t.id));
         transactionsToDelete.forEach(tx => {
-            const changeInEur = convertToEur(tx.amount, tx.currency);
+            const account = accounts.find(a => a.id === tx.accountId);
+            let changeAmount = tx.amount;
+            if (account?.type === 'Loan' && tx.type === 'income' && tx.principalAmount != null) {
+                changeAmount = tx.principalAmount;
+            }
+            const changeInEur = convertToEur(changeAmount, tx.currency);
             balanceChanges[tx.accountId] = (balanceChanges[tx.accountId] || 0) - changeInEur;
         });
     }
@@ -413,11 +428,21 @@ export const App: React.FC = () => {
 
             if (originalTx) {
                 // Revert original transaction amount from its account
-                const originalChangeInEur = convertToEur(originalTx.amount, originalTx.currency);
+                const originalAccount = accounts.find(a => a.id === originalTx.accountId);
+                let originalChangeAmount = originalTx.amount;
+                if (originalAccount?.type === 'Loan' && originalTx.type === 'income' && originalTx.principalAmount != null) {
+                    originalChangeAmount = originalTx.principalAmount;
+                }
+                const originalChangeInEur = convertToEur(originalChangeAmount, originalTx.currency);
                 balanceChanges[originalTx.accountId] = (balanceChanges[originalTx.accountId] || 0) - originalChangeInEur;
                 
                 // Apply new transaction amount to its account (which might be new)
-                const updatedChangeInEur = convertToEur(updatedTx.amount, updatedTx.currency);
+                const updatedAccount = accounts.find(a => a.id === updatedTx.accountId);
+                let updatedChangeAmount = updatedTx.amount;
+                if (updatedAccount?.type === 'Loan' && updatedTx.type === 'income' && updatedTx.principalAmount != null) {
+                    updatedChangeAmount = updatedTx.principalAmount;
+                }
+                const updatedChangeInEur = convertToEur(updatedChangeAmount, updatedTx.currency);
                 balanceChanges[updatedTx.accountId] = (balanceChanges[updatedTx.accountId] || 0) + updatedChangeInEur;
                 transactionsToUpdate.push(updatedTx);
             }
@@ -427,7 +452,12 @@ export const App: React.FC = () => {
                 category: transactionData.category || 'Transfer', // Default category for transfers
                 id: `txn-${uuidv4()}`
             } as Transaction;
-            const newChangeInEur = convertToEur(newTx.amount, newTx.currency);
+            const account = accounts.find(a => a.id === newTx.accountId);
+            let changeAmount = newTx.amount;
+            if (account?.type === 'Loan' && newTx.type === 'income' && newTx.principalAmount != null) {
+                changeAmount = newTx.principalAmount;
+            }
+            const newChangeInEur = convertToEur(changeAmount, newTx.currency);
             balanceChanges[newTx.accountId] = (balanceChanges[newTx.accountId] || 0) + newChangeInEur;
             transactionsToAdd.push(newTx);
         }
@@ -566,6 +596,7 @@ export const App: React.FC = () => {
             const newAccount: Omit<Account, 'id'> = {
                 name: warrantData.name,
                 type: 'Investment', 
+                subType: 'ETF',
                 symbol: warrantData.isin.toUpperCase(),
                 balance: 0, 
                 currency: 'EUR',
@@ -743,6 +774,8 @@ export const App: React.FC = () => {
           allCategories={[...incomeCategories, ...expenseCategories]}
           setCurrentPage={setCurrentPage}
           saveTransaction={handleSaveTransaction}
+          recurringTransactions={recurringTransactions}
+          setViewingAccountId={setViewingAccountId}
         />
       } else {
         setViewingAccountId(null); // Account not found, go back to dashboard
@@ -752,9 +785,9 @@ export const App: React.FC = () => {
 
     switch (currentPage) {
       case 'Dashboard':
-        return <Dashboard user={currentUser!} transactions={transactions} accounts={accounts} saveTransaction={handleSaveTransaction} incomeCategories={incomeCategories} expenseCategories={expenseCategories} financialGoals={financialGoals} recurringTransactions={recurringTransactions} billsAndPayments={billsAndPayments} selectedAccountIds={dashboardAccountIds} setSelectedAccountIds={setDashboardAccountIds} />;
+        return <Dashboard user={currentUser!} transactions={transactions} accounts={accounts} saveTransaction={handleSaveTransaction} incomeCategories={incomeCategories} expenseCategories={expenseCategories} financialGoals={financialGoals} recurringTransactions={recurringTransactions} billsAndPayments={billsAndPayments} selectedAccountIds={dashboardAccountIds} setSelectedAccountIds={setDashboardAccountIds} duration={dashboardDuration} setDuration={setDashboardDuration} />;
       case 'Accounts':
-        return <Accounts accounts={accounts} transactions={transactions} saveAccount={handleSaveAccount} deleteAccount={handleDeleteAccount} setCurrentPage={setCurrentPage} setAccountFilter={setAccountFilter} setViewingAccountId={setViewingAccountId} saveTransaction={handleSaveTransaction} accountOrder={accountOrder} setAccountOrder={setAccountOrder} />;
+        return <Accounts accounts={accounts} transactions={transactions} saveAccount={handleSaveAccount} deleteAccount={handleDeleteAccount} setCurrentPage={setCurrentPage} setAccountFilter={setAccountFilter} setViewingAccountId={setViewingAccountId} saveTransaction={handleSaveTransaction} accountOrder={accountOrder} setAccountOrder={setAccountOrder} sortBy={accountsSortBy} setSortBy={setAccountsSortBy} />;
       case 'Transactions':
         return <Transactions transactions={transactions} saveTransaction={handleSaveTransaction} deleteTransactions={handleDeleteTransactions} accounts={accounts} accountFilter={accountFilter} setAccountFilter={setAccountFilter} incomeCategories={incomeCategories} expenseCategories={expenseCategories} />;
       case 'Budget':

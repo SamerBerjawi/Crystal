@@ -1,6 +1,7 @@
 import React, { useMemo } from 'react';
 import { Task, TaskPriority } from '../types';
 import Card from './Card';
+import { parseDateAsUTC } from '../utils';
 
 interface TasksHeatmapProps {
     tasks: Task[];
@@ -16,23 +17,22 @@ const PRIORITY_ORDER: Record<TaskPriority, number> = { 'High': 3, 'Medium': 2, '
 
 const TasksHeatmap: React.FC<TasksHeatmapProps> = ({ tasks }) => {
 
-    // FIX: Destructure `tasksByDate` from useMemo result to make it accessible in the component's scope.
     const { gridDays, monthLabels, tasksByDate } = useMemo(() => {
-        const today = new Date();
-        today.setHours(0, 0, 0, 0);
+        const now = new Date();
+        const today = new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), now.getUTCDate()));
 
         const endDate = new Date(today);
         const startDate = new Date(today);
-        startDate.setFullYear(startDate.getFullYear() - 1);
-        startDate.setDate(startDate.getDate() + 1);
+        startDate.setUTCFullYear(startDate.getUTCFullYear() - 1);
+        startDate.setUTCDate(startDate.getUTCDate() + 1);
 
         const tasksByDate = new Map<string, { priority: TaskPriority, count: number }>();
         tasks.forEach(task => {
             if (task.dueDate) {
-                const taskDate = new Date(task.dueDate);
-                taskDate.setMinutes(taskDate.getMinutes() + taskDate.getTimezoneOffset());
+                const taskDate = parseDateAsUTC(task.dueDate);
+
                 if (taskDate >= startDate && taskDate <= endDate) {
-                    const dateStr = taskDate.toISOString().split('T')[0];
+                    const dateStr = task.dueDate;
                     const existing = tasksByDate.get(dateStr);
                     if (existing) {
                         if (PRIORITY_ORDER[task.priority] > PRIORITY_ORDER[existing.priority]) {
@@ -46,29 +46,28 @@ const TasksHeatmap: React.FC<TasksHeatmapProps> = ({ tasks }) => {
             }
         });
 
-        const allDays = [];
+        const allDays: Date[] = [];
         let currentDate = new Date(startDate);
         while (currentDate <= endDate) {
             allDays.push(new Date(currentDate));
-            currentDate.setDate(currentDate.getDate() + 1);
+            currentDate.setUTCDate(currentDate.getUTCDate() + 1);
         }
 
-        const firstDayOfWeek = startDate.getDay();
+        const firstDayOfWeek = startDate.getUTCDay();
         const paddedDays: (Date | null)[] = [...Array(firstDayOfWeek).fill(null), ...allDays];
 
         const monthLabels: { label: string; colStart: number }[] = [];
         let lastMonth = -1;
         paddedDays.forEach((day, index) => {
             if (day) {
-                const month = day.getMonth();
+                const month = day.getUTCMonth();
                 if (month !== lastMonth) {
-                    monthLabels.push({ label: day.toLocaleString('default', { month: 'short' }), colStart: Math.floor(index / 7) + 1 });
+                    monthLabels.push({ label: day.toLocaleString('default', { month: 'short', timeZone: 'UTC' }), colStart: Math.floor(index / 7) + 1 });
                     lastMonth = month;
                 }
             }
         });
 
-        // FIX: Return `tasksByDate` so it can be used in the render method.
         return { gridDays: paddedDays, monthLabels, tasksByDate };
 
     }, [tasks]);
@@ -96,11 +95,12 @@ const TasksHeatmap: React.FC<TasksHeatmapProps> = ({ tasks }) => {
                                 return <div key={`pad-${index}`} className="w-4 h-4" />;
                             }
                             const dateStr = day.toISOString().split('T')[0];
+                            
                             const dayData = tasksByDate.get(dateStr);
                             const color = dayData ? PRIORITY_COLORS[dayData.priority] : NO_TASK_COLOR;
                             const tooltip = dayData
-                                ? `${day.toLocaleDateString()}: ${dayData.count} task(s), highest: ${dayData.priority}`
-                                : day.toLocaleDateString();
+                                ? `${day.toLocaleDateString('en-US', { timeZone: 'UTC' })}: ${dayData.count} task(s), highest: ${dayData.priority}`
+                                : day.toLocaleDateString('en-US', { timeZone: 'UTC' });
 
                             return <div key={dateStr} className={`w-4 h-4 rounded-sm ${color}`} title={tooltip} />;
                         })}

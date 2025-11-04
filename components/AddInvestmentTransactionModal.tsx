@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useMemo } from 'react';
 import Modal from './Modal';
-import { Account, InvestmentTransaction, Transaction, AccountType } from '../types';
-import { INPUT_BASE_STYLE, BTN_PRIMARY_STYLE, BTN_SECONDARY_STYLE, SELECT_WRAPPER_STYLE, SELECT_ARROW_STYLE } from '../constants';
+import { Account, InvestmentTransaction, Transaction, AccountType, InvestmentSubType } from '../types';
+import { INPUT_BASE_STYLE, BTN_PRIMARY_STYLE, BTN_SECONDARY_STYLE, SELECT_WRAPPER_STYLE, SELECT_ARROW_STYLE, INVESTMENT_SUB_TYPES } from '../constants';
 import { formatCurrency } from '../utils';
 import { v4 as uuidv4 } from 'uuid';
 
@@ -24,7 +24,7 @@ const AddInvestmentTransactionModal: React.FC<AddInvestmentTransactionModalProps
     const [date, setDate] = useState(isEditing ? transactionToEdit.date : new Date().toISOString().split('T')[0]);
     const [createCashTx, setCreateCashTx] = useState(!isEditing);
     const [cashAccountId, setCashAccountId] = useState(cashAccounts.length > 0 ? cashAccounts[0].id : '');
-    const [newAccountType, setNewAccountType] = useState<AccountType>('Investment');
+    const [newAccountSubType, setNewAccountSubType] = useState<InvestmentSubType>('Stock');
 
     const isNewSymbol = useMemo(() => {
         if (isEditing || !symbol) return false;
@@ -75,7 +75,8 @@ const AddInvestmentTransactionModal: React.FC<AddInvestmentTransactionModalProps
         if (isNewSymbol) {
             newAccountData = {
                 name: name,
-                type: newAccountType,
+                type: 'Investment',
+                subType: newAccountSubType,
                 symbol: symbol.toUpperCase(),
                 balance: 0, // Will be dynamically calculated
                 currency: 'EUR',
@@ -112,11 +113,12 @@ const AddInvestmentTransactionModal: React.FC<AddInvestmentTransactionModalProps
                                 <input id="inv-name" type="text" value={name} onChange={e => setName(e.target.value)} className={INPUT_BASE_STYLE} placeholder="e.g., Apple Inc." required />
                             </div>
                             <div>
-                                <label htmlFor="inv-type" className={labelStyle}>Asset Type</label>
+                                <label htmlFor="inv-subtype" className={labelStyle}>Investment Type</label>
                                 <div className={SELECT_WRAPPER_STYLE}>
-                                    <select id="inv-type" value={newAccountType} onChange={e => setNewAccountType(e.target.value as AccountType)} className={INPUT_BASE_STYLE} required>
-                                        <option value="Investment">Investment (Stock, ETF)</option>
-                                        <option value="Crypto">Crypto</option>
+                                    <select id="inv-subtype" value={newAccountSubType} onChange={e => setNewAccountSubType(e.target.value as InvestmentSubType)} className={INPUT_BASE_STYLE} required>
+                                        {INVESTMENT_SUB_TYPES.map(subType => (
+                                            <option key={subType} value={subType}>{subType}</option>
+                                        ))}
                                     </select>
                                     <div className={SELECT_ARROW_STYLE}><span className="material-symbols-outlined">expand_more</span></div>
                                 </div>

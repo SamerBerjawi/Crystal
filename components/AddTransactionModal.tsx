@@ -13,6 +13,8 @@ interface AddTransactionModalProps {
   transactions?: Transaction[];
   transactionToEdit?: Transaction | null;
   initialType?: 'expense' | 'income' | 'transfer';
+  initialFromAccountId?: string;
+  initialToAccountId?: string;
 }
 
 const CategoryOptions: React.FC<{ categories: Category[] }> = ({ categories }) => (
@@ -32,7 +34,7 @@ const CategoryOptions: React.FC<{ categories: Category[] }> = ({ categories }) =
 );
 
 
-const AddTransactionModal: React.FC<AddTransactionModalProps> = ({ onClose, onSave, accounts, incomeCategories, expenseCategories, transactions, transactionToEdit, initialType }) => {
+const AddTransactionModal: React.FC<AddTransactionModalProps> = ({ onClose, onSave, accounts, incomeCategories, expenseCategories, transactions, transactionToEdit, initialType, initialFromAccountId, initialToAccountId }) => {
   const isEditing = !!transactionToEdit;
   
   const [type, setType] = useState<'expense' | 'income' | 'transfer'>(isEditing ? (transactionToEdit.transferId ? 'transfer' : transactionToEdit.type) : (initialType || 'expense'));
@@ -43,9 +45,42 @@ const AddTransactionModal: React.FC<AddTransactionModalProps> = ({ onClose, onSa
   const [merchant, setMerchant] = useState('');
   const [amount, setAmount] = useState('');
   const [category, setCategory] = useState('');
+  
+  // Loan payment split state
+  const [principalPayment, setPrincipalPayment] = useState('');
+  const [interestPayment, setInterestPayment] = useState('');
+  const [lastPaymentFieldEdited, setLastPaymentFieldEdited] = useState<'total' | 'principal' | 'interest' | null>(null);
+
+  const isLoanPayment = useMemo(() => {
+    const targetAccountId = type === 'income' ? toAccountId : (type === 'transfer' ? toAccountId : null);
+    if (!targetAccountId) return false;
+    const targetAccount = accounts.find(a => a.id === targetAccountId);
+    return targetAccount?.type === 'Loan';
+  }, [type, toAccountId, accounts]);
+
+  useEffect(() => {
+    const total = parseFloat(amount);
+    const principal = parseFloat(principalPayment);
+    const interest = parseFloat(interestPayment);
+
+    if (lastPaymentFieldEdited === 'total') {
+        if (!isNaN(total) && !isNaN(principal)) {
+            setInterestPayment((total - principal).toFixed(2));
+        }
+    } else if (lastPaymentFieldEdited === 'principal' || lastPaymentFieldEdited === 'interest') {
+        if (!isNaN(principal) && !isNaN(interest)) {
+            setAmount((principal + interest).toFixed(2));
+        }
+    }
+  }, [amount, principalPayment, interestPayment, lastPaymentFieldEdited]);
+
 
   useEffect(() => {
     if (isEditing && transactionToEdit) {
+        let principal = '';
+        let interest = '';
+        let amountToSet = String(Math.abs(transactionToEdit.amount));
+
         if (transactionToEdit.transferId && transactions) {
             setType('transfer');
             const counterpart = transactions.find(t => t.transferId === transactionToEdit.transferId && t.id !== transactionToEdit.id);
@@ -54,11 +89,16 @@ const AddTransactionModal: React.FC<AddTransactionModalProps> = ({ onClose, onSa
                 const incomePart = transactionToEdit.type === 'income' ? transactionToEdit : counterpart;
                 setFromAccountId(expensePart.accountId);
                 setToAccountId(incomePart.accountId);
+                // The income part of the transfer holds the principal/interest info for a loan payment
+                principal = String(incomePart.principalAmount || '');
+                interest = String(incomePart.interestAmount || '');
+                amountToSet = String(Math.abs(incomePart.amount)); // Use amount from income part for consistency
             }
             const baseDescription = transactionToEdit.description.replace(/Transfer to .*|Transfer from .*/, 'Account Transfer');
             setDescription(baseDescription);
             setMerchant(transactionToEdit.merchant || 'Internal Transfer');
         } else {
+            // This is a regular income/expense transaction
             setType(transactionToEdit.type);
             if (transactionToEdit.type === 'income') {
                 setToAccountId(transactionToEdit.accountId);
@@ -70,21 +110,29 @@ const AddTransactionModal: React.FC<AddTransactionModalProps> = ({ onClose, onSa
             setDescription(transactionToEdit.description);
             setCategory(transactionToEdit.category);
             setMerchant(transactionToEdit.merchant || '');
+            principal = String(transactionToEdit.principalAmount || '');
+            interest = String(transactionToEdit.interestAmount || '');
         }
+        
         setDate(transactionToEdit.date);
-        setAmount(String(Math.abs(transactionToEdit.amount)));
+        setAmount(amountToSet);
+        setPrincipalPayment(principal);
+        setInterestPayment(interest);
+
     } else {
         // Reset for new transaction
         setType(initialType || 'expense');
         setDate(new Date().toISOString().split('T')[0]);
-        setFromAccountId(accounts.length > 0 ? accounts[0].id : '');
-        setToAccountId(accounts.length > 1 ? accounts[1].id : '');
+        setFromAccountId(initialFromAccountId || (accounts.length > 0 ? accounts[0].id : ''));
+        setToAccountId(initialToAccountId || (accounts.length > 1 ? accounts[1].id : ''));
         setDescription('');
         setMerchant('');
         setAmount('');
         setCategory('');
+        setPrincipalPayment('');
+        setInterestPayment('');
     }
-  }, [transactionToEdit, isEditing, accounts, transactions, initialType]);
+  }, [transactionToEdit, isEditing, accounts, transactions, initialType, initialFromAccountId, initialToAccountId]);
   
   const activeCategories = useMemo(() => {
     return type === 'income' ? incomeCategories : expenseCategories;
@@ -153,6 +201,12 @@ const AddTransactionModal: React.FC<AddTransactionModalProps> = ({ onClose, onSa
             transferId,
         };
         
+        // If it's a loan payment transfer, add the split
+        if (isLoanPayment) {
+            incomeTx.principalAmount = parseFloat(principalPayment) || 0;
+            incomeTx.interestAmount = parseFloat(interestPayment) || 0;
+        }
+
         // If not converting, we are updating, so keep original IDs
         if (isEditing && wasTransfer) {
             const originalExpense = transactions!.find(t => t.transferId === transferId && t.type === 'expense');
@@ -182,6 +236,11 @@ const AddTransactionModal: React.FC<AddTransactionModalProps> = ({ onClose, onSa
             currency: selectedAccount.currency,
         };
         
+        if (isLoanPayment) {
+            transactionData.principalAmount = parseFloat(principalPayment) || 0;
+            transactionData.interestAmount = parseFloat(interestPayment) || 0;
+        }
+
         // If regular edit (not converting), keep the ID for update
         if (isEditing && !wasTransfer) {
             transactionData.id = transactionToEdit.id;
@@ -209,7 +268,7 @@ const AddTransactionModal: React.FC<AddTransactionModalProps> = ({ onClose, onSa
         
         <div>
             <label className={labelStyle}>Type</label>
-            <div className="flex bg-light-bg dark:bg-dark-bg p-1 rounded-lg shadow-neu-inset-light dark:shadow-neu-inset-dark h-11 items-center">
+            <div className="flex bg-light-bg dark:bg-dark-bg p-1 rounded-lg shadow-neu-inset-light dark:shadow-neu-inset-dark h-10 items-center">
                 {typeFilterOptions.map(opt => (
                     <button
                         key={opt.value}
@@ -264,8 +323,8 @@ const AddTransactionModal: React.FC<AddTransactionModalProps> = ({ onClose, onSa
 
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <div>
-              <label htmlFor="tx-amount" className={labelStyle}>Amount</label>
-              <input id="tx-amount" type="number" step="0.01" value={amount} onChange={e => setAmount(e.target.value)} className={INPUT_BASE_STYLE} placeholder="0.00" required />
+              <label htmlFor="tx-amount" className={labelStyle}>{isLoanPayment ? 'Total Payment' : 'Amount'}</label>
+              <input id="tx-amount" type="number" step="0.01" value={amount} onFocus={() => setLastPaymentFieldEdited('total')} onChange={e => {setAmount(e.target.value); setLastPaymentFieldEdited('total');}} className={INPUT_BASE_STYLE} placeholder="0.00" required />
             </div>
              <div>
               <label htmlFor="tx-date" className={labelStyle}>Date</label>
@@ -273,6 +332,16 @@ const AddTransactionModal: React.FC<AddTransactionModalProps> = ({ onClose, onSa
             </div>
         </div>
         
+        {isLoanPayment && (
+            <div className="p-4 bg-black/5 dark:bg-white/5 rounded-lg space-y-2">
+                <p className="font-medium text-sm">Loan Payment Breakdown</p>
+                <div className="grid grid-cols-2 gap-4">
+                    <div><label htmlFor="principal-payment" className={labelStyle}>Principal</label><input id="principal-payment" type="number" step="0.01" value={principalPayment} onFocus={() => setLastPaymentFieldEdited('principal')} onChange={e => {setPrincipalPayment(e.target.value); setLastPaymentFieldEdited('principal');}} className={INPUT_BASE_STYLE} placeholder="0.00" /></div>
+                    <div><label htmlFor="interest-payment" className={labelStyle}>Interest</label><input id="interest-payment" type="number" step="0.01" value={interestPayment} onFocus={() => setLastPaymentFieldEdited('interest')} onChange={e => {setInterestPayment(e.target.value); setLastPaymentFieldEdited('interest');}} className={INPUT_BASE_STYLE} placeholder="0.00" /></div>
+                </div>
+            </div>
+        )}
+
         {type !== 'transfer' && (
             <div>
               <label htmlFor="tx-merchant" className={labelStyle}>Merchant (Optional)</label>

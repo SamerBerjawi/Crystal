@@ -169,7 +169,7 @@ const RecurringTransactionModal: React.FC<RecurringTransactionModalProps> = ({ o
 
                 <div>
                     <label className={labelStyle}>Type</label>
-                    <div className="flex bg-light-bg dark:bg-dark-bg p-1 rounded-lg shadow-neu-inset-light dark:shadow-neu-inset-dark h-11 items-center">
+                    <div className="flex bg-light-bg dark:bg-dark-bg p-1 rounded-lg shadow-neu-inset-light dark:shadow-neu-inset-dark h-10 items-center">
                         {typeFilterOptions.map(opt => (
                             <button
                                 key={opt.value}

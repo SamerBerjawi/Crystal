@@ -1,6 +1,6 @@
 import { useState, useMemo } from 'react';
 import { Transaction, Account } from '../types';
-import { convertToEur } from '../utils';
+import { convertToEur, parseDateAsUTC } from '../utils';
 import { v4 as uuidv4 } from 'uuid';
 
 export type Suggestion = {
@@ -41,8 +41,7 @@ export const useTransactionMatcher = (
     // 3. Iterate through expenses and check for matches in the map.
     for (const expense of expenses) {
         const expenseAmountKey = Math.abs(convertToEur(expense.amount, expense.currency)).toFixed(2);
-        // Using replace for date string to avoid timezone issues.
-        const expenseDate = new Date(expense.date.replace(/-/g, '/'));
+        const expenseDate = parseDateAsUTC(expense.date);
 
         const datesToCheck = [
             expenseDate,
@@ -92,45 +91,41 @@ export const useTransactionMatcher = (
 
   const confirmMatch = (suggestion: Suggestion) => {
     const transferId = `xfer-${uuidv4()}`;
-    
-    let { expenseTx, incomeTx } = suggestion;
 
-    // Heuristic to detect reversed sign conventions by checking descriptions
-    const incomeAccount = accounts.find(a => a.id === incomeTx.accountId);
-    const expenseAccount = accounts.find(a => a.id === expenseTx.accountId);
-    
+    const expenseAccount = accounts.find(a => a.id === suggestion.expenseTx.accountId);
+    const incomeAccount = accounts.find(a => a.id === suggestion.incomeTx.accountId);
+
+    // Default direction: the account with the debit is the source.
+    let fromAccount = expenseAccount;
+    let toAccount = incomeAccount;
+
+    // Heuristic: Check for confusing bank descriptions.
     if (expenseAccount && incomeAccount) {
-        const keywordsTo = ['to ', 'transfer to ', 'naar '];
-        const keywordsFrom = ['from ', 'transfer from ', 'van '];
-
-        // Check if the descriptions are the "wrong" way around for the types
-        const expenseDescImpliesFrom = keywordsFrom.some(k => expenseTx.description.toLowerCase().includes(k + incomeAccount.name.toLowerCase()));
-        const incomeDescImpliesTo = keywordsTo.some(k => incomeTx.description.toLowerCase().includes(k + expenseAccount.name.toLowerCase()));
+        const toKeywords = ['to ', 'transfer to ', 'naar '];
+        // If the debit transaction's description is "Transfer to [itself]",
+        // it means this account is actually the destination.
+        const expenseDescIndicatesItIsDestination = toKeywords.some(k => 
+            suggestion.expenseTx.description.toLowerCase().includes(k + expenseAccount.name.toLowerCase())
+        );
         
-        if (expenseDescImpliesFrom && incomeDescImpliesTo) {
-            // The roles are reversed based on descriptions. Swap them.
-            [expenseTx, incomeTx] = [incomeTx, expenseTx];
+        if (expenseDescIndicatesItIsDestination) {
+            // Swap the roles: the account with the credit becomes the source.
+            fromAccount = incomeAccount;
+            toAccount = expenseAccount;
         }
     }
-    
-    // After potential swapping, `expenseTx` is the true outgoing transaction
-    // and `incomeTx` is the true incoming transaction.
-    const fromAccount = accounts.find(a => a.id === expenseTx.accountId);
-    const toAccount = accounts.find(a => a.id === incomeTx.accountId);
 
+    // Update the original transactions without changing their type or amount.
+    // This correctly links them while preserving balance integrity.
     const expenseUpdate = {
-      ...expenseTx,
-      amount: -Math.abs(expenseTx.amount), // Ensure amount is negative
-      type: 'expense' as 'expense',
+      ...suggestion.expenseTx,
       category: 'Transfer',
       transferId,
       description: `Transfer to ${toAccount?.name || 'account'}`
     };
 
     const incomeUpdate = {
-      ...incomeTx,
-      amount: Math.abs(incomeTx.amount), // Ensure amount is positive
-      type: 'income' as 'income',
+      ...suggestion.incomeTx,
       category: 'Transfer',
       transferId,
       description: `Transfer from ${fromAccount?.name || 'account'}`
@@ -150,38 +145,34 @@ export const useTransactionMatcher = (
     const suggestionIdsToIgnore: string[] = [];
 
     suggestions.forEach(suggestion => {
-        let { expenseTx, incomeTx } = suggestion;
+        const expenseAccount = accounts.find(a => a.id === suggestion.expenseTx.accountId);
+        const incomeAccount = accounts.find(a => a.id === suggestion.incomeTx.accountId);
 
-        // Same reversal logic as in `confirmMatch`
-        const incomeAccount = accounts.find(a => a.id === incomeTx.accountId);
-        const expenseAccount = accounts.find(a => a.id === expenseTx.accountId);
+        let fromAccount = expenseAccount;
+        let toAccount = incomeAccount;
         
         if (expenseAccount && incomeAccount) {
-            const keywordsTo = ['to ', 'transfer to ', 'naar '];
-            const keywordsFrom = ['from ', 'transfer from ', 'van '];
-            const expenseDescImpliesFrom = keywordsFrom.some(k => expenseTx.description.toLowerCase().includes(k + incomeAccount.name.toLowerCase()));
-            const incomeDescImpliesTo = keywordsTo.some(k => incomeTx.description.toLowerCase().includes(k + expenseAccount.name.toLowerCase()));
-            if (expenseDescImpliesFrom && incomeDescImpliesTo) {
-                [expenseTx, incomeTx] = [incomeTx, expenseTx];
+            const toKeywords = ['to ', 'transfer to ', 'naar '];
+            const expenseDescIndicatesItIsDestination = toKeywords.some(k => 
+                suggestion.expenseTx.description.toLowerCase().includes(k + expenseAccount.name.toLowerCase())
+            );
+
+            if (expenseDescIndicatesItIsDestination) {
+                fromAccount = incomeAccount;
+                toAccount = expenseAccount;
             }
         }
-
-        const fromAccount = accounts.find(a => a.id === expenseTx.accountId);
-        const toAccount = accounts.find(a => a.id === incomeTx.accountId);
+        
         const transferId = `xfer-${uuidv4()}`;
 
         transactionsToUpdate.push({
-            ...expenseTx,
-            amount: -Math.abs(expenseTx.amount),
-            type: 'expense',
+            ...suggestion.expenseTx,
             category: 'Transfer',
             transferId,
             description: `Transfer to ${toAccount?.name || 'account'}`
         });
         transactionsToUpdate.push({
-            ...incomeTx,
-            amount: Math.abs(incomeTx.amount),
-            type: 'income',
+            ...suggestion.incomeTx,
             category: 'Transfer',
             transferId,
             description: `Transfer from ${fromAccount?.name || 'account'}`

@@ -9,7 +9,7 @@ const symbolMap: { [key in Currency]: string } = {
   'RON': 'lei'
 };
 
-export function formatCurrency(amount: number, currency: Currency): string {
+export function formatCurrency(amount: number, currency: Currency, options?: { showPlusSign?: boolean }): string {
   if (currency === 'BTC') {
     return `${amount.toLocaleString('en-US', {
       minimumFractionDigits: 2,
@@ -22,20 +22,37 @@ export function formatCurrency(amount: number, currency: Currency): string {
     maximumFractionDigits: 2,
   });
 
-  const sign = amount < 0 ? '-' : '';
+  let sign = '';
+  if (amount < 0) {
+    sign = '-';
+  } else if (options?.showPlusSign && amount > 0) {
+    sign = '+';
+  }
+
   const symbol = symbolMap[currency] || currency;
 
   return `${sign}${symbol} ${formatter.format(Math.abs(amount))}`;
 }
-
 
 export const CONVERSION_RATES: { [key in Currency]?: number } = {
     'USD': 0.93, 'GBP': 1.18, 'BTC': 65000, 'EUR': 1, 'RON': 0.20
 };
 
 export const convertToEur = (balance: number, currency: Currency): number => {
-    return balance * (CONVERSION_RATES[currency] || 0);
+    return balance * (CONVERSION_RATES[currency] || 1);
 }
+
+export const parseDateAsUTC = (dateString: string): Date => {
+    if (!dateString) return new Date(0);
+    const parts = dateString.split('-').map(Number);
+    if (parts.length === 3 && !isNaN(parts[0]) && !isNaN(parts[1]) && !isNaN(parts[2])) {
+        return new Date(Date.UTC(parts[0], parts[1] - 1, parts[2]));
+    }
+    const d = new Date(dateString);
+    if (isNaN(d.getTime())) return new Date(0);
+    return new Date(Date.UTC(d.getFullYear(), d.getMonth(), d.getDate()));
+};
+
 
 export function calculateAccountTotals(accounts: Account[]) {
     const totalAssets = accounts
@@ -56,55 +73,48 @@ export function calculateAccountTotals(accounts: Account[]) {
 }
 
 export function getDateRange(duration: Duration, allTransactions: Transaction[] = []): { start: Date, end: Date } {
-    const end = new Date();
-    const start = new Date();
-
-    end.setHours(23, 59, 59, 999);
-    start.setHours(0, 0, 0, 0);
+    const now = new Date();
+    const end = new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), now.getUTCDate(), 23, 59, 59, 999));
+    const start = new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), now.getUTCDate(), 0, 0, 0, 0));
 
     switch (duration) {
-        case '7D':
-            start.setDate(start.getDate() - 6);
+        case 'TODAY':
+            break;
+        case 'WTD':
+            const dayOfWeek = start.getUTCDay(); // Sunday - 0, Monday - 1, ...
+            const diff = start.getUTCDate() - dayOfWeek + (dayOfWeek === 0 ? -6 : 1); // adjust when week starts on Monday
+            start.setUTCDate(diff);
+            break;
+        case 'MTD':
+            start.setUTCDate(1);
             break;
         case '30D':
-            start.setDate(start.getDate() - 29);
+            start.setUTCDate(start.getUTCDate() - 29);
+            break;
+        case '60D':
+            start.setUTCDate(start.getUTCDate() - 59);
             break;
         case '90D':
-            start.setDate(start.getDate() - 89);
+            start.setUTCDate(start.getUTCDate() - 89);
+            break;
+        case '6M':
+            start.setUTCMonth(start.getUTCMonth() - 6);
             break;
         case 'YTD':
-            start.setMonth(0, 1);
+            start.setUTCMonth(0, 1);
             break;
         case '1Y':
-            start.setFullYear(start.getFullYear() - 1);
-            break;
-        case '2Y':
-            start.setFullYear(start.getFullYear() - 2);
-            break;
-        case '3Y':
-            start.setFullYear(start.getFullYear() - 3);
-            break;
-        case '4Y':
-            start.setFullYear(start.getFullYear() - 4);
-            break;
-        case '5Y':
-            start.setFullYear(start.getFullYear() - 5);
-            break;
-        case '10Y':
-            start.setFullYear(start.getFullYear() - 10);
+            start.setUTCFullYear(start.getUTCFullYear() - 1);
             break;
         case 'ALL':
             if (allTransactions.length > 0) {
-                const firstTxDate = allTransactions.reduce((earliest, tx) => {
-                    const txDate = new Date(tx.date);
-                    return txDate < earliest ? txDate : earliest;
-                }, new Date(allTransactions[0].date));
-                start.setTime(firstTxDate.getTime());
-                start.setHours(0, 0, 0, 0);
+                const firstDateString = allTransactions.reduce((earliest, tx) => {
+                    return tx.date < earliest ? tx.date : earliest;
+                }, allTransactions[0].date);
+                start.setTime(parseDateAsUTC(firstDateString).getTime());
             }
             break;
     }
-
     return { start, end };
 }
 
@@ -171,14 +181,14 @@ export const downloadCSV = (csvString: string, filename: string) => {
     }
 };
 
-export function calculateStatementPeriods(statementStartDay: number, paymentDueDay: number, today: Date) {
-    const todayStart = new Date(today);
-    todayStart.setHours(0, 0, 0, 0);
+export function calculateStatementPeriods(statementStartDay: number, paymentDueDay: number) {
+    const today = new Date();
+    const todayStart = new Date(Date.UTC(today.getUTCFullYear(), today.getUTCMonth(), today.getUTCDate()));
 
     let currentStatementStart: Date;
-    const todayDay = todayStart.getDate();
-    const todayMonth = todayStart.getMonth();
-    const todayYear = todayStart.getFullYear();
+    const todayDay = todayStart.getUTCDate();
+    const todayMonth = todayStart.getUTCMonth();
+    const todayYear = todayStart.getUTCFullYear();
 
     if (todayDay >= statementStartDay) {
         currentStatementStart = new Date(Date.UTC(todayYear, todayMonth, statementStartDay));
@@ -197,7 +207,6 @@ export function calculateStatementPeriods(statementStartDay: number, paymentDueD
     futureStatementEnd.setUTCMonth(futureStatementEnd.getUTCMonth() + 1);
     futureStatementEnd.setUTCDate(futureStatementEnd.getUTCDate() - 1);
 
-    // Calculate Payment Due Dates, ensuring it's after the statement ends.
     let currentPaymentDueDate = new Date(Date.UTC(currentStatementEnd.getUTCFullYear(), currentStatementEnd.getUTCMonth(), paymentDueDay));
     if (currentPaymentDueDate <= currentStatementEnd) {
         currentPaymentDueDate.setUTCMonth(currentPaymentDueDate.getUTCMonth() + 1);
@@ -226,44 +235,45 @@ export function generateBalanceForecast(
 
     if (liquidAccounts.length === 0) return [];
 
-    const startDate = new Date();
-    startDate.setHours(0, 0, 0, 0);
+    const now = new Date();
+    const startDate = new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), now.getUTCDate()));
 
     const dailyChanges = new Map<string, number>();
 
-    // 1. Process recurring transactions
     recurringTransactions.forEach(rt => {
         const fromSelected = liquidAccountIds.has(rt.accountId);
         const toSelected = rt.toAccountId ? liquidAccountIds.has(rt.toAccountId) : false;
 
         if (!fromSelected && !toSelected) return;
+        
+        let nextDate = parseDateAsUTC(rt.nextDueDate);
+        const endDateUTC = rt.endDate ? parseDateAsUTC(rt.endDate) : null;
+        const startDateUTC = parseDateAsUTC(rt.startDate);
 
-        let nextDate = new Date(rt.nextDueDate.replace(/-/g, '/'));
-
-        while (nextDate < startDate && (!rt.endDate || nextDate < new Date(rt.endDate.replace(/-/g, '/')))) {
+        while (nextDate < startDate && (!endDateUTC || nextDate < endDateUTC)) {
             const interval = rt.frequencyInterval || 1;
             switch(rt.frequency) {
-                case 'daily': nextDate.setDate(nextDate.getDate() + interval); break;
-                case 'weekly': nextDate.setDate(nextDate.getDate() + 7 * interval); break;
+                case 'daily': nextDate.setUTCDate(nextDate.getUTCDate() + interval); break;
+                case 'weekly': nextDate.setUTCDate(nextDate.getUTCDate() + 7 * interval); break;
                 case 'monthly': {
-                    const d = rt.dueDateOfMonth || new Date(rt.startDate.replace(/-/g, '/')).getDate();
-                    nextDate.setMonth(nextDate.getMonth() + interval, 1);
-                    const lastDay = new Date(nextDate.getFullYear(), nextDate.getMonth() + 1, 0).getDate();
-                    nextDate.setDate(Math.min(d, lastDay));
+                    const d = rt.dueDateOfMonth || startDateUTC.getUTCDate();
+                    nextDate.setUTCMonth(nextDate.getUTCMonth() + interval, 1);
+                    const lastDay = new Date(Date.UTC(nextDate.getUTCFullYear(), nextDate.getUTCMonth() + 1, 0)).getUTCDate();
+                    nextDate.setUTCDate(Math.min(d, lastDay));
                     break;
                 }
                 case 'yearly': {
-                     const d = rt.dueDateOfMonth || new Date(rt.startDate.replace(/-/g, '/')).getDate();
-                     const m = new Date(rt.startDate.replace(/-/g, '/')).getMonth();
-                     nextDate.setFullYear(nextDate.getFullYear() + interval);
-                     const lastDay = new Date(nextDate.getFullYear(), m + 1, 0).getDate();
-                     nextDate.setMonth(m, Math.min(d, lastDay));
+                     const d = rt.dueDateOfMonth || startDateUTC.getUTCDate();
+                     const m = startDateUTC.getUTCMonth();
+                     nextDate.setUTCFullYear(nextDate.getUTCFullYear() + interval);
+                     const lastDay = new Date(Date.UTC(nextDate.getUTCFullYear(), m + 1, 0)).getUTCDate();
+                     nextDate.setUTCMonth(m, Math.min(d, lastDay));
                      break;
                 }
             }
         }
         
-        while (nextDate <= forecastEndDate && (!rt.endDate || nextDate <= new Date(rt.endDate.replace(/-/g, '/')))) {
+        while (nextDate <= forecastEndDate && (!endDateUTC || nextDate <= endDateUTC)) {
             const dateStr = nextDate.toISOString().split('T')[0];
             let amount = rt.type === 'expense' ? -rt.amount : rt.amount;
             if (rt.type === 'transfer') {
@@ -277,37 +287,35 @@ export function generateBalanceForecast(
             
              const interval = rt.frequencyInterval || 1;
              switch(rt.frequency) {
-                case 'daily': nextDate.setDate(nextDate.getDate() + interval); break;
-                case 'weekly': nextDate.setDate(nextDate.getDate() + 7 * interval); break;
+                case 'daily': nextDate.setUTCDate(nextDate.getUTCDate() + interval); break;
+                case 'weekly': nextDate.setUTCDate(nextDate.getUTCDate() + 7 * interval); break;
                 case 'monthly': {
-                    const d = rt.dueDateOfMonth || new Date(rt.startDate.replace(/-/g, '/')).getDate();
-                    nextDate.setMonth(nextDate.getMonth() + interval, 1);
-                    const lastDay = new Date(nextDate.getFullYear(), nextDate.getMonth() + 1, 0).getDate();
-                    nextDate.setDate(Math.min(d, lastDay));
+                    const d = rt.dueDateOfMonth || startDateUTC.getUTCDate();
+                    nextDate.setUTCMonth(nextDate.getUTCMonth() + interval, 1);
+                    const lastDay = new Date(Date.UTC(nextDate.getUTCFullYear(), nextDate.getUTCMonth() + 1, 0)).getUTCDate();
+                    nextDate.setUTCDate(Math.min(d, lastDay));
                     break;
                 }
                 case 'yearly': {
-                     const d = rt.dueDateOfMonth || new Date(rt.startDate.replace(/-/g, '/')).getDate();
-                     const m = new Date(rt.startDate.replace(/-/g, '/')).getMonth();
-                     nextDate.setFullYear(nextDate.getFullYear() + interval);
-                     const lastDay = new Date(nextDate.getFullYear(), m + 1, 0).getDate();
-                     nextDate.setMonth(m, Math.min(d, lastDay));
+                     const d = rt.dueDateOfMonth || startDateUTC.getUTCDate();
+                     const m = startDateUTC.getUTCMonth();
+                     nextDate.setUTCFullYear(nextDate.getUTCFullYear() + interval);
+                     const lastDay = new Date(Date.UTC(nextDate.getUTCFullYear(), m + 1, 0)).getUTCDate();
+                     nextDate.setUTCMonth(m, Math.min(d, lastDay));
                      break;
                 }
             }
         }
     });
 
-    // 2. Process financial goals
     financialGoals.forEach(goal => {
-        // Recurring goal contributions
         if (goal.type === 'recurring' && goal.transactionType === 'expense' && goal.monthlyContribution && goal.currentAmount < goal.amount) {
-            let nextDate = new Date(goal.startDate!.replace(/-/g, '/'));
-            const dayOfMonth = goal.dueDateOfMonth || nextDate.getDate();
-            nextDate.setDate(dayOfMonth);
+            let nextDate = goal.startDate ? parseDateAsUTC(goal.startDate) : new Date();
+            const dayOfMonth = goal.dueDateOfMonth || nextDate.getUTCDate();
+            nextDate.setUTCDate(dayOfMonth);
 
             while (nextDate < startDate) {
-                nextDate.setMonth(nextDate.getMonth() + 1);
+                nextDate.setUTCMonth(nextDate.getUTCMonth() + 1);
             }
     
             let remainingAmountToSave = goal.amount - goal.currentAmount;
@@ -319,12 +327,11 @@ export function generateBalanceForecast(
     
                 dailyChanges.set(dateStr, (dailyChanges.get(dateStr) || 0) - convertToEur(contribution, goal.currency));
                 
-                nextDate.setMonth(nextDate.getMonth() + 1);
+                nextDate.setUTCMonth(nextDate.getUTCMonth() + 1);
             }
         }
-        // One-time goals
         if (goal.type === 'one-time' && goal.date) {
-            const goalDate = new Date(goal.date.replace(/-/g, '/'));
+            const goalDate = parseDateAsUTC(goal.date);
             if (goalDate >= startDate && goalDate <= forecastEndDate) {
                 const dateStr = goal.date;
                 const amount = goal.transactionType === 'expense' ? -goal.amount : goal.amount;
@@ -333,10 +340,9 @@ export function generateBalanceForecast(
         }
     });
 
-    // 3. Process unpaid bills and payments
     billsAndPayments.forEach(bill => {
         if (bill.status === 'unpaid') {
-            const dueDate = new Date(bill.dueDate.replace(/-/g, '/'));
+            const dueDate = parseDateAsUTC(bill.dueDate);
             if (dueDate >= startDate && dueDate <= forecastEndDate) {
                 const dateStr = bill.dueDate;
                 dailyChanges.set(dateStr, (dailyChanges.get(dateStr) || 0) + convertToEur(bill.amount, bill.currency));
@@ -344,16 +350,15 @@ export function generateBalanceForecast(
         }
     });
 
-    // 4. Generate the forecast data
     const forecastData: { date: string; value: number }[] = [];
     let runningBalance = liquidAccounts.reduce((sum, acc) => sum + convertToEur(acc.balance, acc.currency), 0);
     
-    let currentDate = new Date(startDate);
+    let currentDate = new Date(startDate.getTime());
     while (currentDate <= forecastEndDate) {
         const dateStr = currentDate.toISOString().split('T')[0];
         runningBalance += dailyChanges.get(dateStr) || 0;
         forecastData.push({ date: dateStr, value: runningBalance });
-        currentDate.setDate(currentDate.getDate() + 1);
+        currentDate.setUTCDate(currentDate.getUTCDate() + 1);
     }
     
     return forecastData;

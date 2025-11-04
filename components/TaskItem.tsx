@@ -1,6 +1,7 @@
 import React from 'react';
 import { Task, TaskPriority } from '../types';
 import Card from './Card';
+import { parseDateAsUTC } from '../utils';
 
 interface TaskItemProps {
   task: Task;
@@ -25,13 +26,13 @@ const TaskItem: React.FC<TaskItemProps> = ({ task, onEdit, isJustCompleted }) =>
             {task.dueDate && (
                 <div className="flex items-center gap-1 text-xs text-light-text-secondary dark:text-dark-text-secondary">
                     <span className="material-symbols-outlined text-sm">event</span>
-                    <span>{new Date(task.dueDate).toLocaleDateString()}</span>
+                    <span>{parseDateAsUTC(task.dueDate).toLocaleDateString('en-US', { timeZone: 'UTC', day: 'numeric', month: 'short', year: 'numeric' })}</span>
                 </div>
             )}
             {task.reminderDate && (
                 <div className="flex items-center gap-1 text-xs text-yellow-600 dark:text-yellow-400">
                     <span className="material-symbols-outlined text-sm">notifications</span>
-                    <span>{new Date(task.reminderDate).toLocaleDateString()}</span>
+                    <span>{parseDateAsUTC(task.reminderDate).toLocaleDateString('en-US', { timeZone: 'UTC', day: 'numeric', month: 'short', year: 'numeric' })}</span>
                 </div>
             )}
         </div>

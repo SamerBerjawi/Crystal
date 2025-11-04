@@ -17,12 +17,18 @@ export const authenticateToken = (req: AuthRequest, res: Response, next: NextFun
     const authHeader = req.headers['authorization'];
     const token = authHeader && authHeader.split(' ')[1];
 
-    // FIX: Replaced sendStatus with status().end() to resolve 'sendStatus' not existing on the Response type due to potential type conflicts.
-    if (token == null) return res.status(401).end();
+    // FIX: Replaced status().end() with statusCode and end() to resolve a property 'status' not existing on the Response type due to potential type conflicts.
+    if (token == null) {
+        res.statusCode = 401;
+        return res.end();
+    }
 
     jwt.verify(token, process.env.JWT_SECRET as string, (err: any, user: any) => {
-        // FIX: Replaced sendStatus with status().end() to resolve 'sendStatus' not existing on the Response type due to potential type conflicts.
-        if (err) return res.status(403).end();
+        // FIX: Replaced status().end() with statusCode and end() to resolve a property 'status' not existing on the Response type due to potential type conflicts.
+        if (err) {
+            res.statusCode = 403;
+            return res.end();
+        }
         req.user = user as { id: number; email: string };
         next();
     });

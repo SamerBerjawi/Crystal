@@ -1,7 +1,7 @@
 import React from 'react';
 import { Transaction, Category, DisplayTransaction } from '../types';
 import Card from './Card';
-import { formatCurrency, convertToEur } from '../utils';
+import { formatCurrency, convertToEur, parseDateAsUTC } from '../utils';
 
 interface TransactionListProps {
   transactions: DisplayTransaction[];
@@ -30,8 +30,7 @@ const TransactionList: React.FC<TransactionListProps> = ({ transactions, allCate
   };
 
   const formatDate = (dateString: string) => {
-    const date = new Date(dateString.replace(/-/g, '/'));
-    return date.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
+    return parseDateAsUTC(dateString).toLocaleDateString('en-US', { timeZone: 'UTC', month: 'short', day: 'numeric' });
   }
 
   return (

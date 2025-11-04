@@ -3,13 +3,13 @@ import React, { Dispatch, SetStateAction } from 'react';
 // FIX: Add 'Enable Banking' to Page type
 export type Page = 'Dashboard' | 'Accounts' | 'Transactions' | 'Budget' | 'Forecasting' | 'Settings' | 'Schedule & Bills' | 'Tasks' | 'Categories' | 'Tags' | 'Personal Info' | 'Data Management' | 'Preferences' | 'AccountDetail' | 'Investments' | 'Warrants' | 'User Management' | 'Documentation' | 'Enable Banking';
 
-export type AccountType = 'Checking' | 'Savings' | 'Credit Card' | 'Investment' | 'Loan' | 'Property' | 'Crypto' | 'Vehicle' | 'Other Assets' | 'Other Liabilities';
+export type AccountType = 'Checking' | 'Savings' | 'Credit Card' | 'Investment' | 'Loan' | 'Property' | 'Vehicle' | 'Other Assets' | 'Other Liabilities';
 
 export type Currency = 'USD' | 'EUR' | 'GBP' | 'BTC' | 'RON';
 
 export type Theme = 'light' | 'dark' | 'system';
 
-export type Duration = '7D' | '30D' | '90D' | 'YTD' | '1Y' | '2Y' | '3Y' | '4Y' | '5Y' | '10Y' | 'ALL';
+export type Duration = 'TODAY' | 'WTD' | 'MTD' | '30D' | '60D' | '90D' | '6M' | 'YTD' | '1Y' | 'ALL';
 
 export interface Category {
   id: string;
@@ -21,19 +21,53 @@ export interface Category {
   parentId?: string;
 }
 
+export type InvestmentSubType = 'Stock' | 'ETF' | 'Crypto' | 'Pension Fund' | 'Spare Change' | 'Other';
+export type PropertyType = 'House' | 'Apartment' | 'Land' | 'Commercial' | 'Other';
+
 export interface Account {
   id:string;
   name: string;
   type: AccountType;
-  balance: number;
+  balance: number; // For Vehicle/Property, this is the CURRENT value.
   currency: Currency;
   icon?: string;
   last4?: string;
   symbol?: string; // Ticker symbol for investments/warrants
+
+  // Investment specific
+  subType?: InvestmentSubType;
+
   // Credit Card specific fields
   statementStartDate?: number; // Day of the month (1-31)
   paymentDate?: number; // Day of themonth (1-31)
   settlementAccountId?: string; // ID of a checking account
+  creditLimit?: number;
+
+  // Loan specific
+  totalAmount?: number;
+  principalAmount?: number;
+  interestAmount?: number;
+  duration?: number; // in months
+  interestRate?: number; // percentage
+  loanStartDate?: string;
+  linkedAccountId?: string;
+  downPayment?: number;
+
+  // Vehicle specific
+  make?: string;
+  model?: string;
+  year?: number;
+
+  // Property specific
+  address?: string;
+  propertyType?: PropertyType;
+  purchasePrice?: number; // Shared with Vehicle
+  principalOwned?: number;
+  linkedLoanId?: string;
+  
+  // Other Assets/Liabilities
+  notes?: string;
+  
   // FIX: Add properties for Enable Banking integration
   enableBankingId?: string;
   enableBankingInstitution?: string;
@@ -77,6 +111,8 @@ export interface Transaction {
   recurringSourceId?: string;
   importId?: string;
   sureId?: string;
+  principalAmount?: number;
+  interestAmount?: number;
 }
 
 export interface DisplayTransaction extends Transaction {
@@ -196,13 +232,15 @@ export interface ImportExportHistoryItem {
   errors?: Record<number, Record<string, string>>;
 }
 
+export type DefaultAccountOrder = 'manual' | 'name' | 'balance';
+
 export interface AppPreferences {
   currency: string;
   language: string;
   timezone: string;
   dateFormat: string;
-  defaultPeriod: string;
-  defaultAccountOrder: string;
+  defaultPeriod: Duration;
+  defaultAccountOrder: DefaultAccountOrder;
   country: string;
 }
 
@@ -239,6 +277,16 @@ export interface EnableBankingSettings {
   clientSecret: string;
 }
 
+export interface AccountDetailProps {
+  account: Account;
+  accounts: Account[];
+  transactions: Transaction[];
+  allCategories: Category[];
+  setCurrentPage: (page: Page) => void;
+  saveTransaction: (transactions: (Omit<Transaction, 'id'> & { id?: string })[], idsToDelete?: string[]) => void;
+  recurringTransactions: RecurringTransaction[];
+  setViewingAccountId: (id: string | null) => void;
+}
 
 // FIX: Move FinancialData interface from App.tsx to types.ts to resolve import error in mockData.ts
 export interface FinancialData {

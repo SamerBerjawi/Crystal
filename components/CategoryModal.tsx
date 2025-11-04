@@ -101,14 +101,14 @@ const CategoryModal: React.FC<CategoryModalProps> = ({ isOpen, onClose, onSave, 
             <button
               type="button"
               onClick={() => setIconPickerOpen(true)}
-              className="flex items-center justify-center w-11 h-11 bg-light-bg dark:bg-dark-bg rounded-lg shadow-neu-raised-light dark:shadow-neu-raised-dark hover:shadow-neu-inset-light dark:hover:shadow-neu-inset-dark transition-shadow text-primary-500"
+              className="flex-shrink-0 flex items-center justify-center w-10 h-10 bg-light-bg dark:bg-dark-bg rounded-lg shadow-neu-raised-light dark:shadow-neu-raised-dark hover:shadow-neu-inset-light dark:hover:shadow-neu-inset-dark transition-shadow text-primary-500"
             >
               <span className="material-symbols-outlined" style={{ fontSize: '24px' }}>
                 {icon}
               </span>
             </button>
              <div
-                className="relative w-14 h-11 rounded-lg border border-black/10 dark:border-white/10 overflow-hidden cursor-pointer"
+                className="relative flex-shrink-0 w-10 h-10 rounded-lg border border-black/10 dark:border-white/10 overflow-hidden cursor-pointer"
                 style={{ backgroundColor: color }}
                 title="Select color"
               >

@@ -73,14 +73,14 @@ const GoalScenarioModal: React.FC<GoalScenarioModalProps> = ({ onClose, onSave, 
                 <div className="grid grid-cols-2 gap-4">
                     <div>
                         <label className={labelStyle}>Goal Type</label>
-                        <div className="flex bg-light-bg dark:bg-dark-bg p-1 rounded-lg shadow-neu-inset-light dark:shadow-neu-inset-dark h-11 items-center">
+                        <div className="flex bg-light-bg dark:bg-dark-bg p-1 rounded-lg shadow-neu-inset-light dark:shadow-neu-inset-dark h-10 items-center">
                             <button type="button" onClick={() => setType('one-time')} className={`w-full text-center text-sm font-semibold py-1.5 px-3 rounded-md transition-all ${type === 'one-time' ? 'bg-light-card dark:bg-dark-card shadow-neu-raised-light dark:shadow-neu-raised-dark' : 'text-light-text-secondary'}`}>One-time</button>
                             <button type="button" onClick={() => setType('recurring')} className={`w-full text-center text-sm font-semibold py-1.5 px-3 rounded-md transition-all ${type === 'recurring' ? 'bg-light-card dark:bg-dark-card shadow-neu-raised-light dark:shadow-neu-raised-dark' : 'text-light-text-secondary'}`}>Recurring</button>
                         </div>
                     </div>
                      <div>
                         <label className={labelStyle}>Transaction Type</label>
-                        <div className="flex bg-light-bg dark:bg-dark-bg p-1 rounded-lg shadow-neu-inset-light dark:shadow-neu-inset-dark h-11 items-center">
+                        <div className="flex bg-light-bg dark:bg-dark-bg p-1 rounded-lg shadow-neu-inset-light dark:shadow-neu-inset-dark h-10 items-center">
                             <button type="button" onClick={() => setTransactionType('expense')} className={`w-full text-center text-sm font-semibold py-1.5 px-3 rounded-md transition-all ${transactionType === 'expense' ? 'bg-light-card dark:bg-dark-card shadow-neu-raised-light dark:shadow-neu-raised-dark' : 'text-light-text-secondary'}`}>Expense</button>
                             <button type="button" onClick={() => setTransactionType('income')} className={`w-full text-center text-sm font-semibold py-1.5 px-3 rounded-md transition-all ${transactionType === 'income' ? 'bg-light-card dark:bg-dark-card shadow-neu-raised-light dark:shadow-neu-raised-dark' : 'text-light-text-secondary'}`}>Income</button>
                         </div>

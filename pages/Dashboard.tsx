@@ -36,6 +36,8 @@ interface DashboardProps {
   billsAndPayments: BillPayment[];
   selectedAccountIds: string[];
   setSelectedAccountIds: (ids: string[]) => void;
+  duration: Duration;
+  setDuration: (duration: Duration) => void;
 }
 
 const findCategoryDetails = (name: string, categories: Category[]): Category | undefined => {
@@ -67,7 +69,7 @@ const toYYYYMMDD = (date: Date) => {
     return `${y}-${m}-${d}`;
 };
 
-const Dashboard: React.FC<DashboardProps> = ({ user, transactions, accounts, saveTransaction, incomeCategories, expenseCategories, financialGoals, recurringTransactions, billsAndPayments, selectedAccountIds, setSelectedAccountIds }) => {
+const Dashboard: React.FC<DashboardProps> = ({ user, transactions, accounts, saveTransaction, incomeCategories, expenseCategories, financialGoals, recurringTransactions, billsAndPayments, selectedAccountIds, setSelectedAccountIds, duration, setDuration }) => {
   const [isTransactionModalOpen, setTransactionModalOpen] = useState(false);
   const [editingTransaction, setEditingTransaction] = useState<Transaction | null>(null);
   
@@ -75,8 +77,6 @@ const Dashboard: React.FC<DashboardProps> = ({ user, transactions, accounts, sav
   const [modalTransactions, setModalTransactions] = useState<Transaction[]>([]);
   const [modalTitle, setModalTitle] = useState('');
 
-  const [duration, setDuration] = useState<Duration>('1Y');
-  
   const [isAddWidgetModalOpen, setIsAddWidgetModalOpen] = useState(false);
   const [isEditMode, setIsEditMode] = useState(false);
   const [isMatcherModalOpen, setIsMatcherModalOpen] = useState(false);
@@ -431,7 +431,8 @@ const Dashboard: React.FC<DashboardProps> = ({ user, transactions, accounts, sav
       if (configuredCreditCards.length === 0) return [];
       
       return configuredCreditCards.map(account => {
-          const periods = calculateStatementPeriods(account.statementStartDate!, account.paymentDate!, new Date());
+          // FIX: The `calculateStatementPeriods` function now calculates the current date internally and only expects two arguments.
+          const periods = calculateStatementPeriods(account.statementStartDate!, account.paymentDate!);
 
           const calculateBalance = (start: Date, end: Date) => {
               return transactions
@@ -453,6 +454,8 @@ const Dashboard: React.FC<DashboardProps> = ({ user, transactions, accounts, sav
           return {
               accountName: account.name,
               currency: account.currency,
+              accountBalance: account.balance,
+              creditLimit: account.creditLimit,
               current: {
                   balance: currentBalance,
                   period: `${formatDate(periods.current.start)} - ${formatDate(periods.current.end)}`,
@@ -708,14 +711,18 @@ const Dashboard: React.FC<DashboardProps> = ({ user, transactions, accounts, sav
                       <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                           <CreditCardStatementCard
                               title="Current Statement"
-                              balance={statement.current.balance}
+                              statementBalance={statement.current.balance}
+                              accountBalance={statement.accountBalance}
+                              creditLimit={statement.creditLimit}
                               currency={statement.currency}
                               statementPeriod={statement.current.period}
                               paymentDueDate={statement.current.paymentDue}
                           />
                           <CreditCardStatementCard
                               title="Next Statement"
-                              balance={statement.future.balance}
+                              statementBalance={statement.future.balance}
+                              accountBalance={statement.accountBalance}
+                              creditLimit={statement.creditLimit}
                               currency={statement.currency}
                               statementPeriod={statement.future.period}
                               paymentDueDate={statement.future.paymentDue}

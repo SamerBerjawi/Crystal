@@ -166,39 +166,49 @@ const Schedule: React.FC<ScheduleProps> = (props) => {
         const allUpcomingItems: ScheduledItem[] = [];
 
         recurringTransactions.forEach(rt => {
-            // Calculate correct upcoming date, advancing it if it's in the past
-            let nextDate = new Date(rt.nextDueDate.replace(/-/g, '/'));
-            const todayLocal = new Date();
-            todayLocal.setHours(0, 0, 0, 0);
+            // Helper to parse date string as UTC midnight to avoid timezone issues
+            const parseAsUTC = (dateString: string): Date => {
+                const [year, month, day] = dateString.split('-').map(Number);
+                return new Date(Date.UTC(year, month - 1, day));
+            };
 
-            while (nextDate < todayLocal && (!rt.endDate || nextDate < new Date(rt.endDate.replace(/-/g, '/')))) {
+            let nextDate = parseAsUTC(rt.nextDueDate);
+
+            const today = new Date();
+            const todayUTC = new Date(Date.UTC(today.getUTCFullYear(), today.getUTCMonth(), today.getUTCDate()));
+
+            const endDateUTC = rt.endDate ? parseAsUTC(rt.endDate) : null;
+            const startDateUTC = parseAsUTC(rt.startDate);
+
+            // Advance date until it's in the future
+            while (nextDate < todayUTC && (!endDateUTC || nextDate < endDateUTC)) {
                 const interval = rt.frequencyInterval || 1;
                 switch(rt.frequency) {
                     case 'daily':
-                        nextDate.setDate(nextDate.getDate() + interval);
+                        nextDate.setUTCDate(nextDate.getUTCDate() + interval);
                         break;
                     case 'weekly':
-                        nextDate.setDate(nextDate.getDate() + 7 * interval);
+                        nextDate.setUTCDate(nextDate.getUTCDate() + 7 * interval);
                         break;
                     case 'monthly': {
-                        const d = rt.dueDateOfMonth || new Date(rt.startDate.replace(/-/g, '/')).getDate();
-                        nextDate.setMonth(nextDate.getMonth() + interval, 1);
-                        const lastDayOfNextMonth = new Date(nextDate.getFullYear(), nextDate.getMonth() + 1, 0).getDate();
-                        nextDate.setDate(Math.min(d, lastDayOfNextMonth));
+                        const d = rt.dueDateOfMonth || startDateUTC.getUTCDate();
+                        nextDate.setUTCMonth(nextDate.getUTCMonth() + interval, 1);
+                        const lastDayOfNextMonth = new Date(Date.UTC(nextDate.getUTCFullYear(), nextDate.getUTCMonth() + 1, 0)).getUTCDate();
+                        nextDate.setUTCDate(Math.min(d, lastDayOfNextMonth));
                         break;
                     }
                     case 'yearly': {
-                        const d = rt.dueDateOfMonth || new Date(rt.startDate.replace(/-/g, '/')).getDate();
-                        const m = new Date(rt.startDate.replace(/-/g, '/')).getMonth();
-                        nextDate.setFullYear(nextDate.getFullYear() + interval);
-                        const lastDayOfNextMonth = new Date(nextDate.getFullYear(), m + 1, 0).getDate();
-                        nextDate.setMonth(m, Math.min(d, lastDayOfNextMonth));
+                        const d = rt.dueDateOfMonth || startDateUTC.getUTCDate();
+                        const m = startDateUTC.getUTCMonth();
+                        nextDate.setUTCFullYear(nextDate.getUTCFullYear() + interval);
+                        const lastDayOfNextMonth = new Date(Date.UTC(nextDate.getUTCFullYear(), m + 1, 0)).getUTCDate();
+                        nextDate.setUTCMonth(m, Math.min(d, lastDayOfNextMonth));
                         break;
                     }
                 }
             }
-
-            if (rt.endDate && nextDate > new Date(rt.endDate.replace(/-/g, '/'))) {
+            
+            if (endDateUTC && nextDate > endDateUTC) {
                 return;
             }
 
@@ -298,7 +308,6 @@ const Schedule: React.FC<ScheduleProps> = (props) => {
             
             <header className="flex flex-wrap justify-between items-center gap-4">
                 <div>
-                    {/* <h2 className="text-3xl font-bold text-light-text dark:text-dark-text">Schedule & Bills</h2> */}
                     <p className="text-light-text-secondary dark:text-dark-text-secondary mt-1">Manage your recurring payments, bills, and expected income.</p>
                 </div>
                 <div className="flex items-center gap-4">

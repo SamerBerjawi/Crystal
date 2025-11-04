@@ -197,7 +197,6 @@ const Categories: React.FC<CategoriesProps> = ({ incomeCategories, setIncomeCate
         </div>
         <div className="mt-4 flex justify-between items-center">
             <div>
-              {/* <h2 className="text-3xl font-bold text-light-text dark:text-dark-text">Categories</h2> */}
               <p className="text-light-text-secondary dark:text-dark-text-secondary mt-1">Manage your income and expense categories.</p>
             </div>
             <div className="flex items-center gap-4">

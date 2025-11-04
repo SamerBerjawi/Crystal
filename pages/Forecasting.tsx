@@ -216,12 +216,12 @@ const Forecasting: React.FC<ForecastingProps> = ({ accounts, transactions, recur
                 <div className="flex items-center gap-4">
                     <MultiAccountFilter accounts={accounts.filter(a => LIQUID_ACCOUNT_TYPES.includes(a.type))} selectedAccountIds={selectedAccountIds} setSelectedAccountIds={setSelectedAccountIds} />
                     
-                    <div className="hidden sm:flex bg-light-bg dark:bg-dark-bg p-1 rounded-lg">
+                    <div className="hidden sm:flex bg-light-bg dark:bg-dark-bg p-1 rounded-lg h-10">
                         {durationOptions.map(opt => (
                             <button
                                 key={opt.value}
                                 onClick={() => setForecastDuration(opt.value)}
-                                className={`px-3 py-1.5 text-sm font-semibold rounded-md transition-colors ${
+                                className={`h-full px-3 text-sm font-semibold rounded-md transition-colors ${
                                     forecastDuration === opt.value
                                         ? 'bg-light-card dark:bg-dark-card shadow-sm'
                                         : 'text-light-text-secondary dark:text-dark-text-secondary'

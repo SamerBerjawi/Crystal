@@ -33,7 +33,7 @@ const Investments: React.FC<InvestmentsProps> = ({ accounts, cashAccounts, inves
     const [isModalOpen, setIsModalOpen] = useState(false);
     const [editingTransaction, setEditingTransaction] = useState<InvestmentTransaction | null>(null);
 
-    const investmentAccounts = useMemo(() => (accounts || []).filter(a => a.type === 'Investment' || a.type === 'Crypto'), [accounts]);
+    const investmentAccounts = useMemo(() => (accounts || []).filter(a => a.type === 'Investment'), [accounts]);
 
     const { holdings, totalValue, totalCostBasis, distributionData } = useMemo(() => {
         const holdingsMap: Record<string, {

@@ -69,8 +69,24 @@ const AccountRow: React.FC<AccountRowProps> = ({ account, transactions, onClick,
         return data;
     }, [account, transactions]);
     
-    const isAsset = account.balance >= 0;
-    const isComputedAccount = account.type === 'Investment' || account.type === 'Crypto';
+    const displayBalance = useMemo(() => {
+        if (account.type === 'Loan' && account.totalAmount) {
+            const loanPayments = transactions.filter(tx => tx.type === 'income');
+
+            const totalPaid = loanPayments.reduce((sum, tx) => {
+                const totalPayment = (tx.principalAmount || 0) + (tx.interestAmount || 0);
+                return sum + (totalPayment > 0 ? totalPayment : tx.amount);
+            }, 0);
+            
+            return -(account.totalAmount - totalPaid);
+        }
+        return account.balance;
+    }, [account, transactions]);
+    
+    const isAsset = displayBalance >= 0;
+    // FIX: The type 'Crypto' is not a valid AccountType. 'Crypto' is a subtype of 'Investment'.
+    // The check is simplified to only verify if the account type is 'Investment'.
+    const isComputedAccount = account.type === 'Investment';
     const sparklineColor = isAsset ? '#22C55E' : '#F43F5E';
     const style = ACCOUNT_TYPE_STYLES[account.type];
     
@@ -78,6 +94,28 @@ const AccountRow: React.FC<AccountRowProps> = ({ account, transactions, onClick,
     const dragOverClasses = isDragOver ? 'outline-2 outline-dashed outline-primary-500 bg-primary-500/5' : '';
     const cursorClass = isDraggable ? 'cursor-grab' : 'cursor-pointer';
 
+    const renderSecondaryDetails = () => {
+        const details = [];
+        if (account.last4) details.push(`•••• ${account.last4}`);
+        if (account.subType) details.push(account.subType);
+        if (account.interestRate) details.push(`${account.interestRate}%`);
+        if (account.make) details.push(`${account.year} ${account.make} ${account.model}`);
+        if (account.propertyType) details.push(account.propertyType);
+        
+        if (details.length === 0) return <span>{account.type}</span>;
+
+        return (
+            <>
+                <span>{account.type}</span>
+                {details.map((detail, index) => (
+                    <React.Fragment key={index}>
+                        <span className="mx-1">&bull;</span>
+                        <span>{detail}</span>
+                    </React.Fragment>
+                ))}
+            </>
+        );
+    };
 
     return (
         <div 
@@ -102,9 +140,9 @@ const AccountRow: React.FC<AccountRowProps> = ({ account, transactions, onClick,
                       {account.name}
                       {account.isPrimary && <span className="material-symbols-outlined text-yellow-500 text-base" title="Primary Account">star</span>}
                     </p>
-                    <div className="flex items-center gap-2 text-sm text-light-text-secondary dark:text-dark-text-secondary">
-                       <span>{account.type} {account.last4 ? `•••• ${account.last4}` : ''}</span>
-                       {account.symbol && <span className="font-mono bg-gray-200 dark:bg-gray-700 px-1.5 py-0.5 rounded text-xs">{account.symbol}</span>}
+                    <div className="flex items-center gap-1 text-sm text-light-text-secondary dark:text-dark-text-secondary truncate">
+                       {renderSecondaryDetails()}
+                       {account.symbol && <span className="font-mono bg-gray-200 dark:bg-gray-700 px-1.5 py-0.5 rounded text-xs ml-2">{account.symbol}</span>}
                     </div>
                 </div>
             </div>
@@ -120,11 +158,11 @@ const AccountRow: React.FC<AccountRowProps> = ({ account, transactions, onClick,
                 </div>
                 <div className="text-right shrink-0 w-32">
                     <p className={`font-bold text-lg ${isAsset ? 'text-light-text dark:text-dark-text' : 'text-red-500'}`}>
-                        {formatCurrency(convertToEur(account.balance, account.currency), 'EUR')}
+                        {formatCurrency(convertToEur(displayBalance, account.currency), 'EUR')}
                     </p>
                      {account.currency !== 'EUR' && (
                         <p className="text-xs text-light-text-secondary dark:text-dark-text-secondary">
-                            {formatCurrency(account.balance, account.currency)}
+                            {formatCurrency(displayBalance, account.currency)}
                         </p>
                     )}
                 </div>

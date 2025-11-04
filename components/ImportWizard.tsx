@@ -626,9 +626,9 @@ const Step2Configure: React.FC<{ headers: string[], columnMap: any, setColumnMap
             const accountFieldNode = (
                 <div className="md:col-span-2">
                     <label className="font-semibold mb-2 block">Account Source *</label>
-                    <div className="flex bg-light-bg dark:bg-dark-bg p-1 rounded-lg shadow-inner mb-2">
-                        <button type="button" onClick={() => setAccountSource('column')} className={`w-full text-center text-sm font-semibold py-1.5 px-3 rounded-md transition-all ${accountSource === 'column' ? 'bg-light-card dark:bg-dark-card shadow-sm' : 'text-light-text-secondary'}`}>From File Column</button>
-                        <button type="button" onClick={() => setAccountSource('single')} className={`w-full text-center text-sm font-semibold py-1.5 px-3 rounded-md transition-all ${accountSource === 'single' ? 'bg-light-card dark:bg-dark-card shadow-sm' : 'text-light-text-secondary'}`}>Assign Single Account</button>
+                    <div className="flex bg-light-bg dark:bg-dark-bg p-1 rounded-lg shadow-inner mb-2 h-10">
+                        <button type="button" onClick={() => setAccountSource('column')} className={`h-full w-full text-center text-sm font-semibold px-3 rounded-md transition-all ${accountSource === 'column' ? 'bg-light-card dark:bg-dark-card shadow-sm' : 'text-light-text-secondary'}`}>From File Column</button>
+                        <button type="button" onClick={() => setAccountSource('single')} className={`h-full w-full text-center text-sm font-semibold px-3 rounded-md transition-all ${accountSource === 'single' ? 'bg-light-card dark:bg-dark-card shadow-sm' : 'text-light-text-secondary'}`}>Assign Single Account</button>
                     </div>
                     {accountSource === 'column' ? (
                        <div className={SELECT_WRAPPER_STYLE}>
@@ -653,7 +653,7 @@ const Step2Configure: React.FC<{ headers: string[], columnMap: any, setColumnMap
                 accountFieldUI: null
             };
         }
-    }, [importType, amountConfig, accountSource, columnMap, headers, existingAccounts, selectedSingleAccountId]);
+    }, [importType, amountConfig, accountSource, columnMap, headers, existingAccounts, selectedSingleAccountId, setAccountSource, setSelectedSingleAccountId]);
 
     const allFields = [...requiredFields, ...optionalFields];
 

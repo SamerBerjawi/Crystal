@@ -1,5 +1,5 @@
 import React from 'react';
-import { Category, Page, AccountType, Currency, Theme, RecurrenceFrequency, WeekendAdjustment } from './types';
+import { Category, Page, AccountType, Currency, Theme, RecurrenceFrequency, WeekendAdjustment, DefaultAccountOrder, Duration, InvestmentSubType, PropertyType } from './types';
 
 
 export function FinauraLogo({ theme }: { theme: Theme }) {
@@ -14,10 +14,11 @@ export function FinauraLogo({ theme }: { theme: Theme }) {
 }
 
 // Common Styles based on Apple HIG
-export const BTN_PRIMARY_STYLE = "bg-primary-500 text-white font-semibold py-2 px-4 rounded-lg hover:bg-primary-600 shadow-md hover:shadow-lg transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-primary-500 focus:ring-offset-2 focus:ring-offset-light-bg dark:focus:ring-offset-dark-card active:scale-95 whitespace-nowrap";
-export const BTN_SECONDARY_STYLE = "bg-light-fill dark:bg-dark-fill text-light-text dark:text-dark-text font-semibold py-2 px-4 rounded-lg hover:bg-gray-500/20 dark:hover:bg-gray-400/20 transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-primary-500 active:scale-95 whitespace-nowrap";
-export const BTN_DANGER_STYLE = "text-semantic-red hover:bg-semantic-red/10 font-semibold py-2 px-4 rounded-lg transition-colors active:scale-95 whitespace-nowrap";
-export const INPUT_BASE_STYLE = "w-full appearance-none bg-light-fill dark:bg-dark-fill text-light-text dark:text-dark-text rounded-lg py-2 px-3 border border-light-separator/50 dark:border-dark-separator/50 focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-primary-500 transition-shadow duration-200";
+export const BTN_PRIMARY_STYLE = "h-10 flex items-center justify-center bg-primary-500 text-white font-semibold px-4 rounded-lg hover:bg-primary-600 shadow-md hover:shadow-lg transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-primary-500 focus:ring-offset-2 focus:ring-offset-light-bg dark:focus:ring-offset-dark-card active:scale-95 whitespace-nowrap";
+export const BTN_SECONDARY_STYLE = "h-10 flex items-center justify-center bg-light-fill dark:bg-dark-fill text-light-text dark:text-dark-text font-semibold px-4 rounded-lg hover:bg-gray-500/20 dark:hover:bg-gray-400/20 transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-primary-500 active:scale-95 whitespace-nowrap";
+export const BTN_DANGER_STYLE = "h-10 flex items-center justify-center text-semantic-red hover:bg-semantic-red/10 font-semibold px-4 rounded-lg transition-colors active:scale-95 whitespace-nowrap";
+export const INPUT_BASE_STYLE = "h-10 w-full appearance-none bg-light-fill dark:bg-dark-fill text-light-text dark:text-dark-text rounded-lg px-3 border border-light-separator/50 dark:border-dark-separator/50 focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-primary-500 transition-shadow duration-200";
+export const SELECT_STYLE = "h-10 w-full appearance-none bg-light-fill dark:bg-dark-fill text-light-text dark:text-dark-text font-semibold pl-4 pr-10 rounded-lg hover:bg-gray-500/20 dark:hover:bg-gray-400/20 transition-colors duration-200 focus:outline-none focus:ring-2 focus:ring-primary-500";
 export const SELECT_WRAPPER_STYLE = "relative w-full";
 export const SELECT_ARROW_STYLE = "pointer-events-none absolute inset-y-0 right-0 flex items-center px-2 text-light-text-secondary dark:text-dark-text-secondary";
 
@@ -40,11 +41,13 @@ export const NAV_ITEMS: NavItem[] = [
   { name: 'Settings', icon: 'settings' },
 ];
 
-export const ASSET_TYPES: AccountType[] = ['Checking', 'Savings', 'Investment', 'Crypto', 'Property', 'Vehicle', 'Other Assets'];
+export const ASSET_TYPES: AccountType[] = ['Checking', 'Savings', 'Investment', 'Property', 'Vehicle', 'Other Assets'];
 export const DEBT_TYPES: AccountType[] = ['Credit Card', 'Loan', 'Other Liabilities'];
 export const ALL_ACCOUNT_TYPES: AccountType[] = [...ASSET_TYPES, ...DEBT_TYPES];
 export const LIQUID_ACCOUNT_TYPES: AccountType[] = ['Checking', 'Savings', 'Credit Card'];
 export const CURRENCIES: Currency[] = ['USD', 'EUR', 'GBP', 'BTC', 'RON'];
+export const INVESTMENT_SUB_TYPES: InvestmentSubType[] = ['Stock', 'ETF', 'Crypto', 'Pension Fund', 'Spare Change', 'Other'];
+export const PROPERTY_TYPES: PropertyType[] = ['House', 'Apartment', 'Land', 'Commercial', 'Other'];
 export const FREQUENCIES: { value: RecurrenceFrequency, label: string }[] = [
     { value: 'daily', label: 'Daily' },
     { value: 'weekly', label: 'Weekly' },
@@ -58,17 +61,57 @@ export const WEEKEND_ADJUSTMENTS: { value: WeekendAdjustment, label: string }[] 
     { value: 'after', label: 'Monday after' },
 ];
 
+export const CURRENCY_OPTIONS = [
+    'EUR (€)', 'USD ($)', 'GBP (£)', 'RON (lei)', 'JPY (¥)', 'CAD (C$)', 'AUD (A$)', 'CHF (CHF)', 'CNY (¥)', 'INR (₹)'
+];
+
+export const TIMEZONE_OPTIONS = [
+    "Pacific/Midway", "Pacific/Honolulu", "America/Anchorage", "America/Los_Angeles", "America/Denver", "America/Chicago", "America/New_York", "America/Caracas", "America/Halifax", "America/Sao_Paulo", "Atlantic/Azores", "Etc/GMT", "Europe/London", "Europe/Brussels", "Europe/Athens", "Europe/Moscow", "Asia/Dubai", "Asia/Karachi", "Asia/Kolkata", "Asia/Dhaka", "Asia/Bangkok", "Asia/Shanghai", "Asia/Tokyo", "Australia/Sydney", "Pacific/Auckland"
+];
+
+export const COUNTRY_OPTIONS = [
+    "Afghanistan", "Albania", "Algeria", "Andorra", "Angola", "Antigua and Barbuda", "Argentina", "Armenia", "Australia", "Austria", "Azerbaijan", "Bahamas", "Bahrain", "Bangladesh", "Barbados", "Belarus", "Belgium", "Belize", "Benin", "Bhutan", "Bolivia", "Bosnia and Herzegovina", "Botswana", "Brazil", "Brunei", "Bulgaria", "Burkina Faso", "Burundi", "Cabo Verde", "Cambodia", "Cameroon", "Canada", "Central African Republic", "Chad", "Chile", "China", "Colombia", "Comoros", "Congo, Democratic Republic of the", "Congo, Republic of the", "Costa Rica", "Cote d'Ivoire", "Croatia", "Cuba", "Cyprus", "Czechia", "Denmark", "Djibouti", "Dominica", "Dominican Republic", "Ecuador", "Egypt", "El Salvador", "Equatorial Guinea", "Eritrea", "Estonia", "Eswatini", "Ethiopia", "Fiji", "Finland", "France", "Gabon", "Gambia", "Georgia", "Germany", "Ghana", "Greece", "Grenada", "Guatemala", "Guinea", "Guinea-Bissau", "Guyana", "Haiti", "Honduras", "Hungary", "Iceland", "India", "Indonesia", "Iran", "Iraq", "Ireland", "Israel", "Italy", "Jamaica", "Japan", "Jordan", "Kazakhstan", "Kenya", "Kiribati", "Kuwait", "Kyrgyzstan", "Laos", "Latvia", "Lebanon", "Lesotho", "Liberia", "Libya", "Liechtenstein", "Lithuania", "Luxembourg", "Madagascar", "Malawi", "Malaysia", "Maldives", "Mali", "Malta", "Marshall Islands", "Mauritania", "Mauritius", "Mexico", "Micronesia", "Moldova", "Monaco", "Mongolia", "Montenegro", "Morocco", "Mozambique", "Myanmar", "Namibia", "Nauru", "Nepal", "Netherlands", "New Zealand", "Nicaragua", "Niger", "Nigeria", "North Korea", "North Macedonia", "Norway", "Oman", "Pakistan", "Palau", "Panama", "Papua New Guinea", "Paraguay", "Peru", "Philippines", "Poland", "Portugal", "Qatar", "Romania", "Russia", "Rwanda", "Saint Kitts and Nevis", "Saint Lucia", "Saint Vincent and the Grenadines", "Samoa", "San Marino", "Sao Tome and Principe", "Saudi Arabia", "Senegal", "Serbia", "Seychelles", "Sierra Leone", "Singapore", "Slovakia", "Slovenia", "Solomon Islands", "Somalia", "South Africa", "South Korea", "South Sudan", "Spain", "Sri Lanka", "Sudan", "Suriname", "Sweden", "Switzerland", "Syria", "Taiwan", "Tajikistan", "Tanzania", "Thailand", "Timor-Leste", "Togo", "Tonga", "Trinidad and Tobago", "Tunisia", "Turkey", "Turkmenistan", "Tuvalu", "Uganda", "Ukraine", "United Arab Emirates", "United Kingdom", "United States", "Uruguay", "Uzbekistan", "Vanuatu", "Venezuela", "Vietnam", "Yemen", "Zambia", "Zimbabwe"
+];
+
+export const DURATION_OPTIONS: { label: string; value: Duration }[] = [
+  { label: 'Today', value: 'TODAY' },
+  { label: 'Week to Date', value: 'WTD' },
+  { label: 'Month to Date', value: 'MTD' },
+  { label: '30 Days', value: '30D' },
+  { label: '60 Days', value: '60D' },
+  { label: '90 Days', value: '90D' },
+  { label: '6 Months', value: '6M' },
+  { label: 'Year to Date', value: 'YTD' },
+  { label: '1 Year', value: '1Y' },
+  { label: 'All Time', value: 'ALL' },
+];
+
+export const DEFAULT_ACCOUNT_ORDER_OPTIONS: { value: DefaultAccountOrder, label: string }[] = [
+    { value: 'manual', label: 'Manual' },
+    { value: 'name', label: 'Name (A-Z)' },
+    { value: 'balance', label: 'Balance (High-Low)' },
+];
+
+
 export const ACCOUNT_TYPE_STYLES: { [key in AccountType]: { icon: string; color: string } } = {
     'Checking': { icon: 'account_balance', color: 'text-blue-500' },
     'Savings': { icon: 'savings', color: 'text-green-500' },
     'Credit Card': { icon: 'credit_card', color: 'text-orange-500' },
-    'Investment': { icon: 'show_chart', color: 'text-purple-500' },
+    'Investment': { icon: 'show_chart', color: 'text-purple-500' }, // This will be the default for Investment
     'Loan': { icon: 'request_quote', color: 'text-red-500' },
     'Property': { icon: 'home', color: 'text-yellow-500' },
-    'Crypto': { icon: 'currency_bitcoin', color: 'text-amber-500' },
     'Vehicle': { icon: 'directions_car', color: 'text-cyan-500' },
     'Other Assets': { icon: 'category', color: 'text-lime-500' },
     'Other Liabilities': { icon: 'receipt', color: 'text-pink-500' },
+};
+
+export const INVESTMENT_SUB_TYPE_STYLES: { [key in InvestmentSubType]: { icon: string; color: string } } = {
+    'Stock': { icon: 'show_chart', color: 'text-purple-500' },
+    'ETF': { icon: 'account_tree', color: 'text-teal-500' },
+    'Crypto': { icon: 'currency_bitcoin', color: 'text-amber-500' },
+    'Pension Fund': { icon: 'assured_workload', color: 'text-indigo-500' },
+    'Spare Change': { icon: 'monetization_on', color: 'text-lime-600' },
+    'Other': { icon: 'category', color: 'text-slate-500' },
 };
 
 // Mock data for current prices, as we don't have a live API

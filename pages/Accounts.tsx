@@ -2,7 +2,7 @@ import React, { useState, useMemo, useEffect } from 'react';
 import { Account, Page, AccountType, Transaction } from '../types';
 import AddAccountModal from '../components/AddAccountModal';
 import EditAccountModal from '../components/EditAccountModal';
-import { ASSET_TYPES, DEBT_TYPES, BTN_PRIMARY_STYLE, ACCOUNT_TYPE_STYLES, BTN_SECONDARY_STYLE, INPUT_BASE_STYLE, SELECT_WRAPPER_STYLE, SELECT_ARROW_STYLE } from '../constants';
+import { ASSET_TYPES, DEBT_TYPES, BTN_PRIMARY_STYLE, ACCOUNT_TYPE_STYLES, BTN_SECONDARY_STYLE, INPUT_BASE_STYLE, SELECT_WRAPPER_STYLE, SELECT_ARROW_STYLE, SELECT_STYLE } from '../constants';
 import { calculateAccountTotals, convertToEur, formatCurrency } from '../utils';
 import Card from '../components/Card';
 import AccountBreakdownCard from '../components/AccountBreakdownCard';
@@ -21,6 +21,8 @@ interface AccountsProps {
     saveTransaction: (transactions: (Omit<Transaction, 'id'> & { id?: string })[], idsToDelete?: string[]) => void;
     accountOrder: string[];
     setAccountOrder: React.Dispatch<React.SetStateAction<string[]>>;
+    sortBy: 'name' | 'balance' | 'manual';
+    setSortBy: React.Dispatch<React.SetStateAction<'name' | 'balance' | 'manual'>>;
 }
 
 // A new component for the list section
@@ -148,14 +150,13 @@ const AccountsListSection: React.FC<{
     );
 };
 
-const Accounts: React.FC<AccountsProps> = ({ accounts, transactions, saveAccount, deleteAccount, setCurrentPage, setAccountFilter, setViewingAccountId, saveTransaction, accountOrder, setAccountOrder }) => {
+const Accounts: React.FC<AccountsProps> = ({ accounts, transactions, saveAccount, deleteAccount, setCurrentPage, setAccountFilter, setViewingAccountId, saveTransaction, accountOrder, setAccountOrder, sortBy, setSortBy }) => {
   const [isAddModalOpen, setAddModalOpen] = useState(false);
   const [isEditModalOpen, setEditModalOpen] = useState(false);
   const [editingAccount, setEditingAccount] = useState<Account | null>(null);
   const [isAdjustModalOpen, setAdjustModalOpen] = useState(false);
   const [adjustingAccount, setAdjustingAccount] = useState<Account | null>(null);
-  const [sortBy, setSortBy] = useLocalStorage<'name' | 'balance' | 'manual'>('finaura-accounts-sortby', 'manual');
-
+  
 
   // --- Data Processing ---
   const { assetAccounts, debtAccounts, totalAssets, totalDebt, assetBreakdown, debtBreakdown } = useMemo(() => {
@@ -256,7 +257,7 @@ const Accounts: React.FC<AccountsProps> = ({ accounts, transactions, saveAccount
         </div>
         <div className="flex items-center gap-4">
             <div className={`${SELECT_WRAPPER_STYLE} w-48`}>
-                <select value={sortBy} onChange={e => setSortBy(e.target.value as any)} className={INPUT_BASE_STYLE}>
+                <select value={sortBy} onChange={e => setSortBy(e.target.value as any)} className={SELECT_STYLE}>
                     <option value="manual">Sort: Manual</option>
                     <option value="name">Sort: Name (A-Z)</option>
                     <option value="balance">Sort: Balance (High-Low)</option>

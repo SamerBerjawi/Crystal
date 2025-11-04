@@ -27,46 +27,54 @@ const ScheduleHeatmap: React.FC<ScheduleHeatmapProps> = ({ items }) => {
 
         const allOccurrences: ScheduledItem[] = [];
 
+        // Helper to parse date string as UTC midnight to avoid timezone issues
+        const parseAsUTC = (dateString: string): Date => {
+            const [year, month, day] = dateString.split('-').map(Number);
+            return new Date(Date.UTC(year, month - 1, day));
+        };
+
         items.forEach(item => {
             if (!item.isRecurring) {
-                const itemDate = new Date(item.date.replace(/-/g, '/'));
+                const itemDate = parseAsUTC(item.date);
                 if (itemDate >= startDate && itemDate <= endDate) {
                     allOccurrences.push(item);
                 }
             } else {
                 const rt = item.originalItem as RecurringTransaction;
-                let nextDate = new Date(rt.nextDueDate.replace(/-/g, '/'));
+                let nextDate = parseAsUTC(rt.nextDueDate);
+                const endDateUTC = rt.endDate ? parseAsUTC(rt.endDate) : null;
+                const startDateUTC = parseAsUTC(rt.startDate);
 
                 // Fast-forward to the first occurrence within or after the display window starts
-                while (nextDate < startDate && (!rt.endDate || nextDate < new Date(rt.endDate.replace(/-/g, '/')))) {
+                while (nextDate < startDate && (!endDateUTC || nextDate < endDateUTC)) {
                     const interval = rt.frequencyInterval || 1;
                     switch (rt.frequency) {
                         case 'daily':
-                            nextDate.setDate(nextDate.getDate() + interval);
+                            nextDate.setUTCDate(nextDate.getUTCDate() + interval);
                             break;
                         case 'weekly':
-                            nextDate.setDate(nextDate.getDate() + 7 * interval);
+                            nextDate.setUTCDate(nextDate.getUTCDate() + 7 * interval);
                             break;
                         case 'monthly': {
-                            const d = rt.dueDateOfMonth || new Date(rt.startDate.replace(/-/g, '/')).getDate();
-                            nextDate.setMonth(nextDate.getMonth() + interval, 1);
-                            const lastDayOfNextMonth = new Date(nextDate.getFullYear(), nextDate.getMonth() + 1, 0).getDate();
-                            nextDate.setDate(Math.min(d, lastDayOfNextMonth));
+                            const d = rt.dueDateOfMonth || startDateUTC.getUTCDate();
+                            nextDate.setUTCMonth(nextDate.getUTCMonth() + interval, 1);
+                            const lastDayOfNextMonth = new Date(Date.UTC(nextDate.getUTCFullYear(), nextDate.getUTCMonth() + 1, 0)).getUTCDate();
+                            nextDate.setUTCDate(Math.min(d, lastDayOfNextMonth));
                             break;
                         }
                         case 'yearly': {
-                            const d = rt.dueDateOfMonth || new Date(rt.startDate.replace(/-/g, '/')).getDate();
-                            const m = new Date(rt.startDate.replace(/-/g, '/')).getMonth();
-                            nextDate.setFullYear(nextDate.getFullYear() + interval);
-                            const lastDayOfNextMonth = new Date(nextDate.getFullYear(), m + 1, 0).getDate();
-                            nextDate.setMonth(m, Math.min(d, lastDayOfNextMonth));
+                            const d = rt.dueDateOfMonth || startDateUTC.getUTCDate();
+                            const m = startDateUTC.getUTCMonth();
+                            nextDate.setUTCFullYear(nextDate.getUTCFullYear() + interval);
+                            const lastDayOfNextMonth = new Date(Date.UTC(nextDate.getUTCFullYear(), m + 1, 0)).getUTCDate();
+                            nextDate.setUTCMonth(m, Math.min(d, lastDayOfNextMonth));
                             break;
                         }
                     }
                 }
 
                 // Now generate all occurrences until the end of the display window
-                while (nextDate <= endDate && (!rt.endDate || nextDate <= new Date(rt.endDate.replace(/-/g, '/')))) {
+                while (nextDate <= endDate && (!endDateUTC || nextDate <= endDateUTC)) {
                     allOccurrences.push({
                         ...item,
                         id: `${item.id}-${nextDate.toISOString()}`,
@@ -76,24 +84,24 @@ const ScheduleHeatmap: React.FC<ScheduleHeatmapProps> = ({ items }) => {
                     const interval = rt.frequencyInterval || 1;
                     switch (rt.frequency) {
                         case 'daily':
-                            nextDate.setDate(nextDate.getDate() + interval);
+                            nextDate.setUTCDate(nextDate.getUTCDate() + interval);
                             break;
                         case 'weekly':
-                            nextDate.setDate(nextDate.getDate() + 7 * interval);
+                            nextDate.setUTCDate(nextDate.getUTCDate() + 7 * interval);
                             break;
                         case 'monthly': {
-                            const d = rt.dueDateOfMonth || new Date(rt.startDate.replace(/-/g, '/')).getDate();
-                            nextDate.setMonth(nextDate.getMonth() + interval, 1);
-                            const lastDayOfNextMonth = new Date(nextDate.getFullYear(), nextDate.getMonth() + 1, 0).getDate();
-                            nextDate.setDate(Math.min(d, lastDayOfNextMonth));
+                            const d = rt.dueDateOfMonth || startDateUTC.getUTCDate();
+                            nextDate.setUTCMonth(nextDate.getUTCMonth() + interval, 1);
+                            const lastDayOfNextMonth = new Date(Date.UTC(nextDate.getUTCFullYear(), nextDate.getUTCMonth() + 1, 0)).getUTCDate();
+                            nextDate.setUTCDate(Math.min(d, lastDayOfNextMonth));
                             break;
                         }
                         case 'yearly': {
-                            const d = rt.dueDateOfMonth || new Date(rt.startDate.replace(/-/g, '/')).getDate();
-                            const m = new Date(rt.startDate.replace(/-/g, '/')).getMonth();
-                            nextDate.setFullYear(nextDate.getFullYear() + interval);
-                            const lastDayOfNextMonth = new Date(nextDate.getFullYear(), m + 1, 0).getDate();
-                            nextDate.setMonth(m, Math.min(d, lastDayOfNextMonth));
+                            const d = rt.dueDateOfMonth || startDateUTC.getUTCDate();
+                            const m = startDateUTC.getUTCMonth();
+                            nextDate.setUTCFullYear(nextDate.getUTCFullYear() + interval);
+                            const lastDayOfNextMonth = new Date(Date.UTC(nextDate.getUTCFullYear(), m + 1, 0)).getUTCDate();
+                            nextDate.setUTCMonth(m, Math.min(d, lastDayOfNextMonth));
                             break;
                         }
                     }
@@ -103,7 +111,7 @@ const ScheduleHeatmap: React.FC<ScheduleHeatmapProps> = ({ items }) => {
 
         const itemsByDate = new Map<string, { incomeCount: number, expenseCount: number }>();
         allOccurrences.forEach(item => {
-            const itemDate = new Date(item.date.replace(/-/g, '/'));
+            const itemDate = parseAsUTC(item.date);
             if (itemDate >= startDate && itemDate <= endDate) {
                 const dateStr = itemDate.toISOString().split('T')[0];
                 const existing = itemsByDate.get(dateStr) || { incomeCount: 0, expenseCount: 0 };

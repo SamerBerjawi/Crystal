@@ -1,10 +1,11 @@
 import React, { useState, useMemo } from 'react';
-import { INPUT_BASE_STYLE, SELECT_WRAPPER_STYLE, SELECT_ARROW_STYLE, BTN_PRIMARY_STYLE, BTN_SECONDARY_STYLE } from '../constants';
+import { INPUT_BASE_STYLE, SELECT_WRAPPER_STYLE, SELECT_ARROW_STYLE, BTN_PRIMARY_STYLE, BTN_SECONDARY_STYLE, SELECT_STYLE } from '../constants';
 import { Transaction, Category, Account, DisplayTransaction } from '../types';
 import Card from '../components/Card';
 import { formatCurrency, fuzzySearch, convertToEur } from '../utils';
 import AddTransactionModal from '../components/AddTransactionModal';
 import BulkCategorizeModal from '../components/BulkCategorizeModal';
+import BulkEditTransactionsModal from '../components/BulkEditTransactionsModal';
 import Modal from '../components/Modal';
 
 interface TransactionsProps {
@@ -39,6 +40,7 @@ const Transactions: React.FC<TransactionsProps> = ({ transactions, saveTransacti
   const [editingTransaction, setEditingTransaction] = useState<Transaction | null>(null);
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
   const [isCategorizeModalOpen, setIsCategorizeModalOpen] = useState(false);
+  const [isBulkEditModalOpen, setBulkEditModalOpen] = useState(false);
   const [isDeleteConfirmOpen, setIsDeleteConfirmOpen] = useState(false);
 
   const allCategories = useMemo(() => [...incomeCategories, ...expenseCategories], [incomeCategories, expenseCategories]);
@@ -151,6 +153,11 @@ const Transactions: React.FC<TransactionsProps> = ({ transactions, saveTransacti
       if (filteredTransactions.length === 0) return false;
       return filteredTransactions.every(tx => selectedIds.has(tx.id));
   }, [filteredTransactions, selectedIds]);
+  
+    const selectedTransactions = useMemo(() => {
+        const regularTxIds = Array.from(selectedIds).filter((id: string) => !id.startsWith('transfer-'));
+        return transactions.filter(t => regularTxIds.includes(t.id));
+    }, [selectedIds, transactions]);
 
   const handleSelectAll = (e: React.ChangeEvent<HTMLInputElement>) => {
     if (e.target.checked) {
@@ -211,6 +218,12 @@ const Transactions: React.FC<TransactionsProps> = ({ transactions, saveTransacti
       setSelectedIds(new Set());
   };
   
+    const handleSaveBulkEdits = (updatedTransactions: Transaction[]) => {
+        saveTransaction(updatedTransactions);
+        setBulkEditModalOpen(false);
+        setSelectedIds(new Set());
+    };
+
   const handleOpenDeleteModal = () => {
     setIsDeleteConfirmOpen(true);
   };
@@ -292,6 +305,17 @@ const Transactions: React.FC<TransactionsProps> = ({ transactions, saveTransacti
               expenseCategories={expenseCategories}
           />
       )}
+       {isBulkEditModalOpen && (
+          <BulkEditTransactionsModal
+            isOpen={isBulkEditModalOpen}
+            onClose={() => setBulkEditModalOpen(false)}
+            onSave={handleSaveBulkEdits}
+            transactionsToEdit={selectedTransactions}
+            accounts={accounts}
+            incomeCategories={incomeCategories}
+            expenseCategories={expenseCategories}
+          />
+      )}
       {isDeleteConfirmOpen && (
           <Modal onClose={() => setIsDeleteConfirmOpen(false)} title="Confirm Deletion">
               <p className="text-light-text-secondary dark:text-dark-text-secondary">
@@ -338,7 +362,7 @@ const Transactions: React.FC<TransactionsProps> = ({ transactions, saveTransacti
                       id="account-filter"
                       value={accountFilter || ''}
                       onChange={(e) => setAccountFilter(e.target.value || null)}
-                      className={INPUT_BASE_STYLE}
+                      className={SELECT_STYLE}
                     >
                       <option value="">All Accounts</option>
                       {accounts.map(acc => (
@@ -357,7 +381,7 @@ const Transactions: React.FC<TransactionsProps> = ({ transactions, saveTransacti
                       id="sort-by"
                       value={sortBy}
                       onChange={(e) => setSortBy(e.target.value)}
-                      className={INPUT_BASE_STYLE}
+                      className={SELECT_STYLE}
                     >
                       <option value="date-desc">Date (Newest)</option>
                       <option value="date-asc">Date (Oldest)</option>
@@ -373,7 +397,7 @@ const Transactions: React.FC<TransactionsProps> = ({ transactions, saveTransacti
             <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                 <div className="md:col-span-1">
                     <label className={labelStyle}>Type</label>
-                    <div className="flex bg-light-fill dark:bg-dark-fill p-1 rounded-lg">
+                    <div className="flex bg-light-fill dark:bg-dark-fill p-1 rounded-lg h-10">
                         {typeFilterOptions.map(opt => (
                             <button
                                 key={opt.value}
@@ -489,7 +513,10 @@ const Transactions: React.FC<TransactionsProps> = ({ transactions, saveTransacti
                   </td>
                   <td className="p-4 text-base text-light-text-secondary dark:text-dark-text-secondary">{tx.description}</td>
                   <td className={`p-4 font-semibold text-right whitespace-nowrap text-base ${amountColor}`}>
-                    {formatCurrency(convertToEur(amount, tx.currency), 'EUR')}
+                    {tx.isTransfer && !accountFilter
+                        ? '-/+ ' + formatCurrency(convertToEur(Math.abs(amount), tx.currency), 'EUR')
+                        : formatCurrency(convertToEur(amount, tx.currency), 'EUR', { showPlusSign: true })
+                    }
                   </td>
                   <td className="p-4 text-right">
                     <button onClick={() => handleOpenEditModal(tx)} className="text-light-text-secondary dark:text-dark-text-secondary p-2 rounded-full hover:bg-black/5 dark:hover:bg-white/5 transition-colors opacity-0 group-hover:opacity-100">
@@ -507,7 +534,7 @@ const Transactions: React.FC<TransactionsProps> = ({ transactions, saveTransacti
           </div>
         )}
         {selectedIds.size > 0 && (
-            <div className="sticky bottom-4 inset-x-4 mx-auto max-w-xl z-20">
+            <div className="sticky bottom-4 inset-x-4 mx-auto max-w-2xl z-20">
                 <div className="bg-light-card dark:bg-dark-card p-3 rounded-xl shadow-lg border border-black/10 dark:border-white/10 flex items-center justify-between">
                     <p className="font-semibold">{selectedIds.size} selected</p>
                     <div className="flex items-center gap-2">
@@ -519,6 +546,15 @@ const Transactions: React.FC<TransactionsProps> = ({ transactions, saveTransacti
                         >
                             <span className="material-symbols-outlined text-base">sell</span>
                             Categorize
+                        </button>
+                        <button
+                            onClick={() => setBulkEditModalOpen(true)}
+                            disabled={containsTransfer}
+                            className="flex items-center gap-1 p-2 rounded-lg text-sm font-semibold text-light-text-secondary dark:text-dark-text-secondary hover:bg-black/5 dark:hover:bg-white/5 disabled:opacity-50 disabled:cursor-not-allowed"
+                            title={containsTransfer ? "Cannot bulk edit transfers" : "Edit"}
+                        >
+                            <span className="material-symbols-outlined text-base">edit</span>
+                            Edit
                         </button>
                          <button
                             disabled

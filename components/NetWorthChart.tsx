@@ -1,6 +1,6 @@
 import React from 'react';
 import { AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts';
-import { formatCurrency } from '../utils';
+import { formatCurrency, parseDateAsUTC } from '../utils';
 
 interface ChartData {
   name: string;
@@ -24,7 +24,7 @@ const NetWorthChart: React.FC<NetWorthChartProps> = ({ data, lineColor = '#6366F
       if (active && payload && payload.length) {
         return (
           <div className="bg-light-bg dark:bg-dark-bg p-3 rounded-xl shadow-lg border border-black/5 dark:border-white/10">
-            <p className="label font-semibold text-light-text-secondary dark:text-dark-text-secondary text-sm">{new Date(label.replace(/-/g, '/')).toLocaleDateString()}</p>
+            <p className="label font-semibold text-light-text-secondary dark:text-dark-text-secondary text-sm">{parseDateAsUTC(label).toLocaleDateString('en-US', { timeZone: 'UTC', day: 'numeric', month: 'long', year: 'numeric' })}</p>
             <p className="font-bold text-lg" style={{ color: lineColor }}>{formatCurrency(payload[0].value, 'EUR')}</p>
           </div>
         );
@@ -33,26 +33,23 @@ const NetWorthChart: React.FC<NetWorthChartProps> = ({ data, lineColor = '#6366F
   };
 
   const tickFormatter = (dateStr: string) => {
-    const date = new Date(dateStr.replace(/-/g, '/'));
+    const date = parseDateAsUTC(dateStr);
 
     if (data.length <= 1) return '';
 
-    const startDate = new Date(data[0].name.replace(/-/g, '/'));
-    const endDate = new Date(data[data.length - 1].name.replace(/-/g, '/'));
+    const startDate = parseDateAsUTC(data[0].name);
+    const endDate = parseDateAsUTC(data[data.length - 1].name);
     const rangeInDays = (endDate.getTime() - startDate.getTime()) / (1000 * 3600 * 24);
 
-    // If range is a month or less, show day and month.
     if (rangeInDays <= 31) {
-      return date.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
+      return date.toLocaleDateString('en-US', { timeZone: 'UTC', month: 'short', day: 'numeric' });
     }
     
-    // If range is within the same calendar year, just show the month.
-    if (startDate.getFullYear() === endDate.getFullYear()) {
-      return date.toLocaleDateString('en-US', { month: 'short' });
+    if (startDate.getUTCFullYear() === endDate.getUTCFullYear()) {
+      return date.toLocaleDateString('en-US', { timeZone: 'UTC', month: 'short' });
     }
     
-    // Otherwise (spanning multiple years), show month and year to avoid ambiguity.
-    return date.toLocaleDateString('en-US', { month: 'short', year: '2-digit' });
+    return date.toLocaleDateString('en-US', { timeZone: 'UTC', month: 'short', year: '2-digit' });
   };
   
   const gradientId = `colorNetWorth-${lineColor.replace('#', '')}`;
