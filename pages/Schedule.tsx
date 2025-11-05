@@ -1,8 +1,8 @@
 import React, { useState, useMemo } from 'react';
-import { RecurringTransaction, Account, Category, BillPayment, Currency } from '../types';
+import { RecurringTransaction, Account, Category, BillPayment, Currency, AccountType } from '../types';
 import Card from '../components/Card';
-import { BTN_PRIMARY_STYLE, BTN_SECONDARY_STYLE, INPUT_BASE_STYLE, SELECT_WRAPPER_STYLE, SELECT_ARROW_STYLE, LIQUID_ACCOUNT_TYPES } from '../constants';
-import { formatCurrency, convertToEur } from '../utils';
+import { BTN_PRIMARY_STYLE, BTN_SECONDARY_STYLE, INPUT_BASE_STYLE, SELECT_WRAPPER_STYLE, SELECT_ARROW_STYLE, LIQUID_ACCOUNT_TYPES, ACCOUNT_TYPE_STYLES } from '../constants';
+import { formatCurrency, convertToEur, generateSyntheticLoanPayments } from '../utils';
 import RecurringTransactionModal from '../components/RecurringTransactionModal';
 import Modal from '../components/Modal';
 import ScheduleHeatmap from '../components/ScheduleHeatmap';
@@ -66,6 +66,12 @@ const BillPaymentModal: React.FC<{
     );
 };
 
+// --- Helper to parse date string as UTC midnight to avoid timezone issues
+const parseAsUTC = (dateString: string): Date => {
+    const [year, month, day] = dateString.split('-').map(Number);
+    return new Date(Date.UTC(year, month - 1, day));
+};
+
 // --- Item Row Component ---
 const ScheduledItemRow: React.FC<{
     item: ScheduledItem;
@@ -73,7 +79,8 @@ const ScheduledItemRow: React.FC<{
     onEdit: (item: RecurringTransaction | BillPayment) => void;
     onDelete: (id: string, isRecurring: boolean) => void;
     onMarkAsPaid: (billId: string, paymentAccountId: string, paymentDate: string) => void;
-}> = ({ item, accounts, onEdit, onDelete, onMarkAsPaid }) => {
+    isReadOnly?: boolean;
+}> = ({ item, accounts, onEdit, onDelete, onMarkAsPaid, isReadOnly = false }) => {
     
     const [isConfirmingPayment, setIsConfirmingPayment] = useState(false);
     const originalBill = !item.isRecurring ? item.originalItem as BillPayment : null;
@@ -89,9 +96,9 @@ const ScheduledItemRow: React.FC<{
         setIsConfirmingPayment(false);
     };
 
-    const dueDate = new Date(item.date.replace(/-/g, '/'));
-    const day = dueDate.getDate();
-    const month = dueDate.toLocaleString('default', { month: 'short' }).toUpperCase();
+    const dueDate = parseAsUTC(item.date);
+    const day = dueDate.getUTCDate();
+    const month = dueDate.toLocaleString('default', { month: 'short', timeZone: 'UTC' }).toUpperCase();
     
     return (
       <div className="flex items-center justify-between p-4 group">
@@ -119,10 +126,10 @@ const ScheduledItemRow: React.FC<{
           <p className={`font-semibold text-base ${isIncome ? 'text-green-600 dark:text-green-400' : 'text-red-600 dark:text-red-400'}`}>
             {formatCurrency(item.amount, 'EUR')}
           </p>
-          <div className="opacity-0 group-hover:opacity-100 transition-opacity flex items-center gap-1">
+          <div className={`opacity-0 group-hover:opacity-100 transition-opacity flex items-center gap-1 ${isReadOnly ? '!opacity-0' : ''}`}>
             {!item.isRecurring && <button onClick={() => setIsConfirmingPayment(true)} className={`${BTN_PRIMARY_STYLE} !py-1 !px-2 text-xs`} title="Mark as Paid"><span className="material-symbols-outlined text-sm">check</span></button>}
             <button onClick={() => onEdit(item.originalItem)} className="text-light-text-secondary dark:text-dark-text-secondary p-2 rounded-full hover:bg-black/5 dark:hover:bg-white/5" title="Edit"><span className="material-symbols-outlined text-base">edit</span></button>
-            <button onClick={() => onDelete(item.id, item.isRecurring)} className="text-red-500/80 p-2 rounded-full hover:bg-red-500/10" title="Delete"><span className="material-symbols-outlined text-base">delete</span></button>
+            <button onClick={() => onDelete(item.originalItem.id, item.isRecurring)} className="text-red-500/80 p-2 rounded-full hover:bg-red-500/10" title="Delete"><span className="material-symbols-outlined text-base">delete</span></button>
           </div>
         </div>
       </div>
@@ -157,39 +164,28 @@ const Schedule: React.FC<ScheduleProps> = (props) => {
         return acc;
     }, {} as Record<string, string>), [accounts]);
     
-    const { summary, upcomingItems, paidItems } = useMemo(() => {
-        const today = new Date(); today.setHours(0,0,0,0);
-        const dateIn30Days = new Date(today); dateIn30Days.setDate(today.getDate() + 30);
-
-        let income30 = 0; let expense30 = 0;
+    const { upcomingItems, paidItems, accountSummaries, globalSummary } = useMemo(() => {
+        const today = new Date();
+        const todayUTC = new Date(Date.UTC(today.getUTCFullYear(), today.getUTCMonth(), today.getUTCDate()));
+        const dateIn30Days = new Date(todayUTC); dateIn30Days.setUTCDate(todayUTC.getUTCDate() + 30);
+        const forecastEndDate = new Date(todayUTC); forecastEndDate.setFullYear(today.getFullYear() + 2);
 
         const allUpcomingItems: ScheduledItem[] = [];
 
-        recurringTransactions.forEach(rt => {
-            // Helper to parse date string as UTC midnight to avoid timezone issues
-            const parseAsUTC = (dateString: string): Date => {
-                const [year, month, day] = dateString.split('-').map(Number);
-                return new Date(Date.UTC(year, month - 1, day));
-            };
+        const syntheticLoanPayments = generateSyntheticLoanPayments(accounts);
+        const allRecurringTransactions = [...recurringTransactions, ...syntheticLoanPayments];
 
+        allRecurringTransactions.forEach(rt => {
             let nextDate = parseAsUTC(rt.nextDueDate);
-
-            const today = new Date();
-            const todayUTC = new Date(Date.UTC(today.getUTCFullYear(), today.getUTCMonth(), today.getUTCDate()));
-
             const endDateUTC = rt.endDate ? parseAsUTC(rt.endDate) : null;
             const startDateUTC = parseAsUTC(rt.startDate);
 
-            // Advance date until it's in the future
+            // Fast-forward to today if nextDueDate is in the past
             while (nextDate < todayUTC && (!endDateUTC || nextDate < endDateUTC)) {
                 const interval = rt.frequencyInterval || 1;
-                switch(rt.frequency) {
-                    case 'daily':
-                        nextDate.setUTCDate(nextDate.getUTCDate() + interval);
-                        break;
-                    case 'weekly':
-                        nextDate.setUTCDate(nextDate.getUTCDate() + 7 * interval);
-                        break;
+                switch (rt.frequency) {
+                    case 'daily': nextDate.setUTCDate(nextDate.getUTCDate() + interval); break;
+                    case 'weekly': nextDate.setUTCDate(nextDate.getUTCDate() + 7 * interval); break;
                     case 'monthly': {
                         const d = rt.dueDateOfMonth || startDateUTC.getUTCDate();
                         nextDate.setUTCMonth(nextDate.getUTCMonth() + interval, 1);
@@ -208,140 +204,266 @@ const Schedule: React.FC<ScheduleProps> = (props) => {
                 }
             }
             
-            if (endDateUTC && nextDate > endDateUTC) {
-                return;
+            // Generate all future occurrences up to the forecast end date
+            while (nextDate <= forecastEndDate && (!endDateUTC || nextDate <= endDateUTC)) {
+                allUpcomingItems.push({
+                    id: `${rt.id}-${nextDate.toISOString()}`,
+                    isRecurring: true, 
+                    date: nextDate.toISOString().split('T')[0], 
+                    description: rt.description,
+                    amount: rt.type === 'expense' ? -rt.amount : rt.amount,
+                    accountName: rt.type === 'transfer' ? `${accountMap[rt.accountId]} → ${accountMap[rt.toAccountId!]}` : accountMap[rt.accountId],
+                    type: rt.type, 
+                    originalItem: rt, 
+                    isTransfer: rt.type === 'transfer'
+                });
+                
+                const interval = rt.frequencyInterval || 1;
+                 switch (rt.frequency) {
+                    case 'daily': nextDate.setUTCDate(nextDate.getUTCDate() + interval); break;
+                    case 'weekly': nextDate.setUTCDate(nextDate.getUTCDate() + 7 * interval); break;
+                    case 'monthly': {
+                        const d = rt.dueDateOfMonth || startDateUTC.getUTCDate();
+                        nextDate.setUTCMonth(nextDate.getUTCMonth() + interval, 1);
+                        const lastDayOfNextMonth = new Date(Date.UTC(nextDate.getUTCFullYear(), nextDate.getUTCMonth() + 1, 0)).getUTCDate();
+                        nextDate.setUTCDate(Math.min(d, lastDayOfNextMonth));
+                        break;
+                    }
+                    case 'yearly': {
+                        const d = rt.dueDateOfMonth || startDateUTC.getUTCDate();
+                        const m = startDateUTC.getUTCMonth();
+                        nextDate.setUTCFullYear(nextDate.getUTCFullYear() + interval);
+                        const lastDayOfNextMonth = new Date(Date.UTC(nextDate.getUTCFullYear(), m + 1, 0)).getUTCDate();
+                        nextDate.setUTCMonth(m, Math.min(d, lastDayOfNextMonth));
+                        break;
+                    }
+                }
             }
-
-            allUpcomingItems.push({
-                id: rt.id, isRecurring: true, date: nextDate.toISOString().split('T')[0], description: rt.description,
-                amount: rt.type === 'expense' ? -rt.amount : rt.amount,
-                accountName: rt.type === 'transfer' ? `${accountMap[rt.accountId]} → ${accountMap[rt.toAccountId!]}` : accountMap[rt.accountId],
-                type: rt.type, originalItem: rt, isTransfer: rt.type === 'transfer'
-            });
         });
-
+        
         billsAndPayments.filter(b => b.status === 'unpaid').forEach(b => {
              allUpcomingItems.push({
-                id: b.id, isRecurring: false, date: b.dueDate, description: b.description,
-                amount: b.amount, accountName: 'One-time', type: b.type, originalItem: b
+                id: b.id,
+                isRecurring: false,
+                date: b.dueDate,
+                description: b.description,
+                amount: b.amount,
+                accountName: 'External', // Bills are to/from external entities
+                type: b.type,
+                originalItem: b
             });
         });
 
-        allUpcomingItems.sort((a, b) => new Date(a.date.replace(/-/g, '/')).getTime() - new Date(b.date.replace(/-/g, '/')).getTime());
+        // Sort all upcoming items by date
+        allUpcomingItems.sort((a, b) => parseAsUTC(a.date).getTime() - parseAsUTC(b.date).getTime());
+
+        // Now, calculate the 30-day forecast
+        const forecastItems = allUpcomingItems.filter(item => {
+            const itemDate = parseAsUTC(item.date);
+            return itemDate >= todayUTC && itemDate <= dateIn30Days;
+        });
+
+        const accountSummaries: Record<string, { income: number; expense: number; net: number; currency: Currency }> = {};
+        let globalIncome = 0;
+        let globalExpense = 0;
+
+        const initializeSummary = (accountId: string) => {
+            if (!accountSummaries[accountId]) {
+                const account = accounts.find(a => a.id === accountId);
+                accountSummaries[accountId] = { income: 0, expense: 0, net: 0, currency: account?.currency || 'EUR' };
+            }
+        };
+
+        // FIX: Replaced the faulty `forEach` loop with one that uses `item.isRecurring` as a type guard to correctly handle the union type of `originalItem`.
+        forecastItems.forEach(item => {
+            const originalItem = item.originalItem;
+            const amountInEur = convertToEur(Math.abs(item.amount), (originalItem as RecurringTransaction | BillPayment).currency);
         
-        allUpcomingItems.forEach(item => {
-            const dueDate = new Date(item.date.replace(/-/g, '/'));
-            if (dueDate >= today && dueDate <= dateIn30Days) {
-                const amount = convertToEur(item.amount, 'EUR');
-                if (amount > 0) income30 += amount;
-                else expense30 += Math.abs(amount);
+            if (item.isRecurring) { // It's a RecurringTransaction
+                const rt = originalItem as RecurringTransaction;
+                if (rt.type === 'transfer' && rt.toAccountId) {
+                    // Expense from the 'from' account
+                    initializeSummary(rt.accountId);
+                    accountSummaries[rt.accountId].expense += amountInEur;
+                    accountSummaries[rt.accountId].net -= amountInEur;
+        
+                    // Income to the 'to' account
+                    initializeSummary(rt.toAccountId);
+                    accountSummaries[rt.toAccountId].income += amountInEur;
+                    accountSummaries[rt.toAccountId].net += amountInEur;
+                } else { // non-transfer recurring transaction
+                    initializeSummary(rt.accountId);
+                    if (item.amount > 0) {
+                        accountSummaries[rt.accountId].income += amountInEur;
+                        accountSummaries[rt.accountId].net += amountInEur;
+                        globalIncome += amountInEur;
+                    } else {
+                        accountSummaries[rt.accountId].expense += amountInEur;
+                        accountSummaries[rt.accountId].net -= amountInEur;
+                        globalExpense += amountInEur;
+                    }
+                }
+            } else { // It's a BillPayment
+                // One-time bills are external, they only affect global totals
+                if (item.amount > 0) {
+                    globalIncome += amountInEur;
+                } else {
+                    globalExpense += amountInEur;
+                }
             }
         });
         
-        const paidItems = billsAndPayments.filter(b => b.status === 'paid').sort((a,b) => new Date(b.dueDate).getTime() - new Date(a.dueDate).getTime());
+        const globalNet = globalIncome - globalExpense;
+        const globalSummary = { income: globalIncome, expense: globalExpense, net: globalNet };
+
+        const paidItems = billsAndPayments
+            .filter(b => b.status === 'paid')
+            .sort((a, b) => parseAsUTC(b.dueDate).getTime() - parseAsUTC(a.dueDate).getTime())
+            .slice(0, 10); // Show last 10 paid
 
         return {
-            summary: { income: income30, expenses: expense30, net: income30 - expense30 },
             upcomingItems: allUpcomingItems,
-            paidItems
+            paidItems,
+            accountSummaries,
+            globalSummary
         };
-    }, [recurringTransactions, billsAndPayments, accountMap]);
+    }, [recurringTransactions, billsAndPayments, accounts, accountMap]);
 
-
-    const handleAddRecurringClick = () => { setEditingTransaction(null); setIsRecurringModalOpen(true); };
-    const handleAddBillClick = () => { setEditingBill(null); setIsBillModalOpen(true); };
-
-    const handleEdit = (item: RecurringTransaction | BillPayment) => {
-        if ('frequency' in item) { // It's a RecurringTransaction
-            setEditingTransaction(item);
-            setIsRecurringModalOpen(true);
-        } else { // It's a BillPayment
-            setEditingBill(item);
-            setIsBillModalOpen(true);
-        }
+    const handleOpenRecurringModal = (rt?: RecurringTransaction) => {
+        setEditingTransaction(rt || null);
+        setIsRecurringModalOpen(true);
     };
-    
-    const handleDelete = (id: string, isRecurring: boolean) => {
-        if (window.confirm('Are you sure you want to delete this item?')) {
-            if (isRecurring) deleteRecurringTransaction(id);
-            else deleteBillPayment(id);
+
+    const handleOpenBillModal = (bill?: BillPayment) => {
+        setEditingBill(bill || null);
+        setIsBillModalOpen(true);
+    };
+
+    const handleEditItem = (item: RecurringTransaction | BillPayment) => {
+        if ('frequency' in item) {
+            handleOpenRecurringModal(item);
+        } else {
+            handleOpenBillModal(item);
         }
     };
 
-    const today = new Date(); today.setHours(0,0,0,0);
-    const dateIn7Days = new Date(today); dateIn7Days.setDate(today.getDate() + 7);
-    const dateIn30Days = new Date(today); dateIn30Days.setDate(today.getDate() + 30);
+    const handleDeleteItem = (id: string, isRecurring: boolean) => {
+        if (isRecurring) {
+            deleteRecurringTransaction(id);
+        } else {
+            deleteBillPayment(id);
+        }
+    };
 
-    const groups = {
-        next7Days: upcomingItems.filter(item => new Date(item.date.replace(/-/g, '/')) <= dateIn7Days),
-        next30Days: upcomingItems.filter(item => new Date(item.date.replace(/-/g, '/')) > dateIn7Days && new Date(item.date.replace(/-/g, '/')) <= dateIn30Days),
-        later: upcomingItems.filter(item => new Date(item.date.replace(/-/g, '/')) > dateIn30Days)
+    const groupItems = (items: ScheduledItem[]) => {
+        const groups: Record<string, ScheduledItem[]> = { 'Overdue': [], 'Today': [], 'Next 7 Days': [], 'Next 30 Days': [], 'Later': [] };
+        const today = new Date();
+        const todayUTC = new Date(Date.UTC(today.getUTCFullYear(), today.getUTCMonth(), today.getUTCDate()));
+        const next7Days = new Date(todayUTC); next7Days.setUTCDate(todayUTC.getUTCDate() + 7);
+        const next30Days = new Date(todayUTC); next30Days.setUTCDate(todayUTC.getUTCDate() + 30);
+        
+        items.forEach(item => {
+            const itemDate = parseAsUTC(item.date);
+            if (itemDate < todayUTC) { groups['Overdue'].push(item); } 
+            else if (itemDate.getTime() === todayUTC.getTime()) { groups['Today'].push(item); } 
+            else if (itemDate <= next7Days) { groups['Next 7 Days'].push(item); } 
+            else if (itemDate <= next30Days) { groups['Next 30 Days'].push(item); } 
+            else { groups['Later'].push(item); }
+        });
+        return groups;
     };
     
-    const renderGroup = (title: string, items: ScheduledItem[]) => {
-        if (items.length === 0) return null;
-        return (
-            <div key={title}>
-                <h3 className="text-xl font-semibold mb-2 text-light-text dark:text-dark-text">{title}</h3>
-                <Card><div className="divide-y divide-black/5 dark:divide-white/5 -m-4">{items.map(item => <ScheduledItemRow key={item.id} item={item} accounts={accounts} onEdit={handleEdit} onDelete={handleDelete} onMarkAsPaid={markBillAsPaid}/>)}</div></Card>
-            </div>
-        )
-    };
-
-    const renderPaidItem = (bill: BillPayment) => (
-         <div className="flex items-center justify-between p-4 opacity-70">
-            <div className="flex items-center gap-4">
-                <span className={`material-symbols-outlined text-3xl ${bill.type === 'deposit' ? 'text-green-500' : 'text-red-500'}`}>{bill.type === 'deposit' ? 'add_card' : 'credit_card'}</span>
-                <div>
-                    <p className="font-semibold text-light-text dark:text-dark-text">{bill.description}</p>
-                    <p className="text-sm text-light-text-secondary dark:text-dark-text-secondary">Paid on {new Date(bill.dueDate).toLocaleDateString()}</p>
-                </div>
-            </div>
-             <p className={`font-semibold text-lg ${bill.type === 'deposit' ? 'text-green-500' : 'text-red-500'}`}>{formatCurrency(bill.amount, bill.currency)}</p>
-        </div>
-    );
+    const groupedUpcomingItems = groupItems(upcomingItems.filter(item => {
+        return parseAsUTC(item.date) >= new Date(new Date().toISOString().split('T')[0]);
+    }));
 
     return (
         <div className="space-y-8">
-            {isRecurringModalOpen && <RecurringTransactionModal onClose={() => setIsRecurringModalOpen(false)} onSave={(d)=>{saveRecurringTransaction(d); setIsRecurringModalOpen(false);}} accounts={accounts} incomeCategories={incomeCategories} expenseCategories={expenseCategories} recurringTransactionToEdit={editingTransaction}/>}
-            {isBillModalOpen && <BillPaymentModal bill={editingBill} onSave={(d)=>{saveBillPayment(d); setIsBillModalOpen(false);}} onClose={() => setIsBillModalOpen(false)} accounts={accounts} />}
+            {isRecurringModalOpen && <RecurringTransactionModal onClose={() => setIsRecurringModalOpen(false)} onSave={(data) => { saveRecurringTransaction(data); setIsRecurringModalOpen(false); }} accounts={accounts} incomeCategories={incomeCategories} expenseCategories={expenseCategories} recurringTransactionToEdit={editingTransaction} />}
+            {isBillModalOpen && <BillPaymentModal onClose={() => setIsBillModalOpen(false)} onSave={(data) => { saveBillPayment(data); setIsBillModalOpen(false); }} bill={editingBill} accounts={accounts} />}
             
-            <header className="flex flex-wrap justify-between items-center gap-4">
+            <header className="flex justify-between items-center">
                 <div>
-                    <p className="text-light-text-secondary dark:text-dark-text-secondary mt-1">Manage your recurring payments, bills, and expected income.</p>
+                    <p className="text-light-text-secondary dark:text-dark-text-secondary mt-1">Manage your future income, expenses, and bills.</p>
                 </div>
-                <div className="flex items-center gap-4">
-                    <button onClick={handleAddBillClick} className={BTN_SECONDARY_STYLE}>Add Bill/Payment</button>
-                    <button onClick={handleAddRecurringClick} className={BTN_PRIMARY_STYLE}>Add Recurring</button>
+                <div className="flex gap-4">
+                    <button onClick={() => handleOpenBillModal()} className={BTN_SECONDARY_STYLE}>Add Bill/Payment</button>
+                    <button onClick={() => handleOpenRecurringModal()} className={BTN_PRIMARY_STYLE}>Add Recurring</button>
                 </div>
             </header>
 
             <Card>
-                <h3 className="text-xl font-semibold mb-4">Next 30 Days Forecast</h3>
-                <div className="grid grid-cols-1 md:grid-cols-3 gap-4 text-center">
-                    <div><p className="text-base text-green-500">Income</p><p className="text-2xl font-bold">{formatCurrency(summary.income, 'EUR')}</p></div>
-                    <div><p className="text-base text-red-500">Expenses</p><p className="text-2xl font-bold">{formatCurrency(summary.expenses, 'EUR')}</p></div>
-                    <div><p className="text-base text-light-text-secondary dark:text-dark-text-secondary">Net Cash Flow</p><p className={`text-2xl font-bold ${summary.net >= 0 ? 'text-green-500' : 'text-red-500'}`}>{formatCurrency(summary.net, 'EUR')}</p></div>
-                </div>
+                <h3 className="text-xl font-semibold mb-4 text-light-text dark:text-dark-text">Next 30 Days Forecast</h3>
+                <table className="w-full text-sm">
+                    <thead>
+                        <tr className="border-b border-black/10 dark:border-white/10 text-left text-light-text-secondary dark:text-dark-text-secondary">
+                            <th className="py-2 px-4 font-semibold">Account</th>
+                            <th className="py-2 px-4 font-semibold text-right">Income</th>
+                            <th className="py-2 px-4 font-semibold text-right">Expenses</th>
+                            <th className="py-2 px-4 font-semibold text-right">Net Cash Flow</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {Object.entries(accountSummaries).map(([accountId, summary]: [string, { income: number; expense: number; net: number; currency: Currency }]) => {
+                            const account = accounts.find(a => a.id === accountId);
+                            if (!account) return null;
+                            return (
+                                <tr key={accountId} className="border-b border-black/5 dark:border-white/5 last:border-0">
+                                    <td className="py-3 px-4 flex items-center gap-2"><span className={`material-symbols-outlined text-base ${ACCOUNT_TYPE_STYLES[account.type]?.color || 'text-gray-500'}`}>{account.icon || 'wallet'}</span><span className="font-medium">{account.name}</span></td>
+                                    <td className="py-3 px-4 text-right text-green-600 dark:text-green-400">{formatCurrency(summary.income, 'EUR')}</td>
+                                    <td className="py-3 px-4 text-right text-red-600 dark:text-red-400">{formatCurrency(summary.expense, 'EUR')}</td>
+                                    <td className={`py-3 px-4 text-right font-semibold ${summary.net >= 0 ? 'text-green-600 dark:text-green-400' : 'text-red-600 dark:text-red-400'}`}>{formatCurrency(summary.net, 'EUR', { showPlusSign: true })}</td>
+                                </tr>
+                            );
+                        })}
+                    </tbody>
+                    <tfoot>
+                        <tr className="border-t-2 border-black/10 dark:border-white/10 font-bold">
+                            <td className="py-3 px-4">Total (External)</td>
+                            <td className="py-3 px-4 text-right text-green-600 dark:text-green-400">{formatCurrency(globalSummary.income, 'EUR')}</td>
+                            <td className="py-3 px-4 text-right text-red-600 dark:text-red-400">{formatCurrency(globalSummary.expense, 'EUR')}</td>
+                            <td className={`py-3 px-4 text-right ${globalSummary.net >= 0 ? 'text-green-600 dark:text-green-400' : 'text-red-600 dark:text-red-400'}`}>{formatCurrency(globalSummary.net, 'EUR', { showPlusSign: true })}</td>
+                        </tr>
+                    </tfoot>
+                </table>
             </Card>
-            
+
             <ScheduleHeatmap items={upcomingItems} />
             
-            <div className="space-y-6">
-                 {renderGroup('Next 7 Days', groups.next7Days)}
-                 {renderGroup('Next 30 Days', groups.next30Days)}
-                 {renderGroup('Later', groups.later)}
-                 
-                 {upcomingItems.length === 0 && (
-                     <Card><div className="text-center py-12 text-light-text-secondary dark:text-dark-text-secondary"><span className="material-symbols-outlined text-5xl mb-2">event_available</span><p className="font-semibold">Your schedule is clear.</p><p className="text-sm">Add a recurring transaction or a one-time bill to get started.</p></div></Card>
-                 )}
-                 
-                 {paidItems.length > 0 && (
-                    <div>
-                        <h3 className="text-xl font-semibold mb-2 text-light-text dark:text-dark-text">Paid / Received History</h3>
-                        <Card><div className="divide-y divide-black/5 dark:divide-white/5 -m-4">{paidItems.map(item => renderPaidItem(item))}</div></Card>
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
+                <Card>
+                    <h3 className="text-xl font-semibold mb-4 text-light-text dark:text-dark-text">Upcoming</h3>
+                    <div className="divide-y divide-light-separator dark:divide-dark-separator -mx-6">
+                        {Object.entries(groupedUpcomingItems).map(([groupName, items]) => items.length > 0 && (
+                            <div key={groupName} className="px-6 py-4">
+                                <h4 className="font-semibold mb-2">{groupName}</h4>
+                                <div className="space-y-2 -mx-4">
+                                    {items.map(item => <ScheduledItemRow key={item.id} item={item} accounts={accounts} onEdit={handleEditItem} onDelete={handleDeleteItem} onMarkAsPaid={markBillAsPaid} />)}
+                                </div>
+                            </div>
+                        ))}
                     </div>
-                 )}
+                </Card>
+                <Card>
+                    <h3 className="text-xl font-semibold mb-4 text-light-text dark:text-dark-text">Recently Paid</h3>
+                    <div className="space-y-2 -mx-4">
+                        {paidItems.map(item => (
+                            <div key={item.id} className="flex items-center justify-between p-4 opacity-60">
+                                <div className="flex items-center gap-4">
+                                    <div className="flex-shrink-0 text-center rounded-lg p-2 w-16 bg-light-bg dark:bg-dark-bg">
+                                        <p className="text-xs font-semibold text-gray-400">{parseAsUTC(item.dueDate).toLocaleString('default', { month: 'short', timeZone: 'UTC' }).toUpperCase()}</p>
+                                        <p className="text-2xl font-bold text-gray-500">{parseAsUTC(item.dueDate).getUTCDate()}</p>
+                                    </div>
+                                    <div>
+                                        <p className="font-semibold text-lg text-light-text dark:text-dark-text line-through">{item.description}</p>
+                                        <p className="text-sm text-light-text-secondary dark:text-dark-text-secondary">{accountMap[item.accountId!] || 'External'}</p>
+                                    </div>
+                                </div>
+                                <p className="font-semibold text-base text-gray-500 line-through">{formatCurrency(item.amount, item.currency)}</p>
+                            </div>
+                        ))}
+                    </div>
+                </Card>
             </div>
         </div>
     );

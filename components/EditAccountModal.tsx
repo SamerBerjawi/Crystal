@@ -37,6 +37,8 @@ const EditAccountModal: React.FC<EditAccountModalProps> = ({ onClose, onSave, on
   const [duration, setDuration] = useState(account.duration ? String(account.duration) : '');
   const [interestRate, setInterestRate] = useState(account.interestRate ? String(account.interestRate) : '');
   const [loanStartDate, setLoanStartDate] = useState(account.loanStartDate || new Date().toISOString().split('T')[0]);
+  const [monthlyPayment, setMonthlyPayment] = useState(account.monthlyPayment ? String(account.monthlyPayment) : '');
+  const [paymentDayOfMonth, setPaymentDayOfMonth] = useState(account.paymentDayOfMonth ? String(account.paymentDayOfMonth) : '');
   const [make, setMake] = useState(account.make || '');
   const [model, setModel] = useState(account.model || '');
   const [year, setYear] = useState(account.year ? String(account.year) : '');
@@ -141,6 +143,8 @@ const EditAccountModal: React.FC<EditAccountModalProps> = ({ onClose, onSave, on
       duration: (type === 'Loan' || type === 'Lending') && duration ? parseInt(duration) : undefined,
       interestRate: (type === 'Loan' || type === 'Lending') && interestRate ? parseFloat(interestRate) : undefined,
       loanStartDate: (type === 'Loan' || type === 'Lending') ? loanStartDate : undefined,
+      monthlyPayment: (type === 'Loan' || type === 'Lending') && monthlyPayment ? parseFloat(monthlyPayment) : undefined,
+      paymentDayOfMonth: (type === 'Loan' || type === 'Lending') && paymentDayOfMonth ? parseInt(paymentDayOfMonth) : undefined,
       linkedAccountId: (type === 'Loan' || type === 'Lending') ? linkedAccountId || undefined : undefined,
       make: type === 'Vehicle' ? make || undefined : undefined,
       model: type === 'Vehicle' ? model || undefined : undefined,
@@ -274,6 +278,21 @@ const EditAccountModal: React.FC<EditAccountModalProps> = ({ onClose, onSave, on
                         <div><label htmlFor="loanStartDate" className={labelStyle}>Start Date</label><input id="loanStartDate" type="date" value={loanStartDate} onChange={e=>setLoanStartDate(e.target.value)} className={INPUT_BASE_STYLE} /></div>
                         {type === 'Loan' && <div><label htmlFor="downPayment" className={labelStyle}>Down Payment (Optional)</label><input id="downPayment" type="number" step="0.01" value={downPayment} onChange={e=>setDownPayment(e.target.value)} className={INPUT_BASE_STYLE} /></div>}
                    </div>
+                    <div className="pt-4 border-t border-black/10 dark:border-white/10 space-y-4">
+                        <div className="grid grid-cols-2 gap-4">
+                            <div>
+                                <label htmlFor="monthlyPayment" className={labelStyle}>Monthly Payment (Optional)</label>
+                                <input id="monthlyPayment" type="number" step="0.01" value={monthlyPayment} onChange={e=>setMonthlyPayment(e.target.value)} className={INPUT_BASE_STYLE} />
+                            </div>
+                            <div>
+                                <label htmlFor="paymentDayOfMonth" className={labelStyle}>Payment Day of Month</label>
+                                <input id="paymentDayOfMonth" type="number" min="1" max="31" value={paymentDayOfMonth} onChange={e=>setPaymentDayOfMonth(e.target.value)} className={INPUT_BASE_STYLE} />
+                            </div>
+                        </div>
+                         <p className="text-xs text-light-text-secondary dark:text-dark-text-secondary -mt-2">
+                            If set, a recurring payment will be scheduled. If blank, payment is calculated from loan terms.
+                        </p>
+                    </div>
                    <div>
                         <label htmlFor="linkedAccountId" className={labelStyle}>Linked Debit Account</label>
                         <div className={SELECT_WRAPPER_STYLE}>

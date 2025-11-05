@@ -59,6 +59,8 @@ export interface Account {
   loanStartDate?: string;
   linkedAccountId?: string;
   downPayment?: number;
+  monthlyPayment?: number;
+  paymentDayOfMonth?: number;
 
   // Vehicle specific
   make?: string;

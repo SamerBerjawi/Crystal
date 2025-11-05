@@ -44,16 +44,21 @@ const GoalContributionPlan: React.FC<GoalContributionPlanProps> = ({ plan, isLoa
                 {(steps as ContributionPlanStep[]).sort((a, b) => {
                     if (a.date === 'Upfront Contribution') return -1;
                     if (b.date === 'Upfront Contribution') return 1;
-                    if (a.date === 'Warning') return 1;
-                    if (b.date === 'Warning') return -1;
-                    return new Date(a.date).getTime() - new Date(b.date).getTime();
+                    // FIX: Handle 'Warning' and other non-date strings to prevent invalid date errors.
+                    if (a.date.includes('-') && b.date.includes('-')) {
+                        return new Date(a.date).getTime() - new Date(b.date).getTime();
+                    }
+                    if (a.date.includes('-')) return -1; // Dates before strings
+                    if (b.date.includes('-')) return 1;
+                    return a.date.localeCompare(b.date); // Fallback for other strings
                 }).map((step, index) => (
                 <div key={index} className={`p-3 grid grid-cols-1 sm:grid-cols-3 gap-x-4 gap-y-1 text-sm ${step.notes ? 'bg-yellow-100/50 dark:bg-yellow-900/20' : ''}`}>
                     <div className="font-medium flex items-center gap-2">
                         <span className="material-symbols-outlined text-base text-light-text-secondary dark:text-dark-text-secondary">
                             {step.date.startsWith('Upfront') ? 'star' : 'calendar_month'}
                         </span>
-                        <span>{step.date === 'Upfront Contribution' ? 'Upfront Contribution' : new Date(step.date).toLocaleDateString('en-US', { year: 'numeric', month: 'long' })}</span>
+                        {/* FIX: Ensure that only valid date strings are passed to the Date constructor. */}
+                        <span>{step.date.includes('-') ? new Date(step.date).toLocaleDateString('en-US', { year: 'numeric', month: 'long', timeZone: 'UTC' }) : step.date}</span>
                     </div>
                     <div className="text-light-text-secondary dark:text-dark-text-secondary">
                         From <span className="font-semibold text-light-text dark:text-dark-text">{step.accountName}</span>

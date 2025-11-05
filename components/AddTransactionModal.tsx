@@ -79,7 +79,7 @@ const AddTransactionModal: React.FC<AddTransactionModalProps> = ({ onClose, onSa
         const outstandingPrincipal = Math.abs(targetAccount.balance); 
         const monthlyInterestRate = (targetAccount.interestRate / 100) / 12;
         
-        const calculatedInterest = outstandingPrincipal * monthlyInterestRate;
+        const calculatedInterest = parseFloat((outstandingPrincipal * monthlyInterestRate).toFixed(2));
         
         // The interest portion cannot be more than the total payment itself.
         const interest = Math.min(totalPayment, calculatedInterest);

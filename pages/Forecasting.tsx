@@ -1,7 +1,7 @@
 import React, { useState, useMemo, useCallback, Dispatch, SetStateAction } from 'react';
 import { Account, Transaction, RecurringTransaction, FinancialGoal, Category, Page, ContributionPlanStep, BillPayment } from '../types';
 import { BTN_PRIMARY_STYLE, BTN_SECONDARY_STYLE, LIQUID_ACCOUNT_TYPES } from '../constants';
-import { formatCurrency, convertToEur, generateBalanceForecast } from '../utils';
+import { formatCurrency, convertToEur, generateBalanceForecast, generateSyntheticLoanPayments } from '../utils';
 import Card from '../components/Card';
 import MultiAccountFilter from '../components/MultiAccountFilter';
 import FinancialGoalCard from '../components/FinancialGoalCard';
@@ -23,7 +23,7 @@ interface ForecastingProps {
   billsAndPayments: BillPayment[];
   activeGoalIds: string[];
   // FIX: Update the type of the `setActiveGoalIds` prop to `React.Dispatch<React.SetStateAction<string[]>>` to correctly handle state updates.
-  setActiveGoalIds: Dispatch<SetStateAction<string[]>>;
+  setActiveGoalIds: React.Dispatch<React.SetStateAction<string[]>>;
 }
 
 const useSmartGoalPlanner = (
@@ -140,9 +140,12 @@ const Forecasting: React.FC<ForecastingProps> = ({ accounts, transactions, recur
         const projectionEndDate = new Date();
         projectionEndDate.setFullYear(new Date().getFullYear() + 10);
 
+        const syntheticLoanPayments = generateSyntheticLoanPayments(accounts);
+        const allRecurringItems = [...recurringTransactions, ...syntheticLoanPayments];
+
         const fullData = generateBalanceForecast(
             selectedAccounts,
-            recurringTransactions,
+            allRecurringItems,
             activeGoals,
             billsAndPayments,
             projectionEndDate
@@ -188,7 +191,7 @@ const Forecasting: React.FC<ForecastingProps> = ({ accounts, transactions, recur
         }
 
         return { forecastData, lowestPoint, goalsWithProjections };
-    }, [selectedAccounts, recurringTransactions, activeGoals, billsAndPayments, financialGoals, forecastDuration]);
+    }, [selectedAccounts, recurringTransactions, activeGoals, billsAndPayments, financialGoals, forecastDuration, accounts]);
 
     const { generatePlan, plan, isLoading: isPlanLoading, error: planError } = useSmartGoalPlanner(selectedAccounts, recurringTransactions, goalsWithProjections.filter(g => activeGoalIds.includes(g.id)));
 

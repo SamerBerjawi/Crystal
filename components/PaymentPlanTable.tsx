@@ -19,6 +19,15 @@ const PaymentPlanTable: React.FC<PaymentPlanTableProps> = ({ account, transactio
         return generateAmortizationSchedule(account, transactions, overrides);
     }, [account, transactions, overrides]);
 
+    const totals = useMemo(() => {
+        return schedule.reduce((acc, payment) => {
+            acc.totalPayment += payment.totalPayment;
+            acc.principal += payment.principal;
+            acc.interest += payment.interest;
+            return acc;
+        }, { totalPayment: 0, principal: 0, interest: 0 });
+    }, [schedule]);
+
     const handleEditClick = (payment: ScheduledPayment) => {
         setEditingPaymentNumber(payment.paymentNumber);
         setEditFormData({
@@ -46,13 +55,17 @@ const PaymentPlanTable: React.FC<PaymentPlanTableProps> = ({ account, transactio
         const interest = editFormData.interest;
 
         if (lastEditedField === 'total' && total !== undefined && interest !== undefined) {
-            setEditFormData(prev => ({ ...prev, principal: total - interest }));
+            const newPrincipal = parseFloat((total - interest).toFixed(2));
+            setEditFormData(prev => ({ ...prev, principal: newPrincipal }));
         } else if (lastEditedField === 'principal' && total !== undefined && principal !== undefined) {
-            setEditFormData(prev => ({ ...prev, interest: total - principal }));
+            const newInterest = parseFloat((total - principal).toFixed(2));
+            setEditFormData(prev => ({ ...prev, interest: newInterest }));
         } else if (lastEditedField === 'interest' && total !== undefined && interest !== undefined) {
-            setEditFormData(prev => ({ ...prev, principal: total - interest }));
+            const newPrincipal = parseFloat((total - interest).toFixed(2));
+            setEditFormData(prev => ({ ...prev, principal: newPrincipal }));
         } else if ((lastEditedField === 'principal' || lastEditedField === 'interest') && principal !== undefined && interest !== undefined) {
-             setEditFormData(prev => ({ ...prev, totalPayment: principal + interest }));
+            const newTotal = parseFloat((principal + interest).toFixed(2));
+            setEditFormData(prev => ({ ...prev, totalPayment: newTotal }));
         }
     }, [editFormData.totalPayment, editFormData.principal, editFormData.interest, lastEditedField]);
 
@@ -132,6 +145,15 @@ const PaymentPlanTable: React.FC<PaymentPlanTableProps> = ({ account, transactio
                         </tr>
                     )})}
                 </tbody>
+                <tfoot>
+                    <tr className="border-t-2 border-black/20 dark:border-white/20 font-bold bg-light-bg dark:bg-dark-bg">
+                        <td className="p-2" colSpan={2}>Totals</td>
+                        <td className="p-2 text-right">{formatCurrency(totals.totalPayment, account.currency)}</td>
+                        <td className="p-2 text-right">{formatCurrency(totals.principal, account.currency)}</td>
+                        <td className="p-2 text-right">{formatCurrency(totals.interest, account.currency)}</td>
+                        <td className="p-2" colSpan={3}></td>
+                    </tr>
+                </tfoot>
             </table>
         </div>
     );

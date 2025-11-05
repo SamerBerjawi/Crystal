@@ -8,6 +8,8 @@ const INCOME_COLOR = 'bg-green-500';
 const EXPENSE_COLOR = 'bg-red-500';
 const MIXED_COLOR = 'bg-purple-500';
 const NO_ACTIVITY_COLOR = 'bg-gray-200 dark:bg-gray-800';
+const TRANSFER_COLOR = 'bg-white dark:bg-gray-900 border border-gray-300 dark:border-gray-600';
+
 
 // FIX: Define ScheduleHeatmapProps interface to resolve 'Cannot find name' error.
 interface ScheduleHeatmapProps {
@@ -24,99 +26,22 @@ const ScheduleHeatmap: React.FC<ScheduleHeatmapProps> = ({ items }) => {
         endDate.setFullYear(endDate.getFullYear() + 1);
         endDate.setDate(0);
         endDate.setHours(23, 59, 59, 999);
-
-        const allOccurrences: ScheduledItem[] = [];
-
-        // Helper to parse date string as UTC midnight to avoid timezone issues
+        
         const parseAsUTC = (dateString: string): Date => {
             const [year, month, day] = dateString.split('-').map(Number);
             return new Date(Date.UTC(year, month - 1, day));
         };
 
+        const itemsByDate = new Map<string, { incomeCount: number, expenseCount: number, transferCount: number }>();
         items.forEach(item => {
-            if (!item.isRecurring) {
-                const itemDate = parseAsUTC(item.date);
-                if (itemDate >= startDate && itemDate <= endDate) {
-                    allOccurrences.push(item);
-                }
-            } else {
-                const rt = item.originalItem as RecurringTransaction;
-                let nextDate = parseAsUTC(rt.nextDueDate);
-                const endDateUTC = rt.endDate ? parseAsUTC(rt.endDate) : null;
-                const startDateUTC = parseAsUTC(rt.startDate);
-
-                // Fast-forward to the first occurrence within or after the display window starts
-                while (nextDate < startDate && (!endDateUTC || nextDate < endDateUTC)) {
-                    const interval = rt.frequencyInterval || 1;
-                    switch (rt.frequency) {
-                        case 'daily':
-                            nextDate.setUTCDate(nextDate.getUTCDate() + interval);
-                            break;
-                        case 'weekly':
-                            nextDate.setUTCDate(nextDate.getUTCDate() + 7 * interval);
-                            break;
-                        case 'monthly': {
-                            const d = rt.dueDateOfMonth || startDateUTC.getUTCDate();
-                            nextDate.setUTCMonth(nextDate.getUTCMonth() + interval, 1);
-                            const lastDayOfNextMonth = new Date(Date.UTC(nextDate.getUTCFullYear(), nextDate.getUTCMonth() + 1, 0)).getUTCDate();
-                            nextDate.setUTCDate(Math.min(d, lastDayOfNextMonth));
-                            break;
-                        }
-                        case 'yearly': {
-                            const d = rt.dueDateOfMonth || startDateUTC.getUTCDate();
-                            const m = startDateUTC.getUTCMonth();
-                            nextDate.setUTCFullYear(nextDate.getUTCFullYear() + interval);
-                            const lastDayOfNextMonth = new Date(Date.UTC(nextDate.getUTCFullYear(), m + 1, 0)).getUTCDate();
-                            nextDate.setUTCMonth(m, Math.min(d, lastDayOfNextMonth));
-                            break;
-                        }
-                    }
-                }
-
-                // Now generate all occurrences until the end of the display window
-                while (nextDate <= endDate && (!endDateUTC || nextDate <= endDateUTC)) {
-                    allOccurrences.push({
-                        ...item,
-                        id: `${item.id}-${nextDate.toISOString()}`,
-                        date: nextDate.toISOString().split('T')[0],
-                    });
-                    
-                    const interval = rt.frequencyInterval || 1;
-                    switch (rt.frequency) {
-                        case 'daily':
-                            nextDate.setUTCDate(nextDate.getUTCDate() + interval);
-                            break;
-                        case 'weekly':
-                            nextDate.setUTCDate(nextDate.getUTCDate() + 7 * interval);
-                            break;
-                        case 'monthly': {
-                            const d = rt.dueDateOfMonth || startDateUTC.getUTCDate();
-                            nextDate.setUTCMonth(nextDate.getUTCMonth() + interval, 1);
-                            const lastDayOfNextMonth = new Date(Date.UTC(nextDate.getUTCFullYear(), nextDate.getUTCMonth() + 1, 0)).getUTCDate();
-                            nextDate.setUTCDate(Math.min(d, lastDayOfNextMonth));
-                            break;
-                        }
-                        case 'yearly': {
-                            const d = rt.dueDateOfMonth || startDateUTC.getUTCDate();
-                            const m = startDateUTC.getUTCMonth();
-                            nextDate.setUTCFullYear(nextDate.getUTCFullYear() + interval);
-                            const lastDayOfNextMonth = new Date(Date.UTC(nextDate.getUTCFullYear(), m + 1, 0)).getUTCDate();
-                            nextDate.setUTCMonth(m, Math.min(d, lastDayOfNextMonth));
-                            break;
-                        }
-                    }
-                }
-            }
-        });
-
-        const itemsByDate = new Map<string, { incomeCount: number, expenseCount: number }>();
-        allOccurrences.forEach(item => {
             const itemDate = parseAsUTC(item.date);
             if (itemDate >= startDate && itemDate <= endDate) {
                 const dateStr = itemDate.toISOString().split('T')[0];
-                const existing = itemsByDate.get(dateStr) || { incomeCount: 0, expenseCount: 0 };
+                const existing = itemsByDate.get(dateStr) || { incomeCount: 0, expenseCount: 0, transferCount: 0 };
                 
-                if (item.amount > 0) {
+                if (item.isTransfer) {
+                    existing.transferCount += 1;
+                } else if (item.amount > 0) {
                     existing.incomeCount += 1;
                 } else {
                     existing.expenseCount += 1;
@@ -143,7 +68,7 @@ const ScheduleHeatmap: React.FC<ScheduleHeatmapProps> = ({ items }) => {
                 const weekIndex = Math.floor(index / 7);
                 if (month !== lastMonth) {
                     if (monthLabels.length === 0 || weekIndex > monthLabels[monthLabels.length - 1].colStart + 2) {
-                        monthLabels.push({ label: day.toLocaleString('default', { month: 'short' }), colStart: weekIndex + 1 });
+                        monthLabels.push({ label: day.toLocaleString('default', { month: 'short', timeZone: 'UTC' }), colStart: weekIndex + 1 });
                     }
                     lastMonth = month;
                 }
@@ -154,9 +79,12 @@ const ScheduleHeatmap: React.FC<ScheduleHeatmapProps> = ({ items }) => {
 
     }, [items]);
 
-    const getActivityColor = (dayData?: { incomeCount: number, expenseCount: number }): string => {
-        if (!dayData || (dayData.incomeCount === 0 && dayData.expenseCount === 0)) {
+    const getActivityColor = (dayData?: { incomeCount: number, expenseCount: number, transferCount: number }): string => {
+        if (!dayData || (dayData.incomeCount === 0 && dayData.expenseCount === 0 && dayData.transferCount === 0)) {
             return NO_ACTIVITY_COLOR;
+        }
+        if (dayData.transferCount > 0) {
+            return TRANSFER_COLOR;
         }
         if (dayData.incomeCount > 0 && dayData.expenseCount > 0) {
             return MIXED_COLOR;
@@ -191,12 +119,13 @@ const ScheduleHeatmap: React.FC<ScheduleHeatmapProps> = ({ items }) => {
                             const dayData = itemsByDate.get(dateStr);
                             const color = getActivityColor(dayData);
                             
-                            let tooltip = day.toLocaleDateString();
+                            let tooltip = day.toLocaleDateString(undefined, { timeZone: 'UTC' });
                             if (dayData) {
                                 const parts = [];
+                                if (dayData.transferCount > 0) parts.push(`${dayData.transferCount} transfer(s)`);
                                 if (dayData.incomeCount > 0) parts.push(`${dayData.incomeCount} income`);
                                 if (dayData.expenseCount > 0) parts.push(`${dayData.expenseCount} expense(s)`);
-                                tooltip = `${day.toLocaleDateString()}: ${parts.join(', ')}`;
+                                tooltip = `${day.toLocaleDateString(undefined, { timeZone: 'UTC' })}: ${parts.join(', ')}`;
                             }
 
                             return <div key={dateStr} className={`w-4 h-4 rounded-sm ${color}`} title={tooltip} />;
@@ -207,6 +136,7 @@ const ScheduleHeatmap: React.FC<ScheduleHeatmapProps> = ({ items }) => {
             {/* New Legend */}
             <div className="flex justify-end items-center gap-4 mt-4 text-xs text-light-text-secondary dark:text-dark-text-secondary">
                 <div className="flex items-center gap-1"><div className={`w-3 h-3 rounded-sm ${NO_ACTIVITY_COLOR}`}></div><span>No Activity</span></div>
+                <div className="flex items-center gap-1"><div className={`w-3 h-3 rounded-sm ${TRANSFER_COLOR}`}></div><span>Transfer</span></div>
                 <div className="flex items-center gap-1"><div className={`w-3 h-3 rounded-sm ${INCOME_COLOR}`}></div><span>Income</span></div>
                 <div className="flex items-center gap-1"><div className={`w-3 h-3 rounded-sm ${EXPENSE_COLOR}`}></div><span>Expense</span></div>
                 <div className="flex items-center gap-1"><div className={`w-3 h-3 rounded-sm ${MIXED_COLOR}`}></div><span>Mixed</span></div>

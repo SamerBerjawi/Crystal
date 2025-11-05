@@ -1,4 +1,3 @@
-
 // FIX: Import `useMemo` from React to resolve the 'Cannot find name' error.
 import React, { useState, useEffect, useMemo, useCallback } from 'react';
 import Sidebar from './components/Sidebar';
@@ -142,6 +141,10 @@ export const App: React.FC = () => {
   const [warrantPrices, setWarrantPrices] = useState<Record<string, number | null>>({});
   const [isLoadingPrices, setIsLoadingPrices] = useState(false);
   const [lastUpdated, setLastUpdated] = useState<Date | null>(null);
+
+  // State for Real-Time Sync
+  const [isSyncing, setIsSyncing] = useState(false);
+  const [lastSyncTime, setLastSyncTime] = useState<Date | null>(null);
   
   // States lifted up for persistence & preference linking
   const [dashboardAccountIds, setDashboardAccountIds] = useState<string[]>([]);
@@ -428,7 +431,7 @@ export const App: React.FC = () => {
   };
 
 
-    const handleSaveTransaction = (
+    const handleSaveTransaction = useCallback((
     transactionDataArray: (Omit<Transaction, 'id'> & { id?: string })[],
     transactionIdsToDelete: string[] = []
   ) => {
@@ -526,7 +529,61 @@ export const App: React.FC = () => {
             return account;
         })
     );
-  };
+  }, [accounts, transactions]);
+
+    // --- Real-time Sync Logic ---
+    const handleAutoSync = useCallback(async () => {
+        if (isSyncing || isDemoMode) { // Removed autoSyncEnabled check from here to allow manual sync
+            return;
+        }
+
+        const linkedAccounts = accounts.filter(a => a.enableBankingId && LIQUID_ACCOUNT_TYPES.includes(a.type));
+        if (linkedAccounts.length === 0) {
+            return;
+        }
+
+        setIsSyncing(true);
+        await new Promise(resolve => setTimeout(resolve, 1500)); // Simulate network delay
+
+        const randomAccount = linkedAccounts[Math.floor(Math.random() * linkedAccounts.length)];
+        const mockExpenses = [
+            { desc: 'Coffee Shop', cat: 'Food & Groceries', amt: -4.50 },
+            { desc: 'Bakery', cat: 'Food & Groceries', amt: -7.20 },
+            { desc: 'Parking Meter', cat: 'Transportation', amt: -2.00 },
+            { desc: 'Vending Machine Snack', cat: 'Food & Groceries', amt: -1.75 },
+        ];
+        const mockExpense = mockExpenses[Math.floor(Math.random() * mockExpenses.length)];
+        
+        const newTransaction: Omit<Transaction, 'id'> = {
+            accountId: randomAccount.id,
+            date: new Date().toISOString().split('T')[0],
+            description: mockExpense.desc,
+            merchant: mockExpense.desc,
+            amount: mockExpense.amt,
+            category: mockExpense.cat,
+            type: 'expense',
+            currency: randomAccount.currency,
+        };
+
+        handleSaveTransaction([newTransaction]);
+        
+        setLastSyncTime(new Date());
+        setIsSyncing(false);
+
+    }, [isSyncing, isDemoMode, accounts, handleSaveTransaction]);
+
+    useEffect(() => {
+        // This effect will be properly implemented once enableBankingSettings is available
+        const autoSyncEnabled = true; // Placeholder
+        if (autoSyncEnabled && (isAuthenticated || isDemoMode)) {
+            const intervalId = setInterval(() => {
+                handleAutoSync();
+            }, 60000); // Sync every 60 seconds
+
+            return () => clearInterval(intervalId);
+        }
+    }, [isAuthenticated, isDemoMode, handleAutoSync]);
+
 
   const handleDeleteTransactions = (transactionIds: string[]) => {
     if (transactionIds.length > 0) {
@@ -923,6 +980,8 @@ export const App: React.FC = () => {
           setTheme={setTheme}
           currentPage={currentPage}
           titleOverride={viewingAccount?.name}
+          isSyncing={isSyncing}
+          lastSyncTime={lastSyncTime}
         />
         <main className="flex-1 overflow-x-hidden overflow-y-auto p-4 md:p-8">
           {renderPage()}

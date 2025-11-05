@@ -1,6 +1,6 @@
 import React, { useMemo } from 'react';
-import { AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, ReferenceLine, Label, ReferenceDot } from 'recharts';
-import { formatCurrency } from '../utils';
+import { AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, ReferenceLine, Label } from 'recharts';
+import { formatCurrency, parseDateAsUTC } from '../utils';
 import { FinancialGoal } from '../types';
 
 interface ChartData {
@@ -17,9 +17,9 @@ interface ForecastChartProps {
   };
 }
 
-const CustomTooltip = ({ active, payload, label }: any) => {
+const CustomTooltip: React.FC<{ active?: boolean; payload?: any[]; label?: string }> = ({ active, payload, label }) => {
     if (active && payload && payload.length) {
-      const [year, month, day] = label.split('-').map(Number);
+      const [year, month, day] = label!.split('-').map(Number);
       const formattedDate = new Date(Date.UTC(year, month - 1, day)).toLocaleDateString('en-US', { timeZone: 'UTC', year: 'numeric', month: 'long', day: 'numeric' });
       return (
         <div className="bg-light-card dark:bg-dark-card p-3 rounded-lg shadow-lg border border-black/5 dark:border-white/5">
@@ -45,6 +45,22 @@ const ForecastChart: React.FC<ForecastChartProps> = ({ data, oneTimeGoals, lowes
     return <div className="flex items-center justify-center h-full text-light-text-secondary dark:text-dark-text-secondary">Select accounts and a period to generate a forecast.</div>;
   }
   
+  const yDomain = useMemo(() => {
+    const values = data.map(d => d.value);
+    const dataMin = Math.min(...values);
+    const dataMax = Math.max(...values);
+    
+    // Also consider the lowest point's value in case it's not in the visible data range
+    const absoluteMin = Math.min(dataMin, lowestPoint?.value || Infinity);
+    const absoluteMax = Math.max(dataMax);
+
+    const range = absoluteMax - absoluteMin;
+    const buffer = range === 0 ? 5000 : range * 0.2; // 20% buffer, with a minimum
+
+    return [Math.floor(absoluteMin - buffer), Math.ceil(absoluteMax + buffer)];
+  }, [data, lowestPoint]);
+
+
   const { ticks, tickFormatter } = useMemo(() => {
     if (data.length < 2) return { ticks: [], tickFormatter: () => '' };
 
@@ -81,6 +97,14 @@ const ForecastChart: React.FC<ForecastChartProps> = ({ data, oneTimeGoals, lowes
         return { ticks: undefined, tickFormatter: formatter };
     }
   }, [data]);
+
+  const lowestPointDateFormatted = lowestPoint?.date
+    ? parseDateAsUTC(lowestPoint.date).toLocaleDateString('en-US', {
+        timeZone: 'UTC',
+        month: 'short',
+        day: 'numeric',
+      })
+    : '';
   
   return (
     <div style={{ width: '100%', height: '400px' }}>
@@ -107,7 +131,8 @@ const ForecastChart: React.FC<ForecastChartProps> = ({ data, oneTimeGoals, lowes
             opacity={0.6} 
             fontSize={12} 
             tickFormatter={yAxisTickFormatter}
-            domain={['dataMin', 'dataMax']}
+            domain={yDomain}
+            allowDataOverflow={true}
             width={90}
           />
           <Tooltip content={<CustomTooltip />} />
@@ -118,18 +143,24 @@ const ForecastChart: React.FC<ForecastChartProps> = ({ data, oneTimeGoals, lowes
               </ReferenceLine>
           ))}
           <Area type="monotone" dataKey="value" name="Projected Balance" stroke="#6366F1" fill="url(#colorValue)" strokeWidth={2.5} dot={false} activeDot={{ r: 5 }} />
-          {/* FIX: Removed the invalid 'isFront' prop. The ReferenceDot is rendered after the Area, so it will appear on top. */}
           {data.length > 0 && lowestPoint && (
-              <ReferenceDot
+              <ReferenceLine
+                  key="lowest-point-line"
                   x={lowestPoint.date}
-                  y={lowestPoint.value}
-                  r={8}
-                  fill="#F97316"
-                  stroke="white"
-                  strokeWidth={2}
+                  stroke="#FF3B30" // Red
+                  strokeDasharray="3 3"
               >
-                  <Label value="Lowest Point" position="top" offset={15} fill="#F97316" fontSize={12} fontWeight="bold" />
-              </ReferenceDot>
+                <Label 
+                    value={`Lowest: ${formatCurrency(lowestPoint.value, 'EUR')} on ${lowestPointDateFormatted}`}
+                    position="insideTopRight" 
+                    fill="#FF3B30" 
+                    fontSize={12} 
+                    angle={-90} 
+                    dx={10} 
+                    dy={20} 
+                    fontWeight="bold"
+                />
+              </ReferenceLine>
           )}
         </AreaChart>
       </ResponsiveContainer>

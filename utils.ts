@@ -53,6 +53,24 @@ export const parseDateAsUTC = (dateString: string): Date => {
     return new Date(Date.UTC(d.getFullYear(), d.getMonth(), d.getDate()));
 };
 
+export function formatRelativeTime(date: Date | null): string {
+  if (!date) return 'never';
+  const now = new Date();
+  const seconds = Math.round((now.getTime() - date.getTime()) / 1000);
+
+  if (seconds < 5) return 'just now';
+  if (seconds < 60) return `${seconds} seconds ago`;
+  
+  const minutes = Math.round(seconds / 60);
+  if (minutes < 60) return `${minutes} minute${minutes > 1 ? 's' : ''} ago`;
+
+  const hours = Math.round(minutes / 60);
+  if (hours < 24) return `${hours} hour${hours > 1 ? 's' : ''} ago`;
+
+  const days = Math.round(hours / 24);
+  return `${days} day${days > 1 ? 's' : ''} ago`;
+}
+
 
 export function calculateAccountTotals(accounts: Account[]) {
     const totalAssets = accounts
@@ -223,6 +241,64 @@ export function calculateStatementPeriods(statementStartDay: number, paymentDueD
     };
 }
 
+export function generateSyntheticLoanPayments(accounts: Account[]): RecurringTransaction[] {
+    const syntheticPayments: RecurringTransaction[] = [];
+
+    const loanAccounts = accounts.filter(
+        (acc) =>
+            (acc.type === 'Loan' || acc.type === 'Lending') &&
+            acc.monthlyPayment &&
+            acc.monthlyPayment > 0 &&
+            acc.paymentDayOfMonth &&
+            acc.paymentDayOfMonth > 0 &&
+            acc.paymentDayOfMonth <= 31 &&
+            acc.linkedAccountId
+    );
+
+    const today = new Date();
+    const todayUTC = new Date(Date.UTC(today.getUTCFullYear(), today.getUTCMonth(), today.getUTCDate()));
+
+    for (const account of loanAccounts) {
+        let nextPaymentDate = new Date(todayUTC);
+        const paymentDay = account.paymentDayOfMonth!;
+
+        const currentYear = nextPaymentDate.getUTCFullYear();
+        const currentMonth = nextPaymentDate.getUTCMonth();
+        const lastDayOfMonth = new Date(Date.UTC(currentYear, currentMonth + 1, 0)).getUTCDate();
+        const dayToSet = Math.min(paymentDay, lastDayOfMonth);
+
+        nextPaymentDate.setUTCDate(dayToSet);
+
+        if (nextPaymentDate < todayUTC) {
+            nextPaymentDate.setUTCMonth(nextPaymentDate.getUTCMonth() + 1);
+            const nextMonthYear = nextPaymentDate.getUTCFullYear();
+            const nextMonth = nextPaymentDate.getUTCMonth();
+            const lastDayOfNextMonth = new Date(Date.UTC(nextMonthYear, nextMonth + 1, 0)).getUTCDate();
+            const dayToSetNextMonth = Math.min(paymentDay, lastDayOfNextMonth);
+            nextPaymentDate.setUTCDate(dayToSetNextMonth);
+        }
+        
+        const isLending = account.type === 'Lending';
+
+        const syntheticRT: RecurringTransaction = {
+            id: `loan-pmt-${account.id}`,
+            accountId: isLending ? account.id : account.linkedAccountId!,
+            toAccountId: isLending ? account.linkedAccountId! : account.id,
+            description: `${isLending ? 'Lending Repayment' : 'Loan Payment'}: ${account.name}`,
+            amount: account.monthlyPayment!,
+            type: 'transfer',
+            currency: account.currency,
+            frequency: 'monthly',
+            startDate: account.loanStartDate || new Date().toISOString().split('T')[0],
+            nextDueDate: nextPaymentDate.toISOString().split('T')[0],
+            dueDateOfMonth: account.paymentDayOfMonth,
+            weekendAdjustment: 'after',
+        };
+        syntheticPayments.push(syntheticRT);
+    }
+    return syntheticPayments;
+}
+
 export function generateBalanceForecast(
     accounts: Account[],
     recurringTransactions: RecurringTransaction[],
@@ -369,100 +445,114 @@ export function generateAmortizationSchedule(
   transactions: Transaction[],
   overrides: Record<number, Partial<ScheduledPayment>> = {}
 ): ScheduledPayment[] {
-  const { principalAmount, interestRate, duration, loanStartDate } = account;
+  const { principalAmount, interestRate, duration, loanStartDate, monthlyPayment, paymentDayOfMonth } = account;
 
   if (!principalAmount || !duration || !loanStartDate || interestRate === undefined) {
     return [];
   }
 
   const monthlyInterestRate = (interestRate || 0) / 100 / 12;
-  const isLending = account.type === 'Lending';
 
-  // Find all real payments associated with this loan
-  const realPayments = transactions
-    .filter(tx => 
-        tx.transferId && // It must be a transfer
-        (isLending ? tx.accountId === account.id : tx.accountId === account.linkedAccountId) && // From the linked account
-        transactions.some(p => p.transferId === tx.transferId && p.id !== tx.id && p.accountId === account.id) // To the loan account
-    )
-    .sort((a, b) => parseDateAsUTC(a.date).getTime() - parseDateAsUTC(b.date).getTime());
+  const paymentTransactions = transactions.filter(tx => 
+    tx.accountId === account.id &&
+    tx.transferId &&
+    ( (account.type === 'Loan' && tx.type === 'income') || (account.type === 'Lending' && tx.type === 'expense') )
+  ).sort((a, b) => parseDateAsUTC(a.date).getTime() - parseDateAsUTC(b.date).getTime());
   
   const paymentMap = new Map<string, Transaction>();
-  realPayments.forEach(p => {
+  paymentTransactions.forEach(p => {
     const monthYear = parseDateAsUTC(p.date).toISOString().slice(0, 7);
-    if (!paymentMap.has(monthYear)) {
-        paymentMap.set(monthYear, p);
-    }
+    paymentMap.set(monthYear, p);
   });
 
-
   const schedule: ScheduledPayment[] = [];
-  let outstandingBalance = principalAmount;
+  let outstandingBalance = principalAmount; // Use full precision
+  const today = new Date();
+  today.setHours(0, 0, 0, 0);
+
+  // Calculate with full precision, without intermediate rounding
+  const standardAmortizedPayment = monthlyInterestRate > 0
+    ? (principalAmount * (monthlyInterestRate * Math.pow(1 + monthlyInterestRate, duration))) / (Math.pow(1 + monthlyInterestRate, duration) - 1)
+    : (principalAmount / duration);
 
   for (let i = 1; i <= duration; i++) {
-    const paymentDate = parseDateAsUTC(loanStartDate);
-    paymentDate.setUTCMonth(paymentDate.getUTCMonth() + i);
-    const dateStr = paymentDate.toISOString().split('T')[0];
-    const monthYearKey = dateStr.slice(0, 7);
+    const scheduledDate = parseDateAsUTC(loanStartDate);
+    scheduledDate.setUTCMonth(scheduledDate.getUTCMonth() + i);
+    const monthYearKey = scheduledDate.toISOString().slice(0, 7);
     
-    const override = overrides[i];
     const realPaymentForPeriod = paymentMap.get(monthYearKey);
 
-    let calculatedInterest = outstandingBalance * monthlyInterestRate;
-    
-    let standardMonthlyPayment = monthlyInterestRate > 0
-        ? principalAmount * (monthlyInterestRate * Math.pow(1 + monthlyInterestRate, duration)) / (Math.pow(1 + monthlyInterestRate, duration) - 1)
-        : principalAmount / duration;
-
-    // Last payment adjustment
-    if (i === duration) {
-        standardMonthlyPayment = outstandingBalance + calculatedInterest;
+    if (paymentDayOfMonth && !realPaymentForPeriod && scheduledDate >= today) {
+        const year = scheduledDate.getUTCFullYear();
+        const month = scheduledDate.getUTCMonth();
+        const lastDayOfMonth = new Date(Date.UTC(year, month + 1, 0)).getUTCDate();
+        scheduledDate.setUTCDate(Math.min(paymentDayOfMonth, lastDayOfMonth));
     }
+    const dateStr = scheduledDate.toISOString().split('T')[0];
 
+    const override = overrides[i];
 
-    let totalPayment = override?.totalPayment ?? standardMonthlyPayment;
-    let interest = override?.interest ?? calculatedInterest;
-    let principal = override?.principal ?? totalPayment - interest;
-    
-    if (interest > totalPayment) {
-        principal = 0;
-        interest = totalPayment;
-    }
-    
-    if (outstandingBalance + interest < totalPayment) {
-        totalPayment = outstandingBalance + interest;
-        principal = outstandingBalance;
-    }
-
+    let totalPayment: number;
+    let principal: number;
+    let interest: number;
     let status: ScheduledPayment['status'] = 'Upcoming';
-    const today = new Date();
-    today.setHours(0,0,0,0);
-    if (realPaymentForPeriod) {
+    let transactionId: string | undefined = undefined;
+    
+    // Calculate interest on the high-precision outstanding balance
+    const calculatedInterest = outstandingBalance * monthlyInterestRate;
+    
+    if (outstandingBalance <= 0 && !realPaymentForPeriod) {
+        // Loan is paid off, generate a zero-value entry to maintain schedule length
+        totalPayment = 0;
+        principal = 0;
+        interest = 0;
+    } else if (realPaymentForPeriod) {
         status = 'Paid';
-        const incomePart = transactions.find(t => t.transferId === realPaymentForPeriod.transferId && t.type === 'income');
-        if (incomePart) {
-            principal = incomePart.principalAmount || principal;
-            interest = incomePart.interestAmount || interest;
-            totalPayment = principal + interest;
-        }
-    } else if (paymentDate < today) {
-        status = 'Overdue';
-    }
+        transactionId = realPaymentForPeriod.id;
+        
+        principal = realPaymentForPeriod.principalAmount || 0;
+        interest = realPaymentForPeriod.interestAmount || 0;
+        totalPayment = principal + interest;
+        
+    } else {
+        interest = calculatedInterest;
 
+        let basePayment = standardAmortizedPayment;
+        if (override?.totalPayment) {
+            basePayment = override.totalPayment;
+        } else if (monthlyPayment) {
+            basePayment = monthlyPayment;
+        }
+
+        if (i === duration || outstandingBalance < (basePayment - interest)) {
+            // This is the final payment to clear the balance.
+            principal = outstandingBalance;
+            totalPayment = principal + interest;
+        } else {
+            totalPayment = basePayment;
+            principal = totalPayment - interest;
+        }
+
+        if (scheduledDate < today) {
+            status = 'Overdue';
+        }
+    }
+    
+    const newOutstandingBalance = outstandingBalance - principal;
 
     schedule.push({
       paymentNumber: i,
       date: dateStr,
-      totalPayment,
-      principal,
-      interest,
-      outstandingBalance: outstandingBalance - principal,
+      totalPayment: parseFloat(totalPayment.toFixed(2)),
+      principal: parseFloat(principal.toFixed(2)),
+      interest: parseFloat(interest.toFixed(2)),
+      outstandingBalance: parseFloat(Math.max(0, newOutstandingBalance).toFixed(2)),
       status,
-      transactionId: realPaymentForPeriod?.id
+      transactionId,
     });
     
-    outstandingBalance -= principal;
-    if (outstandingBalance < 0) outstandingBalance = 0;
+    // Use high-precision value for the next iteration
+    outstandingBalance = newOutstandingBalance;
   }
   return schedule;
 }
