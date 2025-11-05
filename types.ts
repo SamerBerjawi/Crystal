@@ -3,7 +3,7 @@ import React, { Dispatch, SetStateAction } from 'react';
 // FIX: Add 'Enable Banking' to Page type
 export type Page = 'Dashboard' | 'Accounts' | 'Transactions' | 'Budget' | 'Forecasting' | 'Settings' | 'Schedule & Bills' | 'Tasks' | 'Categories' | 'Tags' | 'Personal Info' | 'Data Management' | 'Preferences' | 'AccountDetail' | 'Investments' | 'Warrants' | 'User Management' | 'Documentation' | 'Enable Banking';
 
-export type AccountType = 'Checking' | 'Savings' | 'Credit Card' | 'Investment' | 'Loan' | 'Property' | 'Vehicle' | 'Other Assets' | 'Other Liabilities';
+export type AccountType = 'Checking' | 'Savings' | 'Credit Card' | 'Investment' | 'Loan' | 'Property' | 'Vehicle' | 'Other Assets' | 'Other Liabilities' | 'Lending';
 
 export type Currency = 'USD' | 'EUR' | 'GBP' | 'BTC' | 'RON';
 
@@ -19,6 +19,13 @@ export interface Category {
   classification: 'income' | 'expense';
   subCategories: Category[];
   parentId?: string;
+}
+
+export interface Tag {
+  id: string;
+  name: string;
+  color: string;
+  icon: string;
 }
 
 export type InvestmentSubType = 'Stock' | 'ETF' | 'Crypto' | 'Pension Fund' | 'Spare Change' | 'Other';
@@ -113,6 +120,7 @@ export interface Transaction {
   sureId?: string;
   principalAmount?: number;
   interestAmount?: number;
+  tagIds?: string[];
 }
 
 export interface DisplayTransaction extends Transaction {
@@ -286,6 +294,7 @@ export interface AccountDetailProps {
   saveTransaction: (transactions: (Omit<Transaction, 'id'> & { id?: string })[], idsToDelete?: string[]) => void;
   recurringTransactions: RecurringTransaction[];
   setViewingAccountId: (id: string | null) => void;
+  tags: Tag[];
 }
 
 // FIX: Move FinancialData interface from App.tsx to types.ts to resolve import error in mockData.ts
@@ -305,6 +314,7 @@ export interface FinancialData {
     preferences: AppPreferences;
     billsAndPayments: BillPayment[];
     accountOrder?: string[];
+    tags?: Tag[];
     // FIX: Add enableBankingSettings property.
     enableBankingSettings?: EnableBankingSettings;
 }
@@ -354,4 +364,15 @@ export interface ScraperConfig {
   id: string; // ISIN
   resource: ScraperResource;
   options: ScraperOptions;
+}
+
+export interface ScheduledPayment {
+  paymentNumber: number;
+  date: string;
+  totalPayment: number;
+  principal: number;
+  interest: number;
+  outstandingBalance: number;
+  status: 'Paid' | 'Due' | 'Upcoming' | 'Overdue';
+  transactionId?: string;
 }

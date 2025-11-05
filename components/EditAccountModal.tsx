@@ -127,21 +127,21 @@ const EditAccountModal: React.FC<EditAccountModalProps> = ({ onClose, onSave, on
       ...account,
       name,
       type,
-      balance: type === 'Loan' ? -Math.abs(parseFloat(principalAmount) || 0) : (isComputedAccount ? account.balance : parseFloat(balance)),
+      balance: type === 'Loan' ? -Math.abs(parseFloat(principalAmount) || 0) : (type === 'Lending' ? Math.abs(parseFloat(principalAmount) || 0) : (isComputedAccount ? account.balance : parseFloat(balance))),
       currency,
       icon,
       last4: last4 || undefined,
       isPrimary,
       // Conditionally add new fields
       subType: type === 'Investment' ? subType : undefined,
-      totalAmount: type === 'Loan' && totalAmount ? parseFloat(totalAmount) : undefined,
-      principalAmount: type === 'Loan' && principalAmount ? parseFloat(principalAmount) : undefined,
-      interestAmount: type === 'Loan' && interestAmount ? parseFloat(interestAmount) : undefined,
+      totalAmount: (type === 'Loan' || type === 'Lending') && totalAmount ? parseFloat(totalAmount) : undefined,
+      principalAmount: (type === 'Loan' || type === 'Lending') && principalAmount ? parseFloat(principalAmount) : undefined,
+      interestAmount: (type === 'Loan' || type === 'Lending') && interestAmount ? parseFloat(interestAmount) : undefined,
       downPayment: type === 'Loan' && downPayment ? parseFloat(downPayment) : undefined,
-      duration: type === 'Loan' && duration ? parseInt(duration) : undefined,
-      interestRate: type === 'Loan' && interestRate ? parseFloat(interestRate) : undefined,
-      loanStartDate: type === 'Loan' ? loanStartDate : undefined,
-      linkedAccountId: type === 'Loan' ? linkedAccountId || undefined : undefined,
+      duration: (type === 'Loan' || type === 'Lending') && duration ? parseInt(duration) : undefined,
+      interestRate: (type === 'Loan' || type === 'Lending') && interestRate ? parseFloat(interestRate) : undefined,
+      loanStartDate: (type === 'Loan' || type === 'Lending') ? loanStartDate : undefined,
+      linkedAccountId: (type === 'Loan' || type === 'Lending') ? linkedAccountId || undefined : undefined,
       make: type === 'Vehicle' ? make || undefined : undefined,
       model: type === 'Vehicle' ? model || undefined : undefined,
       year: type === 'Vehicle' && year ? parseInt(year) : undefined,
@@ -210,7 +210,7 @@ const EditAccountModal: React.FC<EditAccountModalProps> = ({ onClose, onSave, on
                   <div className={SELECT_ARROW_STYLE}><span className="material-symbols-outlined">expand_more</span></div>
               </div>
             </div>
-            {type !== 'Loan' && (
+            {type !== 'Loan' && type !== 'Lending' && (
                 <div>
                   <label htmlFor="account-balance" className={labelStyle}>{ (type === 'Vehicle' || type === 'Property') ? 'Current Value' : 'Current Balance'}</label>
                   <div className="relative flex">
@@ -255,13 +255,13 @@ const EditAccountModal: React.FC<EditAccountModalProps> = ({ onClose, onSave, on
                 </div>
               </div>
             )}
-            {type === 'Loan' && (
+            {(type === 'Loan' || type === 'Lending') && (
                 <div className="space-y-4">
                   <div>
-                        <p className="font-medium mb-2">Loan Breakdown</p>
-                        <p className="text-xs text-light-text-secondary dark:text-dark-text-secondary mb-2">Enter any two values to calculate the third. The account balance will be the negative of the principal.</p>
+                        <p className="font-medium mb-2">{type} Breakdown</p>
+                        <p className="text-xs text-light-text-secondary dark:text-dark-text-secondary mb-2">Enter any two values to calculate the third. The account balance will be the {type === 'Loan' ? 'negative' : 'positive'} of the principal.</p>
                         <div className="grid grid-cols-3 gap-2">
-                            <div><label htmlFor="totalAmount" className={labelStyle}>Total Loan Amount</label><input id="totalAmount" type="number" step="0.01" value={totalAmount} onFocus={() => setLastEditedLoanField('total')} onChange={e=>{setTotalAmount(e.target.value); setLastEditedLoanField('total');}} className={INPUT_BASE_STYLE} /></div>
+                            <div><label htmlFor="totalAmount" className={labelStyle}>Total Amount</label><input id="totalAmount" type="number" step="0.01" value={totalAmount} onFocus={() => setLastEditedLoanField('total')} onChange={e=>{setTotalAmount(e.target.value); setLastEditedLoanField('total');}} className={INPUT_BASE_STYLE} /></div>
                             <div><label htmlFor="principalAmount" className={labelStyle}>Principal</label><input id="principalAmount" type="number" step="0.01" value={principalAmount} onFocus={() => setLastEditedLoanField('principal')} onChange={e=>{setPrincipalAmount(e.target.value); setLastEditedLoanField('principal');}} className={INPUT_BASE_STYLE} /></div>
                             <div><label htmlFor="interestAmount" className={labelStyle}>Interest</label><input id="interestAmount" type="number" step="0.01" value={interestAmount} onFocus={() => setLastEditedLoanField('interest')} onChange={e=>{setInterestAmount(e.target.value); setLastEditedLoanField('interest');}} className={INPUT_BASE_STYLE} /></div>
                         </div>
@@ -272,7 +272,7 @@ const EditAccountModal: React.FC<EditAccountModalProps> = ({ onClose, onSave, on
                   </div>
                    <div className="grid grid-cols-2 gap-4">
                         <div><label htmlFor="loanStartDate" className={labelStyle}>Start Date</label><input id="loanStartDate" type="date" value={loanStartDate} onChange={e=>setLoanStartDate(e.target.value)} className={INPUT_BASE_STYLE} /></div>
-                        <div><label htmlFor="downPayment" className={labelStyle}>Down Payment (Optional)</label><input id="downPayment" type="number" step="0.01" value={downPayment} onChange={e=>setDownPayment(e.target.value)} className={INPUT_BASE_STYLE} /></div>
+                        {type === 'Loan' && <div><label htmlFor="downPayment" className={labelStyle}>Down Payment (Optional)</label><input id="downPayment" type="number" step="0.01" value={downPayment} onChange={e=>setDownPayment(e.target.value)} className={INPUT_BASE_STYLE} /></div>}
                    </div>
                    <div>
                         <label htmlFor="linkedAccountId" className={labelStyle}>Linked Debit Account</label>

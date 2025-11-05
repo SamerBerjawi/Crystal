@@ -1,4 +1,4 @@
-import { Currency, Account, Transaction, Duration, Category, FinancialGoal, RecurringTransaction, BillPayment } from './types';
+import { Currency, Account, Transaction, Duration, Category, FinancialGoal, RecurringTransaction, BillPayment, ScheduledPayment } from './types';
 import { ASSET_TYPES, DEBT_TYPES, LIQUID_ACCOUNT_TYPES } from './constants';
 
 const symbolMap: { [key in Currency]: string } = {
@@ -297,7 +297,7 @@ export function generateBalanceForecast(
                     break;
                 }
                 case 'yearly': {
-                     const d = rt.dueDateOfMonth || startDateUTC.getUTCDate();
+                     const d = rt.dueDateOfMonth || startDateUTC.getUTCMonth();
                      const m = startDateUTC.getUTCMonth();
                      nextDate.setUTCFullYear(nextDate.getUTCFullYear() + interval);
                      const lastDay = new Date(Date.UTC(nextDate.getUTCFullYear(), m + 1, 0)).getUTCDate();
@@ -362,4 +362,107 @@ export function generateBalanceForecast(
     }
     
     return forecastData;
+}
+
+export function generateAmortizationSchedule(
+  account: Account,
+  transactions: Transaction[],
+  overrides: Record<number, Partial<ScheduledPayment>> = {}
+): ScheduledPayment[] {
+  const { principalAmount, interestRate, duration, loanStartDate } = account;
+
+  if (!principalAmount || !duration || !loanStartDate || interestRate === undefined) {
+    return [];
+  }
+
+  const monthlyInterestRate = (interestRate || 0) / 100 / 12;
+  const isLending = account.type === 'Lending';
+
+  // Find all real payments associated with this loan
+  const realPayments = transactions
+    .filter(tx => 
+        tx.transferId && // It must be a transfer
+        (isLending ? tx.accountId === account.id : tx.accountId === account.linkedAccountId) && // From the linked account
+        transactions.some(p => p.transferId === tx.transferId && p.id !== tx.id && p.accountId === account.id) // To the loan account
+    )
+    .sort((a, b) => parseDateAsUTC(a.date).getTime() - parseDateAsUTC(b.date).getTime());
+  
+  const paymentMap = new Map<string, Transaction>();
+  realPayments.forEach(p => {
+    const monthYear = parseDateAsUTC(p.date).toISOString().slice(0, 7);
+    if (!paymentMap.has(monthYear)) {
+        paymentMap.set(monthYear, p);
+    }
+  });
+
+
+  const schedule: ScheduledPayment[] = [];
+  let outstandingBalance = principalAmount;
+
+  for (let i = 1; i <= duration; i++) {
+    const paymentDate = parseDateAsUTC(loanStartDate);
+    paymentDate.setUTCMonth(paymentDate.getUTCMonth() + i);
+    const dateStr = paymentDate.toISOString().split('T')[0];
+    const monthYearKey = dateStr.slice(0, 7);
+    
+    const override = overrides[i];
+    const realPaymentForPeriod = paymentMap.get(monthYearKey);
+
+    let calculatedInterest = outstandingBalance * monthlyInterestRate;
+    
+    let standardMonthlyPayment = monthlyInterestRate > 0
+        ? principalAmount * (monthlyInterestRate * Math.pow(1 + monthlyInterestRate, duration)) / (Math.pow(1 + monthlyInterestRate, duration) - 1)
+        : principalAmount / duration;
+
+    // Last payment adjustment
+    if (i === duration) {
+        standardMonthlyPayment = outstandingBalance + calculatedInterest;
+    }
+
+
+    let totalPayment = override?.totalPayment ?? standardMonthlyPayment;
+    let interest = override?.interest ?? calculatedInterest;
+    let principal = override?.principal ?? totalPayment - interest;
+    
+    if (interest > totalPayment) {
+        principal = 0;
+        interest = totalPayment;
+    }
+    
+    if (outstandingBalance + interest < totalPayment) {
+        totalPayment = outstandingBalance + interest;
+        principal = outstandingBalance;
+    }
+
+    let status: ScheduledPayment['status'] = 'Upcoming';
+    const today = new Date();
+    today.setHours(0,0,0,0);
+    if (realPaymentForPeriod) {
+        status = 'Paid';
+        const incomePart = transactions.find(t => t.transferId === realPaymentForPeriod.transferId && t.type === 'income');
+        if (incomePart) {
+            principal = incomePart.principalAmount || principal;
+            interest = incomePart.interestAmount || interest;
+            totalPayment = principal + interest;
+        }
+    } else if (paymentDate < today) {
+        status = 'Overdue';
+    }
+
+
+    schedule.push({
+      paymentNumber: i,
+      date: dateStr,
+      totalPayment,
+      principal,
+      interest,
+      outstandingBalance: outstandingBalance - principal,
+      status,
+      transactionId: realPaymentForPeriod?.id
+    });
+    
+    outstandingBalance -= principal;
+    if (outstandingBalance < 0) outstandingBalance = 0;
+  }
+  return schedule;
 }

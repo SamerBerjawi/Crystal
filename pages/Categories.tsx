@@ -32,6 +32,10 @@ const Categories: React.FC<CategoriesProps> = ({ incomeCategories, setIncomeCate
     classification: 'income' | 'expense';
   } | null>(null);
   const [searchTerm, setSearchTerm] = useState('');
+
+  // --- Drag and Drop State ---
+  const [draggedItem, setDraggedItem] = useState<{ id: string; classification: 'income' | 'expense' } | null>(null);
+  const [dropTarget, setDropTarget] = useState<{ id: string; position: 'top' | 'bottom' | 'middle' } | null>(null);
   
   const openModal = (
     mode: 'add' | 'edit', 
@@ -74,7 +78,6 @@ const Categories: React.FC<CategoriesProps> = ({ incomeCategories, setIncomeCate
     };
 
     if (isEditing) {
-        // In this app, we don't allow changing classification in the edit modal, so we just update in place.
         setCategories(prev => updateRecursively(prev, savedCategory.id, savedCategory));
     } else {
         const newCategoryWithId = { ...savedCategory, id: generateId() };
@@ -141,6 +144,112 @@ const Categories: React.FC<CategoriesProps> = ({ incomeCategories, setIncomeCate
   const filteredExpenseCategories = useMemo(() => filterCategories(expenseCategories, searchTerm), [expenseCategories, searchTerm]);
 
 
+    // --- Drag and Drop Handlers ---
+    const handleDragStart = (id: string, classification: 'income' | 'expense') => {
+        setDraggedItem({ id, classification });
+    };
+
+    const handleDragOver = (id: string, position: 'top' | 'bottom' | 'middle') => {
+        if (draggedItem && draggedItem.id !== id) {
+            setDropTarget({ id, position });
+        }
+    };
+
+    const handleDragLeave = () => {
+        setDropTarget(null);
+    };
+
+    const handleDragEnd = () => {
+        setDraggedItem(null);
+        setDropTarget(null);
+    };
+
+    const handleDrop = () => {
+        if (!draggedItem || !dropTarget || draggedItem.id === dropTarget.id) {
+            handleDragEnd();
+            return;
+        }
+
+        const { id: draggedId, classification } = draggedItem;
+        const { id: dropId, position } = dropTarget;
+
+        const setCategories = classification === 'income' ? setIncomeCategories : setExpenseCategories;
+
+        setCategories(prev => {
+            let draggedCategory: Category | null = null;
+            
+            const isDescendant = (items: Category[], parentId: string, childId: string): boolean => {
+                const findParent = (cats: Category[], id: string): Category | null => {
+                    for (const cat of cats) {
+                        if (cat.id === id) return cat;
+                        if (cat.subCategories?.length) {
+                            const found = findParent(cat.subCategories, id);
+                            if (found) return found;
+                        }
+                    }
+                    return null;
+                };
+                const parent = findParent(items, parentId);
+                return parent ? !!findParent(parent.subCategories, childId) : false;
+            };
+
+            if (isDescendant(prev, draggedId, dropId)) {
+                console.warn("Cannot drop a category into one of its descendants.");
+                return prev;
+            }
+
+            const findAndRemove = (items: Category[]): Category[] => {
+                const itemIndex = items.findIndex(item => item.id === draggedId);
+                if (itemIndex > -1) {
+                    draggedCategory = { ...items[itemIndex] };
+                    return items.filter(item => item.id !== draggedId);
+                }
+                return items.map(item => {
+                    if (item.subCategories?.length) {
+                        return { ...item, subCategories: findAndRemove(item.subCategories) };
+                    }
+                    return item;
+                });
+            };
+            const categoriesWithoutItem = findAndRemove(prev);
+
+            if (!draggedCategory) return prev; 
+
+            const findAndInsert = (items: Category[], parentId?: string): Category[] => {
+                if (position === 'middle') {
+                    return items.map(item => {
+                        if (item.id === dropId) {
+                            return { ...item, subCategories: [...item.subCategories, { ...draggedCategory!, parentId: dropId }] };
+                        }
+                        if (item.subCategories?.length) {
+                            return { ...item, subCategories: findAndInsert(item.subCategories, item.id) };
+                        }
+                        return item;
+                    });
+                }
+                
+                const targetIndex = items.findIndex(item => item.id === dropId);
+                if (targetIndex > -1) {
+                    const newItems = [...items];
+                    newItems.splice(position === 'top' ? targetIndex : targetIndex + 1, 0, { ...draggedCategory!, parentId });
+                    return newItems;
+                }
+                
+                return items.map(item => {
+                    if (item.subCategories?.length) {
+                        return { ...item, subCategories: findAndInsert(item.subCategories, item.id) };
+                    }
+                    return item;
+                });
+            };
+            const newCategoryTree = findAndInsert(categoriesWithoutItem);
+
+            return newCategoryTree;
+        });
+
+        handleDragEnd();
+    };
+
   return (
     <div className="space-y-8">
       {isModalOpen && editingState && (
@@ -197,7 +306,7 @@ const Categories: React.FC<CategoriesProps> = ({ incomeCategories, setIncomeCate
         </div>
         <div className="mt-4 flex justify-between items-center">
             <div>
-              <p className="text-light-text-secondary dark:text-dark-text-secondary mt-1">Manage your income and expense categories.</p>
+              <p className="text-light-text-secondary dark:text-dark-text-secondary mt-1">Manage and reorder your income and expense categories.</p>
             </div>
             <div className="flex items-center gap-4">
                 <div className="relative">
@@ -212,25 +321,33 @@ const Categories: React.FC<CategoriesProps> = ({ incomeCategories, setIncomeCate
                         className={`${INPUT_BASE_STYLE} pl-10`}
                     />
                 </div>
-                <button onClick={() => openModal('add', 'expense')} className={BTN_PRIMARY_STYLE}>
-                    Add Category
-                </button>
             </div>
         </div>
       </header>
-
-      <div className="space-y-8">
-        <section>
-          <h3 className="text-xl font-semibold text-light-text dark:text-dark-text mb-4">Income Categories</h3>
-          <Card>
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-x-6 gap-y-2">
+      
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 items-start">
+        <Card>
+            <div className="flex justify-between items-center mb-4">
+                <h3 className="text-xl font-semibold text-light-text dark:text-dark-text">Income Categories</h3>
+                <button onClick={() => openModal('add', 'income')} className={BTN_SECONDARY_STYLE}>Add Income</button>
+            </div>
+            <div className="space-y-2">
               {filteredIncomeCategories.map(cat => (
                 <CategoryItem 
-                  key={cat.id} 
-                  category={cat} 
-                  onEdit={(c) => openModal('edit', 'income', c)}
-                  onDelete={(id) => handleDeleteCategory(id, 'income')}
-                  onAddSubCategory={(parentId) => openModal('add', 'income', undefined, parentId)}
+                    key={cat.id} 
+                    category={cat} 
+                    onEdit={(c) => openModal('edit', 'income', c)}
+                    onDelete={(id) => handleDeleteCategory(id, 'income')}
+                    onAddSubCategory={(parentId) => openModal('add', 'income', undefined, parentId)}
+                    level={0}
+                    classification="income"
+                    draggedItem={draggedItem}
+                    dropTarget={dropTarget}
+                    handleDragStart={handleDragStart}
+                    handleDragOver={handleDragOver}
+                    handleDragLeave={handleDragLeave}
+                    handleDrop={handleDrop}
+                    handleDragEnd={handleDragEnd}
                 />
               ))}
             </div>
@@ -239,12 +356,14 @@ const Categories: React.FC<CategoriesProps> = ({ incomeCategories, setIncomeCate
                     {searchTerm ? 'No matching income categories found.' : 'No income categories defined.'}
                 </p>
              )}
-          </Card>
-        </section>
-        <section>
-          <h3 className="text-xl font-semibold text-light-text dark:text-dark-text mb-4">Expense Categories</h3>
-          <Card>
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-x-6 gap-y-2">
+        </Card>
+
+        <Card>
+            <div className="flex justify-between items-center mb-4">
+                <h3 className="text-xl font-semibold text-light-text dark:text-dark-text">Expense Categories</h3>
+                <button onClick={() => openModal('add', 'expense')} className={BTN_SECONDARY_STYLE}>Add Expense</button>
+            </div>
+            <div className="space-y-2">
             {filteredExpenseCategories.map(cat => (
               <CategoryItem 
                 key={cat.id} 
@@ -252,6 +371,15 @@ const Categories: React.FC<CategoriesProps> = ({ incomeCategories, setIncomeCate
                 onEdit={(c) => openModal('edit', 'expense', c)}
                 onDelete={(id) => handleDeleteCategory(id, 'expense')}
                 onAddSubCategory={(parentId) => openModal('add', 'expense', undefined, parentId)}
+                level={0}
+                classification="expense"
+                draggedItem={draggedItem}
+                dropTarget={dropTarget}
+                handleDragStart={handleDragStart}
+                handleDragOver={handleDragOver}
+                handleDragLeave={handleDragLeave}
+                handleDrop={handleDrop}
+                handleDragEnd={handleDragEnd}
               />
             ))}
             </div>
@@ -260,8 +388,7 @@ const Categories: React.FC<CategoriesProps> = ({ incomeCategories, setIncomeCate
                     {searchTerm ? 'No matching expense categories found.' : 'No expense categories defined.'}
                 </p>
              )}
-          </Card>
-        </section>
+        </Card>
       </div>
     </div>
   );

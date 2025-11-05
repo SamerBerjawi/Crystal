@@ -1,6 +1,6 @@
 import React, { useMemo, useState, useCallback, useEffect } from 'react';
 // FIX: Import 'RecurringTransaction' to resolve 'Cannot find name' error.
-import { User, Transaction, Account, Category, Duration, CategorySpending, Widget, WidgetConfig, DisplayTransaction, FinancialGoal, RecurringTransaction, BillPayment } from '../types';
+import { User, Transaction, Account, Category, Duration, CategorySpending, Widget, WidgetConfig, DisplayTransaction, FinancialGoal, RecurringTransaction, BillPayment, Tag } from '../types';
 import { formatCurrency, getDateRange, calculateAccountTotals, convertToEur, calculateStatementPeriods, generateBalanceForecast } from '../utils';
 import AddTransactionModal from '../components/AddTransactionModal';
 import { BTN_PRIMARY_STYLE, BTN_SECONDARY_STYLE, LIQUID_ACCOUNT_TYPES } from '../constants';
@@ -38,6 +38,7 @@ interface DashboardProps {
   setSelectedAccountIds: (ids: string[]) => void;
   duration: Duration;
   setDuration: (duration: Duration) => void;
+  tags: Tag[];
 }
 
 const findCategoryDetails = (name: string, categories: Category[]): Category | undefined => {
@@ -69,7 +70,7 @@ const toYYYYMMDD = (date: Date) => {
     return `${y}-${m}-${d}`;
 };
 
-const Dashboard: React.FC<DashboardProps> = ({ user, transactions, accounts, saveTransaction, incomeCategories, expenseCategories, financialGoals, recurringTransactions, billsAndPayments, selectedAccountIds, setSelectedAccountIds, duration, setDuration }) => {
+const Dashboard: React.FC<DashboardProps> = ({ user, transactions, accounts, saveTransaction, incomeCategories, expenseCategories, financialGoals, recurringTransactions, billsAndPayments, selectedAccountIds, setSelectedAccountIds, duration, setDuration, tags }) => {
   const [isTransactionModalOpen, setTransactionModalOpen] = useState(false);
   const [editingTransaction, setEditingTransaction] = useState<Transaction | null>(null);
   
@@ -601,6 +602,7 @@ const Dashboard: React.FC<DashboardProps> = ({ user, transactions, accounts, sav
           expenseCategories={expenseCategories}
           transactionToEdit={editingTransaction}
           transactions={transactions}
+          tags={tags}
         />
       )}
       <TransactionDetailModal

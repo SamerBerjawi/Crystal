@@ -1,6 +1,6 @@
-import React, { useState, useMemo, useEffect } from 'react';
+import React, { useState, useMemo, useEffect, useRef } from 'react';
 import Modal from './Modal';
-import { Account, Category, Transaction } from '../types';
+import { Account, Category, Transaction, Tag } from '../types';
 import { INPUT_BASE_STYLE, BTN_PRIMARY_STYLE, BTN_SECONDARY_STYLE, SELECT_WRAPPER_STYLE, SELECT_ARROW_STYLE } from '../constants';
 import { v4 as uuidv4 } from 'uuid';
 
@@ -15,6 +15,13 @@ interface AddTransactionModalProps {
   initialType?: 'expense' | 'income' | 'transfer';
   initialFromAccountId?: string;
   initialToAccountId?: string;
+  tags: Tag[];
+  initialDetails?: {
+    date?: string;
+    amount?: string;
+    principal?: string;
+    interest?: string;
+  };
 }
 
 const CategoryOptions: React.FC<{ categories: Category[] }> = ({ categories }) => (
@@ -34,7 +41,7 @@ const CategoryOptions: React.FC<{ categories: Category[] }> = ({ categories }) =
 );
 
 
-const AddTransactionModal: React.FC<AddTransactionModalProps> = ({ onClose, onSave, accounts, incomeCategories, expenseCategories, transactions, transactionToEdit, initialType, initialFromAccountId, initialToAccountId }) => {
+const AddTransactionModal: React.FC<AddTransactionModalProps> = ({ onClose, onSave, accounts, incomeCategories, expenseCategories, transactions, transactionToEdit, initialType, initialFromAccountId, initialToAccountId, tags, initialDetails }) => {
   const isEditing = !!transactionToEdit;
   
   const [type, setType] = useState<'expense' | 'income' | 'transfer'>(isEditing ? (transactionToEdit.transferId ? 'transfer' : transactionToEdit.type) : (initialType || 'expense'));
@@ -45,11 +52,13 @@ const AddTransactionModal: React.FC<AddTransactionModalProps> = ({ onClose, onSa
   const [merchant, setMerchant] = useState('');
   const [amount, setAmount] = useState('');
   const [category, setCategory] = useState('');
+  const [tagIds, setTagIds] = useState<string[]>([]);
+  const [isTagSelectorOpen, setIsTagSelectorOpen] = useState(false);
+  const tagSelectorRef = useRef<HTMLDivElement>(null);
   
   // Loan payment split state
   const [principalPayment, setPrincipalPayment] = useState('');
   const [interestPayment, setInterestPayment] = useState('');
-  const [lastPaymentFieldEdited, setLastPaymentFieldEdited] = useState<'total' | 'principal' | 'interest' | null>(null);
 
   const isLoanPayment = useMemo(() => {
     const targetAccountId = type === 'income' ? toAccountId : (type === 'transfer' ? toAccountId : null);
@@ -58,21 +67,60 @@ const AddTransactionModal: React.FC<AddTransactionModalProps> = ({ onClose, onSa
     return targetAccount?.type === 'Loan';
   }, [type, toAccountId, accounts]);
 
+  // Auto-calculate principal and interest for loan payments
   useEffect(() => {
-    const total = parseFloat(amount);
-    const principal = parseFloat(principalPayment);
-    const interest = parseFloat(interestPayment);
+    const targetAccount = accounts.find(a => a.id === toAccountId);
+    const isPaymentToLoan = (type === 'income' || type === 'transfer') && targetAccount?.type === 'Loan';
 
-    if (lastPaymentFieldEdited === 'total') {
-        if (!isNaN(total) && !isNaN(principal)) {
-            setInterestPayment((total - principal).toFixed(2));
-        }
-    } else if (lastPaymentFieldEdited === 'principal' || lastPaymentFieldEdited === 'interest') {
-        if (!isNaN(principal) && !isNaN(interest)) {
-            setAmount((principal + interest).toFixed(2));
-        }
+    // Only calculate if it's a loan payment, rate is defined, and amount is a positive number
+    if (isPaymentToLoan && targetAccount.interestRate && parseFloat(amount) > 0) {
+        const totalPayment = parseFloat(amount);
+        // Loan balance is negative, so we take its absolute value
+        const outstandingPrincipal = Math.abs(targetAccount.balance); 
+        const monthlyInterestRate = (targetAccount.interestRate / 100) / 12;
+        
+        const calculatedInterest = outstandingPrincipal * monthlyInterestRate;
+        
+        // The interest portion cannot be more than the total payment itself.
+        const interest = Math.min(totalPayment, calculatedInterest);
+        const principal = totalPayment - interest;
+
+        setPrincipalPayment(principal.toFixed(2));
+        setInterestPayment(interest.toFixed(2));
+    } else {
+        // If it's not a loan payment or there's not enough info, clear the fields.
+        setPrincipalPayment('');
+        setInterestPayment('');
     }
-  }, [amount, principalPayment, interestPayment, lastPaymentFieldEdited]);
+  }, [amount, toAccountId, type, accounts]);
+  
+  const handlePrincipalChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const newPrincipalValue = e.target.value;
+    const totalPayment = parseFloat(amount) || 0;
+    let newPrincipal = parseFloat(newPrincipalValue) || 0;
+
+    if (newPrincipal > totalPayment) newPrincipal = totalPayment;
+    if (newPrincipal < 0) newPrincipal = 0;
+
+    setPrincipalPayment(String(newPrincipal));
+    
+    const newInterest = totalPayment - newPrincipal;
+    setInterestPayment(newInterest.toFixed(2));
+  };
+
+  const handleInterestChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const newInterestValue = e.target.value;
+    const totalPayment = parseFloat(amount) || 0;
+    let newInterest = parseFloat(newInterestValue) || 0;
+
+    if (newInterest > totalPayment) newInterest = totalPayment;
+    if (newInterest < 0) newInterest = 0;
+
+    setInterestPayment(String(newInterest));
+
+    const newPrincipal = totalPayment - newInterest;
+    setPrincipalPayment(newPrincipal.toFixed(2));
+  };
 
 
   useEffect(() => {
@@ -80,6 +128,7 @@ const AddTransactionModal: React.FC<AddTransactionModalProps> = ({ onClose, onSa
         let principal = '';
         let interest = '';
         let amountToSet = String(Math.abs(transactionToEdit.amount));
+        setTagIds(transactionToEdit.tagIds || []);
 
         if (transactionToEdit.transferId && transactions) {
             setType('transfer');
@@ -122,18 +171,37 @@ const AddTransactionModal: React.FC<AddTransactionModalProps> = ({ onClose, onSa
     } else {
         // Reset for new transaction
         setType(initialType || 'expense');
-        setDate(new Date().toISOString().split('T')[0]);
+        setDate(initialDetails?.date || new Date().toISOString().split('T')[0]);
         setFromAccountId(initialFromAccountId || (accounts.length > 0 ? accounts[0].id : ''));
         setToAccountId(initialToAccountId || (accounts.length > 1 ? accounts[1].id : ''));
         setDescription('');
         setMerchant('');
-        setAmount('');
+        setAmount(initialDetails?.amount || '');
         setCategory('');
-        setPrincipalPayment('');
-        setInterestPayment('');
+        setPrincipalPayment(initialDetails?.principal || '');
+        setInterestPayment(initialDetails?.interest || '');
+        setTagIds([]);
     }
-  }, [transactionToEdit, isEditing, accounts, transactions, initialType, initialFromAccountId, initialToAccountId]);
+  }, [transactionToEdit, isEditing, accounts, transactions, initialType, initialFromAccountId, initialToAccountId, initialDetails]);
   
+  useEffect(() => {
+    const handleClickOutside = (event: MouseEvent) => {
+      if (tagSelectorRef.current && !tagSelectorRef.current.contains(event.target as Node)) {
+        setIsTagSelectorOpen(false);
+      }
+    };
+    document.addEventListener("mousedown", handleClickOutside);
+    return () => document.removeEventListener("mousedown", handleClickOutside);
+  }, []);
+
+  const handleTagToggle = (tagId: string) => {
+    setTagIds(prev => prev.includes(tagId) ? prev.filter(id => id !== tagId) : [...prev, tagId]);
+  };
+  
+  const selectedTags = useMemo(() => {
+    return tagIds.map(id => tags.find(t => t.id === id)).filter(Boolean) as Tag[];
+  }, [tagIds, tags]);
+
   const activeCategories = useMemo(() => {
     return type === 'income' ? incomeCategories : expenseCategories;
   }, [type, incomeCategories, expenseCategories]);
@@ -146,10 +214,15 @@ const AddTransactionModal: React.FC<AddTransactionModalProps> = ({ onClose, onSa
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    if (!amount) return;
-
+    
     let toSave: (Omit<Transaction, 'id'> & { id?: string })[] = [];
     let toDelete: string[] = [];
+
+    const totalAmount = isLoanPayment 
+      ? (parseFloat(principalPayment) || 0) + (parseFloat(interestPayment) || 0) 
+      : (parseFloat(amount) || 0);
+      
+    if (!totalAmount) return;
 
     const wasTransfer = isEditing && !!transactionToEdit.transferId;
     const isNowTransfer = type === 'transfer';
@@ -182,11 +255,12 @@ const AddTransactionModal: React.FC<AddTransactionModalProps> = ({ onClose, onSa
             date,
             description: description || `Transfer to ${toAcc.name}`,
             merchant: merchant || 'Internal Transfer',
-            amount: -Math.abs(parseFloat(amount)),
+            amount: -Math.abs(totalAmount),
             category: 'Transfer',
             type: 'expense',
             currency: fromAcc.currency,
             transferId,
+            tagIds,
         };
 
         const incomeTx: Omit<Transaction, 'id'> & { id?: string } = {
@@ -194,11 +268,12 @@ const AddTransactionModal: React.FC<AddTransactionModalProps> = ({ onClose, onSa
             date,
             description: description || `Transfer from ${fromAcc.name}`,
             merchant: merchant || 'Internal Transfer',
-            amount: Math.abs(parseFloat(amount)),
+            amount: Math.abs(totalAmount),
             category: 'Transfer',
             type: 'income',
             currency: toAcc.currency,
             transferId,
+            tagIds,
         };
         
         // If it's a loan payment transfer, add the split
@@ -230,10 +305,11 @@ const AddTransactionModal: React.FC<AddTransactionModalProps> = ({ onClose, onSa
             date,
             description,
             merchant,
-            amount: type === 'expense' ? -Math.abs(parseFloat(amount)) : Math.abs(parseFloat(amount)),
+            amount: type === 'expense' ? -Math.abs(totalAmount) : Math.abs(totalAmount),
             category,
             type,
             currency: selectedAccount.currency,
+            tagIds,
         };
         
         if (isLoanPayment) {
@@ -324,7 +400,7 @@ const AddTransactionModal: React.FC<AddTransactionModalProps> = ({ onClose, onSa
         <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
             <div>
               <label htmlFor="tx-amount" className={labelStyle}>{isLoanPayment ? 'Total Payment' : 'Amount'}</label>
-              <input id="tx-amount" type="number" step="0.01" value={amount} onFocus={() => setLastPaymentFieldEdited('total')} onChange={e => {setAmount(e.target.value); setLastPaymentFieldEdited('total');}} className={INPUT_BASE_STYLE} placeholder="0.00" required />
+              <input id="tx-amount" type="number" step="0.01" value={amount} onChange={e => setAmount(e.target.value)} className={INPUT_BASE_STYLE} placeholder="0.00" required />
             </div>
              <div>
               <label htmlFor="tx-date" className={labelStyle}>Date</label>
@@ -335,9 +411,16 @@ const AddTransactionModal: React.FC<AddTransactionModalProps> = ({ onClose, onSa
         {isLoanPayment && (
             <div className="p-4 bg-black/5 dark:bg-white/5 rounded-lg space-y-2">
                 <p className="font-medium text-sm">Loan Payment Breakdown</p>
+                <p className="text-xs text-light-text-secondary dark:text-dark-text-secondary -mt-1 mb-2">Principal and interest are calculated automatically but can be manually adjusted.</p>
                 <div className="grid grid-cols-2 gap-4">
-                    <div><label htmlFor="principal-payment" className={labelStyle}>Principal</label><input id="principal-payment" type="number" step="0.01" value={principalPayment} onFocus={() => setLastPaymentFieldEdited('principal')} onChange={e => {setPrincipalPayment(e.target.value); setLastPaymentFieldEdited('principal');}} className={INPUT_BASE_STYLE} placeholder="0.00" /></div>
-                    <div><label htmlFor="interest-payment" className={labelStyle}>Interest</label><input id="interest-payment" type="number" step="0.01" value={interestPayment} onFocus={() => setLastPaymentFieldEdited('interest')} onChange={e => {setInterestPayment(e.target.value); setLastPaymentFieldEdited('interest');}} className={INPUT_BASE_STYLE} placeholder="0.00" /></div>
+                    <div>
+                        <label htmlFor="principal-payment" className={labelStyle}>Principal</label>
+                        <input id="principal-payment" type="number" step="0.01" value={principalPayment} onChange={handlePrincipalChange} className={INPUT_BASE_STYLE} placeholder="0.00" />
+                    </div>
+                    <div>
+                        <label htmlFor="interest-payment" className={labelStyle}>Interest</label>
+                        <input id="interest-payment" type="number" step="0.01" value={interestPayment} onChange={handleInterestChange} className={INPUT_BASE_STYLE} placeholder="0.00" />
+                    </div>
                 </div>
             </div>
         )}
@@ -355,6 +438,7 @@ const AddTransactionModal: React.FC<AddTransactionModalProps> = ({ onClose, onSa
         </div>
 
         {type !== 'transfer' && (
+          <>
             <div>
               <label htmlFor="tx-category" className={labelStyle}>Category</label>
               <div className={SELECT_WRAPPER_STYLE}>
@@ -364,6 +448,52 @@ const AddTransactionModal: React.FC<AddTransactionModalProps> = ({ onClose, onSa
                 <div className={SELECT_ARROW_STYLE}><span className="material-symbols-outlined">expand_more</span></div>
               </div>
             </div>
+            <div>
+                <label className={labelStyle}>Tags (Optional)</label>
+                <div className="relative" ref={tagSelectorRef}>
+                    <div
+                        onClick={() => setIsTagSelectorOpen(prev => !prev)}
+                        className={`${INPUT_BASE_STYLE} flex items-center flex-wrap gap-1 cursor-pointer h-auto min-h-10 py-1.5`}
+                    >
+                        {selectedTags.length > 0 ? (
+                            selectedTags.map(tag => (
+                                <span key={tag.id} className="flex items-center gap-1 text-xs px-2 py-0.5 rounded-full" style={{ backgroundColor: `${tag.color}30`, color: tag.color }}>
+                                    {tag.name}
+                                    <button
+                                        type="button"
+                                        onClick={(e) => { e.stopPropagation(); handleTagToggle(tag.id); }}
+                                        className="text-xs hover:text-black dark:hover:text-white"
+                                    >
+                                        &times;
+                                    </button>
+                                </span>
+                            ))
+                        ) : (
+                            <span className="text-light-text-secondary dark:text-dark-text-secondary px-1">Select tags...</span>
+                        )}
+                    </div>
+                    {isTagSelectorOpen && (
+                        <div className="absolute top-full left-0 mt-1 w-full bg-light-card dark:bg-dark-card rounded-lg shadow-lg border border-black/10 dark:border-white/10 z-10 max-h-48 overflow-y-auto">
+                            {tags.length > 0 ? tags.map(tag => (
+                                <label key={tag.id} className="flex items-center gap-3 p-2 hover:bg-black/5 dark:hover:bg-white/5 cursor-pointer">
+                                    <input
+                                        type="checkbox"
+                                        checked={tagIds.includes(tag.id)}
+                                        onChange={() => handleTagToggle(tag.id)}
+                                        className="w-4 h-4 rounded text-primary-500 bg-transparent border-gray-400 focus:ring-primary-500"
+                                    />
+                                    <span className="text-sm font-medium">{tag.name}</span>
+                                </label>
+                            )) : (
+                              <div className="p-4 text-center text-sm text-light-text-secondary dark:text-dark-text-secondary">
+                                No tags created yet. Go to the Tags page to add one.
+                              </div>
+                            )}
+                        </div>
+                    )}
+                </div>
+            </div>
+          </>
         )}
         
         <div className="flex justify-end gap-4 pt-4">

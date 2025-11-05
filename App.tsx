@@ -1,3 +1,4 @@
+
 // FIX: Import `useMemo` from React to resolve the 'Cannot find name' error.
 import React, { useState, useEffect, useMemo, useCallback } from 'react';
 import Sidebar from './components/Sidebar';
@@ -20,10 +21,12 @@ import AccountDetail from './pages/AccountDetail';
 import Investments from './pages/Investments';
 import Tasks from './pages/Tasks';
 import Warrants from './pages/Warrants';
-import Documentation from './pages/Documentation';
+// FIX: Changed to a named import for Documentation to match its export type and resolve the module error.
+import { Documentation } from './pages/Documentation';
 // UserManagement is removed
 // FIX: Import FinancialData from types.ts
-import { Page, Theme, Category, User, Transaction, Account, RecurringTransaction, WeekendAdjustment, FinancialGoal, Budget, ImportExportHistoryItem, AppPreferences, AccountType, InvestmentTransaction, Task, Warrant, ScraperConfig, ImportDataType, FinancialData, Currency, BillPayment, BillPaymentStatus, Duration, InvestmentSubType } from './types';
+// FIX: Add `Tag` to the import from `types.ts`.
+import { Page, Theme, Category, User, Transaction, Account, RecurringTransaction, WeekendAdjustment, FinancialGoal, Budget, ImportExportHistoryItem, AppPreferences, AccountType, InvestmentTransaction, Task, Warrant, ScraperConfig, ImportDataType, FinancialData, Currency, BillPayment, BillPaymentStatus, Duration, InvestmentSubType, Tag } from './types';
 // FIX: Import Card component and BTN_PRIMARY_STYLE constant to resolve 'Cannot find name' errors.
 import { MOCK_INCOME_CATEGORIES, MOCK_EXPENSE_CATEGORIES, BTN_PRIMARY_STYLE, BTN_SECONDARY_STYLE, LIQUID_ACCOUNT_TYPES } from './constants';
 import Card from './components/Card';
@@ -35,6 +38,7 @@ import { convertToEur, CONVERSION_RATES, arrayToCSV, downloadCSV, parseDateAsUTC
 import { useDebounce } from './hooks/useDebounce';
 import { useAuth } from './hooks/useAuth';
 import useLocalStorage from './hooks/useLocalStorage';
+import OnboardingModal from './components/OnboardingModal';
 
 const initialFinancialData: FinancialData = {
     accounts: [],
@@ -47,6 +51,8 @@ const initialFinancialData: FinancialData = {
     warrants: [],
     scraperConfigs: [],
     importExportHistory: [],
+    // FIX: Add `tags` to the initial financial data structure.
+    tags: [],
     incomeCategories: MOCK_INCOME_CATEGORIES, // Keep default categories
     expenseCategories: MOCK_EXPENSE_CATEGORIES,
     billsAndPayments: [],
@@ -124,6 +130,9 @@ export const App: React.FC = () => {
   const [scraperConfigs, setScraperConfigs] = useState<ScraperConfig[]>(initialFinancialData.scraperConfigs);
   const [importExportHistory, setImportExportHistory] = useState<ImportExportHistoryItem[]>(initialFinancialData.importExportHistory);
   const [billsAndPayments, setBillsAndPayments] = useState<BillPayment[]>(initialFinancialData.billsAndPayments);
+  // FIX: Add state for tags and tag filtering to support the Tags feature.
+  const [tags, setTags] = useState<Tag[]>(initialFinancialData.tags || []);
+  const [tagFilter, setTagFilter] = useState<string | null>(null);
   const [accountOrder, setAccountOrder] = useLocalStorage<string[]>('finaura-account-order', []);
   
   // State for AI Chat
@@ -139,6 +148,10 @@ export const App: React.FC = () => {
   const [activeGoalIds, setActiveGoalIds] = useState<string[]>([]);
   const [dashboardDuration, setDashboardDuration] = useState<Duration>(preferences.defaultPeriod as Duration);
   const [accountsSortBy, setAccountsSortBy] = useState<'name' | 'balance' | 'manual'>(preferences.defaultAccountOrder);
+
+  // Onboarding flow state
+  const [hasCompletedOnboarding, setHasCompletedOnboarding] = useLocalStorage('finaura-onboarding-complete', false);
+  const [isOnboardingOpen, setIsOnboardingOpen] = useState(false);
 
 
   useEffect(() => {
@@ -242,6 +255,8 @@ export const App: React.FC = () => {
     setScraperConfigs(dataToLoad.scraperConfigs || []);
     setImportExportHistory(dataToLoad.importExportHistory || []);
     setBillsAndPayments(dataToLoad.billsAndPayments || []);
+    // FIX: Add `tags` to the data loading logic.
+    setTags(dataToLoad.tags || []);
     setIncomeCategories(dataToLoad.incomeCategories && dataToLoad.incomeCategories.length > 0 ? dataToLoad.incomeCategories : MOCK_INCOME_CATEGORIES);
     setExpenseCategories(dataToLoad.expenseCategories && dataToLoad.expenseCategories.length > 0 ? dataToLoad.expenseCategories : MOCK_EXPENSE_CATEGORIES);
     
@@ -287,15 +302,30 @@ export const App: React.FC = () => {
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [isDemoMode]);
 
+  // Onboarding flow trigger
+  useEffect(() => {
+    if (isDataLoaded && (isAuthenticated || isDemoMode) && accounts.length === 0 && budgets.length === 0 && !hasCompletedOnboarding) {
+      const timer = setTimeout(() => {
+        setIsOnboardingOpen(true);
+      }, 500);
+      return () => clearTimeout(timer);
+    }
+  }, [isDataLoaded, isAuthenticated, isDemoMode, accounts.length, budgets.length, hasCompletedOnboarding]);
+
+  const handleOnboardingFinish = () => {
+    setHasCompletedOnboarding(true);
+    setIsOnboardingOpen(false);
+  };
+
 
   const dataToSave: FinancialData = useMemo(() => ({
     accounts, transactions, investmentTransactions, recurringTransactions,
     financialGoals, budgets, tasks, warrants, scraperConfigs, importExportHistory, incomeCategories,
-    expenseCategories, preferences, billsAndPayments, accountOrder,
+    expenseCategories, preferences, billsAndPayments, accountOrder, tags,
   }), [
     accounts, transactions, investmentTransactions,
     recurringTransactions, financialGoals, budgets, tasks, warrants, scraperConfigs, importExportHistory,
-    incomeCategories, expenseCategories, preferences, billsAndPayments, accountOrder,
+    incomeCategories, expenseCategories, preferences, billsAndPayments, accountOrder, tags,
   ]);
 
   const debouncedDataToSave = useDebounce(dataToSave, 1500);
@@ -358,6 +388,7 @@ export const App: React.FC = () => {
   const handleLogout = () => {
     signOut();
     loadAllFinancialData(null); // Reset all states
+    setHasCompletedOnboarding(false); // Also reset onboarding status
     setAuthPage('signIn');
     setIsDemoMode(false);
     setDemoUser(null);
@@ -610,6 +641,29 @@ export const App: React.FC = () => {
     setWarrants(prev => prev.filter(w => w.id !== warrantId));
   };
   
+  // FIX: Add handlers for saving and deleting tags.
+  const handleSaveTag = (tagData: Omit<Tag, 'id'> & { id?: string }) => {
+    if (tagData.id) {
+        setTags(prev => prev.map(t => (t.id === tagData.id ? { ...t, ...tagData } as Tag : t)));
+    } else {
+        const newTag: Tag = { ...tagData, id: `tag-${uuidv4()}` } as Tag;
+        setTags(prev => [...prev, newTag]);
+    }
+  };
+
+  const handleDeleteTag = (tagId: string) => {
+      setTags(prev => prev.filter(t => t.id !== tagId));
+      // Also remove this tagId from all transactions
+      setTransactions(prev =>
+          prev.map(tx => {
+              if (tx.tagIds?.includes(tagId)) {
+                  return { ...tx, tagIds: tx.tagIds.filter(id => id !== tagId) };
+              }
+              return tx;
+          })
+      );
+  };
+  
   const handleSaveScraperConfig = (config: ScraperConfig) => {
     setScraperConfigs(prev => {
         const index = prev.findIndex(c => c.id === config.id);
@@ -776,6 +830,7 @@ export const App: React.FC = () => {
           saveTransaction={handleSaveTransaction}
           recurringTransactions={recurringTransactions}
           setViewingAccountId={setViewingAccountId}
+          tags={tags}
         />
       } else {
         setViewingAccountId(null); // Account not found, go back to dashboard
@@ -785,11 +840,11 @@ export const App: React.FC = () => {
 
     switch (currentPage) {
       case 'Dashboard':
-        return <Dashboard user={currentUser!} transactions={transactions} accounts={accounts} saveTransaction={handleSaveTransaction} incomeCategories={incomeCategories} expenseCategories={expenseCategories} financialGoals={financialGoals} recurringTransactions={recurringTransactions} billsAndPayments={billsAndPayments} selectedAccountIds={dashboardAccountIds} setSelectedAccountIds={setDashboardAccountIds} duration={dashboardDuration} setDuration={setDashboardDuration} />;
+        return <Dashboard user={currentUser!} transactions={transactions} accounts={accounts} saveTransaction={handleSaveTransaction} incomeCategories={incomeCategories} expenseCategories={expenseCategories} financialGoals={financialGoals} recurringTransactions={recurringTransactions} billsAndPayments={billsAndPayments} selectedAccountIds={dashboardAccountIds} setSelectedAccountIds={setDashboardAccountIds} duration={dashboardDuration} setDuration={setDashboardDuration} tags={tags} />;
       case 'Accounts':
         return <Accounts accounts={accounts} transactions={transactions} saveAccount={handleSaveAccount} deleteAccount={handleDeleteAccount} setCurrentPage={setCurrentPage} setAccountFilter={setAccountFilter} setViewingAccountId={setViewingAccountId} saveTransaction={handleSaveTransaction} accountOrder={accountOrder} setAccountOrder={setAccountOrder} sortBy={accountsSortBy} setSortBy={setAccountsSortBy} />;
       case 'Transactions':
-        return <Transactions transactions={transactions} saveTransaction={handleSaveTransaction} deleteTransactions={handleDeleteTransactions} accounts={accounts} accountFilter={accountFilter} setAccountFilter={setAccountFilter} incomeCategories={incomeCategories} expenseCategories={expenseCategories} />;
+        return <Transactions transactions={transactions} saveTransaction={handleSaveTransaction} deleteTransactions={handleDeleteTransactions} accounts={accounts} accountFilter={accountFilter} setAccountFilter={setAccountFilter} incomeCategories={incomeCategories} expenseCategories={expenseCategories} tags={tags} tagFilter={tagFilter} setTagFilter={setTagFilter} />;
       case 'Budget':
         return <Budgeting budgets={budgets} transactions={transactions} expenseCategories={expenseCategories} saveBudget={handleSaveBudget} deleteBudget={handleDeleteBudget} accounts={accounts} />;
       case 'Forecasting':
@@ -801,7 +856,7 @@ export const App: React.FC = () => {
       case 'Categories':
         return <Categories incomeCategories={incomeCategories} setIncomeCategories={setIncomeCategories} expenseCategories={expenseCategories} setExpenseCategories={setExpenseCategories} setCurrentPage={setCurrentPage} />;
       case 'Tags':
-        return <Tags setCurrentPage={setCurrentPage} />;
+        return <Tags tags={tags} transactions={transactions} saveTag={handleSaveTag} deleteTag={handleDeleteTag} setCurrentPage={setCurrentPage} setTagFilter={setTagFilter} />;
       case 'Personal Info':
         return <PersonalInfo user={currentUser!} setUser={handleSetUser} onChangePassword={changePassword} setCurrentPage={setCurrentPage} />;
       case 'Data Management':
@@ -887,6 +942,19 @@ export const App: React.FC = () => {
           recurringTransactions,
           investmentTransactions,
         }}
+      />
+      <OnboardingModal
+        isOpen={isOnboardingOpen}
+        onClose={handleOnboardingFinish}
+        user={currentUser!}
+        saveAccount={handleSaveAccount}
+        saveFinancialGoal={handleSaveFinancialGoal}
+        saveRecurringTransaction={handleSaveRecurringTransaction}
+        preferences={preferences}
+        setPreferences={setPreferences}
+        accounts={accounts}
+        incomeCategories={incomeCategories}
+        expenseCategories={expenseCategories}
       />
     </div>
   );

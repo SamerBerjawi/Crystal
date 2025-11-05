@@ -38,10 +38,11 @@ export const NAV_ITEMS: NavItem[] = [
   { name: 'Warrants', icon: 'verified' },
   { name: 'Schedule & Bills', icon: 'calendar_month' },
   { name: 'Tasks', icon: 'task_alt' },
+  { name: 'Tags', icon: 'label' },
   { name: 'Settings', icon: 'settings' },
 ];
 
-export const ASSET_TYPES: AccountType[] = ['Checking', 'Savings', 'Investment', 'Property', 'Vehicle', 'Other Assets'];
+export const ASSET_TYPES: AccountType[] = ['Checking', 'Savings', 'Investment', 'Property', 'Vehicle', 'Other Assets', 'Lending'];
 export const DEBT_TYPES: AccountType[] = ['Credit Card', 'Loan', 'Other Liabilities'];
 export const ALL_ACCOUNT_TYPES: AccountType[] = [...ASSET_TYPES, ...DEBT_TYPES];
 export const LIQUID_ACCOUNT_TYPES: AccountType[] = ['Checking', 'Savings', 'Credit Card'];
@@ -97,8 +98,9 @@ export const ACCOUNT_TYPE_STYLES: { [key in AccountType]: { icon: string; color:
     'Checking': { icon: 'account_balance', color: 'text-blue-500' },
     'Savings': { icon: 'savings', color: 'text-green-500' },
     'Credit Card': { icon: 'credit_card', color: 'text-orange-500' },
-    'Investment': { icon: 'show_chart', color: 'text-purple-500' }, // This will be the default for Investment
+    'Investment': { icon: 'show_chart', color: 'text-purple-500' },
     'Loan': { icon: 'request_quote', color: 'text-red-500' },
+    'Lending': { icon: 'real_estate_agent', color: 'text-teal-500' },
     'Property': { icon: 'home', color: 'text-yellow-500' },
     'Vehicle': { icon: 'directions_car', color: 'text-cyan-500' },
     'Other Assets': { icon: 'category', color: 'text-lime-500' },
@@ -146,7 +148,7 @@ export const MOCK_EXPENSE_CATEGORIES: Category[] = [
 ];
 
 export const ACCOUNT_ICON_LIST: string[] = [
-    'account_balance', 'savings', 'credit_card', 'show_chart', 'request_quote', 'home', 'currency_bitcoin', 'directions_car', 'palette', 'school', 'receipt', 'category', 'wallet', 'paid', 'account_balance_wallet', 'monetization_on', 'euro_symbol', 'payments', 'store', 'apartment', 'business_center', 'cottage', 'flight', 'local_gas_station', 'local_mall', 'restaurant', 'shopping_cart', 'work', 'build'
+    'account_balance', 'savings', 'credit_card', 'show_chart', 'request_quote', 'home', 'currency_bitcoin', 'directions_car', 'palette', 'school', 'receipt', 'category', 'wallet', 'paid', 'account_balance_wallet', 'monetization_on', 'euro_symbol', 'payments', 'store', 'apartment', 'business_center', 'cottage', 'flight', 'local_gas_station', 'local_mall', 'restaurant', 'shopping_cart', 'work', 'build', 'real_estate_agent'
 ];
 
 export const CATEGORY_ICON_LIST: string[] = [

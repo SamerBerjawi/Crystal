@@ -1,6 +1,9 @@
+
+
 import React, { useState, useMemo } from 'react';
 import { INPUT_BASE_STYLE, SELECT_WRAPPER_STYLE, SELECT_ARROW_STYLE, BTN_PRIMARY_STYLE, BTN_SECONDARY_STYLE, SELECT_STYLE } from '../constants';
-import { Transaction, Category, Account, DisplayTransaction } from '../types';
+// FIX: Import `Tag` type to use in component props.
+import { Transaction, Category, Account, DisplayTransaction, Tag } from '../types';
 import Card from '../components/Card';
 import { formatCurrency, fuzzySearch, convertToEur } from '../utils';
 import AddTransactionModal from '../components/AddTransactionModal';
@@ -17,6 +20,10 @@ interface TransactionsProps {
   setAccountFilter: (accountName: string | null) => void;
   incomeCategories: Category[];
   expenseCategories: Category[];
+  // FIX: Add props for tag-based filtering.
+  tags: Tag[];
+  tagFilter: string | null;
+  setTagFilter: (tagId: string | null) => void;
 }
 
 const findCategory = (name: string, categories: Category[]): Category | undefined => {
@@ -30,7 +37,8 @@ const findCategory = (name: string, categories: Category[]): Category | undefine
     return undefined;
 };
 
-const Transactions: React.FC<TransactionsProps> = ({ transactions, saveTransaction, deleteTransactions, accounts, accountFilter, setAccountFilter, incomeCategories, expenseCategories }) => {
+// FIX: Add `tags`, `tagFilter`, and `setTagFilter` to the component's props.
+const Transactions: React.FC<TransactionsProps> = ({ transactions, saveTransaction, deleteTransactions, accounts, accountFilter, setAccountFilter, incomeCategories, expenseCategories, tags, tagFilter, setTagFilter }) => {
   const [searchTerm, setSearchTerm] = useState('');
   const [sortBy, setSortBy] = useState('date-desc');
   const [typeFilter, setTypeFilter] = useState<'all' | 'income' | 'expense' | 'transfer'>('all');
@@ -125,7 +133,10 @@ const Transactions: React.FC<TransactionsProps> = ({ transactions, saveTransacti
         const matchStartDate = !startDateTime || txDateTime >= startDateTime.getTime();
         const matchEndDate = !endDateTime || txDateTime <= endDateTime.getTime();
 
-        return matchAccount && matchSearch && matchType && matchStartDate && matchEndDate;
+        // FIX: Add logic to filter transactions by the selected tag.
+        const matchTag = !tagFilter || (tx.tagIds && tx.tagIds.includes(tagFilter));
+
+        return matchAccount && matchTag && matchSearch && matchType && matchStartDate && matchEndDate;
       });
     
     return transactionList.sort((a, b) => {
@@ -142,7 +153,8 @@ const Transactions: React.FC<TransactionsProps> = ({ transactions, saveTransacti
       }
     });
 
-  }, [searchTerm, accountFilter, sortBy, typeFilter, startDate, endDate, displayTransactions]);
+  // FIX: Add `tagFilter` to the dependency array.
+  }, [searchTerm, accountFilter, sortBy, typeFilter, startDate, endDate, displayTransactions, tagFilter]);
   
   const containsTransfer = useMemo(() => {
     // FIX: Explicitly type `id` as string to resolve 'unknown' type error.
@@ -295,6 +307,7 @@ const Transactions: React.FC<TransactionsProps> = ({ transactions, saveTransacti
           expenseCategories={expenseCategories}
           transactionToEdit={editingTransaction}
           transactions={transactions}
+          tags={tags}
         />
       )}
       {isCategorizeModalOpen && (
@@ -394,6 +407,16 @@ const Transactions: React.FC<TransactionsProps> = ({ transactions, saveTransacti
                 </div>
               </div>
             </div>
+            {/* FIX: Add a UI element to show and clear the active tag filter. */}
+            {tagFilter && (
+                <div className="flex items-center gap-2 p-2 bg-primary-100 dark:bg-primary-900/50 rounded-lg max-w-fit">
+                    <span className="font-semibold text-sm text-primary-700 dark:text-primary-200">Filtered by tag:</span>
+                    <span className="font-mono bg-white/50 dark:bg-black/20 px-2 py-1 rounded text-xs text-primary-800 dark:text-primary-100">{tags.find(t => t.id === tagFilter)?.name || 'Unknown Tag'}</span>
+                    <button onClick={() => setTagFilter(null)} className="p-1 rounded-full hover:bg-black/10 dark:hover:bg-white/10 text-primary-700 dark:text-primary-200">
+                        <span className="material-symbols-outlined text-sm">close</span>
+                    </button>
+                </div>
+            )}
             <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                 <div className="md:col-span-1">
                     <label className={labelStyle}>Type</label>
@@ -511,7 +534,16 @@ const Transactions: React.FC<TransactionsProps> = ({ transactions, saveTransacti
                         <p className="font-medium text-base text-light-text dark:text-dark-text">{tx.category}</p>
                     </div>
                   </td>
-                  <td className="p-4 text-base text-light-text-secondary dark:text-dark-text-secondary">{tx.description}</td>
+                  <td className="p-4 text-base text-light-text-secondary dark:text-dark-text-secondary">
+                    <div>{tx.description}</div>
+                    {tx.tagIds && tx.tagIds.length > 0 && (
+                        <div className="flex flex-wrap gap-1 mt-1">
+                            {tx.tagIds.map(tagId => { const tag = tags.find(t => t.id === tagId); if (!tag) return null; return (
+                                <span key={tag.id} className="text-xs px-2 py-0.5 rounded-full" style={{ backgroundColor: `${tag.color}30`, color: tag.color }}>{tag.name}</span>
+                            );})}
+                        </div>
+                    )}
+                  </td>
                   <td className={`p-4 font-semibold text-right whitespace-nowrap text-base ${amountColor}`}>
                     {tx.isTransfer && !accountFilter
                         ? '-/+ ' + formatCurrency(convertToEur(Math.abs(amount), tx.currency), 'EUR')

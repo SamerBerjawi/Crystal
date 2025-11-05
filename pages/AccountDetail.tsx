@@ -1,6 +1,6 @@
 import React, { useMemo, useState, useCallback } from 'react';
 // FIX: Import 'AccountDetailProps' to define props for the component.
-import { Account, Transaction, Category, Duration, Page, CategorySpending, Widget, WidgetConfig, DisplayTransaction, RecurringTransaction, AccountDetailProps } from '../types';
+import { Account, Transaction, Category, Duration, Page, CategorySpending, Widget, WidgetConfig, DisplayTransaction, RecurringTransaction, AccountDetailProps, Tag, ScheduledPayment } from '../types';
 import { formatCurrency, getDateRange, convertToEur, calculateStatementPeriods } from '../utils';
 import AddTransactionModal from '../components/AddTransactionModal';
 import { BTN_PRIMARY_STYLE, MOCK_EXPENSE_CATEGORIES, BTN_SECONDARY_STYLE } from '../constants';
@@ -18,6 +18,7 @@ import AddWidgetModal from '../components/AddWidgetModal';
 import CreditCardStatementCard from '../components/CreditCardStatementCard';
 import LoanProgressCard from '../components/LoanProgressCard';
 import Card from '../components/Card';
+import PaymentPlanTable from '../components/PaymentPlanTable';
 
 const findCategoryDetails = (name: string, categories: Category[]): Category | undefined => {
     for (const cat of categories) {
@@ -48,13 +49,20 @@ const toYYYYMMDD = (date: Date) => {
     return `${y}-${m}-${d}`;
 };
 
-const AccountDetail: React.FC<AccountDetailProps> = ({ account, accounts, transactions, allCategories, setCurrentPage, saveTransaction, recurringTransactions, setViewingAccountId }) => {
+const AccountDetail: React.FC<AccountDetailProps> = ({ account, accounts, transactions, allCategories, setCurrentPage, saveTransaction, recurringTransactions, setViewingAccountId, tags }) => {
     const [isTransactionModalOpen, setTransactionModalOpen] = useState(false);
     const [editingTransaction, setEditingTransaction] = useState<Transaction | null>(null);
     const [initialModalState, setInitialModalState] = useState<{
         from?: string,
         to?: string,
         type?: 'expense' | 'income' | 'transfer',
+        details?: {
+            date?: string;
+            amount?: string;
+            principal?: string;
+            interest?: string;
+            description?: string;
+        }
     }>({});
     
     const [isDetailModalOpen, setDetailModalOpen] = useState(false);
@@ -67,21 +75,48 @@ const AccountDetail: React.FC<AccountDetailProps> = ({ account, accounts, transa
 
     const handleOpenTransactionModal = (tx?: Transaction) => {
         setEditingTransaction(tx || null);
-         if (!tx && account.type === 'Loan' && account.linkedAccountId) {
+        if (!tx && (account.type === 'Loan' || account.type === 'Lending') && account.linkedAccountId) {
             setInitialModalState({
                 type: 'transfer',
-                from: account.linkedAccountId,
-                to: account.id
+                from: account.type === 'Loan' ? account.linkedAccountId : account.id,
+                to: account.type === 'Loan' ? account.id : account.linkedAccountId
             });
         } else {
             setInitialModalState({});
         }
         setTransactionModalOpen(true);
     };
+    
+    const handleMakePayment = (payment: ScheduledPayment, description: string) => {
+        const isLoan = account.type === 'Loan';
+        const fromId = isLoan ? account.linkedAccountId : account.id;
+        const toId = isLoan ? account.id : account.linkedAccountId;
+
+        if (!fromId || !toId) {
+            alert('A linked account must be set on the loan to record a payment.');
+            return;
+        }
+
+        setEditingTransaction(null);
+        setInitialModalState({
+            type: 'transfer',
+            from: fromId,
+            to: toId,
+            details: {
+                date: payment.date,
+                amount: String(payment.totalPayment.toFixed(2)),
+                principal: String(payment.principal.toFixed(2)),
+                interest: String(payment.interest.toFixed(2)),
+                description: description,
+            }
+        });
+        setTransactionModalOpen(true);
+    };
 
     const handleCloseTransactionModal = () => {
         setEditingTransaction(null);
         setTransactionModalOpen(false);
+        setInitialModalState({});
     };
 
     const handleTransactionClick = useCallback((clickedTx: DisplayTransaction) => {
@@ -142,27 +177,28 @@ const AccountDetail: React.FC<AccountDetailProps> = ({ account, accounts, transa
         return result.slice(0, 10);
     }, [transactions, account.id, accountMap]);
 
-    if (account.type === 'Loan') {
-        const loanPayments = transactions.filter(tx => tx.accountId === account.id && tx.type === 'income');
+    if (account.type === 'Loan' || account.type === 'Lending') {
+        const isLending = account.type === 'Lending';
+        const payments = transactions.filter(tx => tx.accountId === account.id && tx.type === (isLending ? 'expense' : 'income'));
         
-        const totalPaid = loanPayments.reduce((sum, tx) => {
-            const splitTotal = (tx.principalAmount || 0) + (tx.interestAmount || 0);
-            return sum + (splitTotal > 0 ? splitTotal : tx.amount);
-        }, 0);
-        const principalPaid = loanPayments.reduce((sum, tx) => sum + (tx.principalAmount || 0), 0);
-        const interestPaid = loanPayments.reduce((sum, tx) => sum + (tx.interestAmount || 0), 0);
+        const principalPaid = payments.reduce((sum, tx) => sum + (tx.principalAmount || 0), 0);
+        const interestPaid = payments.reduce((sum, tx) => sum + (tx.interestAmount || 0), 0);
+        const totalPaid = principalPaid + interestPaid;
 
         const totalLoanAmount = account.totalAmount || 0;
         const totalPrincipal = account.principalAmount || 0;
         const totalInterest = account.interestAmount || 0;
         
-        const loanPaymentSchedule = recurringTransactions.find(rt => rt.toAccountId === account.id && rt.type === 'transfer');
+        const loanPaymentSchedule = recurringTransactions.find(rt => 
+            isLending ? rt.accountId === account.id : rt.toAccountId === account.id 
+            && rt.type === 'transfer'
+        );
         
         const nextPaymentDate = loanPaymentSchedule?.nextDueDate;
         
         let paymentsRemaining: number | undefined;
         if (account.duration && loanPaymentSchedule) {
-            const paymentsMade = loanPayments.length;
+            const paymentsMade = payments.length;
             paymentsRemaining = account.duration - paymentsMade;
         }
 
@@ -193,9 +229,11 @@ const AccountDetail: React.FC<AccountDetailProps> = ({ account, accounts, transa
                     expenseCategories={allCategories.filter(c => c.classification === 'expense')}
                     transactionToEdit={editingTransaction}
                     transactions={transactions}
-                    initialType={initialModalState.type || "transfer"}
+                    initialType={initialModalState.type}
                     initialFromAccountId={initialModalState.from}
                     initialToAccountId={initialModalState.to}
+                    initialDetails={initialModalState.details}
+                    tags={tags}
                 />
             )}
              <TransactionDetailModal
@@ -223,9 +261,9 @@ const AccountDetail: React.FC<AccountDetailProps> = ({ account, accounts, transa
             </header>
 
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-              <LoanProgressCard title="Total Loan Paid" paid={totalPaid} total={totalLoanAmount} currency={account.currency} />
-              <LoanProgressCard title="Principal Paid" paid={principalPaid} total={totalPrincipal} currency={account.currency} />
-              <LoanProgressCard title="Interest Paid" paid={interestPaid} total={totalInterest} currency={account.currency} />
+              <LoanProgressCard title={isLending ? "Total Received" : "Total Loan Paid"} paid={totalPaid} total={totalLoanAmount} currency={account.currency} />
+              <LoanProgressCard title={isLending ? "Principal Received" : "Principal Paid"} paid={principalPaid} total={totalPrincipal} currency={account.currency} />
+              <LoanProgressCard title={isLending ? "Interest Received" : "Interest Paid"} paid={interestPaid} total={totalInterest} currency={account.currency} />
               <Card>
                 <div className="flex flex-col h-full justify-between">
                     <div>
@@ -250,11 +288,11 @@ const AccountDetail: React.FC<AccountDetailProps> = ({ account, accounts, transa
             </div>
     
             <Card>
-                <h3 className="text-xl font-semibold mb-4 text-light-text dark:text-dark-text">Payment History</h3>
-                <TransactionList
-                    transactions={recentTransactions}
-                    allCategories={allCategories}
-                    onTransactionClick={handleTransactionClick}
+                <h3 className="text-xl font-semibold mb-4 text-light-text dark:text-dark-text">Payment Plan</h3>
+                <PaymentPlanTable
+                    account={account}
+                    transactions={transactions}
+                    onMakePayment={handleMakePayment}
                 />
             </Card>
           </div>
@@ -595,6 +633,8 @@ const AccountDetail: React.FC<AccountDetailProps> = ({ account, accounts, transa
                     initialType={initialModalState.type}
                     initialFromAccountId={initialModalState.from}
                     initialToAccountId={initialModalState.to}
+                    initialDetails={initialModalState.details}
+                    tags={tags}
                 />
             )}
             <TransactionDetailModal
