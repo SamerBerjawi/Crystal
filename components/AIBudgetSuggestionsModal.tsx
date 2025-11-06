@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from 'react';
 import Modal from './Modal';
 import { BudgetSuggestion, Budget } from '../types';
@@ -138,7 +139,8 @@ const AIBudgetSuggestionsModal: React.FC<AIBudgetSuggestionsModalProps> = ({ isO
         {!isLoading && (
              <div className="flex justify-end gap-4 pt-4 mt-4 border-t border-black/10 dark:border-white/10">
                 <button type="button" onClick={onClose} className={BTN_SECONDARY_STYLE}>Cancel</button>
-                <button type="button" onClick={handleApply} className={BTN_PRIMARY_STYLE} disabled={error || numSelected === 0}>
+                {/* FIX: Coerce `error` to a boolean to prevent passing a string to the `disabled` prop, which expects a boolean. */}
+                <button type="button" onClick={handleApply} className={BTN_PRIMARY_STYLE} disabled={!!error || numSelected === 0}>
                     Apply {numSelected > 0 ? `${numSelected} Selected` : ''}
                 </button>
             </div>

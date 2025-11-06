@@ -26,10 +26,7 @@ const SignIn: React.FC<SignInProps> = ({ onSignIn, onNavigateToSignUp, onEnterDe
     <div className="flex items-center justify-center min-h-screen bg-light-bg dark:bg-dark-bg p-4">
       <div className="w-full max-w-md">
         <div className="flex justify-center mb-6">
-          <div className="flex items-center gap-3">
-            <AuraFinanceLogo theme={theme as Theme} />
-            <span className="text-3xl font-bold text-light-text dark:text-white">Aura Finance</span>
-          </div>
+          <AuraFinanceLogo theme={theme as Theme} />
         </div>
         <Card>
           <h2 className="text-2xl font-bold text-center text-light-text dark:text-dark-text mb-2">Welcome Back!</h2>

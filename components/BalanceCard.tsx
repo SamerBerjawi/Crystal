@@ -40,7 +40,7 @@ const BalanceCard: React.FC<BalanceCardProps> = ({ title, amount, change, change
       </div>
       <div className="h-16 -mb-6 -mx-6 mt-4">
         <ResponsiveContainer width="100%" height="100%">
-          <LineChart data={sparklineData}>
+          <LineChart data={sparklineData} margin={{ top: 5, right: 5, bottom: 20, left: 5 }}>
             <Line
               type="natural"
               dataKey="value"

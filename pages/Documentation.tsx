@@ -126,6 +126,7 @@ export const Documentation: React.FC<DocumentationProps> = ({ setCurrentPage }) 
     const [activeSection, setActiveSection] = useState(features[0].title);
     const [openSections, setOpenSections] = useState<Record<string, boolean>>({ [features[0].title]: true });
     const sectionRefs = useRef<Record<string, HTMLElement | null>>({});
+    const containerRef = useRef<HTMLDivElement>(null);
 
     useEffect(() => {
         const observerOptions = {
@@ -172,9 +173,16 @@ export const Documentation: React.FC<DocumentationProps> = ({ setCurrentPage }) 
     const toggleSection = (title: string) => {
         setOpenSections(prev => ({ ...prev, [title]: !prev[title] }));
     };
+    
+    const handleBackToTop = () => {
+        const mainContent = containerRef.current?.closest('main');
+        if (mainContent) {
+            mainContent.scrollTo({ top: 0, behavior: 'smooth' });
+        }
+    };
 
     return (
-        <div className="max-w-7xl mx-auto">
+        <div className="max-w-7xl mx-auto" ref={containerRef}>
             <header className="mb-12">
                 <div className="flex items-center gap-4 mb-4">
                     <button onClick={() => setCurrentPage('Settings')} className="text-light-text-secondary dark:text-dark-text-secondary p-2 rounded-full hover:bg-black/5 dark:hover:bg-white/5">
@@ -223,7 +231,8 @@ export const Documentation: React.FC<DocumentationProps> = ({ setCurrentPage }) 
                         <section
                             key={feature.title}
                             id={sectionId}
-                            ref={(element) => (sectionRefs.current[feature.title] = element)}
+                            // FIX: Changed the ref callback to a block body to avoid returning a value, which is not allowed for callback refs.
+                            ref={(element) => { sectionRefs.current[feature.title] = element; }}
                         >
                             <Card className="p-0 overflow-hidden transition-all duration-300">
                                 <button
@@ -247,12 +256,12 @@ export const Documentation: React.FC<DocumentationProps> = ({ setCurrentPage }) 
                                 >
                                     <div className="overflow-hidden">
                                         <div className="px-6 pb-6 pt-2">
-                                            <div className="prose dark:prose-invert max-w-none prose-p:text-light-text-secondary prose-p:dark:text-dark-text-secondary prose-li:text-light-text-secondary prose-li:dark:text-dark-text-secondary prose-headings:text-light-text prose-headings:dark:text-dark-text">
+                                            <div className="prose dark:prose-invert max-w-none prose-p:leading-relaxed prose-li:my-2 prose-p:text-light-text-secondary prose-p:dark:text-dark-text-secondary prose-li:text-light-text-secondary prose-li:dark:text-dark-text-secondary prose-headings:text-light-text prose-headings:dark:text-dark-text">
                                                 {feature.content}
                                             </div>
                                             <div className="mt-8 pt-4 border-t border-black/10 dark:border-white/10 text-right">
                                                 <button
-                                                    onClick={() => window.scrollTo({ top: 0, behavior: 'smooth' })}
+                                                    onClick={handleBackToTop}
                                                     className="text-sm font-semibold text-primary-500 hover:underline flex items-center gap-1 ml-auto"
                                                 >
                                                     <span className="material-symbols-outlined text-base">arrow_upward</span>

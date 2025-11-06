@@ -108,19 +108,19 @@ const Sidebar: React.FC<SidebarProps> = ({ currentPage, setCurrentPage, isSideba
         onClick={() => setSidebarOpen(false)}
       ></div>
       <aside className={`fixed top-0 left-0 bottom-0 z-40 bg-light-card dark:bg-dark-card flex flex-col transition-all duration-300 ease-in-out md:relative md:translate-x-0 ${isSidebarOpen ? 'translate-x-0 w-64' : '-translate-x-full w-64'} ${isSidebarCollapsed ? 'md:w-20' : 'md:w-64'}`}>
-        <div className={`flex items-center justify-between h-20 flex-shrink-0 transition-all duration-300 ${isSidebarCollapsed ? 'md:px-3' : 'px-4'}`}>
-            <div className={`flex items-center gap-3 overflow-hidden`}>
-                <AuraFinanceLogo theme={theme} />
-                <span className={`text-xl font-bold text-light-text dark:text-white transition-opacity duration-200 ${isSidebarCollapsed ? 'md:hidden' : ''}`}>Aura Finance</span>
+        <div className={`flex items-center h-20 flex-shrink-0 transition-all duration-300 ${isSidebarCollapsed ? 'md:px-3 justify-center' : 'px-4 justify-between'}`}>
+            <div className={`flex items-center gap-3 overflow-hidden ${isSidebarCollapsed ? 'w-auto' : 'w-full'}`}>
+                <AuraFinanceLogo theme={theme} showText={false} />
+                <span className={`font-bold text-xl transition-opacity ${isSidebarCollapsed ? 'md:hidden md:opacity-0' : 'opacity-100'}`}>Aura Finance</span>
             </div>
             <div className="flex items-center">
                  <button
                     onClick={() => setSidebarCollapsed(!isSidebarCollapsed)}
-                    className="hidden md:flex items-center justify-center p-2 rounded-full text-light-text-secondary dark:text-dark-text-secondary hover:bg-black/5 dark:hover:bg-white/10 transition-colors"
+                    className={`hidden md:flex items-center justify-center p-2 rounded-full text-light-text-secondary dark:text-dark-text-secondary hover:bg-black/5 dark:hover:bg-white/10 transition-colors ${isSidebarCollapsed ? 'hidden' : ''}`}
                     title={isSidebarCollapsed ? 'Expand sidebar' : 'Collapse sidebar'}
                 >
                     <span className="material-symbols-outlined">
-                        {isSidebarCollapsed ? 'side_navigation' : 'menu_open'}
+                        menu_open
                     </span>
                 </button>
             </div>

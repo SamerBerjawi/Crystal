@@ -1,3 +1,4 @@
+
 import React, { useState, useMemo, useEffect } from 'react';
 import { Account, Transaction, ScheduledPayment } from '../types';
 import { generateAmortizationSchedule, formatCurrency } from '../utils';
@@ -69,8 +70,9 @@ const PaymentPlanTable: React.FC<PaymentPlanTableProps> = ({ account, transactio
         }
     }, [editFormData.totalPayment, editFormData.principal, editFormData.interest, lastEditedField]);
 
+    // FIX: Map 'totalPayment' to 'total' for the state update to match the expected type.
     const handleEditFormChange = (field: 'totalPayment' | 'principal' | 'interest', value: string) => {
-        setLastEditedField(field);
+        setLastEditedField(field === 'totalPayment' ? 'total' : field);
         setEditFormData(prev => ({ ...prev, [field]: parseFloat(value) || 0 }));
     };
 
