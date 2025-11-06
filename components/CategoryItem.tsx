@@ -70,7 +70,7 @@ const CategoryItem: React.FC<CategoryItemProps> = ({
                     <span 
                         className="material-symbols-outlined"
                         style={{
-                            fontSize: '24px',
+                            fontSize: '22px',
                             color: category.color,
                         }}
                     >

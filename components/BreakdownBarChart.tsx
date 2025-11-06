@@ -30,7 +30,7 @@ const CustomTooltip = ({ active, payload, label }: any) => {
 const BreakdownBarChart: React.FC<BreakdownBarChartProps> = ({ data }) => {
   return (
     <Card>
-      <div style={{ width: '100%', height: '180px' }}>
+      <div style={{ width: '100%', height: '162px' }}>
         <ResponsiveContainer>
           <BarChart data={data} layout="vertical" margin={{ top: 5, right: 20, left: 10, bottom: 5 }}>
             <XAxis type="number" hide />

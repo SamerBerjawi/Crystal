@@ -166,7 +166,7 @@ const AddAccountModal: React.FC<AddAccountModalProps> = ({ onClose, onAdd, accou
               onClick={() => setIconPickerOpen(true)}
               className={`flex items-center justify-center w-16 h-16 bg-light-bg dark:bg-dark-bg rounded-full shadow-neu-raised-light dark:shadow-neu-raised-dark hover:shadow-neu-inset-light dark:hover:shadow-neu-inset-dark transition-shadow`}
             >
-              <span className={`material-symbols-outlined ${iconColorClass}`} style={{ fontSize: '40px' }}>
+              <span className={`material-symbols-outlined ${iconColorClass}`} style={{ fontSize: '36px' }}>
                 {icon}
               </span>
             </button>
@@ -232,7 +232,7 @@ const AddAccountModal: React.FC<AddAccountModalProps> = ({ onClose, onAdd, accou
               <div>
                 <label htmlFor="subType" className={labelStyle}>Investment Type</label>
                 <div className={SELECT_WRAPPER_STYLE}>
-                  <select id="subType" value={subType} onChange={(e) => setSubType(e.target.value as InvestmentSubType)} className={INPUT_BASE_STYLE}>
+                  <select id="subType" value={subType} onChange={e => setSubType(e.target.value as InvestmentSubType)} className={INPUT_BASE_STYLE}>
                     {INVESTMENT_SUB_TYPES.map(st => <option key={st} value={st}>{st}</option>)}
                   </select>
                   <div className={SELECT_ARROW_STYLE}><span className="material-symbols-outlined">expand_more</span></div>

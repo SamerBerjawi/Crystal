@@ -131,7 +131,7 @@ const AccountRow: React.FC<AccountRowProps> = ({ account, transactions, onClick,
             {/* Left side: Icon, Name, Type */}
             <div className="flex items-center flex-1 min-w-0">
                 <div className={`text-3xl mr-4 flex items-center justify-center w-12 h-12 shrink-0 ${style.color}`}>
-                    <span className="material-symbols-outlined material-symbols-filled" style={{ fontSize: '36px' }}>
+                    <span className="material-symbols-outlined material-symbols-filled" style={{ fontSize: '32px' }}>
                         {account.icon || 'wallet'}
                     </span>
                 </div>

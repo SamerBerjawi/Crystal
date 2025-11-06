@@ -20,6 +20,7 @@ import AccountDetail from './pages/AccountDetail';
 import Investments from './pages/Investments';
 import Tasks from './pages/Tasks';
 import Warrants from './pages/Warrants';
+import AIAssistantSettings from './pages/AIAssistantSettings';
 // FIX: Changed to a named import for Documentation to match its export type and resolve the module error.
 import { Documentation } from './pages/Documentation';
 // UserManagement is removed
@@ -183,29 +184,59 @@ export const App: React.FC = () => {
 
     setIsLoadingPrices(true);
     const newPrices: Record<string, number | null> = {};
-    const proxyUrl = 'https://cors.eu.org/';
+    const CORS_PROXIES = [
+        'https://api.allorigins.win/raw?url=',
+        'https://cors.eu.org/',
+    ];
 
     for (const config of configsToRun) {
-        try {
-            const response = await fetch(`${proxyUrl}${config.resource.url}`);
-            if (!response.ok) { newPrices[config.id] = null; continue; }
-            const htmlString = await response.text();
-            const parser = new DOMParser();
-            const doc = parser.parseFromString(htmlString, 'text/html');
-            const elements = doc.querySelectorAll(config.options.select);
+        let success = false;
+        for (const proxy of CORS_PROXIES) {
+            try {
+                let urlToFetch = '';
+                if (proxy.includes('allorigins.win')) {
+                    urlToFetch = `${proxy}${encodeURIComponent(config.resource.url)}`;
+                } else {
+                    urlToFetch = `${proxy}${config.resource.url}`;
+                }
+                
+                const response = await fetch(urlToFetch);
+                
+                if (!response.ok) {
+                    console.warn(`Proxy ${proxy} failed for ${config.resource.url} with status ${response.status}`);
+                    continue; // Try next proxy
+                }
+                
+                const htmlString = await response.text();
+                const parser = new DOMParser();
+                const doc = parser.parseFromString(htmlString, 'text/html');
+                const elements = doc.querySelectorAll(config.options.select);
 
-            if (elements.length > config.options.index) {
-                const targetElement = elements[config.options.index];
-                const rawValue = config.options.attribute ? targetElement.getAttribute(config.options.attribute) : targetElement.textContent;
-                if (rawValue) {
-                    const priceString = rawValue.match(/[0-9.,\s]+/)?.[0]?.trim() || '';
-                    const numberString = priceString.replace(/\./g, '').replace(',', '.');
-                    const price = parseFloat(numberString);
-                    newPrices[config.id] = isNaN(price) ? null : price;
-                } else { newPrices[config.id] = null; }
-            } else { newPrices[config.id] = null; }
-        } catch (error) {
-            console.error(`Failed to scrape ${config.id}:`, error);
+                if (elements.length > config.options.index) {
+                    const targetElement = elements[config.options.index];
+                    const rawValue = config.options.attribute ? targetElement.getAttribute(config.options.attribute) : targetElement.textContent;
+                    if (rawValue) {
+                        const priceString = rawValue.match(/[0-9.,\s]+/)?.[0]?.trim() || '';
+                        const numberString = priceString.replace(/\./g, '').replace(',', '.');
+                        const price = parseFloat(numberString);
+                        newPrices[config.id] = isNaN(price) ? null : price;
+                    } else {
+                        newPrices[config.id] = null;
+                    }
+                } else {
+                    newPrices[config.id] = null;
+                }
+                
+                success = true;
+                break; // Success, break from proxy loop
+            } catch (error) {
+                console.warn(`Proxy ${proxy} failed for ${config.id}:`, error);
+                // Continue to next proxy
+            }
+        }
+        
+        if (!success) {
+            console.error(`Failed to scrape ${config.id} with all available proxies.`);
             newPrices[config.id] = null;
         }
     }
@@ -933,6 +964,8 @@ export const App: React.FC = () => {
         return <Tasks tasks={tasks} saveTask={handleSaveTask} deleteTask={handleDeleteTask} />;
       case 'Documentation':
         return <Documentation setCurrentPage={setCurrentPage} />;
+      case 'AI Assistant':
+        return <AIAssistantSettings setCurrentPage={setCurrentPage} />;
       default:
         return <div>Page not found</div>;
     }

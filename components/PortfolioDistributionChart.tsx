@@ -30,7 +30,7 @@ const PortfolioDistributionChart: React.FC<PortfolioDistributionChartProps> = ({
   };
 
   return (
-    <div className="h-full w-full relative" style={{ minHeight: 300 }}>
+    <div className="h-full w-full relative" style={{ minHeight: 270 }}>
         <ResponsiveContainer>
             <PieChart>
                 <Pie

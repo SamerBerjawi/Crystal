@@ -40,6 +40,12 @@ const useSmartGoalPlanner = (
         setError(null);
         setPlan(null);
 
+        if (!process.env.API_KEY) {
+            setError("The AI Planner is not configured. An API key is required. Please see Settings > AI Assistant for configuration instructions.");
+            setIsLoading(false);
+            return;
+        }
+
         try {
             const ai = new GoogleGenAI({ apiKey: process.env.API_KEY });
             
@@ -266,7 +272,9 @@ const Forecasting: React.FC<ForecastingProps> = ({ accounts, transactions, recur
                         <h3 className="text-xl font-semibold text-light-text dark:text-dark-text">Smart Contribution Plan</h3>
                         <p className="text-sm text-light-text-secondary dark:text-dark-text-secondary mt-1">Let AI generate a step-by-step plan to reach your goals.</p>
                     </div>
-                    <button onClick={generatePlan} className={BTN_PRIMARY_STYLE} disabled={isPlanLoading}>Generate Smart Plan</button>
+                    <button onClick={generatePlan} className={BTN_PRIMARY_STYLE} disabled={isPlanLoading}>
+                        {isPlanLoading ? 'Generating...' : 'Generate Smart Plan'}
+                    </button>
                 </div>
                 <GoalContributionPlan plan={plan} isLoading={isPlanLoading} error={planError} />
             </Card>

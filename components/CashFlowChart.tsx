@@ -72,7 +72,7 @@ const CashFlowChart: React.FC<CashFlowChartProps> = ({ transactions, duration })
   return (
     <Card className="h-full flex flex-col">
       <h3 className="text-xl font-semibold mb-4 text-light-text dark:text-dark-text">Cash Flow</h3>
-      <div className="flex-grow" style={{ width: '100%', minHeight: 300 }}>
+      <div className="flex-grow" style={{ width: '100%', minHeight: 270 }}>
         <ResponsiveContainer>
           <BarChart data={chartData} margin={{ top: 5, right: 20, left: 0, bottom: 5 }}>
             <CartesianGrid strokeDasharray="3 3" stroke="var(--light-separator, #E5E7EB)" opacity={0.5} vertical={false} />

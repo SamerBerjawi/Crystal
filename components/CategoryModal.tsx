@@ -103,7 +103,7 @@ const CategoryModal: React.FC<CategoryModalProps> = ({ isOpen, onClose, onSave, 
               onClick={() => setIconPickerOpen(true)}
               className="flex-shrink-0 flex items-center justify-center w-10 h-10 bg-light-bg dark:bg-dark-bg rounded-lg shadow-neu-raised-light dark:shadow-neu-raised-dark hover:shadow-neu-inset-light dark:hover:shadow-neu-inset-dark transition-shadow text-primary-500"
             >
-              <span className="material-symbols-outlined" style={{ fontSize: '24px' }}>
+              <span className="material-symbols-outlined" style={{ fontSize: '22px' }}>
                 {icon}
               </span>
             </button>

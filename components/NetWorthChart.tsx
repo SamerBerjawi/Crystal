@@ -55,7 +55,7 @@ const NetWorthChart: React.FC<NetWorthChartProps> = ({ data, lineColor = '#6366F
   const gradientId = `colorNetWorth-${lineColor.replace('#', '')}`;
 
   return (
-    <div className="flex-grow" style={{ width: '100%', height: '300px' }}>
+    <div className="flex-grow" style={{ width: '100%', height: '270px' }}>
       <ResponsiveContainer>
         <AreaChart
           data={data}

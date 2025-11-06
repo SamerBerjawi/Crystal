@@ -5,6 +5,7 @@ import Card from '../components/Card';
 const settingsLinks = [
   { page: 'Preferences', icon: 'tune', title: 'Preferences', description: 'Customize the look and feel of the app.' },
   { page: 'Personal Info', icon: 'person', title: 'Personal Info', description: 'Update your profile and security settings.' },
+  { page: 'AI Assistant', icon: 'smart_toy', title: 'AI Assistant', description: 'Configure AI-powered features.' },
   { page: 'Categories', icon: 'category', title: 'Categories', description: 'Manage your income and expense categories.' },
   { page: 'Data Management', icon: 'database', title: 'Data Management', description: 'Import, export, or reset your account data.' },
   { page: 'Documentation', icon: 'menu_book', title: 'Documentation', description: 'Learn about Finaura\'s features.' },

@@ -182,7 +182,7 @@ const EditAccountModal: React.FC<EditAccountModalProps> = ({ onClose, onSave, on
               onClick={() => setIconPickerOpen(true)}
               className="flex items-center justify-center w-16 h-16 bg-light-bg dark:bg-dark-bg rounded-full shadow-neu-raised-light dark:shadow-neu-raised-dark hover:shadow-neu-inset-light dark:hover:shadow-neu-inset-dark transition-shadow"
             >
-              <span className={`material-symbols-outlined ${iconColorClass}`} style={{ fontSize: '40px' }}>
+              <span className={`material-symbols-outlined ${iconColorClass}`} style={{ fontSize: '36px' }}>
                 {icon}
               </span>
             </button>

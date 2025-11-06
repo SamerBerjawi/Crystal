@@ -103,14 +103,14 @@ const ScheduleHeatmap: React.FC<ScheduleHeatmapProps> = ({ items }) => {
             <h3 className="text-xl font-semibold mb-4">Schedule Activity (Next 12 Months)</h3>
             <div className="overflow-x-auto pb-2">
                 <div className="inline-block">
-                    <div className="grid grid-flow-col gap-x-1 mb-1 text-light-text-secondary dark:text-dark-text-secondary" style={{ gridTemplateColumns: `repeat(${monthLabels.length > 0 ? monthLabels[monthLabels.length - 1].colStart + 8 : 53}, 16px)` }}>
+                    <div className="grid grid-flow-col gap-x-1 mb-1 text-light-text-secondary dark:text-dark-text-secondary" style={{ gridTemplateColumns: `repeat(${monthLabels.length > 0 ? monthLabels[monthLabels.length - 1].colStart + 8 : 53}, 14px)` }}>
                        {monthLabels.map(({ label, colStart }) => (
                             <div key={label} className="text-xs text-left" style={{ gridColumnStart: colStart }}>
                                 {label}
                             </div>
                        ))}
                     </div>
-                    <div className="grid grid-flow-col grid-rows-7 gap-1" style={{ gridAutoColumns: '16px' }}>
+                    <div className="grid grid-flow-col grid-rows-7 gap-1" style={{ gridAutoColumns: '14px' }}>
                         {gridDays.map((day, index) => {
                             if (!day) {
                                 return <div key={`pad-${index}`} className="w-4 h-4" />;

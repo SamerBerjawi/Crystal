@@ -78,7 +78,7 @@ const TasksHeatmap: React.FC<TasksHeatmapProps> = ({ tasks }) => {
             <h3 className="text-xl font-semibold mb-4">Task Priority Heatmap (Last Year)</h3>
             <div className="overflow-x-auto pb-2">
                 <div className="inline-block">
-                    <div className="grid grid-flow-col gap-x-1" style={{ gridAutoColumns: '16px' }}>
+                    <div className="grid grid-flow-col gap-x-1" style={{ gridAutoColumns: '14px' }}>
                        {monthLabels.map(({ label, colStart }, index) => {
                             const prevColStart = index > 0 ? monthLabels[index - 1].colStart : 0;
                             const span = colStart - prevColStart;
@@ -89,7 +89,7 @@ const TasksHeatmap: React.FC<TasksHeatmapProps> = ({ tasks }) => {
                             );
                        })}
                     </div>
-                    <div className="grid grid-flow-col grid-rows-7 gap-1" style={{ gridAutoColumns: '16px' }}>
+                    <div className="grid grid-flow-col grid-rows-7 gap-1" style={{ gridAutoColumns: '14px' }}>
                         {gridDays.map((day, index) => {
                             if (!day) {
                                 return <div key={`pad-${index}`} className="w-4 h-4" />;

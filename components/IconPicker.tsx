@@ -61,7 +61,7 @@ const IconPicker: React.FC<IconPickerProps> = ({ onClose, onSelect, iconList }) 
               aria-label={icon}
               title={icon}
             >
-              <span className="material-symbols-outlined" style={{ fontSize: '32px' }}>
+              <span className="material-symbols-outlined" style={{ fontSize: '29px' }}>
                 {icon}
               </span>
             </button>

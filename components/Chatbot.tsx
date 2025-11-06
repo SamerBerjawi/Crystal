@@ -30,6 +30,7 @@ const Chatbot: React.FC<ChatbotProps> = ({ isOpen, onClose, financialData }) => 
   const chatRef = useRef<Chat | null>(null);
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const [isMounted, setIsMounted] = useState(false);
+  const [isConfigured, setIsConfigured] = useState(true);
 
   const scrollToBottom = () => {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
@@ -57,8 +58,17 @@ const Chatbot: React.FC<ChatbotProps> = ({ isOpen, onClose, financialData }) => 
   useEffect(() => {
     if (isOpen) {
       const initializeChat = async () => {
+        setIsLoading(true);
+
+        if (!process.env.API_KEY) {
+            setMessages([{ sender: 'ai', text: "The AI Assistant is not configured. An API key is required to use this feature. Please see Settings > AI Assistant for configuration instructions." }]);
+            setIsConfigured(false);
+            setIsLoading(false);
+            return;
+        }
+        setIsConfigured(true);
+
         try {
-          setIsLoading(true);
           const ai = new GoogleGenAI({ apiKey: process.env.API_KEY });
           
           // Optimize data sent to the model
@@ -175,12 +185,12 @@ const Chatbot: React.FC<ChatbotProps> = ({ isOpen, onClose, financialData }) => 
               onChange={(e) => setInput(e.target.value)}
               placeholder="Ask about your finances..."
               className="flex-1 bg-light-fill dark:bg-dark-fill rounded-full py-2 px-4 focus:outline-none focus:ring-2 focus:ring-primary-500 border border-transparent focus:border-transparent"
-              disabled={isStreaming || isLoading}
+              disabled={isStreaming || isLoading || !isConfigured}
             />
             <button
               type="submit"
               className="w-10 h-10 flex-shrink-0 bg-primary-500 text-white rounded-full flex items-center justify-center hover:bg-primary-600 disabled:bg-primary-300 disabled:cursor-not-allowed transition-colors"
-              disabled={isStreaming || isLoading || !input.trim()}
+              disabled={isStreaming || isLoading || !input.trim() || !isConfigured}
             >
               <span className="material-symbols-outlined">arrow_upward</span>
             </button>

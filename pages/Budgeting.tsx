@@ -1,10 +1,12 @@
 import React, { useState, useMemo } from 'react';
-import { Budget, Category, Transaction, Account } from '../types';
-import { BTN_PRIMARY_STYLE, LIQUID_ACCOUNT_TYPES } from '../constants';
+import { Budget, Category, Transaction, Account, BudgetSuggestion } from '../types';
+import { BTN_PRIMARY_STYLE, BTN_SECONDARY_STYLE, LIQUID_ACCOUNT_TYPES } from '../constants';
 import Card from '../components/Card';
 import { formatCurrency, convertToEur } from '../utils';
 import BudgetProgressCard from '../components/BudgetProgressCard';
 import BudgetModal from '../components/BudgetModal';
+import AIBudgetSuggestionsModal from '../components/AIBudgetSuggestionsModal';
+import { GoogleGenAI, Type } from '@google/genai';
 
 interface BudgetingProps {
   budgets: Budget[];
@@ -29,6 +31,12 @@ const Budgeting: React.FC<BudgetingProps> = ({ budgets, transactions, expenseCat
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [editingBudget, setEditingBudget] = useState<Budget | null>(null);
 
+  // State for AI budget suggestions
+  const [isSuggestionModalOpen, setSuggestionModalOpen] = useState(false);
+  const [isGeneratingSuggestions, setIsGeneratingSuggestions] = useState(false);
+  const [suggestions, setSuggestions] = useState<BudgetSuggestion[]>([]);
+  const [suggestionError, setSuggestionError] = useState<string | null>(null);
+
   const handleMonthChange = (offset: number) => {
     setCurrentDate(prev => {
       const newDate = new Date(prev);
@@ -36,6 +44,123 @@ const Budgeting: React.FC<BudgetingProps> = ({ budgets, transactions, expenseCat
       return newDate;
     });
   };
+  
+  const handleGenerateSuggestions = async () => {
+    setIsGeneratingSuggestions(true);
+    setSuggestionError(null);
+    setSuggestions([]);
+
+    if (!process.env.API_KEY) {
+        setSuggestionError("AI Assistant is not configured. Please set your API key in the settings.");
+        setIsGeneratingSuggestions(false);
+        setSuggestionModalOpen(true); // Open modal to show error
+        return;
+    }
+
+    try {
+        const threeMonthsAgo = new Date();
+        threeMonthsAgo.setMonth(threeMonthsAgo.getMonth() - 3);
+
+        const liquidAccountIds = new Set(
+            accounts.filter(acc => LIQUID_ACCOUNT_TYPES.includes(acc.type)).map(acc => acc.id)
+        );
+
+        const relevantTransactions = transactions.filter(t => {
+            const txDate = new Date(t.date);
+            return txDate >= threeMonthsAgo && t.type === 'expense' && !t.transferId && liquidAccountIds.has(t.accountId);
+        });
+        
+        const spendingByCategory: Record<string, number> = {};
+        for (const tx of relevantTransactions) {
+            const parentCategory = findParentCategory(tx.category, expenseCategories);
+            if (parentCategory) {
+                spendingByCategory[parentCategory.name] = (spendingByCategory[parentCategory.name] || 0) + Math.abs(convertToEur(tx.amount, tx.currency));
+            }
+        }
+        
+        const averageSpending = Object.entries(spendingByCategory).map(([categoryName, total]) => ({
+            category: categoryName,
+            averageMonthlySpending: parseFloat((total / 3).toFixed(2))
+        })).filter(item => item.averageMonthlySpending > 0); // Only include categories with spending
+
+        if (averageSpending.length === 0) {
+            setSuggestionError("Not enough spending data from the last 3 months to generate suggestions.");
+            setIsGeneratingSuggestions(false);
+            setSuggestionModalOpen(true);
+            return;
+        }
+
+        const ai = new GoogleGenAI({ apiKey: process.env.API_KEY });
+        
+        const prompt = `You are a financial advisor. Based on the user's average monthly spending over the last 3 months, suggest a reasonable monthly budget for each category. For discretionary categories (like Shopping, Entertainment), suggest a budget slightly lower than the average to encourage saving. For essential categories (like Housing, Food), suggest a budget around the average. Round suggestions to the nearest whole number. Here is the data: ${JSON.stringify(averageSpending)}`;
+
+        const responseSchema = {
+            type: Type.OBJECT,
+            properties: {
+                suggestions: {
+                    type: Type.ARRAY,
+                    description: "The array of budget suggestions.",
+                    items: {
+                        type: Type.OBJECT,
+                        properties: {
+                            categoryName: { type: Type.STRING },
+                            averageSpending: { type: Type.NUMBER },
+                            suggestedBudget: { type: Type.NUMBER }
+                        },
+                        required: ['categoryName', 'averageSpending', 'suggestedBudget']
+                    }
+                }
+            },
+            required: ['suggestions']
+        };
+
+        const response = await ai.models.generateContent({
+            model: 'gemini-2.5-pro',
+            contents: prompt,
+            config: {
+                responseMimeType: 'application/json',
+                responseSchema
+            }
+        });
+        
+        const result = JSON.parse(response.text);
+        
+        // Match suggestions back to the original average spending data to ensure consistency
+        const finalSuggestions = result.suggestions.map((suggestion: any) => {
+             const originalData = averageSpending.find(avg => avg.category === suggestion.categoryName);
+             return {
+                 categoryName: suggestion.categoryName,
+                 averageSpending: originalData?.averageMonthlySpending || 0,
+                 suggestedBudget: suggestion.suggestedBudget
+             };
+        });
+
+        setSuggestions(finalSuggestions);
+
+    } catch (err) {
+        console.error("Error generating budget suggestions:", err);
+        setSuggestionError("An error occurred while generating suggestions. Please try again.");
+    } finally {
+        setIsGeneratingSuggestions(false);
+        setSuggestionModalOpen(true);
+    }
+  };
+
+  const handleApplySuggestions = (selectedSuggestions: BudgetSuggestion[]) => {
+      selectedSuggestions.forEach(suggestion => {
+          const existingBudget = budgets.find(b => b.categoryName === suggestion.categoryName);
+          const budgetData = {
+              id: existingBudget?.id,
+              categoryName: suggestion.categoryName,
+              amount: suggestion.suggestedBudget,
+              period: 'monthly' as const,
+              currency: 'EUR' as const,
+          };
+          saveBudget(budgetData);
+      });
+      setSuggestionModalOpen(false);
+  };
+
 
   const { totalBudgeted, totalSpent, spendingByCategory } = useMemo(() => {
     const year = currentDate.getFullYear();
@@ -95,14 +220,31 @@ const Budgeting: React.FC<BudgetingProps> = ({ budgets, transactions, expenseCat
           expenseCategories={expenseCategories.filter(c => !c.parentId)} // Only allow parent categories for budgets
         />
       )}
+      {isSuggestionModalOpen && (
+          <AIBudgetSuggestionsModal
+            isOpen={isSuggestionModalOpen}
+            onClose={() => setSuggestionModalOpen(false)}
+            suggestions={suggestions}
+            onApply={handleApplySuggestions}
+            isLoading={isGeneratingSuggestions}
+            error={suggestionError}
+            existingBudgets={budgets}
+          />
+      )}
       <header className="flex justify-between items-center">
         <div>
           {/* <h2 className="text-3xl font-bold text-light-text dark:text-dark-text">Budgeting</h2> */}
           <p className="text-light-text-secondary dark:text-dark-text-secondary mt-1">Track your spending against your monthly budgets.</p>
         </div>
-        <button onClick={() => handleOpenModal()} className={BTN_PRIMARY_STYLE}>
-          Create New Budget
-        </button>
+        <div className="flex items-center gap-4">
+            <button onClick={handleGenerateSuggestions} className={`${BTN_SECONDARY_STYLE} flex items-center gap-2`} disabled={isGeneratingSuggestions}>
+                <span className="material-symbols-outlined">smart_toy</span>
+                {isGeneratingSuggestions ? 'Analyzing...' : 'Get AI Suggestions'}
+            </button>
+            <button onClick={() => handleOpenModal()} className={BTN_PRIMARY_STYLE}>
+                Create New Budget
+            </button>
+        </div>
       </header>
 
       <Card>
@@ -164,7 +306,7 @@ const Budgeting: React.FC<BudgetingProps> = ({ budgets, transactions, expenseCat
             <div className="text-center py-12 text-light-text-secondary dark:text-dark-text-secondary">
               <span className="material-symbols-outlined text-5xl mb-2">savings</span>
               <p className="font-semibold">No budgets created yet.</p>
-              <p className="text-sm">Click "Create New Budget" to get started.</p>
+              <p className="text-sm">Click "Create New Budget" or "Get AI Suggestions" to get started.</p>
             </div>
          </Card>
       )}

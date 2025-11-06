@@ -1,7 +1,7 @@
 import React, { Dispatch, SetStateAction } from 'react';
 
-// FIX: Add 'Enable Banking' to Page type
-export type Page = 'Dashboard' | 'Accounts' | 'Transactions' | 'Budget' | 'Forecasting' | 'Settings' | 'Schedule & Bills' | 'Tasks' | 'Categories' | 'Tags' | 'Personal Info' | 'Data Management' | 'Preferences' | 'AccountDetail' | 'Investments' | 'Warrants' | 'User Management' | 'Documentation' | 'Enable Banking';
+// FIX: Add 'AI Assistant' to Page type
+export type Page = 'Dashboard' | 'Accounts' | 'Transactions' | 'Budget' | 'Forecasting' | 'Settings' | 'Schedule & Bills' | 'Tasks' | 'Categories' | 'Tags' | 'Personal Info' | 'Data Management' | 'Preferences' | 'AccountDetail' | 'Investments' | 'Warrants' | 'Documentation' | 'Enable Banking' | 'AI Assistant';
 
 export type AccountType = 'Checking' | 'Savings' | 'Credit Card' | 'Investment' | 'Loan' | 'Property' | 'Vehicle' | 'Other Assets' | 'Other Liabilities' | 'Lending';
 
@@ -224,6 +224,12 @@ export interface Budget {
   amount: number;
   period: 'monthly'; // For now, only monthly
   currency: Currency;
+}
+
+export interface BudgetSuggestion {
+    categoryName: string;
+    averageSpending: number;
+    suggestedBudget: number;
 }
 
 export type HistoryType = 'import' | 'export';
