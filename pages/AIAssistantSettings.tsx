@@ -21,14 +21,14 @@ const AIAssistantSettings: React.FC<AIAssistantSettingsProps> = ({ setCurrentPag
             </div>
         </div>
         <div className="mt-4">
-            <p className="text-light-text-secondary dark:text-dark-text-secondary mt-1">Configure and learn about the AI-powered features in Finaura.</p>
+            <p className="text-light-text-secondary dark:text-dark-text-secondary mt-1">Configure and learn about the AI-powered features in Aura Finance.</p>
         </div>
       </header>
 
       <Card>
         <h3 className="text-xl font-semibold mb-2 text-light-text dark:text-dark-text">About the AI Assistant</h3>
         <p className="text-sm text-light-text-secondary dark:text-dark-text-secondary">
-          Finaura uses Google's powerful Gemini family of models to provide AI-powered features like the chat assistant and smart financial planning. These features help you analyze your finances and get insights by asking questions in natural language.
+          Aura Finance uses Google's powerful Gemini family of models to provide AI-powered features like the chat assistant and smart financial planning. These features help you analyze your finances and get insights by asking questions in natural language.
         </p>
       </Card>
 

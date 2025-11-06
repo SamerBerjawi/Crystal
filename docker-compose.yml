@@ -5,17 +5,17 @@ services:
     image: postgres:15-alpine
     restart: unless-stopped
     environment:
-      POSTGRES_DB: ${POSTGRES_DB:-finaura}
-      POSTGRES_USER: ${POSTGRES_USER:-finaura_user}
+      POSTGRES_DB: ${POSTGRES_DB:-aurafinance}
+      POSTGRES_USER: ${POSTGRES_USER:-aurafinance_user}
       POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-strong_password_change_me}
     healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-finaura_user} -d ${POSTGRES_DB:-finaura}"]
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-aurafinance_user} -d ${POSTGRES_DB:-aurafinance}"]
       interval: 10s
       timeout: 5s
       retries: 5
     volumes:
       # Persist Postgres data directly on your NAS
-      - ${DATA_ROOT:-/volume1/docker/finaura}/db:/var/lib/postgresql/data:rw
+      - ${DATA_ROOT:-/volume1/docker/aurafinance}/db:/var/lib/postgresql/data:rw
 
   backend:
     build:
@@ -31,9 +31,9 @@ services:
       JWT_SECRET: ${JWT_SECRET:-a-very-secret-and-secure-key-that-you-should-change}
       DATABASE_HOST: db
       DATABASE_PORT: 5432
-      DATABASE_USER: ${POSTGRES_USER:-finaura_user}
+      DATABASE_USER: ${POSTGRES_USER:-aurafinance_user}
       DATABASE_PASSWORD: ${POSTGRES_PASSWORD:-strong_password_change_me}
-      DATABASE_NAME: ${POSTGRES_DB:-finaura}
+      DATABASE_NAME: ${POSTGRES_DB:-aurafinance}
 
   frontend:
     build:
@@ -43,4 +43,4 @@ services:
     depends_on:
       - backend
     ports:
-      - "${FRONTEND_PORT:-7157}:80"
+      - "${FRONTEND_PORT:-7157}:80"}

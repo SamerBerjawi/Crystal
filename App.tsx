@@ -1,3 +1,4 @@
+
 // FIX: Import `useMemo` from React to resolve the 'Cannot find name' error.
 import React, { useState, useEffect, useMemo, useCallback } from 'react';
 import Sidebar from './components/Sidebar';
@@ -133,7 +134,7 @@ export const App: React.FC = () => {
   // FIX: Add state for tags and tag filtering to support the Tags feature.
   const [tags, setTags] = useState<Tag[]>(initialFinancialData.tags || []);
   const [tagFilter, setTagFilter] = useState<string | null>(null);
-  const [accountOrder, setAccountOrder] = useLocalStorage<string[]>('finaura-account-order', []);
+  const [accountOrder, setAccountOrder] = useLocalStorage<string[]>('aurafinance-account-order', []);
   
   // State for AI Chat
   const [isChatOpen, setIsChatOpen] = useState(false);
@@ -154,7 +155,7 @@ export const App: React.FC = () => {
   const [accountsSortBy, setAccountsSortBy] = useState<'name' | 'balance' | 'manual'>(preferences.defaultAccountOrder);
 
   // Onboarding flow state
-  const [hasCompletedOnboarding, setHasCompletedOnboarding] = useLocalStorage('finaura-onboarding-complete', false);
+  const [hasCompletedOnboarding, setHasCompletedOnboarding] = useLocalStorage('aurafinance-onboarding-complete', false);
   const [isOnboardingOpen, setIsOnboardingOpen] = useState(false);
 
 
@@ -186,21 +187,32 @@ export const App: React.FC = () => {
     const newPrices: Record<string, number | null> = {};
     const CORS_PROXIES = [
         'https://api.allorigins.win/raw?url=',
+        'https://corsproxy.io/?',
+        'https://thingproxy.freeboard.io/fetch/',
         'https://cors.eu.org/',
     ];
 
     for (const config of configsToRun) {
         let success = false;
-        for (const proxy of CORS_PROXIES) {
+        // Shuffle proxies to distribute load and increase success rate on retries
+        const shuffledProxies = [...CORS_PROXIES].sort(() => Math.random() - 0.5);
+
+        for (const proxy of shuffledProxies) {
+            const controller = new AbortController();
+            const timeoutId = setTimeout(() => controller.abort(), (config.resource.timeout || 15) * 1000);
+
             try {
                 let urlToFetch = '';
-                if (proxy.includes('allorigins.win')) {
+                // Proxies that take the URL as a query parameter (containing '?') need it to be URI-encoded.
+                // Proxies that take the URL as part of the path do not.
+                if (proxy.includes('?')) {
                     urlToFetch = `${proxy}${encodeURIComponent(config.resource.url)}`;
                 } else {
                     urlToFetch = `${proxy}${config.resource.url}`;
                 }
                 
-                const response = await fetch(urlToFetch);
+                const response = await fetch(urlToFetch, { signal: controller.signal });
+                clearTimeout(timeoutId);
                 
                 if (!response.ok) {
                     console.warn(`Proxy ${proxy} failed for ${config.resource.url} with status ${response.status}`);
@@ -229,8 +241,13 @@ export const App: React.FC = () => {
                 
                 success = true;
                 break; // Success, break from proxy loop
-            } catch (error) {
-                console.warn(`Proxy ${proxy} failed for ${config.id}:`, error);
+            } catch (error: any) {
+                clearTimeout(timeoutId);
+                if (error.name === 'AbortError') {
+                    console.warn(`Proxy ${proxy} timed out for ${config.id}.`);
+                } else {
+                    console.warn(`Proxy ${proxy} failed for ${config.id}:`, error);
+                }
                 // Continue to next proxy
             }
         }
@@ -307,8 +324,8 @@ export const App: React.FC = () => {
     const mockUser: User = {
         firstName: 'Demo',
         lastName: 'User',
-        email: 'demo@finaura.app',
-        profilePictureUrl: `https://i.pravatar.cc/150?u=demo@finaura.app`,
+        email: 'demo@aurafinance.app',
+        profilePictureUrl: `https://i.pravatar.cc/150?u=demo@aurafinance.app`,
         role: 'Member',
         phone: undefined,
         address: undefined,
@@ -836,7 +853,7 @@ export const App: React.FC = () => {
   };
 
   const handleResetAccount = () => {
-    if (user || isDemoMode) {
+    if (user) {
         loadAllFinancialData(initialFinancialData);
         alert("Client-side data has been reset.");
     }
@@ -847,7 +864,7 @@ export const App: React.FC = () => {
       const url = URL.createObjectURL(blob);
       const a = document.createElement('a');
       a.href = url;
-      a.download = `finaura-backup-${new Date().toISOString().split('T')[0]}.json`;
+      a.download = `aurafinance-backup-${new Date().toISOString().split('T')[0]}.json`;
       document.body.appendChild(a);
       a.click();
       document.body.removeChild(a);
@@ -855,19 +872,30 @@ export const App: React.FC = () => {
   };
 
   const handleImportAllData = (file: File) => {
-    if (!user && !isDemoMode) return;
+    if (!isAuthenticated && !isDemoMode) {
+        // This case should not happen as the UI is not available, but as a safeguard.
+        alert("You must be logged in to restore data.");
+        return;
+    }
+
     const reader = new FileReader();
     reader.onload = (event) => {
         try {
-            const data = JSON.parse(event.target?.result as string) as FinancialData;
-            if (data.accounts && data.transactions) {
-                loadAllFinancialData(data);
-                alert('Data successfully restored!');
+            const data = JSON.parse(event.target?.result as string);
+            // A more robust check for a valid backup file.
+            if (data && typeof data === 'object' && Array.isArray(data.accounts) && Array.isArray(data.transactions)) {
+                loadAllFinancialData(data as FinancialData);
+                if (isDemoMode) {
+                    alert('Data successfully restored for this demo session! Note: Changes will not be saved.');
+                } else {
+                    alert('Data successfully restored!');
+                }
             } else {
-                throw new Error('Invalid backup file format.');
+                throw new Error('Invalid backup file format. The file must contain "accounts" and "transactions" arrays.');
             }
         } catch (e) {
-            alert('Error reading backup file. It may be corrupted or in the wrong format.');
+            const message = e instanceof Error ? e.message : 'It may be corrupted or in the wrong format.';
+            alert(`Error reading backup file. ${message}`);
             console.error(e);
         }
     };
@@ -888,7 +916,7 @@ export const App: React.FC = () => {
           const key = type as keyof typeof dataMap;
           if (dataMap[key] && Array.isArray(dataMap[key])) {
               const csv = arrayToCSV(dataMap[key]);
-              downloadCSV(csv, `finaura_${type}_${new Date().toISOString().split('T')[0]}.csv`);
+              downloadCSV(csv, `aurafinance_${type}_${new Date().toISOString().split('T')[0]}.csv`);
           }
       });
   };
@@ -1016,7 +1044,7 @@ export const App: React.FC = () => {
           isSyncing={isSyncing}
           lastSyncTime={lastSyncTime}
         />
-        <main className="flex-1 overflow-x-hidden overflow-y-auto p-4 md:p-8">
+        <main className="flex-1 overflow-x-hidden overflow-y-auto p-4 md:p-8 bg-light-bg dark:bg-dark-bg">
           {renderPage()}
         </main>
       </div>

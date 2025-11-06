@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { Page, Theme, User } from '../types';
-import { NAV_ITEMS, FinauraLogo, NavItem } from '../constants';
+import { NAV_ITEMS, AuraFinanceLogo, NavItem } from '../constants';
 
 interface SidebarProps {
   currentPage: Page;
@@ -107,11 +107,22 @@ const Sidebar: React.FC<SidebarProps> = ({ currentPage, setCurrentPage, isSideba
         className={`fixed inset-0 z-30 bg-black/30 transition-opacity md:hidden ${isSidebarOpen ? 'opacity-100' : 'opacity-0 pointer-events-none'}`} 
         onClick={() => setSidebarOpen(false)}
       ></div>
-      <aside className={`fixed top-0 left-0 bottom-0 z-40 bg-light-card/80 dark:bg-dark-card/80 backdrop-blur-xl flex flex-col transition-all duration-300 ease-in-out md:relative md:translate-x-0 ${isSidebarOpen ? 'translate-x-0 w-64' : '-translate-x-full w-64'} ${isSidebarCollapsed ? 'md:w-20' : 'md:w-64'} border-r border-light-separator dark:border-dark-separator`}>
-        <div className="flex items-center justify-center h-20 flex-shrink-0">
-            <div className={`flex items-center transition-all duration-300 ${isSidebarCollapsed ? 'md:gap-0' : 'gap-3'}`}>
-                <FinauraLogo theme={theme} />
-                <span className={`text-2xl font-bold text-light-text dark:text-white transition-opacity duration-200 ${isSidebarCollapsed ? 'md:hidden md:opacity-0' : 'opacity-100'}`}>Finaura</span>
+      <aside className={`fixed top-0 left-0 bottom-0 z-40 bg-light-card dark:bg-dark-card flex flex-col transition-all duration-300 ease-in-out md:relative md:translate-x-0 ${isSidebarOpen ? 'translate-x-0 w-64' : '-translate-x-full w-64'} ${isSidebarCollapsed ? 'md:w-20' : 'md:w-64'}`}>
+        <div className={`flex items-center justify-between h-20 flex-shrink-0 transition-all duration-300 ${isSidebarCollapsed ? 'md:px-3' : 'px-4'}`}>
+            <div className={`flex items-center gap-3 overflow-hidden`}>
+                <AuraFinanceLogo theme={theme} />
+                <span className={`text-xl font-bold text-light-text dark:text-white transition-opacity duration-200 ${isSidebarCollapsed ? 'md:hidden' : ''}`}>Aura Finance</span>
+            </div>
+            <div className="flex items-center">
+                 <button
+                    onClick={() => setSidebarCollapsed(!isSidebarCollapsed)}
+                    className="hidden md:flex items-center justify-center p-2 rounded-full text-light-text-secondary dark:text-dark-text-secondary hover:bg-black/5 dark:hover:bg-white/10 transition-colors"
+                    title={isSidebarCollapsed ? 'Expand sidebar' : 'Collapse sidebar'}
+                >
+                    <span className="material-symbols-outlined">
+                        {isSidebarCollapsed ? 'side_navigation' : 'menu_open'}
+                    </span>
+                </button>
             </div>
         </div>
         <nav className={`flex-1 py-4 overflow-y-auto transition-all duration-300 ${isSidebarCollapsed ? 'px-2' : 'px-4'}`}>
@@ -119,17 +130,7 @@ const Sidebar: React.FC<SidebarProps> = ({ currentPage, setCurrentPage, isSideba
             {navItems.map((item) => renderNavItem(item))}
           </ul>
         </nav>
-        <div className={`px-4 py-4 flex-shrink-0 border-t border-light-separator dark:border-dark-separator ${isSidebarCollapsed ? 'md:px-2' : ''}`}>
-          <button
-            onClick={() => setSidebarCollapsed(!isSidebarCollapsed)}
-            className={`hidden md:flex items-center gap-3 w-full p-3 rounded-lg text-light-text-secondary hover:bg-black/5 dark:text-dark-text-secondary dark:hover:bg-white/10 transition-colors duration-200 mb-2 ${isSidebarCollapsed ? 'md:justify-center' : ''}`}
-            title={isSidebarCollapsed ? 'Expand sidebar' : 'Collapse sidebar'}
-          >
-            <span className="material-symbols-outlined">
-              {isSidebarCollapsed ? 'side_navigation' : 'menu_open'}
-            </span>
-            <span className={`font-medium transition-opacity ${isSidebarCollapsed ? 'md:hidden md:opacity-0' : 'opacity-100'}`}>Collapse</span>
-          </button>
+        <div className={`px-4 py-4 flex-shrink-0 ${isSidebarCollapsed ? 'md:px-2' : ''}`}>
           <button onClick={onLogout} className={`w-full flex items-center gap-3 p-3 rounded-lg text-light-text-secondary hover:bg-black/5 dark:text-dark-text-secondary dark:hover:bg-white/10 transition-colors duration-200 ${isSidebarCollapsed ? 'md:justify-center' : ''}`} title={isSidebarCollapsed ? 'Logout' : 'Logout'}>
             <span className="material-symbols-outlined">logout</span>
             <span className={`font-medium transition-opacity ${isSidebarCollapsed ? 'md:hidden md:opacity-0' : 'opacity-100'}`}>Logout</span>

@@ -1,3 +1,4 @@
+
 import React, { useState, useMemo, useRef, useEffect } from 'react';
 import { Page } from '../types';
 import Card from '../components/Card';
@@ -17,7 +18,7 @@ const features = [
                     <li>🎨 <strong>Customizable Widgets:</strong> Arrange, resize, and add widgets to create a dashboard that suits your needs. Enter 'Edit Layout' mode to customize.</li>
                     <li>📊 <strong>Dynamic Filters:</strong> Filter your entire dashboard view by multiple accounts and time duration.</li>
                     <li>📈 <strong>Key Metrics:</strong> At-a-glance cards for Income, Expenses, Net Balance, and Net Worth. New cards show your lowest projected balance and credit card statement summaries.</li>
-                    <li>🔗 <strong>Transaction Matcher:</strong> Finaura automatically detects potential transfers between your accounts and prompts you to link them for accurate reporting.</li>
+                    <li>🔗 <strong>Transaction Matcher:</strong> Aura Finance automatically detects potential transfers between your accounts and prompts you to link them for accurate reporting.</li>
                 </ul>
             </>
         )
@@ -41,7 +42,7 @@ const features = [
         title: 'Budgeting',
         icon: 'pie_chart',
         content: (
-            <p>Take control of your spending by setting monthly budgets for your main expense categories. Finaura tracks your spending in real-time and shows your progress throughout the month.</p>
+            <p>Take control of your spending by setting monthly budgets for your main expense categories. Aura Finance tracks your spending in real-time and shows your progress throughout the month.</p>
         )
     },
     {
@@ -121,12 +122,9 @@ const features = [
     }
 ];
 
-// FIX: Changed to a named export for consistency.
 export const Documentation: React.FC<DocumentationProps> = ({ setCurrentPage }) => {
     const [activeSection, setActiveSection] = useState(features[0].title);
-
-    // FIX: Refactored to use a more robust ref callback pattern, which resolves the TypeScript errors.
-    // This approach stores the DOM elements directly in the ref object.
+    const [openSections, setOpenSections] = useState<Record<string, boolean>>({ [features[0].title]: true });
     const sectionRefs = useRef<Record<string, HTMLElement | null>>({});
 
     useEffect(() => {
@@ -149,7 +147,6 @@ export const Documentation: React.FC<DocumentationProps> = ({ setCurrentPage }) 
         
         const currentRefs = sectionRefs.current;
         Object.values(currentRefs).forEach(el => {
-            // FIX: Use `instanceof HTMLElement` to ensure `el` is correctly typed as an Element, resolving the "Argument of type 'unknown' is not assignable" error.
             if (el instanceof HTMLElement) {
                 observer.observe(el);
             }
@@ -157,7 +154,6 @@ export const Documentation: React.FC<DocumentationProps> = ({ setCurrentPage }) 
 
         return () => {
              Object.values(currentRefs).forEach(el => {
-                // FIX: Use `instanceof HTMLElement` to ensure `el` is correctly typed as an Element, resolving the "Argument of type 'unknown' is not assignable" error.
                 if (el instanceof HTMLElement) {
                     observer.unobserve(el);
                 }
@@ -166,12 +162,15 @@ export const Documentation: React.FC<DocumentationProps> = ({ setCurrentPage }) 
     }, []);
 
     const handleNavClick = (title: string) => {
-        // FIX: The ref now holds the element directly, so we access it and call scrollIntoView.
-        // This removes the need for the extra `.current` access that was causing errors.
         sectionRefs.current[title]?.scrollIntoView({
             behavior: 'smooth',
             block: 'start'
         });
+        setOpenSections(prev => ({ ...prev, [title]: true }));
+    };
+
+    const toggleSection = (title: string) => {
+        setOpenSections(prev => ({ ...prev, [title]: !prev[title] }));
     };
 
     return (
@@ -190,7 +189,7 @@ export const Documentation: React.FC<DocumentationProps> = ({ setCurrentPage }) 
                 <div className="text-center">
                     <h1 className="text-5xl font-bold mb-4 text-light-text dark:text-dark-text">Documentation</h1>
                     <p className="text-lg text-light-text-secondary dark:text-dark-text-secondary max-w-2xl mx-auto">
-                        Find everything you need to know about Finaura's features. Browse the topics below to get started.
+                        Find everything you need to know about Aura Finance's features. Browse the topics below to get started.
                     </p>
                 </div>
             </header>
@@ -215,26 +214,58 @@ export const Documentation: React.FC<DocumentationProps> = ({ setCurrentPage }) 
                 </ul>
             </nav>
 
-            <main className="max-w-4xl mx-auto space-y-10">
-                {features.map(feature => (
-                    <section
-                        key={feature.title}
-                        id={feature.title.replace(/\s+/g, '-').toLowerCase()}
-                        // FIX: Using a ref callback to populate the refs object.
-                        // FIX: Completed the truncated file content, which was causing a syntax error and the "Cannot find name 'el'" error.
-                        ref={(element) => (sectionRefs.current[feature.title] = element)}
-                    >
-                        <Card>
-                            <div className="prose dark:prose-invert max-w-none prose-p:text-light-text-secondary prose-p:dark:text-dark-text-secondary prose-li:text-light-text-secondary prose-li:dark:text-dark-text-secondary">
-                                <h2 className="!text-3xl !mb-4 flex items-center gap-3 !text-light-text !dark:text-dark-text">
-                                    <span className="material-symbols-outlined text-primary-500 !text-3xl">{feature.icon}</span>
-                                    {feature.title}
-                                </h2>
-                                {feature.content}
-                            </div>
-                        </Card>
-                    </section>
-                ))}
+            <main className="max-w-4xl mx-auto space-y-6">
+                {features.map(feature => {
+                    const isOpen = !!openSections[feature.title];
+                    const sectionId = feature.title.replace(/\s+/g, '-').toLowerCase();
+
+                    return (
+                        <section
+                            key={feature.title}
+                            id={sectionId}
+                            ref={(element) => (sectionRefs.current[feature.title] = element)}
+                        >
+                            <Card className="p-0 overflow-hidden transition-all duration-300">
+                                <button
+                                    onClick={() => toggleSection(feature.title)}
+                                    className="w-full text-left p-6 flex justify-between items-center hover:bg-black/5 dark:hover:bg-white/5 transition-colors"
+                                    aria-expanded={isOpen}
+                                    aria-controls={`content-${sectionId}`}
+                                >
+                                    <h2 className="text-2xl lg:text-3xl flex items-center gap-4 text-light-text dark:text-dark-text font-bold">
+                                        <span className="material-symbols-outlined text-primary-500 text-3xl">{feature.icon}</span>
+                                        {feature.title}
+                                    </h2>
+                                    <span className={`material-symbols-outlined text-3xl text-light-text-secondary dark:text-dark-text-secondary transform transition-transform duration-300 ${isOpen ? 'rotate-180' : ''}`}>
+                                        expand_more
+                                    </span>
+                                </button>
+                                
+                                <div
+                                    id={`content-${sectionId}`}
+                                    className={`transition-all duration-500 ease-in-out grid ${isOpen ? 'grid-rows-[1fr] opacity-100' : 'grid-rows-[0fr] opacity-0'}`}
+                                >
+                                    <div className="overflow-hidden">
+                                        <div className="px-6 pb-6 pt-2">
+                                            <div className="prose dark:prose-invert max-w-none prose-p:text-light-text-secondary prose-p:dark:text-dark-text-secondary prose-li:text-light-text-secondary prose-li:dark:text-dark-text-secondary prose-headings:text-light-text prose-headings:dark:text-dark-text">
+                                                {feature.content}
+                                            </div>
+                                            <div className="mt-8 pt-4 border-t border-black/10 dark:border-white/10 text-right">
+                                                <button
+                                                    onClick={() => window.scrollTo({ top: 0, behavior: 'smooth' })}
+                                                    className="text-sm font-semibold text-primary-500 hover:underline flex items-center gap-1 ml-auto"
+                                                >
+                                                    <span className="material-symbols-outlined text-base">arrow_upward</span>
+                                                    Back to Top
+                                                </button>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </Card>
+                        </section>
+                    );
+                })}
             </main>
         </div>
     );

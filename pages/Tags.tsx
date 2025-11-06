@@ -69,13 +69,25 @@ const Tags: React.FC<TagsProps> = ({ tags, transactions, saveTag, deleteTag, set
           confirmButtonText="Delete"
         />
       )}
-      <header className="flex justify-between items-center">
-        <div>
-          <p className="text-light-text-secondary dark:text-dark-text-secondary mt-1">Group transactions with custom tags for better analysis.</p>
+      <header>
+        <div className="flex items-center gap-4">
+            <button onClick={() => setCurrentPage('Settings')} className="text-light-text-secondary dark:text-dark-text-secondary p-1 rounded-full hover:bg-black/5 dark:hover:bg-white/5">
+                <span className="material-symbols-outlined">arrow_back</span>
+            </button>
+            <div className="text-sm text-light-text-secondary dark:text-dark-text-secondary">
+                <span onClick={() => setCurrentPage('Settings')} className="hover:underline cursor-pointer">Settings</span>
+                <span> / </span>
+                <span className="text-light-text dark:text-dark-text font-medium">Tags</span>
+            </div>
         </div>
-        <button onClick={() => handleOpenModal()} className={BTN_PRIMARY_STYLE}>
-          Add Tag
-        </button>
+        <div className="mt-4 flex justify-between items-center">
+            <div>
+              <p className="text-light-text-secondary dark:text-dark-text-secondary mt-1">Group transactions with custom tags for better analysis.</p>
+            </div>
+            <button onClick={() => handleOpenModal()} className={BTN_PRIMARY_STYLE}>
+              Add Tag
+            </button>
+        </div>
       </header>
 
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">

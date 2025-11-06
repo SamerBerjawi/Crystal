@@ -2,12 +2,12 @@ import React from 'react';
 import { Category, Page, AccountType, Currency, Theme, RecurrenceFrequency, WeekendAdjustment, DefaultAccountOrder, Duration, InvestmentSubType, PropertyType } from './types';
 
 
-export function FinauraLogo({ theme }: { theme: Theme }) {
+export function AuraFinanceLogo({ theme }: { theme: Theme }) {
   return (
     <div className="flex items-center justify-center">
         <svg width="36" height="36" viewBox="0 0 40 40" fill="none" xmlns="http://www.w3.org/2000/svg">
             <rect width="40" height="40" rx="8" fill="#6366F1"/>
-            <path d="M13 29V11H28M13 19H23" stroke="white" strokeWidth="4" strokeLinecap="round" strokeLinejoin="round"/>
+            <path d="M12 29L20 11L28 29M15.5 22H24.5" stroke="white" strokeWidth="4" strokeLinecap="round" strokeLinejoin="round"/>
         </svg>
     </div>
   );
@@ -38,7 +38,6 @@ export const NAV_ITEMS: NavItem[] = [
   { name: 'Warrants', icon: 'verified' },
   { name: 'Schedule & Bills', icon: 'calendar_month' },
   { name: 'Tasks', icon: 'task_alt' },
-  { name: 'Tags', icon: 'label' },
   { name: 'Settings', icon: 'settings' },
 ];
 

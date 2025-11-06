@@ -1,7 +1,7 @@
 import React, { useMemo, useState, useCallback, useEffect } from 'react';
 // FIX: Import 'RecurringTransaction' to resolve 'Cannot find name' error.
 import { User, Transaction, Account, Category, Duration, CategorySpending, Widget, WidgetConfig, DisplayTransaction, FinancialGoal, RecurringTransaction, BillPayment, Tag } from '../types';
-import { formatCurrency, getDateRange, calculateAccountTotals, convertToEur, calculateStatementPeriods, generateBalanceForecast } from '../utils';
+import { formatCurrency, getDateRange, calculateAccountTotals, convertToEur, calculateStatementPeriods, generateBalanceForecast, parseDateAsUTC } from '../utils';
 import AddTransactionModal from '../components/AddTransactionModal';
 import { BTN_PRIMARY_STYLE, BTN_SECONDARY_STYLE, LIQUID_ACCOUNT_TYPES } from '../constants';
 import TransactionDetailModal from '../components/TransactionDetailModal';
@@ -64,9 +64,9 @@ const findCategoryById = (id: string, categories: Category[]): Category | undefi
 }
 
 const toYYYYMMDD = (date: Date) => {
-    const y = date.getFullYear();
-    const m = (date.getMonth() + 1).toString().padStart(2, '0');
-    const d = date.getDate().toString().padStart(2, '0');
+    const y = date.getUTCFullYear();
+    const m = (date.getUTCMonth() + 1).toString().padStart(2, '0');
+    const d = date.getUTCDate().toString().padStart(2, '0');
     return `${y}-${m}-${d}`;
 };
 
@@ -118,7 +118,7 @@ const Dashboard: React.FC<DashboardProps> = ({ user, transactions, accounts, sav
   const { filteredTransactions, income, expenses } = useMemo(() => {
     const { start, end } = getDateRange(duration, transactions);
     const txsInPeriod = transactions.filter(tx => {
-        const txDate = new Date(tx.date.replace(/-/g, '/'));
+        const txDate = parseDateAsUTC(tx.date);
         return txDate >= start && txDate <= end;
     });
 
@@ -179,7 +179,7 @@ const Dashboard: React.FC<DashboardProps> = ({ user, transactions, accounts, sav
     const prevEnd = new Date(start.getTime() - 1);
 
     const txsInPrevPeriod = transactions.filter(tx => {
-      const txDate = new Date(tx.date.replace(/-/g, '/'));
+      const txDate = parseDateAsUTC(tx.date);
       return txDate >= prevStart && txDate <= prevEnd;
     });
 
@@ -341,7 +341,7 @@ const Dashboard: React.FC<DashboardProps> = ({ user, transactions, accounts, sav
     const relevantTxs = filteredTransactions.filter(tx => !tx.transferId);
 
     for (const tx of relevantTxs) {
-        const txTime = new Date(tx.date.replace(/-/g, '/')).getTime();
+        const txTime = parseDateAsUTC(tx.date).getTime();
         const index = Math.floor((txTime - start.getTime()) / interval);
         const convertedAmount = convertToEur(tx.amount, tx.currency);
         if (index >= 0 && index < NUM_POINTS) {
@@ -366,12 +366,12 @@ const Dashboard: React.FC<DashboardProps> = ({ user, transactions, accounts, sav
   const netWorthData = useMemo(() => {
     const { start, end } = getDateRange(duration, transactions);
     const currentNetWorth = netWorth;
-    const today = new Date(); // A consistent "now"
+    const today = parseDateAsUTC(new Date().toISOString().split('T')[0]);
 
     // Reverse transactions from start date up to now to find starting balance
     const transactionsToReverse = transactions.filter(tx => {
         if (!selectedAccountIds.includes(tx.accountId)) return false;
-        const txDate = new Date(tx.date.replace(/-/g, '/'));
+        const txDate = parseDateAsUTC(tx.date);
         return txDate >= start && txDate <= today;
     });
 
@@ -384,7 +384,7 @@ const Dashboard: React.FC<DashboardProps> = ({ user, transactions, accounts, sav
     // Now, get all transactions within the chart's display period (start to end)
     const transactionsInPeriod = transactions.filter(tx => {
         if (!selectedAccountIds.includes(tx.accountId)) return false;
-        const txDate = new Date(tx.date.replace(/-/g, '/'));
+        const txDate = parseDateAsUTC(tx.date);
         return txDate >= start && txDate <= end;
     });
 
@@ -404,15 +404,17 @@ const Dashboard: React.FC<DashboardProps> = ({ user, transactions, accounts, sav
         const dateStr = toYYYYMMDD(currentDate);
         runningBalance += dailyChanges.get(dateStr) || 0;
         data.push({ name: dateStr, value: parseFloat(runningBalance.toFixed(2)) });
-        currentDate.setDate(currentDate.getDate() + 1);
+        currentDate.setUTCDate(currentDate.getUTCDate() + 1);
     }
     
     // After the loop, the last value should be very close to currentNetWorth.
-    // Let's ensure it is exactly currentNetWorth to avoid floating point inaccuracies.
-    const todayStr = toYYYYMMDD(new Date());
-    if (data.length > 0 && data[data.length - 1].name === todayStr) {
-      data[data.length - 1].value = parseFloat(currentNetWorth.toFixed(2));
+    // Let's ensure it is exactly currentNetWorth to avoid floating point inaccuracies if today is in range.
+    const todayStr = toYYYYMMDD(today);
+    const todayDataPoint = data.find(d => d.name === todayStr);
+    if (todayDataPoint) {
+      todayDataPoint.value = parseFloat(currentNetWorth.toFixed(2));
     }
+
 
     return data;
   }, [duration, transactions, selectedAccountIds, netWorth]);
@@ -432,15 +434,13 @@ const Dashboard: React.FC<DashboardProps> = ({ user, transactions, accounts, sav
       if (configuredCreditCards.length === 0) return [];
       
       return configuredCreditCards.map(account => {
-          // FIX: The `calculateStatementPeriods` function now calculates the current date internally and only expects two arguments.
           const periods = calculateStatementPeriods(account.statementStartDate!, account.paymentDate!);
 
           const calculateBalance = (start: Date, end: Date) => {
               return transactions
                   .filter(tx => {
                       if (tx.accountId !== account.id) return false;
-                      const [year, month, day] = tx.date.split('-').map(Number);
-                      const txDate = new Date(Date.UTC(year, month - 1, day));
+                      const txDate = parseDateAsUTC(tx.date);
                       return txDate >= start && txDate <= end;
                   })
                   .reduce((sum, tx) => sum + tx.amount, 0);
@@ -473,11 +473,11 @@ const Dashboard: React.FC<DashboardProps> = ({ user, transactions, accounts, sav
 
     const lowestBalanceForecasts = useMemo(() => {
         const forecastEndDate = new Date();
-        forecastEndDate.setFullYear(forecastEndDate.getFullYear() + 1);
-        
-        // Key change: Use selectedAccounts for the forecast calculation.
+        forecastEndDate.setFullYear(forecastEndDate.getFullYear() + 1, forecastEndDate.getMonth() + 1, 0);
+
         const forecastData = generateBalanceForecast(selectedAccounts, recurringTransactions, financialGoals, billsAndPayments, forecastEndDate);
         const today = new Date();
+        today.setUTCHours(0, 0, 0, 0);
 
         const getInitialBalance = () => {
             return selectedAccounts
@@ -487,7 +487,7 @@ const Dashboard: React.FC<DashboardProps> = ({ user, transactions, accounts, sav
 
         if (forecastData.length === 0) {
             const initialBalance = getInitialBalance();
-            const todayStr = today.toISOString().split('T')[0];
+            const todayStr = new Date().toISOString().split('T')[0];
             const periods = ['This Month', 'Next 3 Months', 'Next 6 Months', 'Next Year'];
             return periods.map(period => ({
                 period,
@@ -496,38 +496,104 @@ const Dashboard: React.FC<DashboardProps> = ({ user, transactions, accounts, sav
             }));
         }
 
-        const endOfMonth = new Date(today.getFullYear(), today.getMonth() + 1, 0);
-        const end3Months = new Date(today); end3Months.setMonth(today.getMonth() + 3);
-        const end6Months = new Date(today); end6Months.setMonth(today.getMonth() + 6);
-        const end1Year = new Date(today); end1Year.setFullYear(today.getFullYear() + 1);
+        const findNthLowestUniquePoint = (
+            data: { date: string; value: number }[],
+            n: number,
+            excludeValues: number[] = []
+        ): { value: number; date: string } | null => {
+            if (data.length === 0) return null;
 
+            const uniqueSortedValues = [...new Set(data.map(p => p.value))]
+                .filter(v => !excludeValues.includes(v))
+                .sort((a, b) => a - b);
+
+            const targetIndex = n - 1;
+
+            if (targetIndex >= uniqueSortedValues.length) {
+                const fallbackPoint = data.find(p => !excludeValues.includes(p.value)) 
+                                   || data.reduce((min, p) => (p.value < min.value ? p : min), data[0]);
+                return fallbackPoint;
+            }
+    
+            const nthLowestValue = uniqueSortedValues[targetIndex];
+            const point = data.find(p => p.value === nthLowestValue);
+            return point ? { value: point.value, date: point.date } : null;
+        };
+    
         const periods = [
-            { label: 'This Month', endDate: endOfMonth },
-            { label: 'Next 3 Months', endDate: end3Months },
-            { label: 'Next 6 Months', endDate: end6Months },
-            { label: 'Next Year', endDate: end1Year },
+            { 
+                label: 'This Month', 
+                startDate: new Date(Date.UTC(today.getUTCFullYear(), today.getUTCMonth(), 1)),
+                endDate: new Date(Date.UTC(today.getUTCFullYear(), today.getUTCMonth() + 1, 0))
+            },
+            { 
+                label: 'Next 3 Months', 
+                startDate: new Date(Date.UTC(today.getUTCFullYear(), today.getUTCMonth() + 1, 1)),
+                endDate: new Date(Date.UTC(today.getUTCFullYear(), today.getUTCMonth() + 3, 0))
+            },
+            { 
+                label: 'Next 6 Months', 
+                startDate: new Date(Date.UTC(today.getUTCFullYear(), today.getUTCMonth() + 3, 1)),
+                endDate: new Date(Date.UTC(today.getUTCFullYear(), today.getUTCMonth() + 6, 0))
+            },
+            { 
+                label: 'Next Year', 
+                startDate: new Date(Date.UTC(today.getUTCFullYear(), today.getUTCMonth() + 6, 1)),
+                endDate: new Date(Date.UTC(today.getUTCFullYear(), today.getUTCMonth() + 12, 0))
+            },
         ];
         
-        return periods.map(period => {
-            const dataForPeriod = forecastData.filter(d => new Date(d.date) <= period.endDate);
-            if (dataForPeriod.length === 0) {
-                return {
-                    period: period.label,
-                    lowestBalance: getInitialBalance(), // Use initial balance of selected liquid accounts
-                    date: today.toISOString().split('T')[0]
-                };
+        const results: { period: string; lowestBalance: number; date: string }[] = [];
+        const displayedValues: number[] = [];
+    
+        for (const period of periods) {
+            const dataForPeriod = forecastData.filter(d => {
+                const dDate = parseDateAsUTC(d.date);
+                return dDate >= period.startDate && dDate <= period.endDate;
+            });
+            
+            let displayedPoint: { value: number; date: string } | null = null;
+            let n = 1;
+    
+            while(true) {
+                const point = findNthLowestUniquePoint(dataForPeriod, n, displayedValues);
+                
+                if (!point) {
+                    const lastKnownBalancePoint = forecastData
+                        .filter(d => parseDateAsUTC(d.date) < period.startDate)
+                        .pop();
+                    
+                    const fallbackValue = lastKnownBalancePoint ? lastKnownBalancePoint.value : getInitialBalance();
+                    const fallbackDate = lastKnownBalancePoint ? lastKnownBalancePoint.date : new Date().toISOString().split('T')[0];
+
+                    displayedPoint = { value: fallbackValue, date: fallbackDate };
+                    break;
+                }
+
+                if (!displayedValues.includes(point.value)) {
+                    displayedPoint = point;
+                    break;
+                }
+                
+                n++;
+    
+                if (n > 20) { // Safety break
+                     displayedPoint = point;
+                     break;
+                }
             }
             
-            const lowestPoint = dataForPeriod.reduce((min, p) => p.value < min.value ? { value: p.value, date: p.date } : min, { value: dataForPeriod[0].value, date: dataForPeriod[0].date });
-
-            return {
+            results.push({
                 period: period.label,
-                lowestBalance: lowestPoint.value,
-                date: lowestPoint.date,
-            };
-        });
+                lowestBalance: displayedPoint.value,
+                date: displayedPoint.date,
+            });
+            displayedValues.push(displayedPoint.value);
+        }
+        
+        return results;
 
-    }, [selectedAccounts, recurringTransactions, financialGoals, billsAndPayments]);
+    }, [selectedAccounts, recurringTransactions, financialGoals, billsAndPayments, accounts]);
 
   // --- Widget Management ---
   const allWidgets: Widget[] = useMemo(() => [

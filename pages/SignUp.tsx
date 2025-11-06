@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { BTN_PRIMARY_STYLE, INPUT_BASE_STYLE, FinauraLogo } from '../constants';
+import { BTN_PRIMARY_STYLE, INPUT_BASE_STYLE, AuraFinanceLogo } from '../constants';
 import { Theme, User } from '../types';
 import Card from '../components/Card';
 
@@ -28,8 +28,8 @@ const SignUp: React.FC<SignUpProps> = ({ onSignUp, onNavigateToSignIn, isLoading
       <div className="w-full max-w-md">
         <div className="flex justify-center mb-6">
           <div className="flex items-center gap-3">
-            <FinauraLogo theme={theme as Theme} />
-            <span className="text-3xl font-bold text-light-text dark:text-white">Finaura</span>
+            <AuraFinanceLogo theme={theme as Theme} />
+            <span className="text-3xl font-bold text-light-text dark:text-white">Aura Finance</span>
           </div>
         </div>
         <Card>

@@ -31,7 +31,7 @@ const Header: React.FC<HeaderProps> = ({ user, setSidebarOpen, theme, setTheme, 
   }, [lastSyncTime, isSyncing]);
 
   return (
-    <header className="flex-shrink-0 bg-light-card/80 dark:bg-dark-card/80 backdrop-blur-xl h-20 flex items-center border-b border-light-separator dark:border-dark-separator sticky top-0 z-20">
+    <header className="flex-shrink-0 bg-light-card dark:bg-dark-card h-20 flex items-center sticky top-0 z-20">
         <div className="flex items-center justify-between w-full px-4 md:px-8">
             <div className="flex items-center gap-4">
                 <button onClick={() => setSidebarOpen(true)} className="text-light-text-secondary dark:text-dark-text-secondary md:hidden">
