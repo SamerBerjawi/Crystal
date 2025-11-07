@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { BTN_PRIMARY_STYLE, INPUT_BASE_STYLE, AuraFinanceLogo, BTN_SECONDARY_STYLE } from '../constants';
+import { BTN_PRIMARY_STYLE, INPUT_BASE_STYLE, DelphiLogo, BTN_SECONDARY_STYLE } from '../constants';
 import { Theme } from '../types';
 import Card from '../components/Card';
 
@@ -26,7 +26,7 @@ const SignIn: React.FC<SignInProps> = ({ onSignIn, onNavigateToSignUp, onEnterDe
     <div className="flex items-center justify-center min-h-screen bg-light-bg dark:bg-dark-bg p-4">
       <div className="w-full max-w-md">
         <div className="flex justify-center mb-6">
-          <AuraFinanceLogo theme={theme as Theme} />
+          <DelphiLogo theme={theme as Theme} />
         </div>
         <Card>
           <h2 className="text-2xl font-bold text-center text-light-text dark:text-dark-text mb-2">Welcome Back!</h2>

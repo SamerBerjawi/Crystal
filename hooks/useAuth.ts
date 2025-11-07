@@ -7,7 +7,7 @@ interface AuthResponse {
   financialData?: FinancialData;
 }
 
-const TOKEN_STORAGE_KEY = 'aurafinance_auth_token';
+const TOKEN_STORAGE_KEY = 'delphi_auth_token';
 
 const safeLocalStorage = {
   getItem: (key: string): string | null => {

@@ -1,7 +1,7 @@
 {
-  "name": "aurafinance-server",
+  "name": "delphi-server",
   "version": "1.0.0",
-  "description": "Backend for Aura Finance",
+  "description": "Backend for Delphi",
   "main": "dist/index.js",
   "scripts": {
     "start": "node dist/index.js",

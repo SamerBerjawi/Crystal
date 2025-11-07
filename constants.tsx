@@ -2,7 +2,8 @@ import React, { useState, useEffect } from 'react';
 import { Category, Page, AccountType, Currency, Theme, RecurrenceFrequency, WeekendAdjustment, DefaultAccountOrder, Duration, InvestmentSubType, PropertyType } from './types';
 
 
-export function AuraFinanceLogo({ theme, showText = true }: { theme: Theme; showText?: boolean; }) {
+// FIX: Renamed AuraFinanceLogo to DelphiLogo to finalize rebranding.
+export function DelphiLogo({ theme, showText = true }: { theme: Theme; showText?: boolean; }) {
   const [isDark, setIsDark] = useState(() => {
     if (theme === 'system') {
         return typeof window !== 'undefined' && window.matchMedia('(prefers-color-scheme: dark)').matches;
@@ -22,45 +23,41 @@ export function AuraFinanceLogo({ theme, showText = true }: { theme: Theme; show
       }
   }, [theme]);
 
-  const logoColor = isDark ? 'rgba(255, 255, 255, 0.95)' : '#0D2240';
+  const logoColor = isDark ? '#fdeed9' : '#c1670e';
 
   return (
     <div className="flex items-center justify-center">
       <svg
         width={showText ? 120 : 40}
         height={showText ? 120 : 40}
-        viewBox={showText ? "0 0 50 50" : "12.5 2.5 25 25"}
+        viewBox={showText ? "0 0 50 50" : "10 8 30 34"}
         fill="none"
         xmlns="http://www.w3.org/2000/svg"
       >
-          <g>
-              <circle cx="25" cy="15" r="10" stroke={logoColor} strokeWidth="1.5" />
-              <path d="M19 20 C 22 15, 28 11, 33 10" stroke={logoColor} strokeWidth="1.5" fill="none" strokeLinecap="round" />
-              <path d="M29 11 L 33 10 L 31 14" stroke={logoColor} strokeWidth="1.5" fill="none" strokeLinecap="round" strokeLinejoin="round" />
-          </g>
-          {showText && (
-            <>
-              <text x="25" y="36" fontFamily="Inter, sans-serif" fontSize="9" fontWeight="800" textAnchor="middle" fill={logoColor}>
-                  AURA
-              </text>
-              <text x="25" y="44" fontFamily="Inter, sans-serif" fontSize="4.5" fontWeight="500" letterSpacing="0.1em" textAnchor="middle" fill={logoColor}>
-                  FINANCE
-              </text>
-            </>
-          )}
+        <g>
+            <path d="M12 38 L25 12 L38 38" stroke={logoColor} strokeWidth="2.5" fill="none" strokeLinecap="round" strokeLinejoin="round" />
+            <circle cx="25" cy="27" r="4" stroke={logoColor} strokeWidth="2.5" fill="none" />
+        </g>
+        {showText && (
+          <text x="25" y="46" fontFamily="Inter, sans-serif" fontSize="9" fontWeight="800" textAnchor="middle" fill={logoColor}>
+              DELPHI
+          </text>
+        )}
       </svg>
     </div>
   );
 }
 
 // Common Styles based on Apple HIG
-export const BTN_PRIMARY_STYLE = "h-10 flex items-center justify-center bg-primary-500 text-white font-semibold px-4 rounded-lg hover:bg-primary-600 shadow-md hover:shadow-lg transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-primary-500 focus:ring-offset-2 focus:ring-offset-light-bg dark:focus:ring-offset-dark-card active:scale-95 whitespace-nowrap";
+export const BTN_PRIMARY_STYLE = "h-10 flex items-center justify-center bg-primary-700 text-white font-semibold px-4 rounded-lg hover:bg-primary-600 shadow-md hover:shadow-lg transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-primary-500 focus:ring-offset-2 focus:ring-offset-light-bg dark:focus:ring-offset-dark-card active:scale-95 whitespace-nowrap";
 export const BTN_SECONDARY_STYLE = "h-10 flex items-center justify-center bg-light-fill dark:bg-dark-fill text-light-text dark:text-dark-text font-semibold px-4 rounded-lg hover:bg-gray-500/20 dark:hover:bg-gray-400/20 transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-primary-500 active:scale-95 whitespace-nowrap";
 export const BTN_DANGER_STYLE = "h-10 flex items-center justify-center text-semantic-red hover:bg-semantic-red/10 font-semibold px-4 rounded-lg transition-colors active:scale-95 whitespace-nowrap";
 export const INPUT_BASE_STYLE = "h-10 w-full appearance-none bg-light-fill dark:bg-dark-fill text-light-text dark:text-dark-text rounded-lg px-3 border border-light-separator/50 dark:border-dark-separator/50 focus:outline-none focus:ring-2 focus:ring-primary-500 focus:border-primary-500 transition-shadow duration-200";
 export const SELECT_STYLE = "h-10 w-full appearance-none bg-light-fill dark:bg-dark-fill text-light-text dark:text-dark-text font-semibold pl-4 pr-10 rounded-lg hover:bg-gray-500/20 dark:hover:bg-gray-400/20 transition-colors duration-200 focus:outline-none focus:ring-2 focus:ring-primary-500";
 export const SELECT_WRAPPER_STYLE = "relative w-full";
 export const SELECT_ARROW_STYLE = "pointer-events-none absolute inset-y-0 right-0 flex items-center px-2 text-light-text-secondary dark:text-dark-text-secondary";
+
+export const BRAND_COLORS = ['#fcb045', '#fd1d1d', '#3B82F6', '#22d3ee', '#a78bfa', '#f472b6'];
 
 export interface NavItem {
   name: Page;

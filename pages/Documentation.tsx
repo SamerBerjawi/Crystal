@@ -1,4 +1,5 @@
 
+
 import React, { useState, useMemo, useRef, useEffect } from 'react';
 import { Page } from '../types';
 import Card from '../components/Card';
@@ -18,7 +19,7 @@ const features = [
                     <li>🎨 <strong>Customizable Widgets:</strong> Arrange, resize, and add widgets to create a dashboard that suits your needs. Enter 'Edit Layout' mode to customize.</li>
                     <li>📊 <strong>Dynamic Filters:</strong> Filter your entire dashboard view by multiple accounts and time duration.</li>
                     <li>📈 <strong>Key Metrics:</strong> At-a-glance cards for Income, Expenses, Net Balance, and Net Worth. New cards show your lowest projected balance and credit card statement summaries.</li>
-                    <li>🔗 <strong>Transaction Matcher:</strong> Aura Finance automatically detects potential transfers between your accounts and prompts you to link them for accurate reporting.</li>
+                    <li>🔗 <strong>Transaction Matcher:</strong> Delphi automatically detects potential transfers between your accounts and prompts you to link them for accurate reporting.</li>
                 </ul>
             </>
         )
@@ -42,7 +43,7 @@ const features = [
         title: 'Budgeting',
         icon: 'pie_chart',
         content: (
-            <p>Take control of your spending by setting monthly budgets for your main expense categories. Aura Finance tracks your spending in real-time and shows your progress throughout the month.</p>
+            <p>Take control of your spending by setting monthly budgets for your main expense categories. Delphi tracks your spending in real-time and shows your progress throughout the month.</p>
         )
     },
     {
@@ -118,6 +119,20 @@ const features = [
         icon: 'smart_toy',
         content: (
             <p>Click the chat bubble at the bottom-right to talk to your AI financial assistant. Ask questions about your spending, budgets, or account balances in natural language.</p>
+        )
+    },
+    {
+        title: 'Branding & Identity',
+        icon: 'palette',
+        content: (
+            <>
+                <p>Delphi's brand identity is designed to be vibrant, energetic, and clear, reflecting its mission to provide financial foresight.</p>
+                <ul className="list-disc list-inside space-y-2 pl-2">
+                    <li><strong>Name:</strong> "Delphi" is inspired by the ancient Oracle of Delphi, renowned for her foresight and wisdom. This name reflects the app's goal to provide users with clarity and intelligent forecasting for their financial future.</li>
+                    <li><strong>Logo:</strong> The logo is an abstract and minimalist design combining a mountain peak and an eye. The mountain represents stability and the journey to a financial summit, while the eye symbolizes the clarity and insight Delphi provides.</li>
+                    <li><strong>Color Palette:</strong> The primary color palette consists of a vibrant orange and a rich red. This energetic gradient is used as a key accent to draw attention and create a distinctive visual identity. The vibrant orange serves as the primary UI color for consistency and brand recognition.</li>
+                </ul>
+            </>
         )
     }
 ];
@@ -197,7 +212,7 @@ export const Documentation: React.FC<DocumentationProps> = ({ setCurrentPage }) 
                 <div className="text-center">
                     <h1 className="text-5xl font-bold mb-4 text-light-text dark:text-dark-text">Documentation</h1>
                     <p className="text-lg text-light-text-secondary dark:text-dark-text-secondary max-w-2xl mx-auto">
-                        Find everything you need to know about Aura Finance's features. Browse the topics below to get started.
+                        Find everything you need to know about Delphi's features. Browse the topics below to get started.
                     </p>
                 </div>
             </header>

@@ -120,11 +120,11 @@ const EnableBankingConsent: React.FC<{ onAuthorize: () => void; onDeny: () => vo
         <div className="text-center">
           <h2 className="text-2xl font-bold">Enable Banking</h2>
           <p className="text-light-text-secondary dark:text-dark-text-secondary mt-2">
-            Finaura is requesting access to your account information.
+            Delphi is requesting access to your account information.
           </p>
         </div>
         <div className="mt-6 p-4 bg-light-fill dark:bg-dark-fill rounded-lg">
-          <h3 className="font-semibold">Finaura wants to:</h3>
+          <h3 className="font-semibold">Delphi wants to:</h3>
           <ul className="mt-2 space-y-2 text-sm text-light-text-secondary dark:text-dark-text-secondary">
             <li className="flex items-start gap-2">
               <span className="material-symbols-outlined text-green-500">check_circle</span>
@@ -135,7 +135,7 @@ const EnableBankingConsent: React.FC<{ onAuthorize: () => void; onDeny: () => vo
               <span>View your transaction history</span>
             </li>
           </ul>
-          <p className="text-xs mt-4">This is a read-only connection. Finaura will not be able to move money or make changes to your accounts.</p>
+          <p className="text-xs mt-4">This is a read-only connection. Delphi will not be able to move money or make changes to your accounts.</p>
         </div>
         <div className="flex justify-end gap-4 mt-6">
           <button onClick={onDeny} className={BTN_SECONDARY_STYLE}>Deny</button>
@@ -199,20 +199,20 @@ export const App: React.FC = () => {
 
   // Load/save Sure settings from/to localStorage
   useEffect(() => {
-    const storedUrl = safeLocalStorage.getItem('finaura_sure_api_url');
-    const storedKey = safeLocalStorage.getItem('finaura_sure_api_key');
+    const storedUrl = safeLocalStorage.getItem('delphi_sure_api_url');
+    const storedKey = safeLocalStorage.getItem('delphi_sure_api_key');
     if (storedUrl) setSureApiUrl(storedUrl);
     if (storedKey) setSureApiKey(storedKey);
   }, []);
 
   const handleSetSureApiUrl = (url: string) => {
     setSureApiUrl(url);
-    safeLocalStorage.setItem('finaura_sure_api_url', url);
+    safeLocalStorage.setItem('delphi_sure_api_url', url);
   };
 
   const handleSetSureApiKey = (key: string) => {
     setSureApiKey(key);
-    safeLocalStorage.setItem('finaura_sure_api_key', key);
+    safeLocalStorage.setItem('delphi_sure_api_key', key);
   };
 
   const loadAllFinancialData = useCallback((data: FinancialData | null) => {
@@ -684,7 +684,7 @@ export const App: React.FC = () => {
       const url = URL.createObjectURL(blob);
       const a = document.createElement('a');
       a.href = url;
-      a.download = `finaura-backup-${new Date().toISOString().split('T')[0]}.json`;
+      a.download = `delphi-backup-${new Date().toISOString().split('T')[0]}.json`;
       document.body.appendChild(a);
       a.click();
       document.body.removeChild(a);
@@ -725,7 +725,7 @@ export const App: React.FC = () => {
           const key = type as keyof typeof dataMap;
           if (dataMap[key] && Array.isArray(dataMap[key])) {
               const csv = arrayToCSV(dataMap[key]);
-              downloadCSV(csv, `finaura_${type}_${new Date().toISOString().split('T')[0]}.csv`);
+              downloadCSV(csv, `delphi_${type}_${new Date().toISOString().split('T')[0]}.csv`);
           }
       });
   };

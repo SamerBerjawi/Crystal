@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { Page, Theme, User } from '../types';
-import { NAV_ITEMS, AuraFinanceLogo, NavItem } from '../constants';
+import { NAV_ITEMS, DelphiLogo, NavItem } from '../constants';
 
 interface SidebarProps {
   currentPage: Page;
@@ -90,9 +90,10 @@ const Sidebar: React.FC<SidebarProps> = ({ currentPage, setCurrentPage, isSideba
           }}
           className={`group flex items-center p-3 rounded-lg transition-colors duration-200 ${ isSidebarCollapsed ? `md:px-2 md:justify-center md:gap-0` : `px-3 gap-3 ${isSubItem ? 'pl-7' : ''}`} ${
             isActive
-              ? 'bg-primary-500 text-white font-semibold shadow-md'
+              ? 'text-white font-semibold shadow-md'
               : `text-light-text-secondary hover:bg-black/5 dark:text-dark-text-secondary dark:hover:bg-white/10`
           }`}
+          style={isActive ? { background: 'linear-gradient(140deg,rgba(255, 149, 0, 1) 28%, rgba(253, 29, 29, 1) 100%)' } : {}}
         >
           {iconEl}
           <span className={`font-medium transition-opacity ${isSidebarCollapsed ? 'md:hidden' : ''}`}>{item.name}</span>
@@ -110,8 +111,8 @@ const Sidebar: React.FC<SidebarProps> = ({ currentPage, setCurrentPage, isSideba
       <aside className={`fixed top-0 left-0 bottom-0 z-40 bg-light-card dark:bg-dark-card flex flex-col transition-all duration-300 ease-in-out md:relative md:translate-x-0 ${isSidebarOpen ? 'translate-x-0 w-64' : '-translate-x-full w-64'} ${isSidebarCollapsed ? 'md:w-20' : 'md:w-64'}`}>
         <div className={`flex items-center h-20 flex-shrink-0 transition-all duration-300 ${isSidebarCollapsed ? 'md:px-3 justify-center' : 'px-4 justify-between'}`}>
             <div className={`flex items-center gap-3 overflow-hidden ${isSidebarCollapsed ? 'w-auto' : 'w-full'}`}>
-                <AuraFinanceLogo theme={theme} showText={false} />
-                <span className={`font-bold text-xl transition-opacity ${isSidebarCollapsed ? 'md:hidden md:opacity-0' : 'opacity-100'}`}>Aura Finance</span>
+                <DelphiLogo theme={theme} showText={false} />
+                <span className={`font-bold text-xl transition-opacity ${isSidebarCollapsed ? 'md:hidden md:opacity-0' : 'opacity-100'}`}>Delphi</span>
             </div>
             <div className="flex items-center">
                  <button

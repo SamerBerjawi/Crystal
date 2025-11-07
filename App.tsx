@@ -134,7 +134,7 @@ export const App: React.FC = () => {
   // FIX: Add state for tags and tag filtering to support the Tags feature.
   const [tags, setTags] = useState<Tag[]>(initialFinancialData.tags || []);
   const [tagFilter, setTagFilter] = useState<string | null>(null);
-  const [accountOrder, setAccountOrder] = useLocalStorage<string[]>('aurafinance-account-order', []);
+  const [accountOrder, setAccountOrder] = useLocalStorage<string[]>('delphi-account-order', []);
   
   // State for AI Chat
   const [isChatOpen, setIsChatOpen] = useState(false);
@@ -155,7 +155,7 @@ export const App: React.FC = () => {
   const [accountsSortBy, setAccountsSortBy] = useState<'name' | 'balance' | 'manual'>(preferences.defaultAccountOrder);
 
   // Onboarding flow state
-  const [hasCompletedOnboarding, setHasCompletedOnboarding] = useLocalStorage('aurafinance-onboarding-complete', false);
+  const [hasCompletedOnboarding, setHasCompletedOnboarding] = useLocalStorage('delphi-onboarding-complete', false);
   const [isOnboardingOpen, setIsOnboardingOpen] = useState(false);
 
 
@@ -324,8 +324,8 @@ export const App: React.FC = () => {
     const mockUser: User = {
         firstName: 'Demo',
         lastName: 'User',
-        email: 'demo@aurafinance.app',
-        profilePictureUrl: `https://i.pravatar.cc/150?u=demo@aurafinance.app`,
+        email: 'demo@delphi.finance',
+        profilePictureUrl: `https://i.pravatar.cc/150?u=demo@delphi.finance`,
         role: 'Member',
         phone: undefined,
         address: undefined,
@@ -864,7 +864,7 @@ export const App: React.FC = () => {
       const url = URL.createObjectURL(blob);
       const a = document.createElement('a');
       a.href = url;
-      a.download = `aurafinance-backup-${new Date().toISOString().split('T')[0]}.json`;
+      a.download = `delphi-backup-${new Date().toISOString().split('T')[0]}.json`;
       document.body.appendChild(a);
       a.click();
       document.body.removeChild(a);
@@ -916,7 +916,7 @@ export const App: React.FC = () => {
           const key = type as keyof typeof dataMap;
           if (dataMap[key] && Array.isArray(dataMap[key])) {
               const csv = arrayToCSV(dataMap[key]);
-              downloadCSV(csv, `aurafinance_${type}_${new Date().toISOString().split('T')[0]}.csv`);
+              downloadCSV(csv, `delphi_${type}_${new Date().toISOString().split('T')[0]}.csv`);
           }
       });
   };

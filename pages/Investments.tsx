@@ -1,6 +1,6 @@
 import React, { useState, useMemo } from 'react';
 import { Account, InvestmentTransaction, Transaction } from '../types';
-import { BTN_PRIMARY_STYLE } from '../constants';
+import { BTN_PRIMARY_STYLE, BRAND_COLORS } from '../constants';
 import Card from '../components/Card';
 import { formatCurrency } from '../utils';
 import AddInvestmentTransactionModal from '../components/AddInvestmentTransactionModal';
@@ -14,8 +14,6 @@ interface InvestmentsProps {
     deleteInvestmentTransaction: (id: string) => void;
 }
 
-const COLORS = ['#6366F1', '#FBBF24', '#10B981', '#EF4444', '#3B82F6', '#8B5CF6'];
-
 const InvestmentSummaryCard: React.FC<{ title: string; value: string; change?: string; changeColor?: string; icon: string }> = ({ title, value, change, changeColor, icon }) => (
     <Card className="flex items-start justify-between">
         <div>
@@ -24,7 +22,7 @@ const InvestmentSummaryCard: React.FC<{ title: string; value: string; change?: s
             {change && <p className={`text-sm font-semibold mt-1 ${changeColor}`}>{change}</p>}
         </div>
         <div className="w-12 h-12 rounded-full flex items-center justify-center bg-primary-100 dark:bg-primary-900/50">
-            <span className="material-symbols-outlined text-3xl text-primary-500">{icon}</span>
+            <span className="material-symbols-outlined text-3xl text-primary-700 dark:text-primary-300">{icon}</span>
         </div>
     </Card>
 );
@@ -79,7 +77,7 @@ const Investments: React.FC<InvestmentsProps> = ({ accounts, cashAccounts, inves
         const distributionData = filteredHoldings.map((holding, index) => ({
                 name: holding.symbol,
                 value: holding.currentValue,
-                color: COLORS[index % COLORS.length]
+                color: BRAND_COLORS[index % BRAND_COLORS.length]
             })).filter(d => d.value > 0).sort((a,b) => b.value - a.value);
 
         return { holdings: filteredHoldings, totalValue, totalCostBasis, distributionData };

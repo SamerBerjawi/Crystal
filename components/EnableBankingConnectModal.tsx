@@ -28,7 +28,7 @@ const EnableBankingConnectModal: React.FC<EnableBankingConnectModalProps> = ({ i
         </div>
         <h3 className="text-lg font-semibold text-light-text dark:text-dark-text">Secure Connection via Enable Banking</h3>
         <p className="mt-2 text-sm text-light-text-secondary dark:text-dark-text-secondary">
-          Finaura uses Enable Banking to securely connect to your bank account. This is a secure, read-only connection. Your credentials are never shared with Finaura.
+          Delphi uses Enable Banking to securely connect to your bank account. This is a secure, read-only connection. Your credentials are never shared with Delphi.
         </p>
       </div>
       <div className="flex justify-end gap-4 pt-6 mt-4 border-t border-black/10 dark:border-white/10">

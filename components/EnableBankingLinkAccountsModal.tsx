@@ -34,8 +34,8 @@ const EnableBankingLinkAccountsModal: React.FC<EnableBankingLinkAccountsModalPro
     return null;
   }
 
-  const handleLinkChange = (remoteAccountId: string, finauraAccountId: string) => {
-    setLinks(prev => ({ ...prev, [remoteAccountId]: finauraAccountId }));
+  const handleLinkChange = (remoteAccountId: string, delphiAccountId: string) => {
+    setLinks(prev => ({ ...prev, [remoteAccountId]: delphiAccountId }));
   };
 
   const unlinkedAccounts = existingAccounts.filter(acc => !acc.enableBankingId);
@@ -48,7 +48,7 @@ const EnableBankingLinkAccountsModal: React.FC<EnableBankingLinkAccountsModalPro
     <Modal onClose={onClose} title="Link Found Accounts">
       <div className="space-y-4">
         <p className="text-sm text-light-text-secondary dark:text-dark-text-secondary">
-          We found {remoteAccounts.length} account(s) at the selected institution. Please link them to your Finaura accounts or create new ones.
+          We found {remoteAccounts.length} account(s) at the selected institution. Please link them to your Delphi accounts or create new ones.
         </p>
         <div className="space-y-4 max-h-80 overflow-y-auto pr-2">
           {remoteAccounts.map(remoteAcc => (
@@ -68,7 +68,7 @@ const EnableBankingLinkAccountsModal: React.FC<EnableBankingLinkAccountsModalPro
                         onChange={(e) => handleLinkChange(remoteAcc.id, e.target.value)}
                         className={INPUT_BASE_STYLE}
                     >
-                        <option value="CREATE_NEW">Create New Account in Finaura</option>
+                        <option value="CREATE_NEW">Create New Account in Delphi</option>
                         <optgroup label="Link to Existing Account">
                             {unlinkedAccounts.map(existingAcc => (
                                 <option key={existingAcc.id} value={existingAcc.id}>
