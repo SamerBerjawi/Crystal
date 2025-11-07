@@ -6,10 +6,10 @@ services:
     restart: unless-stopped
     environment:
       POSTGRES_DB: ${POSTGRES_DB:-delphi}
-      POSTGRES_USER: ${POSTGRES_USER:-delphi_user}
-      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-strong_password_change_me}
+      POSTGRES_USER: ${POSTGRES_USER:-postgres}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-postgres}
     healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-delphi_user} -d ${POSTGRES_DB:-delphi}"]
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-postgres} -d ${POSTGRES_DB:-delphi}"]
       interval: 10s
       timeout: 5s
       retries: 5
@@ -31,8 +31,8 @@ services:
       JWT_SECRET: ${JWT_SECRET:-a-very-secret-and-secure-key-that-you-should-change}
       DATABASE_HOST: db
       DATABASE_PORT: 5432
-      DATABASE_USER: ${POSTGRES_USER:-delphi_user}
-      DATABASE_PASSWORD: ${POSTGRES_PASSWORD:-strong_password_change_me}
+      DATABASE_USER: ${POSTGRES_USER:-postgres}
+      DATABASE_PASSWORD: ${POSTGRES_PASSWORD:-postgres}
       DATABASE_NAME: ${POSTGRES_DB:-delphi}
 
   frontend:
