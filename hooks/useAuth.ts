@@ -115,17 +115,29 @@ export const useAuth = () => {
 
         const body = await response.json().catch(() => ({}));
         if (!response.ok) {
-          throw new Error(body.message || 'Failed to sign in.');
+          let fallbackMessage = body.message || 'Failed to sign in.';
+          if (!body.message) {
+            if (response.status === 401) {
+              fallbackMessage = 'Invalid email or password.';
+            } else if (response.status === 502 || response.status === 503) {
+              fallbackMessage = 'Unable to reach the authentication service. Please verify the backend server is running.';
+            }
+          }
+          throw new Error(fallbackMessage);
         }
 
         return processAuthState(body as AuthResponse);
       } catch (err) {
         console.error('Sign-in failed:', err);
+        const message =
+          err instanceof Error
+            ? err.message
+            : 'Unable to reach the authentication service. Please verify the backend server is running.';
         setIsAuthenticated(false);
         setUserState(null);
         persistToken(null);
         setToken(null);
-        setError(err instanceof Error ? err.message : 'Failed to sign in.');
+        setError(message);
         return null;
       } finally {
         setIsLoading(false);
@@ -148,17 +160,25 @@ export const useAuth = () => {
 
         const body = await response.json().catch(() => ({}));
         if (!response.ok) {
-          throw new Error(body.message || 'Failed to register.');
+          let fallbackMessage = body.message || 'Failed to register.';
+          if (!body.message && (response.status === 502 || response.status === 503)) {
+            fallbackMessage = 'Unable to reach the authentication service. Please verify the backend server is running.';
+          }
+          throw new Error(fallbackMessage);
         }
 
         return processAuthState(body as AuthResponse);
       } catch (err) {
         console.error('Sign-up failed:', err);
+        const message =
+          err instanceof Error
+            ? err.message
+            : 'Unable to reach the authentication service. Please verify the backend server is running.';
         setIsAuthenticated(false);
         setUserState(null);
         persistToken(null);
         setToken(null);
-        setError(err instanceof Error ? err.message : 'Failed to register.');
+        setError(message);
         return null;
       } finally {
         setIsLoading(false);
