@@ -1,4 +1,3 @@
-
 // FIX: Import `useMemo` from React to resolve the 'Cannot find name' error.
 import React, { useState, useEffect, useMemo, useCallback } from 'react';
 import Sidebar from './components/Sidebar';
@@ -134,7 +133,7 @@ export const App: React.FC = () => {
   // FIX: Add state for tags and tag filtering to support the Tags feature.
   const [tags, setTags] = useState<Tag[]>(initialFinancialData.tags || []);
   const [tagFilter, setTagFilter] = useState<string | null>(null);
-  const [accountOrder, setAccountOrder] = useLocalStorage<string[]>('delphi-account-order', []);
+  const [accountOrder, setAccountOrder] = useLocalStorage<string[]>('crystal-account-order', []);
   
   // State for AI Chat
   const [isChatOpen, setIsChatOpen] = useState(false);
@@ -155,7 +154,7 @@ export const App: React.FC = () => {
   const [accountsSortBy, setAccountsSortBy] = useState<'name' | 'balance' | 'manual'>(preferences.defaultAccountOrder);
 
   // Onboarding flow state
-  const [hasCompletedOnboarding, setHasCompletedOnboarding] = useLocalStorage('delphi-onboarding-complete', false);
+  const [hasCompletedOnboarding, setHasCompletedOnboarding] = useLocalStorage('crystal-onboarding-complete', false);
   const [isOnboardingOpen, setIsOnboardingOpen] = useState(false);
 
 
@@ -324,8 +323,8 @@ export const App: React.FC = () => {
     const mockUser: User = {
         firstName: 'Demo',
         lastName: 'User',
-        email: 'demo@delphi.finance',
-        profilePictureUrl: `https://i.pravatar.cc/150?u=demo@delphi.finance`,
+        email: 'demo@crystal.finance',
+        profilePictureUrl: `https://i.pravatar.cc/150?u=demo@crystal.finance`,
         role: 'Member',
         phone: undefined,
         address: undefined,
@@ -355,7 +354,7 @@ export const App: React.FC = () => {
 
   // Onboarding flow trigger
   useEffect(() => {
-    if (isDataLoaded && (isAuthenticated || isDemoMode) && accounts.length === 0 && budgets.length === 0 && !hasCompletedOnboarding) {
+    if (isDataLoaded && isAuthenticated && !isDemoMode && accounts.length === 0 && budgets.length === 0 && !hasCompletedOnboarding) {
       const timer = setTimeout(() => {
         setIsOnboardingOpen(true);
       }, 500);
@@ -864,7 +863,7 @@ export const App: React.FC = () => {
       const url = URL.createObjectURL(blob);
       const a = document.createElement('a');
       a.href = url;
-      a.download = `delphi-backup-${new Date().toISOString().split('T')[0]}.json`;
+      a.download = `crystal-backup-${new Date().toISOString().split('T')[0]}.json`;
       document.body.appendChild(a);
       a.click();
       document.body.removeChild(a);
@@ -916,7 +915,7 @@ export const App: React.FC = () => {
           const key = type as keyof typeof dataMap;
           if (dataMap[key] && Array.isArray(dataMap[key])) {
               const csv = arrayToCSV(dataMap[key]);
-              downloadCSV(csv, `delphi_${type}_${new Date().toISOString().split('T')[0]}.csv`);
+              downloadCSV(csv, `crystal_${type}_${new Date().toISOString().split('T')[0]}.csv`);
           }
       });
   };

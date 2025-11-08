@@ -1,7 +1,7 @@
 {
-  "name": "delphi-server",
+  "name": "crystal-server",
   "version": "1.0.0",
-  "description": "Backend for Delphi",
+  "description": "Backend for Crystal",
   "main": "dist/index.js",
   "scripts": {
     "start": "node dist/index.js",

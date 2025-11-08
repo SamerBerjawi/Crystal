@@ -7,7 +7,7 @@ interface AuthResponse {
   financialData?: FinancialData;
 }
 
-const TOKEN_STORAGE_KEY = 'delphi_auth_token';
+const TOKEN_STORAGE_KEY = 'crystal_auth_token';
 
 const safeLocalStorage = {
   getItem: (key: string): string | null => {
@@ -115,29 +115,17 @@ export const useAuth = () => {
 
         const body = await response.json().catch(() => ({}));
         if (!response.ok) {
-          let fallbackMessage = body.message || 'Failed to sign in.';
-          if (!body.message) {
-            if (response.status === 401) {
-              fallbackMessage = 'Invalid email or password.';
-            } else if (response.status === 502 || response.status === 503) {
-              fallbackMessage = 'Unable to reach the authentication service. Please verify the backend server is running.';
-            }
-          }
-          throw new Error(fallbackMessage);
+          throw new Error(body.message || 'Failed to sign in.');
         }
 
         return processAuthState(body as AuthResponse);
       } catch (err) {
         console.error('Sign-in failed:', err);
-        const message =
-          err instanceof Error
-            ? err.message
-            : 'Unable to reach the authentication service. Please verify the backend server is running.';
         setIsAuthenticated(false);
         setUserState(null);
         persistToken(null);
         setToken(null);
-        setError(message);
+        setError(err instanceof Error ? err.message : 'Failed to sign in.');
         return null;
       } finally {
         setIsLoading(false);
@@ -160,25 +148,17 @@ export const useAuth = () => {
 
         const body = await response.json().catch(() => ({}));
         if (!response.ok) {
-          let fallbackMessage = body.message || 'Failed to register.';
-          if (!body.message && (response.status === 502 || response.status === 503)) {
-            fallbackMessage = 'Unable to reach the authentication service. Please verify the backend server is running.';
-          }
-          throw new Error(fallbackMessage);
+          throw new Error(body.message || 'Failed to register.');
         }
 
         return processAuthState(body as AuthResponse);
       } catch (err) {
         console.error('Sign-up failed:', err);
-        const message =
-          err instanceof Error
-            ? err.message
-            : 'Unable to reach the authentication service. Please verify the backend server is running.';
         setIsAuthenticated(false);
         setUserState(null);
         persistToken(null);
         setToken(null);
-        setError(message);
+        setError(err instanceof Error ? err.message : 'Failed to register.');
         return null;
       } finally {
         setIsLoading(false);

@@ -5,17 +5,17 @@ services:
     image: postgres:15-alpine
     restart: unless-stopped
     environment:
-      POSTGRES_DB: ${POSTGRES_DB:-delphi}
-      POSTGRES_USER: ${POSTGRES_USER:-postgres}
-      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-postgres}
+      POSTGRES_DB: ${POSTGRES_DB:-crystal}
+      POSTGRES_USER: ${POSTGRES_USER:-crystal_user}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-strong_password_change_me}
     healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-postgres} -d ${POSTGRES_DB:-delphi}"]
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-crystal_user} -d ${POSTGRES_DB:-crystal}"]
       interval: 10s
       timeout: 5s
       retries: 5
     volumes:
       # Persist Postgres data directly on your NAS
-      - ${DATA_ROOT:-/volume1/docker/delphi}/db:/var/lib/postgresql/data:rw
+      - ${DATA_ROOT:-/volume1/docker/crystal}/db:/var/lib/postgresql/data:rw
 
   backend:
     build:
@@ -31,9 +31,9 @@ services:
       JWT_SECRET: ${JWT_SECRET:-a-very-secret-and-secure-key-that-you-should-change}
       DATABASE_HOST: db
       DATABASE_PORT: 5432
-      DATABASE_USER: ${POSTGRES_USER:-postgres}
-      DATABASE_PASSWORD: ${POSTGRES_PASSWORD:-postgres}
-      DATABASE_NAME: ${POSTGRES_DB:-delphi}
+      DATABASE_USER: ${POSTGRES_USER:-crystal_user}
+      DATABASE_PASSWORD: ${POSTGRES_PASSWORD:-strong_password_change_me}
+      DATABASE_NAME: ${POSTGRES_DB:-crystal}
 
   frontend:
     build:
@@ -43,4 +43,4 @@ services:
     depends_on:
       - backend
     ports:
-      - "${FRONTEND_PORT:-7157}:80"
+      - "${FRONTEND_PORT:-7157}:80"}

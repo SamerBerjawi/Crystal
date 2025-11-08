@@ -85,7 +85,7 @@ const Chatbot: React.FC<ChatbotProps> = ({ isOpen, onClose, financialData }) => 
               recurring_transactions: financialData.recurringTransactions.map(({ description, amount, type, frequency, nextDueDate }) => ({ description, amount, type, frequency, nextDueDate })),
           };
 
-          const systemInstruction = `You are a helpful personal finance assistant for an app called Delphi. Analyze the user's financial data provided in the following JSON to answer their questions. Your answers must be short, straightforward, and easy to understand. Use markdown for emphasis if needed (e.g., **bold**). Avoid long paragraphs. Today's date is ${new Date().toLocaleDateString()}. Financial Data: ${JSON.stringify(dataSummary)}`;
+          const systemInstruction = `You are a helpful personal finance assistant for an app called Crystal. Analyze the user's financial data provided in the following JSON to answer their questions. Your answers must be short, straightforward, and easy to understand. Use markdown for emphasis if needed (e.g., **bold**). Avoid long paragraphs. Today's date is ${new Date().toLocaleDateString()}. Financial Data: ${JSON.stringify(dataSummary)}`;
           
           const newChat = ai.chats.create({
             model: 'gemini-flash-lite-latest',
@@ -95,7 +95,7 @@ const Chatbot: React.FC<ChatbotProps> = ({ isOpen, onClose, financialData }) => 
           });
           chatRef.current = newChat;
 
-          setMessages([{ sender: 'ai', text: "Hello! I'm your Delphi AI assistant. How can I help you with your finances today?" }]);
+          setMessages([{ sender: 'ai', text: "Hello! I'm your Crystal AI assistant. How can I help you with your finances today?" }]);
         } catch (error) {
           console.error("Failed to initialize AI chat:", error);
           setMessages([{ sender: 'ai', text: "Sorry, I'm having trouble connecting right now. Please try again later." }]);
@@ -147,7 +147,7 @@ const Chatbot: React.FC<ChatbotProps> = ({ isOpen, onClose, financialData }) => 
     <div className={`fixed bottom-24 right-6 w-full max-w-sm h-[60vh] z-50 flex flex-col transition-all duration-300 ease-out ${isMounted ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-4'}`}>
       <div className="bg-light-card/80 dark:bg-dark-card/80 backdrop-blur-xl rounded-xl shadow-2xl border border-light-separator dark:border-dark-separator flex flex-col h-full">
         <header className="flex items-center justify-between p-4 border-b border-light-separator dark:border-dark-separator">
-          <h2 className="text-lg font-semibold">Delphi AI Assistant</h2>
+          <h2 className="text-lg font-semibold">Crystal AI Assistant</h2>
           <button onClick={onClose} className="p-1 rounded-full hover:bg-black/5 dark:hover:bg-white/5">
             <span className="material-symbols-outlined">close</span>
           </button>

@@ -2,8 +2,8 @@ import React, { useState, useEffect } from 'react';
 import { Category, Page, AccountType, Currency, Theme, RecurrenceFrequency, WeekendAdjustment, DefaultAccountOrder, Duration, InvestmentSubType, PropertyType } from './types';
 
 
-// FIX: Renamed AuraFinanceLogo to DelphiLogo to finalize rebranding.
-export function DelphiLogo({ theme, showText = true }: { theme: Theme; showText?: boolean; }) {
+// FIX: Renamed AuraFinanceLogo to CrystalLogo to finalize rebranding.
+export function CrystalLogo({ theme, showText = true }: { theme: Theme; showText?: boolean; }) {
   const [isDark, setIsDark] = useState(() => {
     if (theme === 'system') {
         return typeof window !== 'undefined' && window.matchMedia('(prefers-color-scheme: dark)').matches;
@@ -40,7 +40,7 @@ export function DelphiLogo({ theme, showText = true }: { theme: Theme; showText?
         </g>
         {showText && (
           <text x="25" y="46" fontFamily="Inter, sans-serif" fontSize="9" fontWeight="800" textAnchor="middle" fill={logoColor}>
-              DELPHI
+              CRYSTAL
           </text>
         )}
       </svg>

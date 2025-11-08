@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { Account, Category, AccountType, Currency, User, AppPreferences, FinancialGoal, RecurringTransaction } from '../types';
-import { DelphiLogo, BTN_PRIMARY_STYLE, BTN_SECONDARY_STYLE, INPUT_BASE_STYLE, SELECT_WRAPPER_STYLE, SELECT_ARROW_STYLE, CURRENCIES, ACCOUNT_TYPE_STYLES, ALL_ACCOUNT_TYPES, CURRENCY_OPTIONS } from '../constants';
+import { CrystalLogo, BTN_PRIMARY_STYLE, BTN_SECONDARY_STYLE, INPUT_BASE_STYLE, SELECT_WRAPPER_STYLE, SELECT_ARROW_STYLE, CURRENCIES, ACCOUNT_TYPE_STYLES, ALL_ACCOUNT_TYPES, CURRENCY_OPTIONS } from '../constants';
 import Card from './Card';
 
 interface OnboardingModalProps {
@@ -277,7 +277,7 @@ const OnboardingModal: React.FC<OnboardingModalProps> = ({
             </div>
             <h1 className="text-4xl font-bold mb-4">You're all set!</h1>
             <p className="text-lg text-light-text-secondary dark:text-dark-text-secondary max-w-md mx-auto">
-              You can now explore your personalized Delphi dashboard.
+              You can now explore your personalized Crystal dashboard.
             </p>
           </div>
         );
@@ -289,8 +289,8 @@ const OnboardingModal: React.FC<OnboardingModalProps> = ({
     <div className="fixed inset-0 bg-light-bg dark:bg-dark-bg z-[100] flex flex-col p-6 transition-opacity duration-300">
         <header className="flex-shrink-0 flex items-center justify-between">
             <div className="flex items-center gap-3">
-                <DelphiLogo theme="system" />
-                <span className="text-xl font-bold">Delphi Setup</span>
+                <CrystalLogo theme="system" />
+                <span className="text-xl font-bold">Crystal Setup</span>
             </div>
             {(step === 1 || step === 6) && (
                 <button onClick={onClose} className="font-semibold text-primary-500 hover:underline">

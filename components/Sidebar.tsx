@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { Page, Theme, User } from '../types';
-import { NAV_ITEMS, DelphiLogo, NavItem } from '../constants';
+import { NAV_ITEMS, CrystalLogo, NavItem } from '../constants';
 
 interface SidebarProps {
   currentPage: Page;
@@ -111,8 +111,8 @@ const Sidebar: React.FC<SidebarProps> = ({ currentPage, setCurrentPage, isSideba
       <aside className={`fixed top-0 left-0 bottom-0 z-40 bg-light-card dark:bg-dark-card flex flex-col transition-all duration-300 ease-in-out md:relative md:translate-x-0 ${isSidebarOpen ? 'translate-x-0 w-64' : '-translate-x-full w-64'} ${isSidebarCollapsed ? 'md:w-20' : 'md:w-64'}`}>
         <div className={`flex items-center h-20 flex-shrink-0 transition-all duration-300 ${isSidebarCollapsed ? 'md:px-3 justify-center' : 'px-4 justify-between'}`}>
             <div className={`flex items-center gap-3 overflow-hidden ${isSidebarCollapsed ? 'w-auto' : 'w-full'}`}>
-                <DelphiLogo theme={theme} showText={false} />
-                <span className={`font-bold text-xl transition-opacity ${isSidebarCollapsed ? 'md:hidden md:opacity-0' : 'opacity-100'}`}>Delphi</span>
+                <CrystalLogo theme={theme} showText={false} />
+                <span className={`font-bold text-xl transition-opacity ${isSidebarCollapsed ? 'md:hidden md:opacity-0' : 'opacity-100'}`}>Crystal</span>
             </div>
             <div className="flex items-center">
                  <button

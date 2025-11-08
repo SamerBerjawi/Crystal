@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { BTN_PRIMARY_STYLE, INPUT_BASE_STYLE, DelphiLogo } from '../constants';
+import { BTN_PRIMARY_STYLE, INPUT_BASE_STYLE, CrystalLogo } from '../constants';
 import { Theme, User } from '../types';
 import Card from '../components/Card';
 
@@ -27,7 +27,7 @@ const SignUp: React.FC<SignUpProps> = ({ onSignUp, onNavigateToSignIn, isLoading
     <div className="flex items-center justify-center min-h-screen bg-light-bg dark:bg-dark-bg p-4">
       <div className="w-full max-w-md">
         <div className="flex justify-center mb-6">
-          <DelphiLogo theme={theme as Theme} />
+          <CrystalLogo theme={theme as Theme} />
         </div>
         <Card>
           <h2 className="text-2xl font-bold text-center text-light-text dark:text-dark-text mb-2">Create Your Account</h2>

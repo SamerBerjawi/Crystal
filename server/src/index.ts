@@ -19,7 +19,7 @@ const startServer = async () => {
         app.use(express.json({ limit: '10mb' }) as RequestHandler);
 
         app.get('/api', (req, res) => {
-            res.send('Delphi API is running.');
+            res.send('Crystal API is running.');
         });
 
         app.use('/api/auth', authRouter);
