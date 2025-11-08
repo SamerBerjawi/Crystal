@@ -34,3 +34,10 @@ POSTGRES_PASSWORD=postgres
 Compose will automatically pick up the `.env` file and substitute the values into both the database and backend services.
 
 Failing to align the credentials will prevent the backend from starting and lead to `role "<user>" does not exist` or `password authentication failed` errors in the PostgreSQL logs. If you no longer need the existing data, removing or renaming the mounted data directory will allow Postgres to create a fresh cluster with the configured credentials.
+The provided `docker-compose.yml` file spins up PostgreSQL, the backend API, and the Nginx frontend.  
+By default, the database container now uses the standard `postgres` superuser with password `postgres`. If you already have an existing data directory mounted at `DATA_ROOT`, either:
+
+- Update the `POSTGRES_USER`/`POSTGRES_PASSWORD` environment variables (and the matching `DATABASE_*` values) so they match the credentials that were used when the data directory was first created, or
+- Remove or rename the existing data directory so that the container can initialize a fresh cluster with the new credentials.
+
+Failing to align the credentials will prevent the backend from starting and lead to `role "<user>" does not exist` errors in the PostgreSQL logs.
