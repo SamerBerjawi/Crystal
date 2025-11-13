@@ -1,5 +1,5 @@
 // FIX: Import `useMemo` from React to resolve the 'Cannot find name' error.
-import React, { useState, useEffect, useMemo, useCallback } from 'react';
+import React, { useState, useEffect, useMemo, useCallback, useRef } from 'react';
 import Sidebar from './components/Sidebar';
 import Header from './components/Header';
 import SignIn from './pages/SignIn';
@@ -179,7 +179,8 @@ export const App: React.FC = () => {
   const [scraperConfigs, setScraperConfigs] = useState<ScraperConfig[]>(initialFinancialData.scraperConfigs);
   const [importExportHistory, setImportExportHistory] = useState<ImportExportHistoryItem[]>(initialFinancialData.importExportHistory);
   const [billsAndPayments, setBillsAndPayments] = useState<BillPayment[]>(initialFinancialData.billsAndPayments);
-  
+  const latestDataRef = useRef<FinancialData>(initialFinancialData);
+
   // State for Bank Sync Flow
   const [isConnectModalOpen, setConnectModalOpen] = useState(false);
   const [isLinkModalOpen, setLinkModalOpen] = useState(false);
@@ -363,29 +364,63 @@ export const App: React.FC = () => {
 
   const debouncedDataToSave = useDebounce(dataToSave, 1500);
 
+  useEffect(() => {
+    latestDataRef.current = dataToSave;
+  }, [dataToSave]);
+
   // Persist data to backend on change
-  const saveData = useCallback(async (data: FinancialData) => {
-    if (!token) return;
-    try {
-        await fetch('/api/data', {
-            method: 'POST',
-            headers: {
-                'Content-Type': 'application/json',
-                'Authorization': `Bearer ${token}`
-            },
-            body: JSON.stringify(data)
+  const saveData = useCallback(
+    async (
+      data: FinancialData,
+      options?: { keepalive?: boolean; suppressErrors?: boolean }
+    ) => {
+      if (!token) return;
+      try {
+        const response = await fetch('/api/data', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'Authorization': `Bearer ${token}`,
+          },
+          body: JSON.stringify(data),
+          keepalive: options?.keepalive,
         });
-    } catch (error) {
-        console.error("Failed to save data:", error);
-        // Optionally show an error to the user
-    }
-  }, [token]);
+
+        if (!response.ok && !options?.suppressErrors) {
+          console.error('Failed to save data:', await response.text());
+        }
+      } catch (error) {
+        if (!options?.suppressErrors) {
+          console.error('Failed to save data:', error);
+        }
+      }
+    },
+    [token]
+  );
 
   useEffect(() => {
     if (isDataLoaded && isAuthenticated) {
         saveData(debouncedDataToSave);
     }
   }, [debouncedDataToSave, isDataLoaded, isAuthenticated, saveData]);
+
+  useEffect(() => {
+    if (!isAuthenticated || typeof window === 'undefined') {
+      return;
+    }
+
+    const handleBeforeUnload = () => {
+      if (!isDataLoaded) {
+        return;
+      }
+      saveData(latestDataRef.current, { keepalive: true, suppressErrors: true });
+    };
+
+    window.addEventListener('beforeunload', handleBeforeUnload);
+    return () => {
+      window.removeEventListener('beforeunload', handleBeforeUnload);
+    };
+  }, [isAuthenticated, isDataLoaded, saveData]);
 
   // Auth handlers
   const handleSignIn = async (email: string, password: string) => {
@@ -406,11 +441,21 @@ export const App: React.FC = () => {
     setIsDataLoaded(true);
   };
 
-  const handleLogout = () => {
+  const finalizeLogout = useCallback(() => {
     signOut();
     loadAllFinancialData(null); // Reset all states
     setAuthPage('signIn');
-  };
+  }, [loadAllFinancialData, setAuthPage, signOut]);
+
+  const handleLogout = useCallback(() => {
+    if (isAuthenticated && isDataLoaded) {
+      saveData(latestDataRef.current)
+        .catch(err => console.error('Failed to save data before logout:', err))
+        .finally(finalizeLogout);
+      return;
+    }
+    finalizeLogout();
+  }, [finalizeLogout, isAuthenticated, isDataLoaded, saveData]);
     const handleSaveTransaction = (
     transactionDataArray: (Omit<Transaction, 'id'> & { id?: string })[],
     transactionIdsToDelete: string[] = []

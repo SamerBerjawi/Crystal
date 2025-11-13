@@ -1,5 +1,5 @@
 // FIX: Import `useMemo` from React to resolve the 'Cannot find name' error.
-import React, { useState, useEffect, useMemo, useCallback, Suspense, lazy } from 'react';
+import React, { useState, useEffect, useMemo, useCallback, Suspense, lazy, useRef } from 'react';
 import Sidebar from './components/Sidebar';
 import Header from './components/Header';
 import SignIn from './pages/SignIn';
@@ -140,6 +140,7 @@ export const App: React.FC = () => {
   const [billsAndPayments, setBillsAndPayments] = useState<BillPayment[]>(initialFinancialData.billsAndPayments);
   // FIX: Add state for tags and tag filtering to support the Tags feature.
   const [tags, setTags] = useState<Tag[]>(initialFinancialData.tags || []);
+  const latestDataRef = useRef<FinancialData>(initialFinancialData);
   const [tagFilter, setTagFilter] = useState<string | null>(null);
   const [accountOrder, setAccountOrder] = useLocalStorage<string[]>('crystal-account-order', []);
   
@@ -385,29 +386,63 @@ export const App: React.FC = () => {
 
   const debouncedDataToSave = useDebounce(dataToSave, 1500);
 
+  useEffect(() => {
+    latestDataRef.current = dataToSave;
+  }, [dataToSave]);
+
   // Persist data to backend on change
-  const saveData = useCallback(async (data: FinancialData) => {
-    if (!token || isDemoMode) return;
-    try {
-        await fetch('/api/data', {
-            method: 'POST',
-            headers: {
-                'Content-Type': 'application/json',
-                'Authorization': `Bearer ${token}`
-            },
-            body: JSON.stringify(data)
+  const saveData = useCallback(
+    async (
+      data: FinancialData,
+      options?: { keepalive?: boolean; suppressErrors?: boolean }
+    ) => {
+      if (!token || isDemoMode) return;
+      try {
+        const response = await fetch('/api/data', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'Authorization': `Bearer ${token}`,
+          },
+          body: JSON.stringify(data),
+          keepalive: options?.keepalive,
         });
-    } catch (error) {
-        console.error("Failed to save data:", error);
-        // Optionally show an error to the user
-    }
-  }, [token, isDemoMode]);
+
+        if (!response.ok && !options?.suppressErrors) {
+          console.error('Failed to save data:', await response.text());
+        }
+      } catch (error) {
+        if (!options?.suppressErrors) {
+          console.error('Failed to save data:', error);
+        }
+      }
+    },
+    [token, isDemoMode]
+  );
 
   useEffect(() => {
     if (isDataLoaded && (isAuthenticated || isDemoMode)) {
         saveData(debouncedDataToSave);
     }
   }, [debouncedDataToSave, isDataLoaded, isAuthenticated, isDemoMode, saveData]);
+
+  useEffect(() => {
+    if (!isAuthenticated || isDemoMode || typeof window === 'undefined') {
+      return;
+    }
+
+    const handleBeforeUnload = () => {
+      if (!isDataLoaded) {
+        return;
+      }
+      saveData(latestDataRef.current, { keepalive: true, suppressErrors: true });
+    };
+
+    window.addEventListener('beforeunload', handleBeforeUnload);
+    return () => {
+      window.removeEventListener('beforeunload', handleBeforeUnload);
+    };
+  }, [isAuthenticated, isDataLoaded, isDemoMode, saveData]);
   
   // Keep accountOrder in sync with accounts list
   useEffect(() => {
@@ -440,14 +475,31 @@ export const App: React.FC = () => {
     setIsDataLoaded(true);
   };
 
-  const handleLogout = () => {
+  const finalizeLogout = useCallback(() => {
     signOut();
     loadAllFinancialData(null); // Reset all states
     setHasCompletedOnboarding(false); // Also reset onboarding status
     setAuthPage('signIn');
     setIsDemoMode(false);
     setDemoUser(null);
-  };
+  }, [
+    signOut,
+    loadAllFinancialData,
+    setHasCompletedOnboarding,
+    setAuthPage,
+    setIsDemoMode,
+    setDemoUser,
+  ]);
+
+  const handleLogout = useCallback(() => {
+    if (!isDemoMode && isAuthenticated && isDataLoaded) {
+      saveData(latestDataRef.current)
+        .catch(err => console.error('Failed to save data before logout:', err))
+        .finally(finalizeLogout);
+      return;
+    }
+    finalizeLogout();
+  }, [finalizeLogout, isAuthenticated, isDataLoaded, isDemoMode, saveData]);
 
   const handleSetUser = useCallback((updates: Partial<User>) => {
     if (isDemoMode) {
