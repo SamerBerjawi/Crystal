@@ -1,44 +1,40 @@
 // FIX: Import `useMemo` from React to resolve the 'Cannot find name' error.
-import React, { useState, useEffect, useMemo, useCallback } from 'react';
+import React, { useState, useEffect, useMemo, useCallback, Suspense, lazy } from 'react';
 import Sidebar from './components/Sidebar';
 import Header from './components/Header';
 import SignIn from './pages/SignIn';
 import SignUp from './pages/SignUp';
-import Dashboard from './pages/Dashboard';
-import Accounts from './pages/Accounts';
-import Transactions from './pages/Transactions';
-import Budgeting from './pages/Budgeting';
-import Forecasting from './pages/Forecasting';
-import Settings from './pages/Settings';
-import Schedule from './pages/Schedule';
-import Categories from './pages/Categories';
-import Tags from './pages/Tags';
-import PersonalInfo from './pages/PersonalInfo';
-import DataManagement from './pages/DataImportExport';
-import Preferences from './pages/Preferences';
-import AccountDetail from './pages/AccountDetail';
-import Investments from './pages/Investments';
-import Tasks from './pages/Tasks';
-import Warrants from './pages/Warrants';
-import AIAssistantSettings from './pages/AIAssistantSettings';
-// FIX: Changed to a named import for Documentation to match its export type and resolve the module error.
-import { Documentation } from './pages/Documentation';
+const Dashboard = lazy(() => import('./pages/Dashboard'));
+const Accounts = lazy(() => import('./pages/Accounts'));
+const Transactions = lazy(() => import('./pages/Transactions'));
+const Budgeting = lazy(() => import('./pages/Budgeting'));
+const Forecasting = lazy(() => import('./pages/Forecasting'));
+const SettingsPage = lazy(() => import('./pages/Settings'));
+const SchedulePage = lazy(() => import('./pages/Schedule'));
+const CategoriesPage = lazy(() => import('./pages/Categories'));
+const TagsPage = lazy(() => import('./pages/Tags'));
+const PersonalInfoPage = lazy(() => import('./pages/PersonalInfo'));
+const DataManagement = lazy(() => import('./pages/DataImportExport'));
+const PreferencesPage = lazy(() => import('./pages/Preferences'));
+const AccountDetail = lazy(() => import('./pages/AccountDetail'));
+const InvestmentsPage = lazy(() => import('./pages/Investments'));
+const TasksPage = lazy(() => import('./pages/Tasks'));
+const WarrantsPage = lazy(() => import('./pages/Warrants'));
+const AIAssistantSettingsPage = lazy(() => import('./pages/AIAssistantSettings'));
+const Documentation = lazy(() => import('./pages/Documentation').then(module => ({ default: module.Documentation })));
 // UserManagement is removed
 // FIX: Import FinancialData from types.ts
 // FIX: Add `Tag` to the import from `types.ts`.
 import { Page, Theme, Category, User, Transaction, Account, RecurringTransaction, RecurringTransactionOverride, WeekendAdjustment, FinancialGoal, Budget, ImportExportHistoryItem, AppPreferences, AccountType, InvestmentTransaction, Task, Warrant, ScraperConfig, ImportDataType, FinancialData, Currency, BillPayment, BillPaymentStatus, Duration, InvestmentSubType, Tag } from './types';
-// FIX: Import Card component and BTN_PRIMARY_STYLE constant to resolve 'Cannot find name' errors.
-import { MOCK_INCOME_CATEGORIES, MOCK_EXPENSE_CATEGORIES, BTN_PRIMARY_STYLE, BTN_SECONDARY_STYLE, LIQUID_ACCOUNT_TYPES } from './constants';
-import Card from './components/Card';
+import { MOCK_INCOME_CATEGORIES, MOCK_EXPENSE_CATEGORIES, LIQUID_ACCOUNT_TYPES } from './constants';
 import { v4 as uuidv4 } from 'uuid';
-import { GoogleGenAI, FunctionDeclaration, Type } from '@google/genai';
 import ChatFab from './components/ChatFab';
-import Chatbot from './components/Chatbot';
+const Chatbot = lazy(() => import('./components/Chatbot'));
 import { convertToEur, CONVERSION_RATES, arrayToCSV, downloadCSV, parseDateAsUTC } from './utils';
 import { useDebounce } from './hooks/useDebounce';
 import { useAuth } from './hooks/useAuth';
 import useLocalStorage from './hooks/useLocalStorage';
-import OnboardingModal from './components/OnboardingModal';
+const OnboardingModal = lazy(() => import('./components/OnboardingModal'));
 
 const initialFinancialData: FinancialData = {
     accounts: [],
@@ -96,6 +92,16 @@ const safeLocalStorage = {
     }
   },
 };
+
+const PageLoader: React.FC<{ label?: string }> = ({ label = 'Loading content...' }) => (
+  <div className="flex items-center justify-center py-10 text-primary-500" role="status" aria-live="polite">
+    <svg className="animate-spin h-8 w-8 mr-2" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+      <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+      <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+    </svg>
+    <span className="text-sm font-medium">{label}</span>
+  </div>
+);
 
 
 // FIX: Add export to create a named export for the App component.
@@ -928,15 +934,15 @@ export const App: React.FC = () => {
       case 'Forecasting':
         return <Forecasting accounts={accounts} transactions={transactions} recurringTransactions={recurringTransactions} financialGoals={financialGoals} saveFinancialGoal={handleSaveFinancialGoal} deleteFinancialGoal={handleDeleteFinancialGoal} expenseCategories={expenseCategories} billsAndPayments={billsAndPayments} activeGoalIds={activeGoalIds} setActiveGoalIds={setActiveGoalIds} />;
       case 'Settings':
-        return <Settings setCurrentPage={setCurrentPage} user={currentUser!} />;
+        return <SettingsPage setCurrentPage={setCurrentPage} user={currentUser!} />;
       case 'Schedule & Bills':
-        return <Schedule recurringTransactions={recurringTransactions} saveRecurringTransaction={handleSaveRecurringTransaction} deleteRecurringTransaction={handleDeleteRecurringTransaction} billsAndPayments={billsAndPayments} saveBillPayment={handleSaveBillPayment} deleteBillPayment={handleDeleteBillPayment} markBillAsPaid={handleMarkBillAsPaid} accounts={accounts} incomeCategories={incomeCategories} expenseCategories={expenseCategories} recurringTransactionOverrides={recurringTransactionOverrides} saveRecurringOverride={handleSaveRecurringOverride} deleteRecurringOverride={handleDeleteRecurringOverride} saveTransaction={handleSaveTransaction} tags={tags} />;
+        return <SchedulePage recurringTransactions={recurringTransactions} saveRecurringTransaction={handleSaveRecurringTransaction} deleteRecurringTransaction={handleDeleteRecurringTransaction} billsAndPayments={billsAndPayments} saveBillPayment={handleSaveBillPayment} deleteBillPayment={handleDeleteBillPayment} markBillAsPaid={handleMarkBillAsPaid} accounts={accounts} incomeCategories={incomeCategories} expenseCategories={expenseCategories} recurringTransactionOverrides={recurringTransactionOverrides} saveRecurringOverride={handleSaveRecurringOverride} deleteRecurringOverride={handleDeleteRecurringOverride} saveTransaction={handleSaveTransaction} tags={tags} />;
       case 'Categories':
-        return <Categories incomeCategories={incomeCategories} setIncomeCategories={setIncomeCategories} expenseCategories={expenseCategories} setExpenseCategories={setExpenseCategories} setCurrentPage={setCurrentPage} />;
+        return <CategoriesPage incomeCategories={incomeCategories} setIncomeCategories={setIncomeCategories} expenseCategories={expenseCategories} setExpenseCategories={setExpenseCategories} setCurrentPage={setCurrentPage} />;
       case 'Tags':
-        return <Tags tags={tags} transactions={transactions} saveTag={handleSaveTag} deleteTag={handleDeleteTag} setCurrentPage={setCurrentPage} setTagFilter={setTagFilter} />;
+        return <TagsPage tags={tags} transactions={transactions} saveTag={handleSaveTag} deleteTag={handleDeleteTag} setCurrentPage={setCurrentPage} setTagFilter={setTagFilter} />;
       case 'Personal Info':
-        return <PersonalInfo user={currentUser!} setUser={handleSetUser} onChangePassword={changePassword} setCurrentPage={setCurrentPage} />;
+        return <PersonalInfoPage user={currentUser!} setUser={handleSetUser} onChangePassword={changePassword} setCurrentPage={setCurrentPage} />;
       case 'Data Management':
         return <DataManagement 
             accounts={accounts} transactions={transactions} budgets={budgets} recurringTransactions={recurringTransactions} allCategories={[...incomeCategories, ...expenseCategories]} history={importExportHistory} 
@@ -945,17 +951,17 @@ export const App: React.FC = () => {
             setCurrentPage={setCurrentPage}
             />;
       case 'Preferences':
-        return <Preferences preferences={preferences} setPreferences={setPreferences} theme={theme} setTheme={setTheme} setCurrentPage={setCurrentPage} />;
+        return <PreferencesPage preferences={preferences} setPreferences={setPreferences} theme={theme} setTheme={setTheme} setCurrentPage={setCurrentPage} />;
       case 'Investments':
-        return <Investments accounts={accounts} cashAccounts={accounts.filter(a => a.type === 'Checking' || a.type === 'Savings')} investmentTransactions={investmentTransactions} saveInvestmentTransaction={handleSaveInvestmentTransaction} deleteInvestmentTransaction={handleDeleteInvestmentTransaction} />;
+        return <InvestmentsPage accounts={accounts} cashAccounts={accounts.filter(a => a.type === 'Checking' || a.type === 'Savings')} investmentTransactions={investmentTransactions} saveInvestmentTransaction={handleSaveInvestmentTransaction} deleteInvestmentTransaction={handleDeleteInvestmentTransaction} />;
       case 'Warrants':
-        return <Warrants warrants={warrants} saveWarrant={handleSaveWarrant} deleteWarrant={handleDeleteWarrant} scraperConfigs={scraperConfigs} saveScraperConfig={handleSaveScraperConfig} prices={warrantPrices} isLoadingPrices={isLoadingPrices} lastUpdated={lastUpdated} refreshPrices={fetchWarrantPrices} />;
+        return <WarrantsPage warrants={warrants} saveWarrant={handleSaveWarrant} deleteWarrant={handleDeleteWarrant} scraperConfigs={scraperConfigs} saveScraperConfig={handleSaveScraperConfig} prices={warrantPrices} isLoadingPrices={isLoadingPrices} lastUpdated={lastUpdated} refreshPrices={fetchWarrantPrices} />;
       case 'Tasks':
-        return <Tasks tasks={tasks} saveTask={handleSaveTask} deleteTask={handleDeleteTask} />;
+        return <TasksPage tasks={tasks} saveTask={handleSaveTask} deleteTask={handleDeleteTask} />;
       case 'Documentation':
         return <Documentation setCurrentPage={setCurrentPage} />;
       case 'AI Assistant':
-        return <AIAssistantSettings setCurrentPage={setCurrentPage} />;
+        return <AIAssistantSettingsPage setCurrentPage={setCurrentPage} />;
       default:
         return <div>Page not found</div>;
     }
@@ -1005,37 +1011,47 @@ export const App: React.FC = () => {
           titleOverride={viewingAccount?.name}
         />
         <main className="flex-1 overflow-x-hidden overflow-y-auto p-4 md:p-8 bg-light-bg dark:bg-dark-bg">
-          {renderPage()}
+          <Suspense fallback={<PageLoader />}>
+            {renderPage()}
+          </Suspense>
         </main>
       </div>
 
       {/* AI Chat */}
       <ChatFab onClick={() => setIsChatOpen(prev => !prev)} />
-      <Chatbot 
-        isOpen={isChatOpen}
-        onClose={() => setIsChatOpen(false)}
-        financialData={{ 
-          accounts, 
-          transactions, 
-          budgets, 
-          financialGoals, 
-          recurringTransactions,
-          investmentTransactions,
-        }}
-      />
-      <OnboardingModal
-        isOpen={isOnboardingOpen}
-        onClose={handleOnboardingFinish}
-        user={currentUser!}
-        saveAccount={handleSaveAccount}
-        saveFinancialGoal={handleSaveFinancialGoal}
-        saveRecurringTransaction={handleSaveRecurringTransaction}
-        preferences={preferences}
-        setPreferences={setPreferences}
-        accounts={accounts}
-        incomeCategories={incomeCategories}
-        expenseCategories={expenseCategories}
-      />
+      <Suspense fallback={null}>
+        {isChatOpen && (
+          <Chatbot
+            isOpen={isChatOpen}
+            onClose={() => setIsChatOpen(false)}
+            financialData={{
+              accounts,
+              transactions,
+              budgets,
+              financialGoals,
+              recurringTransactions,
+              investmentTransactions,
+            }}
+          />
+        )}
+      </Suspense>
+      <Suspense fallback={null}>
+        {isOnboardingOpen && (
+          <OnboardingModal
+            isOpen={isOnboardingOpen}
+            onClose={handleOnboardingFinish}
+            user={currentUser!}
+            saveAccount={handleSaveAccount}
+            saveFinancialGoal={handleSaveFinancialGoal}
+            saveRecurringTransaction={handleSaveRecurringTransaction}
+            preferences={preferences}
+            setPreferences={setPreferences}
+            accounts={accounts}
+            incomeCategories={incomeCategories}
+            expenseCategories={expenseCategories}
+          />
+        )}
+      </Suspense>
     </div>
   );
 };
