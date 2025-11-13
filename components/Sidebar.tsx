@@ -108,7 +108,9 @@ const Sidebar: React.FC<SidebarProps> = ({ currentPage, setCurrentPage, isSideba
         className={`fixed inset-0 z-30 bg-black/30 transition-opacity md:hidden ${isSidebarOpen ? 'opacity-100' : 'opacity-0 pointer-events-none'}`} 
         onClick={() => setSidebarOpen(false)}
       ></div>
-      <aside className={`fixed top-0 left-0 bottom-0 z-40 bg-light-card dark:bg-dark-card flex flex-col transition-all duration-300 ease-in-out md:relative md:translate-x-0 ${isSidebarOpen ? 'translate-x-0 w-64' : '-translate-x-full w-64'} ${isSidebarCollapsed ? 'md:w-20' : 'md:w-64'}`}>
+      <aside
+        className={`fixed top-0 left-0 bottom-0 z-40 bg-light-card dark:bg-dark-card flex flex-col transition-all duration-300 ease-in-out md:relative md:h-screen md:translate-x-0 ${isSidebarOpen ? 'translate-x-0 w-64' : '-translate-x-full w-64'} ${isSidebarCollapsed ? 'md:w-20' : 'md:w-64'}`}
+      >
         <div className={`flex items-center h-20 flex-shrink-0 transition-all duration-300 ${isSidebarCollapsed ? 'md:px-3 justify-center' : 'px-4 justify-between'}`}>
             <div className={`flex items-center gap-3 overflow-hidden ${isSidebarCollapsed ? 'w-auto' : 'w-full'}`}>
                 <CrystalLogo showText={false} />
@@ -126,13 +128,17 @@ const Sidebar: React.FC<SidebarProps> = ({ currentPage, setCurrentPage, isSideba
                 </button>
             </div>
         </div>
-        <nav className={`flex-1 py-4 overflow-y-auto transition-all duration-300 ${isSidebarCollapsed ? 'px-2' : 'px-4'}`}>
+        <nav className={`flex-1 min-h-0 py-4 overflow-y-auto transition-all duration-300 ${isSidebarCollapsed ? 'px-2' : 'px-4'}`}>
           <ul className="space-y-2">
             {navItems.map((item) => renderNavItem(item))}
           </ul>
         </nav>
-        <div className={`px-4 py-4 flex-shrink-0 ${isSidebarCollapsed ? 'md:px-2' : ''}`}>
-          <button onClick={onLogout} className={`w-full flex items-center gap-3 p-3 rounded-lg text-light-text-secondary hover:bg-black/5 dark:text-dark-text-secondary dark:hover:bg-white/10 transition-colors duration-200 ${isSidebarCollapsed ? 'md:justify-center' : ''}`} title={isSidebarCollapsed ? 'Logout' : 'Logout'}>
+        <div className={`px-4 py-4 flex-shrink-0 mt-auto border-t border-black/5 dark:border-white/10 ${isSidebarCollapsed ? 'md:px-2' : ''}`}>
+          <button
+            onClick={onLogout}
+            className={`w-full flex items-center gap-3 p-3 rounded-lg text-light-text-secondary hover:bg-black/5 dark:text-dark-text-secondary dark:hover:bg-white/10 transition-colors duration-200 ${isSidebarCollapsed ? 'md:justify-center' : ''}`}
+            title={isSidebarCollapsed ? 'Logout' : 'Logout'}
+          >
             <span className="material-symbols-outlined">logout</span>
             <span className={`font-medium transition-opacity ${isSidebarCollapsed ? 'md:hidden md:opacity-0' : 'opacity-100'}`}>Logout</span>
           </button>
