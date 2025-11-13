@@ -180,7 +180,7 @@ export const useAuth = () => {
 
     try {
       const [userRes, dataRes] = await Promise.all([
-        fetch('/api/users/me', {
+        fetch('/api/auth/me', {
           headers: { Authorization: `Bearer ${storedToken}` },
         }),
         fetch('/api/data', {

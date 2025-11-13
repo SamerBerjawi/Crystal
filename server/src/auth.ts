@@ -31,6 +31,8 @@ async function performLogin(userId: number, email: string) {
         lastName: user.last_name,
         email: user.email,
         profilePictureUrl: user.profile_picture_url,
+        phone: user.phone,
+        address: user.address,
         role: user.role,
         is2FAEnabled: user.is_2fa_enabled,
         status: user.status,
@@ -133,7 +135,18 @@ router.post('/login', async (req, res) => {
 // Get current user
 router.get('/me', authenticateToken, async (req: AuthRequest, res) => {
     const userId = req.user?.id;
-    const sql = `SELECT id, email, first_name as "firstName", last_name as "lastName", profile_picture_url as "profilePictureUrl", role, is_2fa_enabled as "is2FAEnabled", status, last_login as "lastLogin" FROM users WHERE id = $1`;
+    const sql = `SELECT id,
+                        email,
+                        first_name as "firstName",
+                        last_name as "lastName",
+                        profile_picture_url as "profilePictureUrl",
+                        phone,
+                        address,
+                        role,
+                        is_2fa_enabled as "is2FAEnabled",
+                        status,
+                        last_login as "lastLogin"
+                 FROM users WHERE id = $1`;
     
     try {
         const result = await db.query(sql, [userId]);
