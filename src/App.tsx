@@ -1056,7 +1056,6 @@ export const App: React.FC = () => {
       />
       <div className="flex-1 flex flex-col overflow-hidden">
         <Header 
-          user={user!}
           setSidebarOpen={setSidebarOpen}
           theme={theme}
           setTheme={setTheme}

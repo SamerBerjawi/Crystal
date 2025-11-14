@@ -48,9 +48,8 @@ async function performLogin(userId: number, email: string) {
 router.post('/register', async (req, res) => {
     const { firstName, lastName, email, password } = req.body;
     if (!firstName || !lastName || !email || !password) {
-        // FIX: Replaced res.status().json() with res.statusCode and res.json() to fix type error.
-        res.statusCode = 400;
-        return res.json({ message: 'All fields are required' });
+        // FIX: Replaced res.status().json() with res.status() and res.json() to fix type error.
+        return res.status(400).json({ message: 'All fields are required' });
     }
 
     const client = await db.connect();
@@ -60,9 +59,8 @@ router.post('/register', async (req, res) => {
         const userExistsResult = await client.query('SELECT id FROM users WHERE email = $1', [email.toLowerCase()]);
         if (userExistsResult.rows.length > 0) {
             await client.query('ROLLBACK');
-            // FIX: Replaced res.status().json() with res.statusCode and res.json() to fix type error.
-            res.statusCode = 409;
-            return res.json({ message: 'Email already in use.' });
+            // FIX: Replaced res.status().json() with res.status() and res.json() to fix type error.
+            return res.status(409).json({ message: 'Email already in use.' });
         }
         
         const hashedPassword = bcrypt.hashSync(password, 8);
@@ -79,9 +77,8 @@ router.post('/register', async (req, res) => {
         
         // After successful registration, perform login to get consistent data
         const loginData = await performLogin(newUser.id, newUser.email);
-        // FIX: Replaced res.status().json() with res.statusCode and res.json() to fix type error.
-        res.statusCode = 201;
-        res.json(loginData);
+        // FIX: Replaced res.status().json() with res.status() and res.json() to fix type error.
+        res.status(201).json(loginData);
 
     } catch (err) {
         // Make sure to rollback before logging the error
@@ -91,9 +88,8 @@ router.post('/register', async (req, res) => {
             console.error('Error during rollback:', rollbackErr);
         }
         console.error('Error during registration:', err);
-        // FIX: Replaced res.status().json() with res.statusCode and res.json() to fix type error.
-        res.statusCode = 500;
-        res.json({ message: 'Failed to register user.' });
+        // FIX: Replaced res.status().json() with res.status() and res.json() to fix type error.
+        res.status(500).json({ message: 'Failed to register user.' });
     } finally {
         client.release();
     }
@@ -103,9 +99,8 @@ router.post('/register', async (req, res) => {
 router.post('/login', async (req, res) => {
     const { email, password } = req.body;
     if (!email || !password) {
-        // FIX: Replaced res.status().json() with res.statusCode and res.json() to fix type error.
-        res.statusCode = 400;
-        return res.json({ message: 'Email and password are required' });
+        // FIX: Replaced res.status().json() with res.status() and res.json() to fix type error.
+        return res.status(400).json({ message: 'Email and password are required' });
     }
 
     try {
@@ -114,9 +109,8 @@ router.post('/login', async (req, res) => {
         const user = userResult.rows[0];
 
         if (!user || !bcrypt.compareSync(password, user.password)) {
-            // FIX: Replaced res.status().json() with res.statusCode and res.json() to fix type error.
-            res.statusCode = 401;
-            return res.json({ message: 'Invalid credentials' });
+            // FIX: Replaced res.status().json() with res.status() and res.json() to fix type error.
+            return res.status(401).json({ message: 'Invalid credentials' });
         }
         
         const loginData = await performLogin(user.id, user.email);
@@ -125,9 +119,8 @@ router.post('/login', async (req, res) => {
 
     } catch (err) {
         console.error('Error during login:', err);
-        // FIX: Replaced res.status().json() with res.statusCode and res.json() to fix type error.
-        res.statusCode = 500;
-        res.json({ message: 'Server error during login.' });
+        // FIX: Replaced res.status().json() with res.status() and res.json() to fix type error.
+        res.status(500).json({ message: 'Server error during login.' });
     }
 });
 
@@ -152,17 +145,15 @@ router.get('/me', authenticateToken, async (req: AuthRequest, res) => {
         const result = await db.query(sql, [userId]);
         const user = result.rows[0];
         if (!user) {
-            // FIX: Replaced res.status().json() with res.statusCode and res.json() to fix type error.
-            res.statusCode = 404;
-            return res.json({ message: 'User not found' });
+            // FIX: Replaced res.status().json() with res.status() and res.json() to fix type error.
+            return res.status(404).json({ message: 'User not found' });
         }
         // FIX: Replaced res.status(200).json() with res.json() as 200 is the default status.
         res.json(user);
     } catch (err) {
         console.error(err);
-        // FIX: Replaced res.status().json() with res.statusCode and res.json() to fix type error.
-        res.statusCode = 500;
-        res.json({ message: 'Failed to fetch user profile.' });
+        // FIX: Replaced res.status().json() with res.status() and res.json() to fix type error.
+        res.status(500).json({ message: 'Failed to fetch user profile.' });
     }
 });
 

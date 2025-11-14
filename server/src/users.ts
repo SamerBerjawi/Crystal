@@ -27,9 +27,8 @@ router.put('/me', authenticateToken, async (req: AuthRequest, res) => {
         res.json({ message: 'Profile updated successfully' });
     } catch (err) {
         console.error(err);
-        // FIX: Replaced res.status().json() with res.statusCode and res.json() to fix type error.
-        res.statusCode = 500;
-        res.json({ message: 'Failed to update user profile' });
+        // FIX: Replaced res.status().json() with res.status() and res.json() to fix type error.
+        res.status(500).json({ message: 'Failed to update user profile' });
     }
 });
 
@@ -39,9 +38,8 @@ router.post('/me/change-password', authenticateToken, async (req: AuthRequest, r
     const { currentPassword, newPassword } = req.body;
 
     if (!currentPassword || !newPassword) {
-        // FIX: Replaced res.status().json() with res.statusCode and res.json() to fix type error.
-        res.statusCode = 400;
-        return res.json({ message: 'All fields are required' });
+        // FIX: Replaced res.status().json() with res.status() and res.json() to fix type error.
+        return res.status(400).json({ message: 'All fields are required' });
     }
 
     try {
@@ -50,16 +48,14 @@ router.post('/me/change-password', authenticateToken, async (req: AuthRequest, r
         const user = result.rows[0];
 
         if (!user) {
-            // FIX: Replaced res.status().json() with res.statusCode and res.json() to fix type error.
-            res.statusCode = 404;
-            return res.json({ message: 'User not found' });
+            // FIX: Replaced res.status().json() with res.status() and res.json() to fix type error.
+            return res.status(404).json({ message: 'User not found' });
         }
 
         const passwordIsValid = bcrypt.compareSync(currentPassword, user.password);
         if (!passwordIsValid) {
-            // FIX: Replaced res.status().json() with res.statusCode and res.json() to fix type error.
-            res.statusCode = 401;
-            return res.json({ message: 'Incorrect current password' });
+            // FIX: Replaced res.status().json() with res.status() and res.json() to fix type error.
+            return res.status(401).json({ message: 'Incorrect current password' });
         }
 
         const hashedNewPassword = bcrypt.hashSync(newPassword, 8);
@@ -70,9 +66,8 @@ router.post('/me/change-password', authenticateToken, async (req: AuthRequest, r
         res.json({ message: 'Password updated successfully' });
     } catch (err) {
         console.error(err);
-        // FIX: Replaced res.status().json() with res.statusCode and res.json() to fix type error.
-        res.statusCode = 500;
-        res.json({ message: 'Failed to update password' });
+        // FIX: Replaced res.status().json() with res.status() and res.json() to fix type error.
+        res.status(500).json({ message: 'Failed to update password' });
     }
 });
 

@@ -66,6 +66,7 @@
             },
             animation: {
               celebrate: 'celebrate 1s ease-in-out',
+              'fade-in-up': 'fadeInUp 0.2s ease-out',
             },
             keyframes: {
               celebrate: {
@@ -74,6 +75,10 @@
                   transform: 'scale(1.03)', 
                   backgroundColor: 'rgba(52, 199, 89, 0.2)'
                 },
+              },
+              fadeInUp: {
+                  'from': { opacity: 0, transform: 'translateY(10px)' },
+                  'to': { opacity: 1, transform: 'translateY(0)' },
               }
             }
           }
@@ -106,7 +111,14 @@
     "uuid": "https://aistudiocdn.com/uuid@^13.0.0",
     "@google/genai": "https://aistudiocdn.com/@google/genai@^1.27.0",
     "vite": "https://aistudiocdn.com/vite@^7.1.12",
-    "@vitejs/plugin-react": "https://aistudiocdn.com/@vitejs/plugin-react@^5.1.0"
+    "@vitejs/plugin-react": "https://aistudiocdn.com/@vitejs/plugin-react@^5.1.0",
+    "jsonwebtoken": "https://aistudiocdn.com/jsonwebtoken@^9.0.2",
+    "bcryptjs": "https://aistudiocdn.com/bcryptjs@^3.0.3",
+    "cors": "https://aistudiocdn.com/cors@^2.8.5",
+    "pg": "https://aistudiocdn.com/pg@^8.16.3",
+    "express": "https://aistudiocdn.com/express@^5.1.0",
+    "path": "https://aistudiocdn.com/path@^0.12.7",
+    "process": "https://aistudiocdn.com/process@^0.11.10"
   }
 }
 </script>

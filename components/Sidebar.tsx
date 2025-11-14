@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useRef, useEffect } from 'react';
 import { Page, Theme, User } from '../types';
 import { NAV_ITEMS, CrystalLogo, NavItem } from '../constants';
 
@@ -19,8 +19,22 @@ const Sidebar: React.FC<SidebarProps> = ({ currentPage, setCurrentPage, isSideba
     const activeParent = NAV_ITEMS.find(item => item.subItems?.some(sub => sub.name === currentPage));
     return activeParent ? activeParent.name : null;
   });
+  const [isProfileMenuOpen, setProfileMenuOpen] = useState(false);
+  const profileMenuRef = useRef<HTMLDivElement>(null);
   
   const navItems = NAV_ITEMS;
+
+  useEffect(() => {
+    const handleClickOutside = (event: MouseEvent) => {
+      if (profileMenuRef.current && !profileMenuRef.current.contains(event.target as Node)) {
+        setProfileMenuOpen(false);
+      }
+    };
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => {
+      document.removeEventListener('mousedown', handleClickOutside);
+    };
+  }, []);
 
 
   const handleNavClick = (page: Page, hasSubItems?: boolean) => {
@@ -133,14 +147,35 @@ const Sidebar: React.FC<SidebarProps> = ({ currentPage, setCurrentPage, isSideba
             {navItems.map((item) => renderNavItem(item))}
           </ul>
         </nav>
-        <div className={`px-4 py-4 flex-shrink-0 mt-auto border-t border-black/5 dark:border-white/10 ${isSidebarCollapsed ? 'md:px-2' : ''}`}>
+        <div ref={profileMenuRef} className={`relative px-4 py-3 mt-auto border-t border-black/5 dark:border-white/10 ${isSidebarCollapsed ? 'md:px-2' : ''}`}>
+          {isProfileMenuOpen && (
+            <div className="animate-fade-in-up absolute bottom-full left-2 right-2 mb-2 bg-light-card dark:bg-dark-card rounded-lg shadow-lg border border-black/10 dark:border-white/10 py-2 z-10">
+              <button
+                onClick={() => { setCurrentPage('Personal Info'); setProfileMenuOpen(false); }}
+                className="w-full text-left px-4 py-2 text-sm flex items-center gap-3 text-light-text dark:text-dark-text hover:bg-black/5 dark:hover:bg-white/10"
+              >
+                <span className="material-symbols-outlined text-base">person</span>
+                <span>Personal Info</span>
+              </button>
+              <button
+                onClick={onLogout}
+                className="w-full text-left px-4 py-2 text-sm flex items-center gap-3 text-semantic-red hover:bg-semantic-red/10"
+              >
+                <span className="material-symbols-outlined text-base">logout</span>
+                <span>Logout</span>
+              </button>
+            </div>
+          )}
           <button
-            onClick={onLogout}
-            className={`w-full flex items-center gap-3 p-3 rounded-lg text-light-text-secondary hover:bg-black/5 dark:text-dark-text-secondary dark:hover:bg-white/10 transition-colors duration-200 ${isSidebarCollapsed ? 'md:justify-center' : ''}`}
-            title={isSidebarCollapsed ? 'Logout' : 'Logout'}
+            onClick={() => setProfileMenuOpen(prev => !prev)}
+            className={`w-full flex items-center gap-3 p-2 rounded-lg hover:bg-black/5 dark:hover:bg-white/10 transition-colors ${isSidebarCollapsed ? 'md:justify-center' : ''}`}
+            title="Profile options"
           >
-            <span className="material-symbols-outlined">logout</span>
-            <span className={`font-medium transition-opacity ${isSidebarCollapsed ? 'md:hidden md:opacity-0' : 'opacity-100'}`}>Logout</span>
+            <img className="h-9 w-9 rounded-full object-cover flex-shrink-0" src={user.profilePictureUrl} alt="User" />
+            <div className={`flex-grow text-left overflow-hidden transition-all ${isSidebarCollapsed ? 'md:hidden' : ''}`}>
+              <p className="font-semibold text-sm truncate">{user.firstName} {user.lastName}</p>
+              <p className="text-xs text-light-text-secondary dark:text-dark-text-secondary truncate">{user.email}</p>
+            </div>
           </button>
         </div>
       </aside>

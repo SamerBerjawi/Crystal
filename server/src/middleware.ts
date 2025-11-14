@@ -21,15 +21,13 @@ export const authenticateToken = (req: AuthRequest, res: Response, next: NextFun
 
     // FIX: Replaced status().end() with statusCode and end() to resolve a property 'status' not existing on the Response type due to potential type conflicts.
     if (token == null) {
-        res.statusCode = 401;
-        return res.end();
+        return res.status(401).end();
     }
 
     jwt.verify(token, JWT_SECRET, (err: any, user: any) => {
         // FIX: Replaced status().end() with statusCode and end() to resolve a property 'status' not existing on the Response type due to potential type conflicts.
         if (err) {
-            res.statusCode = 403;
-            return res.end();
+            return res.status(403).end();
         }
         req.user = user as { id: number; email: string };
         next();

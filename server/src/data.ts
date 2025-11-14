@@ -24,9 +24,8 @@ router.get('/', authenticateToken, async (req: AuthRequest, res) => {
         res.json(row.data || {});
     } catch (err) {
         console.error(err);
-        // FIX: Replaced res.status().json() with res.statusCode and res.json() to fix type error.
-        res.statusCode = 500;
-        res.json({ message: 'Failed to fetch data' });
+        // FIX: Replaced res.status().json() with res.status() and res.json() to fix type error.
+        res.status(500).json({ message: 'Failed to fetch data' });
     }
 });
 
@@ -49,9 +48,8 @@ router.post('/', authenticateToken, async (req: AuthRequest, res) => {
         res.json({ message: 'Data saved successfully' });
     } catch (err) {
         console.error(err);
-        // FIX: Replaced res.status().json() with res.statusCode and res.json() to fix type error.
-        res.statusCode = 500;
-        res.json({ message: 'Failed to save data' });
+        // FIX: Replaced res.status().json() with res.status() and res.json() to fix type error.
+        res.status(500).json({ message: 'Failed to save data' });
     }
 });
 

@@ -1,8 +1,10 @@
 import React from 'react';
+// FIX: Add User to imports
 import { Page, Theme, User } from '../types';
 import ThemeToggle from './ThemeToggle';
 
 interface HeaderProps {
+  // FIX: Add user prop to fix type error in App.tsx
   user: User;
   setSidebarOpen: (isOpen: boolean) => void;
   theme: Theme;
@@ -24,7 +26,6 @@ const Header: React.FC<HeaderProps> = ({ user, setSidebarOpen, theme, setTheme, 
 
             <div className="flex items-center gap-4">
                 <ThemeToggle theme={theme} setTheme={setTheme} />
-                <img className="h-10 w-10 rounded-full object-cover" src={user.profilePictureUrl} alt="User" />
             </div>
         </div>
     </header>
