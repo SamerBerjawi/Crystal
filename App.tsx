@@ -530,9 +530,42 @@ export const App: React.FC = () => {
     }
   };
 
-  const handleDeleteAccount = (accountId: string) => {
+  const handleDeleteAccount = useCallback((accountId: string) => {
+    const accountToDelete = accounts.find(acc => acc.id === accountId);
+    const impactedRecurringIds = new Set(
+      recurringTransactions
+        .filter(rt => rt.accountId === accountId || rt.toAccountId === accountId)
+        .map(rt => rt.id)
+    );
+
     setAccounts(prev => prev.filter(acc => acc.id !== accountId));
-  };
+    setTransactions(prev => prev.filter(tx => tx.accountId !== accountId));
+    setRecurringTransactions(prev =>
+      prev.filter(rt => rt.accountId !== accountId && rt.toAccountId !== accountId)
+    );
+    if (impactedRecurringIds.size > 0) {
+      setRecurringTransactionOverrides(prev =>
+        prev.filter(override => !impactedRecurringIds.has(override.recurringTransactionId))
+      );
+    }
+    setBillsAndPayments(prev => prev.filter(bill => bill.accountId !== accountId));
+    setDashboardAccountIds(prev => prev.filter(id => id !== accountId));
+
+    if (viewingAccountId === accountId) {
+      setViewingAccountId(null);
+      setCurrentPage('Accounts');
+    }
+
+    if (accountToDelete && accountFilter === accountToDelete.name) {
+      setAccountFilter(null);
+    }
+  }, [
+    accounts,
+    recurringTransactions,
+    accountFilter,
+    viewingAccountId,
+    setCurrentPage,
+  ]);
 
 
     const handleSaveTransaction = useCallback((
@@ -787,6 +820,9 @@ export const App: React.FC = () => {
               return tx;
           })
       );
+      if (tagFilter === tagId) {
+          setTagFilter(null);
+      }
   };
   
   const handleSaveScraperConfig = (config: ScraperConfig) => {
