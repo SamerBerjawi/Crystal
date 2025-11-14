@@ -141,6 +141,7 @@ export const App: React.FC = () => {
   // FIX: Add state for tags and tag filtering to support the Tags feature.
   const [tags, setTags] = useState<Tag[]>(initialFinancialData.tags || []);
   const latestDataRef = useRef<FinancialData>(initialFinancialData);
+  const skipNextSaveRef = useRef(false);
   const [tagFilter, setTagFilter] = useState<string | null>(null);
   const [accountOrder, setAccountOrder] = useLocalStorage<string[]>('crystal-account-order', []);
   
@@ -297,7 +298,7 @@ export const App: React.FC = () => {
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [warrantPrices]);
 
-  const loadAllFinancialData = useCallback((data: FinancialData | null) => {
+  const loadAllFinancialData = useCallback((data: FinancialData | null, options?: { skipNextSave?: boolean }) => {
     const dataToLoad = data || initialFinancialData;
     setAccounts(dataToLoad.accounts || []);
     setTransactions(dataToLoad.transactions || []);
@@ -322,6 +323,11 @@ export const App: React.FC = () => {
     setAccountsSortBy(loadedPrefs.defaultAccountOrder);
 
     setAccountOrder(dataToLoad.accountOrder || []);
+
+    if (options?.skipNextSave) {
+      skipNextSaveRef.current = true;
+    }
+    latestDataRef.current = dataToLoad;
   }, [setAccountOrder]);
   
   const handleEnterDemoMode = () => {
@@ -348,7 +354,7 @@ export const App: React.FC = () => {
     const authAndLoad = async () => {
         const data = await checkAuthStatus();
         if (data) {
-          loadAllFinancialData(data);
+          loadAllFinancialData(data, { skipNextSave: true });
         }
         setIsDataLoaded(true);
     };
@@ -421,9 +427,16 @@ export const App: React.FC = () => {
   );
 
   useEffect(() => {
-    if (isDataLoaded && (isAuthenticated || isDemoMode)) {
-        saveData(debouncedDataToSave);
+    if (!isDataLoaded || !isAuthenticated || isDemoMode) {
+      return;
     }
+
+    if (skipNextSaveRef.current) {
+      skipNextSaveRef.current = false;
+      return;
+    }
+
+    saveData(debouncedDataToSave);
   }, [debouncedDataToSave, isDataLoaded, isAuthenticated, isDemoMode, saveData]);
 
   useEffect(() => {
@@ -461,7 +474,7 @@ export const App: React.FC = () => {
     setIsDataLoaded(false);
     const financialData = await signIn(email, password);
     if (financialData) {
-      loadAllFinancialData(financialData);
+      loadAllFinancialData(financialData, { skipNextSave: true });
     }
     setIsDataLoaded(true);
   };
@@ -470,7 +483,7 @@ export const App: React.FC = () => {
     setIsDataLoaded(false);
     const financialData = await signUp(newUserData);
     if (financialData) {
-      loadAllFinancialData(financialData);
+      loadAllFinancialData(financialData, { skipNextSave: true });
     }
     setIsDataLoaded(true);
   };
@@ -935,12 +948,22 @@ export const App: React.FC = () => {
     }
 
     const reader = new FileReader();
-    reader.onload = (event) => {
+    reader.onload = async (event) => {
         try {
             const data = JSON.parse(event.target?.result as string);
             // A more robust check for a valid backup file.
             if (data && typeof data === 'object' && Array.isArray(data.accounts) && Array.isArray(data.transactions)) {
+                // Restores should immediately persist to the backend, so ensure the next
+                // persistence run is not skipped and pro-actively save the imported payload.
+                skipNextSaveRef.current = false;
                 loadAllFinancialData(data as FinancialData);
+                if (!isDemoMode) {
+                    try {
+                        await saveData(data as FinancialData);
+                    } catch (err) {
+                        console.error('Failed to save imported data:', err);
+                    }
+                }
                 if (isDemoMode) {
                     alert('Data successfully restored for this demo session! Note: Changes will not be saved.');
                 } else {
