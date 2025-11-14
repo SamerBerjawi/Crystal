@@ -434,9 +434,29 @@ export const App: React.FC = () => {
     [token, isDemoMode]
   );
 
+  const saveDataWithRetry = useCallback(
+    async (
+      data: FinancialData,
+      options?: { attempts?: number }
+    ): Promise<boolean> => {
+      const maxAttempts = Math.max(1, options?.attempts ?? 3);
+      for (let attempt = 1; attempt <= maxAttempts; attempt++) {
+        const succeeded = await saveData(data);
+        if (succeeded) {
+          return true;
+        }
+
+        if (attempt < maxAttempts) {
+          await new Promise(resolve => setTimeout(resolve, attempt * 1000));
+        }
+      }
+      return false;
+    },
+    [saveData]
+  );
+
   useEffect(() => {
     if (!isDataLoaded || !isAuthenticated || isDemoMode || restoreInProgressRef.current) {
-    if (!isDataLoaded || !isAuthenticated || isDemoMode) {
       return;
     }
 
@@ -971,9 +991,9 @@ export const App: React.FC = () => {
                 try {
                     if (!isDemoMode) {
                         const normalizedData = latestDataRef.current;
-                        const saveSucceeded = await saveData(normalizedData);
+                        const saveSucceeded = await saveDataWithRetry(normalizedData);
                         if (!saveSucceeded) {
-                            alert('Data was loaded locally, but saving it to the server failed. Please try again.');
+                            alert('Data was loaded locally, but we could not reach the server after multiple attempts. Please try again in a moment.');
                             return;
                         }
                     }
@@ -984,22 +1004,7 @@ export const App: React.FC = () => {
                     }
                 } finally {
                     restoreInProgressRef.current = false;
-                // Restores should immediately persist to the backend, so ensure the next
-                // persistence run is not skipped and pro-actively save the imported payload.
-                skipNextSaveRef.current = false;
-                loadAllFinancialData(data as FinancialData);
-                if (!isDemoMode) {
-                    const normalizedData = latestDataRef.current;
-                    const saveSucceeded = await saveData(normalizedData);
-                    if (!saveSucceeded) {
-                        alert('Data was loaded locally, but saving it to the server failed. Please try again.');
-                        return;
-                    }
-                }
-                if (isDemoMode) {
-                    alert('Data successfully restored for this demo session! Note: Changes will not be saved.');
-                } else {
-                    alert('Data successfully restored!');
+                    skipNextSaveRef.current = false;
                 }
             } else {
                 throw new Error('Invalid backup file format. The file must contain "accounts" and "transactions" arrays.');
