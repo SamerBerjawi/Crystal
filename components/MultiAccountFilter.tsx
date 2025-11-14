@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useRef, useMemo } from 'react';
 import { Account } from '../types';
-import { LIQUID_ACCOUNT_TYPES, ASSET_TYPES, DEBT_TYPES } from '../constants';
+import { LIQUID_ACCOUNT_TYPES, ASSET_TYPES, DEBT_TYPES, CHECKBOX_STYLE } from '../constants';
 
 interface MultiAccountFilterProps {
   accounts: Account[];
@@ -79,7 +79,7 @@ const MultiAccountFilter: React.FC<MultiAccountFilterProps> = ({ accounts, selec
               type="checkbox"
               checked={selectedAccountIds.includes(account.id)}
               onChange={() => handleToggle(account.id)}
-              className="w-4 h-4 rounded text-primary-500 bg-transparent border-gray-400 focus:ring-primary-500"
+              className={CHECKBOX_STYLE}
           />
           <span className="text-sm">{account.name}</span>
       </label>

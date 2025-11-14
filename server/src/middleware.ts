@@ -1,3 +1,5 @@
+
+
 import { Request, Response, NextFunction } from 'express';
 import jwt from 'jsonwebtoken';
 
@@ -19,14 +21,14 @@ export const authenticateToken = (req: AuthRequest, res: Response, next: NextFun
     const authHeader = req.headers['authorization'];
     const token = authHeader && authHeader.split(' ')[1];
 
-    // FIX: Replaced status().end() with statusCode and end() to resolve a property 'status' not existing on the Response type due to potential type conflicts.
     if (token == null) {
+        // FIX: Replaced direct property access (`.statusCode`, `.end()`) with `res.status().end()` to correctly use the Express Response object's methods and fix type errors.
         return res.status(401).end();
     }
 
     jwt.verify(token, JWT_SECRET, (err: any, user: any) => {
-        // FIX: Replaced status().end() with statusCode and end() to resolve a property 'status' not existing on the Response type due to potential type conflicts.
         if (err) {
+            // FIX: Replaced direct property access (`.statusCode`, `.end()`) with `res.status().end()` to correctly use the Express Response object's methods and fix type errors.
             return res.status(403).end();
         }
         req.user = user as { id: number; email: string };

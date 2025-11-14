@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import Modal from './Modal';
-import { BTN_PRIMARY_STYLE, BTN_SECONDARY_STYLE } from '../constants';
+import { BTN_PRIMARY_STYLE, BTN_SECONDARY_STYLE, CHECKBOX_STYLE } from '../constants';
 import { ImportDataType } from '../types';
 
 // FIX: Changed 'recurringTransactions' to 'schedule' to align with ImportDataType
@@ -50,7 +50,7 @@ const ExportModal: React.FC<ExportModalProps> = ({ onClose, onExport }) => {
                                     type="checkbox"
                                     checked={selected.includes(option.id)}
                                     onChange={() => handleToggle(option.id)}
-                                    className="w-4 h-4 rounded text-primary-500 bg-transparent border-gray-400 focus:ring-primary-500"
+                                    className={CHECKBOX_STYLE}
                                 />
                                 <span className="font-medium text-light-text dark:text-dark-text">{option.label}</span>
                             </label>

@@ -1,8 +1,9 @@
 
+
 import React, { useState, useEffect } from 'react';
 import Modal from './Modal';
 import { BudgetSuggestion, Budget } from '../types';
-import { BTN_PRIMARY_STYLE, BTN_SECONDARY_STYLE, INPUT_BASE_STYLE } from '../constants';
+import { BTN_PRIMARY_STYLE, BTN_SECONDARY_STYLE, INPUT_BASE_STYLE, CHECKBOX_STYLE } from '../constants';
 import { formatCurrency } from '../utils';
 
 interface AIBudgetSuggestionsModalProps {
@@ -109,7 +110,7 @@ const AIBudgetSuggestionsModal: React.FC<AIBudgetSuggestionsModalProps> = ({ isO
                         // FIX: Explicitly cast the object to resolve 'unknown' type error.
                         checked={(customSuggestions[suggestion.categoryName] as { selected: boolean })?.selected || false}
                         onChange={() => handleSelectionChange(suggestion.categoryName)}
-                        className="w-4 h-4 rounded text-primary-500 bg-transparent border-gray-400 focus:ring-primary-500"
+                        className={CHECKBOX_STYLE}
                     />
                     <label className="font-medium">{suggestion.categoryName}</label>
                     <div className="text-sm text-light-text-secondary dark:text-dark-text-secondary text-right">

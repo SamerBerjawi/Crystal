@@ -1,5 +1,5 @@
 import React, { useState, useMemo, useRef, useEffect } from 'react';
-import { INPUT_BASE_STYLE, SELECT_WRAPPER_STYLE, SELECT_ARROW_STYLE, BTN_PRIMARY_STYLE, BTN_SECONDARY_STYLE, SELECT_STYLE } from '../constants';
+import { INPUT_BASE_STYLE, SELECT_WRAPPER_STYLE, SELECT_ARROW_STYLE, BTN_PRIMARY_STYLE, BTN_SECONDARY_STYLE, SELECT_STYLE, CHECKBOX_STYLE } from '../constants';
 import { Transaction, Category, Account, DisplayTransaction, Tag, RecurringTransaction } from '../types';
 import Card from '../components/Card';
 import { formatCurrency, fuzzySearch, convertToEur, arrayToCSV, downloadCSV } from '../utils';
@@ -276,7 +276,7 @@ const Transactions: React.FC<TransactionsProps> = ({ transactions, saveTransacti
       }
       
       if (transactionUpdates.length > 0) {
-          saveTransaction(transactionUpdates);
+          saveTransaction(transactionUpdates, []);
       }
       
       setIsCategorizeModalOpen(false);
@@ -284,7 +284,7 @@ const Transactions: React.FC<TransactionsProps> = ({ transactions, saveTransacti
   };
   
     const handleSaveBulkEdits = (updatedTransactions: Transaction[]) => {
-        saveTransaction(updatedTransactions);
+        saveTransaction(updatedTransactions, []);
         setBulkEditModalOpen(false);
         setSelectedIds(new Set());
     };
@@ -512,8 +512,7 @@ const Transactions: React.FC<TransactionsProps> = ({ transactions, saveTransacti
 
       <header className="flex justify-between items-start">
         <div>
-            <h1 className="text-3xl font-bold text-light-text dark:text-dark-text">Transactions</h1>
-            <p className="text-light-text-secondary dark:text-dark-text-secondary mt-1">View and manage your transaction history.</p>
+          <p className="text-light-text-secondary dark:text-dark-text-secondary mt-1">View and manage your transaction history.</p>
         </div>
         <div className="flex items-center gap-2">
             <button onClick={handleExport} className={`${BTN_SECONDARY_STYLE} flex items-center gap-2`}>
@@ -580,15 +579,17 @@ const Transactions: React.FC<TransactionsProps> = ({ transactions, saveTransacti
       
       <div className="flex-1 min-h-0 relative">
         <Card className="p-0 h-full flex flex-col">
-            <div className="px-4 py-3 border-b border-light-separator dark:border-dark-separator flex items-center gap-4 text-sm font-semibold text-light-text-secondary dark:text-dark-text-secondary flex-shrink-0">
-                <input type="checkbox" onChange={handleSelectAll} checked={isAllSelected} className="w-4 h-4 rounded text-primary-500 bg-transparent border-gray-400 focus:ring-primary-500" aria-label="Select all transactions"/>
-                <div className="grid grid-cols-[auto_minmax(0,1fr)_240px_140px_auto] items-center gap-x-4 w-full">
-                    <div className="w-1.5 h-10"></div>
-                    <span>Transaction</span>
-                    <span className="text-left">Account</span>
-                    <span className="text-right">Amount</span>
-                    <span className="w-10"></span>
+            <div className="px-6 py-3 border-b border-light-separator dark:border-dark-separator flex items-center gap-4 text-sm font-semibold text-light-text-secondary dark:text-dark-text-secondary flex-shrink-0">
+                <input type="checkbox" onChange={handleSelectAll} checked={isAllSelected} className={CHECKBOX_STYLE} aria-label="Select all transactions"/>
+                <div className="flex-1 grid grid-cols-12 gap-4 ml-3 items-center">
+                    <span className="col-span-12 md:col-span-4 lg:col-span-3">Transaction</span>
+                    <span className="hidden md:block col-span-2">Account</span>
+                    <span className="hidden lg:block col-span-2">Merchant</span>
+                    <span className="hidden md:block col-span-2">Category</span>
+                    <span className="hidden lg:block col-span-1">Tags</span>
+                    <span className="col-span-2 text-right">Amount</span>
                 </div>
+                <div className="w-10"></div> {/* Spacer for actions */}
             </div>
             <div className="overflow-y-auto flex-grow">
                  {Object.keys(groupedTransactions).length > 0 ? Object.entries(groupedTransactions).map(([date, group]) => {
@@ -618,27 +619,30 @@ const Transactions: React.FC<TransactionsProps> = ({ transactions, saveTransacti
                                 const categoryColor = tx.isTransfer ? '#64748B' : (categoryDetails.color || '#A0AEC0');
                                 
                                 return (
-                                <div key={tx.id} className="grid grid-cols-[auto_minmax(0,1fr)_240px_140px_auto] items-center gap-x-4 group hover:bg-light-fill dark:hover:bg-dark-fill cursor-pointer" onClick={() => handleOpenEditModal(tx)}>
-                                    <div className="flex items-center gap-3 px-4">
-                                        <input type="checkbox" className="w-4 h-4 rounded text-primary-500 bg-transparent border-gray-400 focus:ring-primary-500" checked={selectedIds.has(tx.id)} onChange={(e) => { e.stopPropagation(); handleSelectOne(tx.id); }} onClick={e => e.stopPropagation()} aria-label={`Select transaction ${tx.description}`}/>
-                                        <div className="w-1.5 h-10 flex-shrink-0 rounded-full" style={{backgroundColor: categoryColor}}></div>
+                                <div key={tx.id} className="flex items-center group hover:bg-light-fill dark:hover:bg-dark-fill cursor-pointer px-6" onClick={() => handleOpenEditModal(tx)}>
+                                  <div className="flex items-center gap-3">
+                                      <input type="checkbox" className={CHECKBOX_STYLE} checked={selectedIds.has(tx.id)} onChange={(e) => { e.stopPropagation(); handleSelectOne(tx.id); }} onClick={e => e.stopPropagation()} aria-label={`Select transaction ${tx.description}`}/>
+                                      <div className="w-1.5 h-10 flex-shrink-0 rounded-full" style={{backgroundColor: categoryColor}}></div>
+                                  </div>
+                                  <div className="flex-1 grid grid-cols-12 gap-4 py-4 items-center ml-3">
+                                    <div className="col-span-12 md:col-span-4 lg:col-span-3 min-w-0">
+                                      <p className="font-semibold text-light-text dark:text-dark-text truncate">{tx.description}</p>
+                                      <div className="text-sm text-light-text-secondary dark:text-dark-text-secondary">
+                                          <p className="md:hidden truncate">{tx.isTransfer ? `${tx.fromAccountName} → ${tx.toAccountName}` : tx.accountName}</p>
+                                          <p className="lg:hidden truncate">{tx.merchant}</p>
+                                          {tx.tagIds && tx.tagIds.length > 0 && <div className="lg:hidden flex flex-wrap gap-1 mt-1">{tx.tagIds.map(tagId => { const tag = tags.find(t => t.id === tagId); if (!tag) return null; return (<span key={tag.id} className="text-xs px-1.5 py-0.5 rounded-full" style={{ backgroundColor: `${tag.color}30`, color: tag.color }}>{tag.name}</span>);})}</div>}
+                                      </div>
                                     </div>
-                                    <div className="py-3 min-w-0">
-                                        <p className="font-semibold text-light-text dark:text-dark-text truncate">{tx.description}</p>
-                                        <p className="text-sm text-light-text-secondary dark:text-dark-text-secondary truncate">{tx.merchant}</p>
-                                        {tx.tagIds && tx.tagIds.length > 0 && (<div className="flex flex-wrap gap-1 mt-1.5">{tx.tagIds.map(tagId => { const tag = tags.find(t => t.id === tagId); if (!tag) return null; return (<span key={tag.id} className="text-xs px-2 py-0.5 rounded-full" style={{ backgroundColor: `${tag.color}30`, color: tag.color }}>{tag.name}</span>);})}</div>)}
-                                    </div>
-                                    <div className="text-sm text-left text-light-text-secondary dark:text-dark-text-secondary truncate">
-                                        {tx.isTransfer ? ( <div className="flex items-center justify-start gap-1 truncate"><span className="truncate">{tx.fromAccountName}</span><span className="material-symbols-outlined text-base">arrow_forward</span><span className="truncate">{tx.toAccountName}</span></div>) : tx.accountName}
-                                    </div>
-                                    <div className={`font-mono font-semibold text-right text-base whitespace-nowrap ${amountColor}`}>
-                                        {tx.isTransfer && !accountFilter ? '-/+ ' + formatCurrency(convertToEur(Math.abs(amount), tx.currency), 'EUR') : formatCurrency(convertToEur(amount, tx.currency), 'EUR', { showPlusSign: true })}
-                                    </div>
-                                    <div className="px-4 text-right">
-                                        <button onClick={(e) => {e.stopPropagation(); handleOpenEditModal(tx)}} className="text-light-text-secondary dark:text-dark-text-secondary p-2 rounded-full hover:bg-black/5 dark:hover:bg-white/5 transition-colors opacity-0 group-hover:opacity-100"><span className="material-symbols-outlined text-base">edit</span></button>
-                                    </div>
+                                    <div className="hidden md:block col-span-2 text-sm text-light-text-secondary dark:text-dark-text-secondary truncate">{tx.isTransfer ? ( <div className="flex items-center gap-1 truncate"><span className="truncate">{tx.fromAccountName}</span><span className="material-symbols-outlined text-base">arrow_forward</span><span className="truncate">{tx.toAccountName}</span></div>) : tx.accountName}</div>
+                                    <div className="hidden lg:block col-span-2 text-sm text-light-text-secondary dark:text-dark-text-secondary truncate">{tx.merchant}</div>
+                                    <div className="hidden md:block col-span-2 text-sm text-light-text-secondary dark:text-dark-text-secondary truncate">{tx.category}</div>
+                                    <div className="hidden lg:flex col-span-1 text-sm text-light-text-secondary dark:text-dark-text-secondary flex-wrap gap-1">{tx.tagIds?.map(tagId => { const tag = tags.find(t => t.id === tagId); if (!tag) return null; return (<span key={tag.id} className="text-xs px-1.5 py-0.5 rounded-full" style={{ backgroundColor: `${tag.color}30`, color: tag.color }} title={tag.name}>{tag.name}</span>);})}</div>
+                                    <div className={`col-span-12 md:col-span-2 font-mono font-semibold text-right text-base whitespace-nowrap ${amountColor}`}>{tx.isTransfer && !accountFilter ? '-/+ ' + formatCurrency(convertToEur(Math.abs(amount), tx.currency), 'EUR') : formatCurrency(convertToEur(amount, tx.currency), 'EUR', { showPlusSign: true })}</div>
+                                  </div>
+                                  <div className="text-right"><button onClick={(e) => {e.stopPropagation(); handleOpenEditModal(tx)}} className="text-light-text-secondary dark:text-dark-text-secondary p-2 rounded-full hover:bg-black/5 dark:hover:bg-white/5 transition-colors opacity-0 group-hover:opacity-100"><span className="material-symbols-outlined text-base">edit</span></button></div>
                                 </div>
-                                )})}
+                                )
+                            })}
                         </div>
                     </div>
                     );

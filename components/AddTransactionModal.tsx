@@ -1,7 +1,7 @@
 import React, { useState, useMemo, useEffect, useRef } from 'react';
 import Modal from './Modal';
 import { Account, Category, Transaction, Tag } from '../types';
-import { INPUT_BASE_STYLE, BTN_PRIMARY_STYLE, BTN_SECONDARY_STYLE, SELECT_WRAPPER_STYLE, SELECT_ARROW_STYLE } from '../constants';
+import { INPUT_BASE_STYLE, BTN_PRIMARY_STYLE, BTN_SECONDARY_STYLE, SELECT_WRAPPER_STYLE, SELECT_ARROW_STYLE, CHECKBOX_STYLE } from '../constants';
 import { v4 as uuidv4 } from 'uuid';
 
 interface AddTransactionModalProps {
@@ -480,7 +480,7 @@ const AddTransactionModal: React.FC<AddTransactionModalProps> = ({ onClose, onSa
                                         type="checkbox"
                                         checked={tagIds.includes(tag.id)}
                                         onChange={() => handleTagToggle(tag.id)}
-                                        className="w-4 h-4 rounded text-primary-500 bg-transparent border-gray-400 focus:ring-primary-500"
+                                        className={CHECKBOX_STYLE}
                                     />
                                     <span className="text-sm font-medium">{tag.name}</span>
                                 </label>

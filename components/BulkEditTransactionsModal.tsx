@@ -1,7 +1,7 @@
 import React, { useState, useMemo } from 'react';
 import Modal from './Modal';
 import { Transaction, Account, Category } from '../types';
-import { INPUT_BASE_STYLE, BTN_PRIMARY_STYLE, BTN_SECONDARY_STYLE, SELECT_WRAPPER_STYLE, SELECT_ARROW_STYLE } from '../constants';
+import { INPUT_BASE_STYLE, BTN_PRIMARY_STYLE, BTN_SECONDARY_STYLE, SELECT_WRAPPER_STYLE, SELECT_ARROW_STYLE, CHECKBOX_STYLE } from '../constants';
 
 const CategoryOptions: React.FC<{ categories: Category[] }> = ({ categories }) => (
     <>
@@ -112,7 +112,7 @@ const BulkEditTransactionsModal: React.FC<BulkEditTransactionsModalProps> = ({
                 id={`cb-${field}`}
                 checked={fieldsToUpdate[field]}
                 onChange={() => handleToggle(field)}
-                className="w-5 h-5 rounded text-primary-500 bg-transparent border-gray-400 focus:ring-primary-500"
+                className={CHECKBOX_STYLE}
             />
         </div>
         <div className="flex-grow">
