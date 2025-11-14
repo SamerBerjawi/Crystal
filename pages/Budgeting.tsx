@@ -1,4 +1,5 @@
 
+
 import React, { useState, useMemo } from 'react';
 import { Budget, Category, Transaction, Account, BudgetSuggestion } from '../types';
 import { BTN_PRIMARY_STYLE, BTN_SECONDARY_STYLE, LIQUID_ACCOUNT_TYPES } from '../constants';
@@ -259,7 +260,7 @@ const Budgeting: React.FC<BudgetingProps> = ({ budgets, transactions, expenseCat
         <div className="grid grid-cols-1 md:grid-cols-2 gap-8 items-center">
             <div className="text-center md:text-left">
                 <p className="text-base text-light-text-secondary dark:text-dark-text-secondary">Amount Remaining this month</p>
-                <p className={`text-5xl font-bold ${totalRemaining >= 0 ? 'text-green-500' : 'text-red-500'}`}>
+                <p className={`text-4xl font-bold ${totalRemaining >= 0 ? 'text-green-500' : 'text-red-500'}`}>
                     {formatCurrency(totalRemaining, 'EUR')}
                 </p>
             </div>
