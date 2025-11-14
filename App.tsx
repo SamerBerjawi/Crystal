@@ -948,12 +948,22 @@ export const App: React.FC = () => {
     }
 
     const reader = new FileReader();
-    reader.onload = (event) => {
+    reader.onload = async (event) => {
         try {
             const data = JSON.parse(event.target?.result as string);
             // A more robust check for a valid backup file.
             if (data && typeof data === 'object' && Array.isArray(data.accounts) && Array.isArray(data.transactions)) {
+                // Restores should immediately persist to the backend, so ensure the next
+                // persistence run is not skipped and pro-actively save the imported payload.
+                skipNextSaveRef.current = false;
                 loadAllFinancialData(data as FinancialData);
+                if (!isDemoMode) {
+                    try {
+                        await saveData(data as FinancialData);
+                    } catch (err) {
+                        console.error('Failed to save imported data:', err);
+                    }
+                }
                 if (isDemoMode) {
                     alert('Data successfully restored for this demo session! Note: Changes will not be saved.');
                 } else {
