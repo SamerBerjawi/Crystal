@@ -1,4 +1,4 @@
-import React, { useState, useMemo, useEffect } from 'react';
+import React, { useState, useMemo, useEffect, useRef } from 'react';
 import { Account, Page, AccountType, Transaction } from '../types';
 import AddAccountModal from '../components/AddAccountModal';
 import EditAccountModal from '../components/EditAccountModal';
@@ -8,7 +8,7 @@ import Card from '../components/Card';
 import AccountBreakdownCard from '../components/AccountBreakdownCard';
 import AccountRow from '../components/AccountRow';
 import BalanceAdjustmentModal from '../components/BalanceAdjustmentModal';
-import useLocalStorage from '../hooks/useLocalStorage';
+import ConfirmationModal from '../components/ConfirmationModal';
 
 interface AccountsProps {
     accounts: Account[];
@@ -36,7 +36,8 @@ const AccountsListSection: React.FC<{
     sortBy: 'name' | 'balance' | 'manual';
     accountOrder: string[];
     setAccountOrder: React.Dispatch<React.SetStateAction<string[]>>;
-}> = ({ title, accounts, transactions, onAccountClick, onEditClick, onAdjustBalanceClick, sortBy, accountOrder, setAccountOrder }) => {
+    onContextMenu: (event: React.MouseEvent, account: Account) => void;
+}> = ({ title, accounts, transactions, onAccountClick, onEditClick, onAdjustBalanceClick, sortBy, accountOrder, setAccountOrder, onContextMenu }) => {
     const [expandedGroups, setExpandedGroups] = useState<Record<string, boolean>>({});
     const [draggedId, setDraggedId] = useState<string | null>(null);
     const [dragOverId, setDragOverId] = useState<string | null>(null);
@@ -133,6 +134,7 @@ const AccountsListSection: React.FC<{
                                             onDragLeave={handleDragLeave}
                                             onDrop={(e) => handleDrop(e, acc.id)}
                                             onDragEnd={handleDragEnd}
+                                            onContextMenu={(e) => onContextMenu(e, acc)}
                                         />
                                         ))}
                                     </div>
@@ -156,6 +158,21 @@ const Accounts: React.FC<AccountsProps> = ({ accounts, transactions, saveAccount
   const [editingAccount, setEditingAccount] = useState<Account | null>(null);
   const [isAdjustModalOpen, setAdjustModalOpen] = useState(false);
   const [adjustingAccount, setAdjustingAccount] = useState<Account | null>(null);
+  const [contextMenu, setContextMenu] = useState<{ x: number, y: number, account: Account } | null>(null);
+  const [deletingAccount, setDeletingAccount] = useState<Account | null>(null);
+  const contextMenuRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    const handleClickOutside = (event: MouseEvent) => {
+        if (contextMenuRef.current && !contextMenuRef.current.contains(event.target as Node)) {
+            setContextMenu(null);
+        }
+    };
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => {
+        document.removeEventListener('mousedown', handleClickOutside);
+    };
+  }, []);
   
 
   // --- Data Processing ---
@@ -236,12 +253,23 @@ const Accounts: React.FC<AccountsProps> = ({ accounts, transactions, saveAccount
 
   const handleAddAccount = (account: Omit<Account, 'id'>) => { saveAccount(account); setAddModalOpen(false); };
   const handleUpdateAccount = (updatedAccount: Account) => { saveAccount(updatedAccount); setEditModalOpen(false); setEditingAccount(null); };
-  const handleDeleteAccount = (accountId: string) => { deleteAccount(accountId); setEditModalOpen(false); setEditingAccount(null); }
+  
+  const handleConfirmDelete = () => {
+    if (deletingAccount) {
+      deleteAccount(deletingAccount.id);
+      setDeletingAccount(null);
+    }
+  };
+
+  const handleContextMenu = (event: React.MouseEvent, account: Account) => {
+    event.preventDefault();
+    setContextMenu({ x: event.clientX, y: event.clientY, account });
+  };
 
   return (
     <div className="space-y-8">
       {isAddModalOpen && <AddAccountModal onClose={() => setAddModalOpen(false)} onAdd={handleAddAccount} accounts={accounts} />}
-      {isEditModalOpen && editingAccount && <EditAccountModal onClose={() => setEditModalOpen(false)} onSave={handleUpdateAccount} onDelete={handleDeleteAccount} account={editingAccount} accounts={accounts} />}
+      {isEditModalOpen && editingAccount && <EditAccountModal onClose={() => setEditModalOpen(false)} onSave={handleUpdateAccount} onDelete={() => setDeletingAccount(editingAccount)} account={editingAccount} accounts={accounts} />}
       {isAdjustModalOpen && adjustingAccount && (
         <BalanceAdjustmentModal
             onClose={closeAdjustModal}
@@ -249,6 +277,52 @@ const Accounts: React.FC<AccountsProps> = ({ accounts, transactions, saveAccount
             account={adjustingAccount}
         />
       )}
+      {deletingAccount && (
+        <ConfirmationModal
+            isOpen={!!deletingAccount}
+            onClose={() => setDeletingAccount(null)}
+            onConfirm={handleConfirmDelete}
+            title="Delete Account"
+            message={`Are you sure you want to delete the account "${deletingAccount.name}"? This action and all its associated transactions will be permanently removed.`}
+            confirmButtonText="Delete"
+        />
+      )}
+      {contextMenu && (
+        <div
+            ref={contextMenuRef}
+            style={{ top: contextMenu.y, left: contextMenu.x }}
+            className="absolute z-30 w-56 bg-light-card dark:bg-dark-card rounded-lg shadow-lg border border-black/10 dark:border-white/10 py-2 animate-fade-in-up"
+        >
+            <ul className="text-sm">
+                <li>
+                    <button onClick={() => { handleAccountClick(contextMenu.account.id); setContextMenu(null); }} className="w-full text-left flex items-center gap-3 px-4 py-2 hover:bg-black/5 dark:hover:bg-white/10">
+                        <span className="material-symbols-outlined text-base">visibility</span>
+                        <span>View Details</span>
+                    </button>
+                </li>
+                <li>
+                    <button onClick={() => { openEditModal(contextMenu.account); setContextMenu(null); }} className="w-full text-left flex items-center gap-3 px-4 py-2 hover:bg-black/5 dark:hover:bg-white/10">
+                        <span className="material-symbols-outlined text-base">edit</span>
+                        <span>Edit Account</span>
+                    </button>
+                </li>
+                <li>
+                    <button onClick={() => { openAdjustModal(contextMenu.account); setContextMenu(null); }} className="w-full text-left flex items-center gap-3 px-4 py-2 hover:bg-black/5 dark:hover:bg-white/10" disabled={contextMenu.account.type === 'Investment'}>
+                        <span className="material-symbols-outlined text-base">tune</span>
+                        <span>Adjust Balance</span>
+                    </button>
+                </li>
+                <div className="my-1 h-px bg-light-separator dark:bg-dark-separator"></div>
+                <li>
+                    <button onClick={() => { setDeletingAccount(contextMenu.account); setContextMenu(null); }} className="w-full text-left flex items-center gap-3 px-4 py-2 text-semantic-red hover:bg-semantic-red/10">
+                        <span className="material-symbols-outlined text-base">delete</span>
+                        <span>Delete Account</span>
+                    </button>
+                </li>
+            </ul>
+        </div>
+      )}
+
 
       <header className="flex flex-wrap justify-between items-center gap-4">
         <div>
@@ -286,6 +360,7 @@ const Accounts: React.FC<AccountsProps> = ({ accounts, transactions, saveAccount
             sortBy={sortBy}
             accountOrder={accountOrder}
             setAccountOrder={setAccountOrder}
+            onContextMenu={handleContextMenu}
         />
         <AccountsListSection 
             title="Liability Accounts" 
@@ -297,6 +372,7 @@ const Accounts: React.FC<AccountsProps> = ({ accounts, transactions, saveAccount
             sortBy={sortBy}
             accountOrder={accountOrder}
             setAccountOrder={setAccountOrder}
+            onContextMenu={handleContextMenu}
         />
       </div>
     </div>

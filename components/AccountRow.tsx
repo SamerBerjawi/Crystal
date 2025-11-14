@@ -3,6 +3,7 @@ import { Account, Transaction } from '../types';
 import { convertToEur, formatCurrency } from '../utils';
 import { LineChart, Line, ResponsiveContainer } from 'recharts';
 import { ACCOUNT_TYPE_STYLES } from '../constants';
+import Card from './Card';
 
 interface AccountRowProps {
     account: Account;
@@ -18,9 +19,10 @@ interface AccountRowProps {
     onDragLeave: (e: React.DragEvent) => void;
     onDrop: (e: React.DragEvent) => void;
     onDragEnd: (e: React.DragEvent) => void;
+    onContextMenu: (e: React.MouseEvent) => void;
 }
 
-const AccountRow: React.FC<AccountRowProps> = ({ account, transactions, onClick, onEdit, onAdjustBalance, isDraggable, isBeingDragged, isDragOver, onDragStart, onDragOver, onDragLeave, onDrop, onDragEnd }) => {
+const AccountRow: React.FC<AccountRowProps> = ({ account, transactions, onClick, onEdit, onAdjustBalance, isDraggable, isBeingDragged, isDragOver, onDragStart, onDragOver, onDragLeave, onDrop, onDragEnd, onContextMenu }) => {
     const handleEditClick = (e: React.MouseEvent) => {
         e.stopPropagation();
         onEdit();
@@ -125,6 +127,7 @@ const AccountRow: React.FC<AccountRowProps> = ({ account, transactions, onClick,
             onDragLeave={onDragLeave}
             onDrop={onDrop}
             onDragEnd={onDragEnd}
+            onContextMenu={onContextMenu}
             className={`flex items-center justify-between p-4 rounded-lg hover:bg-black/5 dark:hover:bg-white/5 transition-all duration-200 group hover:-translate-y-0.5 hover:shadow-md ${cursorClass} ${dragClasses} ${dragOverClasses}`} 
             onClick={onClick}
         >
