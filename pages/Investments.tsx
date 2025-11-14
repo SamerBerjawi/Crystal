@@ -1,10 +1,11 @@
 import React, { useState, useMemo } from 'react';
-import { Account, InvestmentTransaction, Transaction } from '../types';
-import { BTN_PRIMARY_STYLE, BRAND_COLORS } from '../constants';
+import { Account, InvestmentTransaction, Transaction, Warrant } from '../types';
+import { BTN_PRIMARY_STYLE, BRAND_COLORS, BTN_SECONDARY_STYLE } from '../constants';
 import Card from '../components/Card';
 import { formatCurrency } from '../utils';
 import AddInvestmentTransactionModal from '../components/AddInvestmentTransactionModal';
 import PortfolioDistributionChart from '../components/PortfolioDistributionChart';
+import BalanceAdjustmentModal from '../components/BalanceAdjustmentModal';
 
 interface InvestmentsProps {
     accounts: Account[];
@@ -12,6 +13,8 @@ interface InvestmentsProps {
     investmentTransactions: InvestmentTransaction[];
     saveInvestmentTransaction: (invTx: Omit<InvestmentTransaction, 'id'> & { id?: string }, cashTx?: Omit<Transaction, 'id'>, newAccount?: Omit<Account, 'id'>) => void;
     deleteInvestmentTransaction: (id: string) => void;
+    saveTransaction: (transactions: (Omit<Transaction, 'id'> & { id?: string })[], idsToDelete?: string[]) => void;
+    warrants: Warrant[];
 }
 
 const InvestmentSummaryCard: React.FC<{ title: string; value: string; change?: string; changeColor?: string; icon: string }> = ({ title, value, change, changeColor, icon }) => (
@@ -27,11 +30,14 @@ const InvestmentSummaryCard: React.FC<{ title: string; value: string; change?: s
     </Card>
 );
 
-const Investments: React.FC<InvestmentsProps> = ({ accounts, cashAccounts, investmentTransactions, saveInvestmentTransaction, deleteInvestmentTransaction }) => {
+const Investments: React.FC<InvestmentsProps> = ({ accounts, cashAccounts, investmentTransactions, saveInvestmentTransaction, deleteInvestmentTransaction, saveTransaction, warrants }) => {
     const [isModalOpen, setIsModalOpen] = useState(false);
     const [editingTransaction, setEditingTransaction] = useState<InvestmentTransaction | null>(null);
+    const [isAdjustModalOpen, setAdjustModalOpen] = useState(false);
+    const [adjustingAccount, setAdjustingAccount] = useState<Account | null>(null);
 
     const investmentAccounts = useMemo(() => (accounts || []).filter(a => a.type === 'Investment'), [accounts]);
+    const warrantIsins = useMemo(() => new Set(warrants.map(w => w.isin)), [warrants]);
 
     const { holdings, totalValue, totalCostBasis, distributionData } = useMemo(() => {
         const holdingsMap: Record<string, {
@@ -40,6 +46,7 @@ const Investments: React.FC<InvestmentsProps> = ({ accounts, cashAccounts, inves
             quantity: number;
             totalCost: number;
             currentValue: number;
+            accountId: string;
         }> = {};
 
         // Initialize from accounts
@@ -51,12 +58,13 @@ const Investments: React.FC<InvestmentsProps> = ({ accounts, cashAccounts, inves
                     quantity: 0,
                     totalCost: 0,
                     currentValue: acc.balance,
+                    accountId: acc.id,
                 };
             }
         });
         
         [...investmentTransactions].sort((a,b) => new Date(a.date).getTime() - new Date(b.date).getTime()).forEach(tx => {
-            if (!holdingsMap[tx.symbol]) return; // Should not happen if accounts are created correctly
+            if (!holdingsMap[tx.symbol]) return;
             
             const holding = holdingsMap[tx.symbol];
             if (tx.type === 'buy') {
@@ -87,6 +95,33 @@ const Investments: React.FC<InvestmentsProps> = ({ accounts, cashAccounts, inves
         setEditingTransaction(tx || null);
         setIsModalOpen(true);
     };
+    
+    const handleAdjustBalanceClick = (accountId: string) => {
+        const accountToAdjust = investmentAccounts.find(acc => acc.id === accountId);
+        if (accountToAdjust) {
+            setAdjustingAccount(accountToAdjust);
+            setAdjustModalOpen(true);
+        }
+    };
+
+    const handleSaveAdjustment = (adjustmentAmount: number, date: string, notes: string) => {
+        if (!adjustingAccount) return;
+
+        const txData = {
+            accountId: adjustingAccount.id,
+            date,
+            description: 'Balance Adjustment',
+            merchant: notes || 'Manual holding value correction',
+            amount: adjustmentAmount,
+            category: adjustmentAmount >= 0 ? 'Investment Income' : 'Investments',
+            type: adjustmentAmount >= 0 ? 'income' as const : 'expense' as const,
+            currency: adjustingAccount.currency,
+        };
+        
+        saveTransaction([txData], []);
+        setAdjustingAccount(null);
+        setAdjustModalOpen(false);
+    };
 
     const totalGainLoss = totalValue - totalCostBasis;
     const totalGainLossPercent = totalCostBasis > 0 ? (totalGainLoss / totalCostBasis) * 100 : 0;
@@ -102,6 +137,13 @@ const Investments: React.FC<InvestmentsProps> = ({ accounts, cashAccounts, inves
                     accounts={accounts}
                     cashAccounts={cashAccounts}
                     transactionToEdit={editingTransaction}
+                />
+            )}
+            {isAdjustModalOpen && adjustingAccount && (
+                <BalanceAdjustmentModal
+                    onClose={() => setAdjustModalOpen(false)}
+                    onSave={handleSaveAdjustment}
+                    account={adjustingAccount}
                 />
             )}
             <header className="flex justify-between items-center">
@@ -139,8 +181,9 @@ const Investments: React.FC<InvestmentsProps> = ({ accounts, cashAccounts, inves
                             {holdings.map(holding => {
                                 const gainLoss = holding.currentValue - holding.totalCost;
                                 const avgPrice = holding.quantity > 0 ? holding.currentValue / holding.quantity : 0;
+                                const isWarrant = warrantIsins.has(holding.symbol);
                                 return (
-                                <div key={holding.symbol} className="grid grid-cols-3 items-center p-4">
+                                <div key={holding.symbol} className="grid grid-cols-[1fr_1fr_1fr_auto] items-center p-4 group">
                                     <div>
                                         <p className="font-bold text-lg">{holding.symbol}</p>
                                         <p className="text-sm text-light-text-secondary dark:text-dark-text-secondary truncate">{holding.name}</p>
@@ -156,6 +199,16 @@ const Investments: React.FC<InvestmentsProps> = ({ accounts, cashAccounts, inves
                                         <p className={`text-sm font-semibold ${gainLoss >= 0 ? 'text-green-500' : 'text-red-500'}`}>
                                             {gainLoss >= 0 ? '+' : ''}{formatCurrency(gainLoss, 'EUR')}
                                         </p>
+                                    </div>
+                                    <div className="text-right pl-2">
+                                        <button 
+                                            onClick={() => handleAdjustBalanceClick(holding.accountId)} 
+                                            className="opacity-0 group-hover:opacity-100 transition-opacity text-light-text-secondary dark:text-dark-text-secondary p-2 rounded-full hover:bg-black/10 dark:hover:bg-white/10 disabled:opacity-0 disabled:cursor-not-allowed" 
+                                            title={isWarrant ? "Warrant value is computed automatically" : "Adjust Value"}
+                                            disabled={isWarrant}
+                                        >
+                                            <span className="material-symbols-outlined">tune</span>
+                                        </button>
                                     </div>
                                 </div>
                             )})}

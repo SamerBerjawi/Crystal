@@ -1,5 +1,5 @@
 import React, { useState, useMemo, useEffect, useRef } from 'react';
-import { Account, Page, AccountType, Transaction } from '../types';
+import { Account, Page, AccountType, Transaction, Warrant } from '../types';
 import AddAccountModal from '../components/AddAccountModal';
 import EditAccountModal from '../components/EditAccountModal';
 import { ASSET_TYPES, DEBT_TYPES, BTN_PRIMARY_STYLE, ACCOUNT_TYPE_STYLES, BTN_SECONDARY_STYLE, INPUT_BASE_STYLE, SELECT_WRAPPER_STYLE, SELECT_ARROW_STYLE, SELECT_STYLE } from '../constants';
@@ -23,6 +23,7 @@ interface AccountsProps {
     setAccountOrder: React.Dispatch<React.SetStateAction<string[]>>;
     sortBy: 'name' | 'balance' | 'manual';
     setSortBy: React.Dispatch<React.SetStateAction<'name' | 'balance' | 'manual'>>;
+    warrants: Warrant[];
 }
 
 // A new component for the list section
@@ -30,6 +31,7 @@ const AccountsListSection: React.FC<{
     title: string;
     accounts: Account[];
     transactions: Transaction[];
+    warrants: Warrant[];
     onAccountClick: (id: string) => void;
     onEditClick: (account: Account) => void;
     onAdjustBalanceClick: (account: Account) => void;
@@ -37,7 +39,7 @@ const AccountsListSection: React.FC<{
     accountOrder: string[];
     setAccountOrder: React.Dispatch<React.SetStateAction<string[]>>;
     onContextMenu: (event: React.MouseEvent, account: Account) => void;
-}> = ({ title, accounts, transactions, onAccountClick, onEditClick, onAdjustBalanceClick, sortBy, accountOrder, setAccountOrder, onContextMenu }) => {
+}> = ({ title, accounts, transactions, warrants, onAccountClick, onEditClick, onAdjustBalanceClick, sortBy, accountOrder, setAccountOrder, onContextMenu }) => {
     const [expandedGroups, setExpandedGroups] = useState<Record<string, boolean>>({});
     const [draggedId, setDraggedId] = useState<string | null>(null);
     const [dragOverId, setDragOverId] = useState<string | null>(null);
@@ -123,6 +125,7 @@ const AccountsListSection: React.FC<{
                                             key={acc.id}
                                             account={acc}
                                             transactions={transactions.filter(t => t.accountId === acc.id)}
+                                            warrants={warrants}
                                             onClick={() => onAccountClick(acc.id)}
                                             onEdit={() => onEditClick(acc)}
                                             onAdjustBalance={() => onAdjustBalanceClick(acc)}
@@ -152,7 +155,7 @@ const AccountsListSection: React.FC<{
     );
 };
 
-const Accounts: React.FC<AccountsProps> = ({ accounts, transactions, saveAccount, deleteAccount, setCurrentPage, setAccountFilter, setViewingAccountId, saveTransaction, accountOrder, setAccountOrder, sortBy, setSortBy }) => {
+const Accounts: React.FC<AccountsProps> = ({ accounts, transactions, saveAccount, deleteAccount, setCurrentPage, setAccountFilter, setViewingAccountId, saveTransaction, accountOrder, setAccountOrder, sortBy, setSortBy, warrants }) => {
   const [isAddModalOpen, setAddModalOpen] = useState(false);
   const [isEditModalOpen, setEditModalOpen] = useState(false);
   const [editingAccount, setEditingAccount] = useState<Account | null>(null);
@@ -269,7 +272,7 @@ const Accounts: React.FC<AccountsProps> = ({ accounts, transactions, saveAccount
   return (
     <div className="space-y-8">
       {isAddModalOpen && <AddAccountModal onClose={() => setAddModalOpen(false)} onAdd={handleAddAccount} accounts={accounts} />}
-      {isEditModalOpen && editingAccount && <EditAccountModal onClose={() => setEditModalOpen(false)} onSave={handleUpdateAccount} onDelete={(accountId) => { setEditModalOpen(false); setDeletingAccount(editingAccount);}} account={editingAccount} accounts={accounts} />}
+      {isEditModalOpen && editingAccount && <EditAccountModal onClose={() => setEditModalOpen(false)} onSave={handleUpdateAccount} onDelete={(accountId) => { setEditModalOpen(false); setDeletingAccount(editingAccount);}} account={editingAccount} accounts={accounts} warrants={warrants} />}
       {isAdjustModalOpen && adjustingAccount && (
         <BalanceAdjustmentModal
             onClose={closeAdjustModal}
@@ -365,6 +368,7 @@ const Accounts: React.FC<AccountsProps> = ({ accounts, transactions, saveAccount
             title="Asset Accounts" 
             accounts={assetAccounts}
             transactions={transactions}
+            warrants={warrants}
             onAccountClick={handleAccountClick}
             onEditClick={openEditModal}
             onAdjustBalanceClick={openAdjustModal}
@@ -377,6 +381,7 @@ const Accounts: React.FC<AccountsProps> = ({ accounts, transactions, saveAccount
             title="Liability Accounts" 
             accounts={debtAccounts}
             transactions={transactions}
+            warrants={warrants}
             onAccountClick={handleAccountClick}
             onEditClick={openEditModal}
             onAdjustBalanceClick={openAdjustModal}

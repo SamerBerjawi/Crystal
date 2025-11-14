@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useMemo } from 'react';
 import Modal from './Modal';
-import { Account, AccountType, Currency, InvestmentSubType, PropertyType } from '../types';
+import { Account, AccountType, Currency, InvestmentSubType, PropertyType, Warrant } from '../types';
 import { ALL_ACCOUNT_TYPES, CURRENCIES, ACCOUNT_TYPE_STYLES, INPUT_BASE_STYLE, BTN_PRIMARY_STYLE, BTN_SECONDARY_STYLE, BTN_DANGER_STYLE, SELECT_ARROW_STYLE, SELECT_WRAPPER_STYLE, ACCOUNT_ICON_LIST, INVESTMENT_SUB_TYPES, PROPERTY_TYPES, INVESTMENT_SUB_TYPE_STYLES } from '../constants';
 import IconPicker from './IconPicker';
 
@@ -10,9 +10,10 @@ interface EditAccountModalProps {
   onDelete: (accountId: string) => void;
   account: Account;
   accounts: Account[];
+  warrants: Warrant[];
 }
 
-const EditAccountModal: React.FC<EditAccountModalProps> = ({ onClose, onSave, onDelete, account, accounts }) => {
+const EditAccountModal: React.FC<EditAccountModalProps> = ({ onClose, onSave, onDelete, account, accounts, warrants }) => {
   // Gracefully handle legacy 'Crypto' type by migrating it to an 'Investment' type
   const initialType = (account.type as string) === 'Crypto' ? 'Investment' : account.type;
   const initialSubType = (account.type as string) === 'Crypto' ? 'Crypto' : account.subType || 'Stock';
@@ -58,7 +59,13 @@ const EditAccountModal: React.FC<EditAccountModalProps> = ({ onClose, onSave, on
   const [principalOwned, setPrincipalOwned] = useState(account.principalOwned ? String(account.principalOwned) : '');
   const [linkedLoanId, setLinkedLoanId] = useState(account.linkedLoanId || '');
   
-  const isComputedAccount = type === 'Investment';
+  const isComputedAccount = useMemo(() => {
+    // An investment account is 'computed' and not manually editable if it's a warrant being tracked automatically.
+    if (type !== 'Investment' || !account.symbol) {
+        return false;
+    }
+    return warrants.some(w => w.isin === account.symbol);
+  }, [type, account.symbol, warrants]);
 
   useEffect(() => {
     // Determine the default icon for the account's original state

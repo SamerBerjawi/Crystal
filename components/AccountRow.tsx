@@ -1,5 +1,5 @@
 import React, { useMemo } from 'react';
-import { Account, Transaction } from '../types';
+import { Account, Transaction, Warrant } from '../types';
 import { convertToEur, formatCurrency } from '../utils';
 import { LineChart, Line, ResponsiveContainer } from 'recharts';
 import { ACCOUNT_TYPE_STYLES } from '../constants';
@@ -8,6 +8,7 @@ import Card from './Card';
 interface AccountRowProps {
     account: Account;
     transactions: Transaction[];
+    warrants: Warrant[];
     onClick: () => void;
     onEdit: () => void;
     onAdjustBalance: () => void;
@@ -22,7 +23,7 @@ interface AccountRowProps {
     onContextMenu: (e: React.MouseEvent) => void;
 }
 
-const AccountRow: React.FC<AccountRowProps> = ({ account, transactions, onClick, onEdit, onAdjustBalance, isDraggable, isBeingDragged, isDragOver, onDragStart, onDragOver, onDragLeave, onDrop, onDragEnd, onContextMenu }) => {
+const AccountRow: React.FC<AccountRowProps> = ({ account, transactions, warrants, onClick, onEdit, onAdjustBalance, isDraggable, isBeingDragged, isDragOver, onDragStart, onDragOver, onDragLeave, onDrop, onDragEnd, onContextMenu }) => {
     const handleEditClick = (e: React.MouseEvent) => {
         e.stopPropagation();
         onEdit();
@@ -86,9 +87,15 @@ const AccountRow: React.FC<AccountRowProps> = ({ account, transactions, onClick,
     }, [account, transactions]);
     
     const isAsset = displayBalance >= 0;
-    // FIX: The type 'Crypto' is not a valid AccountType. 'Crypto' is a subtype of 'Investment'.
-    // The check is simplified to only verify if the account type is 'Investment'.
-    const isComputedAccount = account.type === 'Investment';
+    
+    const isComputedAccount = useMemo(() => {
+        // An investment account is 'computed' and not manually editable if it's a warrant being tracked automatically.
+        if (account.type !== 'Investment' || !account.symbol) {
+            return false;
+        }
+        return warrants.some(w => w.isin === account.symbol);
+    }, [account, warrants]);
+
     const sparklineColor = isAsset ? '#22C55E' : '#F43F5E';
     const style = ACCOUNT_TYPE_STYLES[account.type];
     
