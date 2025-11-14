@@ -142,6 +142,7 @@ export const App: React.FC = () => {
   const [tags, setTags] = useState<Tag[]>(initialFinancialData.tags || []);
   const latestDataRef = useRef<FinancialData>(initialFinancialData);
   const skipNextSaveRef = useRef(false);
+  const restoreInProgressRef = useRef(false);
   const [tagFilter, setTagFilter] = useState<string | null>(null);
   const [accountOrder, setAccountOrder] = useLocalStorage<string[]>('crystal-account-order', []);
   
@@ -434,6 +435,7 @@ export const App: React.FC = () => {
   );
 
   useEffect(() => {
+    if (!isDataLoaded || !isAuthenticated || isDemoMode || restoreInProgressRef.current) {
     if (!isDataLoaded || !isAuthenticated || isDemoMode) {
       return;
     }
@@ -960,6 +962,28 @@ export const App: React.FC = () => {
             const data = JSON.parse(event.target?.result as string);
             // A more robust check for a valid backup file.
             if (data && typeof data === 'object' && Array.isArray(data.accounts) && Array.isArray(data.transactions)) {
+                // Restores should immediately persist to the backend. Skip any pending
+                // autosave (which might still contain stale data) and temporarily pause
+                // the persistence effect while we write the imported payload.
+                restoreInProgressRef.current = true;
+                skipNextSaveRef.current = true;
+                loadAllFinancialData(data as FinancialData);
+                try {
+                    if (!isDemoMode) {
+                        const normalizedData = latestDataRef.current;
+                        const saveSucceeded = await saveData(normalizedData);
+                        if (!saveSucceeded) {
+                            alert('Data was loaded locally, but saving it to the server failed. Please try again.');
+                            return;
+                        }
+                    }
+                    if (isDemoMode) {
+                        alert('Data successfully restored for this demo session! Note: Changes will not be saved.');
+                    } else {
+                        alert('Data successfully restored!');
+                    }
+                } finally {
+                    restoreInProgressRef.current = false;
                 // Restores should immediately persist to the backend, so ensure the next
                 // persistence run is not skipped and pro-actively save the imported payload.
                 skipNextSaveRef.current = false;
