@@ -164,10 +164,8 @@ const EditAccountModal: React.FC<EditAccountModalProps> = ({ onClose, onSave, on
   };
   
   const handleDelete = () => {
-    if(window.confirm(`Are you sure you want to delete the account "${account.name}"? This action cannot be undone.`)) {
-        onDelete(account.id);
-    }
-  }
+    onDelete(account.id);
+  };
   
   const labelStyle = "block text-sm font-medium text-light-text-secondary dark:text-dark-text-secondary mb-1";
 

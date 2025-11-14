@@ -8,7 +8,7 @@ import Card from '../components/Card';
 import AccountBreakdownCard from '../components/AccountBreakdownCard';
 import AccountRow from '../components/AccountRow';
 import BalanceAdjustmentModal from '../components/BalanceAdjustmentModal';
-import ConfirmationModal from '../components/ConfirmationModal';
+import FinalConfirmationModal from '../components/FinalConfirmationModal';
 
 interface AccountsProps {
     accounts: Account[];
@@ -269,7 +269,7 @@ const Accounts: React.FC<AccountsProps> = ({ accounts, transactions, saveAccount
   return (
     <div className="space-y-8">
       {isAddModalOpen && <AddAccountModal onClose={() => setAddModalOpen(false)} onAdd={handleAddAccount} accounts={accounts} />}
-      {isEditModalOpen && editingAccount && <EditAccountModal onClose={() => setEditModalOpen(false)} onSave={handleUpdateAccount} onDelete={() => setDeletingAccount(editingAccount)} account={editingAccount} accounts={accounts} />}
+      {isEditModalOpen && editingAccount && <EditAccountModal onClose={() => setEditModalOpen(false)} onSave={handleUpdateAccount} onDelete={(accountId) => { setEditModalOpen(false); setDeletingAccount(editingAccount);}} account={editingAccount} accounts={accounts} />}
       {isAdjustModalOpen && adjustingAccount && (
         <BalanceAdjustmentModal
             onClose={closeAdjustModal}
@@ -278,13 +278,24 @@ const Accounts: React.FC<AccountsProps> = ({ accounts, transactions, saveAccount
         />
       )}
       {deletingAccount && (
-        <ConfirmationModal
+        <FinalConfirmationModal
             isOpen={!!deletingAccount}
             onClose={() => setDeletingAccount(null)}
             onConfirm={handleConfirmDelete}
             title="Delete Account"
-            message={`Are you sure you want to delete the account "${deletingAccount.name}"? This action and all its associated transactions will be permanently removed.`}
-            confirmButtonText="Delete"
+            message={
+                <>
+                    <p className="text-light-text-secondary dark:text-dark-text-secondary mb-4">
+                        You are about to permanently delete the account <strong className="text-light-text dark:text-dark-text">{deletingAccount.name}</strong>.
+                    </p>
+                    <div className="p-3 bg-red-500/10 rounded-lg text-red-700 dark:text-red-300 text-sm">
+                        <p className="font-bold">This action cannot be undone.</p>
+                        <p>All associated transactions will also be permanently deleted.</p>
+                    </div>
+                </>
+            }
+            requiredText="DELETE"
+            confirmButtonText="Delete Account"
         />
       )}
       {contextMenu && (
