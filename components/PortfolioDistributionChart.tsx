@@ -29,13 +29,19 @@ const PortfolioDistributionChart: React.FC<PortfolioDistributionChartProps> = ({
     return null;
   };
 
+  // The legend is only needed for more than one data point.
+  // This also determines if we need to shift the chart to make space.
+  const showLegend = data && data.length > 1;
+  const chartCx = showLegend ? '35%' : '50%';
+  const textLeft = showLegend ? '35%' : '50%';
+
   return (
     <div className="h-full w-full relative" style={{ minHeight: 270 }}>
         <ResponsiveContainer>
             <PieChart>
                 <Pie
                     data={data}
-                    cx="40%"
+                    cx={chartCx}
                     cy="50%"
                     innerRadius="60%"
                     outerRadius="80%"
@@ -49,10 +55,13 @@ const PortfolioDistributionChart: React.FC<PortfolioDistributionChartProps> = ({
                     {data.map((entry, index) => <Cell key={`cell-${index}`} fill={entry.color} stroke={entry.color} />)}
                 </Pie>
                 <Tooltip content={<CustomTooltip />} />
-                <Legend iconType="circle" iconSize={8} layout="vertical" verticalAlign="middle" align="right" />
+                {showLegend && <Legend iconType="circle" iconSize={8} layout="vertical" verticalAlign="middle" align="right" />}
             </PieChart>
         </ResponsiveContainer>
-        <div className="absolute top-1/2 left-[40%] -translate-x-1/2 -translate-y-1/2 flex flex-col items-center justify-center pointer-events-none">
+        <div 
+            className="absolute top-1/2 -translate-x-1/2 -translate-y-1/2 flex flex-col items-center justify-center pointer-events-none"
+            style={{ left: textLeft }}
+        >
             <span className="text-light-text-secondary dark:text-dark-text-secondary text-sm">Total Value</span>
             <span className="text-2xl font-bold text-light-text dark:text-dark-text">{formatCurrency(totalValue, 'EUR')}</span>
         </div>
