@@ -436,7 +436,6 @@ export const App: React.FC = () => {
 
   useEffect(() => {
     if (!isDataLoaded || !isAuthenticated || isDemoMode || restoreInProgressRef.current) {
-    if (!isDataLoaded || !isAuthenticated || isDemoMode) {
       return;
     }
 
@@ -984,22 +983,7 @@ export const App: React.FC = () => {
                     }
                 } finally {
                     restoreInProgressRef.current = false;
-                // Restores should immediately persist to the backend, so ensure the next
-                // persistence run is not skipped and pro-actively save the imported payload.
-                skipNextSaveRef.current = false;
-                loadAllFinancialData(data as FinancialData);
-                if (!isDemoMode) {
-                    const normalizedData = latestDataRef.current;
-                    const saveSucceeded = await saveData(normalizedData);
-                    if (!saveSucceeded) {
-                        alert('Data was loaded locally, but saving it to the server failed. Please try again.');
-                        return;
-                    }
-                }
-                if (isDemoMode) {
-                    alert('Data successfully restored for this demo session! Note: Changes will not be saved.');
-                } else {
-                    alert('Data successfully restored!');
+                    skipNextSaveRef.current = false;
                 }
             } else {
                 throw new Error('Invalid backup file format. The file must contain "accounts" and "transactions" arrays.');
