@@ -211,6 +211,8 @@ export interface FinancialGoal {
   amount: number; // This is the TARGET amount
   currentAmount: number; // This is the current saved amount
   currency: Currency;
+  parentId?: string;
+  isBucket?: boolean;
   // One-time
   date?: string; 
   // Recurring

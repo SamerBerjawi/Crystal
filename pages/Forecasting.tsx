@@ -9,6 +9,7 @@ import GoalScenarioModal from '../components/GoalScenarioModal';
 import ForecastChart from '../components/ForecastChart';
 import GoalContributionPlan from '../components/GoalContributionPlan';
 import { GoogleGenAI, Type } from '@google/genai';
+import ConfirmationModal from '../components/ConfirmationModal';
 
 type ForecastDuration = '3M' | '6M' | 'EOY' | '1Y' | '2Y';
 
@@ -120,6 +121,7 @@ const useSmartGoalPlanner = (
         }
     }, [accounts, recurringTransactions, financialGoals]);
     
+    // FIX: Corrected the return statement to use the defined state variables `isLoading` and `error`.
     return { generatePlan, plan, isLoading, error };
 };
 
@@ -127,6 +129,9 @@ const useSmartGoalPlanner = (
 const Forecasting: React.FC<ForecastingProps> = ({ accounts, transactions, recurringTransactions, financialGoals, saveFinancialGoal, deleteFinancialGoal, expenseCategories, billsAndPayments, activeGoalIds, setActiveGoalIds }) => {
     const [isModalOpen, setIsModalOpen] = useState(false);
     const [editingGoal, setEditingGoal] = useState<FinancialGoal | null>(null);
+    const [parentIdForNewGoal, setParentIdForNewGoal] = useState<string | undefined>();
+    const [deletingGoal, setDeletingGoal] = useState<FinancialGoal | null>(null);
+
     const [selectedAccountIds, setSelectedAccountIds] = useState<string[]>(() => {
         const primaryAccount = accounts.find(a => a.isPrimary);
         if (primaryAccount) {
@@ -158,6 +163,9 @@ const Forecasting: React.FC<ForecastingProps> = ({ accounts, transactions, recur
         );
 
         const goalsWithProjections = financialGoals.map(goal => {
+            if (goal.isBucket) { // Projections for buckets are calculated separately
+                return { ...goal, projection: undefined };
+            }
             const goalDate = goal.date ? new Date(goal.date) : null;
             let projectedDate = 'Beyond forecast';
             let status: 'on-track' | 'at-risk' | 'off-track' = 'off-track';
@@ -201,10 +209,69 @@ const Forecasting: React.FC<ForecastingProps> = ({ accounts, transactions, recur
 
     const { generatePlan, plan, isLoading: isPlanLoading, error: planError } = useSmartGoalPlanner(selectedAccounts, recurringTransactions, goalsWithProjections.filter(g => activeGoalIds.includes(g.id)));
 
-
     const handleToggleGoal = (id: string) => {
-        setActiveGoalIds(prev => prev.includes(id) ? prev.filter(gid => gid !== id) : [...prev, id]);
+        const goal = financialGoals.find(g => g.id === id);
+        if (!goal) return;
+    
+        let idsToToggle = [id];
+        if (goal.isBucket) {
+            const childIds = financialGoals.filter(g => g.parentId === id).map(g => g.id);
+            idsToToggle.push(...childIds);
+        }
+        
+        setActiveGoalIds(prev => {
+            const isActive = prev.includes(id);
+            if (isActive) {
+                return prev.filter(gid => !idsToToggle.includes(gid));
+            } else {
+                return [...new Set([...prev, ...idsToToggle])];
+            }
+        });
     };
+
+    const handleOpenModal = (goal?: FinancialGoal) => {
+        setEditingGoal(goal || null);
+        setParentIdForNewGoal(undefined);
+        setIsModalOpen(true);
+    };
+
+    const handleAddSubGoal = (parentId: string) => {
+        setEditingGoal(null);
+        setParentIdForNewGoal(parentId);
+        setIsModalOpen(true);
+    };
+    
+    const handleDeleteClick = (goalId: string) => {
+        const goal = financialGoals.find(g => g.id === goalId);
+        if (goal) setDeletingGoal(goal);
+    };
+
+    const handleConfirmDelete = () => {
+        if (!deletingGoal) return;
+        deleteFinancialGoal(deletingGoal.id);
+        setDeletingGoal(null);
+    };
+
+    const subGoalsOfDeleting = useMemo(() => {
+        if (!deletingGoal || !deletingGoal.isBucket) return [];
+        return financialGoals.filter(g => g.parentId === deletingGoal.id);
+    }, [deletingGoal, financialGoals]);
+
+    const { topLevelGoals, goalsByParentId } = useMemo(() => {
+        const topLevel: FinancialGoal[] = [];
+        const byParent = new Map<string, FinancialGoal[]>();
+        goalsWithProjections.forEach(g => {
+            if (g.parentId) {
+                if (!byParent.has(g.parentId)) {
+                    byParent.set(g.parentId, []);
+                }
+                byParent.get(g.parentId)!.push(g);
+            } else {
+                topLevel.push(g);
+            }
+        });
+        return { topLevelGoals: topLevel, goalsByParentId: byParent };
+    }, [goalsWithProjections]);
 
     const durationOptions: { label: string; value: ForecastDuration }[] = [
         { label: '3M', value: '3M' },
@@ -216,7 +283,17 @@ const Forecasting: React.FC<ForecastingProps> = ({ accounts, transactions, recur
     
     return (
         <div className="space-y-8">
-            {isModalOpen && <GoalScenarioModal onClose={() => setIsModalOpen(false)} onSave={(d) => { saveFinancialGoal(d); setIsModalOpen(false); }} goalToEdit={editingGoal} />}
+            {isModalOpen && <GoalScenarioModal onClose={() => setIsModalOpen(false)} onSave={(d) => { saveFinancialGoal(d); setIsModalOpen(false); }} goalToEdit={editingGoal} financialGoals={financialGoals} parentId={parentIdForNewGoal} />}
+            {deletingGoal && (
+                <ConfirmationModal
+                    isOpen={!!deletingGoal}
+                    onClose={() => setDeletingGoal(null)}
+                    onConfirm={handleConfirmDelete}
+                    title="Delete Goal"
+                    message={deletingGoal.isBucket ? `Are you sure you want to delete "${deletingGoal.name}" and its ${subGoalsOfDeleting.length} sub-goals? This action cannot be undone.` : `Are you sure you want to delete "${deletingGoal.name}"? This action cannot be undone.`}
+                    confirmButtonText="Delete"
+                />
+            )}
 
             <header className="flex flex-wrap justify-between items-center gap-4">
                 <div>
@@ -241,7 +318,7 @@ const Forecasting: React.FC<ForecastingProps> = ({ accounts, transactions, recur
                         ))}
                     </div>
                     
-                    <button onClick={() => { setEditingGoal(null); setIsModalOpen(true); }} className={BTN_PRIMARY_STYLE}>Add Goal / Scenario</button>
+                    <button onClick={() => handleOpenModal()} className={BTN_PRIMARY_STYLE}>Add Goal / Scenario</button>
                 </div>
             </header>
 
@@ -253,16 +330,27 @@ const Forecasting: React.FC<ForecastingProps> = ({ accounts, transactions, recur
             <div className="space-y-6">
                 <h3 className="text-2xl font-bold text-light-text dark:text-dark-text">Financial Goals</h3>
                 <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-                    {goalsWithProjections.map(goal => (
-                        <FinancialGoalCard 
-                            key={goal.id} 
-                            goal={goal} 
-                            isActive={activeGoalIds.includes(goal.id)}
-                            onToggle={handleToggleGoal}
-                            onEdit={(g) => { setEditingGoal(g); setIsModalOpen(true); }}
-                            onDelete={deleteFinancialGoal}
-                        />
-                    ))}
+                    {topLevelGoals.map(goal => {
+                        const subGoals = goalsByParentId.get(goal.id) || [];
+                        // FIX: A bucket's toggle should appear "on" if the bucket itself or any of its children are active.
+                        // This prevents the visual bug where the toggle appears stuck.
+                        const isEffectivelyActive = goal.isBucket
+                          ? activeGoalIds.includes(goal.id) || subGoals.some(sg => activeGoalIds.includes(sg.id))
+                          : activeGoalIds.includes(goal.id);
+
+                        return (
+                            <FinancialGoalCard 
+                                key={goal.id} 
+                                goal={goal}
+                                subGoals={subGoals}
+                                isActive={isEffectivelyActive}
+                                onToggle={handleToggleGoal}
+                                onEdit={handleOpenModal}
+                                onDelete={handleDeleteClick}
+                                onAddSubGoal={handleAddSubGoal}
+                            />
+                        );
+                    })}
                 </div>
             </div>
 

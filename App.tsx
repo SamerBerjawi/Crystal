@@ -784,15 +784,30 @@ export const App: React.FC = () => {
   
   const handleSaveFinancialGoal = (goalData: Omit<FinancialGoal, 'id'> & { id?: string }) => {
     if (goalData.id) {
-        setFinancialGoals(prev => prev.map(g => g.id === goalData.id ? { ...g, ...goalData } as FinancialGoal : g));
+      setFinancialGoals((prev) => prev.map((g) => (g.id === goalData.id ? { ...g, ...goalData } as FinancialGoal : g)));
     } else {
-        const newGoal: FinancialGoal = { ...goalData, id: `goal-${uuidv4()}` } as FinancialGoal;
-        setFinancialGoals(prev => [...prev, newGoal]);
+      const newGoal: FinancialGoal = { ...goalData, id: `goal-${uuidv4()}` } as FinancialGoal;
+      setFinancialGoals((prev) => [...prev, newGoal]);
+  
+      // FIX: If a new sub-goal is created and its parent is active, make the new goal active too.
+      if (newGoal.parentId && activeGoalIds.includes(newGoal.parentId)) {
+        setActiveGoalIds((prev) => [...prev, newGoal.id]);
+      }
     }
   };
 
   const handleDeleteFinancialGoal = (id: string) => {
-    setFinancialGoals(prev => prev.filter(g => g.id !== id));
+    const goalToDelete = financialGoals.find((g) => g.id === id);
+    if (!goalToDelete) return;
+  
+    let idsToDelete = [id];
+    if (goalToDelete.isBucket) {
+      const childIds = financialGoals.filter((g) => g.parentId === id).map((g) => g.id);
+      idsToDelete.push(...childIds);
+    }
+  
+    setFinancialGoals((prev) => prev.filter((g) => !idsToDelete.includes(g.id)));
+    setActiveGoalIds((prev) => prev.filter((activeId) => !idsToDelete.includes(activeId)));
   };
   
   const handleSaveBudget = (budgetData: Omit<Budget, 'id'> & { id?: string }) => {
