@@ -480,6 +480,7 @@ const Transactions: React.FC<TransactionsProps> = ({ transactions, saveTransacti
             accounts={accounts}
             incomeCategories={incomeCategories}
             expenseCategories={expenseCategories}
+            tags={tags}
           />
       )}
       {isDeleteConfirmOpen && (

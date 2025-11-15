@@ -1,6 +1,6 @@
-import React, { useState, useMemo } from 'react';
+import React, { useState, useMemo, useRef, useEffect } from 'react';
 import Modal from './Modal';
-import { Transaction, Account, Category } from '../types';
+import { Transaction, Account, Category, Tag } from '../types';
 import { INPUT_BASE_STYLE, BTN_PRIMARY_STYLE, BTN_SECONDARY_STYLE, SELECT_WRAPPER_STYLE, SELECT_ARROW_STYLE, CHECKBOX_STYLE } from '../constants';
 
 const CategoryOptions: React.FC<{ categories: Category[] }> = ({ categories }) => (
@@ -28,6 +28,7 @@ interface BulkEditTransactionsModalProps {
   accounts: Account[];
   incomeCategories: Category[];
   expenseCategories: Category[];
+  tags: Tag[];
 }
 
 const BulkEditTransactionsModal: React.FC<BulkEditTransactionsModalProps> = ({
@@ -38,6 +39,7 @@ const BulkEditTransactionsModal: React.FC<BulkEditTransactionsModalProps> = ({
   accounts,
   incomeCategories,
   expenseCategories,
+  tags,
 }) => {
   const [fieldsToUpdate, setFieldsToUpdate] = useState({
     date: false,
@@ -45,6 +47,7 @@ const BulkEditTransactionsModal: React.FC<BulkEditTransactionsModalProps> = ({
     description: false,
     merchant: false,
     category: false,
+    tags: false,
   });
 
   const [updatedValues, setUpdatedValues] = useState({
@@ -53,7 +56,21 @@ const BulkEditTransactionsModal: React.FC<BulkEditTransactionsModalProps> = ({
     description: '',
     merchant: '',
     category: '',
+    tagIds: [] as string[],
   });
+
+  const [isTagSelectorOpen, setIsTagSelectorOpen] = useState(false);
+  const tagSelectorRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    const handleClickOutside = (event: MouseEvent) => {
+      if (tagSelectorRef.current && !tagSelectorRef.current.contains(event.target as Node)) {
+        setIsTagSelectorOpen(false);
+      }
+    };
+    document.addEventListener("mousedown", handleClickOutside);
+    return () => document.removeEventListener("mousedown", handleClickOutside);
+  }, []);
 
   if (!isOpen) return null;
 
@@ -61,9 +78,20 @@ const BulkEditTransactionsModal: React.FC<BulkEditTransactionsModalProps> = ({
     setFieldsToUpdate(prev => ({ ...prev, [field]: !prev[field] }));
   };
 
-  const handleChange = (field: keyof typeof updatedValues, value: string) => {
+  const handleChange = (field: keyof Omit<typeof updatedValues, 'tagIds'>, value: string) => {
     setUpdatedValues(prev => ({ ...prev, [field]: value }));
   };
+
+  const handleTagToggle = (tagId: string) => {
+    setUpdatedValues(prev => ({
+        ...prev,
+        tagIds: prev.tagIds.includes(tagId) ? prev.tagIds.filter(id => id !== tagId) : [...prev.tagIds, tagId]
+    }));
+  };
+  
+  const selectedTags = useMemo(() => {
+    return updatedValues.tagIds.map(id => tags.find(t => t.id === id)).filter(Boolean) as Tag[];
+  }, [updatedValues.tagIds, tags]);
   
   const allCategories = useMemo(() => [...expenseCategories, ...incomeCategories], [expenseCategories, incomeCategories]);
 
@@ -88,6 +116,7 @@ const BulkEditTransactionsModal: React.FC<BulkEditTransactionsModalProps> = ({
       if (fieldsToUpdate.accountId) updatedTx.accountId = updatedValues.accountId;
       if (fieldsToUpdate.description) updatedTx.description = updatedValues.description;
       if (fieldsToUpdate.merchant) updatedTx.merchant = updatedValues.merchant;
+      if (fieldsToUpdate.tags) updatedTx.tagIds = updatedValues.tagIds;
 
       if (fieldsToUpdate.category) {
         updatedTx.category = updatedValues.category;
@@ -160,6 +189,52 @@ const BulkEditTransactionsModal: React.FC<BulkEditTransactionsModalProps> = ({
                     <div className={SELECT_ARROW_STYLE}><span className="material-symbols-outlined">expand_more</span></div>
                 </div>
                  <p className="text-xs text-light-text-secondary dark:text-dark-text-secondary mt-1">Changing category will also update the transaction type (income/expense) and adjust the amount sign accordingly.</p>
+            </CheckboxField>
+            
+            <CheckboxField field="tags" label="Change Tags">
+                <div className="relative" ref={tagSelectorRef}>
+                    <div
+                        onClick={() => setIsTagSelectorOpen(prev => !prev)}
+                        className={`${INPUT_BASE_STYLE} flex items-center flex-wrap gap-1 cursor-pointer h-auto min-h-10 py-1.5`}
+                    >
+                        {selectedTags.length > 0 ? (
+                            selectedTags.map(tag => (
+                                <span key={tag.id} className="flex items-center gap-1 text-xs px-2 py-0.5 rounded-full" style={{ backgroundColor: `${tag.color}30`, color: tag.color }}>
+                                    {tag.name}
+                                    <button
+                                        type="button"
+                                        onClick={(e) => { e.stopPropagation(); handleTagToggle(tag.id); }}
+                                        className="text-xs hover:text-black dark:hover:text-white"
+                                    >
+                                        &times;
+                                    </button>
+                                </span>
+                            ))
+                        ) : (
+                            <span className="text-light-text-secondary dark:text-dark-text-secondary px-1">Select tags to apply...</span>
+                        )}
+                    </div>
+                    {isTagSelectorOpen && (
+                        <div className="absolute top-full left-0 mt-1 w-full bg-light-card dark:bg-dark-card rounded-lg shadow-lg border border-black/10 dark:border-white/10 z-10 max-h-48 overflow-y-auto">
+                            {tags.length > 0 ? tags.map(tag => (
+                                <label key={tag.id} className="flex items-center gap-3 p-2 hover:bg-black/5 dark:hover:bg-white/5 cursor-pointer">
+                                    <input
+                                        type="checkbox"
+                                        checked={updatedValues.tagIds.includes(tag.id)}
+                                        onChange={() => handleTagToggle(tag.id)}
+                                        className={CHECKBOX_STYLE}
+                                    />
+                                    <span className="text-sm font-medium">{tag.name}</span>
+                                </label>
+                            )) : (
+                              <div className="p-4 text-center text-sm text-light-text-secondary dark:text-dark-text-secondary">
+                                No tags created yet.
+                              </div>
+                            )}
+                        </div>
+                    )}
+                </div>
+                <p className="text-xs text-light-text-secondary dark:text-dark-text-secondary mt-1">This will replace all existing tags on the selected transactions.</p>
             </CheckboxField>
 
             <div className="flex justify-end gap-4 pt-4 mt-4 border-t border-black/10 dark:border-white/10">
