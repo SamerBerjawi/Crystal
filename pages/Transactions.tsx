@@ -6,8 +6,8 @@ import { formatCurrency, fuzzySearch, convertToEur, arrayToCSV, downloadCSV } fr
 import AddTransactionModal from '../components/AddTransactionModal';
 import BulkCategorizeModal from '../components/BulkCategorizeModal';
 import BulkEditTransactionsModal from '../components/BulkEditTransactionsModal';
-import Modal from '../components/Modal';
 import RecurringTransactionModal from '../components/RecurringTransactionModal';
+import ConfirmationModal from '../components/ConfirmationModal';
 
 interface TransactionsProps {
   transactions: Transaction[];
@@ -24,19 +24,38 @@ interface TransactionsProps {
   saveRecurringTransaction: (recurringData: Omit<RecurringTransaction, 'id'> & { id?: string }) => void;
 }
 
+const CategoryOptions: React.FC<{ categories: Category[], label: string }> = ({ categories, label }) => (
+    <optgroup label={label}>
+        {categories.map(parentCat => (
+            <React.Fragment key={parentCat.id}>
+                <option value={parentCat.name}>{parentCat.name}</option>
+                {parentCat.subCategories.map(subCat => (
+                    <option key={subCat.id} value={subCat.name}>
+                        &nbsp;&nbsp;{subCat.name}
+                    </option>
+                ))}
+            </React.Fragment>
+        ))}
+    </optgroup>
+);
+
+
 const Transactions: React.FC<TransactionsProps> = ({ transactions, saveTransaction, deleteTransactions, accounts, accountFilter, setAccountFilter, incomeCategories, expenseCategories, tags, tagFilter, setTagFilter, saveRecurringTransaction }) => {
   const [searchTerm, setSearchTerm] = useState('');
   const [sortBy, setSortBy] = useState('date-desc');
   const [typeFilter, setTypeFilter] = useState<'all' | 'income' | 'expense' | 'transfer'>('all');
   const [startDate, setStartDate] = useState('');
   const [endDate, setEndDate] = useState('');
+  const [categoryFilter, setCategoryFilter] = useState<string | null>(null);
+  const [minAmount, setMinAmount] = useState('');
+  const [maxAmount, setMaxAmount] = useState('');
+
   const [isTransactionModalOpen, setTransactionModalOpen] = useState(false);
   const [editingTransaction, setEditingTransaction] = useState<Transaction | null>(null);
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
   const [isCategorizeModalOpen, setIsCategorizeModalOpen] = useState(false);
   const [isBulkEditModalOpen, setBulkEditModalOpen] = useState(false);
   const [isDeleteConfirmOpen, setIsDeleteConfirmOpen] = useState(false);
-  const [isFiltersOpen, setIsFiltersOpen] = useState(false);
   const [isRecurringModalOpen, setIsRecurringModalOpen] = useState(false);
   const [transactionToMakeRecurring, setTransactionToMakeRecurring] = useState<RecurringTransaction | null>(null);
   const searchInputRef = useRef<HTMLInputElement>(null);
@@ -126,7 +145,6 @@ const Transactions: React.FC<TransactionsProps> = ({ transactions, saveTransacti
     return result;
   }, [transactions, accountMap]);
 
-
   const filteredTransactions = useMemo(() => {
     const startDateTime = startDate ? new Date(startDate) : null;
     if (startDateTime) startDateTime.setHours(0, 0, 0, 0);
@@ -134,6 +152,17 @@ const Transactions: React.FC<TransactionsProps> = ({ transactions, saveTransacti
     const endDateTime = endDate ? new Date(endDate) : null;
     if (endDateTime) endDateTime.setHours(23, 59, 59, 999);
     
+    const getParentCategoryName = (categoryName: string): string | undefined => {
+        const findParent = (categories: Category[]): string | undefined => {
+            for (const parent of categories) {
+                if (parent.name === categoryName) return parent.name; // It's a parent
+                if (parent.subCategories.some(sub => sub.name === categoryName)) return parent.name;
+            }
+            return undefined;
+        };
+        return findParent(allCategories);
+    };
+
     const transactionList = displayTransactions.filter(tx => {
         const matchAccount = !accountFilter || (tx.isTransfer ? tx.fromAccountName === accountFilter || tx.toAccountName === accountFilter : tx.accountName === accountFilter);
         
@@ -162,7 +191,15 @@ const Transactions: React.FC<TransactionsProps> = ({ transactions, saveTransacti
 
         const matchTag = !tagFilter || (tx.tagIds && tx.tagIds.includes(tagFilter));
 
-        return matchAccount && matchTag && matchSearch && matchType && matchStartDate && matchEndDate;
+        const matchCategory = !categoryFilter || tx.category === categoryFilter || getParentCategoryName(tx.category) === categoryFilter;
+
+        const txAbsAmount = Math.abs(convertToEur(tx.amount, tx.currency));
+        const min = parseFloat(minAmount);
+        const max = parseFloat(maxAmount);
+        const matchMinAmount = isNaN(min) || txAbsAmount >= min;
+        const matchMaxAmount = isNaN(max) || txAbsAmount <= max;
+
+        return matchAccount && matchTag && matchSearch && matchType && matchStartDate && matchEndDate && matchCategory && matchMinAmount && matchMaxAmount;
       });
     
     return transactionList.sort((a, b) => {
@@ -170,16 +207,16 @@ const Transactions: React.FC<TransactionsProps> = ({ transactions, saveTransacti
         case 'date-asc':
           return new Date(a.date.replace(/-/g, '/')).getTime() - new Date(b.date.replace(/-/g, '/')).getTime();
         case 'amount-desc':
-          return b.amount - a.amount;
+          return Math.abs(b.amount) - Math.abs(a.amount);
         case 'amount-asc':
-          return a.amount - b.amount;
+          return Math.abs(a.amount) - Math.abs(b.amount);
         case 'date-desc':
         default:
           return new Date(b.date.replace(/-/g, '/')).getTime() - new Date(a.date.replace(/-/g, '/')).getTime();
       }
     });
 
-  }, [searchTerm, accountFilter, sortBy, typeFilter, startDate, endDate, displayTransactions, tagFilter]);
+  }, [searchTerm, accountFilter, sortBy, typeFilter, startDate, endDate, displayTransactions, tagFilter, categoryFilter, minAmount, maxAmount, allCategories]);
   
     const groupedTransactions = useMemo(() => {
         const groups: Record<string, { transactions: DisplayTransaction[]; total: number }> = {};
@@ -419,18 +456,36 @@ const Transactions: React.FC<TransactionsProps> = ({ transactions, saveTransacti
     downloadCSV(csv, `crystal-transactions-${new Date().toISOString().split('T')[0]}.csv`);
   };
   
+  const clearFilters = () => {
+    setSearchTerm('');
+    setAccountFilter(null);
+    setCategoryFilter(null);
+    setTagFilter(null);
+    setTypeFilter('all');
+    setStartDate('');
+    setEndDate('');
+    setMinAmount('');
+    setMaxAmount('');
+    setSortBy('date-desc');
+  };
+
   const formatGroupDate = (dateString: string) => {
     const date = new Date(dateString.replace(/-/g, '/'));
     return date.toLocaleDateString('en-US', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric', timeZone: 'UTC' });
   }
   
-  const labelStyle = "block text-sm font-medium text-light-text-secondary dark:text-dark-text-secondary mb-1";
+  const labelStyle = "block text-xs font-medium text-light-text-secondary dark:text-dark-text-secondary mb-1";
   const newTypeFilterOptions: { label: string; value: 'all' | 'income' | 'expense' | 'transfer' }[] = [
     { label: 'All transactions', value: 'all' },
     { label: 'Expenses', value: 'expense' },
     { label: 'Income', value: 'income' },
     { label: 'Transfers', value: 'transfer' },
   ];
+
+  const activeTag = useMemo(() => {
+    if (!tagFilter) return null;
+    return tags.find(t => t.id === tagFilter);
+  }, [tagFilter, tags]);
 
   return (
     <div className="space-y-6 flex flex-col h-full">
@@ -483,49 +538,15 @@ const Transactions: React.FC<TransactionsProps> = ({ transactions, saveTransacti
             tags={tags}
           />
       )}
-      {isDeleteConfirmOpen && (
-          <Modal onClose={() => setIsDeleteConfirmOpen(false)} title="Confirm Deletion">
-              <p className="text-light-text-secondary dark:text-dark-text-secondary">
-                  Are you sure you want to delete {selectedIds.size} transaction(s)? This action cannot be undone.
-              </p>
-              <div className="flex justify-end gap-4 pt-6">
-                  <button type="button" onClick={() => setIsDeleteConfirmOpen(false)} className={BTN_SECONDARY_STYLE}>
-                      Cancel
-                  </button>
-                  <button type="button" onClick={handleConfirmBulkDelete} className="bg-semantic-red text-white font-semibold py-2 px-4 rounded-lg shadow-card hover:bg-red-600 transition-all duration-200">
-                      Delete
-                  </button>
-              </div>
-          </Modal>
-      )}
-      {isFiltersOpen && (
-        <Modal onClose={() => setIsFiltersOpen(false)} title="Filters & Sort">
-            <div className="space-y-4">
-                <div>
-                    <label htmlFor="account-filter" className={labelStyle}>Account</label>
-                    <div className={SELECT_WRAPPER_STYLE}>
-                        <select id="account-filter" value={accountFilter || ''} onChange={(e) => setAccountFilter(e.target.value || null)} className={INPUT_BASE_STYLE}>
-                            <option value="">All Accounts</option>
-                            {accounts.map(acc => (<option key={acc.id} value={acc.name}>{acc.name}</option>))}
-                        </select>
-                        <div className={SELECT_ARROW_STYLE}><span className="material-symbols-outlined">expand_more</span></div>
-                    </div>
-                </div>
-                <div>
-                    <label htmlFor="sort-by" className={labelStyle}>Sort By</label>
-                    <div className={SELECT_WRAPPER_STYLE}>
-                        <select id="sort-by" value={sortBy} onChange={(e) => setSortBy(e.target.value)} className={INPUT_BASE_STYLE}>
-                            <option value="date-desc">Date (Newest)</option>
-                            <option value="date-asc">Date (Oldest)</option>
-                            <option value="amount-desc">Amount (High-Low)</option>
-                            <option value="amount-asc">Amount (Low-High)</option>
-                        </select>
-                        <div className={SELECT_ARROW_STYLE}><span className="material-symbols-outlined">expand_more</span></div>
-                    </div>
-                </div>
-            </div>
-        </Modal>
-      )}
+      <ConfirmationModal
+        isOpen={isDeleteConfirmOpen}
+        onClose={() => setIsDeleteConfirmOpen(false)}
+        onConfirm={handleConfirmBulkDelete}
+        title="Confirm Deletion"
+        message={`Are you sure you want to delete ${selectedIds.size} transaction(s)? This action cannot be undone.`}
+        confirmButtonText="Delete"
+        confirmButtonVariant="danger"
+      />
        {contextMenu && (
             <div
                 ref={contextMenuRef}
@@ -597,38 +618,34 @@ const Transactions: React.FC<TransactionsProps> = ({ transactions, saveTransacti
                 ))}
             </nav>
         </div>
-
-        <div className="mt-6 flex items-center gap-4">
-            <div className="flex items-center flex-grow rounded-lg bg-light-fill dark:bg-dark-fill h-11">
-                <div className="relative flex-grow flex items-center h-full">
-                    <span className="material-symbols-outlined absolute left-3 text-light-text-secondary dark:text-dark-text-secondary pointer-events-none">search</span>
-                    <input
-                        ref={searchInputRef}
-                        type="text"
-                        placeholder="Search for transactions..."
-                        value={searchTerm}
-                        onChange={(e) => setSearchTerm(e.target.value)}
-                        className="bg-transparent w-full h-full pl-10 pr-12 focus:outline-none text-light-text dark:text-dark-text placeholder:text-light-text-secondary dark:placeholder:text-dark-text-secondary rounded-l-lg"
-                    />
-                    <div className="absolute inset-y-0 right-0 flex items-center pr-1.5">
-                        <kbd className="inline-flex items-center rounded bg-gray-200 dark:bg-gray-700 px-2 text-sm font-sans font-medium text-gray-500 dark:text-gray-400">
-                            ⌘K
-                        </kbd>
+        
+        <Card className="mt-4 p-4">
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+                <div className="sm:col-span-2 lg:col-span-4">
+                    <label htmlFor="search" className={labelStyle}>Search</label>
+                    <div className="relative">
+                        <span className="material-symbols-outlined absolute left-3 top-1/2 -translate-y-1/2 text-light-text-secondary dark:text-dark-text-secondary pointer-events-none">search</span>
+                        <input ref={searchInputRef} type="text" id="search" placeholder="Search description, merchant, category..." value={searchTerm} onChange={(e) => setSearchTerm(e.target.value)} className={`${INPUT_BASE_STYLE} pl-10`} />
                     </div>
                 </div>
-                <div className="h-6 w-px bg-light-separator/50 dark:bg-dark-separator/50"></div>
-                <div className="flex items-center gap-2 px-3">
-                    <span className="material-symbols-outlined text-light-text-secondary dark:text-dark-text-secondary text-base">calendar_today</span>
-                    <input id="start-date" type="date" value={startDate} onChange={e => setStartDate(e.target.value)} className="bg-transparent focus:outline-none text-sm text-light-text dark:text-dark-text" placeholder="From"/>
-                    <span className="text-light-text-secondary dark:text-dark-text-secondary">-</span>
-                    <input id="end-date" type="date" value={endDate} onChange={e => setEndDate(e.target.value)} className="bg-transparent focus:outline-none text-sm text-light-text dark:text-dark-text" placeholder="To"/>
+                <div><label htmlFor="account-filter" className={labelStyle}>Account</label><div className={SELECT_WRAPPER_STYLE}><select id="account-filter" value={accountFilter || ''} onChange={(e) => setAccountFilter(e.target.value || null)} className={INPUT_BASE_STYLE}><option value="">All Accounts</option>{accounts.map(acc => (<option key={acc.id} value={acc.name}>{acc.name}</option>))}</select><div className={SELECT_ARROW_STYLE}><span className="material-symbols-outlined">expand_more</span></div></div></div>
+                <div><label htmlFor="category-filter" className={labelStyle}>Category</label><div className={SELECT_WRAPPER_STYLE}><select id="category-filter" value={categoryFilter || ''} onChange={(e) => setCategoryFilter(e.target.value || null)} className={INPUT_BASE_STYLE}><option value="">All Categories</option><CategoryOptions categories={expenseCategories} label="--- EXPENSES ---" /><CategoryOptions categories={incomeCategories} label="--- INCOME ---" /></select><div className={SELECT_ARROW_STYLE}><span className="material-symbols-outlined">expand_more</span></div></div></div>
+                <div><label htmlFor="tag-filter" className={labelStyle}>Tag</label><div className={SELECT_WRAPPER_STYLE}><select id="tag-filter" value={tagFilter || ''} onChange={(e) => setTagFilter(e.target.value || null)} className={INPUT_BASE_STYLE}><option value="">All Tags</option>{tags.map(tag => (<option key={tag.id} value={tag.id}>{tag.name}</option>))}</select><div className={SELECT_ARROW_STYLE}><span className="material-symbols-outlined">expand_more</span></div></div></div>
+                <div><label htmlFor="sort-by" className={labelStyle}>Sort By</label><div className={SELECT_WRAPPER_STYLE}><select id="sort-by" value={sortBy} onChange={(e) => setSortBy(e.target.value)} className={INPUT_BASE_STYLE}><option value="date-desc">Date (Newest)</option><option value="date-asc">Date (Oldest)</option><option value="amount-desc">Amount (High-Low)</option><option value="amount-asc">Amount (Low-High)</option></select><div className={SELECT_ARROW_STYLE}><span className="material-symbols-outlined">expand_more</span></div></div></div>
+                <div className="flex items-end gap-2">
+                    <div><label htmlFor="start-date" className={labelStyle}>From Date</label><input id="start-date" type="date" value={startDate} onChange={e => setStartDate(e.target.value)} className={INPUT_BASE_STYLE}/></div>
+                    <div><label htmlFor="end-date" className={labelStyle}>To Date</label><input id="end-date" type="date" value={endDate} onChange={e => setEndDate(e.target.value)} className={INPUT_BASE_STYLE}/></div>
+                </div>
+                <div className="flex items-end gap-2">
+                    <div><label htmlFor="min-amount" className={labelStyle}>Min Amount</label><input id="min-amount" type="number" placeholder="0.00" value={minAmount} onChange={e => setMinAmount(e.target.value)} className={INPUT_BASE_STYLE}/></div>
+                    <div><label htmlFor="max-amount" className={labelStyle}>Max Amount</label><input id="max-amount" type="number" placeholder="1000.00" value={maxAmount} onChange={e => setMaxAmount(e.target.value)} className={INPUT_BASE_STYLE}/></div>
+                </div>
+                <div className="col-span-full flex justify-end items-center gap-4 pt-2">
+                    {activeTag && <div className="flex items-center gap-2 text-sm mr-auto"><span className="text-light-text-secondary dark:text-dark-text-secondary">Filtering by tag:</span><span className="font-semibold px-2 py-1 rounded-full text-xs" style={{backgroundColor: `${activeTag.color}30`, color: activeTag.color}}>{activeTag.name}</span></div>}
+                    <button onClick={clearFilters} className={BTN_SECONDARY_STYLE}>Clear All Filters</button>
                 </div>
             </div>
-            <button onClick={() => setIsFiltersOpen(true)} className={`${BTN_SECONDARY_STYLE} h-11 flex items-center gap-2`}>
-                <span className="material-symbols-outlined text-base">filter_list</span>
-                Filters
-            </button>
-        </div>
+        </Card>
       </div>
       
       <div className="flex-1 min-h-0 relative">
