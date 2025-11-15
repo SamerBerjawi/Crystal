@@ -18,12 +18,13 @@ interface AccountsProps {
     setCurrentPage: (page: Page) => void;
     setAccountFilter: (accountName: string | null) => void;
     setViewingAccountId: (id: string) => void;
-    saveTransaction: (transactions: (Omit<Transaction, 'id'> & { id?: string })[], idsToDelete?: string[]) => void;
+    saveTransaction: (transactions: (Omit<Account, 'id'> & { id?: string })[], idsToDelete?: string[]) => void;
     accountOrder: string[];
     setAccountOrder: React.Dispatch<React.SetStateAction<string[]>>;
     sortBy: 'name' | 'balance' | 'manual';
     setSortBy: React.Dispatch<React.SetStateAction<'name' | 'balance' | 'manual'>>;
     warrants: Warrant[];
+    onToggleAccountStatus: (accountId: string) => void;
 }
 
 // A new component for the list section
@@ -39,8 +40,9 @@ const AccountsListSection: React.FC<{
     accountOrder: string[];
     setAccountOrder: React.Dispatch<React.SetStateAction<string[]>>;
     onContextMenu: (event: React.MouseEvent, account: Account) => void;
-}> = ({ title, accounts, transactions, warrants, onAccountClick, onEditClick, onAdjustBalanceClick, sortBy, accountOrder, setAccountOrder, onContextMenu }) => {
-    const [expandedGroups, setExpandedGroups] = useState<Record<string, boolean>>({});
+    isCollapsible?: boolean;
+}> = ({ title, accounts, transactions, warrants, onAccountClick, onEditClick, onAdjustBalanceClick, sortBy, accountOrder, setAccountOrder, onContextMenu, isCollapsible = true }) => {
+    const [isExpanded, setIsExpanded] = useState(isCollapsible ? false : true);
     const [draggedId, setDraggedId] = useState<string | null>(null);
     const [dragOverId, setDragOverId] = useState<string | null>(null);
 
@@ -73,6 +75,8 @@ const AccountsListSection: React.FC<{
 
     const groupOrder = useMemo(() => Object.keys(groupedAccounts).sort(), [groupedAccounts]);
 
+    const [expandedGroups, setExpandedGroups] = useState<Record<string, boolean>>({});
+
     useEffect(() => {
         const initialExpanded: Record<string, boolean> = {};
         groupOrder.forEach(key => initialExpanded[key] = true);
@@ -101,61 +105,70 @@ const AccountsListSection: React.FC<{
         handleDragEnd();
     };
 
+    if (accounts.length === 0) {
+        return null;
+    }
+
     return (
         <section>
-            <h3 className="text-2xl font-bold text-light-text dark:text-dark-text mb-4">{title}</h3>
-            <Card className="p-0">
-                <div className="divide-y divide-light-separator dark:divide-dark-separator">
-                    {groupOrder.length > 0 ? groupOrder.map(groupName => {
-                        const accountsInGroup = groupedAccounts[groupName as AccountType];
-                        const groupTotal = accountsInGroup.reduce((sum, acc) => sum + convertToEur(acc.balance, acc.currency), 0);
-                        return (
-                            <div key={groupName} className="py-2 px-4">
-                                <div onClick={() => toggleGroup(groupName)} className="flex justify-between items-center py-2 cursor-pointer">
-                                    <div className="flex items-center gap-2">
-                                        <span className={`material-symbols-outlined transition-transform duration-200 ${expandedGroups[groupName] ? 'rotate-90' : ''}`}>chevron_right</span>
-                                        <h4 className="font-semibold text-light-text dark:text-dark-text">{groupName} ({accountsInGroup.length})</h4>
+             <div onClick={() => isCollapsible && setIsExpanded(prev => !prev)} className={`flex justify-between items-center mb-4 ${isCollapsible ? 'cursor-pointer' : ''}`}>
+                <h3 className="text-2xl font-bold text-light-text dark:text-dark-text">{title}</h3>
+                {isCollapsible && <span className={`material-symbols-outlined transition-transform duration-200 ${isExpanded ? 'rotate-180' : ''}`}>expand_more</span>}
+            </div>
+            {isExpanded && (
+                <Card className="p-0">
+                    <div className="divide-y divide-light-separator dark:divide-dark-separator">
+                        {groupOrder.length > 0 ? groupOrder.map(groupName => {
+                            const accountsInGroup = groupedAccounts[groupName as AccountType];
+                            const groupTotal = accountsInGroup.reduce((sum, acc) => sum + convertToEur(acc.balance, acc.currency), 0);
+                            return (
+                                <div key={groupName} className="py-2 px-4">
+                                    <div onClick={() => toggleGroup(groupName)} className="flex justify-between items-center py-2 cursor-pointer">
+                                        <div className="flex items-center gap-2">
+                                            <span className={`material-symbols-outlined transition-transform duration-200 ${expandedGroups[groupName] ? 'rotate-90' : ''}`}>chevron_right</span>
+                                            <h4 className="font-semibold text-light-text dark:text-dark-text">{groupName} ({accountsInGroup.length})</h4>
+                                        </div>
+                                        <span className="font-mono text-sm">{formatCurrency(groupTotal, 'EUR')}</span>
                                     </div>
-                                    <span className="font-mono text-sm">{formatCurrency(groupTotal, 'EUR')}</span>
+                                    {expandedGroups[groupName] && (
+                                        <div className="mt-2 space-y-1">
+                                            {accountsInGroup.map(acc => (
+                                            <AccountRow
+                                                key={acc.id}
+                                                account={acc}
+                                                transactions={transactions.filter(t => t.accountId === acc.id)}
+                                                warrants={warrants}
+                                                onClick={() => onAccountClick(acc.id)}
+                                                onEdit={() => onEditClick(acc)}
+                                                onAdjustBalance={() => onAdjustBalanceClick(acc)}
+                                                isDraggable={sortBy === 'manual'}
+                                                isBeingDragged={draggedId === acc.id}
+                                                isDragOver={dragOverId === acc.id}
+                                                onDragStart={(e) => handleDragStart(e, acc.id)}
+                                                onDragOver={(e) => handleDragOver(e, acc.id)}
+                                                onDragLeave={handleDragLeave}
+                                                onDrop={(e) => handleDrop(e, acc.id)}
+                                                onDragEnd={handleDragEnd}
+                                                onContextMenu={(e) => onContextMenu(e, acc)}
+                                            />
+                                            ))}
+                                        </div>
+                                    )}
                                 </div>
-                                {expandedGroups[groupName] && (
-                                    <div className="mt-2 space-y-1">
-                                        {accountsInGroup.map(acc => (
-                                        <AccountRow
-                                            key={acc.id}
-                                            account={acc}
-                                            transactions={transactions.filter(t => t.accountId === acc.id)}
-                                            warrants={warrants}
-                                            onClick={() => onAccountClick(acc.id)}
-                                            onEdit={() => onEditClick(acc)}
-                                            onAdjustBalance={() => onAdjustBalanceClick(acc)}
-                                            isDraggable={sortBy === 'manual'}
-                                            isBeingDragged={draggedId === acc.id}
-                                            isDragOver={dragOverId === acc.id}
-                                            onDragStart={(e) => handleDragStart(e, acc.id)}
-                                            onDragOver={(e) => handleDragOver(e, acc.id)}
-                                            onDragLeave={handleDragLeave}
-                                            onDrop={(e) => handleDrop(e, acc.id)}
-                                            onDragEnd={handleDragEnd}
-                                            onContextMenu={(e) => onContextMenu(e, acc)}
-                                        />
-                                        ))}
-                                    </div>
-                                )}
+                            );
+                        }) : (
+                            <div className="text-center py-8 text-light-text-secondary dark:text-dark-text-secondary">
+                                <p>No {title.toLowerCase()} found.</p>
                             </div>
-                        );
-                    }) : (
-                        <div className="text-center py-8 text-light-text-secondary dark:text-dark-text-secondary">
-                            <p>No {title.toLowerCase()} found.</p>
-                        </div>
-                    )}
-                </div>
-            </Card>
+                        )}
+                    </div>
+                </Card>
+            )}
         </section>
     );
 };
 
-const Accounts: React.FC<AccountsProps> = ({ accounts, transactions, saveAccount, deleteAccount, setCurrentPage, setAccountFilter, setViewingAccountId, saveTransaction, accountOrder, setAccountOrder, sortBy, setSortBy, warrants }) => {
+const Accounts: React.FC<AccountsProps> = ({ accounts, transactions, saveAccount, deleteAccount, setCurrentPage, setAccountFilter, setViewingAccountId, saveTransaction, accountOrder, setAccountOrder, sortBy, setSortBy, warrants, onToggleAccountStatus }) => {
   const [isAddModalOpen, setAddModalOpen] = useState(false);
   const [isEditModalOpen, setEditModalOpen] = useState(false);
   const [editingAccount, setEditingAccount] = useState<Account | null>(null);
@@ -179,12 +192,12 @@ const Accounts: React.FC<AccountsProps> = ({ accounts, transactions, saveAccount
   
 
   // --- Data Processing ---
-  const { assetAccounts, debtAccounts, totalAssets, totalDebt, assetBreakdown, debtBreakdown } = useMemo(() => {
+  const { openAccounts, closedAccounts, totalAssets, totalDebt, assetBreakdown, debtBreakdown } = useMemo(() => {
     const safeAccounts = accounts || [];
-    const assets = safeAccounts.filter(acc => ASSET_TYPES.includes(acc.type));
-    const debts = safeAccounts.filter(acc => DEBT_TYPES.includes(acc.type));
-
-    const { totalAssets, totalDebt } = calculateAccountTotals(safeAccounts);
+    const open = safeAccounts.filter(acc => acc.status !== 'closed');
+    const closed = safeAccounts.filter(acc => acc.status === 'closed');
+    
+    const { totalAssets, totalDebt } = calculateAccountTotals(open);
 
     const colorClassToHex: { [key: string]: string } = {
         'text-blue-500': '#3b82f6', 'text-green-500': '#22c55e', 'text-orange-500': '#f97316',
@@ -204,15 +217,17 @@ const Accounts: React.FC<AccountsProps> = ({ accounts, transactions, saveAccount
     };
 
     return {
-        assetAccounts: assets,
-        debtAccounts: debts,
+        openAccounts: open,
+        closedAccounts: closed,
         totalAssets,
         totalDebt,
-        assetBreakdown: createBreakdown(assets),
-        debtBreakdown: createBreakdown(debts),
+        assetBreakdown: createBreakdown(open.filter(acc => ASSET_TYPES.includes(acc.type))),
+        debtBreakdown: createBreakdown(open.filter(acc => DEBT_TYPES.includes(acc.type))),
     };
   }, [accounts]);
   
+  const assetAccounts = useMemo(() => openAccounts.filter(acc => ASSET_TYPES.includes(acc.type)), [openAccounts]);
+  const debtAccounts = useMemo(() => openAccounts.filter(acc => DEBT_TYPES.includes(acc.type)), [openAccounts]);
 
   // --- Handlers ---
   const handleAccountClick = (accountId: string) => {
@@ -249,7 +264,7 @@ const Accounts: React.FC<AccountsProps> = ({ accounts, transactions, saveAccount
         currency: adjustingAccount.currency,
     };
     
-    saveTransaction([txData]);
+    saveTransaction([txData] as any, []);
     closeAdjustModal();
   };
 
@@ -272,7 +287,7 @@ const Accounts: React.FC<AccountsProps> = ({ accounts, transactions, saveAccount
   return (
     <div className="space-y-8">
       {isAddModalOpen && <AddAccountModal onClose={() => setAddModalOpen(false)} onAdd={handleAddAccount} accounts={accounts} />}
-      {isEditModalOpen && editingAccount && <EditAccountModal onClose={() => setEditModalOpen(false)} onSave={handleUpdateAccount} onDelete={(accountId) => { setEditModalOpen(false); setDeletingAccount(editingAccount);}} account={editingAccount} accounts={accounts} warrants={warrants} />}
+      {isEditModalOpen && editingAccount && <EditAccountModal onClose={() => setEditModalOpen(false)} onSave={handleUpdateAccount} onDelete={(accountId) => { setEditModalOpen(false); setDeletingAccount(editingAccount);}} account={editingAccount} accounts={accounts} warrants={warrants} onToggleStatus={onToggleAccountStatus} />}
       {isAdjustModalOpen && adjustingAccount && (
         <BalanceAdjustmentModal
             onClose={closeAdjustModal}
@@ -318,6 +333,12 @@ const Accounts: React.FC<AccountsProps> = ({ accounts, transactions, saveAccount
                     <button onClick={() => { openEditModal(contextMenu.account); setContextMenu(null); }} className="w-full text-left flex items-center gap-3 px-4 py-2 hover:bg-black/5 dark:hover:bg-white/10">
                         <span className="material-symbols-outlined text-base">edit</span>
                         <span>Edit Account</span>
+                    </button>
+                </li>
+                <li>
+                    <button onClick={() => { onToggleAccountStatus(contextMenu.account.id); setContextMenu(null); }} className="w-full text-left flex items-center gap-3 px-4 py-2 hover:bg-black/5 dark:hover:bg-white/10">
+                         <span className="material-symbols-outlined text-base">{contextMenu.account.status === 'closed' ? 'undo' : 'archive'}</span>
+                        <span>{contextMenu.account.status === 'closed' ? 'Reopen Account' : 'Close Account'}</span>
                     </button>
                 </li>
                 <li>
@@ -376,6 +397,7 @@ const Accounts: React.FC<AccountsProps> = ({ accounts, transactions, saveAccount
             accountOrder={accountOrder}
             setAccountOrder={setAccountOrder}
             onContextMenu={handleContextMenu}
+            isCollapsible={false}
         />
         <AccountsListSection 
             title="Liability Accounts" 
@@ -389,6 +411,21 @@ const Accounts: React.FC<AccountsProps> = ({ accounts, transactions, saveAccount
             accountOrder={accountOrder}
             setAccountOrder={setAccountOrder}
             onContextMenu={handleContextMenu}
+            isCollapsible={false}
+        />
+        <AccountsListSection 
+            title="Closed Accounts" 
+            accounts={closedAccounts}
+            transactions={transactions}
+            warrants={warrants}
+            onAccountClick={handleAccountClick}
+            onEditClick={openEditModal}
+            onAdjustBalanceClick={openAdjustModal}
+            sortBy={sortBy}
+            accountOrder={accountOrder}
+            setAccountOrder={setAccountOrder}
+            onContextMenu={handleContextMenu}
+            isCollapsible={true}
         />
       </div>
     </div>

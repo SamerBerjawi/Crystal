@@ -1,3 +1,5 @@
+
+
 import React, { useState, useEffect, useMemo } from 'react';
 import Modal from './Modal';
 import { Account, AccountType, Currency, InvestmentSubType, PropertyType, Warrant } from '../types';
@@ -11,9 +13,10 @@ interface EditAccountModalProps {
   account: Account;
   accounts: Account[];
   warrants: Warrant[];
+  onToggleStatus: (accountId: string) => void;
 }
 
-const EditAccountModal: React.FC<EditAccountModalProps> = ({ onClose, onSave, onDelete, account, accounts, warrants }) => {
+const EditAccountModal: React.FC<EditAccountModalProps> = ({ onClose, onSave, onDelete, account, accounts, warrants, onToggleStatus }) => {
   // Gracefully handle legacy 'Crypto' type by migrating it to an 'Investment' type
   const initialType = (account.type as string) === 'Crypto' ? 'Investment' : account.type;
   const initialSubType = (account.type as string) === 'Crypto' ? 'Crypto' : account.subType || 'Stock';
@@ -113,8 +116,8 @@ const EditAccountModal: React.FC<EditAccountModalProps> = ({ onClose, onSave, on
   }, [type, subType]);
 
 
-  const debitAccounts = useMemo(() => accounts.filter(acc => acc.type === 'Checking' || acc.type === 'Savings'), [accounts]);
-  const loanAccounts = useMemo(() => accounts.filter(acc => acc.type === 'Loan'), [accounts]);
+  const debitAccounts = useMemo(() => accounts.filter(acc => (acc.type === 'Checking' || acc.type === 'Savings') && (acc.status !== 'closed' || acc.id === settlementAccountId || acc.id === linkedAccountId)), [accounts, settlementAccountId, linkedAccountId]);
+  const loanAccounts = useMemo(() => accounts.filter(acc => acc.type === 'Loan' && (acc.status !== 'closed' || acc.id === linkedLoanId)), [accounts, linkedLoanId]);
   const isLoanForPropertyLinked = useMemo(() => type === 'Property' && !!linkedLoanId, [type, linkedLoanId]);
   
   useEffect(() => {
@@ -172,6 +175,11 @@ const EditAccountModal: React.FC<EditAccountModalProps> = ({ onClose, onSave, on
   
   const handleDelete = () => {
     onDelete(account.id);
+  };
+
+  const handleToggleStatus = () => {
+    onToggleStatus(account.id);
+    onClose();
   };
   
   const labelStyle = "block text-sm font-medium text-light-text-secondary dark:text-dark-text-secondary mb-1";
@@ -408,7 +416,16 @@ const EditAccountModal: React.FC<EditAccountModalProps> = ({ onClose, onSave, on
 
 
           <div className="flex justify-between items-center pt-4">
-            <button type="button" onClick={handleDelete} className={BTN_DANGER_STYLE}>Delete Account</button>
+            <div className="flex gap-4">
+                <button type="button" onClick={handleDelete} className={BTN_DANGER_STYLE}>Delete Account</button>
+                <button 
+                    type="button" 
+                    onClick={handleToggleStatus} 
+                    className={BTN_SECONDARY_STYLE}
+                >
+                    {account.status === 'closed' ? 'Reopen Account' : 'Close Account'}
+                </button>
+            </div>
             <div className="flex gap-4">
               <button type="button" onClick={onClose} className={BTN_SECONDARY_STYLE}>Cancel</button>
               <button type="submit" className={BTN_PRIMARY_STYLE}>Save Changes</button>

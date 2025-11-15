@@ -1,3 +1,5 @@
+
+
 import React, { useState, useMemo, useEffect, useRef } from 'react';
 import Modal from './Modal';
 import { Account, Category, Transaction, Tag } from '../types';
@@ -184,6 +186,10 @@ const AddTransactionModal: React.FC<AddTransactionModalProps> = ({ onClose, onSa
     }
   }, [transactionToEdit, isEditing, accounts, transactions, initialType, initialFromAccountId, initialToAccountId, initialDetails]);
   
+  const availableAccounts = useMemo(() => {
+    return accounts.filter(acc => acc.status !== 'closed' || acc.id === fromAccountId || acc.id === toAccountId);
+  }, [accounts, fromAccountId, toAccountId]);
+  
   useEffect(() => {
     const handleClickOutside = (event: MouseEvent) => {
       if (tagSelectorRef.current && !tagSelectorRef.current.contains(event.target as Node)) {
@@ -369,7 +375,7 @@ const AddTransactionModal: React.FC<AddTransactionModalProps> = ({ onClose, onSa
                   <label htmlFor="tx-from-account" className={labelStyle}>From</label>
                   <div className={SELECT_WRAPPER_STYLE}>
                     <select id="tx-from-account" value={fromAccountId} onChange={e => setFromAccountId(e.target.value)} className={INPUT_BASE_STYLE} required>
-                      {accounts.filter(a => a.id !== toAccountId).map(acc => <option key={acc.id} value={acc.id}>{acc.name}</option>)}
+                      {availableAccounts.filter(a => a.id !== toAccountId).map(acc => <option key={acc.id} value={acc.id}>{acc.name}</option>)}
                     </select>
                     <div className={SELECT_ARROW_STYLE}><span className="material-symbols-outlined">expand_more</span></div>
                   </div>
@@ -378,7 +384,7 @@ const AddTransactionModal: React.FC<AddTransactionModalProps> = ({ onClose, onSa
                   <label htmlFor="tx-to-account" className={labelStyle}>To</label>
                    <div className={SELECT_WRAPPER_STYLE}>
                     <select id="tx-to-account" value={toAccountId} onChange={e => setToAccountId(e.target.value)} className={INPUT_BASE_STYLE} required>
-                      {accounts.filter(a => a.id !== fromAccountId).map(acc => <option key={acc.id} value={acc.id}>{acc.name}</option>)}
+                      {availableAccounts.filter(a => a.id !== fromAccountId).map(acc => <option key={acc.id} value={acc.id}>{acc.name}</option>)}
                     </select>
                     <div className={SELECT_ARROW_STYLE}><span className="material-symbols-outlined">expand_more</span></div>
                   </div>
@@ -390,7 +396,7 @@ const AddTransactionModal: React.FC<AddTransactionModalProps> = ({ onClose, onSa
               <div className={SELECT_WRAPPER_STYLE}>
                 <select id="tx-account" value={type === 'income' ? toAccountId : fromAccountId} onChange={e => type === 'income' ? setToAccountId(e.target.value) : setFromAccountId(e.target.value)} className={INPUT_BASE_STYLE} required>
                   <option value="" disabled>Select an account</option>
-                  {accounts.map(acc => <option key={acc.id} value={acc.id}>{acc.name}</option>)}
+                  {availableAccounts.map(acc => <option key={acc.id} value={acc.id}>{acc.name}</option>)}
                 </select>
                 <div className={SELECT_ARROW_STYLE}><span className="material-symbols-outlined">expand_more</span></div>
               </div>

@@ -1,3 +1,5 @@
+
+
 import React, { useState, useEffect, useRef, useMemo } from 'react';
 import { Account } from '../types';
 import { LIQUID_ACCOUNT_TYPES, ASSET_TYPES, DEBT_TYPES, CHECKBOX_STYLE } from '../constants';
@@ -34,17 +36,17 @@ const MultiAccountFilter: React.FC<MultiAccountFilterProps> = ({ accounts, selec
     };
   }, [wrapperRef]);
 
-  const { liquidAccounts, otherAccounts } = useMemo(() => {
-    const liquid: Account[] = [];
-    const other: Account[] = [];
+  const { openAccounts, closedAccounts } = useMemo(() => {
+    const open: Account[] = [];
+    const closed: Account[] = [];
     accounts.forEach(acc => {
-      if (LIQUID_ACCOUNT_TYPES.includes(acc.type)) {
-        liquid.push(acc);
+      if (acc.status === 'closed') {
+        closed.push(acc);
       } else {
-        other.push(acc);
+        open.push(acc);
       }
     });
-    return { liquidAccounts: liquid, otherAccounts: other };
+    return { openAccounts: open, closedAccounts: closed };
   }, [accounts]);
 
   const handleToggle = (accountId: string) => {
@@ -81,7 +83,7 @@ const MultiAccountFilter: React.FC<MultiAccountFilterProps> = ({ accounts, selec
               onChange={() => handleToggle(account.id)}
               className={CHECKBOX_STYLE}
           />
-          <span className="text-sm">{account.name}</span>
+          <span className="text-sm">{account.name}{account.status === 'closed' && <span className="text-xs text-light-text-secondary dark:text-dark-text-secondary"> (Closed)</span>}</span>
       </label>
   );
 
@@ -113,17 +115,17 @@ const MultiAccountFilter: React.FC<MultiAccountFilterProps> = ({ accounts, selec
 
           {/* Individual Selection */}
           <div className="max-h-64 overflow-y-auto space-y-1 p-2">
-            {liquidAccounts.length > 0 && (
+            {openAccounts.length > 0 && (
               <div>
-                <h4 className="px-2 py-1 text-xs font-bold text-light-text-secondary dark:text-dark-text-secondary uppercase">Liquid Accounts</h4>
-                {liquidAccounts.map(account => <AccountCheckbox key={account.id} account={account} />)}
+                <h4 className="px-2 py-1 text-xs font-bold text-light-text-secondary dark:text-dark-text-secondary uppercase">Open Accounts</h4>
+                {openAccounts.map(account => <AccountCheckbox key={account.id} account={account} />)}
               </div>
             )}
             
-            {otherAccounts.length > 0 && (
+            {closedAccounts.length > 0 && (
               <div className="mt-2">
-                <h4 className="px-2 py-1 text-xs font-bold text-light-text-secondary dark:text-dark-text-secondary uppercase">Other Assets & Liabilities</h4>
-                {otherAccounts.map(account => <AccountCheckbox key={account.id} account={account} />)}
+                <h4 className="px-2 py-1 text-xs font-bold text-light-text-secondary dark:text-dark-text-secondary uppercase">Closed Accounts</h4>
+                {closedAccounts.map(account => <AccountCheckbox key={account.id} account={account} />)}
               </div>
             )}
           </div>

@@ -1,4 +1,5 @@
 
+
 import React, { Dispatch, SetStateAction } from 'react';
 
 // FIX: Add 'AI Assistant' to Page type
@@ -84,6 +85,7 @@ export interface Account {
   lastSync?: string;
   isPrimary?: boolean;
   sureId?: string;
+  status?: 'open' | 'closed';
 }
 
 export type RecurrenceFrequency = 'daily' | 'weekly' | 'monthly' | 'yearly';

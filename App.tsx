@@ -1,3 +1,4 @@
+
 // FIX: Import `useMemo` from React to resolve the 'Cannot find name' error.
 import React, { useState, useEffect, useMemo, useCallback, Suspense, lazy, useRef } from 'react';
 import Sidebar from './components/Sidebar';
@@ -561,7 +562,7 @@ export const App: React.FC = () => {
             return updatedAccounts;
         });
     } else { // ADD
-        const newAccount = { ...accountData, id: `acc-${uuidv4()}` } as Account;
+        const newAccount = { ...accountData, id: `acc-${uuidv4()}`, status: 'open' as const } as Account;
         setAccounts(prev => {
             const newAccounts = [...prev, newAccount];
             if (newAccount.isPrimary) {
@@ -570,6 +571,14 @@ export const App: React.FC = () => {
             return newAccounts;
         });
     }
+  };
+
+  const handleToggleAccountStatus = (accountId: string) => {
+    setAccounts(prev => prev.map(acc => 
+        acc.id === accountId 
+            ? { ...acc, status: acc.status === 'closed' ? 'open' : 'closed' } 
+            : acc
+    ));
   };
 
   const handleDeleteAccount = useCallback((accountId: string) => {
@@ -1074,7 +1083,7 @@ export const App: React.FC = () => {
       case 'Dashboard':
         return <Dashboard user={currentUser!} transactions={transactions} accounts={accounts} saveTransaction={handleSaveTransaction} incomeCategories={incomeCategories} expenseCategories={expenseCategories} financialGoals={financialGoals} recurringTransactions={recurringTransactions} billsAndPayments={billsAndPayments} selectedAccountIds={dashboardAccountIds} setSelectedAccountIds={setDashboardAccountIds} duration={dashboardDuration} setDuration={setDashboardDuration} tags={tags} />;
       case 'Accounts':
-        return <Accounts accounts={accounts} transactions={transactions} saveAccount={handleSaveAccount} deleteAccount={handleDeleteAccount} setCurrentPage={setCurrentPage} setAccountFilter={setAccountFilter} setViewingAccountId={setViewingAccountId} saveTransaction={handleSaveTransaction} accountOrder={accountOrder} setAccountOrder={setAccountOrder} sortBy={accountsSortBy} setSortBy={setAccountsSortBy} warrants={warrants} />;
+        return <Accounts accounts={accounts} transactions={transactions} saveAccount={handleSaveAccount} deleteAccount={handleDeleteAccount} setCurrentPage={setCurrentPage} setAccountFilter={setAccountFilter} setViewingAccountId={setViewingAccountId} saveTransaction={handleSaveTransaction} accountOrder={accountOrder} setAccountOrder={setAccountOrder} sortBy={accountsSortBy} setSortBy={setAccountsSortBy} warrants={warrants} onToggleAccountStatus={handleToggleAccountStatus} />;
       case 'Transactions':
         return <Transactions transactions={transactions} saveTransaction={handleSaveTransaction} deleteTransactions={handleDeleteTransactions} accounts={accounts} accountFilter={accountFilter} setAccountFilter={setAccountFilter} incomeCategories={incomeCategories} expenseCategories={expenseCategories} tags={tags} tagFilter={tagFilter} setTagFilter={setTagFilter} saveRecurringTransaction={handleSaveRecurringTransaction} />;
       case 'Budget':

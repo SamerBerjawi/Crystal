@@ -1,3 +1,5 @@
+
+
 import React, { useState, useMemo, useEffect } from 'react';
 import Modal from './Modal';
 import { Account, Category, RecurringTransaction, RecurrenceFrequency, WeekendAdjustment } from '../types';
@@ -85,6 +87,10 @@ const RecurringTransactionModal: React.FC<RecurringTransactionModalProps> = ({ o
         return type === 'income' ? incomeCategories : expenseCategories;
     }, [type, incomeCategories, expenseCategories]);
     
+    const availableAccounts = useMemo(() => {
+        return accounts.filter(acc => acc.status !== 'closed' || acc.id === accountId || acc.id === toAccountId);
+    }, [accounts, accountId, toAccountId]);
+
     useEffect(() => {
         if (!isEditing) {
             setCategory('');
@@ -195,7 +201,7 @@ const RecurringTransactionModal: React.FC<RecurringTransactionModalProps> = ({ o
                             <div className={SELECT_WRAPPER_STYLE}>
                                 <select id="rec-from-account" value={accountId} onChange={e => setAccountId(e.target.value)} className={INPUT_BASE_STYLE} required>
                                     <option value="" disabled>Select account</option>
-                                    {accounts.filter(a => a.id !== toAccountId).map(acc => <option key={acc.id} value={acc.id}>{acc.name}</option>)}
+                                    {availableAccounts.filter(a => a.id !== toAccountId).map(acc => <option key={acc.id} value={acc.id}>{acc.name}</option>)}
                                 </select>
                                 <div className={SELECT_ARROW_STYLE}><span className="material-symbols-outlined">expand_more</span></div>
                             </div>
@@ -205,7 +211,7 @@ const RecurringTransactionModal: React.FC<RecurringTransactionModalProps> = ({ o
                             <div className={SELECT_WRAPPER_STYLE}>
                                 <select id="rec-to-account" value={toAccountId} onChange={e => setToAccountId(e.target.value)} className={INPUT_BASE_STYLE} required>
                                     <option value="" disabled>Select account</option>
-                                    {accounts.filter(a => a.id !== accountId).map(acc => <option key={acc.id} value={acc.id}>{acc.name}</option>)}
+                                    {availableAccounts.filter(a => a.id !== accountId).map(acc => <option key={acc.id} value={acc.id}>{acc.name}</option>)}
                                 </select>
                                 <div className={SELECT_ARROW_STYLE}><span className="material-symbols-outlined">expand_more</span></div>
                             </div>
@@ -217,7 +223,7 @@ const RecurringTransactionModal: React.FC<RecurringTransactionModalProps> = ({ o
                         <div className={SELECT_WRAPPER_STYLE}>
                             <select id="rec-account" value={accountId} onChange={e => setAccountId(e.target.value)} className={INPUT_BASE_STYLE} required>
                                 <option value="" disabled>Select an account</option>
-                                {accounts.map(acc => <option key={acc.id} value={acc.id}>{acc.name}</option>)}
+                                {availableAccounts.map(acc => <option key={acc.id} value={acc.id}>{acc.name}</option>)}
                             </select>
                             <div className={SELECT_ARROW_STYLE}><span className="material-symbols-outlined">expand_more</span></div>
                         </div>

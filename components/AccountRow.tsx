@@ -1,9 +1,10 @@
+
 import React, { useMemo } from 'react';
 import { Account, Transaction, Warrant } from '../types';
+import Card from './Card';
 import { convertToEur, formatCurrency } from '../utils';
 import { LineChart, Line, ResponsiveContainer } from 'recharts';
 import { ACCOUNT_TYPE_STYLES } from '../constants';
-import Card from './Card';
 
 interface AccountRowProps {
     account: Account;
@@ -135,7 +136,7 @@ const AccountRow: React.FC<AccountRowProps> = ({ account, transactions, warrants
             onDrop={onDrop}
             onDragEnd={onDragEnd}
             onContextMenu={onContextMenu}
-            className={`flex items-center justify-between p-4 rounded-lg hover:bg-black/5 dark:hover:bg-white/5 transition-all duration-200 group hover:-translate-y-0.5 hover:shadow-md ${cursorClass} ${dragClasses} ${dragOverClasses}`} 
+            className={`flex items-center justify-between p-4 rounded-lg hover:bg-black/5 dark:hover:bg-white/5 transition-all duration-200 group hover:-translate-y-0.5 hover:shadow-md ${cursorClass} ${dragClasses} ${dragOverClasses} ${account.status === 'closed' ? 'opacity-60 grayscale' : ''}`} 
             onClick={onClick}
         >
             {/* Left side: Icon, Name, Type */}
