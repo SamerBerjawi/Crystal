@@ -8,6 +8,7 @@ import BulkCategorizeModal from '../components/BulkCategorizeModal';
 import BulkEditTransactionsModal from '../components/BulkEditTransactionsModal';
 import RecurringTransactionModal from '../components/RecurringTransactionModal';
 import ConfirmationModal from '../components/ConfirmationModal';
+import MultiSelectFilter from '../components/MultiSelectFilter';
 
 interface TransactionsProps {
   transactions: Transaction[];
@@ -24,31 +25,19 @@ interface TransactionsProps {
   saveRecurringTransaction: (recurringData: Omit<RecurringTransaction, 'id'> & { id?: string }) => void;
 }
 
-const CategoryOptions: React.FC<{ categories: Category[], label: string }> = ({ categories, label }) => (
-    <optgroup label={label}>
-        {categories.map(parentCat => (
-            <React.Fragment key={parentCat.id}>
-                <option value={parentCat.name}>{parentCat.name}</option>
-                {parentCat.subCategories.map(subCat => (
-                    <option key={subCat.id} value={subCat.name}>
-                        &nbsp;&nbsp;{subCat.name}
-                    </option>
-                ))}
-            </React.Fragment>
-        ))}
-    </optgroup>
-);
-
-
 const Transactions: React.FC<TransactionsProps> = ({ transactions, saveTransaction, deleteTransactions, accounts, accountFilter, setAccountFilter, incomeCategories, expenseCategories, tags, tagFilter, setTagFilter, saveRecurringTransaction }) => {
   const [searchTerm, setSearchTerm] = useState('');
   const [sortBy, setSortBy] = useState('date-desc');
   const [typeFilter, setTypeFilter] = useState<'all' | 'income' | 'expense' | 'transfer'>('all');
   const [startDate, setStartDate] = useState('');
   const [endDate, setEndDate] = useState('');
-  const [categoryFilter, setCategoryFilter] = useState<string | null>(null);
   const [minAmount, setMinAmount] = useState('');
   const [maxAmount, setMaxAmount] = useState('');
+
+  // Local state for multi-select filters
+  const [selectedAccountIds, setSelectedAccountIds] = useState<string[]>([]);
+  const [selectedCategoryNames, setSelectedCategoryNames] = useState<string[]>([]);
+  const [selectedTagIds, setSelectedTagIds] = useState<string[]>([]);
 
   const [isTransactionModalOpen, setTransactionModalOpen] = useState(false);
   const [editingTransaction, setEditingTransaction] = useState<Transaction | null>(null);
@@ -61,6 +50,20 @@ const Transactions: React.FC<TransactionsProps> = ({ transactions, saveTransacti
   const searchInputRef = useRef<HTMLInputElement>(null);
   const [contextMenu, setContextMenu] = useState<{ x: number, y: number, transaction: DisplayTransaction } | null>(null);
   const contextMenuRef = useRef<HTMLDivElement>(null);
+
+  // Sync with global filters from props
+  useEffect(() => {
+    if (accountFilter) {
+      const account = accounts.find(a => a.name === accountFilter);
+      if (account) setSelectedAccountIds([account.id]);
+    }
+  }, [accountFilter, accounts]);
+
+  useEffect(() => {
+    if (tagFilter) {
+      setSelectedTagIds([tagFilter]);
+    }
+  }, [tagFilter]);
 
   useEffect(() => {
     const handleKeyDown = (event: KeyboardEvent) => {
@@ -88,7 +91,9 @@ const Transactions: React.FC<TransactionsProps> = ({ transactions, saveTransacti
   }, []);
 
   const allCategories = useMemo(() => [...incomeCategories, ...expenseCategories], [incomeCategories, expenseCategories]);
-
+  const accountMap = useMemo(() => accounts.reduce((map, acc) => { map[acc.id] = acc; return map; }, {} as { [key: string]: Account }), [accounts]);
+  const accountMapByName = useMemo(() => accounts.reduce((map, acc) => { map[acc.name] = acc; return map; }, {} as Record<string, Account>), [accounts]);
+  
   const getCategoryDetails = (name: string, categories: Category[]): { icon?: string; color?: string } => {
     for (const cat of categories) {
         if (cat.name === name) return { icon: cat.icon, color: cat.color };
@@ -99,13 +104,6 @@ const Transactions: React.FC<TransactionsProps> = ({ transactions, saveTransacti
     }
     return {};
   };
-
-  const accountMap = useMemo(() => 
-    accounts.reduce((acc, current) => {
-      acc[current.id] = current.name;
-      return acc;
-    }, {} as { [key: string]: string }), 
-  [accounts]);
 
   const displayTransactions = useMemo(() => {
     const processedTransferIds = new Set<string>();
@@ -130,16 +128,16 @@ const Transactions: React.FC<TransactionsProps> = ({ transactions, saveTransacti
                     amount: Math.abs(expensePart.amount),
                     isTransfer: true,
                     type: 'expense',
-                    fromAccountName: accountMap[expensePart.accountId],
-                    toAccountName: accountMap[incomePart.accountId],
+                    fromAccountName: accountMap[expensePart.accountId]?.name,
+                    toAccountName: accountMap[incomePart.accountId]?.name,
                     category: 'Transfer',
                     description: 'Account Transfer'
                 });
             } else {
-                result.push({ ...tx, accountName: accountMap[tx.accountId] });
+                result.push({ ...tx, accountName: accountMap[tx.accountId]?.name });
             }
         } else {
-            result.push({ ...tx, accountName: accountMap[tx.accountId] });
+            result.push({ ...tx, accountName: accountMap[tx.accountId]?.name });
         }
     }
     return result;
@@ -164,7 +162,10 @@ const Transactions: React.FC<TransactionsProps> = ({ transactions, saveTransacti
     };
 
     const transactionList = displayTransactions.filter(tx => {
-        const matchAccount = !accountFilter || (tx.isTransfer ? tx.fromAccountName === accountFilter || tx.toAccountName === accountFilter : tx.accountName === accountFilter);
+        const matchAccount = selectedAccountIds.length === 0 || 
+            (tx.isTransfer 
+                ? selectedAccountIds.includes(accountMapByName[tx.fromAccountName!]?.id) || selectedAccountIds.includes(accountMapByName[tx.toAccountName!]?.id) 
+                : selectedAccountIds.includes(tx.accountId));
         
         const matchSearch = (
             !searchTerm ||
@@ -177,21 +178,17 @@ const Transactions: React.FC<TransactionsProps> = ({ transactions, saveTransacti
         );
 
         let matchType = true;
-        if (typeFilter === 'expense') {
-            matchType = !tx.isTransfer && tx.type === 'expense';
-        } else if (typeFilter === 'income') {
-            matchType = !tx.isTransfer && tx.type === 'income';
-        } else if (typeFilter === 'transfer') {
-            matchType = !!tx.isTransfer;
-        }
+        if (typeFilter === 'expense') matchType = !tx.isTransfer && tx.type === 'expense';
+        else if (typeFilter === 'income') matchType = !tx.isTransfer && tx.type === 'income';
+        else if (typeFilter === 'transfer') matchType = !!tx.isTransfer;
         
         const txDateTime = new Date(tx.date.replace(/-/g, '/')).getTime();
         const matchStartDate = !startDateTime || txDateTime >= startDateTime.getTime();
         const matchEndDate = !endDateTime || txDateTime <= endDateTime.getTime();
 
-        const matchTag = !tagFilter || (tx.tagIds && tx.tagIds.includes(tagFilter));
-
-        const matchCategory = !categoryFilter || tx.category === categoryFilter || getParentCategoryName(tx.category) === categoryFilter;
+        const matchTag = selectedTagIds.length === 0 || (tx.tagIds && tx.tagIds.some(tagId => selectedTagIds.includes(tagId)));
+        
+        const matchCategory = selectedCategoryNames.length === 0 || selectedCategoryNames.includes(tx.category) || selectedCategoryNames.includes(getParentCategoryName(tx.category) || '');
 
         const txAbsAmount = Math.abs(convertToEur(tx.amount, tx.currency));
         const min = parseFloat(minAmount);
@@ -204,19 +201,14 @@ const Transactions: React.FC<TransactionsProps> = ({ transactions, saveTransacti
     
     return transactionList.sort((a, b) => {
       switch (sortBy) {
-        case 'date-asc':
-          return new Date(a.date.replace(/-/g, '/')).getTime() - new Date(b.date.replace(/-/g, '/')).getTime();
-        case 'amount-desc':
-          return Math.abs(b.amount) - Math.abs(a.amount);
-        case 'amount-asc':
-          return Math.abs(a.amount) - Math.abs(b.amount);
-        case 'date-desc':
-        default:
-          return new Date(b.date.replace(/-/g, '/')).getTime() - new Date(a.date.replace(/-/g, '/')).getTime();
+        case 'date-asc': return new Date(a.date.replace(/-/g, '/')).getTime() - new Date(b.date.replace(/-/g, '/')).getTime();
+        case 'amount-desc': return Math.abs(b.amount) - Math.abs(a.amount);
+        case 'amount-asc': return Math.abs(a.amount) - Math.abs(b.amount);
+        case 'date-desc': default: return new Date(b.date.replace(/-/g, '/')).getTime() - new Date(a.date.replace(/-/g, '/')).getTime();
       }
     });
 
-  }, [searchTerm, accountFilter, sortBy, typeFilter, startDate, endDate, displayTransactions, tagFilter, categoryFilter, minAmount, maxAmount, allCategories]);
+  }, [searchTerm, sortBy, typeFilter, startDate, endDate, displayTransactions, selectedAccountIds, selectedCategoryNames, selectedTagIds, minAmount, maxAmount, allCategories, accountMapByName]);
   
     const groupedTransactions = useMemo(() => {
         const groups: Record<string, { transactions: DisplayTransaction[]; total: number }> = {};
@@ -236,19 +228,17 @@ const Transactions: React.FC<TransactionsProps> = ({ transactions, saveTransacti
                 let currency = tx.currency;
 
                 if (tx.isTransfer) {
-                    if (accountFilter) {
-                        const fromAccount = accounts.find(a => a.name === tx.fromAccountName);
-                        const toAccount = accounts.find(a => a.name === tx.toAccountName);
-
-                        if (accountFilter === tx.fromAccountName) {
-                            amount = -tx.amount;
-                            if (fromAccount) currency = fromAccount.currency;
-                        } else if (accountFilter === tx.toAccountName) {
-                            amount = tx.amount;
-                            if (toAccount) currency = toAccount.currency;
-                        } else {
-                            amount = 0;
-                        }
+                    const fromAccount = accountMapByName[tx.fromAccountName!];
+                    const toAccount = accountMapByName[tx.toAccountName!];
+                    
+                    if (selectedAccountIds.length === 0) {
+                        amount = 0;
+                    } else if (selectedAccountIds.includes(fromAccount?.id) && !selectedAccountIds.includes(toAccount?.id)) {
+                        amount = -tx.amount;
+                        if (fromAccount) currency = fromAccount.currency;
+                    } else if (!selectedAccountIds.includes(fromAccount?.id) && selectedAccountIds.includes(toAccount?.id)) {
+                        amount = tx.amount;
+                         if (toAccount) currency = toAccount.currency;
                     } else {
                         amount = 0;
                     }
@@ -259,7 +249,7 @@ const Transactions: React.FC<TransactionsProps> = ({ transactions, saveTransacti
         }
 
         return groups;
-    }, [filteredTransactions, accountFilter, accounts]);
+    }, [filteredTransactions, selectedAccountIds, accounts, accountMapByName]);
   
   const containsTransfer = useMemo(() => {
     return Array.from(selectedIds).some((id: string) => id.startsWith('transfer-'));
@@ -459,8 +449,10 @@ const Transactions: React.FC<TransactionsProps> = ({ transactions, saveTransacti
   const clearFilters = () => {
     setSearchTerm('');
     setAccountFilter(null);
-    setCategoryFilter(null);
+    setSelectedAccountIds([]);
+    setSelectedCategoryNames([]);
     setTagFilter(null);
+    setSelectedTagIds([]);
     setTypeFilter('all');
     setStartDate('');
     setEndDate('');
@@ -473,19 +465,34 @@ const Transactions: React.FC<TransactionsProps> = ({ transactions, saveTransacti
     const date = new Date(dateString.replace(/-/g, '/'));
     return date.toLocaleDateString('en-US', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric', timeZone: 'UTC' });
   }
+
+  const generateCategoryOptions = (categories: Category[], level = 0): { value: string, label: string, level: number }[] => {
+    let options: { value: string, label: string, level: number }[] = [];
+    for (const cat of categories) {
+        options.push({ value: cat.name, label: cat.name, level });
+        if (cat.subCategories && cat.subCategories.length > 0) {
+            options = [...options, ...generateCategoryOptions(cat.subCategories, level + 1)];
+        }
+    }
+    return options;
+  };
+
+  const categoryOptions = useMemo(() => {
+    const incomeOpts = generateCategoryOptions(incomeCategories);
+    const expenseOpts = generateCategoryOptions(expenseCategories);
+    return [...expenseOpts, ...incomeOpts];
+  }, [incomeCategories, expenseCategories]);
+
+  const accountOptions = useMemo(() => accounts.map(a => ({ value: a.id, label: a.name })), [accounts]);
+  const tagOptions = useMemo(() => tags.map(t => ({ value: t.id, label: t.name })), [tags]);
   
   const labelStyle = "block text-xs font-medium text-light-text-secondary dark:text-dark-text-secondary mb-1";
-  const newTypeFilterOptions: { label: string; value: 'all' | 'income' | 'expense' | 'transfer' }[] = [
-    { label: 'All transactions', value: 'all' },
+  const typeFilterOptions: { label: string; value: 'all' | 'income' | 'expense' | 'transfer' }[] = [
+    { label: 'All Types', value: 'all' },
     { label: 'Expenses', value: 'expense' },
     { label: 'Income', value: 'income' },
     { label: 'Transfers', value: 'transfer' },
   ];
-
-  const activeTag = useMemo(() => {
-    if (!tagFilter) return null;
-    return tags.find(t => t.id === tagFilter);
-  }, [tagFilter, tags]);
 
   return (
     <div className="space-y-6 flex flex-col h-full">
@@ -600,53 +607,59 @@ const Transactions: React.FC<TransactionsProps> = ({ transactions, saveTransacti
         </div>
       </header>
       
-      <div>
-        <div className="border-b border-light-separator dark:border-dark-separator">
-            <nav className="-mb-px flex space-x-6">
-                {newTypeFilterOptions.map(opt => (
-                    <button
-                        key={opt.value}
-                        onClick={() => setTypeFilter(opt.value)}
-                        className={`whitespace-nowrap py-3 px-1 border-b-2 font-semibold text-sm transition-colors ${
-                            typeFilter === opt.value
-                                ? 'border-primary-500 text-primary-600 dark:text-primary-400'
-                                : 'border-transparent text-light-text-secondary dark:text-dark-text-secondary hover:text-light-text dark:hover:text-dark-text hover:border-gray-300 dark:hover:border-gray-500'
-                        }`}
-                    >
-                        {opt.label}
-                    </button>
-                ))}
-            </nav>
-        </div>
-        
-        <Card className="mt-4 p-4">
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-                <div className="sm:col-span-2 lg:col-span-4">
-                    <label htmlFor="search" className={labelStyle}>Search</label>
-                    <div className="relative">
-                        <span className="material-symbols-outlined absolute left-3 top-1/2 -translate-y-1/2 text-light-text-secondary dark:text-dark-text-secondary pointer-events-none">search</span>
-                        <input ref={searchInputRef} type="text" id="search" placeholder="Search description, merchant, category..." value={searchTerm} onChange={(e) => setSearchTerm(e.target.value)} className={`${INPUT_BASE_STYLE} pl-10`} />
-                    </div>
-                </div>
-                <div><label htmlFor="account-filter" className={labelStyle}>Account</label><div className={SELECT_WRAPPER_STYLE}><select id="account-filter" value={accountFilter || ''} onChange={(e) => setAccountFilter(e.target.value || null)} className={INPUT_BASE_STYLE}><option value="">All Accounts</option>{accounts.map(acc => (<option key={acc.id} value={acc.name}>{acc.name}</option>))}</select><div className={SELECT_ARROW_STYLE}><span className="material-symbols-outlined">expand_more</span></div></div></div>
-                <div><label htmlFor="category-filter" className={labelStyle}>Category</label><div className={SELECT_WRAPPER_STYLE}><select id="category-filter" value={categoryFilter || ''} onChange={(e) => setCategoryFilter(e.target.value || null)} className={INPUT_BASE_STYLE}><option value="">All Categories</option><CategoryOptions categories={expenseCategories} label="--- EXPENSES ---" /><CategoryOptions categories={incomeCategories} label="--- INCOME ---" /></select><div className={SELECT_ARROW_STYLE}><span className="material-symbols-outlined">expand_more</span></div></div></div>
-                <div><label htmlFor="tag-filter" className={labelStyle}>Tag</label><div className={SELECT_WRAPPER_STYLE}><select id="tag-filter" value={tagFilter || ''} onChange={(e) => setTagFilter(e.target.value || null)} className={INPUT_BASE_STYLE}><option value="">All Tags</option>{tags.map(tag => (<option key={tag.id} value={tag.id}>{tag.name}</option>))}</select><div className={SELECT_ARROW_STYLE}><span className="material-symbols-outlined">expand_more</span></div></div></div>
-                <div><label htmlFor="sort-by" className={labelStyle}>Sort By</label><div className={SELECT_WRAPPER_STYLE}><select id="sort-by" value={sortBy} onChange={(e) => setSortBy(e.target.value)} className={INPUT_BASE_STYLE}><option value="date-desc">Date (Newest)</option><option value="date-asc">Date (Oldest)</option><option value="amount-desc">Amount (High-Low)</option><option value="amount-asc">Amount (Low-High)</option></select><div className={SELECT_ARROW_STYLE}><span className="material-symbols-outlined">expand_more</span></div></div></div>
-                <div className="flex items-end gap-2">
-                    <div><label htmlFor="start-date" className={labelStyle}>From Date</label><input id="start-date" type="date" value={startDate} onChange={e => setStartDate(e.target.value)} className={INPUT_BASE_STYLE}/></div>
-                    <div><label htmlFor="end-date" className={labelStyle}>To Date</label><input id="end-date" type="date" value={endDate} onChange={e => setEndDate(e.target.value)} className={INPUT_BASE_STYLE}/></div>
-                </div>
-                <div className="flex items-end gap-2">
-                    <div><label htmlFor="min-amount" className={labelStyle}>Min Amount</label><input id="min-amount" type="number" placeholder="0.00" value={minAmount} onChange={e => setMinAmount(e.target.value)} className={INPUT_BASE_STYLE}/></div>
-                    <div><label htmlFor="max-amount" className={labelStyle}>Max Amount</label><input id="max-amount" type="number" placeholder="1000.00" value={maxAmount} onChange={e => setMaxAmount(e.target.value)} className={INPUT_BASE_STYLE}/></div>
-                </div>
-                <div className="col-span-full flex justify-end items-center gap-4 pt-2">
-                    {activeTag && <div className="flex items-center gap-2 text-sm mr-auto"><span className="text-light-text-secondary dark:text-dark-text-secondary">Filtering by tag:</span><span className="font-semibold px-2 py-1 rounded-full text-xs" style={{backgroundColor: `${activeTag.color}30`, color: activeTag.color}}>{activeTag.name}</span></div>}
-                    <button onClick={clearFilters} className={BTN_SECONDARY_STYLE}>Clear All Filters</button>
+      <Card className="p-4">
+        <div className="grid grid-cols-1 md:grid-cols-6 gap-4 items-end">
+            <div className="md:col-span-6">
+                <label htmlFor="search" className={labelStyle}>Search</label>
+                <div className="relative">
+                    <span className="material-symbols-outlined absolute left-3 top-1/2 -translate-y-1/2 text-light-text-secondary dark:text-dark-text-secondary pointer-events-none">search</span>
+                    <input ref={searchInputRef} type="text" id="search" placeholder="Search description, merchant, category..." value={searchTerm} onChange={(e) => setSearchTerm(e.target.value)} className={`${INPUT_BASE_STYLE} pl-10 h-11`} />
                 </div>
             </div>
-        </Card>
-      </div>
+
+            <div className="md:col-span-2">
+                <label className={labelStyle}>Account</label>
+                <MultiSelectFilter options={accountOptions} selectedValues={selectedAccountIds} onChange={setSelectedAccountIds} placeholder="All Accounts"/>
+            </div>
+            <div className="md:col-span-2">
+                <label className={labelStyle}>Category</label>
+                <MultiSelectFilter options={categoryOptions} selectedValues={selectedCategoryNames} onChange={setSelectedCategoryNames} placeholder="All Categories"/>
+            </div>
+            <div className="md:col-span-2">
+                <label className={labelStyle}>Tag</label>
+                <MultiSelectFilter options={tagOptions} selectedValues={selectedTagIds} onChange={setSelectedTagIds} placeholder="All Tags"/>
+            </div>
+
+            <div className="md:col-span-2 flex items-end gap-2">
+                <div><label htmlFor="start-date" className={labelStyle}>From Date</label><input id="start-date" type="date" value={startDate} onChange={e => setStartDate(e.target.value)} className={`${INPUT_BASE_STYLE} h-11`}/></div>
+                <div><label htmlFor="end-date" className={labelStyle}>To Date</label><input id="end-date" type="date" value={endDate} onChange={e => setEndDate(e.target.value)} className={`${INPUT_BASE_STYLE} h-11`}/></div>
+            </div>
+            <div className="md:col-span-2 flex items-end gap-2">
+                <div><label htmlFor="min-amount" className={labelStyle}>Min Amount</label><input id="min-amount" type="number" placeholder="0.00" value={minAmount} onChange={e => setMinAmount(e.target.value)} className={`${INPUT_BASE_STYLE} h-11`}/></div>
+                <div><label htmlFor="max-amount" className={labelStyle}>Max Amount</label><input id="max-amount" type="number" placeholder="1000.00" value={maxAmount} onChange={e => setMaxAmount(e.target.value)} className={`${INPUT_BASE_STYLE} h-11`}/></div>
+            </div>
+            <div>
+                <label htmlFor="sort-by" className={labelStyle}>Sort By</label>
+                <div className={SELECT_WRAPPER_STYLE}>
+                    <select id="sort-by" value={sortBy} onChange={(e) => setSortBy(e.target.value)} className={`${INPUT_BASE_STYLE} h-11`}><option value="date-desc">Date (Newest)</option><option value="date-asc">Date (Oldest)</option><option value="amount-desc">Amount (High-Low)</option><option value="amount-asc">Amount (Low-High)</option></select>
+                    <div className={SELECT_ARROW_STYLE}><span className="material-symbols-outlined">expand_more</span></div>
+                </div>
+            </div>
+            <div>
+                <label htmlFor="type-filter" className={labelStyle}>Type</label>
+                <div className={SELECT_WRAPPER_STYLE}>
+                    <select id="type-filter" value={typeFilter} onChange={(e) => setTypeFilter(e.target.value as any)} className={`${INPUT_BASE_STYLE} h-11`}>
+                        {typeFilterOptions.map(opt => <option key={opt.value} value={opt.value}>{opt.label}</option>)}
+                    </select>
+                    <div className={SELECT_ARROW_STYLE}><span className="material-symbols-outlined">expand_more</span></div>
+                </div>
+            </div>
+            
+            <div className="md:col-span-6 flex justify-end items-center gap-4 pt-2">
+                <button onClick={clearFilters} className={BTN_SECONDARY_STYLE}>Clear Filters</button>
+            </div>
+        </div>
+      </Card>
       
       <div className="flex-1 min-h-0 relative">
         <Card className="p-0 h-full flex flex-col">
@@ -680,9 +693,11 @@ const Transactions: React.FC<TransactionsProps> = ({ transactions, saveTransacti
 
                                 if (tx.isTransfer) {
                                     amountColor = 'text-light-text dark:text-dark-text';
-                                    if (accountFilter) {
-                                        if (accountFilter === tx.fromAccountName) { amount = -tx.amount; amountColor = 'text-semantic-red'; } 
-                                        else if (accountFilter === tx.toAccountName) { amount = tx.amount; amountColor = 'text-semantic-green'; }
+                                    if (selectedAccountIds.length > 0) {
+                                        const fromAcc = accountMapByName[tx.fromAccountName!];
+                                        const toAcc = accountMapByName[tx.toAccountName!];
+                                        if (selectedAccountIds.includes(fromAcc?.id) && !selectedAccountIds.includes(toAcc?.id)) { amount = -tx.amount; amountColor = 'text-semantic-red'; } 
+                                        else if (!selectedAccountIds.includes(fromAcc?.id) && selectedAccountIds.includes(toAcc?.id)) { amount = tx.amount; amountColor = 'text-semantic-green'; }
                                     }
                                 }
                                 
@@ -708,7 +723,7 @@ const Transactions: React.FC<TransactionsProps> = ({ transactions, saveTransacti
                                     <div className="hidden lg:block col-span-2 text-sm text-light-text-secondary dark:text-dark-text-secondary truncate">{tx.merchant}</div>
                                     <div className="hidden md:block col-span-2 text-sm text-light-text-secondary dark:text-dark-text-secondary truncate">{tx.category}</div>
                                     <div className="hidden lg:flex col-span-1 text-sm text-light-text-secondary dark:text-dark-text-secondary flex-wrap gap-1">{tx.tagIds?.map(tagId => { const tag = tags.find(t => t.id === tagId); if (!tag) return null; return (<span key={tag.id} className="text-xs px-2 py-1 rounded-full inline-flex items-center justify-center text-center" style={{ backgroundColor: `${tag.color}30`, color: tag.color }} title={tag.name}>{tag.name}</span>);})}</div>
-                                    <div className={`col-span-12 md:col-span-2 font-mono font-semibold text-right text-base whitespace-nowrap ${amountColor}`}>{tx.isTransfer && !accountFilter ? '-/+ ' + formatCurrency(convertToEur(Math.abs(amount), tx.currency), 'EUR') : formatCurrency(convertToEur(amount, tx.currency), 'EUR', { showPlusSign: true })}</div>
+                                    <div className={`col-span-12 md:col-span-2 font-mono font-semibold text-right text-base whitespace-nowrap ${amountColor}`}>{tx.isTransfer && selectedAccountIds.length === 0 ? '-/+ ' + formatCurrency(convertToEur(Math.abs(amount), tx.currency), 'EUR') : formatCurrency(convertToEur(amount, tx.currency), 'EUR', { showPlusSign: true })}</div>
                                   </div>
                                   <div className="text-right"><button onClick={(e) => {e.stopPropagation(); handleOpenEditModal(tx)}} className="text-light-text-secondary dark:text-dark-text-secondary p-2 rounded-full hover:bg-black/5 dark:hover:bg-white/5 transition-colors opacity-0 group-hover:opacity-100"><span className="material-symbols-outlined text-base">edit</span></button></div>
                                 </div>
