@@ -581,32 +581,46 @@ const SchedulePage: React.FC<ScheduleProps> = (props) => {
             
             <div className="space-y-8">
                 <Card>
-                    <h3 className="text-xl font-semibold mb-4 text-light-text dark:text-dark-text">Recurring Transactions</h3>
-                    {renderGroupedItems(groupedRecurringItems)}
+                    <h3 className="text-xl font-semibold mb-4 text-light-text dark:text-dark-text">Payment History</h3>
+                    {paidItems.length > 0 ? (
+                        <div className="space-y-2 -mx-4">
+                            {paidItems.map(item => (
+                                <div key={item.id} className="flex items-center justify-between p-4 opacity-60">
+                                    <div className="flex items-center gap-4">
+                                        <div className="flex-shrink-0 text-center rounded-lg p-2 w-16 bg-light-bg dark:bg-dark-bg">
+                                            <p className="text-xs font-semibold text-gray-400">{parseAsUTC(item.dueDate).toLocaleString('default', { month: 'short', timeZone: 'UTC' }).toUpperCase()}</p>
+                                            <p className="text-2xl font-bold text-gray-500">{parseAsUTC(item.dueDate).getUTCDate()}</p>
+                                        </div>
+                                        <div>
+                                            <p className="font-semibold text-lg text-light-text dark:text-dark-text line-through">{item.description}</p>
+                                            <p className="text-sm text-light-text-secondary dark:text-dark-text-secondary">{accountMap[item.accountId!] || 'External'}</p>
+                                        </div>
+                                    </div>
+                                    <p className="font-semibold text-base text-gray-500 line-through">{formatCurrency(item.amount, item.currency)}</p>
+                                </div>
+                            ))}
+                        </div>
+                    ) : (
+                        <p className="text-center py-8 text-light-text-secondary dark:text-dark-text-secondary">You have no paid bills in your history.</p>
+                    )}
                 </Card>
+
                 <Card>
                     <h3 className="text-xl font-semibold mb-4 text-light-text dark:text-dark-text">Upcoming Bills & One-time Payments</h3>
-                    {renderGroupedItems(groupedBills)}
+                    {upcomingBills.length > 0 ? (
+                        renderGroupedItems(groupedBills)
+                    ) : (
+                         <p className="text-center py-8 text-light-text-secondary dark:text-dark-text-secondary">No upcoming bills or payments scheduled.</p>
+                    )}
                 </Card>
+
                 <Card>
-                    <h3 className="text-xl font-semibold mb-4 text-light-text dark:text-dark-text">Payment History</h3>
-                    <div className="space-y-2 -mx-4">
-                        {paidItems.map(item => (
-                            <div key={item.id} className="flex items-center justify-between p-4 opacity-60">
-                                <div className="flex items-center gap-4">
-                                    <div className="flex-shrink-0 text-center rounded-lg p-2 w-16 bg-light-bg dark:bg-dark-bg">
-                                        <p className="text-xs font-semibold text-gray-400">{parseAsUTC(item.dueDate).toLocaleString('default', { month: 'short', timeZone: 'UTC' }).toUpperCase()}</p>
-                                        <p className="text-2xl font-bold text-gray-500">{parseAsUTC(item.dueDate).getUTCDate()}</p>
-                                    </div>
-                                    <div>
-                                        <p className="font-semibold text-lg text-light-text dark:text-dark-text line-through">{item.description}</p>
-                                        <p className="text-sm text-light-text-secondary dark:text-dark-text-secondary">{accountMap[item.accountId!] || 'External'}</p>
-                                    </div>
-                                </div>
-                                <p className="font-semibold text-base text-gray-500 line-through">{formatCurrency(item.amount, item.currency)}</p>
-                            </div>
-                        ))}
-                    </div>
+                    <h3 className="text-xl font-semibold mb-4 text-light-text dark:text-dark-text">Recurring Transactions</h3>
+                    {upcomingRecurring.length > 0 ? (
+                        renderGroupedItems(groupedRecurringItems)
+                    ) : (
+                        <p className="text-center py-8 text-light-text-secondary dark:text-dark-text-secondary">No upcoming recurring transactions found.</p>
+                    )}
                 </Card>
             </div>
         </div>

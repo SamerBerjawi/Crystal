@@ -1,5 +1,6 @@
 import { Currency, Account, Transaction, Duration, Category, FinancialGoal, RecurringTransaction, BillPayment, ScheduledPayment } from './types';
 import { ASSET_TYPES, DEBT_TYPES, LIQUID_ACCOUNT_TYPES } from './constants';
+import { v4 as uuidv4 } from 'uuid';
 
 const symbolMap: { [key in Currency]: string } = {
   'USD': '$',
@@ -391,28 +392,58 @@ export function generateBalanceForecast(
     financialGoals: FinancialGoal[],
     billsAndPayments: BillPayment[],
     forecastEndDate: Date
-): { date: string; value: number }[] {
+): {
+    chartData: { date: string; value: number }[];
+    tableData: {
+        id: string;
+        date: string;
+        accountName: string;
+        description: string;
+        amount: number;
+        balance: number;
+        type: 'Recurring' | 'Bill/Payment' | 'Financial Goal';
+        isGoal: boolean;
+    }[];
+    lowestPoint: { value: number; date: string };
+} {
     const liquidAccounts = accounts.filter(a => LIQUID_ACCOUNT_TYPES.includes(a.type));
     const liquidAccountIds = new Set(liquidAccounts.map(a => a.id));
+    const today = new Date().toISOString().split('T')[0];
 
-    if (liquidAccounts.length === 0) return [];
+    if (liquidAccounts.length === 0) {
+        return { chartData: [], tableData: [], lowestPoint: { value: 0, date: today } };
+    }
 
+    const accountMap = new Map(accounts.map(a => [a.id, a.name]));
     const now = new Date();
     const startDate = new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), now.getUTCDate()));
 
-    const dailyChanges = new Map<string, number>();
+    type ForecastEvent = {
+        date: string;
+        amount: number;
+        currency: Currency;
+        description: string;
+        accountName: string;
+        type: 'Recurring' | 'Bill/Payment' | 'Financial Goal';
+        isGoal: boolean;
+    };
+    
+    const dailyEvents = new Map<string, ForecastEvent[]>();
+
+    const addEvent = (date: string, event: Omit<ForecastEvent, 'date'>) => {
+        if (!dailyEvents.has(date)) {
+            dailyEvents.set(date, []);
+        }
+        dailyEvents.get(date)!.push({ date, ...event });
+    };
 
     recurringTransactions.forEach(rt => {
-        const fromSelected = liquidAccountIds.has(rt.accountId);
-        const toSelected = rt.toAccountId ? liquidAccountIds.has(rt.toAccountId) : false;
-
-        if (!fromSelected && !toSelected) return;
-        
         let nextDate = parseDateAsUTC(rt.nextDueDate);
         const endDateUTC = rt.endDate ? parseDateAsUTC(rt.endDate) : null;
         const startDateUTC = parseDateAsUTC(rt.startDate);
 
         while (nextDate < startDate && (!endDateUTC || nextDate < endDateUTC)) {
+            // This logic fast-forwards past-due occurrences to catch up to the present day for the forecast
             const interval = rt.frequencyInterval || 1;
             switch(rt.frequency) {
                 case 'daily': nextDate.setUTCDate(nextDate.getUTCDate() + interval); break;
@@ -438,16 +469,26 @@ export function generateBalanceForecast(
         while (nextDate <= forecastEndDate && (!endDateUTC || nextDate <= endDateUTC)) {
             const dateStr = nextDate.toISOString().split('T')[0];
             let amount = rt.type === 'expense' ? -rt.amount : rt.amount;
+            let accountName = 'N/A';
+            
             if (rt.type === 'transfer') {
-                if (fromSelected && !toSelected) amount = -rt.amount;
-                else if (!fromSelected && toSelected) amount = rt.amount;
-                else amount = 0;
-            }
-            if (amount !== 0) {
-                dailyChanges.set(dateStr, (dailyChanges.get(dateStr) || 0) + convertToEur(amount, rt.currency));
+                const fromSelected = liquidAccountIds.has(rt.accountId);
+                const toSelected = rt.toAccountId ? liquidAccountIds.has(rt.toAccountId) : false;
+                if (fromSelected || toSelected) {
+                    accountName = `${accountMap.get(rt.accountId) || 'External'} → ${accountMap.get(rt.toAccountId!) || 'External'}`;
+                    if (fromSelected && !toSelected) amount = -rt.amount;
+                    else if (!fromSelected && toSelected) amount = rt.amount;
+                    else amount = 0;
+                    if (amount !== 0) addEvent(dateStr, { amount, currency: rt.currency, description: rt.description, accountName, type: 'Recurring', isGoal: false });
+                }
+            } else {
+                if (liquidAccountIds.has(rt.accountId)) {
+                    accountName = accountMap.get(rt.accountId) || 'Unknown';
+                    addEvent(dateStr, { amount, currency: rt.currency, description: rt.description, accountName, type: 'Recurring', isGoal: false });
+                }
             }
             
-             const interval = rt.frequencyInterval || 1;
+            const interval = rt.frequencyInterval || 1;
              switch(rt.frequency) {
                 case 'daily': nextDate.setUTCDate(nextDate.getUTCDate() + interval); break;
                 case 'weekly': nextDate.setUTCDate(nextDate.getUTCDate() + 7 * interval); break;
@@ -471,35 +512,16 @@ export function generateBalanceForecast(
     });
 
     financialGoals.forEach(goal => {
-        if (goal.paymentAccountId && !liquidAccountIds.has(goal.paymentAccountId)) return;
-
-        if (goal.type === 'recurring' && goal.transactionType === 'expense' && goal.monthlyContribution && goal.currentAmount < goal.amount) {
-            let nextDate = goal.startDate ? parseDateAsUTC(goal.startDate) : new Date();
-            const dayOfMonth = goal.dueDateOfMonth || nextDate.getUTCDate();
-            nextDate.setUTCDate(dayOfMonth);
-
-            while (nextDate < startDate) {
-                nextDate.setUTCMonth(nextDate.getUTCMonth() + 1);
-            }
-    
-            let remainingAmountToSave = goal.amount - goal.currentAmount;
-    
-            while (nextDate <= forecastEndDate && remainingAmountToSave > 0) {
-                const dateStr = nextDate.toISOString().split('T')[0];
-                const contribution = Math.min(goal.monthlyContribution, remainingAmountToSave);
-                remainingAmountToSave -= contribution;
-    
-                dailyChanges.set(dateStr, (dailyChanges.get(dateStr) || 0) - convertToEur(contribution, goal.currency));
-                
-                nextDate.setUTCMonth(nextDate.getUTCMonth() + 1);
-            }
+        if (goal.paymentAccountId && !liquidAccountIds.has(goal.paymentAccountId)) {
+            return;
         }
+
         if (goal.type === 'one-time' && goal.date) {
             const goalDate = parseDateAsUTC(goal.date);
             if (goalDate >= startDate && goalDate <= forecastEndDate) {
-                const dateStr = goal.date;
-                const amount = goal.transactionType === 'expense' ? -goal.amount : goal.amount;
-                dailyChanges.set(dateStr, (dailyChanges.get(dateStr) || 0) + convertToEur(amount, goal.currency));
+                const amount = goal.transactionType === 'expense' ? -(goal.amount - goal.currentAmount) : (goal.amount - goal.currentAmount);
+                if (amount === 0) return;
+                addEvent(goal.date, { amount, currency: goal.currency, description: goal.name, accountName: goal.paymentAccountId ? accountMap.get(goal.paymentAccountId) || 'Unknown' : 'External', type: 'Financial Goal', isGoal: true });
             }
         }
     });
@@ -508,25 +530,42 @@ export function generateBalanceForecast(
         if (bill.status === 'unpaid') {
             const dueDate = parseDateAsUTC(bill.dueDate);
             if (dueDate >= startDate && dueDate <= forecastEndDate) {
-                const dateStr = bill.dueDate;
-                dailyChanges.set(dateStr, (dailyChanges.get(dateStr) || 0) + convertToEur(bill.amount, bill.currency));
+                addEvent(bill.dueDate, { amount: bill.amount, currency: bill.currency, description: bill.description, accountName: 'External', type: 'Bill/Payment', isGoal: false });
             }
         }
     });
 
-    const forecastData: { date: string; value: number }[] = [];
+    const chartData: { date: string; value: number }[] = [];
+    const tableData: any[] = [];
     let runningBalance = liquidAccounts.reduce((sum, acc) => sum + convertToEur(acc.balance, acc.currency), 0);
     
     let currentDate = new Date(startDate.getTime());
     while (currentDate <= forecastEndDate) {
         const dateStr = currentDate.toISOString().split('T')[0];
-        runningBalance += dailyChanges.get(dateStr) || 0;
-        forecastData.push({ date: dateStr, value: runningBalance });
+        const eventsForDay = dailyEvents.get(dateStr) || [];
+        
+        eventsForDay.sort((a,b) => a.amount - b.amount); // process expenses first
+
+        if (eventsForDay.length > 0) {
+            for (const event of eventsForDay) {
+                const amountInEur = convertToEur(event.amount, event.currency);
+                runningBalance += amountInEur;
+                tableData.push({ id: uuidv4(), date: dateStr, ...event, amount: amountInEur, balance: runningBalance });
+            }
+        }
+        
+        chartData.push({ date: dateStr, value: runningBalance });
         currentDate.setUTCDate(currentDate.getUTCDate() + 1);
     }
     
-    return forecastData;
+    let lowestPoint = { value: Infinity, date: '' };
+    if (chartData.length > 0) {
+        lowestPoint = chartData.reduce((min, p) => p.value < min.value ? { value: p.value, date: p.date } : min, { value: chartData[0].value, date: chartData[0].date });
+    }
+
+    return { chartData, tableData, lowestPoint };
 }
+
 
 export function generateAmortizationSchedule(
   account: Account,

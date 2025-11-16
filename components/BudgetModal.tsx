@@ -7,11 +7,12 @@ interface BudgetModalProps {
     onClose: () => void;
     onSave: (budget: Omit<Budget, 'id'> & { id?: string }) => void;
     budgetToEdit?: Budget | null;
+    categoryNameToCreate?: string;
     existingBudgets: Budget[];
     expenseCategories: Category[];
 }
 
-const BudgetModal: React.FC<BudgetModalProps> = ({ onClose, onSave, budgetToEdit, existingBudgets, expenseCategories }) => {
+const BudgetModal: React.FC<BudgetModalProps> = ({ onClose, onSave, budgetToEdit, categoryNameToCreate, existingBudgets, expenseCategories }) => {
     const isEditing = !!budgetToEdit;
 
     const [categoryName, setCategoryName] = useState('');
@@ -21,11 +22,14 @@ const BudgetModal: React.FC<BudgetModalProps> = ({ onClose, onSave, budgetToEdit
         if (isEditing && budgetToEdit) {
             setCategoryName(budgetToEdit.categoryName);
             setAmount(String(budgetToEdit.amount));
+        } else if (categoryNameToCreate) {
+            setCategoryName(categoryNameToCreate);
+            setAmount('');
         } else {
             setCategoryName('');
             setAmount('');
         }
-    }, [isEditing, budgetToEdit]);
+    }, [isEditing, budgetToEdit, categoryNameToCreate]);
 
     const handleSubmit = (e: React.FormEvent) => {
         e.preventDefault();
@@ -47,6 +51,9 @@ const BudgetModal: React.FC<BudgetModalProps> = ({ onClose, onSave, budgetToEdit
         if (isEditing && cat.name === budgetToEdit.categoryName) {
             return true; // Always show the category being edited
         }
+        if (categoryNameToCreate && cat.name === categoryNameToCreate) {
+            return true; // Always show the category being created
+        }
         return !existingBudgets.some(b => b.categoryName === cat.name);
     });
 
@@ -66,7 +73,7 @@ const BudgetModal: React.FC<BudgetModalProps> = ({ onClose, onSave, budgetToEdit
                             onChange={e => setCategoryName(e.target.value)}
                             className={INPUT_BASE_STYLE}
                             required
-                            disabled={isEditing}
+                            disabled={isEditing || !!categoryNameToCreate}
                         >
                             <option value="" disabled>Select a category</option>
                             {availableCategories.map(cat => (
@@ -75,7 +82,7 @@ const BudgetModal: React.FC<BudgetModalProps> = ({ onClose, onSave, budgetToEdit
                         </select>
                          <div className={SELECT_ARROW_STYLE}><span className="material-symbols-outlined">expand_more</span></div>
                     </div>
-                     {isEditing && <p className="text-xs text-light-text-secondary dark:text-dark-text-secondary mt-1">Category cannot be changed after creation.</p>}
+                     {(isEditing || !!categoryNameToCreate) && <p className="text-xs text-light-text-secondary dark:text-dark-text-secondary mt-1">Category cannot be changed after creation.</p>}
                 </div>
 
                 <div>

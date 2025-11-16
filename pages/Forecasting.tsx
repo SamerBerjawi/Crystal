@@ -147,7 +147,7 @@ const Forecasting: React.FC<ForecastingProps> = ({ accounts, transactions, recur
 
     const activeGoals = useMemo(() => financialGoals.filter(g => activeGoalIds.includes(g.id)), [financialGoals, activeGoalIds]);
 
-    const { forecastData, lowestPoint, goalsWithProjections } = useMemo(() => {
+    const { forecastData, tableData, lowestPoint, goalsWithProjections } = useMemo(() => {
         const projectionEndDate = new Date();
         projectionEndDate.setFullYear(new Date().getFullYear() + 10);
 
@@ -155,7 +155,7 @@ const Forecasting: React.FC<ForecastingProps> = ({ accounts, transactions, recur
         const syntheticCreditCardPayments = generateSyntheticCreditCardPayments(accounts, transactions);
         const allRecurringItems = [...recurringTransactions, ...syntheticLoanPayments, ...syntheticCreditCardPayments];
 
-        const fullData = generateBalanceForecast(
+        const { chartData: fullData, tableData: fullTableData, lowestPoint: overallLowestPoint } = generateBalanceForecast(
             selectedAccounts,
             allRecurringItems,
             activeGoals,
@@ -198,37 +198,47 @@ const Forecasting: React.FC<ForecastingProps> = ({ accounts, transactions, recur
             case '2Y': endDate.setFullYear(endDate.getFullYear() + 2); break;
         }
 
-        const forecastData = fullData.filter(d => new Date(d.date) <= endDate);
+        const forecastDataForPeriod = fullData.filter(d => new Date(d.date) <= endDate);
+        const tableDataForPeriod = fullTableData.filter(d => new Date(d.date) <= endDate);
 
-        let lowestPoint = { value: Infinity, date: '' };
-        if (forecastData.length > 0) {
-            lowestPoint = forecastData.reduce((min, p) => p.value < min.value ? { value: p.value, date: p.date } : min, { value: forecastData[0].value, date: forecastData[0].date });
+        let lowestPointInPeriod = { value: Infinity, date: '' };
+        if (forecastDataForPeriod.length > 0) {
+            lowestPointInPeriod = forecastDataForPeriod.reduce((min, p) => p.value < min.value ? { value: p.value, date: p.date } : min, { value: forecastDataForPeriod[0].value, date: forecastDataForPeriod[0].date });
         }
 
-        return { forecastData, lowestPoint, goalsWithProjections };
+        return { forecastData: forecastDataForPeriod, tableData: tableDataForPeriod, lowestPoint: lowestPointInPeriod, goalsWithProjections };
     }, [selectedAccounts, recurringTransactions, activeGoals, billsAndPayments, financialGoals, forecastDuration, accounts, transactions]);
 
     const { generatePlan, plan, isLoading: isPlanLoading, error: planError } = useSmartGoalPlanner(selectedAccounts, recurringTransactions, goalsWithProjections.filter(g => activeGoalIds.includes(g.id)));
 
-    const handleToggleGoal = (id: string) => {
-        const goal = financialGoals.find(g => g.id === id);
-        if (!goal) return;
+  const handleToggleGoal = (id: string) => {
+    const goal = financialGoals.find(g => g.id === id);
+    if (!goal) return;
+
+    let idsToToggle = [id];
+    let subGoals: FinancialGoal[] = [];
+
+    if (goal.isBucket) {
+      subGoals = financialGoals.filter(g => g.parentId === id);
+      const childIds = subGoals.map(g => g.id);
+      idsToToggle.push(...childIds);
+    }
     
-        let idsToToggle = [id];
-        if (goal.isBucket) {
-            const childIds = financialGoals.filter(g => g.parentId === id).map(g => g.id);
-            idsToToggle.push(...childIds);
-        }
-        
-        setActiveGoalIds(prev => {
-            const isActive = prev.includes(id);
-            if (isActive) {
-                return prev.filter(gid => !idsToToggle.includes(gid));
-            } else {
-                return [...new Set([...prev, ...idsToToggle])];
-            }
-        });
-    };
+    setActiveGoalIds(prev => {
+      // Determine if the goal is "on" based on the same logic used for display
+      const isCurrentlyEffectivelyActive = goal.isBucket
+        ? prev.includes(id) || subGoals.some(sg => prev.includes(sg.id))
+        : prev.includes(id);
+      
+      if (isCurrentlyEffectivelyActive) {
+        // If it's on, turn it off by removing all associated IDs
+        return prev.filter(gid => !idsToToggle.includes(gid));
+      } else {
+        // If it's off, turn it on by adding all associated IDs
+        return [...new Set([...prev, ...idsToToggle])];
+      }
+    });
+  };
 
     const handleOpenModal = (goal?: FinancialGoal) => {
         setEditingGoal(goal || null);
@@ -326,6 +336,43 @@ const Forecasting: React.FC<ForecastingProps> = ({ accounts, transactions, recur
             <Card>
                 <h3 className="text-xl font-semibold mb-4 text-light-text dark:text-dark-text">Cash Flow Forecast</h3>
                 <ForecastChart data={forecastData} lowestPoint={lowestPoint} oneTimeGoals={activeGoals.filter(g => g.type === 'one-time')} />
+            </Card>
+
+            <Card>
+                <h3 className="text-xl font-semibold mb-4 text-light-text dark:text-dark-text">Forecast Details</h3>
+                <div className="overflow-x-auto max-h-[400px]">
+                    <table className="w-full text-sm">
+                        <thead className="sticky top-0 bg-light-card dark:bg-dark-card z-10">
+                            <tr className="border-b border-light-separator dark:border-dark-separator">
+                                <th className="p-2 font-semibold text-left">Date</th>
+                                <th className="p-2 font-semibold text-left">Account</th>
+                                <th className="p-2 font-semibold text-left">Description</th>
+                                <th className="p-2 font-semibold text-right">Amount</th>
+                                <th className="p-2 font-semibold text-right">Balance</th>
+                                <th className="p-2 font-semibold text-left">Type</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {tableData.map(row => {
+                                const isLowest = row.balance.toFixed(2) === lowestPoint.value.toFixed(2);
+                                const rowClass = `border-b border-light-separator/50 dark:border-dark-separator/50
+                                    ${row.isGoal ? 'bg-yellow-100/50 dark:bg-yellow-900/20' : ''}
+                                    ${isLowest ? 'bg-red-100/50 dark:bg-red-900/20' : ''}`;
+                                return (
+                                    <tr key={row.id} className={rowClass}>
+                                        <td className="p-2 whitespace-nowrap">{new Date(row.date.replace(/-/g, '/')).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}</td>
+                                        <td className="p-2">{row.accountName}</td>
+                                        <td className="p-2">{row.description}</td>
+                                        <td className={`p-2 text-right font-mono ${row.amount >= 0 ? 'text-green-600' : 'text-red-600'}`}>{formatCurrency(row.amount, 'EUR')}</td>
+                                        <td className={`p-2 text-right font-mono ${isLowest ? 'font-bold' : ''}`}>{formatCurrency(row.balance, 'EUR')}</td>
+                                        <td className="p-2">{row.type}</td>
+                                    </tr>
+                                );
+                            })}
+                        </tbody>
+                    </table>
+                    {tableData.length === 0 && <p className="text-center py-8 text-light-text-secondary dark:text-dark-text-secondary">No forecast data to display for the selected period.</p>}
+                </div>
             </Card>
 
             <div className="space-y-6">

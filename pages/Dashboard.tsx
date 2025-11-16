@@ -520,7 +520,8 @@ const Dashboard: React.FC<DashboardProps> = ({ user, transactions, accounts, sav
         const forecastEndDate = new Date();
         forecastEndDate.setFullYear(forecastEndDate.getFullYear() + 1, forecastEndDate.getMonth() + 1, 0);
 
-        const forecastData = generateBalanceForecast(selectedAccounts, recurringTransactions, financialGoals, billsAndPayments, forecastEndDate);
+        // FIX: Access the .chartData property from the returned object of generateBalanceForecast.
+        const forecastData = generateBalanceForecast(selectedAccounts, recurringTransactions, financialGoals, billsAndPayments, forecastEndDate).chartData;
         const today = new Date();
         today.setUTCHours(0, 0, 0, 0);
 
@@ -592,6 +593,7 @@ const Dashboard: React.FC<DashboardProps> = ({ user, transactions, accounts, sav
         const displayedValues: number[] = [];
     
         for (const period of periods) {
+            // FIX: Access the .chartData property from the returned object of generateBalanceForecast.
             const dataForPeriod = forecastData.filter(d => {
                 const dDate = parseDateAsUTC(d.date);
                 return dDate >= period.startDate && dDate <= period.endDate;
@@ -604,6 +606,7 @@ const Dashboard: React.FC<DashboardProps> = ({ user, transactions, accounts, sav
                 const point = findNthLowestUniquePoint(dataForPeriod, n, displayedValues);
                 
                 if (!point) {
+                    // FIX: Access the .chartData property from the returned object of generateBalanceForecast.
                     const lastKnownBalancePoint = forecastData
                         .filter(d => parseDateAsUTC(d.date) < period.startDate)
                         .pop();

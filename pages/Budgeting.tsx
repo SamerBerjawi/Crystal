@@ -32,6 +32,7 @@ const Budgeting: React.FC<BudgetingProps> = ({ budgets, transactions, expenseCat
   const [currentDate, setCurrentDate] = useState(new Date());
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [editingBudget, setEditingBudget] = useState<Budget | null>(null);
+  const [categoryNameToCreate, setCategoryNameToCreate] = useState<string | undefined>();
 
   // State for AI budget suggestions
   const [isSuggestionModalOpen, setSuggestionModalOpen] = useState(false);
@@ -193,14 +194,16 @@ const Budgeting: React.FC<BudgetingProps> = ({ budgets, transactions, expenseCat
     return { totalBudgeted, totalSpent, spendingByCategory: spending };
   }, [currentDate, transactions, budgets, expenseCategories, accounts]);
 
-  const handleOpenModal = (budget?: Budget) => {
+  const handleOpenModal = (budget?: Budget, categoryName?: string) => {
     setEditingBudget(budget || null);
+    setCategoryNameToCreate(budget ? undefined : categoryName);
     setIsModalOpen(true);
   };
 
   const handleCloseModal = () => {
     setIsModalOpen(false);
     setEditingBudget(null);
+    setCategoryNameToCreate(undefined);
   };
 
   const totalRemaining = totalBudgeted - totalSpent;
@@ -218,6 +221,7 @@ const Budgeting: React.FC<BudgetingProps> = ({ budgets, transactions, expenseCat
           onClose={handleCloseModal}
           onSave={saveBudget}
           budgetToEdit={editingBudget}
+          categoryNameToCreate={categoryNameToCreate}
           existingBudgets={budgets}
           expenseCategories={expenseCategories.filter(c => !c.parentId)} // Only allow parent categories for budgets
         />
@@ -291,27 +295,27 @@ const Budgeting: React.FC<BudgetingProps> = ({ budgets, transactions, expenseCat
       <h3 className="text-xl font-semibold text-light-text dark:text-dark-text">Category Breakdown</h3>
       
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-        {budgets.map(budget => {
-          const categoryDetails = expenseCategories.find(c => c.name === budget.categoryName);
-          if (!categoryDetails) return null;
-
+        {expenseCategories.filter(c => !c.parentId).map(category => {
+          const budget = budgets.find(b => b.categoryName === category.name);
+          const spent = spendingByCategory[category.name] || 0;
+          
           return (
             <BudgetProgressCard 
-              key={budget.id}
-              category={categoryDetails}
-              budgeted={budget.amount}
-              spent={spendingByCategory[budget.categoryName] || 0}
-              onEdit={() => handleOpenModal(budget)}
+              key={category.id}
+              category={category}
+              budgeted={budget?.amount || 0}
+              spent={spent}
+              onEdit={() => handleOpenModal(budget, category.name)}
             />
           );
         })}
       </div>
-       {budgets.length === 0 && (
+       {expenseCategories.filter(c => !c.parentId).length === 0 && (
          <Card>
             <div className="text-center py-12 text-light-text-secondary dark:text-dark-text-secondary">
               <span className="material-symbols-outlined text-5xl mb-2">savings</span>
-              <p className="font-semibold">No budgets created yet.</p>
-              <p className="text-sm">Click "Create New Budget" or "Get AI Suggestions" to get started.</p>
+              <p className="font-semibold">No expense categories found.</p>
+              <p className="text-sm">Go to Settings to create categories to track your spending.</p>
             </div>
          </Card>
       )}
