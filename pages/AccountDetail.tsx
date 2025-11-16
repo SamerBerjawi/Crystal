@@ -1,3 +1,4 @@
+
 import React, { useMemo, useState, useCallback } from 'react';
 // FIX: Import 'AccountDetailProps' to define props for the component.
 import { Account, Transaction, Category, Duration, Page, CategorySpending, Widget, WidgetConfig, DisplayTransaction, RecurringTransaction, AccountDetailProps, Tag, ScheduledPayment } from '../types';
@@ -246,7 +247,7 @@ const AccountDetail: React.FC<AccountDetailProps> = ({ account, accounts, transa
 
             <header className="flex flex-wrap justify-between items-center gap-4">
                 <div className="flex items-center gap-4">
-                    <button onClick={() => setCurrentPage('Accounts')} className="text-light-text-secondary dark:text-dark-text-secondary p-2 rounded-full hover:bg-black/5 dark:hover:bg-white/5">
+                    <button onClick={() => setViewingAccountId(null)} className="text-light-text-secondary dark:text-dark-text-secondary p-2 rounded-full hover:bg-black/5 dark:hover:bg-white/5">
                         <span className="material-symbols-outlined">arrow_back</span>
                     </button>
                     <div>
@@ -327,7 +328,7 @@ const AccountDetail: React.FC<AccountDetailProps> = ({ account, accounts, transa
             <div className="space-y-6">
                 <header className="flex flex-wrap justify-between items-center gap-4">
                     <div className="flex items-center gap-4">
-                        <button onClick={() => setCurrentPage('Accounts')} className="text-light-text-secondary dark:text-dark-text-secondary p-2 rounded-full hover:bg-black/5 dark:hover:bg-white/5">
+                        <button onClick={() => setViewingAccountId(null)} className="text-light-text-secondary dark:text-dark-text-secondary p-2 rounded-full hover:bg-black/5 dark:hover:bg-white/5">
                             <span className="material-symbols-outlined">arrow_back</span>
                         </button>
                     </div>
@@ -640,7 +641,7 @@ const AccountDetail: React.FC<AccountDetailProps> = ({ account, accounts, transa
             {/* Header */}
             <div className="flex flex-wrap justify-between items-center gap-4">
                 <div className="flex items-center gap-4">
-                    <button onClick={() => setCurrentPage('Accounts')} className="text-light-text-secondary dark:text-dark-text-secondary p-2 rounded-full hover:bg-black/5 dark:hover:bg-white/5">
+                    <button onClick={() => { setViewingAccountId(null); setCurrentPage('Accounts'); }} className="text-light-text-secondary dark:text-dark-text-secondary p-2 rounded-full hover:bg-black/5 dark:hover:bg-white/5">
                         <span className="material-symbols-outlined">arrow_back</span>
                     </button>
                     <div>
