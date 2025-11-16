@@ -64,9 +64,13 @@
             borderRadius: {
               'xl': '16px',
             },
+            backgroundSize: {
+              '200%': '200% 100%',
+            },
             animation: {
               celebrate: 'celebrate 1s ease-in-out',
               'fade-in-up': 'fadeInUp 0.2s ease-out',
+              'bg-pan': 'bg-pan 3s linear infinite',
             },
             keyframes: {
               celebrate: {
@@ -79,6 +83,10 @@
               fadeInUp: {
                   'from': { opacity: 0, transform: 'translateY(10px)' },
                   'to': { opacity: 1, transform: 'translateY(0)' },
+              },
+              'bg-pan': {
+                '0%': { backgroundPosition: '200% center' },
+                '100%': { backgroundPosition: '0% center' },
               }
             }
           }

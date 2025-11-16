@@ -12,12 +12,11 @@ const features = [
         icon: 'space_dashboard',
         content: (
             <>
-                <p>Your central hub for a quick financial overview.</p>
+                <p>Your financial command center. Get an instant, high-level overview of your finances tailored to what matters most to you.</p>
                 <ul className="list-disc list-inside space-y-2 pl-2">
-                    <li>🎨 <strong>Customizable Widgets:</strong> Arrange, resize, and add widgets to create a dashboard that suits your needs. Enter 'Edit Layout' mode to customize.</li>
-                    <li>📊 <strong>Dynamic Filters:</strong> Filter your entire dashboard view by multiple accounts and time duration.</li>
-                    <li>📈 <strong>Key Metrics:</strong> At-a-glance cards for Income, Expenses, Net Balance, and Net Worth. New cards show your lowest projected balance and credit card statement summaries.</li>
-                    <li>🔗 <strong>Transaction Matcher:</strong> Crystal automatically detects potential transfers between your accounts and prompts you to link them for accurate reporting.</li>
+                    <li><strong>Build Your Perfect View:</strong> Customize your dashboard with modular widgets. Simply enter 'Edit Layout' mode to drag, drop, and resize components for a personalized experience.</li>
+                    <li><strong>Dynamic Filtering:</strong> Instantly filter your entire dashboard by any combination of accounts and timeframes to slice and dice your data.</li>
+                    <li><strong>Intelligent Transaction Matching:</strong> Effortlessly clean up your records. Our system automatically finds and links transfers between your accounts, ensuring perfect accuracy.</li>
                 </ul>
             </>
         )
@@ -27,13 +26,12 @@ const features = [
         icon: 'wallet',
         content: (
             <>
-                <p>The core of your financial data.</p>
+                <p>The foundation of your financial picture. Manage all your accounts and transactions with precision and ease.</p>
                 <ul className="list-disc list-inside space-y-2 pl-2">
-                    <li>🏦 <strong>Detailed Account Types:</strong> Add various types of accounts, including Checking, Savings, Investments, Loans, Property, and Vehicles, each with specialized fields.</li>
-                    <li>✨ <strong>Manual Sorting:</strong> On the Accounts page, you can sort by name or balance, or choose 'Manual' to drag-and-drop accounts into your preferred order.</li>
-                    <li>ContextMenu <strong>Quick Actions:</strong> Right-click on an account to quickly edit, adjust its balance, or perform other actions.</li>
-                    <li>🧾 <strong>Powerful Transactions Page:</strong> Log expenses, income, or transfers. Use the powerful multi-select filters and bulk editing features to modify multiple items at once.</li>
-                    <li>🔎 <strong>Account Detail View:</strong> Click on any account to see a dedicated, customizable dashboard with detailed charts and transaction history for that specific account.</li>
+                    <li><strong>Track Everything:</strong> From checking and savings to complex loans, properties, and investment portfolios, our detailed account types have you covered.</li>
+                    <li><strong>Organize Your Way:</strong> Sort accounts by name or balance, or create a custom order with simple drag-and-drop in 'Manual' sort mode.</li>
+                    <li><strong>Master Your History:</strong> Utilize advanced multi-select filters and powerful bulk-editing tools to manage your transaction data efficiently.</li>
+                    <li><strong>Dive Deeper:</strong> Click any account to access a dedicated, customizable dashboard with a focused view of its performance and history.</li>
                 </ul>
             </>
         )
@@ -43,11 +41,11 @@ const features = [
         icon: 'pie_chart',
         content: (
              <>
-                <p>Take control of your spending with intelligent tools.</p>
+                <p>Master your spending with intelligent budgeting tools designed for clarity and control.</p>
                 <ul className="list-disc list-inside space-y-2 pl-2">
-                    <li>🤖 <strong>AI Budget Suggestions:</strong> Let the AI analyze your spending history and suggest a reasonable monthly budget for your categories.</li>
-                    <li>✅ <strong>Track Everything by Default:</strong> Crystal automatically tracks spending for all your expense categories from the start. You can then choose which ones to set a formal budget for.</li>
-                    <li>📊 <strong>Real-time Progress:</strong> See your spending against your budgets in real-time, with clear progress bars and remaining amounts.</li>
+                    <li><strong>Budget Smarter, Not Harder:</strong> Get AI-powered budget suggestions based on your actual spending habits to set realistic and achievable goals.</li>
+                    <li><strong>Effortless Expense Tracking:</strong> All spending is categorized automatically, allowing you to set formal budgets only where you need them.</li>
+                    <li><strong>Stay on Track with Real-Time Progress:</strong> Instantly see how your spending compares to your budget with clear, visual feedback.</li>
                 </ul>
             </>
         )
@@ -57,11 +55,11 @@ const features = [
         icon: 'show_chart',
         content: (
             <>
-                <p>Plan for the future with powerful projection tools.</p>
+                <p>See your financial future and make informed decisions with powerful projection and planning tools.</p>
                  <ul className="list-disc list-inside space-y-2 pl-2">
-                    <li>🔮 <strong>Cash Flow Projection:</strong> Visualize your projected cash balance over different time horizons (3M, 1Y, 2Y) based on your recurring transactions.</li>
-                    <li>🎯 <strong>Financial Goals & Buckets:</strong> Create savings goals (e.g., 'Vacation Fund') or plan for large one-time expenses. Group smaller goals into "buckets" for better organization.</li>
-                    <li>🤖 <strong>AI Smart Planner:</strong> Use the 'Generate Smart Plan' feature to get an AI-powered contribution strategy to help you reach your goals faster, prioritizing those that are at-risk.</li>
+                    <li><strong>Project Your Cash Flow:</strong> Visualize your estimated balance weeks, months, or even years ahead based on your recurring transactions and goals.</li>
+                    <li><strong>Plan for What's Next:</strong> Set, track, and manage financial goals, from one-time expenses to long-term savings. Organize related items into "buckets" for clarity.</li>
+                    <li><strong>Achieve Goals Faster:</strong> Use the AI Smart Planner to get an intelligent, step-by-step contribution plan that prioritizes your goals and maximizes your savings potential.</li>
                 </ul>
             </>
         )
@@ -71,10 +69,10 @@ const features = [
         icon: 'candlestick_chart',
         content: (
             <>
-                <p>Track your portfolio's performance.</p>
+                <p>Monitor and manage your investment portfolio with detailed tracking and automated tools.</p>
                  <ul className="list-disc list-inside space-y-2 pl-2">
-                    <li>💹 <strong>Investments:</strong> Log buy/sell transactions for stocks, crypto, and other assets to see your portfolio distribution, cost basis, and total gain/loss.</li>
-                    <li>📜 <strong>Warrants:</strong> Specifically designed to track employee warrant grants. You can configure a web scraper to automatically fetch and update the current price for each warrant ISIN.</li>
+                    <li><strong>See the Complete Picture:</strong> Log buy and sell transactions for stocks, crypto, and other assets to track performance, cost basis, and total gains.</li>
+                    <li><strong>Specialized Warrant Tracking:</strong> A dedicated tool for employee warrants, complete with a configurable web scraper to automatically fetch and update live prices.</li>
                 </ul>
             </>
         )
@@ -84,12 +82,12 @@ const features = [
         icon: 'calendar_month',
         content: (
             <>
-                <p>Never miss a payment again.</p>
+                <p>Stay ahead of your financial obligations by automating and visualizing your upcoming payments.</p>
                 <ul className="list-disc list-inside space-y-2 pl-2">
-                    <li>🔄 <strong>Recurring Transactions:</strong> Set up recurring income (like salary) and expenses (like subscriptions) to automate entries and improve forecast accuracy. You can also edit or skip single occurrences of a recurring event.</li>
-                    <li>🤖 <strong>Synthetic Payments:</strong> Crystal automatically generates scheduled payments for your loans and credit cards based on their settings, giving you a full picture of your upcoming cash flow.</li>
-                    <li>💵 <strong>Bills & Payments:</strong> Track one-time bills or expected deposits. Mark them as paid to automatically create a corresponding transaction.</li>
-                    <li>🗓️ <strong>Calendar Heatmap:</strong> Visualize your upcoming financial events for the next 12 months.</li>
+                    <li><strong>Automate Your Cash Flow:</strong> Schedule recurring income and expenses to streamline data entry and improve forecast accuracy. Easily edit or skip single occurrences.</li>
+                    <li><strong>Get a Complete Financial Picture:</strong> Crystal automatically creates scheduled payments for your loans and credit cards, giving you a comprehensive view of your upcoming cash flow.</li>
+                    <li><strong>Manage One-Time Payments:</strong> Track individual bills and deposits, and mark them as paid to automatically generate a corresponding transaction.</li>
+                    <li><strong>Visualize Your Year Ahead:</strong> A 12-month calendar heatmap provides an at-a-glance view of your scheduled financial activity.</li>
                 </ul>
             </>
         )
@@ -99,10 +97,10 @@ const features = [
         icon: 'task_alt',
         content: (
             <>
-                <p>Organize your financial life beyond transactions.</p>
+                <p>Organize your financial life beyond transactions with powerful, flexible tools.</p>
                  <ul className="list-disc list-inside space-y-2 pl-2">
-                    <li>✅ <strong>Tasks:</strong> Create and manage your financial to-do list. Assign priorities and due dates, and track your progress on a Kanban board and a priority heatmap.</li>
-                    <li>🏷️ <strong>Tags:</strong> Group related transactions across different categories. For example, create a "Vacation 2024" tag to track all spending for a specific trip.</li>
+                    <li><strong>Stay on Top of Your Admin:</strong> Create a financial to-do list, assign priorities, and manage tasks with an intuitive Kanban board and priority heatmap.</li>
+                    <li><strong>Connect Your Spending:</strong> Use tags to group related transactions across any category—perfect for tracking project costs or vacation spending.</li>
                 </ul>
             </>
         )
@@ -112,11 +110,11 @@ const features = [
         icon: 'database',
         content: (
             <>
-                <p>Your data, your control.</p>
+                <p>Your data, your rules. Import, export, and manage your financial information with complete control.</p>
                  <ul className="list-disc list-inside space-y-2 pl-2">
-                    <li>🧙‍♂️ <strong>Advanced CSV Import:</strong> Use the powerful step-by-step wizard to import transactions or accounts from a CSV file. It automatically maps columns, detects formats, and allows you to clean and validate data before publishing.</li>
-                    <li>💾 <strong>Full Backup & Restore:</strong> Create a complete JSON backup of all your app data and restore it when needed.</li>
-                    <li>📤 <strong>CSV Export:</strong> Export your accounts, transactions, budgets, and more to separate CSV files.</li>
+                    <li><strong>Import with Ease:</strong> A powerful, step-by-step wizard for CSV imports that automatically maps columns, detects formats, and lets you clean data before publishing.</li>
+                    <li><strong>Full Backup & Restore:</strong> Export a complete JSON snapshot of your data for backup or migration, and restore it anytime.</li>
+                    <li><strong>Flexible CSV Exports:</strong> Export specific data sets like accounts, transactions, or budgets to individual CSV files.</li>
                 </ul>
             </>
         )
@@ -125,7 +123,7 @@ const features = [
         title: 'AI Assistant',
         icon: 'smart_toy',
         content: (
-            <p>Click the chat bubble at the bottom-right to talk to your AI financial assistant. Ask questions about your spending, budgets, or account balances in natural language. The assistant leverages Google's Gemini models to provide insightful answers based on your financial data.</p>
+            <p>Your personal finance expert is just a click away. Tap the chat icon to interact with our AI assistant, powered by Google's Gemini models. Ask questions in plain language—"How much did I spend on groceries last month?" or "What's my biggest budget category?"—and get instant, insightful answers based on your data.</p>
         )
     },
     {
@@ -133,11 +131,11 @@ const features = [
         icon: 'palette',
         content: (
             <>
-                <p>Crystal's brand identity is designed to be vibrant, energetic, and clear, reflecting its mission to provide financial foresight.</p>
+                <p>The philosophy behind Crystal's design is to embody clarity, energy, and foresight.</p>
                 <ul className="list-disc list-inside space-y-2 pl-2">
-                    <li><strong>Name:</strong> "Crystal" is inspired by a crystal ball, representing the app's mission to provide users with a clear view of their financial position and future.</li>
-                    <li><strong>Logo:</strong> The logo is an abstract and minimalist design of a crystal ball on a stand, offering clarity, focus, and foresight into one's financial world.</li>
-                    <li><strong>Color Palette:</strong> The primary color palette consists of a vibrant orange and a rich red. This energetic gradient is used as a key accent to draw attention and create a distinctive visual identity, while the orange serves as the primary UI color for consistency.</li>
+                    <li><strong>The Name:</strong> "Crystal" evokes the idea of a crystal ball, symbolizing our commitment to providing a clear, insightful view into your financial future.</li>
+                    <li><strong>The Logo:</strong> A modern, minimalist crystal ball, representing focus, clarity, and the power to see what's ahead.</li>
+                    <li><strong>The Palette:</strong> A vibrant gradient of orange and red serves as a powerful accent, signifying energy and drawing attention to key insights. The broader UI uses this palette to maintain a consistent and distinctive identity.</li>
                 </ul>
             </>
         )
