@@ -31,8 +31,9 @@ const features = [
                 <ul className="list-disc list-inside space-y-2 pl-2">
                     <li>🏦 <strong>Detailed Account Types:</strong> Add various types of accounts, including Checking, Savings, Investments, Loans, Property, and Vehicles, each with specialized fields.</li>
                     <li>✨ <strong>Manual Sorting:</strong> On the Accounts page, you can sort by name or balance, or choose 'Manual' to drag-and-drop accounts into your preferred order.</li>
-                    <li>🧾 <strong>Transactions:</strong> Log expenses, income, or transfers. Use the powerful bulk editing features on the Transactions page to modify multiple items at once.</li>
-                     <li>🔎 <strong>Account Detail View:</strong> Click on any account to see a dedicated, customizable dashboard with detailed charts and transaction history for that specific account.</li>
+                    <li>ContextMenu <strong>Quick Actions:</strong> Right-click on an account to quickly edit, adjust its balance, or perform other actions.</li>
+                    <li>🧾 <strong>Powerful Transactions Page:</strong> Log expenses, income, or transfers. Use the powerful multi-select filters and bulk editing features to modify multiple items at once.</li>
+                    <li>🔎 <strong>Account Detail View:</strong> Click on any account to see a dedicated, customizable dashboard with detailed charts and transaction history for that specific account.</li>
                 </ul>
             </>
         )
@@ -41,7 +42,14 @@ const features = [
         title: 'Budgeting',
         icon: 'pie_chart',
         content: (
-            <p>Take control of your spending by setting monthly budgets for your main expense categories. Crystal tracks your spending in real-time and shows your progress throughout the month.</p>
+             <>
+                <p>Take control of your spending with intelligent tools.</p>
+                <ul className="list-disc list-inside space-y-2 pl-2">
+                    <li>🤖 <strong>AI Budget Suggestions:</strong> Let the AI analyze your spending history and suggest a reasonable monthly budget for your categories.</li>
+                    <li>✅ <strong>Track Everything by Default:</strong> Crystal automatically tracks spending for all your expense categories from the start. You can then choose which ones to set a formal budget for.</li>
+                    <li>📊 <strong>Real-time Progress:</strong> See your spending against your budgets in real-time, with clear progress bars and remaining amounts.</li>
+                </ul>
+            </>
         )
     },
     {
@@ -52,7 +60,7 @@ const features = [
                 <p>Plan for the future with powerful projection tools.</p>
                  <ul className="list-disc list-inside space-y-2 pl-2">
                     <li>🔮 <strong>Cash Flow Projection:</strong> Visualize your projected cash balance over different time horizons (3M, 1Y, 2Y) based on your recurring transactions.</li>
-                    <li>🎯 <strong>Financial Goals:</strong> Create savings goals (e.g., 'Vacation Fund') or plan for large one-time expenses. The forecast will show if you're on track to meet them.</li>
+                    <li>🎯 <strong>Financial Goals & Buckets:</strong> Create savings goals (e.g., 'Vacation Fund') or plan for large one-time expenses. Group smaller goals into "buckets" for better organization.</li>
                     <li>🤖 <strong>AI Smart Planner:</strong> Use the 'Generate Smart Plan' feature to get an AI-powered contribution strategy to help you reach your goals faster, prioritizing those that are at-risk.</li>
                 </ul>
             </>
@@ -78,7 +86,8 @@ const features = [
             <>
                 <p>Never miss a payment again.</p>
                 <ul className="list-disc list-inside space-y-2 pl-2">
-                    <li>🔄 <strong>Recurring Transactions:</strong> Set up recurring income (like salary) and expenses (like subscriptions) to automate entries and improve forecast accuracy.</li>
+                    <li>🔄 <strong>Recurring Transactions:</strong> Set up recurring income (like salary) and expenses (like subscriptions) to automate entries and improve forecast accuracy. You can also edit or skip single occurrences of a recurring event.</li>
+                    <li>🤖 <strong>Synthetic Payments:</strong> Crystal automatically generates scheduled payments for your loans and credit cards based on their settings, giving you a full picture of your upcoming cash flow.</li>
                     <li>💵 <strong>Bills & Payments:</strong> Track one-time bills or expected deposits. Mark them as paid to automatically create a corresponding transaction.</li>
                     <li>🗓️ <strong>Calendar Heatmap:</strong> Visualize your upcoming financial events for the next 12 months.</li>
                 </ul>
@@ -116,7 +125,7 @@ const features = [
         title: 'AI Assistant',
         icon: 'smart_toy',
         content: (
-            <p>Click the chat bubble at the bottom-right to talk to your AI financial assistant. Ask questions about your spending, budgets, or account balances in natural language.</p>
+            <p>Click the chat bubble at the bottom-right to talk to your AI financial assistant. Ask questions about your spending, budgets, or account balances in natural language. The assistant leverages Google's Gemini models to provide insightful answers based on your financial data.</p>
         )
     },
     {
@@ -127,8 +136,8 @@ const features = [
                 <p>Crystal's brand identity is designed to be vibrant, energetic, and clear, reflecting its mission to provide financial foresight.</p>
                 <ul className="list-disc list-inside space-y-2 pl-2">
                     <li><strong>Name:</strong> "Crystal" is inspired by a crystal ball, representing the app's mission to provide users with a clear view of their financial position and future.</li>
-                    <li><strong>Logo:</strong> The logo is an abstract and minimalist design. The triangle represents stability and a solid foundation, while the circle symbolizes a crystal ball, offering clarity, focus, and foresight into one's financial world.</li>
-                    <li><strong>Color Palette:</strong> The primary color palette consists of a vibrant orange and a rich red. This energetic gradient is used as a key accent to draw attention and create a distinctive visual identity. The vibrant orange serves as the primary UI color for consistency and brand recognition.</li>
+                    <li><strong>Logo:</strong> The logo is an abstract and minimalist design of a crystal ball on a stand, offering clarity, focus, and foresight into one's financial world.</li>
+                    <li><strong>Color Palette:</strong> The primary color palette consists of a vibrant orange and a rich red. This energetic gradient is used as a key accent to draw attention and create a distinctive visual identity, while the orange serves as the primary UI color for consistency.</li>
                 </ul>
             </>
         )
@@ -269,7 +278,7 @@ export const Documentation: React.FC<DocumentationProps> = ({ setCurrentPage }) 
                                 >
                                     <div className="overflow-hidden">
                                         <div className="px-6 pb-6 pt-2">
-                                            <div className="prose dark:prose-invert max-w-none prose-p:leading-relaxed prose-li:my-2 prose-p:text-light-text-secondary prose-p:dark:text-dark-text-secondary prose-li:text-light-text-secondary prose-li:dark:text-dark-text-secondary prose-headings:text-light-text prose-headings:dark:text-dark-text">
+                                            <div className="prose dark:prose-invert max-w-none prose-p:leading-loose prose-p:mb-8 prose-li:leading-loose prose-li:my-4 prose-li:marker:text-primary-500 prose-headings:font-semibold prose-headings:text-light-text prose-headings:dark:text-dark-text prose-p:text-light-text-secondary prose-p:dark:text-dark-text-secondary prose-li:text-light-text-secondary prose-li:dark:text-dark-text-secondary">
                                                 {feature.content}
                                             </div>
                                             <div className="mt-8 pt-4 border-t border-black/10 dark:border-white/10 text-right">

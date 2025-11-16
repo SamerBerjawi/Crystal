@@ -9,7 +9,7 @@ const settingsLinks = [
   { page: 'Categories', icon: 'category', title: 'Categories', description: 'Manage your income and expense categories.' },
   { page: 'Tags', icon: 'label', title: 'Tags', description: 'Create and manage tags for transactions.' },
   { page: 'Data Management', icon: 'database', title: 'Data Management', description: 'Import, export, or reset your account data.' },
-  { page: 'Documentation', icon: 'menu_book', title: 'Documentation', description: 'Learn about Delphi\'s features.' },
+  { page: 'Documentation', icon: 'menu_book', title: 'Documentation', description: 'Learn about Crystal\'s features.' },
 ];
 
 interface SettingsProps {
