@@ -213,6 +213,7 @@ export interface FinancialGoal {
   currency: Currency;
   parentId?: string;
   isBucket?: boolean;
+  paymentAccountId?: string;
   // One-time
   date?: string; 
   // Recurring

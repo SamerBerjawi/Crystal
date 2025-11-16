@@ -1,7 +1,7 @@
 import React, { useState, useMemo, useCallback, Dispatch, SetStateAction } from 'react';
 import { Account, Transaction, RecurringTransaction, FinancialGoal, Category, Page, ContributionPlanStep, BillPayment } from '../types';
 import { BTN_PRIMARY_STYLE, BTN_SECONDARY_STYLE, LIQUID_ACCOUNT_TYPES } from '../constants';
-import { formatCurrency, convertToEur, generateBalanceForecast, generateSyntheticLoanPayments } from '../utils';
+import { formatCurrency, convertToEur, generateBalanceForecast, generateSyntheticLoanPayments, generateSyntheticCreditCardPayments } from '../utils';
 import Card from '../components/Card';
 import MultiAccountFilter from '../components/MultiAccountFilter';
 import FinancialGoalCard from '../components/FinancialGoalCard';
@@ -152,7 +152,8 @@ const Forecasting: React.FC<ForecastingProps> = ({ accounts, transactions, recur
         projectionEndDate.setFullYear(new Date().getFullYear() + 10);
 
         const syntheticLoanPayments = generateSyntheticLoanPayments(accounts);
-        const allRecurringItems = [...recurringTransactions, ...syntheticLoanPayments];
+        const syntheticCreditCardPayments = generateSyntheticCreditCardPayments(accounts, transactions);
+        const allRecurringItems = [...recurringTransactions, ...syntheticLoanPayments, ...syntheticCreditCardPayments];
 
         const fullData = generateBalanceForecast(
             selectedAccounts,
@@ -205,7 +206,7 @@ const Forecasting: React.FC<ForecastingProps> = ({ accounts, transactions, recur
         }
 
         return { forecastData, lowestPoint, goalsWithProjections };
-    }, [selectedAccounts, recurringTransactions, activeGoals, billsAndPayments, financialGoals, forecastDuration, accounts]);
+    }, [selectedAccounts, recurringTransactions, activeGoals, billsAndPayments, financialGoals, forecastDuration, accounts, transactions]);
 
     const { generatePlan, plan, isLoading: isPlanLoading, error: planError } = useSmartGoalPlanner(selectedAccounts, recurringTransactions, goalsWithProjections.filter(g => activeGoalIds.includes(g.id)));
 
@@ -283,7 +284,7 @@ const Forecasting: React.FC<ForecastingProps> = ({ accounts, transactions, recur
     
     return (
         <div className="space-y-8">
-            {isModalOpen && <GoalScenarioModal onClose={() => setIsModalOpen(false)} onSave={(d) => { saveFinancialGoal(d); setIsModalOpen(false); }} goalToEdit={editingGoal} financialGoals={financialGoals} parentId={parentIdForNewGoal} />}
+            {isModalOpen && <GoalScenarioModal onClose={() => setIsModalOpen(false)} onSave={(d) => { saveFinancialGoal(d); setIsModalOpen(false); }} goalToEdit={editingGoal} financialGoals={financialGoals} parentId={parentIdForNewGoal} accounts={accounts} />}
             {deletingGoal && (
                 <ConfirmationModal
                     isOpen={!!deletingGoal}
@@ -348,6 +349,7 @@ const Forecasting: React.FC<ForecastingProps> = ({ accounts, transactions, recur
                                 onEdit={handleOpenModal}
                                 onDelete={handleDeleteClick}
                                 onAddSubGoal={handleAddSubGoal}
+                                accounts={accounts}
                             />
                         );
                     })}

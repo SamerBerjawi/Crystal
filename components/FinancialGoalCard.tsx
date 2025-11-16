@@ -1,5 +1,5 @@
 import React, { useState, useMemo } from 'react';
-import { FinancialGoal } from '../types';
+import { FinancialGoal, Account } from '../types';
 import { formatCurrency } from '../utils';
 import Card from './Card';
 
@@ -11,9 +11,10 @@ interface FinancialGoalCardProps {
   onEdit: (goal: FinancialGoal) => void;
   onDelete: (id: string) => void;
   onAddSubGoal: (parentId: string) => void;
+  accounts: Account[];
 }
 
-const FinancialGoalCard: React.FC<FinancialGoalCardProps> = ({ goal, subGoals, isActive, onToggle, onEdit, onDelete, onAddSubGoal }) => {
+const FinancialGoalCard: React.FC<FinancialGoalCardProps> = ({ goal, subGoals, isActive, onToggle, onEdit, onDelete, onAddSubGoal, accounts }) => {
   const isBucket = !!goal.isBucket;
   const [isExpanded, setIsExpanded] = useState(true);
 
@@ -59,6 +60,11 @@ const FinancialGoalCard: React.FC<FinancialGoalCardProps> = ({ goal, subGoals, i
     'off-track': { text: 'Off Track', color: 'text-red-500', icon: 'error' },
   };
 
+  const paymentAccountName = useMemo(() => {
+    if (!goalToDisplay.paymentAccountId) return null;
+    return accounts.find(a => a.id === goalToDisplay.paymentAccountId)?.name;
+  }, [goalToDisplay.paymentAccountId, accounts]);
+
   const handleToggle = () => {
     onToggle(goal.id);
   };
@@ -75,6 +81,12 @@ const FinancialGoalCard: React.FC<FinancialGoalCardProps> = ({ goal, subGoals, i
           </div>
         </div>
         <p className="text-sm text-light-text-secondary dark:text-dark-text-secondary">Target: {formatCurrency(goalToDisplay.amount, 'EUR')} {goalToDisplay.date && !isBucket ? `by ${formatDate(goalToDisplay.date)}` : ''}</p>
+        {paymentAccountName && !isBucket && (
+          <p className="text-xs text-light-text-secondary dark:text-dark-text-secondary mt-1 flex items-center gap-1">
+            <span className="material-symbols-outlined text-sm">credit_card</span>
+            <span>From: {paymentAccountName}</span>
+          </p>
+        )}
       </div>
 
       <div className="my-4">
@@ -97,22 +109,32 @@ const FinancialGoalCard: React.FC<FinancialGoalCardProps> = ({ goal, subGoals, i
                 <span className={`material-symbols-outlined transition-transform duration-200 ${isExpanded ? 'rotate-180' : ''}`}>expand_more</span>
             </button>
             {isExpanded && (
-                <ul className="mt-2 space-y-2">
-                    {subGoals.map(sg => (
-                        <li key={sg.id} className="flex justify-between items-center group/item text-xs">
-                            <div className="flex-1 min-w-0">
-                                <p className="font-medium text-light-text dark:text-dark-text truncate">{sg.name}</p>
-                                <p className="text-light-text-secondary dark:text-dark-text-secondary">{formatDate(sg.date)}</p>
-                            </div>
-                            <div className="flex items-center gap-2 flex-shrink-0 ml-2">
-                                <span className="font-semibold">{formatCurrency(sg.amount, 'EUR')}</span>
-                                <div className="opacity-0 group-hover/item:opacity-100 flex items-center">
-                                    <button onClick={() => onEdit(sg)} className="p-1 rounded-full text-light-text-secondary dark:text-dark-text-secondary hover:bg-black/5 dark:hover:bg-white/5"><span className="material-symbols-outlined text-sm">edit</span></button>
-                                    <button onClick={() => onDelete(sg.id)} className="p-1 rounded-full text-red-500/80 hover:bg-red-500/10"><span className="material-symbols-outlined text-sm">delete</span></button>
+                <ul className="mt-2 space-y-3">
+                    {subGoals.map(sg => {
+                        const subGoalPaymentAccountName = accounts.find(a => a.id === sg.paymentAccountId)?.name;
+                        return (
+                        <li key={sg.id} className="text-xs">
+                            <div className="flex justify-between items-center group/item">
+                                <div className="flex-1 min-w-0">
+                                    <p className="font-medium text-light-text dark:text-dark-text truncate">{sg.name}</p>
+                                    <p className="text-light-text-secondary dark:text-dark-text-secondary">{formatDate(sg.date)}</p>
+                                </div>
+                                <div className="flex items-center gap-2 flex-shrink-0 ml-2">
+                                    <span className="font-semibold">{formatCurrency(sg.amount, 'EUR')}</span>
+                                    <div className="opacity-0 group-hover/item:opacity-100 flex items-center">
+                                        <button onClick={() => onEdit(sg)} className="p-1 rounded-full text-light-text-secondary dark:text-dark-text-secondary hover:bg-black/5 dark:hover:bg-white/5"><span className="material-symbols-outlined text-sm">edit</span></button>
+                                        <button onClick={() => onDelete(sg.id)} className="p-1 rounded-full text-red-500/80 hover:bg-red-500/10"><span className="material-symbols-outlined text-sm">delete</span></button>
+                                    </div>
                                 </div>
                             </div>
+                            {subGoalPaymentAccountName && (
+                                <p className="text-light-text-secondary dark:text-dark-text-secondary truncate pl-1 flex items-center gap-1">
+                                    <span className="material-symbols-outlined text-xs">subdirectory_arrow_right</span>
+                                    <span>from {subGoalPaymentAccountName}</span>
+                                </p>
+                            )}
                         </li>
-                    ))}
+                    )})}
                 </ul>
             )}
           </div>

@@ -328,6 +328,63 @@ export function generateSyntheticLoanPayments(accounts: Account[]): RecurringTra
     return syntheticPayments;
 }
 
+export function generateSyntheticCreditCardPayments(accounts: Account[], allTransactions: Transaction[]): RecurringTransaction[] {
+    const syntheticPayments: RecurringTransaction[] = [];
+    const configuredCreditCards = accounts.filter(
+        (acc) =>
+            acc.type === 'Credit Card' &&
+            acc.statementStartDate &&
+            acc.paymentDate &&
+            acc.settlementAccountId
+    );
+
+    const today = new Date();
+    const todayUTC = new Date(Date.UTC(today.getUTCFullYear(), today.getUTCMonth(), today.getUTCDate()));
+
+    for (const account of configuredCreditCards) {
+        const periods = calculateStatementPeriods(account.statementStartDate!, account.paymentDate!);
+
+        const statementDetails = [
+            { period: periods.current, type: 'Current' },
+            { period: periods.future, type: 'Next' }
+        ];
+
+        for (const detail of statementDetails) {
+            if (detail.period.paymentDue >= todayUTC) {
+                const { statementBalance } = getCreditCardStatementDetails(
+                    account,
+                    detail.period.start,
+                    detail.period.end,
+                    allTransactions
+                );
+
+                if (statementBalance < 0) {
+                    const paymentAmount = Math.abs(statementBalance);
+                    const dueDateStr = detail.period.paymentDue.toISOString().split('T')[0];
+
+                    const syntheticRT: RecurringTransaction = {
+                        id: `cc-pmt-${account.id}-${dueDateStr}`,
+                        accountId: account.settlementAccountId!,
+                        toAccountId: account.id,
+                        description: `Payment for ${account.name} (${detail.type} Statement)`,
+                        amount: paymentAmount,
+                        type: 'transfer',
+                        currency: account.currency,
+                        frequency: 'monthly',
+                        startDate: dueDateStr,
+                        endDate: dueDateStr,
+                        nextDueDate: dueDateStr,
+                        weekendAdjustment: 'after',
+                        isSynthetic: true,
+                    };
+                    syntheticPayments.push(syntheticRT);
+                }
+            }
+        }
+    }
+    return syntheticPayments;
+}
+
 export function generateBalanceForecast(
     accounts: Account[],
     recurringTransactions: RecurringTransaction[],
@@ -414,6 +471,8 @@ export function generateBalanceForecast(
     });
 
     financialGoals.forEach(goal => {
+        if (goal.paymentAccountId && !liquidAccountIds.has(goal.paymentAccountId)) return;
+
         if (goal.type === 'recurring' && goal.transactionType === 'expense' && goal.monthlyContribution && goal.currentAmount < goal.amount) {
             let nextDate = goal.startDate ? parseDateAsUTC(goal.startDate) : new Date();
             const dayOfMonth = goal.dueDateOfMonth || nextDate.getUTCDate();

@@ -1,4 +1,5 @@
 
+
 import React, { useState, useEffect } from 'react';
 import { Account, Category, AccountType, Currency, User, AppPreferences, FinancialGoal, RecurringTransaction } from '../types';
 import { CrystalLogo, BTN_PRIMARY_STYLE, BTN_SECONDARY_STYLE, INPUT_BASE_STYLE, SELECT_WRAPPER_STYLE, SELECT_ARROW_STYLE, CURRENCIES, ACCOUNT_TYPE_STYLES, ALL_ACCOUNT_TYPES, CURRENCY_OPTIONS } from '../constants';
@@ -51,6 +52,7 @@ const OnboardingModal: React.FC<OnboardingModalProps> = ({
     d.setFullYear(d.getFullYear() + 1);
     return d.toISOString().split('T')[0];
   });
+  const [paymentAccountId, setPaymentAccountId] = useState<string>('');
   
   // Step 5 state
   const [rtDescription, setRtDescription] = useState('');
@@ -100,6 +102,7 @@ const OnboardingModal: React.FC<OnboardingModalProps> = ({
             type: 'one-time',
             transactionType: 'expense', // Assume goals are for spending/saving up
             currency: 'EUR',
+            paymentAccountId: paymentAccountId || undefined,
          };
          saveFinancialGoal(newGoal);
       }
@@ -231,6 +234,16 @@ const OnboardingModal: React.FC<OnboardingModalProps> = ({
                         <input type="date" value={goalDate} onChange={e => setGoalDate(e.target.value)} className={INPUT_BASE_STYLE} />
                     </div>
                 </div>
+                <div>
+                  <label className="block text-sm font-medium text-light-text-secondary dark:text-dark-text-secondary mb-1">Payment Account (Optional)</label>
+                  <div className={SELECT_WRAPPER_STYLE}>
+                      <select value={paymentAccountId} onChange={e => setPaymentAccountId(e.target.value)} className={INPUT_BASE_STYLE}>
+                          <option value="">None</option>
+                          {accounts.map(acc => <option key={acc.id} value={acc.id}>{acc.name}</option>)}
+                      </select>
+                      <div className={SELECT_ARROW_STYLE}><span className="material-symbols-outlined">expand_more</span></div>
+                  </div>
+              </div>
             </div>
           </Card>
         );

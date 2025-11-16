@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useMemo } from 'react';
 import Modal from './Modal';
-import { FinancialGoal, GoalType, RecurrenceFrequency, Currency } from '../types';
-import { INPUT_BASE_STYLE, BTN_PRIMARY_STYLE, BTN_SECONDARY_STYLE, SELECT_WRAPPER_STYLE, SELECT_ARROW_STYLE, FREQUENCIES } from '../constants';
+import { FinancialGoal, GoalType, RecurrenceFrequency, Currency, Account } from '../types';
+import { INPUT_BASE_STYLE, BTN_PRIMARY_STYLE, BTN_SECONDARY_STYLE, SELECT_WRAPPER_STYLE, SELECT_ARROW_STYLE, FREQUENCIES, ASSET_TYPES, DEBT_TYPES } from '../constants';
 
 interface GoalScenarioModalProps {
     onClose: () => void;
@@ -9,9 +9,10 @@ interface GoalScenarioModalProps {
     goalToEdit?: FinancialGoal | null;
     financialGoals: FinancialGoal[];
     parentId?: string;
+    accounts: Account[];
 }
 
-const GoalScenarioModal: React.FC<GoalScenarioModalProps> = ({ onClose, onSave, goalToEdit, financialGoals, parentId: preselectedParentId }) => {
+const GoalScenarioModal: React.FC<GoalScenarioModalProps> = ({ onClose, onSave, goalToEdit, financialGoals, parentId: preselectedParentId, accounts }) => {
     const isEditing = !!goalToEdit;
 
     const [name, setName] = useState('');
@@ -26,6 +27,7 @@ const GoalScenarioModal: React.FC<GoalScenarioModalProps> = ({ onClose, onSave, 
     const [dueDateOfMonth, setDueDateOfMonth] = useState('');
     const [isBucket, setIsBucket] = useState(false);
     const [parentId, setParentId] = useState<string | undefined>(preselectedParentId);
+    const [paymentAccountId, setPaymentAccountId] = useState<string | undefined>();
 
     const parentGoalOptions = useMemo(() => 
         financialGoals.filter(g => (g.isBucket || !g.parentId) && g.id !== goalToEdit?.id),
@@ -45,6 +47,7 @@ const GoalScenarioModal: React.FC<GoalScenarioModalProps> = ({ onClose, onSave, 
             setDueDateOfMonth(String(goalToEdit.dueDateOfMonth || ''));
             setIsBucket(!!goalToEdit.isBucket);
             setParentId(goalToEdit.parentId);
+            setPaymentAccountId(goalToEdit.paymentAccountId);
         } else {
             setName('');
             setType('one-time');
@@ -58,6 +61,7 @@ const GoalScenarioModal: React.FC<GoalScenarioModalProps> = ({ onClose, onSave, 
             setDueDateOfMonth('');
             setIsBucket(false);
             setParentId(preselectedParentId);
+            setPaymentAccountId(undefined);
         }
     }, [isEditing, goalToEdit, preselectedParentId]);
 
@@ -78,6 +82,7 @@ const GoalScenarioModal: React.FC<GoalScenarioModalProps> = ({ onClose, onSave, 
             dueDateOfMonth: isBucket ? undefined : type === 'recurring' && (frequency === 'monthly' || frequency === 'yearly') && dueDateOfMonth ? parseInt(dueDateOfMonth) : undefined,
             isBucket,
             parentId: isBucket ? undefined : parentId,
+            paymentAccountId: isBucket ? undefined : paymentAccountId,
         };
         onSave(goalData);
         onClose();
@@ -181,6 +186,22 @@ const GoalScenarioModal: React.FC<GoalScenarioModalProps> = ({ onClose, onSave, 
                         </div>
                     )}
                     
+                    <div>
+                        <label htmlFor="goal-payment-account" className={labelStyle}>Payment Account (Optional)</label>
+                        <div className={SELECT_WRAPPER_STYLE}>
+                            <select id="goal-payment-account" value={paymentAccountId || ''} onChange={e => setPaymentAccountId(e.target.value || undefined)} className={INPUT_BASE_STYLE}>
+                                <option value="">None</option>
+                                <optgroup label="Assets">
+                                    {accounts.filter(a => ASSET_TYPES.includes(a.type)).map(acc => <option key={acc.id} value={acc.id}>{acc.name}</option>)}
+                                </optgroup>
+                                <optgroup label="Liabilities">
+                                    {accounts.filter(a => DEBT_TYPES.includes(a.type)).map(acc => <option key={acc.id} value={acc.id}>{acc.name}</option>)}
+                                </optgroup>
+                            </select>
+                            <div className={SELECT_ARROW_STYLE}><span className="material-symbols-outlined">expand_more</span></div>
+                        </div>
+                    </div>
+
                     <div>
                         <label htmlFor="goal-parent" className={labelStyle}>Parent Goal (Optional)</label>
                         <div className={SELECT_WRAPPER_STYLE}>

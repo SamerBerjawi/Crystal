@@ -1,10 +1,9 @@
-
 import React, { useState, useMemo } from 'react';
 // FIX: Import ScheduledItem from global types and remove local definition.
 import { RecurringTransaction, Account, Category, BillPayment, Currency, AccountType, RecurringTransactionOverride, ScheduledItem, Transaction, Tag } from '../types';
 import Card from '../components/Card';
 import { BTN_PRIMARY_STYLE, BTN_SECONDARY_STYLE, INPUT_BASE_STYLE, SELECT_WRAPPER_STYLE, SELECT_ARROW_STYLE, LIQUID_ACCOUNT_TYPES, ACCOUNT_TYPE_STYLES } from '../constants';
-import { formatCurrency, convertToEur, generateSyntheticLoanPayments } from '../utils';
+import { formatCurrency, convertToEur, generateSyntheticLoanPayments, generateSyntheticCreditCardPayments } from '../utils';
 import RecurringTransactionModal from '../components/RecurringTransactionModal';
 import Modal from '../components/Modal';
 import ScheduleHeatmap from '../components/ScheduleHeatmap';
@@ -127,11 +126,12 @@ interface ScheduleProps {
     saveRecurringOverride: (override: RecurringTransactionOverride) => void;
     deleteRecurringOverride: (recurringTransactionId: string, originalDate: string) => void;
     saveTransaction: (transactions: (Omit<Transaction, 'id'> & { id?: string })[], idsToDelete?: string[]) => void;
+    transactions: Transaction[];
     tags: Tag[];
 }
 
-const Schedule: React.FC<ScheduleProps> = (props) => {
-    const { recurringTransactions, saveRecurringTransaction, deleteRecurringTransaction, billsAndPayments, saveBillPayment, deleteBillPayment, markBillAsPaid, accounts, incomeCategories, expenseCategories, recurringTransactionOverrides, saveRecurringOverride, deleteRecurringOverride, saveTransaction, tags } = props;
+const SchedulePage: React.FC<ScheduleProps> = (props) => {
+    const { recurringTransactions, saveRecurringTransaction, deleteRecurringTransaction, billsAndPayments, saveBillPayment, deleteBillPayment, markBillAsPaid, accounts, incomeCategories, expenseCategories, recurringTransactionOverrides, saveRecurringOverride, deleteRecurringOverride, saveTransaction, transactions, tags } = props;
 
     const [isRecurringModalOpen, setIsRecurringModalOpen] = useState(false);
     const [isBillModalOpen, setIsBillModalOpen] = useState(false);
@@ -148,7 +148,7 @@ const Schedule: React.FC<ScheduleProps> = (props) => {
         return acc;
     }, {} as Record<string, string>), [accounts]);
     
-    const { upcomingItems, paidItems, accountSummaries, globalSummary } = useMemo(() => {
+    const { upcomingRecurring, upcomingBills, paidItems, allUpcomingForHeatmap, accountSummaries, globalSummary } = useMemo(() => {
         const today = new Date();
         const todayUTC = new Date(Date.UTC(today.getUTCFullYear(), today.getUTCMonth(), today.getUTCDate()));
         
@@ -161,7 +161,8 @@ const Schedule: React.FC<ScheduleProps> = (props) => {
         const allUpcomingItems: ScheduledItem[] = [];
 
         const syntheticLoanPayments = generateSyntheticLoanPayments(accounts);
-        const allRecurringTransactions = [...recurringTransactions, ...syntheticLoanPayments];
+        const syntheticCreditCardPayments = generateSyntheticCreditCardPayments(accounts, transactions);
+        const allRecurringTransactions = [...recurringTransactions, ...syntheticLoanPayments, ...syntheticCreditCardPayments];
 
         allRecurringTransactions.forEach(rt => {
             let nextDate = parseAsUTC(rt.nextDueDate);
@@ -255,6 +256,26 @@ const Schedule: React.FC<ScheduleProps> = (props) => {
 
         allUpcomingItems.sort((a, b) => parseAsUTC(a.date).getTime() - parseAsUTC(b.date).getTime());
 
+        const upcomingRecurringItems: ScheduledItem[] = [];
+        const upcomingBillsItems: ScheduledItem[] = [];
+
+        const startFilterDate = new Date(Date.UTC(today.getUTCFullYear(), today.getUTCMonth(), today.getUTCDate() - 3));
+
+        allUpcomingItems
+            .filter(item => parseAsUTC(item.date) >= startFilterDate)
+            .forEach(item => {
+                if (item.isRecurring) {
+                    const rt = item.originalItem as RecurringTransaction;
+                    if (rt.isSynthetic && rt.id.startsWith('cc-pmt-')) {
+                        upcomingBillsItems.push(item);
+                    } else {
+                        upcomingRecurringItems.push(item);
+                    }
+                } else {
+                    upcomingBillsItems.push(item);
+                }
+        });
+
         const forecastItems = allUpcomingItems.filter(item => {
             const itemDate = parseAsUTC(item.date);
             return itemDate >= todayUTC && itemDate <= dateIn30Days;
@@ -315,12 +336,14 @@ const Schedule: React.FC<ScheduleProps> = (props) => {
             .slice(0, 10);
 
         return {
-            upcomingItems: allUpcomingItems,
+            upcomingRecurring: upcomingRecurringItems,
+            upcomingBills: upcomingBillsItems,
             paidItems,
+            allUpcomingForHeatmap: allUpcomingItems,
             accountSummaries,
             globalSummary
         };
-    }, [recurringTransactions, billsAndPayments, accounts, accountMap, recurringTransactionOverrides]);
+    }, [recurringTransactions, billsAndPayments, accounts, accountMap, recurringTransactionOverrides, transactions]);
 
     const handleOpenRecurringModal = (rt?: RecurringTransaction) => {
         setEditingTransaction(rt || null);
@@ -470,11 +493,21 @@ const Schedule: React.FC<ScheduleProps> = (props) => {
         return groups;
     };
     
-    const groupedUpcomingItems = groupItems(upcomingItems.filter(item => {
-        const today = new Date();
-        const startFilterDate = new Date(Date.UTC(today.getUTCFullYear(), today.getUTCMonth(), today.getUTCDate() - 3));
-        return parseAsUTC(item.date) >= startFilterDate;
-    }));
+    const groupedRecurringItems = groupItems(upcomingRecurring);
+    const groupedBills = groupItems(upcomingBills);
+
+    const renderGroupedItems = (groupedItems: Record<string, ScheduledItem[]>) => (
+        <div className="divide-y divide-light-separator dark:divide-dark-separator -mx-6">
+            {Object.entries(groupedItems).map(([groupName, items]) => items.length > 0 && (
+                <div key={groupName} className="px-6 py-4">
+                    <h4 className="font-semibold mb-2">{groupName}</h4>
+                    <div className="space-y-2 -mx-4">
+                        {items.map(item => <ScheduledItemRow key={item.id} item={item} accounts={accounts} onEdit={handleEditItem} onDelete={handleDeleteItem} onPost={handleOpenPostModal} />)}
+                    </div>
+                </div>
+            ))}
+        </div>
+    );
 
     return (
         <div className="space-y-8">
@@ -544,24 +577,19 @@ const Schedule: React.FC<ScheduleProps> = (props) => {
                 </table>
             </Card>
 
-            <ScheduleHeatmap items={upcomingItems} />
+            <ScheduleHeatmap items={allUpcomingForHeatmap} />
             
-            <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
+            <div className="space-y-8">
                 <Card>
-                    <h3 className="text-xl font-semibold mb-4 text-light-text dark:text-dark-text">Upcoming</h3>
-                    <div className="divide-y divide-light-separator dark:divide-dark-separator -mx-6">
-                        {Object.entries(groupedUpcomingItems).map(([groupName, items]) => items.length > 0 && (
-                            <div key={groupName} className="px-6 py-4">
-                                <h4 className="font-semibold mb-2">{groupName}</h4>
-                                <div className="space-y-2 -mx-4">
-                                    {items.map(item => <ScheduledItemRow key={item.id} item={item} accounts={accounts} onEdit={handleEditItem} onDelete={handleDeleteItem} onPost={handleOpenPostModal} />)}
-                                </div>
-                            </div>
-                        ))}
-                    </div>
+                    <h3 className="text-xl font-semibold mb-4 text-light-text dark:text-dark-text">Recurring Transactions</h3>
+                    {renderGroupedItems(groupedRecurringItems)}
                 </Card>
                 <Card>
-                    <h3 className="text-xl font-semibold mb-4 text-light-text dark:text-dark-text">Recently Paid</h3>
+                    <h3 className="text-xl font-semibold mb-4 text-light-text dark:text-dark-text">Upcoming Bills & One-time Payments</h3>
+                    {renderGroupedItems(groupedBills)}
+                </Card>
+                <Card>
+                    <h3 className="text-xl font-semibold mb-4 text-light-text dark:text-dark-text">Payment History</h3>
                     <div className="space-y-2 -mx-4">
                         {paidItems.map(item => (
                             <div key={item.id} className="flex items-center justify-between p-4 opacity-60">
@@ -585,4 +613,4 @@ const Schedule: React.FC<ScheduleProps> = (props) => {
     );
 };
 
-export default Schedule;
+export default SchedulePage;
