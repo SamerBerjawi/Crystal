@@ -81,8 +81,8 @@ const ScheduledItemRow: React.FC<{
     const month = dueDate.toLocaleString('default', { month: 'short', timeZone: 'UTC' }).toUpperCase();
     
     return (
-      <div className="flex items-center justify-between p-4 group">
-        <div className="flex items-center gap-4">
+      <div className="flex flex-col sm:flex-row sm:items-center justify-between p-4 group">
+        <div className="flex items-center gap-4 w-full">
           <div className={`flex-shrink-0 text-center rounded-lg p-2 w-16 ${isOverdue ? 'bg-red-100 dark:bg-red-900/40' : 'bg-light-bg dark:bg-dark-bg'}`}>
             <p className={`text-xs font-semibold ${isOverdue ? 'text-red-500' : 'text-primary-500'}`}>{month}</p>
             <p className={`text-2xl font-bold ${isOverdue ? 'text-red-600 dark:text-red-400' : 'text-light-text dark:text-dark-text'}`}>{day}</p>
@@ -95,7 +95,7 @@ const ScheduledItemRow: React.FC<{
             <p className="text-sm text-light-text-secondary dark:text-dark-text-secondary">{item.accountName} &bull; {item.isRecurring ? (item.originalItem as RecurringTransaction).frequency : 'One-time'}</p>
           </div>
         </div>
-        <div className="flex items-center gap-2">
+        <div className="flex items-center gap-2 self-end sm:self-center mt-2 sm:mt-0 ml-auto sm:ml-0">
           <p className={`font-semibold text-base ${isIncome ? 'text-green-600 dark:text-green-400' : 'text-red-600 dark:text-red-400'}`}>
             {formatCurrency(item.amount, 'EUR')}
           </p>

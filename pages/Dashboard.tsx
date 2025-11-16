@@ -754,7 +754,7 @@ const Dashboard: React.FC<DashboardProps> = ({ user, transactions, accounts, sav
           
           <p className="text-light-text-secondary dark:text-dark-text-secondary mt-1">Welcome back, {user.firstName}!</p>
         </div>
-        <div className="flex items-center gap-4">
+        <div className="flex items-center gap-4 flex-wrap">
           <MultiAccountFilter accounts={accounts} selectedAccountIds={selectedAccountIds} setSelectedAccountIds={setSelectedAccountIds} />
           <DurationFilter selectedDuration={duration} onDurationChange={setDuration} />
           {isEditMode ? (
@@ -774,7 +774,7 @@ const Dashboard: React.FC<DashboardProps> = ({ user, transactions, accounts, sav
             </button>
           )}
 
-          <button onClick={() => handleOpenTransactionModal()} className={`${BTN_PRIMARY_STYLE} h-10 hidden sm:block`}>
+          <button onClick={() => handleOpenTransactionModal()} className={`${BTN_PRIMARY_STYLE} h-10`}>
             Add Transaction
           </button>
         </div>

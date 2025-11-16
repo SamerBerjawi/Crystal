@@ -38,7 +38,7 @@ const Modal: React.FC<ModalProps> = ({ children, onClose, title, zIndexClass = '
             <span className="material-symbols-outlined">close</span>
           </button>
         </header>
-        <div className="p-6">
+        <div className="p-4 sm:p-6 max-h-[85vh] md:max-h-[80vh] overflow-y-auto">
           {children}
         </div>
       </div>

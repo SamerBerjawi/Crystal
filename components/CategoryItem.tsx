@@ -65,7 +65,7 @@ const CategoryItem: React.FC<CategoryItemProps> = ({
         <div className={`rounded-lg ${!isSubCategory ? 'py-1' : ''}`}>
         <div className={`flex items-center group ${isSubCategory ? 'ml-6 border-l-2 border-black/10 dark:border-white/10 pl-4 py-2' : ''}`}>
             <div className="flex items-center flex-grow gap-3">
-                <span className="material-symbols-outlined cursor-grab text-light-text-secondary dark:text-dark-text-secondary opacity-0 group-hover:opacity-100 transition-opacity">drag_indicator</span>
+                <span className="material-symbols-outlined cursor-grab text-light-text-secondary dark:text-dark-text-secondary sm:opacity-0 group-hover:sm:opacity-100 transition-opacity">drag_indicator</span>
                 <div className="flex-shrink-0 h-10 w-10 rounded-full bg-light-bg dark:bg-dark-bg shadow-neu-inset-light dark:shadow-neu-inset-dark flex items-center justify-center">
                     <span 
                         className="material-symbols-outlined"
@@ -79,7 +79,7 @@ const CategoryItem: React.FC<CategoryItemProps> = ({
                 </div>
             <span className="font-medium text-base text-light-text dark:text-dark-text">{category.name}</span>
             </div>
-            <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+            <div className="flex items-center gap-1 sm:opacity-0 group-hover:sm:opacity-100 transition-opacity">
             {!isSubCategory && (
                 <button onClick={() => onAddSubCategory(category.id)} className="p-2 text-light-text-secondary dark:text-dark-text-secondary hover:bg-black/10 dark:hover:bg-white/10 rounded-full" title="Add Sub-category">
                     <span className="material-symbols-outlined text-base">add</span>

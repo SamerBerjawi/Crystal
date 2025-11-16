@@ -50,6 +50,7 @@ const Transactions: React.FC<TransactionsProps> = ({ transactions, saveTransacti
   const searchInputRef = useRef<HTMLInputElement>(null);
   const [contextMenu, setContextMenu] = useState<{ x: number, y: number, transaction: DisplayTransaction } | null>(null);
   const contextMenuRef = useRef<HTMLDivElement>(null);
+  const [showFilters, setShowFilters] = useState(false);
 
   // Sync with global filters from props
   useEffect(() => {
@@ -607,7 +608,14 @@ const Transactions: React.FC<TransactionsProps> = ({ transactions, saveTransacti
         </div>
       </header>
       
-      <Card className="p-4">
+      <div className="md:hidden flex justify-end">
+        <button onClick={() => setShowFilters(prev => !prev)} className={`${BTN_SECONDARY_STYLE} flex items-center gap-2`}>
+            <span className="material-symbols-outlined text-base">filter_list</span>
+            {showFilters ? 'Hide Filters' : 'Show Filters'}
+        </button>
+      </div>
+
+      <Card className={`p-4 ${!showFilters ? 'hidden' : ''} md:block`}>
         <div className="grid grid-cols-1 md:grid-cols-6 gap-4 items-end">
             <div className="md:col-span-6">
                 <label htmlFor="search" className={labelStyle}>Search</label>
@@ -725,7 +733,7 @@ const Transactions: React.FC<TransactionsProps> = ({ transactions, saveTransacti
                                     <div className="hidden lg:flex col-span-1 text-sm text-light-text-secondary dark:text-dark-text-secondary flex-wrap gap-1">{tx.tagIds?.map(tagId => { const tag = tags.find(t => t.id === tagId); if (!tag) return null; return (<span key={tag.id} className="text-xs px-2 py-1 rounded-full inline-flex items-center justify-center text-center" style={{ backgroundColor: `${tag.color}30`, color: tag.color }} title={tag.name}>{tag.name}</span>);})}</div>
                                     <div className={`col-span-12 md:col-span-2 font-mono font-semibold text-right text-base whitespace-nowrap ${amountColor}`}>{tx.isTransfer && selectedAccountIds.length === 0 ? '-/+ ' + formatCurrency(convertToEur(Math.abs(amount), tx.currency), 'EUR') : formatCurrency(convertToEur(amount, tx.currency), 'EUR', { showPlusSign: true })}</div>
                                   </div>
-                                  <div className="text-right"><button onClick={(e) => {e.stopPropagation(); handleOpenEditModal(tx)}} className="text-light-text-secondary dark:text-dark-text-secondary p-2 rounded-full hover:bg-black/5 dark:hover:bg-white/5 transition-colors opacity-0 group-hover:opacity-100"><span className="material-symbols-outlined text-base">edit</span></button></div>
+                                  <div className="text-right"><button onClick={(e) => {e.stopPropagation(); handleOpenEditModal(tx)}} className="text-light-text-secondary dark:text-dark-text-secondary p-2 rounded-full hover:bg-black/5 dark:hover:bg-white/5 transition-colors sm:opacity-0 group-hover:sm:opacity-100"><span className="material-symbols-outlined text-base">edit</span></button></div>
                                 </div>
                                 )
                             })}
@@ -743,7 +751,7 @@ const Transactions: React.FC<TransactionsProps> = ({ transactions, saveTransacti
         </Card>
         {selectedIds.size > 0 && (
             <div className="absolute bottom-4 inset-x-4 mx-auto max-w-2xl z-20">
-                <div className="bg-light-card/80 dark:bg-dark-card/80 backdrop-blur-sm p-3 rounded-xl shadow-lg flex items-center justify-between">
+                <div className="bg-light-card/80 dark:bg-dark-card/80 backdrop-blur-sm p-3 rounded-xl shadow-lg flex flex-wrap items-center justify-between gap-2">
                     <p className="font-semibold">{selectedIds.size} selected</p>
                     <div className="flex items-center gap-2">
                         <button onClick={() => handleMakeRecurring()} disabled={selectedIds.size !== 1} className="flex items-center gap-1 p-2 rounded-lg text-sm font-semibold text-light-text-secondary dark:text-dark-text-secondary hover:bg-black/5 dark:hover:bg-white/5 disabled:opacity-50 disabled:cursor-not-allowed" title={selectedIds.size !== 1 ? "Select exactly one transaction" : "Make Recurring"}>

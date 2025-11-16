@@ -1,3 +1,4 @@
+
 import React, { useState, useMemo, useCallback, Dispatch, SetStateAction } from 'react';
 import { Account, Transaction, RecurringTransaction, FinancialGoal, Category, Page, ContributionPlanStep, BillPayment } from '../types';
 import { BTN_PRIMARY_STYLE, BTN_SECONDARY_STYLE, LIQUID_ACCOUNT_TYPES } from '../constants';
@@ -215,27 +216,20 @@ const Forecasting: React.FC<ForecastingProps> = ({ accounts, transactions, recur
     const goal = financialGoals.find(g => g.id === id);
     if (!goal) return;
 
-    let idsToToggle = [id];
-    let subGoals: FinancialGoal[] = [];
-
-    if (goal.isBucket) {
-      subGoals = financialGoals.filter(g => g.parentId === id);
-      const childIds = subGoals.map(g => g.id);
-      idsToToggle.push(...childIds);
-    }
+    const subGoalIds = goal.isBucket ? financialGoals.filter(g => g.parentId === id).map(g => g.id) : [];
+    const allRelatedIds = [id, ...subGoalIds];
     
     setActiveGoalIds(prev => {
-      // Determine if the goal is "on" based on the same logic used for display
-      const isCurrentlyEffectivelyActive = goal.isBucket
-        ? prev.includes(id) || subGoals.some(sg => prev.includes(sg.id))
-        : prev.includes(id);
-      
-      if (isCurrentlyEffectivelyActive) {
-        // If it's on, turn it off by removing all associated IDs
-        return prev.filter(gid => !idsToToggle.includes(gid));
+      // The toggle action is now based on whether the group is currently active.
+      // A group is active if ANY of its members (the bucket or its children) are active.
+      const isGroupActive = allRelatedIds.some(relatedId => prev.includes(relatedId));
+
+      if (isGroupActive) {
+        // If the group is on, turn OFF the whole family.
+        return prev.filter(activeId => !allRelatedIds.includes(activeId));
       } else {
-        // If it's off, turn it on by adding all associated IDs
-        return [...new Set([...prev, ...idsToToggle])];
+        // If the group is off, turn ON the whole family.
+        return [...new Set([...prev, ...allRelatedIds])];
       }
     });
   };
@@ -380,8 +374,8 @@ const Forecasting: React.FC<ForecastingProps> = ({ accounts, transactions, recur
                 <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
                     {topLevelGoals.map(goal => {
                         const subGoals = goalsByParentId.get(goal.id) || [];
-                        // FIX: A bucket's toggle should appear "on" if the bucket itself or any of its children are active.
-                        // This prevents the visual bug where the toggle appears stuck.
+                        // A bucket's toggle is active if ANY of its children are active OR if the bucket itself is active.
+                        // This allows the UI to reflect a partially-active state.
                         const isEffectivelyActive = goal.isBucket
                           ? activeGoalIds.includes(goal.id) || subGoals.some(sg => activeGoalIds.includes(sg.id))
                           : activeGoalIds.includes(goal.id);

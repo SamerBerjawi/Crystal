@@ -21,7 +21,7 @@ const Header: React.FC<HeaderProps> = ({ user, setSidebarOpen, theme, setTheme, 
                 <button onClick={() => setSidebarOpen(true)} className="text-light-text-secondary dark:text-dark-text-secondary md:hidden">
                     <span className="material-symbols-outlined">menu</span>
                 </button>
-                <h1 className="text-2xl font-bold text-light-text dark:text-dark-text">{titleOverride || currentPage.replace(' & ', ' & ')}</h1>
+                <h1 className="text-xl sm:text-2xl font-bold text-light-text dark:text-dark-text">{titleOverride || currentPage.replace(' & ', ' & ')}</h1>
             </div>
 
             <div className="flex items-center gap-4">

@@ -48,7 +48,7 @@ const HistoryItem: React.FC<{ item: ImportExportHistoryItem; onDelete: (id: stri
     });
 
     return (
-        <div className="flex items-center justify-between p-4 border-b border-black/5 dark:border-white/5 last:border-b-0">
+        <div className="flex flex-wrap items-center justify-between gap-y-2 p-4 border-b border-black/5 dark:border-white/5 last:border-b-0">
             <div>
                 <p className="font-semibold text-base text-light-text dark:text-dark-text">{type === 'import' ? `Import: ${item.dataType}` : `Export from`} {formattedDate}</p>
                 <div className="flex items-center gap-2 text-sm">

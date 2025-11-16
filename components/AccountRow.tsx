@@ -1,4 +1,5 @@
 
+
 import React, { useMemo } from 'react';
 import { Account, Transaction, Warrant } from '../types';
 import Card from './Card';
@@ -136,11 +137,11 @@ const AccountRow: React.FC<AccountRowProps> = ({ account, transactions, warrants
             onDrop={onDrop}
             onDragEnd={onDragEnd}
             onContextMenu={onContextMenu}
-            className={`flex items-center justify-between p-4 rounded-lg hover:bg-black/5 dark:hover:bg-white/5 transition-all duration-200 group hover:-translate-y-0.5 hover:shadow-md ${cursorClass} ${dragClasses} ${dragOverClasses} ${account.status === 'closed' ? 'opacity-60 grayscale' : ''}`} 
+            className={`flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 p-4 rounded-lg hover:bg-black/5 dark:hover:bg-white/5 transition-all duration-200 group hover:-translate-y-0.5 hover:shadow-md ${cursorClass} ${dragClasses} ${dragOverClasses} ${account.status === 'closed' ? 'opacity-60 grayscale' : ''}`} 
             onClick={onClick}
         >
             {/* Left side: Icon, Name, Type */}
-            <div className="flex items-center flex-1 min-w-0">
+            <div className="flex items-center w-full flex-1 min-w-0">
                 <div className={`text-3xl mr-4 flex items-center justify-center w-12 h-12 shrink-0 ${style.color}`}>
                     <span className="material-symbols-outlined material-symbols-filled" style={{ fontSize: '32px' }}>
                         {account.icon || 'wallet'}
@@ -159,7 +160,7 @@ const AccountRow: React.FC<AccountRowProps> = ({ account, transactions, warrants
             </div>
 
             {/* Right side: Balance, Sparkline, Edit button */}
-            <div className="flex items-center gap-2 ml-4">
+            <div className="flex items-center justify-between sm:justify-end gap-2 sm:gap-4 w-full">
                 <div className="w-24 h-10 shrink-0 hidden sm:block">
                      <ResponsiveContainer width="100%" height="100%">
                         <LineChart data={sparklineData}>
@@ -167,8 +168,8 @@ const AccountRow: React.FC<AccountRowProps> = ({ account, transactions, warrants
                         </LineChart>
                     </ResponsiveContainer>
                 </div>
-                <div className="text-right shrink-0 w-40">
-                    <p className={`font-bold text-lg ${isAsset ? 'text-light-text dark:text-dark-text' : 'text-red-500'}`}>
+                <div className="text-right shrink-0 w-32 sm:w-40">
+                    <p className={`font-bold text-base sm:text-lg ${isAsset ? 'text-light-text dark:text-dark-text' : 'text-red-500'}`}>
                         {formatCurrency(convertToEur(displayBalance, account.currency), 'EUR')}
                     </p>
                      {account.currency !== 'EUR' && (
@@ -177,17 +178,19 @@ const AccountRow: React.FC<AccountRowProps> = ({ account, transactions, warrants
                         </p>
                     )}
                 </div>
-                <button 
-                    onClick={handleAdjustBalanceClick} 
-                    className="opacity-0 group-hover:opacity-100 transition-opacity text-light-text-secondary dark:text-dark-text-secondary p-2 rounded-full hover:bg-black/10 dark:hover:bg-white/10 disabled:opacity-20 disabled:cursor-not-allowed" 
-                    title={isComputedAccount ? "Balance is computed automatically" : "Adjust Balance"}
-                    disabled={isComputedAccount}
-                >
-                    <span className="material-symbols-outlined">tune</span>
-                </button>
-                <button onClick={handleEditClick} className="opacity-0 group-hover:opacity-100 transition-opacity text-light-text-secondary dark:text-dark-text-secondary p-2 rounded-full hover:bg-black/10 dark:hover:bg-white/10" title="Edit Account">
-                    <span className="material-symbols-outlined">edit</span>
-                </button>
+                <div className="flex items-center">
+                    <button 
+                        onClick={handleAdjustBalanceClick} 
+                        className="sm:opacity-0 group-hover:sm:opacity-100 transition-opacity text-light-text-secondary dark:text-dark-text-secondary p-2 rounded-full hover:bg-black/10 dark:hover:bg-white/10 disabled:opacity-20 disabled:cursor-not-allowed" 
+                        title={isComputedAccount ? "Balance is computed automatically" : "Adjust Balance"}
+                        disabled={isComputedAccount}
+                    >
+                        <span className="material-symbols-outlined">tune</span>
+                    </button>
+                    <button onClick={handleEditClick} className="sm:opacity-0 group-hover:sm:opacity-100 transition-opacity text-light-text-secondary dark:text-dark-text-secondary p-2 rounded-full hover:bg-black/10 dark:hover:bg-white/10" title="Edit Account">
+                        <span className="material-symbols-outlined">edit</span>
+                    </button>
+                </div>
             </div>
         </div>
     );

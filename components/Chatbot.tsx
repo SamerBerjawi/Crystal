@@ -144,7 +144,7 @@ const Chatbot: React.FC<ChatbotProps> = ({ isOpen, onClose, financialData }) => 
   if (!isOpen) return null;
 
   return (
-    <div className={`fixed bottom-24 right-6 w-full max-w-sm h-[60vh] z-50 flex flex-col transition-all duration-300 ease-out ${isMounted ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-4'}`}>
+    <div className={`fixed bottom-20 right-4 left-4 h-[70vh] sm:h-[60vh] sm:left-auto sm:right-6 sm:bottom-24 sm:w-full sm:max-w-sm z-50 flex flex-col transition-all duration-300 ease-out ${isMounted ? 'opacity-100 translate-y-0' : 'opacity-0 translate-y-4'}`}>
       <div className="bg-light-card/80 dark:bg-dark-card/80 backdrop-blur-xl rounded-xl shadow-2xl border border-light-separator dark:border-dark-separator flex flex-col h-full">
         <header className="flex items-center justify-between p-4 border-b border-light-separator dark:border-dark-separator">
           <h2 className="text-lg font-semibold">Crystal AI Assistant</h2>

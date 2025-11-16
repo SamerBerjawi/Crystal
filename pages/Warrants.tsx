@@ -154,11 +154,14 @@ const Warrants: React.FC<WarrantsProps> = ({ warrants, saveWarrant, deleteWarran
                                 const currentValue = currentPrice !== undefined && currentPrice !== null ? holding.quantity * currentPrice : 0;
                                 const gainLoss = currentPrice !== undefined && currentPrice !== null ? currentValue - holding.totalGrantValue : 0;
                                 return (
-                                <div key={holding.isin} className="grid grid-cols-3 items-center p-4">
-                                    <div><p className="font-bold text-lg">{holding.isin}</p><p className="text-sm text-light-text-secondary dark:text-dark-text-secondary truncate">{holding.name}</p></div>
-                                    <div className="text-center">
+                                <div key={holding.isin} className="grid grid-cols-2 sm:grid-cols-3 gap-x-4 gap-y-2 items-center p-4">
+                                    <div className="col-span-2 sm:col-span-1">
+                                        <p className="font-bold text-lg">{holding.isin}</p>
+                                        <p className="text-sm text-light-text-secondary dark:text-dark-text-secondary truncate">{holding.name}</p>
+                                    </div>
+                                    <div className="text-left sm:text-center">
                                         <p className="font-semibold">{holding.quantity}</p>
-                                        {isLoadingPrices ? <SkeletonLoader className="w-16 h-4 mx-auto mt-1" /> : (
+                                        {isLoadingPrices ? <SkeletonLoader className="w-16 h-4 sm:mx-auto mt-1" /> : (
                                             <p className="text-xs text-light-text-secondary dark:text-dark-text-secondary">
                                                 @ {currentPrice !== null ? formatCurrency(currentPrice, 'EUR') : 'N/A'}
                                             </p>
@@ -185,10 +188,12 @@ const Warrants: React.FC<WarrantsProps> = ({ warrants, saveWarrant, deleteWarran
 
             <Card>
                 <h3 className="text-xl font-semibold text-light-text dark:text-dark-text mb-4">Grant History</h3>
-                <table className="w-full text-left text-sm">
-                    <thead><tr className="border-b border-black/10 dark:border-white/10"><th className="p-2 font-semibold">Grant Date</th><th className="p-2 font-semibold">ISIN</th><th className="p-2 font-semibold">Name</th><th className="p-2 font-semibold text-right">Quantity</th><th className="p-2 font-semibold text-right">Grant Price</th><th className="p-2 font-semibold text-right">Grant Value</th><th className="p-2"></th></tr></thead>
-                    <tbody>{sortedGrants.map(grant => (<tr key={grant.id} className="border-b border-black/5 dark:divide-white/5 last:border-b-0 hover:bg-black/5 dark:hover:bg-white/5 group"><td className="p-2">{new Date(grant.grantDate).toLocaleDateString()}</td><td className="p-2 font-semibold">{grant.isin}</td><td className="p-2">{grant.name}</td><td className="p-2 text-right">{grant.quantity}</td><td className="p-2 text-right">{formatCurrency(grant.grantPrice, 'EUR')}</td><td className="p-2 font-semibold text-right">{formatCurrency(grant.quantity * grant.grantPrice, 'EUR')}</td><td className="p-2 text-right opacity-0 group-hover:opacity-100 transition-opacity"><button onClick={() => handleOpenWarrantModal(grant)} className="p-1 rounded-full text-light-text-secondary dark:text-dark-text-secondary hover:bg-black/10 dark:hover:bg-white/10"><span className="material-symbols-outlined text-base">edit</span></button><button onClick={() => deleteWarrant(grant.id)} className="p-1 rounded-full text-red-500/80 hover:bg-red-500/10"><span className="material-symbols-outlined text-base">delete</span></button></td></tr>))}</tbody>
-                </table>
+                <div className="overflow-x-auto">
+                    <table className="w-full text-left text-sm">
+                        <thead><tr className="border-b border-black/10 dark:border-white/10"><th className="p-2 font-semibold">Grant Date</th><th className="p-2 font-semibold">ISIN</th><th className="p-2 font-semibold">Name</th><th className="p-2 font-semibold text-right">Quantity</th><th className="p-2 font-semibold text-right">Grant Price</th><th className="p-2 font-semibold text-right">Grant Value</th><th className="p-2"></th></tr></thead>
+                        <tbody>{sortedGrants.map(grant => (<tr key={grant.id} className="border-b border-black/5 dark:divide-white/5 last:border-b-0 hover:bg-black/5 dark:hover:bg-white/5 group"><td className="p-2">{new Date(grant.grantDate).toLocaleDateString()}</td><td className="p-2 font-semibold">{grant.isin}</td><td className="p-2">{grant.name}</td><td className="p-2 text-right">{grant.quantity}</td><td className="p-2 text-right">{formatCurrency(grant.grantPrice, 'EUR')}</td><td className="p-2 font-semibold text-right">{formatCurrency(grant.quantity * grant.grantPrice, 'EUR')}</td><td className="p-2 text-right opacity-0 group-hover:opacity-100 transition-opacity"><button onClick={() => handleOpenWarrantModal(grant)} className="p-1 rounded-full text-light-text-secondary dark:text-dark-text-secondary hover:bg-black/10 dark:hover:bg-white/10"><span className="material-symbols-outlined text-base">edit</span></button><button onClick={() => deleteWarrant(grant.id)} className="p-1 rounded-full text-red-500/80 hover:bg-red-500/10"><span className="material-symbols-outlined text-base">delete</span></button></td></tr>))}</tbody>
+                    </table>
+                </div>
             </Card>
         </div>
     );
