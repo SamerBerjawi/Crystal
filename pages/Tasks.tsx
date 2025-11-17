@@ -10,6 +10,8 @@ interface TasksProps {
   tasks: Task[];
   saveTask: (task: Omit<Task, 'id'> & { id?: string }) => void;
   deleteTask: (id: string) => void;
+  taskOrder: string[];
+  setTaskOrder: React.Dispatch<React.SetStateAction<string[]>>;
 }
 
 const PRIORITY_ORDER: Record<TaskPriority, number> = { 'High': 3, 'Medium': 2, 'Low': 1 };
@@ -109,11 +111,14 @@ const TaskForm: React.FC<{ task?: Task | null, onSave: (task: Omit<Task, 'id'> &
     );
 };
 
-const Tasks: React.FC<TasksProps> = ({ tasks, saveTask, deleteTask }) => {
+const Tasks: React.FC<TasksProps> = ({ tasks, saveTask, deleteTask, taskOrder, setTaskOrder }) => {
     const [isModalOpen, setIsModalOpen] = useState(false);
     const [editingTask, setEditingTask] = useState<Task | null>(null);
-    const [sortBy, setSortBy] = useState<'priority-desc' | 'dueDate-asc'>('priority-desc');
+    const [sortBy, setSortBy] = useState<'priority-desc' | 'dueDate-asc' | 'manual'>('priority-desc');
     const [justCompletedTaskId, setJustCompletedTaskId] = useState<string | null>(null);
+    const [draggedItem, setDraggedItem] = useState<Task | null>(null);
+    const [dragOverItem, setDragOverItem] = useState<Task | null>(null);
+
 
     const handleOpenModal = (task?: Task) => {
         setEditingTask(task || null);
@@ -145,6 +150,14 @@ const Tasks: React.FC<TasksProps> = ({ tasks, saveTask, deleteTask }) => {
 
         for (const status in grouped) {
             grouped[status as TaskStatus].sort((a, b) => {
+                if (sortBy === 'manual') {
+                    const aIndex = taskOrder.indexOf(a.id);
+                    const bIndex = taskOrder.indexOf(b.id);
+                    if (aIndex === -1 && bIndex === -1) return 0;
+                    if (aIndex === -1) return 1;
+                    if (bIndex === -1) return -1;
+                    return aIndex - bIndex;
+                }
                 if (sortBy === 'priority-desc') {
                     return PRIORITY_ORDER[b.priority] - PRIORITY_ORDER[a.priority];
                 }
@@ -157,7 +170,48 @@ const Tasks: React.FC<TasksProps> = ({ tasks, saveTask, deleteTask }) => {
             });
         }
         return grouped;
-    }, [tasks, sortBy]);
+    }, [tasks, sortBy, taskOrder]);
+    
+    const handleDragStart = (e: React.DragEvent, task: Task) => {
+        setDraggedItem(task);
+        e.dataTransfer.effectAllowed = 'move';
+    };
+
+    const handleDragOver = (e: React.DragEvent, task: Task) => {
+        e.preventDefault();
+        if (draggedItem && draggedItem.id !== task.id && draggedItem.status === task.status) {
+            setDragOverItem(task);
+        }
+    };
+
+    const handleDragLeave = () => {
+        setDragOverItem(null);
+    };
+
+    const handleDragEnd = () => {
+        setDraggedItem(null);
+        setDragOverItem(null);
+    };
+
+    const handleDrop = (targetTask: Task) => {
+        if (!draggedItem || draggedItem.id === targetTask.id || draggedItem.status !== targetTask.status) {
+            handleDragEnd();
+            return;
+        }
+
+        const currentOrder = [...taskOrder];
+        const draggedId = draggedItem.id;
+        
+        const newOrder = currentOrder.filter(id => id !== draggedId);
+        
+        const targetIndex = newOrder.indexOf(targetTask.id);
+
+        if (targetIndex !== -1) {
+            newOrder.splice(targetIndex, 0, draggedId);
+            setTaskOrder(newOrder);
+        }
+        handleDragEnd();
+    };
 
     return (
         <div className="space-y-6">
@@ -173,6 +227,7 @@ const Tasks: React.FC<TasksProps> = ({ tasks, saveTask, deleteTask }) => {
                 <div className="flex items-end gap-4">
                      <div className={SELECT_WRAPPER_STYLE}>
                         <select value={sortBy} onChange={e => setSortBy(e.target.value as any)} className={SELECT_STYLE}>
+                            <option value="manual">Sort by Manual</option>
                             <option value="priority-desc">Sort by Priority</option>
                             <option value="dueDate-asc">Sort by Due Date</option>
                         </select>
@@ -192,9 +247,35 @@ const Tasks: React.FC<TasksProps> = ({ tasks, saveTask, deleteTask }) => {
                                 <span className="text-sm bg-gray-200 dark:bg-gray-700 rounded-full px-2">{tasksInColumn.length}</span>
                             </h3>
                             <div className="space-y-4 min-h-[100px]">
-                                {tasksInColumn.map(task => (
-                                    <TaskItem key={task.id} task={task} onEdit={handleOpenModal} isJustCompleted={task.id === justCompletedTaskId} />
-                                ))}
+                                {tasksInColumn.map(task => {
+                                    const isDraggable = sortBy === 'manual' && (task.status === 'To Do' || task.status === 'In Progress');
+                                    const isBeingDragged = draggedItem?.id === task.id;
+                                    const isDragOver = dragOverItem?.id === task.id;
+                                    const dragOverClass = isDragOver ? 'border-t-2 border-primary-500 pt-2' : '';
+
+                                    return (
+                                        <div
+                                            key={task.id}
+                                            className={`transition-all duration-150 ${dragOverClass}`}
+                                            onDragOver={(e) => isDraggable && handleDragOver(e, task)}
+                                            onDrop={() => isDraggable && handleDrop(task)}
+                                            onDragLeave={isDraggable ? handleDragLeave : undefined}
+                                        >
+                                            <div
+                                                draggable={isDraggable}
+                                                onDragStart={(e) => isDraggable && handleDragStart(e, task)}
+                                                onDragEnd={isDraggable ? handleDragEnd : undefined}
+                                                className={`${isDraggable ? 'cursor-grab' : ''} ${isBeingDragged ? 'opacity-30' : ''}`}
+                                            >
+                                                <TaskItem 
+                                                    task={task} 
+                                                    onEdit={handleOpenModal} 
+                                                    isJustCompleted={task.id === justCompletedTaskId}
+                                                />
+                                            </div>
+                                        </div>
+                                    )
+                                })}
                             </div>
                         </div>
                     );

@@ -33,6 +33,7 @@ const Transactions: React.FC<TransactionsProps> = ({ transactions, saveTransacti
   const [endDate, setEndDate] = useState('');
   const [minAmount, setMinAmount] = useState('');
   const [maxAmount, setMaxAmount] = useState('');
+  const [merchantFilter, setMerchantFilter] = useState('');
 
   // Local state for multi-select filters
   const [selectedAccountIds, setSelectedAccountIds] = useState<string[]>([]);
@@ -174,9 +175,10 @@ const Transactions: React.FC<TransactionsProps> = ({ transactions, saveTransacti
             fuzzySearch(searchTerm, tx.category) ||
             fuzzySearch(searchTerm, tx.accountName || '') ||
             fuzzySearch(searchTerm, tx.fromAccountName || '') ||
-            fuzzySearch(searchTerm, tx.toAccountName || '') ||
-            fuzzySearch(searchTerm, tx.merchant || '')
+            fuzzySearch(searchTerm, tx.toAccountName || '')
         );
+        
+        const matchMerchant = !merchantFilter || fuzzySearch(merchantFilter, tx.merchant || '');
 
         let matchType = true;
         if (typeFilter === 'expense') matchType = !tx.isTransfer && tx.type === 'expense';
@@ -197,7 +199,7 @@ const Transactions: React.FC<TransactionsProps> = ({ transactions, saveTransacti
         const matchMinAmount = isNaN(min) || txAbsAmount >= min;
         const matchMaxAmount = isNaN(max) || txAbsAmount <= max;
 
-        return matchAccount && matchTag && matchSearch && matchType && matchStartDate && matchEndDate && matchCategory && matchMinAmount && matchMaxAmount;
+        return matchAccount && matchTag && matchSearch && matchType && matchStartDate && matchEndDate && matchCategory && matchMinAmount && matchMaxAmount && matchMerchant;
       });
     
     return transactionList.sort((a, b) => {
@@ -209,7 +211,7 @@ const Transactions: React.FC<TransactionsProps> = ({ transactions, saveTransacti
       }
     });
 
-  }, [searchTerm, sortBy, typeFilter, startDate, endDate, displayTransactions, selectedAccountIds, selectedCategoryNames, selectedTagIds, minAmount, maxAmount, allCategories, accountMapByName]);
+  }, [searchTerm, sortBy, typeFilter, startDate, endDate, displayTransactions, selectedAccountIds, selectedCategoryNames, selectedTagIds, minAmount, maxAmount, allCategories, accountMapByName, merchantFilter]);
   
     const groupedTransactions = useMemo(() => {
         const groups: Record<string, { transactions: DisplayTransaction[]; total: number }> = {};
@@ -460,6 +462,7 @@ const Transactions: React.FC<TransactionsProps> = ({ transactions, saveTransacti
     setMinAmount('');
     setMaxAmount('');
     setSortBy('date-desc');
+    setMerchantFilter('');
   };
 
   const formatGroupDate = (dateString: string) => {
@@ -615,59 +618,65 @@ const Transactions: React.FC<TransactionsProps> = ({ transactions, saveTransacti
         </button>
       </div>
 
-      <Card className={`p-4 ${!showFilters ? 'hidden' : ''} md:block`}>
-        <div className="grid grid-cols-1 md:grid-cols-6 gap-4 items-end">
-            <div className="md:col-span-6">
-                <label htmlFor="search" className={labelStyle}>Search</label>
-                <div className="relative">
-                    <span className="material-symbols-outlined absolute left-3 top-1/2 -translate-y-1/2 text-light-text-secondary dark:text-dark-text-secondary pointer-events-none">search</span>
-                    <input ref={searchInputRef} type="text" id="search" placeholder="Search description, merchant, category..." value={searchTerm} onChange={(e) => setSearchTerm(e.target.value)} className={`${INPUT_BASE_STYLE} pl-10 h-11`} />
-                </div>
-            </div>
+      <div className={`p-4 bg-light-card dark:bg-dark-card rounded-xl shadow-card ${!showFilters ? 'hidden' : ''} md:block`}>
+          <div className="grid grid-cols-1 md:grid-cols-12 gap-4 items-end">
+              {/* Row 1 */}
+              <div className="md:col-span-6">
+                  <label htmlFor="search" className={labelStyle}>Search</label>
+                  <div className="relative">
+                      <span className="material-symbols-outlined absolute left-3 top-1/2 -translate-y-1/2 text-light-text-secondary dark:text-dark-text-secondary pointer-events-none">search</span>
+                      <input ref={searchInputRef} type="text" id="search" placeholder="Search description, category..." value={searchTerm} onChange={(e) => setSearchTerm(e.target.value)} className={`${INPUT_BASE_STYLE} pl-10 h-11`} />
+                  </div>
+              </div>
+              <div className="md:col-span-3">
+                  <label htmlFor="type-filter" className={labelStyle}>Type</label>
+                  <div className={SELECT_WRAPPER_STYLE}>
+                      <select id="type-filter" value={typeFilter} onChange={(e) => setTypeFilter(e.target.value as any)} className={`${INPUT_BASE_STYLE} h-11`}>
+                          {typeFilterOptions.map(opt => <option key={opt.value} value={opt.value}>{opt.label}</option>)}
+                      </select>
+                      <div className={SELECT_ARROW_STYLE}><span className="material-symbols-outlined">expand_more</span></div>
+                  </div>
+              </div>
+              <div className="md:col-span-3">
+                  <label htmlFor="sort-by" className={labelStyle}>Sort By</label>
+                  <div className={SELECT_WRAPPER_STYLE}>
+                      <select id="sort-by" value={sortBy} onChange={(e) => setSortBy(e.target.value)} className={`${INPUT_BASE_STYLE} h-11`}><option value="date-desc">Date (Newest)</option><option value="date-asc">Date (Oldest)</option><option value="amount-desc">Amount (High-Low)</option><option value="amount-asc">Amount (Low-High)</option></select>
+                      <div className={SELECT_ARROW_STYLE}><span className="material-symbols-outlined">expand_more</span></div>
+                  </div>
+              </div>
+              
+              {/* Row 2 */}
+              <div className="md:col-span-3">
+                  <label className={labelStyle}>Account</label>
+                  <MultiSelectFilter options={accountOptions} selectedValues={selectedAccountIds} onChange={setSelectedAccountIds} placeholder="All Accounts"/>
+              </div>
+              <div className="md:col-span-3">
+                  <label className={labelStyle}>Category</label>
+                  <MultiSelectFilter options={categoryOptions} selectedValues={selectedCategoryNames} onChange={setSelectedCategoryNames} placeholder="All Categories"/>
+              </div>
+              <div className="md:col-span-3">
+                  <label className={labelStyle}>Tag</label>
+                  <MultiSelectFilter options={tagOptions} selectedValues={selectedTagIds} onChange={setSelectedTagIds} placeholder="All Tags"/>
+              </div>
+              <div className="md:col-span-3">
+                  <label htmlFor="merchant-filter" className={labelStyle}>Merchant</label>
+                  <input id="merchant-filter" type="text" placeholder="e.g., Amazon" value={merchantFilter} onChange={(e) => setMerchantFilter(e.target.value)} className={`${INPUT_BASE_STYLE} h-11`} />
+              </div>
 
-            <div className="md:col-span-2">
-                <label className={labelStyle}>Account</label>
-                <MultiSelectFilter options={accountOptions} selectedValues={selectedAccountIds} onChange={setSelectedAccountIds} placeholder="All Accounts"/>
-            </div>
-            <div className="md:col-span-2">
-                <label className={labelStyle}>Category</label>
-                <MultiSelectFilter options={categoryOptions} selectedValues={selectedCategoryNames} onChange={setSelectedCategoryNames} placeholder="All Categories"/>
-            </div>
-            <div className="md:col-span-2">
-                <label className={labelStyle}>Tag</label>
-                <MultiSelectFilter options={tagOptions} selectedValues={selectedTagIds} onChange={setSelectedTagIds} placeholder="All Tags"/>
-            </div>
-
-            <div className="md:col-span-2 flex items-end gap-2">
-                <div className="flex-1"><label htmlFor="start-date" className={labelStyle}>From Date</label><input id="start-date" type="date" value={startDate} onChange={e => setStartDate(e.target.value)} className={`${INPUT_BASE_STYLE} h-11`}/></div>
-                <div className="flex-1"><label htmlFor="end-date" className={labelStyle}>To Date</label><input id="end-date" type="date" value={endDate} onChange={e => setEndDate(e.target.value)} className={`${INPUT_BASE_STYLE} h-11`}/></div>
-            </div>
-            <div className="md:col-span-2 flex items-end gap-2">
-                <div><label htmlFor="min-amount" className={labelStyle}>Min Amount</label><input id="min-amount" type="number" placeholder="0.00" value={minAmount} onChange={e => setMinAmount(e.target.value)} className={`${INPUT_BASE_STYLE} h-11`}/></div>
-                <div><label htmlFor="max-amount" className={labelStyle}>Max Amount</label><input id="max-amount" type="number" placeholder="1000.00" value={maxAmount} onChange={e => setMaxAmount(e.target.value)} className={`${INPUT_BASE_STYLE} h-11`}/></div>
-            </div>
-            <div>
-                <label htmlFor="sort-by" className={labelStyle}>Sort By</label>
-                <div className={SELECT_WRAPPER_STYLE}>
-                    <select id="sort-by" value={sortBy} onChange={(e) => setSortBy(e.target.value)} className={`${INPUT_BASE_STYLE} h-11`}><option value="date-desc">Date (Newest)</option><option value="date-asc">Date (Oldest)</option><option value="amount-desc">Amount (High-Low)</option><option value="amount-asc">Amount (Low-High)</option></select>
-                    <div className={SELECT_ARROW_STYLE}><span className="material-symbols-outlined">expand_more</span></div>
-                </div>
-            </div>
-            <div>
-                <label htmlFor="type-filter" className={labelStyle}>Type</label>
-                <div className={SELECT_WRAPPER_STYLE}>
-                    <select id="type-filter" value={typeFilter} onChange={(e) => setTypeFilter(e.target.value as any)} className={`${INPUT_BASE_STYLE} h-11`}>
-                        {typeFilterOptions.map(opt => <option key={opt.value} value={opt.value}>{opt.label}</option>)}
-                    </select>
-                    <div className={SELECT_ARROW_STYLE}><span className="material-symbols-outlined">expand_more</span></div>
-                </div>
-            </div>
-            
-            <div className="md:col-span-6 flex justify-end items-center gap-4 pt-2">
-                <button onClick={clearFilters} className={BTN_SECONDARY_STYLE}>Clear Filters</button>
-            </div>
-        </div>
-      </Card>
+              {/* Row 3 */}
+              <div className="md:col-span-5 flex items-end gap-2">
+                  <div className="flex-1"><label htmlFor="start-date" className={labelStyle}>From Date</label><input id="start-date" type="date" value={startDate} onChange={e => setStartDate(e.target.value)} className={`${INPUT_BASE_STYLE} h-11`}/></div>
+                  <div className="flex-1"><label htmlFor="end-date" className={labelStyle}>To Date</label><input id="end-date" type="date" value={endDate} onChange={e => setEndDate(e.target.value)} className={`${INPUT_BASE_STYLE} h-11`}/></div>
+              </div>
+              <div className="md:col-span-5 flex items-end gap-2">
+                  <div className="flex-1"><label htmlFor="min-amount" className={labelStyle}>Min Amount</label><input id="min-amount" type="number" placeholder="0.00" value={minAmount} onChange={e => setMinAmount(e.target.value)} className={`${INPUT_BASE_STYLE} h-11`}/></div>
+                  <div className="flex-1"><label htmlFor="max-amount" className={labelStyle}>Max Amount</label><input id="max-amount" type="number" placeholder="1000.00" value={maxAmount} onChange={e => setMaxAmount(e.target.value)} className={`${INPUT_BASE_STYLE} h-11`}/></div>
+              </div>
+              <div className="md:col-span-2 flex justify-end">
+                  <button onClick={clearFilters} className={`${BTN_SECONDARY_STYLE} h-11 w-full`}>Clear Filters</button>
+              </div>
+          </div>
+      </div>
       
       <div className="flex-1 min-h-0 relative">
         <Card className="p-0 h-full flex flex-col">

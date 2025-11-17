@@ -331,6 +331,7 @@ export interface FinancialData {
     financialGoals: FinancialGoal[];
     budgets: Budget[];
     tasks: Task[];
+    taskOrder?: string[];
     warrants: Warrant[];
     scraperConfigs: ScraperConfig[];
     importExportHistory: ImportExportHistoryItem[];

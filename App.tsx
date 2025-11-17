@@ -54,6 +54,7 @@ const initialFinancialData: FinancialData = {
     expenseCategories: MOCK_EXPENSE_CATEGORIES,
     billsAndPayments: [],
     accountOrder: [],
+    taskOrder: [],
     preferences: {
         currency: 'EUR (€)',
         language: 'English (en)',
@@ -145,6 +146,7 @@ export const App: React.FC = () => {
   const restoreInProgressRef = useRef(false);
   const [tagFilter, setTagFilter] = useState<string | null>(null);
   const [accountOrder, setAccountOrder] = useLocalStorage<string[]>('crystal-account-order', []);
+  const [taskOrder, setTaskOrder] = useLocalStorage<string[]>('crystal-task-order', []);
   
   // State for AI Chat
   const [isChatOpen, setIsChatOpen] = useState(false);
@@ -324,12 +326,13 @@ export const App: React.FC = () => {
     setAccountsSortBy(loadedPrefs.defaultAccountOrder);
 
     setAccountOrder(dataToLoad.accountOrder || []);
+    setTaskOrder(dataToLoad.taskOrder || []);
 
     if (options?.skipNextSave) {
       skipNextSaveRef.current = true;
     }
     latestDataRef.current = dataToLoad;
-  }, [setAccountOrder]);
+  }, [setAccountOrder, setTaskOrder]);
   
   const handleEnterDemoMode = () => {
     loadAllFinancialData(null); // This will load initialFinancialData
@@ -384,11 +387,11 @@ export const App: React.FC = () => {
   const dataToSave: FinancialData = useMemo(() => ({
     accounts, transactions, investmentTransactions, recurringTransactions,
     recurringTransactionOverrides, financialGoals, budgets, tasks, warrants, scraperConfigs, importExportHistory, incomeCategories,
-    expenseCategories, preferences, billsAndPayments, accountOrder, tags,
+    expenseCategories, preferences, billsAndPayments, accountOrder, taskOrder, tags,
   }), [
     accounts, transactions, investmentTransactions,
     recurringTransactions, recurringTransactionOverrides, financialGoals, budgets, tasks, warrants, scraperConfigs, importExportHistory,
-    incomeCategories, expenseCategories, preferences, billsAndPayments, accountOrder, tags,
+    incomeCategories, expenseCategories, preferences, billsAndPayments, accountOrder, taskOrder, tags,
   ]);
 
   const debouncedDataToSave = useDebounce(dataToSave, 1500);
@@ -497,6 +500,18 @@ export const App: React.FC = () => {
         setAccountOrder(prev => prev.filter(id => accountIds.has(id)));
     }
   }, [accounts, accountOrder, setAccountOrder]);
+
+  // Keep taskOrder in sync with tasks list
+  useEffect(() => {
+    if (tasks.length > taskOrder.length) {
+        const orderedTaskIds = new Set(taskOrder);
+        const newTaskIds = tasks.filter(task => !orderedTaskIds.has(task.id)).map(task => task.id);
+        setTaskOrder(prev => [...prev, ...newTaskIds]);
+    } else if (tasks.length < taskOrder.length) {
+        const taskIds = new Set(tasks.map(t => t.id));
+        setTaskOrder(prev => prev.filter(id => taskIds.has(id)));
+    }
+  }, [tasks, taskOrder, setTaskOrder]);
 
   // Auth handlers
   const handleSignIn = async (email: string, password: string) => {
@@ -1128,7 +1143,7 @@ export const App: React.FC = () => {
       case 'Warrants':
         return <WarrantsPage warrants={warrants} saveWarrant={handleSaveWarrant} deleteWarrant={handleDeleteWarrant} scraperConfigs={scraperConfigs} saveScraperConfig={handleSaveScraperConfig} prices={warrantPrices} isLoadingPrices={isLoadingPrices} lastUpdated={lastUpdated} refreshPrices={fetchWarrantPrices} />;
       case 'Tasks':
-        return <TasksPage tasks={tasks} saveTask={handleSaveTask} deleteTask={handleDeleteTask} />;
+        return <TasksPage tasks={tasks} saveTask={handleSaveTask} deleteTask={handleDeleteTask} taskOrder={taskOrder} setTaskOrder={setTaskOrder} />;
       case 'Documentation':
         return <Documentation setCurrentPage={setCurrentPage} />;
       case 'AI Assistant':
