@@ -102,11 +102,11 @@ export const NAV_ITEMS: NavItem[] = [
   { name: 'Dashboard', icon: 'space_dashboard' },
   { name: 'Accounts', icon: 'wallet' },
   { name: 'Transactions', icon: 'receipt_long' },
-  { name: 'Budget', icon: 'pie_chart' },
+  { name: 'Schedule & Bills', icon: 'calendar_month' },
   { name: 'Forecasting', icon: 'show_chart' },
+  { name: 'Budget', icon: 'pie_chart' },
   { name: 'Investments', icon: 'candlestick_chart' },
   { name: 'Warrants', icon: 'verified' },
-  { name: 'Schedule & Bills', icon: 'calendar_month' },
   { name: 'Tasks', icon: 'task_alt' },
   { name: 'Settings', icon: 'settings' },
 ];
