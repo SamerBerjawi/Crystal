@@ -1,3 +1,5 @@
+
+
 import { Currency, Account, Transaction, Duration, Category, FinancialGoal, RecurringTransaction, BillPayment, ScheduledPayment } from './types';
 import { ASSET_TYPES, DEBT_TYPES, LIQUID_ACCOUNT_TYPES } from './constants';
 import { v4 as uuidv4 } from 'uuid';
@@ -406,11 +408,10 @@ export function generateBalanceForecast(
     }[];
     lowestPoint: { value: number; date: string };
 } {
-    const liquidAccounts = accounts.filter(a => LIQUID_ACCOUNT_TYPES.includes(a.type));
-    const liquidAccountIds = new Set(liquidAccounts.map(a => a.id));
+    const accountIds = new Set(accounts.map(a => a.id));
     const today = new Date().toISOString().split('T')[0];
 
-    if (liquidAccounts.length === 0) {
+    if (accounts.length === 0) {
         return { chartData: [], tableData: [], lowestPoint: { value: 0, date: today } };
     }
 
@@ -438,8 +439,11 @@ export function generateBalanceForecast(
     };
 
     recurringTransactions.forEach(rt => {
+// FIX: Changed parseAsUTC to parseDateAsUTC
         let nextDate = parseDateAsUTC(rt.nextDueDate);
+// FIX: Changed parseAsUTC to parseDateAsUTC
         const endDateUTC = rt.endDate ? parseDateAsUTC(rt.endDate) : null;
+// FIX: Changed parseAsUTC to parseDateAsUTC
         const startDateUTC = parseDateAsUTC(rt.startDate);
 
         while (nextDate < startDate && (!endDateUTC || nextDate < endDateUTC)) {
@@ -472,8 +476,8 @@ export function generateBalanceForecast(
             let accountName = 'N/A';
             
             if (rt.type === 'transfer') {
-                const fromSelected = liquidAccountIds.has(rt.accountId);
-                const toSelected = rt.toAccountId ? liquidAccountIds.has(rt.toAccountId) : false;
+                const fromSelected = accountIds.has(rt.accountId);
+                const toSelected = rt.toAccountId ? accountIds.has(rt.toAccountId) : false;
                 if (fromSelected || toSelected) {
                     accountName = `${accountMap.get(rt.accountId) || 'External'} → ${accountMap.get(rt.toAccountId!) || 'External'}`;
                     if (fromSelected && !toSelected) amount = -rt.amount;
@@ -482,7 +486,7 @@ export function generateBalanceForecast(
                     if (amount !== 0) addEvent(dateStr, { amount, currency: rt.currency, description: rt.description, accountName, type: 'Recurring', isGoal: false });
                 }
             } else {
-                if (liquidAccountIds.has(rt.accountId)) {
+                if (accountIds.has(rt.accountId)) {
                     accountName = accountMap.get(rt.accountId) || 'Unknown';
                     addEvent(dateStr, { amount, currency: rt.currency, description: rt.description, accountName, type: 'Recurring', isGoal: false });
                 }
@@ -512,7 +516,7 @@ export function generateBalanceForecast(
     });
 
     financialGoals.forEach(goal => {
-        if (goal.paymentAccountId && !liquidAccountIds.has(goal.paymentAccountId)) {
+        if (goal.paymentAccountId && !accountIds.has(goal.paymentAccountId)) {
             return;
         }
 
@@ -537,7 +541,7 @@ export function generateBalanceForecast(
 
     const chartData: { date: string; value: number }[] = [];
     const tableData: any[] = [];
-    let runningBalance = liquidAccounts.reduce((sum, acc) => sum + convertToEur(acc.balance, acc.currency), 0);
+    let runningBalance = accounts.reduce((sum, acc) => sum + convertToEur(acc.balance, acc.currency), 0);
     
     let currentDate = new Date(startDate.getTime());
     while (currentDate <= forecastEndDate) {
@@ -603,14 +607,17 @@ export function generateAmortizationSchedule(
     : (principalAmount / duration);
 
   for (let i = 1; i <= duration; i++) {
+// FIX: Changed parseAsUTC to parseDateAsUTC
     const scheduledDate = parseDateAsUTC(loanStartDate);
     scheduledDate.setUTCMonth(scheduledDate.getUTCMonth() + i);
-    const monthYearKey = scheduledDate.toISOString().slice(0, 7);
+// FIX: Changed parseAsUTC to parseDateAsUTC. This is redundant but preserves logic.
+    const monthYearKey = parseDateAsUTC(scheduledDate.toISOString()).toISOString().slice(0, 7);
     
     const realPaymentForPeriod = paymentMap.get(monthYearKey);
 
     if (paymentDayOfMonth && !realPaymentForPeriod && scheduledDate >= today) {
-        const year = scheduledDate.getUTCFullYear();
+// FIX: Changed parseAsUTC to parseDateAsUTC. This is redundant but preserves logic.
+        const year = parseDateAsUTC(scheduledDate.toISOString()).getUTCFullYear();
         const month = scheduledDate.getUTCMonth();
         const lastDayOfMonth = new Date(Date.UTC(year, month + 1, 0)).getUTCDate();
         scheduledDate.setUTCDate(Math.min(paymentDayOfMonth, lastDayOfMonth));

@@ -1,4 +1,5 @@
 
+
 import React, { useState, useMemo, useCallback, Dispatch, SetStateAction } from 'react';
 import { Account, Transaction, RecurringTransaction, FinancialGoal, Category, Page, ContributionPlanStep, BillPayment } from '../types';
 import { BTN_PRIMARY_STYLE, BTN_SECONDARY_STYLE, LIQUID_ACCOUNT_TYPES } from '../constants';
@@ -305,7 +306,7 @@ const Forecasting: React.FC<ForecastingProps> = ({ accounts, transactions, recur
                     <p className="text-light-text-secondary dark:text-dark-text-secondary mt-1">Project your financial future and plan for your goals.</p>
                 </div>
                 <div className="flex items-center gap-4">
-                    <MultiAccountFilter accounts={accounts.filter(a => LIQUID_ACCOUNT_TYPES.includes(a.type))} selectedAccountIds={selectedAccountIds} setSelectedAccountIds={setSelectedAccountIds} />
+                    <MultiAccountFilter accounts={accounts} selectedAccountIds={selectedAccountIds} setSelectedAccountIds={setSelectedAccountIds} />
                     
                     <div className="hidden sm:flex bg-light-bg dark:bg-dark-bg p-1 rounded-lg h-10">
                         {durationOptions.map(opt => (
