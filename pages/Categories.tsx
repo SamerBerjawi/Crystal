@@ -5,6 +5,7 @@ import Card from '../components/Card';
 import CategoryModal from '../components/CategoryModal';
 import Modal from '../components/Modal';
 import { v4 as uuidv4 } from 'uuid';
+import CategoryItem from '../components/CategoryItem';
 
 const generateId = () => `cat-${uuidv4()}`;
 
@@ -29,7 +30,6 @@ const Categories: React.FC<CategoriesProps> = ({ incomeCategories, setIncomeCate
   const [modalMode, setModalMode] = useState<'add' | 'edit'>('add');
   const [confirmingDelete, setConfirmingDelete] = useState<{ categoryId: string; classification: 'income' | 'expense' } | null>(null);
   const [searchTerm, setSearchTerm] = useState('');
-  const [openCategories, setOpenCategories] = useState<Record<string, boolean>>({});
 
   const [draggedItem, setDraggedItem] = useState<{ id: string; classification: 'income' | 'expense' } | null>(null);
   const [dropTarget, setDropTarget] = useState<{ id: string; position: 'top' | 'bottom' | 'middle' } | null>(null);
@@ -137,24 +137,7 @@ const Categories: React.FC<CategoriesProps> = ({ incomeCategories, setIncomeCate
   const activeCategories = activeTab === 'income' ? filteredIncomeCategories : filteredExpenseCategories;
 
     const handleDragStart = (id: string, classification: 'income' | 'expense') => { setDraggedItem({ id, classification }); };
-    const handleDragOver = (e: React.DragEvent, id: string, level: number) => {
-        e.preventDefault(); e.stopPropagation();
-        if (!draggedItem || draggedItem.id === id) return;
-
-        const rect = e.currentTarget.getBoundingClientRect();
-        const third = rect.height / 3;
-        let position: 'top' | 'bottom' | 'middle' = 'middle';
-        
-        if (e.clientY < rect.top + third) position = 'top';
-        else if (e.clientY > rect.bottom - third) position = 'bottom';
-
-        if (level > 0 && position === 'middle') {
-            const midpoint = rect.top + rect.height / 2;
-            position = e.clientY < midpoint ? 'top' : 'bottom';
-        }
-        
-        setDropTarget({ id, position });
-    };
+    const handleDragOver = (id: string, position: 'top' | 'bottom' | 'middle') => { setDropTarget({ id, position }); };
     const handleDragLeave = () => { setDropTarget(null); };
     const handleDragEnd = () => { setDraggedItem(null); setDropTarget(null); };
 
@@ -193,7 +176,15 @@ const Categories: React.FC<CategoriesProps> = ({ incomeCategories, setIncomeCate
 
             const findAndInsert = (items: Category[], parentId?: string): Category[] => {
                 if (position === 'middle') {
-                    return items.map(item => (item.id === dropId) ? { ...item, subCategories: [...item.subCategories, { ...draggedCategory!, parentId: dropId }] } : { ...item, subCategories: findAndInsert(item.subCategories, item.id) });
+                    return items.map(item => {
+                        if (item.id === dropId) {
+                            const parentColor = item.color;
+                            const adaptColor = (cat: Category): Category => ({ ...cat, color: parentColor, subCategories: cat.subCategories.map(adaptColor) });
+                            const newSubCategory = adaptColor({ ...draggedCategory!, parentId: dropId });
+                            return { ...item, subCategories: [...item.subCategories, newSubCategory] };
+                        }
+                        return { ...item, subCategories: findAndInsert(item.subCategories, item.id) };
+                    });
                 }
                 
                 const targetIndex = items.findIndex(item => item.id === dropId);
@@ -210,54 +201,6 @@ const Categories: React.FC<CategoriesProps> = ({ incomeCategories, setIncomeCate
         });
 
         handleDragEnd();
-    };
-
-    const toggleCategory = (categoryId: string) => setOpenCategories(prev => ({ ...prev, [categoryId]: !prev[categoryId] }));
-
-    const CategoryRow: React.FC<{ category: Category; level: number }> = ({ category, level }) => {
-        const isOpen = !!openCategories[category.id];
-        const isDragging = draggedItem?.id === category.id;
-        const isDropTarget = dropTarget?.id === category.id ? dropTarget : null;
-
-        return (
-            <div className={`relative rounded-lg ${isDragging ? 'opacity-30' : ''}`} style={{ marginLeft: `${level * 20}px` }}>
-                {isDropTarget?.position === 'top' && <div className="absolute -top-1 left-0 right-0 h-1.5 bg-primary-500 rounded-full z-10" />}
-                {isDropTarget?.position === 'bottom' && <div className="absolute -bottom-1 left-0 right-0 h-1.5 bg-primary-500 rounded-full z-10" />}
-                {isDropTarget?.position === 'middle' && level === 0 && <div className="absolute inset-0 bg-primary-500/20 rounded-lg border-2 border-primary-500 border-dashed z-10" />}
-                
-                <div 
-                    draggable onDragStart={(e) => { e.stopPropagation(); handleDragStart(category.id, activeTab); }}
-                    onDragEnd={(e) => { e.stopPropagation(); handleDragEnd(); }}
-                    onDrop={(e) => { e.stopPropagation(); handleDrop(); }}
-                    onDragOver={(e) => handleDragOver(e, category.id, level)}
-                    onDragLeave={(e) => { e.stopPropagation(); handleDragLeave(); }}
-                    className="p-3 rounded-lg group hover:bg-black/5 dark:hover:bg-white/5 transition-colors"
-                >
-                    <div className="flex items-center gap-3">
-                        <span className="material-symbols-outlined cursor-grab text-light-text-secondary dark:text-dark-text-secondary opacity-0 group-hover:opacity-100 transition-opacity">drag_indicator</span>
-                        {category.subCategories.length > 0 ? (
-                            <button onClick={() => toggleCategory(category.id)} className="p-1 -ml-1"><span className={`material-symbols-outlined transition-transform duration-200 ${isOpen ? 'rotate-90' : ''}`}>chevron_right</span></button>
-                        ) : <div className="w-8"></div>}
-                        <div className="flex-shrink-0 h-10 w-10 rounded-full flex items-center justify-center" style={{ backgroundColor: `${category.color}20`}}>
-                            <span className="material-symbols-outlined" style={{ fontSize: '22px', color: category.color }}>{category.icon || 'category'}</span>
-                        </div>
-                        <div className="flex-grow min-w-0">
-                            <p className="font-semibold text-light-text dark:text-dark-text">{category.name}</p>
-                        </div>
-                        <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
-                            {level === 0 && <button onClick={() => openModal('add', activeTab, undefined, category.id)} className="p-2 rounded-full" title="Add Sub-category"><span className="material-symbols-outlined text-base">add</span></button>}
-                            <button onClick={() => openModal('edit', activeTab, category)} className="p-2 rounded-full" title="Edit"><span className="material-symbols-outlined text-base">edit</span></button>
-                            <button onClick={() => handleDeleteCategory(category.id, activeTab)} className="p-2 rounded-full text-red-500/80 hover:bg-red-500/10" title="Delete"><span className="material-symbols-outlined text-base">delete</span></button>
-                        </div>
-                    </div>
-                </div>
-                {isOpen && category.subCategories.length > 0 && (
-                    <div className="mt-1 space-y-1">
-                        {category.subCategories.map(sub => <CategoryRow key={sub.id} category={sub} level={level + 1} />)}
-                    </div>
-                )}
-            </div>
-        );
     };
 
   return (
@@ -290,7 +233,24 @@ const Categories: React.FC<CategoriesProps> = ({ incomeCategories, setIncomeCate
         </div>
         <Card className="p-4">
             <div className="space-y-2">
-                {activeCategories.map(cat => <CategoryRow key={cat.id} category={cat} level={0} />)}
+                {activeCategories.map(cat => (
+                  <CategoryItem
+                    key={cat.id}
+                    category={cat}
+                    onEdit={(category) => openModal('edit', activeTab, category)}
+                    onDelete={(id) => handleDeleteCategory(id, activeTab)}
+                    onAddSubCategory={(parentId) => openModal('add', activeTab, undefined, parentId)}
+                    level={0}
+                    classification={activeTab}
+                    draggedItem={draggedItem}
+                    dropTarget={dropTarget}
+                    handleDragStart={handleDragStart}
+                    handleDragOver={handleDragOver}
+                    handleDragLeave={handleDragLeave}
+                    handleDrop={handleDrop}
+                    handleDragEnd={handleDragEnd}
+                  />
+                ))}
             </div>
             {activeCategories.length === 0 && <p className="text-center text-light-text-secondary dark:text-dark-text-secondary py-8">{searchTerm ? 'No matching categories found.' : 'No categories defined.'}</p>}
         </Card>
