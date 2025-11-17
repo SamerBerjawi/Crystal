@@ -160,7 +160,7 @@ const AccountRow: React.FC<AccountRowProps> = ({ account, transactions, warrants
             </div>
 
             {/* Right side: Balance, Sparkline, Edit button */}
-            <div className="flex items-center justify-between sm:justify-end gap-2 sm:gap-4 w-full">
+            <div className="flex items-center justify-between sm:justify-end gap-2 sm:gap-4 w-full sm:w-auto">
                 <div className="w-24 h-10 shrink-0 hidden sm:block">
                      <ResponsiveContainer width="100%" height="100%">
                         <LineChart data={sparklineData}>
