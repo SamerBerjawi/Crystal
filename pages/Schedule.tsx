@@ -1,3 +1,4 @@
+
 import React, { useState, useMemo } from 'react';
 // FIX: Import ScheduledItem from global types and remove local definition.
 import { RecurringTransaction, Account, Category, BillPayment, Currency, AccountType, RecurringTransactionOverride, ScheduledItem, Transaction, Tag, LoanPaymentOverrides } from '../types';
@@ -142,7 +143,11 @@ const SchedulePage: React.FC<ScheduleProps> = (props) => {
     const [overrideModalItem, setOverrideModalItem] = useState<ScheduledItem | null>(null);
     const [isTransactionModalOpen, setIsTransactionModalOpen] = useState(false);
     const [itemToPost, setItemToPost] = useState<ScheduledItem | null>(null);
+    const [expandedScheduleGroups, setExpandedScheduleGroups] = useState<Record<string, boolean>>({});
 
+    const toggleScheduleGroup = (id: string) => {
+        setExpandedScheduleGroups(prev => ({ ...prev, [id]: !prev[id] }));
+    };
 
     const accountMap = React.useMemo(() => accounts.reduce((acc, current) => {
         acc[current.id] = current.name;
@@ -499,14 +504,95 @@ const SchedulePage: React.FC<ScheduleProps> = (props) => {
 
     const renderGroupedItems = (groupedItems: Record<string, ScheduledItem[]>) => (
         <div className="divide-y divide-light-separator dark:divide-dark-separator -mx-6">
-            {Object.entries(groupedItems).map(([groupName, items]) => items.length > 0 && (
-                <div key={groupName} className="px-6 py-4">
-                    <h4 className="font-semibold mb-2">{groupName}</h4>
-                    <div className="space-y-2 -mx-4">
-                        {items.map(item => <ScheduledItemRow key={item.id} item={item} accounts={accounts} onEdit={handleEditItem} onDelete={handleDeleteItem} onPost={handleOpenPostModal} />)}
+            {Object.entries(groupedItems).map(([groupName, items]) => {
+                if (items.length === 0) return null;
+
+                if (groupName === 'Later') {
+                    // Group items by their parent (recurring transaction) ID
+                    const groupedBySource: Record<string, ScheduledItem[]> = {};
+                    items.forEach(item => {
+                        // For recurring items, originalItem.id is the schedule ID
+                        // For bills, originalItem.id is the bill ID
+                        const key = (item.originalItem as any).id;
+                        if (!groupedBySource[key]) {
+                            groupedBySource[key] = [];
+                        }
+                        groupedBySource[key].push(item);
+                    });
+
+                    // Sort groups by date of the first occurrence
+                    const sortedGroups = Object.values(groupedBySource).sort((a, b) => {
+                         return parseAsUTC(a[0].date).getTime() - parseAsUTC(b[0].date).getTime();
+                    });
+
+                    return (
+                        <div key={groupName} className="px-6 py-4">
+                            <h4 className="font-semibold mb-4 text-lg text-light-text dark:text-dark-text">{groupName}</h4>
+                            <div className="space-y-6">
+                                {sortedGroups.map((sourceItems) => {
+                                    const firstItem = sourceItems[0];
+                                    const title = firstItem.description;
+                                    const isRecurring = sourceItems.length > 1 || firstItem.isRecurring;
+                                    const sourceId = (firstItem.originalItem as any).id;
+                                    const isExpanded = expandedScheduleGroups[sourceId];
+
+                                    // If it's just a one-off bill (not recurring), keep it simple
+                                    if (!isRecurring) {
+                                         return (
+                                            <div key={firstItem.id} className="-mx-4">
+                                                 {sourceItems.map(item => (
+                                                    <ScheduledItemRow key={item.id} item={item} accounts={accounts} onEdit={handleEditItem} onDelete={handleDeleteItem} onPost={handleOpenPostModal} />
+                                                 ))}
+                                            </div>
+                                         );
+                                    }
+
+                                    return (
+                                        <div key={sourceId} className="bg-light-bg/50 dark:bg-dark-bg/30 rounded-xl border border-black/5 dark:border-white/5 overflow-hidden">
+                                            <div 
+                                                onClick={() => toggleScheduleGroup(sourceId)}
+                                                className="px-4 py-2 bg-light-fill/50 dark:bg-dark-fill/50 border-b border-black/5 dark:border-white/5 flex justify-between items-center backdrop-blur-sm cursor-pointer hover:bg-light-fill dark:hover:bg-dark-fill transition-colors"
+                                            >
+                                                <div className="font-semibold text-light-text dark:text-dark-text flex items-center gap-2">
+                                                    <span className={`material-symbols-outlined text-base text-light-text-secondary dark:text-dark-text-secondary transition-transform duration-200 ${isExpanded ? 'rotate-180' : ''}`}>expand_more</span>
+                                                    <span className="material-symbols-outlined text-base text-primary-500">repeat</span>
+                                                    {title}
+                                                </div>
+                                                <span className="text-xs font-medium text-light-text-secondary dark:text-dark-text-secondary px-2 py-0.5 rounded-full bg-black/5 dark:bg-white/5">
+                                                    {sourceItems.length} Upcoming
+                                                </span>
+                                            </div>
+                                            {isExpanded && (
+                                                <div className="divide-y divide-black/5 dark:divide-white/5">
+                                                    {sourceItems.map(item => (
+                                                        <ScheduledItemRow 
+                                                            key={item.id} 
+                                                            item={item} 
+                                                            accounts={accounts} 
+                                                            onEdit={handleEditItem} 
+                                                            onDelete={handleDeleteItem} 
+                                                            onPost={handleOpenPostModal} 
+                                                        />
+                                                    ))}
+                                                </div>
+                                            )}
+                                        </div>
+                                    );
+                                })}
+                            </div>
+                        </div>
+                    );
+                }
+
+                return (
+                    <div key={groupName} className="px-6 py-4">
+                        <h4 className="font-semibold mb-2">{groupName}</h4>
+                        <div className="space-y-2 -mx-4">
+                            {items.map(item => <ScheduledItemRow key={item.id} item={item} accounts={accounts} onEdit={handleEditItem} onDelete={handleDeleteItem} onPost={handleOpenPostModal} />)}
+                        </div>
                     </div>
-                </div>
-            ))}
+                );
+            })}
         </div>
     );
 
