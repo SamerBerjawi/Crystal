@@ -24,6 +24,7 @@ const BillPaymentModal: React.FC<{
     const [amount, setAmount] = useState(bill ? String(Math.abs(bill.amount)) : '');
     const [type, setType] = useState<'payment' | 'deposit'>(bill?.type || 'payment');
     const [dueDate, setDueDate] = useState(bill?.dueDate || new Date().toISOString().split('T')[0]);
+    const [accountId, setAccountId] = useState(bill?.accountId || '');
 
     const handleSubmit = (e: React.FormEvent) => {
         e.preventDefault();
@@ -35,11 +36,14 @@ const BillPaymentModal: React.FC<{
             currency: 'EUR',
             dueDate,
             status: bill?.status || 'unpaid',
+            accountId: accountId || undefined,
         });
         onClose();
     };
 
     const labelStyle = "block text-sm font-medium text-light-text-secondary dark:text-dark-text-secondary mb-1";
+    const paymentAccounts = accounts.filter(a => LIQUID_ACCOUNT_TYPES.includes(a.type));
+
     return (
         <Modal onClose={onClose} title={isEditing ? 'Edit Bill/Payment' : 'Add Bill/Payment'}>
             <form onSubmit={handleSubmit} className="space-y-4">
@@ -48,6 +52,18 @@ const BillPaymentModal: React.FC<{
                     <button type="button" onClick={() => setType('deposit')} className={`w-full py-2 rounded text-sm font-semibold ${type === 'deposit' ? 'bg-green-500 text-white' : ''}`}>Deposit (In)</button>
                 </div>
                 <div><label htmlFor="desc" className={labelStyle}>Description</label><input id="desc" type="text" value={description} onChange={e => setDescription(e.target.value)} className={INPUT_BASE_STYLE} required /></div>
+                
+                <div>
+                    <label htmlFor="bill-account" className={labelStyle}>Payment Account (Optional)</label>
+                    <div className={SELECT_WRAPPER_STYLE}>
+                        <select id="bill-account" value={accountId} onChange={e => setAccountId(e.target.value)} className={INPUT_BASE_STYLE}>
+                            <option value="">Default (Primary Account)</option>
+                            {paymentAccounts.map(acc => <option key={acc.id} value={acc.id}>{acc.name}</option>)}
+                        </select>
+                        <div className={SELECT_ARROW_STYLE}><span className="material-symbols-outlined">expand_more</span></div>
+                    </div>
+                </div>
+
                 <div className="grid grid-cols-2 gap-4">
                     <div><label htmlFor="amount" className={labelStyle}>Amount (€)</label><input id="amount" type="number" step="0.01" value={amount} onChange={e => setAmount(e.target.value)} className={INPUT_BASE_STYLE} required /></div>
                     <div><label htmlFor="dueDate" className={labelStyle}>Due Date</label><input id="dueDate" type="date" value={dueDate} onChange={e => setDueDate(e.target.value)} className={INPUT_BASE_STYLE} required /></div>
@@ -254,7 +270,7 @@ const SchedulePage: React.FC<ScheduleProps> = (props) => {
                 date: b.dueDate,
                 description: b.description,
                 amount: b.amount,
-                accountName: 'External', // Bills are to/from external entities
+                accountName: b.accountId ? accountMap[b.accountId] : 'External',
                 type: b.type,
                 originalItem: b
             });
@@ -466,6 +482,11 @@ const SchedulePage: React.FC<ScheduleProps> = (props) => {
             const bill = original as BillPayment;
             type = bill.type === 'deposit' ? 'income' : 'expense';
             category = type === 'income' ? 'Income' : 'Bills & Utilities';
+            // Pre-fill the account ID from the bill if available, otherwise let user select or default
+            if (bill.accountId) {
+                 if (type === 'income') to = bill.accountId;
+                 else from = bill.accountId;
+            }
         }
 
         return {
@@ -508,54 +529,59 @@ const SchedulePage: React.FC<ScheduleProps> = (props) => {
                 if (items.length === 0) return null;
 
                 if (groupName === 'Later') {
-                    // Group items by their parent (recurring transaction) ID
-                    const groupedBySource: Record<string, ScheduledItem[]> = {};
-                    items.forEach(item => {
-                        let key = (item.originalItem as any).id;
-                        // Check if it is a synthetic loan payment to group by loan account
-                        const rt = item.originalItem as RecurringTransaction;
-                        if (item.isRecurring && rt.isSynthetic && rt.id.startsWith('loan-pmt-')) {
-                            // ID format: loan-pmt-{accountId}-{paymentNumber}
-                            // We group by removing the payment number suffix
-                             const lastDashIndex = rt.id.lastIndexOf('-');
-                             if (lastDashIndex > 0) {
-                                 key = rt.id.substring(0, lastDashIndex);
-                             }
+                     const groupedBySource: Record<string, { title: string; items: ScheduledItem[]; type: 'recurring' | 'bill' }> = {};
+
+                     items.forEach(item => {
+                        if (item.isRecurring) {
+                            const rt = item.originalItem as RecurringTransaction;
+                            let groupKey = rt.id;
+                            let groupTitle = item.description;
+            
+                            if (rt.isSynthetic && rt.id.startsWith('loan-pmt-')) {
+                                 // Group loan payments by the base loan transaction/account
+                                 // Synthetic ID format: loan-pmt-{accountId}-{paymentNumber}
+                                 // We want to group by loan-pmt-{accountId}
+                                 const lastDashIndex = rt.id.lastIndexOf('-');
+                                 if (lastDashIndex > 0) {
+                                     groupKey = rt.id.substring(0, lastDashIndex);
+                                     // Clean up title to remove specific payment number for the group header
+                                     groupTitle = item.description.replace(/ #\d+:/, ':');
+                                 }
+                            } else if (rt.isSynthetic && rt.id.startsWith('cc-pmt-')) {
+                                 // Group credit card payments by account
+                                 if (rt.toAccountId) {
+                                    groupKey = `cc-pmt-${rt.toAccountId}`;
+                                    groupTitle = `Credit Card Payment: ${accountMap[rt.toAccountId]}`;
+                                 }
+                            }
+                            
+                            if (!groupedBySource[groupKey]) {
+                                groupedBySource[groupKey] = { title: groupTitle, items: [], type: 'recurring' };
+                            }
+                            groupedBySource[groupKey].items.push(item);
+            
+                        } else {
+                            // Treat one-off bills as individual items in the grid
+                            groupedBySource[item.id] = { title: item.description, items: [item], type: 'bill' };
                         }
-                        
-                        if (!groupedBySource[key]) {
-                            groupedBySource[key] = [];
-                        }
-                        groupedBySource[key].push(item);
                     });
 
-                    // Sort groups by date of the first occurrence
                     const sortedGroups = Object.entries(groupedBySource).sort((a, b) => {
-                         return parseAsUTC(a[1][0].date).getTime() - parseAsUTC(b[1][0].date).getTime();
+                         return parseAsUTC(a[1].items[0].date).getTime() - parseAsUTC(b[1].items[0].date).getTime();
                     });
 
                     return (
                         <div key={groupName} className="px-6 py-4">
                             <h4 className="font-semibold mb-4 text-lg text-light-text dark:text-dark-text">{groupName}</h4>
                             <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4">
-                                {sortedGroups.map(([sourceId, sourceItems]) => {
-                                    const firstItem = sourceItems[0];
-                                    let title = firstItem.description;
-                                    const isRecurring = sourceItems.length > 1 || firstItem.isRecurring;
-                                    const isExpanded = expandedScheduleGroups[sourceId];
-                                    
-                                    if (firstItem.isRecurring) {
-                                        const rt = firstItem.originalItem as RecurringTransaction;
-                                        if (rt.isSynthetic && rt.id.startsWith('loan-pmt-')) {
-                                            title = title.replace(/ #\d+/, '');
-                                        }
-                                    }
+                                {sortedGroups.map(([key, group]) => {
+                                    const isExpanded = expandedScheduleGroups[key];
+                                    const isRecurringGroup = group.type === 'recurring';
 
-                                    // If it's just a one-off bill (not recurring), show as a simple card
-                                    if (!isRecurring) {
+                                    if (!isRecurringGroup) {
                                          return (
-                                            <div key={firstItem.id} className="bg-light-bg/50 dark:bg-dark-bg/30 rounded-xl border border-black/5 dark:border-white/5 overflow-hidden">
-                                                 {sourceItems.map(item => (
+                                            <div key={key} className="bg-light-bg/50 dark:bg-dark-bg/30 rounded-xl border border-black/5 dark:border-white/5 overflow-hidden">
+                                                 {group.items.map(item => (
                                                     <ScheduledItemRow key={item.id} item={item} accounts={accounts} onEdit={handleEditItem} onDelete={handleDeleteItem} onPost={handleOpenPostModal} />
                                                  ))}
                                             </div>
@@ -563,23 +589,23 @@ const SchedulePage: React.FC<ScheduleProps> = (props) => {
                                     }
 
                                     return (
-                                        <div key={sourceId} className="bg-light-bg/50 dark:bg-dark-bg/30 rounded-xl border border-black/5 dark:border-white/5 overflow-hidden h-fit">
+                                        <div key={key} className="bg-light-bg/50 dark:bg-dark-bg/30 rounded-xl border border-black/5 dark:border-white/5 overflow-hidden h-fit">
                                             <div 
-                                                onClick={() => toggleScheduleGroup(sourceId)}
+                                                onClick={() => toggleScheduleGroup(key)}
                                                 className="px-4 py-3 bg-light-fill/50 dark:bg-dark-fill/50 border-b border-black/5 dark:border-white/5 flex justify-between items-center backdrop-blur-sm cursor-pointer hover:bg-light-fill dark:hover:bg-dark-fill transition-colors"
                                             >
                                                 <div className="font-semibold text-light-text dark:text-dark-text flex items-center gap-2 truncate pr-2">
                                                     <span className={`material-symbols-outlined text-base text-light-text-secondary dark:text-dark-text-secondary transition-transform duration-200 flex-shrink-0 ${isExpanded ? 'rotate-180' : ''}`}>expand_more</span>
                                                     <span className="material-symbols-outlined text-base text-primary-500 flex-shrink-0">repeat</span>
-                                                    <span className="truncate">{title}</span>
+                                                    <span className="truncate">{group.title}</span>
                                                 </div>
                                                 <span className="text-xs font-medium text-light-text-secondary dark:text-dark-text-secondary px-2 py-0.5 rounded-full bg-black/5 dark:bg-white/5 flex-shrink-0">
-                                                    {sourceItems.length}
+                                                    {group.items.length}
                                                 </span>
                                             </div>
                                             {isExpanded && (
-                                                <div className="divide-y divide-black/5 dark:divide-white/5">
-                                                    {sourceItems.map(item => (
+                                                <div className="divide-y divide-black/5 dark:divide-white/5 max-h-64 overflow-y-auto">
+                                                    {group.items.map(item => (
                                                         <ScheduledItemRow 
                                                             key={item.id} 
                                                             item={item} 
