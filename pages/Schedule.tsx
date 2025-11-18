@@ -102,7 +102,7 @@ const ScheduledItemRow: React.FC<{
           </p>
           <div className={`opacity-0 group-hover:opacity-100 transition-opacity flex items-center gap-1 ${isReadOnly ? '!opacity-0' : ''}`}>
             <button onClick={() => onPost(item)} className={`${BTN_PRIMARY_STYLE} !py-1 !px-2 text-xs`} title="Post Transaction"><span className="material-symbols-outlined text-sm">check</span></button>
-            <button onClick={() => onEdit(item)} className="text-light-text-secondary dark:text-dark-text-secondary p-2 rounded-full hover:bg-black/5 dark:hover:bg-white/5" title="Edit"><span className="material-symbols-outlined text-base">edit</span></button>
+            <button onClick={() => onEdit(item)} className="text-light-text-secondary dark:text-dark-text-secondary p-2 rounded-full hover:bg-black/5 dark:hover:bg-white/10" title="Edit"><span className="material-symbols-outlined text-base">edit</span></button>
             <button onClick={() => onDelete(item.originalItem.id, item.isRecurring)} className="text-red-500/80 p-2 rounded-full hover:bg-red-500/10" title="Delete"><span className="material-symbols-outlined text-base">delete</span></button>
           </div>
         </div>
@@ -511,9 +511,18 @@ const SchedulePage: React.FC<ScheduleProps> = (props) => {
                     // Group items by their parent (recurring transaction) ID
                     const groupedBySource: Record<string, ScheduledItem[]> = {};
                     items.forEach(item => {
-                        // For recurring items, originalItem.id is the schedule ID
-                        // For bills, originalItem.id is the bill ID
-                        const key = (item.originalItem as any).id;
+                        let key = (item.originalItem as any).id;
+                        // Check if it is a synthetic loan payment to group by loan account
+                        const rt = item.originalItem as RecurringTransaction;
+                        if (item.isRecurring && rt.isSynthetic && rt.id.startsWith('loan-pmt-')) {
+                            // ID format: loan-pmt-{accountId}-{paymentNumber}
+                            // We group by removing the payment number suffix
+                             const lastDashIndex = rt.id.lastIndexOf('-');
+                             if (lastDashIndex > 0) {
+                                 key = rt.id.substring(0, lastDashIndex);
+                             }
+                        }
+                        
                         if (!groupedBySource[key]) {
                             groupedBySource[key] = [];
                         }
@@ -521,25 +530,31 @@ const SchedulePage: React.FC<ScheduleProps> = (props) => {
                     });
 
                     // Sort groups by date of the first occurrence
-                    const sortedGroups = Object.values(groupedBySource).sort((a, b) => {
-                         return parseAsUTC(a[0].date).getTime() - parseAsUTC(b[0].date).getTime();
+                    const sortedGroups = Object.entries(groupedBySource).sort((a, b) => {
+                         return parseAsUTC(a[1][0].date).getTime() - parseAsUTC(b[1][0].date).getTime();
                     });
 
                     return (
                         <div key={groupName} className="px-6 py-4">
                             <h4 className="font-semibold mb-4 text-lg text-light-text dark:text-dark-text">{groupName}</h4>
-                            <div className="space-y-6">
-                                {sortedGroups.map((sourceItems) => {
+                            <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4">
+                                {sortedGroups.map(([sourceId, sourceItems]) => {
                                     const firstItem = sourceItems[0];
-                                    const title = firstItem.description;
+                                    let title = firstItem.description;
                                     const isRecurring = sourceItems.length > 1 || firstItem.isRecurring;
-                                    const sourceId = (firstItem.originalItem as any).id;
                                     const isExpanded = expandedScheduleGroups[sourceId];
+                                    
+                                    if (firstItem.isRecurring) {
+                                        const rt = firstItem.originalItem as RecurringTransaction;
+                                        if (rt.isSynthetic && rt.id.startsWith('loan-pmt-')) {
+                                            title = title.replace(/ #\d+/, '');
+                                        }
+                                    }
 
-                                    // If it's just a one-off bill (not recurring), keep it simple
+                                    // If it's just a one-off bill (not recurring), show as a simple card
                                     if (!isRecurring) {
                                          return (
-                                            <div key={firstItem.id} className="-mx-4">
+                                            <div key={firstItem.id} className="bg-light-bg/50 dark:bg-dark-bg/30 rounded-xl border border-black/5 dark:border-white/5 overflow-hidden">
                                                  {sourceItems.map(item => (
                                                     <ScheduledItemRow key={item.id} item={item} accounts={accounts} onEdit={handleEditItem} onDelete={handleDeleteItem} onPost={handleOpenPostModal} />
                                                  ))}
@@ -548,18 +563,18 @@ const SchedulePage: React.FC<ScheduleProps> = (props) => {
                                     }
 
                                     return (
-                                        <div key={sourceId} className="bg-light-bg/50 dark:bg-dark-bg/30 rounded-xl border border-black/5 dark:border-white/5 overflow-hidden">
+                                        <div key={sourceId} className="bg-light-bg/50 dark:bg-dark-bg/30 rounded-xl border border-black/5 dark:border-white/5 overflow-hidden h-fit">
                                             <div 
                                                 onClick={() => toggleScheduleGroup(sourceId)}
-                                                className="px-4 py-2 bg-light-fill/50 dark:bg-dark-fill/50 border-b border-black/5 dark:border-white/5 flex justify-between items-center backdrop-blur-sm cursor-pointer hover:bg-light-fill dark:hover:bg-dark-fill transition-colors"
+                                                className="px-4 py-3 bg-light-fill/50 dark:bg-dark-fill/50 border-b border-black/5 dark:border-white/5 flex justify-between items-center backdrop-blur-sm cursor-pointer hover:bg-light-fill dark:hover:bg-dark-fill transition-colors"
                                             >
-                                                <div className="font-semibold text-light-text dark:text-dark-text flex items-center gap-2">
-                                                    <span className={`material-symbols-outlined text-base text-light-text-secondary dark:text-dark-text-secondary transition-transform duration-200 ${isExpanded ? 'rotate-180' : ''}`}>expand_more</span>
-                                                    <span className="material-symbols-outlined text-base text-primary-500">repeat</span>
-                                                    {title}
+                                                <div className="font-semibold text-light-text dark:text-dark-text flex items-center gap-2 truncate pr-2">
+                                                    <span className={`material-symbols-outlined text-base text-light-text-secondary dark:text-dark-text-secondary transition-transform duration-200 flex-shrink-0 ${isExpanded ? 'rotate-180' : ''}`}>expand_more</span>
+                                                    <span className="material-symbols-outlined text-base text-primary-500 flex-shrink-0">repeat</span>
+                                                    <span className="truncate">{title}</span>
                                                 </div>
-                                                <span className="text-xs font-medium text-light-text-secondary dark:text-dark-text-secondary px-2 py-0.5 rounded-full bg-black/5 dark:bg-white/5">
-                                                    {sourceItems.length} Upcoming
+                                                <span className="text-xs font-medium text-light-text-secondary dark:text-dark-text-secondary px-2 py-0.5 rounded-full bg-black/5 dark:bg-white/5 flex-shrink-0">
+                                                    {sourceItems.length}
                                                 </span>
                                             </div>
                                             {isExpanded && (
