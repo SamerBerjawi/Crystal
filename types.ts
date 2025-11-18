@@ -119,6 +119,8 @@ export interface RecurringTransactionOverride {
   isSkipped?: boolean;
 }
 
+export type LoanPaymentOverrides = Record<string, Record<number, Partial<ScheduledPayment>>>;
+
 export interface Transaction {
   id: string;
   accountId: string;
@@ -319,6 +321,8 @@ export interface AccountDetailProps {
   recurringTransactions: RecurringTransaction[];
   setViewingAccountId: (id: string | null) => void;
   tags: Tag[];
+  loanPaymentOverrides: LoanPaymentOverrides;
+  saveLoanPaymentOverrides: (accountId: string, overrides: Record<number, Partial<ScheduledPayment>>) => void;
 }
 
 // FIX: Move FinancialData interface from App.tsx to types.ts to resolve import error in mockData.ts
@@ -328,6 +332,7 @@ export interface FinancialData {
     investmentTransactions: InvestmentTransaction[];
     recurringTransactions: RecurringTransaction[];
     recurringTransactionOverrides?: RecurringTransactionOverride[];
+    loanPaymentOverrides?: LoanPaymentOverrides;
     financialGoals: FinancialGoal[];
     budgets: Budget[];
     tasks: Task[];

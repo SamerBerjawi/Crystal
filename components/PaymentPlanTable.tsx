@@ -8,10 +8,11 @@ interface PaymentPlanTableProps {
   account: Account;
   transactions: Transaction[];
   onMakePayment: (payment: ScheduledPayment, description: string) => void;
+  overrides: Record<number, Partial<ScheduledPayment>>;
+  onOverridesChange: (overrides: Record<number, Partial<ScheduledPayment>>) => void;
 }
 
-const PaymentPlanTable: React.FC<PaymentPlanTableProps> = ({ account, transactions, onMakePayment }) => {
-    const [overrides, setOverrides] = useState<Record<number, Partial<ScheduledPayment>>>({});
+const PaymentPlanTable: React.FC<PaymentPlanTableProps> = ({ account, transactions, onMakePayment, overrides, onOverridesChange }) => {
     const [editingPaymentNumber, setEditingPaymentNumber] = useState<number | null>(null);
     const [editFormData, setEditFormData] = useState<Partial<Pick<ScheduledPayment, 'totalPayment' | 'principal' | 'interest'>>>({});
     const [lastEditedField, setLastEditedField] = useState<'total' | 'principal' | 'interest' | null>(null);
@@ -46,7 +47,7 @@ const PaymentPlanTable: React.FC<PaymentPlanTableProps> = ({ account, transactio
 
     const handleSaveEdit = () => {
         if (editingPaymentNumber === null) return;
-        setOverrides(prev => ({ ...prev, [editingPaymentNumber]: editFormData }));
+        onOverridesChange({ ...overrides, [editingPaymentNumber]: editFormData });
         handleCancelEdit();
     };
 

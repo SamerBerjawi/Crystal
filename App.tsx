@@ -25,7 +25,7 @@ const Documentation = lazy(() => import('./pages/Documentation').then(module => 
 // UserManagement is removed
 // FIX: Import FinancialData from types.ts
 // FIX: Add `Tag` to the import from `types.ts`.
-import { Page, Theme, Category, User, Transaction, Account, RecurringTransaction, RecurringTransactionOverride, WeekendAdjustment, FinancialGoal, Budget, ImportExportHistoryItem, AppPreferences, AccountType, InvestmentTransaction, Task, Warrant, ScraperConfig, ImportDataType, FinancialData, Currency, BillPayment, BillPaymentStatus, Duration, InvestmentSubType, Tag } from './types';
+import { Page, Theme, Category, User, Transaction, Account, RecurringTransaction, RecurringTransactionOverride, WeekendAdjustment, FinancialGoal, Budget, ImportExportHistoryItem, AppPreferences, AccountType, InvestmentTransaction, Task, Warrant, ScraperConfig, ImportDataType, FinancialData, Currency, BillPayment, BillPaymentStatus, Duration, InvestmentSubType, Tag, LoanPaymentOverrides, ScheduledPayment } from './types';
 import { MOCK_INCOME_CATEGORIES, MOCK_EXPENSE_CATEGORIES, LIQUID_ACCOUNT_TYPES } from './constants';
 import { v4 as uuidv4 } from 'uuid';
 import ChatFab from './components/ChatFab';
@@ -42,6 +42,7 @@ const initialFinancialData: FinancialData = {
     investmentTransactions: [],
     recurringTransactions: [],
     recurringTransactionOverrides: [],
+    loanPaymentOverrides: {},
     financialGoals: [],
     budgets: [],
     tasks: [],
@@ -132,6 +133,7 @@ export const App: React.FC = () => {
   const [accounts, setAccounts] = useState<Account[]>(initialFinancialData.accounts);
   const [recurringTransactions, setRecurringTransactions] = useState<RecurringTransaction[]>(initialFinancialData.recurringTransactions);
   const [recurringTransactionOverrides, setRecurringTransactionOverrides] = useState<RecurringTransactionOverride[]>(initialFinancialData.recurringTransactionOverrides || []);
+  const [loanPaymentOverrides, setLoanPaymentOverrides] = useState<LoanPaymentOverrides>(initialFinancialData.loanPaymentOverrides || {});
   const [financialGoals, setFinancialGoals] = useState<FinancialGoal[]>(initialFinancialData.financialGoals);
   const [budgets, setBudgets] = useState<Budget[]>(initialFinancialData.budgets);
   const [tasks, setTasks] = useState<Task[]>(initialFinancialData.tasks);
@@ -308,6 +310,7 @@ export const App: React.FC = () => {
     setInvestmentTransactions(dataToLoad.investmentTransactions || []);
     setRecurringTransactions(dataToLoad.recurringTransactions || []);
     setRecurringTransactionOverrides(dataToLoad.recurringTransactionOverrides || []);
+    setLoanPaymentOverrides(dataToLoad.loanPaymentOverrides || {});
     setFinancialGoals(dataToLoad.financialGoals || []);
     setBudgets(dataToLoad.budgets || []);
     setTasks(dataToLoad.tasks || []);
@@ -386,11 +389,11 @@ export const App: React.FC = () => {
 
   const dataToSave: FinancialData = useMemo(() => ({
     accounts, transactions, investmentTransactions, recurringTransactions,
-    recurringTransactionOverrides, financialGoals, budgets, tasks, warrants, scraperConfigs, importExportHistory, incomeCategories,
+    recurringTransactionOverrides, loanPaymentOverrides, financialGoals, budgets, tasks, warrants, scraperConfigs, importExportHistory, incomeCategories,
     expenseCategories, preferences, billsAndPayments, accountOrder, taskOrder, tags,
   }), [
     accounts, transactions, investmentTransactions,
-    recurringTransactions, recurringTransactionOverrides, financialGoals, budgets, tasks, warrants, scraperConfigs, importExportHistory,
+    recurringTransactions, recurringTransactionOverrides, loanPaymentOverrides, financialGoals, budgets, tasks, warrants, scraperConfigs, importExportHistory,
     incomeCategories, expenseCategories, preferences, billsAndPayments, accountOrder, taskOrder, tags,
   ]);
 
@@ -779,6 +782,10 @@ export const App: React.FC = () => {
     setRecurringTransactions(prev => prev.filter(rt => rt.id !== id));
   };
 
+  const handleSaveLoanPaymentOverrides = (accountId: string, overrides: Record<number, Partial<ScheduledPayment>>) => {
+    setLoanPaymentOverrides(prev => ({ ...prev, [accountId]: overrides }));
+  };
+
   const handleSaveRecurringOverride = (override: RecurringTransactionOverride) => {
     setRecurringTransactionOverrides(prev => {
       const existingIndex = prev.findIndex(o => o.recurringTransactionId === override.recurringTransactionId && o.originalDate === override.originalDate);
@@ -1101,6 +1108,8 @@ export const App: React.FC = () => {
           recurringTransactions={recurringTransactions}
           setViewingAccountId={setViewingAccountId}
           tags={tags}
+          loanPaymentOverrides={loanPaymentOverrides}
+          saveLoanPaymentOverrides={handleSaveLoanPaymentOverrides}
         />
       } else {
         setViewingAccountId(null); // Account not found, go back to dashboard
@@ -1118,11 +1127,11 @@ export const App: React.FC = () => {
       case 'Budget':
         return <Budgeting budgets={budgets} transactions={transactions} expenseCategories={expenseCategories} saveBudget={handleSaveBudget} deleteBudget={handleDeleteBudget} accounts={accounts} />;
       case 'Forecasting':
-        return <Forecasting accounts={accounts} transactions={transactions} recurringTransactions={recurringTransactions} financialGoals={financialGoals} saveFinancialGoal={handleSaveFinancialGoal} deleteFinancialGoal={handleDeleteFinancialGoal} expenseCategories={expenseCategories} billsAndPayments={billsAndPayments} activeGoalIds={activeGoalIds} setActiveGoalIds={setActiveGoalIds} />;
+        return <Forecasting accounts={accounts} transactions={transactions} recurringTransactions={recurringTransactions} recurringTransactionOverrides={recurringTransactionOverrides} loanPaymentOverrides={loanPaymentOverrides} financialGoals={financialGoals} saveFinancialGoal={handleSaveFinancialGoal} deleteFinancialGoal={handleDeleteFinancialGoal} expenseCategories={expenseCategories} billsAndPayments={billsAndPayments} activeGoalIds={activeGoalIds} setActiveGoalIds={setActiveGoalIds} />;
       case 'Settings':
         return <SettingsPage setCurrentPage={setCurrentPage} user={currentUser!} />;
       case 'Schedule & Bills':
-        return <SchedulePage recurringTransactions={recurringTransactions} saveRecurringTransaction={handleSaveRecurringTransaction} deleteRecurringTransaction={handleDeleteRecurringTransaction} billsAndPayments={billsAndPayments} saveBillPayment={handleSaveBillPayment} deleteBillPayment={handleDeleteBillPayment} markBillAsPaid={handleMarkBillAsPaid} accounts={accounts} incomeCategories={incomeCategories} expenseCategories={expenseCategories} recurringTransactionOverrides={recurringTransactionOverrides} saveRecurringOverride={handleSaveRecurringOverride} deleteRecurringOverride={handleDeleteRecurringOverride} saveTransaction={handleSaveTransaction} transactions={transactions} tags={tags} />;
+        return <SchedulePage recurringTransactions={recurringTransactions} saveRecurringTransaction={handleSaveRecurringTransaction} deleteRecurringTransaction={handleDeleteRecurringTransaction} billsAndPayments={billsAndPayments} saveBillPayment={handleSaveBillPayment} deleteBillPayment={handleDeleteBillPayment} markBillAsPaid={handleMarkBillAsPaid} accounts={accounts} incomeCategories={incomeCategories} expenseCategories={expenseCategories} recurringTransactionOverrides={recurringTransactionOverrides} saveRecurringOverride={handleSaveRecurringOverride} deleteRecurringOverride={handleDeleteRecurringOverride} saveTransaction={handleSaveTransaction} transactions={transactions} tags={tags} loanPaymentOverrides={loanPaymentOverrides} />;
       case 'Categories':
         return <CategoriesPage incomeCategories={incomeCategories} setIncomeCategories={setIncomeCategories} expenseCategories={expenseCategories} setExpenseCategories={setExpenseCategories} setCurrentPage={setCurrentPage} />;
       case 'Tags':
