@@ -59,6 +59,7 @@ const initialFinancialData: FinancialData = {
         defaultPeriod: 'Current Year',
         defaultAccountOrder: 'Name (A-Z)',
         country: 'Belgium',
+        defaultQuickCreatePeriod: 3,
     },
     enableBankingSettings: {
         autoSyncEnabled: true,
@@ -985,7 +986,7 @@ export const App: React.FC = () => {
       case 'Transactions':
         return <Transactions transactions={transactions} saveTransaction={handleSaveTransaction} deleteTransactions={handleDeleteTransactions} accounts={accounts} accountFilter={accountFilter} setAccountFilter={setAccountFilter} incomeCategories={incomeCategories} expenseCategories={expenseCategories} />;
       case 'Budget':
-        return <Budgeting budgets={budgets} transactions={transactions} expenseCategories={expenseCategories} saveBudget={handleSaveBudget} deleteBudget={handleDeleteBudget} accounts={accounts} />;
+        return <Budgeting budgets={budgets} transactions={transactions} expenseCategories={expenseCategories} saveBudget={handleSaveBudget} deleteBudget={handleDeleteBudget} accounts={accounts} preferences={preferences} />;
       case 'Forecasting':
         return <Forecasting accounts={accounts} transactions={transactions} recurringTransactions={recurringTransactions} financialGoals={financialGoals} saveFinancialGoal={handleSaveFinancialGoal} deleteFinancialGoal={handleDeleteFinancialGoal} expenseCategories={expenseCategories} />;
       case 'Settings':

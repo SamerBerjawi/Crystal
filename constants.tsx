@@ -162,6 +162,13 @@ export const DEFAULT_ACCOUNT_ORDER_OPTIONS: { value: DefaultAccountOrder, label:
     { value: 'balance', label: 'Balance (High-Low)' },
 ];
 
+export const QUICK_CREATE_BUDGET_OPTIONS: { value: number, label: string, shortLabel: string }[] = [
+    { value: 1, label: "Replicate last month's spending", shortLabel: 'Last Month' },
+    { value: 3, label: 'Average of previous 3 months', shortLabel: '3-Month Avg' },
+    { value: 6, label: 'Average of previous 6 months', shortLabel: '6-Month Avg' },
+    { value: 12, label: 'Average of previous 12 months', shortLabel: '12-Month Avg' },
+];
+
 
 export const ACCOUNT_TYPE_STYLES: { [key in AccountType]: { icon: string; color: string } } = {
     'Checking': { icon: 'account_balance', color: 'text-blue-500' },

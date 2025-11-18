@@ -18,7 +18,8 @@ interface AccountsProps {
     setCurrentPage: (page: Page) => void;
     setAccountFilter: (accountName: string | null) => void;
     setViewingAccountId: (id: string) => void;
-    saveTransaction: (transactions: (Omit<Account, 'id'> & { id?: string })[], idsToDelete?: string[]) => void;
+    // FIX: Changed 'Omit<Account, "id">' to 'Omit<Transaction, "id">' to correctly type the 'saveTransaction' prop.
+    saveTransaction: (transactions: (Omit<Transaction, "id"> & { id?: string })[], idsToDelete?: string[]) => void;
     accountOrder: string[];
     setAccountOrder: React.Dispatch<React.SetStateAction<string[]>>;
     sortBy: 'name' | 'balance' | 'manual';
@@ -253,18 +254,19 @@ const Accounts: React.FC<AccountsProps> = ({ accounts, transactions, saveAccount
   const handleSaveAdjustment = (adjustmentAmount: number, date: string, notes: string) => {
     if (!adjustingAccount) return;
 
-    const txData = {
+    const txData: Omit<Transaction, 'id'> = {
         accountId: adjustingAccount.id,
         date,
         description: 'Balance Adjustment',
         merchant: notes || 'Manual balance correction',
         amount: adjustmentAmount,
         category: adjustmentAmount >= 0 ? 'Income' : 'Miscellaneous',
-        type: adjustmentAmount >= 0 ? 'income' as 'income' : 'expense' as 'expense',
+        type: adjustmentAmount >= 0 ? 'income' : 'expense',
         currency: adjustingAccount.currency,
     };
     
-    saveTransaction([txData] as any, []);
+    // FIX: Removed unnecessary 'as any' cast after correcting the prop type.
+    saveTransaction([txData], []);
     closeAdjustModal();
   };
 

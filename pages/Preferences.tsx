@@ -1,7 +1,7 @@
 import React from 'react';
 import { AppPreferences, Theme, Page } from '../types';
 import Card from '../components/Card';
-import { SELECT_WRAPPER_STYLE, INPUT_BASE_STYLE, SELECT_ARROW_STYLE, CURRENCY_OPTIONS, TIMEZONE_OPTIONS, COUNTRY_OPTIONS, DURATION_OPTIONS, DEFAULT_ACCOUNT_ORDER_OPTIONS } from '../constants';
+import { SELECT_WRAPPER_STYLE, INPUT_BASE_STYLE, SELECT_ARROW_STYLE, CURRENCY_OPTIONS, TIMEZONE_OPTIONS, COUNTRY_OPTIONS, DURATION_OPTIONS, DEFAULT_ACCOUNT_ORDER_OPTIONS, QUICK_CREATE_BUDGET_OPTIONS } from '../constants';
 
 interface PreferencesProps {
   preferences: AppPreferences;
@@ -85,7 +85,11 @@ const ThemeCard: React.FC<{
 const Preferences: React.FC<PreferencesProps> = ({ preferences, setPreferences, theme, setTheme, setCurrentPage }) => {
   const handleChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
     const { name, value } = e.target;
-    setPreferences({ ...preferences, [name]: value as any });
+    if (name === 'defaultQuickCreatePeriod') {
+        setPreferences({ ...preferences, [name]: Number(value) });
+    } else {
+        setPreferences({ ...preferences, [name]: value as any });
+    }
   };
 
   return (
@@ -161,6 +165,14 @@ const Preferences: React.FC<PreferencesProps> = ({ preferences, setPreferences, 
                 {DEFAULT_ACCOUNT_ORDER_OPTIONS.map(opt => <option key={opt.value} value={opt.value}>{opt.label}</option>)}
               </select>
               <div className={SELECT_ARROW_STYLE}><span className="material-symbols-outlined">expand_more</span></div>
+            </div>
+          </PreferenceRow>
+          <PreferenceRow label="Default Quick Create Period">
+            <div className={SELECT_WRAPPER_STYLE}>
+                <select name="defaultQuickCreatePeriod" value={preferences.defaultQuickCreatePeriod || 3} onChange={handleChange} className={INPUT_BASE_STYLE}>
+                    {QUICK_CREATE_BUDGET_OPTIONS.map(opt => <option key={opt.value} value={opt.value}>{opt.label}</option>)}
+                </select>
+                <div className={SELECT_ARROW_STYLE}><span className="material-symbols-outlined">expand_more</span></div>
             </div>
           </PreferenceRow>
           <PreferenceRow label="Country">

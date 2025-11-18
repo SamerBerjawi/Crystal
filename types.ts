@@ -276,6 +276,7 @@ export interface AppPreferences {
   defaultPeriod: Duration;
   defaultAccountOrder: DefaultAccountOrder;
   country: string;
+  defaultQuickCreatePeriod?: number;
 }
 
 // New types for Bills & Payments

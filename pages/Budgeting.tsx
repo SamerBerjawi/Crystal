@@ -1,13 +1,12 @@
-
-
 import React, { useState, useMemo } from 'react';
-import { Budget, Category, Transaction, Account, BudgetSuggestion } from '../types';
-import { BTN_PRIMARY_STYLE, BTN_SECONDARY_STYLE, LIQUID_ACCOUNT_TYPES } from '../constants';
+import { Budget, Category, Transaction, Account, BudgetSuggestion, AppPreferences } from '../types';
+import { BTN_PRIMARY_STYLE, BTN_SECONDARY_STYLE, LIQUID_ACCOUNT_TYPES, QUICK_CREATE_BUDGET_OPTIONS } from '../constants';
 import Card from '../components/Card';
 import { formatCurrency, convertToEur } from '../utils';
 import BudgetProgressCard from '../components/BudgetProgressCard';
 import BudgetModal from '../components/BudgetModal';
 import AIBudgetSuggestionsModal from '../components/AIBudgetSuggestionsModal';
+import QuickBudgetModal from '../components/QuickBudgetModal';
 import { GoogleGenAI, Type } from '@google/genai';
 
 interface BudgetingProps {
@@ -17,6 +16,7 @@ interface BudgetingProps {
   saveBudget: (budgetData: Omit<Budget, 'id'> & { id?: string }) => void;
   deleteBudget: (id: string) => void;
   accounts: Account[];
+  preferences: AppPreferences;
 }
 
 // Helper to find a parent category by a transaction's category name
@@ -28,7 +28,7 @@ const findParentCategory = (categoryName: string, categories: Category[]): Categ
   return undefined;
 };
 
-const Budgeting: React.FC<BudgetingProps> = ({ budgets, transactions, expenseCategories, saveBudget, deleteBudget, accounts }) => {
+const Budgeting: React.FC<BudgetingProps> = ({ budgets, transactions, expenseCategories, saveBudget, deleteBudget, accounts, preferences }) => {
   const [currentDate, setCurrentDate] = useState(new Date());
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [editingBudget, setEditingBudget] = useState<Budget | null>(null);
@@ -39,6 +39,7 @@ const Budgeting: React.FC<BudgetingProps> = ({ budgets, transactions, expenseCat
   const [isGeneratingSuggestions, setIsGeneratingSuggestions] = useState(false);
   const [suggestions, setSuggestions] = useState<BudgetSuggestion[]>([]);
   const [suggestionError, setSuggestionError] = useState<string | null>(null);
+  const [isQuickBudgetModalOpen, setQuickBudgetModalOpen] = useState(false);
 
   const handleMonthChange = (offset: number) => {
     setCurrentDate(prev => {
@@ -164,6 +165,70 @@ const Budgeting: React.FC<BudgetingProps> = ({ budgets, transactions, expenseCat
       setSuggestionModalOpen(false);
   };
 
+  const handleApplyQuickBudget = (periodInMonths: number) => {
+    const today = new Date();
+    // End date is the last day of the *previous* month
+    const endDate = new Date(today.getFullYear(), today.getMonth(), 0);
+    
+    const startDate = new Date(endDate);
+    // Set to the first day of the starting month
+    startDate.setMonth(startDate.getMonth() - (periodInMonths - 1));
+    startDate.setDate(1);
+
+    const liquidAccountIds = new Set(
+      accounts.filter(acc => LIQUID_ACCOUNT_TYPES.includes(acc.type)).map(acc => acc.id)
+    );
+
+    const relevantTransactions = transactions.filter(t => {
+      const txDate = new Date(t.date);
+      return txDate >= startDate && txDate <= endDate && t.type === 'expense' && !t.transferId && liquidAccountIds.has(t.accountId);
+    });
+
+    const spending: Record<string, number> = {};
+    for (const tx of relevantTransactions) {
+        const parentCategory = findParentCategory(tx.category, expenseCategories);
+        if (parentCategory) {
+            spending[parentCategory.name] = (spending[parentCategory.name] || 0) + Math.abs(convertToEur(tx.amount, tx.currency));
+        }
+    }
+
+    const averageSpending = Object.entries(spending).map(([categoryName, total]) => ({
+        categoryName: categoryName,
+        // Round to nearest whole number
+        averageMonthlySpending: Math.round(total / periodInMonths)
+    })).filter(item => item.averageMonthlySpending > 0);
+
+    if (averageSpending.length === 0) {
+        alert(`No spending data found for the last ${periodInMonths} month(s) to create budgets.`);
+        return;
+    }
+
+    averageSpending.forEach(item => {
+        const existingBudget = budgets.find(b => b.categoryName === item.categoryName);
+        const budgetData = {
+            id: existingBudget?.id,
+            categoryName: item.categoryName,
+            amount: item.averageMonthlySpending,
+            period: 'monthly' as const,
+            currency: 'EUR' as const,
+        };
+        saveBudget(budgetData);
+    });
+
+    alert(`${averageSpending.length} budget(s) have been created or updated based on your spending history.`);
+  };
+
+    const defaultQuickCreateOption = useMemo(() => {
+        const period = preferences.defaultQuickCreatePeriod || 3;
+        return QUICK_CREATE_BUDGET_OPTIONS.find(opt => opt.value === period) || QUICK_CREATE_BUDGET_OPTIONS[1];
+    }, [preferences.defaultQuickCreatePeriod]);
+
+    const handleQuickCreateDefault = () => {
+        if (window.confirm(`This will create/update budgets based on your spending from the last ${defaultQuickCreateOption.value} month(s), overwriting any existing budgets for those categories. Are you sure you want to continue?`)) {
+            handleApplyQuickBudget(defaultQuickCreateOption.value);
+        }
+    };
+
 
   const { totalBudgeted, totalSpent, spendingByCategory } = useMemo(() => {
     const year = currentDate.getFullYear();
@@ -237,12 +302,36 @@ const Budgeting: React.FC<BudgetingProps> = ({ budgets, transactions, expenseCat
             existingBudgets={budgets}
           />
       )}
+      {isQuickBudgetModalOpen && (
+        <QuickBudgetModal
+          isOpen={isQuickBudgetModalOpen}
+          onClose={() => setQuickBudgetModalOpen(false)}
+          onApply={handleApplyQuickBudget}
+        />
+      )}
       <header className="flex justify-between items-center">
         <div>
           {/* <h2 className="text-3xl font-bold text-light-text dark:text-dark-text">Budgeting</h2> */}
           <p className="text-light-text-secondary dark:text-dark-text-secondary mt-1">Track your spending against your monthly budgets.</p>
         </div>
         <div className="flex items-center gap-4">
+            <div className="flex rounded-lg shadow-sm">
+                <button
+                    onClick={handleQuickCreateDefault}
+                    className={`${BTN_SECONDARY_STYLE} flex items-center gap-2 rounded-r-none`}
+                    title={`Create/update budgets based on the ${defaultQuickCreateOption.label}`}
+                >
+                    <span className="material-symbols-outlined">auto_awesome</span>
+                    {`Create from ${defaultQuickCreateOption.shortLabel}`}
+                </button>
+                <button
+                    onClick={() => setQuickBudgetModalOpen(true)}
+                    className={`${BTN_SECONDARY_STYLE} px-2 rounded-l-none border-l border-light-separator dark:border-dark-separator`}
+                    title="More Quick Create Options"
+                >
+                    <span className="material-symbols-outlined">expand_more</span>
+                </button>
+            </div>
             <button onClick={handleGenerateSuggestions} className={`${BTN_SECONDARY_STYLE} flex items-center gap-2`} disabled={isGeneratingSuggestions}>
                 <span className="material-symbols-outlined">smart_toy</span>
                 {isGeneratingSuggestions ? 'Analyzing...' : 'Get AI Suggestions'}
