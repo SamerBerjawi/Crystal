@@ -169,7 +169,7 @@ const AccountRow: React.FC<AccountRowProps> = ({ account, transactions, warrants
                     </ResponsiveContainer>
                 </div>
                 <div className="text-right shrink-0 w-32 sm:w-40">
-                    <p className={`font-bold text-base sm:text-lg ${isAsset ? 'text-light-text dark:text-dark-text' : 'text-red-500'}`}>
+                    <p className={`font-bold text-lg sm:text-xl ${isAsset ? 'text-light-text dark:text-dark-text' : 'text-red-500'}`}>
                         {formatCurrency(convertToEur(displayBalance, account.currency), 'EUR')}
                     </p>
                      {account.currency !== 'EUR' && (

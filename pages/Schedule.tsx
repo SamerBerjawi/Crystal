@@ -88,7 +88,7 @@ const ScheduledItemRow: React.FC<{
             <p className={`text-2xl font-bold ${isOverdue ? 'text-red-600 dark:text-red-400' : 'text-light-text dark:text-dark-text'}`}>{day}</p>
           </div>
           <div>
-            <p className="font-semibold text-lg text-light-text dark:text-dark-text flex items-center gap-2">
+            <p className="font-semibold text-base text-light-text dark:text-dark-text flex items-center gap-2">
                 {item.description}
                 {item.isOverride && <span className="material-symbols-outlined text-sm text-primary-500" title="This occurrence is modified">edit_calendar</span>}
             </p>

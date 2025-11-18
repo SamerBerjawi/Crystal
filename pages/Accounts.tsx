@@ -112,7 +112,7 @@ const AccountsListSection: React.FC<{
     return (
         <section>
              <div onClick={() => isCollapsible && setIsExpanded(prev => !prev)} className={`flex justify-between items-center mb-4 ${isCollapsible ? 'cursor-pointer' : ''}`}>
-                <h3 className="text-2xl font-bold text-light-text dark:text-dark-text">{title}</h3>
+                <h3 className="text-xl font-semibold text-light-text dark:text-dark-text">{title}</h3>
                 {isCollapsible && <span className={`material-symbols-outlined transition-transform duration-200 ${isExpanded ? 'rotate-180' : ''}`}>expand_more</span>}
             </div>
             {isExpanded && (

@@ -490,7 +490,7 @@ const Transactions: React.FC<TransactionsProps> = ({ transactions, saveTransacti
   const accountOptions = useMemo(() => accounts.map(a => ({ value: a.id, label: a.name })), [accounts]);
   const tagOptions = useMemo(() => tags.map(t => ({ value: t.id, label: t.name })), [tags]);
   
-  const labelStyle = "block text-xs font-medium text-light-text-secondary dark:text-dark-text-secondary mb-1";
+  const labelStyle = "block text-sm font-medium text-light-text-secondary dark:text-dark-text-secondary mb-1";
   const typeFilterOptions: { label: string; value: 'all' | 'income' | 'expense' | 'transfer' }[] = [
     { label: 'All Types', value: 'all' },
     { label: 'Expenses', value: 'expense' },
@@ -684,10 +684,10 @@ const Transactions: React.FC<TransactionsProps> = ({ transactions, saveTransacti
                 <input type="checkbox" onChange={handleSelectAll} checked={isAllSelected} className={CHECKBOX_STYLE} aria-label="Select all transactions"/>
                 <div className="flex-1 grid grid-cols-12 gap-4 ml-3 items-center">
                     <span className="col-span-12 md:col-span-4 lg:col-span-3">Transaction</span>
-                    <span className="hidden md:block col-span-2">Account</span>
-                    <span className="hidden lg:block col-span-2">Merchant</span>
-                    <span className="hidden md:block col-span-2">Category</span>
-                    <span className="hidden lg:block col-span-1">Tags</span>
+                    <span className="hidden md:block col-span-2 text-sm">Account</span>
+                    <span className="hidden lg:block col-span-2 text-sm">Merchant</span>
+                    <span className="hidden md:block col-span-2 text-sm">Category</span>
+                    <span className="hidden lg:block col-span-1 text-sm">Tags</span>
                     <span className="col-span-2 text-right">Amount</span>
                 </div>
                 <div className="w-10"></div> {/* Spacer for actions */}
@@ -736,9 +736,9 @@ const Transactions: React.FC<TransactionsProps> = ({ transactions, saveTransacti
                                           {tx.tagIds && tx.tagIds.length > 0 && <div className="lg:hidden flex flex-wrap gap-1 mt-1">{tx.tagIds.map(tagId => { const tag = tags.find(t => t.id === tagId); if (!tag) return null; return (<span key={tag.id} className="text-sm px-2 py-1 rounded-full inline-flex items-center justify-center text-center" style={{ backgroundColor: `${tag.color}30`, color: tag.color }}>{tag.name}</span>);})}</div>}
                                       </div>
                                     </div>
-                                    <div className="hidden md:block col-span-2 text-light-text-secondary dark:text-dark-text-secondary truncate">{tx.isTransfer ? ( <div className="flex items-center gap-1 truncate"><span className="truncate">{tx.fromAccountName}</span><span className="material-symbols-outlined text-base">arrow_forward</span><span className="truncate">{tx.toAccountName}</span></div>) : tx.accountName}</div>
-                                    <div className="hidden lg:block col-span-2 text-light-text-secondary dark:text-dark-text-secondary truncate">{tx.merchant}</div>
-                                    <div className="hidden md:block col-span-2 text-light-text-secondary dark:text-dark-text-secondary truncate">{tx.category}</div>
+                                    <div className="hidden md:block col-span-2 text-sm text-light-text-secondary dark:text-dark-text-secondary truncate">{tx.isTransfer ? ( <div className="flex items-center gap-1 truncate"><span className="truncate">{tx.fromAccountName}</span><span className="material-symbols-outlined text-base">arrow_forward</span><span className="truncate">{tx.toAccountName}</span></div>) : tx.accountName}</div>
+                                    <div className="hidden lg:block col-span-2 text-sm text-light-text-secondary dark:text-dark-text-secondary truncate">{tx.merchant}</div>
+                                    <div className="hidden md:block col-span-2 text-sm text-light-text-secondary dark:text-dark-text-secondary truncate">{tx.category}</div>
                                     <div className="hidden lg:flex col-span-1 flex-wrap gap-1">{tx.tagIds?.map(tagId => { const tag = tags.find(t => t.id === tagId); if (!tag) return null; return (<span key={tag.id} className="text-sm px-2 py-1 rounded-full inline-flex items-center justify-center text-center" style={{ backgroundColor: `${tag.color}30`, color: tag.color }} title={tag.name}>{tag.name}</span>);})}</div>
                                     <div className={`col-span-12 md:col-span-2 font-mono font-semibold text-right text-base whitespace-nowrap ${amountColor}`}>{tx.isTransfer && selectedAccountIds.length === 0 ? '-/+ ' + formatCurrency(convertToEur(Math.abs(amount), tx.currency), 'EUR') : formatCurrency(convertToEur(amount, tx.currency), 'EUR', { showPlusSign: true })}</div>
                                   </div>
