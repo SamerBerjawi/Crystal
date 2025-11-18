@@ -1,8 +1,7 @@
 
-
 import React, { useState, useMemo, useCallback, Dispatch, SetStateAction } from 'react';
 import { Account, Transaction, RecurringTransaction, FinancialGoal, Category, Page, ContributionPlanStep, BillPayment, RecurringTransactionOverride, LoanPaymentOverrides } from '../types';
-import { BTN_PRIMARY_STYLE, BTN_SECONDARY_STYLE, LIQUID_ACCOUNT_TYPES } from '../constants';
+import { BTN_PRIMARY_STYLE, BTN_SECONDARY_STYLE, LIQUID_ACCOUNT_TYPES, CHECKBOX_STYLE } from '../constants';
 import { formatCurrency, convertToEur, generateBalanceForecast, generateSyntheticLoanPayments, generateSyntheticCreditCardPayments } from '../utils';
 import Card from '../components/Card';
 import MultiAccountFilter from '../components/MultiAccountFilter';
@@ -27,7 +26,6 @@ interface ForecastingProps {
   expenseCategories: Category[];
   billsAndPayments: BillPayment[];
   activeGoalIds: string[];
-  // FIX: Update the type of the `setActiveGoalIds` prop to `React.Dispatch<React.SetStateAction<string[]>>` to correctly handle state updates.
   setActiveGoalIds: React.Dispatch<React.SetStateAction<string[]>>;
 }
 
@@ -125,7 +123,6 @@ const useSmartGoalPlanner = (
         }
     }, [accounts, recurringTransactions, financialGoals]);
     
-    // FIX: Corrected the return statement to use the defined state variables `isLoading` and `error`.
     return { generatePlan, plan, isLoading, error };
 };
 
@@ -144,12 +141,23 @@ const Forecasting: React.FC<ForecastingProps> = ({ accounts, transactions, recur
         return accounts.filter(a => LIQUID_ACCOUNT_TYPES.includes(a.type)).map(a => a.id)
     });
     const [forecastDuration, setForecastDuration] = useState<ForecastDuration>('1Y');
+    const [filterGoalsByAccount, setFilterGoalsByAccount] = useState(false);
     
     const selectedAccounts = useMemo(() => 
       accounts.filter(a => selectedAccountIds.includes(a.id)),
     [accounts, selectedAccountIds]);
 
-    const activeGoals = useMemo(() => financialGoals.filter(g => activeGoalIds.includes(g.id)), [financialGoals, activeGoalIds]);
+    // Updated activeGoals to respect the account filter
+    const activeGoals = useMemo(() => {
+        let goals = financialGoals.filter(g => activeGoalIds.includes(g.id));
+        if (filterGoalsByAccount) {
+             goals = goals.filter(g => 
+                !g.paymentAccountId || 
+                selectedAccountIds.includes(g.paymentAccountId)
+            );
+        }
+        return goals;
+    }, [financialGoals, activeGoalIds, filterGoalsByAccount, selectedAccountIds]);
 
     const { forecastData, tableData, lowestPoint, goalsWithProjections } = useMemo(() => {
         const projectionEndDate = new Date();
@@ -214,7 +222,18 @@ const Forecasting: React.FC<ForecastingProps> = ({ accounts, transactions, recur
         return { forecastData: forecastDataForPeriod, tableData: tableDataForPeriod, lowestPoint: lowestPointInPeriod, goalsWithProjections };
     }, [selectedAccounts, recurringTransactions, recurringTransactionOverrides, loanPaymentOverrides, activeGoals, billsAndPayments, financialGoals, forecastDuration, accounts, transactions]);
 
-    const { generatePlan, plan, isLoading: isPlanLoading, error: planError } = useSmartGoalPlanner(selectedAccounts, recurringTransactions, goalsWithProjections.filter(g => activeGoalIds.includes(g.id)));
+    // Also filter goals passed to the planner to stay consistent with the view
+    const plannerGoals = useMemo(() => {
+        return goalsWithProjections.filter(g => {
+            if (!activeGoalIds.includes(g.id)) return false;
+            if (filterGoalsByAccount) {
+                return !g.paymentAccountId || selectedAccountIds.includes(g.paymentAccountId);
+            }
+            return true;
+        });
+    }, [goalsWithProjections, activeGoalIds, filterGoalsByAccount, selectedAccountIds]);
+
+    const { generatePlan, plan, isLoading: isPlanLoading, error: planError } = useSmartGoalPlanner(selectedAccounts, recurringTransactions, plannerGoals);
 
   const handleToggleGoal = (id: string) => {
     const goal = financialGoals.find(g => g.id === id);
@@ -266,10 +285,17 @@ const Forecasting: React.FC<ForecastingProps> = ({ accounts, transactions, recur
         return financialGoals.filter(g => g.parentId === deletingGoal.id);
     }, [deletingGoal, financialGoals]);
 
-    const { topLevelGoals, goalsByParentId } = useMemo(() => {
+    const { topLevelGoals, goalsByParentId, displayedGoals } = useMemo(() => {
+        const visibleGoals = goalsWithProjections.filter(g => 
+            !filterGoalsByAccount || 
+            !g.paymentAccountId || 
+            selectedAccountIds.includes(g.paymentAccountId)
+        );
+
         const topLevel: FinancialGoal[] = [];
         const byParent = new Map<string, FinancialGoal[]>();
-        goalsWithProjections.forEach(g => {
+        
+        visibleGoals.forEach(g => {
             if (g.parentId) {
                 if (!byParent.has(g.parentId)) {
                     byParent.set(g.parentId, []);
@@ -279,8 +305,25 @@ const Forecasting: React.FC<ForecastingProps> = ({ accounts, transactions, recur
                 topLevel.push(g);
             }
         });
-        return { topLevelGoals: topLevel, goalsByParentId: byParent };
-    }, [goalsWithProjections]);
+        return { topLevelGoals: topLevel, goalsByParentId: byParent, displayedGoals: visibleGoals };
+    }, [goalsWithProjections, filterGoalsByAccount, selectedAccountIds]);
+
+    const areAllDisplayedSelected = useMemo(() => {
+        if (displayedGoals.length === 0) return false;
+        return displayedGoals.every(g => activeGoalIds.includes(g.id));
+    }, [displayedGoals, activeGoalIds]);
+
+    const handleToggleAllDisplayed = () => {
+        if (areAllDisplayedSelected) {
+            // Deselect all visible
+            const visibleIds = new Set(displayedGoals.map(g => g.id));
+            setActiveGoalIds(prev => prev.filter(id => !visibleIds.has(id)));
+        } else {
+            // Select all visible
+            const visibleIds = displayedGoals.map(g => g.id);
+            setActiveGoalIds(prev => [...new Set([...prev, ...visibleIds])]);
+        }
+    };
 
     const durationOptions: { label: string; value: ForecastDuration }[] = [
         { label: '3M', value: '3M' },
@@ -374,9 +417,25 @@ const Forecasting: React.FC<ForecastingProps> = ({ accounts, transactions, recur
             </Card>
 
             <div className="space-y-6">
-                <h3 className="text-xl font-semibold text-light-text dark:text-dark-text">Financial Goals</h3>
+                <div className="flex flex-wrap justify-between items-center gap-4">
+                    <h3 className="text-xl font-semibold text-light-text dark:text-dark-text">Financial Goals</h3>
+                    <div className="flex items-center gap-4">
+                        <label className="flex items-center gap-2 text-sm cursor-pointer select-none">
+                            <input 
+                                type="checkbox" 
+                                checked={filterGoalsByAccount} 
+                                onChange={(e) => setFilterGoalsByAccount(e.target.checked)} 
+                                className={CHECKBOX_STYLE}
+                            />
+                            <span className="text-light-text-secondary dark:text-dark-text-secondary">Filter by Account</span>
+                        </label>
+                        <button onClick={handleToggleAllDisplayed} className="text-sm font-semibold text-primary-500 hover:underline">
+                            {areAllDisplayedSelected ? 'Deselect All' : 'Select All'}
+                        </button>
+                    </div>
+                </div>
                 <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-                    {topLevelGoals.map(goal => {
+                    {topLevelGoals.length > 0 ? topLevelGoals.map(goal => {
                         const subGoals = goalsByParentId.get(goal.id) || [];
                         // A bucket's toggle is active if ANY of its children are active OR if the bucket itself is active.
                         // This allows the UI to reflect a partially-active state.
@@ -397,7 +456,11 @@ const Forecasting: React.FC<ForecastingProps> = ({ accounts, transactions, recur
                                 accounts={accounts}
                             />
                         );
-                    })}
+                    }) : (
+                        <p className="text-light-text-secondary dark:text-dark-text-secondary col-span-full text-center py-8">
+                            {filterGoalsByAccount ? 'No goals found for the selected accounts.' : 'No financial goals created yet.'}
+                        </p>
+                    )}
                 </div>
             </div>
 
