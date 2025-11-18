@@ -1,6 +1,6 @@
 
 
-import { Currency, Account, Transaction, Duration, Category, FinancialGoal, RecurringTransaction, BillPayment, ScheduledPayment } from './types';
+import { Currency, Account, Transaction, Duration, Category, FinancialGoal, RecurringTransaction, BillPayment, ScheduledPayment, RecurringTransactionOverride, LoanPaymentOverrides } from './types';
 import { ASSET_TYPES, DEBT_TYPES, LIQUID_ACCOUNT_TYPES } from './constants';
 import { v4 as uuidv4 } from 'uuid';
 
@@ -272,61 +272,47 @@ export function getCreditCardStatementDetails(
 }
 
 
-export function generateSyntheticLoanPayments(accounts: Account[]): RecurringTransaction[] {
+export function generateSyntheticLoanPayments(accounts: Account[], transactions: Transaction[], loanPaymentOverrides: LoanPaymentOverrides = {}): RecurringTransaction[] {
     const syntheticPayments: RecurringTransaction[] = [];
+
+    const today = new Date();
+    const todayUTC = new Date(Date.UTC(today.getUTCFullYear(), today.getUTCMonth(), today.getUTCDate()));
 
     const loanAccounts = accounts.filter(
         (acc) =>
             (acc.type === 'Loan' || acc.type === 'Lending') &&
             acc.monthlyPayment &&
             acc.monthlyPayment > 0 &&
-            acc.paymentDayOfMonth &&
-            acc.paymentDayOfMonth > 0 &&
-            acc.paymentDayOfMonth <= 31 &&
             acc.linkedAccountId
     );
 
-    const today = new Date();
-    const todayUTC = new Date(Date.UTC(today.getUTCFullYear(), today.getUTCMonth(), today.getUTCDate()));
-
     for (const account of loanAccounts) {
-        let nextPaymentDate = new Date(todayUTC);
-        const paymentDay = account.paymentDayOfMonth!;
-
-        const currentYear = nextPaymentDate.getUTCFullYear();
-        const currentMonth = nextPaymentDate.getUTCMonth();
-        const lastDayOfMonth = new Date(Date.UTC(currentYear, currentMonth + 1, 0)).getUTCDate();
-        const dayToSet = Math.min(paymentDay, lastDayOfMonth);
-
-        nextPaymentDate.setUTCDate(dayToSet);
-
-        if (nextPaymentDate < todayUTC) {
-            nextPaymentDate.setUTCMonth(nextPaymentDate.getUTCMonth() + 1);
-            const nextMonthYear = nextPaymentDate.getUTCFullYear();
-            const nextMonth = nextPaymentDate.getUTCMonth();
-            const lastDayOfNextMonth = new Date(Date.UTC(nextMonthYear, nextMonth + 1, 0)).getUTCDate();
-            const dayToSetNextMonth = Math.min(paymentDay, lastDayOfNextMonth);
-            nextPaymentDate.setUTCDate(dayToSetNextMonth);
-        }
-        
+        const schedule = generateAmortizationSchedule(account, transactions, loanPaymentOverrides[account.id] || {});
         const isLending = account.type === 'Lending';
 
-        const syntheticRT: RecurringTransaction = {
-            id: `loan-pmt-${account.id}`,
-            accountId: isLending ? account.id : account.linkedAccountId!,
-            toAccountId: isLending ? account.linkedAccountId! : account.id,
-            description: `${isLending ? 'Lending Repayment' : 'Loan Payment'}: ${account.name}`,
-            amount: account.monthlyPayment!,
-            type: 'transfer',
-            currency: account.currency,
-            frequency: 'monthly',
-            startDate: account.loanStartDate || new Date().toISOString().split('T')[0],
-            nextDueDate: nextPaymentDate.toISOString().split('T')[0],
-            dueDateOfMonth: account.paymentDayOfMonth,
-            weekendAdjustment: 'after',
-            isSynthetic: true,
-        };
-        syntheticPayments.push(syntheticRT);
+        schedule.forEach(payment => {
+            const paymentDate = parseDateAsUTC(payment.date);
+            if (payment.status === 'Paid' || paymentDate < todayUTC) {
+                return;
+            }
+
+            syntheticPayments.push({
+                id: `loan-pmt-${account.id}-${payment.paymentNumber}`,
+                accountId: isLending ? account.id : account.linkedAccountId!,
+                toAccountId: isLending ? account.linkedAccountId! : account.id,
+                description: `${isLending ? 'Lending Repayment' : 'Loan Payment'} #${payment.paymentNumber}: ${account.name}`,
+                amount: payment.totalPayment,
+                type: 'transfer',
+                currency: account.currency,
+                frequency: 'monthly',
+                startDate: payment.date,
+                nextDueDate: payment.date,
+                endDate: payment.date,
+                dueDateOfMonth: new Date(payment.date.replace(/-/g, '/')).getUTCDate(),
+                weekendAdjustment: 'after',
+                isSynthetic: true,
+            });
+        });
     }
     return syntheticPayments;
 }
@@ -393,7 +379,8 @@ export function generateBalanceForecast(
     recurringTransactions: RecurringTransaction[],
     financialGoals: FinancialGoal[],
     billsAndPayments: BillPayment[],
-    forecastEndDate: Date
+    forecastEndDate: Date,
+    recurringTransactionOverrides: RecurringTransactionOverride[] = []
 ): {
     chartData: { date: string; value: number }[];
     tableData: {
@@ -472,26 +459,80 @@ export function generateBalanceForecast(
         
         while (nextDate <= forecastEndDate && (!endDateUTC || nextDate <= endDateUTC)) {
             const dateStr = nextDate.toISOString().split('T')[0];
-            let amount = rt.type === 'expense' ? -rt.amount : rt.amount;
-            let accountName = 'N/A';
-            
-            if (rt.type === 'transfer') {
-                const fromSelected = accountIds.has(rt.accountId);
-                const toSelected = rt.toAccountId ? accountIds.has(rt.toAccountId) : false;
-                if (fromSelected || toSelected) {
-                    accountName = `${accountMap.get(rt.accountId) || 'External'} → ${accountMap.get(rt.toAccountId!) || 'External'}`;
-                    if (fromSelected && !toSelected) amount = -rt.amount;
-                    else if (!fromSelected && toSelected) amount = rt.amount;
-                    else amount = 0;
-                    if (amount !== 0) addEvent(dateStr, { amount, currency: rt.currency, description: rt.description, accountName, type: 'Recurring', isGoal: false });
-                }
+            const override = recurringTransactionOverrides.find(o => o.recurringTransactionId === rt.id && o.originalDate === dateStr);
+
+            if (override?.isSkipped) {
+                // No event added, just advance to the next occurrence
             } else {
-                if (accountIds.has(rt.accountId)) {
+                const effectiveDate = override?.date || dateStr;
+                let amount = override?.amount !== undefined ? override.amount : (rt.type === 'expense' ? -rt.amount : rt.amount);
+                let accountName = 'N/A';
+
+                if (rt.type === 'transfer') {
+                    const fromSelected = accountIds.has(rt.accountId);
+                    const toSelected = rt.toAccountId ? accountIds.has(rt.toAccountId) : false;
+                    if (fromSelected || toSelected) {
+                        accountName = `${accountMap.get(rt.accountId) || 'External'} → ${accountMap.get(rt.toAccountId!) || 'External'}`;
+                        if (fromSelected && toSelected) {
+                            amount = 0;
+                        } else if (fromSelected) {
+                            amount = -(override?.amount !== undefined ? override.amount : rt.amount);
+                        } else if (toSelected) {
+                            amount = override?.amount !== undefined ? override.amount : rt.amount;
+                        }
+                    } else {
+                        const interval = rt.frequencyInterval || 1;
+                        switch(rt.frequency) {
+                            case 'daily': nextDate.setUTCDate(nextDate.getUTCDate() + interval); break;
+                            case 'weekly': nextDate.setUTCDate(nextDate.getUTCDate() + 7 * interval); break;
+                            case 'monthly': {
+                                const d = rt.dueDateOfMonth || startDateUTC.getUTCDate();
+                                nextDate.setUTCMonth(nextDate.getUTCMonth() + interval, 1);
+                                const lastDay = new Date(Date.UTC(nextDate.getUTCFullYear(), nextDate.getUTCMonth() + 1, 0)).getUTCDate();
+                                nextDate.setUTCDate(Math.min(d, lastDay));
+                                break;
+                            }
+                            case 'yearly': {
+                                 const d = rt.dueDateOfMonth || startDateUTC.getUTCDate();
+                                 const m = startDateUTC.getUTCMonth();
+                                 nextDate.setUTCFullYear(nextDate.getUTCFullYear() + interval);
+                                 const lastDay = new Date(Date.UTC(nextDate.getUTCFullYear(), m + 1, 0)).getUTCDate();
+                                 nextDate.setUTCMonth(m, Math.min(d, lastDay));
+                                 break;
+                            }
+                        }
+                        continue;
+                    }
+                } else {
                     accountName = accountMap.get(rt.accountId) || 'Unknown';
-                    addEvent(dateStr, { amount, currency: rt.currency, description: rt.description, accountName, type: 'Recurring', isGoal: false });
+                    if (!accountIds.has(rt.accountId)) {
+                        const interval = rt.frequencyInterval || 1;
+                        switch(rt.frequency) {
+                            case 'daily': nextDate.setUTCDate(nextDate.getUTCDate() + interval); break;
+                            case 'weekly': nextDate.setUTCDate(nextDate.getUTCDate() + 7 * interval); break;
+                            case 'monthly': {
+                                const d = rt.dueDateOfMonth || startDateUTC.getUTCDate();
+                                nextDate.setUTCMonth(nextDate.getUTCMonth() + interval, 1);
+                                const lastDay = new Date(Date.UTC(nextDate.getUTCFullYear(), nextDate.getUTCMonth() + 1, 0)).getUTCDate();
+                                nextDate.setUTCDate(Math.min(d, lastDay));
+                                break;
+                            }
+                            case 'yearly': {
+                                 const d = rt.dueDateOfMonth || startDateUTC.getUTCDate();
+                                 const m = startDateUTC.getUTCMonth();
+                                 nextDate.setUTCFullYear(nextDate.getUTCFullYear() + interval);
+                                 const lastDay = new Date(Date.UTC(nextDate.getUTCFullYear(), m + 1, 0)).getUTCDate();
+                                 nextDate.setUTCMonth(m, Math.min(d, lastDay));
+                                 break;
+                            }
+                        }
+                        continue;
+                    }
                 }
+
+                addEvent(effectiveDate, { amount, currency: rt.currency, description: override?.description || rt.description, accountName, type: 'Recurring', isGoal: false });
             }
-            
+
             const interval = rt.frequencyInterval || 1;
              switch(rt.frequency) {
                 case 'daily': nextDate.setUTCDate(nextDate.getUTCDate() + interval); break;

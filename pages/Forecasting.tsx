@@ -1,7 +1,7 @@
 
 
 import React, { useState, useMemo, useCallback, Dispatch, SetStateAction } from 'react';
-import { Account, Transaction, RecurringTransaction, FinancialGoal, Category, Page, ContributionPlanStep, BillPayment } from '../types';
+import { Account, Transaction, RecurringTransaction, FinancialGoal, Category, Page, ContributionPlanStep, BillPayment, RecurringTransactionOverride, LoanPaymentOverrides } from '../types';
 import { BTN_PRIMARY_STYLE, BTN_SECONDARY_STYLE, LIQUID_ACCOUNT_TYPES } from '../constants';
 import { formatCurrency, convertToEur, generateBalanceForecast, generateSyntheticLoanPayments, generateSyntheticCreditCardPayments } from '../utils';
 import Card from '../components/Card';
@@ -19,6 +19,8 @@ interface ForecastingProps {
   accounts: Account[];
   transactions: Transaction[];
   recurringTransactions: RecurringTransaction[];
+  recurringTransactionOverrides: RecurringTransactionOverride[];
+  loanPaymentOverrides: LoanPaymentOverrides;
   financialGoals: FinancialGoal[];
   saveFinancialGoal: (goalData: Omit<FinancialGoal, 'id'> & { id?: string }) => void;
   deleteFinancialGoal: (id: string) => void;
@@ -128,7 +130,7 @@ const useSmartGoalPlanner = (
 };
 
 
-const Forecasting: React.FC<ForecastingProps> = ({ accounts, transactions, recurringTransactions, financialGoals, saveFinancialGoal, deleteFinancialGoal, expenseCategories, billsAndPayments, activeGoalIds, setActiveGoalIds }) => {
+const Forecasting: React.FC<ForecastingProps> = ({ accounts, transactions, recurringTransactions, recurringTransactionOverrides, loanPaymentOverrides, financialGoals, saveFinancialGoal, deleteFinancialGoal, expenseCategories, billsAndPayments, activeGoalIds, setActiveGoalIds }) => {
     const [isModalOpen, setIsModalOpen] = useState(false);
     const [editingGoal, setEditingGoal] = useState<FinancialGoal | null>(null);
     const [parentIdForNewGoal, setParentIdForNewGoal] = useState<string | undefined>();
@@ -153,7 +155,7 @@ const Forecasting: React.FC<ForecastingProps> = ({ accounts, transactions, recur
         const projectionEndDate = new Date();
         projectionEndDate.setFullYear(new Date().getFullYear() + 10);
 
-        const syntheticLoanPayments = generateSyntheticLoanPayments(accounts);
+        const syntheticLoanPayments = generateSyntheticLoanPayments(accounts, transactions, loanPaymentOverrides);
         const syntheticCreditCardPayments = generateSyntheticCreditCardPayments(accounts, transactions);
         const allRecurringItems = [...recurringTransactions, ...syntheticLoanPayments, ...syntheticCreditCardPayments];
 
@@ -162,7 +164,8 @@ const Forecasting: React.FC<ForecastingProps> = ({ accounts, transactions, recur
             allRecurringItems,
             activeGoals,
             billsAndPayments,
-            projectionEndDate
+            projectionEndDate,
+            recurringTransactionOverrides
         );
 
         const goalsWithProjections = financialGoals.map(goal => {
@@ -209,7 +212,7 @@ const Forecasting: React.FC<ForecastingProps> = ({ accounts, transactions, recur
         }
 
         return { forecastData: forecastDataForPeriod, tableData: tableDataForPeriod, lowestPoint: lowestPointInPeriod, goalsWithProjections };
-    }, [selectedAccounts, recurringTransactions, activeGoals, billsAndPayments, financialGoals, forecastDuration, accounts, transactions]);
+    }, [selectedAccounts, recurringTransactions, recurringTransactionOverrides, loanPaymentOverrides, activeGoals, billsAndPayments, financialGoals, forecastDuration, accounts, transactions]);
 
     const { generatePlan, plan, isLoading: isPlanLoading, error: planError } = useSmartGoalPlanner(selectedAccounts, recurringTransactions, goalsWithProjections.filter(g => activeGoalIds.includes(g.id)));
 

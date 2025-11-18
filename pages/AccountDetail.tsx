@@ -51,7 +51,7 @@ const toYYYYMMDD = (date: Date) => {
     return `${y}-${m}-${d}`;
 };
 
-const AccountDetail: React.FC<AccountDetailProps> = ({ account, accounts, transactions, allCategories, setCurrentPage, saveTransaction, recurringTransactions, setViewingAccountId, tags }) => {
+const AccountDetail: React.FC<AccountDetailProps> = ({ account, accounts, transactions, allCategories, setCurrentPage, saveTransaction, recurringTransactions, setViewingAccountId, tags, loanPaymentOverrides, saveLoanPaymentOverrides }) => {
     const [isTransactionModalOpen, setTransactionModalOpen] = useState(false);
     const [editingTransaction, setEditingTransaction] = useState<Transaction | null>(null);
     const [initialModalState, setInitialModalState] = useState<{
@@ -295,6 +295,8 @@ const AccountDetail: React.FC<AccountDetailProps> = ({ account, accounts, transa
                     account={account}
                     transactions={transactions}
                     onMakePayment={handleMakePayment}
+                    overrides={loanPaymentOverrides[account.id] || {}}
+                    onOverridesChange={(updated) => saveLoanPaymentOverrides(account.id, updated)}
                 />
             </Card>
           </div>

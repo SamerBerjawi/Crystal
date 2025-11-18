@@ -1,6 +1,6 @@
 import React, { useState, useMemo } from 'react';
 // FIX: Import ScheduledItem from global types and remove local definition.
-import { RecurringTransaction, Account, Category, BillPayment, Currency, AccountType, RecurringTransactionOverride, ScheduledItem, Transaction, Tag } from '../types';
+import { RecurringTransaction, Account, Category, BillPayment, Currency, AccountType, RecurringTransactionOverride, ScheduledItem, Transaction, Tag, LoanPaymentOverrides } from '../types';
 import Card from '../components/Card';
 import { BTN_PRIMARY_STYLE, BTN_SECONDARY_STYLE, INPUT_BASE_STYLE, SELECT_WRAPPER_STYLE, SELECT_ARROW_STYLE, LIQUID_ACCOUNT_TYPES, ACCOUNT_TYPE_STYLES } from '../constants';
 import { formatCurrency, convertToEur, generateSyntheticLoanPayments, generateSyntheticCreditCardPayments } from '../utils';
@@ -128,10 +128,11 @@ interface ScheduleProps {
     saveTransaction: (transactions: (Omit<Transaction, 'id'> & { id?: string })[], idsToDelete?: string[]) => void;
     transactions: Transaction[];
     tags: Tag[];
+    loanPaymentOverrides: LoanPaymentOverrides;
 }
 
 const SchedulePage: React.FC<ScheduleProps> = (props) => {
-    const { recurringTransactions, saveRecurringTransaction, deleteRecurringTransaction, billsAndPayments, saveBillPayment, deleteBillPayment, markBillAsPaid, accounts, incomeCategories, expenseCategories, recurringTransactionOverrides, saveRecurringOverride, deleteRecurringOverride, saveTransaction, transactions, tags } = props;
+    const { recurringTransactions, saveRecurringTransaction, deleteRecurringTransaction, billsAndPayments, saveBillPayment, deleteBillPayment, markBillAsPaid, accounts, incomeCategories, expenseCategories, recurringTransactionOverrides, saveRecurringOverride, deleteRecurringOverride, saveTransaction, transactions, tags, loanPaymentOverrides } = props;
 
     const [isRecurringModalOpen, setIsRecurringModalOpen] = useState(false);
     const [isBillModalOpen, setIsBillModalOpen] = useState(false);
@@ -160,7 +161,7 @@ const SchedulePage: React.FC<ScheduleProps> = (props) => {
 
         const allUpcomingItems: ScheduledItem[] = [];
 
-        const syntheticLoanPayments = generateSyntheticLoanPayments(accounts);
+        const syntheticLoanPayments = generateSyntheticLoanPayments(accounts, transactions, loanPaymentOverrides);
         const syntheticCreditCardPayments = generateSyntheticCreditCardPayments(accounts, transactions);
         const allRecurringTransactions = [...recurringTransactions, ...syntheticLoanPayments, ...syntheticCreditCardPayments];
 
