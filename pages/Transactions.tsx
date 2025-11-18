@@ -418,7 +418,7 @@ const Transactions: React.FC<TransactionsProps> = ({ transactions, saveTransacti
         currency: transaction.currency,
         frequency: 'monthly',
         startDate: new Date().toISOString().split('T')[0],
-        nextDueDate: new Date().toISOString().split('T')[0],
+        nextDueDate: new Date().toISOString().split('T')[0], // For simplicity
         weekendAdjustment: 'on',
     };
 
@@ -680,7 +680,7 @@ const Transactions: React.FC<TransactionsProps> = ({ transactions, saveTransacti
       
       <div className="flex-1 min-h-0 relative">
         <Card className="p-0 h-full flex flex-col">
-            <div className="px-6 py-3 border-b border-light-separator dark:border-dark-separator flex items-center gap-4 text-sm font-semibold text-light-text-secondary dark:text-dark-text-secondary flex-shrink-0">
+            <div className="px-6 py-3 border-b border-light-separator dark:border-dark-separator flex items-center gap-4 font-semibold text-light-text-secondary dark:text-dark-text-secondary flex-shrink-0">
                 <input type="checkbox" onChange={handleSelectAll} checked={isAllSelected} className={CHECKBOX_STYLE} aria-label="Select all transactions"/>
                 <div className="flex-1 grid grid-cols-12 gap-4 ml-3 items-center">
                     <span className="col-span-12 md:col-span-4 lg:col-span-3">Transaction</span>
@@ -733,13 +733,13 @@ const Transactions: React.FC<TransactionsProps> = ({ transactions, saveTransacti
                                       <div className="text-sm text-light-text-secondary dark:text-dark-text-secondary">
                                           <p className="md:hidden truncate">{tx.isTransfer ? `${tx.fromAccountName} → ${tx.toAccountName}` : tx.accountName}</p>
                                           <p className="lg:hidden truncate">{tx.merchant}</p>
-                                          {tx.tagIds && tx.tagIds.length > 0 && <div className="lg:hidden flex flex-wrap gap-1 mt-1">{tx.tagIds.map(tagId => { const tag = tags.find(t => t.id === tagId); if (!tag) return null; return (<span key={tag.id} className="text-xs px-2 py-1 rounded-full inline-flex items-center justify-center text-center" style={{ backgroundColor: `${tag.color}30`, color: tag.color }}>{tag.name}</span>);})}</div>}
+                                          {tx.tagIds && tx.tagIds.length > 0 && <div className="lg:hidden flex flex-wrap gap-1 mt-1">{tx.tagIds.map(tagId => { const tag = tags.find(t => t.id === tagId); if (!tag) return null; return (<span key={tag.id} className="text-sm px-2 py-1 rounded-full inline-flex items-center justify-center text-center" style={{ backgroundColor: `${tag.color}30`, color: tag.color }}>{tag.name}</span>);})}</div>}
                                       </div>
                                     </div>
-                                    <div className="hidden md:block col-span-2 text-sm text-light-text-secondary dark:text-dark-text-secondary truncate">{tx.isTransfer ? ( <div className="flex items-center gap-1 truncate"><span className="truncate">{tx.fromAccountName}</span><span className="material-symbols-outlined text-base">arrow_forward</span><span className="truncate">{tx.toAccountName}</span></div>) : tx.accountName}</div>
-                                    <div className="hidden lg:block col-span-2 text-sm text-light-text-secondary dark:text-dark-text-secondary truncate">{tx.merchant}</div>
-                                    <div className="hidden md:block col-span-2 text-sm text-light-text-secondary dark:text-dark-text-secondary truncate">{tx.category}</div>
-                                    <div className="hidden lg:flex col-span-1 text-sm text-light-text-secondary dark:text-dark-text-secondary flex-wrap gap-1">{tx.tagIds?.map(tagId => { const tag = tags.find(t => t.id === tagId); if (!tag) return null; return (<span key={tag.id} className="text-xs px-2 py-1 rounded-full inline-flex items-center justify-center text-center" style={{ backgroundColor: `${tag.color}30`, color: tag.color }} title={tag.name}>{tag.name}</span>);})}</div>
+                                    <div className="hidden md:block col-span-2 text-light-text-secondary dark:text-dark-text-secondary truncate">{tx.isTransfer ? ( <div className="flex items-center gap-1 truncate"><span className="truncate">{tx.fromAccountName}</span><span className="material-symbols-outlined text-base">arrow_forward</span><span className="truncate">{tx.toAccountName}</span></div>) : tx.accountName}</div>
+                                    <div className="hidden lg:block col-span-2 text-light-text-secondary dark:text-dark-text-secondary truncate">{tx.merchant}</div>
+                                    <div className="hidden md:block col-span-2 text-light-text-secondary dark:text-dark-text-secondary truncate">{tx.category}</div>
+                                    <div className="hidden lg:flex col-span-1 flex-wrap gap-1">{tx.tagIds?.map(tagId => { const tag = tags.find(t => t.id === tagId); if (!tag) return null; return (<span key={tag.id} className="text-sm px-2 py-1 rounded-full inline-flex items-center justify-center text-center" style={{ backgroundColor: `${tag.color}30`, color: tag.color }} title={tag.name}>{tag.name}</span>);})}</div>
                                     <div className={`col-span-12 md:col-span-2 font-mono font-semibold text-right text-base whitespace-nowrap ${amountColor}`}>{tx.isTransfer && selectedAccountIds.length === 0 ? '-/+ ' + formatCurrency(convertToEur(Math.abs(amount), tx.currency), 'EUR') : formatCurrency(convertToEur(amount, tx.currency), 'EUR', { showPlusSign: true })}</div>
                                   </div>
                                   <div className="text-right"><button onClick={(e) => {e.stopPropagation(); handleOpenEditModal(tx)}} className="text-light-text-secondary dark:text-dark-text-secondary p-2 rounded-full hover:bg-black/5 dark:hover:bg-white/5 transition-colors sm:opacity-0 group-hover:sm:opacity-100"><span className="material-symbols-outlined text-base">edit</span></button></div>

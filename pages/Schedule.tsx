@@ -543,7 +543,7 @@ const SchedulePage: React.FC<ScheduleProps> = (props) => {
 
             <Card>
                 <h3 className="text-xl font-semibold mb-4 text-light-text dark:text-dark-text">Next 30 Days Forecast</h3>
-                <table className="w-full text-sm">
+                <table className="w-full">
                     <thead>
                         <tr className="border-b border-black/10 dark:border-white/10 text-left text-light-text-secondary dark:text-dark-text-secondary">
                             <th className="py-2 px-4 font-semibold">Account</th>

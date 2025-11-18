@@ -94,7 +94,7 @@ const GoalScenarioModal: React.FC<GoalScenarioModalProps> = ({ onClose, onSave, 
     const saveButtonText = isEditing ? 'Save Changes' : (isSubGoal ? 'Add Item' : 'Add Goal');
 
     return (
-        <Modal onClose={onClose} title={modalTitle}>
+        <Modal onClose={onClose} title={modalTitle} size="2xl">
             <form onSubmit={handleSubmit} className="space-y-4">
                 {!isEditing && !isSubGoal && (
                      <div className="p-4 bg-black/5 dark:bg-white/5 rounded-lg flex justify-between items-center">

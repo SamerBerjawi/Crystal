@@ -336,7 +336,7 @@ const Forecasting: React.FC<ForecastingProps> = ({ accounts, transactions, recur
             <Card>
                 <h3 className="text-xl font-semibold mb-4 text-light-text dark:text-dark-text">Forecast Details</h3>
                 <div className="overflow-x-auto max-h-[400px]">
-                    <table className="w-full text-sm">
+                    <table className="w-full">
                         <thead className="sticky top-0 bg-light-card dark:bg-dark-card z-10">
                             <tr className="border-b border-light-separator dark:border-dark-separator">
                                 <th className="p-2 font-semibold text-left">Date</th>

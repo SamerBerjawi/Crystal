@@ -1,5 +1,7 @@
 
 
+
+
 import React, { useState, useEffect, useMemo } from 'react';
 import Modal from './Modal';
 import { Account, AccountType, Currency, InvestmentSubType, PropertyType, Warrant } from '../types';
@@ -32,34 +34,34 @@ const EditAccountModal: React.FC<EditAccountModalProps> = ({ onClose, onSave, on
   
   // New detailed fields
   const [subType, setSubType] = useState<InvestmentSubType>(initialSubType);
-  const [totalAmount, setTotalAmount] = useState(account.totalAmount ? String(account.totalAmount) : '');
-  const [principalAmount, setPrincipalAmount] = useState(account.principalAmount ? String(account.principalAmount) : '');
-  const [interestAmount, setInterestAmount] = useState(account.interestAmount ? String(account.interestAmount) : '');
-  const [downPayment, setDownPayment] = useState(account.downPayment ? String(account.downPayment) : '');
+  const [totalAmount, setTotalAmount] = useState(account.totalAmount != null ? String(account.totalAmount) : '');
+  const [principalAmount, setPrincipalAmount] = useState(account.principalAmount != null ? String(account.principalAmount) : '');
+  const [interestAmount, setInterestAmount] = useState(account.interestAmount != null ? String(account.interestAmount) : '');
+  const [downPayment, setDownPayment] = useState(account.downPayment != null ? String(account.downPayment) : '');
   const [lastEditedLoanField, setLastEditedLoanField] = useState<'total' | 'principal' | 'interest' | null>(null);
 
-  const [duration, setDuration] = useState(account.duration ? String(account.duration) : '');
-  const [interestRate, setInterestRate] = useState(account.interestRate ? String(account.interestRate) : '');
+  const [duration, setDuration] = useState(account.duration != null ? String(account.duration) : '');
+  const [interestRate, setInterestRate] = useState(account.interestRate != null ? String(account.interestRate) : '');
   const [loanStartDate, setLoanStartDate] = useState(account.loanStartDate || new Date().toISOString().split('T')[0]);
-  const [monthlyPayment, setMonthlyPayment] = useState(account.monthlyPayment ? String(account.monthlyPayment) : '');
-  const [paymentDayOfMonth, setPaymentDayOfMonth] = useState(account.paymentDayOfMonth ? String(account.paymentDayOfMonth) : '');
+  const [monthlyPayment, setMonthlyPayment] = useState(account.monthlyPayment != null ? String(account.monthlyPayment) : '');
+  const [paymentDayOfMonth, setPaymentDayOfMonth] = useState(account.paymentDayOfMonth != null ? String(account.paymentDayOfMonth) : '');
   const [make, setMake] = useState(account.make || '');
   const [model, setModel] = useState(account.model || '');
-  const [year, setYear] = useState(account.year ? String(account.year) : '');
-  const [purchasePrice, setPurchasePrice] = useState(account.purchasePrice ? String(account.purchasePrice) : '');
+  const [year, setYear] = useState(account.year != null ? String(account.year) : '');
+  const [purchasePrice, setPurchasePrice] = useState(account.purchasePrice != null ? String(account.purchasePrice) : '');
   const [address, setAddress] = useState(account.address || '');
   const [propertyType, setPropertyType] = useState<PropertyType>(account.propertyType || 'House');
   const [notes, setNotes] = useState(account.notes || '');
   const [linkedAccountId, setLinkedAccountId] = useState(account.linkedAccountId || '');
 
   // Credit card specific fields from original modal
-  const [statementStartDate, setStatementStartDate] = useState<string>(String(account.statementStartDate || ''));
-  const [paymentDate, setPaymentDate] = useState<string>(String(account.paymentDate || ''));
+  const [statementStartDate, setStatementStartDate] = useState<string>(account.statementStartDate != null ? String(account.statementStartDate) : '');
+  const [paymentDate, setPaymentDate] = useState<string>(account.paymentDate != null ? String(account.paymentDate) : '');
   const [settlementAccountId, setSettlementAccountId] = useState<string>(account.settlementAccountId || '');
-  const [creditLimit, setCreditLimit] = useState<string>(String(account.creditLimit || ''));
+  const [creditLimit, setCreditLimit] = useState<string>(account.creditLimit != null ? String(account.creditLimit) : '');
   
   // Property specific
-  const [principalOwned, setPrincipalOwned] = useState(account.principalOwned ? String(account.principalOwned) : '');
+  const [principalOwned, setPrincipalOwned] = useState(account.principalOwned != null ? String(account.principalOwned) : '');
   const [linkedLoanId, setLinkedLoanId] = useState(account.linkedLoanId || '');
   
   const isComputedAccount = useMemo(() => {
@@ -139,36 +141,36 @@ const EditAccountModal: React.FC<EditAccountModalProps> = ({ onClose, onSave, on
       ...account,
       name,
       type,
-      balance: type === 'Loan' ? -Math.abs(parseFloat(principalAmount) || 0) : (type === 'Lending' ? Math.abs(parseFloat(principalAmount) || 0) : (isComputedAccount ? account.balance : parseFloat(balance))),
+      balance: type === 'Loan' ? -Math.abs(principalAmount !== '' ? parseFloat(principalAmount) : 0) : (type === 'Lending' ? Math.abs(principalAmount !== '' ? parseFloat(principalAmount) : 0) : (isComputedAccount ? account.balance : (balance !== '' ? parseFloat(balance) : 0))),
       currency,
       icon,
       last4: last4 || undefined,
       isPrimary,
       // Conditionally add new fields
       subType: type === 'Investment' ? subType : undefined,
-      totalAmount: (type === 'Loan' || type === 'Lending') && totalAmount ? parseFloat(totalAmount) : undefined,
-      principalAmount: (type === 'Loan' || type === 'Lending') && principalAmount ? parseFloat(principalAmount) : undefined,
-      interestAmount: (type === 'Loan' || type === 'Lending') && interestAmount ? parseFloat(interestAmount) : undefined,
-      downPayment: type === 'Loan' && downPayment ? parseFloat(downPayment) : undefined,
-      duration: (type === 'Loan' || type === 'Lending') && duration ? parseInt(duration) : undefined,
-      interestRate: (type === 'Loan' || type === 'Lending') && interestRate ? parseFloat(interestRate) : undefined,
+      totalAmount: (type === 'Loan' || type === 'Lending') && totalAmount !== '' ? parseFloat(totalAmount) : undefined,
+      principalAmount: (type === 'Loan' || type === 'Lending') && principalAmount !== '' ? parseFloat(principalAmount) : undefined,
+      interestAmount: (type === 'Loan' || type === 'Lending') && interestAmount !== '' ? parseFloat(interestAmount) : undefined,
+      downPayment: type === 'Loan' && downPayment !== '' ? parseFloat(downPayment) : undefined,
+      duration: (type === 'Loan' || type === 'Lending') && duration !== '' ? parseInt(duration, 10) : undefined,
+      interestRate: (type === 'Loan' || type === 'Lending') && interestRate !== '' ? parseFloat(interestRate) : undefined,
       loanStartDate: (type === 'Loan' || type === 'Lending') ? loanStartDate : undefined,
-      monthlyPayment: (type === 'Loan' || type === 'Lending') && monthlyPayment ? parseFloat(monthlyPayment) : undefined,
-      paymentDayOfMonth: (type === 'Loan' || type === 'Lending') && paymentDayOfMonth ? parseInt(paymentDayOfMonth) : undefined,
+      monthlyPayment: (type === 'Loan' || type === 'Lending') && monthlyPayment !== '' ? parseFloat(monthlyPayment) : undefined,
+      paymentDayOfMonth: (type === 'Loan' || type === 'Lending') && paymentDayOfMonth !== '' ? parseInt(paymentDayOfMonth, 10) : undefined,
       linkedAccountId: (type === 'Loan' || type === 'Lending') ? linkedAccountId || undefined : undefined,
       make: type === 'Vehicle' ? make || undefined : undefined,
       model: type === 'Vehicle' ? model || undefined : undefined,
-      year: type === 'Vehicle' && year ? parseInt(year) : undefined,
+      year: type === 'Vehicle' && year !== '' ? parseInt(year, 10) : undefined,
       address: type === 'Property' ? address || undefined : undefined,
       propertyType: type === 'Property' ? propertyType : undefined,
-      purchasePrice: (type === 'Vehicle' || (type === 'Property' && !isLoanForPropertyLinked)) && purchasePrice ? parseFloat(purchasePrice) : undefined,
-      principalOwned: type === 'Property' && !isLoanForPropertyLinked && principalOwned ? parseFloat(principalOwned) : undefined,
+      purchasePrice: (type === 'Vehicle' || (type === 'Property' && !isLoanForPropertyLinked)) && purchasePrice !== '' ? parseFloat(purchasePrice) : undefined,
+      principalOwned: type === 'Property' && !isLoanForPropertyLinked && principalOwned !== '' ? parseFloat(principalOwned) : undefined,
       linkedLoanId: type === 'Property' ? linkedLoanId || undefined : undefined,
       notes: (type === 'Other Assets' || type === 'Other Liabilities') ? notes || undefined : undefined,
-      statementStartDate: type === 'Credit Card' && statementStartDate ? parseInt(statementStartDate) : undefined,
-      paymentDate: type === 'Credit Card' && paymentDate ? parseInt(paymentDate) : undefined,
+      statementStartDate: type === 'Credit Card' && statementStartDate !== '' ? parseInt(statementStartDate, 10) : undefined,
+      paymentDate: type === 'Credit Card' && paymentDate !== '' ? parseInt(paymentDate, 10) : undefined,
       settlementAccountId: type === 'Credit Card' && settlementAccountId ? settlementAccountId : undefined,
-      creditLimit: type === 'Credit Card' && creditLimit ? parseFloat(creditLimit) : undefined,
+      creditLimit: type === 'Credit Card' && creditLimit !== '' ? parseFloat(creditLimit) : undefined,
     };
     onSave(updatedAccount);
   };
@@ -187,7 +189,7 @@ const EditAccountModal: React.FC<EditAccountModalProps> = ({ onClose, onSave, on
   return (
     <>
       {isIconPickerOpen && <IconPicker onClose={() => setIconPickerOpen(false)} onSelect={setIcon} iconList={ACCOUNT_ICON_LIST} />}
-      <Modal onClose={onClose} title={`Edit ${account.name}`}>
+      <Modal onClose={onClose} title={`Edit ${account.name}`} size="3xl">
         <form onSubmit={handleSubmit} className="space-y-4">
           <div className="flex items-center gap-4">
             <button
@@ -415,9 +417,11 @@ const EditAccountModal: React.FC<EditAccountModalProps> = ({ onClose, onSave, on
           </div>
 
 
-          <div className="flex justify-between items-center pt-4">
-            <div className="flex gap-4">
+          <div className="flex flex-wrap items-center justify-between gap-4 pt-4 mt-4 border-t border-black/10 dark:border-white/10">
+            <div>
                 <button type="button" onClick={handleDelete} className={BTN_DANGER_STYLE}>Delete Account</button>
+            </div>
+            <div className="flex flex-wrap gap-4 justify-end">
                 <button 
                     type="button" 
                     onClick={handleToggleStatus} 
@@ -425,10 +429,8 @@ const EditAccountModal: React.FC<EditAccountModalProps> = ({ onClose, onSave, on
                 >
                     {account.status === 'closed' ? 'Reopen Account' : 'Close Account'}
                 </button>
-            </div>
-            <div className="flex gap-4">
-              <button type="button" onClick={onClose} className={BTN_SECONDARY_STYLE}>Cancel</button>
-              <button type="submit" className={BTN_PRIMARY_STYLE}>Save Changes</button>
+                <button type="button" onClick={onClose} className={BTN_SECONDARY_STYLE}>Cancel</button>
+                <button type="submit" className={BTN_PRIMARY_STYLE}>Save Changes</button>
             </div>
           </div>
         </form>

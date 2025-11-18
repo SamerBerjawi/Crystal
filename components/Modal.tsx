@@ -5,14 +5,22 @@ interface ModalProps {
   onClose: () => void;
   title: string;
   zIndexClass?: string;
+  size?: 'lg' | 'xl' | '2xl' | '3xl';
 }
 
-const Modal: React.FC<ModalProps> = ({ children, onClose, title, zIndexClass = 'z-50' }) => {
+const Modal: React.FC<ModalProps> = ({ children, onClose, title, zIndexClass = 'z-50', size = 'lg' }) => {
   const [isVisible, setIsVisible] = useState(false);
 
   useEffect(() => {
     setIsVisible(true);
   }, []);
+
+  const sizeClasses = {
+    lg: 'max-w-lg',
+    xl: 'max-w-xl',
+    '2xl': 'max-w-2xl',
+    '3xl': 'max-w-3xl',
+  };
 
   const handleClose = () => {
     setIsVisible(false);
@@ -29,7 +37,7 @@ const Modal: React.FC<ModalProps> = ({ children, onClose, title, zIndexClass = '
       onClick={handleClose}
     >
       <div 
-        className={`bg-light-card dark:bg-dark-card rounded-xl shadow-modal w-full max-w-lg transition-all duration-300 ease-in-out ${isVisible ? 'scale-100 opacity-100' : 'scale-95 opacity-0'}`}
+        className={`bg-light-card dark:bg-dark-card rounded-xl shadow-modal w-full ${sizeClasses[size]} transition-all duration-300 ease-in-out ${isVisible ? 'scale-100 opacity-100' : 'scale-95 opacity-0'}`}
         onClick={handleContentClick}
       >
         <header className="flex items-center justify-between p-4 border-b border-light-separator dark:border-dark-separator">

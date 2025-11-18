@@ -108,7 +108,7 @@ const AddAccountModal: React.FC<AddAccountModalProps> = ({ onClose, onAdd, accou
     const newAccountData: Omit<Account, 'id'> = {
       name,
       type,
-      balance: type === 'Loan' ? -Math.abs(parseFloat(principalAmount) || 0) : (type === 'Lending' ? Math.abs(parseFloat(principalAmount) || 0) : parseFloat(balance)),
+      balance: type === 'Loan' ? -Math.abs(principalAmount !== '' ? parseFloat(principalAmount) : 0) : (type === 'Lending' ? Math.abs(principalAmount !== '' ? parseFloat(principalAmount) : 0) : (balance !== '' ? parseFloat(balance) : 0)),
       currency,
       icon,
       last4: last4 || undefined,
@@ -116,38 +116,38 @@ const AddAccountModal: React.FC<AddAccountModalProps> = ({ onClose, onAdd, accou
       // Conditionally add new fields
       ...(type === 'Investment' && { subType }),
       ...((type === 'Loan' || type === 'Lending') && { 
-        totalAmount: totalAmount ? parseFloat(totalAmount) : undefined,
-        principalAmount: principalAmount ? parseFloat(principalAmount) : undefined,
-        interestAmount: interestAmount ? parseFloat(interestAmount) : undefined,
-        duration: duration ? parseInt(duration) : undefined,
-        interestRate: interestRate ? parseFloat(interestRate) : undefined,
+        totalAmount: totalAmount !== '' ? parseFloat(totalAmount) : undefined,
+        principalAmount: principalAmount !== '' ? parseFloat(principalAmount) : undefined,
+        interestAmount: interestAmount !== '' ? parseFloat(interestAmount) : undefined,
+        duration: duration !== '' ? parseInt(duration, 10) : undefined,
+        interestRate: interestRate !== '' ? parseFloat(interestRate) : undefined,
         loanStartDate,
-        monthlyPayment: monthlyPayment ? parseFloat(monthlyPayment) : undefined,
-        paymentDayOfMonth: paymentDayOfMonth ? parseInt(paymentDayOfMonth) : undefined,
+        monthlyPayment: monthlyPayment !== '' ? parseFloat(monthlyPayment) : undefined,
+        paymentDayOfMonth: paymentDayOfMonth !== '' ? parseInt(paymentDayOfMonth, 10) : undefined,
         linkedAccountId: linkedAccountId || undefined,
       }),
       ...(type === 'Loan' && { 
-        downPayment: downPayment ? parseFloat(downPayment) : undefined,
+        downPayment: downPayment !== '' ? parseFloat(downPayment) : undefined,
       }),
       ...(type === 'Vehicle' && { 
         make: make || undefined,
         model: model || undefined,
-        year: year ? parseInt(year) : undefined,
-        purchasePrice: purchasePrice ? parseFloat(purchasePrice) : undefined,
+        year: year !== '' ? parseInt(year, 10) : undefined,
+        purchasePrice: purchasePrice !== '' ? parseFloat(purchasePrice) : undefined,
       }),
       ...(type === 'Property' && {
         address: address || undefined,
         propertyType,
-        purchasePrice: !isLoanForPropertyLinked && purchasePrice ? parseFloat(purchasePrice) : undefined,
-        principalOwned: !isLoanForPropertyLinked && principalOwned ? parseFloat(principalOwned) : undefined,
+        purchasePrice: !isLoanForPropertyLinked && purchasePrice !== '' ? parseFloat(purchasePrice) : undefined,
+        principalOwned: !isLoanForPropertyLinked && principalOwned !== '' ? parseFloat(principalOwned) : undefined,
         linkedLoanId: linkedLoanId || undefined,
       }),
       ...((type === 'Other Assets' || type === 'Other Liabilities') && { notes: notes || undefined }),
       ...(type === 'Credit Card' && {
-        statementStartDate: statementStartDate ? parseInt(statementStartDate) : undefined,
-        paymentDate: paymentDate ? parseInt(paymentDate) : undefined,
+        statementStartDate: statementStartDate !== '' ? parseInt(statementStartDate, 10) : undefined,
+        paymentDate: paymentDate !== '' ? parseInt(paymentDate, 10) : undefined,
         settlementAccountId: settlementAccountId || undefined,
-        creditLimit: creditLimit ? parseFloat(creditLimit) : undefined,
+        creditLimit: creditLimit !== '' ? parseFloat(creditLimit) : undefined,
       })
     };
     onAdd(newAccountData);
@@ -158,7 +158,7 @@ const AddAccountModal: React.FC<AddAccountModalProps> = ({ onClose, onAdd, accou
   return (
     <>
       {isIconPickerOpen && <IconPicker onClose={() => setIconPickerOpen(false)} onSelect={setIcon} iconList={ACCOUNT_ICON_LIST} />}
-      <Modal onClose={onClose} title="Add New Account">
+      <Modal onClose={onClose} title="Add New Account" size="3xl">
         <form onSubmit={handleSubmit} className="space-y-4">
           <div className="flex items-center gap-4">
             <button

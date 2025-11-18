@@ -196,7 +196,7 @@ export const App: React.FC = () => {
     const CORS_PROXIES = [
         'https://api.allorigins.win/raw?url=',
         'https://corsproxy.io/?',
-        'https://cors-proxy.fringe.zone/',
+        'https://thingproxy.freeboard.io/fetch/',
         'https://cors.eu.org/',
     ];
 

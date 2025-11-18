@@ -80,9 +80,9 @@ const FinancialGoalCard: React.FC<FinancialGoalCardProps> = ({ goal, subGoals, i
             <button onClick={() => onDelete(goal.id)} className="p-1 rounded-full text-red-500/80 hover:bg-red-500/10"><span className="material-symbols-outlined text-base">delete</span></button>
           </div>
         </div>
-        <p className="text-sm text-light-text-secondary dark:text-dark-text-secondary">Target: {formatCurrency(goalToDisplay.amount, 'EUR')} {goalToDisplay.date && !isBucket ? `by ${formatDate(goalToDisplay.date)}` : ''}</p>
+        <p className="text-light-text-secondary dark:text-dark-text-secondary">Target: {formatCurrency(goalToDisplay.amount, 'EUR')} {goalToDisplay.date && !isBucket ? `by ${formatDate(goalToDisplay.date)}` : ''}</p>
         {paymentAccountName && !isBucket && (
-          <p className="text-xs text-light-text-secondary dark:text-dark-text-secondary mt-1 flex items-center gap-1">
+          <p className="text-sm text-light-text-secondary dark:text-dark-text-secondary mt-1 flex items-center gap-1">
             <span className="material-symbols-outlined text-sm">credit_card</span>
             <span>From: {paymentAccountName}</span>
           </p>
@@ -113,7 +113,7 @@ const FinancialGoalCard: React.FC<FinancialGoalCardProps> = ({ goal, subGoals, i
                     {subGoals.map(sg => {
                         const subGoalPaymentAccountName = accounts.find(a => a.id === sg.paymentAccountId)?.name;
                         return (
-                        <li key={sg.id} className="text-xs">
+                        <li key={sg.id} className="text-sm">
                             <div className="flex justify-between items-center group/item">
                                 <div className="flex-1 min-w-0">
                                     <p className="font-medium text-light-text dark:text-dark-text truncate">{sg.name}</p>
