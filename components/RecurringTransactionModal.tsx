@@ -1,9 +1,8 @@
 
-
 import React, { useState, useMemo, useEffect } from 'react';
 import Modal from './Modal';
 import { Account, Category, RecurringTransaction, RecurrenceFrequency, WeekendAdjustment } from '../types';
-import { INPUT_BASE_STYLE, BTN_PRIMARY_STYLE, BTN_SECONDARY_STYLE, SELECT_WRAPPER_STYLE, SELECT_ARROW_STYLE, FREQUENCIES, WEEKEND_ADJUSTMENTS } from '../constants';
+import { INPUT_BASE_STYLE, BTN_PRIMARY_STYLE, BTN_SECONDARY_STYLE, SELECT_WRAPPER_STYLE, SELECT_ARROW_STYLE, FREQUENCIES, WEEKEND_ADJUSTMENTS, ALL_ACCOUNT_TYPES } from '../constants';
 
 interface RecurringTransactionModalProps {
     onClose: () => void;
@@ -29,6 +28,35 @@ const CategoryOptions: React.FC<{ categories: Category[] }> = ({ categories }) =
     ))}
   </>
 );
+
+// Helper to group accounts by type
+const AccountOptions: React.FC<{ accounts: Account[] }> = ({ accounts }) => {
+  const groupedAccounts = useMemo(() => {
+    const groups: Record<string, Account[]> = {};
+    accounts.forEach(acc => {
+      if (!groups[acc.type]) groups[acc.type] = [];
+      groups[acc.type].push(acc);
+    });
+    return groups;
+  }, [accounts]);
+
+  return (
+    <>
+      {ALL_ACCOUNT_TYPES.map(type => {
+        const group = groupedAccounts[type];
+        if (!group || group.length === 0) return null;
+        return (
+          <optgroup key={type} label={type}>
+            {group.map(acc => (
+              <option key={acc.id} value={acc.id}>{acc.name}</option>
+            ))}
+          </optgroup>
+        );
+      })}
+    </>
+  );
+};
+
 
 const RecurringTransactionModal: React.FC<RecurringTransactionModalProps> = ({ onClose, onSave, accounts, incomeCategories, expenseCategories, recurringTransactionToEdit }) => {
     const isEditing = !!recurringTransactionToEdit;
@@ -201,7 +229,7 @@ const RecurringTransactionModal: React.FC<RecurringTransactionModalProps> = ({ o
                             <div className={SELECT_WRAPPER_STYLE}>
                                 <select id="rec-from-account" value={accountId} onChange={e => setAccountId(e.target.value)} className={INPUT_BASE_STYLE} required>
                                     <option value="" disabled>Select account</option>
-                                    {availableAccounts.filter(a => a.id !== toAccountId).map(acc => <option key={acc.id} value={acc.id}>{acc.name}</option>)}
+                                    <AccountOptions accounts={availableAccounts.filter(a => a.id !== toAccountId)} />
                                 </select>
                                 <div className={SELECT_ARROW_STYLE}><span className="material-symbols-outlined">expand_more</span></div>
                             </div>
@@ -211,7 +239,7 @@ const RecurringTransactionModal: React.FC<RecurringTransactionModalProps> = ({ o
                             <div className={SELECT_WRAPPER_STYLE}>
                                 <select id="rec-to-account" value={toAccountId} onChange={e => setToAccountId(e.target.value)} className={INPUT_BASE_STYLE} required>
                                     <option value="" disabled>Select account</option>
-                                    {availableAccounts.filter(a => a.id !== accountId).map(acc => <option key={acc.id} value={acc.id}>{acc.name}</option>)}
+                                    <AccountOptions accounts={availableAccounts.filter(a => a.id !== accountId)} />
                                 </select>
                                 <div className={SELECT_ARROW_STYLE}><span className="material-symbols-outlined">expand_more</span></div>
                             </div>
@@ -223,7 +251,7 @@ const RecurringTransactionModal: React.FC<RecurringTransactionModalProps> = ({ o
                         <div className={SELECT_WRAPPER_STYLE}>
                             <select id="rec-account" value={accountId} onChange={e => setAccountId(e.target.value)} className={INPUT_BASE_STYLE} required>
                                 <option value="" disabled>Select an account</option>
-                                {availableAccounts.map(acc => <option key={acc.id} value={acc.id}>{acc.name}</option>)}
+                                <AccountOptions accounts={availableAccounts} />
                             </select>
                             <div className={SELECT_ARROW_STYLE}><span className="material-symbols-outlined">expand_more</span></div>
                         </div>

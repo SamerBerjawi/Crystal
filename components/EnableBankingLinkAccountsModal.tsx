@@ -1,11 +1,11 @@
-import React, { useState, useEffect } from 'react';
+
+import React, { useState, useEffect, useMemo } from 'react';
 import Modal from './Modal';
 import { Account, RemoteAccount } from '../types';
-import { BTN_PRIMARY_STYLE, BTN_SECONDARY_STYLE, SELECT_WRAPPER_STYLE, INPUT_BASE_STYLE, SELECT_ARROW_STYLE } from '../constants';
+import { BTN_PRIMARY_STYLE, BTN_SECONDARY_STYLE, SELECT_WRAPPER_STYLE, INPUT_BASE_STYLE, SELECT_ARROW_STYLE, ALL_ACCOUNT_TYPES } from '../constants';
 import { formatCurrency } from '../utils';
 
 interface EnableBankingLinkAccountsModalProps {
-  // FIX: Add isOpen prop to control modal visibility from parent component.
   isOpen: boolean;
   onClose: () => void;
   remoteAccounts: RemoteAccount[];
@@ -14,10 +14,8 @@ interface EnableBankingLinkAccountsModalProps {
 }
 
 const EnableBankingLinkAccountsModal: React.FC<EnableBankingLinkAccountsModalProps> = ({ isOpen, onClose, remoteAccounts, existingAccounts, onLinkAndSync }) => {
-  // FIX: Initialize state to an empty object.
   const [links, setLinks] = useState<Record<string, string>>({});
 
-  // FIX: Use useEffect to reset the state when the modal is opened or when remoteAccounts change. This avoids violating hook rules.
   useEffect(() => {
     if (isOpen) {
       setLinks(
@@ -29,7 +27,16 @@ const EnableBankingLinkAccountsModal: React.FC<EnableBankingLinkAccountsModalPro
     }
   }, [isOpen, remoteAccounts]);
 
-  // FIX: Conditionally render the modal based on the isOpen prop, after hooks are called.
+  const groupedExistingAccounts = useMemo(() => {
+    const unlinked = existingAccounts.filter(acc => !acc.enableBankingId);
+    const groups: Record<string, Account[]> = {};
+    unlinked.forEach(acc => {
+        if (!groups[acc.type]) groups[acc.type] = [];
+        groups[acc.type].push(acc);
+    });
+    return groups;
+  }, [existingAccounts]);
+
   if (!isOpen) {
     return null;
   }
@@ -37,8 +44,6 @@ const EnableBankingLinkAccountsModal: React.FC<EnableBankingLinkAccountsModalPro
   const handleLinkChange = (remoteAccountId: string, delphiAccountId: string) => {
     setLinks(prev => ({ ...prev, [remoteAccountId]: delphiAccountId }));
   };
-
-  const unlinkedAccounts = existingAccounts.filter(acc => !acc.enableBankingId);
 
   const handleSubmit = () => {
     onLinkAndSync(links);
@@ -69,13 +74,19 @@ const EnableBankingLinkAccountsModal: React.FC<EnableBankingLinkAccountsModalPro
                         className={INPUT_BASE_STYLE}
                     >
                         <option value="CREATE_NEW">Create New Account in Delphi</option>
-                        <optgroup label="Link to Existing Account">
-                            {unlinkedAccounts.map(existingAcc => (
-                                <option key={existingAcc.id} value={existingAcc.id}>
-                                    {existingAcc.name} ({formatCurrency(existingAcc.balance, existingAcc.currency)})
-                                </option>
-                            ))}
-                        </optgroup>
+                        {ALL_ACCOUNT_TYPES.map(type => {
+                            const group = groupedExistingAccounts[type];
+                            if (!group || group.length === 0) return null;
+                            return (
+                                <optgroup key={type} label={`Link to Existing ${type}`}>
+                                    {group.map(existingAcc => (
+                                        <option key={existingAcc.id} value={existingAcc.id}>
+                                            {existingAcc.name} ({formatCurrency(existingAcc.balance, existingAcc.currency)})
+                                        </option>
+                                    ))}
+                                </optgroup>
+                            );
+                        })}
                     </select>
                     <div className={SELECT_ARROW_STYLE}><span className="material-symbols-outlined">expand_more</span></div>
                  </div>

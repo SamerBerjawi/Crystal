@@ -1,10 +1,11 @@
+
 import React, { useState, useMemo } from 'react';
 import { Task, TaskStatus, TaskPriority } from '../types';
 import { BTN_PRIMARY_STYLE, INPUT_BASE_STYLE, SELECT_ARROW_STYLE, SELECT_WRAPPER_STYLE, BTN_SECONDARY_STYLE, BTN_DANGER_STYLE, SELECT_STYLE } from '../constants';
-import Card from '../components/Card';
 import Modal from '../components/Modal';
 import TasksHeatmap from '../components/TasksHeatmap';
 import TaskItem from '../components/TaskItem';
+import ConfirmationModal from '../components/ConfirmationModal';
 
 interface TasksProps {
   tasks: Task[];
@@ -30,8 +31,10 @@ const TaskForm: React.FC<{ task?: Task | null, onSave: (task: Omit<Task, 'id'> &
         onSave({ id: task?.id, title, description, dueDate, status, priority, reminderDate: dueDate ? reminderDate : '' });
     };
 
-    const handleDelete = () => {
-        if (task?.id && window.confirm('Are you sure you want to delete this task?')) {
+    const handleDeleteClick = (e: React.MouseEvent) => {
+        e.preventDefault();
+        e.stopPropagation();
+        if (task?.id) {
             onDelete(task.id);
         }
     };
@@ -41,7 +44,7 @@ const TaskForm: React.FC<{ task?: Task | null, onSave: (task: Omit<Task, 'id'> &
             <form onSubmit={handleSubmit} className="space-y-4">
                 <div>
                     <label htmlFor="title" className="block text-sm font-medium text-light-text-secondary dark:text-dark-text-secondary mb-1">Title</label>
-                    <input id="title" type="text" value={title} onChange={e => setTitle(e.target.value)} className={INPUT_BASE_STYLE} required />
+                    <input id="title" type="text" value={title} onChange={e => setTitle(e.target.value)} className={INPUT_BASE_STYLE} required autoFocus />
                 </div>
                 <div>
                     <label htmlFor="description" className="block text-sm font-medium text-light-text-secondary dark:text-dark-text-secondary mb-1">Description (Optional)</label>
@@ -95,10 +98,10 @@ const TaskForm: React.FC<{ task?: Task | null, onSave: (task: Omit<Task, 'id'> &
                         </div>
                     </div>
                 </div>
-                <div className="flex justify-between items-center pt-4">
+                <div className="flex justify-between items-center pt-4 border-t border-black/10 dark:border-white/10 mt-4">
                     <div>
                         {task?.id && (
-                            <button type="button" onClick={handleDelete} className={BTN_DANGER_STYLE}>Delete Task</button>
+                            <button type="button" onClick={handleDeleteClick} className={BTN_DANGER_STYLE}>Delete Task</button>
                         )}
                     </div>
                     <div className="flex gap-4">
@@ -118,6 +121,10 @@ const Tasks: React.FC<TasksProps> = ({ tasks, saveTask, deleteTask, taskOrder, s
     const [justCompletedTaskId, setJustCompletedTaskId] = useState<string | null>(null);
     const [draggedItem, setDraggedItem] = useState<Task | null>(null);
     const [dragOverItem, setDragOverItem] = useState<Task | null>(null);
+    
+    // Delete Confirmation State
+    const [isDeleteConfirmOpen, setIsDeleteConfirmOpen] = useState(false);
+    const [taskToDeleteId, setTaskToDeleteId] = useState<string | null>(null);
 
 
     const handleOpenModal = (task?: Task) => {
@@ -137,9 +144,18 @@ const Tasks: React.FC<TasksProps> = ({ tasks, saveTask, deleteTask, taskOrder, s
         setIsModalOpen(false);
     };
     
-    const handleDelete = (id: string) => {
-        deleteTask(id);
-        setIsModalOpen(false);
+    const handleDeleteRequest = (id: string) => {
+        setTaskToDeleteId(id);
+        setIsDeleteConfirmOpen(true);
+    };
+
+    const handleConfirmDelete = () => {
+        if (taskToDeleteId) {
+            deleteTask(taskToDeleteId);
+            setIsDeleteConfirmOpen(false);
+            setIsModalOpen(false);
+            setTaskToDeleteId(null);
+        }
     };
 
     const groupedAndSortedTasks = useMemo(() => {
@@ -215,8 +231,18 @@ const Tasks: React.FC<TasksProps> = ({ tasks, saveTask, deleteTask, taskOrder, s
 
     return (
         <div className="space-y-6">
-            {isModalOpen && <TaskForm task={editingTask} onSave={handleSave} onClose={() => setIsModalOpen(false)} onDelete={handleDelete} />}
+            {isModalOpen && <TaskForm task={editingTask} onSave={handleSave} onClose={() => setIsModalOpen(false)} onDelete={handleDeleteRequest} />}
             
+            <ConfirmationModal 
+                isOpen={isDeleteConfirmOpen}
+                onClose={() => setIsDeleteConfirmOpen(false)}
+                onConfirm={handleConfirmDelete}
+                title="Delete Task"
+                message="Are you sure you want to delete this task? This action cannot be undone."
+                confirmButtonText="Delete"
+                confirmButtonVariant="danger"
+            />
+
             <TasksHeatmap tasks={tasks} />
 
             <header className="flex flex-wrap justify-between items-center gap-4">

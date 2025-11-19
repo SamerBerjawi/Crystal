@@ -1,7 +1,8 @@
+
 import React, { useState, useEffect, useMemo } from 'react';
 import Modal from './Modal';
 import { Account, InvestmentTransaction, Transaction, AccountType, InvestmentSubType } from '../types';
-import { INPUT_BASE_STYLE, BTN_PRIMARY_STYLE, BTN_SECONDARY_STYLE, SELECT_WRAPPER_STYLE, SELECT_ARROW_STYLE, INVESTMENT_SUB_TYPES } from '../constants';
+import { INPUT_BASE_STYLE, BTN_PRIMARY_STYLE, BTN_SECONDARY_STYLE, SELECT_WRAPPER_STYLE, SELECT_ARROW_STYLE, INVESTMENT_SUB_TYPES, ALL_ACCOUNT_TYPES } from '../constants';
 import { formatCurrency } from '../utils';
 import { v4 as uuidv4 } from 'uuid';
 
@@ -30,6 +31,15 @@ const AddInvestmentTransactionModal: React.FC<AddInvestmentTransactionModalProps
         if (isEditing || !symbol) return false;
         return !(accounts || []).some(acc => acc.symbol?.toUpperCase() === symbol.toUpperCase());
     }, [symbol, accounts, isEditing]);
+
+    const groupedCashAccounts = useMemo(() => {
+        const groups: Record<string, Account[]> = {};
+        cashAccounts.forEach(acc => {
+            if (!groups[acc.type]) groups[acc.type] = [];
+            groups[acc.type].push(acc);
+        });
+        return groups;
+    }, [cashAccounts]);
 
     useEffect(() => {
         if (!isEditing && symbol && accounts) {
@@ -160,7 +170,15 @@ const AddInvestmentTransactionModal: React.FC<AddInvestmentTransactionModalProps
                                 <div className={SELECT_WRAPPER_STYLE}>
                                     <select id="cash-account" value={cashAccountId} onChange={e => setCashAccountId(e.target.value)} className={INPUT_BASE_STYLE} required>
                                         <option value="">Select cash account</option>
-                                        {cashAccounts.map(acc => <option key={acc.id} value={acc.id}>{acc.name}</option>)}
+                                        {ALL_ACCOUNT_TYPES.map(type => {
+                                            const group = groupedCashAccounts[type];
+                                            if (!group || group.length === 0) return null;
+                                            return (
+                                                <optgroup key={type} label={type}>
+                                                    {group.map(acc => <option key={acc.id} value={acc.id}>{acc.name}</option>)}
+                                                </optgroup>
+                                            );
+                                        })}
                                     </select>
                                     <div className={SELECT_ARROW_STYLE}><span className="material-symbols-outlined">expand_more</span></div>
                                 </div>

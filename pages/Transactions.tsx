@@ -1,3 +1,4 @@
+
 import React, { useState, useMemo, useRef, useEffect } from 'react';
 import { INPUT_BASE_STYLE, SELECT_WRAPPER_STYLE, SELECT_ARROW_STYLE, BTN_PRIMARY_STYLE, BTN_SECONDARY_STYLE, SELECT_STYLE, CHECKBOX_STYLE } from '../constants';
 import { Transaction, Category, Account, DisplayTransaction, Tag, RecurringTransaction } from '../types';
@@ -9,6 +10,7 @@ import BulkEditTransactionsModal from '../components/BulkEditTransactionsModal';
 import RecurringTransactionModal from '../components/RecurringTransactionModal';
 import ConfirmationModal from '../components/ConfirmationModal';
 import MultiSelectFilter from '../components/MultiSelectFilter';
+import MultiAccountFilter from '../components/MultiAccountFilter';
 
 interface TransactionsProps {
   transactions: Transaction[];
@@ -487,7 +489,6 @@ const Transactions: React.FC<TransactionsProps> = ({ transactions, saveTransacti
     return [...expenseOpts, ...incomeOpts];
   }, [incomeCategories, expenseCategories]);
 
-  const accountOptions = useMemo(() => accounts.map(a => ({ value: a.id, label: a.name })), [accounts]);
   const tagOptions = useMemo(() => tags.map(t => ({ value: t.id, label: t.name })), [tags]);
   
   const labelStyle = "block text-sm font-medium text-light-text-secondary dark:text-dark-text-secondary mb-1";
@@ -648,7 +649,7 @@ const Transactions: React.FC<TransactionsProps> = ({ transactions, saveTransacti
               {/* Row 2 */}
               <div className="md:col-span-3">
                   <label className={labelStyle}>Account</label>
-                  <MultiSelectFilter options={accountOptions} selectedValues={selectedAccountIds} onChange={setSelectedAccountIds} placeholder="All Accounts"/>
+                  <MultiAccountFilter accounts={accounts} selectedAccountIds={selectedAccountIds} setSelectedAccountIds={setSelectedAccountIds}/>
               </div>
               <div className="md:col-span-3">
                   <label className={labelStyle}>Category</label>

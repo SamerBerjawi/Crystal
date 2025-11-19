@@ -1,9 +1,8 @@
 
-
 import React, { useState, useMemo, useEffect, useRef } from 'react';
 import Modal from './Modal';
 import { Account, Category, Transaction, Tag } from '../types';
-import { INPUT_BASE_STYLE, BTN_PRIMARY_STYLE, BTN_SECONDARY_STYLE, SELECT_WRAPPER_STYLE, SELECT_ARROW_STYLE, CHECKBOX_STYLE } from '../constants';
+import { INPUT_BASE_STYLE, BTN_PRIMARY_STYLE, BTN_SECONDARY_STYLE, SELECT_WRAPPER_STYLE, SELECT_ARROW_STYLE, CHECKBOX_STYLE, ALL_ACCOUNT_TYPES } from '../constants';
 import { v4 as uuidv4 } from 'uuid';
 
 interface AddTransactionModalProps {
@@ -41,6 +40,34 @@ const CategoryOptions: React.FC<{ categories: Category[] }> = ({ categories }) =
     ))}
   </>
 );
+
+// Helper to group accounts by type
+const AccountOptions: React.FC<{ accounts: Account[] }> = ({ accounts }) => {
+  const groupedAccounts = useMemo(() => {
+    const groups: Record<string, Account[]> = {};
+    accounts.forEach(acc => {
+      if (!groups[acc.type]) groups[acc.type] = [];
+      groups[acc.type].push(acc);
+    });
+    return groups;
+  }, [accounts]);
+
+  return (
+    <>
+      {ALL_ACCOUNT_TYPES.map(type => {
+        const group = groupedAccounts[type];
+        if (!group || group.length === 0) return null;
+        return (
+          <optgroup key={type} label={type}>
+            {group.map(acc => (
+              <option key={acc.id} value={acc.id}>{acc.name}</option>
+            ))}
+          </optgroup>
+        );
+      })}
+    </>
+  );
+};
 
 
 const AddTransactionModal: React.FC<AddTransactionModalProps> = ({ onClose, onSave, accounts, incomeCategories, expenseCategories, transactions, transactionToEdit, initialType, initialFromAccountId, initialToAccountId, tags, initialDetails }) => {
@@ -375,7 +402,7 @@ const AddTransactionModal: React.FC<AddTransactionModalProps> = ({ onClose, onSa
                   <label htmlFor="tx-from-account" className={labelStyle}>From</label>
                   <div className={SELECT_WRAPPER_STYLE}>
                     <select id="tx-from-account" value={fromAccountId} onChange={e => setFromAccountId(e.target.value)} className={INPUT_BASE_STYLE} required>
-                      {availableAccounts.filter(a => a.id !== toAccountId).map(acc => <option key={acc.id} value={acc.id}>{acc.name}</option>)}
+                      <AccountOptions accounts={availableAccounts.filter(a => a.id !== toAccountId)} />
                     </select>
                     <div className={SELECT_ARROW_STYLE}><span className="material-symbols-outlined">expand_more</span></div>
                   </div>
@@ -384,7 +411,7 @@ const AddTransactionModal: React.FC<AddTransactionModalProps> = ({ onClose, onSa
                   <label htmlFor="tx-to-account" className={labelStyle}>To</label>
                    <div className={SELECT_WRAPPER_STYLE}>
                     <select id="tx-to-account" value={toAccountId} onChange={e => setToAccountId(e.target.value)} className={INPUT_BASE_STYLE} required>
-                      {availableAccounts.filter(a => a.id !== fromAccountId).map(acc => <option key={acc.id} value={acc.id}>{acc.name}</option>)}
+                      <AccountOptions accounts={availableAccounts.filter(a => a.id !== fromAccountId)} />
                     </select>
                     <div className={SELECT_ARROW_STYLE}><span className="material-symbols-outlined">expand_more</span></div>
                   </div>
@@ -396,7 +423,7 @@ const AddTransactionModal: React.FC<AddTransactionModalProps> = ({ onClose, onSa
               <div className={SELECT_WRAPPER_STYLE}>
                 <select id="tx-account" value={type === 'income' ? toAccountId : fromAccountId} onChange={e => type === 'income' ? setToAccountId(e.target.value) : setFromAccountId(e.target.value)} className={INPUT_BASE_STYLE} required>
                   <option value="" disabled>Select an account</option>
-                  {availableAccounts.map(acc => <option key={acc.id} value={acc.id}>{acc.name}</option>)}
+                  <AccountOptions accounts={availableAccounts} />
                 </select>
                 <div className={SELECT_ARROW_STYLE}><span className="material-symbols-outlined">expand_more</span></div>
               </div>

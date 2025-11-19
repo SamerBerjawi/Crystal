@@ -1,8 +1,7 @@
 
-
 import React, { useState, useEffect, useRef, useMemo } from 'react';
 import { Account } from '../types';
-import { LIQUID_ACCOUNT_TYPES, ASSET_TYPES, DEBT_TYPES, CHECKBOX_STYLE } from '../constants';
+import { LIQUID_ACCOUNT_TYPES, ASSET_TYPES, DEBT_TYPES, CHECKBOX_STYLE, ALL_ACCOUNT_TYPES } from '../constants';
 
 interface MultiAccountFilterProps {
   accounts: Account[];
@@ -48,6 +47,15 @@ const MultiAccountFilter: React.FC<MultiAccountFilterProps> = ({ accounts, selec
     });
     return { openAccounts: open, closedAccounts: closed };
   }, [accounts]);
+  
+  const groupedOpenAccounts = useMemo(() => {
+    const groups: Record<string, Account[]> = {};
+    openAccounts.forEach(acc => {
+      if (!groups[acc.type]) groups[acc.type] = [];
+      groups[acc.type].push(acc);
+    });
+    return groups;
+  }, [openAccounts]);
 
   const handleToggle = (accountId: string) => {
     setSelectedAccountIds(
@@ -115,18 +123,27 @@ const MultiAccountFilter: React.FC<MultiAccountFilterProps> = ({ accounts, selec
 
           {/* Individual Selection */}
           <div className="max-h-64 overflow-y-auto space-y-1 p-2">
-            {openAccounts.length > 0 && (
-              <div>
-                <h4 className="px-2 py-1 text-xs font-bold text-light-text-secondary dark:text-dark-text-secondary uppercase">Open Accounts</h4>
-                {openAccounts.map(account => <AccountCheckbox key={account.id} account={account} />)}
-              </div>
-            )}
+            {/* Grouped Open Accounts */}
+            {ALL_ACCOUNT_TYPES.map(type => {
+                const groupAccounts = groupedOpenAccounts[type];
+                if (!groupAccounts || groupAccounts.length === 0) return null;
+                return (
+                    <div key={type} className="mb-2">
+                        <h4 className="px-2 py-1 text-xs font-bold text-light-text-secondary dark:text-dark-text-secondary uppercase">{type}</h4>
+                        {groupAccounts.map(account => <AccountCheckbox key={account.id} account={account} />)}
+                    </div>
+                );
+            })}
             
             {closedAccounts.length > 0 && (
-              <div className="mt-2">
+              <div className="mt-2 pt-2 border-t border-black/5 dark:border-white/5">
                 <h4 className="px-2 py-1 text-xs font-bold text-light-text-secondary dark:text-dark-text-secondary uppercase">Closed Accounts</h4>
                 {closedAccounts.map(account => <AccountCheckbox key={account.id} account={account} />)}
               </div>
+            )}
+            
+            {accounts.length === 0 && (
+                 <p className="text-center p-2 text-sm text-light-text-secondary">No accounts found.</p>
             )}
           </div>
         </div>

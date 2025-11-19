@@ -19,25 +19,29 @@ interface ScheduleHeatmapProps {
 
 const ScheduleHeatmap: React.FC<ScheduleHeatmapProps> = ({ items }) => {
 
-    const { gridDays, monthLabels, itemsByDate } = useMemo(() => {
-        const today = new Date();
-        const startDate = new Date(today.getFullYear(), today.getMonth(), 1);
-        startDate.setHours(0, 0, 0, 0);
-        const endDate = new Date(startDate);
-        endDate.setFullYear(endDate.getFullYear() + 1);
-        endDate.setDate(0);
-        endDate.setHours(23, 59, 59, 999);
+    const { gridDays, monthLabels, itemsByDate, totalColumns } = useMemo(() => {
+        const now = new Date();
+        // Start from the 1st of the current month in UTC to avoid timezone offsets
+        const startDate = new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), 1));
         
-        const parseAsUTC = (dateString: string): Date => {
+        // Show 12 full months roughly (covers a year + a bit)
+        const endDate = new Date(startDate);
+        endDate.setUTCFullYear(endDate.getUTCFullYear() + 1);
+        endDate.setUTCDate(0); // Back up to last day of previous month
+
+        const itemsByDate = new Map<string, { incomeCount: number, expenseCount: number, transferCount: number }>();
+        
+        const parseAsUTCLocal = (dateString: string): Date => {
             const [year, month, day] = dateString.split('-').map(Number);
             return new Date(Date.UTC(year, month - 1, day));
         };
 
-        const itemsByDate = new Map<string, { incomeCount: number, expenseCount: number, transferCount: number }>();
         items.forEach(item => {
-            const itemDate = parseAsUTC(item.date);
+            const itemDate = parseAsUTCLocal(item.date);
             if (itemDate >= startDate && itemDate <= endDate) {
+                // Re-format date to ensure consistency with grid date strings (YYYY-MM-DD)
                 const dateStr = itemDate.toISOString().split('T')[0];
+                
                 const existing = itemsByDate.get(dateStr) || { incomeCount: 0, expenseCount: 0, transferCount: 0 };
                 
                 if (item.isTransfer) {
@@ -51,34 +55,53 @@ const ScheduleHeatmap: React.FC<ScheduleHeatmapProps> = ({ items }) => {
             }
         });
 
-        const allDays = [];
+        const allDays: Date[] = [];
         let currentDate = new Date(startDate);
         while (currentDate <= endDate) {
             allDays.push(new Date(currentDate));
-            currentDate.setDate(currentDate.getDate() + 1);
+            currentDate.setUTCDate(currentDate.getUTCDate() + 1);
         }
 
-        const firstDayOfWeek = startDate.getDay();
-        const paddedDays: (Date | null)[] = [...Array(firstDayOfWeek).fill(null), ...allDays];
+        // Logic to make Monday the first day of the week (Row 0)
+        // getUTCDay() returns 0 for Sunday. We want Mon=0, Tue=1... Sun=6.
+        // Formula: (day + 6) % 7
+        const startDayOfWeek = (startDate.getUTCDay() + 6) % 7;
+        
+        // Pad the start
+        const paddedDays: (Date | null)[] = [...Array(startDayOfWeek).fill(null), ...allDays];
 
         const monthLabels: { label: string; colStart: number }[] = [];
         let lastMonth = -1;
+        
         paddedDays.forEach((day, index) => {
             if (day) {
-                const month = day.getMonth();
-                const weekIndex = Math.floor(index / 7);
+                const month = day.getUTCMonth();
                 if (month !== lastMonth) {
-                    if (monthLabels.length === 0 || weekIndex > monthLabels[monthLabels.length - 1].colStart + 2) {
-                        monthLabels.push({ label: day.toLocaleString('default', { month: 'short', timeZone: 'UTC' }), colStart: weekIndex + 1 });
+                    // Calculate column index (0-based)
+                    const colIndex = Math.floor(index / 7);
+                    const currentColStart = colIndex + 1;
+
+                    // Only add label if it's not too close to the previous one to avoid overlap
+                    const prevColStart = monthLabels.length > 0 ? monthLabels[monthLabels.length - 1].colStart : -10;
+
+                    if (currentColStart - prevColStart >= 3) {
+                        monthLabels.push({ 
+                            label: day.toLocaleString('default', { month: 'short', timeZone: 'UTC' }), 
+                            colStart: currentColStart 
+                        });
+                        lastMonth = month;
                     }
-                    lastMonth = month;
                 }
             }
         });
 
-        return { gridDays: paddedDays, monthLabels, itemsByDate };
+        const totalColumns = Math.ceil(paddedDays.length / 7);
+
+        return { gridDays: paddedDays, monthLabels, itemsByDate, totalColumns };
 
     }, [items]);
+
+    const todayStr = new Date().toISOString().split('T')[0];
 
     const getActivityColor = (dayData?: { incomeCount: number, expenseCount: number, transferCount: number }): string => {
         if (!dayData || (dayData.incomeCount === 0 && dayData.expenseCount === 0 && dayData.transferCount === 0)) {
@@ -101,40 +124,69 @@ const ScheduleHeatmap: React.FC<ScheduleHeatmapProps> = ({ items }) => {
     
     return (
         <Card>
-            <h3 className="text-xl font-semibold mb-4">Schedule Activity (Next 12 Months)</h3>
-            <div className="overflow-x-auto pb-2">
-                <div className="inline-block">
-                    <div className="grid grid-flow-col gap-x-1 mb-1 text-light-text-secondary dark:text-dark-text-secondary" style={{ gridTemplateColumns: `repeat(${monthLabels.length > 0 ? monthLabels[monthLabels.length - 1].colStart + 8 : 53}, 14px)` }}>
-                       {monthLabels.map(({ label, colStart }) => (
-                            <div key={label} className="text-xs text-left" style={{ gridColumnStart: colStart }}>
-                                {label}
-                            </div>
-                       ))}
-                    </div>
-                    <div className="grid grid-flow-col grid-rows-7 gap-1" style={{ gridAutoColumns: '14px' }}>
-                        {gridDays.map((day, index) => {
-                            if (!day) {
-                                return <div key={`pad-${index}`} className="w-4 h-4" />;
-                            }
-                            const dateStr = day.toISOString().split('T')[0];
-                            const dayData = itemsByDate.get(dateStr);
-                            const color = getActivityColor(dayData);
-                            
-                            let tooltip = day.toLocaleDateString(undefined, { timeZone: 'UTC' });
-                            if (dayData) {
-                                const parts = [];
-                                if (dayData.transferCount > 0) parts.push(`${dayData.transferCount} transfer(s)`);
-                                if (dayData.incomeCount > 0) parts.push(`${dayData.incomeCount} income`);
-                                if (dayData.expenseCount > 0) parts.push(`${dayData.expenseCount} expense(s)`);
-                                tooltip = `${day.toLocaleDateString(undefined, { timeZone: 'UTC' })}: ${parts.join(', ')}`;
-                            }
+            <h3 className="text-xl font-semibold mb-4">Schedule Activity (Upcoming Year)</h3>
+            <div className="flex gap-2">
+                {/* Day Labels (Monday Start) */}
+                <div className="flex flex-col justify-between pt-5 pb-1 text-xs text-light-text-secondary dark:text-dark-text-secondary pr-1 h-[116px]">
+                    <div className="h-3 leading-3">Mon</div>
+                    <div className="h-3 leading-3">Wed</div>
+                    <div className="h-3 leading-3">Fri</div>
+                </div>
 
-                            return <div key={dateStr} className={`w-4 h-4 rounded-sm ${color}`} title={tooltip} />;
-                        })}
+                <div className="overflow-x-auto pb-2 flex-1">
+                    <div className="inline-block min-w-full">
+                        {/* Month Labels */}
+                        <div 
+                            className="grid mb-1 h-4" 
+                            style={{ 
+                                gridTemplateColumns: `repeat(${totalColumns}, 14px)`,
+                                gap: '4px'
+                            }}
+                        >
+                           {monthLabels.map(({ label, colStart }) => (
+                                <div 
+                                    key={`${label}-${colStart}`} 
+                                    className="text-xs text-left text-light-text-secondary dark:text-dark-text-secondary whitespace-nowrap" 
+                                    style={{ gridColumnStart: colStart }}
+                                >
+                                    {label}
+                                </div>
+                           ))}
+                        </div>
+
+                        {/* Heatmap Grid */}
+                        <div 
+                            className="grid grid-rows-7 grid-flow-col" 
+                            style={{ 
+                                gridTemplateColumns: `repeat(${totalColumns}, 14px)`,
+                                gap: '4px' 
+                            }}
+                        >
+                            {gridDays.map((day, index) => {
+                                if (!day) {
+                                    return <div key={`pad-${index}`} className="w-[14px] h-[14px]" />;
+                                }
+                                const dateStr = day.toISOString().split('T')[0];
+                                const isToday = dateStr === todayStr;
+                                const dayData = itemsByDate.get(dateStr);
+                                const color = getActivityColor(dayData);
+                                
+                                let tooltip = day.toLocaleDateString(undefined, { timeZone: 'UTC' });
+                                if (dayData) {
+                                    const parts = [];
+                                    if (dayData.transferCount > 0) parts.push(`${dayData.transferCount} transfer(s)`);
+                                    if (dayData.incomeCount > 0) parts.push(`${dayData.incomeCount} income`);
+                                    if (dayData.expenseCount > 0) parts.push(`${dayData.expenseCount} expense(s)`);
+                                    tooltip = `${day.toLocaleDateString(undefined, { timeZone: 'UTC' })}: ${parts.join(', ')}`;
+                                }
+
+                                return <div key={dateStr} className={`w-[14px] h-[14px] rounded-sm ${color} hover:opacity-80 transition-opacity ${isToday ? 'ring-2 ring-primary-500 dark:ring-primary-400 z-10' : ''}`} title={isToday ? `Today - ${tooltip}` : tooltip} />;
+                            })}
+                        </div>
                     </div>
                 </div>
             </div>
-            {/* New Legend */}
+            {/* Legend */}
             <div className="flex justify-end items-center gap-4 mt-4 text-xs text-light-text-secondary dark:text-dark-text-secondary">
                 <div className="flex items-center gap-1"><div className={`w-3 h-3 rounded-sm ${NO_ACTIVITY_COLOR}`}></div><span>No Activity</span></div>
                 <div className="flex items-center gap-1"><div className={`w-3 h-3 rounded-sm ${TRANSFER_COLOR}`}></div><span>Transfer</span></div>

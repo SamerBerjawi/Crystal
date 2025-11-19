@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect, useMemo } from 'react';
 import Modal from './Modal';
 import { Account, AccountType, Currency, InvestmentSubType, PropertyType } from '../types';
@@ -86,8 +87,26 @@ const AddAccountModal: React.FC<AddAccountModalProps> = ({ onClose, onAdd, accou
     return ACCOUNT_TYPE_STYLES[type]?.color || 'text-gray-500';
   }, [type, subType]);
 
-  const debitAccounts = useMemo(() => accounts.filter(acc => acc.type === 'Checking' || acc.type === 'Savings'), [accounts]);
-  const loanAccounts = useMemo(() => accounts.filter(acc => acc.type === 'Loan'), [accounts]);
+  const groupedDebitAccounts = useMemo(() => {
+    const debitAccounts = accounts.filter(acc => acc.type === 'Checking' || acc.type === 'Savings');
+    const groups: Record<string, Account[]> = {};
+    debitAccounts.forEach(acc => {
+        if (!groups[acc.type]) groups[acc.type] = [];
+        groups[acc.type].push(acc);
+    });
+    return groups;
+  }, [accounts]);
+
+  const groupedLoanAccounts = useMemo(() => {
+    const loanAccounts = accounts.filter(acc => acc.type === 'Loan');
+    const groups: Record<string, Account[]> = {};
+    loanAccounts.forEach(acc => {
+        if (!groups[acc.type]) groups[acc.type] = [];
+        groups[acc.type].push(acc);
+    });
+    return groups;
+  }, [accounts]);
+
   const isLoanForPropertyLinked = useMemo(() => type === 'Property' && !!linkedLoanId, [type, linkedLoanId]);
   
   useEffect(() => {
@@ -278,7 +297,15 @@ const AddAccountModal: React.FC<AddAccountModalProps> = ({ onClose, onAdd, accou
                       <div className={SELECT_WRAPPER_STYLE}>
                           <select id="linkedAccountId" value={linkedAccountId} onChange={e => setLinkedAccountId(e.target.value)} className={INPUT_BASE_STYLE}>
                               <option value="">None</option>
-                              {debitAccounts.map(acc => <option key={acc.id} value={acc.id}>{acc.name}</option>)}
+                              {ALL_ACCOUNT_TYPES.map(type => {
+                                  const group = groupedDebitAccounts[type];
+                                  if (!group || group.length === 0) return null;
+                                  return (
+                                    <optgroup key={type} label={type}>
+                                      {group.map(acc => <option key={acc.id} value={acc.id}>{acc.name}</option>)}
+                                    </optgroup>
+                                  );
+                              })}
                           </select>
                           <div className={SELECT_ARROW_STYLE}><span className="material-symbols-outlined">expand_more</span></div>
                       </div>
@@ -316,7 +343,15 @@ const AddAccountModal: React.FC<AddAccountModalProps> = ({ onClose, onAdd, accou
                         <div className={SELECT_WRAPPER_STYLE}>
                             <select id="linkedLoanId" value={linkedLoanId} onChange={e => setLinkedLoanId(e.target.value)} className={INPUT_BASE_STYLE}>
                                 <option value="">None</option>
-                                {loanAccounts.map(acc => <option key={acc.id} value={acc.id}>{acc.name}</option>)}
+                                {ALL_ACCOUNT_TYPES.map(type => {
+                                    const group = groupedLoanAccounts[type];
+                                    if (!group || group.length === 0) return null;
+                                    return (
+                                        <optgroup key={type} label={type}>
+                                            {group.map(acc => <option key={acc.id} value={acc.id}>{acc.name}</option>)}
+                                        </optgroup>
+                                    );
+                                })}
                             </select>
                             <div className={SELECT_ARROW_STYLE}><span className="material-symbols-outlined">expand_more</span></div>
                         </div>
@@ -344,7 +379,15 @@ const AddAccountModal: React.FC<AddAccountModalProps> = ({ onClose, onAdd, accou
                       <div className={SELECT_WRAPPER_STYLE}>
                            <select id="settlement-account" value={settlementAccountId} onChange={(e) => setSettlementAccountId(e.target.value)} className={INPUT_BASE_STYLE}>
                               <option value="">Select an account</option>
-                              {debitAccounts.map(acc => <option key={acc.id} value={acc.id}>{acc.name}</option>)}
+                              {ALL_ACCOUNT_TYPES.map(type => {
+                                  const group = groupedDebitAccounts[type];
+                                  if (!group || group.length === 0) return null;
+                                  return (
+                                    <optgroup key={type} label={type}>
+                                      {group.map(acc => <option key={acc.id} value={acc.id}>{acc.name}</option>)}
+                                    </optgroup>
+                                  );
+                              })}
                           </select>
                           <div className={SELECT_ARROW_STYLE}><span className="material-symbols-outlined">expand_more</span></div>
                       </div>

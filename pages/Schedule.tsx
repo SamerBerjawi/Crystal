@@ -3,7 +3,7 @@ import React, { useState, useMemo } from 'react';
 // FIX: Import ScheduledItem from global types and remove local definition.
 import { RecurringTransaction, Account, Category, BillPayment, Currency, AccountType, RecurringTransactionOverride, ScheduledItem, Transaction, Tag, LoanPaymentOverrides } from '../types';
 import Card from '../components/Card';
-import { BTN_PRIMARY_STYLE, BTN_SECONDARY_STYLE, INPUT_BASE_STYLE, SELECT_WRAPPER_STYLE, SELECT_ARROW_STYLE, LIQUID_ACCOUNT_TYPES, ACCOUNT_TYPE_STYLES } from '../constants';
+import { BTN_PRIMARY_STYLE, BTN_SECONDARY_STYLE, INPUT_BASE_STYLE, SELECT_WRAPPER_STYLE, SELECT_ARROW_STYLE, LIQUID_ACCOUNT_TYPES, ACCOUNT_TYPE_STYLES, ALL_ACCOUNT_TYPES } from '../constants';
 import { formatCurrency, convertToEur, generateSyntheticLoanPayments, generateSyntheticCreditCardPayments } from '../utils';
 import RecurringTransactionModal from '../components/RecurringTransactionModal';
 import Modal from '../components/Modal';
@@ -42,7 +42,16 @@ const BillPaymentModal: React.FC<{
     };
 
     const labelStyle = "block text-sm font-medium text-light-text-secondary dark:text-dark-text-secondary mb-1";
-    const paymentAccounts = accounts.filter(a => LIQUID_ACCOUNT_TYPES.includes(a.type));
+    
+    const groupedPaymentAccounts = useMemo(() => {
+        const paymentAccounts = accounts.filter(a => LIQUID_ACCOUNT_TYPES.includes(a.type));
+        const groups: Record<string, Account[]> = {};
+        paymentAccounts.forEach(acc => {
+            if (!groups[acc.type]) groups[acc.type] = [];
+            groups[acc.type].push(acc);
+        });
+        return groups;
+    }, [accounts]);
 
     return (
         <Modal onClose={onClose} title={isEditing ? 'Edit Bill/Payment' : 'Add Bill/Payment'}>
@@ -58,7 +67,15 @@ const BillPaymentModal: React.FC<{
                     <div className={SELECT_WRAPPER_STYLE}>
                         <select id="bill-account" value={accountId} onChange={e => setAccountId(e.target.value)} className={INPUT_BASE_STYLE}>
                             <option value="">Default (Primary Account)</option>
-                            {paymentAccounts.map(acc => <option key={acc.id} value={acc.id}>{acc.name}</option>)}
+                            {ALL_ACCOUNT_TYPES.map(type => {
+                                const group = groupedPaymentAccounts[type];
+                                if (!group || group.length === 0) return null;
+                                return (
+                                    <optgroup key={type} label={type}>
+                                        {group.map(acc => <option key={acc.id} value={acc.id}>{acc.name}</option>)}
+                                    </optgroup>
+                                );
+                            })}
                         </select>
                         <div className={SELECT_ARROW_STYLE}><span className="material-symbols-outlined">expand_more</span></div>
                     </div>

@@ -1,7 +1,8 @@
+
 import React, { useState, useEffect, useMemo } from 'react';
 import Modal from './Modal';
 import { FinancialGoal, GoalType, RecurrenceFrequency, Currency, Account } from '../types';
-import { INPUT_BASE_STYLE, BTN_PRIMARY_STYLE, BTN_SECONDARY_STYLE, SELECT_WRAPPER_STYLE, SELECT_ARROW_STYLE, FREQUENCIES, ASSET_TYPES, DEBT_TYPES } from '../constants';
+import { INPUT_BASE_STYLE, BTN_PRIMARY_STYLE, BTN_SECONDARY_STYLE, SELECT_WRAPPER_STYLE, SELECT_ARROW_STYLE, FREQUENCIES, ALL_ACCOUNT_TYPES } from '../constants';
 
 interface GoalScenarioModalProps {
     onClose: () => void;
@@ -33,6 +34,15 @@ const GoalScenarioModal: React.FC<GoalScenarioModalProps> = ({ onClose, onSave, 
         financialGoals.filter(g => (g.isBucket || !g.parentId) && g.id !== goalToEdit?.id),
     [financialGoals, goalToEdit]);
     
+    const groupedAccounts = useMemo(() => {
+        const groups: Record<string, Account[]> = {};
+        accounts.forEach(acc => {
+          if (!groups[acc.type]) groups[acc.type] = [];
+          groups[acc.type].push(acc);
+        });
+        return groups;
+    }, [accounts]);
+
     useEffect(() => {
         if (isEditing && goalToEdit) {
             setName(goalToEdit.name);
@@ -191,12 +201,15 @@ const GoalScenarioModal: React.FC<GoalScenarioModalProps> = ({ onClose, onSave, 
                         <div className={SELECT_WRAPPER_STYLE}>
                             <select id="goal-payment-account" value={paymentAccountId || ''} onChange={e => setPaymentAccountId(e.target.value || undefined)} className={INPUT_BASE_STYLE}>
                                 <option value="">None</option>
-                                <optgroup label="Assets">
-                                    {accounts.filter(a => ASSET_TYPES.includes(a.type)).map(acc => <option key={acc.id} value={acc.id}>{acc.name}</option>)}
-                                </optgroup>
-                                <optgroup label="Liabilities">
-                                    {accounts.filter(a => DEBT_TYPES.includes(a.type)).map(acc => <option key={acc.id} value={acc.id}>{acc.name}</option>)}
-                                </optgroup>
+                                {ALL_ACCOUNT_TYPES.map(type => {
+                                    const group = groupedAccounts[type];
+                                    if (!group || group.length === 0) return null;
+                                    return (
+                                        <optgroup key={type} label={type}>
+                                            {group.map(acc => <option key={acc.id} value={acc.id}>{acc.name}</option>)}
+                                        </optgroup>
+                                    );
+                                })}
                             </select>
                             <div className={SELECT_ARROW_STYLE}><span className="material-symbols-outlined">expand_more</span></div>
                         </div>
