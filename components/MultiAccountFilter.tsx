@@ -96,10 +96,10 @@ const MultiAccountFilter: React.FC<MultiAccountFilterProps> = ({ accounts, selec
   );
 
   return (
-    <div className="relative" ref={wrapperRef}>
+    <div className="relative w-full" ref={wrapperRef}>
       <button
         onClick={() => setIsOpen(!isOpen)}
-        className="h-10 w-48 flex items-center justify-between bg-light-fill dark:bg-dark-fill text-light-text dark:text-dark-text font-semibold pl-4 pr-2 rounded-lg hover:bg-gray-500/20 dark:hover:bg-gray-400/20 transition-colors duration-200 focus:outline-none focus:ring-2 focus:ring-primary-500"
+        className="h-10 w-full flex items-center justify-between bg-light-fill dark:bg-dark-fill text-light-text dark:text-dark-text font-semibold pl-4 pr-2 rounded-lg hover:bg-gray-500/20 dark:hover:bg-gray-400/20 transition-colors duration-200 focus:outline-none focus:ring-2 focus:ring-primary-500"
       >
         <span className="truncate">{buttonText()}</span>
         <span className="material-symbols-outlined text-base">expand_more</span>

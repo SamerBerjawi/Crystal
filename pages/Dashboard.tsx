@@ -717,7 +717,7 @@ const Dashboard: React.FC<DashboardProps> = ({ user, transactions, accounts, sav
 
   const handleDragStart = (e: React.DragEvent, widgetId: string) => { setDraggedWidgetId(widgetId); e.dataTransfer.effectAllowed = 'move'; };
   const handleDragEnter = (e: React.DragEvent, widgetId: string) => { e.preventDefault(); if (widgetId !== draggedWidgetId) setDragOverWidgetId(widgetId); };
-  const handleDragLeave = (e: React.DragEvent) => { e.preventDefault(); setDragOverWidgetId(null); };
+  const handleDragLeave = (e: React.DragEvent, widgetId: string) => { e.preventDefault(); setDragOverWidgetId(null); };
   const handleDrop = (e: React.DragEvent, targetWidgetId: string) => {
     e.preventDefault();
     if (!draggedWidgetId || draggedWidgetId === targetWidgetId) return;
@@ -771,34 +771,45 @@ const Dashboard: React.FC<DashboardProps> = ({ user, transactions, accounts, sav
       )}
       
       {/* Header */}
-      <div className="flex flex-wrap justify-between items-center gap-4">
-        <div>
-          
-          <p className="text-light-text-secondary dark:text-dark-text-secondary mt-1">Welcome back, {user.firstName}!</p>
+      <div className="flex flex-col xl:flex-row justify-between items-start xl:items-center gap-4">
+        <div className="mb-1 xl:mb-0">
+          <p className="text-light-text-secondary dark:text-dark-text-secondary">Welcome back, {user.firstName}!</p>
         </div>
-        <div className="flex items-center gap-4 flex-wrap">
-          <MultiAccountFilter accounts={accounts} selectedAccountIds={selectedAccountIds} setSelectedAccountIds={setSelectedAccountIds} />
-          <DurationFilter selectedDuration={duration} onDurationChange={setDuration} />
-          {isEditMode ? (
-             <div className="flex items-center gap-2">
-                <button onClick={() => setIsAddWidgetModalOpen(true)} className={`${BTN_SECONDARY_STYLE} h-10 flex items-center gap-2`}>
-                    <span className="material-symbols-outlined text-base">add</span>
-                    Add Widget
-                </button>
-                <button onClick={() => setIsEditMode(false)} className={`${BTN_PRIMARY_STYLE} h-10`}>
-                    Done
-                </button>
+        
+        <div className="flex flex-col sm:flex-row gap-3 w-full xl:w-auto">
+            {/* Filters */}
+            <div className="flex gap-3 w-full sm:w-auto">
+                <div className="w-1/2 sm:w-48">
+                    <MultiAccountFilter accounts={accounts} selectedAccountIds={selectedAccountIds} setSelectedAccountIds={setSelectedAccountIds} />
+                </div>
+                <div className="w-1/2 sm:w-36">
+                     <DurationFilter selectedDuration={duration} onDurationChange={setDuration} />
+                </div>
             </div>
-          ) : (
-            <button onClick={() => setIsEditMode(true)} className={`${BTN_SECONDARY_STYLE} h-10 flex items-center gap-2`}>
-                <span className="material-symbols-outlined text-base">edit</span>
-                Edit Layout
-            </button>
-          )}
 
-          <button onClick={() => handleOpenTransactionModal()} className={`${BTN_PRIMARY_STYLE} h-10`}>
-            Add Transaction
-          </button>
+            {/* Actions */}
+            <div className="flex gap-3 w-full sm:w-auto sm:ml-auto xl:ml-0">
+                 {isEditMode ? (
+                    <>
+                        <button onClick={() => setIsAddWidgetModalOpen(true)} className={`${BTN_SECONDARY_STYLE} flex-1 sm:flex-none flex items-center gap-2 justify-center`}>
+                            <span className="material-symbols-outlined text-base">add</span>
+                            <span className="whitespace-nowrap">Add Widget</span>
+                        </button>
+                        <button onClick={() => setIsEditMode(false)} className={`${BTN_PRIMARY_STYLE} flex-1 sm:flex-none justify-center px-6`}>
+                            Done
+                        </button>
+                    </>
+                  ) : (
+                    <button onClick={() => setIsEditMode(true)} className={`${BTN_SECONDARY_STYLE} flex-1 sm:flex-none flex items-center gap-2 justify-center`}>
+                        <span className="material-symbols-outlined text-base">edit</span>
+                        <span className="whitespace-nowrap">Edit Layout</span>
+                    </button>
+                  )}
+
+                  <button onClick={() => handleOpenTransactionModal()} className={`${BTN_PRIMARY_STYLE} flex-1 sm:flex-none justify-center whitespace-nowrap`}>
+                    Add Transaction
+                  </button>
+            </div>
         </div>
       </div>
       
