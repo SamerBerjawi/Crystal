@@ -142,6 +142,8 @@ const Forecasting: React.FC<ForecastingProps> = ({ accounts, transactions, recur
     });
     const [forecastDuration, setForecastDuration] = useState<ForecastDuration>('1Y');
     const [filterGoalsByAccount, setFilterGoalsByAccount] = useState(false);
+    const [showIndividualLines, setShowIndividualLines] = useState(false);
+    const [showGoalLines, setShowGoalLines] = useState(true);
     
     const selectedAccounts = useMemo(() => 
       accounts.filter(a => selectedAccountIds.includes(a.id)),
@@ -332,6 +334,8 @@ const Forecasting: React.FC<ForecastingProps> = ({ accounts, transactions, recur
         { label: '1Y', value: '1Y' },
         { label: '2Y', value: '2Y' },
     ];
+
+    const radioLabelStyle = "flex items-center gap-2 text-sm font-medium text-light-text dark:text-dark-text cursor-pointer p-2 rounded-lg transition-colors";
     
     return (
         <div className="space-y-8">
@@ -351,9 +355,29 @@ const Forecasting: React.FC<ForecastingProps> = ({ accounts, transactions, recur
                 <div>
                     <p className="text-light-text-secondary dark:text-dark-text-secondary mt-1">Project your financial future and plan for your goals.</p>
                 </div>
-                <div className="flex items-center gap-4">
+                <div className="flex items-center gap-4 flex-wrap">
                     <MultiAccountFilter accounts={accounts} selectedAccountIds={selectedAccountIds} setSelectedAccountIds={setSelectedAccountIds} />
                     
+                    <div className="flex items-center gap-4 bg-light-bg dark:bg-dark-bg p-1 rounded-lg shadow-neu-inset-light dark:shadow-neu-inset-dark h-10">
+                        <label className={`${radioLabelStyle} ${!showIndividualLines ? 'bg-light-card dark:bg-dark-card shadow-neu-raised-light dark:shadow-neu-raised-dark' : 'text-light-text-secondary dark:text-dark-text-secondary'}`}>
+                            <input type="radio" checked={!showIndividualLines} onChange={() => setShowIndividualLines(false)} className="sr-only" />
+                            Consolidated
+                        </label>
+                        <label className={`${radioLabelStyle} ${showIndividualLines ? 'bg-light-card dark:bg-dark-card shadow-neu-raised-light dark:shadow-neu-raised-dark' : 'text-light-text-secondary dark:text-dark-text-secondary'}`}>
+                            <input type="radio" checked={showIndividualLines} onChange={() => setShowIndividualLines(true)} className="sr-only" />
+                            Individual
+                        </label>
+                    </div>
+                    
+                    <button 
+                        onClick={() => setShowGoalLines(!showGoalLines)}
+                        className={`h-10 px-3 flex items-center gap-2 rounded-lg transition-all duration-200 border border-transparent focus:outline-none focus:ring-2 focus:ring-primary-500 ${showGoalLines ? 'bg-light-card dark:bg-dark-card shadow-neu-raised-light dark:shadow-neu-raised-dark text-primary-600 dark:text-primary-400 font-semibold' : 'bg-light-bg dark:bg-dark-bg text-light-text-secondary dark:text-dark-text-secondary hover:bg-black/5 dark:hover:bg-white/5'}`}
+                        title={showGoalLines ? "Hide goal lines" : "Show goal lines"}
+                    >
+                         <span className="material-symbols-outlined text-base">{showGoalLines ? 'flag' : 'flag'}</span>
+                         <span className="text-sm hidden sm:inline">Goals</span>
+                    </button>
+
                     <div className="hidden sm:flex bg-light-bg dark:bg-dark-bg p-1 rounded-lg h-10">
                         {durationOptions.map(opt => (
                             <button
@@ -376,7 +400,14 @@ const Forecasting: React.FC<ForecastingProps> = ({ accounts, transactions, recur
 
             <Card>
                 <h3 className="text-xl font-semibold mb-4 text-light-text dark:text-dark-text">Cash Flow Forecast</h3>
-                <ForecastChart data={forecastData} lowestPoint={lowestPoint} oneTimeGoals={activeGoals.filter(g => g.type === 'one-time')} />
+                <ForecastChart 
+                    data={forecastData} 
+                    lowestPoint={lowestPoint} 
+                    oneTimeGoals={activeGoals.filter(g => g.type === 'one-time')} 
+                    showIndividualLines={showIndividualLines}
+                    accounts={selectedAccounts}
+                    showGoalLines={showGoalLines}
+                />
             </Card>
 
             <Card>

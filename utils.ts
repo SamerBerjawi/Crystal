@@ -1,5 +1,3 @@
-
-
 import { Currency, Account, Transaction, Duration, Category, FinancialGoal, RecurringTransaction, BillPayment, ScheduledPayment, RecurringTransactionOverride, LoanPaymentOverrides } from './types';
 import { ASSET_TYPES, DEBT_TYPES, LIQUID_ACCOUNT_TYPES } from './constants';
 import { v4 as uuidv4 } from 'uuid';
@@ -107,7 +105,7 @@ export function getDateRange(duration: Duration, allTransactions: Transaction[] 
             start.setUTCMonth(0, 1);
             break;
         case '1Y':
-            start.setUTCFullYear(start.getUTCFullYear() - 1);
+            start.setUTCFullYear(start.getUTCMonth() - 1);
             break;
         case 'ALL':
             if (allTransactions.length > 0) {
@@ -382,7 +380,7 @@ export function generateBalanceForecast(
     forecastEndDate: Date,
     recurringTransactionOverrides: RecurringTransactionOverride[] = []
 ): {
-    chartData: { date: string; value: number }[];
+    chartData: ({ date: string; value: number; [key: string]: number | string })[];
     tableData: {
         id: string;
         date: string;
@@ -412,6 +410,7 @@ export function generateBalanceForecast(
         currency: Currency;
         description: string;
         accountName: string;
+        accountId?: string; // Added for per-account tracking
         type: 'Recurring' | 'Bill/Payment' | 'Financial Goal';
         isGoal: boolean;
     };
@@ -426,11 +425,8 @@ export function generateBalanceForecast(
     };
 
     recurringTransactions.forEach(rt => {
-// FIX: Changed parseAsUTC to parseDateAsUTC
         let nextDate = parseDateAsUTC(rt.nextDueDate);
-// FIX: Changed parseAsUTC to parseDateAsUTC
         const endDateUTC = rt.endDate ? parseDateAsUTC(rt.endDate) : null;
-// FIX: Changed parseAsUTC to parseDateAsUTC
         const startDateUTC = parseDateAsUTC(rt.startDate);
 
         while (nextDate < startDate && (!endDateUTC || nextDate < endDateUTC)) {
@@ -471,66 +467,45 @@ export function generateBalanceForecast(
                 if (rt.type === 'transfer') {
                     const fromSelected = accountIds.has(rt.accountId);
                     const toSelected = rt.toAccountId ? accountIds.has(rt.toAccountId) : false;
-                    if (fromSelected || toSelected) {
-                        accountName = `${accountMap.get(rt.accountId) || 'External'} → ${accountMap.get(rt.toAccountId!) || 'External'}`;
-                        if (fromSelected && toSelected) {
-                            amount = 0;
-                        } else if (fromSelected) {
-                            amount = -(override?.amount !== undefined ? override.amount : rt.amount);
-                        } else if (toSelected) {
-                            amount = override?.amount !== undefined ? override.amount : rt.amount;
-                        }
-                    } else {
-                        const interval = rt.frequencyInterval || 1;
-                        switch(rt.frequency) {
-                            case 'daily': nextDate.setUTCDate(nextDate.getUTCDate() + interval); break;
-                            case 'weekly': nextDate.setUTCDate(nextDate.getUTCDate() + 7 * interval); break;
-                            case 'monthly': {
-                                const d = rt.dueDateOfMonth || startDateUTC.getUTCDate();
-                                nextDate.setUTCMonth(nextDate.getUTCMonth() + interval, 1);
-                                const lastDay = new Date(Date.UTC(nextDate.getUTCFullYear(), nextDate.getUTCMonth() + 1, 0)).getUTCDate();
-                                nextDate.setUTCDate(Math.min(d, lastDay));
-                                break;
-                            }
-                            case 'yearly': {
-                                 const d = rt.dueDateOfMonth || startDateUTC.getUTCDate();
-                                 const m = startDateUTC.getUTCMonth();
-                                 nextDate.setUTCFullYear(nextDate.getUTCFullYear() + interval);
-                                 const lastDay = new Date(Date.UTC(nextDate.getUTCFullYear(), m + 1, 0)).getUTCDate();
-                                 nextDate.setUTCMonth(m, Math.min(d, lastDay));
-                                 break;
-                            }
-                        }
-                        continue;
+                    
+                    if (fromSelected && toSelected) {
+                        // Internal transfer within selected accounts: net zero on Total, but individual balances change
+                         addEvent(effectiveDate, { 
+                             amount: -(override?.amount !== undefined ? override.amount : rt.amount), 
+                             currency: rt.currency, 
+                             description: `Transfer to ${accountMap.get(rt.toAccountId!) || 'External'}`, 
+                             accountName: accountMap.get(rt.accountId) || 'Unknown',
+                             accountId: rt.accountId,
+                             type: 'Recurring', 
+                             isGoal: false 
+                        });
+                        addEvent(effectiveDate, { 
+                             amount: (override?.amount !== undefined ? override.amount : rt.amount), 
+                             currency: rt.currency, 
+                             description: `Transfer from ${accountMap.get(rt.accountId) || 'External'}`, 
+                             accountName: accountMap.get(rt.toAccountId!) || 'Unknown',
+                             accountId: rt.toAccountId,
+                             type: 'Recurring', 
+                             isGoal: false 
+                        });
+                        // Don't continue here, let the date increment below
+                    } else if (fromSelected) {
+                        // Outflow from selected
+                        accountName = `${accountMap.get(rt.accountId) || 'Unknown'} → External`;
+                        amount = -(override?.amount !== undefined ? override.amount : rt.amount);
+                        addEvent(effectiveDate, { amount, currency: rt.currency, description: override?.description || rt.description, accountName, accountId: rt.accountId, type: 'Recurring', isGoal: false });
+                    } else if (toSelected) {
+                        // Inflow to selected
+                         accountName = `External → ${accountMap.get(rt.toAccountId!) || 'Unknown'}`;
+                         amount = override?.amount !== undefined ? override.amount : rt.amount;
+                         addEvent(effectiveDate, { amount, currency: rt.currency, description: override?.description || rt.description, accountName, accountId: rt.toAccountId, type: 'Recurring', isGoal: false });
                     }
                 } else {
                     accountName = accountMap.get(rt.accountId) || 'Unknown';
-                    if (!accountIds.has(rt.accountId)) {
-                        const interval = rt.frequencyInterval || 1;
-                        switch(rt.frequency) {
-                            case 'daily': nextDate.setUTCDate(nextDate.getUTCDate() + interval); break;
-                            case 'weekly': nextDate.setUTCDate(nextDate.getUTCDate() + 7 * interval); break;
-                            case 'monthly': {
-                                const d = rt.dueDateOfMonth || startDateUTC.getUTCDate();
-                                nextDate.setUTCMonth(nextDate.getUTCMonth() + interval, 1);
-                                const lastDay = new Date(Date.UTC(nextDate.getUTCFullYear(), nextDate.getUTCMonth() + 1, 0)).getUTCDate();
-                                nextDate.setUTCDate(Math.min(d, lastDay));
-                                break;
-                            }
-                            case 'yearly': {
-                                 const d = rt.dueDateOfMonth || startDateUTC.getUTCDate();
-                                 const m = startDateUTC.getUTCMonth();
-                                 nextDate.setUTCFullYear(nextDate.getUTCFullYear() + interval);
-                                 const lastDay = new Date(Date.UTC(nextDate.getUTCFullYear(), m + 1, 0)).getUTCDate();
-                                 nextDate.setUTCMonth(m, Math.min(d, lastDay));
-                                 break;
-                            }
-                        }
-                        continue;
+                    if (accountIds.has(rt.accountId)) {
+                         addEvent(effectiveDate, { amount, currency: rt.currency, description: override?.description || rt.description, accountName, accountId: rt.accountId, type: 'Recurring', isGoal: false });
                     }
                 }
-
-                addEvent(effectiveDate, { amount, currency: rt.currency, description: override?.description || rt.description, accountName, type: 'Recurring', isGoal: false });
             }
 
             const interval = rt.frequencyInterval || 1;
@@ -566,7 +541,7 @@ export function generateBalanceForecast(
             if (goalDate >= startDate && goalDate <= forecastEndDate) {
                 const amount = goal.transactionType === 'expense' ? -(goal.amount - goal.currentAmount) : (goal.amount - goal.currentAmount);
                 if (amount === 0) return;
-                addEvent(goal.date, { amount, currency: goal.currency, description: goal.name, accountName: goal.paymentAccountId ? accountMap.get(goal.paymentAccountId) || 'Unknown' : 'External', type: 'Financial Goal', isGoal: true });
+                addEvent(goal.date, { amount, currency: goal.currency, description: goal.name, accountName: goal.paymentAccountId ? accountMap.get(goal.paymentAccountId) || 'Unknown' : 'External', accountId: goal.paymentAccountId, type: 'Financial Goal', isGoal: true });
             }
         }
     });
@@ -575,31 +550,73 @@ export function generateBalanceForecast(
         if (bill.status === 'unpaid') {
             const dueDate = parseDateAsUTC(bill.dueDate);
             if (dueDate >= startDate && dueDate <= forecastEndDate) {
-                addEvent(bill.dueDate, { amount: bill.amount, currency: bill.currency, description: bill.description, accountName: 'External', type: 'Bill/Payment', isGoal: false });
+                // If bill has an accountId and it's selected, map it. If not, it might be general (External)
+                if (!bill.accountId || accountIds.has(bill.accountId)) {
+                     addEvent(bill.dueDate, { amount: bill.amount, currency: bill.currency, description: bill.description, accountName: bill.accountId ? accountMap.get(bill.accountId) || 'Unknown' : 'External', accountId: bill.accountId, type: 'Bill/Payment', isGoal: false });
+                }
             }
         }
     });
 
-    const chartData: { date: string; value: number }[] = [];
+    const chartData: ({ date: string; value: number; [key: string]: number | string })[] = [];
     const tableData: any[] = [];
-    let runningBalance = accounts.reduce((sum, acc) => sum + convertToEur(acc.balance, acc.currency), 0);
+    
+    // Initial Balances
+    const currentBalances: Record<string, number> = {};
+    let runningTotalBalance = 0;
+
+    accounts.forEach(acc => {
+        const balanceEur = convertToEur(acc.balance, acc.currency);
+        currentBalances[acc.id] = balanceEur;
+        runningTotalBalance += balanceEur;
+    });
     
     let currentDate = new Date(startDate.getTime());
     while (currentDate <= forecastEndDate) {
         const dateStr = currentDate.toISOString().split('T')[0];
         const eventsForDay = dailyEvents.get(dateStr) || [];
         
-        eventsForDay.sort((a,b) => a.amount - b.amount); // process expenses first
+        // Sort expenses first just for table display logic
+        eventsForDay.sort((a,b) => a.amount - b.amount); 
 
         if (eventsForDay.length > 0) {
             for (const event of eventsForDay) {
                 const amountInEur = convertToEur(event.amount, event.currency);
-                runningBalance += amountInEur;
-                tableData.push({ id: uuidv4(), date: dateStr, ...event, amount: amountInEur, balance: runningBalance });
+                
+                if (event.accountId && currentBalances[event.accountId] !== undefined) {
+                    currentBalances[event.accountId] += amountInEur;
+                }
+                
+                // Logic for total: Internal transfers between selected accounts cancel out in 'value' (Total)
+                // but impact 'currentBalances'. The events generated for transfers already have + and - events.
+                // So simply summing all events valid for selected accounts works.
+                
+                // However, verify if 'event' is relevant to the TOTAL (selected accounts).
+                // If it's a transfer between two selected accounts, we added TWO events (+ and -). Sum is 0. Correct.
+                // If it's a transfer from Selected to Unselected, we added ONE event (-). Sum reduces. Correct.
+                // If it's a Bill with no account ID, we assume it hits the 'Total' (virtual cash flow).
+                // But for the Chart Lines, we can't plot it on a specific account line.
+                
+                // Only add to runningTotalBalance if it's either attached to a selected account OR it's a general bill
+                if (event.accountId && accountIds.has(event.accountId)) {
+                     runningTotalBalance += amountInEur;
+                } else if (!event.accountId) {
+                     // Unassigned bill/income -> affects total view
+                     runningTotalBalance += amountInEur;
+                }
+
+                tableData.push({ id: uuidv4(), date: dateStr, ...event, amount: amountInEur, balance: runningTotalBalance });
             }
         }
         
-        chartData.push({ date: dateStr, value: runningBalance });
+        // Construct data point
+        const dataPoint: any = { date: dateStr, value: runningTotalBalance };
+        // Add individual account balances to the data point for the multi-line chart
+        Object.entries(currentBalances).forEach(([accId, bal]) => {
+            dataPoint[accId] = bal;
+        });
+        
+        chartData.push(dataPoint);
         currentDate.setUTCDate(currentDate.getUTCDate() + 1);
     }
     

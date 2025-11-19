@@ -1,11 +1,31 @@
+
 import React, { useMemo } from 'react';
-import { AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, ReferenceLine, Label } from 'recharts';
+import { AreaChart, Area, LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, ReferenceLine, Label, Legend } from 'recharts';
 import { formatCurrency, parseDateAsUTC } from '../utils';
-import { FinancialGoal } from '../types';
+import { FinancialGoal, Account } from '../types';
+import { ACCOUNT_TYPE_STYLES, INVESTMENT_SUB_TYPE_STYLES } from '../constants';
+
+// Helper to generate distinct colors if needed, or map to brand/account type colors
+const getColorForAccount = (account: Account, index: number) => {
+    const palette = [
+        '#6366F1', '#FBBF24', '#10B981', '#EF4444', '#8B5CF6', 
+        '#EC4899', '#14B8A6', '#F97316', '#06B6D4', '#84CC16'
+    ];
+    
+    // Try to match account type style first for consistency
+    if (account.type && ACCOUNT_TYPE_STYLES[account.type]) {
+       // Since constants store Tailwind classes like 'text-blue-500', we can map or just use palette.
+       // For simplicity and better contrast on chart lines, let's cycle through the vivid palette.
+       return palette[index % palette.length];
+    }
+    return palette[index % palette.length];
+};
+
 
 interface ChartData {
   date: string;
-  value: number;
+  value: number; // Total
+  [key: string]: number | string; // Dynamic keys for account IDs
 }
 
 interface ForecastChartProps {
@@ -15,19 +35,46 @@ interface ForecastChartProps {
       value: number;
       date: string;
   };
+  showIndividualLines?: boolean;
+  accounts?: Account[];
+  showGoalLines?: boolean;
 }
 
-const CustomTooltip: React.FC<{ active?: boolean; payload?: any[]; label?: string }> = ({ active, payload, label }) => {
+const CustomTooltip: React.FC<{ active?: boolean; payload?: any[]; label?: string, showIndividualLines?: boolean, accounts?: Account[] }> = ({ active, payload, label, showIndividualLines, accounts }) => {
     if (active && payload && payload.length) {
       const [year, month, day] = label!.split('-').map(Number);
       const formattedDate = new Date(Date.UTC(year, month - 1, day)).toLocaleDateString('en-US', { timeZone: 'UTC', year: 'numeric', month: 'long', day: 'numeric' });
+      
+      // Sort payload by value descending for cleaner tooltip
+      const sortedPayload = [...payload].sort((a, b) => b.value - a.value);
+
       return (
-        <div className="bg-light-card dark:bg-dark-card p-3 rounded-lg shadow-lg border border-black/5 dark:border-white/5">
+        <div className="bg-light-card dark:bg-dark-card p-3 rounded-lg shadow-lg border border-black/5 dark:border-white/5 text-sm">
           <p className="label font-bold text-light-text dark:text-dark-text mb-2">{formattedDate}</p>
-          <p style={{ color: payload[0].color }}>
-            <span className="font-semibold text-sm">Balance: </span>
-            <span className="text-sm">{formatCurrency(payload[0].value, 'EUR')}</span>
-          </p>
+          
+          {showIndividualLines ? (
+              <div className="space-y-1 max-h-60 overflow-y-auto">
+                  {sortedPayload.map((entry: any) => {
+                      // Map dataKey (accountId) to account Name
+                      const account = accounts?.find(a => a.id === entry.dataKey);
+                      const name = account ? account.name : (entry.name === 'Projected Balance' ? 'Total' : entry.name);
+                      return (
+                          <div key={entry.dataKey} className="flex justify-between gap-4">
+                              <span style={{ color: entry.color }}>{name}:</span>
+                              <span className="font-mono">{formatCurrency(entry.value, 'EUR')}</span>
+                          </div>
+                      );
+                  })}
+                  <div className="pt-2 mt-2 border-t border-black/10 dark:border-white/10 flex justify-between gap-4 font-bold">
+                        {/* Placeholder for total logic if needed later */}
+                  </div>
+              </div>
+          ) : (
+             <p style={{ color: payload[0].color }}>
+                <span className="font-semibold">Balance: </span>
+                <span>{formatCurrency(payload[0].value, 'EUR')}</span>
+             </p>
+          )}
         </div>
       );
     }
@@ -40,25 +87,41 @@ const yAxisTickFormatter = (value: number) => {
     return `€${value}`;
 };
 
-const ForecastChart: React.FC<ForecastChartProps> = ({ data, oneTimeGoals, lowestPoint }) => {
+const ForecastChart: React.FC<ForecastChartProps> = ({ data, oneTimeGoals, lowestPoint, showIndividualLines = false, accounts = [], showGoalLines = true }) => {
   if (!data || data.length === 0) {
     return <div className="flex items-center justify-center h-full text-light-text-secondary dark:text-dark-text-secondary">Select accounts and a period to generate a forecast.</div>;
   }
   
   const yDomain = useMemo(() => {
-    const values = data.map(d => d.value);
-    const dataMin = Math.min(...values);
-    const dataMax = Math.max(...values);
+    const values = data.map(d => d.value); // Use Total for domain calculation to ensure everything fits? 
+    // If individual lines, some might be negative or much larger than total.
+    // We should gather ALL values if in individual mode.
+    let allValues: number[] = [];
+    
+    if (showIndividualLines) {
+        data.forEach(row => {
+            accounts.forEach(acc => {
+                if (typeof row[acc.id] === 'number') allValues.push(row[acc.id] as number);
+            });
+        });
+    } else {
+        allValues = values;
+    }
+    
+    if (allValues.length === 0) allValues = [0];
+
+    const dataMin = Math.min(...allValues);
+    const dataMax = Math.max(...allValues);
     
     // Also consider the lowest point's value in case it's not in the visible data range
     const absoluteMin = Math.min(dataMin, lowestPoint?.value || Infinity);
     const absoluteMax = Math.max(dataMax);
 
     const range = absoluteMax - absoluteMin;
-    const buffer = range === 0 ? 5000 : range * 0.2; // 20% buffer, with a minimum
+    const buffer = range === 0 ? 5000 : range * 0.1; // 10% buffer
 
     return [Math.floor(absoluteMin - buffer), Math.ceil(absoluteMax + buffer)];
-  }, [data, lowestPoint]);
+  }, [data, lowestPoint, showIndividualLines, accounts]);
 
 
   const { ticks, tickFormatter } = useMemo(() => {
@@ -106,63 +169,92 @@ const ForecastChart: React.FC<ForecastChartProps> = ({ data, oneTimeGoals, lowes
       })
     : '';
   
+  // Common Props
+  const commonAxisProps = {
+      stroke: "currentColor",
+      opacity: 0.6,
+      fontSize: 12,
+      tickLine: false,
+      axisLine: false,
+  };
+
   return (
     <div style={{ width: '100%', height: '400px' }}>
       <ResponsiveContainer>
-        <AreaChart
-          data={data}
-          margin={{ top: 5, right: 20, left: 20, bottom: 20 }}
-        >
-          <defs>
-            <linearGradient id="colorValue" x1="0" y1="0" x2="0" y2="1"><stop offset="5%" stopColor="#6366F1" stopOpacity={0.7}/><stop offset="95%" stopColor="#6366F1" stopOpacity={0}/></linearGradient>
-          </defs>
-          <CartesianGrid strokeDasharray="3 3" stroke="currentColor" opacity={0.1} />
-          <XAxis 
-            dataKey="date" 
-            stroke="currentColor" 
-            opacity={0.6} 
-            fontSize={12} 
-            tickFormatter={tickFormatter}
-            ticks={ticks}
-            minTickGap={80}
-          />
-          <YAxis 
-            stroke="currentColor" 
-            opacity={0.6} 
-            fontSize={12} 
-            tickFormatter={yAxisTickFormatter}
-            domain={yDomain}
-            allowDataOverflow={true}
-            width={90}
-          />
-          <Tooltip content={<CustomTooltip />} />
-          <ReferenceLine y={0} stroke="currentColor" strokeDasharray="4 4" opacity={0.5} />
-          {oneTimeGoals.map(goal => (
-              <ReferenceLine key={goal.id} x={goal.date} stroke="#FBBF24" strokeDasharray="3 3">
-                  <Label value={goal.name} position="insideTopRight" fill="#FBBF24" fontSize={12} angle={-90} dx={10} dy={10} />
-              </ReferenceLine>
-          ))}
-          <Area type="monotone" dataKey="value" name="Projected Balance" stroke="#6366F1" fill="url(#colorValue)" strokeWidth={2.5} dot={false} activeDot={{ r: 5 }} />
-          {data.length > 0 && lowestPoint && (
-              <ReferenceLine
-                  key="lowest-point-line"
-                  x={lowestPoint.date}
-                  stroke="#FF3B30" // Red
-                  strokeDasharray="3 3"
-              >
-                <Label 
-                    value={`Lowest: ${formatCurrency(lowestPoint.value, 'EUR')} on ${lowestPointDateFormatted}`}
-                    position="insideTopRight" 
-                    fill="#FF3B30" 
-                    fontSize={12} 
-                    angle={-90} 
-                    dx={10} 
-                    dy={20} 
-                    fontWeight="bold"
-                />
-              </ReferenceLine>
-          )}
-        </AreaChart>
+        {showIndividualLines ? (
+             <LineChart data={data} margin={{ top: 5, right: 20, left: 20, bottom: 20 }}>
+                <CartesianGrid strokeDasharray="3 3" stroke="currentColor" opacity={0.1} />
+                <XAxis dataKey="date" {...commonAxisProps} tickFormatter={tickFormatter} ticks={ticks} minTickGap={50} />
+                <YAxis {...commonAxisProps} tickFormatter={yAxisTickFormatter} domain={yDomain} allowDataOverflow={true} width={60} />
+                <Tooltip content={<CustomTooltip showIndividualLines={true} accounts={accounts} />} />
+                {/* Render a line for each account */}
+                {accounts.map((acc, idx) => (
+                    <Line 
+                        key={acc.id}
+                        type="monotone" 
+                        dataKey={acc.id} 
+                        name={acc.name}
+                        stroke={getColorForAccount(acc, idx)} 
+                        strokeWidth={2} 
+                        dot={false} 
+                        activeDot={{ r: 4 }}
+                    />
+                ))}
+                {showGoalLines && oneTimeGoals.map(goal => (
+                    <ReferenceLine key={goal.id} x={goal.date} stroke="#FBBF24" strokeDasharray="3 3">
+                        <Label value={goal.name} position="insideTopRight" fill="#FBBF24" fontSize={12} angle={-90} dx={10} dy={10} />
+                    </ReferenceLine>
+                ))}
+             </LineChart>
+        ) : (
+            <AreaChart data={data} margin={{ top: 5, right: 20, left: 20, bottom: 20 }}>
+              <defs>
+                <linearGradient id="colorValue" x1="0" y1="0" x2="0" y2="1"><stop offset="5%" stopColor="#6366F1" stopOpacity={0.7}/><stop offset="95%" stopColor="#6366F1" stopOpacity={0}/></linearGradient>
+              </defs>
+              <CartesianGrid strokeDasharray="3 3" stroke="currentColor" opacity={0.1} />
+              <XAxis 
+                dataKey="date" 
+                {...commonAxisProps}
+                tickFormatter={tickFormatter}
+                ticks={ticks}
+                minTickGap={50}
+              />
+              <YAxis 
+                {...commonAxisProps}
+                tickFormatter={yAxisTickFormatter}
+                domain={yDomain}
+                allowDataOverflow={true}
+                width={60}
+              />
+              <Tooltip content={<CustomTooltip showIndividualLines={false} />} />
+              <ReferenceLine y={0} stroke="currentColor" strokeDasharray="4 4" opacity={0.5} />
+              {showGoalLines && oneTimeGoals.map(goal => (
+                  <ReferenceLine key={goal.id} x={goal.date} stroke="#FBBF24" strokeDasharray="3 3">
+                      <Label value={goal.name} position="insideTopRight" fill="#FBBF24" fontSize={12} angle={-90} dx={10} dy={10} />
+                  </ReferenceLine>
+              ))}
+              <Area type="monotone" dataKey="value" name="Projected Balance" stroke="#6366F1" fill="url(#colorValue)" strokeWidth={2.5} dot={false} activeDot={{ r: 5 }} />
+              {data.length > 0 && lowestPoint && (
+                  <ReferenceLine
+                      key="lowest-point-line"
+                      x={lowestPoint.date}
+                      stroke="#FF3B30" // Red
+                      strokeDasharray="3 3"
+                  >
+                    <Label 
+                        value={`Lowest: ${formatCurrency(lowestPoint.value, 'EUR')} on ${lowestPointDateFormatted}`}
+                        position="insideTopRight" 
+                        fill="#FF3B30" 
+                        fontSize={12} 
+                        angle={-90} 
+                        dx={10} 
+                        dy={20} 
+                        fontWeight="bold"
+                    />
+                  </ReferenceLine>
+              )}
+            </AreaChart>
+        )}
       </ResponsiveContainer>
     </div>
   );
