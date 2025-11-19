@@ -1,4 +1,3 @@
-
 import { Currency, Account, Transaction, Duration, Category, FinancialGoal, RecurringTransaction, BillPayment, ScheduledPayment, RecurringTransactionOverride, LoanPaymentOverrides } from './types';
 import { ASSET_TYPES, DEBT_TYPES, LIQUID_ACCOUNT_TYPES } from './constants';
 import { v4 as uuidv4 } from 'uuid';
@@ -381,7 +380,7 @@ export function generateBalanceForecast(
     forecastEndDate: Date,
     recurringTransactionOverrides: RecurringTransactionOverride[] = []
 ): {
-    chartData: ({ date: string; value: number; [key: string]: number | string })[];
+    chartData: ({ date: string; value: number; dailySummary: { description: string; amount: number; type: string }[]; [key: string]: any })[];
     tableData: {
         id: string;
         date: string;
@@ -562,7 +561,7 @@ export function generateBalanceForecast(
         }
     });
 
-    const chartData: ({ date: string; value: number; [key: string]: number | string })[] = [];
+    const chartData: ({ date: string; value: number; dailySummary: { description: string; amount: number; type: string }[]; [key: string]: any })[] = [];
     const tableData: any[] = [];
     
     // Initial Balances
@@ -582,6 +581,8 @@ export function generateBalanceForecast(
         
         // Sort expenses first just for table display logic
         eventsForDay.sort((a,b) => a.amount - b.amount); 
+        
+        const dailySummary: { description: string; amount: number; type: string }[] = [];
 
         if (eventsForDay.length > 0) {
             for (const event of eventsForDay) {
@@ -599,11 +600,20 @@ export function generateBalanceForecast(
                 }
 
                 tableData.push({ id: uuidv4(), date: dateStr, ...event, amount: amountInEur, balance: runningTotalBalance });
+                dailySummary.push({
+                    description: event.description,
+                    amount: amountInEur,
+                    type: event.type
+                });
             }
         }
         
         // Construct data point
-        const dataPoint: any = { date: dateStr, value: runningTotalBalance };
+        const dataPoint: any = { 
+            date: dateStr, 
+            value: runningTotalBalance,
+            dailySummary: dailySummary
+        };
         // Add individual account balances to the data point for the multi-line chart
         Object.entries(currentBalances).forEach(([accId, bal]) => {
             dataPoint[accId] = bal;

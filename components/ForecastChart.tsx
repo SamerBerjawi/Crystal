@@ -25,7 +25,7 @@ const getColorForAccount = (account: Account, index: number) => {
 interface ChartData {
   date: string;
   value: number; // Total
-  [key: string]: number | string; // Dynamic keys for account IDs
+  [key: string]: number | string | { description: string, amount: number, type: string }[]; // Dynamic keys for account IDs + dailySummary
 }
 
 interface ForecastChartProps {
@@ -48,10 +48,14 @@ const CustomTooltip: React.FC<{ active?: boolean; payload?: any[]; label?: strin
       
       // Sort payload by value descending for cleaner tooltip
       const sortedPayload = [...payload].sort((a, b) => b.value - a.value);
+      const dataPoint = payload[0].payload;
+      const dailySummary = dataPoint.dailySummary as { description: string; amount: number; type: string }[] | undefined;
+      const summaryToShow = dailySummary ? dailySummary.slice(0, 5) : [];
+      const remainingCount = dailySummary ? dailySummary.length - 5 : 0;
 
       return (
-        <div className="bg-light-card dark:bg-dark-card p-3 rounded-lg shadow-lg border border-black/5 dark:border-white/5 text-sm">
-          <p className="label font-bold text-light-text dark:text-dark-text mb-2">{formattedDate}</p>
+        <div className="bg-light-card dark:bg-dark-card p-3 rounded-lg shadow-lg border border-black/5 dark:border-white/5 text-sm max-w-[300px]">
+          <p className="label font-bold text-light-text dark:text-dark-text mb-2 border-b border-black/5 dark:border-white/5 pb-1">{formattedDate}</p>
           
           {showIndividualLines ? (
               <div className="space-y-1 max-h-60 overflow-y-auto">
@@ -66,17 +70,38 @@ const CustomTooltip: React.FC<{ active?: boolean; payload?: any[]; label?: strin
                           </div>
                       );
                   })}
-                  <div className="pt-2 mt-2 border-t border-black/10 dark:border-white/10 flex justify-between gap-4 font-bold">
-                        {/* Placeholder for total logic if needed later */}
-                  </div>
               </div>
           ) : (
-             <p style={{ color: payload[0].color }}>
-                <span className="font-semibold">Balance: </span>
-                <span>{formatCurrency(payload[0].value, 'EUR')}</span>
-             </p>
+             <div className="mb-3">
+                <div style={{ color: payload[0].color }} className="flex justify-between items-center font-semibold text-base">
+                    <span>Balance:</span>
+                    <span>{formatCurrency(payload[0].value, 'EUR')}</span>
+                </div>
+             </div>
           )}
-          <p className="text-xs text-center mt-2 text-light-text-secondary dark:text-dark-text-secondary italic">Click to view details</p>
+          
+          {dailySummary && dailySummary.length > 0 && (
+            <div className="mt-3 pt-2 border-t border-black/10 dark:border-white/10">
+                <p className="text-xs font-semibold text-light-text-secondary dark:text-dark-text-secondary mb-1">Transactions:</p>
+                <div className="space-y-1">
+                    {summaryToShow.map((item, idx) => (
+                        <div key={idx} className="flex justify-between text-xs">
+                            <span className="truncate mr-2 text-light-text dark:text-dark-text">{item.description}</span>
+                            <span className={`font-mono whitespace-nowrap ${item.amount >= 0 ? 'text-green-600 dark:text-green-400' : 'text-red-600 dark:text-red-400'}`}>
+                                {formatCurrency(item.amount, 'EUR')}
+                            </span>
+                        </div>
+                    ))}
+                    {remainingCount > 0 && (
+                        <p className="text-xs text-light-text-secondary dark:text-dark-text-secondary italic text-center mt-1">
+                            + {remainingCount} more
+                        </p>
+                    )}
+                </div>
+            </div>
+          )}
+
+          <p className="text-xs text-center mt-3 text-primary-500 font-medium cursor-pointer hover:underline">Click for full details</p>
         </div>
       );
     }

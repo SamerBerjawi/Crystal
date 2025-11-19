@@ -196,11 +196,11 @@ export const App: React.FC = () => {
 
     setIsLoadingPrices(true);
     const newPrices: Record<string, number | null> = {};
+    
+    // Optimized Proxy List
     const CORS_PROXIES = [
+        'https://corsproxy.io/?', // Generally most reliable
         'https://api.allorigins.win/raw?url=',
-        'https://corsproxy.io/?',
-        'https://thingproxy.freeboard.io/fetch/',
-        'https://cors.eu.org/',
     ];
 
     for (const config of configsToRun) {
