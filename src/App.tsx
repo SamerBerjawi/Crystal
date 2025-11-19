@@ -5,8 +5,6 @@ import Sidebar from './components/Sidebar';
 import Header from './components/Header';
 import SignIn from './pages/SignIn';
 import SignUp from './pages/SignUp';
-import Card from './components/Card';
-
 const Dashboard = lazy(() => import('./pages/Dashboard'));
 const Accounts = lazy(() => import('./pages/Accounts'));
 const Transactions = lazy(() => import('./pages/Transactions'));
@@ -30,7 +28,7 @@ const Documentation = lazy(() => import('./pages/Documentation').then(module => 
 // FIX: Import FinancialData from types.ts
 // FIX: Add `Tag` to the import from `types.ts`.
 import { Page, Theme, Category, User, Transaction, Account, RecurringTransaction, RecurringTransactionOverride, WeekendAdjustment, FinancialGoal, Budget, ImportExportHistoryItem, AppPreferences, AccountType, InvestmentTransaction, Task, Warrant, ScraperConfig, ImportDataType, FinancialData, Currency, BillPayment, BillPaymentStatus, Duration, InvestmentSubType, Tag, LoanPaymentOverrides, ScheduledPayment, RemoteAccount, EnableBankingSettings } from './types';
-import { MOCK_INCOME_CATEGORIES, MOCK_EXPENSE_CATEGORIES, LIQUID_ACCOUNT_TYPES, BTN_PRIMARY_STYLE, BTN_SECONDARY_STYLE } from './constants';
+import { MOCK_INCOME_CATEGORIES, MOCK_EXPENSE_CATEGORIES, LIQUID_ACCOUNT_TYPES } from './constants';
 import { v4 as uuidv4 } from 'uuid';
 import ChatFab from './components/ChatFab';
 const Chatbot = lazy(() => import('./components/Chatbot'));
@@ -1365,6 +1363,119 @@ export const App: React.FC = () => {
     }));
   };
 
+  const renderPage = () => {
+    if (viewingAccountId) {
+      if (viewingAccount) {
+        return <AccountDetail 
+          account={viewingAccount}
+          accounts={accounts}
+          transactions={transactions}
+          allCategories={[...incomeCategories, ...expenseCategories]}
+          setCurrentPage={setCurrentPage}
+          saveTransaction={handleSaveTransaction}
+          recurringTransactions={recurringTransactions}
+          setViewingAccountId={setViewingAccountId}
+          tags={tags}
+          loanPaymentOverrides={loanPaymentOverrides}
+          saveLoanPaymentOverrides={handleSaveLoanPaymentOverrides}
+        />
+      } else {
+        setViewingAccountId(null); // Account not found, go back to dashboard
+        setCurrentPage('Dashboard');
+      }
+    }
+
+    switch (currentPage) {
+      case 'Dashboard':
+        return <Dashboard 
+            user={currentUser!} 
+            transactions={transactions} 
+            accounts={accounts} 
+            saveTransaction={handleSaveTransaction} 
+            incomeCategories={incomeCategories} 
+            expenseCategories={expenseCategories} 
+            financialGoals={financialGoals} 
+            recurringTransactions={recurringTransactions} 
+            recurringTransactionOverrides={recurringTransactionOverrides}
+            loanPaymentOverrides={loanPaymentOverrides}
+            activeGoalIds={activeGoalIds}
+            billsAndPayments={billsAndPayments} 
+            selectedAccountIds={dashboardAccountIds} 
+            setSelectedAccountIds={setDashboardAccountIds} 
+            duration={dashboardDuration} 
+            setDuration={setDashboardDuration} 
+            tags={tags} 
+            budgets={budgets} 
+        />;
+      case 'Accounts':
+        return <Accounts accounts={accounts} transactions={transactions} saveAccount={handleSaveAccount} deleteAccount={handleDeleteAccount} setCurrentPage={setCurrentPage} setAccountFilter={setAccountFilter} setViewingAccountId={setViewingAccountId} saveTransaction={handleSaveTransaction} accountOrder={accountOrder} setAccountOrder={setAccountOrder} sortBy={accountsSortBy} setSortBy={setAccountsSortBy} warrants={warrants} onToggleAccountStatus={handleToggleAccountStatus} />;
+      case 'Transactions':
+        return <Transactions transactions={transactions} saveTransaction={handleSaveTransaction} deleteTransactions={handleDeleteTransactions} accounts={accounts} accountFilter={accountFilter} setAccountFilter={setAccountFilter} incomeCategories={incomeCategories} expenseCategories={expenseCategories} tags={tags} tagFilter={tagFilter} setTagFilter={setTagFilter} saveRecurringTransaction={handleSaveRecurringTransaction} />;
+      case 'Budget':
+        return <Budgeting budgets={budgets} transactions={transactions} expenseCategories={expenseCategories} saveBudget={handleSaveBudget} deleteBudget={handleDeleteBudget} accounts={accounts} preferences={preferences} />;
+      case 'Forecasting':
+        return <Forecasting 
+          accounts={accounts} 
+          transactions={transactions} 
+          recurringTransactions={recurringTransactions} 
+          recurringTransactionOverrides={recurringTransactionOverrides} 
+          loanPaymentOverrides={loanPaymentOverrides} 
+          financialGoals={financialGoals} 
+          saveFinancialGoal={handleSaveFinancialGoal} 
+          deleteFinancialGoal={handleDeleteFinancialGoal} 
+          expenseCategories={expenseCategories} 
+          billsAndPayments={billsAndPayments} 
+          activeGoalIds={activeGoalIds} 
+          setActiveGoalIds={setActiveGoalIds}
+          saveRecurringTransaction={handleSaveRecurringTransaction}
+          deleteRecurringTransaction={handleDeleteRecurringTransaction}
+          saveBillPayment={handleSaveBillPayment}
+          deleteBillPayment={handleDeleteBillPayment}
+          incomeCategories={incomeCategories}
+        />;
+      case 'Settings':
+        return <SettingsPage setCurrentPage={setCurrentPage} user={currentUser!} />;
+      case 'Schedule & Bills':
+        return <SchedulePage recurringTransactions={recurringTransactions} saveRecurringTransaction={handleSaveRecurringTransaction} deleteRecurringTransaction={handleDeleteRecurringTransaction} billsAndPayments={billsAndPayments} saveBillPayment={handleSaveBillPayment} deleteBillPayment={handleDeleteBillPayment} markBillAsPaid={handleMarkBillAsPaid} accounts={accounts} incomeCategories={incomeCategories} expenseCategories={expenseCategories} recurringTransactionOverrides={recurringTransactionOverrides} saveRecurringOverride={handleSaveRecurringOverride} deleteRecurringOverride={handleDeleteRecurringOverride} saveTransaction={handleSaveTransaction} transactions={transactions} tags={tags} loanPaymentOverrides={loanPaymentOverrides} />;
+      case 'Categories':
+        return <CategoriesPage incomeCategories={incomeCategories} setIncomeCategories={setIncomeCategories} expenseCategories={expenseCategories} setExpenseCategories={setExpenseCategories} setCurrentPage={setCurrentPage} />;
+      case 'Tags':
+        return <TagsPage tags={tags} transactions={transactions} saveTag={handleSaveTag} deleteTag={handleDeleteTag} setCurrentPage={setCurrentPage} setTagFilter={setTagFilter} />;
+      case 'Personal Info':
+        return <PersonalInfoPage user={currentUser!} setUser={handleSetUser} onChangePassword={changePassword} setCurrentPage={setCurrentPage} />;
+      case 'Data Management':
+        return <DataManagement 
+            accounts={accounts} transactions={transactions} budgets={budgets} recurringTransactions={recurringTransactions} allCategories={[...incomeCategories, ...expenseCategories]} history={importExportHistory} 
+            onPublishImport={handlePublishImport} onDeleteHistoryItem={handleDeleteHistoryItem} onDeleteImportedTransactions={handleDeleteImportedTransactions}
+            onResetAccount={handleResetAccount} onExportAllData={handleExportAllData} onImportAllData={handleImportAllData} onExportCSV={handleExportCSV}
+            setCurrentPage={setCurrentPage}
+            />;
+      case 'Preferences':
+        return <PreferencesPage preferences={preferences} setPreferences={setPreferences} theme={theme} setTheme={setTheme} setCurrentPage={setCurrentPage} />;
+      case 'Investments':
+        return <InvestmentsPage accounts={accounts} cashAccounts={accounts.filter(a => a.type === 'Checking' || a.type === 'Savings')} investmentTransactions={investmentTransactions} saveInvestmentTransaction={handleSaveInvestmentTransaction} deleteInvestmentTransaction={handleDeleteInvestmentTransaction} saveTransaction={handleSaveTransaction} warrants={warrants} />;
+      case 'Warrants':
+        return <WarrantsPage warrants={warrants} saveWarrant={handleSaveWarrant} deleteWarrant={handleDeleteWarrant} scraperConfigs={scraperConfigs} saveScraperConfig={handleSaveScraperConfig} prices={warrantPrices} isLoadingPrices={isLoadingPrices} lastUpdated={lastUpdated} refreshPrices={fetchWarrantPrices} />;
+      case 'Tasks':
+        return <TasksPage tasks={tasks} saveTask={handleSaveTask} deleteTask={handleDeleteTask} taskOrder={taskOrder} setTaskOrder={setTaskOrder} />;
+      case 'Documentation':
+        return <Documentation setCurrentPage={setCurrentPage} />;
+      case 'AI Assistant':
+        return <AIAssistantSettingsPage setCurrentPage={setCurrentPage} />;
+      case 'Enable Banking':
+        return <EnableBankingSettingsPage 
+            linkedAccounts={accounts.filter(a => !!a.enableBankingId)}
+            settings={enableBankingSettings}
+            setSettings={setEnableBankingSettings}
+            onStartConnection={handleStartBankConnection}
+            onUnlinkAccount={handleUnlinkAccount}
+            onManualSync={handleManualSync}
+            setCurrentPage={setCurrentPage}
+        />;
+      default:
+        return <div>Page not found</div>;
+    }
+  };
 
   // Loading state
   if (isAuthLoading || !isDataLoaded) {

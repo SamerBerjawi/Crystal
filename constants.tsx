@@ -1,6 +1,6 @@
 
 import React, { useState, useEffect } from 'react';
-import { Category, Page, AccountType, Currency, Theme, RecurrenceFrequency, WeekendAdjustment, DefaultAccountOrder, Duration, InvestmentSubType, PropertyType } from './types';
+import { Category, Page, AccountType, Currency, Theme, RecurrenceFrequency, WeekendAdjustment, DefaultAccountOrder, Duration, InvestmentSubType, PropertyType, FuelType, VehicleOwnership } from './types';
 
 
 // FIX: Renamed AuraFinanceLogo to CrystalLogo to finalize rebranding.
@@ -119,6 +119,9 @@ export const LIQUID_ACCOUNT_TYPES: AccountType[] = ['Checking', 'Savings', 'Cred
 export const CURRENCIES: Currency[] = ['USD', 'EUR', 'GBP', 'BTC', 'RON'];
 export const INVESTMENT_SUB_TYPES: InvestmentSubType[] = ['Stock', 'ETF', 'Crypto', 'Pension Fund', 'Spare Change', 'Other'];
 export const PROPERTY_TYPES: PropertyType[] = ['House', 'Apartment', 'Land', 'Commercial', 'Other'];
+export const FUEL_TYPES: FuelType[] = ['Gasoline', 'Diesel', 'Electric', 'Hybrid', 'LPG'];
+export const VEHICLE_OWNERSHIP_TYPES: VehicleOwnership[] = ['Owned', 'Leased'];
+
 export const FREQUENCIES: { value: RecurrenceFrequency, label: string }[] = [
     { value: 'daily', label: 'Daily' },
     { value: 'weekly', label: 'Weekly' },

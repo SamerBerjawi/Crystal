@@ -20,6 +20,7 @@ import CreditCardStatementCard from '../components/CreditCardStatementCard';
 import LoanProgressCard from '../components/LoanProgressCard';
 import Card from '../components/Card';
 import PaymentPlanTable from '../components/PaymentPlanTable';
+import VehicleMileageChart from '../components/VehicleMileageChart';
 
 const findCategoryDetails = (name: string, categories: Category[]): Category | undefined => {
     for (const cat of categories) {
@@ -361,6 +362,98 @@ const AccountDetail: React.FC<AccountDetailProps> = ({ account, accounts, transa
                     </Card>
                 </div>
                 
+                <Card>
+                    <h3 className="text-xl font-semibold mb-4 text-light-text dark:text-dark-text">Recent Activity</h3>
+                    <TransactionList
+                        transactions={recentTransactions}
+                        allCategories={allCategories}
+                        onTransactionClick={handleTransactionClick}
+                    />
+                </Card>
+            </div>
+        );
+    }
+
+    if (account.type === 'Vehicle') {
+        const currentMileage = account.mileageLogs && account.mileageLogs.length > 0 
+            ? account.mileageLogs.sort((a,b) => new Date(b.date).getTime() - new Date(a.date).getTime())[0].reading 
+            : 0;
+        
+        const leaseProgress = useMemo(() => {
+            if (account.ownership === 'Leased' && account.leaseStartDate && account.leaseEndDate) {
+                const start = new Date(account.leaseStartDate).getTime();
+                const end = new Date(account.leaseEndDate).getTime();
+                const now = new Date().getTime();
+                const totalDuration = end - start;
+                const elapsed = now - start;
+                if (totalDuration <= 0) return 0;
+                return Math.min(Math.max((elapsed / totalDuration) * 100, 0), 100);
+            }
+            return 0;
+        }, [account.ownership, account.leaseStartDate, account.leaseEndDate]);
+
+        return (
+            <div className="space-y-6">
+                <header className="flex flex-wrap justify-between items-center gap-4">
+                    <div className="flex items-center gap-4 w-full">
+                        <button onClick={() => { setViewingAccountId(null); setCurrentPage('Accounts'); }} className="text-light-text-secondary dark:text-dark-text-secondary p-2 rounded-full hover:bg-black/5 dark:hover:bg-white/5 flex-shrink-0">
+                            <span className="material-symbols-outlined">arrow_back</span>
+                        </button>
+                        <div className="flex items-center gap-4 w-full">
+                             {account.imageUrl && (
+                                <img src={account.imageUrl} alt="Vehicle" className="w-16 h-16 rounded-lg object-cover border border-black/10 dark:border-white/10" />
+                             )}
+                            <div>
+                                <h2 className="text-xl font-bold text-light-text dark:text-dark-text">{account.year} {account.make} {account.model}</h2>
+                                <p className="text-light-text-secondary dark:text-dark-text-secondary text-sm">{account.licensePlate} &bull; {account.vin}</p>
+                            </div>
+                        </div>
+                    </div>
+                </header>
+
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+                    <Card>
+                        <h3 className="text-base font-semibold text-light-text-secondary dark:text-dark-text-secondary mb-2">Details</h3>
+                        <div className="space-y-2 text-sm">
+                             <div className="flex justify-between"><span>Fuel Type</span><span className="font-semibold">{account.fuelType || 'N/A'}</span></div>
+                             <div className="flex justify-between"><span>Ownership</span><span className="font-semibold">{account.ownership}</span></div>
+                             <div className="flex justify-between"><span>Current Value</span><span className="font-semibold">{formatCurrency(account.balance, account.currency)}</span></div>
+                        </div>
+                    </Card>
+                    
+                    <Card>
+                         <h3 className="text-base font-semibold text-light-text-secondary dark:text-dark-text-secondary mb-2">
+                             {account.ownership === 'Leased' ? 'Lease Progress' : 'Purchase Info'}
+                         </h3>
+                         {account.ownership === 'Leased' ? (
+                             <div>
+                                 <div className="flex justify-between text-xs mb-1">
+                                     <span>{account.leaseStartDate ? new Date(account.leaseStartDate).toLocaleDateString() : 'Start'}</span>
+                                     <span>{account.leaseEndDate ? new Date(account.leaseEndDate).toLocaleDateString() : 'End'}</span>
+                                 </div>
+                                 <div className="w-full bg-light-fill dark:bg-dark-fill rounded-full h-2.5">
+                                     <div className="bg-primary-500 h-2.5 rounded-full transition-all duration-500" style={{ width: `${leaseProgress}%` }}></div>
+                                 </div>
+                                 <p className="text-center text-xs mt-1">{leaseProgress.toFixed(0)}% Elapsed</p>
+                             </div>
+                         ) : (
+                             <div className="space-y-2 text-sm">
+                                 <div className="flex justify-between"><span>Purchase Date</span><span className="font-semibold">{account.purchaseDate ? new Date(account.purchaseDate).toLocaleDateString() : 'N/A'}</span></div>
+                                 <div className="flex justify-between"><span>Original Price</span><span className="font-semibold">{account.purchasePrice ? formatCurrency(account.purchasePrice, account.currency) : 'N/A'}</span></div>
+                             </div>
+                         )}
+                    </Card>
+                    
+                    <Card>
+                        <h3 className="text-base font-semibold text-light-text-secondary dark:text-dark-text-secondary mb-2">Odometer</h3>
+                        <div className="flex items-center justify-center h-full pb-4">
+                             <p className="text-3xl font-bold font-mono">{currentMileage.toLocaleString()} <span className="text-sm font-normal text-light-text-secondary dark:text-dark-text-secondary">km</span></p>
+                        </div>
+                    </Card>
+                </div>
+                
+                <VehicleMileageChart logs={account.mileageLogs || []} />
+
                 <Card>
                     <h3 className="text-xl font-semibold mb-4 text-light-text dark:text-dark-text">Recent Activity</h3>
                     <TransactionList

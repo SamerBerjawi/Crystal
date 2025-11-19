@@ -1,8 +1,8 @@
 
-import React, { useState, useEffect, useMemo } from 'react';
+import React, { useState, useEffect, useMemo, useRef } from 'react';
 import Modal from './Modal';
-import { Account, AccountType, Currency, InvestmentSubType, PropertyType } from '../types';
-import { ALL_ACCOUNT_TYPES, CURRENCIES, ACCOUNT_TYPE_STYLES, INPUT_BASE_STYLE, BTN_PRIMARY_STYLE, BTN_SECONDARY_STYLE, SELECT_ARROW_STYLE, SELECT_WRAPPER_STYLE, ACCOUNT_ICON_LIST, INVESTMENT_SUB_TYPES, PROPERTY_TYPES, INVESTMENT_SUB_TYPE_STYLES } from '../constants';
+import { Account, AccountType, Currency, InvestmentSubType, PropertyType, FuelType, VehicleOwnership } from '../types';
+import { ALL_ACCOUNT_TYPES, CURRENCIES, ACCOUNT_TYPE_STYLES, INPUT_BASE_STYLE, BTN_PRIMARY_STYLE, BTN_SECONDARY_STYLE, SELECT_ARROW_STYLE, SELECT_WRAPPER_STYLE, ACCOUNT_ICON_LIST, INVESTMENT_SUB_TYPES, PROPERTY_TYPES, INVESTMENT_SUB_TYPE_STYLES, FUEL_TYPES, VEHICLE_OWNERSHIP_TYPES } from '../constants';
 import IconPicker from './IconPicker';
 
 interface AddAccountModalProps {
@@ -43,6 +43,18 @@ const AddAccountModal: React.FC<AddAccountModalProps> = ({ onClose, onAdd, accou
   const [notes, setNotes] = useState('');
   const [linkedAccountId, setLinkedAccountId] = useState<string>('');
   
+  // Vehicle Specific
+  const [licensePlate, setLicensePlate] = useState('');
+  const [vin, setVin] = useState('');
+  const [fuelType, setFuelType] = useState<FuelType>('Gasoline');
+  const [vehicleOwnership, setVehicleOwnership] = useState<VehicleOwnership>('Owned');
+  const [purchaseDate, setPurchaseDate] = useState('');
+  const [leaseStartDate, setLeaseStartDate] = useState('');
+  const [leaseEndDate, setLeaseEndDate] = useState('');
+  const [currentMileage, setCurrentMileage] = useState('');
+  const [vehicleImage, setVehicleImage] = useState('');
+  const fileInputRef = useRef<HTMLInputElement>(null);
+
   // Credit card specific fields from original modal
   const [statementStartDate, setStatementStartDate] = useState<string>('');
   const [paymentDate, setPaymentDate] = useState<string>('');
@@ -119,8 +131,18 @@ const AddAccountModal: React.FC<AddAccountModalProps> = ({ onClose, onAdd, accou
     } else if (type === 'Property' && !linkedLoanId) {
         setPurchasePrice('');
     }
-}, [linkedLoanId, type, accounts]);
+  }, [linkedLoanId, type, accounts]);
 
+  const handleImageUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (file) {
+        const reader = new FileReader();
+        reader.onloadend = () => {
+            setVehicleImage(reader.result as string);
+        };
+        reader.readAsDataURL(file);
+    }
+  };
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
@@ -153,6 +175,15 @@ const AddAccountModal: React.FC<AddAccountModalProps> = ({ onClose, onAdd, accou
         model: model || undefined,
         year: year !== '' ? parseInt(year, 10) : undefined,
         purchasePrice: purchasePrice !== '' ? parseFloat(purchasePrice) : undefined,
+        licensePlate: licensePlate || undefined,
+        vin: vin || undefined,
+        fuelType: fuelType || undefined,
+        ownership: vehicleOwnership,
+        purchaseDate: vehicleOwnership === 'Owned' && purchaseDate ? purchaseDate : undefined,
+        leaseStartDate: vehicleOwnership === 'Leased' && leaseStartDate ? leaseStartDate : undefined,
+        leaseEndDate: vehicleOwnership === 'Leased' && leaseEndDate ? leaseEndDate : undefined,
+        imageUrl: vehicleImage || undefined,
+        mileageLogs: currentMileage ? [{ date: new Date().toISOString().split('T')[0], reading: parseInt(currentMileage, 10) }] : []
       }),
       ...(type === 'Property' && {
         address: address || undefined,
@@ -314,12 +345,62 @@ const AddAccountModal: React.FC<AddAccountModalProps> = ({ onClose, onAdd, accou
             )}
              {type === 'Vehicle' && (
                 <div className="space-y-4">
+                  <div className="flex justify-center mb-4">
+                      <div className="relative group cursor-pointer" onClick={() => fileInputRef.current?.click()}>
+                          <div className="w-24 h-24 rounded-full bg-light-fill dark:bg-dark-fill flex items-center justify-center overflow-hidden border border-black/10 dark:border-white/10">
+                              {vehicleImage ? (
+                                  <img src={vehicleImage} alt="Vehicle" className="w-full h-full object-cover" />
+                              ) : (
+                                  <span className="material-symbols-outlined text-4xl text-gray-400">directions_car</span>
+                              )}
+                          </div>
+                          <div className="absolute inset-0 bg-black/40 rounded-full flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity">
+                              <span className="material-symbols-outlined text-white">upload</span>
+                          </div>
+                          <input type="file" ref={fileInputRef} onChange={handleImageUpload} accept="image/*" className="hidden" />
+                      </div>
+                  </div>
                   <div className="grid grid-cols-3 gap-4">
                     <div><label htmlFor="make" className={labelStyle}>Make</label><input id="make" type="text" value={make} onChange={e=>setMake(e.target.value)} className={INPUT_BASE_STYLE} /></div>
                     <div><label htmlFor="model" className={labelStyle}>Model</label><input id="model" type="text" value={model} onChange={e=>setModel(e.target.value)} className={INPUT_BASE_STYLE} /></div>
                     <div><label htmlFor="year" className={labelStyle}>Year</label><input id="year" type="number" value={year} onChange={e=>setYear(e.target.value)} className={INPUT_BASE_STYLE} /></div>
                   </div>
-                   <div><label htmlFor="purchasePrice" className={labelStyle}>Purchase Price</label><input id="purchasePrice" type="number" step="0.01" value={purchasePrice} onChange={e=>setPurchasePrice(e.target.value)} className={INPUT_BASE_STYLE} /></div>
+                  <div className="grid grid-cols-2 gap-4">
+                    <div><label htmlFor="plate" className={labelStyle}>License Plate</label><input id="plate" type="text" value={licensePlate} onChange={e=>setLicensePlate(e.target.value)} className={INPUT_BASE_STYLE} /></div>
+                    <div><label htmlFor="vin" className={labelStyle}>VIN</label><input id="vin" type="text" value={vin} onChange={e=>setVin(e.target.value)} className={INPUT_BASE_STYLE} /></div>
+                  </div>
+                  <div className="grid grid-cols-2 gap-4">
+                     <div>
+                        <label htmlFor="fuel" className={labelStyle}>Fuel Type</label>
+                        <div className={SELECT_WRAPPER_STYLE}>
+                            <select id="fuel" value={fuelType} onChange={e => setFuelType(e.target.value as FuelType)} className={INPUT_BASE_STYLE}>
+                                {FUEL_TYPES.map(f => <option key={f} value={f}>{f}</option>)}
+                            </select>
+                            <div className={SELECT_ARROW_STYLE}><span className="material-symbols-outlined">expand_more</span></div>
+                        </div>
+                     </div>
+                     <div><label htmlFor="mileage" className={labelStyle}>Current Mileage (km)</label><input id="mileage" type="number" value={currentMileage} onChange={e=>setCurrentMileage(e.target.value)} className={INPUT_BASE_STYLE} /></div>
+                  </div>
+                   <div>
+                        <label className={labelStyle}>Ownership</label>
+                        <div className="flex bg-light-fill dark:bg-dark-fill p-1 rounded-lg">
+                             {VEHICLE_OWNERSHIP_TYPES.map(o => (
+                                 <button key={o} type="button" onClick={() => setVehicleOwnership(o)} className={`flex-1 py-1 rounded-md text-sm font-medium transition-all ${vehicleOwnership === o ? 'bg-white dark:bg-dark-card shadow-sm text-primary-600' : 'text-gray-500'}`}>{o}</button>
+                             ))}
+                        </div>
+                   </div>
+                   {vehicleOwnership === 'Owned' && (
+                        <div className="grid grid-cols-2 gap-4">
+                            <div><label htmlFor="purchasePrice" className={labelStyle}>Purchase Price</label><input id="purchasePrice" type="number" step="0.01" value={purchasePrice} onChange={e=>setPurchasePrice(e.target.value)} className={INPUT_BASE_STYLE} /></div>
+                            <div><label htmlFor="purchaseDate" className={labelStyle}>Purchase Date</label><input id="purchaseDate" type="date" value={purchaseDate} onChange={e=>setPurchaseDate(e.target.value)} className={INPUT_BASE_STYLE} /></div>
+                        </div>
+                   )}
+                   {vehicleOwnership === 'Leased' && (
+                       <div className="grid grid-cols-2 gap-4">
+                           <div><label htmlFor="leaseStart" className={labelStyle}>Lease Start</label><input id="leaseStart" type="date" value={leaseStartDate} onChange={e=>setLeaseStartDate(e.target.value)} className={INPUT_BASE_STYLE} /></div>
+                           <div><label htmlFor="leaseEnd" className={labelStyle}>Lease End</label><input id="leaseEnd" type="date" value={leaseEndDate} onChange={e=>setLeaseEndDate(e.target.value)} className={INPUT_BASE_STYLE} /></div>
+                       </div>
+                   )}
                 </div>
             )}
             {type === 'Property' && (

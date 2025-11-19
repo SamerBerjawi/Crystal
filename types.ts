@@ -32,6 +32,15 @@ export interface Tag {
 export type InvestmentSubType = 'Stock' | 'ETF' | 'Crypto' | 'Pension Fund' | 'Spare Change' | 'Other';
 export type PropertyType = 'House' | 'Apartment' | 'Land' | 'Commercial' | 'Other';
 
+// Vehicle Specific Types
+export type FuelType = 'Gasoline' | 'Diesel' | 'Electric' | 'Hybrid' | 'LPG';
+export type VehicleOwnership = 'Owned' | 'Leased';
+
+export interface MileageLog {
+    date: string;
+    reading: number;
+}
+
 export interface Account {
   id:string;
   name: string;
@@ -67,6 +76,18 @@ export interface Account {
   make?: string;
   model?: string;
   year?: number;
+  licensePlate?: string;
+  vin?: string;
+  fuelType?: FuelType;
+  ownership?: VehicleOwnership;
+  // If Owned
+  purchaseDate?: string;
+  // If Leased
+  leaseStartDate?: string;
+  leaseEndDate?: string;
+  // Mileage
+  mileageLogs?: MileageLog[];
+  imageUrl?: string;
 
   // Property specific
   address?: string;
