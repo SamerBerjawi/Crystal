@@ -1,3 +1,4 @@
+
 import React, { useState } from 'react';
 import Modal from './Modal';
 import { Warrant } from '../types';
@@ -16,7 +17,8 @@ const WarrantModal: React.FC<WarrantModalProps> = ({ onClose, onSave, warrantToE
     const [name, setName] = useState(warrantToEdit?.name || '');
     const [grantDate, setGrantDate] = useState(warrantToEdit?.grantDate || new Date().toISOString().split('T')[0]);
     const [quantity, setQuantity] = useState(warrantToEdit?.quantity ? String(warrantToEdit.quantity) : '');
-    const [grantPrice, setGrantPrice] = useState(warrantToEdit?.grantPrice ? String(warrantToEdit.grantPrice) : '10.00');
+    // FIX: Check for undefined/null to allow 0 as a valid price
+    const [grantPrice, setGrantPrice] = useState(warrantToEdit?.grantPrice !== undefined ? String(warrantToEdit.grantPrice) : '10.00');
 
     const handleSubmit = (e: React.FormEvent) => {
         e.preventDefault();

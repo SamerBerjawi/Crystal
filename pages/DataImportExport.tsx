@@ -1,7 +1,7 @@
+
 import React, { useState, useRef } from 'react';
 import { Account, Transaction, Budget, RecurringTransaction, ImportExportHistoryItem, HistoryStatus, ImportDataType, Category, Page } from '../types';
 import Card from '../components/Card';
-// FIX: Import INPUT_BASE_STYLE to resolve undefined variable error.
 import { BTN_PRIMARY_STYLE, INPUT_BASE_STYLE } from '../constants';
 import Modal from '../components/Modal';
 import ImportWizard from '../components/ImportWizard';
@@ -18,7 +18,7 @@ interface DataManagementProps {
   recurringTransactions: RecurringTransaction[];
   allCategories: Category[];
   history: ImportExportHistoryItem[];
-  onPublishImport: (items: any[], dataType: 'accounts' | 'transactions', fileName: string, originalData: Record<string, any>[], errors: Record<number, Record<string, string>>) => void;
+  onPublishImport: (items: any[], dataType: 'accounts' | 'transactions', fileName: string, originalData: Record<string, any>[], errors: Record<number, Record<string, string>>, newAccounts?: Account[]) => void;
   onDeleteHistoryItem: (id: string) => void;
   onDeleteImportedTransactions: (importId: string) => void;
   onResetAccount: () => void;
@@ -227,7 +227,6 @@ const DataManagement: React.FC<DataManagementProps> = (props) => {
             </div>
         </div>
          <div className="mt-4">
-            {/* <h2 className="text-3xl font-bold text-light-text dark:text-dark-text">Data Management</h2> */}
             <p className="text-light-text-secondary dark:text-dark-text-secondary mt-1">Manage your application data, including imports, exports, and resetting data.</p>
         </div>
       </header>

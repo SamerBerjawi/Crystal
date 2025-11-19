@@ -1,7 +1,6 @@
-// FIX: Import Dispatch and SetStateAction to use them without the 'React' namespace.
-import { useState, useEffect, Dispatch, SetStateAction } from 'react';
 
-// FIX: Update return type to use imported Dispatch and SetStateAction types directly.
+import { useState, useEffect, Dispatch, SetStateAction, useCallback } from 'react';
+
 function useLocalStorage<T>(key: string, initialValue: T): [T, Dispatch<SetStateAction<T>>] {
   const [storedValue, setStoredValue] = useState<T>(() => {
     if (typeof window === 'undefined') {
@@ -16,17 +15,19 @@ function useLocalStorage<T>(key: string, initialValue: T): [T, Dispatch<SetState
     }
   });
 
-  const setValue: Dispatch<SetStateAction<T>> = (value) => {
+  const setValue: Dispatch<SetStateAction<T>> = useCallback((value) => {
     try {
-      const valueToStore = value instanceof Function ? value(storedValue) : value;
-      setStoredValue(valueToStore);
-      if (typeof window !== 'undefined') {
-        window.localStorage.setItem(key, JSON.stringify(valueToStore));
-      }
+      setStoredValue((prev) => {
+        const valueToStore = value instanceof Function ? value(prev) : value;
+        if (typeof window !== 'undefined') {
+          window.localStorage.setItem(key, JSON.stringify(valueToStore));
+        }
+        return valueToStore;
+      });
     } catch (error) {
       console.error(error);
     }
-  };
+  }, [key]);
   
   useEffect(() => {
     const handleStorageChange = (e: StorageEvent) => {

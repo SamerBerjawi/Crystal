@@ -1,3 +1,4 @@
+
 import { Currency, Account, Transaction, Duration, Category, FinancialGoal, RecurringTransaction, BillPayment, ScheduledPayment, RecurringTransactionOverride, LoanPaymentOverrides } from './types';
 import { ASSET_TYPES, DEBT_TYPES, LIQUID_ACCOUNT_TYPES } from './constants';
 import { v4 as uuidv4 } from 'uuid';
@@ -405,6 +406,12 @@ export function generateBalanceForecast(
     const now = new Date();
     const startDate = new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), now.getUTCDate()));
 
+    // Optimization: Create a map for overrides for O(1) lookup
+    const overrideMap = new Map<string, RecurringTransactionOverride>();
+    recurringTransactionOverrides.forEach(o => {
+        overrideMap.set(`${o.recurringTransactionId}-${o.originalDate}`, o);
+    });
+
     type ForecastEvent = {
         date: string;
         amount: number;
@@ -457,7 +464,8 @@ export function generateBalanceForecast(
         
         while (nextDate <= forecastEndDate && (!endDateUTC || nextDate <= endDateUTC)) {
             const dateStr = nextDate.toISOString().split('T')[0];
-            const override = recurringTransactionOverrides.find(o => o.recurringTransactionId === rt.id && o.originalDate === dateStr);
+            // Use Map lookup instead of .find()
+            const override = overrideMap.get(`${rt.id}-${dateStr}`);
 
             if (override?.isSkipped) {
                 // No event added, just advance to the next occurrence
