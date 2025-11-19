@@ -1,5 +1,4 @@
 
-
 import React, { useMemo, useState, useCallback } from 'react';
 // FIX: Import 'AccountDetailProps' to define props for the component.
 import { Account, Transaction, Category, Duration, Page, CategorySpending, Widget, WidgetConfig, DisplayTransaction, RecurringTransaction, AccountDetailProps, Tag, ScheduledPayment } from '../types';
@@ -82,6 +81,11 @@ const AccountDetail: React.FC<AccountDetailProps> = ({ account, accounts, transa
                 type: 'transfer',
                 from: account.type === 'Loan' ? account.linkedAccountId : account.id,
                 to: account.type === 'Loan' ? account.id : account.linkedAccountId
+            });
+        } else if (!tx) {
+            setInitialModalState({
+                from: account.id,
+                to: account.id
             });
         } else {
             setInitialModalState({});
@@ -596,7 +600,7 @@ const AccountDetail: React.FC<AccountDetailProps> = ({ account, accounts, transa
 
     const handleDragStart = (e: React.DragEvent, widgetId: string) => { setDraggedWidgetId(widgetId); e.dataTransfer.effectAllowed = 'move'; };
     const handleDragEnter = (e: React.DragEvent, widgetId: string) => { e.preventDefault(); if (widgetId !== draggedWidgetId) setDragOverWidgetId(widgetId); };
-    const handleDragLeave = (e: React.DragEvent) => { e.preventDefault(); setDragOverWidgetId(null); };
+    const handleDragLeave = (e: React.DragEvent, widgetId: string) => { e.preventDefault(); setDragOverWidgetId(null); };
     const handleDrop = (e: React.DragEvent, targetWidgetId: string) => {
         e.preventDefault();
         if (!draggedWidgetId || draggedWidgetId === targetWidgetId) return;

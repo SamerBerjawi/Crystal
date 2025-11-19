@@ -72,11 +72,16 @@ const AccountOptions: React.FC<{ accounts: Account[] }> = ({ accounts }) => {
 
 const AddTransactionModal: React.FC<AddTransactionModalProps> = ({ onClose, onSave, accounts, incomeCategories, expenseCategories, transactions, transactionToEdit, initialType, initialFromAccountId, initialToAccountId, tags, initialDetails }) => {
   const isEditing = !!transactionToEdit;
+
+  const defaultAccountId = useMemo(() => {
+    const primary = accounts.find(a => a.isPrimary);
+    return primary ? primary.id : (accounts.length > 0 ? accounts[0].id : '');
+  }, [accounts]);
   
   const [type, setType] = useState<'expense' | 'income' | 'transfer'>(isEditing ? (transactionToEdit.transferId ? 'transfer' : transactionToEdit.type) : (initialType || 'expense'));
   const [date, setDate] = useState(new Date().toISOString().split('T')[0]);
-  const [fromAccountId, setFromAccountId] = useState(accounts.length > 0 ? accounts[0].id : '');
-  const [toAccountId, setToAccountId] = useState(accounts.length > 1 ? accounts[1].id : '');
+  const [fromAccountId, setFromAccountId] = useState(initialFromAccountId || defaultAccountId);
+  const [toAccountId, setToAccountId] = useState(initialToAccountId || defaultAccountId);
   const [description, setDescription] = useState('');
   const [merchant, setMerchant] = useState('');
   const [amount, setAmount] = useState('');
@@ -180,10 +185,10 @@ const AddTransactionModal: React.FC<AddTransactionModalProps> = ({ onClose, onSa
             setType(transactionToEdit.type);
             if (transactionToEdit.type === 'income') {
                 setToAccountId(transactionToEdit.accountId);
-                setFromAccountId(accounts.length > 0 ? accounts[0].id : '');
+                setFromAccountId(defaultAccountId);
             } else {
                 setFromAccountId(transactionToEdit.accountId);
-                setToAccountId(accounts.length > 1 ? accounts[1].id : '');
+                setToAccountId(defaultAccountId);
             }
             setDescription(transactionToEdit.description);
             setCategory(transactionToEdit.category);
@@ -201,8 +206,8 @@ const AddTransactionModal: React.FC<AddTransactionModalProps> = ({ onClose, onSa
         // Reset for new transaction
         setType(initialType || 'expense');
         setDate(initialDetails?.date || new Date().toISOString().split('T')[0]);
-        setFromAccountId(initialFromAccountId || (accounts.length > 0 ? accounts[0].id : ''));
-        setToAccountId(initialToAccountId || (accounts.length > 1 ? accounts[1].id : ''));
+        setFromAccountId(initialFromAccountId || defaultAccountId);
+        setToAccountId(initialToAccountId || defaultAccountId);
         setDescription('');
         setMerchant('');
         setAmount(initialDetails?.amount || '');
@@ -211,7 +216,7 @@ const AddTransactionModal: React.FC<AddTransactionModalProps> = ({ onClose, onSa
         setInterestPayment(initialDetails?.interest || '');
         setTagIds([]);
     }
-  }, [transactionToEdit, isEditing, accounts, transactions, initialType, initialFromAccountId, initialToAccountId, initialDetails]);
+  }, [transactionToEdit, isEditing, accounts, transactions, initialType, initialFromAccountId, initialToAccountId, initialDetails, defaultAccountId]);
   
   const availableAccounts = useMemo(() => {
     return accounts.filter(acc => acc.status !== 'closed' || acc.id === fromAccountId || acc.id === toAccountId);
