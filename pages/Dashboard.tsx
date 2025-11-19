@@ -1,7 +1,8 @@
+
 import React, { useMemo, useState, useCallback, useEffect } from 'react';
 // FIX: Import 'RecurringTransaction' to resolve 'Cannot find name' error.
-import { User, Transaction, Account, Category, Duration, CategorySpending, Widget, WidgetConfig, DisplayTransaction, FinancialGoal, RecurringTransaction, BillPayment, Tag, Budget } from '../types';
-import { formatCurrency, getDateRange, calculateAccountTotals, convertToEur, calculateStatementPeriods, generateBalanceForecast, parseDateAsUTC, getCreditCardStatementDetails } from '../utils';
+import { User, Transaction, Account, Category, Duration, CategorySpending, Widget, WidgetConfig, DisplayTransaction, FinancialGoal, RecurringTransaction, BillPayment, Tag, Budget, RecurringTransactionOverride, LoanPaymentOverrides } from '../types';
+import { formatCurrency, getDateRange, calculateAccountTotals, convertToEur, calculateStatementPeriods, generateBalanceForecast, parseDateAsUTC, getCreditCardStatementDetails, generateSyntheticLoanPayments, generateSyntheticCreditCardPayments } from '../utils';
 import AddTransactionModal from '../components/AddTransactionModal';
 import { BTN_PRIMARY_STYLE, BTN_SECONDARY_STYLE, LIQUID_ACCOUNT_TYPES, ASSET_TYPES, DEBT_TYPES, ACCOUNT_TYPE_STYLES, INVESTMENT_SUB_TYPE_STYLES } from '../constants';
 import TransactionDetailModal from '../components/TransactionDetailModal';
@@ -35,6 +36,9 @@ interface DashboardProps {
   expenseCategories: Category[];
   financialGoals: FinancialGoal[];
   recurringTransactions: RecurringTransaction[];
+  recurringTransactionOverrides: RecurringTransactionOverride[];
+  loanPaymentOverrides: LoanPaymentOverrides;
+  activeGoalIds: string[];
   billsAndPayments: BillPayment[];
   selectedAccountIds: string[];
   setSelectedAccountIds: (ids: string[]) => void;
@@ -73,7 +77,7 @@ const toYYYYMMDD = (date: Date) => {
     return `${y}-${m}-${d}`;
 };
 
-const Dashboard: React.FC<DashboardProps> = ({ user, transactions, accounts, saveTransaction, incomeCategories, expenseCategories, financialGoals, recurringTransactions, billsAndPayments, selectedAccountIds, setSelectedAccountIds, duration, setDuration, tags, budgets }) => {
+const Dashboard: React.FC<DashboardProps> = ({ user, transactions, accounts, saveTransaction, incomeCategories, expenseCategories, financialGoals, recurringTransactions, recurringTransactionOverrides, loanPaymentOverrides, activeGoalIds, billsAndPayments, selectedAccountIds, setSelectedAccountIds, duration, setDuration, tags, budgets }) => {
   const [isTransactionModalOpen, setTransactionModalOpen] = useState(false);
   const [editingTransaction, setEditingTransaction] = useState<Transaction | null>(null);
   
@@ -520,14 +524,32 @@ const Dashboard: React.FC<DashboardProps> = ({ user, transactions, accounts, sav
         const forecastEndDate = new Date();
         forecastEndDate.setFullYear(forecastEndDate.getFullYear() + 1, forecastEndDate.getMonth() + 1, 0);
 
+        // Filter selected accounts to include only liquid accounts for cash flow forecast
+        const liquidSelectedAccounts = selectedAccounts.filter(a => LIQUID_ACCOUNT_TYPES.includes(a.type));
+        
+        // Generate synthetic transactions
+        const syntheticLoanPayments = generateSyntheticLoanPayments(accounts, transactions, loanPaymentOverrides);
+        const syntheticCreditCardPayments = generateSyntheticCreditCardPayments(accounts, transactions);
+        const allRecurringTransactions = [...recurringTransactions, ...syntheticLoanPayments, ...syntheticCreditCardPayments];
+
+        // Filter active goals
+        const activeGoals = financialGoals.filter(g => activeGoalIds.includes(g.id));
+
         // FIX: Access the .chartData property from the returned object of generateBalanceForecast.
-        const forecastData = generateBalanceForecast(selectedAccounts, recurringTransactions, financialGoals, billsAndPayments, forecastEndDate).chartData;
+        const forecastData = generateBalanceForecast(
+            liquidSelectedAccounts, 
+            allRecurringTransactions, 
+            activeGoals, 
+            billsAndPayments, 
+            forecastEndDate,
+            recurringTransactionOverrides
+        ).chartData;
+
         const today = new Date();
         today.setUTCHours(0, 0, 0, 0);
 
         const getInitialBalance = () => {
-            return selectedAccounts
-                .filter(a => LIQUID_ACCOUNT_TYPES.includes(a.type))
+            return liquidSelectedAccounts
                 .reduce((sum, acc) => sum + convertToEur(acc.balance, acc.currency), 0);
         };
 
@@ -641,7 +663,7 @@ const Dashboard: React.FC<DashboardProps> = ({ user, transactions, accounts, sav
         
         return results;
 
-    }, [selectedAccounts, recurringTransactions, financialGoals, billsAndPayments, accounts]);
+    }, [selectedAccounts, recurringTransactions, financialGoals, billsAndPayments, accounts, transactions, recurringTransactionOverrides, loanPaymentOverrides, activeGoalIds]);
 
   const handleBudgetClick = useCallback(() => {
     // A real implementation might navigate to the budget page and filter by category

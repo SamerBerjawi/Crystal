@@ -1120,7 +1120,26 @@ export const App: React.FC = () => {
 
     switch (currentPage) {
       case 'Dashboard':
-        return <Dashboard user={currentUser!} transactions={transactions} accounts={accounts} saveTransaction={handleSaveTransaction} incomeCategories={incomeCategories} expenseCategories={expenseCategories} financialGoals={financialGoals} recurringTransactions={recurringTransactions} billsAndPayments={billsAndPayments} selectedAccountIds={dashboardAccountIds} setSelectedAccountIds={setDashboardAccountIds} duration={dashboardDuration} setDuration={setDashboardDuration} tags={tags} budgets={budgets} />;
+        return <Dashboard 
+            user={currentUser!} 
+            transactions={transactions} 
+            accounts={accounts} 
+            saveTransaction={handleSaveTransaction} 
+            incomeCategories={incomeCategories} 
+            expenseCategories={expenseCategories} 
+            financialGoals={financialGoals} 
+            recurringTransactions={recurringTransactions} 
+            recurringTransactionOverrides={recurringTransactionOverrides}
+            loanPaymentOverrides={loanPaymentOverrides}
+            activeGoalIds={activeGoalIds}
+            billsAndPayments={billsAndPayments} 
+            selectedAccountIds={dashboardAccountIds} 
+            setSelectedAccountIds={setDashboardAccountIds} 
+            duration={dashboardDuration} 
+            setDuration={setDashboardDuration} 
+            tags={tags} 
+            budgets={budgets} 
+        />;
       case 'Accounts':
         return <Accounts accounts={accounts} transactions={transactions} saveAccount={handleSaveAccount} deleteAccount={handleDeleteAccount} setCurrentPage={setCurrentPage} setAccountFilter={setAccountFilter} setViewingAccountId={setViewingAccountId} saveTransaction={handleSaveTransaction} accountOrder={accountOrder} setAccountOrder={setAccountOrder} sortBy={accountsSortBy} setSortBy={setAccountsSortBy} warrants={warrants} onToggleAccountStatus={handleToggleAccountStatus} />;
       case 'Transactions':
