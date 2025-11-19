@@ -2,7 +2,7 @@
 import React, { Dispatch, SetStateAction } from 'react';
 
 // FIX: Add 'AI Assistant' to Page type
-export type Page = 'Dashboard' | 'Accounts' | 'Transactions' | 'Budget' | 'Forecasting' | 'Settings' | 'Schedule & Bills' | 'Tasks' | 'Categories' | 'Tags' | 'Personal Info' | 'Data Management' | 'Preferences' | 'AccountDetail' | 'Investments' | 'Warrants' | 'Documentation' | 'Enable Banking' | 'AI Assistant';
+export type Page = 'Dashboard' | 'Accounts' | 'Transactions' | 'Budget' | 'Forecasting' | 'Settings' | 'Schedule & Bills' | 'Tasks' | 'Categories' | 'Tags' | 'Personal Info' | 'Data Management' | 'Preferences' | 'AccountDetail' | 'Investments' | 'Warrants' | 'Documentation' | 'AI Assistant';
 
 export type AccountType = 'Checking' | 'Savings' | 'Credit Card' | 'Investment' | 'Loan' | 'Property' | 'Vehicle' | 'Other Assets' | 'Other Liabilities' | 'Lending';
 
@@ -99,10 +99,6 @@ export interface Account {
   // Other Assets/Liabilities
   notes?: string;
   
-  // FIX: Add properties for Enable Banking integration
-  enableBankingId?: string;
-  enableBankingInstitution?: string;
-  lastSync?: string;
   isPrimary?: boolean;
   sureId?: string;
   status?: 'open' | 'closed';
@@ -318,25 +314,6 @@ export interface BillPayment {
     accountId?: string; // The account it was paid from/to
 }
 
-// FIX: Add RemoteAccount interface for Enable Banking flow.
-export interface RemoteAccount {
-  id: string;
-  name: string;
-  balance: number;
-  currency: Currency;
-  institution: string;
-  type: AccountType;
-  last4: string;
-}
-
-// FIX: Add EnableBankingSettings interface.
-export interface EnableBankingSettings {
-  autoSyncEnabled: boolean;
-  syncFrequency: 'daily' | 'twice_daily';
-  clientId: string;
-  clientSecret: string;
-}
-
 export interface AccountDetailProps {
   account: Account;
   accounts: Account[];
@@ -372,8 +349,6 @@ export interface FinancialData {
     billsAndPayments: BillPayment[];
     accountOrder?: string[];
     tags?: Tag[];
-    // FIX: Add enableBankingSettings property.
-    enableBankingSettings?: EnableBankingSettings;
 }
 
 // New types for Tasks feature
