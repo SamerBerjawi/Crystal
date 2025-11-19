@@ -1,3 +1,4 @@
+
 import React, { useState, useMemo } from 'react';
 import { BTN_PRIMARY_STYLE, BTN_SECONDARY_STYLE, INPUT_BASE_STYLE } from '../constants';
 import { Category, Page } from '../types';
@@ -227,7 +228,7 @@ const Categories: React.FC<CategoriesProps> = ({ incomeCategories, setIncomeCate
         <div className="flex justify-between items-center mb-4">
           <div className="relative w-full max-w-sm">
               <span className="material-symbols-outlined absolute left-3 top-1/2 -translate-y-1/2 text-light-text-secondary dark:text-dark-text-secondary pointer-events-none">search</span>
-              <input type="text" placeholder="Search categories..." value={searchTerm} onChange={(e) => setSearchTerm(e.target.value)} className={`${INPUT_BASE_STYLE} pl-10 h-11`} />
+              <input type="text" placeholder="Search categories..." value={searchTerm} onChange={(e) => setSearchTerm(e.target.value)} className={`${INPUT_BASE_STYLE} pl-10`} />
           </div>
           <button onClick={() => openModal('add', activeTab)} className={BTN_PRIMARY_STYLE}>Add New</button>
         </div>

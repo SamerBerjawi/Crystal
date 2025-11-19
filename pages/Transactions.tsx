@@ -626,13 +626,13 @@ const Transactions: React.FC<TransactionsProps> = ({ transactions, saveTransacti
                   <label htmlFor="search" className={labelStyle}>Search</label>
                   <div className="relative">
                       <span className="material-symbols-outlined absolute left-3 top-1/2 -translate-y-1/2 text-light-text-secondary dark:text-dark-text-secondary pointer-events-none">search</span>
-                      <input ref={searchInputRef} type="text" id="search" placeholder="Search description, category..." value={searchTerm} onChange={(e) => setSearchTerm(e.target.value)} className={`${INPUT_BASE_STYLE} pl-10 h-11`} />
+                      <input ref={searchInputRef} type="text" id="search" placeholder="Search description, category..." value={searchTerm} onChange={(e) => setSearchTerm(e.target.value)} className={`${INPUT_BASE_STYLE} pl-10`} />
                   </div>
               </div>
               <div className="md:col-span-3">
                   <label htmlFor="type-filter" className={labelStyle}>Type</label>
                   <div className={SELECT_WRAPPER_STYLE}>
-                      <select id="type-filter" value={typeFilter} onChange={(e) => setTypeFilter(e.target.value as any)} className={`${INPUT_BASE_STYLE} h-11`}>
+                      <select id="type-filter" value={typeFilter} onChange={(e) => setTypeFilter(e.target.value as any)} className={`${INPUT_BASE_STYLE}`}>
                           {typeFilterOptions.map(opt => <option key={opt.value} value={opt.value}>{opt.label}</option>)}
                       </select>
                       <div className={SELECT_ARROW_STYLE}><span className="material-symbols-outlined">expand_more</span></div>
@@ -641,7 +641,7 @@ const Transactions: React.FC<TransactionsProps> = ({ transactions, saveTransacti
               <div className="md:col-span-3">
                   <label htmlFor="sort-by" className={labelStyle}>Sort By</label>
                   <div className={SELECT_WRAPPER_STYLE}>
-                      <select id="sort-by" value={sortBy} onChange={(e) => setSortBy(e.target.value)} className={`${INPUT_BASE_STYLE} h-11`}><option value="date-desc">Date (Newest)</option><option value="date-asc">Date (Oldest)</option><option value="amount-desc">Amount (High-Low)</option><option value="amount-asc">Amount (Low-High)</option></select>
+                      <select id="sort-by" value={sortBy} onChange={(e) => setSortBy(e.target.value)} className={`${INPUT_BASE_STYLE}`}><option value="date-desc">Date (Newest)</option><option value="date-asc">Date (Oldest)</option><option value="amount-desc">Amount (High-Low)</option><option value="amount-asc">Amount (Low-High)</option></select>
                       <div className={SELECT_ARROW_STYLE}><span className="material-symbols-outlined">expand_more</span></div>
                   </div>
               </div>
@@ -661,20 +661,20 @@ const Transactions: React.FC<TransactionsProps> = ({ transactions, saveTransacti
               </div>
               <div className="md:col-span-3">
                   <label htmlFor="merchant-filter" className={labelStyle}>Merchant</label>
-                  <input id="merchant-filter" type="text" placeholder="e.g., Amazon" value={merchantFilter} onChange={(e) => setMerchantFilter(e.target.value)} className={`${INPUT_BASE_STYLE} h-11`} />
+                  <input id="merchant-filter" type="text" placeholder="e.g., Amazon" value={merchantFilter} onChange={(e) => setMerchantFilter(e.target.value)} className={`${INPUT_BASE_STYLE}`} />
               </div>
 
               {/* Row 3 */}
               <div className="md:col-span-5 flex items-end gap-2">
-                  <div className="flex-1"><label htmlFor="start-date" className={labelStyle}>From Date</label><input id="start-date" type="date" value={startDate} onChange={e => setStartDate(e.target.value)} className={`${INPUT_BASE_STYLE} h-11`}/></div>
-                  <div className="flex-1"><label htmlFor="end-date" className={labelStyle}>To Date</label><input id="end-date" type="date" value={endDate} onChange={e => setEndDate(e.target.value)} className={`${INPUT_BASE_STYLE} h-11`}/></div>
+                  <div className="flex-1"><label htmlFor="start-date" className={labelStyle}>From Date</label><input id="start-date" type="date" value={startDate} onChange={e => setStartDate(e.target.value)} className={`${INPUT_BASE_STYLE}`}/></div>
+                  <div className="flex-1"><label htmlFor="end-date" className={labelStyle}>To Date</label><input id="end-date" type="date" value={endDate} onChange={e => setEndDate(e.target.value)} className={`${INPUT_BASE_STYLE}`}/></div>
               </div>
               <div className="md:col-span-5 flex items-end gap-2">
-                  <div className="flex-1"><label htmlFor="min-amount" className={labelStyle}>Min Amount</label><input id="min-amount" type="number" placeholder="0.00" value={minAmount} onChange={e => setMinAmount(e.target.value)} className={`${INPUT_BASE_STYLE} h-11`}/></div>
-                  <div className="flex-1"><label htmlFor="max-amount" className={labelStyle}>Max Amount</label><input id="max-amount" type="number" placeholder="1000.00" value={maxAmount} onChange={e => setMaxAmount(e.target.value)} className={`${INPUT_BASE_STYLE} h-11`}/></div>
+                  <div className="flex-1"><label htmlFor="min-amount" className={labelStyle}>Min Amount</label><input id="min-amount" type="number" placeholder="0.00" value={minAmount} onChange={e => setMinAmount(e.target.value)} className={`${INPUT_BASE_STYLE}`}/></div>
+                  <div className="flex-1"><label htmlFor="max-amount" className={labelStyle}>Max Amount</label><input id="max-amount" type="number" placeholder="1000.00" value={maxAmount} onChange={e => setMaxAmount(e.target.value)} className={`${INPUT_BASE_STYLE}`}/></div>
               </div>
               <div className="md:col-span-2 flex justify-end">
-                  <button onClick={clearFilters} className={`${BTN_SECONDARY_STYLE} h-11 w-full`}>Clear Filters</button>
+                  <button onClick={clearFilters} className={`${BTN_SECONDARY_STYLE} w-full`}>Clear Filters</button>
               </div>
           </div>
       </div>

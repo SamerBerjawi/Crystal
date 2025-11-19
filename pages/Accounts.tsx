@@ -1,3 +1,4 @@
+
 import React, { useState, useMemo, useEffect, useRef } from 'react';
 import { Account, Page, AccountType, Transaction, Warrant } from '../types';
 import AddAccountModal from '../components/AddAccountModal';
@@ -367,8 +368,8 @@ const Accounts: React.FC<AccountsProps> = ({ accounts, transactions, saveAccount
           <p className="text-light-text-secondary dark:text-dark-text-secondary mt-1">Manage your financial accounts and connections.</p>
         </div>
         <div className="flex items-center gap-4">
-            <div className={`${SELECT_WRAPPER_STYLE} w-48`}>
-                <select value={sortBy} onChange={e => setSortBy(e.target.value as any)} className={SELECT_STYLE}>
+            <div className={`${SELECT_WRAPPER_STYLE} w-auto`}>
+                <select value={sortBy} onChange={e => setSortBy(e.target.value as any)} className={`${SELECT_STYLE} !w-auto min-w-[10rem] cursor-pointer`}>
                     <option value="manual">Sort: Manual</option>
                     <option value="name">Sort: Name (A-Z)</option>
                     <option value="balance">Sort: Balance (High-Low)</option>

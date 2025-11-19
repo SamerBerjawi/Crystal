@@ -779,10 +779,10 @@ const Dashboard: React.FC<DashboardProps> = ({ user, transactions, accounts, sav
         <div className="flex flex-col sm:flex-row gap-3 w-full xl:w-auto">
             {/* Filters */}
             <div className="flex gap-3 w-full sm:w-auto">
-                <div className="w-1/2 sm:w-48">
+                <div className="flex-1 sm:flex-none">
                     <MultiAccountFilter accounts={accounts} selectedAccountIds={selectedAccountIds} setSelectedAccountIds={setSelectedAccountIds} />
                 </div>
-                <div className="w-1/2 sm:w-36">
+                <div className="flex-1 sm:flex-none">
                      <DurationFilter selectedDuration={duration} onDurationChange={setDuration} />
                 </div>
             </div>

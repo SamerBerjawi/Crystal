@@ -1,3 +1,4 @@
+
 import React from 'react';
 import { Duration } from '../types';
 import { SELECT_STYLE, SELECT_ARROW_STYLE, SELECT_WRAPPER_STYLE, DURATION_OPTIONS } from '../constants';
@@ -9,11 +10,11 @@ interface DurationFilterProps {
 
 const DurationFilter: React.FC<DurationFilterProps> = ({ selectedDuration, onDurationChange }) => {
   return (
-    <div className={SELECT_WRAPPER_STYLE}>
+    <div className={`${SELECT_WRAPPER_STYLE} !w-auto`}>
       <select
         value={selectedDuration}
         onChange={(e) => onDurationChange(e.target.value as Duration)}
-        className={SELECT_STYLE}
+        className={`${SELECT_STYLE} !w-auto min-w-[8rem] cursor-pointer`}
       >
         {DURATION_OPTIONS.map(opt => (
           <option key={opt.value} value={opt.value}>{opt.label}</option>

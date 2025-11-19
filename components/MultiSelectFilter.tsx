@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect, useRef, useMemo } from 'react';
 import { CHECKBOX_STYLE, INPUT_BASE_STYLE } from '../constants';
 
@@ -54,17 +55,17 @@ const MultiSelectFilter: React.FC<MultiSelectFilterProps> = ({ options, selected
     : `${selectedValues.length} selected`;
 
   return (
-    <div ref={wrapperRef} className="relative w-full">
+    <div ref={wrapperRef} className="relative w-auto">
       <button
         type="button"
         onClick={() => setIsOpen(!isOpen)}
-        className={`${INPUT_BASE_STYLE} flex items-center justify-between text-left h-11`}
+        className={`${INPUT_BASE_STYLE} !w-auto min-w-[10rem] flex items-center justify-between text-left whitespace-nowrap`}
       >
-        <span className="truncate">{buttonText}</span>
+        <span className="mr-2 truncate max-w-[12rem]">{buttonText}</span>
         <span className={`material-symbols-outlined transition-transform duration-200 ${isOpen ? 'rotate-180' : ''}`}>expand_more</span>
       </button>
       {isOpen && (
-        <div className="absolute top-full left-0 mt-1 w-full bg-light-card dark:bg-dark-card rounded-lg shadow-lg border border-black/10 dark:border-white/10 z-20 p-2">
+        <div className="absolute top-full left-0 mt-1 w-full min-w-[14rem] bg-light-card dark:bg-dark-card rounded-lg shadow-lg border border-black/10 dark:border-white/10 z-50 p-2">
           <input
             type="text"
             value={searchTerm}
