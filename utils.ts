@@ -1,3 +1,4 @@
+
 import { Currency, Account, Transaction, Duration, Category, FinancialGoal, RecurringTransaction, BillPayment, ScheduledPayment, RecurringTransactionOverride, LoanPaymentOverrides } from './types';
 import { ASSET_TYPES, DEBT_TYPES, LIQUID_ACCOUNT_TYPES } from './constants';
 import { v4 as uuidv4 } from 'uuid';
@@ -390,6 +391,7 @@ export function generateBalanceForecast(
         balance: number;
         type: 'Recurring' | 'Bill/Payment' | 'Financial Goal';
         isGoal: boolean;
+        originalItem: RecurringTransaction | BillPayment | FinancialGoal;
     }[];
     lowestPoint: { value: number; date: string };
 } {
@@ -410,9 +412,10 @@ export function generateBalanceForecast(
         currency: Currency;
         description: string;
         accountName: string;
-        accountId?: string; // Added for per-account tracking
+        accountId?: string;
         type: 'Recurring' | 'Bill/Payment' | 'Financial Goal';
         isGoal: boolean;
+        originalItem: RecurringTransaction | BillPayment | FinancialGoal;
     };
     
     const dailyEvents = new Map<string, ForecastEvent[]>();
@@ -477,7 +480,8 @@ export function generateBalanceForecast(
                              accountName: accountMap.get(rt.accountId) || 'Unknown',
                              accountId: rt.accountId,
                              type: 'Recurring', 
-                             isGoal: false 
+                             isGoal: false,
+                             originalItem: rt
                         });
                         addEvent(effectiveDate, { 
                              amount: (override?.amount !== undefined ? override.amount : rt.amount), 
@@ -486,24 +490,24 @@ export function generateBalanceForecast(
                              accountName: accountMap.get(rt.toAccountId!) || 'Unknown',
                              accountId: rt.toAccountId,
                              type: 'Recurring', 
-                             isGoal: false 
+                             isGoal: false,
+                             originalItem: rt
                         });
-                        // Don't continue here, let the date increment below
                     } else if (fromSelected) {
                         // Outflow from selected
                         accountName = `${accountMap.get(rt.accountId) || 'Unknown'} → External`;
                         amount = -(override?.amount !== undefined ? override.amount : rt.amount);
-                        addEvent(effectiveDate, { amount, currency: rt.currency, description: override?.description || rt.description, accountName, accountId: rt.accountId, type: 'Recurring', isGoal: false });
+                        addEvent(effectiveDate, { amount, currency: rt.currency, description: override?.description || rt.description, accountName, accountId: rt.accountId, type: 'Recurring', isGoal: false, originalItem: rt });
                     } else if (toSelected) {
                         // Inflow to selected
                          accountName = `External → ${accountMap.get(rt.toAccountId!) || 'Unknown'}`;
                          amount = override?.amount !== undefined ? override.amount : rt.amount;
-                         addEvent(effectiveDate, { amount, currency: rt.currency, description: override?.description || rt.description, accountName, accountId: rt.toAccountId, type: 'Recurring', isGoal: false });
+                         addEvent(effectiveDate, { amount, currency: rt.currency, description: override?.description || rt.description, accountName, accountId: rt.toAccountId, type: 'Recurring', isGoal: false, originalItem: rt });
                     }
                 } else {
                     accountName = accountMap.get(rt.accountId) || 'Unknown';
                     if (accountIds.has(rt.accountId)) {
-                         addEvent(effectiveDate, { amount, currency: rt.currency, description: override?.description || rt.description, accountName, accountId: rt.accountId, type: 'Recurring', isGoal: false });
+                         addEvent(effectiveDate, { amount, currency: rt.currency, description: override?.description || rt.description, accountName, accountId: rt.accountId, type: 'Recurring', isGoal: false, originalItem: rt });
                     }
                 }
             }
@@ -541,7 +545,7 @@ export function generateBalanceForecast(
             if (goalDate >= startDate && goalDate <= forecastEndDate) {
                 const amount = goal.transactionType === 'expense' ? -(goal.amount - goal.currentAmount) : (goal.amount - goal.currentAmount);
                 if (amount === 0) return;
-                addEvent(goal.date, { amount, currency: goal.currency, description: goal.name, accountName: goal.paymentAccountId ? accountMap.get(goal.paymentAccountId) || 'Unknown' : 'External', accountId: goal.paymentAccountId, type: 'Financial Goal', isGoal: true });
+                addEvent(goal.date, { amount, currency: goal.currency, description: goal.name, accountName: goal.paymentAccountId ? accountMap.get(goal.paymentAccountId) || 'Unknown' : 'External', accountId: goal.paymentAccountId, type: 'Financial Goal', isGoal: true, originalItem: goal });
             }
         }
     });
@@ -552,7 +556,7 @@ export function generateBalanceForecast(
             if (dueDate >= startDate && dueDate <= forecastEndDate) {
                 // If bill has an accountId and it's selected, map it. If not, it might be general (External)
                 if (!bill.accountId || accountIds.has(bill.accountId)) {
-                     addEvent(bill.dueDate, { amount: bill.amount, currency: bill.currency, description: bill.description, accountName: bill.accountId ? accountMap.get(bill.accountId) || 'Unknown' : 'External', accountId: bill.accountId, type: 'Bill/Payment', isGoal: false });
+                     addEvent(bill.dueDate, { amount: bill.amount, currency: bill.currency, description: bill.description, accountName: bill.accountId ? accountMap.get(bill.accountId) || 'Unknown' : 'External', accountId: bill.accountId, type: 'Bill/Payment', isGoal: false, originalItem: bill });
                 }
             }
         }
@@ -587,17 +591,6 @@ export function generateBalanceForecast(
                     currentBalances[event.accountId] += amountInEur;
                 }
                 
-                // Logic for total: Internal transfers between selected accounts cancel out in 'value' (Total)
-                // but impact 'currentBalances'. The events generated for transfers already have + and - events.
-                // So simply summing all events valid for selected accounts works.
-                
-                // However, verify if 'event' is relevant to the TOTAL (selected accounts).
-                // If it's a transfer between two selected accounts, we added TWO events (+ and -). Sum is 0. Correct.
-                // If it's a transfer from Selected to Unselected, we added ONE event (-). Sum reduces. Correct.
-                // If it's a Bill with no account ID, we assume it hits the 'Total' (virtual cash flow).
-                // But for the Chart Lines, we can't plot it on a specific account line.
-                
-                // Only add to runningTotalBalance if it's either attached to a selected account OR it's a general bill
                 if (event.accountId && accountIds.has(event.accountId)) {
                      runningTotalBalance += amountInEur;
                 } else if (!event.accountId) {
@@ -665,16 +658,13 @@ export function generateAmortizationSchedule(
     : (principalAmount / duration);
 
   for (let i = 1; i <= duration; i++) {
-// FIX: Changed parseAsUTC to parseDateAsUTC
     const scheduledDate = parseDateAsUTC(loanStartDate);
     scheduledDate.setUTCMonth(scheduledDate.getUTCMonth() + i);
-// FIX: Changed parseAsUTC to parseDateAsUTC. This is redundant but preserves logic.
     const monthYearKey = parseDateAsUTC(scheduledDate.toISOString()).toISOString().slice(0, 7);
     
     const realPaymentForPeriod = paymentMap.get(monthYearKey);
 
     if (paymentDayOfMonth && !realPaymentForPeriod && scheduledDate >= today) {
-// FIX: Changed parseAsUTC to parseDateAsUTC. This is redundant but preserves logic.
         const year = parseDateAsUTC(scheduledDate.toISOString()).getUTCFullYear();
         const month = scheduledDate.getUTCMonth();
         const lastDayOfMonth = new Date(Date.UTC(year, month + 1, 0)).getUTCDate();

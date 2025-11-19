@@ -38,6 +38,7 @@ interface ForecastChartProps {
   showIndividualLines?: boolean;
   accounts?: Account[];
   showGoalLines?: boolean;
+  onDataPointClick?: (date: string) => void;
 }
 
 const CustomTooltip: React.FC<{ active?: boolean; payload?: any[]; label?: string, showIndividualLines?: boolean, accounts?: Account[] }> = ({ active, payload, label, showIndividualLines, accounts }) => {
@@ -75,6 +76,7 @@ const CustomTooltip: React.FC<{ active?: boolean; payload?: any[]; label?: strin
                 <span>{formatCurrency(payload[0].value, 'EUR')}</span>
              </p>
           )}
+          <p className="text-xs text-center mt-2 text-light-text-secondary dark:text-dark-text-secondary italic">Click to view details</p>
         </div>
       );
     }
@@ -87,15 +89,13 @@ const yAxisTickFormatter = (value: number) => {
     return `€${value}`;
 };
 
-const ForecastChart: React.FC<ForecastChartProps> = ({ data, oneTimeGoals, lowestPoint, showIndividualLines = false, accounts = [], showGoalLines = true }) => {
+const ForecastChart: React.FC<ForecastChartProps> = ({ data, oneTimeGoals, lowestPoint, showIndividualLines = false, accounts = [], showGoalLines = true, onDataPointClick }) => {
   if (!data || data.length === 0) {
     return <div className="flex items-center justify-center h-full text-light-text-secondary dark:text-dark-text-secondary">Select accounts and a period to generate a forecast.</div>;
   }
   
   const yDomain = useMemo(() => {
-    const values = data.map(d => d.value); // Use Total for domain calculation to ensure everything fits? 
-    // If individual lines, some might be negative or much larger than total.
-    // We should gather ALL values if in individual mode.
+    const values = data.map(d => d.value); 
     let allValues: number[] = [];
     
     if (showIndividualLines) {
@@ -113,7 +113,6 @@ const ForecastChart: React.FC<ForecastChartProps> = ({ data, oneTimeGoals, lowes
     const dataMin = Math.min(...allValues);
     const dataMax = Math.max(...allValues);
     
-    // Also consider the lowest point's value in case it's not in the visible data range
     const absoluteMin = Math.min(dataMin, lowestPoint?.value || Infinity);
     const absoluteMax = Math.max(dataMax);
 
@@ -177,12 +176,22 @@ const ForecastChart: React.FC<ForecastChartProps> = ({ data, oneTimeGoals, lowes
       tickLine: false,
       axisLine: false,
   };
+  
+  const handleChartClick = (state: any) => {
+      if (state && state.activeLabel && onDataPointClick) {
+          onDataPointClick(state.activeLabel);
+      }
+  };
 
   return (
     <div style={{ width: '100%', height: '400px' }}>
       <ResponsiveContainer>
         {showIndividualLines ? (
-             <LineChart data={data} margin={{ top: 5, right: 20, left: 20, bottom: 20 }}>
+             <LineChart 
+                data={data} 
+                margin={{ top: 5, right: 20, left: 20, bottom: 20 }}
+                onClick={handleChartClick}
+             >
                 <CartesianGrid strokeDasharray="3 3" stroke="currentColor" opacity={0.1} />
                 <XAxis dataKey="date" {...commonAxisProps} tickFormatter={tickFormatter} ticks={ticks} minTickGap={50} />
                 <YAxis {...commonAxisProps} tickFormatter={yAxisTickFormatter} domain={yDomain} allowDataOverflow={true} width={60} />
@@ -197,7 +206,8 @@ const ForecastChart: React.FC<ForecastChartProps> = ({ data, oneTimeGoals, lowes
                         stroke={getColorForAccount(acc, idx)} 
                         strokeWidth={2} 
                         dot={false} 
-                        activeDot={{ r: 4 }}
+                        activeDot={{ r: 4, onClick: (e: any, payload: any) => { if(onDataPointClick) onDataPointClick(payload.payload.date) } }}
+                        cursor="pointer"
                     />
                 ))}
                 {showGoalLines && oneTimeGoals.map(goal => (
@@ -207,7 +217,11 @@ const ForecastChart: React.FC<ForecastChartProps> = ({ data, oneTimeGoals, lowes
                 ))}
              </LineChart>
         ) : (
-            <AreaChart data={data} margin={{ top: 5, right: 20, left: 20, bottom: 20 }}>
+            <AreaChart 
+                data={data} 
+                margin={{ top: 5, right: 20, left: 20, bottom: 20 }}
+                onClick={handleChartClick}
+            >
               <defs>
                 <linearGradient id="colorValue" x1="0" y1="0" x2="0" y2="1"><stop offset="5%" stopColor="#6366F1" stopOpacity={0.7}/><stop offset="95%" stopColor="#6366F1" stopOpacity={0}/></linearGradient>
               </defs>
@@ -233,7 +247,17 @@ const ForecastChart: React.FC<ForecastChartProps> = ({ data, oneTimeGoals, lowes
                       <Label value={goal.name} position="insideTopRight" fill="#FBBF24" fontSize={12} angle={-90} dx={10} dy={10} />
                   </ReferenceLine>
               ))}
-              <Area type="monotone" dataKey="value" name="Projected Balance" stroke="#6366F1" fill="url(#colorValue)" strokeWidth={2.5} dot={false} activeDot={{ r: 5 }} />
+              <Area 
+                  type="monotone" 
+                  dataKey="value" 
+                  name="Projected Balance" 
+                  stroke="#6366F1" 
+                  fill="url(#colorValue)" 
+                  strokeWidth={2.5} 
+                  dot={false} 
+                  activeDot={{ r: 5, onClick: (e: any, payload: any) => { if(onDataPointClick) onDataPointClick(payload.payload.date) } }} 
+                  cursor="pointer"
+              />
               {data.length > 0 && lowestPoint && (
                   <ReferenceLine
                       key="lowest-point-line"

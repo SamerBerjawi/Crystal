@@ -1,6 +1,6 @@
 
 import React, { useState, useMemo, useCallback, Dispatch, SetStateAction } from 'react';
-import { Account, Transaction, RecurringTransaction, FinancialGoal, Category, Page, ContributionPlanStep, BillPayment, RecurringTransactionOverride, LoanPaymentOverrides } from '../types';
+import { Account, Transaction, RecurringTransaction, FinancialGoal, Category, Page, ContributionPlanStep, BillPayment, RecurringTransactionOverride, LoanPaymentOverrides, ScheduledPayment } from '../types';
 import { BTN_PRIMARY_STYLE, BTN_SECONDARY_STYLE, LIQUID_ACCOUNT_TYPES, CHECKBOX_STYLE } from '../constants';
 import { formatCurrency, convertToEur, generateBalanceForecast, generateSyntheticLoanPayments, generateSyntheticCreditCardPayments } from '../utils';
 import Card from '../components/Card';
@@ -11,6 +11,9 @@ import ForecastChart from '../components/ForecastChart';
 import GoalContributionPlan from '../components/GoalContributionPlan';
 import { GoogleGenAI, Type } from '@google/genai';
 import ConfirmationModal from '../components/ConfirmationModal';
+import ForecastDayModal from '../components/ForecastDayModal';
+import RecurringTransactionModal from '../components/RecurringTransactionModal';
+import BillPaymentModal from '../components/BillPaymentModal';
 
 type ForecastDuration = '3M' | '6M' | 'EOY' | '1Y' | '2Y';
 
@@ -27,6 +30,11 @@ interface ForecastingProps {
   billsAndPayments: BillPayment[];
   activeGoalIds: string[];
   setActiveGoalIds: React.Dispatch<React.SetStateAction<string[]>>;
+  saveRecurringTransaction: (recurringData: Omit<RecurringTransaction, 'id'> & { id?: string }) => void;
+  deleteRecurringTransaction: (id: string) => void;
+  saveBillPayment: (data: Omit<BillPayment, 'id'> & { id?: string }) => void;
+  deleteBillPayment: (id: string) => void;
+  incomeCategories: Category[];
 }
 
 const useSmartGoalPlanner = (
@@ -127,11 +135,18 @@ const useSmartGoalPlanner = (
 };
 
 
-const Forecasting: React.FC<ForecastingProps> = ({ accounts, transactions, recurringTransactions, recurringTransactionOverrides, loanPaymentOverrides, financialGoals, saveFinancialGoal, deleteFinancialGoal, expenseCategories, billsAndPayments, activeGoalIds, setActiveGoalIds }) => {
+const Forecasting: React.FC<ForecastingProps> = ({ accounts, transactions, recurringTransactions, recurringTransactionOverrides, loanPaymentOverrides, financialGoals, saveFinancialGoal, deleteFinancialGoal, expenseCategories, billsAndPayments, activeGoalIds, setActiveGoalIds, saveRecurringTransaction, deleteRecurringTransaction, saveBillPayment, deleteBillPayment, incomeCategories }) => {
     const [isModalOpen, setIsModalOpen] = useState(false);
     const [editingGoal, setEditingGoal] = useState<FinancialGoal | null>(null);
     const [parentIdForNewGoal, setParentIdForNewGoal] = useState<string | undefined>();
     const [deletingGoal, setDeletingGoal] = useState<FinancialGoal | null>(null);
+
+    // State for interactivity
+    const [selectedForecastDate, setSelectedForecastDate] = useState<string | null>(null);
+    const [isRecurringModalOpen, setIsRecurringModalOpen] = useState(false);
+    const [isBillModalOpen, setIsBillModalOpen] = useState(false);
+    const [editingRecurring, setEditingRecurring] = useState<RecurringTransaction | null>(null);
+    const [editingBill, setEditingBill] = useState<BillPayment | null>(null);
 
     const [selectedAccountIds, setSelectedAccountIds] = useState<string[]>(() => {
         const primaryAccount = accounts.find(a => a.isPrimary);
@@ -237,27 +252,22 @@ const Forecasting: React.FC<ForecastingProps> = ({ accounts, transactions, recur
 
     const { generatePlan, plan, isLoading: isPlanLoading, error: planError } = useSmartGoalPlanner(selectedAccounts, recurringTransactions, plannerGoals);
 
-  const handleToggleGoal = (id: string) => {
-    const goal = financialGoals.find(g => g.id === id);
-    if (!goal) return;
+    const handleToggleGoal = (id: string) => {
+        const goal = financialGoals.find(g => g.id === id);
+        if (!goal) return;
 
-    const subGoalIds = goal.isBucket ? financialGoals.filter(g => g.parentId === id).map(g => g.id) : [];
-    const allRelatedIds = [id, ...subGoalIds];
-    
-    setActiveGoalIds(prev => {
-      // The toggle action is now based on whether the group is currently active.
-      // A group is active if ANY of its members (the bucket or its children) are active.
-      const isGroupActive = allRelatedIds.some(relatedId => prev.includes(relatedId));
-
-      if (isGroupActive) {
-        // If the group is on, turn OFF the whole family.
-        return prev.filter(activeId => !allRelatedIds.includes(activeId));
-      } else {
-        // If the group is off, turn ON the whole family.
-        return [...new Set([...prev, ...allRelatedIds])];
-      }
-    });
-  };
+        const subGoalIds = goal.isBucket ? financialGoals.filter(g => g.parentId === id).map(g => g.id) : [];
+        const allRelatedIds = [id, ...subGoalIds];
+        
+        setActiveGoalIds(prev => {
+        const isGroupActive = allRelatedIds.some(relatedId => prev.includes(relatedId));
+        if (isGroupActive) {
+            return prev.filter(activeId => !allRelatedIds.includes(activeId));
+        } else {
+            return [...new Set([...prev, ...allRelatedIds])];
+        }
+        });
+    };
 
     const handleOpenModal = (goal?: FinancialGoal) => {
         setEditingGoal(goal || null);
@@ -327,6 +337,37 @@ const Forecasting: React.FC<ForecastingProps> = ({ accounts, transactions, recur
         }
     };
 
+    // New Logic for Chart Interactivity
+    const handleDateClick = (date: string) => {
+        setSelectedForecastDate(date);
+    };
+
+    const selectedDayItems = useMemo(() => {
+        if (!selectedForecastDate) return [];
+        return tableData.filter(item => item.date === selectedForecastDate);
+    }, [selectedForecastDate, tableData]);
+
+    const handleEditForecastItem = (item: any) => {
+        setSelectedForecastDate(null); // Close date modal
+        if (item.type === 'Financial Goal') {
+             handleOpenModal(item.originalItem);
+        } else if (item.type === 'Recurring') {
+             setEditingRecurring(item.originalItem);
+             setIsRecurringModalOpen(true);
+        } else if (item.type === 'Bill/Payment') {
+             setEditingBill(item.originalItem);
+             setIsBillModalOpen(true);
+        }
+    };
+
+    const handleAddNewToDate = () => {
+        // Currently generic 'Add New' from modal opens Recurring modal. 
+        // In future this could show a selection menu (Bill, Recurring, Goal).
+        setEditingRecurring(null);
+        // Pre-fill start date if adding a new recurring tx
+        setIsRecurringModalOpen(true);
+    };
+
     const durationOptions: { label: string; value: ForecastDuration }[] = [
         { label: '3M', value: '3M' },
         { label: '6M', value: '6M' },
@@ -335,11 +376,19 @@ const Forecasting: React.FC<ForecastingProps> = ({ accounts, transactions, recur
         { label: '2Y', value: '2Y' },
     ];
 
-    const radioLabelStyle = "flex items-center gap-2 text-sm font-medium text-light-text dark:text-dark-text cursor-pointer p-2 rounded-lg transition-colors";
-    
+    // Styles for the segmented controls
+    const segmentItemBase = "flex-1 px-3 py-1.5 text-sm font-medium rounded-md transition-all duration-200 flex items-center justify-center whitespace-nowrap border border-transparent";
+    const segmentItemActive = "bg-light-card dark:bg-dark-card shadow-sm text-primary-600 dark:text-primary-400 font-semibold border-black/5 dark:border-white/10";
+    const segmentItemInactive = "text-light-text-secondary dark:text-dark-text-secondary hover:text-light-text dark:hover:text-dark-text";
+
     return (
         <div className="space-y-8">
+            {/* Modals */}
             {isModalOpen && <GoalScenarioModal onClose={() => setIsModalOpen(false)} onSave={(d) => { saveFinancialGoal(d); setIsModalOpen(false); }} goalToEdit={editingGoal} financialGoals={financialGoals} parentId={parentIdForNewGoal} accounts={accounts} />}
+            {isRecurringModalOpen && <RecurringTransactionModal onClose={() => setIsRecurringModalOpen(false)} onSave={(d) => { saveRecurringTransaction(d); setIsRecurringModalOpen(false); }} accounts={accounts} incomeCategories={incomeCategories} expenseCategories={expenseCategories} recurringTransactionToEdit={editingRecurring} />}
+            {isBillModalOpen && <BillPaymentModal onClose={() => setIsBillModalOpen(false)} onSave={(d) => { saveBillPayment(d); setIsBillModalOpen(false); }} bill={editingBill} accounts={accounts} initialDate={selectedForecastDate || undefined} />}
+            {selectedForecastDate && <ForecastDayModal isOpen={!!selectedForecastDate} onClose={() => setSelectedForecastDate(null)} date={selectedForecastDate} items={selectedDayItems} onEditItem={handleEditForecastItem} onAddTransaction={handleAddNewToDate} />}
+            
             {deletingGoal && (
                 <ConfirmationModal
                     isOpen={!!deletingGoal}
@@ -351,50 +400,62 @@ const Forecasting: React.FC<ForecastingProps> = ({ accounts, transactions, recur
                 />
             )}
 
-            <header className="flex flex-wrap justify-between items-center gap-4">
+            <header className="flex flex-col xl:flex-row justify-between items-start xl:items-center gap-4">
                 <div>
                     <p className="text-light-text-secondary dark:text-dark-text-secondary mt-1">Project your financial future and plan for your goals.</p>
                 </div>
-                <div className="flex items-center gap-4 flex-wrap">
-                    <MultiAccountFilter accounts={accounts} selectedAccountIds={selectedAccountIds} setSelectedAccountIds={setSelectedAccountIds} />
+                
+                <div className="flex flex-col sm:flex-row items-start sm:items-center gap-3 w-full xl:w-auto flex-wrap">
                     
-                    <div className="flex items-center gap-4 bg-light-bg dark:bg-dark-bg p-1 rounded-lg shadow-neu-inset-light dark:shadow-neu-inset-dark h-10">
-                        <label className={`${radioLabelStyle} ${!showIndividualLines ? 'bg-light-card dark:bg-dark-card shadow-neu-raised-light dark:shadow-neu-raised-dark' : 'text-light-text-secondary dark:text-dark-text-secondary'}`}>
-                            <input type="radio" checked={!showIndividualLines} onChange={() => setShowIndividualLines(false)} className="sr-only" />
-                            Consolidated
-                        </label>
-                        <label className={`${radioLabelStyle} ${showIndividualLines ? 'bg-light-card dark:bg-dark-card shadow-neu-raised-light dark:shadow-neu-raised-dark' : 'text-light-text-secondary dark:text-dark-text-secondary'}`}>
-                            <input type="radio" checked={showIndividualLines} onChange={() => setShowIndividualLines(true)} className="sr-only" />
-                            Individual
-                        </label>
+                    {/* 1. Account Filter */}
+                    <div className="w-full sm:w-auto">
+                         <MultiAccountFilter accounts={accounts} selectedAccountIds={selectedAccountIds} setSelectedAccountIds={setSelectedAccountIds} />
                     </div>
                     
+                    {/* 2. View Mode Segmented Control */}
+                    <div className="flex bg-light-fill dark:bg-dark-fill p-1 rounded-lg h-10 flex-shrink-0 w-full sm:w-auto border border-black/5 dark:border-white/10">
+                             <button 
+                                onClick={() => setShowIndividualLines(false)} 
+                                className={`${segmentItemBase} ${!showIndividualLines ? segmentItemActive : segmentItemInactive}`}
+                            >
+                                Consolidated
+                            </button>
+                            <button 
+                                onClick={() => setShowIndividualLines(true)} 
+                                className={`${segmentItemBase} ${showIndividualLines ? segmentItemActive : segmentItemInactive}`}
+                            >
+                                Individual
+                            </button>
+                    </div>
+                    
+                    {/* 3. Goals Toggle */}
                     <button 
-                        onClick={() => setShowGoalLines(!showGoalLines)}
-                        className={`h-10 px-3 flex items-center gap-2 rounded-lg transition-all duration-200 border border-transparent focus:outline-none focus:ring-2 focus:ring-primary-500 ${showGoalLines ? 'bg-light-card dark:bg-dark-card shadow-neu-raised-light dark:shadow-neu-raised-dark text-primary-600 dark:text-primary-400 font-semibold' : 'bg-light-bg dark:bg-dark-bg text-light-text-secondary dark:text-dark-text-secondary hover:bg-black/5 dark:hover:bg-white/5'}`}
-                        title={showGoalLines ? "Hide goal lines" : "Show goal lines"}
-                    >
-                         <span className="material-symbols-outlined text-base">{showGoalLines ? 'flag' : 'flag'}</span>
-                         <span className="text-sm hidden sm:inline">Goals</span>
-                    </button>
+                            onClick={() => setShowGoalLines(!showGoalLines)}
+                            className={`h-10 px-4 flex items-center justify-center gap-2 rounded-lg transition-all duration-200 border focus:outline-none focus:ring-2 focus:ring-primary-500 flex-shrink-0 w-full sm:w-auto ${showGoalLines ? 'border-black/5 dark:border-white/10 bg-light-card dark:bg-dark-card shadow-sm text-primary-600 dark:text-primary-400 font-semibold' : 'border-black/5 dark:border-white/10 bg-light-fill dark:bg-dark-fill text-light-text-secondary dark:text-dark-text-secondary hover:bg-black/5 dark:hover:bg-white/5'}`}
+                            title={showGoalLines ? "Hide goal lines" : "Show goal lines"}
+                        >
+                             <span className={`material-symbols-outlined text-xl ${showGoalLines ? 'material-symbols-filled' : ''}`}>flag</span>
+                             <span className="text-sm">Goals</span>
+                        </button>
 
-                    <div className="hidden sm:flex bg-light-bg dark:bg-dark-bg p-1 rounded-lg h-10">
+                    {/* 4. Time Range Segmented Control */}
+                    <div className="flex bg-light-fill dark:bg-dark-fill p-1 rounded-lg h-10 flex-shrink-0 w-full sm:w-auto overflow-x-auto no-scrollbar border border-black/5 dark:border-white/10">
                         {durationOptions.map(opt => (
                             <button
                                 key={opt.value}
                                 onClick={() => setForecastDuration(opt.value)}
-                                className={`h-full px-3 text-sm font-semibold rounded-md transition-colors ${
-                                    forecastDuration === opt.value
-                                        ? 'bg-light-card dark:bg-dark-card shadow-sm'
-                                        : 'text-light-text-secondary dark:text-dark-text-secondary'
-                                }`}
+                                className={`${segmentItemBase} ${forecastDuration === opt.value ? segmentItemActive : segmentItemInactive}`}
                             >
                                 {opt.label}
                             </button>
                         ))}
                     </div>
                     
-                    <button onClick={() => handleOpenModal()} className={BTN_PRIMARY_STYLE}>Add Goal / Scenario</button>
+                    {/* 5. Add Goal Button */}
+                    <button onClick={() => handleOpenModal()} className={`${BTN_PRIMARY_STYLE} flex-shrink-0 whitespace-nowrap w-full sm:w-auto h-10`}>
+                        <span className="material-symbols-outlined text-xl mr-2">add</span>
+                        Add Goal
+                    </button>
                 </div>
             </header>
 
@@ -407,6 +468,7 @@ const Forecasting: React.FC<ForecastingProps> = ({ accounts, transactions, recur
                     showIndividualLines={showIndividualLines}
                     accounts={selectedAccounts}
                     showGoalLines={showGoalLines}
+                    onDataPointClick={handleDateClick}
                 />
             </Card>
 
@@ -427,11 +489,11 @@ const Forecasting: React.FC<ForecastingProps> = ({ accounts, transactions, recur
                         <tbody>
                             {tableData.map(row => {
                                 const isLowest = row.balance.toFixed(2) === lowestPoint.value.toFixed(2);
-                                const rowClass = `border-b border-light-separator/50 dark:border-dark-separator/50
+                                const rowClass = `border-b border-light-separator/50 dark:border-dark-separator/50 hover:bg-black/5 dark:hover:bg-white/5 cursor-pointer
                                     ${row.isGoal ? 'bg-yellow-100/50 dark:bg-yellow-900/20' : ''}
                                     ${isLowest ? 'bg-red-100/50 dark:bg-red-900/20' : ''}`;
                                 return (
-                                    <tr key={row.id} className={rowClass}>
+                                    <tr key={row.id} className={rowClass} onClick={() => handleEditForecastItem(row)}>
                                         <td className="p-2 whitespace-nowrap">{new Date(row.date.replace(/-/g, '/')).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}</td>
                                         <td className="p-2">{row.accountName}</td>
                                         <td className="p-2">{row.description}</td>

@@ -1148,7 +1148,25 @@ export const App: React.FC = () => {
         // FIX: Add `preferences` to the `Budgeting` component to resolve the missing prop error.
         return <Budgeting budgets={budgets} transactions={transactions} expenseCategories={expenseCategories} saveBudget={handleSaveBudget} deleteBudget={handleDeleteBudget} accounts={accounts} preferences={preferences} />;
       case 'Forecasting':
-        return <Forecasting accounts={accounts} transactions={transactions} recurringTransactions={recurringTransactions} recurringTransactionOverrides={recurringTransactionOverrides} loanPaymentOverrides={loanPaymentOverrides} financialGoals={financialGoals} saveFinancialGoal={handleSaveFinancialGoal} deleteFinancialGoal={handleDeleteFinancialGoal} expenseCategories={expenseCategories} billsAndPayments={billsAndPayments} activeGoalIds={activeGoalIds} setActiveGoalIds={setActiveGoalIds} />;
+        return <Forecasting 
+          accounts={accounts} 
+          transactions={transactions} 
+          recurringTransactions={recurringTransactions} 
+          recurringTransactionOverrides={recurringTransactionOverrides} 
+          loanPaymentOverrides={loanPaymentOverrides} 
+          financialGoals={financialGoals} 
+          saveFinancialGoal={handleSaveFinancialGoal} 
+          deleteFinancialGoal={handleDeleteFinancialGoal} 
+          expenseCategories={expenseCategories} 
+          billsAndPayments={billsAndPayments} 
+          activeGoalIds={activeGoalIds} 
+          setActiveGoalIds={setActiveGoalIds}
+          saveRecurringTransaction={handleSaveRecurringTransaction}
+          deleteRecurringTransaction={handleDeleteRecurringTransaction}
+          saveBillPayment={handleSaveBillPayment}
+          deleteBillPayment={handleDeleteBillPayment}
+          incomeCategories={incomeCategories}
+        />;
       case 'Settings':
         return <SettingsPage setCurrentPage={setCurrentPage} user={currentUser!} />;
       case 'Schedule & Bills':

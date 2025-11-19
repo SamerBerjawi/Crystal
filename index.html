@@ -8,6 +8,7 @@
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
     <link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:opsz,wght,FILL,GRAD@24,400,0,0" rel="stylesheet" />
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" integrity="sha256-p4NxAoJBhIIN+hmNHrzRCf9tD/miZyoHS5obTRR9BMY=" crossorigin="" />
     <script src="https://cdn.tailwindcss.com"></script>
     <style>
       html {
@@ -60,6 +61,10 @@
             boxShadow: {
               'card': '0 4px 6px -1px rgba(0, 0, 0, 0.05), 0 2px 4px -2px rgba(0, 0, 0, 0.05)',
               'modal': '0 25px 50px -12px rgba(0, 0, 0, 0.25)',
+              'neu-raised-light': '2px 2px 4px rgba(0,0,0,0.1), -2px -2px 4px rgba(255,255,255,0.8)',
+              'neu-inset-light': 'inset 2px 2px 4px rgba(0,0,0,0.05), inset -2px -2px 4px rgba(255,255,255,0.5)',
+              'neu-raised-dark': '2px 2px 4px rgba(0,0,0,0.5), -2px -2px 4px rgba(255,255,255,0.05)',
+              'neu-inset-dark': 'inset 2px 2px 4px rgba(0,0,0,0.5), inset -2px -2px 4px rgba(255,255,255,0.05)',
             },
             borderRadius: {
               'xl': '16px',
@@ -126,7 +131,9 @@
     "pg": "https://aistudiocdn.com/pg@^8.16.3",
     "express": "https://aistudiocdn.com/express@^5.1.0",
     "path": "https://aistudiocdn.com/path@^0.12.7",
-    "process": "https://aistudiocdn.com/process@^0.11.10"
+    "process": "https://aistudiocdn.com/process@^0.11.10",
+    "leaflet": "https://aistudiocdn.com/leaflet@^1.9.4",
+    "react-leaflet": "https://aistudiocdn.com/react-leaflet@^5.0.0"
   }
 }
 </script>

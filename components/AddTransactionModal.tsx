@@ -1,9 +1,12 @@
 
+
+
 import React, { useState, useMemo, useEffect, useRef } from 'react';
 import Modal from './Modal';
 import { Account, Category, Transaction, Tag } from '../types';
 import { INPUT_BASE_STYLE, BTN_PRIMARY_STYLE, BTN_SECONDARY_STYLE, SELECT_WRAPPER_STYLE, SELECT_ARROW_STYLE, CHECKBOX_STYLE, ALL_ACCOUNT_TYPES } from '../constants';
 import { v4 as uuidv4 } from 'uuid';
+import LocationAutocomplete from './LocationAutocomplete';
 
 interface AddTransactionModalProps {
   onClose: () => void;
@@ -22,6 +25,7 @@ interface AddTransactionModalProps {
     amount?: string;
     principal?: string;
     interest?: string;
+    description?: string;
   };
 }
 
@@ -90,6 +94,11 @@ const AddTransactionModal: React.FC<AddTransactionModalProps> = ({ onClose, onSa
   const [isTagSelectorOpen, setIsTagSelectorOpen] = useState(false);
   const tagSelectorRef = useRef<HTMLDivElement>(null);
   
+  // Location fields
+  const [locationString, setLocationString] = useState('');
+  const [locationData, setLocationData] = useState<{city?: string, country?: string, lat?: number, lon?: number}>({});
+
+
   // Loan payment split state
   const [principalPayment, setPrincipalPayment] = useState('');
   const [interestPayment, setInterestPayment] = useState('');
@@ -163,6 +172,17 @@ const AddTransactionModal: React.FC<AddTransactionModalProps> = ({ onClose, onSa
         let interest = '';
         let amountToSet = String(Math.abs(transactionToEdit.amount));
         setTagIds(transactionToEdit.tagIds || []);
+        
+        // Load location
+        if (transactionToEdit.city && transactionToEdit.country) {
+            setLocationString(`${transactionToEdit.city}, ${transactionToEdit.country}`);
+            setLocationData({
+                city: transactionToEdit.city,
+                country: transactionToEdit.country,
+                lat: transactionToEdit.latitude,
+                lon: transactionToEdit.longitude
+            });
+        }
 
         if (transactionToEdit.transferId && transactions) {
             setType('transfer');
@@ -208,13 +228,15 @@ const AddTransactionModal: React.FC<AddTransactionModalProps> = ({ onClose, onSa
         setDate(initialDetails?.date || new Date().toISOString().split('T')[0]);
         setFromAccountId(initialFromAccountId || defaultAccountId);
         setToAccountId(initialToAccountId || defaultAccountId);
-        setDescription('');
+        setDescription(initialDetails?.description || '');
         setMerchant('');
         setAmount(initialDetails?.amount || '');
         setCategory('');
         setPrincipalPayment(initialDetails?.principal || '');
         setInterestPayment(initialDetails?.interest || '');
         setTagIds([]);
+        setLocationString('');
+        setLocationData({});
     }
   }, [transactionToEdit, isEditing, accounts, transactions, initialType, initialFromAccountId, initialToAccountId, initialDetails, defaultAccountId]);
   
@@ -276,6 +298,15 @@ const AddTransactionModal: React.FC<AddTransactionModalProps> = ({ onClose, onSa
         }
     }
 
+    // Construct location data to mix in
+    const locationProps = {
+        city: locationData.city,
+        country: locationData.country,
+        latitude: locationData.lat,
+        longitude: locationData.lon,
+    };
+
+
     // Determine what to save
     if (isNowTransfer) {
         if (!fromAccountId || !toAccountId || fromAccountId === toAccountId) {
@@ -299,6 +330,7 @@ const AddTransactionModal: React.FC<AddTransactionModalProps> = ({ onClose, onSa
             currency: fromAcc.currency,
             transferId,
             tagIds,
+            ...locationProps
         };
 
         const incomeTx: Omit<Transaction, 'id'> & { id?: string } = {
@@ -312,6 +344,7 @@ const AddTransactionModal: React.FC<AddTransactionModalProps> = ({ onClose, onSa
             currency: toAcc.currency,
             transferId,
             tagIds,
+            ...locationProps
         };
         
         // If it's a loan payment transfer, add the split
@@ -348,6 +381,7 @@ const AddTransactionModal: React.FC<AddTransactionModalProps> = ({ onClose, onSa
             type,
             currency: selectedAccount.currency,
             tagIds,
+            ...locationProps
         };
         
         if (isLoanPayment) {
@@ -469,6 +503,17 @@ const AddTransactionModal: React.FC<AddTransactionModalProps> = ({ onClose, onSa
               <input id="tx-merchant" type="text" value={merchant} onChange={e => setMerchant(e.target.value)} className={INPUT_BASE_STYLE} placeholder="e.g., Amazon, Netflix" />
             </div>
         )}
+        
+        <div>
+            <label htmlFor="tx-location" className={labelStyle}>Location (Optional)</label>
+            <LocationAutocomplete 
+                value={locationString} 
+                onChange={(val, data) => {
+                    setLocationString(val);
+                    if (data) setLocationData(data);
+                }} 
+            />
+        </div>
 
         <div>
           <label htmlFor="tx-description" className={labelStyle}>Description</label>

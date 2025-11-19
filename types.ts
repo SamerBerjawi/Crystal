@@ -1,5 +1,4 @@
 
-
 import React, { Dispatch, SetStateAction } from 'react';
 
 // FIX: Add 'AI Assistant' to Page type
@@ -138,6 +137,11 @@ export interface Transaction {
   principalAmount?: number;
   interestAmount?: number;
   tagIds?: string[];
+  // Location data
+  city?: string;
+  country?: string;
+  latitude?: number;
+  longitude?: number;
 }
 
 export interface DisplayTransaction extends Transaction {

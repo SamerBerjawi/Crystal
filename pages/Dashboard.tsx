@@ -1,4 +1,6 @@
 
+
+
 import React, { useMemo, useState, useCallback, useEffect } from 'react';
 // FIX: Import 'RecurringTransaction' to resolve 'Cannot find name' error.
 import { User, Transaction, Account, Category, Duration, CategorySpending, Widget, WidgetConfig, DisplayTransaction, FinancialGoal, RecurringTransaction, BillPayment, Tag, Budget, RecurringTransactionOverride, LoanPaymentOverrides } from '../types';
@@ -25,6 +27,7 @@ import CreditCardStatementCard from '../components/CreditCardStatementCard';
 import LowestBalanceForecastCard from '../components/LowestBalanceForecastCard';
 import BudgetOverviewWidget from '../components/BudgetOverviewWidget';
 import AccountBreakdownCard from '../components/AccountBreakdownCard';
+import TransactionMapWidget from '../components/TransactionMapWidget';
 
 
 interface DashboardProps {
@@ -679,7 +682,8 @@ const Dashboard: React.FC<DashboardProps> = ({ user, transactions, accounts, sav
     { id: 'assetBreakdown', name: 'Asset Breakdown', defaultW: 2, defaultH: 2, component: AccountBreakdownCard, props: { title: 'Assets', totalValue: totalAssets, breakdownData: assetBreakdown } },
     { id: 'liabilityBreakdown', name: 'Liability Breakdown', defaultW: 2, defaultH: 2, component: AccountBreakdownCard, props: { title: 'Liabilities', totalValue: totalDebt, breakdownData: debtBreakdown } },
     { id: 'budgetOverview', name: 'Budget Overview', defaultW: 2, defaultH: 2, component: BudgetOverviewWidget, props: { budgets: budgets, transactions: transactions, expenseCategories: expenseCategories, accounts: accounts, duration: duration, onBudgetClick: handleBudgetClick } },
-  ], [netWorthData, netWorthTrendColor, outflowsByCategory, handleCategoryClick, totalAssets, totalDebt, recentTransactions, allCategories, handleTransactionClick, assetBreakdown, debtBreakdown, budgets, transactions, expenseCategories, accounts, duration, handleBudgetClick]);
+    { id: 'transactionMap', name: 'Transaction Map', defaultW: 4, defaultH: 2, component: TransactionMapWidget, props: { transactions: filteredTransactions } },
+  ], [netWorthData, netWorthTrendColor, outflowsByCategory, handleCategoryClick, totalAssets, totalDebt, recentTransactions, allCategories, handleTransactionClick, assetBreakdown, debtBreakdown, budgets, transactions, expenseCategories, accounts, duration, handleBudgetClick, filteredTransactions]);
 
   const [widgets, setWidgets] = useLocalStorage<WidgetConfig[]>('dashboard-layout', allWidgets.map(w => ({ id: w.id, title: w.name, w: w.defaultW, h: w.defaultH })));
 
