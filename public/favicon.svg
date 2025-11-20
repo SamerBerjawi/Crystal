@@ -1,0 +1,29 @@
+<svg width="128" height="128" viewBox="0 0 128 128" xmlns="http://www.w3.org/2000/svg" role="img" aria-label="Crystal ball logo" preserveAspectRatio="xMidYMid meet">
+  <defs>
+    <radialGradient id="crystal-orb" cx="50%" cy="32%" r="60%">
+      <stop offset="0%" stop-color="#FFFFFF" />
+      <stop offset="55%" stop-color="#E9ECF7" />
+      <stop offset="100%" stop-color="#C8CEE4" />
+    </radialGradient>
+    <linearGradient id="crystal-base" x1="0%" y1="0%" x2="0%" y2="100%">
+      <stop offset="0%" stop-color="#575D86" />
+      <stop offset="100%" stop-color="#2F335A" />
+    </linearGradient>
+    <linearGradient id="crystal-base-shine" x1="0%" y1="0%" x2="100%" y2="0%">
+      <stop offset="0%" stop-color="#8389B3" stop-opacity="0.15" />
+      <stop offset="50%" stop-color="#FFFFFF" stop-opacity="0.35" />
+      <stop offset="100%" stop-color="#8389B3" stop-opacity="0.15" />
+    </linearGradient>
+  </defs>
+  <circle cx="64" cy="54" r="44" fill="url(#crystal-orb)" stroke="#E3E8F7" stroke-width="2" />
+  <circle cx="46" cy="36" r="12" fill="#FFFFFF" opacity="0.6" />
+  <circle cx="78" cy="44" r="6" fill="#FFFFFF" opacity="0.35" />
+  <path d="M16 92h96v4c0 15.5-21.5 26-48 26S16 111.5 16 96z" fill="url(#crystal-base)" />
+  <path d="M24 98c0 10.667 17.4 18 40 18s40-7.333 40-18" fill="none" stroke="url(#crystal-base-shine)" stroke-width="6" stroke-linecap="round" opacity="0.6" />
+  <ellipse cx="64" cy="94" rx="46" ry="6" fill="#1F223C" opacity="0.25" />
+  <g fill="#FFD159" stroke="#FF9800" stroke-width="1.5" stroke-linejoin="round">
+    <path d="M8 0L12 8L20 8L12 12L8 20L4 12L-4 12L4 8Z" transform="translate(98 28) scale(0.55)" />
+    <path d="M8 0L12 8L20 8L12 12L8 20L4 12L-4 12L4 8Z" transform="translate(78 12) scale(0.4)" />
+    <path d="M8 0L12 8L20 8L12 12L8 20L4 12L-4 12L4 8Z" transform="translate(36 32) scale(0.35)" />
+  </g>
+</svg>
