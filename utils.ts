@@ -198,28 +198,39 @@ export function calculateStatementPeriods(statementStartDay: number, paymentDueD
         currentStatementStart = new Date(Date.UTC(todayYear, todayMonth - 1, statementStartDay));
     }
 
+    // Previous Period
+    const previousStatementStart = new Date(currentStatementStart);
+    previousStatementStart.setUTCMonth(previousStatementStart.getUTCMonth() - 1);
+    const previousStatementEnd = new Date(previousStatementStart);
+    previousStatementEnd.setUTCMonth(previousStatementEnd.getUTCMonth() + 1);
+    previousStatementEnd.setUTCDate(previousStatementEnd.getUTCDate() - 1);
+    let previousPaymentDueDate = new Date(Date.UTC(previousStatementEnd.getUTCFullYear(), previousStatementEnd.getUTCMonth(), paymentDueDay));
+    if (previousPaymentDueDate <= previousStatementEnd) {
+        previousPaymentDueDate.setUTCMonth(previousPaymentDueDate.getUTCMonth() + 1);
+    }
+
+    // Current Period
     const currentStatementEnd = new Date(currentStatementStart);
     currentStatementEnd.setUTCMonth(currentStatementEnd.getUTCMonth() + 1);
     currentStatementEnd.setUTCDate(currentStatementEnd.getUTCDate() - 1);
-
-    const futureStatementStart = new Date(currentStatementStart);
-    futureStatementStart.setUTCMonth(futureStatementStart.getUTCMonth() + 1);
-
-    const futureStatementEnd = new Date(futureStatementStart);
-    futureStatementEnd.setUTCMonth(futureStatementEnd.getUTCMonth() + 1);
-    futureStatementEnd.setUTCDate(futureStatementEnd.getUTCDate() - 1);
-
     let currentPaymentDueDate = new Date(Date.UTC(currentStatementEnd.getUTCFullYear(), currentStatementEnd.getUTCMonth(), paymentDueDay));
     if (currentPaymentDueDate <= currentStatementEnd) {
         currentPaymentDueDate.setUTCMonth(currentPaymentDueDate.getUTCMonth() + 1);
     }
-    
+
+    // Future Period
+    const futureStatementStart = new Date(currentStatementStart);
+    futureStatementStart.setUTCMonth(futureStatementStart.getUTCMonth() + 1);
+    const futureStatementEnd = new Date(futureStatementStart);
+    futureStatementEnd.setUTCMonth(futureStatementEnd.getUTCMonth() + 1);
+    futureStatementEnd.setUTCDate(futureStatementEnd.getUTCDate() - 1);
     let futurePaymentDueDate = new Date(Date.UTC(futureStatementEnd.getUTCFullYear(), futureStatementEnd.getUTCMonth(), paymentDueDay));
     if (futurePaymentDueDate <= futureStatementEnd) {
         futurePaymentDueDate.setUTCMonth(futurePaymentDueDate.getUTCMonth() + 1);
     }
-
+    
     return {
+        previous: { start: previousStatementStart, end: previousStatementEnd, paymentDue: previousPaymentDueDate },
         current: { start: currentStatementStart, end: currentStatementEnd, paymentDue: currentPaymentDueDate },
         future: { start: futureStatementStart, end: futureStatementEnd, paymentDue: futurePaymentDueDate }
     };
@@ -332,12 +343,44 @@ export function generateSyntheticCreditCardPayments(accounts: Account[], allTran
     for (const account of configuredCreditCards) {
         const periods = calculateStatementPeriods(account.statementStartDate!, account.paymentDate!);
 
+        // Handle the last (previous) statement if it's unpaid.
+        const { statementBalance: prevStatementBalance, amountPaid: prevAmountPaid } = getCreditCardStatementDetails(
+            account,
+            periods.previous.start,
+            periods.previous.end,
+            allTransactions
+        );
+
+        const unpaidBalance = Math.abs(prevStatementBalance) - prevAmountPaid;
+
+        if (unpaidBalance > 0.005) { // Use a small epsilon to avoid floating point issues
+            const dueDateStr = periods.previous.paymentDue.toISOString().split('T')[0];
+            const syntheticRT: RecurringTransaction = {
+                id: `cc-pmt-${account.id}-${dueDateStr}`,
+                accountId: account.settlementAccountId!,
+                toAccountId: account.id,
+                description: `Payment for ${account.name} (Statement ending ${periods.previous.end.toLocaleDateString('en-US', { month: 'short', day: 'numeric', timeZone: 'UTC' })})`,
+                amount: unpaidBalance,
+                type: 'transfer',
+                currency: account.currency,
+                frequency: 'monthly', // Semantically it's a monthly event, even if we generate one-off
+                startDate: dueDateStr,
+                endDate: dueDateStr,
+                nextDueDate: dueDateStr,
+                weekendAdjustment: 'after',
+                isSynthetic: true,
+            };
+            syntheticPayments.push(syntheticRT);
+        }
+        
+        // Handle upcoming (current and future) statements for forecasting
         const statementDetails = [
             { period: periods.current, type: 'Current' },
             { period: periods.future, type: 'Next' }
         ];
 
         for (const detail of statementDetails) {
+            // Only create synthetic payments for FUTURE due dates
             if (detail.period.paymentDue >= todayUTC) {
                 const { statementBalance } = getCreditCardStatementDetails(
                     account,
@@ -350,22 +393,25 @@ export function generateSyntheticCreditCardPayments(accounts: Account[], allTran
                     const paymentAmount = Math.abs(statementBalance);
                     const dueDateStr = detail.period.paymentDue.toISOString().split('T')[0];
 
-                    const syntheticRT: RecurringTransaction = {
-                        id: `cc-pmt-${account.id}-${dueDateStr}`,
-                        accountId: account.settlementAccountId!,
-                        toAccountId: account.id,
-                        description: `Payment for ${account.name} (${detail.type} Statement)`,
-                        amount: paymentAmount,
-                        type: 'transfer',
-                        currency: account.currency,
-                        frequency: 'monthly',
-                        startDate: dueDateStr,
-                        endDate: dueDateStr,
-                        nextDueDate: dueDateStr,
-                        weekendAdjustment: 'after',
-                        isSynthetic: true,
-                    };
-                    syntheticPayments.push(syntheticRT);
+                    // Don't duplicate if we already created an unpaid entry for the same date
+                    if (!syntheticPayments.some(p => p.id === `cc-pmt-${account.id}-${dueDateStr}`)) {
+                        const syntheticRT: RecurringTransaction = {
+                            id: `cc-pmt-${account.id}-${dueDateStr}`,
+                            accountId: account.settlementAccountId!,
+                            toAccountId: account.id,
+                            description: `Payment for ${account.name} (${detail.type} Statement)`,
+                            amount: paymentAmount,
+                            type: 'transfer',
+                            currency: account.currency,
+                            frequency: 'monthly',
+                            startDate: dueDateStr,
+                            endDate: dueDateStr,
+                            nextDueDate: dueDateStr,
+                            weekendAdjustment: 'after',
+                            isSynthetic: true,
+                        };
+                        syntheticPayments.push(syntheticRT);
+                    }
                 }
             }
         }
