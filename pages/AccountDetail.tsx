@@ -1,7 +1,7 @@
 
 import React, { useMemo, useState, useCallback } from 'react';
 // FIX: Import 'AccountDetailProps' to define props for the component.
-import { Account, Transaction, Category, Duration, Page, CategorySpending, Widget, WidgetConfig, DisplayTransaction, RecurringTransaction, AccountDetailProps, Tag, ScheduledPayment } from '../types';
+import { Account, Transaction, Category, Duration, Page, CategorySpending, Widget, WidgetConfig, DisplayTransaction, RecurringTransaction, AccountDetailProps, Tag, ScheduledPayment, MileageLog } from '../types';
 import { formatCurrency, getDateRange, convertToEur, calculateStatementPeriods, getCreditCardStatementDetails } from '../utils';
 import AddTransactionModal from '../components/AddTransactionModal';
 import { BTN_PRIMARY_STYLE, MOCK_EXPENSE_CATEGORIES, BTN_SECONDARY_STYLE } from '../constants';
@@ -21,6 +21,7 @@ import LoanProgressCard from '../components/LoanProgressCard';
 import Card from '../components/Card';
 import PaymentPlanTable from '../components/PaymentPlanTable';
 import VehicleMileageChart from '../components/VehicleMileageChart';
+import AddMileageLogModal from '../components/AddMileageLogModal';
 
 const findCategoryDetails = (name: string, categories: Category[]): Category | undefined => {
     for (const cat of categories) {
@@ -42,7 +43,7 @@ const findCategoryById = (id: string, categories: Category[]): Category | undefi
         }
     }
     return undefined;
-}
+};
 
 const toYYYYMMDD = (date: Date) => {
     const y = date.getFullYear();
@@ -51,7 +52,7 @@ const toYYYYMMDD = (date: Date) => {
     return `${y}-${m}-${d}`;
 };
 
-const AccountDetail: React.FC<AccountDetailProps> = ({ account, accounts, transactions, allCategories, setCurrentPage, saveTransaction, recurringTransactions, setViewingAccountId, tags, loanPaymentOverrides, saveLoanPaymentOverrides }) => {
+const AccountDetail: React.FC<AccountDetailProps> = ({ account, accounts, transactions, allCategories, setCurrentPage, saveTransaction, recurringTransactions, setViewingAccountId, tags, loanPaymentOverrides, saveLoanPaymentOverrides, saveAccount }) => {
     const [isTransactionModalOpen, setTransactionModalOpen] = useState(false);
     const [editingTransaction, setEditingTransaction] = useState<Transaction | null>(null);
     const [initialModalState, setInitialModalState] = useState<{
@@ -70,6 +71,7 @@ const AccountDetail: React.FC<AccountDetailProps> = ({ account, accounts, transa
     const [isDetailModalOpen, setDetailModalOpen] = useState(false);
     const [modalTransactions, setModalTransactions] = useState<Transaction[]>([]);
     const [modalTitle, setModalTitle] = useState('');
+    const [isMileageModalOpen, setIsMileageModalOpen] = useState(false);
   
     const [duration, setDuration] = useState<Duration>('1Y');
     const [isAddWidgetModalOpen, setIsAddWidgetModalOpen] = useState(false);
@@ -183,6 +185,12 @@ const AccountDetail: React.FC<AccountDetailProps> = ({ account, accounts, transa
         }
         return result.slice(0, 10);
     }, [transactions, account.id, accountMap]);
+
+    const handleSaveMileageLog = (log: MileageLog) => {
+        const updatedLogs = [...(account.mileageLogs || []), log];
+        saveAccount({ ...account, mileageLogs: updatedLogs });
+        setIsMileageModalOpen(false);
+    };
 
     if (account.type === 'Loan' || account.type === 'Lending') {
         const isLending = account.type === 'Lending';
@@ -394,6 +402,8 @@ const AccountDetail: React.FC<AccountDetailProps> = ({ account, accounts, transa
 
         return (
             <div className="space-y-6">
+                {isMileageModalOpen && <AddMileageLogModal onClose={() => setIsMileageModalOpen(false)} onSave={handleSaveMileageLog} />}
+                
                 <header className="flex flex-wrap justify-between items-center gap-4">
                     <div className="flex items-center gap-4 w-full">
                         <button onClick={() => { setViewingAccountId(null); setCurrentPage('Accounts'); }} className="text-light-text-secondary dark:text-dark-text-secondary p-2 rounded-full hover:bg-black/5 dark:hover:bg-white/5 flex-shrink-0">
@@ -406,6 +416,11 @@ const AccountDetail: React.FC<AccountDetailProps> = ({ account, accounts, transa
                             <div>
                                 <h2 className="text-xl font-bold text-light-text dark:text-dark-text">{account.year} {account.make} {account.model}</h2>
                                 <p className="text-light-text-secondary dark:text-dark-text-secondary text-sm">{account.licensePlate} &bull; {account.vin}</p>
+                            </div>
+                            <div className="ml-auto">
+                                <button onClick={() => setIsMileageModalOpen(true)} className={BTN_PRIMARY_STYLE}>
+                                    Log Mileage
+                                </button>
                             </div>
                         </div>
                     </div>
@@ -453,15 +468,6 @@ const AccountDetail: React.FC<AccountDetailProps> = ({ account, accounts, transa
                 </div>
                 
                 <VehicleMileageChart logs={account.mileageLogs || []} />
-
-                <Card>
-                    <h3 className="text-xl font-semibold mb-4 text-light-text dark:text-dark-text">Recent Activity</h3>
-                    <TransactionList
-                        transactions={recentTransactions}
-                        allCategories={allCategories}
-                        onTransactionClick={handleTransactionClick}
-                    />
-                </Card>
             </div>
         );
     }

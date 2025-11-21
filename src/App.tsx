@@ -1,4 +1,3 @@
-
 // FIX: Import `useMemo` from React to resolve the 'Cannot find name' error.
 import React, { useState, useEffect, useMemo, useCallback, Suspense, lazy, useRef } from 'react';
 import Sidebar from './components/Sidebar';
@@ -26,7 +25,7 @@ const Documentation = lazy(() => import('./pages/Documentation').then(module => 
 // UserManagement is removed
 // FIX: Import FinancialData from types.ts
 // FIX: Add `Tag` to the import from `types.ts`.
-import { Page, Theme, Category, User, Transaction, Account, RecurringTransaction, RecurringTransactionOverride, WeekendAdjustment, FinancialGoal, Budget, ImportExportHistoryItem, AppPreferences, InvestmentTransaction, Task, Warrant, ScraperConfig, ImportDataType, FinancialData, BillPayment, BillPaymentStatus, Duration, InvestmentSubType, Tag, LoanPaymentOverrides, ScheduledPayment } from './types';
+import { Page, Theme, Category, User, Transaction, Account, RecurringTransaction, RecurringTransactionOverride, WeekendAdjustment, FinancialGoal, Budget, ImportExportHistoryItem, AppPreferences, AccountType, InvestmentTransaction, Task, Warrant, ScraperConfig, ImportDataType, FinancialData, Currency, BillPayment, BillPaymentStatus, Duration, InvestmentSubType, Tag, LoanPaymentOverrides, ScheduledPayment } from './types';
 import { MOCK_INCOME_CATEGORIES, MOCK_EXPENSE_CATEGORIES, LIQUID_ACCOUNT_TYPES } from './constants';
 import { v4 as uuidv4 } from 'uuid';
 import ChatFab from './components/ChatFab';
@@ -65,10 +64,8 @@ const initialFinancialData: FinancialData = {
         defaultPeriod: 'MTD',
         defaultAccountOrder: 'name',
         country: 'Belgium',
-        defaultQuickCreatePeriod: 3,
     },
 };
-
 
 const safeLocalStorage = {
   getItem: (key: string): string | null => {
@@ -109,8 +106,8 @@ const PageLoader: React.FC<{ label?: string }> = ({ label = 'Loading content...'
 );
 
 
-// FIX: Add export to create a named export for the App component.
-export const App: React.FC = () => {
+// FIX: Changed to a default export to align with the import in index.tsx and fix the module resolution error.
+const App: React.FC = () => {
   const { user, setUser, token, isAuthenticated, isLoading: isAuthLoading, error: authError, signIn, signUp, signOut, checkAuthStatus, setError: setAuthError, changePassword } = useAuth();
   const [authPage, setAuthPage] = useState<'signIn' | 'signUp'>('signIn');
   const [isDemoMode, setIsDemoMode] = useState(false);
@@ -170,6 +167,7 @@ export const App: React.FC = () => {
   // Onboarding flow state
   const [hasCompletedOnboarding, setHasCompletedOnboarding] = useLocalStorage('crystal-onboarding-complete', false);
   const [isOnboardingOpen, setIsOnboardingOpen] = useState(false);
+
 
   useEffect(() => {
     // Set default dashboard account filter only on initial load
@@ -332,6 +330,7 @@ export const App: React.FC = () => {
 
     setAccountOrder(dataToLoad.accountOrder || []);
     setTaskOrder(dataToLoad.taskOrder || []);
+
     if (options?.skipNextSave) {
       skipNextSaveRef.current = true;
     }
@@ -391,11 +390,11 @@ export const App: React.FC = () => {
   const dataToSave: FinancialData = useMemo(() => ({
     accounts, transactions, investmentTransactions, recurringTransactions,
     recurringTransactionOverrides, loanPaymentOverrides, financialGoals, budgets, tasks, warrants, scraperConfigs, importExportHistory, incomeCategories,
-    expenseCategories, preferences, billsAndPayments, accountOrder, taskOrder, tags
+    expenseCategories, preferences, billsAndPayments, accountOrder, taskOrder, tags,
   }), [
     accounts, transactions, investmentTransactions,
     recurringTransactions, recurringTransactionOverrides, loanPaymentOverrides, financialGoals, budgets, tasks, warrants, scraperConfigs, importExportHistory,
-    incomeCategories, expenseCategories, preferences, billsAndPayments, accountOrder, taskOrder, tags
+    incomeCategories, expenseCategories, preferences, billsAndPayments, accountOrder, taskOrder, tags,
   ]);
 
   const debouncedDataToSave = useDebounce(dataToSave, 1500);
@@ -1118,6 +1117,7 @@ export const App: React.FC = () => {
           tags={tags}
           loanPaymentOverrides={loanPaymentOverrides}
           saveLoanPaymentOverrides={handleSaveLoanPaymentOverrides}
+          saveAccount={handleSaveAccount}
         />
       } else {
         setViewingAccountId(null); // Account not found, go back to dashboard
@@ -1152,6 +1152,7 @@ export const App: React.FC = () => {
       case 'Transactions':
         return <Transactions transactions={transactions} saveTransaction={handleSaveTransaction} deleteTransactions={handleDeleteTransactions} accounts={accounts} accountFilter={accountFilter} setAccountFilter={setAccountFilter} incomeCategories={incomeCategories} expenseCategories={expenseCategories} tags={tags} tagFilter={tagFilter} setTagFilter={setTagFilter} saveRecurringTransaction={handleSaveRecurringTransaction} />;
       case 'Budget':
+        // FIX: Add `preferences` to the `Budgeting` component to resolve the missing prop error.
         return <Budgeting budgets={budgets} transactions={transactions} expenseCategories={expenseCategories} saveBudget={handleSaveBudget} deleteBudget={handleDeleteBudget} accounts={accounts} preferences={preferences} />;
       case 'Forecasting':
         return <Forecasting 
@@ -1211,10 +1212,14 @@ export const App: React.FC = () => {
   if (isAuthLoading || !isDataLoaded) {
     return (
       <div className="flex items-center justify-center min-h-screen bg-light-bg dark:bg-dark-bg">
-        <svg className="animate-spin h-10 w-10 text-primary-500" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
-          <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
-          <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
-        </svg>
+          <svg className="animate-spin h-10 w-10 text-primary-500" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+            <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+            <path
+              className="opacity-75"
+              fill="currentColor"
+              d="M4 12a8 8 0 0 1 8-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 0 1 4 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"
+            ></path>
+          </svg>
       </div>
     );
   }
@@ -1229,7 +1234,7 @@ export const App: React.FC = () => {
 
   // Main app
   return (
-    <div className={`flex h-screen bg-light-bg dark:bg-dark-bg text-light-text dark:text-dark-text font-sans`}>
+    <div className={`flex h-screen bg-light-card dark:bg-dark-card text-light-text dark:text-dark-text font-sans`}>
       <Sidebar 
         currentPage={currentPage}
         setCurrentPage={(page) => { setViewingAccountId(null); setCurrentPage(page); }} 
@@ -1241,7 +1246,7 @@ export const App: React.FC = () => {
         onLogout={handleLogout}
         user={currentUser!}
       />
-      <div className="flex-1 flex flex-col overflow-hidden">
+      <div className="flex-1 flex flex-col overflow-hidden bg-light-bg dark:bg-dark-bg md:rounded-tl-3xl border-l border-t border-black/5 dark:border-white/5 shadow-2xl relative z-0">
         <Header 
           user={currentUser!}
           setSidebarOpen={setSidebarOpen}
@@ -1292,7 +1297,8 @@ export const App: React.FC = () => {
           />
         )}
       </Suspense>
-
     </div>
   );
 };
+
+export default App;

@@ -326,6 +326,7 @@ export interface AccountDetailProps {
   tags: Tag[];
   loanPaymentOverrides: LoanPaymentOverrides;
   saveLoanPaymentOverrides: (accountId: string, overrides: Record<number, Partial<ScheduledPayment>>) => void;
+  saveAccount: (account: Omit<Account, 'id'> & { id?: string }) => void;
 }
 
 // FIX: Move FinancialData interface from App.tsx to types.ts to resolve import error in mockData.ts
