@@ -1,3 +1,4 @@
+
 // FIX: Import `useMemo` from React to resolve the 'Cannot find name' error.
 import React, { useState, useEffect, useMemo, useCallback, Suspense, lazy, useRef } from 'react';
 import Sidebar from './components/Sidebar';
@@ -21,7 +22,7 @@ const InvestmentsPage = lazy(() => import('./pages/Investments'));
 const TasksPage = lazy(() => import('./pages/Tasks'));
 const WarrantsPage = lazy(() => import('./pages/Warrants'));
 const AIAssistantSettingsPage = lazy(() => import('./pages/AIAssistantSettings'));
-const Documentation = lazy(() => import('./pages/Documentation').then(module => ({ default: module.Documentation })));
+const Documentation = lazy(() => import('./pages/Documentation'));
 // UserManagement is removed
 // FIX: Import FinancialData from types.ts
 // FIX: Add `Tag` to the import from `types.ts`.

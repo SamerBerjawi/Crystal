@@ -1,3 +1,4 @@
+
 import React, { useState, useMemo, useRef, useEffect } from 'react';
 import { Page } from '../types';
 import Card from '../components/Card';
@@ -142,7 +143,7 @@ const features = [
     }
 ];
 
-export const Documentation: React.FC<DocumentationProps> = ({ setCurrentPage }) => {
+const Documentation: React.FC<DocumentationProps> = ({ setCurrentPage }) => {
     const [activeSection, setActiveSection] = useState(features[0].title);
     const [openSections, setOpenSections] = useState<Record<string, boolean>>({ [features[0].title]: true });
     const sectionRefs = useRef<Record<string, HTMLElement | null>>({});
@@ -299,3 +300,5 @@ export const Documentation: React.FC<DocumentationProps> = ({ setCurrentPage }) 
         </div>
     );
 };
+
+export default Documentation;
