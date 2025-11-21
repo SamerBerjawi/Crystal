@@ -1,4 +1,5 @@
 
+
 import React, { useState, useEffect, useMemo, useRef } from 'react';
 import Modal from './Modal';
 import { Account, AccountType, Currency, InvestmentSubType, PropertyType, FuelType, VehicleOwnership } from '../types';
@@ -52,6 +53,7 @@ const AddAccountModal: React.FC<AddAccountModalProps> = ({ onClose, onAdd, accou
   const [purchaseDate, setPurchaseDate] = useState('');
   const [leaseStartDate, setLeaseStartDate] = useState('');
   const [leaseEndDate, setLeaseEndDate] = useState('');
+  const [annualMileageAllowance, setAnnualMileageAllowance] = useState('');
   const [currentMileage, setCurrentMileage] = useState('');
   const [vehicleImage, setVehicleImage] = useState('');
   const fileInputRef = useRef<HTMLInputElement>(null);
@@ -183,6 +185,7 @@ const AddAccountModal: React.FC<AddAccountModalProps> = ({ onClose, onAdd, accou
         purchaseDate: vehicleOwnership === 'Owned' && purchaseDate ? purchaseDate : undefined,
         leaseStartDate: vehicleOwnership === 'Leased' && leaseStartDate ? leaseStartDate : undefined,
         leaseEndDate: vehicleOwnership === 'Leased' && leaseEndDate ? leaseEndDate : undefined,
+        annualMileageAllowance: vehicleOwnership === 'Leased' && annualMileageAllowance ? parseInt(annualMileageAllowance, 10) : undefined,
         imageUrl: vehicleImage || undefined,
         mileageLogs: currentMileage ? [{ id: `log-${uuidv4()}`, date: new Date().toISOString().split('T')[0], reading: parseInt(currentMileage, 10) }] : []
       }),
@@ -400,6 +403,7 @@ const AddAccountModal: React.FC<AddAccountModalProps> = ({ onClose, onAdd, accou
                        <div className="grid grid-cols-2 gap-4">
                            <div><label htmlFor="leaseStart" className={labelStyle}>Lease Start</label><input id="leaseStart" type="date" value={leaseStartDate} onChange={e=>setLeaseStartDate(e.target.value)} className={INPUT_BASE_STYLE} /></div>
                            <div><label htmlFor="leaseEnd" className={labelStyle}>Lease End</label><input id="leaseEnd" type="date" value={leaseEndDate} onChange={e=>setLeaseEndDate(e.target.value)} className={INPUT_BASE_STYLE} /></div>
+                           <div className="col-span-2"><label htmlFor="annualMileageAllowance" className={labelStyle}>Annual Mileage Allowance (km)</label><input id="annualMileageAllowance" type="number" value={annualMileageAllowance} onChange={e=>setAnnualMileageAllowance(e.target.value)} className={INPUT_BASE_STYLE} placeholder="e.g., 15000" /></div>
                        </div>
                    )}
                 </div>

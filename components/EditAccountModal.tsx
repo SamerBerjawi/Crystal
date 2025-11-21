@@ -1,9 +1,12 @@
 
+
 import React, { useState, useEffect, useMemo, useRef } from 'react';
 import Modal from './Modal';
 import { Account, AccountType, Currency, InvestmentSubType, PropertyType, Warrant, FuelType, VehicleOwnership, MileageLog } from '../types';
 import { ALL_ACCOUNT_TYPES, CURRENCIES, ACCOUNT_TYPE_STYLES, INPUT_BASE_STYLE, BTN_PRIMARY_STYLE, BTN_SECONDARY_STYLE, BTN_DANGER_STYLE, SELECT_ARROW_STYLE, SELECT_WRAPPER_STYLE, ACCOUNT_ICON_LIST, INVESTMENT_SUB_TYPES, PROPERTY_TYPES, INVESTMENT_SUB_TYPE_STYLES, FUEL_TYPES, VEHICLE_OWNERSHIP_TYPES } from '../constants';
 import IconPicker from './IconPicker';
+// FIX: Import 'uuidv4' to generate unique IDs for mileage logs.
+import { v4 as uuidv4 } from 'uuid';
 
 interface EditAccountModalProps {
   onClose: () => void;
@@ -59,6 +62,7 @@ const EditAccountModal: React.FC<EditAccountModalProps> = ({ onClose, onSave, on
   const [purchaseDate, setPurchaseDate] = useState(account.purchaseDate || '');
   const [leaseStartDate, setLeaseStartDate] = useState(account.leaseStartDate || '');
   const [leaseEndDate, setLeaseEndDate] = useState(account.leaseEndDate || '');
+  const [annualMileageAllowance, setAnnualMileageAllowance] = useState(account.annualMileageAllowance != null ? String(account.annualMileageAllowance) : '');
   const [vehicleImage, setVehicleImage] = useState(account.imageUrl || '');
   const [mileageLogs, setMileageLogs] = useState<MileageLog[]>(account.mileageLogs || []);
   const [newLogDate, setNewLogDate] = useState(new Date().toISOString().split('T')[0]);
@@ -178,7 +182,7 @@ const EditAccountModal: React.FC<EditAccountModalProps> = ({ onClose, onSave, on
   
   const handleAddLog = () => {
       if (newLogDate && newLogReading) {
-          setMileageLogs(prev => [...prev, { date: newLogDate, reading: parseInt(newLogReading, 10) }]);
+          setMileageLogs(prev => [...prev, { id: `log-${uuidv4()}`, date: newLogDate, reading: parseInt(newLogReading, 10) }]);
           setNewLogReading('');
       }
   };
@@ -220,6 +224,7 @@ const EditAccountModal: React.FC<EditAccountModalProps> = ({ onClose, onSave, on
       purchaseDate: type === 'Vehicle' && vehicleOwnership === 'Owned' && purchaseDate ? purchaseDate : undefined,
       leaseStartDate: type === 'Vehicle' && vehicleOwnership === 'Leased' && leaseStartDate ? leaseStartDate : undefined,
       leaseEndDate: type === 'Vehicle' && vehicleOwnership === 'Leased' && leaseEndDate ? leaseEndDate : undefined,
+      annualMileageAllowance: type === 'Vehicle' && vehicleOwnership === 'Leased' && annualMileageAllowance !== '' ? parseInt(annualMileageAllowance, 10) : undefined,
       mileageLogs: type === 'Vehicle' ? mileageLogs : undefined,
       imageUrl: type === 'Vehicle' ? vehicleImage || undefined : undefined,
       address: type === 'Property' ? address || undefined : undefined,
@@ -444,6 +449,7 @@ const EditAccountModal: React.FC<EditAccountModalProps> = ({ onClose, onSave, on
                        <div className="grid grid-cols-2 gap-4">
                            <div><label htmlFor="leaseStart" className={labelStyle}>Lease Start</label><input id="leaseStart" type="date" value={leaseStartDate} onChange={e=>setLeaseStartDate(e.target.value)} className={INPUT_BASE_STYLE} /></div>
                            <div><label htmlFor="leaseEnd" className={labelStyle}>Lease End</label><input id="leaseEnd" type="date" value={leaseEndDate} onChange={e=>setLeaseEndDate(e.target.value)} className={INPUT_BASE_STYLE} /></div>
+                           <div className="col-span-2"><label htmlFor="annualMileageAllowance" className={labelStyle}>Annual Mileage Allowance (km)</label><input id="annualMileageAllowance" type="number" value={annualMileageAllowance} onChange={e=>setAnnualMileageAllowance(e.target.value)} className={INPUT_BASE_STYLE} placeholder="e.g. 15000" /></div>
                        </div>
                    )}
 
@@ -456,8 +462,8 @@ const EditAccountModal: React.FC<EditAccountModalProps> = ({ onClose, onSave, on
                        </div>
                        <div className="max-h-32 overflow-y-auto space-y-1">
                            {mileageLogs.sort((a,b) => new Date(b.date).getTime() - new Date(a.date).getTime()).map((log, index) => (
-                               <div key={index} className="flex justify-between items-center text-sm p-2 bg-light-fill dark:bg-dark-fill rounded">
-                                   <span>{log.date}: {log.reading} km</span>
+                               <div key={log.id || index} className="flex justify-between items-center text-sm p-2 bg-light-fill dark:bg-dark-fill rounded">
+                                   <span>{log.date}: {log.reading.toLocaleString()} km</span>
                                    <button type="button" onClick={() => handleDeleteLog(index)} className="text-red-500"><span className="material-symbols-outlined text-sm">delete</span></button>
                                </div>
                            ))}

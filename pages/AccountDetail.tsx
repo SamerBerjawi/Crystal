@@ -1,7 +1,9 @@
+
+
 import React, { useMemo, useState, useCallback } from 'react';
 // FIX: Import 'AccountDetailProps' to define props for the component.
 import { Account, Transaction, Category, Duration, Page, CategorySpending, Widget, WidgetConfig, DisplayTransaction, RecurringTransaction, AccountDetailProps, Tag, ScheduledPayment, MileageLog } from '../types';
-import { formatCurrency, getDateRange, convertToEur, calculateStatementPeriods, getCreditCardStatementDetails } from '../utils';
+import { formatCurrency, getDateRange, convertToEur, calculateStatementPeriods, getCreditCardStatementDetails, parseDateAsUTC } from '../utils';
 import AddTransactionModal from '../components/AddTransactionModal';
 import { BTN_PRIMARY_STYLE, MOCK_EXPENSE_CATEGORIES, BTN_SECONDARY_STYLE } from '../constants';
 import TransactionDetailModal from '../components/TransactionDetailModal';
@@ -417,498 +419,262 @@ const AccountDetail: React.FC<AccountDetailProps> = ({ account, accounts, transa
         
         const leaseProgress = useMemo(() => {
             if (account.ownership === 'Leased' && account.leaseStartDate && account.leaseEndDate) {
-                const start = new Date(account.leaseStartDate).getTime();
-                const end = new Date(account.leaseEndDate).getTime();
-                const now = new Date().getTime();
-                const totalDuration = end - start;
-                const elapsed = now - start;
-                if (totalDuration <= 0) return 0;
-                return Math.min(Math.max((elapsed / totalDuration) * 100, 0), 100);
+                const start = new Date(account.leaseStartDate);
+                const end = new Date(account.leaseEndDate);
+                const now = new Date();
+                
+                const totalMonths = (end.getFullYear() - start.getFullYear()) * 12 + (end.getMonth() - start.getMonth());
+                const elapsedMonths = (now.getFullYear() - start.getFullYear()) * 12 + (now.getMonth() - start.getMonth());
+                
+                const progressPercent = totalMonths > 0 ? Math.min(Math.max((elapsedMonths / totalMonths) * 100, 0), 100) : 0;
+                
+                return {
+                    elapsedMonths: Math.max(0, elapsedMonths),
+                    totalMonths,
+                    progressPercent
+                };
             }
-            return 0;
+            return null;
         }, [account.ownership, account.leaseStartDate, account.leaseEndDate]);
 
+        const distanceDrivenSinceLeaseStart = useMemo(() => {
+            if (!account.leaseStartDate || !account.mileageLogs || account.mileageLogs.length < 1) {
+                return 0;
+            }
+            const startDate = parseDateAsUTC(account.leaseStartDate);
+            const sortedLogs = [...account.mileageLogs].sort((a,b) => parseDateAsUTC(a.date).getTime() - parseDateAsUTC(b.date).getTime());
+
+            const firstLogForLease = sortedLogs.find(log => parseDateAsUTC(log.date) >= startDate);
+            if (!firstLogForLease) return 0;
+
+            const startReading = firstLogForLease.reading;
+            const endReading = sortedLogs[sortedLogs.length - 1].reading;
+
+            return endReading - startReading;
+        }, [account.leaseStartDate, account.mileageLogs]);
+
+        const mileageToDate = useMemo(() => {
+            if (account.ownership !== 'Leased' || !account.annualMileageAllowance || !account.leaseStartDate || distanceDrivenSinceLeaseStart === 0) {
+                return null;
+            }
+
+            const daysElapsed = (new Date().getTime() - parseDateAsUTC(account.leaseStartDate).getTime()) / (1000 * 60 * 60 * 24);
+            if (daysElapsed <= 0) return null;
+
+            const dailyAllowance = account.annualMileageAllowance / 365;
+            const toDateAllowance = dailyAllowance * daysElapsed;
+
+            if (toDateAllowance <= 0) return null;
+
+            const usagePercent = (distanceDrivenSinceLeaseStart / toDateAllowance) * 100;
+            
+            let usageColor = 'bg-green-500';
+            if (usagePercent > 100) usageColor = 'bg-red-500';
+            else if (usagePercent > 90) usageColor = 'bg-yellow-500';
+
+            return {
+                toDateAllowance: Math.round(toDateAllowance),
+                actualMileageUsed: distanceDrivenSinceLeaseStart,
+                usagePercent,
+                usageColor
+            };
+        }, [account.ownership, account.annualMileageAllowance, account.leaseStartDate, distanceDrivenSinceLeaseStart]);
+        
+        const mileageProjection = useMemo(() => {
+            if (account.ownership !== 'Leased' || !account.annualMileageAllowance || !account.mileageLogs || account.mileageLogs.length < 2) {
+                return null;
+            }
+            
+            const sortedLogs = [...account.mileageLogs].sort((a,b) => new Date(a.date).getTime() - new Date(b.date).getTime());
+            const firstLog = sortedLogs[0];
+            const lastLog = sortedLogs[sortedLogs.length - 1];
+
+            const distance = lastLog.reading - firstLog.reading;
+            const days = (new Date(lastLog.date).getTime() - new Date(firstLog.date).getTime()) / (1000 * 60 * 60 * 24);
+
+            if (days <= 0) return null;
+
+            const dailyAvg = distance / days;
+            const projectedAnnual = dailyAvg * 365;
+            const usagePercent = (projectedAnnual / account.annualMileageAllowance) * 100;
+            
+            let usageColor = 'bg-green-500';
+            if (usagePercent > 100) usageColor = 'bg-red-500';
+            else if (usagePercent > 90) usageColor = 'bg-yellow-500';
+            
+            return {
+                projectedAnnual: Math.round(projectedAnnual),
+                usagePercent,
+                usageColor
+            };
+        }, [account.annualMileageAllowance, account.mileageLogs, account.ownership]);
+        
         return (
             <div className="space-y-6">
-                {isMileageModalOpen && <AddMileageLogModal onClose={() => { setIsMileageModalOpen(false); setEditingLog(null); }} onSave={handleSaveMileageLog} logToEdit={editingLog} />}
-                {deletingLogId && <ConfirmationModal isOpen={!!deletingLogId} onClose={() => setDeletingLogId(null)} onConfirm={confirmDeleteLog} title="Delete Mileage Log" message="Are you sure you want to delete this mileage log entry?" confirmButtonText="Delete" />}
-                
+                {isMileageModalOpen && (
+                    <AddMileageLogModal 
+                        onClose={() => { setIsMileageModalOpen(false); setEditingLog(null); }}
+                        onSave={handleSaveMileageLog}
+                        logToEdit={editingLog}
+                    />
+                )}
+                <ConfirmationModal 
+                    isOpen={!!deletingLogId}
+                    onClose={() => setDeletingLogId(null)}
+                    onConfirm={confirmDeleteLog}
+                    title="Delete Mileage Log"
+                    message="Are you sure you want to delete this mileage log entry? This cannot be undone."
+                />
+
                 <header className="flex flex-wrap justify-between items-center gap-4">
-                    <div className="flex items-center gap-4 w-full">
-                        <button onClick={() => { setViewingAccountId(null); setCurrentPage('Accounts'); }} className="text-light-text-secondary dark:text-dark-text-secondary p-2 rounded-full hover:bg-black/5 dark:hover:bg-white/5 flex-shrink-0">
+                    <div className="flex items-center gap-4">
+                        <button onClick={() => { setViewingAccountId(null); setCurrentPage('Accounts'); }} className="text-light-text-secondary dark:text-dark-text-secondary p-2 rounded-full hover:bg-black/5 dark:hover:bg-white/5">
                             <span className="material-symbols-outlined">arrow_back</span>
                         </button>
-                        <div className="flex items-center gap-4 w-full">
-                             {account.imageUrl && (
-                                <img src={account.imageUrl} alt="Vehicle" className="w-16 h-16 rounded-lg object-cover border border-black/10 dark:border-white/10" />
-                             )}
-                            <div>
-                                <h2 className="text-xl font-bold text-light-text dark:text-dark-text">{account.year} {account.make} {account.model}</h2>
-                                <p className="text-light-text-secondary dark:text-dark-text-secondary text-sm">{account.licensePlate} &bull; {account.vin}</p>
-                            </div>
-                            <div className="ml-auto">
-                                <button onClick={() => { setEditingLog(null); setIsMileageModalOpen(true); }} className={BTN_PRIMARY_STYLE}>
-                                    Log Mileage
-                                </button>
-                            </div>
-                        </div>
                     </div>
                 </header>
 
-                <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
                     <Card>
-                        <h3 className="text-base font-semibold text-light-text-secondary dark:text-dark-text-secondary mb-2">Details</h3>
-                        <div className="space-y-2 text-sm">
-                             <div className="flex justify-between"><span>Fuel Type</span><span className="font-semibold">{account.fuelType || 'N/A'}</span></div>
-                             <div className="flex justify-between"><span>Ownership</span><span className="font-semibold">{account.ownership}</span></div>
-                             <div className="flex justify-between"><span>Current Value</span><span className="font-semibold">{formatCurrency(account.balance, account.currency)}</span></div>
+                        <h3 className="text-base font-semibold text-light-text-secondary dark:text-dark-text-secondary">Details</h3>
+                        <div className="mt-2 space-y-2 text-sm">
+                            <div className="flex justify-between"><span>Make</span><span className="font-semibold">{account.make || 'N/A'}</span></div>
+                            <div className="flex justify-between"><span>Model</span><span className="font-semibold">{account.model || 'N/A'}</span></div>
+                            <div className="flex justify-between"><span>Year</span><span className="font-semibold">{account.year || 'N/A'}</span></div>
+                            <div className="flex justify-between"><span>Fuel</span><span className="font-semibold">{account.fuelType || 'N/A'}</span></div>
+                            <div className="flex justify-between"><span>Ownership</span><span className="font-semibold">{account.ownership || 'N/A'}</span></div>
+                            {account.ownership === 'Leased' && account.annualMileageAllowance && (
+                                <div className="flex justify-between"><span>Allowance</span><span className="font-semibold">{account.annualMileageAllowance.toLocaleString()} km/yr</span></div>
+                            )}
                         </div>
                     </Card>
-                    
+
+                    <CurrentBalanceCard title="Current Value" balance={account.balance} currency={account.currency} />
+
                     <Card>
-                         <h3 className="text-base font-semibold text-light-text-secondary dark:text-dark-text-secondary mb-2">
-                             {account.ownership === 'Leased' ? 'Lease Progress' : 'Purchase Info'}
-                         </h3>
-                         {account.ownership === 'Leased' ? (
-                             <div>
-                                 <div className="flex justify-between text-xs mb-1">
-                                     <span>{account.leaseStartDate ? new Date(account.leaseStartDate).toLocaleDateString() : 'Start'}</span>
-                                     <span>{account.leaseEndDate ? new Date(account.leaseEndDate).toLocaleDateString() : 'End'}</span>
-                                 </div>
-                                 <div className="w-full bg-light-fill dark:bg-dark-fill rounded-full h-2.5">
-                                     <div className="bg-primary-500 h-2.5 rounded-full transition-all duration-500" style={{ width: `${leaseProgress}%` }}></div>
-                                 </div>
-                                 <p className="text-center text-xs mt-1">{leaseProgress.toFixed(0)}% Elapsed</p>
-                             </div>
-                         ) : (
-                             <div className="space-y-2 text-sm">
-                                 <div className="flex justify-between"><span>Purchase Date</span><span className="font-semibold">{account.purchaseDate ? new Date(account.purchaseDate).toLocaleDateString() : 'N/A'}</span></div>
-                                 <div className="flex justify-between"><span>Original Price</span><span className="font-semibold">{account.purchasePrice ? formatCurrency(account.purchasePrice, account.currency) : 'N/A'}</span></div>
-                             </div>
-                         )}
+                        <h3 className="text-base font-semibold text-light-text-secondary dark:text-dark-text-secondary">Key Info</h3>
+                        <div className="mt-2 space-y-2 text-sm">
+                            <div className="flex justify-between"><span>License Plate</span><span className="font-semibold font-mono">{account.licensePlate || 'N/A'}</span></div>
+                            <div className="flex justify-between"><span>VIN</span><span className="font-semibold font-mono truncate">{account.vin || 'N/A'}</span></div>
+                            <div className="flex justify-between"><span>Mileage</span><span className="font-semibold">{currentMileage.toLocaleString()} km</span></div>
+                        </div>
                     </Card>
-                    
+
+                    {account.ownership === 'Leased' && (
+                        <Card>
+                            <h3 className="text-base font-semibold text-light-text-secondary dark:text-dark-text-secondary">Lease & Mileage</h3>
+                            {/* Lease term progress */}
+                            {leaseProgress && (
+                                <div className="mt-4">
+                                    <div className="flex justify-between text-xs mb-1">
+                                        <span className="font-medium">Lease Term</span>
+                                        <span>{leaseProgress.elapsedMonths} of {leaseProgress.totalMonths} months</span>
+                                    </div>
+                                    <div className="w-full bg-light-fill dark:bg-dark-fill rounded-full h-2 shadow-inner">
+                                        <div className="bg-primary-500 h-2 rounded-full" style={{ width: `${leaseProgress.progressPercent}%` }}></div>
+                                    </div>
+                                </div>
+                            )}
+
+                            {/* Mileage to date progress */}
+                            {mileageToDate && (
+                                <div className="mt-4 pt-4 border-t border-black/10 dark:border-white/10">
+                                    <div className="flex justify-between items-baseline">
+                                        <p className="text-xs font-medium">Mileage To Date</p>
+                                        <p className="text-sm font-semibold">{mileageToDate.usagePercent.toFixed(0)}% Used</p>
+                                    </div>
+                                    <p className="font-semibold">{mileageToDate.actualMileageUsed.toLocaleString()} km / {mileageToDate.toDateAllowance.toLocaleString()} km allowed</p>
+                                    <div className="w-full bg-light-fill dark:bg-dark-fill rounded-full h-2 shadow-inner mt-1">
+                                        <div className={`${mileageToDate.usageColor} h-2 rounded-full`} style={{ width: `${Math.min(mileageToDate.usagePercent, 100)}%` }}></div>
+                                    </div>
+                                </div>
+                            )}
+
+                            {/* Mileage projection progress */}
+                            {mileageProjection ? (
+                                <div className="mt-4 pt-4 border-t border-black/10 dark:border-white/10">
+                                    <p className="text-xs font-medium">Projected Annual Mileage</p>
+                                    <p className="font-semibold">{mileageProjection.projectedAnnual.toLocaleString()} km / {account.annualMileageAllowance!.toLocaleString()} km</p>
+                                    <div className="w-full bg-light-fill dark:bg-dark-fill rounded-full h-2 shadow-inner mt-1">
+                                        <div className={`${mileageProjection.usageColor} h-2 rounded-full`} style={{ width: `${Math.min(mileageProjection.usagePercent, 100)}%` }}></div>
+                                    </div>
+                                </div>
+                            ) : (
+                                account.annualMileageAllowance && (
+                                    <div className="mt-4 pt-4 border-t border-black/10 dark:border-white/10 text-xs text-light-text-secondary dark:text-dark-text-secondary">
+                                        Log more mileage to see annual projection.
+                                    </div>
+                                )
+                            )}
+                        </Card>
+                    )}
+                </div>
+
+                <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                    <VehicleMileageChart logs={account.mileageLogs || []} />
+
                     <Card>
-                        <h3 className="text-base font-semibold text-light-text-secondary dark:text-dark-text-secondary mb-2">Odometer</h3>
-                        <div className="flex items-center justify-center h-full pb-4">
-                             <p className="text-3xl font-bold font-mono">{currentMileage.toLocaleString()} <span className="text-sm font-normal text-light-text-secondary dark:text-dark-text-secondary">km</span></p>
+                        <div className="flex justify-between items-center mb-4">
+                             <h3 className="text-base font-semibold text-light-text-secondary dark:text-dark-text-secondary">Mileage Log</h3>
+                             <button onClick={() => setIsMileageModalOpen(true)} className={`${BTN_SECONDARY_STYLE} !py-1 !px-3 !text-xs`}>Log Mileage</button>
+                        </div>
+                        <div className="space-y-2 max-h-48 overflow-y-auto">
+                            {(account.mileageLogs || []).sort((a,b) => new Date(b.date).getTime() - new Date(a.date).getTime()).map(log => (
+                                <div key={log.id} className="flex justify-between items-center p-2 rounded-lg hover:bg-black/5 dark:hover:bg-white/5 group">
+                                    <div>
+                                        <p className="font-semibold text-sm">{new Date(log.date).toLocaleDateString()}</p>
+                                        <p className="text-light-text-secondary dark:text-dark-text-secondary text-sm">{log.reading.toLocaleString()} km</p>
+                                    </div>
+                                    <div className="opacity-0 group-hover:opacity-100 transition-opacity">
+                                        <button onClick={() => handleEditLogClick(log)} className="p-1"><span className="material-symbols-outlined text-sm">edit</span></button>
+                                        <button onClick={() => handleDeleteLogClick(log.id)} className="p-1 text-red-500"><span className="material-symbols-outlined text-sm">delete</span></button>
+                                    </div>
+                                </div>
+                            ))}
                         </div>
                     </Card>
                 </div>
                 
-                <VehicleMileageChart logs={account.mileageLogs || []} />
-
-                 <Card>
-                    <h3 className="text-base font-semibold text-light-text-secondary dark:text-dark-text-secondary mb-4">Mileage Log</h3>
-                    <div className="overflow-x-auto max-h-96">
-                        <table className="w-full text-sm text-left">
-                            <thead>
-                                <tr className="border-b border-black/10 dark:border-white/10">
-                                    <th className="p-2 font-semibold">Date</th>
-                                    <th className="p-2 font-semibold text-right">Odometer (km)</th>
-                                    <th className="p-2 font-semibold text-right">Actions</th>
-                                </tr>
-                            </thead>
-                            <tbody>
-                                {(account.mileageLogs || []).sort((a,b) => new Date(b.date).getTime() - new Date(a.date).getTime()).map(log => (
-                                    <tr key={log.id} className="border-b border-black/5 dark:border-white/5 last:border-b-0 group">
-                                        <td className="p-2">{new Date(log.date.replace(/-/g, '/')).toLocaleDateString()}</td>
-                                        <td className="p-2 text-right font-mono">{log.reading.toLocaleString()}</td>
-                                        <td className="p-2 text-right">
-                                            <div className="opacity-0 group-hover:opacity-100 transition-opacity flex justify-end">
-                                                <button onClick={() => handleEditLogClick(log)} className="p-1 rounded-full text-light-text-secondary dark:text-dark-text-secondary hover:bg-black/10 dark:hover:bg-white/10" title="Edit Log"><span className="material-symbols-outlined text-sm">edit</span></button>
-                                                <button onClick={() => handleDeleteLogClick(log.id)} className="p-1 rounded-full text-red-500/80 hover:bg-red-500/10" title="Delete Log"><span className="material-symbols-outlined text-sm">delete</span></button>
-                                            </div>
-                                        </td>
-                                    </tr>
-                                ))}
-                            </tbody>
-                        </table>
-                        {(!account.mileageLogs || account.mileageLogs.length === 0) && (
-                            <p className="text-center py-8 text-light-text-secondary dark:text-dark-text-secondary">
-                                No mileage logs recorded.
-                            </p>
-                        )}
-                    </div>
+                <Card>
+                    <h3 className="text-xl font-semibold mb-4 text-light-text dark:text-dark-text">Recent Activity</h3>
+                    <TransactionList
+                        transactions={recentTransactions}
+                        allCategories={allCategories}
+                        onTransactionClick={handleTransactionClick}
+                    />
                 </Card>
             </div>
         );
     }
 
-    // --- GENERIC ACCOUNT VIEW LOGIC ---
-    const isConfiguredCreditCard = account.type === 'Credit Card' && account.statementStartDate && account.paymentDate;
-
-    const statementData = useMemo(() => {
-        if (!isConfiguredCreditCard) return null;
-    
-        const periods = calculateStatementPeriods(account.statementStartDate!, account.paymentDate!);
-        
-        const { statementBalance: currentBalance, amountPaid: currentAmountPaid } = getCreditCardStatementDetails(account, periods.current.start, periods.current.end, transactions);
-        const { statementBalance: futureBalance, amountPaid: futureAmountPaid } = getCreditCardStatementDetails(account, periods.future.start, periods.future.end, transactions);
-        
-        const formatDate = (date: Date) => date.toLocaleDateString('en-US', { month: 'short', day: 'numeric', timeZone: 'UTC' });
-        const formatFullDate = (date: Date) => date.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric', timeZone: 'UTC' });
-    
-        return {
-            current: {
-                balance: currentBalance,
-                amountPaid: currentAmountPaid,
-                period: `${formatDate(periods.current.start)} - ${formatDate(periods.current.end)}`,
-                paymentDue: formatFullDate(periods.current.paymentDue)
-            },
-            future: {
-                balance: futureBalance,
-                amountPaid: futureAmountPaid,
-                period: `${formatDate(periods.future.start)} - ${formatDate(periods.future.end)}`,
-                paymentDue: formatFullDate(periods.future.paymentDue)
-            }
-        };
-    }, [isConfiguredCreditCard, account, transactions]);
-    
+    // Default Account Detail View (for Checking, Savings, etc.)
     const { filteredTransactions, income, expenses } = useMemo(() => {
-        const { start, end } = getDateRange(duration, transactions);
-        
-        const accountTransactions = transactions.filter(tx => tx.accountId === account.id);
-
-        const txsInPeriod = accountTransactions.filter(tx => {
-            const txDate = new Date(tx.date.replace(/-/g, '/'));
+        const { start, end } = getDateRange(duration);
+        const txsInPeriod = transactions.filter(tx => {
+            if (tx.accountId !== account.id) return false;
+            const txDate = new Date(tx.date);
             return txDate >= start && txDate <= end;
         });
-    
-        let calculatedIncome = 0;
-        let calculatedExpenses = 0;
-    
-        txsInPeriod.forEach(tx => {
-            const convertedAmount = convertToEur(tx.amount, tx.currency);
-            if (tx.type === 'income') calculatedIncome += convertedAmount;
-            else calculatedExpenses += Math.abs(convertedAmount);
-        });
-    
-        return { 
-            filteredTransactions: txsInPeriod,
-            income: calculatedIncome,
-            expenses: calculatedExpenses,
-        };
+
+        const income = txsInPeriod.filter(tx => tx.type === 'income').reduce((sum, tx) => sum + convertToEur(tx.amount, tx.currency), 0);
+        const expenses = txsInPeriod.filter(tx => tx.type === 'expense').reduce((sum, tx) => sum + Math.abs(convertToEur(tx.amount, tx.currency)), 0);
+
+        return { filteredTransactions: txsInPeriod, income, expenses };
     }, [transactions, duration, account.id]);
     
-    const outflowsByCategory: CategorySpending[] = useMemo(() => {
-        const spending: { [key: string]: CategorySpending } = {};
-        const expenseCats = MOCK_EXPENSE_CATEGORIES;
-    
-        filteredTransactions.forEach(tx => {
-            if (tx.type !== 'expense') return;
-            
-            const convertedAmount = convertToEur(tx.amount, tx.currency);
-
-            const category = findCategoryDetails(tx.category, expenseCats);
-            let parentCategory = category;
-            if (category?.parentId) {
-                parentCategory = findCategoryById(category.parentId, expenseCats) || category;
-            }
-            const name = parentCategory?.name || 'Uncategorized';
-            if (!spending[name]) {
-                spending[name] = { name, value: 0, color: parentCategory?.color || '#A0AEC0', icon: parentCategory?.icon };
-            }
-            spending[name].value += Math.abs(convertedAmount);
-            
-        });
-    
-        return Object.values(spending).sort((a, b) => b.value - a.value);
-    }, [filteredTransactions]);
-
-    const handleCategoryClick = useCallback((categoryName: string) => {
-        const txs = filteredTransactions.filter(tx => {
-            const category = findCategoryDetails(tx.category, MOCK_EXPENSE_CATEGORIES);
-            let parentCategory = category;
-            if(category?.parentId){
-                parentCategory = findCategoryById(category.parentId, MOCK_EXPENSE_CATEGORIES) || category;
-            }
-            return parentCategory?.name === categoryName && tx.type === 'expense';
-        });
-        setModalTransactions(txs);
-        setModalTitle(`Transactions for ${categoryName}`);
-        setDetailModalOpen(true);
-    }, [filteredTransactions]);
-
-    const { incomeSparkline, expenseSparkline } = useMemo(() => {
-        const NUM_POINTS = 30;
-        const { start, end } = getDateRange(duration, transactions);
-        const timeRange = end.getTime() - start.getTime();
-        const interval = timeRange / NUM_POINTS;
-    
-        const incomeBuckets = Array(NUM_POINTS).fill(0);
-        const expenseBuckets = Array(NUM_POINTS).fill(0);
-    
-        for (const tx of filteredTransactions) {
-            const txTime = new Date(tx.date.replace(/-/g, '/')).getTime();
-            const index = Math.floor((txTime - start.getTime()) / interval);
-            const convertedAmount = convertToEur(tx.amount, tx.currency);
-            if (index >= 0 && index < NUM_POINTS) {
-                if (tx.type === 'income') {
-                    incomeBuckets[index] += convertedAmount;
-                } else {
-                    expenseBuckets[index] += Math.abs(convertedAmount);
-                }
-            }
-        }
-        
-        return {
-            incomeSparkline: incomeBuckets.map(value => ({ value })),
-            expenseSparkline: expenseBuckets.map(value => ({ value }))
-        };
-    
-      }, [filteredTransactions, duration, transactions]);
-
-      const balanceOverTimeData = useMemo(() => {
-        const { start, end } = getDateRange(duration, transactions);
-        const currentBalance = convertToEur(account.balance, account.currency);
-        const today = new Date(); // A consistent "now"
-    
-        const transactionsToReverse = transactions.filter(tx => {
-            if (tx.accountId !== account.id) return false;
-            const txDate = new Date(tx.date.replace(/-/g, '/'));
-            return txDate >= start && txDate <= today;
-        });
-    
-        const totalChangeSinceStart = transactionsToReverse.reduce((sum, tx) => {
-            return sum + convertToEur(tx.amount, tx.currency);
-        }, 0);
-    
-        const startingBalance = currentBalance - totalChangeSinceStart;
-
-        const transactionsInPeriod = transactions.filter(tx => {
-            if (tx.accountId !== account.id) return false;
-            const txDate = new Date(tx.date.replace(/-/g, '/'));
-            return txDate >= start && txDate <= end;
-        });
-    
-        const dailyChanges = new Map<string, number>();
-        for (const tx of transactionsInPeriod) {
-            const dateStr = tx.date;
-            const change = convertToEur(tx.amount, tx.currency);
-            dailyChanges.set(dateStr, (dailyChanges.get(dateStr) || 0) + change);
-        }
-        
-        const data: { name: string, value: number }[] = [];
-        let runningBalance = startingBalance;
-        
-        let currentDate = new Date(start);
-    
-        while (currentDate <= end) {
-            const dateStr = toYYYYMMDD(currentDate);
-            runningBalance += dailyChanges.get(dateStr) || 0;
-            data.push({
-                name: dateStr,
-                value: parseFloat(runningBalance.toFixed(2))
-            });
-            currentDate.setDate(currentDate.getDate() + 1);
-        }
-
-        const todayStr = toYYYYMMDD(new Date());
-        if (data.length > 0 && data[data.length-1].name === todayStr) {
-            data[data.length-1].value = parseFloat(currentBalance.toFixed(2));
-        }
-    
-        return data;
-    }, [duration, transactions, account]);
-
-    const balanceTrendColor = useMemo(() => {
-        if (balanceOverTimeData.length < 2) return '#6366F1'; // Default color
-        const startValue = balanceOverTimeData[0].value;
-        const endValue = balanceOverTimeData[balanceOverTimeData.length - 1].value;
-        return endValue >= startValue ? '#22C55E' : '#EF4444'; // Green or Red
-    }, [balanceOverTimeData]);
-
-    // --- Widget Management ---
-    const allWidgets: Widget[] = useMemo(() => [
-        { id: 'balanceOverTime', name: 'Balance Over Time', defaultW: 4, defaultH: 2, component: NetWorthChart, props: { data: balanceOverTimeData, lineColor: balanceTrendColor } },
-        { id: 'outflowsByCategory', name: 'Outflows by Category', defaultW: 2, defaultH: 2, component: OutflowsChart, props: { data: outflowsByCategory, onCategoryClick: handleCategoryClick } },
-        { id: 'recentTransactions', name: 'Recent Transactions', defaultW: 2, defaultH: 2, component: TransactionList, props: { transactions: recentTransactions, allCategories: allCategories, onTransactionClick: handleTransactionClick } }
-    ], [balanceOverTimeData, balanceTrendColor, outflowsByCategory, handleCategoryClick, recentTransactions, allCategories, handleTransactionClick]);
-
-    const [widgets, setWidgets] = useLocalStorage<WidgetConfig[]>(`account-detail-layout-${account.id}`, allWidgets.map(w => ({ id: w.id, title: w.name, w: w.defaultW, h: w.defaultH })));
-
-    const removeWidget = (widgetId: string) => {
-        setWidgets(prev => prev.filter(w => w.id !== widgetId));
-    };
-    
-    const addWidget = (widgetId: string) => {
-        const widgetToAdd = allWidgets.find(w => w.id === widgetId);
-        if (widgetToAdd) {
-            setWidgets(prev => [...prev, { id: widgetToAdd.id, title: widgetToAdd.name, w: widgetToAdd.defaultW, h: widgetToAdd.defaultH }]);
-        }
-        setIsAddWidgetModalOpen(false);
-    };
-
-    const handleResize = (widgetId: string, dimension: 'w' | 'h', change: 1 | -1) => {
-      setWidgets(prev => prev.map(w => {
-        if (w.id === widgetId) {
-          const newDim = w[dimension] + change;
-          if (dimension === 'w' && (newDim < 1 || newDim > 4)) return w;
-          if (dimension === 'h' && (newDim < 1 || newDim > 3)) return w;
-          return { ...w, [dimension]: newDim };
-        }
-        return w;
-      }));
-    };
-
-    const availableWidgetsToAdd = useMemo(() => {
-        const currentWidgetIds = widgets.map(w => w.id);
-        return allWidgets.filter(w => !currentWidgetIds.includes(w.id));
-    }, [widgets, allWidgets]);
-
-    const [draggedWidgetId, setDraggedWidgetId] = useState<string | null>(null);
-    const [dragOverWidgetId, setDragOverWidgetId] = useState<string | null>(null);
-
-    const handleDragStart = (e: React.DragEvent, widgetId: string) => { setDraggedWidgetId(widgetId); e.dataTransfer.effectAllowed = 'move'; };
-    const handleDragEnter = (e: React.DragEvent, widgetId: string) => { e.preventDefault(); if (widgetId !== draggedWidgetId) setDragOverWidgetId(widgetId); };
-    const handleDragLeave = (e: React.DragEvent, widgetId: string) => { e.preventDefault(); setDragOverWidgetId(null); };
-    const handleDrop = (e: React.DragEvent, targetWidgetId: string) => {
-        e.preventDefault();
-        if (!draggedWidgetId || draggedWidgetId === targetWidgetId) return;
-
-        setWidgets(prevWidgets => {
-            const draggedIndex = prevWidgets.findIndex(w => w.id === draggedWidgetId);
-            const targetIndex = prevWidgets.findIndex(w => w.id === targetWidgetId);
-            if (draggedIndex === -1 || targetIndex === -1) return prevWidgets;
-
-            const newWidgets = [...prevWidgets];
-            const [draggedItem] = newWidgets.splice(draggedIndex, 1);
-            newWidgets.splice(targetIndex, 0, draggedItem);
-            return newWidgets;
-        });
-    };
-    const handleDragEnd = () => { setDraggedWidgetId(null); setDragOverWidgetId(null); };
-
+    // Fallback/Default detail view
     return (
-        <div className="space-y-6">
-            {isTransactionModalOpen && (
-                <AddTransactionModal
-                    onClose={handleCloseTransactionModal}
-                    onSave={(data, toDelete) => { saveTransaction(data, toDelete); handleCloseTransactionModal(); }}
-                    accounts={accounts}
-                    incomeCategories={allCategories.filter(c => c.classification === 'income')}
-                    expenseCategories={allCategories.filter(c => c.classification === 'expense')}
-                    transactionToEdit={editingTransaction}
-                    transactions={transactions}
-                    initialType={initialModalState.type}
-                    initialFromAccountId={initialModalState.from}
-                    initialToAccountId={initialModalState.to}
-                    initialDetails={initialModalState.details}
-                    tags={tags}
-                />
-            )}
-            <TransactionDetailModal
-                isOpen={isDetailModalOpen}
-                onClose={() => setDetailModalOpen(false)}
-                title={modalTitle}
-                transactions={modalTransactions}
-                accounts={accounts}
-            />
-            <AddWidgetModal isOpen={isAddWidgetModalOpen} onClose={() => setIsAddWidgetModalOpen(false)} availableWidgets={availableWidgetsToAdd} onAddWidget={addWidget} />
-
-            {/* Header */}
-            <div className="flex flex-wrap justify-between items-center gap-4">
-                <div className="flex items-center gap-4">
-                    <button onClick={() => { setViewingAccountId(null); setCurrentPage('Accounts'); }} className="text-light-text-secondary dark:text-dark-text-secondary p-2 rounded-full hover:bg-black/5 dark:hover:bg-white/5">
-                        <span className="material-symbols-outlined">arrow_back</span>
-                    </button>
-                    <div>
-                        {/* <h2 className="text-3xl font-bold text-light-text dark:text-dark-text">{account.name}</h2> */}
-                        <p className="text-light-text-secondary dark:text-dark-text-secondary mt-1">{account.type} Account &bull; Current Balance: {formatCurrency(account.balance, account.currency)}</p>
-                    </div>
-                </div>
-                <div className="flex items-center gap-4">
-                    <DurationFilter selectedDuration={duration} onDurationChange={setDuration} />
-                    {isEditMode ? (
-                        <div className="flex items-center gap-2">
-                            <button onClick={() => setIsAddWidgetModalOpen(true)} className={`${BTN_SECONDARY_STYLE} h-10 flex items-center gap-2`}>
-                                <span className="material-symbols-outlined text-base">add</span>
-                                Add Widget
-                            </button>
-                            <button onClick={() => setIsEditMode(false)} className={`${BTN_PRIMARY_STYLE} h-10`}>
-                                Done
-                            </button>
-                        </div>
-                    ) : (
-                        <button onClick={() => setIsEditMode(true)} className={`${BTN_SECONDARY_STYLE} h-10 flex items-center gap-2`}>
-                            <span className="material-symbols-outlined text-base">edit</span>
-                            Edit Layout
-                        </button>
-                    )}
-                    <button onClick={() => handleOpenTransactionModal()} className={`${BTN_PRIMARY_STYLE} h-10 hidden sm:block`}>
-                        Add Transaction
-                    </button>
-                </div>
-            </div>
-
-            {/* Top Summary Grid */}
-            {isConfiguredCreditCard && statementData ? (
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                    <CreditCardStatementCard
-                        title="Current Statement"
-                        statementBalance={statementData.current.balance}
-                        amountPaid={statementData.current.amountPaid}
-                        accountBalance={account.balance}
-                        creditLimit={account.creditLimit}
-                        currency={account.currency}
-                        statementPeriod={statementData.current.period}
-                        paymentDueDate={statementData.current.paymentDue}
-                    />
-                    <CreditCardStatementCard
-                        title="Next Statement"
-                        statementBalance={statementData.future.balance}
-                        amountPaid={statementData.future.amountPaid}
-                        accountBalance={account.balance}
-                        creditLimit={account.creditLimit}
-                        currency={account.currency}
-                        statementPeriod={statementData.future.period}
-                        paymentDueDate={statementData.future.paymentDue}
-                    />
-                </div>
-            ) : (
-                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-                    <BalanceCard title="Income" amount={income} changeType="positive" sparklineData={incomeSparkline} />
-                    <BalanceCard title="Expenses" amount={expenses} changeType="negative" sparklineData={expenseSparkline} />
-                    <NetBalanceCard 
-                        netBalance={income - expenses}
-                        totalIncome={income}
-                        duration={duration}
-                    />
-                    <CurrentBalanceCard balance={account.balance} currency={account.currency} />
-                </div>
-            )}
-            
-            {/* Customizable Widget Grid */}
-            <div className="grid grid-cols-1 md:grid-cols-4 gap-6" style={{ gridAutoRows: 'minmax(200px, auto)' }}>
-                {widgets.map(widget => {
-                    const widgetDetails = allWidgets.find(w => w.id === widget.id);
-                    if (!widgetDetails) return null;
-                    const WidgetComponent = widgetDetails.component;
-
-                    return (
-                        <WidgetWrapper
-                            key={widget.id}
-                            title={widget.title}
-                            w={widget.w}
-                            h={widget.h}
-                            onRemove={() => removeWidget(widget.id)}
-                            onResize={(dim, change) => handleResize(widget.id, dim, change)}
-                            isEditMode={isEditMode}
-                            isBeingDragged={draggedWidgetId === widget.id}
-                            isDragOver={dragOverWidgetId === widget.id}
-                            onDragStart={e => handleDragStart(e, widget.id)}
-                            onDragEnter={e => handleDragEnter(e, widget.id)}
-                            onDragLeave={handleDragLeave}
-                            onDrop={e => handleDrop(e, widget.id)}
-                            onDragEnd={handleDragEnd}
-                        >
-                            <WidgetComponent {...widgetDetails.props as any} />
-                        </WidgetWrapper>
-                    );
-                })}
-            </div>
-        </div>
+      <div>
+          <header className="flex flex-wrap justify-between items-center gap-4">
+              <div className="flex items-center gap-4">
+                  <button onClick={() => { setViewingAccountId(null); setCurrentPage('Accounts'); }} className="text-light-text-secondary dark:text-dark-text-secondary p-2 rounded-full hover:bg-black/5 dark:hover:bg-white/5">
+                      <span className="material-symbols-outlined">arrow_back</span>
+                  </button>
+              </div>
+          </header>
+          {/* Implement default view here */}
+          <p>Default detail view for {account.type} accounts.</p>
+      </div>
     );
 };
 

@@ -86,6 +86,7 @@ export interface Account {
   // If Leased
   leaseStartDate?: string;
   leaseEndDate?: string;
+  annualMileageAllowance?: number;
   // Mileage
   mileageLogs?: MileageLog[];
   imageUrl?: string;
