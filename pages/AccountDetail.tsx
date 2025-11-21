@@ -1,4 +1,3 @@
-
 import React, { useMemo, useState, useCallback } from 'react';
 // FIX: Import 'AccountDetailProps' to define props for the component.
 import { Account, Transaction, Category, Duration, Page, CategorySpending, Widget, WidgetConfig, DisplayTransaction, RecurringTransaction, AccountDetailProps, Tag, ScheduledPayment, MileageLog } from '../types';
@@ -22,6 +21,8 @@ import Card from '../components/Card';
 import PaymentPlanTable from '../components/PaymentPlanTable';
 import VehicleMileageChart from '../components/VehicleMileageChart';
 import AddMileageLogModal from '../components/AddMileageLogModal';
+import ConfirmationModal from '../components/ConfirmationModal';
+import { v4 as uuidv4 } from 'uuid';
 
 const findCategoryDetails = (name: string, categories: Category[]): Category | undefined => {
     for (const cat of categories) {
@@ -72,6 +73,8 @@ const AccountDetail: React.FC<AccountDetailProps> = ({ account, accounts, transa
     const [modalTransactions, setModalTransactions] = useState<Transaction[]>([]);
     const [modalTitle, setModalTitle] = useState('');
     const [isMileageModalOpen, setIsMileageModalOpen] = useState(false);
+    const [editingLog, setEditingLog] = useState<MileageLog | null>(null);
+    const [deletingLogId, setDeletingLogId] = useState<string | null>(null);
   
     const [duration, setDuration] = useState<Duration>('1Y');
     const [isAddWidgetModalOpen, setIsAddWidgetModalOpen] = useState(false);
@@ -186,10 +189,35 @@ const AccountDetail: React.FC<AccountDetailProps> = ({ account, accounts, transa
         return result.slice(0, 10);
     }, [transactions, account.id, accountMap]);
 
-    const handleSaveMileageLog = (log: MileageLog) => {
-        const updatedLogs = [...(account.mileageLogs || []), log];
-        saveAccount({ ...account, mileageLogs: updatedLogs });
+    const handleSaveMileageLog = (log: Omit<MileageLog, 'id'> & { id?: string }) => {
+        if (log.id) { // Editing existing log
+          const updatedLogs = (account.mileageLogs || []).map(l => 
+            l.id === log.id ? { ...l, date: log.date, reading: log.reading } : l
+          );
+          saveAccount({ ...account, mileageLogs: updatedLogs as MileageLog[] });
+        } else { // Adding new log
+          const newLog: MileageLog = { date: log.date, reading: log.reading, id: `log-${uuidv4()}` };
+          const updatedLogs = [...(account.mileageLogs || []), newLog];
+          saveAccount({ ...account, mileageLogs: updatedLogs });
+        }
         setIsMileageModalOpen(false);
+        setEditingLog(null);
+    };
+
+    const handleEditLogClick = (log: MileageLog) => {
+        setEditingLog(log);
+        setIsMileageModalOpen(true);
+    };
+    
+    const handleDeleteLogClick = (logId: string) => {
+        setDeletingLogId(logId);
+    };
+    
+    const confirmDeleteLog = () => {
+        if (!deletingLogId) return;
+        const updatedLogs = (account.mileageLogs || []).filter(log => log.id !== deletingLogId);
+        saveAccount({ ...account, mileageLogs: updatedLogs });
+        setDeletingLogId(null);
     };
 
     if (account.type === 'Loan' || account.type === 'Lending') {
@@ -402,7 +430,8 @@ const AccountDetail: React.FC<AccountDetailProps> = ({ account, accounts, transa
 
         return (
             <div className="space-y-6">
-                {isMileageModalOpen && <AddMileageLogModal onClose={() => setIsMileageModalOpen(false)} onSave={handleSaveMileageLog} />}
+                {isMileageModalOpen && <AddMileageLogModal onClose={() => { setIsMileageModalOpen(false); setEditingLog(null); }} onSave={handleSaveMileageLog} logToEdit={editingLog} />}
+                {deletingLogId && <ConfirmationModal isOpen={!!deletingLogId} onClose={() => setDeletingLogId(null)} onConfirm={confirmDeleteLog} title="Delete Mileage Log" message="Are you sure you want to delete this mileage log entry?" confirmButtonText="Delete" />}
                 
                 <header className="flex flex-wrap justify-between items-center gap-4">
                     <div className="flex items-center gap-4 w-full">
@@ -418,7 +447,7 @@ const AccountDetail: React.FC<AccountDetailProps> = ({ account, accounts, transa
                                 <p className="text-light-text-secondary dark:text-dark-text-secondary text-sm">{account.licensePlate} &bull; {account.vin}</p>
                             </div>
                             <div className="ml-auto">
-                                <button onClick={() => setIsMileageModalOpen(true)} className={BTN_PRIMARY_STYLE}>
+                                <button onClick={() => { setEditingLog(null); setIsMileageModalOpen(true); }} className={BTN_PRIMARY_STYLE}>
                                     Log Mileage
                                 </button>
                             </div>
@@ -468,6 +497,40 @@ const AccountDetail: React.FC<AccountDetailProps> = ({ account, accounts, transa
                 </div>
                 
                 <VehicleMileageChart logs={account.mileageLogs || []} />
+
+                 <Card>
+                    <h3 className="text-base font-semibold text-light-text-secondary dark:text-dark-text-secondary mb-4">Mileage Log</h3>
+                    <div className="overflow-x-auto max-h-96">
+                        <table className="w-full text-sm text-left">
+                            <thead>
+                                <tr className="border-b border-black/10 dark:border-white/10">
+                                    <th className="p-2 font-semibold">Date</th>
+                                    <th className="p-2 font-semibold text-right">Odometer (km)</th>
+                                    <th className="p-2 font-semibold text-right">Actions</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {(account.mileageLogs || []).sort((a,b) => new Date(b.date).getTime() - new Date(a.date).getTime()).map(log => (
+                                    <tr key={log.id} className="border-b border-black/5 dark:border-white/5 last:border-b-0 group">
+                                        <td className="p-2">{new Date(log.date.replace(/-/g, '/')).toLocaleDateString()}</td>
+                                        <td className="p-2 text-right font-mono">{log.reading.toLocaleString()}</td>
+                                        <td className="p-2 text-right">
+                                            <div className="opacity-0 group-hover:opacity-100 transition-opacity flex justify-end">
+                                                <button onClick={() => handleEditLogClick(log)} className="p-1 rounded-full text-light-text-secondary dark:text-dark-text-secondary hover:bg-black/10 dark:hover:bg-white/10" title="Edit Log"><span className="material-symbols-outlined text-sm">edit</span></button>
+                                                <button onClick={() => handleDeleteLogClick(log.id)} className="p-1 rounded-full text-red-500/80 hover:bg-red-500/10" title="Delete Log"><span className="material-symbols-outlined text-sm">delete</span></button>
+                                            </div>
+                                        </td>
+                                    </tr>
+                                ))}
+                            </tbody>
+                        </table>
+                        {(!account.mileageLogs || account.mileageLogs.length === 0) && (
+                            <p className="text-center py-8 text-light-text-secondary dark:text-dark-text-secondary">
+                                No mileage logs recorded.
+                            </p>
+                        )}
+                    </div>
+                </Card>
             </div>
         );
     }

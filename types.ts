@@ -37,6 +37,7 @@ export type FuelType = 'Gasoline' | 'Diesel' | 'Electric' | 'Hybrid' | 'LPG';
 export type VehicleOwnership = 'Owned' | 'Leased';
 
 export interface MileageLog {
+    id: string;
     date: string;
     reading: number;
 }
