@@ -533,35 +533,48 @@ const AccountDetail: React.FC<AccountDetailProps> = ({ account, accounts, transa
                         </button>
                     </div>
                 </header>
-
-                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-                    <Card>
-                        <h3 className="text-base font-semibold text-light-text-secondary dark:text-dark-text-secondary">Details</h3>
-                        <div className="mt-2 space-y-2 text-sm">
-                            <div className="flex justify-between"><span>Make</span><span className="font-semibold">{account.make || 'N/A'}</span></div>
-                            <div className="flex justify-between"><span>Model</span><span className="font-semibold">{account.model || 'N/A'}</span></div>
-                            <div className="flex justify-between"><span>Year</span><span className="font-semibold">{account.year || 'N/A'}</span></div>
-                            <div className="flex justify-between"><span>Fuel</span><span className="font-semibold">{account.fuelType || 'N/A'}</span></div>
-                            <div className="flex justify-between"><span>Ownership</span><span className="font-semibold">{account.ownership || 'N/A'}</span></div>
-                            {account.ownership === 'Leased' && account.annualMileageAllowance && (
-                                <div className="flex justify-between"><span>Allowance</span><span className="font-semibold">{account.annualMileageAllowance.toLocaleString()} km/yr</span></div>
+                
+                <Card className="p-4 sm:p-6">
+                    <div className="grid grid-cols-1 md:grid-cols-3 gap-6 items-center">
+                        <div className="md:col-span-1">
+                            {account.imageUrl ? (
+                                <img src={account.imageUrl} alt={`${account.make} ${account.model}`} className="w-full h-auto object-cover rounded-lg aspect-video shadow-md" />
+                            ) : (
+                                <div className="w-full aspect-video bg-light-fill dark:bg-dark-fill flex items-center justify-center rounded-lg">
+                                    <span className="material-symbols-outlined text-6xl text-gray-400">directions_car</span>
+                                </div>
                             )}
                         </div>
-                    </Card>
-
-                    <CurrentBalanceCard title="Current Value" balance={account.balance} currency={account.currency} />
-
-                    <Card>
-                        <h3 className="text-base font-semibold text-light-text-secondary dark:text-dark-text-secondary">Key Info</h3>
-                        <div className="mt-2 space-y-2 text-sm">
-                            <div className="flex justify-between"><span>License Plate</span><span className="font-semibold font-mono">{account.licensePlate || 'N/A'}</span></div>
-                            <div className="flex justify-between"><span>VIN</span><span className="font-semibold font-mono truncate">{account.vin || 'N/A'}</span></div>
-                            <div className="flex justify-between"><span>Mileage</span><span className="font-semibold">{currentMileage.toLocaleString()} km</span></div>
+                        <div className="md:col-span-2">
+                            <div className="grid grid-cols-2 gap-y-4 gap-x-6">
+                                <div className="col-span-2">
+                                    <p className="text-sm font-medium text-light-text-secondary dark:text-dark-text-secondary">{account.year} {account.make}</p>
+                                    <h3 className="text-2xl font-bold text-light-text dark:text-dark-text -mt-1">{account.model}</h3>
+                                </div>
+                                <div>
+                                    <p className="text-sm text-light-text-secondary dark:text-dark-text-secondary">Current Value</p>
+                                    <p className="text-xl font-semibold">{formatCurrency(account.balance, account.currency)}</p>
+                                </div>
+                                <div>
+                                    <p className="text-sm text-light-text-secondary dark:text-dark-text-secondary">Mileage</p>
+                                    <p className="text-xl font-semibold">{currentMileage.toLocaleString()} km</p>
+                                </div>
+                                <div>
+                                    <p className="text-sm text-light-text-secondary dark:text-dark-text-secondary">License Plate</p>
+                                    <p className="text-xl font-semibold font-mono">{account.licensePlate || 'N/A'}</p>
+                                </div>
+                                <div>
+                                    <p className="text-sm text-light-text-secondary dark:text-dark-text-secondary">Ownership</p>
+                                    <p className="text-xl font-semibold">{account.ownership || 'N/A'}</p>
+                                </div>
+                            </div>
                         </div>
-                    </Card>
+                    </div>
+                </Card>
 
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
                     {account.ownership === 'Leased' && (
-                        <Card>
+                         <Card>
                             <h3 className="text-base font-semibold text-light-text-secondary dark:text-dark-text-secondary">Lease & Mileage</h3>
                             {/* Lease term progress */}
                             {leaseProgress && (
@@ -608,7 +621,15 @@ const AccountDetail: React.FC<AccountDetailProps> = ({ account, accounts, transa
                             )}
                         </Card>
                     )}
+                    <Card>
+                        <h3 className="text-base font-semibold text-light-text-secondary dark:text-dark-text-secondary">Specifications</h3>
+                        <div className="mt-2 space-y-2 text-sm">
+                            <div className="flex justify-between"><span>VIN</span><span className="font-semibold font-mono truncate">{account.vin || 'N/A'}</span></div>
+                            <div className="flex justify-between"><span>Fuel Type</span><span className="font-semibold">{account.fuelType || 'N/A'}</span></div>
+                        </div>
+                    </Card>
                 </div>
+
 
                 <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
                     <VehicleMileageChart logs={account.mileageLogs || []} />
