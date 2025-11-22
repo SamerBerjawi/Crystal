@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useState } from 'react';
 import Modal from './Modal';
 import { BTN_PRIMARY_STYLE, BTN_SECONDARY_STYLE } from '../constants';
 import { Suggestion } from '../hooks/useTransactionMatcher';
@@ -71,6 +71,15 @@ const SuggestionItem: React.FC<{
 
 const TransactionMatcherModal: React.FC<TransactionMatcherModalProps> = ({ isOpen, onClose, suggestions, accounts, onConfirmMatch, onDismissSuggestion, onConfirmAll, onDismissAll }) => {
     
+    const [currentPage, setCurrentPage] = useState(1);
+    const SUGGESTIONS_PER_PAGE = 5;
+
+    const paginatedSuggestions = suggestions.slice(
+        (currentPage - 1) * SUGGESTIONS_PER_PAGE,
+        currentPage * SUGGESTIONS_PER_PAGE
+    );
+    const totalPages = Math.ceil(suggestions.length / SUGGESTIONS_PER_PAGE);
+
     const handleConfirmAll = () => {
         onConfirmAll();
         onClose();
@@ -87,7 +96,10 @@ const TransactionMatcherModal: React.FC<TransactionMatcherModalProps> = ({ isOpe
         <Modal onClose={onClose} title="Review Potential Transfers">
             <div className="space-y-4">
                 <div className="p-4 bg-light-bg dark:bg-dark-bg rounded-lg flex justify-between items-center">
-                    <p className="font-semibold">Bulk Actions</p>
+                    <div>
+                        <p className="font-semibold">Bulk Actions</p>
+                        <p className="text-xs text-light-text-secondary dark:text-dark-text-secondary">Applies to all {suggestions.length} suggestions.</p>
+                    </div>
                     <div className="flex gap-4">
                         <button onClick={handleDismissAll} className={BTN_SECONDARY_STYLE}>Reject All</button>
                         <button onClick={handleConfirmAll} className={BTN_PRIMARY_STYLE}>Accept All</button>
@@ -95,7 +107,7 @@ const TransactionMatcherModal: React.FC<TransactionMatcherModalProps> = ({ isOpe
                 </div>
                 {suggestions.length > 0 ? (
                     <div className="space-y-4 max-h-[60vh] overflow-y-auto pr-2 -mr-2">
-                        {suggestions.map(s => (
+                        {paginatedSuggestions.map(s => (
                             <SuggestionItem
                                 key={s.id}
                                 suggestion={s}
@@ -109,6 +121,26 @@ const TransactionMatcherModal: React.FC<TransactionMatcherModalProps> = ({ isOpe
                     <p className="text-center text-light-text-secondary dark:text-dark-text-secondary py-8">
                         No more suggestions to review.
                     </p>
+                )}
+
+                {totalPages > 1 && (
+                    <div className="flex justify-between items-center pt-2">
+                        <button
+                            onClick={() => setCurrentPage(p => Math.max(1, p - 1))}
+                            disabled={currentPage === 1}
+                            className={`${BTN_SECONDARY_STYLE} disabled:opacity-50`}
+                        >
+                            Previous
+                        </button>
+                        <span className="text-sm font-medium">Page {currentPage} of {totalPages}</span>
+                        <button
+                            onClick={() => setCurrentPage(p => Math.min(totalPages, p + 1))}
+                            disabled={currentPage === totalPages}
+                            className={`${BTN_SECONDARY_STYLE} disabled:opacity-50`}
+                        >
+                            Next
+                        </button>
+                    </div>
                 )}
             </div>
         </Modal>

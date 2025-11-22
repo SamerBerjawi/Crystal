@@ -178,7 +178,7 @@ const Forecasting: React.FC<ForecastingProps> = ({ accounts, transactions, recur
 
     const { forecastData, tableData, lowestPoint, goalsWithProjections } = useMemo(() => {
         const projectionEndDate = new Date();
-        projectionEndDate.setFullYear(new Date().getFullYear() + 10);
+        projectionEndDate.setFullYear(new Date().getFullYear() + 3); // Capped at 3 years for performance
 
         const syntheticLoanPayments = generateSyntheticLoanPayments(accounts, transactions, loanPaymentOverrides);
         const syntheticCreditCardPayments = generateSyntheticCreditCardPayments(accounts, transactions);

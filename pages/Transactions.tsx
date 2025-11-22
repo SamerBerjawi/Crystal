@@ -55,6 +55,10 @@ const Transactions: React.FC<TransactionsProps> = ({ transactions, saveTransacti
   const contextMenuRef = useRef<HTMLDivElement>(null);
   const [showFilters, setShowFilters] = useState(false);
 
+  // Pagination state
+  const [currentPage, setCurrentPage] = useState(1);
+  const ITEMS_PER_PAGE = 50;
+
   // Sync with global filters from props
   useEffect(() => {
     if (accountFilter) {
@@ -93,6 +97,12 @@ const Transactions: React.FC<TransactionsProps> = ({ transactions, saveTransacti
         document.removeEventListener('mousedown', handleClick);
     };
   }, []);
+
+  // Reset to first page whenever filters change
+  useEffect(() => {
+    setCurrentPage(1);
+  }, [searchTerm, sortBy, typeFilter, startDate, endDate, selectedAccountIds, selectedCategoryNames, selectedTagIds, minAmount, maxAmount, merchantFilter]);
+
 
   const allCategories = useMemo(() => [...incomeCategories, ...expenseCategories], [incomeCategories, expenseCategories]);
   const accountMap = useMemo(() => accounts.reduce((map, acc) => { map[acc.id] = acc; return map; }, {} as { [key: string]: Account }), [accounts]);
@@ -225,10 +235,16 @@ const Transactions: React.FC<TransactionsProps> = ({ transactions, saveTransacti
 
   }, [searchTerm, sortBy, typeFilter, startDate, endDate, displayTransactions, selectedAccountIds, selectedCategoryNames, selectedTagIds, minAmount, maxAmount, allCategories, accountMapByName, merchantFilter]);
   
+  const paginatedTransactions = useMemo(() => {
+    return filteredTransactions.slice((currentPage - 1) * ITEMS_PER_PAGE, currentPage * ITEMS_PER_PAGE);
+  }, [filteredTransactions, currentPage]);
+
+  const totalPages = Math.ceil(filteredTransactions.length / ITEMS_PER_PAGE);
+
     const groupedTransactions = useMemo(() => {
         const groups: Record<string, { transactions: DisplayTransaction[]; total: number }> = {};
 
-        filteredTransactions.forEach(tx => {
+        paginatedTransactions.forEach(tx => {
             const date = tx.date;
             if (!groups[date]) {
                 groups[date] = { transactions: [], total: 0 };
@@ -264,16 +280,16 @@ const Transactions: React.FC<TransactionsProps> = ({ transactions, saveTransacti
         }
 
         return groups;
-    }, [filteredTransactions, selectedAccountIds, accounts, accountMapByName]);
+    }, [paginatedTransactions, selectedAccountIds, accounts, accountMapByName]);
   
   const containsTransfer = useMemo(() => {
     return Array.from(selectedIds).some((id: string) => id.startsWith('transfer-'));
   }, [selectedIds]);
 
   const isAllSelected = useMemo(() => {
-      if (filteredTransactions.length === 0) return false;
-      return filteredTransactions.every(tx => selectedIds.has(tx.id));
-  }, [filteredTransactions, selectedIds]);
+      if (paginatedTransactions.length === 0) return false;
+      return paginatedTransactions.every(tx => selectedIds.has(tx.id));
+  }, [paginatedTransactions, selectedIds]);
   
     const selectedTransactions = useMemo(() => {
         const regularTxIds = Array.from(selectedIds).filter((id: string) => !id.startsWith('transfer-'));
@@ -282,7 +298,7 @@ const Transactions: React.FC<TransactionsProps> = ({ transactions, saveTransacti
 
   const handleSelectAll = (e: React.ChangeEvent<HTMLInputElement>) => {
     if (e.target.checked) {
-        const allIds = new Set(filteredTransactions.map(tx => tx.id));
+        const allIds = new Set(paginatedTransactions.map(tx => tx.id));
         setSelectedIds(allIds);
     } else {
         setSelectedIds(new Set());
@@ -768,6 +784,13 @@ const Transactions: React.FC<TransactionsProps> = ({ transactions, saveTransacti
                     </div>
                 )}
             </div>
+             {totalPages > 1 && (
+                <div className="px-6 py-3 border-t border-light-separator dark:border-dark-separator flex justify-between items-center flex-shrink-0">
+                    <button onClick={() => setCurrentPage(p => p - 1)} disabled={currentPage === 1} className={`${BTN_SECONDARY_STYLE} disabled:opacity-50`}>Previous</button>
+                    <span className="text-sm font-semibold">Page {currentPage} of {totalPages}</span>
+                    <button onClick={() => setCurrentPage(p => p + 1)} disabled={currentPage === totalPages} className={`${BTN_SECONDARY_STYLE} disabled:opacity-50`}>Next</button>
+                </div>
+            )}
         </Card>
         {selectedIds.size > 0 && (
             <div className="absolute bottom-4 inset-x-4 mx-auto max-w-2xl z-20">
