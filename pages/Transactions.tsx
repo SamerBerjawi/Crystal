@@ -112,28 +112,38 @@ const Transactions: React.FC<TransactionsProps> = ({ transactions, saveTransacti
   const displayTransactions = useMemo(() => {
     const processedTransferIds = new Set<string>();
     const result: DisplayTransaction[] = [];
-    
+
     const sortedTransactions = [...transactions].sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
+
+    const transferLookup = sortedTransactions.reduce((map, tx) => {
+        if (!tx.transferId) return map;
+        const current = map.get(tx.transferId) || { income: undefined as Transaction | undefined, expense: undefined as Transaction | undefined };
+        if (tx.amount >= 0) {
+            current.income = tx;
+        } else {
+            current.expense = tx;
+        }
+        map.set(tx.transferId, current);
+        return map;
+    }, new Map<string, { income?: Transaction; expense?: Transaction }>());
 
     for (const tx of sortedTransactions) {
         if (tx.transferId) {
             if (processedTransferIds.has(tx.transferId)) continue;
-            
-            const pair = sortedTransactions.find(t => t.transferId === tx.transferId && t.id !== tx.id);
+
+            const pair = transferLookup.get(tx.transferId);
             processedTransferIds.add(tx.transferId);
 
-            if (pair) {
-                const expensePart = tx.amount < 0 ? tx : pair;
-                const incomePart = tx.amount > 0 ? tx : pair;
+            if (pair?.expense && pair?.income) {
                 result.push({
-                    ...expensePart,
-                    id: `transfer-${expensePart.transferId}`,
-                    originalId: expensePart.id,
-                    amount: Math.abs(expensePart.amount),
+                    ...pair.expense,
+                    id: `transfer-${pair.expense.transferId}`,
+                    originalId: pair.expense.id,
+                    amount: Math.abs(pair.expense.amount),
                     isTransfer: true,
                     type: 'expense',
-                    fromAccountName: accountMap[expensePart.accountId]?.name,
-                    toAccountName: accountMap[incomePart.accountId]?.name,
+                    fromAccountName: accountMap[pair.expense.accountId]?.name,
+                    toAccountName: accountMap[pair.income.accountId]?.name,
                     category: 'Transfer',
                     description: 'Account Transfer'
                 });
