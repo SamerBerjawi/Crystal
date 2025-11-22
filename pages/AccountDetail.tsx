@@ -1,5 +1,6 @@
 
 
+
 import React, { useMemo, useState, useCallback } from 'react';
 // FIX: Import 'AccountDetailProps' to define props for the component.
 import { Account, Transaction, Category, Duration, Page, CategorySpending, Widget, WidgetConfig, DisplayTransaction, RecurringTransaction, AccountDetailProps, Tag, ScheduledPayment, MileageLog } from '../types';
@@ -49,9 +50,10 @@ const findCategoryById = (id: string, categories: Category[]): Category | undefi
 };
 
 const toYYYYMMDD = (date: Date) => {
-    const y = date.getFullYear();
-    const m = (date.getMonth() + 1).toString().padStart(2, '0');
-    const d = date.getDate().toString().padStart(2, '0');
+    // FIX: Corrected to use UTC date parts to avoid timezone inconsistencies.
+    const y = date.getUTCFullYear();
+    const m = (date.getUTCMonth() + 1).toString().padStart(2, '0');
+    const d = date.getUTCDate().toString().padStart(2, '0');
     return `${y}-${m}-${d}`;
 };
 
@@ -655,25 +657,16 @@ const AccountDetail: React.FC<AccountDetailProps> = ({ account, accounts, transa
                         </div>
                     </Card>
                 </div>
-                
-                <Card>
-                    <h3 className="text-xl font-semibold mb-4 text-light-text dark:text-dark-text">Recent Activity</h3>
-                    <TransactionList
-                        transactions={recentTransactions}
-                        allCategories={allCategories}
-                        onTransactionClick={handleTransactionClick}
-                    />
-                </Card>
             </div>
         );
     }
 
     // Default Account Detail View (for Checking, Savings, etc.)
     const { filteredTransactions, income, expenses } = useMemo(() => {
-        const { start, end } = getDateRange(duration);
+        const { start, end } = getDateRange(duration, transactions);
         const txsInPeriod = transactions.filter(tx => {
             if (tx.accountId !== account.id) return false;
-            const txDate = new Date(tx.date);
+            const txDate = parseDateAsUTC(tx.date);
             return txDate >= start && txDate <= end;
         });
 
@@ -682,19 +675,175 @@ const AccountDetail: React.FC<AccountDetailProps> = ({ account, accounts, transa
 
         return { filteredTransactions: txsInPeriod, income, expenses };
     }, [transactions, duration, account.id]);
+
+    const { incomeChange, expenseChange } = useMemo(() => {
+        const { start, end } = getDateRange(duration, transactions);
+        const diff = end.getTime() - start.getTime();
+        if (duration === 'ALL' || diff <= 0) return { incomeChange: null, expenseChange: null };
+
+        const prevStart = new Date(start.getTime() - diff);
+        const prevEnd = new Date(start.getTime() - 1);
+
+        const txsInPrevPeriod = transactions.filter(tx => {
+            if (tx.accountId !== account.id) return false;
+            const txDate = parseDateAsUTC(tx.date);
+            return txDate >= prevStart && txDate <= prevEnd;
+        });
+
+        const prevIncome = txsInPrevPeriod.filter(tx => tx.type === 'income').reduce((sum, tx) => sum + convertToEur(tx.amount, tx.currency), 0);
+        const prevExpenses = txsInPrevPeriod.filter(tx => tx.type === 'expense').reduce((sum, tx) => sum + Math.abs(convertToEur(tx.amount, tx.currency)), 0);
+        
+        const calculateChangeString = (current: number, previous: number) => {
+            if (previous === 0) return null;
+            const change = ((current - previous) / previous) * 100;
+            if (isNaN(change) || !isFinite(change)) return null;
+            return `${change >= 0 ? '+' : ''}${change.toFixed(1)}%`;
+        };
+
+        return { incomeChange: calculateChangeString(income, prevIncome), expenseChange: calculateChangeString(expenses, prevExpenses) };
+    }, [duration, transactions, account.id, income, expenses]);
+
+    const outflowsByCategory: CategorySpending[] = useMemo(() => {
+        const spending: { [key: string]: CategorySpending } = {};
+        filteredTransactions.forEach(tx => {
+            if (tx.type !== 'expense') return;
+            const category = findCategoryDetails(tx.category, allCategories);
+            let parentCategory = category;
+            if (category?.parentId) parentCategory = findCategoryById(category.parentId, allCategories) || category;
+            
+            const name = parentCategory?.name || 'Uncategorized';
+            if (!spending[name]) spending[name] = { name, value: 0, color: parentCategory?.color || '#A0AEC0', icon: parentCategory?.icon };
+            spending[name].value += Math.abs(convertToEur(tx.amount, tx.currency));
+        });
+        return Object.values(spending).sort((a, b) => b.value - a.value);
+    }, [filteredTransactions, allCategories]);
+
+    const handleCategoryClick = useCallback((categoryName: string) => {
+        const txs = filteredTransactions.filter(tx => {
+            const category = findCategoryDetails(tx.category, allCategories);
+            let parentCategory = category;
+            if (category?.parentId) parentCategory = findCategoryById(category.parentId, allCategories) || category;
+            return parentCategory?.name === categoryName && tx.type === 'expense';
+        });
+        setModalTransactions(txs);
+        setModalTitle(`Transactions for ${categoryName}`);
+        setDetailModalOpen(true);
+    }, [filteredTransactions, allCategories]);
+
+    const balanceHistoryData = useMemo(() => {
+        const { start, end } = getDateRange(duration, transactions);
+        const transactionsToReverse = transactions.filter(tx => {
+            if (tx.accountId !== account.id) return false;
+            const txDate = parseDateAsUTC(tx.date);
+            return txDate >= start && txDate <= new Date();
+        });
+
+        const totalChangeSinceStart = transactionsToReverse.reduce((sum, tx) => sum + tx.amount, 0);
+        const startingBalance = account.balance - totalChangeSinceStart;
+
+        const dailyChanges = new Map<string, number>();
+        filteredTransactions.forEach(tx => {
+            dailyChanges.set(tx.date, (dailyChanges.get(tx.date) || 0) + tx.amount);
+        });
+        
+        const data: { name: string, value: number }[] = [];
+        let runningBalance = startingBalance;
+        let currentDate = new Date(start);
+        while (currentDate <= end) {
+            // FIX: This line was causing a "not callable" error.
+            // Replaced the local date manipulation with a consistent UTC-based approach to resolve the error and fix timezone bugs.
+            const dateStr = currentDate.toISOString().split('T')[0];
+            runningBalance += dailyChanges.get(dateStr) || 0;
+            data.push({ name: dateStr, value: runningBalance });
+            currentDate.setUTCDate(currentDate.getUTCDate() + 1);
+        }
+        return data;
+    }, [duration, transactions, account.id, account.balance, filteredTransactions]);
+
+    const allWidgets: Widget[] = [
+        { id: 'balanceHistory', name: 'Balance History', defaultW: 4, defaultH: 2, component: NetWorthChart, props: { data: balanceHistoryData } },
+        { id: 'outflowsByCategory', name: 'Outflows by Category', defaultW: 2, defaultH: 2, component: OutflowsChart, props: { data: outflowsByCategory, onCategoryClick: handleCategoryClick } },
+        { id: 'recentTransactions', name: 'Recent Transactions', defaultW: 2, defaultH: 2, component: TransactionList, props: { transactions: recentTransactions, allCategories: allCategories, onTransactionClick: handleTransactionClick } },
+    ];
     
-    // Fallback/Default detail view
+    const [widgets, setWidgets] = useLocalStorage<WidgetConfig[]>(`account-detail-layout-${account.id}`, allWidgets.map(w => ({ id: w.id, title: w.name, w: w.defaultW, h: w.defaultH })));
+
+    const removeWidget = (widgetId: string) => setWidgets(prev => prev.filter(w => w.id !== widgetId));
+    const addWidget = (widgetId: string) => {
+        const widgetToAdd = allWidgets.find(w => w.id === widgetId);
+        if (widgetToAdd) setWidgets(prev => [...prev, { id: widgetToAdd.id, title: widgetToAdd.name, w: widgetToAdd.defaultW, h: widgetToAdd.defaultH }]);
+        setIsAddWidgetModalOpen(false);
+    };
+    const availableWidgetsToAdd = useMemo(() => allWidgets.filter(w => !widgets.some(current => current.id === w.id)), [widgets, allWidgets]);
+    const [draggedWidgetId, setDraggedWidgetId] = useState<string | null>(null);
+    const [dragOverWidgetId, setDragOverWidgetId] = useState<string | null>(null);
+    const handleDragStart = (e: React.DragEvent, widgetId: string) => { setDraggedWidgetId(widgetId); e.dataTransfer.effectAllowed = 'move'; };
+    const handleDragEnter = (e: React.DragEvent, widgetId: string) => { e.preventDefault(); if (widgetId !== draggedWidgetId) setDragOverWidgetId(widgetId); };
+    const handleDragLeave = () => setDragOverWidgetId(null);
+    const handleDrop = (e: React.DragEvent, targetWidgetId: string) => {
+        e.preventDefault();
+        if (!draggedWidgetId || draggedWidgetId === targetWidgetId) return;
+        setWidgets(prevWidgets => {
+            const draggedIndex = prevWidgets.findIndex(w => w.id === draggedWidgetId);
+            const targetIndex = prevWidgets.findIndex(w => w.id === targetWidgetId);
+            if (draggedIndex === -1 || targetIndex === -1) return prevWidgets;
+            const newWidgets = [...prevWidgets];
+            const [draggedItem] = newWidgets.splice(draggedIndex, 1);
+            newWidgets.splice(targetIndex, 0, draggedItem);
+            return newWidgets;
+        });
+    };
+    const handleDragEnd = () => { setDraggedWidgetId(null); setDragOverWidgetId(null); };
+
     return (
-      <div>
-          <header className="flex flex-wrap justify-between items-center gap-4">
+      <div className="space-y-6">
+          {isTransactionModalOpen && (
+              <AddTransactionModal onClose={handleCloseTransactionModal} onSave={(data, toDelete) => { saveTransaction(data, toDelete); handleCloseTransactionModal(); }} accounts={accounts} incomeCategories={allCategories.filter(c => c.classification === 'income')} expenseCategories={allCategories.filter(c => c.classification === 'expense')} transactionToEdit={editingTransaction} transactions={transactions} tags={tags} initialFromAccountId={account.id} initialToAccountId={account.id}/>
+          )}
+          <TransactionDetailModal isOpen={isDetailModalOpen} onClose={() => setDetailModalOpen(false)} title={modalTitle} transactions={modalTransactions} accounts={accounts}/>
+          <AddWidgetModal isOpen={isAddWidgetModalOpen} onClose={() => setIsAddWidgetModalOpen(false)} availableWidgets={availableWidgetsToAdd} onAddWidget={addWidget} />
+          
+          <header className="flex flex-col xl:flex-row justify-between items-start xl:items-center gap-4">
               <div className="flex items-center gap-4">
                   <button onClick={() => { setViewingAccountId(null); setCurrentPage('Accounts'); }} className="text-light-text-secondary dark:text-dark-text-secondary p-2 rounded-full hover:bg-black/5 dark:hover:bg-white/5">
                       <span className="material-symbols-outlined">arrow_back</span>
                   </button>
               </div>
+              <div className="flex flex-col sm:flex-row gap-3 w-full xl:w-auto">
+                  <div className="flex-1 sm:flex-none"><DurationFilter selectedDuration={duration} onDurationChange={setDuration} /></div>
+                  <div className="flex gap-3 w-full sm:w-auto">
+                      {isEditMode ? (
+                          <>
+                              <button onClick={() => setIsAddWidgetModalOpen(true)} className={`${BTN_SECONDARY_STYLE} flex-1 sm:flex-none flex items-center gap-2 justify-center`}><span className="material-symbols-outlined text-base">add</span><span className="whitespace-nowrap">Add Widget</span></button>
+                              <button onClick={() => setIsEditMode(false)} className={`${BTN_PRIMARY_STYLE} flex-1 sm:flex-none justify-center px-6`}>Done</button>
+                          </>
+                      ) : (
+                          <button onClick={() => setIsEditMode(true)} className={`${BTN_SECONDARY_STYLE} flex-1 sm:flex-none flex items-center gap-2 justify-center`}><span className="material-symbols-outlined text-base">edit</span><span className="whitespace-nowrap">Edit Layout</span></button>
+                      )}
+                      <button onClick={() => handleOpenTransactionModal()} className={`${BTN_PRIMARY_STYLE} flex-1 sm:flex-none justify-center whitespace-nowrap`}>Add Transaction</button>
+                  </div>
+              </div>
           </header>
-          {/* Implement default view here */}
-          <p>Default detail view for {account.type} accounts.</p>
+
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+              <CurrentBalanceCard balance={account.balance} currency={account.currency} />
+              <BalanceCard title="Income" amount={income} change={incomeChange} changeType="positive" sparklineData={useMemo(() => [], [])} />
+              <BalanceCard title="Expenses" amount={expenses} change={expenseChange} changeType="negative" sparklineData={useMemo(() => [], [])} />
+              <NetBalanceCard netBalance={income - expenses} totalIncome={income} duration={duration} />
+          </div>
+
+          <div className="grid grid-cols-1 md:grid-cols-4 gap-6" style={{ gridAutoRows: 'minmax(200px, auto)' }}>
+              {widgets.map(widget => {
+                  const widgetDetails = allWidgets.find(w => w.id === widget.id);
+                  if (!widgetDetails) return null;
+                  const WidgetComponent = widgetDetails.component;
+                  return (
+                      <WidgetWrapper key={widget.id} title={widget.title} w={widget.w} h={widget.h} onRemove={() => removeWidget(widget.id)} onResize={() => {}} isEditMode={isEditMode} isBeingDragged={draggedWidgetId === widget.id} isDragOver={dragOverWidgetId === widget.id} onDragStart={e => handleDragStart(e, widget.id)} onDragEnter={e => handleDragEnter(e, widget.id)} onDragLeave={handleDragLeave} onDrop={e => handleDrop(e, widget.id)} onDragEnd={handleDragEnd}>
+                          <WidgetComponent {...widgetDetails.props as any} />
+                      </WidgetWrapper>
+                  );
+              })}
+          </div>
       </div>
     );
 };
