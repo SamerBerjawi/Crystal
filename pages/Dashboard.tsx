@@ -82,6 +82,8 @@ const toYYYYMMDD = (date: Date) => {
     return `${y}-${m}-${d}`;
 };
 
+type EnrichedTransaction = Transaction & { convertedAmount: number; parsedDate: Date };
+
 const Dashboard: React.FC<DashboardProps> = ({ user, transactions, accounts, saveTransaction, incomeCategories, expenseCategories, financialGoals, recurringTransactions, recurringTransactionOverrides, loanPaymentOverrides, activeGoalIds, billsAndPayments, selectedAccountIds, setSelectedAccountIds, duration, setDuration, tags, budgets }) => {
   const [isTransactionModalOpen, setTransactionModalOpen] = useState(false);
   const [editingTransaction, setEditingTransaction] = useState<Transaction | null>(null);
@@ -179,6 +181,16 @@ const Dashboard: React.FC<DashboardProps> = ({ user, transactions, accounts, sav
     };
   }, [transactions, duration, selectedAccountIds]);
 
+  const enrichedTransactions: EnrichedTransaction[] = useMemo(
+    () =>
+      filteredTransactions.map(tx => ({
+        ...tx,
+        convertedAmount: convertToEur(tx.amount, tx.currency),
+        parsedDate: parseDateAsUTC(tx.date),
+      })),
+    [filteredTransactions]
+  );
+
   const { incomeChange, expenseChange } = useMemo(() => {
     const { start, end } = getDateRange(duration, transactions);
     const diff = end.getTime() - start.getTime();
@@ -239,10 +251,10 @@ const Dashboard: React.FC<DashboardProps> = ({ user, transactions, accounts, sav
     const expenseCats = expenseCategories;
     const processedTransferIds = new Set<string>();
 
-    filteredTransactions.forEach(tx => {
+    enrichedTransactions.forEach(tx => {
         if (tx.type !== 'expense') return;
-        
-        const convertedAmount = convertToEur(tx.amount, tx.currency);
+
+        const convertedAmount = tx.convertedAmount;
 
         if (tx.transferId) {
             if (processedTransferIds.has(tx.transferId)) return;
@@ -273,7 +285,7 @@ const Dashboard: React.FC<DashboardProps> = ({ user, transactions, accounts, sav
     });
 
     return Object.values(spending).sort((a, b) => b.value - a.value);
-  }, [filteredTransactions, selectedAccountIds, transactions, expenseCategories]);
+  }, [enrichedTransactions, selectedAccountIds, transactions, expenseCategories]);
   
   const handleCategoryClick = useCallback((categoryName: string) => {
     const expenseCats = expenseCategories;
@@ -350,12 +362,12 @@ const Dashboard: React.FC<DashboardProps> = ({ user, transactions, accounts, sav
     const incomeBuckets = Array(NUM_POINTS).fill(0);
     const expenseBuckets = Array(NUM_POINTS).fill(0);
 
-    const relevantTxs = filteredTransactions.filter(tx => !tx.transferId);
+    const relevantTxs = enrichedTransactions.filter(tx => !tx.transferId);
 
     for (const tx of relevantTxs) {
-        const txTime = parseDateAsUTC(tx.date).getTime();
+        const txTime = tx.parsedDate.getTime();
         const index = Math.floor((txTime - start.getTime()) / interval);
-        const convertedAmount = convertToEur(tx.amount, tx.currency);
+        const convertedAmount = tx.convertedAmount;
         if (index >= 0 && index < NUM_POINTS) {
             if (tx.type === 'income') {
                 incomeBuckets[index] += convertedAmount;
@@ -370,7 +382,7 @@ const Dashboard: React.FC<DashboardProps> = ({ user, transactions, accounts, sav
         expenseSparkline: expenseBuckets.map(value => ({ value }))
     };
 
-  }, [filteredTransactions, duration, transactions]);
+  }, [enrichedTransactions, duration, transactions]);
 
 
   const { totalAssets, totalDebt, netWorth, assetBreakdown, debtBreakdown } = useMemo(() => {
