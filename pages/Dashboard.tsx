@@ -1,6 +1,8 @@
 
 
 
+
+
 import React, { useMemo, useState, useCallback, useEffect } from 'react';
 // FIX: Import 'RecurringTransaction' to resolve 'Cannot find name' error.
 import { User, Transaction, Account, Category, Duration, CategorySpending, Widget, WidgetConfig, DisplayTransaction, FinancialGoal, RecurringTransaction, BillPayment, Tag, Budget, RecurringTransactionOverride, LoanPaymentOverrides } from '../types';
@@ -425,6 +427,16 @@ const Dashboard: React.FC<DashboardProps> = ({ user, transactions, accounts, sav
 
   const netWorthData = useMemo(() => {
     const { start, end } = getDateRange(duration, transactions);
+    
+    // Performance optimization: cap 'ALL' time range to a few years to prevent massive loops
+    if (duration === 'ALL') {
+        const fiveYearsAgo = new Date(end);
+        fiveYearsAgo.setUTCFullYear(end.getUTCFullYear() - 5);
+        if (start < fiveYearsAgo) {
+            start.setTime(fiveYearsAgo.getTime());
+        }
+    }
+    
     const currentNetWorth = netWorth;
     const today = parseDateAsUTC(new Date().toISOString().split('T')[0]);
 

@@ -1,6 +1,8 @@
 
 
 
+
+
 import React, { useMemo, useState, useCallback } from 'react';
 // FIX: Import 'AccountDetailProps' to define props for the component.
 import { Account, Transaction, Category, Duration, Page, CategorySpending, Widget, WidgetConfig, DisplayTransaction, RecurringTransaction, AccountDetailProps, Tag, ScheduledPayment, MileageLog } from '../types';
@@ -732,6 +734,16 @@ const AccountDetail: React.FC<AccountDetailProps> = ({ account, accounts, transa
 
     const balanceHistoryData = useMemo(() => {
         const { start, end } = getDateRange(duration, transactions);
+
+        // Performance optimization: cap 'ALL' time range to a few years to prevent massive loops
+        if (duration === 'ALL') {
+            const fiveYearsAgo = new Date(end);
+            fiveYearsAgo.setUTCFullYear(end.getUTCFullYear() - 5);
+            if (start < fiveYearsAgo) {
+                start.setTime(fiveYearsAgo.getTime());
+            }
+        }
+
         const transactionsToReverse = transactions.filter(tx => {
             if (tx.accountId !== account.id) return false;
             const txDate = parseDateAsUTC(tx.date);
