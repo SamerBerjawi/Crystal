@@ -15,9 +15,12 @@ interface WarrantsProps {
   saveScraperConfig: (config: ScraperConfig) => void;
   // Props lifted up to App.tsx
   prices: Record<string, number | null>;
+  manualPrices: Record<string, number | undefined>;
+  lastScrapedPrices: Record<string, number | undefined>;
   isLoadingPrices: boolean;
   lastUpdated: Date | null;
   refreshPrices: () => void;
+  onManualPriceChange: (isin: string, price: number | null) => void;
 }
 
 const COLORS = ['#6366F1', '#FBBF24', '#10B981', '#EF4444', '#3B82F6', '#8B5CF6'];
@@ -26,10 +29,31 @@ const SkeletonLoader: React.FC<{ className?: string }> = ({ className = 'w-24' }
     <div className={`h-6 bg-gray-200 dark:bg-gray-700 rounded-md animate-pulse ${className}`} />
 );
 
-const Warrants: React.FC<WarrantsProps> = ({ warrants, saveWarrant, deleteWarrant, scraperConfigs, saveScraperConfig, prices, isLoadingPrices, lastUpdated, refreshPrices }) => {
+const Warrants: React.FC<WarrantsProps> = ({ warrants, saveWarrant, deleteWarrant, scraperConfigs, saveScraperConfig, prices, manualPrices, lastScrapedPrices, isLoadingPrices, lastUpdated, refreshPrices, onManualPriceChange }) => {
     const [isWarrantModalOpen, setWarrantModalOpen] = useState(false);
     const [isScraperModalOpen, setIsScraperModalOpen] = useState(false);
     const [editingWarrant, setEditingWarrant] = useState<Warrant | null>(null);
+
+    const handleManualPrice = useCallback((isin: string) => {
+        const existingPrice = manualPrices[isin];
+        const userInput = window.prompt('Enter manual price in EUR (leave empty to clear the override)', existingPrice !== undefined ? existingPrice.toString() : '');
+
+        if (userInput === null) return;
+
+        const trimmed = userInput.trim();
+        if (trimmed === '') {
+            onManualPriceChange(isin, null);
+            return;
+        }
+
+        const parsed = parseFloat(trimmed.replace(',', '.'));
+        if (isNaN(parsed)) {
+            alert('Please enter a valid number.');
+            return;
+        }
+
+        onManualPriceChange(isin, parsed);
+    }, [manualPrices, onManualPriceChange]);
     
     const { holdings, totalCurrentValue, totalGrantValue, distributionData } = useMemo(() => {
         const holdingsMap: Record<string, {
@@ -151,8 +175,11 @@ const Warrants: React.FC<WarrantsProps> = ({ warrants, saveWarrant, deleteWarran
                         <div className="divide-y divide-black/5 dark:divide-white/5">
                             {holdings.map(holding => {
                                 const currentPrice = prices[holding.isin];
-                                const currentValue = currentPrice !== undefined && currentPrice !== null ? holding.quantity * currentPrice : 0;
-                                const gainLoss = currentPrice !== undefined && currentPrice !== null ? currentValue - holding.totalGrantValue : 0;
+                                const hasPrice = currentPrice !== undefined && currentPrice !== null;
+                                const currentValue = hasPrice ? holding.quantity * currentPrice : 0;
+                                const gainLoss = hasPrice ? currentValue - holding.totalGrantValue : 0;
+                                const manualPrice = manualPrices[holding.isin];
+                                const lastScrapedPrice = lastScrapedPrices[holding.isin];
                                 return (
                                 <div key={holding.isin} className="grid grid-cols-2 sm:grid-cols-3 gap-x-4 gap-y-2 items-center p-4">
                                     <div className="col-span-2 sm:col-span-1">
@@ -163,21 +190,36 @@ const Warrants: React.FC<WarrantsProps> = ({ warrants, saveWarrant, deleteWarran
                                         <p className="font-semibold">{holding.quantity}</p>
                                         {isLoadingPrices ? <SkeletonLoader className="w-16 h-4 sm:mx-auto mt-1" /> : (
                                             <p className="text-xs text-light-text-secondary dark:text-dark-text-secondary">
-                                                @ {currentPrice !== null ? formatCurrency(currentPrice, 'EUR') : 'N/A'}
+                                                @ {hasPrice ? formatCurrency(currentPrice as number, 'EUR') : 'N/A'}
                                             </p>
                                         )}
                                     </div>
                                     <div className="text-right">
                                         {isLoadingPrices ? <SkeletonLoader className="w-24 ml-auto" /> : (
-                                            <p className="font-bold">{currentPrice !== null ? formatCurrency(currentValue, 'EUR') : 'N/A'}</p>
+                                            <p className="font-bold">{hasPrice ? formatCurrency(currentValue, 'EUR') : 'N/A'}</p>
                                         )}
                                         {isLoadingPrices ? <SkeletonLoader className="w-16 h-4 ml-auto mt-1" /> : (
-                                            currentPrice !== null ? (
+                                            hasPrice ? (
                                                 <p className={`text-sm font-semibold ${gainLoss >= 0 ? 'text-green-500' : 'text-red-500'}`}>{gainLoss >= 0 ? '+' : ''}{formatCurrency(gainLoss, 'EUR')}</p>
                                             ) : (
                                                 <button onClick={() => setIsScraperModalOpen(true)} className="text-xs text-primary-500 hover:underline">Configure</button>
                                             )
                                         )}
+                                        <div className="mt-2 text-xs text-light-text-secondary dark:text-dark-text-secondary text-right space-y-1">
+                                            {manualPrice !== undefined ? (
+                                                <p>Manual price active: {formatCurrency(manualPrice, 'EUR')}</p>
+                                            ) : lastScrapedPrice !== undefined ? (
+                                                <p>Last scraped: {formatCurrency(lastScrapedPrice, 'EUR')}</p>
+                                            ) : (
+                                                <p>Awaiting first successful scrape</p>
+                                            )}
+                                            <div className="flex justify-end gap-2">
+                                                <button onClick={() => handleManualPrice(holding.isin)} className="text-primary-500 hover:underline">Set manual</button>
+                                                {manualPrice !== undefined && (
+                                                    <button onClick={() => onManualPriceChange(holding.isin, null)} className="text-red-500 hover:underline">Clear</button>
+                                                )}
+                                            </div>
+                                        </div>
                                     </div>
                                 </div>
                             )})}
