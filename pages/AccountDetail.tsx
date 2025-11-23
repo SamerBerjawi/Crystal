@@ -259,7 +259,7 @@ const AccountDetail: React.FC<AccountDetailProps> = ({ account, accounts, transa
         }, [account.linkedAccountId, accounts]);
 
         const formatDate = (dateString: string) => {
-            return new Date(dateString.replace(/-/g, '/')).toLocaleDateString('en-US', {
+            return parseDateAsUTC(dateString).toLocaleDateString('en-US', {
                 year: 'numeric',
                 month: 'long',
                 day: 'numeric',
@@ -644,10 +644,10 @@ const AccountDetail: React.FC<AccountDetailProps> = ({ account, accounts, transa
                              <button onClick={() => setIsMileageModalOpen(true)} className={`${BTN_SECONDARY_STYLE} !py-1 !px-3 !text-xs`}>Log Mileage</button>
                         </div>
                         <div className="space-y-2 max-h-48 overflow-y-auto">
-                            {(account.mileageLogs || []).sort((a,b) => new Date(b.date).getTime() - new Date(a.date).getTime()).map(log => (
+                            {(account.mileageLogs || []).sort((a,b) => parseDateAsUTC(b.date).getTime() - parseDateAsUTC(a.date).getTime()).map(log => (
                                 <div key={log.id} className="flex justify-between items-center p-2 rounded-lg hover:bg-black/5 dark:hover:bg-white/5 group">
                                     <div>
-                                        <p className="font-semibold text-sm">{new Date(log.date).toLocaleDateString()}</p>
+                                        <p className="font-semibold text-sm">{parseDateAsUTC(log.date).toLocaleDateString(undefined, { timeZone: 'UTC' })}</p>
                                         <p className="text-light-text-secondary dark:text-dark-text-secondary text-sm">{log.reading.toLocaleString()} km</p>
                                     </div>
                                     <div className="opacity-0 group-hover:opacity-100 transition-opacity">

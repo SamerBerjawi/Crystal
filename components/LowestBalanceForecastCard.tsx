@@ -1,6 +1,6 @@
 import React from 'react';
 import Card from './Card';
-import { formatCurrency } from '../utils';
+import { formatCurrency, getPreferredTimeZone, parseDateAsUTC } from '../utils';
 
 interface LowestBalanceForecastCardProps {
     period: string;
@@ -10,7 +10,8 @@ interface LowestBalanceForecastCardProps {
 
 const LowestBalanceForecastCard: React.FC<LowestBalanceForecastCardProps> = ({ period, lowestBalance, date }) => {
     const balanceColor = lowestBalance < 0 ? 'text-red-500' : 'text-light-text dark:text-dark-text';
-    const formattedDate = new Date(date.replace(/-/g, '/')).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
+    const timeZone = getPreferredTimeZone();
+    const formattedDate = parseDateAsUTC(date, timeZone).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric', timeZone });
 
     return (
         <Card className="flex flex-col justify-between">

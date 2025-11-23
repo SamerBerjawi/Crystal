@@ -1,7 +1,7 @@
 
 import React from 'react';
 import Modal from './Modal';
-import { formatCurrency } from '../utils';
+import { formatCurrency, getPreferredTimeZone, parseDateAsUTC } from '../utils';
 import { BTN_PRIMARY_STYLE, BTN_SECONDARY_STYLE } from '../constants';
 
 interface ForecastItem {
@@ -27,11 +27,13 @@ interface ForecastDayModalProps {
 const ForecastDayModal: React.FC<ForecastDayModalProps> = ({ isOpen, onClose, date, items, onEditItem, onAddTransaction }) => {
     if (!isOpen) return null;
 
-    const formattedDate = new Date(date.replace(/-/g, '/')).toLocaleDateString('en-US', {
+    const timeZone = getPreferredTimeZone();
+    const formattedDate = parseDateAsUTC(date, timeZone).toLocaleDateString('en-US', {
         weekday: 'long',
         year: 'numeric',
         month: 'long',
         day: 'numeric',
+        timeZone
     });
     
     const dayTotal = items.reduce((sum, item) => sum + item.amount, 0);

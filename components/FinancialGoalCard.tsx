@@ -1,6 +1,6 @@
 import React, { useState, useMemo } from 'react';
 import { FinancialGoal, Account } from '../types';
-import { formatCurrency } from '../utils';
+import { formatCurrency, getPreferredTimeZone, parseDateAsUTC } from '../utils';
 import Card from './Card';
 
 interface FinancialGoalCardProps {
@@ -17,13 +17,14 @@ interface FinancialGoalCardProps {
 const FinancialGoalCard: React.FC<FinancialGoalCardProps> = ({ goal, subGoals, isActive, onToggle, onEdit, onDelete, onAddSubGoal, accounts }) => {
   const isBucket = !!goal.isBucket;
   const [isExpanded, setIsExpanded] = useState(true);
+  const timeZone = getPreferredTimeZone();
 
   const totalAmount = isBucket ? subGoals.reduce((sum, sg) => sum + sg.amount, 0) : goal.amount;
   const currentAmount = isBucket ? subGoals.reduce((sum, sg) => sum + sg.currentAmount, 0) : goal.currentAmount;
   
   const bucketProjectedDate = isBucket ? subGoals.reduce((latest, sg) => {
     if (!sg.projection?.projectedDate || sg.projection.projectedDate === 'Beyond forecast') return latest;
-    if (!latest || new Date(sg.projection.projectedDate) > new Date(latest)) return sg.projection.projectedDate;
+    if (!latest || parseDateAsUTC(sg.projection.projectedDate) > parseDateAsUTC(latest)) return sg.projection.projectedDate;
     return latest;
   }, '' as string | null) || 'Beyond forecast' : null;
 
@@ -39,7 +40,7 @@ const FinancialGoalCard: React.FC<FinancialGoalCardProps> = ({ goal, subGoals, i
     ...goal,
     amount: totalAmount,
     currentAmount: currentAmount,
-    date: subGoals.length > 0 ? subGoals.sort((a,b) => new Date(b.date!).getTime() - new Date(a.date!).getTime())[0].date : undefined,
+    date: subGoals.length > 0 ? subGoals.sort((a,b) => parseDateAsUTC(b.date!).getTime() - parseDateAsUTC(a.date!).getTime())[0].date : undefined,
     projection: {
         projectedDate: bucketProjectedDate!,
         status: bucketStatus!,
@@ -47,11 +48,11 @@ const FinancialGoalCard: React.FC<FinancialGoalCardProps> = ({ goal, subGoals, i
   } : goal;
 
   const progress = goalToDisplay.amount > 0 ? (goalToDisplay.currentAmount / goalToDisplay.amount) * 100 : 0;
-  
+
   const formatDate = (dateString?: string) => {
     if (!dateString || dateString === 'Beyond forecast') return 'Beyond forecast';
-    const date = new Date(dateString.replace(/-/g, '/'));
-    return date.toLocaleDateString('en-US', { year: 'numeric', month: 'short', day: 'numeric', timeZone: 'UTC' });
+    const date = parseDateAsUTC(dateString, timeZone);
+    return date.toLocaleDateString('en-US', { year: 'numeric', month: 'short', day: 'numeric', timeZone });
   };
   
   const statusConfig = {

@@ -2,7 +2,7 @@ import React, { useState, useMemo } from 'react';
 import { Account, InvestmentTransaction, Transaction, Warrant } from '../types';
 import { BTN_PRIMARY_STYLE, BRAND_COLORS, BTN_SECONDARY_STYLE } from '../constants';
 import Card from '../components/Card';
-import { formatCurrency } from '../utils';
+import { formatCurrency, parseDateAsUTC } from '../utils';
 import AddInvestmentTransactionModal from '../components/AddInvestmentTransactionModal';
 import PortfolioDistributionChart from '../components/PortfolioDistributionChart';
 import BalanceAdjustmentModal from '../components/BalanceAdjustmentModal';
@@ -63,7 +63,7 @@ const Investments: React.FC<InvestmentsProps> = ({ accounts, cashAccounts, inves
             }
         });
         
-        [...investmentTransactions].sort((a,b) => new Date(a.date).getTime() - new Date(b.date).getTime()).forEach(tx => {
+        [...investmentTransactions].sort((a,b) => parseDateAsUTC(a.date).getTime() - parseDateAsUTC(b.date).getTime()).forEach(tx => {
             if (!holdingsMap[tx.symbol]) return;
             
             const holding = holdingsMap[tx.symbol];
@@ -126,7 +126,7 @@ const Investments: React.FC<InvestmentsProps> = ({ accounts, cashAccounts, inves
     const totalGainLoss = totalValue - totalCostBasis;
     const totalGainLossPercent = totalCostBasis > 0 ? (totalGainLoss / totalCostBasis) * 100 : 0;
 
-    const sortedTransactions = [...investmentTransactions].sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
+    const sortedTransactions = [...investmentTransactions].sort((a, b) => parseDateAsUTC(b.date).getTime() - parseDateAsUTC(a.date).getTime());
 
     return (
         <div className="space-y-8">
@@ -233,7 +233,7 @@ const Investments: React.FC<InvestmentsProps> = ({ accounts, cashAccounts, inves
                     <tbody>
                         {sortedTransactions.slice(0, 10).map(tx => (
                         <tr key={tx.id} className="border-b border-black/5 dark:border-white/5 last:border-b-0 hover:bg-black/5 dark:hover:bg-white/5">
-                            <td className="p-2">{new Date(tx.date).toLocaleDateString()}</td>
+                            <td className="p-2">{parseDateAsUTC(tx.date).toLocaleDateString(undefined, { timeZone: 'UTC' })}</td>
                             <td className="p-2 font-bold">{tx.symbol}</td>
                             <td className={`p-2 font-semibold capitalize ${tx.type === 'buy' ? 'text-green-500' : 'text-red-500'}`}>{tx.type}</td>
                             <td className="p-2 text-right">{tx.quantity} @ {formatCurrency(tx.price, 'EUR')}</td>
