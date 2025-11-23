@@ -4,7 +4,6 @@
 
 
 import React, { useMemo, useState, useCallback } from 'react';
-// FIX: Import 'AccountDetailProps' to define props for the component.
 import { Account, Transaction, Category, Duration, Page, CategorySpending, Widget, WidgetConfig, DisplayTransaction, RecurringTransaction, AccountDetailProps, Tag, ScheduledPayment, MileageLog } from '../types';
 import { formatCurrency, getDateRange, convertToEur, calculateStatementPeriods, getCreditCardStatementDetails, parseDateAsUTC } from '../utils';
 import AddTransactionModal from '../components/AddTransactionModal';
@@ -74,7 +73,6 @@ const AccountDetail: React.FC<AccountDetailProps> = ({ account, setCurrentPage, 
   const { tags } = useTagsContext();
   const { recurringTransactions, loanPaymentOverrides, saveLoanPaymentOverrides } = useScheduleContext();
   const allCategories = useMemo(() => [...incomeCategories, ...expenseCategories], [expenseCategories, incomeCategories]);
-const AccountDetail: React.FC<AccountDetailProps> = ({ account, accounts, transactions, allCategories, setCurrentPage, saveTransaction, recurringTransactions, setViewingAccountId, tags, loanPaymentOverrides, saveLoanPaymentOverrides, saveAccount }) => {
     const [isTransactionModalOpen, setTransactionModalOpen] = useState(false);
     const [editingTransaction, setEditingTransaction] = useState<Transaction | null>(null);
     const [initialModalState, setInitialModalState] = useState<{

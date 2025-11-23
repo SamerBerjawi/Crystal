@@ -4,9 +4,6 @@
 
 
 import React, { useMemo, useState, useCallback, useEffect, useRef } from 'react';
-// FIX: Import 'RecurringTransaction' to resolve 'Cannot find name' error.
-import { User, Transaction, Account, Duration, CategorySpending, Widget, WidgetConfig, DisplayTransaction } from '../types';
-import { formatCurrency, getDateRange, calculateAccountTotals, convertToEur, calculateStatementPeriods, generateBalanceForecast, parseDateAsUTC, getCreditCardStatementDetails, generateSyntheticLoanPayments, generateSyntheticCreditCardPayments } from '../utils';
 import { User, Transaction, Account, Category, Duration, CategorySpending, Widget, WidgetConfig, DisplayTransaction, FinancialGoal, RecurringTransaction, BillPayment, Tag, Budget, RecurringTransactionOverride, LoanPaymentOverrides } from '../types';
 import { formatCurrency, getDateRange, calculateAccountTotals, convertToEur, calculateStatementPeriods, generateBalanceForecast, parseDateAsUTC, getCreditCardStatementDetails, generateSyntheticLoanPayments, generateSyntheticCreditCardPayments, getPreferredTimeZone } from '../utils';
 import AddTransactionModal from '../components/AddTransactionModal';
@@ -90,9 +87,6 @@ const Dashboard: React.FC<DashboardProps> = ({ user, activeGoalIds, selectedAcco
   const { recurringTransactions, recurringTransactionOverrides, loanPaymentOverrides, billsAndPayments } = useScheduleContext();
   const { tags } = useTagsContext();
   const { budgets } = useBudgetsContext();
-const Dashboard: React.FC<DashboardProps> = ({ user, incomeCategories, expenseCategories, financialGoals, recurringTransactions, recurringTransactionOverrides, loanPaymentOverrides, activeGoalIds, billsAndPayments, selectedAccountIds, setSelectedAccountIds, duration, setDuration, tags, budgets }) => {
-  const { accounts } = useAccountsContext();
-  const { transactions, saveTransaction, digest: transactionsDigest } = useTransactionsContext();
   const transactionsKey = transactionsDigest;
   const aggregateCacheRef = useRef<Map<string, { filteredTransactions: Transaction[]; income: number; expenses: number }>>(new Map());
   const [isTransactionModalOpen, setTransactionModalOpen] = useState(false);

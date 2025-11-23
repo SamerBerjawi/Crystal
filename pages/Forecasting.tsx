@@ -1,6 +1,16 @@
 
 import React, { useState, useMemo, useCallback, Dispatch, SetStateAction } from 'react';
-import { Page, ContributionPlanStep, ScheduledPayment } from '../types';
+import {
+  Page,
+  ContributionPlanStep,
+  ScheduledPayment,
+  Account,
+  RecurringTransaction,
+  FinancialGoal,
+  RecurringTransactionOverride,
+  LoanPaymentOverrides,
+  BillPayment,
+} from '../types';
 import { BTN_PRIMARY_STYLE, BTN_SECONDARY_STYLE, LIQUID_ACCOUNT_TYPES, CHECKBOX_STYLE } from '../constants';
 import { formatCurrency, convertToEur, generateBalanceForecast, generateSyntheticLoanPayments, generateSyntheticCreditCardPayments, parseDateAsUTC, getPreferredTimeZone } from '../utils';
 import Card from '../components/Card';
@@ -138,7 +148,6 @@ const Forecasting: React.FC<ForecastingProps> = ({ activeGoalIds, setActiveGoalI
     saveBillPayment,
     deleteBillPayment,
   } = useScheduleContext();
-const Forecasting: React.FC<ForecastingProps> = ({ accounts, transactions, recurringTransactions, recurringTransactionOverrides, loanPaymentOverrides, financialGoals, saveFinancialGoal, deleteFinancialGoal, expenseCategories, billsAndPayments, activeGoalIds, setActiveGoalIds, saveRecurringTransaction, deleteRecurringTransaction, saveBillPayment, deleteBillPayment, incomeCategories }) => {
     const timeZone = getPreferredTimeZone();
     const [isModalOpen, setIsModalOpen] = useState(false);
     const [editingGoal, setEditingGoal] = useState<FinancialGoal | null>(null);
