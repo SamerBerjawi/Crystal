@@ -34,6 +34,46 @@ const TransactionMapWidget: React.FC<TransactionMapWidgetProps> = ({ transaction
   }, []);
 
   const locations = useMemo(() => {
+    const grouped = transactions
+      .filter(tx => tx.latitude !== undefined && tx.latitude !== null && tx.longitude !== undefined && tx.longitude !== null)
+      .reduce((map, tx) => {
+        const key = `${tx.latitude},${tx.longitude}`;
+        const current = map.get(key);
+
+        if (current) {
+          current.count += 1;
+          current.amountTotal += tx.amount;
+          current.transactions.push(tx);
+        } else {
+          map.set(key, {
+            lat: tx.latitude!,
+            lon: tx.longitude!,
+            count: 1,
+            amountTotal: tx.amount,
+            transactions: [tx],
+          });
+        }
+
+        return map;
+      }, new Map<string, { lat: number; lon: number; count: number; amountTotal: number; transactions: Transaction[] }>());
+
+    return Array.from(grouped.values()).map(group => {
+      const representative = group.transactions[0];
+
+      return {
+        id: `${group.lat}-${group.lon}`,
+        lat: group.lat,
+        lon: group.lon,
+        count: group.count,
+        amountTotal: group.amountTotal,
+        currency: representative.currency,
+        description: representative.description,
+        date: representative.date,
+        city: representative.city,
+        country: representative.country,
+        transactions: group.transactions,
+      };
+    });
     return transactions
       .filter(tx => tx.latitude !== undefined && tx.latitude !== null && tx.longitude !== undefined && tx.longitude !== null)
       .map(tx => ({
@@ -50,6 +90,17 @@ const TransactionMapWidget: React.FC<TransactionMapWidgetProps> = ({ transaction
   }, [transactions]);
 
   const coords: [number, number][] = locations.map(l => [l.lat, l.lon]);
+
+  const maxDensity = useMemo(() => {
+    return locations.reduce((max, loc) => Math.max(max, loc.count), 0) || 1;
+  }, [locations]);
+
+  const getDensityColor = (count: number) => {
+    // Normalize count to a 0-1 range and map to a blue -> yellow -> red gradient
+    const ratio = Math.min(count / maxDensity, 1);
+    const hue = 200 - ratio * 180; // 200 (blue) to 20 (red)
+    return `hsl(${hue}, 85%, 50%)`;
+  };
 
   // Tile Layer URL based on theme
   // Using CartoDB Voyager (Light) and Dark Matter (Dark) for a premium look
@@ -82,31 +133,30 @@ const TransactionMapWidget: React.FC<TransactionMapWidgetProps> = ({ transaction
             />
             <BoundsFitter coords={coords} />
             {locations.map(loc => {
-                const isExpense = loc.amount < 0;
-                const color = isExpense ? '#EF4444' : '#22C55E'; // Red for expense, Green for income
-                // Visualize amount magnitude with radius, clamped between 5 and 20
-                const radius = Math.min(Math.max(Math.abs(loc.amount) / 50, 5), 20);
+                const color = getDensityColor(loc.count);
+                // Visualize density with radius that scales with count
+                const radius = Math.min(Math.max(6 + Math.log1p(loc.count) * 4, 8), 24);
+                const locationLabel = [loc.city, loc.country].filter(Boolean).join(', ') || 'Unknown location';
 
                 return (
-                    <CircleMarker 
-                        key={loc.id} 
-                        center={[loc.lat, loc.lon]} 
+                    <CircleMarker
+                        key={loc.id}
+                        center={[loc.lat, loc.lon]}
                         radius={radius}
-                        pathOptions={{ 
-                            color: color, 
-                            fillColor: color, 
-                            fillOpacity: 0.6, 
-                            weight: 1 
+                        pathOptions={{
+                            color,
+                            fillColor: color,
+                            fillOpacity: 0.55 + Math.min(loc.count / maxDensity, 0.35),
+                            weight: 1.5,
                         }}
                     >
                         <Tooltip direction="top" offset={[0, -10]} opacity={1}>
-                            <div className="text-center">
-                                <p className="font-bold">{loc.description}</p>
-                                <p className="text-xs">{loc.city}, {loc.country}</p>
-                                <p className={`font-mono ${isExpense ? 'text-red-600' : 'text-green-600'}`}>
-                                    {formatCurrency(loc.amount, loc.currency)}
-                                </p>
+                            <div className="text-center space-y-1">
+                                <p className="font-bold">{locationLabel}</p>
+                                <p className="text-xs text-gray-500">Transactions: {loc.count}</p>
+                                <p className="text-xs">Most recent: {loc.description}</p>
                                 <p className="text-xs text-gray-500">{parseDateAsUTC(loc.date).toLocaleDateString(undefined, { timeZone: 'UTC' })}</p>
+                                <p className="font-mono">Total: {formatCurrency(loc.amountTotal, loc.currency)}</p>
                             </div>
                         </Tooltip>
                     </CircleMarker>
