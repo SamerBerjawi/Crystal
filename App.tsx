@@ -625,19 +625,6 @@ const App: React.FC = () => {
 
     persistDirtySlices();
   }, [buildDirtyPayload, debouncedDirtySignal, isAuthenticated, isDataLoaded, isDemoMode, saveData]);
-    if (lastSavedSignatureRef.current === debouncedDataSignature) {
-      return;
-    }
-
-    const updateLastSavedSignature = async () => {
-      const succeeded = await saveData(debouncedDataToSave);
-      if (succeeded) {
-        lastSavedSignatureRef.current = debouncedDataSignature;
-      }
-    };
-
-    updateLastSavedSignature();
-  }, [debouncedDataSignature, debouncedDataToSave, isDataLoaded, isAuthenticated, isDemoMode, saveData]);
 
   useEffect(() => {
     if (!isAuthenticated || isDemoMode || typeof window === 'undefined') {

@@ -9,11 +9,11 @@ import FinancialGoalCard from '../components/FinancialGoalCard';
 import GoalScenarioModal from '../components/GoalScenarioModal';
 import ForecastChart from '../components/ForecastChart';
 import GoalContributionPlan from '../components/GoalContributionPlan';
-import { GoogleGenAI, Type } from '@google/genai';
 import ConfirmationModal from '../components/ConfirmationModal';
 import ForecastDayModal from '../components/ForecastDayModal';
 import RecurringTransactionModal from '../components/RecurringTransactionModal';
 import BillPaymentModal from '../components/BillPaymentModal';
+import { loadGenAiModule } from '../genAiLoader';
 
 type ForecastDuration = '3M' | '6M' | 'EOY' | '1Y';
 
@@ -58,6 +58,7 @@ const useSmartGoalPlanner = (
         }
 
         try {
+            const { GoogleGenAI, Type } = await loadGenAiModule();
             const ai = new GoogleGenAI({ apiKey: process.env.API_KEY });
             
             const liquidAccounts = accounts.filter(a => LIQUID_ACCOUNT_TYPES.includes(a.type));
