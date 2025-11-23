@@ -175,6 +175,9 @@ const Warrants: React.FC<WarrantsProps> = ({ warrants, saveWarrant, deleteWarran
                         <div className="divide-y divide-black/5 dark:divide-white/5">
                             {holdings.map(holding => {
                                 const currentPrice = prices[holding.isin];
+                                const hasPrice = currentPrice !== undefined && currentPrice !== null;
+                                const currentValue = hasPrice ? holding.quantity * currentPrice : 0;
+                                const gainLoss = hasPrice ? currentValue - holding.totalGrantValue : 0;
                                 const currentValue = currentPrice !== undefined && currentPrice !== null ? holding.quantity * currentPrice : 0;
                                 const gainLoss = currentPrice !== undefined && currentPrice !== null ? currentValue - holding.totalGrantValue : 0;
                                 const manualPrice = manualPrices[holding.isin];
@@ -189,16 +192,16 @@ const Warrants: React.FC<WarrantsProps> = ({ warrants, saveWarrant, deleteWarran
                                         <p className="font-semibold">{holding.quantity}</p>
                                         {isLoadingPrices ? <SkeletonLoader className="w-16 h-4 sm:mx-auto mt-1" /> : (
                                             <p className="text-xs text-light-text-secondary dark:text-dark-text-secondary">
-                                                @ {currentPrice !== null ? formatCurrency(currentPrice, 'EUR') : 'N/A'}
+                                                @ {hasPrice ? formatCurrency(currentPrice as number, 'EUR') : 'N/A'}
                                             </p>
                                         )}
                                     </div>
                                     <div className="text-right">
                                         {isLoadingPrices ? <SkeletonLoader className="w-24 ml-auto" /> : (
-                                            <p className="font-bold">{currentPrice !== null ? formatCurrency(currentValue, 'EUR') : 'N/A'}</p>
+                                            <p className="font-bold">{hasPrice ? formatCurrency(currentValue, 'EUR') : 'N/A'}</p>
                                         )}
                                         {isLoadingPrices ? <SkeletonLoader className="w-16 h-4 ml-auto mt-1" /> : (
-                                            currentPrice !== null ? (
+                                            hasPrice ? (
                                                 <p className={`text-sm font-semibold ${gainLoss >= 0 ? 'text-green-500' : 'text-red-500'}`}>{gainLoss >= 0 ? '+' : ''}{formatCurrency(gainLoss, 'EUR')}</p>
                                             ) : (
                                                 <button onClick={() => setIsScraperModalOpen(true)} className="text-xs text-primary-500 hover:underline">Configure</button>
