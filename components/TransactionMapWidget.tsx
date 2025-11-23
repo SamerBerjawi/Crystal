@@ -35,7 +35,7 @@ const TransactionMapWidget: React.FC<TransactionMapWidgetProps> = ({ transaction
 
   const locations = useMemo(() => {
     return transactions
-      .filter(tx => tx.latitude && tx.longitude)
+      .filter(tx => tx.latitude !== undefined && tx.latitude !== null && tx.longitude !== undefined && tx.longitude !== null)
       .map(tx => ({
         id: tx.id,
         lat: tx.latitude!,
