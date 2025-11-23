@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import Modal from './Modal';
 import { BTN_PRIMARY_STYLE, BTN_SECONDARY_STYLE } from '../constants';
 import { Suggestion } from '../hooks/useTransactionMatcher';
@@ -79,6 +79,14 @@ const TransactionMatcherModal: React.FC<TransactionMatcherModalProps> = ({ isOpe
         currentPage * SUGGESTIONS_PER_PAGE
     );
     const totalPages = Math.ceil(suggestions.length / SUGGESTIONS_PER_PAGE);
+
+    useEffect(() => {
+        setCurrentPage(1);
+    }, [isOpen]);
+
+    useEffect(() => {
+        setCurrentPage((page) => Math.min(Math.max(1, page), Math.max(1, totalPages)));
+    }, [totalPages]);
 
     const handleConfirmAll = () => {
         onConfirmAll();

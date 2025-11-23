@@ -241,6 +241,10 @@ const Transactions: React.FC<TransactionsProps> = ({ transactions, saveTransacti
 
   const totalPages = Math.ceil(filteredTransactions.length / ITEMS_PER_PAGE);
 
+  useEffect(() => {
+    setCurrentPage((page) => Math.min(Math.max(1, page), Math.max(1, totalPages)));
+  }, [totalPages]);
+
     const groupedTransactions = useMemo(() => {
         const groups: Record<string, { transactions: DisplayTransaction[]; total: number }> = {};
 
