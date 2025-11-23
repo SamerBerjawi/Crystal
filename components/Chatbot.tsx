@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { GoogleGenAI, Chat } from '@google/genai';
 // FIX: Import InvestmentTransaction type to use in the ChatbotProps interface.
 import { Account, Transaction, Budget, FinancialGoal, RecurringTransaction, InvestmentTransaction } from '../types';
+import { loadGenAiModule, GenAiChat } from '../genAiLoader';
 
 interface ChatbotProps {
   isOpen: boolean;
@@ -27,7 +27,7 @@ const Chatbot: React.FC<ChatbotProps> = ({ isOpen, onClose, financialData }) => 
   const [input, setInput] = useState('');
   const [isLoading, setIsLoading] = useState(false); // For initial setup
   const [isStreaming, setIsStreaming] = useState(false); // For message responses
-  const chatRef = useRef<Chat | null>(null);
+  const chatRef = useRef<GenAiChat | null>(null);
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const [isMounted, setIsMounted] = useState(false);
   const [isConfigured, setIsConfigured] = useState(true);
@@ -69,6 +69,7 @@ const Chatbot: React.FC<ChatbotProps> = ({ isOpen, onClose, financialData }) => 
         setIsConfigured(true);
 
         try {
+          const { GoogleGenAI } = await loadGenAiModule();
           const ai = new GoogleGenAI({ apiKey: process.env.API_KEY });
           
           // Optimize data sent to the model

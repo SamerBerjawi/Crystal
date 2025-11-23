@@ -1,7 +1,7 @@
 
 import React, { useState, useMemo, useRef, useEffect } from 'react';
 import { INPUT_BASE_STYLE, SELECT_WRAPPER_STYLE, SELECT_ARROW_STYLE, BTN_PRIMARY_STYLE, BTN_SECONDARY_STYLE, SELECT_STYLE, CHECKBOX_STYLE } from '../constants';
-import { Transaction, Category, Account, DisplayTransaction, Tag, RecurringTransaction } from '../types';
+import { Transaction, Account, DisplayTransaction, RecurringTransaction } from '../types';
 import Card from '../components/Card';
 import { formatCurrency, fuzzySearch, convertToEur, arrayToCSV, downloadCSV } from '../utils';
 import AddTransactionModal from '../components/AddTransactionModal';
@@ -11,23 +11,23 @@ import RecurringTransactionModal from '../components/RecurringTransactionModal';
 import ConfirmationModal from '../components/ConfirmationModal';
 import MultiSelectFilter from '../components/MultiSelectFilter';
 import MultiAccountFilter from '../components/MultiAccountFilter';
+import { useAccountsContext, useTransactionsContext } from '../contexts/DomainProviders';
+import { useCategoryContext, useScheduleContext, useTagsContext } from '../contexts/FinancialDataContext';
 
 interface TransactionsProps {
-  transactions: Transaction[];
-  saveTransaction: (transactions: (Omit<Transaction, 'id'> & { id?: string })[], idsToDelete?: string[]) => void;
-  deleteTransactions: (transactionIds: string[]) => void;
-  accounts: Account[];
   accountFilter: string | null;
   setAccountFilter: (accountName: string | null) => void;
-  incomeCategories: Category[];
-  expenseCategories: Category[];
-  tags: Tag[];
   tagFilter: string | null;
   setTagFilter: (tagId: string | null) => void;
-  saveRecurringTransaction: (recurringData: Omit<RecurringTransaction, 'id'> & { id?: string }) => void;
+  saveRecurringTransaction?: (recurringData: Omit<RecurringTransaction, 'id'> & { id?: string }) => void;
 }
 
-const Transactions: React.FC<TransactionsProps> = ({ transactions, saveTransaction, deleteTransactions, accounts, accountFilter, setAccountFilter, incomeCategories, expenseCategories, tags, tagFilter, setTagFilter, saveRecurringTransaction }) => {
+const Transactions: React.FC<TransactionsProps> = ({ accountFilter, setAccountFilter, tagFilter, setTagFilter }) => {
+  const { transactions, saveTransaction, deleteTransactions, digest: transactionsDigest } = useTransactionsContext();
+  const { accounts } = useAccountsContext();
+  const { incomeCategories, expenseCategories } = useCategoryContext();
+  const { tags } = useTagsContext();
+  const { saveRecurringTransaction } = useScheduleContext();
   const [searchTerm, setSearchTerm] = useState('');
   const [sortBy, setSortBy] = useState('date-desc');
   const [typeFilter, setTypeFilter] = useState<'all' | 'income' | 'expense' | 'transfer'>('all');
@@ -240,6 +240,10 @@ const Transactions: React.FC<TransactionsProps> = ({ transactions, saveTransacti
   }, [filteredTransactions, currentPage]);
 
   const totalPages = Math.ceil(filteredTransactions.length / ITEMS_PER_PAGE);
+
+  useEffect(() => {
+    setCurrentPage((page) => Math.min(Math.max(1, page), Math.max(1, totalPages)));
+  }, [totalPages]);
 
     const groupedTransactions = useMemo(() => {
         const groups: Record<string, { transactions: DisplayTransaction[]; total: number }> = {};
@@ -813,4 +817,4 @@ const Transactions: React.FC<TransactionsProps> = ({ transactions, saveTransacti
   );
 };
 
-export default Transactions;
+export default React.memo(Transactions);

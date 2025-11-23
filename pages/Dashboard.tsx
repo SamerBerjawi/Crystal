@@ -3,9 +3,9 @@
 
 
 
-import React, { useMemo, useState, useCallback, useEffect } from 'react';
+import React, { useMemo, useState, useCallback, useEffect, useRef } from 'react';
 // FIX: Import 'RecurringTransaction' to resolve 'Cannot find name' error.
-import { User, Transaction, Account, Category, Duration, CategorySpending, Widget, WidgetConfig, DisplayTransaction, FinancialGoal, RecurringTransaction, BillPayment, Tag, Budget, RecurringTransactionOverride, LoanPaymentOverrides } from '../types';
+import { User, Transaction, Account, Duration, CategorySpending, Widget, WidgetConfig, DisplayTransaction } from '../types';
 import { formatCurrency, getDateRange, calculateAccountTotals, convertToEur, calculateStatementPeriods, generateBalanceForecast, parseDateAsUTC, getCreditCardStatementDetails, generateSyntheticLoanPayments, generateSyntheticCreditCardPayments } from '../utils';
 import AddTransactionModal from '../components/AddTransactionModal';
 import { BTN_PRIMARY_STYLE, BTN_SECONDARY_STYLE, LIQUID_ACCOUNT_TYPES, ASSET_TYPES, DEBT_TYPES, ACCOUNT_TYPE_STYLES, INVESTMENT_SUB_TYPE_STYLES } from '../constants';
@@ -30,27 +30,17 @@ import LowestBalanceForecastCard from '../components/LowestBalanceForecastCard';
 import BudgetOverviewWidget from '../components/BudgetOverviewWidget';
 import AccountBreakdownCard from '../components/AccountBreakdownCard';
 import TransactionMapWidget from '../components/TransactionMapWidget';
+import { useAccountsContext, useTransactionsContext } from '../contexts/DomainProviders';
+import { useBudgetsContext, useCategoryContext, useGoalsContext, useScheduleContext, useTagsContext } from '../contexts/FinancialDataContext';
 
 
 interface DashboardProps {
   user: User;
-  transactions: Transaction[];
-  accounts: Account[];
-  saveTransaction: (transactions: (Omit<Transaction, 'id'> & { id?: string })[], idsToDelete?: string[]) => void;
-  incomeCategories: Category[];
-  expenseCategories: Category[];
-  financialGoals: FinancialGoal[];
-  recurringTransactions: RecurringTransaction[];
-  recurringTransactionOverrides: RecurringTransactionOverride[];
-  loanPaymentOverrides: LoanPaymentOverrides;
   activeGoalIds: string[];
-  billsAndPayments: BillPayment[];
   selectedAccountIds: string[];
   setSelectedAccountIds: (ids: string[]) => void;
   duration: Duration;
   setDuration: (duration: Duration) => void;
-  tags: Tag[];
-  budgets: Budget[];
 }
 
 const findCategoryDetails = (name: string, categories: Category[]): Category | undefined => {
@@ -82,7 +72,18 @@ const toYYYYMMDD = (date: Date) => {
     return `${y}-${m}-${d}`;
 };
 
-const Dashboard: React.FC<DashboardProps> = ({ user, transactions, accounts, saveTransaction, incomeCategories, expenseCategories, financialGoals, recurringTransactions, recurringTransactionOverrides, loanPaymentOverrides, activeGoalIds, billsAndPayments, selectedAccountIds, setSelectedAccountIds, duration, setDuration, tags, budgets }) => {
+type EnrichedTransaction = Transaction & { convertedAmount: number; parsedDate: Date };
+
+const Dashboard: React.FC<DashboardProps> = ({ user, activeGoalIds, selectedAccountIds, setSelectedAccountIds, duration, setDuration }) => {
+  const { accounts } = useAccountsContext();
+  const { transactions, saveTransaction, digest: transactionsDigest } = useTransactionsContext();
+  const { incomeCategories, expenseCategories } = useCategoryContext();
+  const { financialGoals } = useGoalsContext();
+  const { recurringTransactions, recurringTransactionOverrides, loanPaymentOverrides, billsAndPayments } = useScheduleContext();
+  const { tags } = useTagsContext();
+  const { budgets } = useBudgetsContext();
+  const transactionsKey = transactionsDigest;
+  const aggregateCacheRef = useRef<Map<string, { filteredTransactions: Transaction[]; income: number; expenses: number }>>(new Map());
   const [isTransactionModalOpen, setTransactionModalOpen] = useState(false);
   const [editingTransaction, setEditingTransaction] = useState<Transaction | null>(null);
   
@@ -128,6 +129,10 @@ const Dashboard: React.FC<DashboardProps> = ({ user, transactions, accounts, sav
   }, [transactions]);
 
   const { filteredTransactions, income, expenses } = useMemo(() => {
+    const cacheKey = `${transactionsKey}|${selectedAccountIds.join(',')}|${duration}`;
+    const cached = aggregateCacheRef.current.get(cacheKey);
+    if (cached) return cached;
+
     const { start, end } = getDateRange(duration, transactions);
     const txsInPeriod = transactions.filter(tx => {
         const txDate = parseDateAsUTC(tx.date);
@@ -153,7 +158,7 @@ const Dashboard: React.FC<DashboardProps> = ({ user, transactions, accounts, sav
 
             if (counterpart) {
                 const counterpartSelected = selectedAccountIds.includes(counterpart.accountId);
-                
+
                 // If counterpart is NOT selected, this is a real in/outflow for the selected group.
                 if (!counterpartSelected) {
                     if (tx.type === 'income') {
@@ -172,12 +177,24 @@ const Dashboard: React.FC<DashboardProps> = ({ user, transactions, accounts, sav
         }
     });
 
-    return { 
+    const result = {
         filteredTransactions: txsInPeriod.filter(tx => selectedAccountIds.includes(tx.accountId)),
         income: calculatedIncome,
         expenses: calculatedExpenses,
     };
-  }, [transactions, duration, selectedAccountIds]);
+    aggregateCacheRef.current.set(cacheKey, result);
+    return result;
+  }, [aggregateCacheRef, duration, selectedAccountIds, transactions, transactionsKey]);
+
+  const enrichedTransactions: EnrichedTransaction[] = useMemo(
+    () =>
+      filteredTransactions.map(tx => ({
+        ...tx,
+        convertedAmount: convertToEur(tx.amount, tx.currency),
+        parsedDate: parseDateAsUTC(tx.date),
+      })),
+    [filteredTransactions]
+  );
 
   const { incomeChange, expenseChange } = useMemo(() => {
     const { start, end } = getDateRange(duration, transactions);
@@ -239,10 +256,10 @@ const Dashboard: React.FC<DashboardProps> = ({ user, transactions, accounts, sav
     const expenseCats = expenseCategories;
     const processedTransferIds = new Set<string>();
 
-    filteredTransactions.forEach(tx => {
+    enrichedTransactions.forEach(tx => {
         if (tx.type !== 'expense') return;
-        
-        const convertedAmount = convertToEur(tx.amount, tx.currency);
+
+        const convertedAmount = tx.convertedAmount;
 
         if (tx.transferId) {
             if (processedTransferIds.has(tx.transferId)) return;
@@ -273,7 +290,7 @@ const Dashboard: React.FC<DashboardProps> = ({ user, transactions, accounts, sav
     });
 
     return Object.values(spending).sort((a, b) => b.value - a.value);
-  }, [filteredTransactions, selectedAccountIds, transactions, expenseCategories]);
+  }, [enrichedTransactions, selectedAccountIds, transactions, expenseCategories]);
   
   const handleCategoryClick = useCallback((categoryName: string) => {
     const expenseCats = expenseCategories;
@@ -350,12 +367,12 @@ const Dashboard: React.FC<DashboardProps> = ({ user, transactions, accounts, sav
     const incomeBuckets = Array(NUM_POINTS).fill(0);
     const expenseBuckets = Array(NUM_POINTS).fill(0);
 
-    const relevantTxs = filteredTransactions.filter(tx => !tx.transferId);
+    const relevantTxs = enrichedTransactions.filter(tx => !tx.transferId);
 
     for (const tx of relevantTxs) {
-        const txTime = parseDateAsUTC(tx.date).getTime();
+        const txTime = tx.parsedDate.getTime();
         const index = Math.floor((txTime - start.getTime()) / interval);
-        const convertedAmount = convertToEur(tx.amount, tx.currency);
+        const convertedAmount = tx.convertedAmount;
         if (index >= 0 && index < NUM_POINTS) {
             if (tx.type === 'income') {
                 incomeBuckets[index] += convertedAmount;
@@ -370,7 +387,7 @@ const Dashboard: React.FC<DashboardProps> = ({ user, transactions, accounts, sav
         expenseSparkline: expenseBuckets.map(value => ({ value }))
     };
 
-  }, [filteredTransactions, duration, transactions]);
+  }, [enrichedTransactions, duration, transactions]);
 
 
   const { totalAssets, totalDebt, netWorth, assetBreakdown, debtBreakdown } = useMemo(() => {
@@ -941,4 +958,4 @@ const Dashboard: React.FC<DashboardProps> = ({ user, transactions, accounts, sav
   );
 };
 
-export default Dashboard;
+export default React.memo(Dashboard);

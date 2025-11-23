@@ -12,6 +12,8 @@ import EditRecurrenceModal from '../components/EditRecurrenceModal';
 import RecurringOverrideModal from '../components/RecurringOverrideModal';
 import AddTransactionModal from '../components/AddTransactionModal';
 import BillPaymentModal from '../components/BillPaymentModal';
+import { useAccountsContext, useTransactionsContext } from '../contexts/DomainProviders';
+import { useCategoryContext, useScheduleContext, useTagsContext } from '../contexts/FinancialDataContext';
 
 // --- Helper to parse date string as UTC midnight to avoid timezone issues
 const parseAsUTC = (dateString: string): Date => {
@@ -67,28 +69,26 @@ const ScheduledItemRow: React.FC<{
 
 // --- Main Page Component ---
 
-interface ScheduleProps {
-    recurringTransactions: RecurringTransaction[];
-    saveRecurringTransaction: (recurringData: Omit<RecurringTransaction, 'id'> & { id?: string }) => void;
-    deleteRecurringTransaction: (id: string) => void;
-    billsAndPayments: BillPayment[];
-    saveBillPayment: (data: Omit<BillPayment, 'id'> & { id?: string }) => void;
-    deleteBillPayment: (id: string) => void;
-    markBillAsPaid: (billId: string, paymentAccountId: string, paymentDate: string) => void;
-    accounts: Account[];
-    incomeCategories: Category[];
-    expenseCategories: Category[];
-    recurringTransactionOverrides: RecurringTransactionOverride[];
-    saveRecurringOverride: (override: RecurringTransactionOverride) => void;
-    deleteRecurringOverride: (recurringTransactionId: string, originalDate: string) => void;
-    saveTransaction: (transactions: (Omit<Transaction, 'id'> & { id?: string })[], idsToDelete?: string[]) => void;
-    transactions: Transaction[];
-    tags: Tag[];
-    loanPaymentOverrides: LoanPaymentOverrides;
-}
+interface ScheduleProps {}
 
-const SchedulePage: React.FC<ScheduleProps> = (props) => {
-    const { recurringTransactions, saveRecurringTransaction, deleteRecurringTransaction, billsAndPayments, saveBillPayment, deleteBillPayment, markBillAsPaid, accounts, incomeCategories, expenseCategories, recurringTransactionOverrides, saveRecurringOverride, deleteRecurringOverride, saveTransaction, transactions, tags, loanPaymentOverrides } = props;
+const SchedulePage: React.FC<ScheduleProps> = () => {
+    const { accounts } = useAccountsContext();
+    const { transactions, saveTransaction } = useTransactionsContext();
+    const { incomeCategories, expenseCategories } = useCategoryContext();
+    const { tags } = useTagsContext();
+    const {
+        recurringTransactions,
+        saveRecurringTransaction,
+        deleteRecurringTransaction,
+        billsAndPayments,
+        saveBillPayment,
+        deleteBillPayment,
+        markBillAsPaid,
+        recurringTransactionOverrides,
+        saveRecurringOverride,
+        deleteRecurringOverride,
+        loanPaymentOverrides,
+    } = useScheduleContext();
 
     const [isRecurringModalOpen, setIsRecurringModalOpen] = useState(false);
     const [isBillModalOpen, setIsBillModalOpen] = useState(false);
@@ -117,7 +117,7 @@ const SchedulePage: React.FC<ScheduleProps> = (props) => {
         startRecurringScanDate.setUTCDate(startRecurringScanDate.getUTCDate() - 3);
 
         const dateIn30Days = new Date(todayUTC); dateIn30Days.setUTCDate(todayUTC.getUTCDate() + 30);
-        const forecastEndDate = new Date(todayUTC); forecastEndDate.setFullYear(today.getFullYear() + 1);
+        const forecastEndDate = new Date(todayUTC); forecastEndDate.setUTCMonth(todayUTC.getUTCMonth() + 12);
 
         const allUpcomingItems: ScheduledItem[] = [];
 
@@ -694,4 +694,4 @@ const SchedulePage: React.FC<ScheduleProps> = (props) => {
     );
 };
 
-export default SchedulePage;
+export default React.memo(SchedulePage);

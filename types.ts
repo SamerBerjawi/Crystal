@@ -318,16 +318,8 @@ export interface BillPayment {
 
 export interface AccountDetailProps {
   account: Account;
-  accounts: Account[];
-  transactions: Transaction[];
-  allCategories: Category[];
   setCurrentPage: (page: Page) => void;
-  saveTransaction: (transactions: (Omit<Transaction, 'id'> & { id?: string })[], idsToDelete?: string[]) => void;
-  recurringTransactions: RecurringTransaction[];
   setViewingAccountId: (id: string | null) => void;
-  tags: Tag[];
-  loanPaymentOverrides: LoanPaymentOverrides;
-  saveLoanPaymentOverrides: (accountId: string, overrides: Record<number, Partial<ScheduledPayment>>) => void;
   saveAccount: (account: Omit<Account, 'id'> & { id?: string }) => void;
 }
 

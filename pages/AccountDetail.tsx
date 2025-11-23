@@ -28,6 +28,8 @@ import VehicleMileageChart from '../components/VehicleMileageChart';
 import AddMileageLogModal from '../components/AddMileageLogModal';
 import ConfirmationModal from '../components/ConfirmationModal';
 import { v4 as uuidv4 } from 'uuid';
+import { useAccountsContext, useTransactionsContext } from '../contexts/DomainProviders';
+import { useCategoryContext, useScheduleContext, useTagsContext } from '../contexts/FinancialDataContext';
 
 const findCategoryDetails = (name: string, categories: Category[]): Category | undefined => {
     for (const cat of categories) {
@@ -59,7 +61,19 @@ const toYYYYMMDD = (date: Date) => {
     return `${y}-${m}-${d}`;
 };
 
-const AccountDetail: React.FC<AccountDetailProps> = ({ account, accounts, transactions, allCategories, setCurrentPage, saveTransaction, recurringTransactions, setViewingAccountId, tags, loanPaymentOverrides, saveLoanPaymentOverrides, saveAccount }) => {
+type EnrichedAccountTransaction = {
+    tx: Transaction;
+    parsedDate: Date;
+    convertedAmount: number;
+};
+
+const AccountDetail: React.FC<AccountDetailProps> = ({ account, setCurrentPage, setViewingAccountId, saveAccount }) => {
+  const { accounts } = useAccountsContext();
+  const { transactions, saveTransaction } = useTransactionsContext();
+  const { incomeCategories, expenseCategories } = useCategoryContext();
+  const { tags } = useTagsContext();
+  const { recurringTransactions, loanPaymentOverrides, saveLoanPaymentOverrides } = useScheduleContext();
+  const allCategories = useMemo(() => [...incomeCategories, ...expenseCategories], [expenseCategories, incomeCategories]);
     const [isTransactionModalOpen, setTransactionModalOpen] = useState(false);
     const [editingTransaction, setEditingTransaction] = useState<Transaction | null>(null);
     const [initialModalState, setInitialModalState] = useState<{
@@ -153,24 +167,38 @@ const AccountDetail: React.FC<AccountDetailProps> = ({ account, accounts, transa
       }, [transactions]);
     
     const accountMap = useMemo(() => accounts.reduce((map, acc) => { map[acc.id] = acc.name; return map; }, {} as Record<string, string>), [accounts]);
-    
-    const recentTransactions = useMemo(() => {
-        const accountTransactions = transactions
+
+    const accountTransactions = useMemo<EnrichedAccountTransaction[]>(() => {
+        return transactions
             .filter(tx => tx.accountId === account.id)
-            .sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
-    
+            .map(tx => ({ tx, parsedDate: parseDateAsUTC(tx.date), convertedAmount: convertToEur(tx.amount, tx.currency) }))
+            .sort((a, b) => b.parsedDate.getTime() - a.parsedDate.getTime());
+    }, [transactions, account.id]);
+
+    const transferPairs = useMemo(() => {
+        const pairs = new Map<string, Transaction[]>();
+        transactions.forEach(tx => {
+            if (!tx.transferId) return;
+            const current = pairs.get(tx.transferId) || [];
+            current.push(tx);
+            pairs.set(tx.transferId, current);
+        });
+        return pairs;
+    }, [transactions]);
+
+    const recentTransactions = useMemo(() => {
         const processedTransferIds = new Set<string>();
         const result: DisplayTransaction[] = [];
-    
-        for (const tx of accountTransactions) {
+
+        for (const { tx } of accountTransactions) {
             if (result.length >= 10) break;
-    
+
             if (tx.transferId) {
                 if (processedTransferIds.has(tx.transferId)) continue;
-                
-                const pair = transactions.find(t => t.transferId === tx.transferId && t.id !== tx.id);
+
+                const pair = transferPairs.get(tx.transferId)?.find(t => t.id !== tx.id);
                 processedTransferIds.add(tx.transferId);
-    
+
                 if (pair) {
                     const expensePart = tx.amount < 0 ? tx : pair;
                     const incomePart = tx.amount > 0 ? tx : pair;
@@ -193,7 +221,7 @@ const AccountDetail: React.FC<AccountDetailProps> = ({ account, accounts, transa
             }
         }
         return result.slice(0, 10);
-    }, [transactions, account.id, accountMap]);
+    }, [accountTransactions, accountMap, transferPairs]);
 
     const handleSaveMileageLog = (log: Omit<MileageLog, 'id'> & { id?: string }) => {
         if (log.id) { // Editing existing log
@@ -664,36 +692,38 @@ const AccountDetail: React.FC<AccountDetailProps> = ({ account, accounts, transa
     }
 
     // Default Account Detail View (for Checking, Savings, etc.)
-    const { filteredTransactions, income, expenses } = useMemo(() => {
-        const { start, end } = getDateRange(duration, transactions);
-        const txsInPeriod = transactions.filter(tx => {
-            if (tx.accountId !== account.id) return false;
-            const txDate = parseDateAsUTC(tx.date);
-            return txDate >= start && txDate <= end;
+    const { filteredTransactions, filteredEnriched, income, expenses } = useMemo(() => {
+        const { start, end } = getDateRange(duration, accountTransactions.map(({ tx }) => tx));
+        const txsInPeriod = accountTransactions.filter(entry => entry.parsedDate >= start && entry.parsedDate <= end);
+
+        let incomeTotal = 0;
+        let expensesTotal = 0;
+
+        txsInPeriod.forEach(({ tx, convertedAmount }) => {
+            if (tx.type === 'income') incomeTotal += convertedAmount;
+            else if (tx.type === 'expense') expensesTotal += Math.abs(convertedAmount);
         });
 
-        const income = txsInPeriod.filter(tx => tx.type === 'income').reduce((sum, tx) => sum + convertToEur(tx.amount, tx.currency), 0);
-        const expenses = txsInPeriod.filter(tx => tx.type === 'expense').reduce((sum, tx) => sum + Math.abs(convertToEur(tx.amount, tx.currency)), 0);
-
-        return { filteredTransactions: txsInPeriod, income, expenses };
-    }, [transactions, duration, account.id]);
+        return { filteredTransactions: txsInPeriod.map(entry => entry.tx), filteredEnriched: txsInPeriod, income: incomeTotal, expenses: expensesTotal };
+    }, [duration, accountTransactions]);
 
     const { incomeChange, expenseChange } = useMemo(() => {
-        const { start, end } = getDateRange(duration, transactions);
+        const { start, end } = getDateRange(duration, accountTransactions.map(({ tx }) => tx));
         const diff = end.getTime() - start.getTime();
         if (duration === 'ALL' || diff <= 0) return { incomeChange: null, expenseChange: null };
 
         const prevStart = new Date(start.getTime() - diff);
         const prevEnd = new Date(start.getTime() - 1);
 
-        const txsInPrevPeriod = transactions.filter(tx => {
-            if (tx.accountId !== account.id) return false;
-            const txDate = parseDateAsUTC(tx.date);
-            return txDate >= prevStart && txDate <= prevEnd;
-        });
+        const txsInPrevPeriod = accountTransactions.filter(entry => entry.parsedDate >= prevStart && entry.parsedDate <= prevEnd);
 
-        const prevIncome = txsInPrevPeriod.filter(tx => tx.type === 'income').reduce((sum, tx) => sum + convertToEur(tx.amount, tx.currency), 0);
-        const prevExpenses = txsInPrevPeriod.filter(tx => tx.type === 'expense').reduce((sum, tx) => sum + Math.abs(convertToEur(tx.amount, tx.currency)), 0);
+        let prevIncome = 0;
+        let prevExpenses = 0;
+
+        txsInPrevPeriod.forEach(({ tx, convertedAmount }) => {
+            if (tx.type === 'income') prevIncome += convertedAmount;
+            else if (tx.type === 'expense') prevExpenses += Math.abs(convertedAmount);
+        });
         
         const calculateChangeString = (current: number, previous: number) => {
             if (previous === 0) return null;
@@ -703,22 +733,22 @@ const AccountDetail: React.FC<AccountDetailProps> = ({ account, accounts, transa
         };
 
         return { incomeChange: calculateChangeString(income, prevIncome), expenseChange: calculateChangeString(expenses, prevExpenses) };
-    }, [duration, transactions, account.id, income, expenses]);
+    }, [duration, accountTransactions, income, expenses]);
 
     const outflowsByCategory: CategorySpending[] = useMemo(() => {
         const spending: { [key: string]: CategorySpending } = {};
-        filteredTransactions.forEach(tx => {
+        filteredEnriched.forEach(({ tx, convertedAmount }) => {
             if (tx.type !== 'expense') return;
             const category = findCategoryDetails(tx.category, allCategories);
             let parentCategory = category;
             if (category?.parentId) parentCategory = findCategoryById(category.parentId, allCategories) || category;
-            
+
             const name = parentCategory?.name || 'Uncategorized';
             if (!spending[name]) spending[name] = { name, value: 0, color: parentCategory?.color || '#A0AEC0', icon: parentCategory?.icon };
-            spending[name].value += Math.abs(convertToEur(tx.amount, tx.currency));
+            spending[name].value += Math.abs(convertedAmount);
         });
         return Object.values(spending).sort((a, b) => b.value - a.value);
-    }, [filteredTransactions, allCategories]);
+    }, [filteredEnriched, allCategories]);
 
     const handleCategoryClick = useCallback((categoryName: string) => {
         const txs = filteredTransactions.filter(tx => {
@@ -733,44 +763,42 @@ const AccountDetail: React.FC<AccountDetailProps> = ({ account, accounts, transa
     }, [filteredTransactions, allCategories]);
 
     const balanceHistoryData = useMemo(() => {
-        const { start, end } = getDateRange(duration, transactions);
+        const { start, end } = getDateRange(duration, accountTransactions.map(({ tx }) => tx));
+
+        const startDate = new Date(start);
+        const endDate = new Date(end);
 
         // Performance optimization: cap 'ALL' time range to a few years to prevent massive loops
         if (duration === 'ALL') {
-            const fiveYearsAgo = new Date(end);
-            fiveYearsAgo.setUTCFullYear(end.getUTCFullYear() - 5);
-            if (start < fiveYearsAgo) {
-                start.setTime(fiveYearsAgo.getTime());
+            const fiveYearsAgo = new Date(endDate);
+            fiveYearsAgo.setUTCFullYear(endDate.getUTCFullYear() - 5);
+            if (startDate < fiveYearsAgo) {
+                startDate.setTime(fiveYearsAgo.getTime());
             }
         }
 
-        const transactionsToReverse = transactions.filter(tx => {
-            if (tx.accountId !== account.id) return false;
-            const txDate = parseDateAsUTC(tx.date);
-            return txDate >= start && txDate <= new Date();
-        });
+        const transactionsToReverse = accountTransactions.filter(entry => entry.parsedDate >= startDate && entry.parsedDate <= new Date());
 
-        const totalChangeSinceStart = transactionsToReverse.reduce((sum, tx) => sum + tx.amount, 0);
+        const totalChangeSinceStart = transactionsToReverse.reduce((sum, entry) => sum + entry.tx.amount, 0);
         const startingBalance = account.balance - totalChangeSinceStart;
 
         const dailyChanges = new Map<string, number>();
-        filteredTransactions.forEach(tx => {
-            dailyChanges.set(tx.date, (dailyChanges.get(tx.date) || 0) + tx.amount);
+        filteredEnriched.forEach(({ tx, parsedDate }) => {
+            const dateKey = parsedDate.toISOString().split('T')[0];
+            dailyChanges.set(dateKey, (dailyChanges.get(dateKey) || 0) + tx.amount);
         });
-        
+
         const data: { name: string, value: number }[] = [];
         let runningBalance = startingBalance;
-        let currentDate = new Date(start);
-        while (currentDate <= end) {
-            // FIX: This line was causing a "not callable" error.
-            // Replaced the local date manipulation with a consistent UTC-based approach to resolve the error and fix timezone bugs.
+        let currentDate = new Date(startDate);
+        while (currentDate <= endDate) {
             const dateStr = currentDate.toISOString().split('T')[0];
             runningBalance += dailyChanges.get(dateStr) || 0;
             data.push({ name: dateStr, value: runningBalance });
             currentDate.setUTCDate(currentDate.getUTCDate() + 1);
         }
         return data;
-    }, [duration, transactions, account.id, account.balance, filteredTransactions]);
+    }, [duration, accountTransactions, account.balance, filteredEnriched]);
 
     const allWidgets: Widget[] = [
         { id: 'balanceHistory', name: 'Balance History', defaultW: 4, defaultH: 2, component: NetWorthChart, props: { data: balanceHistoryData } },
@@ -860,4 +888,4 @@ const AccountDetail: React.FC<AccountDetailProps> = ({ account, accounts, transa
     );
 };
 
-export default AccountDetail;
+export default React.memo(AccountDetail);
