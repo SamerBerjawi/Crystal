@@ -36,6 +36,7 @@ import { useDebounce } from './hooks/useDebounce';
 import { useAuth } from './hooks/useAuth';
 import useLocalStorage from './hooks/useLocalStorage';
 const OnboardingModal = lazy(() => import('./components/OnboardingModal'));
+import { AccountsProvider, PreferencesProvider, TransactionsProvider, WarrantsProvider } from './contexts/DomainProviders';
 
 const initialFinancialData: FinancialData = {
     accounts: [],
@@ -147,6 +148,10 @@ const App: React.FC = () => {
   const latestDataRef = useRef<FinancialData>(initialFinancialData);
   const skipNextSaveRef = useRef(false);
   const restoreInProgressRef = useRef(false);
+  const dirtySlicesRef = useRef<Set<keyof FinancialData>>(new Set());
+  const [dirtySignal, setDirtySignal] = useState(0);
+  const priceCacheRef = useRef<Record<string, { price: number | null; fetchedAt: number }>>({});
+  const warrantWorkerRef = useRef<Worker | null>(null);
   const [tagFilter, setTagFilter] = useState<string | null>(null);
   const [accountOrder, setAccountOrder] = useLocalStorage<string[]>('crystal-account-order', []);
   const [taskOrder, setTaskOrder] = useLocalStorage<string[]>('crystal-task-order', []);
@@ -169,6 +174,21 @@ const App: React.FC = () => {
   const [hasCompletedOnboarding, setHasCompletedOnboarding] = useLocalStorage('crystal-onboarding-complete', false);
   const [isOnboardingOpen, setIsOnboardingOpen] = useState(false);
 
+  const markSliceDirty = useCallback((slice: keyof FinancialData) => {
+    const pending = new Set(dirtySlicesRef.current);
+    if (!pending.has(slice)) {
+      pending.add(slice);
+      dirtySlicesRef.current = pending;
+      setDirtySignal(signal => signal + 1);
+    }
+  }, []);
+
+  useEffect(() => {
+    const worker = new Worker(new URL('./workers/warrantPriceWorker.ts', import.meta.url), { type: 'module' });
+    warrantWorkerRef.current = worker;
+    return () => worker.terminate();
+  }, []);
+
 
   useEffect(() => {
     // Set default dashboard account filter only on initial load
@@ -189,89 +209,44 @@ const App: React.FC = () => {
     }
   }, [financialGoals, activeGoalIds.length]);
 
-  const fetchWarrantPrices = useCallback(async () => {
-    const uniqueIsins = [...new Set(warrants.map(w => w.isin))];
-    const configsToRun = scraperConfigs.filter(c => uniqueIsins.includes(c.id));
-    if (isLoadingPrices || configsToRun.length === 0) return;
+  const fetchWarrantPrices = useCallback(() => {
+    const worker = warrantWorkerRef.current;
+    if (!worker) return;
 
-    setIsLoadingPrices(true);
-    const newPrices: Record<string, number | null> = {};
-    
-    // Optimized Proxy List
+    const uniqueIsins = [...new Set(warrants.map(w => w.isin))];
+    const now = Date.now();
     const CORS_PROXIES = [
-        'https://corsproxy.io/?', // Generally most reliable
-        'https://api.allorigins.win/raw?url=',
+      'https://corsproxy.io/?',
+      'https://api.allorigins.win/raw?url=',
     ];
 
-    for (const config of configsToRun) {
-        let success = false;
-        // Shuffle proxies to distribute load and increase success rate on retries
-        const shuffledProxies = [...CORS_PROXIES].sort(() => Math.random() - 0.5);
+    const configsToRun = scraperConfigs.filter(c => {
+      if (!uniqueIsins.includes(c.id)) return false;
+      const cached = priceCacheRef.current[c.id];
+      const isFresh = cached && now - cached.fetchedAt < 30 * 60 * 1000;
+      return !isFresh;
+    });
 
-        for (const proxy of shuffledProxies) {
-            const controller = new AbortController();
-            const timeoutId = setTimeout(() => controller.abort(), (config.resource.timeout || 15) * 1000);
+    if (isLoadingPrices || configsToRun.length === 0) return;
+    setIsLoadingPrices(true);
 
-            try {
-                let urlToFetch = '';
-                // Proxies that take the URL as a query parameter (containing '?') need it to be URI-encoded.
-                // Proxies that take the URL as part of the path do not.
-                if (proxy.includes('?')) {
-                    urlToFetch = `${proxy}${encodeURIComponent(config.resource.url)}`;
-                } else {
-                    urlToFetch = `${proxy}${config.resource.url}`;
-                }
-                
-                const response = await fetch(urlToFetch, { signal: controller.signal });
-                clearTimeout(timeoutId);
-                
-                if (!response.ok) {
-                    console.warn(`Proxy ${proxy} failed for ${config.resource.url} with status ${response.status}`);
-                    continue; // Try next proxy
-                }
-                
-                const htmlString = await response.text();
-                const parser = new DOMParser();
-                const doc = parser.parseFromString(htmlString, 'text/html');
-                const elements = doc.querySelectorAll(config.options.select);
+    worker.onmessage = (event: MessageEvent<{ type: string; prices: Record<string, number | null>; timestamp: number }>) => {
+      if (event.data.type !== 'FETCH_PRICES_RESULT') return;
+      const receivedAt = event.data.timestamp || Date.now();
+      const incomingPrices: Record<string, number | null> = {};
 
-                if (elements.length > config.options.index) {
-                    const targetElement = elements[config.options.index];
-                    const rawValue = config.options.attribute ? targetElement.getAttribute(config.options.attribute) : targetElement.textContent;
-                    if (rawValue) {
-                        const priceString = rawValue.match(/[0-9.,\s]+/)?.[0]?.trim() || '';
-                        const numberString = priceString.replace(/\./g, '').replace(',', '.');
-                        const price = parseFloat(numberString);
-                        newPrices[config.id] = isNaN(price) ? null : price;
-                    } else {
-                        newPrices[config.id] = null;
-                    }
-                } else {
-                    newPrices[config.id] = null;
-                }
-                
-                success = true;
-                break; // Success, break from proxy loop
-            } catch (error: any) {
-                clearTimeout(timeoutId);
-                if (error.name === 'AbortError') {
-                    console.warn(`Proxy ${proxy} timed out for ${config.id}.`);
-                } else {
-                    console.warn(`Proxy ${proxy} failed for ${config.id}:`, error);
-                }
-                // Continue to next proxy
-            }
-        }
-        
-        if (!success) {
-            console.error(`Failed to scrape ${config.id} with all available proxies.`);
-            newPrices[config.id] = null;
-        }
-    }
-    setWarrantPrices(prev => ({...prev, ...newPrices}));
-    setLastUpdated(new Date());
-    setIsLoadingPrices(false);
-  }, [scraperConfigs, warrants, isLoadingPrices]);
+      Object.entries(event.data.prices).forEach(([isin, price]) => {
+        priceCacheRef.current[isin] = { price, fetchedAt: receivedAt };
+        incomingPrices[isin] = price;
+      });
+
+      setWarrantPrices(prev => ({ ...prev, ...incomingPrices }));
+      setLastUpdated(new Date(receivedAt));
+      setIsLoadingPrices(false);
+    };
+
+    worker.postMessage({ type: 'FETCH_PRICES', configs: configsToRun, proxies: CORS_PROXIES });
+  }, [isLoadingPrices, scraperConfigs, warrants]);
 
   useEffect(() => {
     if (warrants.length > 0) {
@@ -280,29 +255,44 @@ const App: React.FC = () => {
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [warrants, scraperConfigs]);
 
+  const warrantHoldingsBySymbol = useMemo(() => {
+    const holdings: Record<string, number> = {};
+
+    investmentTransactions.forEach(tx => {
+      if (!tx.symbol) return;
+      holdings[tx.symbol] = (holdings[tx.symbol] || 0) + (tx.type === 'buy' ? tx.quantity : -tx.quantity);
+    });
+
+    warrants.forEach(warrant => {
+      holdings[warrant.isin] = (holdings[warrant.isin] || 0) + warrant.quantity;
+    });
+
+    return holdings;
+  }, [investmentTransactions, warrants]);
+
   useEffect(() => {
+    if (Object.keys(warrantPrices).length === 0) return;
+
+    let hasChanges = false;
     const updatedAccounts = accounts.map(account => {
-        // FIX: The type 'Crypto' is not a valid AccountType. 'Crypto' is a subtype of 'Investment'.
-        // The check is simplified to only verify if the account type is 'Investment'.
         if (account.symbol && account.type === 'Investment' && warrantPrices[account.symbol] !== undefined) {
             const price = warrantPrices[account.symbol];
-            const quantity = investmentTransactions
-                .filter(tx => tx.symbol === account.symbol)
-                .reduce((total, tx) => total + (tx.type === 'buy' ? tx.quantity : -tx.quantity), 0)
-                + warrants
-                .filter(w => w.isin === account.symbol)
-                .reduce((total, w) => total + w.quantity, 0);
-            
-            return { ...account, balance: price !== null ? quantity * price : 0 };
+            const quantity = warrantHoldingsBySymbol[account.symbol] || 0;
+            const calculatedBalance = price !== null ? quantity * price : 0;
+
+            if (Math.abs((account.balance || 0) - calculatedBalance) > 0.0001) {
+              hasChanges = true;
+              return { ...account, balance: calculatedBalance };
+            }
         }
         return account;
     });
 
-    if (JSON.stringify(updatedAccounts) !== JSON.stringify(accounts)) {
+    if (hasChanges) {
         setAccounts(updatedAccounts);
     }
   // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [warrantPrices]);
+  }, [warrantPrices, warrantHoldingsBySymbol]);
 
   const loadAllFinancialData = useCallback((data: FinancialData | null, options?: { skipNextSave?: boolean }) => {
     const dataToLoad = data || initialFinancialData;
@@ -336,6 +326,8 @@ const App: React.FC = () => {
       skipNextSaveRef.current = true;
     }
     latestDataRef.current = dataToLoad;
+    dirtySlicesRef.current.clear();
+    setDirtySignal(0);
   }, [setAccountOrder, setTaskOrder]);
   
   const handleEnterDemoMode = () => {
@@ -398,11 +390,151 @@ const App: React.FC = () => {
     incomeCategories, expenseCategories, preferences, billsAndPayments, accountOrder, taskOrder, tags,
   ]);
 
-  const debouncedDataToSave = useDebounce(dataToSave, 1500);
+  const debouncedDirtySignal = useDebounce(dirtySignal, 900);
+
+  const buildDirtyPayload = useCallback((dirtySlices: Set<keyof FinancialData>): FinancialData => {
+    const payload: Partial<FinancialData> = {};
+    if (dirtySlices.has('accounts')) payload.accounts = accounts;
+    if (dirtySlices.has('transactions')) payload.transactions = transactions;
+    if (dirtySlices.has('investmentTransactions')) payload.investmentTransactions = investmentTransactions;
+    if (dirtySlices.has('recurringTransactions')) payload.recurringTransactions = recurringTransactions;
+    if (dirtySlices.has('recurringTransactionOverrides')) payload.recurringTransactionOverrides = recurringTransactionOverrides;
+    if (dirtySlices.has('loanPaymentOverrides')) payload.loanPaymentOverrides = loanPaymentOverrides;
+    if (dirtySlices.has('financialGoals')) payload.financialGoals = financialGoals;
+    if (dirtySlices.has('budgets')) payload.budgets = budgets;
+    if (dirtySlices.has('tasks')) payload.tasks = tasks;
+    if (dirtySlices.has('warrants')) payload.warrants = warrants;
+    if (dirtySlices.has('scraperConfigs')) payload.scraperConfigs = scraperConfigs;
+    if (dirtySlices.has('importExportHistory')) payload.importExportHistory = importExportHistory;
+    if (dirtySlices.has('incomeCategories')) payload.incomeCategories = incomeCategories;
+    if (dirtySlices.has('expenseCategories')) payload.expenseCategories = expenseCategories;
+    if (dirtySlices.has('preferences')) payload.preferences = preferences;
+    if (dirtySlices.has('billsAndPayments')) payload.billsAndPayments = billsAndPayments;
+    if (dirtySlices.has('accountOrder')) payload.accountOrder = accountOrder;
+    if (dirtySlices.has('taskOrder')) payload.taskOrder = taskOrder;
+    if (dirtySlices.has('tags')) payload.tags = tags;
+
+    return { ...latestDataRef.current, ...payload } as FinancialData;
+  }, [
+    accountOrder,
+    accounts,
+    billsAndPayments,
+    budgets,
+    expenseCategories,
+    financialGoals,
+    importExportHistory,
+    incomeCategories,
+    investmentTransactions,
+    loanPaymentOverrides,
+    preferences,
+    recurringTransactionOverrides,
+    recurringTransactions,
+    scraperConfigs,
+    tags,
+    taskOrder,
+    tasks,
+    transactions,
+    warrants,
+  ]);
 
   useEffect(() => {
     latestDataRef.current = dataToSave;
   }, [dataToSave]);
+
+  useEffect(() => {
+    if (!isDataLoaded || restoreInProgressRef.current) return;
+    markSliceDirty('accounts');
+  }, [accounts, isDataLoaded, markSliceDirty]);
+
+  useEffect(() => {
+    if (!isDataLoaded || restoreInProgressRef.current) return;
+    markSliceDirty('transactions');
+  }, [transactions, isDataLoaded, markSliceDirty]);
+
+  useEffect(() => {
+    if (!isDataLoaded || restoreInProgressRef.current) return;
+    markSliceDirty('investmentTransactions');
+  }, [investmentTransactions, isDataLoaded, markSliceDirty]);
+
+  useEffect(() => {
+    if (!isDataLoaded || restoreInProgressRef.current) return;
+    markSliceDirty('recurringTransactions');
+  }, [recurringTransactions, isDataLoaded, markSliceDirty]);
+
+  useEffect(() => {
+    if (!isDataLoaded || restoreInProgressRef.current) return;
+    markSliceDirty('recurringTransactionOverrides');
+  }, [recurringTransactionOverrides, isDataLoaded, markSliceDirty]);
+
+  useEffect(() => {
+    if (!isDataLoaded || restoreInProgressRef.current) return;
+    markSliceDirty('loanPaymentOverrides');
+  }, [loanPaymentOverrides, isDataLoaded, markSliceDirty]);
+
+  useEffect(() => {
+    if (!isDataLoaded || restoreInProgressRef.current) return;
+    markSliceDirty('financialGoals');
+  }, [financialGoals, isDataLoaded, markSliceDirty]);
+
+  useEffect(() => {
+    if (!isDataLoaded || restoreInProgressRef.current) return;
+    markSliceDirty('budgets');
+  }, [budgets, isDataLoaded, markSliceDirty]);
+
+  useEffect(() => {
+    if (!isDataLoaded || restoreInProgressRef.current) return;
+    markSliceDirty('tasks');
+  }, [tasks, isDataLoaded, markSliceDirty]);
+
+  useEffect(() => {
+    if (!isDataLoaded || restoreInProgressRef.current) return;
+    markSliceDirty('warrants');
+  }, [warrants, isDataLoaded, markSliceDirty]);
+
+  useEffect(() => {
+    if (!isDataLoaded || restoreInProgressRef.current) return;
+    markSliceDirty('scraperConfigs');
+  }, [scraperConfigs, isDataLoaded, markSliceDirty]);
+
+  useEffect(() => {
+    if (!isDataLoaded || restoreInProgressRef.current) return;
+    markSliceDirty('importExportHistory');
+  }, [importExportHistory, isDataLoaded, markSliceDirty]);
+
+  useEffect(() => {
+    if (!isDataLoaded || restoreInProgressRef.current) return;
+    markSliceDirty('incomeCategories');
+  }, [incomeCategories, isDataLoaded, markSliceDirty]);
+
+  useEffect(() => {
+    if (!isDataLoaded || restoreInProgressRef.current) return;
+    markSliceDirty('expenseCategories');
+  }, [expenseCategories, isDataLoaded, markSliceDirty]);
+
+  useEffect(() => {
+    if (!isDataLoaded || restoreInProgressRef.current) return;
+    markSliceDirty('preferences');
+  }, [preferences, isDataLoaded, markSliceDirty]);
+
+  useEffect(() => {
+    if (!isDataLoaded || restoreInProgressRef.current) return;
+    markSliceDirty('billsAndPayments');
+  }, [billsAndPayments, isDataLoaded, markSliceDirty]);
+
+  useEffect(() => {
+    if (!isDataLoaded || restoreInProgressRef.current) return;
+    markSliceDirty('accountOrder');
+  }, [accountOrder, isDataLoaded, markSliceDirty]);
+
+  useEffect(() => {
+    if (!isDataLoaded || restoreInProgressRef.current) return;
+    markSliceDirty('taskOrder');
+  }, [taskOrder, isDataLoaded, markSliceDirty]);
+
+  useEffect(() => {
+    if (!isDataLoaded || restoreInProgressRef.current) return;
+    markSliceDirty('tags');
+  }, [tags, isDataLoaded, markSliceDirty]);
 
   // Persist data to backend on change
   const saveData = useCallback(
@@ -469,11 +601,22 @@ const App: React.FC = () => {
 
     if (skipNextSaveRef.current) {
       skipNextSaveRef.current = false;
+      dirtySlicesRef.current.clear();
       return;
     }
 
-    saveData(debouncedDataToSave);
-  }, [debouncedDataToSave, isDataLoaded, isAuthenticated, isDemoMode, saveData]);
+    if (dirtySlicesRef.current.size === 0) return;
+
+    const dirtySlices = new Set(dirtySlicesRef.current);
+    const persistDirtySlices = async () => {
+      const succeeded = await saveData(buildDirtyPayload(dirtySlices));
+      if (succeeded) {
+        dirtySlices.forEach(slice => dirtySlicesRef.current.delete(slice));
+      }
+    };
+
+    persistDirtySlices();
+  }, [buildDirtyPayload, debouncedDirtySignal, isAuthenticated, isDataLoaded, isDemoMode, saveData]);
 
   useEffect(() => {
     if (!isAuthenticated || isDemoMode || typeof window === 'undefined') {
@@ -1128,14 +1271,11 @@ const App: React.FC = () => {
 
     switch (currentPage) {
       case 'Dashboard':
-        return <Dashboard 
-            user={currentUser!} 
-            transactions={transactions} 
-            accounts={accounts} 
-            saveTransaction={handleSaveTransaction} 
-            incomeCategories={incomeCategories} 
-            expenseCategories={expenseCategories} 
-            financialGoals={financialGoals} 
+        return <Dashboard
+            user={currentUser!}
+            incomeCategories={incomeCategories}
+            expenseCategories={expenseCategories}
+            financialGoals={financialGoals}
             recurringTransactions={recurringTransactions} 
             recurringTransactionOverrides={recurringTransactionOverrides}
             loanPaymentOverrides={loanPaymentOverrides}
@@ -1151,7 +1291,7 @@ const App: React.FC = () => {
       case 'Accounts':
         return <Accounts accounts={accounts} transactions={transactions} saveAccount={handleSaveAccount} deleteAccount={handleDeleteAccount} setCurrentPage={setCurrentPage} setAccountFilter={setAccountFilter} setViewingAccountId={setViewingAccountId} saveTransaction={handleSaveTransaction} accountOrder={accountOrder} setAccountOrder={setAccountOrder} sortBy={accountsSortBy} setSortBy={setAccountsSortBy} warrants={warrants} onToggleAccountStatus={handleToggleAccountStatus} />;
       case 'Transactions':
-        return <Transactions transactions={transactions} saveTransaction={handleSaveTransaction} deleteTransactions={handleDeleteTransactions} accounts={accounts} accountFilter={accountFilter} setAccountFilter={setAccountFilter} incomeCategories={incomeCategories} expenseCategories={expenseCategories} tags={tags} tagFilter={tagFilter} setTagFilter={setTagFilter} saveRecurringTransaction={handleSaveRecurringTransaction} />;
+        return <Transactions accountFilter={accountFilter} setAccountFilter={setAccountFilter} incomeCategories={incomeCategories} expenseCategories={expenseCategories} tags={tags} tagFilter={tagFilter} setTagFilter={setTagFilter} saveRecurringTransaction={handleSaveRecurringTransaction} />;
       case 'Budget':
         // FIX: Add `preferences` to the `Budgeting` component to resolve the missing prop error.
         return <Budgeting budgets={budgets} transactions={transactions} expenseCategories={expenseCategories} saveBudget={handleSaveBudget} deleteBudget={handleDeleteBudget} accounts={accounts} preferences={preferences} />;
@@ -1209,6 +1349,20 @@ const App: React.FC = () => {
     }
   };
 
+  const preferencesContextValue = useMemo(() => ({ preferences, setPreferences }), [preferences]);
+  const accountsContextValue = useMemo(
+    () => ({ accounts, accountOrder, setAccountOrder, saveAccount: handleSaveAccount }),
+    [accounts, accountOrder, handleSaveAccount]
+  );
+  const transactionsContextValue = useMemo(
+    () => ({ transactions, saveTransaction: handleSaveTransaction, deleteTransactions: handleDeleteTransactions }),
+    [transactions, handleDeleteTransactions, handleSaveTransaction]
+  );
+  const warrantsContextValue = useMemo(
+    () => ({ warrants, prices: warrantPrices, isLoadingPrices, refreshPrices: fetchWarrantPrices }),
+    [fetchWarrantPrices, isLoadingPrices, warrantPrices, warrants]
+  );
+
   // Loading state
   if (isAuthLoading || !isDataLoaded) {
     return (
@@ -1235,70 +1389,78 @@ const App: React.FC = () => {
 
   // Main app
   return (
-    <div className={`flex h-screen bg-light-card dark:bg-dark-card text-light-text dark:text-dark-text font-sans`}>
-      <Sidebar 
-        currentPage={currentPage}
-        setCurrentPage={(page) => { setViewingAccountId(null); setCurrentPage(page); }} 
-        isSidebarOpen={isSidebarOpen}
-        setSidebarOpen={setSidebarOpen}
-        theme={theme}
-        isSidebarCollapsed={isSidebarCollapsed}
-        setSidebarCollapsed={setSidebarCollapsed}
-        onLogout={handleLogout}
-        user={currentUser!}
-      />
-      <div className="flex-1 flex flex-col overflow-hidden bg-light-bg dark:bg-dark-bg md:rounded-tl-3xl border-l border-t border-black/5 dark:border-white/5 shadow-2xl relative z-0">
-        <Header 
-          user={currentUser!}
-          setSidebarOpen={setSidebarOpen}
-          theme={theme}
-          setTheme={setTheme}
-          currentPage={currentPage}
-          titleOverride={viewingAccount?.name}
-        />
-        <main className="flex-1 overflow-x-hidden overflow-y-auto p-4 md:p-8 bg-light-bg dark:bg-dark-bg">
-          <Suspense fallback={<PageLoader />}>
-            {renderPage()}
-          </Suspense>
-        </main>
-      </div>
+    <PreferencesProvider value={preferencesContextValue}>
+      <AccountsProvider value={accountsContextValue}>
+        <TransactionsProvider value={transactionsContextValue}>
+          <WarrantsProvider value={warrantsContextValue}>
+            <div className={`flex h-screen bg-light-card dark:bg-dark-card text-light-text dark:text-dark-text font-sans`}>
+              <Sidebar
+                currentPage={currentPage}
+                setCurrentPage={(page) => { setViewingAccountId(null); setCurrentPage(page); }}
+                isSidebarOpen={isSidebarOpen}
+                setSidebarOpen={setSidebarOpen}
+                theme={theme}
+                isSidebarCollapsed={isSidebarCollapsed}
+                setSidebarCollapsed={setSidebarCollapsed}
+                onLogout={handleLogout}
+                user={currentUser!}
+              />
+              <div className="flex-1 flex flex-col overflow-hidden bg-light-bg dark:bg-dark-bg md:rounded-tl-3xl border-l border-t border-black/5 dark:border-white/5 shadow-2xl relative z-0">
+                <Header
+                  user={currentUser!}
+                  setSidebarOpen={setSidebarOpen}
+                  theme={theme}
+                  setTheme={setTheme}
+                  currentPage={currentPage}
+                  titleOverride={viewingAccount?.name}
+                />
+                <main className="flex-1 overflow-x-hidden overflow-y-auto p-4 md:p-8 bg-light-bg dark:bg-dark-bg">
+                  <Suspense fallback={<PageLoader />}>
+                    {renderPage()}
+                  </Suspense>
+                </main>
+              </div>
 
-      {/* AI Chat */}
-      <ChatFab onClick={() => setIsChatOpen(prev => !prev)} />
-      <Suspense fallback={null}>
-        {isChatOpen && (
-          <Chatbot
-            isOpen={isChatOpen}
-            onClose={() => setIsChatOpen(false)}
-            financialData={{
-              accounts,
-              transactions,
-              budgets,
-              financialGoals,
-              recurringTransactions,
-              investmentTransactions,
-            }}
-          />
-        )}
-      </Suspense>
-      <Suspense fallback={null}>
-        {isOnboardingOpen && (
-          <OnboardingModal
-            isOpen={isOnboardingOpen}
-            onClose={handleOnboardingFinish}
-            user={currentUser!}
-            saveAccount={handleSaveAccount}
-            saveFinancialGoal={handleSaveFinancialGoal}
-            saveRecurringTransaction={handleSaveRecurringTransaction}
-            preferences={preferences}
-            setPreferences={setPreferences}
-            accounts={accounts}
-            incomeCategories={incomeCategories}
-            expenseCategories={expenseCategories}
-          />
-        )}
-      </Suspense>
-    </div>
+              {/* AI Chat */}
+              <ChatFab onClick={() => setIsChatOpen(prev => !prev)} />
+              <Suspense fallback={null}>
+                {isChatOpen && (
+                  <Chatbot
+                    isOpen={isChatOpen}
+                    onClose={() => setIsChatOpen(false)}
+                    financialData={{
+                      accounts,
+                      transactions,
+                      budgets,
+                      financialGoals,
+                      recurringTransactions,
+                      investmentTransactions,
+                    }}
+                  />
+                )}
+              </Suspense>
+              <Suspense fallback={null}>
+                {isOnboardingOpen && (
+                  <OnboardingModal
+                    isOpen={isOnboardingOpen}
+                    onClose={handleOnboardingFinish}
+                    user={currentUser!}
+                    saveAccount={handleSaveAccount}
+                    saveFinancialGoal={handleSaveFinancialGoal}
+                    saveRecurringTransaction={handleSaveRecurringTransaction}
+                    preferences={preferences}
+                    setPreferences={setPreferences}
+                    accounts={accounts}
+                    incomeCategories={incomeCategories}
+                    expenseCategories={expenseCategories}
+                  />
+                )}
+              </Suspense>
+            </div>
+          </WarrantsProvider>
+        </TransactionsProvider>
+      </AccountsProvider>
+    </PreferencesProvider>
   );
 };
 
