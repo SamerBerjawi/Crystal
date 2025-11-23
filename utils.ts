@@ -133,7 +133,7 @@ export function getDateRange(duration: Duration, allTransactions: Transaction[] 
             start.setUTCMonth(0, 1);
             break;
         case '1Y':
-            start.setUTCFullYear(start.getUTCMonth() - 1);
+            start.setUTCFullYear(start.getUTCFullYear() - 1);
             break;
         case 'ALL':
             if (allTransactions.length > 0) {
