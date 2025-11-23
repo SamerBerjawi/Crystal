@@ -506,12 +506,12 @@ const AddTransactionModal: React.FC<AddTransactionModalProps> = ({ onClose, onSa
         
         <div>
             <label htmlFor="tx-location" className={labelStyle}>Location (Optional)</label>
-            <LocationAutocomplete 
-                value={locationString} 
+            <LocationAutocomplete
+                value={locationString}
                 onChange={(val, data) => {
                     setLocationString(val);
-                    if (data) setLocationData(data);
-                }} 
+                    setLocationData(data || {});
+                }}
             />
         </div>
 
