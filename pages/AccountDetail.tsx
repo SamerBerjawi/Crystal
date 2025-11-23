@@ -28,6 +28,8 @@ import VehicleMileageChart from '../components/VehicleMileageChart';
 import AddMileageLogModal from '../components/AddMileageLogModal';
 import ConfirmationModal from '../components/ConfirmationModal';
 import { v4 as uuidv4 } from 'uuid';
+import { useAccountsContext, useTransactionsContext } from '../contexts/DomainProviders';
+import { useCategoryContext, useScheduleContext, useTagsContext } from '../contexts/FinancialDataContext';
 
 const findCategoryDetails = (name: string, categories: Category[]): Category | undefined => {
     for (const cat of categories) {
@@ -65,6 +67,13 @@ type EnrichedAccountTransaction = {
     convertedAmount: number;
 };
 
+const AccountDetail: React.FC<AccountDetailProps> = ({ account, setCurrentPage, setViewingAccountId, saveAccount }) => {
+  const { accounts } = useAccountsContext();
+  const { transactions, saveTransaction } = useTransactionsContext();
+  const { incomeCategories, expenseCategories } = useCategoryContext();
+  const { tags } = useTagsContext();
+  const { recurringTransactions, loanPaymentOverrides, saveLoanPaymentOverrides } = useScheduleContext();
+  const allCategories = useMemo(() => [...incomeCategories, ...expenseCategories], [expenseCategories, incomeCategories]);
 const AccountDetail: React.FC<AccountDetailProps> = ({ account, accounts, transactions, allCategories, setCurrentPage, saveTransaction, recurringTransactions, setViewingAccountId, tags, loanPaymentOverrides, saveLoanPaymentOverrides, saveAccount }) => {
     const [isTransactionModalOpen, setTransactionModalOpen] = useState(false);
     const [editingTransaction, setEditingTransaction] = useState<Transaction | null>(null);
@@ -880,4 +889,4 @@ const AccountDetail: React.FC<AccountDetailProps> = ({ account, accounts, transa
     );
 };
 
-export default AccountDetail;
+export default React.memo(AccountDetail);

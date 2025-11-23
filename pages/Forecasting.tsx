@@ -1,6 +1,6 @@
 
 import React, { useState, useMemo, useCallback, Dispatch, SetStateAction } from 'react';
-import { Account, Transaction, RecurringTransaction, FinancialGoal, Category, Page, ContributionPlanStep, BillPayment, RecurringTransactionOverride, LoanPaymentOverrides, ScheduledPayment } from '../types';
+import { Page, ContributionPlanStep, ScheduledPayment } from '../types';
 import { BTN_PRIMARY_STYLE, BTN_SECONDARY_STYLE, LIQUID_ACCOUNT_TYPES, CHECKBOX_STYLE } from '../constants';
 import { formatCurrency, convertToEur, generateBalanceForecast, generateSyntheticLoanPayments, generateSyntheticCreditCardPayments, parseDateAsUTC, getPreferredTimeZone } from '../utils';
 import Card from '../components/Card';
@@ -14,27 +14,14 @@ import ForecastDayModal from '../components/ForecastDayModal';
 import RecurringTransactionModal from '../components/RecurringTransactionModal';
 import BillPaymentModal from '../components/BillPaymentModal';
 import { loadGenAiModule } from '../genAiLoader';
+import { useAccountsContext, useTransactionsContext } from '../contexts/DomainProviders';
+import { useCategoryContext, useGoalsContext, useScheduleContext } from '../contexts/FinancialDataContext';
 
 type ForecastDuration = '3M' | '6M' | 'EOY' | '1Y';
 
 interface ForecastingProps {
-  accounts: Account[];
-  transactions: Transaction[];
-  recurringTransactions: RecurringTransaction[];
-  recurringTransactionOverrides: RecurringTransactionOverride[];
-  loanPaymentOverrides: LoanPaymentOverrides;
-  financialGoals: FinancialGoal[];
-  saveFinancialGoal: (goalData: Omit<FinancialGoal, 'id'> & { id?: string }) => void;
-  deleteFinancialGoal: (id: string) => void;
-  expenseCategories: Category[];
-  billsAndPayments: BillPayment[];
   activeGoalIds: string[];
   setActiveGoalIds: React.Dispatch<React.SetStateAction<string[]>>;
-  saveRecurringTransaction: (recurringData: Omit<RecurringTransaction, 'id'> & { id?: string }) => void;
-  deleteRecurringTransaction: (id: string) => void;
-  saveBillPayment: (data: Omit<BillPayment, 'id'> & { id?: string }) => void;
-  deleteBillPayment: (id: string) => void;
-  incomeCategories: Category[];
 }
 
 const useSmartGoalPlanner = (
@@ -136,6 +123,21 @@ const useSmartGoalPlanner = (
 };
 
 
+const Forecasting: React.FC<ForecastingProps> = ({ activeGoalIds, setActiveGoalIds }) => {
+  const { accounts } = useAccountsContext();
+  const { transactions } = useTransactionsContext();
+  const { financialGoals, saveFinancialGoal, deleteFinancialGoal } = useGoalsContext();
+  const { expenseCategories, incomeCategories } = useCategoryContext();
+  const {
+    recurringTransactions,
+    recurringTransactionOverrides,
+    loanPaymentOverrides,
+    billsAndPayments,
+    saveRecurringTransaction,
+    deleteRecurringTransaction,
+    saveBillPayment,
+    deleteBillPayment,
+  } = useScheduleContext();
 const Forecasting: React.FC<ForecastingProps> = ({ accounts, transactions, recurringTransactions, recurringTransactionOverrides, loanPaymentOverrides, financialGoals, saveFinancialGoal, deleteFinancialGoal, expenseCategories, billsAndPayments, activeGoalIds, setActiveGoalIds, saveRecurringTransaction, deleteRecurringTransaction, saveBillPayment, deleteBillPayment, incomeCategories }) => {
     const timeZone = getPreferredTimeZone();
     const [isModalOpen, setIsModalOpen] = useState(false);
@@ -574,4 +576,4 @@ const Forecasting: React.FC<ForecastingProps> = ({ accounts, transactions, recur
     );
 };
 
-export default Forecasting;
+export default React.memo(Forecasting);

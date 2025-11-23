@@ -5,6 +5,8 @@
 
 import React, { useMemo, useState, useCallback, useEffect, useRef } from 'react';
 // FIX: Import 'RecurringTransaction' to resolve 'Cannot find name' error.
+import { User, Transaction, Account, Duration, CategorySpending, Widget, WidgetConfig, DisplayTransaction } from '../types';
+import { formatCurrency, getDateRange, calculateAccountTotals, convertToEur, calculateStatementPeriods, generateBalanceForecast, parseDateAsUTC, getCreditCardStatementDetails, generateSyntheticLoanPayments, generateSyntheticCreditCardPayments } from '../utils';
 import { User, Transaction, Account, Category, Duration, CategorySpending, Widget, WidgetConfig, DisplayTransaction, FinancialGoal, RecurringTransaction, BillPayment, Tag, Budget, RecurringTransactionOverride, LoanPaymentOverrides } from '../types';
 import { formatCurrency, getDateRange, calculateAccountTotals, convertToEur, calculateStatementPeriods, generateBalanceForecast, parseDateAsUTC, getCreditCardStatementDetails, generateSyntheticLoanPayments, generateSyntheticCreditCardPayments, getPreferredTimeZone } from '../utils';
 import AddTransactionModal from '../components/AddTransactionModal';
@@ -31,6 +33,7 @@ import BudgetOverviewWidget from '../components/BudgetOverviewWidget';
 import AccountBreakdownCard from '../components/AccountBreakdownCard';
 import TransactionMapWidget from '../components/TransactionMapWidget';
 import { useAccountsContext, useTransactionsContext } from '../contexts/DomainProviders';
+import { useBudgetsContext, useCategoryContext, useGoalsContext, useScheduleContext, useTagsContext } from '../contexts/FinancialDataContext';
 
 
 interface DashboardProps {
@@ -42,13 +45,10 @@ interface DashboardProps {
   recurringTransactionOverrides: RecurringTransactionOverride[];
   loanPaymentOverrides: LoanPaymentOverrides;
   activeGoalIds: string[];
-  billsAndPayments: BillPayment[];
   selectedAccountIds: string[];
   setSelectedAccountIds: (ids: string[]) => void;
   duration: Duration;
   setDuration: (duration: Duration) => void;
-  tags: Tag[];
-  budgets: Budget[];
 }
 
 const findCategoryDetails = (name: string, categories: Category[]): Category | undefined => {
@@ -82,6 +82,14 @@ const toYYYYMMDD = (date: Date) => {
 
 type EnrichedTransaction = Transaction & { convertedAmount: number; parsedDate: Date };
 
+const Dashboard: React.FC<DashboardProps> = ({ user, activeGoalIds, selectedAccountIds, setSelectedAccountIds, duration, setDuration }) => {
+  const { accounts } = useAccountsContext();
+  const { transactions, saveTransaction, digest: transactionsDigest } = useTransactionsContext();
+  const { incomeCategories, expenseCategories } = useCategoryContext();
+  const { financialGoals } = useGoalsContext();
+  const { recurringTransactions, recurringTransactionOverrides, loanPaymentOverrides, billsAndPayments } = useScheduleContext();
+  const { tags } = useTagsContext();
+  const { budgets } = useBudgetsContext();
 const Dashboard: React.FC<DashboardProps> = ({ user, incomeCategories, expenseCategories, financialGoals, recurringTransactions, recurringTransactionOverrides, loanPaymentOverrides, activeGoalIds, billsAndPayments, selectedAccountIds, setSelectedAccountIds, duration, setDuration, tags, budgets }) => {
   const { accounts } = useAccountsContext();
   const { transactions, saveTransaction, digest: transactionsDigest } = useTransactionsContext();
@@ -962,4 +970,4 @@ const Dashboard: React.FC<DashboardProps> = ({ user, incomeCategories, expenseCa
   );
 };
 
-export default Dashboard;
+export default React.memo(Dashboard);

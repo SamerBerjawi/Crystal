@@ -36,6 +36,7 @@ import { useDebounce } from './hooks/useDebounce';
 import { useAuth } from './hooks/useAuth';
 import useLocalStorage from './hooks/useLocalStorage';
 const OnboardingModal = lazy(() => import('./components/OnboardingModal'));
+import { FinancialDataProvider } from './contexts/FinancialDataContext';
 import { AccountsProvider, PreferencesProvider, TransactionsProvider, WarrantsProvider } from './contexts/DomainProviders';
 
 const initialFinancialData: FinancialData = {
@@ -1257,18 +1258,10 @@ const App: React.FC = () => {
   const renderPage = () => {
     if (viewingAccountId) {
       if (viewingAccount) {
-        return <AccountDetail 
+        return <AccountDetail
           account={viewingAccount}
-          accounts={accounts}
-          transactions={transactions}
-          allCategories={[...incomeCategories, ...expenseCategories]}
           setCurrentPage={setCurrentPage}
-          saveTransaction={handleSaveTransaction}
-          recurringTransactions={recurringTransactions}
           setViewingAccountId={setViewingAccountId}
-          tags={tags}
-          loanPaymentOverrides={loanPaymentOverrides}
-          saveLoanPaymentOverrides={handleSaveLoanPaymentOverrides}
           saveAccount={handleSaveAccount}
         />
       } else {
@@ -1288,45 +1281,28 @@ const App: React.FC = () => {
             recurringTransactionOverrides={recurringTransactionOverrides}
             loanPaymentOverrides={loanPaymentOverrides}
             activeGoalIds={activeGoalIds}
-            billsAndPayments={billsAndPayments} 
-            selectedAccountIds={dashboardAccountIds} 
-            setSelectedAccountIds={setDashboardAccountIds} 
-            duration={dashboardDuration} 
-            setDuration={setDashboardDuration} 
-            tags={tags} 
-            budgets={budgets} 
+            selectedAccountIds={dashboardAccountIds}
+            setSelectedAccountIds={setDashboardAccountIds}
+            duration={dashboardDuration}
+            setDuration={setDashboardDuration}
         />;
       case 'Accounts':
         return <Accounts accounts={accounts} transactions={transactions} saveAccount={handleSaveAccount} deleteAccount={handleDeleteAccount} setCurrentPage={setCurrentPage} setAccountFilter={setAccountFilter} setViewingAccountId={setViewingAccountId} saveTransaction={handleSaveTransaction} accountOrder={accountOrder} setAccountOrder={setAccountOrder} sortBy={accountsSortBy} setSortBy={setAccountsSortBy} warrants={warrants} onToggleAccountStatus={handleToggleAccountStatus} />;
       case 'Transactions':
+        return <Transactions accountFilter={accountFilter} setAccountFilter={setAccountFilter} tagFilter={tagFilter} setTagFilter={setTagFilter} />;
         return <Transactions accountFilter={accountFilter} setAccountFilter={setAccountFilter} incomeCategories={incomeCategories} expenseCategories={expenseCategories} tags={tags} tagFilter={tagFilter} setTagFilter={setTagFilter} saveRecurringTransaction={handleSaveRecurringTransaction} />;
       case 'Budget':
         // FIX: Add `preferences` to the `Budgeting` component to resolve the missing prop error.
         return <Budgeting budgets={budgets} transactions={transactions} expenseCategories={expenseCategories} saveBudget={handleSaveBudget} deleteBudget={handleDeleteBudget} accounts={accounts} preferences={preferences} />;
       case 'Forecasting':
-        return <Forecasting 
-          accounts={accounts} 
-          transactions={transactions} 
-          recurringTransactions={recurringTransactions} 
-          recurringTransactionOverrides={recurringTransactionOverrides} 
-          loanPaymentOverrides={loanPaymentOverrides} 
-          financialGoals={financialGoals} 
-          saveFinancialGoal={handleSaveFinancialGoal} 
-          deleteFinancialGoal={handleDeleteFinancialGoal} 
-          expenseCategories={expenseCategories} 
-          billsAndPayments={billsAndPayments} 
-          activeGoalIds={activeGoalIds} 
+        return <Forecasting
+          activeGoalIds={activeGoalIds}
           setActiveGoalIds={setActiveGoalIds}
-          saveRecurringTransaction={handleSaveRecurringTransaction}
-          deleteRecurringTransaction={handleDeleteRecurringTransaction}
-          saveBillPayment={handleSaveBillPayment}
-          deleteBillPayment={handleDeleteBillPayment}
-          incomeCategories={incomeCategories}
         />;
       case 'Settings':
         return <SettingsPage setCurrentPage={setCurrentPage} user={currentUser!} />;
       case 'Schedule & Bills':
-        return <SchedulePage recurringTransactions={recurringTransactions} saveRecurringTransaction={handleSaveRecurringTransaction} deleteRecurringTransaction={handleDeleteRecurringTransaction} billsAndPayments={billsAndPayments} saveBillPayment={handleSaveBillPayment} deleteBillPayment={handleDeleteBillPayment} markBillAsPaid={handleMarkBillAsPaid} accounts={accounts} incomeCategories={incomeCategories} expenseCategories={expenseCategories} recurringTransactionOverrides={recurringTransactionOverrides} saveRecurringOverride={handleSaveRecurringOverride} deleteRecurringOverride={handleDeleteRecurringOverride} saveTransaction={handleSaveTransaction} transactions={transactions} tags={tags} loanPaymentOverrides={loanPaymentOverrides} />;
+        return <SchedulePage />;
       case 'Categories':
         return <CategoriesPage incomeCategories={incomeCategories} setIncomeCategories={setIncomeCategories} expenseCategories={expenseCategories} setExpenseCategories={setExpenseCategories} setCurrentPage={setCurrentPage} />;
       case 'Tags':
@@ -1370,6 +1346,52 @@ const App: React.FC = () => {
     () => ({ warrants, prices: warrantPrices, isLoadingPrices, refreshPrices: fetchWarrantPrices }),
     [fetchWarrantPrices, isLoadingPrices, warrantPrices, warrants]
   );
+  const categoryContextValue = useMemo(
+    () => ({ incomeCategories, expenseCategories, setIncomeCategories, setExpenseCategories }),
+    [expenseCategories, incomeCategories]
+  );
+  const tagsContextValue = useMemo(
+    () => ({ tags, saveTag: handleSaveTag, deleteTag: handleDeleteTag }),
+    [tags, handleSaveTag, handleDeleteTag]
+  );
+  const budgetsContextValue = useMemo(
+    () => ({ budgets, saveBudget: handleSaveBudget, deleteBudget: handleDeleteBudget }),
+    [budgets, handleDeleteBudget, handleSaveBudget]
+  );
+  const goalsContextValue = useMemo(
+    () => ({ financialGoals, saveFinancialGoal: handleSaveFinancialGoal, deleteFinancialGoal: handleDeleteFinancialGoal }),
+    [financialGoals, handleDeleteFinancialGoal, handleSaveFinancialGoal]
+  );
+  const scheduleContextValue = useMemo(
+    () => ({
+      recurringTransactions,
+      recurringTransactionOverrides,
+      loanPaymentOverrides,
+      billsAndPayments,
+      saveRecurringTransaction: handleSaveRecurringTransaction,
+      deleteRecurringTransaction: handleDeleteRecurringTransaction,
+      saveRecurringOverride: handleSaveRecurringOverride,
+      deleteRecurringOverride: handleDeleteRecurringOverride,
+      saveLoanPaymentOverrides: handleSaveLoanPaymentOverrides,
+      saveBillPayment: handleSaveBillPayment,
+      deleteBillPayment: handleDeleteBillPayment,
+      markBillAsPaid: handleMarkBillAsPaid,
+    }),
+    [
+      billsAndPayments,
+      handleDeleteBillPayment,
+      handleDeleteRecurringOverride,
+      handleDeleteRecurringTransaction,
+      handleMarkBillAsPaid,
+      handleSaveBillPayment,
+      handleSaveLoanPaymentOverrides,
+      handleSaveRecurringOverride,
+      handleSaveRecurringTransaction,
+      loanPaymentOverrides,
+      recurringTransactionOverrides,
+      recurringTransactions,
+    ]
+  );
 
   // Loading state
   if (isAuthLoading || !isDataLoaded) {
@@ -1397,6 +1419,82 @@ const App: React.FC = () => {
 
   // Main app
   return (
+    <FinancialDataProvider
+      categories={categoryContextValue}
+      tags={tagsContextValue}
+      budgets={budgetsContextValue}
+      goals={goalsContextValue}
+      schedule={scheduleContextValue}
+      preferences={preferencesContextValue}
+      accounts={accountsContextValue}
+      transactions={transactionsContextValue}
+      warrants={warrantsContextValue}
+    >
+      <div className={`flex h-screen bg-light-card dark:bg-dark-card text-light-text dark:text-dark-text font-sans`}>
+        <Sidebar
+          currentPage={currentPage}
+          setCurrentPage={(page) => { setViewingAccountId(null); setCurrentPage(page); }}
+          isSidebarOpen={isSidebarOpen}
+          setSidebarOpen={setSidebarOpen}
+          theme={theme}
+          isSidebarCollapsed={isSidebarCollapsed}
+          setSidebarCollapsed={setSidebarCollapsed}
+          onLogout={handleLogout}
+          user={currentUser!}
+        />
+        <div className="flex-1 flex flex-col overflow-hidden bg-light-bg dark:bg-dark-bg md:rounded-tl-3xl border-l border-t border-black/5 dark:border-white/5 shadow-2xl relative z-0">
+          <Header
+            user={currentUser!}
+            setSidebarOpen={setSidebarOpen}
+            theme={theme}
+            setTheme={setTheme}
+            currentPage={currentPage}
+            titleOverride={viewingAccount?.name}
+          />
+          <main className="flex-1 overflow-x-hidden overflow-y-auto p-4 md:p-8 bg-light-bg dark:bg-dark-bg">
+            <Suspense fallback={<PageLoader />}>
+              {renderPage()}
+            </Suspense>
+          </main>
+        </div>
+
+        {/* AI Chat */}
+        <ChatFab onClick={() => setIsChatOpen(prev => !prev)} />
+        <Suspense fallback={null}>
+          {isChatOpen && (
+            <Chatbot
+              isOpen={isChatOpen}
+              onClose={() => setIsChatOpen(false)}
+              financialData={{
+                accounts,
+                transactions,
+                budgets,
+                financialGoals,
+                recurringTransactions,
+                investmentTransactions,
+              }}
+            />
+          )}
+        </Suspense>
+        <Suspense fallback={null}>
+          {isOnboardingOpen && (
+            <OnboardingModal
+              isOpen={isOnboardingOpen}
+              onClose={handleOnboardingFinish}
+              user={currentUser!}
+              saveAccount={handleSaveAccount}
+              saveFinancialGoal={handleSaveFinancialGoal}
+              saveRecurringTransaction={handleSaveRecurringTransaction}
+              preferences={preferences}
+              setPreferences={setPreferences}
+              accounts={accounts}
+              incomeCategories={incomeCategories}
+              expenseCategories={expenseCategories}
+            />
+          )}
+        </Suspense>
+      </div>
+    </FinancialDataProvider>
     <PreferencesProvider value={preferencesContextValue}>
       <AccountsProvider value={accountsContextValue}>
         <TransactionsProvider value={transactionsContextValue}>
