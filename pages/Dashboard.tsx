@@ -87,7 +87,6 @@ const Dashboard: React.FC<DashboardProps> = ({ user, incomeCategories, expenseCa
   const { transactions, saveTransaction, digest: transactionsDigest } = useTransactionsContext();
   const transactionsKey = transactionsDigest;
   const aggregateCacheRef = useRef<Map<string, { filteredTransactions: Transaction[]; income: number; expenses: number }>>(new Map());
-const Dashboard: React.FC<DashboardProps> = ({ user, transactions, accounts, saveTransaction, incomeCategories, expenseCategories, financialGoals, recurringTransactions, recurringTransactionOverrides, loanPaymentOverrides, activeGoalIds, billsAndPayments, selectedAccountIds, setSelectedAccountIds, duration, setDuration, tags, budgets }) => {
   const [isTransactionModalOpen, setTransactionModalOpen] = useState(false);
   const [editingTransaction, setEditingTransaction] = useState<Transaction | null>(null);
   
@@ -189,16 +188,6 @@ const Dashboard: React.FC<DashboardProps> = ({ user, transactions, accounts, sav
     aggregateCacheRef.current.set(cacheKey, result);
     return result;
   }, [aggregateCacheRef, duration, selectedAccountIds, transactions, transactionsKey]);
-
-  const enrichedTransactions: EnrichedTransaction[] = useMemo(
-    () =>
-      filteredTransactions.map(tx => ({
-        ...tx,
-        convertedAmount: convertToEur(tx.amount, tx.currency),
-        parsedDate: parseDateAsUTC(tx.date),
-      })),
-    [filteredTransactions]
-  );
 
   const enrichedTransactions: EnrichedTransaction[] = useMemo(
     () =>
