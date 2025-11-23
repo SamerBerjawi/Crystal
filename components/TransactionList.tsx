@@ -47,12 +47,6 @@ const TransactionList: React.FC<TransactionListProps> = ({ transactions, allCate
     [transactions, allCategories]
   );
 
-
-        return { tx, description, amountDisplay, icon, isTransfer, formattedDate };
-      }),
-    [transactions, allCategories]
-  );
-
   const containerRef = useRef<HTMLDivElement>(null);
   const [scrollTop, setScrollTop] = useState(0);
   const [viewportHeight, setViewportHeight] = useState(640);
