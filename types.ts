@@ -11,6 +11,7 @@ export type Currency = 'USD' | 'EUR' | 'GBP' | 'BTC' | 'RON';
 export type Theme = 'light' | 'dark' | 'system';
 
 export type Duration = 'TODAY' | 'WTD' | 'MTD' | '30D' | '60D' | '90D' | '6M' | 'YTD' | '1Y' | 'ALL';
+export type ForecastDuration = '3M' | '6M' | 'EOY' | '1Y';
 
 export interface Category {
   id: string;
@@ -300,6 +301,7 @@ export interface AppPreferences {
   defaultAccountOrder: DefaultAccountOrder;
   country: string;
   defaultQuickCreatePeriod?: number;
+  defaultForecastPeriod?: ForecastDuration;
 }
 
 // New types for Bills & Payments

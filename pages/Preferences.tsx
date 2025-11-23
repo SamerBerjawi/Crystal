@@ -1,7 +1,7 @@
 import React from 'react';
 import { AppPreferences, Theme, Page } from '../types';
 import Card from '../components/Card';
-import { SELECT_WRAPPER_STYLE, INPUT_BASE_STYLE, SELECT_ARROW_STYLE, CURRENCY_OPTIONS, TIMEZONE_OPTIONS, COUNTRY_OPTIONS, DURATION_OPTIONS, DEFAULT_ACCOUNT_ORDER_OPTIONS, QUICK_CREATE_BUDGET_OPTIONS } from '../constants';
+import { SELECT_WRAPPER_STYLE, INPUT_BASE_STYLE, SELECT_ARROW_STYLE, CURRENCY_OPTIONS, TIMEZONE_OPTIONS, COUNTRY_OPTIONS, DURATION_OPTIONS, DEFAULT_ACCOUNT_ORDER_OPTIONS, QUICK_CREATE_BUDGET_OPTIONS, FORECAST_DURATION_OPTIONS } from '../constants';
 
 interface PreferencesProps {
   preferences: AppPreferences;
@@ -155,6 +155,19 @@ const Preferences: React.FC<PreferencesProps> = ({ preferences, setPreferences, 
             <div className={SELECT_WRAPPER_STYLE}>
               <select name="defaultPeriod" value={preferences.defaultPeriod} onChange={handleChange} className={INPUT_BASE_STYLE}>
                 {DURATION_OPTIONS.map(opt => <option key={opt.value} value={opt.value}>{opt.label}</option>)}
+              </select>
+              <div className={SELECT_ARROW_STYLE}><span className="material-symbols-outlined">expand_more</span></div>
+            </div>
+          </PreferenceRow>
+          <PreferenceRow label="Default Forecast Period">
+            <div className={SELECT_WRAPPER_STYLE}>
+              <select
+                name="defaultForecastPeriod"
+                value={preferences.defaultForecastPeriod || '1Y'}
+                onChange={handleChange}
+                className={INPUT_BASE_STYLE}
+              >
+                {FORECAST_DURATION_OPTIONS.map(opt => <option key={opt.value} value={opt.value}>{opt.label}</option>)}
               </select>
               <div className={SELECT_ARROW_STYLE}><span className="material-symbols-outlined">expand_more</span></div>
             </div>

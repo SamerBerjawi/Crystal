@@ -1,6 +1,6 @@
 
 import React, { useState, useEffect } from 'react';
-import { Category, Page, AccountType, Currency, Theme, RecurrenceFrequency, WeekendAdjustment, DefaultAccountOrder, Duration, InvestmentSubType, PropertyType, FuelType, VehicleOwnership } from './types';
+import { Category, Page, AccountType, Currency, Theme, RecurrenceFrequency, WeekendAdjustment, DefaultAccountOrder, Duration, InvestmentSubType, PropertyType, FuelType, VehicleOwnership, ForecastDuration } from './types';
 
 
 // FIX: Renamed AuraFinanceLogo to CrystalLogo to finalize rebranding.
@@ -158,6 +158,13 @@ export const DURATION_OPTIONS: { label: string; value: Duration }[] = [
   { label: 'Year to Date', value: 'YTD' },
   { label: '1 Year', value: '1Y' },
   { label: 'All Time', value: 'ALL' },
+];
+
+export const FORECAST_DURATION_OPTIONS: { label: string; value: ForecastDuration }[] = [
+    { label: '3M', value: '3M' },
+    { label: '6M', value: '6M' },
+    { label: 'EOY', value: 'EOY' },
+    { label: '1Y', value: '1Y' },
 ];
 
 export const DEFAULT_ACCOUNT_ORDER_OPTIONS: { value: DefaultAccountOrder, label: string }[] = [

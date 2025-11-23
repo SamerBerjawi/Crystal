@@ -65,6 +65,7 @@ const initialFinancialData: FinancialData = {
         defaultPeriod: 'MTD',
         defaultAccountOrder: 'name',
         country: 'Belgium',
+        defaultForecastPeriod: '1Y',
     },
 };
 
@@ -330,7 +331,7 @@ const App: React.FC = () => {
     setIncomeCategories(dataToLoad.incomeCategories && dataToLoad.incomeCategories.length > 0 ? dataToLoad.incomeCategories : MOCK_INCOME_CATEGORIES);
     setExpenseCategories(dataToLoad.expenseCategories && dataToLoad.expenseCategories.length > 0 ? dataToLoad.expenseCategories : MOCK_EXPENSE_CATEGORIES);
     
-    const loadedPrefs = dataToLoad.preferences || initialFinancialData.preferences;
+    const loadedPrefs = { ...initialFinancialData.preferences, ...(dataToLoad.preferences || {}) };
     setPreferences(loadedPrefs);
     setDashboardDuration(loadedPrefs.defaultPeriod as Duration);
     setAccountsSortBy(loadedPrefs.defaultAccountOrder);
