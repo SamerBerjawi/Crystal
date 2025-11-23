@@ -145,6 +145,7 @@ const App: React.FC = () => {
   // FIX: Add state for tags and tag filtering to support the Tags feature.
   const [tags, setTags] = useState<Tag[]>(initialFinancialData.tags || []);
   const latestDataRef = useRef<FinancialData>(initialFinancialData);
+  const lastSavedSignatureRef = useRef<string | null>(null);
   const skipNextSaveRef = useRef(false);
   const restoreInProgressRef = useRef(false);
   const [tagFilter, setTagFilter] = useState<string | null>(null);
@@ -350,7 +351,9 @@ const App: React.FC = () => {
     if (options?.skipNextSave) {
       skipNextSaveRef.current = true;
     }
+    const dataSignature = JSON.stringify(dataToLoad);
     latestDataRef.current = dataToLoad;
+    lastSavedSignatureRef.current = dataSignature;
   }, [setAccountOrder, setTaskOrder]);
   
   const handleEnterDemoMode = () => {
@@ -414,6 +417,10 @@ const App: React.FC = () => {
   ]);
 
   const debouncedDataToSave = useDebounce(dataToSave, 1500);
+  const debouncedDataSignature = useMemo(
+    () => JSON.stringify(debouncedDataToSave),
+    [debouncedDataToSave]
+  );
 
   useEffect(() => {
     latestDataRef.current = dataToSave;
@@ -487,8 +494,19 @@ const App: React.FC = () => {
       return;
     }
 
-    saveData(debouncedDataToSave);
-  }, [debouncedDataToSave, isDataLoaded, isAuthenticated, isDemoMode, saveData]);
+    if (lastSavedSignatureRef.current === debouncedDataSignature) {
+      return;
+    }
+
+    const updateLastSavedSignature = async () => {
+      const succeeded = await saveData(debouncedDataToSave);
+      if (succeeded) {
+        lastSavedSignatureRef.current = debouncedDataSignature;
+      }
+    };
+
+    updateLastSavedSignature();
+  }, [debouncedDataSignature, debouncedDataToSave, isDataLoaded, isAuthenticated, isDemoMode, saveData]);
 
   useEffect(() => {
     if (!isAuthenticated || isDemoMode || typeof window === 'undefined') {
