@@ -141,6 +141,12 @@ const App: React.FC = () => {
   const [warrants, setWarrants] = useState<Warrant[]>(initialFinancialData.warrants);
   const [scraperConfigs, setScraperConfigs] = useState<ScraperConfig[]>(initialFinancialData.scraperConfigs);
   const [importExportHistory, setImportExportHistory] = useState<ImportExportHistoryItem[]>(initialFinancialData.importExportHistory);
+
+  useEffect(() => {
+    if (typeof window !== 'undefined') {
+      (window as any).__crystalTimezone = preferences.timezone || 'UTC';
+    }
+  }, [preferences.timezone]);
   const [billsAndPayments, setBillsAndPayments] = useState<BillPayment[]>(initialFinancialData.billsAndPayments);
   // FIX: Add state for tags and tag filtering to support the Tags feature.
   const [tags, setTags] = useState<Tag[]>(initialFinancialData.tags || []);
