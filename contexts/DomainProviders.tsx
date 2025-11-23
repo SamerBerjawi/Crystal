@@ -34,7 +34,7 @@ const WarrantsContext = createContext<WarrantsContextValue | undefined>(undefine
 
 const createDigest = (transactions: Transaction[]) =>
   transactions
-    .map((tx) => `${tx.id}:${tx.date}:${tx.amount}:${tx.accountId}:${tx.currency}:${tx.type}`)
+    .map((tx) => `${tx.id}:${tx.date}:${tx.amount}:${tx.accountId}:${tx.currency}:${tx.type}:${tx.latitude ?? ''}:${tx.longitude ?? ''}:${tx.city ?? ''}:${tx.country ?? ''}`)
     .join('|');
 
 export const TransactionsProvider: React.FC<{
