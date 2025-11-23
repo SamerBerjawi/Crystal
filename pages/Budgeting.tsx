@@ -7,7 +7,7 @@ import BudgetProgressCard from '../components/BudgetProgressCard';
 import BudgetModal from '../components/BudgetModal';
 import AIBudgetSuggestionsModal from '../components/AIBudgetSuggestionsModal';
 import QuickBudgetModal from '../components/QuickBudgetModal';
-import { GoogleGenAI, Type } from '@google/genai';
+import { loadGenAiModule } from '../genAiLoader';
 
 interface BudgetingProps {
   budgets: Budget[];
@@ -94,6 +94,7 @@ const Budgeting: React.FC<BudgetingProps> = ({ budgets, transactions, expenseCat
             return;
         }
 
+        const { GoogleGenAI, Type } = await loadGenAiModule();
         const ai = new GoogleGenAI({ apiKey: process.env.API_KEY });
         
         const prompt = `You are a financial advisor. Based on the user's average monthly spending over the last 3 months, suggest a reasonable monthly budget for each category. For discretionary categories (like Shopping, Entertainment), suggest a budget slightly lower than the average to encourage saving. For essential categories (like Housing, Food), suggest a budget around the average. Round suggestions to the nearest whole number. Here is the data: ${JSON.stringify(averageSpending)}`;

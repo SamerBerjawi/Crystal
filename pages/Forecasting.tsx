@@ -9,13 +9,13 @@ import FinancialGoalCard from '../components/FinancialGoalCard';
 import GoalScenarioModal from '../components/GoalScenarioModal';
 import ForecastChart from '../components/ForecastChart';
 import GoalContributionPlan from '../components/GoalContributionPlan';
-import { GoogleGenAI, Type } from '@google/genai';
 import ConfirmationModal from '../components/ConfirmationModal';
 import ForecastDayModal from '../components/ForecastDayModal';
 import RecurringTransactionModal from '../components/RecurringTransactionModal';
 import BillPaymentModal from '../components/BillPaymentModal';
+import { loadGenAiModule } from '../genAiLoader';
 
-type ForecastDuration = '3M' | '6M' | 'EOY' | '1Y' | '2Y';
+type ForecastDuration = '3M' | '6M' | 'EOY' | '1Y';
 
 interface ForecastingProps {
   accounts: Account[];
@@ -58,6 +58,7 @@ const useSmartGoalPlanner = (
         }
 
         try {
+            const { GoogleGenAI, Type } = await loadGenAiModule();
             const ai = new GoogleGenAI({ apiKey: process.env.API_KEY });
             
             const liquidAccounts = accounts.filter(a => LIQUID_ACCOUNT_TYPES.includes(a.type));
@@ -178,7 +179,7 @@ const Forecasting: React.FC<ForecastingProps> = ({ accounts, transactions, recur
 
     const { forecastData, tableData, lowestPoint, goalsWithProjections } = useMemo(() => {
         const projectionEndDate = new Date();
-        projectionEndDate.setFullYear(new Date().getFullYear() + 3); // Capped at 3 years for performance
+        projectionEndDate.setMonth(projectionEndDate.getMonth() + 12); // Align with 12-month schedule horizon
 
         const syntheticLoanPayments = generateSyntheticLoanPayments(accounts, transactions, loanPaymentOverrides);
         const syntheticCreditCardPayments = generateSyntheticCreditCardPayments(accounts, transactions);
@@ -225,7 +226,6 @@ const Forecasting: React.FC<ForecastingProps> = ({ accounts, transactions, recur
             case '6M': endDate.setMonth(endDate.getMonth() + 6); break;
             case 'EOY': endDate.setFullYear(endDate.getFullYear(), 11, 31); break;
             case '1Y': endDate.setFullYear(endDate.getFullYear() + 1); break;
-            case '2Y': endDate.setFullYear(endDate.getFullYear() + 2); break;
         }
 
         const forecastDataForPeriod = fullData.filter(d => new Date(d.date) <= endDate);
@@ -373,7 +373,6 @@ const Forecasting: React.FC<ForecastingProps> = ({ accounts, transactions, recur
         { label: '6M', value: '6M' },
         { label: 'EOY', value: 'EOY' },
         { label: '1Y', value: '1Y' },
-        { label: '2Y', value: '2Y' },
     ];
 
     // Styles for the segmented controls

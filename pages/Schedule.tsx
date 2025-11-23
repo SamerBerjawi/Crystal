@@ -117,7 +117,7 @@ const SchedulePage: React.FC<ScheduleProps> = (props) => {
         startRecurringScanDate.setUTCDate(startRecurringScanDate.getUTCDate() - 3);
 
         const dateIn30Days = new Date(todayUTC); dateIn30Days.setUTCDate(todayUTC.getUTCDate() + 30);
-        const forecastEndDate = new Date(todayUTC); forecastEndDate.setFullYear(today.getFullYear() + 1);
+        const forecastEndDate = new Date(todayUTC); forecastEndDate.setUTCMonth(todayUTC.getUTCMonth() + 12);
 
         const allUpcomingItems: ScheduledItem[] = [];
 
