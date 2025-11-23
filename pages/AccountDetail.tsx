@@ -778,13 +778,13 @@ const AccountDetail: React.FC<AccountDetailProps> = ({ account, setCurrentPage, 
 
         const transactionsToReverse = accountTransactions.filter(entry => entry.parsedDate >= startDate && entry.parsedDate <= new Date());
 
-        const totalChangeSinceStart = transactionsToReverse.reduce((sum, entry) => sum + entry.tx.amount, 0);
-        const startingBalance = account.balance - totalChangeSinceStart;
+        const totalChangeSinceStart = transactionsToReverse.reduce((sum, entry) => sum + entry.convertedAmount, 0);
+        const startingBalance = convertToEur(account.balance, account.currency) - totalChangeSinceStart;
 
         const dailyChanges = new Map<string, number>();
-        filteredEnriched.forEach(({ tx, parsedDate }) => {
+        filteredEnriched.forEach(({ parsedDate, convertedAmount }) => {
             const dateKey = parsedDate.toISOString().split('T')[0];
-            dailyChanges.set(dateKey, (dailyChanges.get(dateKey) || 0) + tx.amount);
+            dailyChanges.set(dateKey, (dailyChanges.get(dateKey) || 0) + convertedAmount);
         });
 
         const data: { name: string, value: number }[] = [];
