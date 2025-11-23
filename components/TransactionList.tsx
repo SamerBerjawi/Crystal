@@ -47,6 +47,12 @@ const TransactionList: React.FC<TransactionListProps> = ({ transactions, allCate
     [transactions, allCategories]
   );
 
+
+        return { tx, description, amountDisplay, icon, isTransfer, formattedDate };
+      }),
+    [transactions, allCategories]
+  );
+
   const containerRef = useRef<HTMLDivElement>(null);
   const [scrollTop, setScrollTop] = useState(0);
   const [viewportHeight, setViewportHeight] = useState(640);
@@ -97,6 +103,29 @@ const TransactionList: React.FC<TransactionListProps> = ({ transactions, allCate
                     <p className="text-xs text-light-text-secondary dark:text-dark-text-secondary">{formattedDate}</p>
                     </div>
                   </div>
+                <div className="flex items-center gap-2">
+                  <p
+                    className={`text-base font-semibold ${
+                      isTransfer ? 'text-light-text dark:text-dark-text' : (tx.type === 'income' ? 'text-semantic-green' : 'text-semantic-red')
+                    }`}
+                  >
+                    {amountDisplay}
+                  </p>
+                  <span className="material-symbols-outlined text-light-text-secondary dark:text-dark-text-secondary opacity-0 group-hover:opacity-100 transition-opacity">
+                    chevron_right
+                  </span>
+                </div>
+                <div className="flex items-center">
+                  <div className="flex-shrink-0 h-10 w-10 rounded-full bg-light-fill dark:bg-dark-fill flex items-center justify-center">
+                    <span className={`material-symbols-outlined ${isTransfer ? 'text-light-text-secondary dark:text-dark-text-secondary' : 'text-primary-500'}`}>
+                      {isTransfer ? 'swap_horiz' : icon}
+                    </span>
+                  </div>
+                  <div className="ml-4">
+                    <p className="text-base font-medium text-light-text dark:text-dark-text">{description}</p>
+                    <p className="text-xs text-light-text-secondary dark:text-dark-text-secondary">{formattedDate}</p>
+                  </div>
+                </div>
                 <div className="flex items-center gap-2">
                   <p
                     className={`text-base font-semibold ${

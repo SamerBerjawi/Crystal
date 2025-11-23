@@ -28,6 +28,9 @@ const Transactions: React.FC<TransactionsProps> = ({ accountFilter, setAccountFi
   const { incomeCategories, expenseCategories } = useCategoryContext();
   const { tags } = useTagsContext();
   const { saveRecurringTransaction } = useScheduleContext();
+const Transactions: React.FC<TransactionsProps> = ({ accountFilter, setAccountFilter, incomeCategories, expenseCategories, tags, tagFilter, setTagFilter, saveRecurringTransaction }) => {
+  const { transactions, saveTransaction, deleteTransactions, digest: transactionsDigest } = useTransactionsContext();
+  const { accounts } = useAccountsContext();
   const [searchTerm, setSearchTerm] = useState('');
   const [sortBy, setSortBy] = useState('date-desc');
   const [typeFilter, setTypeFilter] = useState<'all' | 'income' | 'expense' | 'transfer'>('all');

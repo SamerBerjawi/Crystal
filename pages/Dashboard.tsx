@@ -7,6 +7,8 @@ import React, { useMemo, useState, useCallback, useEffect, useRef } from 'react'
 // FIX: Import 'RecurringTransaction' to resolve 'Cannot find name' error.
 import { User, Transaction, Account, Duration, CategorySpending, Widget, WidgetConfig, DisplayTransaction } from '../types';
 import { formatCurrency, getDateRange, calculateAccountTotals, convertToEur, calculateStatementPeriods, generateBalanceForecast, parseDateAsUTC, getCreditCardStatementDetails, generateSyntheticLoanPayments, generateSyntheticCreditCardPayments } from '../utils';
+import { User, Transaction, Account, Category, Duration, CategorySpending, Widget, WidgetConfig, DisplayTransaction, FinancialGoal, RecurringTransaction, BillPayment, Tag, Budget, RecurringTransactionOverride, LoanPaymentOverrides } from '../types';
+import { formatCurrency, getDateRange, calculateAccountTotals, convertToEur, calculateStatementPeriods, generateBalanceForecast, parseDateAsUTC, getCreditCardStatementDetails, generateSyntheticLoanPayments, generateSyntheticCreditCardPayments, getPreferredTimeZone } from '../utils';
 import AddTransactionModal from '../components/AddTransactionModal';
 import { BTN_PRIMARY_STYLE, BTN_SECONDARY_STYLE, LIQUID_ACCOUNT_TYPES, ASSET_TYPES, DEBT_TYPES, ACCOUNT_TYPE_STYLES, INVESTMENT_SUB_TYPE_STYLES } from '../constants';
 import TransactionDetailModal from '../components/TransactionDetailModal';
@@ -36,6 +38,12 @@ import { useBudgetsContext, useCategoryContext, useGoalsContext, useScheduleCont
 
 interface DashboardProps {
   user: User;
+  incomeCategories: Category[];
+  expenseCategories: Category[];
+  financialGoals: FinancialGoal[];
+  recurringTransactions: RecurringTransaction[];
+  recurringTransactionOverrides: RecurringTransactionOverride[];
+  loanPaymentOverrides: LoanPaymentOverrides;
   activeGoalIds: string[];
   selectedAccountIds: string[];
   setSelectedAccountIds: (ids: string[]) => void;
@@ -82,6 +90,9 @@ const Dashboard: React.FC<DashboardProps> = ({ user, activeGoalIds, selectedAcco
   const { recurringTransactions, recurringTransactionOverrides, loanPaymentOverrides, billsAndPayments } = useScheduleContext();
   const { tags } = useTagsContext();
   const { budgets } = useBudgetsContext();
+const Dashboard: React.FC<DashboardProps> = ({ user, incomeCategories, expenseCategories, financialGoals, recurringTransactions, recurringTransactionOverrides, loanPaymentOverrides, activeGoalIds, billsAndPayments, selectedAccountIds, setSelectedAccountIds, duration, setDuration, tags, budgets }) => {
+  const { accounts } = useAccountsContext();
+  const { transactions, saveTransaction, digest: transactionsDigest } = useTransactionsContext();
   const transactionsKey = transactionsDigest;
   const aggregateCacheRef = useRef<Map<string, { filteredTransactions: Transaction[]; income: number; expenses: number }>>(new Map());
   const [isTransactionModalOpen, setTransactionModalOpen] = useState(false);
@@ -527,9 +538,10 @@ const Dashboard: React.FC<DashboardProps> = ({ user, activeGoalIds, selectedAcco
 
           const { statementBalance: currentBalance, amountPaid: currentAmountPaid } = getCreditCardStatementDetails(account, periods.current.start, periods.current.end, transactions);
           const { statementBalance: futureBalance, amountPaid: futureAmountPaid } = getCreditCardStatementDetails(account, periods.future.start, periods.future.end, transactions);
-          
-          const formatDate = (date: Date) => date.toLocaleDateString('en-US', { month: 'short', day: 'numeric', timeZone: 'UTC' });
-          const formatFullDate = (date: Date) => date.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric', timeZone: 'UTC' });
+
+          const timeZone = getPreferredTimeZone();
+          const formatDate = (date: Date) => date.toLocaleDateString('en-US', { month: 'short', day: 'numeric', timeZone });
+          const formatFullDate = (date: Date) => date.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric', timeZone });
 
           return {
               accountName: account.name,

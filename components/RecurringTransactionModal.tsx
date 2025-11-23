@@ -151,20 +151,18 @@ const RecurringTransactionModal: React.FC<RecurringTransactionModalProps> = ({ o
             return;
         }
 
-        let firstDueDate = startDate;
-        if (!isEditing) {
-            const start = new Date(`${startDate}T12:00:00Z`); // Use noon to avoid timezone issues
-            let nextDue = new Date(start);
+        const start = new Date(`${startDate}T12:00:00Z`); // Use noon to avoid timezone issues
+        let nextDue = new Date(start);
 
-            if ((frequency === 'monthly' || frequency === 'yearly') && dueDateOfMonth) {
-                const day = parseInt(dueDateOfMonth, 10);
-                nextDue.setUTCDate(day);
-                 if (nextDue < start) {
-                    nextDue.setUTCMonth(nextDue.getUTCMonth() + 1);
-                }
+        if ((frequency === 'monthly' || frequency === 'yearly') && dueDateOfMonth) {
+            const day = parseInt(dueDateOfMonth, 10);
+            nextDue.setUTCDate(day);
+            if (nextDue < start) {
+                nextDue.setUTCMonth(nextDue.getUTCMonth() + 1);
             }
-            firstDueDate = nextDue.toISOString().split('T')[0];
         }
+
+        const firstDueDate = nextDue.toISOString().split('T')[0];
 
         const dataToSave: Omit<RecurringTransaction, 'id'> & { id?: string } = {
             id: isEditing ? recurringTransactionToEdit.id : undefined,
@@ -179,7 +177,7 @@ const RecurringTransactionModal: React.FC<RecurringTransactionModalProps> = ({ o
             frequencyInterval: interval,
             startDate,
             endDate: endDate || undefined,
-            nextDueDate: isEditing ? recurringTransactionToEdit.nextDueDate : firstDueDate,
+            nextDueDate: firstDueDate,
             dueDateOfMonth: (frequency === 'monthly' || frequency === 'yearly') && dueDateOfMonth ? parseInt(dueDateOfMonth) : undefined,
             weekendAdjustment,
         };

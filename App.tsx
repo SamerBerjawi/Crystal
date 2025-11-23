@@ -37,6 +37,7 @@ import { useAuth } from './hooks/useAuth';
 import useLocalStorage from './hooks/useLocalStorage';
 const OnboardingModal = lazy(() => import('./components/OnboardingModal'));
 import { FinancialDataProvider } from './contexts/FinancialDataContext';
+import { AccountsProvider, PreferencesProvider, TransactionsProvider, WarrantsProvider } from './contexts/DomainProviders';
 
 const initialFinancialData: FinancialData = {
     accounts: [],
@@ -146,6 +147,7 @@ const App: React.FC = () => {
   // FIX: Add state for tags and tag filtering to support the Tags feature.
   const [tags, setTags] = useState<Tag[]>(initialFinancialData.tags || []);
   const latestDataRef = useRef<FinancialData>(initialFinancialData);
+  const lastSavedSignatureRef = useRef<string | null>(null);
   const skipNextSaveRef = useRef(false);
   const restoreInProgressRef = useRef(false);
   const dirtySlicesRef = useRef<Set<keyof FinancialData>>(new Set());
@@ -325,9 +327,11 @@ const App: React.FC = () => {
     if (options?.skipNextSave) {
       skipNextSaveRef.current = true;
     }
+    const dataSignature = JSON.stringify(dataToLoad);
     latestDataRef.current = dataToLoad;
     dirtySlicesRef.current.clear();
     setDirtySignal(0);
+    lastSavedSignatureRef.current = dataSignature;
   }, [setAccountOrder, setTaskOrder]);
   
   const handleEnterDemoMode = () => {
@@ -436,6 +440,11 @@ const App: React.FC = () => {
     transactions,
     warrants,
   ]);
+  const debouncedDataToSave = useDebounce(dataToSave, 1500);
+  const debouncedDataSignature = useMemo(
+    () => JSON.stringify(debouncedDataToSave),
+    [debouncedDataToSave]
+  );
 
   useEffect(() => {
     latestDataRef.current = dataToSave;
@@ -1265,6 +1274,12 @@ const App: React.FC = () => {
       case 'Dashboard':
         return <Dashboard
             user={currentUser!}
+            incomeCategories={incomeCategories}
+            expenseCategories={expenseCategories}
+            financialGoals={financialGoals}
+            recurringTransactions={recurringTransactions} 
+            recurringTransactionOverrides={recurringTransactionOverrides}
+            loanPaymentOverrides={loanPaymentOverrides}
             activeGoalIds={activeGoalIds}
             selectedAccountIds={dashboardAccountIds}
             setSelectedAccountIds={setDashboardAccountIds}
@@ -1275,6 +1290,7 @@ const App: React.FC = () => {
         return <Accounts accounts={accounts} transactions={transactions} saveAccount={handleSaveAccount} deleteAccount={handleDeleteAccount} setCurrentPage={setCurrentPage} setAccountFilter={setAccountFilter} setViewingAccountId={setViewingAccountId} saveTransaction={handleSaveTransaction} accountOrder={accountOrder} setAccountOrder={setAccountOrder} sortBy={accountsSortBy} setSortBy={setAccountsSortBy} warrants={warrants} onToggleAccountStatus={handleToggleAccountStatus} />;
       case 'Transactions':
         return <Transactions accountFilter={accountFilter} setAccountFilter={setAccountFilter} tagFilter={tagFilter} setTagFilter={setTagFilter} />;
+        return <Transactions accountFilter={accountFilter} setAccountFilter={setAccountFilter} incomeCategories={incomeCategories} expenseCategories={expenseCategories} tags={tags} tagFilter={tagFilter} setTagFilter={setTagFilter} saveRecurringTransaction={handleSaveRecurringTransaction} />;
       case 'Budget':
         // FIX: Add `preferences` to the `Budgeting` component to resolve the missing prop error.
         return <Budgeting budgets={budgets} transactions={transactions} expenseCategories={expenseCategories} saveBudget={handleSaveBudget} deleteBudget={handleDeleteBudget} accounts={accounts} preferences={preferences} />;
@@ -1479,6 +1495,78 @@ const App: React.FC = () => {
         </Suspense>
       </div>
     </FinancialDataProvider>
+    <PreferencesProvider value={preferencesContextValue}>
+      <AccountsProvider value={accountsContextValue}>
+        <TransactionsProvider value={transactionsContextValue}>
+          <WarrantsProvider value={warrantsContextValue}>
+            <div className={`flex h-screen bg-light-card dark:bg-dark-card text-light-text dark:text-dark-text font-sans`}>
+              <Sidebar
+                currentPage={currentPage}
+                setCurrentPage={(page) => { setViewingAccountId(null); setCurrentPage(page); }}
+                isSidebarOpen={isSidebarOpen}
+                setSidebarOpen={setSidebarOpen}
+                theme={theme}
+                isSidebarCollapsed={isSidebarCollapsed}
+                setSidebarCollapsed={setSidebarCollapsed}
+                onLogout={handleLogout}
+                user={currentUser!}
+              />
+              <div className="flex-1 flex flex-col overflow-hidden bg-light-bg dark:bg-dark-bg md:rounded-tl-3xl border-l border-t border-black/5 dark:border-white/5 shadow-2xl relative z-0">
+                <Header
+                  user={currentUser!}
+                  setSidebarOpen={setSidebarOpen}
+                  theme={theme}
+                  setTheme={setTheme}
+                  currentPage={currentPage}
+                  titleOverride={viewingAccount?.name}
+                />
+                <main className="flex-1 overflow-x-hidden overflow-y-auto p-4 md:p-8 bg-light-bg dark:bg-dark-bg">
+                  <Suspense fallback={<PageLoader />}>
+                    {renderPage()}
+                  </Suspense>
+                </main>
+              </div>
+
+              {/* AI Chat */}
+              <ChatFab onClick={() => setIsChatOpen(prev => !prev)} />
+              <Suspense fallback={null}>
+                {isChatOpen && (
+                  <Chatbot
+                    isOpen={isChatOpen}
+                    onClose={() => setIsChatOpen(false)}
+                    financialData={{
+                      accounts,
+                      transactions,
+                      budgets,
+                      financialGoals,
+                      recurringTransactions,
+                      investmentTransactions,
+                    }}
+                  />
+                )}
+              </Suspense>
+              <Suspense fallback={null}>
+                {isOnboardingOpen && (
+                  <OnboardingModal
+                    isOpen={isOnboardingOpen}
+                    onClose={handleOnboardingFinish}
+                    user={currentUser!}
+                    saveAccount={handleSaveAccount}
+                    saveFinancialGoal={handleSaveFinancialGoal}
+                    saveRecurringTransaction={handleSaveRecurringTransaction}
+                    preferences={preferences}
+                    setPreferences={setPreferences}
+                    accounts={accounts}
+                    incomeCategories={incomeCategories}
+                    expenseCategories={expenseCategories}
+                  />
+                )}
+              </Suspense>
+            </div>
+          </WarrantsProvider>
+        </TransactionsProvider>
+      </AccountsProvider>
+    </PreferencesProvider>
   );
 };
 

@@ -2,7 +2,7 @@
 import React, { useState, useMemo, useCallback, Dispatch, SetStateAction } from 'react';
 import { Page, ContributionPlanStep, ScheduledPayment } from '../types';
 import { BTN_PRIMARY_STYLE, BTN_SECONDARY_STYLE, LIQUID_ACCOUNT_TYPES, CHECKBOX_STYLE } from '../constants';
-import { formatCurrency, convertToEur, generateBalanceForecast, generateSyntheticLoanPayments, generateSyntheticCreditCardPayments } from '../utils';
+import { formatCurrency, convertToEur, generateBalanceForecast, generateSyntheticLoanPayments, generateSyntheticCreditCardPayments, parseDateAsUTC, getPreferredTimeZone } from '../utils';
 import Card from '../components/Card';
 import MultiAccountFilter from '../components/MultiAccountFilter';
 import FinancialGoalCard from '../components/FinancialGoalCard';
@@ -138,6 +138,8 @@ const Forecasting: React.FC<ForecastingProps> = ({ activeGoalIds, setActiveGoalI
     saveBillPayment,
     deleteBillPayment,
   } = useScheduleContext();
+const Forecasting: React.FC<ForecastingProps> = ({ accounts, transactions, recurringTransactions, recurringTransactionOverrides, loanPaymentOverrides, financialGoals, saveFinancialGoal, deleteFinancialGoal, expenseCategories, billsAndPayments, activeGoalIds, setActiveGoalIds, saveRecurringTransaction, deleteRecurringTransaction, saveBillPayment, deleteBillPayment, incomeCategories }) => {
+    const timeZone = getPreferredTimeZone();
     const [isModalOpen, setIsModalOpen] = useState(false);
     const [editingGoal, setEditingGoal] = useState<FinancialGoal | null>(null);
     const [parentIdForNewGoal, setParentIdForNewGoal] = useState<string | undefined>();
@@ -181,6 +183,7 @@ const Forecasting: React.FC<ForecastingProps> = ({ activeGoalIds, setActiveGoalI
     const { forecastData, tableData, lowestPoint, goalsWithProjections } = useMemo(() => {
         const projectionEndDate = new Date();
         projectionEndDate.setMonth(projectionEndDate.getMonth() + 12); // Align with 12-month schedule horizon
+        projectionEndDate.setFullYear(new Date().getFullYear() + 2); // Capped at 2 years for performance
 
         const syntheticLoanPayments = generateSyntheticLoanPayments(accounts, transactions, loanPaymentOverrides);
         const syntheticCreditCardPayments = generateSyntheticCreditCardPayments(accounts, transactions);
@@ -199,7 +202,7 @@ const Forecasting: React.FC<ForecastingProps> = ({ activeGoalIds, setActiveGoalI
             if (goal.isBucket) { // Projections for buckets are calculated separately
                 return { ...goal, projection: undefined };
             }
-            const goalDate = goal.date ? new Date(goal.date) : null;
+            const goalDate = goal.date ? parseDateAsUTC(goal.date) : null;
             let projectedDate = 'Beyond forecast';
             let status: 'on-track' | 'at-risk' | 'off-track' = 'off-track';
 
@@ -207,7 +210,7 @@ const Forecasting: React.FC<ForecastingProps> = ({ activeGoalIds, setActiveGoalI
                 if (point.value >= goal.amount) {
                     projectedDate = point.date;
                     if (goalDate) {
-                        const projDate = new Date(projectedDate);
+                        const projDate = parseDateAsUTC(projectedDate);
                         if (projDate <= goalDate) {
                             status = 'on-track';
                         } else {
@@ -229,8 +232,8 @@ const Forecasting: React.FC<ForecastingProps> = ({ activeGoalIds, setActiveGoalI
             case '1Y': endDate.setFullYear(endDate.getFullYear() + 1); break;
         }
 
-        const forecastDataForPeriod = fullData.filter(d => new Date(d.date) <= endDate);
-        const tableDataForPeriod = fullTableData.filter(d => new Date(d.date) <= endDate);
+        const forecastDataForPeriod = fullData.filter(d => parseDateAsUTC(d.date) <= endDate);
+        const tableDataForPeriod = fullTableData.filter(d => parseDateAsUTC(d.date) <= endDate);
 
         let lowestPointInPeriod = { value: Infinity, date: '' };
         if (forecastDataForPeriod.length > 0) {
@@ -494,7 +497,7 @@ const Forecasting: React.FC<ForecastingProps> = ({ activeGoalIds, setActiveGoalI
                                     ${isLowest ? 'bg-red-100/50 dark:bg-red-900/20' : ''}`;
                                 return (
                                     <tr key={row.id} className={rowClass} onClick={() => handleEditForecastItem(row)}>
-                                        <td className="p-2 whitespace-nowrap">{new Date(row.date.replace(/-/g, '/')).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}</td>
+                                        <td className="p-2 whitespace-nowrap">{parseDateAsUTC(row.date, timeZone).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric', timeZone })}</td>
                                         <td className="p-2">{row.accountName}</td>
                                         <td className="p-2">{row.description}</td>
                                         <td className={`p-2 text-right font-mono ${row.amount >= 0 ? 'text-green-600' : 'text-red-600'}`}>{formatCurrency(row.amount, 'EUR')}</td>
