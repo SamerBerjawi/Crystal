@@ -178,8 +178,6 @@ const Warrants: React.FC<WarrantsProps> = ({ warrants, saveWarrant, deleteWarran
                                 const hasPrice = currentPrice !== undefined && currentPrice !== null;
                                 const currentValue = hasPrice ? holding.quantity * currentPrice : 0;
                                 const gainLoss = hasPrice ? currentValue - holding.totalGrantValue : 0;
-                                const currentValue = currentPrice !== undefined && currentPrice !== null ? holding.quantity * currentPrice : 0;
-                                const gainLoss = currentPrice !== undefined && currentPrice !== null ? currentValue - holding.totalGrantValue : 0;
                                 const manualPrice = manualPrices[holding.isin];
                                 const lastScrapedPrice = lastScrapedPrices[holding.isin];
                                 return (
