@@ -1,7 +1,7 @@
 
 import React, { useMemo } from 'react';
 import { AreaChart, Area, LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, ReferenceLine, Label, Legend } from 'recharts';
-import { formatCurrency, parseDateAsUTC } from '../utils';
+import { formatCurrency, getPreferredTimeZone, parseDateAsUTC } from '../utils';
 import { FinancialGoal, Account } from '../types';
 import { ACCOUNT_TYPE_STYLES, INVESTMENT_SUB_TYPE_STYLES } from '../constants';
 
@@ -44,7 +44,8 @@ interface ForecastChartProps {
 const CustomTooltip: React.FC<{ active?: boolean; payload?: any[]; label?: string, showIndividualLines?: boolean, accounts?: Account[] }> = ({ active, payload, label, showIndividualLines, accounts }) => {
     if (active && payload && payload.length) {
       const [year, month, day] = label!.split('-').map(Number);
-      const formattedDate = new Date(Date.UTC(year, month - 1, day)).toLocaleDateString('en-US', { timeZone: 'UTC', year: 'numeric', month: 'long', day: 'numeric' });
+      const timeZone = getPreferredTimeZone();
+      const formattedDate = new Date(Date.UTC(year, month - 1, day)).toLocaleDateString('en-US', { timeZone, year: 'numeric', month: 'long', day: 'numeric' });
       
       // Sort payload by value descending for cleaner tooltip
       const sortedPayload = [...payload].sort((a, b) => b.value - a.value);
@@ -171,7 +172,8 @@ const ForecastChart: React.FC<ForecastChartProps> = ({ data, oneTimeGoals, lowes
         const formatter = (dateStr: string) => {
             const [year, month] = dateStr.split('-').map(Number);
             const utcDate = new Date(Date.UTC(year, month - 1, 1));
-            return utcDate.toLocaleDateString('en-US', { timeZone: 'UTC', month: 'short', year: '2-digit' });
+          const timeZone = getPreferredTimeZone();
+          return utcDate.toLocaleDateString('en-US', { timeZone, month: 'short', year: '2-digit' });
         };
         return { ticks: newTicks, tickFormatter: formatter };
 
@@ -179,7 +181,8 @@ const ForecastChart: React.FC<ForecastChartProps> = ({ data, oneTimeGoals, lowes
         const formatter = (dateStr: string) => {
             const [year, month, day] = dateStr.split('-').map(Number);
             const utcDate = new Date(Date.UTC(year, month - 1, day));
-            return utcDate.toLocaleDateString('en-US', { timeZone: 'UTC', month: 'short', day: 'numeric' });
+          const timeZone = getPreferredTimeZone();
+          return utcDate.toLocaleDateString('en-US', { timeZone, month: 'short', day: 'numeric' });
         };
         return { ticks: undefined, tickFormatter: formatter };
     }
@@ -187,7 +190,7 @@ const ForecastChart: React.FC<ForecastChartProps> = ({ data, oneTimeGoals, lowes
 
   const lowestPointDateFormatted = lowestPoint?.date
     ? parseDateAsUTC(lowestPoint.date).toLocaleDateString('en-US', {
-        timeZone: 'UTC',
+        timeZone: getPreferredTimeZone(),
         month: 'short',
         day: 'numeric',
       })

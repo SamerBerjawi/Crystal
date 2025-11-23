@@ -108,6 +108,11 @@ const TransactionList: React.FC<TransactionListProps> = ({ transactions, allCate
                   <span className="material-symbols-outlined text-light-text-secondary dark:text-dark-text-secondary opacity-0 group-hover:opacity-100 transition-opacity">
                     chevron_right
                   </span>
+                  </div>
+                  <div className="ml-4">
+                    <p className="text-base font-medium text-light-text dark:text-dark-text">{description}</p>
+                  <p className="text-xs text-light-text-secondary dark:text-dark-text-secondary">{formattedDate}</p>
+                  </div>
                 </div>
               </li>
             )

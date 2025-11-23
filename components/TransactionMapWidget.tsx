@@ -3,7 +3,7 @@ import React, { useMemo, useEffect, useState } from 'react';
 import { MapContainer, TileLayer, CircleMarker, Tooltip, useMap } from 'react-leaflet';
 import { Transaction } from '../types';
 import Card from './Card';
-import { formatCurrency } from '../utils';
+import { formatCurrency, parseDateAsUTC } from '../utils';
 import L from 'leaflet';
 
 interface TransactionMapWidgetProps {
@@ -106,7 +106,7 @@ const TransactionMapWidget: React.FC<TransactionMapWidgetProps> = ({ transaction
                                 <p className={`font-mono ${isExpense ? 'text-red-600' : 'text-green-600'}`}>
                                     {formatCurrency(loc.amount, loc.currency)}
                                 </p>
-                                <p className="text-xs text-gray-500">{new Date(loc.date).toLocaleDateString()}</p>
+                                <p className="text-xs text-gray-500">{parseDateAsUTC(loc.date).toLocaleDateString(undefined, { timeZone: 'UTC' })}</p>
                             </div>
                         </Tooltip>
                     </CircleMarker>

@@ -44,15 +44,42 @@ export const convertToEur = (balance: number, currency: Currency): number => {
     return balance * (CONVERSION_RATES[currency] || 1);
 }
 
-export const parseDateAsUTC = (dateString: string): Date => {
-    if (!dateString) return new Date(0);
-    const parts = dateString.split('-').map(Number);
-    if (parts.length === 3 && !isNaN(parts[0]) && !isNaN(parts[1]) && !isNaN(parts[2])) {
-        return new Date(Date.UTC(parts[0], parts[1] - 1, parts[2]));
+export const getPreferredTimeZone = (fallback: string = 'UTC'): string => {
+    if (typeof window === 'undefined') return fallback;
+
+    // Use the cached timezone set by the app whenever possible so reads are cheap.
+    const cachedTz = (window as any).__crystalTimezone;
+    if (typeof cachedTz === 'string' && cachedTz.trim().length > 0) return cachedTz;
+
+    try {
+        const stored = window.localStorage.getItem('financialData');
+        if (stored) {
+            const parsed = JSON.parse(stored);
+            const prefTz = parsed?.preferences?.timezone;
+            if (typeof prefTz === 'string' && prefTz.trim().length > 0) return prefTz;
+        }
+    } catch (error) {
+        console.warn('Unable to read preferred timezone from storage', error);
     }
-    const d = new Date(dateString);
-    if (isNaN(d.getTime())) return new Date(0);
-    return new Date(Date.UTC(d.getFullYear(), d.getMonth(), d.getDate()));
+
+    return fallback;
+};
+
+export const parseDateAsUTC = (dateString: string, timeZone?: string): Date => {
+    if (!dateString) return new Date(0);
+
+    const tz = getPreferredTimeZone(timeZone);
+    const parts = dateString.split('-').map(Number);
+    const baseDate = (!isNaN(parts[0]) && !isNaN(parts[1]) && !isNaN(parts[2]))
+        ? new Date(Date.UTC(parts[0], parts[1] - 1, parts[2]))
+        : new Date(dateString);
+
+    if (isNaN(baseDate.getTime())) return new Date(0);
+
+    // Align the parsed date to the user's preferred timezone to avoid off-by-one issues.
+    const asLocale = new Date(baseDate.toLocaleString('en-US', { timeZone: tz }));
+    const offsetMinutes = baseDate.getTime() - asLocale.getTime();
+    return new Date(baseDate.getTime() + offsetMinutes);
 };
 
 export function calculateAccountTotals(accounts: Account[]) {

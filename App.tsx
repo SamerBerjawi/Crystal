@@ -146,6 +146,7 @@ const App: React.FC = () => {
   // FIX: Add state for tags and tag filtering to support the Tags feature.
   const [tags, setTags] = useState<Tag[]>(initialFinancialData.tags || []);
   const latestDataRef = useRef<FinancialData>(initialFinancialData);
+  const lastSavedSignatureRef = useRef<string | null>(null);
   const skipNextSaveRef = useRef(false);
   const restoreInProgressRef = useRef(false);
   const dirtySlicesRef = useRef<Set<keyof FinancialData>>(new Set());
@@ -325,9 +326,11 @@ const App: React.FC = () => {
     if (options?.skipNextSave) {
       skipNextSaveRef.current = true;
     }
+    const dataSignature = JSON.stringify(dataToLoad);
     latestDataRef.current = dataToLoad;
     dirtySlicesRef.current.clear();
     setDirtySignal(0);
+    lastSavedSignatureRef.current = dataSignature;
   }, [setAccountOrder, setTaskOrder]);
   
   const handleEnterDemoMode = () => {
@@ -436,6 +439,11 @@ const App: React.FC = () => {
     transactions,
     warrants,
   ]);
+  const debouncedDataToSave = useDebounce(dataToSave, 1500);
+  const debouncedDataSignature = useMemo(
+    () => JSON.stringify(debouncedDataToSave),
+    [debouncedDataToSave]
+  );
 
   useEffect(() => {
     latestDataRef.current = dataToSave;
