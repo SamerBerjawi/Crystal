@@ -11,12 +11,9 @@ import RecurringTransactionModal from '../components/RecurringTransactionModal';
 import ConfirmationModal from '../components/ConfirmationModal';
 import MultiSelectFilter from '../components/MultiSelectFilter';
 import MultiAccountFilter from '../components/MultiAccountFilter';
+import { useAccountsContext, useTransactionsContext } from '../contexts/DomainProviders';
 
 interface TransactionsProps {
-  transactions: Transaction[];
-  saveTransaction: (transactions: (Omit<Transaction, 'id'> & { id?: string })[], idsToDelete?: string[]) => void;
-  deleteTransactions: (transactionIds: string[]) => void;
-  accounts: Account[];
   accountFilter: string | null;
   setAccountFilter: (accountName: string | null) => void;
   incomeCategories: Category[];
@@ -27,7 +24,9 @@ interface TransactionsProps {
   saveRecurringTransaction: (recurringData: Omit<RecurringTransaction, 'id'> & { id?: string }) => void;
 }
 
-const Transactions: React.FC<TransactionsProps> = ({ transactions, saveTransaction, deleteTransactions, accounts, accountFilter, setAccountFilter, incomeCategories, expenseCategories, tags, tagFilter, setTagFilter, saveRecurringTransaction }) => {
+const Transactions: React.FC<TransactionsProps> = ({ accountFilter, setAccountFilter, incomeCategories, expenseCategories, tags, tagFilter, setTagFilter, saveRecurringTransaction }) => {
+  const { transactions, saveTransaction, deleteTransactions, digest: transactionsDigest } = useTransactionsContext();
+  const { accounts } = useAccountsContext();
   const [searchTerm, setSearchTerm] = useState('');
   const [sortBy, setSortBy] = useState('date-desc');
   const [typeFilter, setTypeFilter] = useState<'all' | 'income' | 'expense' | 'transfer'>('all');

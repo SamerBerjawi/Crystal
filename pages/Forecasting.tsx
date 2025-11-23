@@ -15,7 +15,7 @@ import ForecastDayModal from '../components/ForecastDayModal';
 import RecurringTransactionModal from '../components/RecurringTransactionModal';
 import BillPaymentModal from '../components/BillPaymentModal';
 
-type ForecastDuration = '3M' | '6M' | 'EOY' | '1Y' | '2Y';
+type ForecastDuration = '3M' | '6M' | 'EOY' | '1Y';
 
 interface ForecastingProps {
   accounts: Account[];
@@ -179,6 +179,7 @@ const Forecasting: React.FC<ForecastingProps> = ({ accounts, transactions, recur
 
     const { forecastData, tableData, lowestPoint, goalsWithProjections } = useMemo(() => {
         const projectionEndDate = new Date();
+        projectionEndDate.setMonth(projectionEndDate.getMonth() + 12); // Align with 12-month schedule horizon
         projectionEndDate.setFullYear(new Date().getFullYear() + 2); // Capped at 2 years for performance
 
         const syntheticLoanPayments = generateSyntheticLoanPayments(accounts, transactions, loanPaymentOverrides);
@@ -226,7 +227,6 @@ const Forecasting: React.FC<ForecastingProps> = ({ accounts, transactions, recur
             case '6M': endDate.setMonth(endDate.getMonth() + 6); break;
             case 'EOY': endDate.setFullYear(endDate.getFullYear(), 11, 31); break;
             case '1Y': endDate.setFullYear(endDate.getFullYear() + 1); break;
-            case '2Y': endDate.setFullYear(endDate.getFullYear() + 2); break;
         }
 
         const forecastDataForPeriod = fullData.filter(d => parseDateAsUTC(d.date) <= endDate);
@@ -374,7 +374,6 @@ const Forecasting: React.FC<ForecastingProps> = ({ accounts, transactions, recur
         { label: '6M', value: '6M' },
         { label: 'EOY', value: 'EOY' },
         { label: '1Y', value: '1Y' },
-        { label: '2Y', value: '2Y' },
     ];
 
     // Styles for the segmented controls

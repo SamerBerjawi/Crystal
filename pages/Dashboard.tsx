@@ -3,7 +3,7 @@
 
 
 
-import React, { useMemo, useState, useCallback, useEffect } from 'react';
+import React, { useMemo, useState, useCallback, useEffect, useRef } from 'react';
 // FIX: Import 'RecurringTransaction' to resolve 'Cannot find name' error.
 import { User, Transaction, Account, Category, Duration, CategorySpending, Widget, WidgetConfig, DisplayTransaction, FinancialGoal, RecurringTransaction, BillPayment, Tag, Budget, RecurringTransactionOverride, LoanPaymentOverrides } from '../types';
 import { formatCurrency, getDateRange, calculateAccountTotals, convertToEur, calculateStatementPeriods, generateBalanceForecast, parseDateAsUTC, getCreditCardStatementDetails, generateSyntheticLoanPayments, generateSyntheticCreditCardPayments, getPreferredTimeZone } from '../utils';
@@ -30,13 +30,11 @@ import LowestBalanceForecastCard from '../components/LowestBalanceForecastCard';
 import BudgetOverviewWidget from '../components/BudgetOverviewWidget';
 import AccountBreakdownCard from '../components/AccountBreakdownCard';
 import TransactionMapWidget from '../components/TransactionMapWidget';
+import { useAccountsContext, useTransactionsContext } from '../contexts/DomainProviders';
 
 
 interface DashboardProps {
   user: User;
-  transactions: Transaction[];
-  accounts: Account[];
-  saveTransaction: (transactions: (Omit<Transaction, 'id'> & { id?: string })[], idsToDelete?: string[]) => void;
   incomeCategories: Category[];
   expenseCategories: Category[];
   financialGoals: FinancialGoal[];
@@ -84,6 +82,11 @@ const toYYYYMMDD = (date: Date) => {
 
 type EnrichedTransaction = Transaction & { convertedAmount: number; parsedDate: Date };
 
+const Dashboard: React.FC<DashboardProps> = ({ user, incomeCategories, expenseCategories, financialGoals, recurringTransactions, recurringTransactionOverrides, loanPaymentOverrides, activeGoalIds, billsAndPayments, selectedAccountIds, setSelectedAccountIds, duration, setDuration, tags, budgets }) => {
+  const { accounts } = useAccountsContext();
+  const { transactions, saveTransaction, digest: transactionsDigest } = useTransactionsContext();
+  const transactionsKey = transactionsDigest;
+  const aggregateCacheRef = useRef<Map<string, { filteredTransactions: Transaction[]; income: number; expenses: number }>>(new Map());
 const Dashboard: React.FC<DashboardProps> = ({ user, transactions, accounts, saveTransaction, incomeCategories, expenseCategories, financialGoals, recurringTransactions, recurringTransactionOverrides, loanPaymentOverrides, activeGoalIds, billsAndPayments, selectedAccountIds, setSelectedAccountIds, duration, setDuration, tags, budgets }) => {
   const [isTransactionModalOpen, setTransactionModalOpen] = useState(false);
   const [editingTransaction, setEditingTransaction] = useState<Transaction | null>(null);
@@ -130,6 +133,10 @@ const Dashboard: React.FC<DashboardProps> = ({ user, transactions, accounts, sav
   }, [transactions]);
 
   const { filteredTransactions, income, expenses } = useMemo(() => {
+    const cacheKey = `${transactionsKey}|${selectedAccountIds.join(',')}|${duration}`;
+    const cached = aggregateCacheRef.current.get(cacheKey);
+    if (cached) return cached;
+
     const { start, end } = getDateRange(duration, transactions);
     const txsInPeriod = transactions.filter(tx => {
         const txDate = parseDateAsUTC(tx.date);
@@ -155,7 +162,7 @@ const Dashboard: React.FC<DashboardProps> = ({ user, transactions, accounts, sav
 
             if (counterpart) {
                 const counterpartSelected = selectedAccountIds.includes(counterpart.accountId);
-                
+
                 // If counterpart is NOT selected, this is a real in/outflow for the selected group.
                 if (!counterpartSelected) {
                     if (tx.type === 'income') {
@@ -174,12 +181,24 @@ const Dashboard: React.FC<DashboardProps> = ({ user, transactions, accounts, sav
         }
     });
 
-    return { 
+    const result = {
         filteredTransactions: txsInPeriod.filter(tx => selectedAccountIds.includes(tx.accountId)),
         income: calculatedIncome,
         expenses: calculatedExpenses,
     };
-  }, [transactions, duration, selectedAccountIds]);
+    aggregateCacheRef.current.set(cacheKey, result);
+    return result;
+  }, [aggregateCacheRef, duration, selectedAccountIds, transactions, transactionsKey]);
+
+  const enrichedTransactions: EnrichedTransaction[] = useMemo(
+    () =>
+      filteredTransactions.map(tx => ({
+        ...tx,
+        convertedAmount: convertToEur(tx.amount, tx.currency),
+        parsedDate: parseDateAsUTC(tx.date),
+      })),
+    [filteredTransactions]
+  );
 
   const enrichedTransactions: EnrichedTransaction[] = useMemo(
     () =>
