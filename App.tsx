@@ -145,6 +145,7 @@ const App: React.FC = () => {
   // FIX: Add state for tags and tag filtering to support the Tags feature.
   const [tags, setTags] = useState<Tag[]>(initialFinancialData.tags || []);
   const latestDataRef = useRef<FinancialData>(initialFinancialData);
+  const lastSavedSignatureRef = useRef<string | null>(null);
   const skipNextSaveRef = useRef(false);
   const restoreInProgressRef = useRef(false);
   const [tagFilter, setTagFilter] = useState<string | null>(null);
@@ -280,29 +281,44 @@ const App: React.FC = () => {
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [warrants, scraperConfigs]);
 
+  const warrantHoldingsBySymbol = useMemo(() => {
+    const holdings: Record<string, number> = {};
+
+    investmentTransactions.forEach(tx => {
+      if (!tx.symbol) return;
+      holdings[tx.symbol] = (holdings[tx.symbol] || 0) + (tx.type === 'buy' ? tx.quantity : -tx.quantity);
+    });
+
+    warrants.forEach(warrant => {
+      holdings[warrant.isin] = (holdings[warrant.isin] || 0) + warrant.quantity;
+    });
+
+    return holdings;
+  }, [investmentTransactions, warrants]);
+
   useEffect(() => {
+    if (Object.keys(warrantPrices).length === 0) return;
+
+    let hasChanges = false;
     const updatedAccounts = accounts.map(account => {
-        // FIX: The type 'Crypto' is not a valid AccountType. 'Crypto' is a subtype of 'Investment'.
-        // The check is simplified to only verify if the account type is 'Investment'.
         if (account.symbol && account.type === 'Investment' && warrantPrices[account.symbol] !== undefined) {
             const price = warrantPrices[account.symbol];
-            const quantity = investmentTransactions
-                .filter(tx => tx.symbol === account.symbol)
-                .reduce((total, tx) => total + (tx.type === 'buy' ? tx.quantity : -tx.quantity), 0)
-                + warrants
-                .filter(w => w.isin === account.symbol)
-                .reduce((total, w) => total + w.quantity, 0);
-            
-            return { ...account, balance: price !== null ? quantity * price : 0 };
+            const quantity = warrantHoldingsBySymbol[account.symbol] || 0;
+            const calculatedBalance = price !== null ? quantity * price : 0;
+
+            if (Math.abs((account.balance || 0) - calculatedBalance) > 0.0001) {
+              hasChanges = true;
+              return { ...account, balance: calculatedBalance };
+            }
         }
         return account;
     });
 
-    if (JSON.stringify(updatedAccounts) !== JSON.stringify(accounts)) {
+    if (hasChanges) {
         setAccounts(updatedAccounts);
     }
   // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [warrantPrices]);
+  }, [warrantPrices, warrantHoldingsBySymbol]);
 
   const loadAllFinancialData = useCallback((data: FinancialData | null, options?: { skipNextSave?: boolean }) => {
     const dataToLoad = data || initialFinancialData;
@@ -335,7 +351,9 @@ const App: React.FC = () => {
     if (options?.skipNextSave) {
       skipNextSaveRef.current = true;
     }
+    const dataSignature = JSON.stringify(dataToLoad);
     latestDataRef.current = dataToLoad;
+    lastSavedSignatureRef.current = dataSignature;
   }, [setAccountOrder, setTaskOrder]);
   
   const handleEnterDemoMode = () => {
@@ -399,6 +417,10 @@ const App: React.FC = () => {
   ]);
 
   const debouncedDataToSave = useDebounce(dataToSave, 1500);
+  const debouncedDataSignature = useMemo(
+    () => JSON.stringify(debouncedDataToSave),
+    [debouncedDataToSave]
+  );
 
   useEffect(() => {
     latestDataRef.current = dataToSave;
@@ -472,8 +494,19 @@ const App: React.FC = () => {
       return;
     }
 
-    saveData(debouncedDataToSave);
-  }, [debouncedDataToSave, isDataLoaded, isAuthenticated, isDemoMode, saveData]);
+    if (lastSavedSignatureRef.current === debouncedDataSignature) {
+      return;
+    }
+
+    const updateLastSavedSignature = async () => {
+      const succeeded = await saveData(debouncedDataToSave);
+      if (succeeded) {
+        lastSavedSignatureRef.current = debouncedDataSignature;
+      }
+    };
+
+    updateLastSavedSignature();
+  }, [debouncedDataSignature, debouncedDataToSave, isDataLoaded, isAuthenticated, isDemoMode, saveData]);
 
   useEffect(() => {
     if (!isAuthenticated || isDemoMode || typeof window === 'undefined') {
