@@ -1,5 +1,5 @@
 
-import React, { useState, useMemo, useCallback, Dispatch, SetStateAction } from 'react';
+import React, { useState, useMemo, useCallback, Dispatch, SetStateAction, useEffect } from 'react';
 import {
   Page,
   ContributionPlanStep,
@@ -10,8 +10,9 @@ import {
   RecurringTransactionOverride,
   LoanPaymentOverrides,
   BillPayment,
+  ForecastDuration,
 } from '../types';
-import { BTN_PRIMARY_STYLE, BTN_SECONDARY_STYLE, LIQUID_ACCOUNT_TYPES, CHECKBOX_STYLE } from '../constants';
+import { BTN_PRIMARY_STYLE, BTN_SECONDARY_STYLE, LIQUID_ACCOUNT_TYPES, CHECKBOX_STYLE, FORECAST_DURATION_OPTIONS } from '../constants';
 import { formatCurrency, convertToEur, generateBalanceForecast, generateSyntheticLoanPayments, generateSyntheticCreditCardPayments, parseDateAsUTC, getPreferredTimeZone } from '../utils';
 import Card from '../components/Card';
 import MultiAccountFilter from '../components/MultiAccountFilter';
@@ -24,10 +25,8 @@ import ForecastDayModal from '../components/ForecastDayModal';
 import RecurringTransactionModal from '../components/RecurringTransactionModal';
 import BillPaymentModal from '../components/BillPaymentModal';
 import { loadGenAiModule } from '../genAiLoader';
-import { useAccountsContext, useTransactionsContext } from '../contexts/DomainProviders';
+import { useAccountsContext, usePreferencesContext, useTransactionsContext } from '../contexts/DomainProviders';
 import { useCategoryContext, useGoalsContext, useScheduleContext } from '../contexts/FinancialDataContext';
-
-type ForecastDuration = '3M' | '6M' | 'EOY' | '1Y';
 
 interface ForecastingProps {
   activeGoalIds: string[];
@@ -148,6 +147,7 @@ const Forecasting: React.FC<ForecastingProps> = ({ activeGoalIds, setActiveGoalI
     saveBillPayment,
     deleteBillPayment,
   } = useScheduleContext();
+    const { preferences } = usePreferencesContext();
     const timeZone = getPreferredTimeZone();
     const [isModalOpen, setIsModalOpen] = useState(false);
     const [editingGoal, setEditingGoal] = useState<FinancialGoal | null>(null);
@@ -168,10 +168,14 @@ const Forecasting: React.FC<ForecastingProps> = ({ activeGoalIds, setActiveGoalI
         }
         return accounts.filter(a => LIQUID_ACCOUNT_TYPES.includes(a.type)).map(a => a.id)
     });
-    const [forecastDuration, setForecastDuration] = useState<ForecastDuration>('1Y');
+    const [forecastDuration, setForecastDuration] = useState<ForecastDuration>(preferences.defaultForecastPeriod || '1Y');
     const [filterGoalsByAccount, setFilterGoalsByAccount] = useState(false);
     const [showIndividualLines, setShowIndividualLines] = useState(false);
     const [showGoalLines, setShowGoalLines] = useState(true);
+
+    useEffect(() => {
+        setForecastDuration(preferences.defaultForecastPeriod || '1Y');
+    }, [preferences.defaultForecastPeriod]);
     
     const selectedAccounts = useMemo(() => 
       accounts.filter(a => selectedAccountIds.includes(a.id)),
@@ -381,12 +385,7 @@ const Forecasting: React.FC<ForecastingProps> = ({ activeGoalIds, setActiveGoalI
         setIsRecurringModalOpen(true);
     };
 
-    const durationOptions: { label: string; value: ForecastDuration }[] = [
-        { label: '3M', value: '3M' },
-        { label: '6M', value: '6M' },
-        { label: 'EOY', value: 'EOY' },
-        { label: '1Y', value: '1Y' },
-    ];
+    const durationOptions = FORECAST_DURATION_OPTIONS;
 
     // Styles for the segmented controls
     const segmentItemBase = "flex-1 px-3 py-1.5 text-sm font-medium rounded-md transition-all duration-200 flex items-center justify-center whitespace-nowrap border border-transparent";
