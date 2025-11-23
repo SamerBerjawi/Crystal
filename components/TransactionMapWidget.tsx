@@ -74,6 +74,19 @@ const TransactionMapWidget: React.FC<TransactionMapWidgetProps> = ({ transaction
         transactions: group.transactions,
       };
     });
+    return transactions
+      .filter(tx => tx.latitude !== undefined && tx.latitude !== null && tx.longitude !== undefined && tx.longitude !== null)
+      .map(tx => ({
+        id: tx.id,
+        lat: tx.latitude!,
+        lon: tx.longitude!,
+        amount: tx.amount,
+        currency: tx.currency,
+        description: tx.description,
+        date: tx.date,
+        city: tx.city,
+        country: tx.country
+      }));
   }, [transactions]);
 
   const coords: [number, number][] = locations.map(l => [l.lat, l.lon]);
