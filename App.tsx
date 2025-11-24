@@ -108,6 +108,44 @@ const PageLoader: React.FC<{ label?: string }> = ({ label = 'Loading content...'
   </div>
 );
 
+class ErrorBoundary extends React.Component<{ children: React.ReactNode }, { hasError: boolean; message?: string }> {
+  constructor(props: { children: React.ReactNode }) {
+    super(props);
+    this.state = { hasError: false, message: undefined };
+  }
+
+  static getDerivedStateFromError(error: Error) {
+    return { hasError: true, message: error?.message };
+  }
+
+  componentDidCatch(error: Error, errorInfo: React.ErrorInfo) {
+    console.error('Uncaught error in Crystal UI', error, errorInfo);
+  }
+
+  render() {
+    if (this.state.hasError) {
+      return (
+        <div className="flex items-center justify-center min-h-screen bg-light-bg dark:bg-dark-bg px-6">
+          <div className="bg-white dark:bg-dark-card shadow-2xl rounded-2xl p-6 max-w-lg w-full border border-black/5 dark:border-white/10">
+            <h1 className="text-xl font-semibold text-light-text dark:text-dark-text mb-2">Something went wrong</h1>
+            <p className="text-light-text-secondary dark:text-dark-text-secondary text-sm mb-4">
+              {this.state.message || 'An unexpected error occurred while rendering this page.'}
+            </p>
+            <button
+              className="px-4 py-2 rounded-lg bg-primary-500 text-white font-medium hover:bg-primary-600 transition"
+              onClick={() => window.location.reload()}
+            >
+              Reload
+            </button>
+          </div>
+        </div>
+      );
+    }
+
+    return this.props.children;
+  }
+}
+
 
 // FIX: Changed to a default export to align with the import in index.tsx and fix the module resolution error.
 const App: React.FC = () => {
@@ -199,7 +237,11 @@ const App: React.FC = () => {
         if (primaryAccount) {
             setDashboardAccountIds([primaryAccount.id]);
         } else {
-            setDashboardAccountIds(accounts.filter(a => LIQUID_ACCOUNT_TYPES.includes(a.type)).map(a => a.id));
+            const openAccounts = accounts.filter(a => a.status !== 'closed');
+            const fallbackAccount = (openAccounts.length > 0 ? openAccounts : accounts)[0];
+            if (fallbackAccount) {
+                setDashboardAccountIds([fallbackAccount.id]);
+            }
         }
     }
   }, [accounts, dashboardAccountIds.length]);
@@ -1424,17 +1466,18 @@ const App: React.FC = () => {
 
   // Main app
   return (
-    <FinancialDataProvider
-      categories={categoryContextValue}
-      tags={tagsContextValue}
-      budgets={budgetsContextValue}
-      goals={goalsContextValue}
-      schedule={scheduleContextValue}
-      preferences={preferencesContextValue}
-      accounts={accountsContextValue}
-      transactions={transactionsContextValue}
-      warrants={warrantsContextValue}
-    >
+    <ErrorBoundary>
+      <FinancialDataProvider
+        categories={categoryContextValue}
+        tags={tagsContextValue}
+        budgets={budgetsContextValue}
+        goals={goalsContextValue}
+        schedule={scheduleContextValue}
+        preferences={preferencesContextValue}
+        accounts={accountsContextValue}
+        transactions={transactionsContextValue}
+        warrants={warrantsContextValue}
+      >
       <div className={`flex h-screen bg-light-card dark:bg-dark-card text-light-text dark:text-dark-text font-sans`}>
         <Sidebar
           currentPage={currentPage}
@@ -1499,7 +1542,8 @@ const App: React.FC = () => {
           )}
         </Suspense>
       </div>
-    </FinancialDataProvider>
+      </FinancialDataProvider>
+    </ErrorBoundary>
   );
 };
 
