@@ -804,6 +804,28 @@ const Transactions: React.FC<TransactionsProps> = ({ accountFilter, setAccountFi
                       </div>
                   )}
               </div>
+              
+              {totalPages > 1 && (
+                <div className="px-6 py-3 border-t border-light-separator dark:border-dark-separator flex justify-between items-center bg-light-bg/50 dark:bg-dark-bg/30 flex-shrink-0">
+                    <button
+                        onClick={() => setCurrentPage(p => Math.max(1, p - 1))}
+                        disabled={currentPage === 1}
+                        className={`${BTN_SECONDARY_STYLE} !py-1 !px-3 text-sm disabled:opacity-50 disabled:cursor-not-allowed`}
+                    >
+                        Previous
+                    </button>
+                    <span className="text-sm text-light-text-secondary dark:text-dark-text-secondary font-medium">
+                        Page {currentPage} of {totalPages}
+                    </span>
+                    <button
+                        onClick={() => setCurrentPage(p => Math.min(totalPages, p + 1))}
+                        disabled={currentPage === totalPages}
+                        className={`${BTN_SECONDARY_STYLE} !py-1 !px-3 text-sm disabled:opacity-50 disabled:cursor-not-allowed`}
+                    >
+                        Next
+                    </button>
+                </div>
+            )}
           </Card>
         </div>
       </div>
