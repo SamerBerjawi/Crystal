@@ -1,4 +1,3 @@
-
 // FIX: Import `useMemo` from React to resolve the 'Cannot find name' error.
 import React, { useState, useEffect, useMemo, useCallback, Suspense, lazy, useRef } from 'react';
 import Sidebar from './components/Sidebar';
@@ -1230,7 +1229,7 @@ const App: React.FC = () => {
         onLogout={handleLogout}
         user={currentUser!}
       />
-      <div className="flex-1 flex flex-col overflow-hidden bg-light-bg dark:bg-dark-bg md:rounded-tl-3xl border-l border-t border-black/5 dark:border-white/5 shadow-2xl relative z-0">
+      <div className="flex-1 flex flex-col overflow-hidden relative z-0">
         <Header 
           user={currentUser!}
           setSidebarOpen={setSidebarOpen}
@@ -1239,7 +1238,7 @@ const App: React.FC = () => {
           currentPage={currentPage}
           titleOverride={viewingAccount?.name}
         />
-        <main className="flex-1 overflow-x-hidden overflow-y-auto p-4 md:p-8 bg-light-bg dark:bg-dark-bg">
+        <main className="flex-1 overflow-x-hidden overflow-y-auto p-4 md:p-8 bg-light-bg dark:bg-dark-bg md:rounded-tl-3xl border-l border-t border-black/5 dark:border-white/5 shadow-2xl">
           <Suspense fallback={<PageLoader />}>
             {renderPage()}
           </Suspense>
