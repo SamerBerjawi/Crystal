@@ -345,7 +345,7 @@ export function generateSyntheticLoanPayments(accounts: Account[], transactions:
                 startDate: payment.date,
                 nextDueDate: payment.date,
                 endDate: payment.date,
-                dueDateOfMonth: new Date(payment.date.replace(/-/g, '/')).getUTCDate(),
+                dueDateOfMonth: parseDateAsUTC(payment.date).getUTCDate(),
                 weekendAdjustment: 'after',
                 isSynthetic: true,
             });

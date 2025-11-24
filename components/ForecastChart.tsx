@@ -152,8 +152,8 @@ const ForecastChart: React.FC<ForecastChartProps> = ({ data, oneTimeGoals, lowes
   const { ticks, tickFormatter } = useMemo(() => {
     if (data.length < 2) return { ticks: [], tickFormatter: () => '' };
 
-    const startDate = new Date(data[0].date.replace(/-/g, '/'));
-    const endDate = new Date(data[data.length - 1].date.replace(/-/g, '/'));
+    const startDate = data.length ? parseDateAsUTC(data[0].date) : new Date(0);
+    const endDate = data.length ? parseDateAsUTC(data[data.length - 1].date) : new Date(0);
     const rangeInDays = (endDate.getTime() - startDate.getTime()) / (1000 * 3600 * 24);
 
     if (rangeInDays > 120) { // For ranges longer than ~4 months, show one tick per month.
@@ -161,7 +161,7 @@ const ForecastChart: React.FC<ForecastChartProps> = ({ data, oneTimeGoals, lowes
         const monthSet = new Set<string>();
 
         for (const item of data) {
-            const date = new Date(item.date.replace(/-/g, '/'));
+            const date = parseDateAsUTC(item.date);
             const monthKey = `${date.getFullYear()}-${date.getMonth()}`;
             if (!monthSet.has(monthKey)) {
                 newTicks.push(item.date);
