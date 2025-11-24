@@ -778,14 +778,24 @@ const AccountDetail: React.FC<AccountDetailProps> = ({ account, setCurrentPage, 
 
         const transactionsToReverse = accountTransactions.filter(entry => entry.parsedDate >= startDate && entry.parsedDate <= new Date());
 
-        const totalChangeSinceStart = transactionsToReverse.reduce((sum, entry) => sum + entry.convertedAmount, 0);
+        const totalChangeSinceStart = transactionsToReverse.reduce((sum, entry) => {
+            const signedAmount = entry.tx.type === 'expense'
+                ? -Math.abs(entry.convertedAmount)
+                : Math.abs(entry.convertedAmount);
+
+            return sum + signedAmount;
+        }, 0);
 
         const startingBalance = convertToEur(account.balance, account.currency) - totalChangeSinceStart;
 
         const dailyChanges = new Map<string, number>();
-        filteredEnriched.forEach(({ parsedDate, convertedAmount }) => {
+        filteredEnriched.forEach(({ parsedDate, convertedAmount, tx }) => {
             const dateKey = parsedDate.toISOString().split('T')[0];
-            dailyChanges.set(dateKey, (dailyChanges.get(dateKey) || 0) + convertedAmount);
+            const signedAmount = tx.type === 'expense'
+                ? -Math.abs(convertedAmount)
+                : Math.abs(convertedAmount);
+
+            dailyChanges.set(dateKey, (dailyChanges.get(dateKey) || 0) + signedAmount);
         });
 
         const data: { name: string, value: number }[] = [];
