@@ -1,9 +1,4 @@
 
-
-
-
-
-
 import React, { useMemo, useState, useCallback, useEffect, useRef } from 'react';
 import { User, Transaction, Account, Category, Duration, CategorySpending, Widget, WidgetConfig, DisplayTransaction, FinancialGoal, RecurringTransaction, BillPayment, Tag, Budget, RecurringTransactionOverride, LoanPaymentOverrides } from '../types';
 import { formatCurrency, getDateRange, calculateAccountTotals, convertToEur, calculateStatementPeriods, generateBalanceForecast, parseDateAsUTC, getCreditCardStatementDetails, generateSyntheticLoanPayments, generateSyntheticCreditCardPayments, getPreferredTimeZone, formatDateKey } from '../utils';
@@ -550,6 +545,7 @@ const Dashboard: React.FC<DashboardProps> = ({ user, activeGoalIds, selectedAcco
       return configuredCreditCards.map(account => {
           const periods = calculateStatementPeriods(account.statementStartDate!, account.paymentDate!);
 
+          const { statementBalance: prevBalance, amountPaid: prevAmountPaid } = getCreditCardStatementDetails(account, periods.previous.start, periods.previous.end, transactions);
           const { statementBalance: currentBalance, amountPaid: currentAmountPaid } = getCreditCardStatementDetails(account, periods.current.start, periods.current.end, transactions);
           const { statementBalance: futureBalance, amountPaid: futureAmountPaid } = getCreditCardStatementDetails(account, periods.future.start, periods.future.end, transactions);
 
@@ -565,6 +561,7 @@ const Dashboard: React.FC<DashboardProps> = ({ user, activeGoalIds, selectedAcco
               current: {
                   balance: currentBalance,
                   amountPaid: currentAmountPaid,
+                  previousStatementBalance: prevBalance,
                   period: `${formatDate(periods.current.start)} - ${formatDate(periods.current.end)}`,
                   paymentDue: formatFullDate(periods.current.paymentDue)
               },
@@ -923,31 +920,25 @@ const Dashboard: React.FC<DashboardProps> = ({ user, activeGoalIds, selectedAcco
       {creditCardStatements.length > 0 && (
           <div className="space-y-6">
               {creditCardStatements.map(statement => (
-                  <div key={statement.accountName}>
-                      <h3 className="text-xl font-semibold mb-2 text-light-text dark:text-dark-text">{statement.accountName} Statements</h3>
-                      <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                          <CreditCardStatementCard
-                              title="Current Statement"
-                              statementBalance={statement.current.balance}
-                              amountPaid={statement.current.amountPaid}
-                              accountBalance={statement.accountBalance}
-                              creditLimit={statement.creditLimit}
-                              currency={statement.currency}
-                              statementPeriod={statement.current.period}
-                              paymentDueDate={statement.current.paymentDue}
-                          />
-                          <CreditCardStatementCard
-                              title="Next Statement"
-                              statementBalance={statement.future.balance}
-                              amountPaid={statement.future.amountPaid}
-                              accountBalance={statement.accountBalance}
-                              creditLimit={statement.creditLimit}
-                              currency={statement.currency}
-                              statementPeriod={statement.future.period}
-                              paymentDueDate={statement.future.paymentDue}
-                          />
-                      </div>
-                  </div>
+                  <CreditCardStatementCard
+                      key={statement.accountName}
+                      accountName={statement.accountName}
+                      accountBalance={statement.accountBalance}
+                      creditLimit={statement.creditLimit}
+                      currency={statement.currency}
+                      currentStatement={{
+                          period: statement.current.period,
+                          balance: statement.current.balance,
+                          dueDate: statement.current.paymentDue,
+                          amountPaid: statement.current.amountPaid,
+                          previousStatementBalance: statement.current.previousStatementBalance
+                      }}
+                      nextStatement={{
+                          period: statement.future.period,
+                          balance: statement.future.balance,
+                          dueDate: statement.future.paymentDue
+                      }}
+                  />
               ))}
           </div>
       )}
