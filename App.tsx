@@ -200,7 +200,32 @@ const App: React.FC = () => {
   const [isChatOpen, setIsChatOpen] = useState(false);
   
   // State for Warrant prices
-  const [warrantPrices, setWarrantPrices] = useState<Record<string, number | null>>({});
+  const [scrapedWarrantPrices, setScrapedWarrantPrices] = useState<Record<string, number | null>>(initialFinancialData.scrapedWarrantPrices || {});
+  const [lastSuccessfulWarrantPrices, setLastSuccessfulWarrantPrices] = useState<Record<string, number | undefined>>(initialFinancialData.lastSuccessfulWarrantPrices || {});
+  const [manualWarrantPrices, setManualWarrantPrices] = useState<Record<string, number | undefined>>(initialFinancialData.manualWarrantPrices || {});
+  const warrantPrices = useMemo(() => {
+    const allIsins = new Set<string>([
+      ...warrants.map(w => w.isin),
+      ...Object.keys(scrapedWarrantPrices),
+      ...Object.keys(lastSuccessfulWarrantPrices),
+      ...Object.keys(manualWarrantPrices),
+    ]);
+
+    const resolved: Record<string, number | null> = {};
+    allIsins.forEach(isin => {
+      if (manualWarrantPrices[isin] !== undefined) {
+        resolved[isin] = manualWarrantPrices[isin];
+      } else if (scrapedWarrantPrices[isin] !== undefined && scrapedWarrantPrices[isin] !== null) {
+        resolved[isin] = scrapedWarrantPrices[isin] as number;
+      } else if (lastSuccessfulWarrantPrices[isin] !== undefined) {
+        resolved[isin] = lastSuccessfulWarrantPrices[isin];
+      } else {
+        resolved[isin] = null;
+      }
+    });
+
+    return resolved;
+  }, [warrants, scrapedWarrantPrices, lastSuccessfulWarrantPrices, manualWarrantPrices]);
   const [isLoadingPrices, setIsLoadingPrices] = useState(false);
   const [lastUpdated, setLastUpdated] = useState<Date | null>(null);
 
@@ -278,13 +303,18 @@ const App: React.FC = () => {
       if (event.data.type !== 'FETCH_PRICES_RESULT') return;
       const receivedAt = event.data.timestamp || Date.now();
       const incomingPrices: Record<string, number | null> = {};
+      const successfulPrices: Record<string, number> = {};
 
       Object.entries(event.data.prices).forEach(([isin, price]) => {
         priceCacheRef.current[isin] = { price, fetchedAt: receivedAt };
         incomingPrices[isin] = price;
+        if (price !== null) {
+          successfulPrices[isin] = price;
+        }
       });
 
-      setWarrantPrices(prev => ({ ...prev, ...incomingPrices }));
+      setScrapedWarrantPrices(prev => ({ ...prev, ...incomingPrices }));
+      setLastSuccessfulWarrantPrices(prev => ({ ...prev, ...successfulPrices }));
       setLastUpdated(new Date(receivedAt));
       setIsLoadingPrices(false);
     };
@@ -353,6 +383,9 @@ const App: React.FC = () => {
     setScraperConfigs(dataToLoad.scraperConfigs || []);
     setImportExportHistory(dataToLoad.importExportHistory || []);
     setBillsAndPayments(dataToLoad.billsAndPayments || []);
+    setScrapedWarrantPrices(dataToLoad.scrapedWarrantPrices || {});
+    setLastSuccessfulWarrantPrices(dataToLoad.lastSuccessfulWarrantPrices || {});
+    setManualWarrantPrices(dataToLoad.manualWarrantPrices || {});
     // FIX: Add `tags` to the data loading logic.
     setTags(dataToLoad.tags || []);
     setIncomeCategories(dataToLoad.incomeCategories && dataToLoad.incomeCategories.length > 0 ? dataToLoad.incomeCategories : MOCK_INCOME_CATEGORIES);
@@ -429,11 +462,11 @@ const App: React.FC = () => {
   const dataToSave: FinancialData = useMemo(() => ({
     accounts, transactions, investmentTransactions, recurringTransactions,
     recurringTransactionOverrides, loanPaymentOverrides, financialGoals, budgets, tasks, warrants, scraperConfigs, importExportHistory, incomeCategories,
-    expenseCategories, preferences, billsAndPayments, accountOrder, taskOrder, tags,
+    expenseCategories, preferences, billsAndPayments, accountOrder, taskOrder, tags, scrapedWarrantPrices, lastSuccessfulWarrantPrices, manualWarrantPrices,
   }), [
     accounts, transactions, investmentTransactions,
     recurringTransactions, recurringTransactionOverrides, loanPaymentOverrides, financialGoals, budgets, tasks, warrants, scraperConfigs, importExportHistory,
-    incomeCategories, expenseCategories, preferences, billsAndPayments, accountOrder, taskOrder, tags,
+    incomeCategories, expenseCategories, preferences, billsAndPayments, accountOrder, taskOrder, tags, scrapedWarrantPrices, lastSuccessfulWarrantPrices, manualWarrantPrices,
   ]);
 
   const debouncedDirtySignal = useDebounce(dirtySignal, 900);
@@ -459,6 +492,9 @@ const App: React.FC = () => {
     if (dirtySlices.has('accountOrder')) payload.accountOrder = accountOrder;
     if (dirtySlices.has('taskOrder')) payload.taskOrder = taskOrder;
     if (dirtySlices.has('tags')) payload.tags = tags;
+    if (dirtySlices.has('scrapedWarrantPrices')) payload.scrapedWarrantPrices = scrapedWarrantPrices;
+    if (dirtySlices.has('lastSuccessfulWarrantPrices')) payload.lastSuccessfulWarrantPrices = lastSuccessfulWarrantPrices;
+    if (dirtySlices.has('manualWarrantPrices')) payload.manualWarrantPrices = manualWarrantPrices;
 
     return { ...latestDataRef.current, ...payload } as FinancialData;
   }, [
@@ -481,6 +517,9 @@ const App: React.FC = () => {
     tasks,
     transactions,
     warrants,
+    scrapedWarrantPrices,
+    lastSuccessfulWarrantPrices,
+    manualWarrantPrices,
   ]);
   const debouncedDataToSave = useDebounce(dataToSave, 1500);
   const debouncedDataSignature = useMemo(
@@ -541,6 +580,21 @@ const App: React.FC = () => {
     if (!isDataLoaded || restoreInProgressRef.current) return;
     markSliceDirty('warrants');
   }, [warrants, isDataLoaded, markSliceDirty]);
+
+  useEffect(() => {
+    if (!isDataLoaded || restoreInProgressRef.current) return;
+    markSliceDirty('scrapedWarrantPrices');
+  }, [scrapedWarrantPrices, isDataLoaded, markSliceDirty]);
+
+  useEffect(() => {
+    if (!isDataLoaded || restoreInProgressRef.current) return;
+    markSliceDirty('lastSuccessfulWarrantPrices');
+  }, [lastSuccessfulWarrantPrices, isDataLoaded, markSliceDirty]);
+
+  useEffect(() => {
+    if (!isDataLoaded || restoreInProgressRef.current) return;
+    markSliceDirty('manualWarrantPrices');
+  }, [manualWarrantPrices, isDataLoaded, markSliceDirty]);
 
   useEffect(() => {
     if (!isDataLoaded || restoreInProgressRef.current) return;
@@ -1078,7 +1132,39 @@ const App: React.FC = () => {
   };
 
   const handleDeleteWarrant = (warrantId: string) => {
+    const warrantToDelete = warrants.find(w => w.id === warrantId);
     setWarrants(prev => prev.filter(w => w.id !== warrantId));
+
+    if (warrantToDelete) {
+      const targetIsin = warrantToDelete.isin;
+      setManualWarrantPrices(prev => {
+        const updated = { ...prev };
+        delete updated[targetIsin];
+        return updated;
+      });
+      setScrapedWarrantPrices(prev => {
+        const updated = { ...prev };
+        delete updated[targetIsin];
+        return updated;
+      });
+      setLastSuccessfulWarrantPrices(prev => {
+        const updated = { ...prev };
+        delete updated[targetIsin];
+        return updated;
+      });
+    }
+  };
+
+  const handleManualWarrantPrice = (isin: string, price: number | null) => {
+    setManualWarrantPrices(prev => {
+      const updated = { ...prev };
+      if (price === null) {
+        delete updated[isin];
+      } else {
+        updated[isin] = price;
+      }
+      return updated;
+    });
   };
   
   // FIX: Add handlers for saving and deleting tags.
@@ -1368,7 +1454,7 @@ const App: React.FC = () => {
       case 'Investments':
         return <InvestmentsPage accounts={accounts} cashAccounts={accounts.filter(a => a.type === 'Checking' || a.type === 'Savings')} investmentTransactions={investmentTransactions} saveInvestmentTransaction={handleSaveInvestmentTransaction} deleteInvestmentTransaction={handleDeleteInvestmentTransaction} saveTransaction={handleSaveTransaction} warrants={warrants} />;
       case 'Warrants':
-        return <WarrantsPage warrants={warrants} saveWarrant={handleSaveWarrant} deleteWarrant={handleDeleteWarrant} scraperConfigs={scraperConfigs} saveScraperConfig={handleSaveScraperConfig} prices={warrantPrices} isLoadingPrices={isLoadingPrices} lastUpdated={lastUpdated} refreshPrices={fetchWarrantPrices} />;
+        return <WarrantsPage warrants={warrants} saveWarrant={handleSaveWarrant} deleteWarrant={handleDeleteWarrant} scraperConfigs={scraperConfigs} saveScraperConfig={handleSaveScraperConfig} prices={warrantPrices} manualPrices={manualWarrantPrices} lastScrapedPrices={lastSuccessfulWarrantPrices} isLoadingPrices={isLoadingPrices} lastUpdated={lastUpdated} refreshPrices={fetchWarrantPrices} onManualPriceChange={handleManualWarrantPrice} />;
       case 'Tasks':
         return <TasksPage tasks={tasks} saveTask={handleSaveTask} deleteTask={handleDeleteTask} taskOrder={taskOrder} setTaskOrder={setTaskOrder} />;
       case 'Documentation':
