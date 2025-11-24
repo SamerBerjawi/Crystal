@@ -5,7 +5,7 @@
 
 import React, { useMemo, useState, useCallback, useEffect, useRef } from 'react';
 import { User, Transaction, Account, Category, Duration, CategorySpending, Widget, WidgetConfig, DisplayTransaction, FinancialGoal, RecurringTransaction, BillPayment, Tag, Budget, RecurringTransactionOverride, LoanPaymentOverrides } from '../types';
-import { formatCurrency, getDateRange, calculateAccountTotals, convertToEur, calculateStatementPeriods, generateBalanceForecast, parseDateAsUTC, getCreditCardStatementDetails, generateSyntheticLoanPayments, generateSyntheticCreditCardPayments, getPreferredTimeZone } from '../utils';
+import { formatCurrency, getDateRange, calculateAccountTotals, convertToEur, calculateStatementPeriods, generateBalanceForecast, parseDateAsUTC, getCreditCardStatementDetails, generateSyntheticLoanPayments, generateSyntheticCreditCardPayments, getPreferredTimeZone, formatDateKey } from '../utils';
 import AddTransactionModal from '../components/AddTransactionModal';
 import { BTN_PRIMARY_STYLE, BTN_SECONDARY_STYLE, LIQUID_ACCOUNT_TYPES, ASSET_TYPES, DEBT_TYPES, ACCOUNT_TYPE_STYLES, INVESTMENT_SUB_TYPE_STYLES } from '../constants';
 import TransactionDetailModal from '../components/TransactionDetailModal';
@@ -69,13 +69,6 @@ const findCategoryById = (id: string, categories: Category[]): Category | undefi
     }
     return undefined;
 }
-
-const toYYYYMMDD = (date: Date) => {
-    const y = date.getUTCFullYear();
-    const m = (date.getUTCMonth() + 1).toString().padStart(2, '0');
-    const d = date.getUTCDate().toString().padStart(2, '0');
-    return `${y}-${m}-${d}`;
-};
 
 type EnrichedTransaction = Transaction & { convertedAmount: number; parsedDate: Date };
 
@@ -521,7 +514,7 @@ const Dashboard: React.FC<DashboardProps> = ({ user, activeGoalIds, selectedAcco
     let currentDate = new Date(start);
 
     while (currentDate <= end) {
-        const dateStr = toYYYYMMDD(currentDate);
+        const dateStr = formatDateKey(currentDate);
         runningBalance += dailyChanges.get(dateStr) || 0;
         data.push({ name: dateStr, value: parseFloat(runningBalance.toFixed(2)) });
         currentDate.setUTCDate(currentDate.getUTCDate() + 1);
@@ -529,7 +522,7 @@ const Dashboard: React.FC<DashboardProps> = ({ user, activeGoalIds, selectedAcco
     
     // After the loop, the last value should be very close to currentNetWorth.
     // Let's ensure it is exactly currentNetWorth to avoid floating point inaccuracies if today is in range.
-    const todayStr = toYYYYMMDD(today);
+    const todayStr = formatDateKey(today);
     const todayDataPoint = data.find(d => d.name === todayStr);
     if (todayDataPoint) {
       todayDataPoint.value = parseFloat(currentNetWorth.toFixed(2));

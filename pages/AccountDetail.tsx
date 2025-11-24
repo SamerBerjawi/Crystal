@@ -5,7 +5,7 @@
 
 import React, { useMemo, useState, useCallback } from 'react';
 import { Account, Transaction, Category, Duration, Page, CategorySpending, Widget, WidgetConfig, DisplayTransaction, RecurringTransaction, AccountDetailProps, Tag, ScheduledPayment, MileageLog } from '../types';
-import { formatCurrency, getDateRange, convertToEur, calculateStatementPeriods, getCreditCardStatementDetails, parseDateAsUTC } from '../utils';
+import { formatCurrency, getDateRange, convertToEur, calculateStatementPeriods, getCreditCardStatementDetails, parseDateAsUTC, formatDateKey } from '../utils';
 import AddTransactionModal from '../components/AddTransactionModal';
 import { BTN_PRIMARY_STYLE, MOCK_EXPENSE_CATEGORIES, BTN_SECONDARY_STYLE } from '../constants';
 import TransactionDetailModal from '../components/TransactionDetailModal';
@@ -802,7 +802,7 @@ const AccountDetail: React.FC<AccountDetailProps> = ({ account, setCurrentPage, 
         let runningBalance = startingBalance;
         let currentDate = new Date(startDate);
         while (currentDate <= endDate) {
-            const dateStr = currentDate.toISOString().split('T')[0];
+            const dateStr = formatDateKey(currentDate);
             runningBalance += dailyChanges.get(dateStr) || 0;
             data.push({ name: dateStr, value: runningBalance });
             currentDate.setUTCDate(currentDate.getUTCDate() + 1);
