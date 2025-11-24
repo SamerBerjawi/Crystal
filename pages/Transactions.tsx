@@ -1,5 +1,4 @@
 
-
 import React, { useState, useMemo, useRef, useEffect } from 'react';
 import { INPUT_BASE_STYLE, SELECT_WRAPPER_STYLE, SELECT_ARROW_STYLE, BTN_PRIMARY_STYLE, BTN_SECONDARY_STYLE, SELECT_STYLE, CHECKBOX_STYLE } from '../constants';
 // FIX: Imported the 'Category' type to resolve 'Cannot find name' errors throughout the component.
@@ -717,12 +716,12 @@ const Transactions: React.FC<TransactionsProps> = ({ accountFilter, setAccountFi
             <div className="px-6 py-3 border-b border-light-separator dark:border-dark-separator flex items-center gap-4 font-semibold text-light-text-secondary dark:text-dark-text-secondary flex-shrink-0">
                 <input type="checkbox" onChange={handleSelectAll} checked={isAllSelected} className={CHECKBOX_STYLE} aria-label="Select all transactions"/>
                 <div className="flex-1 grid grid-cols-12 gap-4 ml-3 items-center">
-                    <span className="col-span-12 md:col-span-4 lg:col-span-3">Transaction</span>
+                    <span className="col-span-8 md:col-span-6 lg:col-span-3">Transaction</span>
                     <span className="hidden md:block col-span-2 text-sm">Account</span>
                     <span className="hidden lg:block col-span-2 text-sm">Merchant</span>
                     <span className="hidden md:block col-span-2 text-sm">Category</span>
                     <span className="hidden lg:block col-span-1 text-sm">Tags</span>
-                    <span className="col-span-2 text-right">Amount</span>
+                    <span className="col-span-4 md:col-span-2 text-right">Amount</span>
                 </div>
                 <div className="w-10"></div> {/* Spacer for actions */}
             </div>
@@ -762,38 +761,38 @@ const Transactions: React.FC<TransactionsProps> = ({ accountFilter, setAccountFi
                                       <div className="w-1.5 h-10 flex-shrink-0 rounded-full" style={{backgroundColor: categoryColor}}></div>
                                   </div>
                                   <div className="flex-1 grid grid-cols-12 gap-4 py-4 items-center ml-3">
-                                    <div className="col-span-12 md:col-span-4 lg:col-span-3 min-w-0">
+                                    <div className="col-span-8 md:col-span-6 lg:col-span-3 min-w-0">
                                       <p className="font-semibold text-light-text dark:text-dark-text truncate">{tx.description}</p>
                                       <div className="text-sm text-light-text-secondary dark:text-dark-text-secondary">
                                           <p className="md:hidden truncate">{tx.isTransfer ? `${tx.fromAccountName} → ${tx.toAccountName}` : tx.accountName}</p>
                                           <p className="lg:hidden truncate">{tx.merchant}</p>
-                                          {tx.tagIds && tx.tagIds.length > 0 && <div className="lg:hidden flex flex-wrap gap-1 mt-1">{tx.tagIds.map(tagId => { const tag = tags.find(t => t.id === tagId); if (!tag) return null; return (<span key={tag.id} className="text-sm px-2 py-1 rounded-full inline-flex items-center justify-center text-center" style={{ backgroundColor: `${tag.color}30`, color: tag.color }}>{tag.name}</span>);})}</div>}
+                                          {tx.tagIds && tx.tagIds.length > 0 && <div className="lg:hidden flex flex-wrap gap-1 mt-1">{tx.tagIds.map(tagId => { const tag = tags.find(t => t.id === tagId); if (!tag) return null; return (<span key={tag.id} className="text-xs px-2 py-0.5 rounded-full inline-flex items-center justify-center text-center" style={{ backgroundColor: `${tag.color}30`, color: tag.color }}>{tag.name}</span>);})}</div>}
                                       </div>
                                     </div>
                                     <div className="hidden md:block col-span-2 text-sm text-light-text-secondary dark:text-dark-text-secondary truncate">{tx.isTransfer ? ( <div className="flex items-center gap-1 truncate"><span className="truncate">{tx.fromAccountName}</span><span className="material-symbols-outlined text-base">arrow_forward</span><span className="truncate">{tx.toAccountName}</span></div>) : tx.accountName}</div>
                                     <div className="hidden lg:block col-span-2 text-sm text-light-text-secondary dark:text-dark-text-secondary truncate">{tx.merchant}</div>
                                     <div className="hidden md:block col-span-2 text-sm text-light-text-secondary dark:text-dark-text-secondary truncate">{tx.category}</div>
-                                    <div className="hidden lg:flex col-span-1 flex-wrap gap-1">{tx.tagIds?.map(tagId => { const tag = tags.find(t => t.id === tagId); if (!tag) return null; return (<span key={tag.id} className="text-sm px-2 py-1 rounded-full inline-flex items-center justify-center text-center" style={{ backgroundColor: `${tag.color}30`, color: tag.color }} title={tag.name}>{tag.name}</span>);})}</div>
-                                      <div className={`col-span-12 md:col-span-2 font-mono font-semibold text-right text-base whitespace-nowrap ${amountColor}`}>
+                                    <div className="hidden lg:flex col-span-1 flex-wrap gap-1">{tx.tagIds?.map(tagId => { const tag = tags.find(t => t.id === tagId); if (!tag) return null; return (<span key={tag.id} className="text-xs px-2 py-0.5 rounded-full inline-flex items-center justify-center text-center" style={{ backgroundColor: `${tag.color}30`, color: tag.color }} title={tag.name}>{tag.name}</span>);})}</div>
+                                      <div className={`col-span-4 md:col-span-2 font-mono font-semibold text-right text-base whitespace-nowrap ${amountColor}`}>
                                         {tx.isTransfer && selectedAccountIds.length === 0
                                           ? '-/+ ' + formatCurrency(convertToEur(Math.abs(amount), tx.currency), 'EUR')
                                           : formatCurrency(convertToEur(amount, tx.currency), 'EUR', { showPlusSign: true })}
                                       </div>
-                                      <div className="w-10 flex justify-end opacity-0 group-hover:opacity-100 transition">
-                                        <button
-                                          className="p-2 rounded-full hover:bg-light-fill dark:hover:bg-dark-fill"
-                                          onClick={(e) => {
-                                            e.preventDefault();
-                                            e.stopPropagation();
-                                            setContextMenu({ x: e.clientX, y: e.clientY, transaction: tx });
-                                          }}
-                                          aria-label="Open transaction actions"
-                                        >
-                                          <span className="material-symbols-outlined text-lg">more_vert</span>
-                                        </button>
-                                      </div>
-                                    </div>
                                   </div>
+                                  <div className="w-10 flex justify-end opacity-0 group-hover:opacity-100 transition">
+                                    <button
+                                      className="p-2 rounded-full hover:bg-light-fill dark:hover:bg-dark-fill"
+                                      onClick={(e) => {
+                                        e.preventDefault();
+                                        e.stopPropagation();
+                                        setContextMenu({ x: e.clientX, y: e.clientY, transaction: tx });
+                                      }}
+                                      aria-label="Open transaction actions"
+                                    >
+                                      <span className="material-symbols-outlined text-lg">more_vert</span>
+                                    </button>
+                                  </div>
+                                </div>
                                   );
                               })}
                           </div>
