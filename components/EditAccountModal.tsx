@@ -1,7 +1,4 @@
 
-
-
-
 import React, { useState, useEffect, useMemo, useRef } from 'react';
 import Modal from './Modal';
 import { Account, AccountType, Currency, InvestmentSubType, PropertyType, Warrant, FuelType, VehicleOwnership, MileageLog } from '../types';
@@ -58,6 +55,7 @@ const EditAccountModal: React.FC<EditAccountModalProps> = ({ onClose, onSave, on
 
   // Vehicle Specific
   const [licensePlate, setLicensePlate] = useState(account.licensePlate || '');
+  const [registrationCountryCode, setRegistrationCountryCode] = useState(account.registrationCountryCode || '');
   const [vin, setVin] = useState(account.vin || '');
   const [fuelType, setFuelType] = useState<FuelType>(account.fuelType || 'Gasoline');
   const [vehicleOwnership, setVehicleOwnership] = useState<VehicleOwnership>(account.ownership || 'Owned');
@@ -65,6 +63,9 @@ const EditAccountModal: React.FC<EditAccountModalProps> = ({ onClose, onSave, on
   const [leaseStartDate, setLeaseStartDate] = useState(account.leaseStartDate || '');
   const [leaseEndDate, setLeaseEndDate] = useState(account.leaseEndDate || '');
   const [annualMileageAllowance, setAnnualMileageAllowance] = useState(account.annualMileageAllowance != null ? String(account.annualMileageAllowance) : '');
+  const [leasePaymentAmount, setLeasePaymentAmount] = useState(account.leasePaymentAmount != null ? String(account.leasePaymentAmount) : '');
+  const [leasePaymentDay, setLeasePaymentDay] = useState(account.leasePaymentDay != null ? String(account.leasePaymentDay) : '');
+  const [leasePaymentAccountId, setLeasePaymentAccountId] = useState(account.leasePaymentAccountId || '');
   const [vehicleImage, setVehicleImage] = useState(account.imageUrl || '');
   const [mileageLogs, setMileageLogs] = useState<MileageLog[]>(account.mileageLogs || []);
   const [newLogDate, setNewLogDate] = useState(new Date().toISOString().split('T')[0]);
@@ -137,14 +138,14 @@ const EditAccountModal: React.FC<EditAccountModalProps> = ({ onClose, onSave, on
 
 
   const groupedDebitAccounts = useMemo(() => {
-    const debitAccounts = accounts.filter(acc => (acc.type === 'Checking' || acc.type === 'Savings') && (acc.status !== 'closed' || acc.id === settlementAccountId || acc.id === linkedAccountId));
+    const debitAccounts = accounts.filter(acc => (acc.type === 'Checking' || acc.type === 'Savings') && (acc.status !== 'closed' || acc.id === settlementAccountId || acc.id === linkedAccountId || acc.id === leasePaymentAccountId));
     const groups: Record<string, Account[]> = {};
     debitAccounts.forEach(acc => {
         if (!groups[acc.type]) groups[acc.type] = [];
         groups[acc.type].push(acc);
     });
     return groups;
-  }, [accounts, settlementAccountId, linkedAccountId]);
+  }, [accounts, settlementAccountId, linkedAccountId, leasePaymentAccountId]);
 
   const groupedLoanAccounts = useMemo(() => {
     const loanAccounts = accounts.filter(acc => acc.type === 'Loan' && (acc.status !== 'closed' || acc.id === linkedLoanId));
@@ -220,6 +221,7 @@ const EditAccountModal: React.FC<EditAccountModalProps> = ({ onClose, onSave, on
       model: type === 'Vehicle' ? model || undefined : undefined,
       year: type === 'Vehicle' && year !== '' ? parseInt(year, 10) : undefined,
       licensePlate: type === 'Vehicle' ? licensePlate || undefined : undefined,
+      registrationCountryCode: type === 'Vehicle' ? registrationCountryCode || undefined : undefined,
       vin: type === 'Vehicle' ? vin || undefined : undefined,
       fuelType: type === 'Vehicle' ? fuelType : undefined,
       ownership: type === 'Vehicle' ? vehicleOwnership : undefined,
@@ -227,6 +229,9 @@ const EditAccountModal: React.FC<EditAccountModalProps> = ({ onClose, onSave, on
       leaseStartDate: type === 'Vehicle' && vehicleOwnership === 'Leased' && leaseStartDate ? leaseStartDate : undefined,
       leaseEndDate: type === 'Vehicle' && vehicleOwnership === 'Leased' && leaseEndDate ? leaseEndDate : undefined,
       annualMileageAllowance: type === 'Vehicle' && vehicleOwnership === 'Leased' && annualMileageAllowance !== '' ? parseInt(annualMileageAllowance, 10) : undefined,
+      leasePaymentAmount: type === 'Vehicle' && vehicleOwnership === 'Leased' && leasePaymentAmount !== '' ? parseFloat(leasePaymentAmount) : undefined,
+      leasePaymentDay: type === 'Vehicle' && vehicleOwnership === 'Leased' && leasePaymentDay !== '' ? parseInt(leasePaymentDay, 10) : undefined,
+      leasePaymentAccountId: type === 'Vehicle' && vehicleOwnership === 'Leased' && leasePaymentAccountId ? leasePaymentAccountId : undefined,
       mileageLogs: type === 'Vehicle' ? mileageLogs : undefined,
       imageUrl: type === 'Vehicle' ? vehicleImage || undefined : undefined,
       address: type === 'Property' ? address || undefined : undefined,
@@ -253,6 +258,8 @@ const EditAccountModal: React.FC<EditAccountModalProps> = ({ onClose, onSave, on
   };
   
   const labelStyle = "block text-sm font-medium text-light-text-secondary dark:text-dark-text-secondary mb-1";
+  
+  const showLast4 = ['Checking', 'Savings', 'Credit Card'].includes(type);
 
   return (
     <>
@@ -418,9 +425,10 @@ const EditAccountModal: React.FC<EditAccountModalProps> = ({ onClose, onSave, on
                     <div><label htmlFor="model" className={labelStyle}>Model</label><input id="model" type="text" value={model} onChange={e=>setModel(e.target.value)} className={INPUT_BASE_STYLE} /></div>
                     <div><label htmlFor="year" className={labelStyle}>Year</label><input id="year" type="number" value={year} onChange={e=>setYear(e.target.value)} className={INPUT_BASE_STYLE} /></div>
                   </div>
-                  <div className="grid grid-cols-2 gap-4">
-                    <div><label htmlFor="plate" className={labelStyle}>License Plate</label><input id="plate" type="text" value={licensePlate} onChange={e=>setLicensePlate(e.target.value)} className={INPUT_BASE_STYLE} /></div>
-                    <div><label htmlFor="vin" className={labelStyle}>VIN</label><input id="vin" type="text" value={vin} onChange={e=>setVin(e.target.value)} className={INPUT_BASE_STYLE} /></div>
+                  <div className="grid grid-cols-3 gap-4">
+                    <div className="col-span-1"><label htmlFor="regCode" className={labelStyle}>Reg. Code</label><input id="regCode" type="text" value={registrationCountryCode} onChange={e=>setRegistrationCountryCode(e.target.value)} className={INPUT_BASE_STYLE} placeholder="e.g. B" /></div>
+                    <div className="col-span-1"><label htmlFor="plate" className={labelStyle}>License Plate</label><input id="plate" type="text" value={licensePlate} onChange={e=>setLicensePlate(e.target.value)} className={INPUT_BASE_STYLE} /></div>
+                    <div className="col-span-1"><label htmlFor="vin" className={labelStyle}>VIN</label><input id="vin" type="text" value={vin} onChange={e=>setVin(e.target.value)} className={INPUT_BASE_STYLE} /></div>
                   </div>
                   <div className="grid grid-cols-2 gap-4">
                      <div>
@@ -452,6 +460,26 @@ const EditAccountModal: React.FC<EditAccountModalProps> = ({ onClose, onSave, on
                            <div><label htmlFor="leaseStart" className={labelStyle}>Lease Start</label><input id="leaseStart" type="date" value={leaseStartDate} onChange={e=>setLeaseStartDate(e.target.value)} className={INPUT_BASE_STYLE} /></div>
                            <div><label htmlFor="leaseEnd" className={labelStyle}>Lease End</label><input id="leaseEnd" type="date" value={leaseEndDate} onChange={e=>setLeaseEndDate(e.target.value)} className={INPUT_BASE_STYLE} /></div>
                            <div className="col-span-2"><label htmlFor="annualMileageAllowance" className={labelStyle}>Annual Mileage Allowance (km)</label><input id="annualMileageAllowance" type="number" value={annualMileageAllowance} onChange={e=>setAnnualMileageAllowance(e.target.value)} className={INPUT_BASE_STYLE} placeholder="e.g. 15000" /></div>
+                           <div><label htmlFor="leasePaymentAmount" className={labelStyle}>Lease Price (Optional)</label><input id="leasePaymentAmount" type="number" step="0.01" value={leasePaymentAmount} onChange={e=>setLeasePaymentAmount(e.target.value)} className={INPUT_BASE_STYLE} /></div>
+                           <div><label htmlFor="leasePaymentDay" className={labelStyle}>Payment Day (Optional)</label><input id="leasePaymentDay" type="number" min="1" max="31" value={leasePaymentDay} onChange={e=>setLeasePaymentDay(e.target.value)} className={INPUT_BASE_STYLE} /></div>
+                           <div className="col-span-2">
+                               <label htmlFor="leasePaymentAccountId" className={labelStyle}>Payment Account (Optional)</label>
+                               <div className={SELECT_WRAPPER_STYLE}>
+                                   <select id="leasePaymentAccountId" value={leasePaymentAccountId} onChange={e => setLeasePaymentAccountId(e.target.value)} className={INPUT_BASE_STYLE}>
+                                       <option value="">None</option>
+                                       {ALL_ACCOUNT_TYPES.map(type => {
+                                           const group = groupedDebitAccounts[type];
+                                           if (!group || group.length === 0) return null;
+                                           return (
+                                               <optgroup key={type} label={type}>
+                                                   {group.map(acc => <option key={acc.id} value={acc.id}>{acc.name}</option>)}
+                                               </optgroup>
+                                           );
+                                       })}
+                                   </select>
+                                   <div className={SELECT_ARROW_STYLE}><span className="material-symbols-outlined">expand_more</span></div>
+                               </div>
+                           </div>
                        </div>
                    )}
 
@@ -548,6 +576,7 @@ const EditAccountModal: React.FC<EditAccountModalProps> = ({ onClose, onSave, on
             )}
           </div>
           
+          {showLast4 && (
           <div>
               <label htmlFor="last-4" className={labelStyle}>Last 4 Digits (Optional)</label>
               <input
@@ -559,6 +588,7 @@ const EditAccountModal: React.FC<EditAccountModalProps> = ({ onClose, onSave, on
                 className={INPUT_BASE_STYLE}
               />
           </div>
+          )}
 
           <div className="p-4 bg-black/5 dark:bg-white/5 rounded-lg">
             <div className="flex justify-between items-center">

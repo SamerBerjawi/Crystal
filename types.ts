@@ -79,6 +79,7 @@ export interface Account {
   model?: string;
   year?: number;
   licensePlate?: string;
+  registrationCountryCode?: string;
   vin?: string;
   fuelType?: FuelType;
   ownership?: VehicleOwnership;
@@ -88,6 +89,9 @@ export interface Account {
   leaseStartDate?: string;
   leaseEndDate?: string;
   annualMileageAllowance?: number;
+  leasePaymentAmount?: number;
+  leasePaymentDay?: number;
+  leasePaymentAccountId?: string;
   // Mileage
   mileageLogs?: MileageLog[];
   imageUrl?: string;
