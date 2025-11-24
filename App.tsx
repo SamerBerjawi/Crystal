@@ -1255,6 +1255,14 @@ const App: React.FC = () => {
   const viewingAccount = useMemo(() => accounts.find(a => a.id === viewingAccountId), [accounts, viewingAccountId]);
   const currentUser = useMemo(() => isDemoMode ? demoUser : user, [isDemoMode, demoUser, user]);
 
+  // Reset the account detail view if the referenced account no longer exists to avoid state updates during render
+  useEffect(() => {
+    if (viewingAccountId && !viewingAccount) {
+      setViewingAccountId(null);
+      setCurrentPage('Dashboard');
+    }
+  }, [viewingAccount, viewingAccountId]);
+
   const renderPage = () => {
     if (viewingAccountId) {
       if (viewingAccount) {
@@ -1264,10 +1272,8 @@ const App: React.FC = () => {
           setViewingAccountId={setViewingAccountId}
           saveAccount={handleSaveAccount}
         />
-      } else {
-        setViewingAccountId(null); // Account not found, go back to dashboard
-        setCurrentPage('Dashboard');
       }
+      return <PageLoader label="Loading account..." />;
     }
 
     switch (currentPage) {
@@ -1290,7 +1296,6 @@ const App: React.FC = () => {
         return <Accounts accounts={accounts} transactions={transactions} saveAccount={handleSaveAccount} deleteAccount={handleDeleteAccount} setCurrentPage={setCurrentPage} setAccountFilter={setAccountFilter} setViewingAccountId={setViewingAccountId} saveTransaction={handleSaveTransaction} accountOrder={accountOrder} setAccountOrder={setAccountOrder} sortBy={accountsSortBy} setSortBy={setAccountsSortBy} warrants={warrants} onToggleAccountStatus={handleToggleAccountStatus} />;
       case 'Transactions':
         return <Transactions accountFilter={accountFilter} setAccountFilter={setAccountFilter} tagFilter={tagFilter} setTagFilter={setTagFilter} />;
-        return <Transactions accountFilter={accountFilter} setAccountFilter={setAccountFilter} incomeCategories={incomeCategories} expenseCategories={expenseCategories} tags={tags} tagFilter={tagFilter} setTagFilter={setTagFilter} saveRecurringTransaction={handleSaveRecurringTransaction} />;
       case 'Budget':
         // FIX: Add `preferences` to the `Budgeting` component to resolve the missing prop error.
         return <Budgeting budgets={budgets} transactions={transactions} expenseCategories={expenseCategories} saveBudget={handleSaveBudget} deleteBudget={handleDeleteBudget} accounts={accounts} preferences={preferences} />;
