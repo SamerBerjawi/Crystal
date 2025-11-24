@@ -76,10 +76,17 @@ export const parseDateAsUTC = (dateString: string, timeZone?: string): Date => {
 
     if (isNaN(baseDate.getTime())) return new Date(0);
 
-    // Align the parsed date to the user's preferred timezone to avoid off-by-one issues.
+    // Align the parsed date to midnight in the user's preferred timezone so that
+    // grouping by day and range comparisons remain consistent even when the
+    // preferred timezone is not UTC.
     const asLocale = new Date(baseDate.toLocaleString('en-US', { timeZone: tz }));
-    const offsetMinutes = baseDate.getTime() - asLocale.getTime();
-    return new Date(baseDate.getTime() + offsetMinutes);
+    const offsetMs = asLocale.getTime() - baseDate.getTime();
+    return new Date(baseDate.getTime() - offsetMs);
+};
+
+export const formatDateKey = (date: Date, timeZone?: string): string => {
+    const tz = getPreferredTimeZone(timeZone);
+    return new Intl.DateTimeFormat('en-CA', { timeZone: tz }).format(date);
 };
 
 export function calculateAccountTotals(accounts: Account[]) {
@@ -102,9 +109,11 @@ export function calculateAccountTotals(accounts: Account[]) {
 }
 
 export function getDateRange(duration: Duration, allTransactions: Transaction[] = []): { start: Date, end: Date } {
+    const tz = getPreferredTimeZone();
     const now = new Date();
-    const end = new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), now.getUTCDate(), 23, 59, 59, 999));
-    const start = new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), now.getUTCDate(), 0, 0, 0, 0));
+    const nowInPreferredTz = new Date(now.toLocaleString('en-US', { timeZone: tz }));
+    const end = new Date(Date.UTC(nowInPreferredTz.getUTCFullYear(), nowInPreferredTz.getUTCMonth(), nowInPreferredTz.getUTCDate(), 23, 59, 59, 999));
+    const start = new Date(Date.UTC(nowInPreferredTz.getUTCFullYear(), nowInPreferredTz.getUTCMonth(), nowInPreferredTz.getUTCDate(), 0, 0, 0, 0));
 
     switch (duration) {
         case 'TODAY':
