@@ -504,8 +504,7 @@ const Dashboard: React.FC<DashboardProps> = ({ user, activeGoalIds, selectedAcco
     const dailyChanges = new Map<string, number>();
     for (const tx of transactionsInPeriod) {
         const dateStr = tx.date;
-        const change = convertToEur(tx.amount, tx.currency);
-        dailyChanges.set(dateStr, (dailyChanges.get(dateStr) || 0) + change);
+        dailyChanges.set(dateStr, (dailyChanges.get(dateStr) || 0) + convertToEur(tx.amount, tx.currency));
     }
     
     const data: { name: string, value: number }[] = [];

@@ -779,6 +779,7 @@ const AccountDetail: React.FC<AccountDetailProps> = ({ account, setCurrentPage, 
         const transactionsToReverse = accountTransactions.filter(entry => entry.parsedDate >= startDate && entry.parsedDate <= new Date());
 
         const totalChangeSinceStart = transactionsToReverse.reduce((sum, entry) => sum + entry.convertedAmount, 0);
+
         const startingBalance = convertToEur(account.balance, account.currency) - totalChangeSinceStart;
 
         const dailyChanges = new Map<string, number>();
