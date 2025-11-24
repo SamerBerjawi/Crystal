@@ -213,7 +213,7 @@ const ForecastChart: React.FC<ForecastChartProps> = ({ data, oneTimeGoals, lowes
 
   return (
     <div style={{ width: '100%', height: '400px' }}>
-      <ResponsiveContainer>
+      <ResponsiveContainer minWidth={0} minHeight={0} debounce={50}>
         {showIndividualLines ? (
              <LineChart 
                 data={data} 

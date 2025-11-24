@@ -1,3 +1,4 @@
+
 import React from 'react';
 import { LineChart, Line, XAxis, YAxis, Tooltip, ResponsiveContainer, CartesianGrid, Label } from 'recharts';
 import { MileageLog } from '../types';
@@ -44,7 +45,7 @@ const VehicleMileageChart: React.FC<VehicleMileageChartProps> = ({ logs }) => {
     <Card className="h-full flex flex-col">
       <h3 className="text-base font-semibold text-light-text-secondary dark:text-dark-text-secondary mb-4">Mileage History</h3>
       <div className="flex-grow" style={{ width: '100%', height: '200px' }}>
-        <ResponsiveContainer>
+        <ResponsiveContainer minWidth={0} minHeight={0} debounce={50}>
           <LineChart data={sortedLogs} margin={{ top: 5, right: 20, left: 10, bottom: 5 }}>
              <CartesianGrid strokeDasharray="3 3" stroke="var(--light-separator, #E5E7EB)" opacity={0.5} vertical={false} />
             <XAxis 

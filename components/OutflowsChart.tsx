@@ -1,3 +1,4 @@
+
 import React from 'react';
 import { BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, Cell, CartesianGrid } from 'recharts';
 import { CategorySpending } from '../types';
@@ -31,7 +32,7 @@ const OutflowsChart: React.FC<OutflowsChartProps> = ({ data, onCategoryClick }) 
 
   return (
     <div style={{ width: '100%', height: '100%', minHeight: '300px' }}>
-      <ResponsiveContainer width="100%" height="100%">
+      <ResponsiveContainer width="100%" height="100%" minWidth={0} minHeight={0} debounce={50}>
         <BarChart
           data={data}
           layout="vertical"

@@ -1,3 +1,4 @@
+
 import React, { useMemo } from 'react';
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Legend, ReferenceLine } from 'recharts';
 import { Transaction, Duration } from '../types';
@@ -73,7 +74,7 @@ const CashFlowChart: React.FC<CashFlowChartProps> = ({ transactions, duration })
     <Card className="h-full flex flex-col">
       <h3 className="text-xl font-semibold mb-4 text-light-text dark:text-dark-text">Cash Flow</h3>
       <div className="flex-grow" style={{ width: '100%', minHeight: 270 }}>
-        <ResponsiveContainer>
+        <ResponsiveContainer minWidth={0} minHeight={0} debounce={50}>
           <BarChart data={chartData} margin={{ top: 5, right: 20, left: 0, bottom: 5 }}>
             <CartesianGrid strokeDasharray="3 3" stroke="var(--light-separator, #E5E7EB)" opacity={0.5} vertical={false} />
             <XAxis 

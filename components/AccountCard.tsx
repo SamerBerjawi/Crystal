@@ -1,8 +1,9 @@
+
 import React, { useMemo } from 'react';
 import { Account } from '../types';
 import Card from './Card';
 import { convertToEur, formatCurrency } from '../utils';
-import { LineChart, Line, ResponsiveContainer } from 'recharts';
+import { LineChart, Line } from 'recharts';
 import { ACCOUNT_TYPE_STYLES } from '../constants';
 
 interface AccountCardProps {
@@ -92,11 +93,10 @@ const AccountCard: React.FC<AccountCardProps> = ({
                 {/* Right side: Balance, Sparkline, Edit button */}
                 <div className="flex items-center gap-4 ml-4">
                     <div className="w-24 h-10 shrink-0">
-                         <ResponsiveContainer width="100%" height="100%">
-                            <LineChart data={sparklineData}>
-                                <Line type="natural" dataKey="value" stroke={sparklineColor} strokeWidth={2} dot={false} />
-                            </LineChart>
-                        </ResponsiveContainer>
+                        {/* w-24 (6rem = 96px), h-10 (2.5rem = 40px) */}
+                        <LineChart width={96} height={40} data={sparklineData}>
+                             <Line type="natural" dataKey="value" stroke={sparklineColor} strokeWidth={2} dot={false} />
+                        </LineChart>
                     </div>
                     <div className="text-right shrink-0 w-32">
                         <p className={`font-bold text-xl ${isAsset ? 'text-light-text dark:text-dark-text' : 'text-red-500'}`}>

@@ -1,3 +1,4 @@
+
 import React from 'react';
 import { AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts';
 import { formatCurrency, parseDateAsUTC } from '../utils';
@@ -56,7 +57,7 @@ const NetWorthChart: React.FC<NetWorthChartProps> = ({ data, lineColor = '#6366F
 
   return (
     <div className="flex-grow" style={{ width: '100%', height: '270px' }}>
-      <ResponsiveContainer>
+      <ResponsiveContainer minWidth={0} minHeight={0} debounce={50}>
         <AreaChart
           data={data}
           margin={{ top: 10, right: 10, left: -10, bottom: 0 }}

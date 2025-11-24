@@ -1,3 +1,4 @@
+
 import React from 'react';
 import { PieChart, Pie, Cell, ResponsiveContainer, Tooltip, Legend } from 'recharts';
 import { formatCurrency } from '../utils';
@@ -37,7 +38,7 @@ const PortfolioDistributionChart: React.FC<PortfolioDistributionChartProps> = ({
 
   return (
     <div className="h-full w-full relative" style={{ minHeight: 270 }}>
-        <ResponsiveContainer>
+        <ResponsiveContainer minWidth={0} minHeight={0} debounce={50}>
             <PieChart>
                 <Pie
                     data={data}
