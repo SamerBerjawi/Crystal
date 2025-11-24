@@ -32,6 +32,7 @@ import { v4 as uuidv4 } from 'uuid';
 import ChatFab from './components/ChatFab';
 const Chatbot = lazy(() => import('./components/Chatbot'));
 import { convertToEur, CONVERSION_RATES, arrayToCSV, downloadCSV, parseDateAsUTC } from './utils';
+import { fetchYahooPrices } from '../utils/investmentPrices';
 import { useDebounce } from './hooks/useDebounce';
 import { useAuth } from './hooks/useAuth';
 import useLocalStorage from './hooks/useLocalStorage';
@@ -159,10 +160,11 @@ const App: React.FC = () => {
   
   // State for AI Chat
   const [isChatOpen, setIsChatOpen] = useState(false);
-  
+
   // State for Warrant prices
   const [manualWarrantPrices, setManualWarrantPrices] = useState<Record<string, number | undefined>>(initialFinancialData.manualWarrantPrices || {});
   const [lastUpdated, setLastUpdated] = useState<Date | null>(null);
+  const [investmentPrices, setInvestmentPrices] = useState<Record<string, number | null>>({});
 
   const warrantPrices = useMemo(() => {
     const resolved: Record<string, number | null> = {};
@@ -212,29 +214,67 @@ const App: React.FC = () => {
     setLastUpdated(new Date());
   }, []);
 
+  const refreshInvestmentPrices = useCallback(async () => {
+    if (typeof window === 'undefined') return;
+
+    const investmentAccountsWithSymbols = accounts
+      .filter(acc => acc.type === 'Investment' && acc.symbol)
+      .filter(acc => !warrants.some(w => w.isin === acc.symbol));
+
+    if (investmentAccountsWithSymbols.length === 0) {
+      setInvestmentPrices({});
+      return;
+    }
+
+    const targets = investmentAccountsWithSymbols.map(acc => ({
+      symbol: acc.symbol as string,
+      subType: acc.subType,
+    }));
+
+    const prices = await fetchYahooPrices(targets);
+    setInvestmentPrices(prices);
+  }, [accounts, warrants]);
+
   useEffect(() => {
     const updatedAccounts = accounts.map(account => {
-        // FIX: The type 'Crypto' is not a valid AccountType. 'Crypto' is a subtype of 'Investment'.
-        // The check is simplified to only verify if the account type is 'Investment'.
-        if (account.symbol && account.type === 'Investment' && warrantPrices[account.symbol] !== undefined) {
-            const price = warrantPrices[account.symbol];
-            const quantity = investmentTransactions
-                .filter(tx => tx.symbol === account.symbol)
-                .reduce((total, tx) => total + (tx.type === 'buy' ? tx.quantity : -tx.quantity), 0)
-                + warrants
-                .filter(w => w.isin === account.symbol)
-                .reduce((total, w) => total + w.quantity, 0);
-            
-            return { ...account, balance: price !== null ? quantity * price : 0 };
-        }
-        return account;
+      // FIX: The type 'Crypto' is not a valid AccountType. 'Crypto' is a subtype of 'Investment'.
+      // The check is simplified to only verify if the account type is 'Investment'.
+      if (account.symbol && account.type === 'Investment' && warrantPrices[account.symbol] !== undefined) {
+        const price = warrantPrices[account.symbol];
+        const quantity = investmentTransactions
+            .filter(tx => tx.symbol === account.symbol)
+            .reduce((total, tx) => total + (tx.type === 'buy' ? tx.quantity : -tx.quantity), 0)
+            + warrants
+            .filter(w => w.isin === account.symbol)
+            .reduce((total, w) => total + w.quantity, 0);
+
+        return { ...account, balance: price !== null ? quantity * price : 0 };
+      }
+      if (account.symbol && account.type === 'Investment' && investmentPrices[account.symbol] !== undefined) {
+        const price = investmentPrices[account.symbol];
+        const quantity = investmentTransactions
+          .filter(tx => tx.symbol === account.symbol)
+          .reduce((total, tx) => total + (tx.type === 'buy' ? tx.quantity : -tx.quantity), 0)
+          + warrants
+          .filter(w => w.isin === account.symbol)
+          .reduce((total, w) => total + w.quantity, 0);
+
+        return { ...account, balance: price !== null ? quantity * price : 0 };
+      }
+      return account;
     });
 
     if (JSON.stringify(updatedAccounts) !== JSON.stringify(accounts)) {
         setAccounts(updatedAccounts);
     }
-  // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [warrantPrices]);
+  }, [accounts, investmentPrices, investmentTransactions, warrantPrices, warrants]);
+
+  useEffect(() => {
+    refreshInvestmentPrices();
+    if (typeof window === 'undefined') return;
+    const intervalId = window.setInterval(refreshInvestmentPrices, 5 * 60 * 1000);
+    return () => window.clearInterval(intervalId);
+  }, [refreshInvestmentPrices]);
 
   const loadAllFinancialData = useCallback((data: FinancialData | null, options?: { skipNextSave?: boolean }) => {
     const dataToLoad = data || initialFinancialData;
