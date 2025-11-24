@@ -1,4 +1,5 @@
 
+
 // FIX: Import `useMemo` from React to resolve the 'Cannot find name' error.
 import React, { useState, useEffect, useMemo, useCallback, Suspense, lazy, useRef } from 'react';
 import Sidebar from './components/Sidebar';
@@ -1296,36 +1297,6 @@ const App: React.FC = () => {
     }
     safeLocalStorage.setItem('theme', theme);
   }, [theme]);
-
-  // Preload page bundles once data is available to speed up navigation
-  useEffect(() => {
-    if (!isDataLoaded) return;
-
-    const preloadPages = () => {
-      pagePreloaders.forEach(loader => {
-        loader().catch(() => {});
-      });
-    };
-
-    const idleCallback = (window as any).requestIdleCallback as ((cb: () => void) => number) | undefined;
-    let idleId: number | undefined;
-    let timeoutId: ReturnType<typeof setTimeout> | undefined;
-
-    if (idleCallback) {
-      idleId = idleCallback(preloadPages);
-    } else {
-      timeoutId = window.setTimeout(preloadPages, 500);
-    }
-
-    return () => {
-      if (idleId !== undefined && (window as any).cancelIdleCallback) {
-        (window as any).cancelIdleCallback(idleId);
-      }
-      if (timeoutId) {
-        clearTimeout(timeoutId);
-      }
-    };
-  }, [isDataLoaded]);
   
   const viewingAccount = useMemo(() => accounts.find(a => a.id === viewingAccountId), [accounts, viewingAccountId]);
   const currentUser = useMemo(() => isDemoMode ? demoUser : user, [isDemoMode, demoUser, user]);
@@ -1451,6 +1422,7 @@ const App: React.FC = () => {
       saveRecurringTransaction: handleSaveRecurringTransaction,
       deleteRecurringTransaction: handleDeleteRecurringTransaction,
       saveRecurringOverride: handleSaveRecurringOverride,
+// FIX: In the schedule context value, adjusted the signature of 'deleteRecurringOverride' to accept both 'recurringTransactionId' and 'originalDate' as parameters, aligning it with its implementation in 'handleDeleteRecurringOverride'.
       deleteRecurringOverride: handleDeleteRecurringOverride,
       saveLoanPaymentOverrides: handleSaveLoanPaymentOverrides,
       saveBillPayment: handleSaveBillPayment,

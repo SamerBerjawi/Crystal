@@ -3,6 +3,7 @@
 
 
 
+
 import React, { useMemo, useState, useCallback } from 'react';
 import { Account, Transaction, Category, Duration, Page, CategorySpending, Widget, WidgetConfig, DisplayTransaction, RecurringTransaction, AccountDetailProps, Tag, ScheduledPayment, MileageLog } from '../types';
 import { formatCurrency, getDateRange, convertToEur, calculateStatementPeriods, getCreditCardStatementDetails, parseDateAsUTC, formatDateKey } from '../utils';
@@ -818,6 +819,18 @@ const AccountDetail: React.FC<AccountDetailProps> = ({ account, setCurrentPage, 
     
     const [widgets, setWidgets] = useLocalStorage<WidgetConfig[]>(`account-detail-layout-${account.id}`, allWidgets.map(w => ({ id: w.id, title: w.name, w: w.defaultW, h: w.defaultH })));
 
+// FIX: Implemented the 'handleResize' function to manage widget dimensions, resolving a type error where an incompatible function was passed to the 'onResize' prop.
+    const handleResize = (widgetId: string, dimension: 'w' | 'h', change: 1 | -1) => {
+        setWidgets(prev => prev.map(w => {
+            if (w.id === widgetId) {
+                const newDim = w[dimension] + change;
+                if (dimension === 'w' && (newDim < 1 || newDim > 4)) return w;
+                if (dimension === 'h' && (newDim < 1 || newDim > 3)) return w;
+                return { ...w, [dimension]: newDim };
+            }
+            return w;
+        }));
+    };
     const removeWidget = (widgetId: string) => setWidgets(prev => prev.filter(w => w.id !== widgetId));
     const addWidget = (widgetId: string) => {
         const widgetToAdd = allWidgets.find(w => w.id === widgetId);
@@ -888,7 +901,7 @@ const AccountDetail: React.FC<AccountDetailProps> = ({ account, setCurrentPage, 
                   if (!widgetDetails) return null;
                   const WidgetComponent = widgetDetails.component;
                   return (
-                      <WidgetWrapper key={widget.id} title={widget.title} w={widget.w} h={widget.h} onRemove={() => removeWidget(widget.id)} onResize={() => {}} isEditMode={isEditMode} isBeingDragged={draggedWidgetId === widget.id} isDragOver={dragOverWidgetId === widget.id} onDragStart={e => handleDragStart(e, widget.id)} onDragEnter={e => handleDragEnter(e, widget.id)} onDragLeave={handleDragLeave} onDrop={e => handleDrop(e, widget.id)} onDragEnd={handleDragEnd}>
+                      <WidgetWrapper key={widget.id} title={widget.title} w={widget.w} h={widget.h} onRemove={() => removeWidget(widget.id)} onResize={(dim, change) => handleResize(widget.id, dim, change)} isEditMode={isEditMode} isBeingDragged={draggedWidgetId === widget.id} isDragOver={dragOverWidgetId === widget.id} onDragStart={e => handleDragStart(e, widget.id)} onDragEnter={e => handleDragEnter(e, widget.id)} onDragLeave={handleDragLeave} onDrop={e => handleDrop(e, widget.id)} onDragEnd={handleDragEnd}>
                           <WidgetComponent {...widgetDetails.props as any} />
                       </WidgetWrapper>
                   );

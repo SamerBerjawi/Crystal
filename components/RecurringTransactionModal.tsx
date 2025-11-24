@@ -1,4 +1,5 @@
 
+
 import React, { useState, useMemo, useEffect } from 'react';
 import Modal from './Modal';
 import { Account, Category, RecurringTransaction, RecurrenceFrequency, WeekendAdjustment } from '../types';
@@ -10,7 +11,8 @@ interface RecurringTransactionModalProps {
     accounts: Account[];
     incomeCategories: Category[];
     expenseCategories: Category[];
-    recurringTransactionToEdit?: RecurringTransaction | null;
+    // FIX: Updated the type to allow an optional 'id' property, aligning it with how new recurring transactions are initialized and passed from the parent component.
+    recurringTransactionToEdit?: (Omit<RecurringTransaction, 'id'> & { id?: string }) | null;
 }
 
 const CategoryOptions: React.FC<{ categories: Category[] }> = ({ categories }) => (

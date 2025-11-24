@@ -23,7 +23,8 @@ interface BudgetsContextValue {
 
 interface GoalsContextValue {
   financialGoals: FinancialGoal[];
-  saveFinancialGoal: (goal: FinancialGoal) => void;
+  // FIX: Updated the type to allow an optional 'id', aligning it with the data structure used when creating new goals.
+  saveFinancialGoal: (goal: Omit<FinancialGoal, 'id'> & { id?: string }) => void;
   deleteFinancialGoal: (goalId: string) => void;
 }
 
@@ -32,12 +33,15 @@ interface ScheduleContextValue {
   recurringTransactionOverrides: RecurringTransactionOverride[];
   loanPaymentOverrides: LoanPaymentOverrides;
   billsAndPayments: BillPayment[];
-  saveRecurringTransaction: (recurringData: RecurringTransaction) => void;
+  // FIX: Updated the type to allow an optional 'id', aligning it with the data structure for new transactions.
+  saveRecurringTransaction: (recurringData: Omit<RecurringTransaction, 'id'> & { id?: string }) => void;
   deleteRecurringTransaction: (recurringId: string) => void;
   saveRecurringOverride: (override: RecurringTransactionOverride) => void;
-  deleteRecurringOverride: (overrideId: string) => void;
-  saveLoanPaymentOverrides: (overrides: LoanPaymentOverrides) => void;
-  saveBillPayment: (bill: BillPayment) => void;
+  // FIX: Modified the signature to accept 'recurringTransactionId' and 'originalDate' to correctly identify and delete an override.
+  deleteRecurringOverride: (recurringTransactionId: string, originalDate: string) => void;
+  saveLoanPaymentOverrides: (accountId: string, overrides: Record<number, Partial<ScheduledPayment>>) => void;
+  // FIX: Updated the type to allow an optional 'id' for new bill payments.
+  saveBillPayment: (bill: Omit<BillPayment, 'id'> & { id?: string }) => void;
   deleteBillPayment: (billId: string) => void;
   markBillAsPaid: (billId: string, paymentAccountId: string, paymentDate: string) => void;
 }

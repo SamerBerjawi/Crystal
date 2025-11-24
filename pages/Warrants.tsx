@@ -4,6 +4,7 @@ import { BTN_PRIMARY_STYLE } from '../constants';
 import Card from '../components/Card';
 import { formatCurrency, parseDateAsUTC } from '../utils';
 import WarrantModal from '../components/WarrantModal';
+import WarrantPriceModal from '../components/WarrantPriceModal';
 import PortfolioDistributionChart from '../components/PortfolioDistributionChart';
 
 interface WarrantsProps {
@@ -26,27 +27,13 @@ const SkeletonLoader: React.FC<{ className?: string }> = ({ className = 'w-24' }
 const Warrants: React.FC<WarrantsProps> = ({ warrants, saveWarrant, deleteWarrant, prices, manualPrices, lastUpdated, onManualPriceChange }) => {
     const [isWarrantModalOpen, setWarrantModalOpen] = useState(false);
     const [editingWarrant, setEditingWarrant] = useState<Warrant | null>(null);
+    const [isPriceModalOpen, setIsPriceModalOpen] = useState(false);
+    const [editingHoldingForPrice, setEditingHoldingForPrice] = useState<{isin: string, name: string} | null>(null);
 
-    const handleManualPrice = useCallback((isin: string) => {
-        const existingPrice = manualPrices[isin];
-        const userInput = window.prompt('Enter manual price in EUR (leave empty to clear the override)', existingPrice !== undefined ? existingPrice.toString() : '');
-
-        if (userInput === null) return;
-
-        const trimmed = userInput.trim();
-        if (trimmed === '') {
-            onManualPriceChange(isin, null);
-            return;
-        }
-
-        const parsed = parseFloat(trimmed.replace(',', '.'));
-        if (isNaN(parsed)) {
-            alert('Please enter a valid number.');
-            return;
-        }
-
-        onManualPriceChange(isin, parsed);
-    }, [manualPrices, onManualPriceChange]);
+    const handleOpenPriceModal = useCallback((isin: string, name: string) => {
+        setEditingHoldingForPrice({ isin, name });
+        setIsPriceModalOpen(true);
+    }, []);
     
     const { holdings, totalCurrentValue, totalGrantValue, distributionData } = useMemo(() => {
         const holdingsMap: Record<string, {
@@ -72,14 +59,14 @@ const Warrants: React.FC<WarrantsProps> = ({ warrants, saveWarrant, deleteWarran
 
         const holdingsArray = Object.values(holdingsMap);
         const totalCurrentValue = holdingsArray.reduce((sum, holding) => {
-            const currentPrice = prices[holding.isin] || 0;
+            const currentPrice = prices[holding.isin] ?? 0;
             return sum + (holding.quantity * currentPrice);
         }, 0);
         
         const totalGrantValue = holdingsArray.reduce((sum, holding) => sum + holding.totalGrantValue, 0);
 
         const distributionData = holdingsArray.map((holding, index) => {
-            const currentPrice = prices[holding.isin] || 0;
+            const currentPrice = prices[holding.isin] ?? 0;
             return {
                 name: holding.isin,
                 value: holding.quantity * currentPrice,
@@ -103,6 +90,16 @@ const Warrants: React.FC<WarrantsProps> = ({ warrants, saveWarrant, deleteWarran
     return (
         <div className="space-y-8">
             {isWarrantModalOpen && <WarrantModal onClose={() => setWarrantModalOpen(false)} onSave={(w) => { saveWarrant(w); setWarrantModalOpen(false); }} warrantToEdit={editingWarrant} />}
+            {isPriceModalOpen && editingHoldingForPrice && (
+                <WarrantPriceModal
+                    onClose={() => setIsPriceModalOpen(false)}
+                    onSave={onManualPriceChange}
+                    isin={editingHoldingForPrice.isin}
+                    name={editingHoldingForPrice.name}
+                    scrapedPrice={prices[editingHoldingForPrice.isin]}
+                    manualPrice={manualPrices[editingHoldingForPrice.isin]}
+                />
+            )}
             
             <header className="flex flex-wrap justify-between items-center gap-4">
                 <div>
@@ -169,18 +166,17 @@ const Warrants: React.FC<WarrantsProps> = ({ warrants, saveWarrant, deleteWarran
                                         ) : (
                                             <p className="text-xs text-light-text-secondary dark:text-dark-text-secondary">Set a manual price to see gains</p>
                                         )}
-                                        <div className="mt-2 text-xs text-light-text-secondary dark:text-dark-text-secondary text-right space-y-1">
+                                        <div className="mt-2 flex justify-end items-center gap-2">
                                             {manualPrice !== undefined ? (
-                                                <p>Manual price active: {formatCurrency(manualPrice, 'EUR')}</p>
+                                                <span className="text-xs bg-primary-100 dark:bg-primary-900/50 text-primary-700 dark:text-primary-200 px-2 py-1 rounded-full">
+                                                    Manual: {formatCurrency(manualPrice, 'EUR')}
+                                                </span>
                                             ) : (
-                                                <p>No manual price set</p>
+                                                 <span className="text-xs text-light-text-secondary dark:text-dark-text-secondary">Live price</span>
                                             )}
-                                            <div className="flex justify-end gap-2">
-                                                <button onClick={() => handleManualPrice(holding.isin)} className="text-primary-500 hover:underline">Set manual</button>
-                                                {manualPrice !== undefined && (
-                                                    <button onClick={() => onManualPriceChange(holding.isin, null)} className="text-red-500 hover:underline">Clear</button>
-                                                )}
-                                            </div>
+                                            <button onClick={() => handleOpenPriceModal(holding.isin, holding.name)} className="p-1 rounded-full text-light-text-secondary dark:text-dark-text-secondary hover:bg-black/10 dark:hover:bg-white/10" title="Set Manual Price">
+                                                <span className="material-symbols-outlined text-base">edit_note</span>
+                                            </button>
                                         </div>
                                     </div>
                                 </div>

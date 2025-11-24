@@ -1,4 +1,5 @@
 
+
 import React, { useState, useMemo, useEffect, useRef } from 'react';
 import { Account, Page, AccountType, Transaction, Warrant } from '../types';
 import AddAccountModal from '../components/AddAccountModal';
@@ -20,7 +21,7 @@ interface AccountsProps {
     setAccountFilter: (accountName: string | null) => void;
     setViewingAccountId: (id: string) => void;
     // FIX: Changed 'Omit<Account, "id">' to 'Omit<Transaction, "id">' to correctly type the 'saveTransaction' prop.
-    saveTransaction: (transactions: (Omit<Transaction, "id"> & { id?: string })[], idsToDelete?: string[]) => void;
+    saveTransaction: (transactions: (Omit<Transaction, 'id'> & { id?: string })[], idsToDelete?: string[]) => void;
     accountOrder: string[];
     setAccountOrder: React.Dispatch<React.SetStateAction<string[]>>;
     sortBy: 'name' | 'balance' | 'manual';
@@ -271,7 +272,6 @@ const Accounts: React.FC<AccountsProps> = ({ accounts, transactions, saveAccount
         currency: adjustingAccount.currency,
     };
     
-    // FIX: Removed unnecessary 'as any' cast after correcting the prop type.
     saveTransaction([txData], []);
     closeAdjustModal();
   };

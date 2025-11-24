@@ -1,7 +1,9 @@
 
+
 import React, { useState, useMemo, useRef, useEffect } from 'react';
 import { INPUT_BASE_STYLE, SELECT_WRAPPER_STYLE, SELECT_ARROW_STYLE, BTN_PRIMARY_STYLE, BTN_SECONDARY_STYLE, SELECT_STYLE, CHECKBOX_STYLE } from '../constants';
-import { Transaction, Account, DisplayTransaction, RecurringTransaction } from '../types';
+// FIX: Imported the 'Category' type to resolve 'Cannot find name' errors throughout the component.
+import { Transaction, Account, DisplayTransaction, RecurringTransaction, Category } from '../types';
 import Card from '../components/Card';
 import { formatCurrency, fuzzySearch, convertToEur, arrayToCSV, downloadCSV, parseDateAsUTC } from '../utils';
 import AddTransactionModal from '../components/AddTransactionModal';
@@ -49,7 +51,8 @@ const Transactions: React.FC<TransactionsProps> = ({ accountFilter, setAccountFi
   const [isBulkEditModalOpen, setBulkEditModalOpen] = useState(false);
   const [isDeleteConfirmOpen, setIsDeleteConfirmOpen] = useState(false);
   const [isRecurringModalOpen, setIsRecurringModalOpen] = useState(false);
-  const [transactionToMakeRecurring, setTransactionToMakeRecurring] = useState<RecurringTransaction | null>(null);
+  // FIX: Updated state type to allow 'id' to be optional, resolving a type mismatch when setting a new recurring transaction for editing.
+  const [transactionToMakeRecurring, setTransactionToMakeRecurring] = useState<(Omit<RecurringTransaction, 'id'> & { id?: string }) | null>(null);
   const searchInputRef = useRef<HTMLInputElement>(null);
   const [contextMenu, setContextMenu] = useState<{ x: number, y: number, transaction: DisplayTransaction } | null>(null);
   const contextMenuRef = useRef<HTMLDivElement>(null);
@@ -439,7 +442,7 @@ const Transactions: React.FC<TransactionsProps> = ({ accountFilter, setAccountFi
         type = transaction.type;
     }
 
-    const initialRecurringData: RecurringTransaction = {
+    const initialRecurringData: Omit<RecurringTransaction, 'id'> & { id?: string } = {
         id: '', // No ID, so modal knows it's a new entry
         accountId: transaction.accountId,
         toAccountId: toAccountId,
@@ -550,7 +553,7 @@ const Transactions: React.FC<TransactionsProps> = ({ accountFilter, setAccountFi
         <RecurringTransactionModal
             onClose={() => setIsRecurringModalOpen(false)}
             onSave={(data) => {
-                saveRecurringTransaction(data);
+                if(saveRecurringTransaction) saveRecurringTransaction(data);
                 setIsRecurringModalOpen(false);
                 setSelectedIds(new Set()); // Clear selection
             }}
@@ -771,50 +774,4 @@ const Transactions: React.FC<TransactionsProps> = ({ accountFilter, setAccountFi
                                     <div className="hidden lg:block col-span-2 text-sm text-light-text-secondary dark:text-dark-text-secondary truncate">{tx.merchant}</div>
                                     <div className="hidden md:block col-span-2 text-sm text-light-text-secondary dark:text-dark-text-secondary truncate">{tx.category}</div>
                                     <div className="hidden lg:flex col-span-1 flex-wrap gap-1">{tx.tagIds?.map(tagId => { const tag = tags.find(t => t.id === tagId); if (!tag) return null; return (<span key={tag.id} className="text-sm px-2 py-1 rounded-full inline-flex items-center justify-center text-center" style={{ backgroundColor: `${tag.color}30`, color: tag.color }} title={tag.name}>{tag.name}</span>);})}</div>
-                                    <div className={`col-span-12 md:col-span-2 font-mono font-semibold text-right text-base whitespace-nowrap ${amountColor}`}>{tx.isTransfer && selectedAccountIds.length === 0 ? '-/+ ' + formatCurrency(convertToEur(Math.abs(amount), tx.currency), 'EUR') : formatCurrency(convertToEur(amount, tx.currency), 'EUR', { showPlusSign: true })}</div>
-                                  </div>
-                                  <div className="text-right"><button onClick={(e) => {e.stopPropagation(); handleOpenEditModal(tx)}} className="text-light-text-secondary dark:text-dark-text-secondary p-2 rounded-full hover:bg-black/5 dark:hover:bg-white/5 transition-colors sm:opacity-0 group-hover:sm:opacity-100"><span className="material-symbols-outlined text-base">edit</span></button></div>
-                                </div>
-                                )
-                            })}
-                        </div>
-                    </div>
-                    );
-                }) : (
-                    <div className="flex flex-col items-center justify-center h-full text-light-text-secondary dark:text-dark-text-secondary">
-                        <span className="material-symbols-outlined text-6xl mb-4">search_off</span>
-                        <p className="font-semibold text-lg">No Transactions Found</p>
-                        <p>Try adjusting your search or filters.</p>
-                    </div>
-                )}
-            </div>
-             {totalPages > 1 && (
-                <div className="px-6 py-3 border-t border-light-separator dark:border-dark-separator flex justify-between items-center flex-shrink-0">
-                    <button onClick={() => setCurrentPage(p => p - 1)} disabled={currentPage === 1} className={`${BTN_SECONDARY_STYLE} disabled:opacity-50`}>Previous</button>
-                    <span className="text-sm font-semibold">Page {currentPage} of {totalPages}</span>
-                    <button onClick={() => setCurrentPage(p => p + 1)} disabled={currentPage === totalPages} className={`${BTN_SECONDARY_STYLE} disabled:opacity-50`}>Next</button>
-                </div>
-            )}
-        </Card>
-        {selectedIds.size > 0 && (
-            <div className="absolute bottom-4 inset-x-4 mx-auto max-w-2xl z-20">
-                <div className="bg-light-card/80 dark:bg-dark-card/80 backdrop-blur-sm p-3 rounded-xl shadow-lg flex flex-wrap items-center justify-between gap-2">
-                    <p className="font-semibold">{selectedIds.size} selected</p>
-                    <div className="flex items-center gap-2">
-                        <button onClick={() => handleMakeRecurring()} disabled={selectedIds.size !== 1} className="flex items-center gap-1 p-2 rounded-lg text-sm font-semibold text-light-text-secondary dark:text-dark-text-secondary hover:bg-black/5 dark:hover:bg-white/5 disabled:opacity-50 disabled:cursor-not-allowed" title={selectedIds.size !== 1 ? "Select exactly one transaction" : "Make Recurring"}>
-                            <span className="material-symbols-outlined text-base">repeat</span>Make Recurring
-                        </button>
-                        <button onClick={handleOpenCategorizeModal} disabled={containsTransfer} className="flex items-center gap-1 p-2 rounded-lg text-sm font-semibold text-light-text-secondary dark:text-dark-text-secondary hover:bg-black/5 dark:hover:bg-white/5 disabled:opacity-50 disabled:cursor-not-allowed" title={containsTransfer ? "Cannot categorize transfers" : "Categorize"}><span className="material-symbols-outlined text-base">sell</span>Categorize</button>
-                        <button onClick={() => setBulkEditModalOpen(true)} disabled={containsTransfer} className="flex items-center gap-1 p-2 rounded-lg text-sm font-semibold text-light-text-secondary dark:text-dark-text-secondary hover:bg-black/5 dark:hover:bg-white/5 disabled:opacity-50 disabled:cursor-not-allowed" title={containsTransfer ? "Cannot bulk edit transfers" : "Edit"}><span className="material-symbols-outlined text-base">edit</span>Edit</button>
-                        <button onClick={handleOpenDeleteModal} className="flex items-center gap-1 p-2 rounded-lg text-sm font-semibold text-semantic-red hover:bg-semantic-red/10"><span className="material-symbols-outlined text-base">delete</span>Delete</button>
-                        <button onClick={() => setSelectedIds(new Set())} className="p-2 rounded-full text-light-text-secondary dark:text-dark-text-secondary hover:bg-black/5 dark:hover:bg-white/5" title="Clear selection"><span className="material-symbols-outlined text-base">close</span></button>
-                    </div>
-                </div>
-            </div>
-        )}
-      </div>
-    </div>
-  );
-};
-
-export default React.memo(Transactions);
+                                    <div className={`col-span-12 md:col-span-2 font-mono font-semibold text-right text-base whitespace-nowrap ${amountColor}`}>{tx.isTransfer && selectedAccountIds.length === 0 ? '-/+ ' + formatCurrency(convertToEur(Math.abs(amount), tx.currency), 'EUR') : formatCurrency(convertToEur(amount, tx.currency), 'EUR',

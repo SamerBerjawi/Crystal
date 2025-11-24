@@ -1,4 +1,5 @@
 
+
 import React, { useMemo, useEffect, useState } from 'react';
 import { MapContainer, TileLayer, CircleMarker, Tooltip, useMap } from 'react-leaflet';
 import { Transaction } from '../types';
@@ -74,24 +75,13 @@ const TransactionMapWidget: React.FC<TransactionMapWidgetProps> = ({ transaction
         transactions: group.transactions,
       };
     });
-    return transactions
-      .filter(tx => tx.latitude !== undefined && tx.latitude !== null && tx.longitude !== undefined && tx.longitude !== null)
-      .map(tx => ({
-        id: tx.id,
-        lat: tx.latitude!,
-        lon: tx.longitude!,
-        amount: tx.amount,
-        currency: tx.currency,
-        description: tx.description,
-        date: tx.date,
-        city: tx.city,
-        country: tx.country
-      }));
+// FIX: Removed a redundant and incorrect return statement that was causing a union type with incompatible shapes, leading to type errors for 'coords' and 'count'.
   }, [transactions]);
 
   const coords: [number, number][] = locations.map(l => [l.lat, l.lon]);
 
   const maxDensity = useMemo(() => {
+// FIX: Corrected a potential error where 'loc.count' could be undefined due to an incorrect union type for 'locations'.
     return locations.reduce((max, loc) => Math.max(max, loc.count), 0) || 1;
   }, [locations]);
 
