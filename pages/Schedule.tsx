@@ -432,12 +432,12 @@ const SchedulePage: React.FC<ScheduleProps> = () => {
             initialType: type,
             initialFromAccountId: from,
             initialToAccountId: to,
+            initialCategory: category,
             initialDetails: {
                 date: item.date,
                 amount: String(Math.abs(item.amount)),
                 description: item.description,
             },
-            transactionToEdit: { category } as Transaction, // trick to pre-fill category
         };
     }, [itemToPost]);
 
@@ -593,8 +593,8 @@ const SchedulePage: React.FC<ScheduleProps> = () => {
                     initialType={initialModalData.initialType}
                     initialFromAccountId={initialModalData.initialFromAccountId}
                     initialToAccountId={initialModalData.initialToAccountId}
+                    initialCategory={initialModalData.initialCategory}
                     initialDetails={initialModalData.initialDetails}
-                    transactionToEdit={initialModalData.transactionToEdit}
                 />
             )}
             

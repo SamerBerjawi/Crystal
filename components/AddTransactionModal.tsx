@@ -1,6 +1,4 @@
 
-
-
 import React, { useState, useMemo, useEffect, useRef } from 'react';
 import Modal from './Modal';
 import { Account, Category, Transaction, Tag } from '../types';
@@ -19,6 +17,7 @@ interface AddTransactionModalProps {
   initialType?: 'expense' | 'income' | 'transfer';
   initialFromAccountId?: string;
   initialToAccountId?: string;
+  initialCategory?: string;
   tags: Tag[];
   initialDetails?: {
     date?: string;
@@ -74,7 +73,7 @@ const AccountOptions: React.FC<{ accounts: Account[] }> = ({ accounts }) => {
 };
 
 
-const AddTransactionModal: React.FC<AddTransactionModalProps> = ({ onClose, onSave, accounts, incomeCategories, expenseCategories, transactions, transactionToEdit, initialType, initialFromAccountId, initialToAccountId, tags, initialDetails }) => {
+const AddTransactionModal: React.FC<AddTransactionModalProps> = ({ onClose, onSave, accounts, incomeCategories, expenseCategories, transactions, transactionToEdit, initialType, initialFromAccountId, initialToAccountId, initialCategory, tags, initialDetails }) => {
   const isEditing = !!transactionToEdit;
 
   const defaultAccountId = useMemo(() => {
@@ -231,14 +230,14 @@ const AddTransactionModal: React.FC<AddTransactionModalProps> = ({ onClose, onSa
         setDescription(initialDetails?.description || '');
         setMerchant('');
         setAmount(initialDetails?.amount || '');
-        setCategory('');
+        setCategory(initialCategory || '');
         setPrincipalPayment(initialDetails?.principal || '');
         setInterestPayment(initialDetails?.interest || '');
         setTagIds([]);
         setLocationString('');
         setLocationData({});
     }
-  }, [transactionToEdit, isEditing, accounts, transactions, initialType, initialFromAccountId, initialToAccountId, initialDetails, defaultAccountId]);
+  }, [transactionToEdit, isEditing, accounts, transactions, initialType, initialFromAccountId, initialToAccountId, initialDetails, defaultAccountId, initialCategory]);
   
   const availableAccounts = useMemo(() => {
     return accounts.filter(acc => acc.status !== 'closed' || acc.id === fromAccountId || acc.id === toAccountId);
@@ -268,9 +267,9 @@ const AddTransactionModal: React.FC<AddTransactionModalProps> = ({ onClose, onSa
   
   useEffect(() => {
     if (!isEditing) {
-        setCategory('');
+        setCategory(initialCategory || '');
     }
-  }, [type, isEditing]);
+  }, [type, isEditing, initialCategory]);
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
