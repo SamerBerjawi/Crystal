@@ -488,7 +488,11 @@ const Dashboard: React.FC<DashboardProps> = ({ user, activeGoalIds, selectedAcco
     });
 
     const totalChangeSinceStart = transactionsToReverse.reduce((sum, tx) => {
-        return sum + convertToEur(tx.amount, tx.currency);
+        const signedAmount = tx.type === 'expense'
+            ? -Math.abs(convertToEur(tx.amount, tx.currency))
+            : Math.abs(convertToEur(tx.amount, tx.currency));
+
+        return sum + signedAmount;
     }, 0);
 
     const startingNetWorth = currentNetWorth - totalChangeSinceStart;
@@ -504,8 +508,11 @@ const Dashboard: React.FC<DashboardProps> = ({ user, activeGoalIds, selectedAcco
     const dailyChanges = new Map<string, number>();
     for (const tx of transactionsInPeriod) {
         const dateStr = tx.date;
-        const change = convertToEur(tx.amount, tx.currency);
-        dailyChanges.set(dateStr, (dailyChanges.get(dateStr) || 0) + change);
+        const signedAmount = tx.type === 'expense'
+            ? -Math.abs(convertToEur(tx.amount, tx.currency))
+            : Math.abs(convertToEur(tx.amount, tx.currency));
+
+        dailyChanges.set(dateStr, (dailyChanges.get(dateStr) || 0) + signedAmount);
     }
     
     const data: { name: string, value: number }[] = [];
