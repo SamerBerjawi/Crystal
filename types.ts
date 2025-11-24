@@ -338,7 +338,6 @@ export interface FinancialData {
     tasks: Task[];
     taskOrder?: string[];
     warrants: Warrant[];
-    scraperConfigs: ScraperConfig[];
     importExportHistory: ImportExportHistoryItem[];
     incomeCategories: Category[];
     expenseCategories: Category[];
@@ -346,10 +345,7 @@ export interface FinancialData {
     billsAndPayments: BillPayment[];
     accountOrder?: string[];
     tags?: Tag[];
-    // Warrant price metadata
-    lastSuccessfulWarrantPrices?: Record<string, number | undefined>;
     manualWarrantPrices?: Record<string, number | undefined>;
-    scrapedWarrantPrices?: Record<string, number | null>;
 }
 
 // New types for Tasks feature
