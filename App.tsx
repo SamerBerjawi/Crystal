@@ -5,24 +5,62 @@ import Sidebar from './components/Sidebar';
 import Header from './components/Header';
 import SignIn from './pages/SignIn';
 import SignUp from './pages/SignUp';
-const Dashboard = lazy(() => import('./pages/Dashboard'));
-const Accounts = lazy(() => import('./pages/Accounts'));
-const Transactions = lazy(() => import('./pages/Transactions'));
-const Budgeting = lazy(() => import('./pages/Budgeting'));
-const Forecasting = lazy(() => import('./pages/Forecasting'));
-const SettingsPage = lazy(() => import('./pages/Settings'));
-const SchedulePage = lazy(() => import('./pages/Schedule'));
-const CategoriesPage = lazy(() => import('./pages/Categories'));
-const TagsPage = lazy(() => import('./pages/Tags'));
-const PersonalInfoPage = lazy(() => import('./pages/PersonalInfo'));
-const DataManagement = lazy(() => import('./pages/DataImportExport'));
-const PreferencesPage = lazy(() => import('./pages/Preferences'));
-const AccountDetail = lazy(() => import('./pages/AccountDetail'));
-const InvestmentsPage = lazy(() => import('./pages/Investments'));
-const TasksPage = lazy(() => import('./pages/Tasks'));
-const WarrantsPage = lazy(() => import('./pages/Warrants'));
-const AIAssistantSettingsPage = lazy(() => import('./pages/AIAssistantSettings'));
-const Documentation = lazy(() => import('./pages/Documentation'));
+const loadDashboard = () => import('./pages/Dashboard');
+const Dashboard = lazy(loadDashboard);
+const loadAccounts = () => import('./pages/Accounts');
+const Accounts = lazy(loadAccounts);
+const loadTransactions = () => import('./pages/Transactions');
+const Transactions = lazy(loadTransactions);
+const loadBudgeting = () => import('./pages/Budgeting');
+const Budgeting = lazy(loadBudgeting);
+const loadForecasting = () => import('./pages/Forecasting');
+const Forecasting = lazy(loadForecasting);
+const loadSettingsPage = () => import('./pages/Settings');
+const SettingsPage = lazy(loadSettingsPage);
+const loadSchedulePage = () => import('./pages/Schedule');
+const SchedulePage = lazy(loadSchedulePage);
+const loadCategoriesPage = () => import('./pages/Categories');
+const CategoriesPage = lazy(loadCategoriesPage);
+const loadTagsPage = () => import('./pages/Tags');
+const TagsPage = lazy(loadTagsPage);
+const loadPersonalInfoPage = () => import('./pages/PersonalInfo');
+const PersonalInfoPage = lazy(loadPersonalInfoPage);
+const loadDataManagement = () => import('./pages/DataImportExport');
+const DataManagement = lazy(loadDataManagement);
+const loadPreferencesPage = () => import('./pages/Preferences');
+const PreferencesPage = lazy(loadPreferencesPage);
+const loadAccountDetail = () => import('./pages/AccountDetail');
+const AccountDetail = lazy(loadAccountDetail);
+const loadInvestmentsPage = () => import('./pages/Investments');
+const InvestmentsPage = lazy(loadInvestmentsPage);
+const loadTasksPage = () => import('./pages/Tasks');
+const TasksPage = lazy(loadTasksPage);
+const loadWarrantsPage = () => import('./pages/Warrants');
+const WarrantsPage = lazy(loadWarrantsPage);
+const loadAIAssistantSettingsPage = () => import('./pages/AIAssistantSettings');
+const AIAssistantSettingsPage = lazy(loadAIAssistantSettingsPage);
+const loadDocumentation = () => import('./pages/Documentation');
+const Documentation = lazy(loadDocumentation);
+const pagePreloaders = [
+  loadDashboard,
+  loadAccounts,
+  loadTransactions,
+  loadBudgeting,
+  loadForecasting,
+  loadSettingsPage,
+  loadSchedulePage,
+  loadCategoriesPage,
+  loadTagsPage,
+  loadPersonalInfoPage,
+  loadDataManagement,
+  loadPreferencesPage,
+  loadAccountDetail,
+  loadInvestmentsPage,
+  loadTasksPage,
+  loadWarrantsPage,
+  loadAIAssistantSettingsPage,
+  loadDocumentation,
+];
 // UserManagement is removed
 // FIX: Import FinancialData from types.ts
 // FIX: Add `Tag` to the import from `types.ts`.
@@ -1379,6 +1417,36 @@ const App: React.FC = () => {
     }
     safeLocalStorage.setItem('theme', theme);
   }, [theme]);
+
+  // Preload page bundles once data is available to speed up navigation
+  useEffect(() => {
+    if (!isDataLoaded) return;
+
+    const preloadPages = () => {
+      pagePreloaders.forEach(loader => {
+        loader().catch(() => {});
+      });
+    };
+
+    const idleCallback = (window as any).requestIdleCallback as ((cb: () => void) => number) | undefined;
+    let idleId: number | undefined;
+    let timeoutId: ReturnType<typeof setTimeout> | undefined;
+
+    if (idleCallback) {
+      idleId = idleCallback(preloadPages);
+    } else {
+      timeoutId = window.setTimeout(preloadPages, 500);
+    }
+
+    return () => {
+      if (idleId !== undefined && (window as any).cancelIdleCallback) {
+        (window as any).cancelIdleCallback(idleId);
+      }
+      if (timeoutId) {
+        clearTimeout(timeoutId);
+      }
+    };
+  }, [isDataLoaded]);
   
   const viewingAccount = useMemo(() => accounts.find(a => a.id === viewingAccountId), [accounts, viewingAccountId]);
   const currentUser = useMemo(() => isDemoMode ? demoUser : user, [isDemoMode, demoUser, user]);
