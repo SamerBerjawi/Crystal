@@ -56,6 +56,7 @@ const Transactions: React.FC<TransactionsProps> = ({ accountFilter, setAccountFi
   const [contextMenu, setContextMenu] = useState<{ x: number, y: number, transaction: DisplayTransaction } | null>(null);
   const contextMenuRef = useRef<HTMLDivElement>(null);
   const [showFilters, setShowFilters] = useState(false);
+  const [isFiltersExpanded, setIsFiltersExpanded] = useState(false);
 
   // Pagination state
   const [currentPage, setCurrentPage] = useState(1);
@@ -678,35 +679,51 @@ const Transactions: React.FC<TransactionsProps> = ({ accountFilter, setAccountFi
                   </div>
               </div>
               
-              {/* Row 2 */}
-              <div className="md:col-span-3">
-                  <label className={labelStyle}>Account</label>
-                  <MultiAccountFilter accounts={accounts} selectedAccountIds={selectedAccountIds} setSelectedAccountIds={setSelectedAccountIds}/>
-              </div>
-              <div className="md:col-span-3">
-                  <label className={labelStyle}>Category</label>
-                  <MultiSelectFilter options={categoryOptions} selectedValues={selectedCategoryNames} onChange={setSelectedCategoryNames} placeholder="All Categories"/>
-              </div>
-              <div className="md:col-span-3">
-                  <label className={labelStyle}>Tag</label>
-                  <MultiSelectFilter options={tagOptions} selectedValues={selectedTagIds} onChange={setSelectedTagIds} placeholder="All Tags"/>
-              </div>
-              <div className="md:col-span-3">
-                  <label htmlFor="merchant-filter" className={labelStyle}>Merchant</label>
-                  <input id="merchant-filter" type="text" placeholder="e.g., Amazon" value={merchantFilter} onChange={(e) => setMerchantFilter(e.target.value)} className={`${INPUT_BASE_STYLE}`} />
-              </div>
+              {/* Collapsible Filters */}
+              {isFiltersExpanded && (
+                <>
+                  {/* Row 2 */}
+                  <div className="md:col-span-3">
+                      <label className={labelStyle}>Account</label>
+                      <MultiAccountFilter accounts={accounts} selectedAccountIds={selectedAccountIds} setSelectedAccountIds={setSelectedAccountIds}/>
+                  </div>
+                  <div className="md:col-span-3">
+                      <label className={labelStyle}>Category</label>
+                      <MultiSelectFilter options={categoryOptions} selectedValues={selectedCategoryNames} onChange={setSelectedCategoryNames} placeholder="All Categories"/>
+                  </div>
+                  <div className="md:col-span-3">
+                      <label className={labelStyle}>Tag</label>
+                      <MultiSelectFilter options={tagOptions} selectedValues={selectedTagIds} onChange={setSelectedTagIds} placeholder="All Tags"/>
+                  </div>
+                  <div className="md:col-span-3">
+                      <label htmlFor="merchant-filter" className={labelStyle}>Merchant</label>
+                      <input id="merchant-filter" type="text" placeholder="e.g., Amazon" value={merchantFilter} onChange={(e) => setMerchantFilter(e.target.value)} className={`${INPUT_BASE_STYLE}`} />
+                  </div>
 
-              {/* Row 3 */}
-              <div className="md:col-span-5 flex items-end gap-2">
-                  <div className="flex-1"><label htmlFor="start-date" className={labelStyle}>From Date</label><input id="start-date" type="date" value={startDate} onChange={e => setStartDate(e.target.value)} className={`${INPUT_BASE_STYLE}`}/></div>
-                  <div className="flex-1"><label htmlFor="end-date" className={labelStyle}>To Date</label><input id="end-date" type="date" value={endDate} onChange={e => setEndDate(e.target.value)} className={`${INPUT_BASE_STYLE}`}/></div>
-              </div>
-              <div className="md:col-span-5 flex items-end gap-2">
-                  <div className="flex-1"><label htmlFor="min-amount" className={labelStyle}>Min Amount</label><input id="min-amount" type="number" placeholder="0.00" value={minAmount} onChange={e => setMinAmount(e.target.value)} className={`${INPUT_BASE_STYLE}`}/></div>
-                  <div className="flex-1"><label htmlFor="max-amount" className={labelStyle}>Max Amount</label><input id="max-amount" type="number" placeholder="1000.00" value={maxAmount} onChange={e => setMaxAmount(e.target.value)} className={`${INPUT_BASE_STYLE}`}/></div>
-              </div>
-              <div className="md:col-span-2 flex justify-end">
-                  <button onClick={clearFilters} className={`${BTN_SECONDARY_STYLE} w-full`}>Clear Filters</button>
+                  {/* Row 3 */}
+                  <div className="md:col-span-5 flex items-end gap-2">
+                      <div className="flex-1"><label htmlFor="start-date" className={labelStyle}>From Date</label><input id="start-date" type="date" value={startDate} onChange={e => setStartDate(e.target.value)} className={`${INPUT_BASE_STYLE}`}/></div>
+                      <div className="flex-1"><label htmlFor="end-date" className={labelStyle}>To Date</label><input id="end-date" type="date" value={endDate} onChange={e => setEndDate(e.target.value)} className={`${INPUT_BASE_STYLE}`}/></div>
+                  </div>
+                  <div className="md:col-span-5 flex items-end gap-2">
+                      <div className="flex-1"><label htmlFor="min-amount" className={labelStyle}>Min Amount</label><input id="min-amount" type="number" placeholder="0.00" value={minAmount} onChange={e => setMinAmount(e.target.value)} className={`${INPUT_BASE_STYLE}`}/></div>
+                      <div className="flex-1"><label htmlFor="max-amount" className={labelStyle}>Max Amount</label><input id="max-amount" type="number" placeholder="1000.00" value={maxAmount} onChange={e => setMaxAmount(e.target.value)} className={`${INPUT_BASE_STYLE}`}/></div>
+                  </div>
+                  <div className="md:col-span-2 flex justify-end">
+                      <button onClick={clearFilters} className={`${BTN_SECONDARY_STYLE} w-full`}>Clear Filters</button>
+                  </div>
+                </>
+              )}
+
+              {/* Expand/Collapse Toggle */}
+              <div className="md:col-span-12 flex justify-center border-t border-black/5 dark:border-white/5 pt-3 mt-2">
+                 <button 
+                    onClick={() => setIsFiltersExpanded(!isFiltersExpanded)}
+                    className="flex items-center gap-1 text-xs font-bold text-primary-500 hover:text-primary-600 uppercase tracking-wide transition-colors"
+                 >
+                    {isFiltersExpanded ? 'Less Filters' : 'More Filters'}
+                    <span className={`material-symbols-outlined text-sm transition-transform duration-200 ${isFiltersExpanded ? 'rotate-180' : ''}`}>expand_more</span>
+                 </button>
               </div>
           </div>
       </div>
