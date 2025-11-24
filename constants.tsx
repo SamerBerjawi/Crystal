@@ -19,7 +19,6 @@ export function CrystalLogo({ showText = true }: { showText?: boolean; }) {
         preserveAspectRatio="xMidYMid meet"
         style={{
           display: 'block',
-          filter: 'drop-shadow(0px 6px 12px rgba(59, 70, 122, 0.35))',
         }}
       >
         <defs>
