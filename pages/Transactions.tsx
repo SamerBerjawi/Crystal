@@ -3,7 +3,7 @@ import React, { useState, useMemo, useRef, useEffect } from 'react';
 import { INPUT_BASE_STYLE, SELECT_WRAPPER_STYLE, SELECT_ARROW_STYLE, BTN_PRIMARY_STYLE, BTN_SECONDARY_STYLE, SELECT_STYLE, CHECKBOX_STYLE } from '../constants';
 import { Transaction, Account, DisplayTransaction, RecurringTransaction } from '../types';
 import Card from '../components/Card';
-import { formatCurrency, fuzzySearch, convertToEur, arrayToCSV, downloadCSV } from '../utils';
+import { formatCurrency, fuzzySearch, convertToEur, arrayToCSV, downloadCSV, parseDateAsUTC } from '../utils';
 import AddTransactionModal from '../components/AddTransactionModal';
 import BulkCategorizeModal from '../components/BulkCategorizeModal';
 import BulkEditTransactionsModal from '../components/BulkEditTransactionsModal';
@@ -123,7 +123,7 @@ const Transactions: React.FC<TransactionsProps> = ({ accountFilter, setAccountFi
     const processedTransferIds = new Set<string>();
     const result: DisplayTransaction[] = [];
 
-    const sortedTransactions = [...transactions].sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
+    const sortedTransactions = [...transactions].sort((a, b) => parseDateAsUTC(b.date).getTime() - parseDateAsUTC(a.date).getTime());
 
     const transferLookup = sortedTransactions.reduce((map, tx) => {
         if (!tx.transferId) return map;
@@ -207,7 +207,7 @@ const Transactions: React.FC<TransactionsProps> = ({ accountFilter, setAccountFi
         else if (typeFilter === 'income') matchType = !tx.isTransfer && tx.type === 'income';
         else if (typeFilter === 'transfer') matchType = !!tx.isTransfer;
         
-        const txDateTime = new Date(tx.date.replace(/-/g, '/')).getTime();
+        const txDateTime = parseDateAsUTC(tx.date).getTime();
         const matchStartDate = !startDateTime || txDateTime >= startDateTime.getTime();
         const matchEndDate = !endDateTime || txDateTime <= endDateTime.getTime();
 
@@ -226,10 +226,10 @@ const Transactions: React.FC<TransactionsProps> = ({ accountFilter, setAccountFi
     
     return transactionList.sort((a, b) => {
       switch (sortBy) {
-        case 'date-asc': return new Date(a.date.replace(/-/g, '/')).getTime() - new Date(b.date.replace(/-/g, '/')).getTime();
+        case 'date-asc': return parseDateAsUTC(a.date).getTime() - parseDateAsUTC(b.date).getTime();
         case 'amount-desc': return Math.abs(b.amount) - Math.abs(a.amount);
         case 'amount-asc': return Math.abs(a.amount) - Math.abs(b.amount);
-        case 'date-desc': default: return new Date(b.date.replace(/-/g, '/')).getTime() - new Date(a.date.replace(/-/g, '/')).getTime();
+        case 'date-desc': default: return parseDateAsUTC(b.date).getTime() - parseDateAsUTC(a.date).getTime();
       }
     });
 
@@ -498,7 +498,7 @@ const Transactions: React.FC<TransactionsProps> = ({ accountFilter, setAccountFi
   };
 
   const formatGroupDate = (dateString: string) => {
-    const date = new Date(dateString.replace(/-/g, '/'));
+    const date = parseDateAsUTC(dateString);
     return date.toLocaleDateString('en-US', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric', timeZone: 'UTC' });
   }
 
