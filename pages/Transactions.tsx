@@ -59,7 +59,7 @@ const Transactions: React.FC<TransactionsProps> = ({ accountFilter, setAccountFi
 
   // Pagination state
   const [currentPage, setCurrentPage] = useState(1);
-  const ITEMS_PER_PAGE = 50;
+  const [itemsPerPage, setItemsPerPage] = useState(50);
 
   // Sync with global filters from props
   useEffect(() => {
@@ -238,10 +238,10 @@ const Transactions: React.FC<TransactionsProps> = ({ accountFilter, setAccountFi
   }, [searchTerm, sortBy, typeFilter, startDate, endDate, displayTransactions, selectedAccountIds, selectedCategoryNames, selectedTagIds, minAmount, maxAmount, allCategories, accountMapByName, merchantFilter]);
   
   const paginatedTransactions = useMemo(() => {
-    return filteredTransactions.slice((currentPage - 1) * ITEMS_PER_PAGE, currentPage * ITEMS_PER_PAGE);
-  }, [filteredTransactions, currentPage]);
+    return filteredTransactions.slice((currentPage - 1) * itemsPerPage, currentPage * itemsPerPage);
+  }, [filteredTransactions, currentPage, itemsPerPage]);
 
-  const totalPages = Math.ceil(filteredTransactions.length / ITEMS_PER_PAGE);
+  const totalPages = Math.ceil(filteredTransactions.length / itemsPerPage) || 1;
 
   useEffect(() => {
     setCurrentPage((page) => Math.min(Math.max(1, page), Math.max(1, totalPages)));
@@ -805,25 +805,49 @@ const Transactions: React.FC<TransactionsProps> = ({ accountFilter, setAccountFi
                   )}
               </div>
               
-              {totalPages > 1 && (
-                <div className="px-6 py-3 border-t border-light-separator dark:border-dark-separator flex justify-between items-center bg-light-bg/50 dark:bg-dark-bg/30 flex-shrink-0">
-                    <button
-                        onClick={() => setCurrentPage(p => Math.max(1, p - 1))}
-                        disabled={currentPage === 1}
-                        className={`${BTN_SECONDARY_STYLE} !py-1 !px-3 text-sm disabled:opacity-50 disabled:cursor-not-allowed`}
-                    >
-                        Previous
-                    </button>
-                    <span className="text-sm text-light-text-secondary dark:text-dark-text-secondary font-medium">
-                        Page {currentPage} of {totalPages}
-                    </span>
-                    <button
-                        onClick={() => setCurrentPage(p => Math.min(totalPages, p + 1))}
-                        disabled={currentPage === totalPages}
-                        className={`${BTN_SECONDARY_STYLE} !py-1 !px-3 text-sm disabled:opacity-50 disabled:cursor-not-allowed`}
-                    >
-                        Next
-                    </button>
+              {filteredTransactions.length > 0 && (
+                <div className="px-6 py-3 border-t border-light-separator dark:border-dark-separator flex flex-col sm:flex-row justify-between items-center bg-light-bg/50 dark:bg-dark-bg/30 flex-shrink-0 gap-4">
+                    <div className="flex items-center gap-2 text-sm text-light-text-secondary dark:text-dark-text-secondary">
+                        <span>Rows per page:</span>
+                        <div className={`${SELECT_WRAPPER_STYLE} !w-auto`}>
+                            <select 
+                                value={itemsPerPage === Number.MAX_SAFE_INTEGER ? 'all' : itemsPerPage}
+                                onChange={(e) => {
+                                    const val = e.target.value;
+                                    setItemsPerPage(val === 'all' ? Number.MAX_SAFE_INTEGER : Number(val));
+                                    setCurrentPage(1);
+                                }}
+                                className={`${SELECT_STYLE} !py-1 !pl-2 !pr-8 !text-sm !h-8`}
+                            >
+                                <option value="10">10</option>
+                                <option value="25">25</option>
+                                <option value="50">50</option>
+                                <option value="100">100</option>
+                                <option value="all">All</option>
+                            </select>
+                            <div className={`${SELECT_ARROW_STYLE} right-1`}><span className="material-symbols-outlined text-sm">expand_more</span></div>
+                        </div>
+                    </div>
+
+                    <div className="flex items-center gap-4">
+                        <button
+                            onClick={() => setCurrentPage(p => Math.max(1, p - 1))}
+                            disabled={currentPage === 1}
+                            className={`${BTN_SECONDARY_STYLE} !py-1 !px-3 text-sm disabled:opacity-50 disabled:cursor-not-allowed`}
+                        >
+                            Previous
+                        </button>
+                        <span className="text-sm text-light-text-secondary dark:text-dark-text-secondary font-medium">
+                            Page {currentPage} of {totalPages}
+                        </span>
+                        <button
+                            onClick={() => setCurrentPage(p => Math.min(totalPages, p + 1))}
+                            disabled={currentPage === totalPages}
+                            className={`${BTN_SECONDARY_STYLE} !py-1 !px-3 text-sm disabled:opacity-50 disabled:cursor-not-allowed`}
+                        >
+                            Next
+                        </button>
+                    </div>
                 </div>
             )}
           </Card>
