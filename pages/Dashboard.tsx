@@ -536,7 +536,18 @@ const Dashboard: React.FC<DashboardProps> = ({ user, activeGoalIds, selectedAcco
   }, [netWorthData]);
   
   const configuredCreditCards = useMemo(() => {
-    return accounts.filter(acc => acc.type === 'Credit Card' && acc.statementStartDate && acc.paymentDate && selectedAccountIds.includes(acc.id));
+    return accounts.filter(acc => {
+      const isConfiguredCC = acc.type === 'Credit Card' && acc.statementStartDate && acc.paymentDate;
+      if (!isConfiguredCC) return false;
+      
+      // Show if the credit card itself is selected
+      if (selectedAccountIds.includes(acc.id)) return true;
+      
+      // Show if the linked settlement account is selected
+      if (acc.settlementAccountId && selectedAccountIds.includes(acc.settlementAccountId)) return true;
+      
+      return false;
+    });
   }, [accounts, selectedAccountIds]);
 
   const creditCardStatements = useMemo(() => {
@@ -797,7 +808,10 @@ const Dashboard: React.FC<DashboardProps> = ({ user, activeGoalIds, selectedAcco
       {isTransactionModalOpen && (
         <AddTransactionModal
           onClose={handleCloseTransactionModal}
-          onSave={(data, toDelete) => { saveTransaction(data, toDelete); handleCloseTransactionModal(); }}
+          onSave={(data, toDelete) => {
+            saveTransaction(data, toDelete);
+            handleCloseTransactionModal();
+          }}
           accounts={accounts}
           incomeCategories={incomeCategories}
           expenseCategories={expenseCategories}
