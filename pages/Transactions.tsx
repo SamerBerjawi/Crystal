@@ -774,4 +774,41 @@ const Transactions: React.FC<TransactionsProps> = ({ accountFilter, setAccountFi
                                     <div className="hidden lg:block col-span-2 text-sm text-light-text-secondary dark:text-dark-text-secondary truncate">{tx.merchant}</div>
                                     <div className="hidden md:block col-span-2 text-sm text-light-text-secondary dark:text-dark-text-secondary truncate">{tx.category}</div>
                                     <div className="hidden lg:flex col-span-1 flex-wrap gap-1">{tx.tagIds?.map(tagId => { const tag = tags.find(t => t.id === tagId); if (!tag) return null; return (<span key={tag.id} className="text-sm px-2 py-1 rounded-full inline-flex items-center justify-center text-center" style={{ backgroundColor: `${tag.color}30`, color: tag.color }} title={tag.name}>{tag.name}</span>);})}</div>
-                                    <div className={`col-span-12 md:col-span-2 font-mono font-semibold text-right text-base whitespace-nowrap ${amountColor}`}>{tx.isTransfer && selectedAccountIds.length === 0 ? '-/+ ' + formatCurrency(convertToEur(Math.abs(amount), tx.currency), 'EUR') : formatCurrency(convertToEur(amount, tx.currency), 'EUR',
+                                      <div className={`col-span-12 md:col-span-2 font-mono font-semibold text-right text-base whitespace-nowrap ${amountColor}`}>
+                                        {tx.isTransfer && selectedAccountIds.length === 0
+                                          ? '-/+ ' + formatCurrency(convertToEur(Math.abs(amount), tx.currency), 'EUR')
+                                          : formatCurrency(convertToEur(amount, tx.currency), 'EUR', { showPlusSign: true })}
+                                      </div>
+                                      <div className="w-10 flex justify-end opacity-0 group-hover:opacity-100 transition">
+                                        <button
+                                          className="p-2 rounded-full hover:bg-light-fill dark:hover:bg-dark-fill"
+                                          onClick={(e) => {
+                                            e.preventDefault();
+                                            e.stopPropagation();
+                                            setContextMenu({ x: e.clientX, y: e.clientY, transaction: tx });
+                                          }}
+                                          aria-label="Open transaction actions"
+                                        >
+                                          <span className="material-symbols-outlined text-lg">more_vert</span>
+                                        </button>
+                                      </div>
+                                    </div>
+                                  </div>
+                                  );
+                              })}
+                          </div>
+                      </div>
+                      );
+                  }) : (
+                      <div className="p-8 text-center text-light-text-secondary dark:text-dark-text-secondary">
+                          No transactions match the current filters.
+                      </div>
+                  )}
+              </div>
+          </Card>
+        </div>
+      </div>
+  );
+};
+
+export default Transactions;
