@@ -1,9 +1,3 @@
-
-
-
-
-
-
 import React, { useMemo, useState, useCallback } from 'react';
 import { Account, Transaction, Category, Duration, Page, CategorySpending, Widget, WidgetConfig, DisplayTransaction, RecurringTransaction, AccountDetailProps, Tag, ScheduledPayment, MileageLog } from '../types';
 import { formatCurrency, getDateRange, convertToEur, calculateStatementPeriods, getCreditCardStatementDetails, parseDateAsUTC, formatDateKey } from '../utils';
@@ -570,7 +564,11 @@ const AccountDetail: React.FC<AccountDetailProps> = ({ account, setCurrentPage, 
                     <div className="grid grid-cols-1 md:grid-cols-3 gap-6 items-center">
                         <div className="md:col-span-1">
                             {account.imageUrl ? (
-                                <img src={account.imageUrl} alt={`${account.make} ${account.model}`} className="w-full h-auto object-cover rounded-lg aspect-video shadow-md" />
+                                <img 
+                                    src={account.imageUrl} 
+                                    alt={`${account.make} ${account.model}`} 
+                                    className="w-full object-contain rounded-lg aspect-video" 
+                                />
                             ) : (
                                 <div className="w-full aspect-video bg-light-fill dark:bg-dark-fill flex items-center justify-center rounded-lg">
                                     <span className="material-symbols-outlined text-6xl text-gray-400">directions_car</span>
@@ -732,124 +730,199 @@ const AccountDetail: React.FC<AccountDetailProps> = ({ account, setCurrentPage, 
             return `${change >= 0 ? '+' : ''}${change.toFixed(1)}%`;
         };
 
-        return { incomeChange: calculateChangeString(income, prevIncome), expenseChange: calculateChangeString(expenses, prevExpenses) };
+        return {
+            incomeChange: calculateChangeString(income, prevIncome),
+            expenseChange: calculateChangeString(expenses, prevExpenses),
+        };
     }, [duration, accountTransactions, income, expenses]);
 
     const outflowsByCategory: CategorySpending[] = useMemo(() => {
         const spending: { [key: string]: CategorySpending } = {};
+        const expenseCats = expenseCategories;
+
+        const processedTransferIds = new Set<string>();
+
         filteredEnriched.forEach(({ tx, convertedAmount }) => {
             if (tx.type !== 'expense') return;
-            const category = findCategoryDetails(tx.category, allCategories);
-            let parentCategory = category;
-            if (category?.parentId) parentCategory = findCategoryById(category.parentId, allCategories) || category;
 
-            const name = parentCategory?.name || 'Uncategorized';
-            if (!spending[name]) spending[name] = { name, value: 0, color: parentCategory?.color || '#A0AEC0', icon: parentCategory?.icon };
-            spending[name].value += Math.abs(convertedAmount);
+            if (tx.transferId) {
+                // For a single account view, a transfer OUT is an expense, regardless of where it goes
+                // UNLESS we want to treat transfers to "hidden" accounts as actual spending?
+                // Standard behavior: transfers are not spending.
+                // But let's visualize them as "Transfers Out" to explain the balance drop.
+                const name = 'Transfers Out';
+                if (!spending[name]) {
+                    spending[name] = { name, value: 0, color: '#A0AEC0', icon: 'arrow_upward' };
+                }
+                spending[name].value += Math.abs(convertedAmount);
+            } else {
+                const category = findCategoryDetails(tx.category, expenseCats);
+                let parentCategory = category;
+                if(category?.parentId){
+                    parentCategory = findCategoryById(category.parentId, expenseCats) || category;
+                }
+                const name = parentCategory?.name || 'Uncategorized';
+                if (!spending[name]) {
+                    spending[name] = { name, value: 0, color: parentCategory?.color || '#A0AEC0', icon: parentCategory?.icon };
+                }
+                spending[name].value += Math.abs(convertedAmount);
+            }
         });
+
         return Object.values(spending).sort((a, b) => b.value - a.value);
-    }, [filteredEnriched, allCategories]);
+    }, [filteredEnriched, expenseCategories]);
+
+    const { incomeSparkline, expenseSparkline } = useMemo(() => {
+        const NUM_POINTS = 30;
+        const { start, end } = getDateRange(duration, accountTransactions.map(({ tx }) => tx));
+        const timeRange = end.getTime() - start.getTime();
+        const interval = timeRange / NUM_POINTS;
+
+        const incomeBuckets = Array(NUM_POINTS).fill(0);
+        const expenseBuckets = Array(NUM_POINTS).fill(0);
+
+        const relevantTxs = filteredEnriched.filter(entry => !entry.tx.transferId);
+
+        for (const { tx, parsedDate, convertedAmount } of relevantTxs) {
+            const txTime = parsedDate.getTime();
+            const index = Math.floor((txTime - start.getTime()) / interval);
+            if (index >= 0 && index < NUM_POINTS) {
+                if (tx.type === 'income') {
+                    incomeBuckets[index] += convertedAmount;
+                } else {
+                    expenseBuckets[index] += Math.abs(convertedAmount);
+                }
+            }
+        }
+        
+        return {
+            incomeSparkline: incomeBuckets.map(value => ({ value })),
+            expenseSparkline: expenseBuckets.map(value => ({ value }))
+        };
+    }, [filteredEnriched, duration, accountTransactions]);
+
+    const balanceHistoryData = useMemo(() => {
+        const { start, end } = getDateRange(duration, accountTransactions.map(({ tx }) => tx));
+        const data: { name: string; value: number }[] = [];
+        
+        // Calculate starting balance before the period
+        let runningBalance = convertToEur(account.balance, account.currency); // Start with current balance
+        
+        // Walk backwards from all transactions to find balance at 'end'
+        // Actually, account.balance is the CURRENT balance (after all transactions).
+        // So to find the balance at any point in the past, we subtract future transactions.
+        
+        // Let's filter transactions that happened AFTER the 'end' date (future relative to view)
+        const futureTransactions = accountTransactions.filter(entry => entry.parsedDate > end);
+        
+        futureTransactions.forEach(({ tx, convertedAmount }) => {
+             const amount = tx.type === 'income' ? convertedAmount : -Math.abs(convertedAmount);
+             runningBalance -= amount; // Reverse the transaction
+        });
+        
+        // Now runningBalance is the balance at 'end' date.
+        // We want to generate data points from 'start' to 'end'.
+        
+        const dailyChanges = new Map<string, number>();
+        
+        const periodTransactions = accountTransactions.filter(entry => entry.parsedDate >= start && entry.parsedDate <= end);
+        
+        periodTransactions.forEach(({ tx, convertedAmount, parsedDate }) => {
+             const dateStr = formatDateKey(parsedDate);
+             const amount = tx.type === 'income' ? convertedAmount : -Math.abs(convertedAmount);
+             dailyChanges.set(dateStr, (dailyChanges.get(dateStr) || 0) + amount);
+        });
+        
+        // We have the balance at END. It's easier to work backwards from END to START to populate the chart.
+        let currentSimulatedBalance = runningBalance;
+        const days = [];
+        
+        let cursorDate = new Date(end);
+        while (cursorDate >= start) {
+            const dateStr = formatDateKey(cursorDate);
+            days.unshift({ name: dateStr, value: parseFloat(currentSimulatedBalance.toFixed(2)) });
+            
+            const change = dailyChanges.get(dateStr) || 0;
+            currentSimulatedBalance -= change; // Reverse for previous day
+            
+            cursorDate.setUTCDate(cursorDate.getUTCDate() - 1);
+        }
+        
+        return days;
+    }, [duration, accountTransactions, account.balance, account.currency]);
 
     const handleCategoryClick = useCallback((categoryName: string) => {
+        const expenseCats = expenseCategories;
         const txs = filteredTransactions.filter(tx => {
-            const category = findCategoryDetails(tx.category, allCategories);
+            if (categoryName === 'Transfers Out') {
+                return tx.transferId && tx.type === 'expense';
+            }
+            
+            const category = findCategoryDetails(tx.category, expenseCats);
             let parentCategory = category;
-            if (category?.parentId) parentCategory = findCategoryById(category.parentId, allCategories) || category;
-            return parentCategory?.name === categoryName && tx.type === 'expense';
+            if(category?.parentId){
+                parentCategory = findCategoryById(category.parentId, expenseCats) || category;
+            }
+            return parentCategory?.name === categoryName && tx.type === 'expense' && !tx.transferId;
         });
         setModalTransactions(txs);
         setModalTitle(`Transactions for ${categoryName}`);
         setDetailModalOpen(true);
-    }, [filteredTransactions, allCategories]);
+    }, [filteredTransactions, expenseCategories]);
 
-    const balanceHistoryData = useMemo(() => {
-        const { start, end } = getDateRange(duration, accountTransactions.map(({ tx }) => tx));
-
-        const startDate = new Date(start);
-        const endDate = new Date(end);
-
-        // Performance optimization: cap 'ALL' time range to a few years to prevent massive loops
-        if (duration === 'ALL') {
-            const fiveYearsAgo = new Date(endDate);
-            fiveYearsAgo.setUTCFullYear(endDate.getUTCFullYear() - 5);
-            if (startDate < fiveYearsAgo) {
-                startDate.setTime(fiveYearsAgo.getTime());
-            }
-        }
-
-        const transactionsToReverse = accountTransactions.filter(entry => entry.parsedDate >= startDate && entry.parsedDate <= new Date());
-
-        const totalChangeSinceStart = transactionsToReverse.reduce((sum, entry) => {
-            const signedAmount = entry.tx.type === 'expense'
-                ? -Math.abs(entry.convertedAmount)
-                : Math.abs(entry.convertedAmount);
-
-            return sum + signedAmount;
-        }, 0);
-
-        const startingBalance = convertToEur(account.balance, account.currency) - totalChangeSinceStart;
-
-        const dailyChanges = new Map<string, number>();
-        filteredEnriched.forEach(({ parsedDate, convertedAmount, tx }) => {
-            const dateKey = parsedDate.toISOString().split('T')[0];
-            const signedAmount = tx.type === 'expense'
-                ? -Math.abs(convertedAmount)
-                : Math.abs(convertedAmount);
-
-            dailyChanges.set(dateKey, (dailyChanges.get(dateKey) || 0) + signedAmount);
-        });
-
-        const data: { name: string, value: number }[] = [];
-        let runningBalance = startingBalance;
-        let currentDate = new Date(startDate);
-        while (currentDate <= endDate) {
-            const dateStr = formatDateKey(currentDate);
-            runningBalance += dailyChanges.get(dateStr) || 0;
-            data.push({ name: dateStr, value: runningBalance });
-            currentDate.setUTCDate(currentDate.getUTCDate() + 1);
-        }
-        return data;
-    }, [duration, accountTransactions, account.balance, filteredEnriched]);
-
-    const allWidgets: Widget[] = [
+    // --- Widget Management ---
+    const allWidgets: Widget[] = useMemo(() => [
         { id: 'balanceHistory', name: 'Balance History', defaultW: 4, defaultH: 2, component: NetWorthChart, props: { data: balanceHistoryData } },
         { id: 'outflowsByCategory', name: 'Outflows by Category', defaultW: 2, defaultH: 2, component: OutflowsChart, props: { data: outflowsByCategory, onCategoryClick: handleCategoryClick } },
-        { id: 'recentTransactions', name: 'Recent Transactions', defaultW: 2, defaultH: 2, component: TransactionList, props: { transactions: recentTransactions, allCategories: allCategories, onTransactionClick: handleTransactionClick } },
-    ];
-    
-    const [widgets, setWidgets] = useLocalStorage<WidgetConfig[]>(`account-detail-layout-${account.id}`, allWidgets.map(w => ({ id: w.id, title: w.name, w: w.defaultW, h: w.defaultH })));
+        { id: 'recentActivity', name: 'Recent Activity', defaultW: 4, defaultH: 2, component: TransactionList, props: { transactions: recentTransactions, allCategories: allCategories, onTransactionClick: handleTransactionClick } },
+    ], [balanceHistoryData, outflowsByCategory, handleCategoryClick, recentTransactions, allCategories, handleTransactionClick]);
 
-// FIX: Implemented the 'handleResize' function to manage widget dimensions, resolving a type error where an incompatible function was passed to the 'onResize' prop.
-    const handleResize = (widgetId: string, dimension: 'w' | 'h', change: 1 | -1) => {
-        setWidgets(prev => prev.map(w => {
-            if (w.id === widgetId) {
-                const newDim = w[dimension] + change;
-                if (dimension === 'w' && (newDim < 1 || newDim > 4)) return w;
-                if (dimension === 'h' && (newDim < 1 || newDim > 3)) return w;
-                return { ...w, [dimension]: newDim };
-            }
-            return w;
-        }));
+    const [widgets, setWidgets] = useLocalStorage<WidgetConfig[]>(`account-dashboard-${account.id}`, allWidgets.map(w => ({ id: w.id, title: w.name, w: w.defaultW, h: w.defaultH })));
+
+    const removeWidget = (widgetId: string) => {
+        setWidgets(prev => prev.filter(w => w.id !== widgetId));
     };
-    const removeWidget = (widgetId: string) => setWidgets(prev => prev.filter(w => w.id !== widgetId));
+
     const addWidget = (widgetId: string) => {
         const widgetToAdd = allWidgets.find(w => w.id === widgetId);
-        if (widgetToAdd) setWidgets(prev => [...prev, { id: widgetToAdd.id, title: widgetToAdd.name, w: widgetToAdd.defaultW, h: widgetToAdd.defaultH }]);
+        if (widgetToAdd) {
+            setWidgets(prev => [...prev, { id: widgetToAdd.id, title: widgetToAdd.name, w: widgetToAdd.defaultW, h: widgetToAdd.defaultH }]);
+        }
         setIsAddWidgetModalOpen(false);
     };
-    const availableWidgetsToAdd = useMemo(() => allWidgets.filter(w => !widgets.some(current => current.id === w.id)), [widgets, allWidgets]);
+    
+    const handleResize = (widgetId: string, dimension: 'w' | 'h', change: 1 | -1) => {
+        setWidgets(prev => prev.map(w => {
+        if (w.id === widgetId) {
+            const newDim = w[dimension] + change;
+            if (dimension === 'w' && (newDim < 1 || newDim > 4)) return w;
+            if (dimension === 'h' && (newDim < 1 || newDim > 3)) return w;
+            return { ...w, [dimension]: newDim };
+        }
+        return w;
+        }));
+    };
+
+    const availableWidgetsToAdd = useMemo(() => {
+        const currentWidgetIds = widgets.map(w => w.id);
+        return allWidgets.filter(w => !currentWidgetIds.includes(w.id));
+    }, [widgets, allWidgets]);
+
     const [draggedWidgetId, setDraggedWidgetId] = useState<string | null>(null);
     const [dragOverWidgetId, setDragOverWidgetId] = useState<string | null>(null);
+
     const handleDragStart = (e: React.DragEvent, widgetId: string) => { setDraggedWidgetId(widgetId); e.dataTransfer.effectAllowed = 'move'; };
     const handleDragEnter = (e: React.DragEvent, widgetId: string) => { e.preventDefault(); if (widgetId !== draggedWidgetId) setDragOverWidgetId(widgetId); };
-    const handleDragLeave = () => setDragOverWidgetId(null);
+    const handleDragLeave = (e: React.DragEvent) => { e.preventDefault(); setDragOverWidgetId(null); };
     const handleDrop = (e: React.DragEvent, targetWidgetId: string) => {
         e.preventDefault();
         if (!draggedWidgetId || draggedWidgetId === targetWidgetId) return;
+
         setWidgets(prevWidgets => {
             const draggedIndex = prevWidgets.findIndex(w => w.id === draggedWidgetId);
             const targetIndex = prevWidgets.findIndex(w => w.id === targetWidgetId);
             if (draggedIndex === -1 || targetIndex === -1) return prevWidgets;
+
             const newWidgets = [...prevWidgets];
             const [draggedItem] = newWidgets.splice(draggedIndex, 1);
             newWidgets.splice(targetIndex, 0, draggedItem);
@@ -858,57 +931,103 @@ const AccountDetail: React.FC<AccountDetailProps> = ({ account, setCurrentPage, 
     };
     const handleDragEnd = () => { setDraggedWidgetId(null); setDragOverWidgetId(null); };
 
-    return (
-      <div className="space-y-6">
-          {isTransactionModalOpen && (
-              <AddTransactionModal onClose={handleCloseTransactionModal} onSave={(data, toDelete) => { saveTransaction(data, toDelete); handleCloseTransactionModal(); }} accounts={accounts} incomeCategories={allCategories.filter(c => c.classification === 'income')} expenseCategories={allCategories.filter(c => c.classification === 'expense')} transactionToEdit={editingTransaction} transactions={transactions} tags={tags} initialFromAccountId={account.id} initialToAccountId={account.id}/>
-          )}
-          <TransactionDetailModal isOpen={isDetailModalOpen} onClose={() => setDetailModalOpen(false)} title={modalTitle} transactions={modalTransactions} accounts={accounts}/>
-          <AddWidgetModal isOpen={isAddWidgetModalOpen} onClose={() => setIsAddWidgetModalOpen(false)} availableWidgets={availableWidgetsToAdd} onAddWidget={addWidget} />
-          
-          <header className="flex flex-col xl:flex-row justify-between items-start xl:items-center gap-4">
-              <div className="flex items-center gap-4">
-                  <button onClick={() => { setViewingAccountId(null); setCurrentPage('Accounts'); }} className="text-light-text-secondary dark:text-dark-text-secondary p-2 rounded-full hover:bg-black/5 dark:hover:bg-white/5">
-                      <span className="material-symbols-outlined">arrow_back</span>
+  return (
+    <div className="space-y-6">
+        {isTransactionModalOpen && (
+            <AddTransactionModal
+                onClose={handleCloseTransactionModal}
+                onSave={(data, toDelete) => { saveTransaction(data, toDelete); handleCloseTransactionModal(); }}
+                accounts={accounts}
+                incomeCategories={allCategories.filter(c => c.classification === 'income')}
+                expenseCategories={allCategories.filter(c => c.classification === 'expense')}
+                transactionToEdit={editingTransaction}
+                transactions={transactions}
+                initialType={initialModalState.type}
+                initialFromAccountId={initialModalState.from}
+                initialToAccountId={initialModalState.to}
+                tags={tags}
+            />
+        )}
+        <TransactionDetailModal
+            isOpen={isDetailModalOpen}
+            onClose={() => setDetailModalOpen(false)}
+            title={modalTitle}
+            transactions={modalTransactions}
+            accounts={accounts}
+        />
+        <AddWidgetModal isOpen={isAddWidgetModalOpen} onClose={() => setIsAddWidgetModalOpen(false)} availableWidgets={availableWidgetsToAdd} onAddWidget={addWidget} />
+
+        <header className="flex flex-wrap justify-between items-center gap-4">
+            <div className="flex items-center gap-4">
+                <button onClick={() => { setViewingAccountId(null); setCurrentPage('Accounts'); }} className="text-light-text-secondary dark:text-dark-text-secondary p-2 rounded-full hover:bg-black/5 dark:hover:bg-white/5">
+                    <span className="material-symbols-outlined">arrow_back</span>
+                </button>
+                <div>
+                    {/* <h2 className="text-3xl font-bold text-light-text dark:text-dark-text">{account.name}</h2> */}
+                    <p className="text-light-text-secondary dark:text-dark-text-secondary mt-1">{account.type} Account &bull; {formatCurrency(account.balance, account.currency)}</p>
+                </div>
+            </div>
+            
+            <div className="flex gap-3">
+                 {isEditMode ? (
+                    <>
+                        <button onClick={() => setIsAddWidgetModalOpen(true)} className={`${BTN_SECONDARY_STYLE} flex items-center gap-2`}>
+                            <span className="material-symbols-outlined text-base">add</span>
+                            Add Widget
+                        </button>
+                        <button onClick={() => setIsEditMode(false)} className={BTN_PRIMARY_STYLE}>
+                            Done Editing
+                        </button>
+                    </>
+                  ) : (
+                    <button onClick={() => setIsEditMode(true)} className={`${BTN_SECONDARY_STYLE} flex items-center gap-2`}>
+                        <span className="material-symbols-outlined text-base">edit</span>
+                        Edit Layout
+                    </button>
+                  )}
+                  <DurationFilter selectedDuration={duration} onDurationChange={setDuration} />
+                  <button onClick={() => handleOpenTransactionModal()} className={BTN_PRIMARY_STYLE}>
+                    Add Transaction
                   </button>
-              </div>
-              <div className="flex flex-col sm:flex-row gap-3 w-full xl:w-auto">
-                  <div className="flex-1 sm:flex-none"><DurationFilter selectedDuration={duration} onDurationChange={setDuration} /></div>
-                  <div className="flex gap-3 w-full sm:w-auto">
-                      {isEditMode ? (
-                          <>
-                              <button onClick={() => setIsAddWidgetModalOpen(true)} className={`${BTN_SECONDARY_STYLE} flex-1 sm:flex-none flex items-center gap-2 justify-center`}><span className="material-symbols-outlined text-base">add</span><span className="whitespace-nowrap">Add Widget</span></button>
-                              <button onClick={() => setIsEditMode(false)} className={`${BTN_PRIMARY_STYLE} flex-1 sm:flex-none justify-center px-6`}>Done</button>
-                          </>
-                      ) : (
-                          <button onClick={() => setIsEditMode(true)} className={`${BTN_SECONDARY_STYLE} flex-1 sm:flex-none flex items-center gap-2 justify-center`}><span className="material-symbols-outlined text-base">edit</span><span className="whitespace-nowrap">Edit Layout</span></button>
-                      )}
-                      <button onClick={() => handleOpenTransactionModal()} className={`${BTN_PRIMARY_STYLE} flex-1 sm:flex-none justify-center whitespace-nowrap`}>Add Transaction</button>
-                  </div>
-              </div>
-          </header>
+            </div>
+        </header>
 
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-              <CurrentBalanceCard balance={account.balance} currency={account.currency} />
-              <BalanceCard title="Income" amount={income} change={incomeChange} changeType="positive" sparklineData={useMemo(() => [], [])} />
-              <BalanceCard title="Expenses" amount={expenses} change={expenseChange} changeType="negative" sparklineData={useMemo(() => [], [])} />
-              <NetBalanceCard netBalance={income - expenses} totalIncome={income} duration={duration} />
-          </div>
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+            <BalanceCard title="Income" amount={income} change={incomeChange} changeType="positive" sparklineData={incomeSparkline} />
+            <BalanceCard title="Expenses" amount={expenses} change={expenseChange} changeType="negative" sparklineData={expenseSparkline} />
+            <NetBalanceCard netBalance={income - expenses} totalIncome={income} duration={duration} />
+        </div>
 
-          <div className="grid grid-cols-1 md:grid-cols-4 gap-6" style={{ gridAutoRows: 'minmax(200px, auto)' }}>
-              {widgets.map(widget => {
-                  const widgetDetails = allWidgets.find(w => w.id === widget.id);
-                  if (!widgetDetails) return null;
-                  const WidgetComponent = widgetDetails.component;
-                  return (
-                      <WidgetWrapper key={widget.id} title={widget.title} w={widget.w} h={widget.h} onRemove={() => removeWidget(widget.id)} onResize={(dim, change) => handleResize(widget.id, dim, change)} isEditMode={isEditMode} isBeingDragged={draggedWidgetId === widget.id} isDragOver={dragOverWidgetId === widget.id} onDragStart={e => handleDragStart(e, widget.id)} onDragEnter={e => handleDragEnter(e, widget.id)} onDragLeave={handleDragLeave} onDrop={e => handleDrop(e, widget.id)} onDragEnd={handleDragEnd}>
-                          <WidgetComponent {...widgetDetails.props as any} />
-                      </WidgetWrapper>
-                  );
-              })}
-          </div>
-      </div>
-    );
+        <div className="grid grid-cols-1 md:grid-cols-4 gap-6" style={{ gridAutoRows: 'minmax(200px, auto)' }}>
+            {widgets.map(widget => {
+                const widgetDetails = allWidgets.find(w => w.id === widget.id);
+                if (!widgetDetails) return null;
+                const WidgetComponent = widgetDetails.component;
+
+                return (
+                    <WidgetWrapper
+                        key={widget.id}
+                        title={widget.title}
+                        w={widget.w}
+                        h={widget.h}
+                        onRemove={() => removeWidget(widget.id)}
+                        onResize={(dim, change) => handleResize(widget.id, dim, change)}
+                        isEditMode={isEditMode}
+                        isBeingDragged={draggedWidgetId === widget.id}
+                        isDragOver={dragOverWidgetId === widget.id}
+                        onDragStart={e => handleDragStart(e, widget.id)}
+                        onDragEnter={e => handleDragEnter(e, widget.id)}
+                        onDragLeave={handleDragLeave}
+                        onDrop={e => handleDrop(e, widget.id)}
+                        onDragEnd={handleDragEnd}
+                    >
+                        <WidgetComponent {...widgetDetails.props as any} />
+                    </WidgetWrapper>
+                );
+            })}
+        </div>
+    </div>
+  );
 };
 
-export default React.memo(AccountDetail);
+export default AccountDetail;
