@@ -448,6 +448,23 @@ const Dashboard: React.FC<DashboardProps> = ({ user, activeGoalIds, selectedAcco
   }, [selectedAccounts]);
 
   const netWorthData = useMemo(() => {
+    const transferGroups = new Map<string, Transaction[]>();
+    transactions.forEach(tx => {
+      if (!tx.transferId) return;
+      const group = transferGroups.get(tx.transferId) || [];
+      group.push(tx);
+      transferGroups.set(tx.transferId, group);
+    });
+
+    const internalTransferIds = new Set<string>();
+    transferGroups.forEach((group, transferId) => {
+      if (group.length === 0) return;
+      const allAccountsSelected = group.every(tx => selectedAccountIds.includes(tx.accountId));
+      if (allAccountsSelected) {
+        internalTransferIds.add(transferId);
+      }
+    });
+
     const { start, end } = getDateRange(duration, transactions);
     
     // Performance optimization: cap 'ALL' time range to a few years to prevent massive loops
@@ -465,6 +482,7 @@ const Dashboard: React.FC<DashboardProps> = ({ user, activeGoalIds, selectedAcco
     // Reverse transactions from start date up to now to find starting balance
     const transactionsToReverse = transactions.filter(tx => {
         if (!selectedAccountIds.includes(tx.accountId)) return false;
+        if (tx.transferId && internalTransferIds.has(tx.transferId)) return false;
         const txDate = parseDateAsUTC(tx.date);
         return txDate >= start && txDate <= today;
     });
@@ -478,6 +496,7 @@ const Dashboard: React.FC<DashboardProps> = ({ user, activeGoalIds, selectedAcco
     // Now, get all transactions within the chart's display period (start to end)
     const transactionsInPeriod = transactions.filter(tx => {
         if (!selectedAccountIds.includes(tx.accountId)) return false;
+        if (tx.transferId && internalTransferIds.has(tx.transferId)) return false;
         const txDate = parseDateAsUTC(tx.date);
         return txDate >= start && txDate <= end;
     });
