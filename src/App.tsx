@@ -209,11 +209,6 @@ const App: React.FC = () => {
     }
   }, [financialGoals, activeGoalIds.length]);
 
-  const fetchWarrantPrices = useCallback(() => {
-    // Automated warrant price fetching has been disabled. Use manual prices instead.
-    setLastUpdated(new Date());
-  }, []);
-
   const refreshInvestmentPrices = useCallback(async () => {
     if (typeof window === 'undefined') return;
 
