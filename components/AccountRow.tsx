@@ -1,8 +1,6 @@
 
-
 import React, { useMemo } from 'react';
 import { Account, Transaction, Warrant } from '../types';
-import Card from './Card';
 import { convertToEur, formatCurrency } from '../utils';
 import { LineChart, Line, ResponsiveContainer } from 'recharts';
 import { ACCOUNT_TYPE_STYLES } from '../constants';
@@ -162,7 +160,7 @@ const AccountRow: React.FC<AccountRowProps> = ({ account, transactions, warrants
             {/* Right side: Balance, Sparkline, Edit button */}
             <div className="flex items-center justify-between sm:justify-end gap-2 sm:gap-4 w-full sm:w-auto">
                 <div className="w-24 h-10 shrink-0 hidden sm:block">
-                     <ResponsiveContainer width="100%" height="100%">
+                     <ResponsiveContainer width="100%" height="100%" minWidth={0}>
                         <LineChart data={sparklineData}>
                             <Line type="natural" dataKey="value" stroke={sparklineColor} strokeWidth={2} dot={false} />
                         </LineChart>
