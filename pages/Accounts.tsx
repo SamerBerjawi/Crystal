@@ -33,7 +33,7 @@ interface AccountsProps {
 const AccountsListSection: React.FC<{
     title: string;
     accounts: Account[];
-    transactions: Transaction[];
+    transactionsByAccount: Record<string, Transaction[]>;
     warrants: Warrant[];
     onAccountClick: (id: string) => void;
     onEditClick: (account: Account) => void;
@@ -43,7 +43,7 @@ const AccountsListSection: React.FC<{
     setAccountOrder: React.Dispatch<React.SetStateAction<string[]>>;
     onContextMenu: (event: React.MouseEvent, account: Account) => void;
     isCollapsible?: boolean;
-}> = ({ title, accounts, transactions, warrants, onAccountClick, onEditClick, onAdjustBalanceClick, sortBy, accountOrder, setAccountOrder, onContextMenu, isCollapsible = true }) => {
+}> = ({ title, accounts, transactionsByAccount, warrants, onAccountClick, onEditClick, onAdjustBalanceClick, sortBy, accountOrder, setAccountOrder, onContextMenu, isCollapsible = true }) => {
     const [isExpanded, setIsExpanded] = useState(isCollapsible ? false : true);
     const [draggedId, setDraggedId] = useState<string | null>(null);
     const [dragOverId, setDragOverId] = useState<string | null>(null);
@@ -138,7 +138,7 @@ const AccountsListSection: React.FC<{
                                             <AccountRow
                                                 key={acc.id}
                                                 account={acc}
-                                                transactions={transactions.filter(t => t.accountId === acc.id)}
+                                                transactions={transactionsByAccount[acc.id] || []}
                                                 warrants={warrants}
                                                 onClick={() => onAccountClick(acc.id)}
                                                 onEdit={() => onEditClick(acc)}
@@ -227,7 +227,12 @@ const Accounts: React.FC<AccountsProps> = ({ accounts, transactions, saveAccount
         debtBreakdown: createBreakdown(open.filter(acc => DEBT_TYPES.includes(acc.type))),
     };
   }, [accounts]);
-  
+
+  const transactionsByAccount = useMemo(() => transactions.reduce((acc, transaction) => {
+    (acc[transaction.accountId] = acc[transaction.accountId] || []).push(transaction);
+    return acc;
+  }, {} as Record<string, Transaction[]>), [transactions]);
+
   const assetAccounts = useMemo(() => openAccounts.filter(acc => ASSET_TYPES.includes(acc.type)), [openAccounts]);
   const debtAccounts = useMemo(() => openAccounts.filter(acc => DEBT_TYPES.includes(acc.type)), [openAccounts]);
 
@@ -388,10 +393,10 @@ const Accounts: React.FC<AccountsProps> = ({ accounts, transactions, saveAccount
 
       {/* Account Lists */}
       <div className="space-y-8">
-        <AccountsListSection 
-            title="Asset Accounts" 
+        <AccountsListSection
+            title="Asset Accounts"
             accounts={assetAccounts}
-            transactions={transactions}
+            transactionsByAccount={transactionsByAccount}
             warrants={warrants}
             onAccountClick={handleAccountClick}
             onEditClick={openEditModal}
@@ -402,10 +407,10 @@ const Accounts: React.FC<AccountsProps> = ({ accounts, transactions, saveAccount
             onContextMenu={handleContextMenu}
             isCollapsible={false}
         />
-        <AccountsListSection 
-            title="Liability Accounts" 
+        <AccountsListSection
+            title="Liability Accounts"
             accounts={debtAccounts}
-            transactions={transactions}
+            transactionsByAccount={transactionsByAccount}
             warrants={warrants}
             onAccountClick={handleAccountClick}
             onEditClick={openEditModal}
@@ -416,10 +421,10 @@ const Accounts: React.FC<AccountsProps> = ({ accounts, transactions, saveAccount
             onContextMenu={handleContextMenu}
             isCollapsible={false}
         />
-        <AccountsListSection 
-            title="Closed Accounts" 
+        <AccountsListSection
+            title="Closed Accounts"
             accounts={closedAccounts}
-            transactions={transactions}
+            transactionsByAccount={transactionsByAccount}
             warrants={warrants}
             onAccountClick={handleAccountClick}
             onEditClick={openEditModal}
