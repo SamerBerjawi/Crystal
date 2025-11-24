@@ -26,7 +26,7 @@ const Documentation = lazy(() => import('./pages/Documentation'));
 // UserManagement is removed
 // FIX: Import FinancialData from types.ts
 // FIX: Add `Tag` to the import from `types.ts`.
-import { Page, Theme, Category, User, Transaction, Account, RecurringTransaction, RecurringTransactionOverride, WeekendAdjustment, FinancialGoal, Budget, ImportExportHistoryItem, AppPreferences, AccountType, InvestmentTransaction, Task, Warrant, ScraperConfig, ImportDataType, FinancialData, Currency, BillPayment, BillPaymentStatus, Duration, InvestmentSubType, Tag, LoanPaymentOverrides, ScheduledPayment } from './types';
+import { Page, Theme, Category, User, Transaction, Account, RecurringTransaction, RecurringTransactionOverride, WeekendAdjustment, FinancialGoal, Budget, ImportExportHistoryItem, AppPreferences, AccountType, InvestmentTransaction, Task, Warrant, ImportDataType, FinancialData, Currency, BillPayment, BillPaymentStatus, Duration, InvestmentSubType, Tag, LoanPaymentOverrides, ScheduledPayment } from './types';
 import { MOCK_INCOME_CATEGORIES, MOCK_EXPENSE_CATEGORIES, LIQUID_ACCOUNT_TYPES } from './constants';
 import { v4 as uuidv4 } from 'uuid';
 import ChatFab from './components/ChatFab';
@@ -48,7 +48,6 @@ const initialFinancialData: FinancialData = {
     budgets: [],
     tasks: [],
     warrants: [],
-    scraperConfigs: [],
     importExportHistory: [],
     // FIX: Add `tags` to the initial financial data structure.
     tags: [],
@@ -57,9 +56,7 @@ const initialFinancialData: FinancialData = {
     billsAndPayments: [],
     accountOrder: [],
     taskOrder: [],
-    lastSuccessfulWarrantPrices: {},
     manualWarrantPrices: {},
-    scrapedWarrantPrices: {},
     preferences: {
         currency: 'EUR (€)',
         language: 'English (en)',
@@ -143,7 +140,6 @@ const App: React.FC = () => {
   const [budgets, setBudgets] = useState<Budget[]>(initialFinancialData.budgets);
   const [tasks, setTasks] = useState<Task[]>(initialFinancialData.tasks);
   const [warrants, setWarrants] = useState<Warrant[]>(initialFinancialData.warrants);
-  const [scraperConfigs, setScraperConfigs] = useState<ScraperConfig[]>(initialFinancialData.scraperConfigs);
   const [importExportHistory, setImportExportHistory] = useState<ImportExportHistoryItem[]>(initialFinancialData.importExportHistory);
 
   useEffect(() => {
@@ -165,35 +161,21 @@ const App: React.FC = () => {
   const [isChatOpen, setIsChatOpen] = useState(false);
   
   // State for Warrant prices
-  const [scrapedWarrantPrices, setScrapedWarrantPrices] = useState<Record<string, number | null>>(initialFinancialData.scrapedWarrantPrices || {});
-  const [lastSuccessfulWarrantPrices, setLastSuccessfulWarrantPrices] = useState<Record<string, number | undefined>>(initialFinancialData.lastSuccessfulWarrantPrices || {});
   const [manualWarrantPrices, setManualWarrantPrices] = useState<Record<string, number | undefined>>(initialFinancialData.manualWarrantPrices || {});
-  const [isLoadingPrices, setIsLoadingPrices] = useState(false);
   const [lastUpdated, setLastUpdated] = useState<Date | null>(null);
 
   const warrantPrices = useMemo(() => {
-    const allIsins = new Set<string>([
-      ...warrants.map(w => w.isin),
-      ...Object.keys(scrapedWarrantPrices),
-      ...Object.keys(lastSuccessfulWarrantPrices),
-      ...Object.keys(manualWarrantPrices),
-    ]);
-
     const resolved: Record<string, number | null> = {};
-    allIsins.forEach(isin => {
-      if (manualWarrantPrices[isin] !== undefined) {
-        resolved[isin] = manualWarrantPrices[isin];
-      } else if (scrapedWarrantPrices[isin] !== undefined && scrapedWarrantPrices[isin] !== null) {
-        resolved[isin] = scrapedWarrantPrices[isin] as number;
-      } else if (lastSuccessfulWarrantPrices[isin] !== undefined) {
-        resolved[isin] = lastSuccessfulWarrantPrices[isin];
+    warrants.forEach(warrant => {
+      if (manualWarrantPrices[warrant.isin] !== undefined) {
+        resolved[warrant.isin] = manualWarrantPrices[warrant.isin];
       } else {
-        resolved[isin] = null;
+        resolved[warrant.isin] = null;
       }
     });
 
     return resolved;
-  }, [warrants, scrapedWarrantPrices, lastSuccessfulWarrantPrices, manualWarrantPrices]);
+  }, [manualWarrantPrices, warrants]);
 
   // States lifted up for persistence & preference linking
   const [dashboardAccountIds, setDashboardAccountIds] = useState<string[]>([]);
@@ -225,108 +207,10 @@ const App: React.FC = () => {
     }
   }, [financialGoals, activeGoalIds.length]);
 
-  const fetchWarrantPrices = useCallback(async () => {
-    const uniqueIsins = [...new Set(warrants.map(w => w.isin))];
-    const configsToRun = scraperConfigs.filter(c => uniqueIsins.includes(c.id));
-    if (isLoadingPrices || configsToRun.length === 0) return;
-
-    setIsLoadingPrices(true);
-    const newPrices: Record<string, number | null> = {};
-    const successfulPrices: Record<string, number> = {};
-    
-    // Optimized Proxy List
-    const CORS_PROXIES = [
-        'https://corsproxy.io/?', // Generally most reliable
-        'https://api.allorigins.win/raw?url=',
-    ];
-
-    for (const config of configsToRun) {
-        let success = false;
-        // Shuffle proxies to distribute load and increase success rate on retries
-        const shuffledProxies = [...CORS_PROXIES].sort(() => Math.random() - 0.5);
-
-        for (const proxy of shuffledProxies) {
-            const controller = new AbortController();
-            const timeoutId = setTimeout(() => controller.abort(), (config.resource.timeout || 15) * 1000);
-
-            try {
-                let urlToFetch = '';
-                // Proxies that take the URL as a query parameter (containing '?') need it to be URI-encoded.
-                // Proxies that take the URL as part of the path do not.
-                if (proxy.includes('?')) {
-                    urlToFetch = `${proxy}${encodeURIComponent(config.resource.url)}`;
-                } else {
-                    urlToFetch = `${proxy}${config.resource.url}`;
-                }
-
-                const headers: Record<string, string> = {};
-                if (config.resource.authType === 'basic' && config.resource.username && config.resource.password) {
-                    headers['Authorization'] = `Basic ${btoa(`${config.resource.username}:${config.resource.password}`)}`;
-                }
-
-                const response = await fetch(urlToFetch, { signal: controller.signal, method: config.resource.method || 'GET', headers });
-                clearTimeout(timeoutId);
-
-                if (!response.ok) {
-                    console.warn(`Proxy ${proxy} failed for ${config.resource.url} with status ${response.status}`);
-                    continue; // Try next proxy
-                }
-
-                const responseBuffer = await response.arrayBuffer();
-                const decoder = new TextDecoder(config.resource.encoding || 'utf-8');
-                const htmlString = decoder.decode(responseBuffer);
-                const parser = new DOMParser();
-                const doc = parser.parseFromString(htmlString, 'text/html');
-                const elements = doc.querySelectorAll(config.options.select);
-
-                if (elements.length > config.options.index) {
-                    const targetElement = elements[config.options.index];
-                    const rawValue = config.options.attribute ? targetElement.getAttribute(config.options.attribute) : targetElement.textContent;
-                    if (rawValue) {
-                        const priceString = rawValue.match(/[0-9.,\s]+/)?.[0]?.trim() || '';
-                        const numberString = priceString.replace(/\./g, '').replace(',', '.');
-                        const price = parseFloat(numberString);
-                        newPrices[config.id] = isNaN(price) ? null : price;
-                        if (!isNaN(price)) {
-                            successfulPrices[config.id] = price;
-                        }
-                    } else {
-                        newPrices[config.id] = null;
-                    }
-                } else {
-                    newPrices[config.id] = null;
-                }
-                
-                success = true;
-                break; // Success, break from proxy loop
-            } catch (error: any) {
-                clearTimeout(timeoutId);
-                if (error.name === 'AbortError') {
-                    console.warn(`Proxy ${proxy} timed out for ${config.id}.`);
-                } else {
-                    console.warn(`Proxy ${proxy} failed for ${config.id}:`, error);
-                }
-                // Continue to next proxy
-            }
-        }
-        
-        if (!success) {
-            console.error(`Failed to scrape ${config.id} with all available proxies.`);
-            newPrices[config.id] = null;
-        }
-    }
-    setScrapedWarrantPrices(prev => ({...prev, ...newPrices}));
-    setLastSuccessfulWarrantPrices(prev => ({...prev, ...successfulPrices}));
+  const fetchWarrantPrices = useCallback(() => {
+    // Automated warrant price fetching has been disabled. Use manual prices instead.
     setLastUpdated(new Date());
-    setIsLoadingPrices(false);
-  }, [scraperConfigs, warrants, isLoadingPrices]);
-
-  useEffect(() => {
-    if (warrants.length > 0) {
-        fetchWarrantPrices();
-    }
-  // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [warrants, scraperConfigs]);
+  }, []);
 
   useEffect(() => {
     const updatedAccounts = accounts.map(account => {
@@ -364,9 +248,6 @@ const App: React.FC = () => {
     setBudgets(dataToLoad.budgets || []);
     setTasks(dataToLoad.tasks || []);
     setWarrants(dataToLoad.warrants || []);
-    setScraperConfigs(dataToLoad.scraperConfigs || []);
-    setScrapedWarrantPrices(dataToLoad.scrapedWarrantPrices || {});
-    setLastSuccessfulWarrantPrices(dataToLoad.lastSuccessfulWarrantPrices || {});
     setManualWarrantPrices(dataToLoad.manualWarrantPrices || {});
     setImportExportHistory(dataToLoad.importExportHistory || []);
     setBillsAndPayments(dataToLoad.billsAndPayments || []);
@@ -441,14 +322,14 @@ const App: React.FC = () => {
 
   const dataToSave: FinancialData = useMemo(() => ({
     accounts, transactions, investmentTransactions, recurringTransactions,
-    recurringTransactionOverrides, loanPaymentOverrides, financialGoals, budgets, tasks, warrants, scraperConfigs, importExportHistory, incomeCategories,
+    recurringTransactionOverrides, loanPaymentOverrides, financialGoals, budgets, tasks, warrants, importExportHistory, incomeCategories,
     expenseCategories, preferences, billsAndPayments, accountOrder, taskOrder, tags,
-    scrapedWarrantPrices, lastSuccessfulWarrantPrices, manualWarrantPrices,
+    manualWarrantPrices,
   }), [
     accounts, transactions, investmentTransactions,
-    recurringTransactions, recurringTransactionOverrides, loanPaymentOverrides, financialGoals, budgets, tasks, warrants, scraperConfigs, importExportHistory,
+    recurringTransactions, recurringTransactionOverrides, loanPaymentOverrides, financialGoals, budgets, tasks, warrants, importExportHistory,
     incomeCategories, expenseCategories, preferences, billsAndPayments, accountOrder, taskOrder, tags,
-    scrapedWarrantPrices, lastSuccessfulWarrantPrices, manualWarrantPrices,
+    manualWarrantPrices,
   ]);
 
   const debouncedDataToSave = useDebounce(dataToSave, 1500);
@@ -948,16 +829,6 @@ const App: React.FC = () => {
           delete next[warrantToDelete.isin];
           return next;
         });
-        setScrapedWarrantPrices(prev => {
-          const next = { ...prev };
-          delete next[warrantToDelete.isin];
-          return next;
-        });
-        setLastSuccessfulWarrantPrices(prev => {
-          const next = { ...prev };
-          delete next[warrantToDelete.isin];
-          return next;
-        });
       }
     }
   };
@@ -1002,18 +873,6 @@ const App: React.FC = () => {
       }
   };
   
-  const handleSaveScraperConfig = (config: ScraperConfig) => {
-    setScraperConfigs(prev => {
-        const index = prev.findIndex(c => c.id === config.id);
-        if (index > -1) {
-            const newConfigs = [...prev];
-            newConfigs[index] = config;
-            return newConfigs;
-        }
-        return [...prev, config];
-    });
-  };
-
   const handleSaveBillPayment = (billData: Omit<BillPayment, 'id'> & { id?: string }) => {
     if (billData.id) {
         setBillsAndPayments(prev => prev.map(b => b.id === billData.id ? {...b, ...billData} as BillPayment : b));
@@ -1286,7 +1145,7 @@ const App: React.FC = () => {
       case 'Investments':
         return <InvestmentsPage accounts={accounts} cashAccounts={accounts.filter(a => a.type === 'Checking' || a.type === 'Savings')} investmentTransactions={investmentTransactions} saveInvestmentTransaction={handleSaveInvestmentTransaction} deleteInvestmentTransaction={handleDeleteInvestmentTransaction} saveTransaction={handleSaveTransaction} warrants={warrants} />;
       case 'Warrants':
-        return <WarrantsPage warrants={warrants} saveWarrant={handleSaveWarrant} deleteWarrant={handleDeleteWarrant} scraperConfigs={scraperConfigs} saveScraperConfig={handleSaveScraperConfig} prices={warrantPrices} manualPrices={manualWarrantPrices} lastScrapedPrices={lastSuccessfulWarrantPrices} isLoadingPrices={isLoadingPrices} lastUpdated={lastUpdated} refreshPrices={fetchWarrantPrices} onManualPriceChange={handleManualWarrantPrice} />;
+        return <WarrantsPage warrants={warrants} saveWarrant={handleSaveWarrant} deleteWarrant={handleDeleteWarrant} prices={warrantPrices} manualPrices={manualWarrantPrices} lastUpdated={lastUpdated} onManualPriceChange={handleManualWarrantPrice} />;
       case 'Tasks':
         return <TasksPage tasks={tasks} saveTask={handleSaveTask} deleteTask={handleDeleteTask} taskOrder={taskOrder} setTaskOrder={setTaskOrder} />;
       case 'Documentation':

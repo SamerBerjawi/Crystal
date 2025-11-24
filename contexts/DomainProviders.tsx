@@ -23,8 +23,6 @@ export interface PreferencesContextValue {
 export interface WarrantsContextValue {
   warrants: Warrant[];
   prices: Record<string, number | null>;
-  isLoadingPrices: boolean;
-  refreshPrices: () => void;
 }
 
 const TransactionsContext = createContext<TransactionsContextValue | undefined>(undefined);

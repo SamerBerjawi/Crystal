@@ -64,7 +64,7 @@ const pagePreloaders = [
 // UserManagement is removed
 // FIX: Import FinancialData from types.ts
 // FIX: Add `Tag` to the import from `types.ts`.
-import { Page, Theme, Category, User, Transaction, Account, RecurringTransaction, RecurringTransactionOverride, WeekendAdjustment, FinancialGoal, Budget, ImportExportHistoryItem, AppPreferences, AccountType, InvestmentTransaction, Task, Warrant, ScraperConfig, ImportDataType, FinancialData, Currency, BillPayment, BillPaymentStatus, Duration, InvestmentSubType, Tag, LoanPaymentOverrides, ScheduledPayment } from './types';
+import { Page, Theme, Category, User, Transaction, Account, RecurringTransaction, RecurringTransactionOverride, WeekendAdjustment, FinancialGoal, Budget, ImportExportHistoryItem, AppPreferences, AccountType, InvestmentTransaction, Task, Warrant, ImportDataType, FinancialData, Currency, BillPayment, BillPaymentStatus, Duration, InvestmentSubType, Tag, LoanPaymentOverrides, ScheduledPayment } from './types';
 import { MOCK_INCOME_CATEGORIES, MOCK_EXPENSE_CATEGORIES, LIQUID_ACCOUNT_TYPES } from './constants';
 import { v4 as uuidv4 } from 'uuid';
 import ChatFab from './components/ChatFab';
@@ -88,7 +88,6 @@ const initialFinancialData: FinancialData = {
     budgets: [],
     tasks: [],
     warrants: [],
-    scraperConfigs: [],
     importExportHistory: [],
     // FIX: Add `tags` to the initial financial data structure.
     tags: [],
@@ -217,7 +216,6 @@ const App: React.FC = () => {
   const [budgets, setBudgets] = useState<Budget[]>(initialFinancialData.budgets);
   const [tasks, setTasks] = useState<Task[]>(initialFinancialData.tasks);
   const [warrants, setWarrants] = useState<Warrant[]>(initialFinancialData.warrants);
-  const [scraperConfigs, setScraperConfigs] = useState<ScraperConfig[]>(initialFinancialData.scraperConfigs);
   const [importExportHistory, setImportExportHistory] = useState<ImportExportHistoryItem[]>(initialFinancialData.importExportHistory);
   const [billsAndPayments, setBillsAndPayments] = useState<BillPayment[]>(initialFinancialData.billsAndPayments);
   // FIX: Add state for tags and tag filtering to support the Tags feature.
@@ -228,8 +226,6 @@ const App: React.FC = () => {
   const restoreInProgressRef = useRef(false);
   const dirtySlicesRef = useRef<Set<keyof FinancialData>>(new Set());
   const [dirtySignal, setDirtySignal] = useState(0);
-  const priceCacheRef = useRef<Record<string, { price: number | null; fetchedAt: number }>>({});
-  const warrantWorkerRef = useRef<Worker | null>(null);
   const [tagFilter, setTagFilter] = useState<string | null>(null);
   const [accountOrder, setAccountOrder] = useLocalStorage<string[]>('crystal-account-order', []);
   const [taskOrder, setTaskOrder] = useLocalStorage<string[]>('crystal-task-order', []);
@@ -238,33 +234,19 @@ const App: React.FC = () => {
   const [isChatOpen, setIsChatOpen] = useState(false);
   
   // State for Warrant prices
-  const [scrapedWarrantPrices, setScrapedWarrantPrices] = useState<Record<string, number | null>>(initialFinancialData.scrapedWarrantPrices || {});
-  const [lastSuccessfulWarrantPrices, setLastSuccessfulWarrantPrices] = useState<Record<string, number | undefined>>(initialFinancialData.lastSuccessfulWarrantPrices || {});
   const [manualWarrantPrices, setManualWarrantPrices] = useState<Record<string, number | undefined>>(initialFinancialData.manualWarrantPrices || {});
   const warrantPrices = useMemo(() => {
-    const allIsins = new Set<string>([
-      ...warrants.map(w => w.isin),
-      ...Object.keys(scrapedWarrantPrices),
-      ...Object.keys(lastSuccessfulWarrantPrices),
-      ...Object.keys(manualWarrantPrices),
-    ]);
-
     const resolved: Record<string, number | null> = {};
-    allIsins.forEach(isin => {
-      if (manualWarrantPrices[isin] !== undefined) {
-        resolved[isin] = manualWarrantPrices[isin];
-      } else if (scrapedWarrantPrices[isin] !== undefined && scrapedWarrantPrices[isin] !== null) {
-        resolved[isin] = scrapedWarrantPrices[isin] as number;
-      } else if (lastSuccessfulWarrantPrices[isin] !== undefined) {
-        resolved[isin] = lastSuccessfulWarrantPrices[isin];
+    warrants.forEach(warrant => {
+      if (manualWarrantPrices[warrant.isin] !== undefined) {
+        resolved[warrant.isin] = manualWarrantPrices[warrant.isin];
       } else {
-        resolved[isin] = null;
+        resolved[warrant.isin] = null;
       }
     });
 
     return resolved;
-  }, [warrants, scrapedWarrantPrices, lastSuccessfulWarrantPrices, manualWarrantPrices]);
-  const [isLoadingPrices, setIsLoadingPrices] = useState(false);
+  }, [manualWarrantPrices, warrants]);
   const [lastUpdated, setLastUpdated] = useState<Date | null>(null);
 
   // States lifted up for persistence & preference linking
@@ -285,13 +267,6 @@ const App: React.FC = () => {
       setDirtySignal(signal => signal + 1);
     }
   }, []);
-
-  useEffect(() => {
-    const worker = new Worker(new URL('./workers/warrantPriceWorker.ts', import.meta.url), { type: 'module' });
-    warrantWorkerRef.current = worker;
-    return () => worker.terminate();
-  }, []);
-
 
   useEffect(() => {
     // Set default dashboard account filter only on initial load
@@ -315,57 +290,6 @@ const App: React.FC = () => {
         setActiveGoalIds(financialGoals.map(g => g.id));
     }
   }, [financialGoals, activeGoalIds.length]);
-
-  const fetchWarrantPrices = useCallback(() => {
-    const worker = warrantWorkerRef.current;
-    if (!worker) return;
-
-    const uniqueIsins = [...new Set(warrants.map(w => w.isin))];
-    const now = Date.now();
-    const CORS_PROXIES = [
-      'https://corsproxy.io/?',
-      'https://api.allorigins.win/raw?url=',
-    ];
-
-    const configsToRun = scraperConfigs.filter(c => {
-      if (!uniqueIsins.includes(c.id)) return false;
-      const cached = priceCacheRef.current[c.id];
-      const isFresh = cached && now - cached.fetchedAt < 30 * 60 * 1000;
-      return !isFresh;
-    });
-
-    if (isLoadingPrices || configsToRun.length === 0) return;
-    setIsLoadingPrices(true);
-
-    worker.onmessage = (event: MessageEvent<{ type: string; prices: Record<string, number | null>; timestamp: number }>) => {
-      if (event.data.type !== 'FETCH_PRICES_RESULT') return;
-      const receivedAt = event.data.timestamp || Date.now();
-      const incomingPrices: Record<string, number | null> = {};
-      const successfulPrices: Record<string, number> = {};
-
-      Object.entries(event.data.prices).forEach(([isin, price]) => {
-        priceCacheRef.current[isin] = { price, fetchedAt: receivedAt };
-        incomingPrices[isin] = price;
-        if (price !== null) {
-          successfulPrices[isin] = price;
-        }
-      });
-
-      setScrapedWarrantPrices(prev => ({ ...prev, ...incomingPrices }));
-      setLastSuccessfulWarrantPrices(prev => ({ ...prev, ...successfulPrices }));
-      setLastUpdated(new Date(receivedAt));
-      setIsLoadingPrices(false);
-    };
-
-    worker.postMessage({ type: 'FETCH_PRICES', configs: configsToRun, proxies: CORS_PROXIES });
-  }, [isLoadingPrices, scraperConfigs, warrants]);
-
-  useEffect(() => {
-    if (warrants.length > 0) {
-        fetchWarrantPrices();
-    }
-  // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [warrants, scraperConfigs]);
 
   const warrantHoldingsBySymbol = useMemo(() => {
     const holdings: Record<string, number> = {};
@@ -418,11 +342,8 @@ const App: React.FC = () => {
     setBudgets(dataToLoad.budgets || []);
     setTasks(dataToLoad.tasks || []);
     setWarrants(dataToLoad.warrants || []);
-    setScraperConfigs(dataToLoad.scraperConfigs || []);
     setImportExportHistory(dataToLoad.importExportHistory || []);
     setBillsAndPayments(dataToLoad.billsAndPayments || []);
-    setScrapedWarrantPrices(dataToLoad.scrapedWarrantPrices || {});
-    setLastSuccessfulWarrantPrices(dataToLoad.lastSuccessfulWarrantPrices || {});
     setManualWarrantPrices(dataToLoad.manualWarrantPrices || {});
     // FIX: Add `tags` to the data loading logic.
     setTags(dataToLoad.tags || []);
@@ -499,12 +420,12 @@ const App: React.FC = () => {
 
   const dataToSave: FinancialData = useMemo(() => ({
     accounts, transactions, investmentTransactions, recurringTransactions,
-    recurringTransactionOverrides, loanPaymentOverrides, financialGoals, budgets, tasks, warrants, scraperConfigs, importExportHistory, incomeCategories,
-    expenseCategories, preferences, billsAndPayments, accountOrder, taskOrder, tags, scrapedWarrantPrices, lastSuccessfulWarrantPrices, manualWarrantPrices,
+    recurringTransactionOverrides, loanPaymentOverrides, financialGoals, budgets, tasks, warrants, importExportHistory, incomeCategories,
+    expenseCategories, preferences, billsAndPayments, accountOrder, taskOrder, tags, manualWarrantPrices,
   }), [
     accounts, transactions, investmentTransactions,
-    recurringTransactions, recurringTransactionOverrides, loanPaymentOverrides, financialGoals, budgets, tasks, warrants, scraperConfigs, importExportHistory,
-    incomeCategories, expenseCategories, preferences, billsAndPayments, accountOrder, taskOrder, tags, scrapedWarrantPrices, lastSuccessfulWarrantPrices, manualWarrantPrices,
+    recurringTransactions, recurringTransactionOverrides, loanPaymentOverrides, financialGoals, budgets, tasks, warrants, importExportHistory,
+    incomeCategories, expenseCategories, preferences, billsAndPayments, accountOrder, taskOrder, tags, manualWarrantPrices,
   ]);
 
   const debouncedDirtySignal = useDebounce(dirtySignal, 900);
@@ -521,7 +442,6 @@ const App: React.FC = () => {
     if (dirtySlices.has('budgets')) payload.budgets = budgets;
     if (dirtySlices.has('tasks')) payload.tasks = tasks;
     if (dirtySlices.has('warrants')) payload.warrants = warrants;
-    if (dirtySlices.has('scraperConfigs')) payload.scraperConfigs = scraperConfigs;
     if (dirtySlices.has('importExportHistory')) payload.importExportHistory = importExportHistory;
     if (dirtySlices.has('incomeCategories')) payload.incomeCategories = incomeCategories;
     if (dirtySlices.has('expenseCategories')) payload.expenseCategories = expenseCategories;
@@ -530,8 +450,6 @@ const App: React.FC = () => {
     if (dirtySlices.has('accountOrder')) payload.accountOrder = accountOrder;
     if (dirtySlices.has('taskOrder')) payload.taskOrder = taskOrder;
     if (dirtySlices.has('tags')) payload.tags = tags;
-    if (dirtySlices.has('scrapedWarrantPrices')) payload.scrapedWarrantPrices = scrapedWarrantPrices;
-    if (dirtySlices.has('lastSuccessfulWarrantPrices')) payload.lastSuccessfulWarrantPrices = lastSuccessfulWarrantPrices;
     if (dirtySlices.has('manualWarrantPrices')) payload.manualWarrantPrices = manualWarrantPrices;
 
     return { ...latestDataRef.current, ...payload } as FinancialData;
@@ -549,14 +467,11 @@ const App: React.FC = () => {
     preferences,
     recurringTransactionOverrides,
     recurringTransactions,
-    scraperConfigs,
     tags,
     taskOrder,
     tasks,
     transactions,
     warrants,
-    scrapedWarrantPrices,
-    lastSuccessfulWarrantPrices,
     manualWarrantPrices,
   ]);
   const debouncedDataToSave = useDebounce(dataToSave, 1500);
@@ -621,23 +536,8 @@ const App: React.FC = () => {
 
   useEffect(() => {
     if (!isDataLoaded || restoreInProgressRef.current) return;
-    markSliceDirty('scrapedWarrantPrices');
-  }, [scrapedWarrantPrices, isDataLoaded, markSliceDirty]);
-
-  useEffect(() => {
-    if (!isDataLoaded || restoreInProgressRef.current) return;
-    markSliceDirty('lastSuccessfulWarrantPrices');
-  }, [lastSuccessfulWarrantPrices, isDataLoaded, markSliceDirty]);
-
-  useEffect(() => {
-    if (!isDataLoaded || restoreInProgressRef.current) return;
     markSliceDirty('manualWarrantPrices');
   }, [manualWarrantPrices, isDataLoaded, markSliceDirty]);
-
-  useEffect(() => {
-    if (!isDataLoaded || restoreInProgressRef.current) return;
-    markSliceDirty('scraperConfigs');
-  }, [scraperConfigs, isDataLoaded, markSliceDirty]);
 
   useEffect(() => {
     if (!isDataLoaded || restoreInProgressRef.current) return;
@@ -1180,16 +1080,6 @@ const App: React.FC = () => {
         delete updated[targetIsin];
         return updated;
       });
-      setScrapedWarrantPrices(prev => {
-        const updated = { ...prev };
-        delete updated[targetIsin];
-        return updated;
-      });
-      setLastSuccessfulWarrantPrices(prev => {
-        const updated = { ...prev };
-        delete updated[targetIsin];
-        return updated;
-      });
     }
   };
 
@@ -1203,6 +1093,7 @@ const App: React.FC = () => {
       }
       return updated;
     });
+    setLastUpdated(new Date());
   };
   
   // FIX: Add handlers for saving and deleting tags.
@@ -1231,18 +1122,6 @@ const App: React.FC = () => {
       }
   };
   
-  const handleSaveScraperConfig = (config: ScraperConfig) => {
-    setScraperConfigs(prev => {
-        const index = prev.findIndex(c => c.id === config.id);
-        if (index > -1) {
-            const newConfigs = [...prev];
-            newConfigs[index] = config;
-            return newConfigs;
-        }
-        return [...prev, config];
-    });
-  };
-
   const handleSaveBillPayment = (billData: Omit<BillPayment, 'id'> & { id?: string }) => {
     if (billData.id) {
         setBillsAndPayments(prev => prev.map(b => b.id === billData.id ? {...b, ...billData} as BillPayment : b));
@@ -1522,7 +1401,7 @@ const App: React.FC = () => {
       case 'Investments':
         return <InvestmentsPage accounts={accounts} cashAccounts={accounts.filter(a => a.type === 'Checking' || a.type === 'Savings')} investmentTransactions={investmentTransactions} saveInvestmentTransaction={handleSaveInvestmentTransaction} deleteInvestmentTransaction={handleDeleteInvestmentTransaction} saveTransaction={handleSaveTransaction} warrants={warrants} />;
       case 'Warrants':
-        return <WarrantsPage warrants={warrants} saveWarrant={handleSaveWarrant} deleteWarrant={handleDeleteWarrant} scraperConfigs={scraperConfigs} saveScraperConfig={handleSaveScraperConfig} prices={warrantPrices} manualPrices={manualWarrantPrices} lastScrapedPrices={lastSuccessfulWarrantPrices} isLoadingPrices={isLoadingPrices} lastUpdated={lastUpdated} refreshPrices={fetchWarrantPrices} onManualPriceChange={handleManualWarrantPrice} />;
+        return <WarrantsPage warrants={warrants} saveWarrant={handleSaveWarrant} deleteWarrant={handleDeleteWarrant} prices={warrantPrices} manualPrices={manualWarrantPrices} lastUpdated={lastUpdated} onManualPriceChange={handleManualWarrantPrice} />;
       case 'Tasks':
         return <TasksPage tasks={tasks} saveTask={handleSaveTask} deleteTask={handleDeleteTask} taskOrder={taskOrder} setTaskOrder={setTaskOrder} />;
       case 'Documentation':
@@ -1544,8 +1423,8 @@ const App: React.FC = () => {
     [transactions, handleDeleteTransactions, handleSaveTransaction]
   );
   const warrantsContextValue = useMemo(
-    () => ({ warrants, prices: warrantPrices, isLoadingPrices, refreshPrices: fetchWarrantPrices }),
-    [fetchWarrantPrices, isLoadingPrices, warrantPrices, warrants]
+    () => ({ warrants, prices: warrantPrices }),
+    [warrantPrices, warrants]
   );
   const categoryContextValue = useMemo(
     () => ({ incomeCategories, expenseCategories, setIncomeCategories, setExpenseCategories }),
