@@ -71,6 +71,7 @@ import { v4 as uuidv4 } from 'uuid';
 import ChatFab from './components/ChatFab';
 const Chatbot = lazy(() => import('./components/Chatbot'));
 import { convertToEur, CONVERSION_RATES, arrayToCSV, downloadCSV, parseDateAsUTC } from './utils';
+import { fetchYahooPrices } from '../utils/investmentPrices';
 import { useDebounce } from './hooks/useDebounce';
 import { useAuth } from './hooks/useAuth';
 import useLocalStorage from './hooks/useLocalStorage';
@@ -97,6 +98,7 @@ const initialFinancialData: FinancialData = {
     billsAndPayments: [],
     accountOrder: [],
     taskOrder: [],
+    manualWarrantPrices: {},
     preferences: {
         currency: 'EUR (€)',
         language: 'English (en)',
@@ -105,6 +107,7 @@ const initialFinancialData: FinancialData = {
         defaultPeriod: 'MTD',
         defaultAccountOrder: 'name',
         country: 'Belgium',
+        defaultForecastPeriod: '1Y',
     },
 };
 
@@ -236,6 +239,9 @@ const App: React.FC = () => {
   
   // State for Warrant prices
   const [manualWarrantPrices, setManualWarrantPrices] = useState<Record<string, number | undefined>>(initialFinancialData.manualWarrantPrices || {});
+  const [lastUpdated, setLastUpdated] = useState<Date | null>(null);
+  const [investmentPrices, setInvestmentPrices] = useState<Record<string, number | null>>({});
+
   const warrantPrices = useMemo(() => {
     const resolved: Record<string, number | null> = {};
     warrants.forEach(warrant => {
@@ -248,7 +254,6 @@ const App: React.FC = () => {
 
     return resolved;
   }, [manualWarrantPrices, warrants]);
-  const [lastUpdated, setLastUpdated] = useState<Date | null>(null);
 
   // States lifted up for persistence & preference linking
   const [dashboardAccountIds, setDashboardAccountIds] = useState<string[]>([]);
@@ -272,10 +277,12 @@ const App: React.FC = () => {
   useEffect(() => {
     // Set default dashboard account filter only on initial load
     if (accounts.length > 0 && dashboardAccountIds.length === 0) {
-        const primaryAccount = accounts.find(a => a.isPrimary);
-        if (primaryAccount) {
-            setDashboardAccountIds([primaryAccount.id]);
+        // Select all primary accounts
+        const primaryAccounts = accounts.filter(a => a.isPrimary);
+        if (primaryAccounts.length > 0) {
+            setDashboardAccountIds(primaryAccounts.map(a => a.id));
         } else {
+            // Fallback: Select the first open account if no primary accounts exist
             const openAccounts = accounts.filter(a => a.status !== 'closed');
             const fallbackAccount = (openAccounts.length > 0 ? openAccounts : accounts)[0];
             if (fallbackAccount) {
@@ -291,6 +298,27 @@ const App: React.FC = () => {
         setActiveGoalIds(financialGoals.map(g => g.id));
     }
   }, [financialGoals, activeGoalIds.length]);
+
+  const refreshInvestmentPrices = useCallback(async () => {
+    if (typeof window === 'undefined') return;
+
+    const investmentAccountsWithSymbols = accounts
+      .filter(acc => acc.type === 'Investment' && acc.symbol)
+      .filter(acc => !warrants.some(w => w.isin === acc.symbol));
+
+    if (investmentAccountsWithSymbols.length === 0) {
+      setInvestmentPrices({});
+      return;
+    }
+
+    const targets = investmentAccountsWithSymbols.map(acc => ({
+      symbol: acc.symbol as string,
+      subType: acc.subType,
+    }));
+
+    const prices = await fetchYahooPrices(targets);
+    setInvestmentPrices(prices);
+  }, [accounts, warrants]);
 
   const warrantHoldingsBySymbol = useMemo(() => {
     const holdings: Record<string, number> = {};
@@ -308,28 +336,45 @@ const App: React.FC = () => {
   }, [investmentTransactions, warrants]);
 
   useEffect(() => {
-    if (Object.keys(warrantPrices).length === 0) return;
-
     let hasChanges = false;
     const updatedAccounts = accounts.map(account => {
-        if (account.symbol && account.type === 'Investment' && warrantPrices[account.symbol] !== undefined) {
-            const price = warrantPrices[account.symbol];
-            const quantity = warrantHoldingsBySymbol[account.symbol] || 0;
-            const calculatedBalance = price !== null ? quantity * price : 0;
+      // FIX: The type 'Crypto' is not a valid AccountType. 'Crypto' is a subtype of 'Investment'.
+      // The check is simplified to only verify if the account type is 'Investment'.
+      if (account.symbol && account.type === 'Investment' && warrantPrices[account.symbol] !== undefined) {
+        const price = warrantPrices[account.symbol];
+        const quantity = warrantHoldingsBySymbol[account.symbol] || 0;
+        const calculatedBalance = price !== null ? quantity * price : 0;
 
-            if (Math.abs((account.balance || 0) - calculatedBalance) > 0.0001) {
-              hasChanges = true;
-              return { ...account, balance: calculatedBalance };
-            }
+        if (Math.abs((account.balance || 0) - calculatedBalance) > 0.0001) {
+            hasChanges = true;
+            return { ...account, balance: calculatedBalance };
         }
-        return account;
+      }
+      if (account.symbol && account.type === 'Investment' && investmentPrices[account.symbol] !== undefined) {
+        const price = investmentPrices[account.symbol];
+        const quantity = warrantHoldingsBySymbol[account.symbol] || 0;
+        const calculatedBalance = price !== null ? quantity * price : 0;
+
+        if (Math.abs((account.balance || 0) - calculatedBalance) > 0.0001) {
+            hasChanges = true;
+            return { ...account, balance: calculatedBalance };
+        }
+      }
+      return account;
     });
 
     if (hasChanges) {
         setAccounts(updatedAccounts);
     }
   // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [warrantPrices, warrantHoldingsBySymbol]);
+  }, [warrantPrices, investmentPrices, warrantHoldingsBySymbol]);
+
+  useEffect(() => {
+    refreshInvestmentPrices();
+    if (typeof window === 'undefined') return;
+    const intervalId = window.setInterval(refreshInvestmentPrices, 5 * 60 * 1000);
+    return () => window.clearInterval(intervalId);
+  }, [refreshInvestmentPrices]);
 
   const loadAllFinancialData = useCallback((data: FinancialData | null, options?: { skipNextSave?: boolean }) => {
     const dataToLoad = data || initialFinancialData;
@@ -760,18 +805,32 @@ const App: React.FC = () => {
   const handleSaveAccount = (accountData: Omit<Account, 'id'> & { id?: string }) => {
     if (accountData.id) { // UPDATE
         setAccounts(prev => {
-            const updatedAccounts = prev.map(acc => acc.id === accountData.id ? { ...acc, ...accountData } as Account : acc);
+            // First, apply the update to the target account
+            const intermediateAccounts = prev.map(acc => acc.id === accountData.id ? { ...acc, ...accountData } as Account : acc);
+
+            // If this account is now primary, ensure no other account OF THE SAME TYPE is primary
             if (accountData.isPrimary) {
-                return updatedAccounts.map(acc => acc.id === accountData.id ? acc : { ...acc, isPrimary: false });
+                return intermediateAccounts.map(acc => {
+                    // If it's the same type but a different ID, unset primary
+                    if (acc.type === accountData.type && acc.id !== accountData.id && acc.isPrimary) {
+                        return { ...acc, isPrimary: false };
+                    }
+                    return acc;
+                });
             }
-            return updatedAccounts;
+            return intermediateAccounts;
         });
     } else { // ADD
         const newAccount = { ...accountData, id: `acc-${uuidv4()}`, status: 'open' as const } as Account;
         setAccounts(prev => {
-            const newAccounts = [...prev, newAccount];
+            let newAccounts = [...prev, newAccount];
             if (newAccount.isPrimary) {
-                return newAccounts.map(acc => acc.id === newAccount.id ? acc : { ...acc, isPrimary: false });
+                newAccounts = newAccounts.map(acc => {
+                    if (acc.type === newAccount.type && acc.id !== newAccount.id && acc.isPrimary) {
+                        return { ...acc, isPrimary: false };
+                    }
+                    return acc;
+                });
             }
             return newAccounts;
         });
@@ -1495,7 +1554,7 @@ const App: React.FC = () => {
           onLogout={handleLogout}
           user={currentUser!}
         />
-        <div className="flex-1 flex flex-col overflow-hidden bg-light-bg dark:bg-dark-bg md:rounded-tl-3xl border-l border-t border-black/5 dark:border-white/5 shadow-2xl relative z-0">
+        <div className="flex-1 flex flex-col overflow-hidden relative z-0">
           <Header
             user={currentUser!}
             setSidebarOpen={setSidebarOpen}
@@ -1504,7 +1563,7 @@ const App: React.FC = () => {
             currentPage={currentPage}
             titleOverride={viewingAccount?.name}
           />
-          <main className="flex-1 overflow-x-hidden overflow-y-auto p-4 md:p-8 bg-light-bg dark:bg-dark-bg">
+          <main className="flex-1 overflow-x-hidden overflow-y-auto p-4 md:p-8 bg-light-bg dark:bg-dark-bg md:rounded-tl-3xl border-l border-t border-black/5 dark:border-white/5 shadow-2xl">
             <Suspense fallback={<PageLoader />}>
               {renderPage()}
             </Suspense>

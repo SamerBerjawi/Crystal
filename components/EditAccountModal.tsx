@@ -1,5 +1,7 @@
 
 
+
+
 import React, { useState, useEffect, useMemo, useRef } from 'react';
 import Modal from './Modal';
 import { Account, AccountType, Currency, InvestmentSubType, PropertyType, Warrant, FuelType, VehicleOwnership, MileageLog } from '../types';
@@ -562,7 +564,7 @@ const EditAccountModal: React.FC<EditAccountModalProps> = ({ onClose, onSave, on
             <div className="flex justify-between items-center">
                 <div>
                     <p className="font-medium text-light-text dark:text-dark-text">Primary Account</p>
-                    <p className="text-sm text-light-text-secondary dark:text-dark-text-secondary">Set as the default account for dashboard filters.</p>
+                    <p className="text-sm text-light-text-secondary dark:text-dark-text-secondary">Set as the default account for this account type (e.g., default {type}).</p>
                 </div>
                 <div 
                   onClick={() => setIsPrimary(!isPrimary)}
