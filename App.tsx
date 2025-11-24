@@ -1,5 +1,7 @@
 
 
+
+
 // FIX: Import `useMemo` from React to resolve the 'Cannot find name' error.
 import React, { useState, useEffect, useMemo, useCallback, Suspense, lazy, useRef } from 'react';
 import Sidebar from './components/Sidebar';
@@ -149,11 +151,9 @@ const PageLoader: React.FC<{ label?: string }> = ({ label = 'Loading content...'
   </div>
 );
 
-class ErrorBoundary extends React.Component<{ children: React.ReactNode }, { hasError: boolean; message?: string }> {
-  constructor(props: { children: React.ReactNode }) {
-    super(props);
-    this.state = { hasError: false, message: undefined };
-  }
+// FIX: Replaced constructor with class property for state initialization and used React.PropsWithChildren for props to resolve multiple type errors.
+class ErrorBoundary extends React.Component<React.PropsWithChildren<{}>, { hasError: boolean; message?: string }> {
+  state = { hasError: false, message: undefined };
 
   static getDerivedStateFromError(error: Error) {
     return { hasError: true, message: error?.message };

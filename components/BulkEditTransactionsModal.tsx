@@ -2,6 +2,7 @@ import React, { useState, useMemo, useRef, useEffect } from 'react';
 import Modal from './Modal';
 import { Transaction, Account, Category, Tag } from '../types';
 import { INPUT_BASE_STYLE, BTN_PRIMARY_STYLE, BTN_SECONDARY_STYLE, SELECT_WRAPPER_STYLE, SELECT_ARROW_STYLE, CHECKBOX_STYLE } from '../constants';
+import LocationAutocomplete from './LocationAutocomplete';
 
 const CategoryOptions: React.FC<{ categories: Category[] }> = ({ categories }) => (
     <>
@@ -48,6 +49,7 @@ const BulkEditTransactionsModal: React.FC<BulkEditTransactionsModalProps> = ({
     merchant: false,
     category: false,
     tags: false,
+    location: false,
   });
 
   const [updatedValues, setUpdatedValues] = useState({
@@ -57,6 +59,8 @@ const BulkEditTransactionsModal: React.FC<BulkEditTransactionsModalProps> = ({
     merchant: '',
     category: '',
     tagIds: [] as string[],
+    locationString: '',
+    locationData: {} as {city?: string, country?: string, lat?: number, lon?: number},
   });
 
   const [isTagSelectorOpen, setIsTagSelectorOpen] = useState(false);
@@ -78,7 +82,7 @@ const BulkEditTransactionsModal: React.FC<BulkEditTransactionsModalProps> = ({
     setFieldsToUpdate(prev => ({ ...prev, [field]: !prev[field] }));
   };
 
-  const handleChange = (field: keyof Omit<typeof updatedValues, 'tagIds'>, value: string) => {
+  const handleChange = (field: keyof Omit<typeof updatedValues, 'tagIds' | 'locationString' | 'locationData'>, value: string) => {
     setUpdatedValues(prev => ({ ...prev, [field]: value }));
   };
 
@@ -117,6 +121,12 @@ const BulkEditTransactionsModal: React.FC<BulkEditTransactionsModalProps> = ({
       if (fieldsToUpdate.description) updatedTx.description = updatedValues.description;
       if (fieldsToUpdate.merchant) updatedTx.merchant = updatedValues.merchant;
       if (fieldsToUpdate.tags) updatedTx.tagIds = updatedValues.tagIds;
+      if (fieldsToUpdate.location) {
+        updatedTx.city = updatedValues.locationData.city;
+        updatedTx.country = updatedValues.locationData.country;
+        updatedTx.latitude = updatedValues.locationData.lat;
+        updatedTx.longitude = updatedValues.locationData.lon;
+      }
 
       if (fieldsToUpdate.category) {
         updatedTx.category = updatedValues.category;
@@ -235,6 +245,20 @@ const BulkEditTransactionsModal: React.FC<BulkEditTransactionsModalProps> = ({
                     )}
                 </div>
                 <p className="text-xs text-light-text-secondary dark:text-dark-text-secondary mt-1">This will replace all existing tags on the selected transactions.</p>
+            </CheckboxField>
+            
+            <CheckboxField field="location" label="Change Location">
+                <LocationAutocomplete
+                    value={updatedValues.locationString}
+                    onChange={(val, data) => {
+                        setUpdatedValues(prev => ({
+                            ...prev,
+                            locationString: val,
+                            locationData: data || {}
+                        }));
+                    }}
+                />
+                <p className="text-xs text-light-text-secondary dark:text-dark-text-secondary mt-1">This will replace any existing location on the selected transactions.</p>
             </CheckboxField>
 
             <div className="flex justify-end gap-4 pt-4 mt-4 border-t border-black/10 dark:border-white/10">

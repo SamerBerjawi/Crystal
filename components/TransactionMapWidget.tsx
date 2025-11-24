@@ -33,9 +33,18 @@ const TransactionMapWidget: React.FC<TransactionMapWidgetProps> = ({ transaction
   }, []);
 
   const locations = useMemo(() => {
+// FIX: Define a specific type for the grouped location data to avoid 'unknown' type errors.
+    type GroupedLocation = {
+      lat: number;
+      lon: number;
+      count: number;
+      amountTotal: number;
+      transactions: Transaction[];
+    };
     const grouped = transactions
       .filter(tx => tx.latitude !== undefined && tx.latitude !== null && tx.longitude !== undefined && tx.longitude !== null)
-      .reduce((map, tx) => {
+// FIX: Explicitly type the accumulator in the reduce function to ensure type safety.
+      .reduce((map: Map<string, GroupedLocation>, tx) => {
         const key = `${tx.latitude},${tx.longitude}`;
         const current = map.get(key);
 
@@ -54,9 +63,11 @@ const TransactionMapWidget: React.FC<TransactionMapWidgetProps> = ({ transaction
         }
 
         return map;
-      }, new Map<string, { lat: number; lon: number; count: number; amountTotal: number; transactions: Transaction[] }>());
+// FIX: Explicitly type the initial value of the reduce function.
+      }, new Map<string, GroupedLocation>());
 
-    return Array.from(grouped.values()).map(group => {
+// FIX: Explicitly type the 'group' parameter in the map function.
+    return Array.from(grouped.values()).map((group: GroupedLocation) => {
       const representative = group.transactions[0];
 
       return {

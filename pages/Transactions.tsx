@@ -1,4 +1,3 @@
-
 import React, { useState, useMemo, useRef, useEffect } from 'react';
 import { INPUT_BASE_STYLE, SELECT_WRAPPER_STYLE, SELECT_ARROW_STYLE, BTN_PRIMARY_STYLE, BTN_SECONDARY_STYLE, SELECT_STYLE, CHECKBOX_STYLE } from '../constants';
 // FIX: Imported the 'Category' type to resolve 'Cannot find name' errors throughout the component.
@@ -20,11 +19,10 @@ interface TransactionsProps {
   setAccountFilter: (accountName: string | null) => void;
   tagFilter: string | null;
   setTagFilter: (tagId: string | null) => void;
-  saveRecurringTransaction?: (recurringData: Omit<RecurringTransaction, 'id'> & { id?: string }) => void;
 }
 
 const Transactions: React.FC<TransactionsProps> = ({ accountFilter, setAccountFilter, tagFilter, setTagFilter }) => {
-  const { transactions, saveTransaction, deleteTransactions, digest: transactionsDigest } = useTransactionsContext();
+  const { transactions, saveTransaction, deleteTransactions } = useTransactionsContext();
   const { accounts } = useAccountsContext();
   const { incomeCategories, expenseCategories } = useCategoryContext();
   const { tags } = useTagsContext();
@@ -43,7 +41,7 @@ const Transactions: React.FC<TransactionsProps> = ({ accountFilter, setAccountFi
   const [selectedCategoryNames, setSelectedCategoryNames] = useState<string[]>([]);
   const [selectedTagIds, setSelectedTagIds] = useState<string[]>([]);
 
-  const [isTransactionModalOpen, setTransactionModalOpen] = useState(false);
+  const [isTransactionModalOpen, setIsTransactionModalOpen] = useState(false);
   const [editingTransaction, setEditingTransaction] = useState<Transaction | null>(null);
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
   const [isCategorizeModalOpen, setIsCategorizeModalOpen] = useState(false);
@@ -394,7 +392,7 @@ const Transactions: React.FC<TransactionsProps> = ({ accountFilter, setAccountFi
 
   const handleOpenAddModal = () => {
     setEditingTransaction(null);
-    setTransactionModalOpen(true);
+    setIsTransactionModalOpen(true);
   };
 
   const handleOpenEditModal = (transaction: DisplayTransaction) => {
@@ -402,12 +400,12 @@ const Transactions: React.FC<TransactionsProps> = ({ accountFilter, setAccountFi
     const originalTransaction = transactions.find(t => t.id === idToFind);
     if (originalTransaction) {
         setEditingTransaction(originalTransaction);
-        setTransactionModalOpen(true);
+        setIsTransactionModalOpen(true);
     }
   };
 
   const handleCloseModal = () => {
-    setTransactionModalOpen(false);
+    setIsTransactionModalOpen(false);
     setEditingTransaction(null);
   };
   
@@ -549,7 +547,7 @@ const Transactions: React.FC<TransactionsProps> = ({ accountFilter, setAccountFi
           tags={tags}
         />
       )}
-      {isRecurringModalOpen && (
+      {isRecurringModalOpen && saveRecurringTransaction && (
         <RecurringTransactionModal
             onClose={() => setIsRecurringModalOpen(false)}
             onSave={(data) => {
@@ -730,6 +728,17 @@ const Transactions: React.FC<TransactionsProps> = ({ accountFilter, setAccountFi
       
       <div className="flex-1 min-h-0 relative">
         <Card className="p-0 h-full flex flex-col">
+            {selectedIds.size > 0 && (
+                <div className="absolute top-0 left-0 right-0 z-10 bg-primary-500/10 dark:bg-primary-900/30 backdrop-blur-sm p-3 flex justify-between items-center animate-fade-in-up">
+                    <span className="font-semibold text-sm">{selectedIds.size} selected</span>
+                    <div className="flex gap-2">
+                        <button onClick={() => setBulkEditModalOpen(true)} className={`${BTN_SECONDARY_STYLE} !py-1 !px-3 text-xs`} disabled={containsTransfer}>Edit</button>
+                        <button onClick={handleOpenCategorizeModal} className={`${BTN_SECONDARY_STYLE} !py-1 !px-3 text-xs`} disabled={containsTransfer}>Categorize</button>
+                        <button onClick={() => handleMakeRecurring()} className={`${BTN_SECONDARY_STYLE} !py-1 !px-3 text-xs`} disabled={selectedIds.size !== 1}>Make Recurring</button>
+                        <button onClick={handleOpenDeleteModal} className="bg-red-500 text-white font-semibold py-1 px-3 rounded-md text-xs hover:bg-red-600">Delete</button>
+                    </div>
+                </div>
+            )}
             <div className="px-6 py-3 border-b border-light-separator dark:border-dark-separator flex items-center gap-4 font-semibold text-light-text-secondary dark:text-dark-text-secondary flex-shrink-0">
                 <input type="checkbox" onChange={handleSelectAll} checked={isAllSelected} className={CHECKBOX_STYLE} aria-label="Select all transactions"/>
                 <div className="flex-1 grid grid-cols-12 gap-4 ml-3 items-center">
