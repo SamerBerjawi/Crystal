@@ -1,9 +1,6 @@
-
-
 import React, { useMemo, useEffect, useState } from 'react';
 import { MapContainer, TileLayer, CircleMarker, Tooltip, useMap } from 'react-leaflet';
 import { Transaction } from '../types';
-import Card from './Card';
 import { formatCurrency, parseDateAsUTC } from '../utils';
 import L from 'leaflet';
 
@@ -75,13 +72,11 @@ const TransactionMapWidget: React.FC<TransactionMapWidgetProps> = ({ transaction
         transactions: group.transactions,
       };
     });
-// FIX: Removed a redundant and incorrect return statement that was causing a union type with incompatible shapes, leading to type errors for 'coords' and 'count'.
   }, [transactions]);
 
   const coords: [number, number][] = locations.map(l => [l.lat, l.lon]);
 
   const maxDensity = useMemo(() => {
-// FIX: Corrected a potential error where 'loc.count' could be undefined due to an incorrect union type for 'locations'.
     return locations.reduce((max, loc) => Math.max(max, loc.count), 0) || 1;
   }, [locations]);
 
@@ -102,20 +97,17 @@ const TransactionMapWidget: React.FC<TransactionMapWidgetProps> = ({ transaction
 
   if (locations.length === 0) {
     return (
-        <Card className="h-full flex items-center justify-center text-light-text-secondary dark:text-dark-text-secondary">
+        <div className="h-full flex items-center justify-center text-light-text-secondary dark:text-dark-text-secondary">
             <div className="text-center">
                 <span className="material-symbols-outlined text-4xl mb-2">public_off</span>
                 <p>No location data found in transactions.</p>
             </div>
-        </Card>
+        </div>
     );
   }
 
   return (
-    <Card className="h-full flex flex-col p-0 overflow-hidden relative">
-        <div className="absolute top-4 left-4 z-[400] bg-light-card/80 dark:bg-dark-card/80 backdrop-blur-md px-3 py-1 rounded-lg shadow-md pointer-events-none">
-             <h3 className="font-semibold text-sm">Transaction Map</h3>
-        </div>
+    <div className="h-full w-full rounded-lg overflow-hidden border border-black/5 dark:border-white/5 relative z-0">
         <MapContainer center={[20, 0]} zoom={2} style={{ height: '100%', width: '100%' }} className="z-0 bg-light-bg dark:bg-dark-bg">
             <TileLayer
                 attribution={attribution}
@@ -153,7 +145,7 @@ const TransactionMapWidget: React.FC<TransactionMapWidgetProps> = ({ transaction
                 );
             })}
         </MapContainer>
-    </Card>
+    </div>
   );
 };
 
