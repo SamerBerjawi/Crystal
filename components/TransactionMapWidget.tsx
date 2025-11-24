@@ -1,3 +1,4 @@
+
 import React, { useMemo, useEffect, useState } from 'react';
 import { MapContainer, TileLayer, CircleMarker, Tooltip, useMap } from 'react-leaflet';
 import { Transaction } from '../types';
@@ -107,7 +108,7 @@ const TransactionMapWidget: React.FC<TransactionMapWidgetProps> = ({ transaction
   }
 
   return (
-    <div className="h-full w-full rounded-lg overflow-hidden border border-black/5 dark:border-white/5 relative z-0">
+    <div className="h-full w-full rounded-lg overflow-hidden relative z-0">
         <MapContainer center={[20, 0]} zoom={2} style={{ height: '100%', width: '100%' }} className="z-0 bg-light-bg dark:bg-dark-bg">
             <TileLayer
                 attribution={attribution}

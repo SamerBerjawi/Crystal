@@ -389,7 +389,7 @@ const Forecasting: React.FC<ForecastingProps> = ({ activeGoalIds, setActiveGoalI
 
     // Styles for the segmented controls
     const segmentItemBase = "flex-1 px-3 py-1.5 text-sm font-medium rounded-md transition-all duration-200 flex items-center justify-center whitespace-nowrap";
-    const segmentItemActive = "bg-light-card dark:bg-dark-card shadow-sm text-primary-600 dark:text-primary-400 font-semibold";
+    const segmentItemActive = "bg-light-card dark:bg-dark-card shadow-sm text-primary-600 dark:text-primary-400 font-semibold border border-black/5 dark:border-white/10";
     const segmentItemInactive = "text-light-text-secondary dark:text-dark-text-secondary hover:text-light-text dark:hover:text-dark-text";
 
     return (
@@ -424,7 +424,7 @@ const Forecasting: React.FC<ForecastingProps> = ({ activeGoalIds, setActiveGoalI
                     </div>
                     
                     {/* 2. View Mode Segmented Control */}
-                    <div className="flex bg-light-fill dark:bg-dark-fill p-1 rounded-lg h-10 flex-shrink-0 w-full sm:w-auto border border-black/5 dark:border-white/10">
+                    <div className="flex bg-light-fill dark:bg-dark-fill p-1 rounded-lg h-10 flex-shrink-0 w-full sm:w-auto">
                              <button 
                                 onClick={() => setShowIndividualLines(false)} 
                                 className={`${segmentItemBase} ${!showIndividualLines ? segmentItemActive : segmentItemInactive}`}
@@ -450,7 +450,7 @@ const Forecasting: React.FC<ForecastingProps> = ({ activeGoalIds, setActiveGoalI
                         </button>
 
                     {/* 4. Time Range Segmented Control */}
-                    <div className="flex bg-light-fill dark:bg-dark-fill p-1 rounded-lg h-10 flex-shrink-0 w-full sm:w-auto overflow-x-auto no-scrollbar border border-black/5 dark:border-white/10">
+                    <div className="flex bg-light-fill dark:bg-dark-fill p-1 rounded-lg h-10 flex-shrink-0 w-full sm:w-auto overflow-x-auto no-scrollbar">
                         {durationOptions.map(opt => (
                             <button
                                 key={opt.value}
