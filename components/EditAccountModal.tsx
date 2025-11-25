@@ -72,6 +72,7 @@ const EditAccountModal: React.FC<EditAccountModalProps> = ({ onClose, onSave, on
   const [fuelType, setFuelType] = useState<FuelType>(account.fuelType || 'Gasoline');
   const [vehicleOwnership, setVehicleOwnership] = useState<VehicleOwnership>(account.ownership || 'Owned');
   const [purchaseDate, setPurchaseDate] = useState(account.purchaseDate || '');
+  const [leaseProvider, setLeaseProvider] = useState(account.leaseProvider || '');
   const [leaseStartDate, setLeaseStartDate] = useState(account.leaseStartDate || '');
   const [leaseEndDate, setLeaseEndDate] = useState(account.leaseEndDate || '');
   const [annualMileageAllowance, setAnnualMileageAllowance] = useState(account.annualMileageAllowance != null ? String(account.annualMileageAllowance) : '');
@@ -275,6 +276,7 @@ const EditAccountModal: React.FC<EditAccountModalProps> = ({ onClose, onSave, on
       fuelType: type === 'Vehicle' ? fuelType : undefined,
       ownership: type === 'Vehicle' ? vehicleOwnership : undefined,
       purchaseDate: type === 'Vehicle' && vehicleOwnership === 'Owned' && purchaseDate ? purchaseDate : undefined,
+      leaseProvider: type === 'Vehicle' && vehicleOwnership === 'Leased' && leaseProvider ? leaseProvider : undefined,
       leaseStartDate: type === 'Vehicle' && vehicleOwnership === 'Leased' && leaseStartDate ? leaseStartDate : undefined,
       leaseEndDate: type === 'Vehicle' && vehicleOwnership === 'Leased' && leaseEndDate ? leaseEndDate : undefined,
       annualMileageAllowance: type === 'Vehicle' && vehicleOwnership === 'Leased' && annualMileageAllowance !== '' ? parseInt(annualMileageAllowance, 10) : undefined,
@@ -606,29 +608,32 @@ const EditAccountModal: React.FC<EditAccountModalProps> = ({ onClose, onSave, on
                         </div>
                    )}
                    {vehicleOwnership === 'Leased' && (
-                       <div className="grid grid-cols-2 gap-4">
-                           <div><label htmlFor="leaseStart" className={labelStyle}>Lease Start</label><input id="leaseStart" type="date" value={leaseStartDate} onChange={e=>setLeaseStartDate(e.target.value)} className={INPUT_BASE_STYLE} /></div>
-                           <div><label htmlFor="leaseEnd" className={labelStyle}>Lease End</label><input id="leaseEnd" type="date" value={leaseEndDate} onChange={e=>setLeaseEndDate(e.target.value)} className={INPUT_BASE_STYLE} /></div>
-                           <div className="col-span-2"><label htmlFor="annualMileageAllowance" className={labelStyle}>Annual Mileage Allowance (km)</label><input id="annualMileageAllowance" type="number" value={annualMileageAllowance} onChange={e=>setAnnualMileageAllowance(e.target.value)} className={INPUT_BASE_STYLE} placeholder="e.g. 15000" /></div>
-                           <div><label htmlFor="leasePaymentAmount" className={labelStyle}>Lease Price (Optional)</label><input id="leasePaymentAmount" type="number" step="0.01" value={leasePaymentAmount} onChange={e=>setLeasePaymentAmount(e.target.value)} className={INPUT_BASE_STYLE} /></div>
-                           <div><label htmlFor="leasePaymentDay" className={labelStyle}>Payment Day (Optional)</label><input id="leasePaymentDay" type="number" min="1" max="31" value={leasePaymentDay} onChange={e=>setLeasePaymentDay(e.target.value)} className={INPUT_BASE_STYLE} /></div>
-                           <div className="col-span-2">
-                               <label htmlFor="leasePaymentAccountId" className={labelStyle}>Payment Account (Optional)</label>
-                               <div className={SELECT_WRAPPER_STYLE}>
-                                   <select id="leasePaymentAccountId" value={leasePaymentAccountId} onChange={e => setLeasePaymentAccountId(e.target.value)} className={INPUT_BASE_STYLE}>
-                                       <option value="">None</option>
-                                       {ALL_ACCOUNT_TYPES.map(type => {
-                                           const group = groupedDebitAccounts[type];
-                                           if (!group || group.length === 0) return null;
-                                           return (
-                                               <optgroup key={type} label={type}>
-                                                   {group.map(acc => <option key={acc.id} value={acc.id}>{acc.name}</option>)}
-                                               </optgroup>
-                                           );
-                                       })}
-                                   </select>
-                                   <div className={SELECT_ARROW_STYLE}><span className="material-symbols-outlined">expand_more</span></div>
-                               </div>
+                       <div className="space-y-4">
+                            <div><label htmlFor="leaseProvider" className={labelStyle}>Lease Provider</label><input id="leaseProvider" type="text" value={leaseProvider} onChange={e=>setLeaseProvider(e.target.value)} className={INPUT_BASE_STYLE} placeholder="e.g. LeasePlan" /></div>
+                           <div className="grid grid-cols-2 gap-4">
+                                <div><label htmlFor="leaseStart" className={labelStyle}>Lease Start</label><input id="leaseStart" type="date" value={leaseStartDate} onChange={e=>setLeaseStartDate(e.target.value)} className={INPUT_BASE_STYLE} /></div>
+                                <div><label htmlFor="leaseEnd" className={labelStyle}>Lease End</label><input id="leaseEnd" type="date" value={leaseEndDate} onChange={e=>setLeaseEndDate(e.target.value)} className={INPUT_BASE_STYLE} /></div>
+                                <div className="col-span-2"><label htmlFor="annualMileageAllowance" className={labelStyle}>Annual Mileage Allowance (km)</label><input id="annualMileageAllowance" type="number" value={annualMileageAllowance} onChange={e=>setAnnualMileageAllowance(e.target.value)} className={INPUT_BASE_STYLE} placeholder="e.g. 15000" /></div>
+                                <div><label htmlFor="leasePaymentAmount" className={labelStyle}>Lease Price (Optional)</label><input id="leasePaymentAmount" type="number" step="0.01" value={leasePaymentAmount} onChange={e=>setLeasePaymentAmount(e.target.value)} className={INPUT_BASE_STYLE} /></div>
+                                <div><label htmlFor="leasePaymentDay" className={labelStyle}>Payment Day (Optional)</label><input id="leasePaymentDay" type="number" min="1" max="31" value={leasePaymentDay} onChange={e=>setLeasePaymentDay(e.target.value)} className={INPUT_BASE_STYLE} /></div>
+                                <div className="col-span-2">
+                                    <label htmlFor="leasePaymentAccountId" className={labelStyle}>Payment Account (Optional)</label>
+                                    <div className={SELECT_WRAPPER_STYLE}>
+                                        <select id="leasePaymentAccountId" value={leasePaymentAccountId} onChange={e => setLeasePaymentAccountId(e.target.value)} className={INPUT_BASE_STYLE}>
+                                            <option value="">None</option>
+                                            {ALL_ACCOUNT_TYPES.map(type => {
+                                                const group = groupedDebitAccounts[type];
+                                                if (!group || group.length === 0) return null;
+                                                return (
+                                                    <optgroup key={type} label={type}>
+                                                        {group.map(acc => <option key={acc.id} value={acc.id}>{acc.name}</option>)}
+                                                    </optgroup>
+                                                );
+                                            })}
+                                        </select>
+                                        <div className={SELECT_ARROW_STYLE}><span className="material-symbols-outlined">expand_more</span></div>
+                                    </div>
+                                </div>
                            </div>
                        </div>
                    )}

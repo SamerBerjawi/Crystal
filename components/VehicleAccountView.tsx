@@ -61,112 +61,207 @@ const VehicleAccountView: React.FC<VehicleAccountViewProps> = ({
   }, [account, currentMileage]);
 
   return (
-    <div className="space-y-6 animate-fade-in-up">
+    <div className="space-y-8 animate-fade-in-up">
+      {/* Top Bar */}
       <header className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
-        <div className="flex items-center gap-4 w-full">
-          <button onClick={onBack} className="text-light-text-secondary dark:text-dark-text-secondary p-2 rounded-full hover:bg-black/5 dark:hover:bg-white/5 flex-shrink-0">
+         <button onClick={onBack} className="text-light-text-secondary dark:text-dark-text-secondary p-2 rounded-full hover:bg-black/5 dark:hover:bg-white/5 flex-shrink-0 -ml-2">
             <span className="material-symbols-outlined">arrow_back</span>
           </button>
-          <div className="flex items-center gap-4 w-full">
-            {account.imageUrl ? (
-              <img src={account.imageUrl} alt="Vehicle" className="w-16 h-16 rounded-xl object-cover border border-black/10 dark:border-white/10" />
-            ) : (
-              <div className={`w-16 h-16 rounded-xl flex items-center justify-center ${ACCOUNT_TYPE_STYLES['Vehicle'].color} bg-current/10 border border-current/20`}>
-                <span className="material-symbols-outlined text-4xl">directions_car</span>
-              </div>
-            )}
-            <div>
-              <h1 className="text-2xl font-bold text-light-text dark:text-dark-text">{account.name}</h1>
-              <div className="flex items-center gap-2 text-sm text-light-text-secondary dark:text-dark-text-secondary">
-                <span>{account.year} {account.make} {account.model}</span>
-                {account.licensePlate && <><span>•</span><span className="font-mono bg-gray-200 dark:bg-gray-700 px-1.5 py-0.5 rounded text-xs">{account.licensePlate}</span></>}
-              </div>
-            </div>
-            <div className="ml-auto">
-              <button onClick={onAddTransaction} className={BTN_PRIMARY_STYLE}>Add Transaction</button>
-            </div>
-          </div>
-        </div>
+           <button onClick={onAddTransaction} className={BTN_PRIMARY_STYLE}>Add Transaction</button>
       </header>
+
+      {/* Hero Section */}
+      <div className="bg-white dark:bg-dark-card rounded-3xl p-6 lg:p-8 shadow-card border border-black/5 dark:border-white/5 flex flex-col lg:flex-row items-center gap-8 relative overflow-hidden">
+           <div className="absolute top-0 right-0 p-4 opacity-5 dark:opacity-[0.02] pointer-events-none">
+                 <span className="material-symbols-outlined text-9xl">directions_car</span>
+           </div>
+
+           {/* Vehicle Image / Icon */}
+           <div className="flex-shrink-0 relative group">
+                {account.imageUrl ? (
+                    <div className="w-40 h-40 lg:w-48 lg:h-48 rounded-2xl overflow-hidden shadow-md border-4 border-white dark:border-dark-bg ring-1 ring-black/5">
+                        <img src={account.imageUrl} alt="Vehicle" className="w-full h-full object-cover" />
+                    </div>
+                ) : (
+                    <div className={`w-32 h-32 lg:w-40 lg:h-40 rounded-2xl flex items-center justify-center bg-gradient-to-br from-cyan-500 to-blue-600 text-white shadow-lg`}>
+                        <span className="material-symbols-outlined text-6xl">directions_car</span>
+                    </div>
+                )}
+           </div>
+
+           {/* Vehicle Info */}
+           <div className="flex-grow text-center lg:text-left">
+               <div className="mb-4">
+                    <h1 className="text-3xl lg:text-4xl font-bold text-light-text dark:text-dark-text mb-1 tracking-tight">{account.name}</h1>
+                    <p className="text-lg text-light-text-secondary dark:text-dark-text-secondary font-medium">
+                        {account.year} {account.make} {account.model}
+                    </p>
+               </div>
+               <div className="flex flex-wrap justify-center lg:justify-start gap-3">
+                   {account.licensePlate && (
+                       <span className="px-3 py-1 rounded-md bg-gray-100 dark:bg-white/10 text-sm font-mono font-semibold border border-black/10 dark:border-white/10">
+                           {account.licensePlate}
+                       </span>
+                   )}
+                   <span className={`px-3 py-1 rounded-full text-sm font-bold uppercase tracking-wide ${account.ownership === 'Leased' ? 'bg-orange-100 text-orange-700 dark:bg-orange-900/40 dark:text-orange-300' : 'bg-green-100 text-green-700 dark:bg-green-900/40 dark:text-green-300'}`}>
+                       {account.ownership}
+                   </span>
+                   <span className="px-3 py-1 rounded-full bg-blue-100 dark:bg-blue-900/40 text-blue-700 dark:text-blue-300 text-sm font-semibold flex items-center gap-1">
+                       <span className="material-symbols-outlined text-sm">local_gas_station</span>
+                       {account.fuelType}
+                   </span>
+               </div>
+           </div>
+
+            {/* Key Stats High Level */}
+            <div className="flex flex-col sm:flex-row gap-6 text-center lg:text-right border-t lg:border-t-0 lg:border-l border-black/5 dark:border-white/5 pt-6 lg:pt-0 lg:pl-8">
+                <div>
+                    <p className="text-xs font-bold uppercase tracking-wider text-light-text-secondary dark:text-dark-text-secondary mb-1">Current Value</p>
+                    <p className="text-2xl font-bold text-light-text dark:text-dark-text">{formatCurrency(account.balance, account.currency)}</p>
+                </div>
+                 <div>
+                    <p className="text-xs font-bold uppercase tracking-wider text-light-text-secondary dark:text-dark-text-secondary mb-1">Odometer</p>
+                    <p className="text-2xl font-bold text-light-text dark:text-dark-text">{currentMileage.toLocaleString()} km</p>
+                </div>
+            </div>
+      </div>
       
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-        <div className="lg:col-span-2 space-y-6">
-          {isLeased && leaseStats ? (
-            <Card>
-              <h3 className="text-base font-semibold text-light-text dark:text-dark-text mb-4">Lease Status</h3>
-              <div className="grid grid-cols-1 sm:grid-cols-3 gap-6 mb-6">
-                <div><p className="text-xs uppercase text-light-text-secondary dark:text-dark-text-secondary font-semibold mb-1">Days Remaining</p><p className="text-2xl font-bold">{leaseStats.daysRemaining}</p></div>
-                <div><p className="text-xs uppercase text-light-text-secondary dark:text-dark-text-secondary font-semibold mb-1">Mileage Balance</p><p className={`text-2xl font-bold ${leaseStats.mileageDiff > 0 ? 'text-red-500' : 'text-green-500'}`}>{leaseStats.mileageDiff > 0 ? '+' : ''}{Math.round(leaseStats.mileageDiff).toLocaleString()} km</p></div>
-                <div><p className="text-xs uppercase text-light-text-secondary dark:text-dark-text-secondary font-semibold mb-1">Projected End</p><p className="text-2xl font-bold">{Math.round(leaseStats.projectedMileage).toLocaleString()} km</p></div>
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
+        <div className="lg:col-span-2 space-y-8">
+          {/* Lease Dashboard */}
+          {isLeased && leaseStats && (
+            <div className="bg-gradient-to-br from-gray-50 to-gray-100 dark:from-dark-card dark:to-dark-bg rounded-2xl p-6 border border-black/5 dark:border-white/10 shadow-sm relative overflow-hidden">
+                 <div className="absolute top-0 right-0 w-32 h-32 bg-primary-500/5 rounded-full blur-3xl -mr-10 -mt-10"></div>
+              
+              <div className="flex justify-between items-center mb-6 relative z-10">
+                  <h3 className="text-lg font-bold text-light-text dark:text-dark-text flex items-center gap-2">
+                      <span className="material-symbols-outlined text-primary-500">contract</span>
+                      Lease Agreement
+                  </h3>
+                  {account.leaseProvider && (
+                      <span className="text-sm font-semibold bg-white dark:bg-white/10 px-3 py-1 rounded-full border border-black/5 dark:border-white/5 shadow-sm">
+                          {account.leaseProvider}
+                      </span>
+                  )}
+              </div>
+
+              <div className="grid grid-cols-1 sm:grid-cols-3 gap-6 mb-8 relative z-10">
+                 <div className="bg-white dark:bg-black/20 rounded-xl p-4 border border-black/5 dark:border-white/5">
+                    <p className="text-xs font-bold uppercase text-light-text-secondary dark:text-dark-text-secondary mb-2">Time Remaining</p>
+                    <p className="text-2xl font-bold text-light-text dark:text-dark-text">{leaseStats.daysRemaining} <span className="text-sm font-medium text-light-text-secondary">days</span></p>
+                    <div className="w-full bg-gray-200 dark:bg-gray-700 rounded-full h-1.5 mt-3">
+                        <div className="bg-primary-500 h-1.5 rounded-full" style={{ width: `${leaseStats.progress}%` }}></div>
+                    </div>
+                 </div>
+                 
+                 <div className="bg-white dark:bg-black/20 rounded-xl p-4 border border-black/5 dark:border-white/5">
+                    <p className="text-xs font-bold uppercase text-light-text-secondary dark:text-dark-text-secondary mb-2">Mileage Balance</p>
+                    <p className={`text-2xl font-bold ${leaseStats.mileageDiff > 0 ? 'text-red-500' : 'text-green-500'}`}>{leaseStats.mileageDiff > 0 ? '+' : ''}{Math.round(leaseStats.mileageDiff).toLocaleString()}</p>
+                    <p className="text-xs text-light-text-secondary dark:text-dark-text-secondary mt-1">vs. expected usage</p>
+                 </div>
+
+                 <div className="bg-white dark:bg-black/20 rounded-xl p-4 border border-black/5 dark:border-white/5">
+                    <p className="text-xs font-bold uppercase text-light-text-secondary dark:text-dark-text-secondary mb-2">Projected End</p>
+                    <p className="text-2xl font-bold text-light-text dark:text-dark-text">{Math.round(leaseStats.projectedMileage).toLocaleString()}</p>
+                     <p className="text-xs text-light-text-secondary dark:text-dark-text-secondary mt-1">km at lease end</p>
+                 </div>
               </div>
               
-              <div className="space-y-4">
-                <div>
-                  <div className="flex justify-between text-sm mb-1"><span>Time Elapsed</span><span>{Math.round(leaseStats.progress)}%</span></div>
-                  <div className="w-full bg-light-fill dark:bg-dark-fill rounded-full h-2"><div className="bg-primary-500 h-2 rounded-full" style={{ width: `${leaseStats.progress}%` }}></div></div>
-                </div>
-                {account.annualMileageAllowance && (
-                  <div>
-                    <div className="flex justify-between text-sm mb-1">
-                      <span>Mileage Usage ({currentMileage.toLocaleString()} / {leaseStats.totalAllowance.toLocaleString()})</span>
-                      <span className={leaseStats.mileageStatus === 'Over Budget' ? 'text-red-500 font-bold' : 'text-green-500'}>{leaseStats.mileageStatus}</span>
+              {account.annualMileageAllowance && (
+                  <div className="bg-white dark:bg-black/20 rounded-xl p-5 border border-black/5 dark:border-white/5 relative z-10">
+                    <div className="flex justify-between text-sm font-medium mb-2">
+                      <span className="text-light-text dark:text-dark-text">Total Mileage Usage</span>
+                      <span className={leaseStats.mileageStatus === 'Over Budget' ? 'text-red-500 font-bold' : 'text-green-500 font-bold'}>{leaseStats.mileageStatus}</span>
                     </div>
-                    <div className="w-full bg-light-fill dark:bg-dark-fill rounded-full h-2 relative">
+                    <div className="w-full bg-gray-200 dark:bg-gray-700 rounded-full h-3 relative">
                       {/* Expected mileage marker */}
-                      <div className="absolute top-0 bottom-0 w-0.5 bg-black dark:bg-white z-10" style={{ left: `${Math.min((leaseStats.progress), 100)}%` }} title="Expected Usage"></div>
-                      <div className={`h-2 rounded-full ${leaseStats.mileageStatus === 'Over Budget' ? 'bg-red-500' : 'bg-green-500'}`} style={{ width: `${Math.min((currentMileage / leaseStats.totalAllowance) * 100, 100)}%` }}></div>
+                      <div className="absolute top-0 bottom-0 w-0.5 bg-black dark:bg-white z-20 shadow-sm" style={{ left: `${Math.min((leaseStats.progress), 100)}%` }} title="Expected Usage based on time elapsed"></div>
+                      <div className={`h-3 rounded-full transition-all duration-500 ${leaseStats.mileageStatus === 'Over Budget' ? 'bg-red-500' : 'bg-green-500'}`} style={{ width: `${Math.min((currentMileage / leaseStats.totalAllowance) * 100, 100)}%` }}></div>
+                    </div>
+                    <div className="flex justify-between text-xs text-light-text-secondary dark:text-dark-text-secondary mt-2">
+                        <span>0 km</span>
+                        <span>Limit: {leaseStats.totalAllowance.toLocaleString()} km</span>
                     </div>
                   </div>
                 )}
-              </div>
-            </Card>
-          ) : (
-            <Card>
-              <h3 className="text-base font-semibold text-light-text dark:text-dark-text mb-4">Overview</h3>
-              <div className="grid grid-cols-2 gap-6">
-                <div><p className="text-xs uppercase text-light-text-secondary dark:text-dark-text-secondary font-semibold mb-1">Current Value</p><p className="text-2xl font-bold">{formatCurrency(account.balance, account.currency)}</p></div>
-                <div><p className="text-xs uppercase text-light-text-secondary dark:text-dark-text-secondary font-semibold mb-1">Odometer</p><p className="text-2xl font-bold">{currentMileage.toLocaleString()} km</p></div>
-              </div>
-            </Card>
+            </div>
           )}
-          <VehicleMileageChart logs={account.mileageLogs || []} />
-        </div>
-        <div className="space-y-6">
-          <Card className="h-full flex flex-col">
-            <div className="flex justify-between items-center mb-4">
-              <h3 className="text-base font-semibold text-light-text dark:text-dark-text">Log History</h3>
-              <button onClick={onAddLog} className={`${BTN_SECONDARY_STYLE} !py-1 !px-2 text-xs`}>Add Log</button>
-            </div>
-            <div className="flex-grow overflow-y-auto max-h-[400px]">
-              {account.mileageLogs && account.mileageLogs.length > 0 ? (
-                <table className="w-full text-sm">
-                  <thead>
-                    <tr className="border-b border-black/5 dark:border-white/5 text-light-text-secondary dark:text-dark-text-secondary">
-                      <th className="text-left py-2 font-medium">Date</th>
-                      <th className="text-right py-2 font-medium">Mileage</th>
-                      <th className="text-right py-2 font-medium w-16"></th>
-                    </tr>
-                  </thead>
-                  <tbody className="divide-y divide-black/5 dark:divide-white/5">
-                    {[...account.mileageLogs].sort((a,b) => new Date(b.date).getTime() - new Date(a.date).getTime()).map(log => (
-                      <tr key={log.id} className="group hover:bg-black/5 dark:hover:bg-white/5">
-                        <td className="py-2">{parseDateAsUTC(log.date).toLocaleDateString()}</td>
-                        <td className="py-2 text-right font-mono">{log.reading.toLocaleString()}</td>
-                        <td className="py-2 text-right">
-                          <div className="opacity-0 group-hover:opacity-100 flex justify-end gap-1">
-                            <button onClick={() => onEditLog(log)} className="p-1 text-light-text-secondary hover:text-primary-500"><span className="material-symbols-outlined text-sm">edit</span></button>
-                            <button onClick={() => onDeleteLog(log.id)} className="p-1 text-light-text-secondary hover:text-red-500"><span className="material-symbols-outlined text-sm">delete</span></button>
-                          </div>
-                        </td>
-                      </tr>
-                    ))}
-                  </tbody>
-                </table>
-              ) : (
-                <p className="text-center text-light-text-secondary text-sm py-8">No mileage logs recorded.</p>
-              )}
-            </div>
+          
+          {/* Usage Trends */}
+          <Card>
+             <h3 className="text-lg font-semibold text-light-text dark:text-dark-text mb-4">Usage Trends</h3>
+             <VehicleMileageChart logs={account.mileageLogs || []} />
           </Card>
+        </div>
+
+        {/* Sidebar Info */}
+        <div className="space-y-8">
+             {/* Vehicle Details Card */}
+             <Card>
+                 <h3 className="text-sm font-bold uppercase tracking-wider text-light-text-secondary dark:text-dark-text-secondary mb-4 border-b border-black/5 dark:border-white/5 pb-2">Vehicle Details</h3>
+                 <div className="space-y-3 text-sm">
+                     <div className="flex justify-between">
+                         <span className="text-light-text-secondary dark:text-dark-text-secondary">VIN</span>
+                         <span className="font-mono font-medium">{account.vin || '—'}</span>
+                     </div>
+                      <div className="flex justify-between">
+                         <span className="text-light-text-secondary dark:text-dark-text-secondary">License Plate</span>
+                         <span className="font-medium bg-gray-100 dark:bg-white/5 px-2 rounded">{account.licensePlate || '—'}</span>
+                     </div>
+                      <div className="flex justify-between">
+                         <span className="text-light-text-secondary dark:text-dark-text-secondary">Registration</span>
+                         <span className="font-medium">{account.registrationCountryCode || '—'}</span>
+                     </div>
+                      <div className="flex justify-between">
+                         <span className="text-light-text-secondary dark:text-dark-text-secondary">Purchase/Start Date</span>
+                         <span className="font-medium">{(isLeased ? account.leaseStartDate : account.purchaseDate) ? parseDateAsUTC((isLeased ? account.leaseStartDate : account.purchaseDate)!).toLocaleDateString() : '—'}</span>
+                     </div>
+                     {isLeased && (
+                         <div className="flex justify-between">
+                             <span className="text-light-text-secondary dark:text-dark-text-secondary">End Date</span>
+                             <span className="font-medium">{account.leaseEndDate ? parseDateAsUTC(account.leaseEndDate).toLocaleDateString() : '—'}</span>
+                         </div>
+                     )}
+                 </div>
+             </Card>
+
+            {/* Log History */}
+            <Card className="h-full flex flex-col min-h-[300px]">
+                <div className="flex justify-between items-center mb-4">
+                <h3 className="text-base font-bold text-light-text dark:text-dark-text">Log History</h3>
+                <button onClick={onAddLog} className={`${BTN_SECONDARY_STYLE} !py-1 !px-2 text-xs font-bold rounded-full`}>+ Log</button>
+                </div>
+                <div className="flex-grow overflow-y-auto max-h-[350px] -mx-2 px-2">
+                {account.mileageLogs && account.mileageLogs.length > 0 ? (
+                    <div className="space-y-2">
+                        {[...account.mileageLogs].sort((a,b) => new Date(b.date).getTime() - new Date(a.date).getTime()).map((log, index, arr) => {
+                             const prevLog = arr[index + 1];
+                             const diff = prevLog ? log.reading - prevLog.reading : 0;
+                             return (
+                                <div key={log.id} className="group flex justify-between items-center p-3 rounded-lg bg-light-bg dark:bg-dark-bg/50 hover:bg-gray-100 dark:hover:bg-white/10 transition-colors border border-transparent hover:border-black/5 dark:hover:border-white/10">
+                                    <div>
+                                        <p className="font-bold text-sm text-light-text dark:text-dark-text">{parseDateAsUTC(log.date).toLocaleDateString()}</p>
+                                        {diff > 0 && <p className="text-[10px] text-green-600 dark:text-green-400 font-medium">+{diff.toLocaleString()} km</p>}
+                                    </div>
+                                    <div className="text-right">
+                                        <p className="font-mono font-medium text-sm">{log.reading.toLocaleString()} km</p>
+                                        <div className="flex justify-end gap-2 mt-1 opacity-0 group-hover:opacity-100 transition-opacity">
+                                            <button onClick={() => onEditLog(log)} className="text-xs text-primary-500 hover:underline">Edit</button>
+                                            <button onClick={() => onDeleteLog(log.id)} className="text-xs text-red-500 hover:underline">Delete</button>
+                                        </div>
+                                    </div>
+                                </div>
+                             );
+                        })}
+                    </div>
+                ) : (
+                    <div className="h-full flex flex-col items-center justify-center text-light-text-secondary dark:text-dark-text-secondary opacity-60">
+                         <span className="material-symbols-outlined text-3xl mb-2">history</span>
+                        <p className="text-sm">No mileage logs recorded.</p>
+                    </div>
+                )}
+                </div>
+            </Card>
         </div>
       </div>
     </div>

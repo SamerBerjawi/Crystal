@@ -98,6 +98,7 @@ export interface Account {
   // If Owned
   purchaseDate?: string;
   // If Leased
+  leaseProvider?: string;
   leaseStartDate?: string;
   leaseEndDate?: string;
   annualMileageAllowance?: number;
