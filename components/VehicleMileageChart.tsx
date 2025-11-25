@@ -2,7 +2,6 @@
 import React from 'react';
 import { LineChart, Line, XAxis, YAxis, Tooltip, ResponsiveContainer, CartesianGrid, Label } from 'recharts';
 import { MileageLog } from '../types';
-import Card from './Card';
 import { parseDateAsUTC } from '../utils';
 
 interface VehicleMileageChartProps {
@@ -27,12 +26,9 @@ const VehicleMileageChart: React.FC<VehicleMileageChartProps> = ({ logs }) => {
     
   if (sortedLogs.length < 2) {
     return (
-        <Card>
-             <h3 className="text-base font-semibold text-light-text-secondary dark:text-dark-text-secondary mb-4">Mileage History</h3>
-            <div className="flex items-center justify-center h-40 text-light-text-secondary dark:text-dark-text-secondary">
-                <p>Add at least two mileage logs to see a history chart.</p>
-            </div>
-        </Card>
+        <div className="flex items-center justify-center h-40 text-light-text-secondary dark:text-dark-text-secondary">
+            <p>Add at least two mileage logs to see a history chart.</p>
+        </div>
     );
   }
 
@@ -42,11 +38,9 @@ const VehicleMileageChart: React.FC<VehicleMileageChartProps> = ({ logs }) => {
   };
 
   return (
-    <Card className="h-full flex flex-col">
-      <h3 className="text-base font-semibold text-light-text-secondary dark:text-dark-text-secondary mb-4">Mileage History</h3>
       <div className="flex-grow" style={{ width: '100%', height: '200px' }}>
         <ResponsiveContainer minWidth={0} minHeight={0} debounce={50}>
-          <LineChart data={sortedLogs} margin={{ top: 5, right: 20, left: 10, bottom: 5 }}>
+          <LineChart data={sortedLogs} margin={{ top: 20, right: 20, left: 10, bottom: 5 }}>
              <CartesianGrid strokeDasharray="3 3" stroke="var(--light-separator, #E5E7EB)" opacity={0.5} vertical={false} />
             <XAxis 
                 dataKey="date" 
@@ -62,14 +56,13 @@ const VehicleMileageChart: React.FC<VehicleMileageChartProps> = ({ logs }) => {
                 tick={{ fill: 'currentColor', opacity: 0.6, fontSize: 12 }}
                 width={40}
             >
-                <Label value="km" offset={-5} position="insideTopLeft" style={{ fill: 'currentColor', opacity: 0.6, fontSize: 12 }} />
+                <Label value="km" position="top" offset={10} style={{ fill: 'currentColor', opacity: 0.6, fontSize: 12 }} />
             </YAxis>
             <Tooltip content={<CustomTooltip />} cursor={{ fill: 'rgba(128, 128, 128, 0.1)' }} />
             <Line type="monotone" dataKey="reading" stroke="#3B82F6" strokeWidth={2.5} dot={false} activeDot={{ r: 5 }} />
           </LineChart>
         </ResponsiveContainer>
       </div>
-    </Card>
   );
 };
 

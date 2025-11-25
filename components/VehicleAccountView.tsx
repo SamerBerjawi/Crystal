@@ -137,7 +137,7 @@ const VehicleAccountView: React.FC<VehicleAccountViewProps> = ({
         <div className="lg:col-span-2 space-y-8">
           {/* Lease Dashboard */}
           {isLeased && leaseStats && (
-            <div className="bg-gradient-to-br from-gray-50 to-gray-100 dark:from-dark-card dark:to-dark-bg rounded-2xl p-6 border border-black/5 dark:border-white/10 shadow-sm relative overflow-hidden">
+            <div className="bg-gray-50 dark:bg-dark-card/50 rounded-2xl p-6 border border-black/5 dark:border-white/10 shadow-sm relative overflow-hidden">
                  <div className="absolute top-0 right-0 w-32 h-32 bg-primary-500/5 rounded-full blur-3xl -mr-10 -mt-10"></div>
               
               <div className="flex justify-between items-center mb-6 relative z-10">
@@ -155,7 +155,9 @@ const VehicleAccountView: React.FC<VehicleAccountViewProps> = ({
               <div className="grid grid-cols-1 sm:grid-cols-3 gap-6 mb-8 relative z-10">
                  <div className="bg-white dark:bg-black/20 rounded-xl p-4 border border-black/5 dark:border-white/5">
                     <p className="text-xs font-bold uppercase text-light-text-secondary dark:text-dark-text-secondary mb-2">Time Remaining</p>
-                    <p className="text-2xl font-bold text-light-text dark:text-dark-text">{leaseStats.daysRemaining} <span className="text-sm font-medium text-light-text-secondary">days</span></p>
+                    <p className="text-2xl font-bold text-light-text dark:text-dark-text">
+                        {leaseStats.daysRemaining} <span className="text-sm font-medium text-light-text-secondary">days ({leaseStats.progress.toFixed(0)}%)</span>
+                    </p>
                     <div className="w-full bg-gray-200 dark:bg-gray-700 rounded-full h-1.5 mt-3">
                         <div className="bg-primary-500 h-1.5 rounded-full" style={{ width: `${leaseStats.progress}%` }}></div>
                     </div>
