@@ -621,10 +621,24 @@ const AccountDetail: React.FC<AccountDetailProps> = ({ account, setCurrentPage, 
                 </div>
 
                 {/* Top Stats */}
-                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
+                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5 gap-6">
                     <Card>
                         <p className="text-xs uppercase tracking-wide text-light-text-secondary dark:text-dark-text-secondary font-semibold mb-1">Outstanding Balance</p>
                         <p className="text-2xl font-bold text-red-600 dark:text-red-400">{formatCurrency(Math.abs(account.balance), account.currency)}</p>
+                    </Card>
+                    <Card>
+                        <p className="text-xs uppercase tracking-wide text-light-text-secondary dark:text-dark-text-secondary font-semibold mb-1">Principal Paid</p>
+                        <p className="text-2xl font-bold text-green-600 dark:text-green-400">{formatCurrency(loanDetails.totalPaidPrincipal, account.currency)}</p>
+                    </Card>
+                    <Card>
+                        <p className="text-xs uppercase tracking-wide text-light-text-secondary dark:text-dark-text-secondary font-semibold mb-1">Total Interest Paid</p>
+                        <p className="text-2xl font-bold text-orange-500">{formatCurrency(loanDetails.totalPaidInterest, account.currency)}</p>
+                    </Card>
+                     <Card>
+                        <p className="text-xs uppercase tracking-wide text-light-text-secondary dark:text-dark-text-secondary font-semibold mb-1">Monthly Payment</p>
+                        <p className="text-2xl font-bold text-light-text dark:text-dark-text">
+                            {formatCurrency(loanDetails.schedule[0]?.totalPayment || 0, account.currency)}
+                        </p>
                     </Card>
                     <Card>
                         <p className="text-xs uppercase tracking-wide text-light-text-secondary dark:text-dark-text-secondary font-semibold mb-1">Interest Rate</p>
@@ -632,16 +646,6 @@ const AccountDetail: React.FC<AccountDetailProps> = ({ account, setCurrentPage, 
                             <p className="text-2xl font-bold text-light-text dark:text-dark-text">{account.interestRate}%</p>
                             <span className="text-sm text-light-text-secondary dark:text-dark-text-secondary">Fixed</span>
                         </div>
-                    </Card>
-                    <Card>
-                        <p className="text-xs uppercase tracking-wide text-light-text-secondary dark:text-dark-text-secondary font-semibold mb-1">Monthly Payment</p>
-                        <p className="text-2xl font-bold text-light-text dark:text-dark-text">
-                            {formatCurrency(loanDetails.schedule[0]?.totalPayment || 0, account.currency)}
-                        </p>
-                    </Card>
-                    <Card>
-                        <p className="text-xs uppercase tracking-wide text-light-text-secondary dark:text-dark-text-secondary font-semibold mb-1">Total Interest Paid</p>
-                        <p className="text-2xl font-bold text-orange-500">{formatCurrency(loanDetails.totalPaidInterest, account.currency)}</p>
                     </Card>
                 </div>
 
