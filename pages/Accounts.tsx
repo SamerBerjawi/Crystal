@@ -1,4 +1,3 @@
-
 import React, { useState, useMemo, useEffect, useRef } from 'react';
 import { Account, Page, AccountType, Transaction, Warrant } from '../types';
 import AddAccountModal from '../components/AddAccountModal';
@@ -147,7 +146,7 @@ const AccountsListSection: React.FC<{
                                 </div>
                                 
                                 {expandedGroups[groupName] && (
-                                    <div className="grid grid-cols-1 gap-3">
+                                    <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
                                         {accountsInGroup.map(acc => (
                                             <AccountRow
                                                 key={acc.id}
