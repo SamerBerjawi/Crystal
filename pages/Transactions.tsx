@@ -120,6 +120,18 @@ const Transactions: React.FC<TransactionsProps> = ({ accountFilter, setAccountFi
     return {};
   };
 
+  // Recursive function to find a category by name in a tree
+  const findCategoryByName = (name: string, categories: Category[]): Category | undefined => {
+    for (const cat of categories) {
+        if (cat.name === name) return cat;
+        if (cat.subCategories && cat.subCategories.length > 0) {
+            const found = findCategoryByName(name, cat.subCategories);
+            if (found) return found;
+        }
+    }
+    return undefined;
+  };
+
   const displayTransactions = useMemo(() => {
     const processedTransferIds = new Set<string>();
     const result: DisplayTransaction[] = [];
@@ -329,15 +341,15 @@ const Transactions: React.FC<TransactionsProps> = ({ accountFilter, setAccountFi
       const transactionUpdates: (Omit<Transaction, 'id'> & { id: string })[] = [];
       const selectedRegularTxIds = Array.from(selectedIds).filter((id: string) => !id.startsWith('transfer-'));
 
-      const categoryDetails = getCategoryDetails(newCategoryName, allCategories);
+      // Use recursive finder to handle sub-categories
+      const categoryDetails = findCategoryByName(newCategoryName, allCategories);
       if (!categoryDetails) {
           console.error("Could not find details for new category:", newCategoryName);
-          setIsCategorizeModalOpen(false);
-          setSelectedIds(new Set());
+          // Don't close if failed, maybe show an alert or just return
           return;
       }
       
-      const newType = allCategories.find(c => c.name === newCategoryName)?.classification || 'expense';
+      const newType = categoryDetails.classification || 'expense';
 
       for (const txId of selectedRegularTxIds) {
           const originalTx = transactions.find(t => t.id === txId);
@@ -726,20 +738,29 @@ const Transactions: React.FC<TransactionsProps> = ({ accountFilter, setAccountFi
           </div>
       </div>
       
-      <div className="flex-1 min-h-0 relative">
-        <Card className="p-0 h-full flex flex-col">
+      <div className="flex-1 min-w-0 relative">
+        <Card className="p-0 h-full flex flex-col relative">
             {selectedIds.size > 0 && (
-                <div className="absolute top-0 left-0 right-0 z-10 bg-primary-500/10 dark:bg-primary-900/30 backdrop-blur-sm p-3 flex justify-between items-center animate-fade-in-up">
-                    <span className="font-semibold text-sm">{selectedIds.size} selected</span>
+                <div className="absolute top-0 left-0 right-0 z-20 bg-primary-500 dark:bg-primary-900 text-white px-6 flex justify-between items-center shadow-md h-[53px] rounded-t-xl">
+                     <div className="flex items-center gap-3">
+                         <button 
+                            onClick={() => setSelectedIds(new Set())} 
+                            className="p-1 rounded-full hover:bg-white/20 transition-colors text-white"
+                            aria-label="Deselect all"
+                         >
+                             <span className="material-symbols-outlined text-lg">close</span>
+                         </button>
+                         <span className="font-semibold text-sm">{selectedIds.size} selected</span>
+                     </div>
                     <div className="flex gap-2">
-                        <button onClick={() => setBulkEditModalOpen(true)} className={`${BTN_SECONDARY_STYLE} !py-1 !px-3 text-xs`} disabled={containsTransfer}>Edit</button>
-                        <button onClick={handleOpenCategorizeModal} className={`${BTN_SECONDARY_STYLE} !py-1 !px-3 text-xs`} disabled={containsTransfer}>Categorize</button>
-                        <button onClick={() => handleMakeRecurring()} className={`${BTN_SECONDARY_STYLE} !py-1 !px-3 text-xs`} disabled={selectedIds.size !== 1}>Make Recurring</button>
-                        <button onClick={handleOpenDeleteModal} className="bg-red-500 text-white font-semibold py-1 px-3 rounded-md text-xs hover:bg-red-600">Delete</button>
+                        <button onClick={() => setBulkEditModalOpen(true)} className="bg-white/20 hover:bg-white/30 text-white py-1 px-3 rounded-md text-xs font-medium transition-colors" disabled={containsTransfer}>Edit</button>
+                        <button onClick={handleOpenCategorizeModal} className="bg-white/20 hover:bg-white/30 text-white py-1 px-3 rounded-md text-xs font-medium transition-colors" disabled={containsTransfer}>Categorize</button>
+                        <button onClick={() => handleMakeRecurring()} className="bg-white/20 hover:bg-white/30 text-white py-1 px-3 rounded-md text-xs font-medium transition-colors" disabled={selectedIds.size !== 1}>Make Recurring</button>
+                        <button onClick={handleOpenDeleteModal} className="bg-white/20 hover:bg-red-600 text-white py-1 px-3 rounded-md text-xs font-medium transition-colors">Delete</button>
                     </div>
                 </div>
             )}
-            <div className="px-6 py-3 border-b border-light-separator dark:border-dark-separator flex items-center gap-4 font-semibold text-light-text-secondary dark:text-dark-text-secondary flex-shrink-0">
+            <div className="px-6 py-3 border-b border-light-separator dark:border-dark-separator flex items-center gap-4 font-semibold text-light-text-secondary dark:text-dark-text-secondary flex-shrink-0 h-[53px]">
                 <input type="checkbox" onChange={handleSelectAll} checked={isAllSelected} className={CHECKBOX_STYLE} aria-label="Select all transactions"/>
                 <div className="flex-1 grid grid-cols-12 gap-4 ml-3 items-center">
                     <span className="col-span-8 md:col-span-6 lg:col-span-3">Transaction</span>

@@ -9,6 +9,20 @@ interface DocumentationProps {
 
 const features = [
     {
+        title: 'Getting Started',
+        icon: 'rocket_launch',
+        content: (
+            <>
+                <p>Spin up Crystal quickly with built-in authentication, demo data, and onboarding flows.</p>
+                <ul className="list-disc list-inside space-y-2 pl-2">
+                    <li><strong>Sign Up or Continue in Demo Mode:</strong> Create an account or launch a disposable demo session directly from the sign-in page to explore the full experience.</li>
+                    <li><strong>Guided Onboarding:</strong> A multi-step wizard helps you choose your base currency, add your first accounts, set a savings goal, and log a recurring transaction so forecasts are meaningful from day one.</li>
+                    <li><strong>Save or Restore Data:</strong> Data is persisted locally; you can also export a full backup and restore it later from Data Management.</li>
+                </ul>
+            </>
+        )
+    },
+    {
         title: 'Dashboard',
         icon: 'space_dashboard',
         content: (
@@ -113,9 +127,11 @@ const features = [
             <>
                 <p>Your data, your rules. Import, export, and manage your financial information with complete control.</p>
                  <ul className="list-disc list-inside space-y-2 pl-2">
-                    <li><strong>Import with Ease:</strong> A powerful, step-by-step wizard for CSV imports that automatically maps columns, detects formats, and lets you clean data before publishing.</li>
-                    <li><strong>Full Backup & Restore:</strong> Export a complete JSON snapshot of your data for backup or migration, and restore it anytime.</li>
+                    <li><strong>Import with Ease:</strong> A powerful, step-by-step wizard for CSV imports that automatically maps columns, detects formats, previews errors, and lets you clean data before publishing.</li>
+                    <li><strong>Full Backup & Restore:</strong> Export a complete JSON snapshot of your data for backup or migration, restore it anytime, or fully reset your workspace after a confirmation flow.</li>
                     <li><strong>Flexible CSV Exports:</strong> Export specific data sets like accounts, transactions, or budgets to individual CSV files.</li>
+                    <li><strong>Audit Your History:</strong> View a detailed log of imports and exports, including statuses and file details, with quick access to per-import diagnostics.</li>
+
                 </ul>
             </>
         )
@@ -127,6 +143,36 @@ const features = [
             <p>Your personal finance expert is just a click away. Tap the chat icon to interact with our AI assistant, powered by Google's Gemini models. Ask questions in plain language—"How much did I spend on groceries last month?" or "What's my biggest budget category?"—and get instant, insightful answers based on your data.</p>
         )
     },
+
+    {
+        title: 'Preferences & Appearance',
+        icon: 'tune',
+        content: (
+            <>
+                <p>Make Crystal feel like home with granular preferences and theming.</p>
+                <ul className="list-disc list-inside space-y-2 pl-2">
+                    <li><strong>Theme Control:</strong> Switch between light, dark, or system themes and preview the look before applying.</li>
+                    <li><strong>Regional Settings:</strong> Choose your currency, language, timezone, date format, and default reporting periods so summaries match your locale.</li>
+                    <li><strong>Default Behaviors:</strong> Set default account sorting, quick-create budget ranges, and forecast horizons to speed up daily workflows.</li>
+                </ul>
+            </>
+        )
+    },
+
+    {
+        title: 'Profile & Security',
+        icon: 'shield_person',
+        content: (
+            <>
+                <p>Keep your workspace secure and your profile current.</p>
+                <ul className="list-disc list-inside space-y-2 pl-2">
+                    <li><strong>Update Personal Details:</strong> Manage your name, phone, address, and profile photo directly from the Personal Info screen.</li>
+                    <li><strong>Strengthen Access:</strong> Change your password, toggle two-factor authentication, and review security settings in one place.</li>
+                </ul>
+            </>
+        )
+    },
+
     {
         title: 'Branding & Identity',
         icon: 'palette',
