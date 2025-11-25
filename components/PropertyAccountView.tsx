@@ -60,7 +60,7 @@ const PropertyAccountView: React.FC<PropertyAccountViewProps> = ({
             <span className="material-symbols-outlined">arrow_back</span>
           </button>
           <div className="flex items-center gap-4 w-full">
-            <div className={`w-16 h-16 rounded-xl flex items-center justify-center ${ACCOUNT_TYPE_STYLES[account.type]?.color || 'bg-gray-200 text-gray-600'} bg-opacity-10 border border-current`}>
+            <div className={`w-16 h-16 rounded-xl flex items-center justify-center ${ACCOUNT_TYPE_STYLES[account.type]?.color || 'text-gray-600'} bg-current/10 border border-current/20`}>
               <span className="material-symbols-outlined text-4xl">{account.icon || 'home'}</span>
             </div>
             <div>

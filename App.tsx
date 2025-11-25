@@ -1,5 +1,5 @@
 // FIX: Import `useMemo` from React to resolve the 'Cannot find name' error.
-import React, { useState, useEffect, useMemo, useCallback, Suspense, lazy, useRef } from 'react';
+import React, { useState, useEffect, useMemo, useCallback, Suspense, lazy, useRef, Component, ErrorInfo } from 'react';
 import Sidebar from './components/Sidebar';
 import Header from './components/Header';
 import SignIn from './pages/SignIn';
@@ -158,17 +158,18 @@ interface ErrorBoundaryState {
   message?: string;
 }
 
-class ErrorBoundary extends React.Component<ErrorBoundaryProps, ErrorBoundaryState> {
+class ErrorBoundary extends Component<ErrorBoundaryProps, ErrorBoundaryState> {
+  public state: ErrorBoundaryState = { hasError: false, message: undefined };
+
   constructor(props: ErrorBoundaryProps) {
     super(props);
-    this.state = { hasError: false, message: undefined };
   }
 
-  static getDerivedStateFromError(error: Error) {
+  static getDerivedStateFromError(error: Error): ErrorBoundaryState {
     return { hasError: true, message: error?.message };
   }
 
-  componentDidCatch(error: Error, errorInfo: React.ErrorInfo) {
+  componentDidCatch(error: Error, errorInfo: ErrorInfo) {
     console.error('Uncaught error in Crystal UI', error, errorInfo);
   }
 

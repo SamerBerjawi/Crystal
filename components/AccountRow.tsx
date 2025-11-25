@@ -130,8 +130,8 @@ const AccountRow: React.FC<AccountRowProps> = ({ account, transactions, warrants
         >
             {/* Account Icon & Info */}
             <div className="flex items-center w-full sm:w-auto flex-1 min-w-0 gap-4">
-                <div className={`relative flex-shrink-0 w-12 h-12 rounded-xl flex items-center justify-center ${style.color} bg-opacity-10 shadow-sm`}>
-                    <span className="material-symbols-outlined material-symbols-filled" style={{ fontSize: '28px' }}>
+                <div className={`relative flex-shrink-0 w-12 h-12 rounded-xl flex items-center justify-center ${style.color} bg-current/10 border border-current/20`}>
+                    <span className="material-symbols-outlined" style={{ fontSize: '28px' }}>
                         {account.icon || 'wallet'}
                     </span>
                      {account.isPrimary && (

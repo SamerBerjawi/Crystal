@@ -71,7 +71,7 @@ const VehicleAccountView: React.FC<VehicleAccountViewProps> = ({
             {account.imageUrl ? (
               <img src={account.imageUrl} alt="Vehicle" className="w-16 h-16 rounded-xl object-cover border border-black/10 dark:border-white/10" />
             ) : (
-              <div className={`w-16 h-16 rounded-xl flex items-center justify-center ${ACCOUNT_TYPE_STYLES['Vehicle'].color} bg-opacity-10 border border-current`}>
+              <div className={`w-16 h-16 rounded-xl flex items-center justify-center ${ACCOUNT_TYPE_STYLES['Vehicle'].color} bg-current/10 border border-current/20`}>
                 <span className="material-symbols-outlined text-4xl">directions_car</span>
               </div>
             )}
