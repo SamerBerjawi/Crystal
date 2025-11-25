@@ -205,9 +205,9 @@ const AddAccountModal: React.FC<AddAccountModalProps> = ({ onClose, onAdd, accou
       apy: apy !== '' ? parseFloat(apy) : undefined,
       openingDate: openingDate || undefined,
       // Card details
-      expirationDate: (type === 'Credit Card' || type === 'Checking') && expirationDate ? expirationDate : undefined,
-      cardNetwork: (type === 'Credit Card' || type === 'Checking') && cardNetwork ? cardNetwork : undefined,
-      cardholderName: (type === 'Credit Card' || type === 'Checking') && cardholderName ? cardholderName : undefined,
+      expirationDate: (type === 'Credit Card' || type === 'Checking' || type === 'Savings') && expirationDate ? expirationDate : undefined,
+      cardNetwork: (type === 'Credit Card' || type === 'Checking' || type === 'Savings') && cardNetwork ? cardNetwork : undefined,
+      cardholderName: (type === 'Credit Card' || type === 'Checking' || type === 'Savings') && cardholderName ? cardholderName : undefined,
       
       // Conditionally add new fields
       ...(type === 'Investment' && { subType }),
@@ -290,9 +290,8 @@ const AddAccountModal: React.FC<AddAccountModalProps> = ({ onClose, onAdd, accou
   
   const labelStyle = "block text-sm font-medium text-light-text-secondary dark:text-dark-text-secondary mb-1";
   
-  const showLast4 = ['Checking', 'Savings', 'Credit Card'].includes(type);
   const showBankingDetails = ['Checking', 'Savings', 'Investment', 'Credit Card', 'Lending'].includes(type);
-  const showCardDetails = type === 'Credit Card' || type === 'Checking';
+  const showCardDetails = ['Credit Card', 'Checking', 'Savings'].includes(type);
 
   return (
     <>
@@ -418,11 +417,23 @@ const AddAccountModal: React.FC<AddAccountModalProps> = ({ onClose, onAdd, accou
                                 <div className={SELECT_ARROW_STYLE}><span className="material-symbols-outlined">expand_more</span></div>
                             </div>
                         </div>
+                        <div>
+                            <label htmlFor="last-4" className={labelStyle}>Last 4 Digits (Optional)</label>
+                            <input
+                                id="last-4"
+                                type="text"
+                                maxLength={4}
+                                value={last4}
+                                onChange={(e) => setLast4(e.target.value.replace(/\D/g, ''))}
+                                className={INPUT_BASE_STYLE}
+                                placeholder="****"
+                            />
+                        </div>
                          <div>
                             <label htmlFor="expirationDate" className={labelStyle}>Expiration Date (MM/YY)</label>
                             <input id="expirationDate" type="text" value={expirationDate} onChange={e => setExpirationDate(e.target.value)} className={INPUT_BASE_STYLE} placeholder="MM/YY" />
                         </div>
-                        <div className="md:col-span-2">
+                        <div>
                             <label htmlFor="cardholderName" className={labelStyle}>Cardholder Name</label>
                             <input id="cardholderName" type="text" value={cardholderName} onChange={e => setCardholderName(e.target.value)} className={INPUT_BASE_STYLE} placeholder="Name on Card" />
                         </div>
@@ -785,20 +796,6 @@ const AddAccountModal: React.FC<AddAccountModalProps> = ({ onClose, onAdd, accou
               </div>
             )}
           </div>
-
-          {showLast4 && (
-          <div>
-              <label htmlFor="last-4" className={labelStyle}>Last 4 Digits (Optional)</label>
-              <input
-                id="last-4"
-                type="text"
-                maxLength={4}
-                value={last4}
-                onChange={(e) => setLast4(e.target.value.replace(/\D/g, ''))}
-                className={INPUT_BASE_STYLE}
-              />
-          </div>
-          )}
 
           <div className="p-4 bg-black/5 dark:bg-white/5 rounded-lg">
             <div className="flex justify-between items-center">
