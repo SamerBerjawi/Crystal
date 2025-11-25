@@ -32,36 +32,86 @@ const ScheduledItemRow: React.FC<{
 }> = ({ item, accounts, onEdit, onDelete, onPost, isReadOnly = false }) => {
     
     const isIncome = item.type === 'income' || item.type === 'deposit';
+    const isTransfer = item.type === 'transfer';
     const isOverdue = !item.isRecurring && item.date < new Date().toISOString().split('T')[0];
     
     const dueDate = parseAsUTC(item.date);
     const day = dueDate.getUTCDate();
     const month = dueDate.toLocaleString('default', { month: 'short', timeZone: 'UTC' }).toUpperCase();
+    const weekday = dueDate.toLocaleString('default', { weekday: 'short', timeZone: 'UTC' });
+
+    // Determine status/frequency text
+    let subText = item.accountName;
+    if (item.isRecurring) {
+        const rt = item.originalItem as RecurringTransaction;
+        subText += ` • ${rt.frequency.charAt(0).toUpperCase() + rt.frequency.slice(1)}`;
+    } else {
+        subText += ` • One-time`;
+    }
+
+    const amountColor = isIncome 
+        ? 'text-emerald-600 dark:text-emerald-400' 
+        : isTransfer 
+            ? 'text-light-text dark:text-dark-text' 
+            : 'text-rose-600 dark:text-rose-400';
     
     return (
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between p-4 group">
-        <div className="flex items-center gap-4 w-full">
-          <div className={`flex-shrink-0 text-center rounded-lg p-2 w-16 ${isOverdue ? 'bg-red-100 dark:bg-red-900/40' : 'bg-light-bg dark:bg-dark-bg'}`}>
-            <p className={`text-xs font-semibold ${isOverdue ? 'text-red-500' : 'text-primary-500'}`}>{month}</p>
-            <p className={`text-2xl font-bold ${isOverdue ? 'text-red-600 dark:text-red-400' : 'text-light-text dark:text-dark-text'}`}>{day}</p>
-          </div>
-          <div>
-            <p className="font-semibold text-base text-light-text dark:text-dark-text flex items-center gap-2">
-                {item.description}
-                {item.isOverride && <span className="material-symbols-outlined text-sm text-primary-500" title="This occurrence is modified">edit_calendar</span>}
-            </p>
-            <p className="text-sm text-light-text-secondary dark:text-dark-text-secondary">{item.accountName} &bull; {item.isRecurring ? (item.originalItem as RecurringTransaction).frequency : 'One-time'}</p>
-          </div>
+      <div className="group relative flex flex-col sm:flex-row sm:items-center gap-4 p-4 bg-white dark:bg-dark-card rounded-xl border border-gray-100 dark:border-gray-800 shadow-sm hover:shadow-md transition-all duration-200">
+        {/* Date Block */}
+        <div className={`flex-shrink-0 flex flex-col items-center justify-center w-16 h-16 rounded-xl border ${isOverdue ? 'bg-red-50 dark:bg-red-900/20 border-red-200 dark:border-red-800' : 'bg-gray-50 dark:bg-gray-800 border-gray-100 dark:border-gray-700'}`}>
+            <span className={`text-xs font-bold uppercase tracking-wider ${isOverdue ? 'text-red-500' : 'text-gray-500 dark:text-gray-400'}`}>{month}</span>
+            <span className={`text-2xl font-bold leading-none ${isOverdue ? 'text-red-600 dark:text-red-400' : 'text-gray-800 dark:text-gray-200'}`}>{day}</span>
+            <span className="text-[10px] font-medium text-gray-400 dark:text-gray-500 uppercase mt-0.5">{weekday}</span>
         </div>
-        <div className="flex items-center gap-2 self-end sm:self-center mt-2 sm:mt-0 ml-auto sm:ml-0">
-          <p className={`font-semibold text-base ${isIncome ? 'text-green-600 dark:text-green-400' : 'text-red-600 dark:text-red-400'}`}>
-            {formatCurrency(item.amount, 'EUR')}
-          </p>
-          <div className={`opacity-0 group-hover:opacity-100 transition-opacity flex items-center gap-1 ${isReadOnly ? '!opacity-0' : ''}`}>
-            <button onClick={() => onPost(item)} className={`${BTN_PRIMARY_STYLE} !py-1 !px-2 text-xs`} title="Post Transaction"><span className="material-symbols-outlined text-sm">check</span></button>
-            <button onClick={() => onEdit(item)} className="text-light-text-secondary dark:text-dark-text-secondary p-2 rounded-full hover:bg-black/5 dark:hover:bg-white/10" title="Edit"><span className="material-symbols-outlined text-base">edit</span></button>
-            <button onClick={() => onDelete(item.originalItem.id, item.isRecurring)} className="text-red-500/80 p-2 rounded-full hover:bg-red-500/10" title="Delete"><span className="material-symbols-outlined text-base">delete</span></button>
-          </div>
+
+        {/* Content */}
+        <div className="flex-grow min-w-0">
+            <div className="flex items-center gap-2 mb-1">
+                <h4 className="font-bold text-gray-900 dark:text-white truncate text-base sm:text-lg">{item.description}</h4>
+                {item.isOverride && (
+                    <span className="flex-shrink-0 px-1.5 py-0.5 rounded text-[10px] font-bold bg-amber-100 text-amber-700 dark:bg-amber-900/40 dark:text-amber-400 uppercase tracking-wide">Modified</span>
+                )}
+                 {isOverdue && (
+                    <span className="flex-shrink-0 px-1.5 py-0.5 rounded text-[10px] font-bold bg-red-100 text-red-700 dark:bg-red-900/40 dark:text-red-400 uppercase tracking-wide">Overdue</span>
+                )}
+            </div>
+            <div className="flex items-center gap-2 text-sm text-gray-500 dark:text-gray-400">
+                <span className="flex items-center gap-1 truncate">
+                    <span className="material-symbols-outlined text-[16px]">{isTransfer ? 'swap_horiz' : (item.isRecurring ? 'repeat' : 'receipt')}</span>
+                    {subText}
+                </span>
+            </div>
+        </div>
+
+        {/* Amount & Actions */}
+        <div className="flex flex-row sm:flex-col items-center sm:items-end gap-3 sm:gap-1 ml-auto pl-4 sm:pl-0 border-l sm:border-l-0 border-gray-100 dark:border-gray-800">
+             <span className={`text-lg font-bold font-mono tracking-tight ${amountColor}`}>
+                {formatCurrency(item.amount, 'EUR')}
+             </span>
+             
+             <div className={`flex items-center gap-1 opacity-100 sm:opacity-0 group-hover:opacity-100 transition-opacity duration-200 ${isReadOnly ? 'hidden' : ''}`}>
+                <button 
+                    onClick={(e) => { e.stopPropagation(); onPost(item); }}
+                    className="p-1.5 rounded-lg bg-primary-50 dark:bg-primary-900/30 text-primary-600 dark:text-primary-400 hover:bg-primary-100 dark:hover:bg-primary-900/50 transition-colors" 
+                    title="Post Transaction"
+                >
+                    <span className="material-symbols-outlined text-[18px]">check</span>
+                </button>
+                <button 
+                    onClick={(e) => { e.stopPropagation(); onEdit(item); }}
+                    className="p-1.5 rounded-lg text-gray-500 hover:bg-gray-100 dark:text-gray-400 dark:hover:bg-gray-800 transition-colors" 
+                    title="Edit"
+                >
+                    <span className="material-symbols-outlined text-[18px]">edit</span>
+                </button>
+                <button 
+                    onClick={(e) => { e.stopPropagation(); onDelete(item.originalItem.id, item.isRecurring); }}
+                    className="p-1.5 rounded-lg text-gray-400 hover:text-red-500 hover:bg-red-50 dark:hover:bg-red-900/20 transition-colors" 
+                    title="Delete"
+                >
+                    <span className="material-symbols-outlined text-[18px]">delete</span>
+                </button>
+             </div>
         </div>
       </div>
     );
@@ -473,41 +523,37 @@ const SchedulePage: React.FC<ScheduleProps> = () => {
     const groupedBills = groupItems(upcomingBills);
 
     const renderGroupedItems = (groupedItems: Record<string, ScheduledItem[]>) => (
-        <div className="divide-y divide-light-separator dark:divide-dark-separator -mx-6">
+        <div className="space-y-6">
             {Object.entries(groupedItems).map(([groupName, items]) => {
                 if (items.length === 0) return null;
+
+                // Sort items by date
+                const sortedItems = items.sort((a, b) => parseAsUTC(a.date).getTime() - parseAsUTC(b.date).getTime());
 
                 if (groupName === 'Later') {
                      const groupedBySource: Record<string, { title: string; items: ScheduledItem[]; type: 'recurring' | 'bill' }> = {};
 
-                     items.forEach(item => {
+                     sortedItems.forEach(item => {
                         if (item.isRecurring) {
                             const rt = item.originalItem as RecurringTransaction;
                             let groupKey = rt.id;
                             let groupTitle = item.description;
             
                             if (rt.isSynthetic && rt.id.startsWith('loan-pmt-')) {
-                                 // Group loan payments by the base loan transaction/account
-                                 // Synthetic ID format: loan-pmt-{accountId}-{paymentNumber}
-                                 // We want to group by loan-pmt-{accountId}
                                  const lastDashIndex = rt.id.lastIndexOf('-');
                                  if (lastDashIndex > 0) {
                                      groupKey = rt.id.substring(0, lastDashIndex);
-                                     // Clean up title to remove specific payment number for the group header
                                      groupTitle = item.description.replace(/ #\d+:/, ':');
                                  }
                             } else if (rt.isSynthetic && rt.id.startsWith('cc-pmt-')) {
-                                 // Group credit card payments by account
                                  if (rt.toAccountId) {
                                     groupKey = `cc-pmt-${rt.toAccountId}`;
                                     groupTitle = `Credit Card Payment: ${accountMap[rt.toAccountId]}`;
                                  }
                             } else if (rt.isSynthetic && rt.id.startsWith('prop-')) {
-                                // Group property transactions
                                 const firstDash = rt.id.indexOf('-');
                                 const secondDash = rt.id.indexOf('-', firstDash + 1);
                                 if (secondDash > 0) {
-                                    // Group by prop-{type}-{propertyId}
                                     groupKey = rt.id;
                                     groupTitle = item.description;
                                 }
@@ -519,7 +565,6 @@ const SchedulePage: React.FC<ScheduleProps> = () => {
                             groupedBySource[groupKey].items.push(item);
             
                         } else {
-                            // Treat one-off bills as individual items in the grid
                             groupedBySource[item.id] = { title: item.description, items: [item], type: 'bill' };
                         }
                     });
@@ -529,8 +574,11 @@ const SchedulePage: React.FC<ScheduleProps> = () => {
                     });
 
                     return (
-                        <div key={groupName} className="px-6 py-4">
-                            <h4 className="font-semibold mb-4 text-lg text-light-text dark:text-dark-text">{groupName}</h4>
+                        <div key={groupName} className="space-y-3">
+                            <h4 className="font-bold text-lg text-light-text dark:text-dark-text flex items-center gap-2">
+                                {groupName}
+                                <span className="text-xs font-medium bg-gray-200 dark:bg-gray-700 px-2 py-0.5 rounded-full text-gray-600 dark:text-gray-300">{items.length}</span>
+                            </h4>
                             <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4">
                                 {sortedGroups.map(([key, group]) => {
                                     const isExpanded = expandedScheduleGroups[key];
@@ -538,31 +586,31 @@ const SchedulePage: React.FC<ScheduleProps> = () => {
 
                                     if (!isRecurringGroup) {
                                          return (
-                                            <div key={key} className="bg-light-bg/50 dark:bg-dark-bg/30 rounded-xl border border-black/5 dark:border-white/5 overflow-hidden">
-                                                 {group.items.map(item => (
-                                                    <ScheduledItemRow key={item.id} item={item} accounts={accounts} onEdit={handleEditItem} onDelete={handleDeleteItem} onPost={handleOpenPostModal} />
-                                                 ))}
-                                            </div>
+                                             group.items.map(item => (
+                                                <ScheduledItemRow key={item.id} item={item} accounts={accounts} onEdit={handleEditItem} onDelete={handleDeleteItem} onPost={handleOpenPostModal} />
+                                             ))
                                          );
                                     }
 
                                     return (
-                                        <div key={key} className="bg-light-bg/50 dark:bg-dark-bg/30 rounded-xl border border-black/5 dark:border-white/5 overflow-hidden h-fit">
+                                        <div key={key} className="bg-white dark:bg-dark-card border border-gray-200 dark:border-gray-700 rounded-xl shadow-sm overflow-hidden h-fit transition-shadow hover:shadow-md">
                                             <div 
                                                 onClick={() => toggleScheduleGroup(key)}
-                                                className="px-4 py-3 bg-light-fill/50 dark:bg-dark-fill/50 border-b border-black/5 dark:border-white/5 flex justify-between items-center backdrop-blur-sm cursor-pointer hover:bg-light-fill dark:hover:bg-dark-fill transition-colors"
+                                                className="px-4 py-3 flex justify-between items-center cursor-pointer hover:bg-gray-50 dark:hover:bg-white/5 transition-colors"
                                             >
-                                                <div className="font-semibold text-light-text dark:text-dark-text flex items-center gap-2 truncate pr-2">
-                                                    <span className={`material-symbols-outlined text-base text-light-text-secondary dark:text-dark-text-secondary transition-transform duration-200 flex-shrink-0 ${isExpanded ? 'rotate-180' : ''}`}>expand_more</span>
-                                                    <span className="material-symbols-outlined text-base text-primary-500 flex-shrink-0">repeat</span>
+                                                <div className="font-semibold text-gray-800 dark:text-gray-200 flex items-center gap-2 truncate pr-2">
+                                                    <span className="material-symbols-outlined text-lg text-primary-500 flex-shrink-0">repeat</span>
                                                     <span className="truncate">{group.title}</span>
                                                 </div>
-                                                <span className="text-xs font-medium text-light-text-secondary dark:text-dark-text-secondary px-2 py-0.5 rounded-full bg-black/5 dark:bg-white/5 flex-shrink-0">
-                                                    {group.items.length}
-                                                </span>
+                                                <div className="flex items-center gap-2">
+                                                     <span className="text-xs font-bold bg-primary-100 dark:bg-primary-900/50 text-primary-700 dark:text-primary-300 px-2 py-0.5 rounded-full flex-shrink-0">
+                                                        {group.items.length}
+                                                    </span>
+                                                    <span className={`material-symbols-outlined text-gray-400 dark:text-gray-500 transition-transform duration-200 flex-shrink-0 ${isExpanded ? 'rotate-180' : ''}`}>expand_more</span>
+                                                </div>
                                             </div>
                                             {isExpanded && (
-                                                <div className="divide-y divide-black/5 dark:divide-white/5 max-h-64 overflow-y-auto">
+                                                <div className="border-t border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-black/20 p-2 space-y-2 max-h-80 overflow-y-auto">
                                                     {group.items.map(item => (
                                                         <ScheduledItemRow 
                                                             key={item.id} 
@@ -585,10 +633,13 @@ const SchedulePage: React.FC<ScheduleProps> = () => {
                 }
 
                 return (
-                    <div key={groupName} className="px-6 py-4">
-                        <h4 className="font-semibold mb-2">{groupName}</h4>
-                        <div className="space-y-2 -mx-4">
-                            {items.map(item => <ScheduledItemRow key={item.id} item={item} accounts={accounts} onEdit={handleEditItem} onDelete={handleDeleteItem} onPost={handleOpenPostModal} isReadOnly={item.isRecurring && (item.originalItem as RecurringTransaction).isSynthetic} />)}
+                    <div key={groupName} className="space-y-3">
+                        <h4 className={`font-bold text-lg flex items-center gap-2 ${groupName === 'Overdue' ? 'text-red-600 dark:text-red-400' : 'text-light-text dark:text-dark-text'}`}>
+                            {groupName}
+                            <span className={`text-xs font-medium px-2 py-0.5 rounded-full ${groupName === 'Overdue' ? 'bg-red-100 text-red-700 dark:bg-red-900/40 dark:text-red-300' : 'bg-gray-200 text-gray-600 dark:bg-gray-700 dark:text-gray-300'}`}>{items.length}</span>
+                        </h4>
+                        <div className="space-y-3">
+                            {sortedItems.map(item => <ScheduledItemRow key={item.id} item={item} accounts={accounts} onEdit={handleEditItem} onDelete={handleDeleteItem} onPost={handleOpenPostModal} isReadOnly={item.isRecurring && (item.originalItem as RecurringTransaction).isSynthetic} />)}
                         </div>
                     </div>
                 );
@@ -597,7 +648,7 @@ const SchedulePage: React.FC<ScheduleProps> = () => {
     );
 
     return (
-        <div className="space-y-8">
+        <div className="space-y-8 pb-8">
             {isRecurringModalOpen && <RecurringTransactionModal onClose={() => setIsRecurringModalOpen(false)} onSave={(data) => { saveRecurringTransaction(data); setIsRecurringModalOpen(false); }} accounts={accounts} incomeCategories={incomeCategories} expenseCategories={expenseCategories} recurringTransactionToEdit={editingTransaction} />}
             {isBillModalOpen && <BillPaymentModal onClose={() => setIsBillModalOpen(false)} onSave={(data) => { saveBillPayment(data); setIsBillModalOpen(false); }} bill={editingBill} accounts={accounts} />}
             {editChoiceItem && <EditRecurrenceModal isOpen={!!editChoiceItem} onClose={() => setEditChoiceItem(null)} onEditSingle={handleEditSingle} onEditSeries={handleEditSeries} />}
@@ -622,93 +673,119 @@ const SchedulePage: React.FC<ScheduleProps> = () => {
                 <div>
                     <p className="text-light-text-secondary dark:text-dark-text-secondary mt-1">Manage your future income, expenses, and bills.</p>
                 </div>
-                <div className="flex gap-4">
-                    <button onClick={() => handleOpenBillModal()} className={BTN_SECONDARY_STYLE}>Add Bill/Payment</button>
+                <div className="flex gap-3">
+                    <button onClick={() => handleOpenBillModal()} className={BTN_SECONDARY_STYLE}>Add Bill</button>
                     <button onClick={() => handleOpenRecurringModal()} className={BTN_PRIMARY_STYLE}>Add Recurring</button>
                 </div>
             </header>
 
             <Card>
                 <h3 className="text-xl font-semibold mb-4 text-light-text dark:text-dark-text">Next 30 Days Forecast</h3>
-                <table className="w-full">
-                    <thead>
-                        <tr className="border-b border-black/10 dark:border-white/10 text-left text-light-text-secondary dark:text-dark-text-secondary">
-                            <th className="py-2 px-4 font-semibold">Account</th>
-                            <th className="py-2 px-4 font-semibold text-right">Income</th>
-                            <th className="py-2 px-4 font-semibold text-right">Expenses</th>
-                            <th className="py-2 px-4 font-semibold text-right">Net Cash Flow</th>
-                        </tr>
-                    </thead>
-                    <tbody>
-                        {Object.entries(accountSummaries).map(([accountId, summary]: [string, { income: number; expense: number; net: number; currency: Currency }]) => {
-                            const account = accounts.find(a => a.id === accountId);
-                            if (!account) return null;
-                            return (
-                                <tr key={accountId} className="border-b border-black/5 dark:border-white/5 last:border-0">
-                                    <td className="py-3 px-4 flex items-center gap-2"><span className={`material-symbols-outlined text-base ${ACCOUNT_TYPE_STYLES[account.type]?.color || 'text-gray-500'}`}>{account.icon || 'wallet'}</span><span className="font-medium">{account.name}</span></td>
-                                    <td className="py-3 px-4 text-right text-green-600 dark:text-green-400">{formatCurrency(summary.income, 'EUR')}</td>
-                                    <td className="py-3 px-4 text-right text-red-600 dark:text-red-400">{formatCurrency(summary.expense, 'EUR')}</td>
-                                    <td className={`py-3 px-4 text-right font-semibold ${summary.net >= 0 ? 'text-green-600 dark:text-green-400' : 'text-red-600 dark:text-red-400'}`}>{formatCurrency(summary.net, 'EUR', { showPlusSign: true })}</td>
-                                </tr>
-                            );
-                        })}
-                    </tbody>
-                    <tfoot>
-                        <tr className="border-t-2 border-black/10 dark:border-white/10 font-bold">
-                            <td className="py-3 px-4">Total (External)</td>
-                            <td className="py-3 px-4 text-right text-green-600 dark:text-green-400">{formatCurrency(globalSummary.income, 'EUR')}</td>
-                            <td className="py-3 px-4 text-right text-red-600 dark:text-red-400">{formatCurrency(globalSummary.expense, 'EUR')}</td>
-                            <td className={`py-3 px-4 text-right ${globalSummary.net >= 0 ? 'text-green-600 dark:text-green-400' : 'text-red-600 dark:text-red-400'}`}>{formatCurrency(globalSummary.net, 'EUR', { showPlusSign: true })}</td>
-                        </tr>
-                    </tfoot>
-                </table>
+                <div className="overflow-x-auto">
+                    <table className="w-full whitespace-nowrap">
+                        <thead>
+                            <tr className="border-b border-gray-200 dark:border-gray-700 text-left text-xs font-semibold text-gray-500 dark:text-gray-400 uppercase tracking-wider">
+                                <th className="py-3 px-4">Account</th>
+                                <th className="py-3 px-4 text-right">Income</th>
+                                <th className="py-3 px-4 text-right">Expenses</th>
+                                <th className="py-3 px-4 text-right">Net Cash Flow</th>
+                            </tr>
+                        </thead>
+                        <tbody className="divide-y divide-gray-100 dark:divide-gray-800 text-sm">
+                            {Object.entries(accountSummaries).map(([accountId, summary]: [string, { income: number; expense: number; net: number; currency: Currency }]) => {
+                                const account = accounts.find(a => a.id === accountId);
+                                if (!account) return null;
+                                return (
+                                    <tr key={accountId} className="hover:bg-gray-50 dark:hover:bg-white/5 transition-colors">
+                                        <td className="py-3 px-4 flex items-center gap-3">
+                                            <div className={`w-8 h-8 rounded-full flex items-center justify-center bg-opacity-10 ${ACCOUNT_TYPE_STYLES[account.type]?.color ? ACCOUNT_TYPE_STYLES[account.type].color.replace('text-', 'bg-').replace('500', '500/10') : 'bg-gray-100'}`}>
+                                                 <span className={`material-symbols-outlined text-lg ${ACCOUNT_TYPE_STYLES[account.type]?.color || 'text-gray-500'}`}>{account.icon || 'wallet'}</span>
+                                            </div>
+                                            <span className="font-medium text-gray-900 dark:text-white">{account.name}</span>
+                                        </td>
+                                        <td className="py-3 px-4 text-right font-medium text-emerald-600 dark:text-emerald-400">{formatCurrency(summary.income, 'EUR')}</td>
+                                        <td className="py-3 px-4 text-right font-medium text-rose-600 dark:text-rose-400">{formatCurrency(summary.expense, 'EUR')}</td>
+                                        <td className={`py-3 px-4 text-right font-bold ${summary.net >= 0 ? 'text-emerald-600 dark:text-emerald-400' : 'text-rose-600 dark:text-rose-400'}`}>{formatCurrency(summary.net, 'EUR', { showPlusSign: true })}</td>
+                                    </tr>
+                                );
+                            })}
+                        </tbody>
+                        <tfoot>
+                            <tr className="bg-gray-50 dark:bg-white/5 font-bold text-sm border-t border-gray-200 dark:border-gray-700">
+                                <td className="py-3 px-4 text-gray-900 dark:text-white">Total (All Accounts)</td>
+                                <td className="py-3 px-4 text-right text-emerald-600 dark:text-emerald-400">{formatCurrency(globalSummary.income, 'EUR')}</td>
+                                <td className="py-3 px-4 text-right text-rose-600 dark:text-rose-400">{formatCurrency(globalSummary.expense, 'EUR')}</td>
+                                <td className={`py-3 px-4 text-right ${globalSummary.net >= 0 ? 'text-emerald-600 dark:text-emerald-400' : 'text-rose-600 dark:text-rose-400'}`}>{formatCurrency(globalSummary.net, 'EUR', { showPlusSign: true })}</td>
+                            </tr>
+                        </tfoot>
+                    </table>
+                </div>
             </Card>
 
             <ScheduleHeatmap items={allUpcomingForHeatmap} />
             
-            <div className="space-y-8">
-                <Card>
-                    <h3 className="text-xl font-semibold mb-4 text-light-text dark:text-dark-text">Payment History</h3>
-                    {paidItems.length > 0 ? (
-                        <div className="space-y-2 -mx-4">
-                            {paidItems.map(item => (
-                                <div key={item.id} className="flex items-center justify-between p-4 opacity-60">
-                                    <div className="flex items-center gap-4">
-                                        <div className="flex-shrink-0 text-center rounded-lg p-2 w-16 bg-light-bg dark:bg-dark-bg">
-                                            <p className="text-xs font-semibold text-gray-400">{parseAsUTC(item.dueDate).toLocaleString('default', { month: 'short', timeZone: 'UTC' }).toUpperCase()}</p>
-                                            <p className="text-2xl font-bold text-gray-500">{parseAsUTC(item.dueDate).getUTCDate()}</p>
-                                        </div>
-                                        <div>
-                                            <p className="font-semibold text-lg text-light-text dark:text-dark-text line-through">{item.description}</p>
-                                            <p className="text-sm text-light-text-secondary dark:text-dark-text-secondary">{accountMap[item.accountId!] || 'External'}</p>
-                                        </div>
-                                    </div>
-                                    <p className="font-semibold text-base text-gray-500 line-through">{formatCurrency(item.amount, item.currency)}</p>
-                                </div>
-                            ))}
-                        </div>
-                    ) : (
-                        <p className="text-center py-8 text-light-text-secondary dark:text-dark-text-secondary">You have no paid bills in your history.</p>
-                    )}
-                </Card>
-
-                <Card>
-                    <h3 className="text-xl font-semibold mb-4 text-light-text dark:text-dark-text">Upcoming Bills & One-time Payments</h3>
+            {/* Lists */}
+            <div className="grid grid-cols-1 gap-8">
+                <div>
+                    <div className="flex items-center justify-between mb-4">
+                        <h3 className="text-xl font-semibold text-light-text dark:text-dark-text">Upcoming Bills & One-time Payments</h3>
+                        <span className="bg-gray-100 dark:bg-gray-800 text-gray-600 dark:text-gray-400 px-3 py-1 rounded-full text-xs font-bold uppercase tracking-wide">
+                             {upcomingBills.length} Items
+                        </span>
+                    </div>
+                    
                     {upcomingBills.length > 0 ? (
                         renderGroupedItems(groupedBills)
                     ) : (
-                         <p className="text-center py-8 text-light-text-secondary dark:text-dark-text-secondary">No upcoming bills or payments scheduled.</p>
+                         <div className="p-8 border-2 border-dashed border-gray-200 dark:border-gray-800 rounded-xl flex flex-col items-center justify-center text-center text-gray-500">
+                            <span className="material-symbols-outlined text-4xl mb-2 opacity-50">event_busy</span>
+                            <p>No upcoming bills or one-time payments scheduled.</p>
+                         </div>
                     )}
-                </Card>
+                </div>
 
-                <Card>
-                    <h3 className="text-xl font-semibold mb-4 text-light-text dark:text-dark-text">Recurring Transactions</h3>
+                <div>
+                    <div className="flex items-center justify-between mb-4">
+                        <h3 className="text-xl font-semibold text-light-text dark:text-dark-text">Recurring Transactions</h3>
+                         <span className="bg-gray-100 dark:bg-gray-800 text-gray-600 dark:text-gray-400 px-3 py-1 rounded-full text-xs font-bold uppercase tracking-wide">
+                             {upcomingRecurring.length} Items
+                        </span>
+                    </div>
                     {upcomingRecurring.length > 0 ? (
                         renderGroupedItems(groupedRecurringItems)
                     ) : (
-                        <p className="text-center py-8 text-light-text-secondary dark:text-dark-text-secondary">No upcoming recurring transactions found.</p>
+                        <div className="p-8 border-2 border-dashed border-gray-200 dark:border-gray-800 rounded-xl flex flex-col items-center justify-center text-center text-gray-500">
+                            <span className="material-symbols-outlined text-4xl mb-2 opacity-50">update_disabled</span>
+                            <p>No upcoming recurring transactions found.</p>
+                        </div>
                     )}
-                </Card>
+                </div>
+                
+                {paidItems.length > 0 && (
+                    <div>
+                        <h3 className="text-xl font-semibold mb-4 text-light-text dark:text-dark-text opacity-80">Recently Paid History</h3>
+                         <div className="space-y-2 opacity-60 hover:opacity-100 transition-opacity">
+                            {paidItems.map(item => (
+                                <div key={item.id} className="flex items-center justify-between p-4 bg-gray-50 dark:bg-white/5 rounded-xl border border-transparent hover:border-gray-200 dark:hover:border-gray-700 transition-colors">
+                                    <div className="flex items-center gap-4">
+                                        <div className="flex-shrink-0 text-center rounded-lg p-2 w-12 bg-white dark:bg-black/20 text-xs text-gray-400 border border-gray-100 dark:border-gray-800">
+                                            <p className="font-bold">{parseAsUTC(item.dueDate).getUTCDate()}</p>
+                                            <p className="uppercase text-[10px]">{parseAsUTC(item.dueDate).toLocaleString('default', { month: 'short', timeZone: 'UTC' })}</p>
+                                        </div>
+                                        <div>
+                                            <p className="font-medium text-gray-600 dark:text-gray-300 line-through decoration-gray-400">{item.description}</p>
+                                            <p className="text-xs text-gray-400">{accountMap[item.accountId!] || 'External'}</p>
+                                        </div>
+                                    </div>
+                                    <div className="text-right">
+                                         <p className="font-medium text-gray-500 line-through decoration-gray-400">{formatCurrency(item.amount, item.currency)}</p>
+                                         <span className="text-[10px] font-bold text-green-600 dark:text-green-400 uppercase bg-green-100 dark:bg-green-900/30 px-1.5 py-0.5 rounded ml-auto inline-block mt-1">Paid</span>
+                                    </div>
+                                </div>
+                            ))}
+                        </div>
+                    </div>
+                )}
             </div>
         </div>
     );
