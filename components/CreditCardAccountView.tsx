@@ -1,7 +1,7 @@
 
 import React, { useMemo } from 'react';
 import { Account, Transaction, DisplayTransaction, Category } from '../types';
-import { formatCurrency, parseDateAsUTC, calculateStatementPeriods, getCreditCardStatementDetails, convertToEur, getPreferredTimeZone } from '../utils';
+import { formatCurrency, calculateStatementPeriods, getCreditCardStatementDetails } from '../utils';
 import Card from './Card';
 import TransactionList from './TransactionList';
 import { BTN_PRIMARY_STYLE } from '../constants';
@@ -16,6 +16,27 @@ interface CreditCardAccountViewProps {
   onTransactionClick: (tx: DisplayTransaction) => void;
   onBack: () => void;
 }
+
+const getCardGradient = (id: string) => {
+    const gradients = [
+        "from-purple-600 to-blue-600",
+        "from-pink-500 to-rose-500",
+        "from-emerald-500 to-teal-500",
+        "from-orange-500 to-amber-500",
+        "from-blue-500 to-cyan-500",
+        "from-fuchsia-600 to-purple-600",
+        "from-indigo-500 to-blue-600",
+        "from-red-500 to-orange-500",
+        "from-teal-400 to-emerald-600",
+        "from-violet-600 to-fuchsia-500"
+    ];
+    let hash = 0;
+    for (let i = 0; i < id.length; i++) {
+        hash = id.charCodeAt(i) + ((hash << 5) - hash);
+    }
+    const index = Math.abs(hash) % gradients.length;
+    return `bg-gradient-to-br ${gradients[index]}`;
+};
 
 const CreditCardAccountView: React.FC<CreditCardAccountViewProps> = ({
   account,
@@ -134,39 +155,42 @@ const CreditCardAccountView: React.FC<CreditCardAccountViewProps> = ({
           
           {/* Virtual Card */}
           <div className="lg:col-span-5 xl:col-span-4">
-              <div className="aspect-[1.586/1] rounded-2xl bg-gradient-to-br from-slate-800 via-slate-900 to-black p-6 sm:p-8 text-white shadow-2xl relative overflow-hidden border border-white/10 flex flex-col justify-between group transition-transform hover:scale-[1.02] duration-300">
+              <div className={`aspect-[1.586/1] rounded-2xl ${getCardGradient(account.id)} p-6 sm:p-8 text-white shadow-2xl relative overflow-hidden border border-white/20 flex flex-col justify-between group transition-transform hover:scale-[1.02] duration-300`}>
                   {/* Texture Overlay */}
                   <div className="absolute inset-0 bg-[url('https://www.transparenttextures.com/patterns/cubes.png')] opacity-10 pointer-events-none"></div>
-                  <div className="absolute -top-24 -right-24 w-64 h-64 bg-white/5 rounded-full blur-3xl pointer-events-none"></div>
+                  <div className="absolute -top-24 -right-24 w-64 h-64 bg-white/10 rounded-full blur-3xl pointer-events-none"></div>
                   
                   <div className="flex justify-between items-start z-10">
-                      <div className="w-12 h-9 bg-yellow-200/20 rounded-md border border-yellow-100/30 backdrop-blur-md flex items-center justify-center relative overflow-hidden">
-                           <div className="absolute inset-0 bg-gradient-to-tr from-yellow-500/20 to-transparent"></div>
+                      <div className="w-12 h-9 bg-white/20 rounded-md border border-white/30 backdrop-blur-md flex items-center justify-center relative overflow-hidden shadow-sm">
+                           <div className="absolute inset-0 bg-gradient-to-tr from-white/10 to-transparent"></div>
                            <div className="w-8 h-[1px] bg-black/20 absolute top-2"></div>
                            <div className="w-8 h-[1px] bg-black/20 absolute bottom-2"></div>
                            <div className="w-[1px] h-5 bg-black/20 absolute left-4"></div>
                       </div>
-                      <span className="text-white/60 font-mono text-sm">
-                          {account.financialInstitution || 'Crystal Bank'}
-                      </span>
+                      <div className="flex flex-col items-end">
+                          <span className="material-symbols-outlined text-2xl opacity-80 mb-1">rss_feed</span>
+                          <span className="text-white/80 font-mono text-xs font-semibold uppercase tracking-wider shadow-sm">
+                              {account.financialInstitution || 'Crystal Bank'}
+                          </span>
+                      </div>
                   </div>
 
                   <div className="z-10 mt-4">
-                       <div className="flex items-center gap-3 text-xl sm:text-2xl font-mono tracking-widest text-white/90 shadow-black drop-shadow-md">
+                       <div className="flex items-center gap-3 text-xl sm:text-2xl font-mono tracking-widest text-white/95 drop-shadow-md">
                            <span>••••</span> <span>••••</span> <span>••••</span> <span>{account.last4 || '0000'}</span>
                        </div>
                   </div>
 
                   <div className="flex justify-between items-end z-10">
                       <div>
-                          <p className="text-[10px] text-white/50 uppercase tracking-widest mb-0.5">Cardholder</p>
-                          <p className="font-medium uppercase tracking-wide text-sm sm:text-base">{account.cardholderName || account.name}</p>
+                          <p className="text-[9px] text-white/70 uppercase tracking-widest mb-0.5">Cardholder</p>
+                          <p className="font-medium uppercase tracking-wide text-sm sm:text-base text-white/95 drop-shadow-sm">{account.cardholderName || account.name}</p>
                       </div>
                       <div className="flex flex-col items-end">
                            {account.expirationDate && (
                                <div className="text-center mb-2">
-                                   <p className="text-[8px] text-white/50 uppercase">Valid Thru</p>
-                                   <p className="font-mono text-sm">{account.expirationDate}</p>
+                                   <p className="text-[8px] text-white/70 uppercase">Valid Thru</p>
+                                   <p className="font-mono text-sm font-semibold">{account.expirationDate}</p>
                                </div>
                            )}
                            <NetworkLogo />
