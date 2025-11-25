@@ -313,9 +313,9 @@ const AccountDetail: React.FC<AccountDetailProps> = ({ account, setCurrentPage, 
     // Only show value if NOT leased, OR if leased and value is non-zero/present
     const showCurrentValue = account.ownership !== 'Leased' || (account.balance !== 0);
 
-    // --- Loan/Mortgage Specific Helpers ---
+    // --- Loan/Mortgage/Lending Specific Helpers ---
     const loanDetails = useMemo(() => {
-        if (account.type !== 'Loan') return null;
+        if (account.type !== 'Loan' && account.type !== 'Lending') return null;
         
         const schedule = generateAmortizationSchedule(account, transactions, loanPaymentOverrides[account.id] || {});
         const totalPaidPrincipal = schedule.reduce((acc, p) => p.status === 'Paid' ? acc + p.principal : acc, 0);
@@ -537,6 +537,19 @@ const AccountDetail: React.FC<AccountDetailProps> = ({ account, setCurrentPage, 
             </div>
         );
     }
+    
+    // Determine styles based on account type for Loan/Lending dashboard
+    const isLending = account.type === 'Lending';
+    const headerIconStyle = isLending 
+        ? 'bg-teal-100 dark:bg-teal-900/30 text-teal-600 dark:text-teal-400'
+        : 'bg-red-100 dark:bg-red-900/30 text-red-600 dark:text-red-400';
+    
+    const balanceLabel = isLending ? 'Outstanding Principal' : 'Outstanding Balance';
+    const balanceColor = isLending ? 'text-teal-600 dark:text-teal-400' : 'text-red-600 dark:text-red-400';
+    
+    const principalLabel = isLending ? 'Principal Received' : 'Principal Paid';
+    const interestLabel = isLending ? 'Interest Earned' : 'Total Interest Paid';
+    const paymentLabel = isLending ? 'Monthly Receipt' : 'Monthly Payment';
 
     return (
     <div className="space-y-8">
@@ -589,23 +602,23 @@ const AccountDetail: React.FC<AccountDetailProps> = ({ account, setCurrentPage, 
                 <button onClick={() => { setViewingAccountId(null); setCurrentPage('Accounts'); }} className="text-light-text-secondary dark:text-dark-text-secondary p-1 rounded-full hover:bg-black/5 dark:hover:bg-white/5">
                     <span className="material-symbols-outlined">arrow_back</span>
                 </button>
-                {/* Header for non-Loan/Property/Vehicle accounts, specific headers are inside blocks */}
-                {account.type !== 'Vehicle' && account.type !== 'Loan' && (
+                {/* Header for non-Loan/Property/Vehicle/Lending accounts, specific headers are inside blocks */}
+                {account.type !== 'Vehicle' && account.type !== 'Loan' && account.type !== 'Lending' && (
                     <h1 className="text-2xl font-bold text-light-text dark:text-dark-text">{account.name}</h1>
                 )}
             </div>
             <div className="flex gap-3">
-                {(account.type !== 'Vehicle' && account.type !== 'Loan') && <DurationFilter selectedDuration={duration} onDurationChange={setDuration} />}
+                {(account.type !== 'Vehicle' && account.type !== 'Loan' && account.type !== 'Lending') && <DurationFilter selectedDuration={duration} onDurationChange={setDuration} />}
                 <button onClick={() => handleOpenTransactionModal()} className={BTN_PRIMARY_STYLE}>Add Transaction</button>
             </div>
         </header>
 
-        {/* --- LOAN / MORTGAGE DASHBOARD --- */}
-        {account.type === 'Loan' && loanDetails ? (
+        {/* --- LOAN / LENDING DASHBOARD --- */}
+        {(account.type === 'Loan' || account.type === 'Lending') && loanDetails ? (
             <div className="space-y-6">
                 <div className="flex items-center gap-4 mb-4">
-                    <div className={`w-16 h-16 rounded-xl flex items-center justify-center bg-red-100 dark:bg-red-900/30 text-red-600 dark:text-red-400 border border-current`}>
-                        <span className="material-symbols-outlined text-4xl">{account.icon || 'real_estate_agent'}</span>
+                    <div className={`w-16 h-16 rounded-xl flex items-center justify-center ${headerIconStyle} border border-current`}>
+                        <span className="material-symbols-outlined text-4xl">{account.icon || (isLending ? 'real_estate_agent' : 'real_estate_agent')}</span>
                     </div>
                     <div>
                         <h1 className="text-3xl font-bold text-light-text dark:text-dark-text">{account.name}</h1>
@@ -613,7 +626,7 @@ const AccountDetail: React.FC<AccountDetailProps> = ({ account, setCurrentPage, 
                             {loanDetails.linkedProperty && <span>Linked to: <strong>{loanDetails.linkedProperty.name}</strong></span>}
                             {loanDetails.payoffDate && (
                                 <span className="bg-green-100 dark:bg-green-900/40 text-green-700 dark:text-green-300 px-2 py-0.5 rounded text-xs font-semibold">
-                                    Payoff: {loanDetails.payoffDate.toLocaleDateString(undefined, {month:'short', year: 'numeric'})}
+                                    {isLending ? 'Maturity' : 'Payoff'}: {loanDetails.payoffDate.toLocaleDateString(undefined, {month:'short', year: 'numeric'})}
                                 </span>
                             )}
                         </div>
@@ -623,19 +636,19 @@ const AccountDetail: React.FC<AccountDetailProps> = ({ account, setCurrentPage, 
                 {/* Top Stats */}
                 <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5 gap-6">
                     <Card>
-                        <p className="text-xs uppercase tracking-wide text-light-text-secondary dark:text-dark-text-secondary font-semibold mb-1">Outstanding Balance</p>
-                        <p className="text-2xl font-bold text-red-600 dark:text-red-400">{formatCurrency(Math.abs(account.balance), account.currency)}</p>
+                        <p className="text-xs uppercase tracking-wide text-light-text-secondary dark:text-dark-text-secondary font-semibold mb-1">{balanceLabel}</p>
+                        <p className={`text-2xl font-bold ${balanceColor}`}>{formatCurrency(Math.abs(account.balance), account.currency)}</p>
                     </Card>
                     <Card>
-                        <p className="text-xs uppercase tracking-wide text-light-text-secondary dark:text-dark-text-secondary font-semibold mb-1">Principal Paid</p>
+                        <p className="text-xs uppercase tracking-wide text-light-text-secondary dark:text-dark-text-secondary font-semibold mb-1">{principalLabel}</p>
                         <p className="text-2xl font-bold text-green-600 dark:text-green-400">{formatCurrency(loanDetails.totalPaidPrincipal, account.currency)}</p>
                     </Card>
                     <Card>
-                        <p className="text-xs uppercase tracking-wide text-light-text-secondary dark:text-dark-text-secondary font-semibold mb-1">Total Interest Paid</p>
+                        <p className="text-xs uppercase tracking-wide text-light-text-secondary dark:text-dark-text-secondary font-semibold mb-1">{interestLabel}</p>
                         <p className="text-2xl font-bold text-orange-500">{formatCurrency(loanDetails.totalPaidInterest, account.currency)}</p>
                     </Card>
                      <Card>
-                        <p className="text-xs uppercase tracking-wide text-light-text-secondary dark:text-dark-text-secondary font-semibold mb-1">Monthly Payment</p>
+                        <p className="text-xs uppercase tracking-wide text-light-text-secondary dark:text-dark-text-secondary font-semibold mb-1">{paymentLabel}</p>
                         <p className="text-2xl font-bold text-light-text dark:text-dark-text">
                             {formatCurrency(loanDetails.schedule[0]?.totalPayment || 0, account.currency)}
                         </p>
@@ -652,7 +665,7 @@ const AccountDetail: React.FC<AccountDetailProps> = ({ account, setCurrentPage, 
                 <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
                     {/* Chart */}
                     <div className="lg:col-span-2">
-                        <MortgageAmortizationChart schedule={loanDetails.schedule} currency={account.currency} />
+                        <MortgageAmortizationChart schedule={loanDetails.schedule} currency={account.currency} accountType={account.type} />
                     </div>
                     
                     {/* Side Stats */}
@@ -678,7 +691,7 @@ const AccountDetail: React.FC<AccountDetailProps> = ({ account, setCurrentPage, 
                             </Card>
                         )}
                         <Card>
-                            <h3 className="text-base font-semibold text-light-text dark:text-dark-text mb-4">Loan Details</h3>
+                            <h3 className="text-base font-semibold text-light-text dark:text-dark-text mb-4">{isLending ? 'Lending Details' : 'Loan Details'}</h3>
                             <div className="space-y-3 text-sm">
                                 <div className="flex justify-between">
                                     <span className="text-light-text-secondary dark:text-dark-text-secondary">Start Date</span>
@@ -693,7 +706,7 @@ const AccountDetail: React.FC<AccountDetailProps> = ({ account, setCurrentPage, 
                                     <span className="font-medium">{Math.floor((account.duration || 0) / 12)} Years ({(account.duration || 0) % 12}mo)</span>
                                 </div>
                                 <div className="flex justify-between">
-                                    <span className="text-light-text-secondary dark:text-dark-text-secondary">Payments Made</span>
+                                    <span className="text-light-text-secondary dark:text-dark-text-secondary">{isLending ? 'Payments Received' : 'Payments Made'}</span>
                                     <span className="font-medium">{loanDetails.schedule.filter(p => p.status === 'Paid').length} / {account.duration}</span>
                                 </div>
                             </div>

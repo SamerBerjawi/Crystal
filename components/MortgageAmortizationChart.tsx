@@ -8,9 +8,14 @@ import Card from './Card';
 interface MortgageAmortizationChartProps {
   schedule: ScheduledPayment[];
   currency: Currency;
+  accountType?: string;
 }
 
-const MortgageAmortizationChart: React.FC<MortgageAmortizationChartProps> = ({ schedule, currency }) => {
+const MortgageAmortizationChart: React.FC<MortgageAmortizationChartProps> = ({ schedule, currency, accountType = 'Loan' }) => {
+  const isLending = accountType === 'Lending';
+  const principalName = isLending ? "Principal Received" : "Principal Paid";
+  const interestName = isLending ? "Interest Earned" : "Interest Paid";
+
   // aggregate data by year to make the chart readable if the loan is long
   const yearlyData = React.useMemo(() => {
     const grouped: Record<string, { year: string; principal: number; interest: number; balance: number }> = {};
@@ -37,8 +42,8 @@ const MortgageAmortizationChart: React.FC<MortgageAmortizationChartProps> = ({ s
         <div className="bg-light-card dark:bg-dark-card p-3 rounded-lg shadow-lg border border-black/5 dark:border-white/5 text-sm">
           <p className="font-bold text-light-text dark:text-dark-text mb-2">{label}</p>
           <div className="space-y-1">
-            <p className="text-primary-500">Principal: {formatCurrency(payload[0].value, currency)}</p>
-            <p className="text-red-500">Interest: {formatCurrency(payload[1].value, currency)}</p>
+            <p className="text-primary-500">{isLending ? 'Principal' : 'Principal'}: {formatCurrency(payload[0].value, currency)}</p>
+            <p className="text-red-500">{isLending ? 'Interest' : 'Interest'}: {formatCurrency(payload[1].value, currency)}</p>
             <div className="border-t border-black/10 dark:border-white/10 pt-1 mt-1">
                 <p className="text-light-text-secondary dark:text-dark-text-secondary">Balance: {formatCurrency(payload[0].payload.balance, currency)}</p>
             </div>
@@ -77,8 +82,8 @@ const MortgageAmortizationChart: React.FC<MortgageAmortizationChartProps> = ({ s
             />
             <Tooltip content={<CustomTooltip />} cursor={{fill: 'transparent'}} />
             <Legend wrapperStyle={{ paddingTop: '20px' }} />
-            <Bar dataKey="principal" name="Principal Paid" stackId="a" fill="#3B82F6" radius={[0, 0, 4, 4]} />
-            <Bar dataKey="interest" name="Interest Paid" stackId="a" fill="#EF4444" radius={[4, 4, 0, 0]} />
+            <Bar dataKey="principal" name={principalName} stackId="a" fill="#3B82F6" radius={[0, 0, 4, 4]} />
+            <Bar dataKey="interest" name={interestName} stackId="a" fill="#EF4444" radius={[4, 4, 0, 0]} />
           </BarChart>
         </ResponsiveContainer>
       </div>
