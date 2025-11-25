@@ -384,57 +384,67 @@ const Dashboard: React.FC<DashboardProps> = ({ user, activeGoalIds, selectedAcco
   }, [enrichedTransactions, duration, transactions]);
 
 
-  const { totalAssets, totalDebt, netWorth, assetBreakdown, debtBreakdown } = useMemo(() => {
+  const colorClassToHex: { [key: string]: string } = {
+      'text-blue-500': '#3b82f6',
+      'text-green-500': '#22c55e',
+      'text-orange-500': '#f97316',
+      'text-purple-500': '#8b5cf6',
+      'text-red-500': '#ef4444',
+      'text-teal-500': '#14b8a6',
+      'text-yellow-500': '#eab308',
+      'text-cyan-500': '#06b6d4',
+      'text-lime-500': '#84cc16',
+      'text-pink-500': '#ec4899',
+      'text-amber-500': '#f59e0b',
+      'text-indigo-500': '#6366f1',
+      'text-lime-600': '#65a30d',
+      'text-slate-500': '#64748b'
+  };
+
+  const createBreakdown = (accs: Account[]) => {
+      const grouped = accs.reduce((acc, account) => {
+          const group = acc[account.type] || { value: 0, color: '#A0AEC0' };
+          let style;
+          if(account.type === 'Investment' && account.subType) {
+              style = INVESTMENT_SUB_TYPE_STYLES[account.subType];
+          } else {
+              style = ACCOUNT_TYPE_STYLES[account.type];
+          }
+          
+          if (style) {
+                group.color = colorClassToHex[style.color] || '#A0AEC0';
+          }
+          group.value += convertToEur(account.balance, account.currency);
+          acc[account.type] = group;
+          return acc;
+      }, {} as Record<string, { value: number, color: string }>);
+      
+      return Object.entries(grouped).map(([name, data]) => ({ name, value: Math.abs(data.value), color: data.color })).filter(item => item.value > 0).sort((a, b) => b.value - a.value);
+  };
+
+  const { totalAssets, totalDebt, netWorth } = useMemo(() => {
     const safeAccounts = selectedAccounts || [];
     
     const { totalAssets, totalDebt, netWorth } = calculateAccountTotals(safeAccounts);
-
-    const colorClassToHex: { [key: string]: string } = {
-        'text-blue-500': '#3b82f6',
-        'text-green-500': '#22c55e',
-        'text-orange-500': '#f97316',
-        'text-purple-500': '#8b5cf6',
-        'text-red-500': '#ef4444',
-        'text-teal-500': '#14b8a6',
-        'text-yellow-500': '#eab308',
-        'text-cyan-500': '#06b6d4',
-        'text-lime-500': '#84cc16',
-        'text-pink-500': '#ec4899',
-        'text-amber-500': '#f59e0b',
-        'text-indigo-500': '#6366f1',
-        'text-lime-600': '#65a30d',
-        'text-slate-500': '#64748b'
-    };
-
-    const createBreakdown = (accs: Account[]) => {
-        const grouped = accs.reduce((acc, account) => {
-            const group = acc[account.type] || { value: 0, color: '#A0AEC0' };
-            let style;
-            if(account.type === 'Investment' && account.subType) {
-                style = INVESTMENT_SUB_TYPE_STYLES[account.subType];
-            } else {
-                style = ACCOUNT_TYPE_STYLES[account.type];
-            }
-            
-            if (style) {
-                 group.color = colorClassToHex[style.color] || '#A0AEC0';
-            }
-            group.value += convertToEur(account.balance, account.currency);
-            acc[account.type] = group;
-            return acc;
-        }, {} as Record<string, { value: number, color: string }>);
-        
-        return Object.entries(grouped).map(([name, data]) => ({ name, value: Math.abs(data.value), color: data.color })).filter(item => item.value > 0);
-    };
 
     return {
         totalAssets,
         totalDebt,
         netWorth,
-        assetBreakdown: createBreakdown(safeAccounts.filter(acc => ASSET_TYPES.includes(acc.type))),
-        debtBreakdown: createBreakdown(safeAccounts.filter(acc => DEBT_TYPES.includes(acc.type))),
     };
   }, [selectedAccounts]);
+
+  const { globalTotalAssets, globalTotalDebt, globalAssetBreakdown, globalDebtBreakdown } = useMemo(() => {
+     const openAccounts = accounts.filter(acc => acc.status !== 'closed');
+     const { totalAssets, totalDebt } = calculateAccountTotals(openAccounts);
+
+     return {
+        globalTotalAssets: totalAssets,
+        globalTotalDebt: totalDebt,
+        globalAssetBreakdown: createBreakdown(openAccounts.filter(acc => ASSET_TYPES.includes(acc.type))),
+        globalDebtBreakdown: createBreakdown(openAccounts.filter(acc => DEBT_TYPES.includes(acc.type))),
+     };
+  }, [accounts]);
 
   const netWorthData = useMemo(() => {
     const transferGroups = new Map<string, Transaction[]>();
@@ -742,11 +752,11 @@ const Dashboard: React.FC<DashboardProps> = ({ user, activeGoalIds, selectedAcco
     { id: 'outflowsByCategory', name: 'Outflows by Category', defaultW: 2, defaultH: 2, component: OutflowsChart, props: { data: outflowsByCategory, onCategoryClick: handleCategoryClick } },
     { id: 'netWorthBreakdown', name: 'Net Worth Breakdown', defaultW: 2, defaultH: 2, component: AssetDebtDonutChart, props: { assets: totalAssets, debt: totalDebt } },
     { id: 'recentActivity', name: 'Recent Activity', defaultW: 4, defaultH: 2, component: TransactionList, props: { transactions: recentTransactions, allCategories: allCategories, onTransactionClick: handleTransactionClick } },
-    { id: 'assetBreakdown', name: 'Asset Breakdown', defaultW: 2, defaultH: 2, component: AccountBreakdownCard, props: { title: 'Assets', totalValue: totalAssets, breakdownData: assetBreakdown } },
-    { id: 'liabilityBreakdown', name: 'Liability Breakdown', defaultW: 2, defaultH: 2, component: AccountBreakdownCard, props: { title: 'Liabilities', totalValue: totalDebt, breakdownData: debtBreakdown } },
+    { id: 'assetBreakdown', name: 'Asset Breakdown', defaultW: 2, defaultH: 2, component: AccountBreakdownCard, props: { title: 'Assets', totalValue: globalTotalAssets, breakdownData: globalAssetBreakdown } },
+    { id: 'liabilityBreakdown', name: 'Liability Breakdown', defaultW: 2, defaultH: 2, component: AccountBreakdownCard, props: { title: 'Liabilities', totalValue: Math.abs(globalTotalDebt), breakdownData: globalDebtBreakdown } },
     { id: 'budgetOverview', name: 'Budget Overview', defaultW: 2, defaultH: 2, component: BudgetOverviewWidget, props: { budgets: budgets, transactions: transactions, expenseCategories: expenseCategories, accounts: accounts, duration: duration, onBudgetClick: handleBudgetClick } },
     { id: 'transactionMap', name: 'Transaction Map', defaultW: 4, defaultH: 2, component: TransactionMapWidget, props: { transactions: filteredTransactions } },
-  ], [netWorthData, netWorthTrendColor, outflowsByCategory, handleCategoryClick, totalAssets, totalDebt, recentTransactions, allCategories, handleTransactionClick, assetBreakdown, debtBreakdown, budgets, transactions, expenseCategories, accounts, duration, handleBudgetClick, filteredTransactions]);
+  ], [netWorthData, netWorthTrendColor, outflowsByCategory, handleCategoryClick, totalAssets, totalDebt, recentTransactions, allCategories, handleTransactionClick, globalTotalAssets, globalAssetBreakdown, globalTotalDebt, globalDebtBreakdown, budgets, transactions, expenseCategories, accounts, duration, handleBudgetClick, filteredTransactions]);
 
   const [widgets, setWidgets] = useLocalStorage<WidgetConfig[]>('dashboard-layout', allWidgets.map(w => ({ id: w.id, title: w.name, w: w.defaultW, h: w.defaultH })));
 

@@ -9,6 +9,7 @@ import AccountBreakdownCard from '../components/AccountBreakdownCard';
 import AccountRow from '../components/AccountRow';
 import BalanceAdjustmentModal from '../components/BalanceAdjustmentModal';
 import FinalConfirmationModal from '../components/FinalConfirmationModal';
+import Card from '../components/Card';
 
 interface AccountsProps {
     accounts: Account[];
@@ -409,16 +410,20 @@ const Accounts: React.FC<AccountsProps> = ({ accounts, transactions, saveAccount
 
       {/* Summary Grid */}
       <section className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-        <AccountBreakdownCard 
-            title="Assets" 
-            totalValue={totalAssets} 
-            breakdownData={assetBreakdown} 
-        />
-        <AccountBreakdownCard 
-            title="Liabilities" 
-            totalValue={Math.abs(totalDebt)} 
-            breakdownData={debtBreakdown} 
-        />
+        <Card className="h-full">
+            <AccountBreakdownCard 
+                title="Assets" 
+                totalValue={totalAssets} 
+                breakdownData={assetBreakdown} 
+            />
+        </Card>
+        <Card className="h-full">
+            <AccountBreakdownCard 
+                title="Liabilities" 
+                totalValue={Math.abs(totalDebt)} 
+                breakdownData={debtBreakdown} 
+            />
+        </Card>
       </section>
 
       {/* Lists */}

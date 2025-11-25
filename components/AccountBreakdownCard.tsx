@@ -1,6 +1,5 @@
 
 import React from 'react';
-import Card from './Card';
 import { formatCurrency } from '../utils';
 
 interface BreakdownItem {
@@ -17,7 +16,7 @@ interface AccountBreakdownCardProps {
 
 const AccountBreakdownCard: React.FC<AccountBreakdownCardProps> = ({ title, totalValue, breakdownData }) => {
     return (
-        <Card className="flex flex-col h-full">
+        <div className="flex flex-col h-full">
             <div className="mb-6">
                 <div className="flex justify-between items-start mb-6">
                     <div>
@@ -63,7 +62,7 @@ const AccountBreakdownCard: React.FC<AccountBreakdownCardProps> = ({ title, tota
                     );
                 })}
             </div>
-        </Card>
+        </div>
     );
 };
 
