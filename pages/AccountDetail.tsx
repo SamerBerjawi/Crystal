@@ -324,16 +324,21 @@ const AccountDetail: React.FC<AccountDetailProps> = ({ account, setCurrentPage, 
         // Find if linked to a property for LTV
         const linkedProperty = accounts.find(a => a.type === 'Property' && a.linkedLoanId === account.id);
         let ltv = 0;
-        let equity = 0;
+        let equity = 0; // Invested Equity
+        let marketEquity = 0;
         
         if (linkedProperty) {
             const propertyValue = linkedProperty.balance; // Current value
             const loanBalance = Math.abs(account.balance);
             if (propertyValue > 0) {
                 ltv = (loanBalance / propertyValue) * 100;
-                equity = propertyValue - loanBalance;
             }
+            // Market Equity = Market Value - Loan Balance
+            marketEquity = propertyValue - loanBalance;
         }
+        
+        // Invested Equity = Down Payment + Principal Paid
+        equity = totalPaidPrincipal + (account.downPayment || 0);
 
         // Calculate payoff date
         const lastPayment = schedule[schedule.length - 1];
@@ -346,6 +351,7 @@ const AccountDetail: React.FC<AccountDetailProps> = ({ account, setCurrentPage, 
             linkedProperty,
             ltv,
             equity,
+            marketEquity,
             payoffDate
         };
     }, [account, transactions, loanPaymentOverrides, accounts]);
@@ -384,7 +390,14 @@ const AccountDetail: React.FC<AccountDetailProps> = ({ account, setCurrentPage, 
             account.outdoorParkingSpaces ? { label: `Outdoor Parking (${account.outdoorParkingSpaces})`, icon: 'local_parking' } : null,
         ].filter(Boolean);
 
-        const equity = account.balance - (linkedLoan ? Math.abs(linkedLoan.balance) : 0);
+        // Equity = Invested Equity (Down Payment + Principal Paid)
+        const equity = principalOwned;
+        
+        // Market Equity = Market Value (Current Balance) - Outstanding Loan Balance
+        const marketEquity = linkedLoan
+            ? account.balance - Math.abs(linkedLoan.balance)
+            : account.balance;
+
         const appreciation = account.balance - (purchasePrice || 0);
         const appreciationPercent = purchasePrice ? (appreciation / purchasePrice) * 100 : 0;
 
@@ -443,13 +456,15 @@ const AccountDetail: React.FC<AccountDetailProps> = ({ account, setCurrentPage, 
                         <p className="text-xs uppercase tracking-wide text-light-text-secondary dark:text-dark-text-secondary font-semibold mb-1">Current Value</p>
                         <p className="text-2xl font-bold text-light-text dark:text-dark-text">{formatCurrency(account.balance, account.currency)}</p>
                     </Card>
-                    <Card>
-                        <p className="text-xs uppercase tracking-wide text-light-text-secondary dark:text-dark-text-secondary font-semibold mb-1">Purchase Price</p>
-                        <p className="text-2xl font-bold text-light-text dark:text-dark-text">{formatCurrency(purchasePrice, account.currency)}</p>
+                     <Card>
+                         <p className="text-xs uppercase tracking-wide text-light-text-secondary dark:text-dark-text-secondary font-semibold mb-1">Market Equity</p>
+                         <p className="text-2xl font-bold text-green-600 dark:text-green-400">{formatCurrency(marketEquity, account.currency)}</p>
+                         <p className="text-xs text-light-text-secondary dark:text-dark-text-secondary">Value - Debt</p>
                     </Card>
                     <Card>
-                         <p className="text-xs uppercase tracking-wide text-light-text-secondary dark:text-dark-text-secondary font-semibold mb-1">Equity</p>
-                         <p className="text-2xl font-bold text-green-600 dark:text-green-400">{formatCurrency(equity, account.currency)}</p>
+                         <p className="text-xs uppercase tracking-wide text-light-text-secondary dark:text-dark-text-secondary font-semibold mb-1">Invested Equity</p>
+                         <p className="text-2xl font-bold text-blue-600 dark:text-blue-400">{formatCurrency(equity, account.currency)}</p>
+                         <p className="text-xs text-light-text-secondary dark:text-dark-text-secondary">Principal + Down Payment</p>
                     </Card>
                     <Card>
                         <p className="text-xs uppercase tracking-wide text-light-text-secondary dark:text-dark-text-secondary font-semibold mb-1">Appreciation</p>
@@ -501,38 +516,26 @@ const AccountDetail: React.FC<AccountDetailProps> = ({ account, setCurrentPage, 
                         </div>
                     </Card>
 
-                    <Card>
-                        <h3 className="text-base font-semibold text-light-text dark:text-dark-text mb-4">Features & Amenities</h3>
-                        {features.length > 0 ? (
-                            <div className="flex flex-wrap gap-3">
-                                {features.map((feature, idx) => (
-                                    <div key={idx} className="flex items-center gap-2 px-3 py-2 rounded-lg bg-light-fill dark:bg-dark-fill border border-black/5 dark:border-white/5">
-                                        <span className="material-symbols-outlined text-primary-500 text-xl">{feature?.icon}</span>
-                                        <span className="font-medium text-sm text-light-text dark:text-dark-text">{feature?.label}</span>
-                                    </div>
-                                ))}
-                            </div>
-                        ) : (
-                            <p className="text-sm text-light-text-secondary dark:text-dark-text-secondary italic">No features listed.</p>
-                        )}
-                    </Card>
-                </div>
-                
-                <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-                     {linkedLoan && (
-                        <LoanProgressCard title="Mortgage Progress" paid={principalOwned} total={purchasePrice || linkedLoan.totalAmount || 0} currency={account.currency} />
-                     )}
-                     
-                     <div className={linkedLoan ? "lg:col-span-2" : "lg:col-span-3"}>
-                         <Card>
-                            <h3 className="text-xl font-semibold mb-4 text-light-text dark:text-dark-text">Recent Activity</h3>
-                            <TransactionList
-                                transactions={displayTransactionsList}
-                                allCategories={allCategories}
-                                onTransactionClick={handleTransactionClick}
-                            />
+                    <div className="space-y-6">
+                        <Card>
+                            <h3 className="text-base font-semibold text-light-text dark:text-dark-text mb-4">Features & Amenities</h3>
+                            {features.length > 0 ? (
+                                <div className="flex flex-wrap gap-3">
+                                    {features.map((feature, idx) => (
+                                        <div key={idx} className="flex items-center gap-2 px-3 py-2 rounded-lg bg-light-fill dark:bg-dark-fill border border-black/5 dark:border-white/5">
+                                            <span className="material-symbols-outlined text-primary-500 text-xl">{feature?.icon}</span>
+                                            <span className="font-medium text-sm text-light-text dark:text-dark-text">{feature?.label}</span>
+                                        </div>
+                                    ))}
+                                </div>
+                            ) : (
+                                <p className="text-sm text-light-text-secondary dark:text-dark-text-secondary italic">No features listed.</p>
+                            )}
                         </Card>
-                     </div>
+                         {linkedLoan && (
+                            <LoanProgressCard title="Mortgage Progress" paid={principalOwned} total={purchasePrice || linkedLoan.totalAmount || 0} currency={account.currency} />
+                         )}
+                    </div>
                 </div>
             </div>
         );
@@ -683,9 +686,26 @@ const AccountDetail: React.FC<AccountDetailProps> = ({ account, setCurrentPage, 
                                             <div className={`h-2.5 rounded-full ${loanDetails.ltv > 80 ? 'bg-red-500' : 'bg-green-500'}`} style={{ width: `${Math.min(loanDetails.ltv, 100)}%` }}></div>
                                         </div>
                                     </div>
-                                    <div className="flex justify-between items-center pt-4 border-t border-black/5 dark:border-white/10">
-                                        <span className="text-sm text-light-text-secondary dark:text-dark-text-secondary">Estimated Equity</span>
-                                        <span className="text-xl font-bold text-green-600 dark:text-green-400">{formatCurrency(loanDetails.equity, account.currency)}</span>
+                                    <div className="pt-4 border-t border-black/5 dark:border-white/10 space-y-2">
+                                         <div className="flex justify-between items-center">
+                                            <span className="text-sm text-light-text-secondary dark:text-dark-text-secondary">Market Equity</span>
+                                            <span className="text-xl font-bold text-green-600 dark:text-green-400">{formatCurrency(loanDetails.marketEquity, account.currency)}</span>
+                                        </div>
+                                        <div className="flex justify-between items-center">
+                                            <span className="text-sm text-light-text-secondary dark:text-dark-text-secondary">Invested Equity</span>
+                                            <span className="text-base font-semibold text-blue-600 dark:text-blue-400">{formatCurrency(loanDetails.equity, account.currency)}</span>
+                                        </div>
+                                         <div className="flex justify-between items-center text-xs text-light-text-secondary dark:text-dark-text-secondary">
+                                            <span>Down Payment</span>
+                                            <span>{formatCurrency(account.downPayment || 0, account.currency)}</span>
+                                        </div>
+                                         <div className="flex justify-between items-center text-xs text-light-text-secondary dark:text-dark-text-secondary">
+                                            <span>Principal Paid</span>
+                                            <span>{formatCurrency(loanDetails.totalPaidPrincipal, account.currency)}</span>
+                                        </div>
+                                         <p className="text-xs text-light-text-secondary dark:text-dark-text-secondary mt-2 italic">
+                                            * Invested Equity = Down Payment + Principal Paid.
+                                        </p>
                                     </div>
                                 </div>
                             </Card>
@@ -877,7 +897,7 @@ const AccountDetail: React.FC<AccountDetailProps> = ({ account, setCurrentPage, 
                             <h3 className="font-semibold text-light-text dark:text-dark-text mb-4">Log History</h3>
                             <div className="flex-1 overflow-y-auto pr-2 -mr-2 space-y-2 max-h-64">
                                 {(account.mileageLogs || []).sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime()).map(log => (
-                                    <div key={log.id} className="flex justify-between items-center p-3 rounded-lg bg-gray-50 dark:bg-white/5 group">
+                                    <div key={log.id} className="flex justify-between items-center p-3 rounded-lg bg-gray-5 dark:bg-white/5 group">
                                         <div>
                                             <p className="font-bold">{log.reading.toLocaleString()} km</p>
                                             <p className="text-xs text-light-text-secondary dark:text-dark-text-secondary">{parseDateAsUTC(log.date).toLocaleDateString()}</p>
