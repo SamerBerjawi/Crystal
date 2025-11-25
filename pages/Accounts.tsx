@@ -1,12 +1,10 @@
 
-
 import React, { useState, useMemo, useEffect, useRef } from 'react';
 import { Account, Page, AccountType, Transaction, Warrant } from '../types';
 import AddAccountModal from '../components/AddAccountModal';
 import EditAccountModal from '../components/EditAccountModal';
-import { ASSET_TYPES, DEBT_TYPES, BTN_PRIMARY_STYLE, ACCOUNT_TYPE_STYLES, BTN_SECONDARY_STYLE, INPUT_BASE_STYLE, SELECT_WRAPPER_STYLE, SELECT_ARROW_STYLE, SELECT_STYLE } from '../constants';
+import { ASSET_TYPES, DEBT_TYPES, BTN_PRIMARY_STYLE, ACCOUNT_TYPE_STYLES, BTN_SECONDARY_STYLE, SELECT_WRAPPER_STYLE, SELECT_ARROW_STYLE, SELECT_STYLE } from '../constants';
 import { calculateAccountTotals, convertToEur, formatCurrency } from '../utils';
-import Card from '../components/Card';
 import AccountBreakdownCard from '../components/AccountBreakdownCard';
 import AccountRow from '../components/AccountRow';
 import BalanceAdjustmentModal from '../components/BalanceAdjustmentModal';
@@ -20,7 +18,6 @@ interface AccountsProps {
     setCurrentPage: (page: Page) => void;
     setAccountFilter: (accountName: string | null) => void;
     setViewingAccountId: (id: string) => void;
-    // FIX: Changed 'Omit<Account, "id">' to 'Omit<Transaction, "id">' to correctly type the 'saveTransaction' prop.
     saveTransaction: (transactions: (Omit<Transaction, 'id'> & { id?: string })[], idsToDelete?: string[]) => void;
     accountOrder: string[];
     setAccountOrder: React.Dispatch<React.SetStateAction<string[]>>;
@@ -113,29 +110,45 @@ const AccountsListSection: React.FC<{
     }
 
     return (
-        <section>
-             <div onClick={() => isCollapsible && setIsExpanded(prev => !prev)} className={`flex justify-between items-center mb-4 ${isCollapsible ? 'cursor-pointer' : ''}`}>
-                <h3 className="text-xl font-semibold text-light-text dark:text-dark-text">{title}</h3>
-                {isCollapsible && <span className={`material-symbols-outlined transition-transform duration-200 ${isExpanded ? 'rotate-180' : ''}`}>expand_more</span>}
+        <section className="animate-fade-in-up">
+            <div 
+                onClick={() => isCollapsible && setIsExpanded(prev => !prev)} 
+                className={`flex justify-between items-center mb-4 group ${isCollapsible ? 'cursor-pointer' : ''}`}
+            >
+                <div className="flex items-center gap-2">
+                     {isCollapsible && (
+                        <span className={`material-symbols-outlined transition-transform duration-300 text-light-text-secondary dark:text-dark-text-secondary group-hover:text-primary-500 ${isExpanded ? 'rotate-180' : ''}`}>
+                            expand_more
+                        </span>
+                    )}
+                    <h3 className="text-lg font-bold text-light-text dark:text-dark-text uppercase tracking-wide">{title}</h3>
+                    <span className="bg-light-fill dark:bg-dark-fill text-xs font-semibold px-2 py-0.5 rounded-full text-light-text-secondary dark:text-dark-text-secondary">{accounts.length}</span>
+                </div>
             </div>
+            
             {isExpanded && (
-                <Card className="p-0">
-                    <div className="divide-y divide-light-separator dark:divide-dark-separator">
-                        {groupOrder.length > 0 ? groupOrder.map(groupName => {
-                            const accountsInGroup = groupedAccounts[groupName as AccountType];
-                            const groupTotal = accountsInGroup.reduce((sum, acc) => sum + convertToEur(acc.balance, acc.currency), 0);
-                            return (
-                                <div key={groupName} className="py-2 px-4">
-                                    <div onClick={() => toggleGroup(groupName)} className="flex justify-between items-center py-2 cursor-pointer">
-                                        <div className="flex items-center gap-2">
-                                            <span className={`material-symbols-outlined transition-transform duration-200 ${expandedGroups[groupName] ? 'rotate-90' : ''}`}>chevron_right</span>
-                                            <h4 className="font-semibold text-light-text dark:text-dark-text">{groupName} ({accountsInGroup.length})</h4>
-                                        </div>
-                                        <span className="font-mono text-sm">{formatCurrency(groupTotal, 'EUR')}</span>
+                <div className="space-y-6">
+                    {groupOrder.length > 0 ? groupOrder.map(groupName => {
+                        const accountsInGroup = groupedAccounts[groupName as AccountType];
+                        const groupTotal = accountsInGroup.reduce((sum, acc) => sum + convertToEur(acc.balance, acc.currency), 0);
+                        return (
+                            <div key={groupName} className="space-y-3">
+                                <div onClick={() => toggleGroup(groupName)} className="flex justify-between items-center cursor-pointer group select-none px-1">
+                                    <div className="flex items-center gap-2">
+                                        <div className={`w-1 h-4 rounded-full bg-primary-500 transition-all duration-300 ${expandedGroups[groupName] ? 'h-4' : 'h-2 opacity-50'}`}></div>
+                                        <h4 className="font-semibold text-light-text dark:text-dark-text text-sm">{groupName}</h4>
                                     </div>
-                                    {expandedGroups[groupName] && (
-                                        <div className="mt-2 space-y-1">
-                                            {accountsInGroup.map(acc => (
+                                    <div className="flex items-center gap-3">
+                                        <span className="font-mono text-sm font-medium text-light-text-secondary dark:text-dark-text-secondary group-hover:text-light-text dark:group-hover:text-dark-text transition-colors">
+                                            {formatCurrency(groupTotal, 'EUR')}
+                                        </span>
+                                         <span className={`material-symbols-outlined text-sm text-light-text-secondary dark:text-dark-text-secondary transition-transform duration-200 ${expandedGroups[groupName] ? 'rotate-0' : '-rotate-90'}`}>expand_more</span>
+                                    </div>
+                                </div>
+                                
+                                {expandedGroups[groupName] && (
+                                    <div className="grid grid-cols-1 gap-3">
+                                        {accountsInGroup.map(acc => (
                                             <AccountRow
                                                 key={acc.id}
                                                 account={acc}
@@ -154,18 +167,17 @@ const AccountsListSection: React.FC<{
                                                 onDragEnd={handleDragEnd}
                                                 onContextMenu={(e) => onContextMenu(e, acc)}
                                             />
-                                            ))}
-                                        </div>
-                                    )}
-                                </div>
-                            );
-                        }) : (
-                            <div className="text-center py-8 text-light-text-secondary dark:text-dark-text-secondary">
-                                <p>No {title.toLowerCase()} found.</p>
+                                        ))}
+                                    </div>
+                                )}
                             </div>
-                        )}
-                    </div>
-                </Card>
+                        );
+                    }) : (
+                        <div className="text-center py-12 bg-light-card/50 dark:bg-dark-card/30 rounded-xl border border-dashed border-black/10 dark:border-white/10 text-light-text-secondary dark:text-dark-text-secondary">
+                            <p>No {title.toLowerCase()} found.</p>
+                        </div>
+                    )}
+                </div>
             )}
         </section>
     );
@@ -195,12 +207,12 @@ const Accounts: React.FC<AccountsProps> = ({ accounts, transactions, saveAccount
   
 
   // --- Data Processing ---
-  const { openAccounts, closedAccounts, totalAssets, totalDebt, assetBreakdown, debtBreakdown } = useMemo(() => {
+  const { openAccounts, closedAccounts, totalAssets, totalDebt, assetBreakdown, debtBreakdown, netWorth } = useMemo(() => {
     const safeAccounts = accounts || [];
     const open = safeAccounts.filter(acc => acc.status !== 'closed');
     const closed = safeAccounts.filter(acc => acc.status === 'closed');
     
-    const { totalAssets, totalDebt } = calculateAccountTotals(open);
+    const { totalAssets, totalDebt, netWorth } = calculateAccountTotals(open);
 
     const colorClassToHex: { [key: string]: string } = {
         'text-blue-500': '#3b82f6', 'text-green-500': '#22c55e', 'text-orange-500': '#f97316',
@@ -224,6 +236,7 @@ const Accounts: React.FC<AccountsProps> = ({ accounts, transactions, saveAccount
         closedAccounts: closed,
         totalAssets,
         totalDebt,
+        netWorth,
         assetBreakdown: createBreakdown(open.filter(acc => ASSET_TYPES.includes(acc.type))),
         debtBreakdown: createBreakdown(open.filter(acc => DEBT_TYPES.includes(acc.type))),
     };
@@ -293,7 +306,7 @@ const Accounts: React.FC<AccountsProps> = ({ accounts, transactions, saveAccount
   };
 
   return (
-    <div className="space-y-8">
+    <div className="space-y-8 pb-10">
       {isAddModalOpen && <AddAccountModal onClose={() => setAddModalOpen(false)} onAdd={handleAddAccount} accounts={accounts} />}
       {isEditModalOpen && editingAccount && <EditAccountModal onClose={() => setEditModalOpen(false)} onSave={handleUpdateAccount} onDelete={(accountId) => { setEditModalOpen(false); setDeletingAccount(editingAccount);}} account={editingAccount} accounts={accounts} warrants={warrants} onToggleStatus={onToggleAccountStatus} />}
       {isAdjustModalOpen && adjustingAccount && (
@@ -366,35 +379,49 @@ const Accounts: React.FC<AccountsProps> = ({ accounts, transactions, saveAccount
         </div>
       )}
 
-
-      <header className="flex flex-wrap justify-between items-center gap-4">
-        <div>
-          
-          <p className="text-light-text-secondary dark:text-dark-text-secondary mt-1">Manage your financial accounts and connections.</p>
+      <header className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
+        <div className="flex flex-col gap-1">
+            <h1 className="text-3xl font-bold text-light-text dark:text-dark-text">
+                {formatCurrency(netWorth, 'EUR')}
+            </h1>
+            <p className="text-sm font-medium text-light-text-secondary dark:text-dark-text-secondary uppercase tracking-wider">
+                Total Net Worth
+            </p>
         </div>
-        <div className="flex items-center gap-4">
-            <div className={`${SELECT_WRAPPER_STYLE} w-auto`}>
-                <select value={sortBy} onChange={e => setSortBy(e.target.value as any)} className={`${SELECT_STYLE} !w-auto min-w-[10rem] cursor-pointer`}>
+        <div className="flex flex-wrap items-center gap-3 w-full md:w-auto">
+            <div className={`${SELECT_WRAPPER_STYLE} w-full md:w-auto`}>
+                <select value={sortBy} onChange={e => setSortBy(e.target.value as any)} className={`${SELECT_STYLE} !w-full md:!w-auto min-w-[10rem] cursor-pointer`}>
                     <option value="manual">Sort: Manual</option>
                     <option value="name">Sort: Name (A-Z)</option>
                     <option value="balance">Sort: Balance (High-Low)</option>
                 </select>
                 <div className={SELECT_ARROW_STYLE}><span className="material-symbols-outlined">expand_more</span></div>
             </div>
-          <button onClick={() => setAddModalOpen(true)} className={BTN_PRIMARY_STYLE}>Add Manual Account</button>
+          <button onClick={() => setAddModalOpen(true)} className={`${BTN_PRIMARY_STYLE} whitespace-nowrap shadow-lg shadow-primary-500/20 w-full md:w-auto`}>
+             <span className="material-symbols-outlined text-lg mr-2">add</span>
+             Add Account
+          </button>
         </div>
       </header>
 
-      {/* Summary Cards */}
+      {/* Summary Grid */}
       <section className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-        <AccountBreakdownCard title="Assets" totalValue={totalAssets} breakdownData={assetBreakdown} />
-        <AccountBreakdownCard title="Liabilities" totalValue={Math.abs(totalDebt)} breakdownData={debtBreakdown} />
+        <AccountBreakdownCard 
+            title="Assets" 
+            totalValue={totalAssets} 
+            breakdownData={assetBreakdown} 
+        />
+        <AccountBreakdownCard 
+            title="Liabilities" 
+            totalValue={Math.abs(totalDebt)} 
+            breakdownData={debtBreakdown} 
+        />
       </section>
 
-      {/* Account Lists */}
-      <div className="space-y-8">
+      {/* Lists */}
+      <div className="space-y-10">
         <AccountsListSection
-            title="Asset Accounts"
+            title="Assets"
             accounts={assetAccounts}
             transactionsByAccount={transactionsByAccount}
             warrants={warrants}
@@ -408,7 +435,7 @@ const Accounts: React.FC<AccountsProps> = ({ accounts, transactions, saveAccount
             isCollapsible={false}
         />
         <AccountsListSection
-            title="Liability Accounts"
+            title="Liabilities"
             accounts={debtAccounts}
             transactionsByAccount={transactionsByAccount}
             warrants={warrants}

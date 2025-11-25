@@ -98,9 +98,9 @@ const AccountRow: React.FC<AccountRowProps> = ({ account, transactions, warrants
     const sparklineColor = isAsset ? '#22C55E' : '#F43F5E';
     const style = ACCOUNT_TYPE_STYLES[account.type];
     
-    const dragClasses = isBeingDragged ? 'opacity-30' : '';
-    const dragOverClasses = isDragOver ? 'outline-2 outline-dashed outline-primary-500 bg-primary-500/5' : '';
-    const cursorClass = isDraggable ? 'cursor-grab' : 'cursor-pointer';
+    const dragClasses = isBeingDragged ? 'opacity-40 scale-95' : '';
+    const dragOverClasses = isDragOver ? 'border-primary-500 ring-2 ring-primary-500/20 z-10' : 'border-transparent hover:border-black/5 dark:hover:border-white/10';
+    const cursorClass = isDraggable ? 'cursor-grab active:cursor-grabbing' : 'cursor-pointer';
 
     const renderSecondaryDetails = () => {
         const details = [];
@@ -125,56 +125,73 @@ const AccountRow: React.FC<AccountRowProps> = ({ account, transactions, warrants
             onDrop={onDrop}
             onDragEnd={onDragEnd}
             onContextMenu={onContextMenu}
-            className={`flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 p-4 rounded-lg hover:bg-black/5 dark:hover:bg-white/5 transition-all duration-200 group hover:-translate-y-0.5 hover:shadow-md ${cursorClass} ${dragClasses} ${dragOverClasses} ${account.status === 'closed' ? 'opacity-60 grayscale' : ''}`} 
+            className={`group relative flex flex-col sm:flex-row items-center gap-4 p-5 bg-light-card dark:bg-dark-card rounded-2xl border shadow-card hover:shadow-lg transition-all duration-300 ease-in-out ${cursorClass} ${dragClasses} ${dragOverClasses} ${account.status === 'closed' ? 'opacity-60 grayscale' : ''}`} 
             onClick={onClick}
         >
-            <div className="flex items-center w-full flex-1 min-w-0">
-                <div className={`text-3xl mr-4 flex items-center justify-center w-12 h-12 shrink-0 ${style.color}`}>
-                    <span className="material-symbols-outlined material-symbols-filled" style={{ fontSize: '32px' }}>
+            {/* Account Icon & Info */}
+            <div className="flex items-center w-full sm:w-auto flex-1 min-w-0 gap-4">
+                <div className={`relative flex-shrink-0 w-12 h-12 rounded-xl flex items-center justify-center ${style.color} bg-opacity-10 shadow-sm`}>
+                    <span className="material-symbols-outlined material-symbols-filled" style={{ fontSize: '28px' }}>
                         {account.icon || 'wallet'}
                     </span>
+                     {account.isPrimary && (
+                        <div className="absolute -top-1 -right-1 bg-white dark:bg-dark-card rounded-full p-0.5 shadow-sm">
+                            <span className="material-symbols-outlined text-yellow-500 text-xs filled">star</span>
+                        </div>
+                    )}
                 </div>
-                <div className="min-w-0">
-                    <p className="font-semibold text-light-text dark:text-dark-text truncate flex items-center gap-2">
-                      {account.name}
-                      {account.isPrimary && <span className="material-symbols-outlined text-yellow-500 text-base" title="Primary Account">star</span>}
-                    </p>
-                    <div className="flex items-center gap-1 text-sm text-light-text-secondary dark:text-dark-text-secondary">
-                       {renderSecondaryDetails()}
-                       {account.symbol && <span className="font-mono bg-gray-200 dark:bg-gray-700 px-1.5 py-0.5 rounded text-xs ml-2">{account.symbol}</span>}
+                
+                <div className="min-w-0 flex-col flex">
+                    <div className="flex items-baseline gap-2">
+                         <h3 className="font-bold text-base text-light-text dark:text-dark-text truncate">{account.name}</h3>
+                         {account.symbol && <span className="text-[10px] font-bold font-mono text-light-text-secondary dark:text-dark-text-secondary bg-black/5 dark:bg-white/10 px-1.5 py-0.5 rounded tracking-wide">{account.symbol}</span>}
                     </div>
+                    <p className="text-xs font-medium text-light-text-secondary dark:text-dark-text-secondary mt-0.5 truncate">
+                        {renderSecondaryDetails()}
+                    </p>
                 </div>
             </div>
 
-            <div className="flex items-center justify-between sm:justify-end gap-2 sm:gap-4 w-full sm:w-auto">
-                <div className="w-24 h-10 shrink-0 hidden sm:block">
+            {/* Actions, Sparkline, Amount */}
+            <div className="flex items-center justify-between w-full sm:w-auto gap-6">
+                
+                 {/* Sparkline - Hidden on very small screens */}
+                <div className="w-24 h-10 shrink-0 hidden md:block opacity-50 group-hover:opacity-100 transition-opacity">
                     <ResponsiveContainer minWidth={0} minHeight={0} debounce={50}>
                         <LineChart width={96} height={40} data={sparklineData}>
-                            <Line type="natural" dataKey="value" stroke={sparklineColor} strokeWidth={2} dot={false} />
+                            <Line type="monotone" dataKey="value" stroke={sparklineColor} strokeWidth={2} dot={false} isAnimationActive={false} />
                         </LineChart>
                     </ResponsiveContainer>
                 </div>
-                <div className="text-right shrink-0 w-32 sm:w-40">
-                    <p className={`font-bold text-lg sm:text-xl ${isAsset ? 'text-light-text dark:text-dark-text' : 'text-red-500'}`}>
+
+                {/* Balance */}
+                <div className="text-right shrink-0">
+                    <p className={`font-bold text-lg font-mono tracking-tight ${isAsset ? 'text-light-text dark:text-dark-text' : 'text-red-500'}`}>
                         {formatCurrency(convertToEur(displayBalance, account.currency), 'EUR')}
                     </p>
                      {account.currency !== 'EUR' && (
-                        <p className="text-xs text-light-text-secondary dark:text-dark-text-secondary">
+                        <p className="text-[10px] font-medium text-light-text-secondary dark:text-dark-text-secondary mt-0.5">
                             {formatCurrency(displayBalance, account.currency)}
                         </p>
                     )}
                 </div>
-                <div className="flex items-center">
+
+                {/* Floating Actions */}
+                <div className="flex items-center gap-1 opacity-100 sm:opacity-0 group-hover:opacity-100 transition-all duration-200 sm:translate-x-2 group-hover:translate-x-0">
                     <button 
                         onClick={handleAdjustBalanceClick} 
-                        className="sm:opacity-0 group-hover:sm:opacity-100 transition-opacity text-light-text-secondary dark:text-dark-text-secondary p-2 rounded-full hover:bg-black/10 dark:hover:bg-white/10 disabled:opacity-20 disabled:cursor-not-allowed" 
-                        title={isComputedAccount ? "Balance is computed automatically" : "Adjust Balance"}
+                        className="p-1.5 rounded-lg text-gray-400 hover:text-primary-500 hover:bg-primary-50 dark:hover:bg-primary-900/30 transition-colors disabled:opacity-20 disabled:cursor-not-allowed" 
+                        title={isComputedAccount ? "Balance computed automatically" : "Adjust Balance"}
                         disabled={isComputedAccount}
                     >
-                        <span className="material-symbols-outlined">tune</span>
+                        <span className="material-symbols-outlined text-[20px]">tune</span>
                     </button>
-                    <button onClick={handleEditClick} className="sm:opacity-0 group-hover:sm:opacity-100 transition-opacity text-light-text-secondary dark:text-dark-text-secondary p-2 rounded-full hover:bg-black/10 dark:hover:bg-white/10" title="Edit Account">
-                        <span className="material-symbols-outlined">edit</span>
+                    <button 
+                        onClick={handleEditClick} 
+                        className="p-1.5 rounded-lg text-gray-400 hover:text-primary-500 hover:bg-primary-50 dark:hover:bg-primary-900/30 transition-colors" 
+                        title="Edit Account"
+                    >
+                        <span className="material-symbols-outlined text-[20px]">edit</span>
                     </button>
                 </div>
             </div>
