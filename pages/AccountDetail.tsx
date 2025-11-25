@@ -280,10 +280,13 @@ const AccountDetail: React.FC<AccountDetailProps> = ({ account, setCurrentPage, 
         let mileageStatus: 'Over Budget' | 'Under Budget' | 'On Track' = 'On Track';
         let mileageDiff = 0;
         let projectedMileage = 0;
+        let totalAllowance = 0;
         
         if (account.annualMileageAllowance) {
             const dailyAllowance = account.annualMileageAllowance / 365;
             const expectedMileage = elapsedDays * dailyAllowance;
+            
+            totalAllowance = dailyAllowance * totalDays;
             mileageDiff = currentMileage - expectedMileage;
             projectedMileage = (currentMileage / elapsedDays) * 365;
             
@@ -299,7 +302,8 @@ const AccountDetail: React.FC<AccountDetailProps> = ({ account, setCurrentPage, 
             mileageStatus, 
             mileageDiff, 
             daysRemaining: Math.max(0, Math.ceil(totalDays - elapsedDays)),
-            projectedMileage
+            projectedMileage,
+            totalAllowance
         };
     }, [account, currentMileage]);
 
@@ -801,6 +805,9 @@ const AccountDetail: React.FC<AccountDetailProps> = ({ account, setCurrentPage, 
                                 </div>
                             </div>
                         </div>
+                         <div className="mt-4 flex flex-wrap gap-3 text-sm text-light-text-secondary dark:text-dark-text-secondary">
+                            {account.vin && <span className="bg-black/5 dark:bg-white/5 px-2 py-1 rounded font-mono text-xs">VIN: {account.vin}</span>}
+                        </div>
                     </div>
                 </Card>
 
@@ -822,24 +829,36 @@ const AccountDetail: React.FC<AccountDetailProps> = ({ account, setCurrentPage, 
                         </Card>
                         <Card>
                             <h3 className="font-semibold text-light-text dark:text-dark-text mb-4">Mileage Health</h3>
-                             <div className="space-y-2">
-                                <div className="flex justify-between items-baseline">
-                                    <span className="text-sm text-light-text-secondary">Allowance</span>
-                                    <span className="text-lg font-bold">{(account.annualMileageAllowance || 0).toLocaleString()} <span className="text-xs font-normal text-gray-500">km/yr</span></span>
-                                </div>
-                                <div className="flex justify-between items-baseline">
+                             <div className="space-y-4">
+                                 <div>
+                                     <div className="flex justify-between items-baseline mb-1">
+                                         <span className="text-sm text-light-text-secondary">Current</span>
+                                         <span className="text-sm font-bold">{currentMileage.toLocaleString()} <span className="text-xs font-normal text-gray-500">km</span></span>
+                                     </div>
+                                     
+                                     <div className="relative w-full h-3 bg-gray-200 dark:bg-gray-700 rounded-full overflow-hidden">
+                                         {/* Actual Progress */}
+                                         <div 
+                                            className={`h-full rounded-full transition-all duration-500 ${leaseStats.mileageStatus === 'Over Budget' ? 'bg-red-500' : 'bg-green-500'}`} 
+                                            style={{ width: `${Math.min((currentMileage / leaseStats.totalAllowance) * 100, 100)}%` }}
+                                         ></div>
+                                         
+                                         {/* Expected Marker */}
+                                         <div 
+                                            className="absolute top-0 bottom-0 w-0.5 bg-black dark:bg-white z-10" 
+                                            style={{ left: `${leaseStats.progress}%` }}
+                                            title={`Expected: ${(leaseStats.totalAllowance * (leaseStats.progress / 100)).toLocaleString(undefined, {maximumFractionDigits:0})} km`}
+                                         ></div>
+                                     </div>
+                                      <div className="flex justify-between text-xs text-light-text-secondary mt-1">
+                                        <span>0</span>
+                                        <span>Total: {leaseStats.totalAllowance.toLocaleString(undefined, {maximumFractionDigits:0})} km</span>
+                                     </div>
+                                 </div>
+
+                                <div className="flex justify-between items-center pt-2 border-t border-black/5 dark:border-white/5">
                                     <span className="text-sm text-light-text-secondary">Projected</span>
-                                    <span className="text-lg font-bold">{leaseStats.projectedMileage.toLocaleString(undefined, {maximumFractionDigits: 0})} <span className="text-xs font-normal text-gray-500">km/yr</span></span>
-                                </div>
-                                 <div className="flex justify-between items-baseline">
-                                    <span className="text-sm text-light-text-secondary">Status</span>
-                                    <span className={`text-lg font-bold ${
-                                    leaseStats.mileageStatus === 'Over Budget' ? 'text-red-500' :
-                                    leaseStats.mileageStatus === 'Under Budget' ? 'text-green-500' :
-                                    'text-gray-500'
-                                }`}>
-                                    {Math.abs(leaseStats.mileageDiff).toLocaleString(undefined, {maximumFractionDigits: 0})} km {leaseStats.mileageStatus}
-                                </span>
+                                    <span className="text-base font-bold">{leaseStats.projectedMileage.toLocaleString(undefined, {maximumFractionDigits: 0})} <span className="text-xs font-normal text-gray-500">km/yr</span></span>
                                 </div>
                             </div>
                         </Card>
@@ -862,7 +881,7 @@ const AccountDetail: React.FC<AccountDetailProps> = ({ account, setCurrentPage, 
                 {account.ownership === 'Owned' && (
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                         <Card>
-                            <h3 className="font-semibold text-light-text dark:text-dark-text mb-4">Ownership Details</h3>
+                            <h3 className="font-semibold text-light-text dark:text-dark-text mb-4">Vehicle Details</h3>
                             <div className="grid grid-cols-2 gap-6">
                                 <div>
                                     <p className="text-xs text-light-text-secondary dark:text-dark-text-secondary uppercase font-semibold mb-1">Purchase Price</p>
@@ -895,16 +914,21 @@ const AccountDetail: React.FC<AccountDetailProps> = ({ account, setCurrentPage, 
                     <div className="lg:col-span-1">
                         <Card className="h-full flex flex-col">
                             <h3 className="font-semibold text-light-text dark:text-dark-text mb-4">Log History</h3>
+                            
+                             <div className="grid grid-cols-3 gap-2 font-semibold text-xs text-light-text-secondary dark:text-dark-text-secondary border-b border-black/5 dark:border-white/5 pb-2 mb-2 uppercase tracking-wider">
+                                <span>Mileage</span>
+                                <span className="text-center">Date</span>
+                                <span className="text-right">Actions</span>
+                            </div>
+
                             <div className="flex-1 overflow-y-auto pr-2 -mr-2 space-y-2 max-h-64">
                                 {(account.mileageLogs || []).sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime()).map(log => (
-                                    <div key={log.id} className="flex justify-between items-center p-3 rounded-lg bg-gray-5 dark:bg-white/5 group">
-                                        <div>
-                                            <p className="font-bold">{log.reading.toLocaleString()} km</p>
-                                            <p className="text-xs text-light-text-secondary dark:text-dark-text-secondary">{parseDateAsUTC(log.date).toLocaleDateString()}</p>
-                                        </div>
-                                        <div className="flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
-                                            <button onClick={() => handleOpenMileageModal(log)} className="p-1 text-gray-500 hover:text-primary-500"><span className="material-symbols-outlined text-sm">edit</span></button>
-                                            <button onClick={() => handleDeleteMileageLog(log.id)} className="p-1 text-gray-500 hover:text-red-500"><span className="material-symbols-outlined text-sm">delete</span></button>
+                                    <div key={log.id} className="grid grid-cols-3 gap-2 items-center p-2 rounded-lg hover:bg-black/5 dark:hover:bg-white/5 group transition-colors text-sm">
+                                        <div className="font-bold">{log.reading.toLocaleString()} km</div>
+                                        <div className="text-center text-light-text-secondary dark:text-dark-text-secondary">{parseDateAsUTC(log.date).toLocaleDateString()}</div>
+                                        <div className="flex justify-end gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+                                            <button onClick={() => handleOpenMileageModal(log)} className="p-1.5 rounded text-light-text-secondary dark:text-dark-text-secondary hover:bg-black/10 dark:hover:bg-white/10 hover:text-primary-500"><span className="material-symbols-outlined text-base">edit</span></button>
+                                            <button onClick={() => handleDeleteMileageLog(log.id)} className="p-1.5 rounded text-light-text-secondary dark:text-dark-text-secondary hover:bg-red-100 dark:hover:bg-red-900/30 hover:text-red-500"><span className="material-symbols-outlined text-base">delete</span></button>
                                         </div>
                                     </div>
                                 ))}
