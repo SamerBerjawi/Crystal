@@ -298,7 +298,14 @@ const GeneralAccountView: React.FC<GeneralAccountViewProps> = ({
               <span className="material-symbols-outlined text-4xl">{account.icon || 'wallet'}</span>
             </div>
             <div>
-              <h1 className="text-2xl font-bold text-light-text dark:text-dark-text">{account.name}</h1>
+              <div className="flex items-center gap-2">
+                  <h1 className="text-2xl font-bold text-light-text dark:text-dark-text">{account.name}</h1>
+                  {account.financialInstitution && (
+                      <span className="text-sm font-medium text-light-text-secondary dark:text-dark-text-secondary bg-black/5 dark:bg-white/5 px-2 py-0.5 rounded">
+                          {account.financialInstitution}
+                      </span>
+                  )}
+              </div>
               <div className="flex items-center gap-2 text-sm text-light-text-secondary dark:text-dark-text-secondary">
                 <span>{account.type}</span>
                 {account.last4 && <><span>•</span><span className="font-mono">**** {account.last4}</span></>}

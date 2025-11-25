@@ -30,6 +30,7 @@ const EditAccountModal: React.FC<EditAccountModalProps> = ({ onClose, onSave, on
   const [last4, setLast4] = useState(account.last4 || '');
   const [isPrimary, setIsPrimary] = useState(account.isPrimary || false);
   const [isIconPickerOpen, setIconPickerOpen] = useState(false);
+  const [financialInstitution, setFinancialInstitution] = useState(account.financialInstitution || '');
   
   // New detailed fields
   const [subType, setSubType] = useState<InvestmentSubType>(initialSubType);
@@ -231,6 +232,7 @@ const EditAccountModal: React.FC<EditAccountModalProps> = ({ onClose, onSave, on
       currency,
       icon,
       last4: last4 || undefined,
+      financialInstitution: ['Checking', 'Savings', 'Credit Card'].includes(type) && financialInstitution ? financialInstitution : undefined,
       isPrimary,
       // Conditionally add new fields
       subType: type === 'Investment' ? subType : undefined,
@@ -390,6 +392,20 @@ const EditAccountModal: React.FC<EditAccountModalProps> = ({ onClose, onSave, on
 
            {/* Dynamic fields based on type */}
           <div className="space-y-4 p-4 bg-black/5 dark:bg-white/5 rounded-lg">
+            {['Checking', 'Savings', 'Credit Card'].includes(type) && (
+                <div>
+                    <label htmlFor="financial-institution" className={labelStyle}>Financial Institution</label>
+                    <input
+                        id="financial-institution"
+                        type="text"
+                        value={financialInstitution}
+                        onChange={(e) => setFinancialInstitution(e.target.value)}
+                        className={INPUT_BASE_STYLE}
+                        placeholder="e.g., Chase, Bank of America"
+                    />
+                </div>
+            )}
+
             {type === 'Investment' && (
               <div>
                 <label htmlFor="subType" className={labelStyle}>Investment Type</label>

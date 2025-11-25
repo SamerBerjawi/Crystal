@@ -51,6 +51,7 @@ export interface Account {
   currency: Currency;
   icon?: string;
   last4?: string;
+  financialInstitution?: string;
   symbol?: string; // Ticker symbol for investments/warrants
 
   // Investment specific

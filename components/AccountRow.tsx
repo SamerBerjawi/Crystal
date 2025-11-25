@@ -107,6 +107,7 @@ const AccountRow: React.FC<AccountRowProps> = ({ account, transactions, warrants
         if (account.type === 'Property' && account.propertyType) details.push(account.propertyType);
         else details.push(account.type);
 
+        if (account.financialInstitution) details.push(account.financialInstitution);
         if (account.last4) details.push(`•••• ${account.last4}`);
         if (account.subType) details.push(account.subType);
         if (account.interestRate) details.push(`${account.interestRate}%`);
