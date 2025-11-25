@@ -1,12 +1,12 @@
 
 import React, { useMemo } from 'react';
 import { Account, DisplayTransaction, Category, Transaction, RecurringTransaction } from '../types';
-import { formatCurrency, parseDateAsUTC, generateSyntheticLoanPayments, generateSyntheticCreditCardPayments } from '../utils';
+import { formatCurrency, parseDateAsUTC, generateSyntheticLoanPayments, generateSyntheticCreditCardPayments, generateBalanceForecast, convertToEur, generateSyntheticPropertyTransactions } from '../utils';
 import Card from './Card';
 import TransactionList from './TransactionList';
 import { BTN_PRIMARY_STYLE, ACCOUNT_TYPE_STYLES } from '../constants';
 import { AreaChart, Area, XAxis, YAxis, Tooltip, ResponsiveContainer, CartesianGrid, BarChart, Bar, Cell, Legend } from 'recharts';
-import { useScheduleContext } from '../contexts/FinancialDataContext';
+import { useGoalsContext, useScheduleContext } from '../contexts/FinancialDataContext';
 import { useAccountsContext, useTransactionsContext } from '../contexts/DomainProviders';
 
 interface GeneralAccountViewProps {
@@ -28,7 +28,8 @@ const GeneralAccountView: React.FC<GeneralAccountViewProps> = ({
   onTransactionClick,
   onBack
 }) => {
-  const { recurringTransactions, billsAndPayments, loanPaymentOverrides } = useScheduleContext();
+  const { recurringTransactions, billsAndPayments, loanPaymentOverrides, recurringTransactionOverrides } = useScheduleContext();
+  const { financialGoals } = useGoalsContext();
   const { accounts } = useAccountsContext();
   const { transactions: allTransactions } = useTransactionsContext();
 
@@ -41,37 +42,27 @@ const GeneralAccountView: React.FC<GeneralAccountViewProps> = ({
 
   const metrics = useMemo(() => {
     const now = new Date();
+    // Normalize "Today" to end of day for inclusion, but keep 'now' for future checks
     const todayStart = new Date(Date.UTC(now.getFullYear(), now.getMonth(), now.getDate()));
 
-    // A. Lowest Balance (Last 30 Days)
-    let currentBalance = account.balance;
-    let lowestBalance = currentBalance;
+    // 1. Sort transactions descending (Newest -> Oldest)
     const sortedTxsDesc = [...transactions].sort((a, b) => b.parsedDate.getTime() - a.parsedDate.getTime());
+
+    // 2. Calculate "Real Today Balance"
+    // Start with the account's current balance (source of truth).
+    // If there are transactions dated in the future included in this balance, 
+    // we must reverse them to find the actual balance available *right now*.
+    let realTodayBalance = account.balance;
     
-    // Replay backwards to find history
-    // We only care about the last 30 days for the lowest point
-    const thirtyDaysAgo = new Date(todayStart);
-    thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
-    
-    // We need to process transactions from NOW backwards to 30 days ago
-    // balance[t-1] = balance[t] - amount[t]
-    for (const { tx } of sortedTxsDesc) {
-        const txDate = parseDateAsUTC(tx.date);
-        if (txDate < thirtyDaysAgo) break; // Optimization
-        
-        // If tx was today or earlier, it affected the current balance.
-        // Walking back: subtract the transaction amount to get the state *before* it happened.
-        // Check min balance at each step.
-        if (txDate <= todayStart) {
-             lowestBalance = Math.min(lowestBalance, currentBalance);
-             currentBalance -= tx.amount; // Reverse the transaction
+    sortedTxsDesc.forEach(({ tx, parsedDate }) => {
+        if (parsedDate > now) {
+             // Reverse future transaction:
+             // If it was income (+), we subtract it. If expense (-), we add it.
+             realTodayBalance -= tx.amount;
         }
-    }
-    // One final check for the start of the 30d period
-    lowestBalance = Math.min(lowestBalance, currentBalance);
+    });
 
-
-    // B. Average Monthly Spend (Last 3 Months)
+    // --- A. Average Monthly Spend (Last 3 Months) ---
     const threeMonthsAgo = new Date(todayStart);
     threeMonthsAgo.setMonth(threeMonthsAgo.getMonth() - 3);
     threeMonthsAgo.setDate(1); // Start of 3 months ago
@@ -85,38 +76,48 @@ const GeneralAccountView: React.FC<GeneralAccountViewProps> = ({
     const avgMonthlySpend = totalSpend3Months / 3;
 
 
-    // C. Safe to Spend (Balance - Upcoming Payments in next 7 days)
-    // Identify upcoming scheduled items
+    // --- B. Prepare Recurring Items for Forecast (Safe-to-Spend & Lowest Balance) ---
+    // Generate synthetic payments (loans, credit cards, properties)
+    const syntheticLoans = generateSyntheticLoanPayments(accounts, allTransactions, loanPaymentOverrides);
+    const syntheticCC = generateSyntheticCreditCardPayments(accounts, allTransactions);
+    const syntheticProperty = generateSyntheticPropertyTransactions(accounts);
+    
+    const allRecurringItems = [
+        ...recurringTransactions, 
+        ...syntheticLoans, 
+        ...syntheticCC, 
+        ...syntheticProperty
+    ];
+
+    // --- C. Safe to Spend (Real Today Balance - Upcoming Payments in next 7 days) ---
     const next7Days = new Date(todayStart);
     next7Days.setDate(next7Days.getDate() + 7);
     
     let upcomingOutflows = 0;
-    const upcomingItems: { date: Date, description: string, amount: number }[] = [];
 
-    // 1. Recurring
-    const relevantRecurring = recurringTransactions.filter(rt => 
+    // 1. Recurring Check (Simple check for Safe-to-Spend)
+    const relevantRecurringForSafeSpend = allRecurringItems.filter(rt => 
         rt.accountId === account.id && (rt.type === 'expense' || rt.type === 'transfer')
     );
     
-    // Add synthetic payments (loans, etc)
-    const syntheticLoans = generateSyntheticLoanPayments(accounts, allTransactions, loanPaymentOverrides).filter(rt => rt.accountId === account.id);
-    const syntheticCC = generateSyntheticCreditCardPayments(accounts, allTransactions).filter(rt => rt.accountId === account.id);
-    
-    [...relevantRecurring, ...syntheticLoans, ...syntheticCC].forEach(rt => {
+    relevantRecurringForSafeSpend.forEach(rt => {
         let nextDue = parseDateAsUTC(rt.nextDueDate);
         const interval = rt.frequencyInterval || 1;
         
-        // Check occurrences within next 30 days (for list) and 7 days (for safe-to-spend)
-        while (nextDue <= next7Days) { // Optimization: just check near future for metric
+        // Check occurrences within next 7 days
+        let safety = 0;
+        while (nextDue <= next7Days && safety < 50) { 
+             safety++;
              if (nextDue >= todayStart) {
                  upcomingOutflows += rt.amount;
              }
              // Advance
-             if (rt.frequency === 'monthly') nextDue.setMonth(nextDue.getMonth() + interval);
-             else if (rt.frequency === 'weekly') nextDue.setDate(nextDue.getDate() + (7 * interval));
-             else if (rt.frequency === 'daily') nextDue.setDate(nextDue.getDate() + interval);
-             else if (rt.frequency === 'yearly') nextDue.setFullYear(nextDue.getFullYear() + interval);
-             else break; // safety
+             const d = new Date(nextDue);
+             if (rt.frequency === 'monthly') d.setMonth(d.getMonth() + interval);
+             else if (rt.frequency === 'weekly') d.setDate(d.getDate() + (7 * interval));
+             else if (rt.frequency === 'daily') d.setDate(d.getDate() + interval);
+             else if (rt.frequency === 'yearly') d.setFullYear(d.getFullYear() + interval);
+             nextDue = d;
         }
     });
 
@@ -130,10 +131,32 @@ const GeneralAccountView: React.FC<GeneralAccountViewProps> = ({
         }
     });
 
-    const safeToSpend = account.balance - upcomingOutflows;
+    const safeToSpend = realTodayBalance - upcomingOutflows;
 
-    return { lowestBalance, avgMonthlySpend, safeToSpend };
-  }, [account, transactions, recurringTransactions, billsAndPayments, accounts, allTransactions, loanPaymentOverrides]);
+    // --- D. Forecast Lowest Balance (Next 30 Days) ---
+    const forecastEndDate = new Date(todayStart);
+    forecastEndDate.setDate(forecastEndDate.getDate() + 30);
+
+    // Create a temporary account object with the "Real Today Balance"
+    // This ensures the forecast engine starts from the correct effective funds available now.
+    const accountForForecast = { ...account, balance: realTodayBalance };
+
+    const { lowestPoint } = generateBalanceForecast(
+        [accountForForecast],
+        allRecurringItems,
+        financialGoals,
+        billsAndPayments,
+        forecastEndDate,
+        recurringTransactionOverrides
+    );
+    
+    // `generateBalanceForecast` works in EUR. Convert the result back to the account's currency.
+    // If account currency is same as base (EUR), rate is 1.
+    const conversionRate = convertToEur(1, account.currency);
+    const lowestBalanceForecast = lowestPoint.value / (conversionRate || 1);
+
+    return { lowestBalanceForecast, avgMonthlySpend, safeToSpend, realTodayBalance };
+  }, [account, transactions, recurringTransactions, billsAndPayments, accounts, allTransactions, loanPaymentOverrides, financialGoals, recurringTransactionOverrides]);
 
 
   // --- 2. Chart Data ---
@@ -260,16 +283,19 @@ const GeneralAccountView: React.FC<GeneralAccountViewProps> = ({
       return list.sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime()).slice(0, 5);
   }, [recurringTransactions, billsAndPayments, accounts, account.id, allTransactions, loanPaymentOverrides]);
 
-  // Balance History (30 Days) - Reusing existing logic
+  // Balance History (30 Days)
   const balanceHistory = useMemo(() => {
     const data = [];
-    let currentBalance = account.balance;
+    // Use the calculated "Real Today Balance" so future transactions don't skew the history chart
+    let currentBalance = metrics.realTodayBalance;
+    
     const today = new Date();
     const endDate = new Date(Date.UTC(today.getFullYear(), today.getMonth(), today.getDate()));
     const sortedTxs = [...transactions].sort((a, b) => b.parsedDate.getTime() - a.parsedDate.getTime());
     const dailyChanges: Record<string, number> = {};
     
     sortedTxs.forEach(({ tx, parsedDate }) => {
+         if (parsedDate > today) return; // Ignore future
          const dateStr = parsedDate.toISOString().split('T')[0];
          dailyChanges[dateStr] = (dailyChanges[dateStr] || 0) + tx.amount;
     });
@@ -283,7 +309,7 @@ const GeneralAccountView: React.FC<GeneralAccountViewProps> = ({
         iterDate.setDate(iterDate.getDate() - 1);
     }
     return data.reverse();
-  }, [account.balance, transactions]);
+  }, [metrics.realTodayBalance, transactions]);
 
   return (
     <div className="space-y-6 animate-fade-in-up">
@@ -352,19 +378,28 @@ const GeneralAccountView: React.FC<GeneralAccountViewProps> = ({
             <p className="text-2xl font-bold text-light-text dark:text-dark-text">{formatCurrency(metrics.avgMonthlySpend, account.currency)}</p>
         </Card>
 
-        {/* Lowest Balance */}
+        {/* Lowest Forecast */}
         <Card>
             <div className="flex justify-between items-start">
                 <div>
-                    <p className="text-xs font-medium uppercase text-light-text-secondary dark:text-dark-text-secondary tracking-wider mb-1">Lowest Balance (30d)</p>
-                    <p className="text-2xl font-bold text-light-text dark:text-dark-text">{formatCurrency(metrics.lowestBalance, account.currency)}</p>
+                    <p className="text-xs font-medium uppercase text-light-text-secondary dark:text-dark-text-secondary tracking-wider mb-1">Lowest Forecast (30d)</p>
+                    <p className={`text-2xl font-bold ${metrics.lowestBalanceForecast < 0 ? 'text-red-500' : 'text-light-text dark:text-dark-text'}`}>
+                        {formatCurrency(metrics.lowestBalanceForecast, account.currency)}
+                    </p>
                 </div>
-                {metrics.lowestBalance < 0 && (
-                    <div className="w-8 h-8 rounded-full flex items-center justify-center bg-red-100 text-red-600" title="Overdraft detected">
+                 {metrics.lowestBalanceForecast < 0 ? (
+                    <div className="w-8 h-8 rounded-full flex items-center justify-center bg-red-100 text-red-600" title="Projected overdraft">
                         <span className="material-symbols-outlined text-lg">trending_down</span>
+                    </div>
+                ) : (
+                     <div className="w-8 h-8 rounded-full flex items-center justify-center bg-primary-100 dark:bg-primary-900/50 text-primary-600 dark:text-primary-400">
+                        <span className="material-symbols-outlined text-lg">timeline</span>
                     </div>
                 )}
             </div>
+             <p className="text-xs text-light-text-secondary dark:text-dark-text-secondary mt-1">
+                Minimum projected balance
+            </p>
         </Card>
       </div>
 
@@ -472,7 +507,7 @@ const GeneralAccountView: React.FC<GeneralAccountViewProps> = ({
                                 />
                                 <YAxis 
                                     axisLine={false} 
-                                    tickLine={false}
+                                    tickLine={false} 
                                     tick={{ fill: 'currentColor', opacity: 0.5, fontSize: 12 }}
                                     tickFormatter={(val) => formatCurrency(val, account.currency).replace(/[^0-9.,-]/g, '')} 
                                     width={60}
