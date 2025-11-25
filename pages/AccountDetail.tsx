@@ -1,7 +1,7 @@
 
 import React, { useMemo, useState, useCallback } from 'react';
 import { Account, Transaction, Category, Duration, Page, CategorySpending, Widget, WidgetConfig, DisplayTransaction, RecurringTransaction, AccountDetailProps, Tag, ScheduledPayment, MileageLog } from '../types';
-import { formatCurrency, getDateRange, convertToEur, calculateStatementPeriods, getCreditCardStatementDetails, parseDateAsUTC, formatDateKey } from '../utils';
+import { formatCurrency, getDateRange, convertToEur, calculateStatementPeriods, getCreditCardStatementDetails, parseDateAsUTC, formatDateKey, generateAmortizationSchedule } from '../utils';
 import AddTransactionModal from '../components/AddTransactionModal';
 import { BTN_PRIMARY_STYLE, MOCK_EXPENSE_CATEGORIES, BTN_SECONDARY_STYLE, ACCOUNT_TYPE_STYLES } from '../constants';
 import TransactionDetailModal from '../components/TransactionDetailModal';
@@ -20,6 +20,7 @@ import LoanProgressCard from '../components/LoanProgressCard';
 import Card from '../components/Card';
 import PaymentPlanTable from '../components/PaymentPlanTable';
 import VehicleMileageChart from '../components/VehicleMileageChart';
+import MortgageAmortizationChart from '../components/MortgageAmortizationChart';
 import AddMileageLogModal from '../components/AddMileageLogModal';
 import ConfirmationModal from '../components/ConfirmationModal';
 import { v4 as uuidv4 } from 'uuid';
@@ -49,7 +50,6 @@ const findCategoryById = (id: string, categories: Category[]): Category | undefi
 };
 
 const toYYYYMMDD = (date: Date) => {
-    // FIX: Corrected to use UTC date parts to avoid timezone inconsistencies.
     const y = date.getUTCFullYear();
     const m = (date.getUTCMonth() + 1).toString().padStart(2, '0');
     const d = date.getUTCDate().toString().padStart(2, '0');
@@ -313,6 +313,44 @@ const AccountDetail: React.FC<AccountDetailProps> = ({ account, setCurrentPage, 
     // Only show value if NOT leased, OR if leased and value is non-zero/present
     const showCurrentValue = account.ownership !== 'Leased' || (account.balance !== 0);
 
+    // --- Loan/Mortgage Specific Helpers ---
+    const loanDetails = useMemo(() => {
+        if (account.type !== 'Loan') return null;
+        
+        const schedule = generateAmortizationSchedule(account, transactions, loanPaymentOverrides[account.id] || {});
+        const totalPaidPrincipal = schedule.reduce((acc, p) => p.status === 'Paid' ? acc + p.principal : acc, 0);
+        const totalPaidInterest = schedule.reduce((acc, p) => p.status === 'Paid' ? acc + p.interest : acc, 0);
+        
+        // Find if linked to a property for LTV
+        const linkedProperty = accounts.find(a => a.type === 'Property' && a.linkedLoanId === account.id);
+        let ltv = 0;
+        let equity = 0;
+        
+        if (linkedProperty) {
+            const propertyValue = linkedProperty.balance; // Current value
+            const loanBalance = Math.abs(account.balance);
+            if (propertyValue > 0) {
+                ltv = (loanBalance / propertyValue) * 100;
+                equity = propertyValue - loanBalance;
+            }
+        }
+
+        // Calculate payoff date
+        const lastPayment = schedule[schedule.length - 1];
+        const payoffDate = lastPayment ? parseDateAsUTC(lastPayment.date) : null;
+        
+        return {
+            schedule,
+            totalPaidPrincipal,
+            totalPaidInterest,
+            linkedProperty,
+            ltv,
+            equity,
+            payoffDate
+        };
+    }, [account, transactions, loanPaymentOverrides, accounts]);
+
+
     // --- Property Specific Helpers ---
     if (account.type === 'Property') {
         const linkedLoan = useMemo(() => {
@@ -551,15 +589,127 @@ const AccountDetail: React.FC<AccountDetailProps> = ({ account, setCurrentPage, 
                 <button onClick={() => { setViewingAccountId(null); setCurrentPage('Accounts'); }} className="text-light-text-secondary dark:text-dark-text-secondary p-1 rounded-full hover:bg-black/5 dark:hover:bg-white/5">
                     <span className="material-symbols-outlined">arrow_back</span>
                 </button>
+                {/* Header for non-Loan/Property/Vehicle accounts, specific headers are inside blocks */}
+                {account.type !== 'Vehicle' && account.type !== 'Loan' && (
+                    <h1 className="text-2xl font-bold text-light-text dark:text-dark-text">{account.name}</h1>
+                )}
             </div>
             <div className="flex gap-3">
-                {(account.type !== 'Vehicle') && <DurationFilter selectedDuration={duration} onDurationChange={setDuration} />}
+                {(account.type !== 'Vehicle' && account.type !== 'Loan') && <DurationFilter selectedDuration={duration} onDurationChange={setDuration} />}
                 <button onClick={() => handleOpenTransactionModal()} className={BTN_PRIMARY_STYLE}>Add Transaction</button>
             </div>
         </header>
 
-        {/* --- VEHICLE DASHBOARD --- */}
-        {account.type === 'Vehicle' ? (
+        {/* --- LOAN / MORTGAGE DASHBOARD --- */}
+        {account.type === 'Loan' && loanDetails ? (
+            <div className="space-y-6">
+                <div className="flex items-center gap-4 mb-4">
+                    <div className={`w-16 h-16 rounded-xl flex items-center justify-center bg-red-100 dark:bg-red-900/30 text-red-600 dark:text-red-400 border border-current`}>
+                        <span className="material-symbols-outlined text-4xl">{account.icon || 'real_estate_agent'}</span>
+                    </div>
+                    <div>
+                        <h1 className="text-3xl font-bold text-light-text dark:text-dark-text">{account.name}</h1>
+                        <div className="flex items-center gap-3 text-sm text-light-text-secondary dark:text-dark-text-secondary">
+                            {loanDetails.linkedProperty && <span>Linked to: <strong>{loanDetails.linkedProperty.name}</strong></span>}
+                            {loanDetails.payoffDate && (
+                                <span className="bg-green-100 dark:bg-green-900/40 text-green-700 dark:text-green-300 px-2 py-0.5 rounded text-xs font-semibold">
+                                    Payoff: {loanDetails.payoffDate.toLocaleDateString(undefined, {month:'short', year: 'numeric'})}
+                                </span>
+                            )}
+                        </div>
+                    </div>
+                </div>
+
+                {/* Top Stats */}
+                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
+                    <Card>
+                        <p className="text-xs uppercase tracking-wide text-light-text-secondary dark:text-dark-text-secondary font-semibold mb-1">Outstanding Balance</p>
+                        <p className="text-2xl font-bold text-red-600 dark:text-red-400">{formatCurrency(Math.abs(account.balance), account.currency)}</p>
+                    </Card>
+                    <Card>
+                        <p className="text-xs uppercase tracking-wide text-light-text-secondary dark:text-dark-text-secondary font-semibold mb-1">Interest Rate</p>
+                        <div className="flex items-baseline gap-2">
+                            <p className="text-2xl font-bold text-light-text dark:text-dark-text">{account.interestRate}%</p>
+                            <span className="text-sm text-light-text-secondary dark:text-dark-text-secondary">Fixed</span>
+                        </div>
+                    </Card>
+                    <Card>
+                        <p className="text-xs uppercase tracking-wide text-light-text-secondary dark:text-dark-text-secondary font-semibold mb-1">Monthly Payment</p>
+                        <p className="text-2xl font-bold text-light-text dark:text-dark-text">
+                            {formatCurrency(loanDetails.schedule[0]?.totalPayment || 0, account.currency)}
+                        </p>
+                    </Card>
+                    <Card>
+                        <p className="text-xs uppercase tracking-wide text-light-text-secondary dark:text-dark-text-secondary font-semibold mb-1">Total Interest Paid</p>
+                        <p className="text-2xl font-bold text-orange-500">{formatCurrency(loanDetails.totalPaidInterest, account.currency)}</p>
+                    </Card>
+                </div>
+
+                <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+                    {/* Chart */}
+                    <div className="lg:col-span-2">
+                        <MortgageAmortizationChart schedule={loanDetails.schedule} currency={account.currency} />
+                    </div>
+                    
+                    {/* Side Stats */}
+                    <div className="flex flex-col gap-6">
+                        {loanDetails.linkedProperty && (
+                            <Card>
+                                <h3 className="text-base font-semibold text-light-text dark:text-dark-text mb-4">Equity & LTV</h3>
+                                <div className="space-y-4">
+                                    <div>
+                                        <div className="flex justify-between text-sm mb-1">
+                                            <span className="text-light-text-secondary dark:text-dark-text-secondary">Loan-to-Value (LTV)</span>
+                                            <span className="font-bold">{loanDetails.ltv.toFixed(1)}%</span>
+                                        </div>
+                                        <div className="w-full bg-gray-200 dark:bg-gray-700 rounded-full h-2.5">
+                                            <div className={`h-2.5 rounded-full ${loanDetails.ltv > 80 ? 'bg-red-500' : 'bg-green-500'}`} style={{ width: `${Math.min(loanDetails.ltv, 100)}%` }}></div>
+                                        </div>
+                                    </div>
+                                    <div className="flex justify-between items-center pt-4 border-t border-black/5 dark:border-white/10">
+                                        <span className="text-sm text-light-text-secondary dark:text-dark-text-secondary">Estimated Equity</span>
+                                        <span className="text-xl font-bold text-green-600 dark:text-green-400">{formatCurrency(loanDetails.equity, account.currency)}</span>
+                                    </div>
+                                </div>
+                            </Card>
+                        )}
+                        <Card>
+                            <h3 className="text-base font-semibold text-light-text dark:text-dark-text mb-4">Loan Details</h3>
+                            <div className="space-y-3 text-sm">
+                                <div className="flex justify-between">
+                                    <span className="text-light-text-secondary dark:text-dark-text-secondary">Start Date</span>
+                                    <span className="font-medium">{parseDateAsUTC(account.loanStartDate!).toLocaleDateString()}</span>
+                                </div>
+                                <div className="flex justify-between">
+                                    <span className="text-light-text-secondary dark:text-dark-text-secondary">Original Principal</span>
+                                    <span className="font-medium">{formatCurrency(account.principalAmount || 0, account.currency)}</span>
+                                </div>
+                                <div className="flex justify-between">
+                                    <span className="text-light-text-secondary dark:text-dark-text-secondary">Term Length</span>
+                                    <span className="font-medium">{Math.floor((account.duration || 0) / 12)} Years ({(account.duration || 0) % 12}mo)</span>
+                                </div>
+                                <div className="flex justify-between">
+                                    <span className="text-light-text-secondary dark:text-dark-text-secondary">Payments Made</span>
+                                    <span className="font-medium">{loanDetails.schedule.filter(p => p.status === 'Paid').length} / {account.duration}</span>
+                                </div>
+                            </div>
+                        </Card>
+                    </div>
+                </div>
+
+                <Card className="overflow-hidden">
+                    <h3 className="text-xl font-semibold mb-4 text-light-text dark:text-dark-text">Amortization Schedule</h3>
+                    <PaymentPlanTable 
+                        account={account} 
+                        transactions={transactions} 
+                        onMakePayment={handleMakePayment} 
+                        overrides={loanPaymentOverrides[account.id] || {}} 
+                        onOverridesChange={handleOverridesChange} 
+                    />
+                </Card>
+            </div>
+        ) : account.type === 'Vehicle' ? (
+        /* --- VEHICLE DASHBOARD --- */
             <div className="space-y-6">
                 <Card className="grid grid-cols-1 md:grid-cols-3 gap-6 items-center">
                     <div className="md:col-span-1 relative aspect-video rounded-lg overflow-hidden flex items-center justify-center">
@@ -738,7 +888,8 @@ const AccountDetail: React.FC<AccountDetailProps> = ({ account, setCurrentPage, 
                     <BalanceCard title={`Expenses (${duration})`} amount={totalExpenses} sparklineData={[]} />
                     <NetBalanceCard netBalance={totalIncome - totalExpenses} totalIncome={totalIncome} duration={duration} />
                  </div>
-                {account.type === 'Loan' && account.principalAmount && account.duration && account.loanStartDate && (
+                {account.type === 'Loan' && !loanDetails && account.principalAmount && account.duration && account.loanStartDate && (
+                    // Fallback if loanDetails calculation failed but basic props exist (shouldn't happen often)
                     <Card>
                         <h3 className="text-xl font-semibold mb-4 text-light-text dark:text-dark-text">Loan Payment Schedule</h3>
                         <PaymentPlanTable 

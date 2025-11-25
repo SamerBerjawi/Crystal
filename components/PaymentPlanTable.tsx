@@ -75,86 +75,99 @@ const PaymentPlanTable: React.FC<PaymentPlanTableProps> = ({ account, transactio
     };
 
     if (schedule.length === 0) {
-        return <p className="text-center text-light-text-secondary dark:text-dark-text-secondary py-4">A payment plan can be generated once a principal, interest rate, duration, and start date are set for this account.</p>;
+        return (
+            <div className="text-center text-light-text-secondary dark:text-dark-text-secondary py-12 bg-light-bg dark:bg-dark-bg rounded-lg border border-dashed border-light-separator dark:border-dark-separator">
+                <span className="material-symbols-outlined text-4xl mb-2 opacity-50">pending_actions</span>
+                <p>To generate a payment plan, please edit the account and set the Principal, Interest Rate, Duration, and Start Date.</p>
+            </div>
+        );
     }
 
     const isLending = account.type === 'Lending';
 
     return (
-        <div className="overflow-x-auto">
-            <table className="w-full text-sm text-left">
-                <thead className="border-b border-black/10 dark:border-white/10">
-                    <tr>
-                        <th className="p-2 font-semibold">#</th>
-                        <th className="p-2 font-semibold">Date</th>
-                        <th className="p-2 font-semibold text-right">Total Payment</th>
-                        <th className="p-2 font-semibold text-right">Principal</th>
-                        <th className="p-2 font-semibold text-right">Interest</th>
-                        <th className="p-2 font-semibold text-right">Balance</th>
-                        <th className="p-2 font-semibold text-center">Status</th>
-                        <th className="p-2 font-semibold text-right">Actions</th>
-                    </tr>
-                </thead>
-                <tbody>
-                    {schedule.map(payment => {
-                        const isEditing = editingPaymentNumber === payment.paymentNumber;
-                        return (
-                        <tr key={payment.paymentNumber} className={`border-b border-black/5 dark:border-white/5 last:border-b-0 ${isEditing ? 'bg-primary-500/10' : ''}`}>
-                            <td className="p-2 font-medium">{payment.paymentNumber}</td>
-                            <td className="p-2">{parseDateAsUTC(payment.date).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric', timeZone: 'UTC' })}</td>
-                            
-                            {isEditing ? (
-                                <>
-                                    <td className="p-1 text-right"><input type="number" step="0.01" value={editFormData.totalPayment} onChange={e => handleEditFormChange('totalPayment', e.target.value)} className={`${INPUT_BASE_STYLE} !h-8 text-right`} /></td>
-                                    <td className="p-1 text-right"><input type="number" step="0.01" value={editFormData.principal} onChange={e => handleEditFormChange('principal', e.target.value)} className={`${INPUT_BASE_STYLE} !h-8 text-right`} /></td>
-                                    <td className="p-1 text-right"><input type="number" step="0.01" value={editFormData.interest} onChange={e => handleEditFormChange('interest', e.target.value)} className={`${INPUT_BASE_STYLE} !h-8 text-right`} /></td>
-                                </>
-                            ) : (
-                                <>
-                                    <td className="p-2 text-right font-semibold">{formatCurrency(payment.totalPayment, account.currency)}</td>
-                                    <td className="p-2 text-right">{formatCurrency(payment.principal, account.currency)}</td>
-                                    <td className="p-2 text-right text-light-text-secondary dark:text-dark-text-secondary">{formatCurrency(payment.interest, account.currency)}</td>
-                                </>
-                            )}
-                            
-                            <td className="p-2 text-right text-light-text-secondary dark:text-dark-text-secondary">{formatCurrency(payment.outstandingBalance, account.currency)}</td>
-                            <td className="p-2 text-center">
-                                <span className={`px-2 py-0.5 text-xs font-semibold rounded-full ${
-                                    payment.status === 'Paid' ? 'bg-green-100 dark:bg-green-900/50 text-green-700 dark:text-green-300' :
-                                    payment.status === 'Overdue' ? 'bg-red-100 dark:bg-red-900/50 text-red-700 dark:text-red-300' :
-                                    'bg-gray-100 dark:bg-gray-700/50 text-gray-600 dark:text-gray-300'
-                                }`}>{payment.status}</span>
-                            </td>
-                            <td className="p-2 text-right">
-                                {isEditing ? (
-                                    <div className="flex justify-end gap-2">
-                                        <button onClick={handleSaveEdit} className="p-1"><span className="material-symbols-outlined text-green-500">check</span></button>
-                                        <button onClick={handleCancelEdit} className="p-1"><span className="material-symbols-outlined text-red-500">close</span></button>
-                                    </div>
-                                ) : payment.status !== 'Paid' ? (
-                                    <div className="flex justify-end gap-2">
-                                        <button onClick={() => onMakePayment(payment, `Payment #${payment.paymentNumber} for ${account.name}`)} className={`${BTN_PRIMARY_STYLE} !py-1 !px-3 !text-xs`}>
-                                            {isLending ? 'Receive' : 'Pay'}
-                                        </button>
-                                        <button onClick={() => handleEditClick(payment)} className={`${BTN_SECONDARY_STYLE} !py-1 !px-3 !text-xs`} title="Edit Payment">
-                                            <span className="material-symbols-outlined text-sm">edit</span>
-                                        </button>
-                                    </div>
-                                ) : null}
-                            </td>
+        <div className="flex flex-col h-[600px]">
+            <div className="flex-grow overflow-auto border border-black/5 dark:border-white/10 rounded-lg bg-light-bg dark:bg-dark-bg">
+                <table className="w-full text-sm text-left relative">
+                    <thead className="text-xs uppercase bg-light-fill dark:bg-dark-fill text-light-text-secondary dark:text-dark-text-secondary font-semibold sticky top-0 z-10">
+                        <tr>
+                            <th className="p-3 whitespace-nowrap bg-light-fill dark:bg-dark-fill">#</th>
+                            <th className="p-3 whitespace-nowrap bg-light-fill dark:bg-dark-fill">Date</th>
+                            <th className="p-3 whitespace-nowrap text-right bg-light-fill dark:bg-dark-fill">Total</th>
+                            <th className="p-3 whitespace-nowrap text-right bg-light-fill dark:bg-dark-fill">Principal</th>
+                            <th className="p-3 whitespace-nowrap text-right bg-light-fill dark:bg-dark-fill">Interest</th>
+                            <th className="p-3 whitespace-nowrap text-right bg-light-fill dark:bg-dark-fill">Balance</th>
+                            <th className="p-3 whitespace-nowrap text-center bg-light-fill dark:bg-dark-fill">Status</th>
+                            <th className="p-3 whitespace-nowrap text-right bg-light-fill dark:bg-dark-fill">Action</th>
                         </tr>
-                    )})}
-                </tbody>
-                <tfoot>
-                    <tr className="border-t-2 border-black/20 dark:border-white/20 font-bold bg-light-bg dark:bg-dark-bg">
-                        <td className="p-2" colSpan={2}>Totals</td>
-                        <td className="p-2 text-right">{formatCurrency(totals.totalPayment, account.currency)}</td>
-                        <td className="p-2 text-right">{formatCurrency(totals.principal, account.currency)}</td>
-                        <td className="p-2 text-right">{formatCurrency(totals.interest, account.currency)}</td>
-                        <td className="p-2" colSpan={3}></td>
-                    </tr>
-                </tfoot>
-            </table>
+                    </thead>
+                    <tbody className="divide-y divide-black/5 dark:divide-white/5">
+                        {schedule.map(payment => {
+                            const isEditing = editingPaymentNumber === payment.paymentNumber;
+                            return (
+                            <tr key={payment.paymentNumber} className={`hover:bg-black/5 dark:hover:bg-white/5 transition-colors ${isEditing ? 'bg-primary-500/10' : ''}`}>
+                                <td className="p-3 font-mono text-xs opacity-70">{payment.paymentNumber}</td>
+                                <td className="p-3">{parseDateAsUTC(payment.date).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric', timeZone: 'UTC' })}</td>
+                                
+                                {isEditing ? (
+                                    <>
+                                        <td className="p-1 text-right"><input type="number" step="0.01" value={editFormData.totalPayment} onChange={e => handleEditFormChange('totalPayment', e.target.value)} className={`${INPUT_BASE_STYLE} !h-8 text-right`} /></td>
+                                        <td className="p-1 text-right"><input type="number" step="0.01" value={editFormData.principal} onChange={e => handleEditFormChange('principal', e.target.value)} className={`${INPUT_BASE_STYLE} !h-8 text-right`} /></td>
+                                        <td className="p-1 text-right"><input type="number" step="0.01" value={editFormData.interest} onChange={e => handleEditFormChange('interest', e.target.value)} className={`${INPUT_BASE_STYLE} !h-8 text-right`} /></td>
+                                    </>
+                                ) : (
+                                    <>
+                                        <td className="p-3 text-right font-medium">{formatCurrency(payment.totalPayment, account.currency)}</td>
+                                        <td className="p-3 text-right text-light-text-secondary dark:text-dark-text-secondary">{formatCurrency(payment.principal, account.currency)}</td>
+                                        <td className="p-3 text-right text-light-text-secondary dark:text-dark-text-secondary">{formatCurrency(payment.interest, account.currency)}</td>
+                                    </>
+                                )}
+                                
+                                <td className="p-3 text-right font-mono">{formatCurrency(payment.outstandingBalance, account.currency)}</td>
+                                <td className="p-3 text-center">
+                                    <span className={`px-2 py-1 text-xs font-bold rounded-md border ${
+                                        payment.status === 'Paid' ? 'bg-green-100 dark:bg-green-900/30 text-green-700 dark:text-green-400 border-green-200 dark:border-green-900' :
+                                        payment.status === 'Overdue' ? 'bg-red-100 dark:bg-red-900/30 text-red-700 dark:text-red-400 border-red-200 dark:border-red-900' :
+                                        'bg-gray-100 dark:bg-gray-800 text-gray-600 dark:text-gray-400 border-gray-200 dark:border-gray-700'
+                                    }`}>{payment.status}</span>
+                                </td>
+                                <td className="p-3 text-right">
+                                    {isEditing ? (
+                                        <div className="flex justify-end gap-2">
+                                            <button onClick={handleSaveEdit} className="p-1 rounded hover:bg-green-100 dark:hover:bg-green-900/50 text-green-600"><span className="material-symbols-outlined text-lg">check</span></button>
+                                            <button onClick={handleCancelEdit} className="p-1 rounded hover:bg-red-100 dark:hover:bg-red-900/50 text-red-600"><span className="material-symbols-outlined text-lg">close</span></button>
+                                        </div>
+                                    ) : payment.status !== 'Paid' ? (
+                                        <div className="flex justify-end gap-2 opacity-0 group-hover:opacity-100 transition-opacity">
+                                            <button onClick={() => onMakePayment(payment, `Payment #${payment.paymentNumber} for ${account.name}`)} className={`${BTN_PRIMARY_STYLE} !py-1 !px-2 !text-xs`} title="Record Payment">
+                                                {isLending ? 'Receive' : 'Pay'}
+                                            </button>
+                                            <button onClick={() => handleEditClick(payment)} className="p-1.5 rounded hover:bg-black/5 dark:hover:bg-white/10 text-light-text-secondary dark:text-dark-text-secondary" title="Edit Schedule">
+                                                <span className="material-symbols-outlined text-lg">edit</span>
+                                            </button>
+                                        </div>
+                                    ) : null}
+                                </td>
+                            </tr>
+                        )})}
+                    </tbody>
+                </table>
+            </div>
+            
+            <div className="mt-4 grid grid-cols-3 gap-4 text-sm font-medium p-4 bg-light-card dark:bg-dark-card rounded-lg border border-black/5 dark:border-white/5 shadow-sm">
+                <div className="flex justify-between">
+                    <span className="text-light-text-secondary dark:text-dark-text-secondary">Total Principal</span>
+                    <span>{formatCurrency(totals.principal, account.currency)}</span>
+                </div>
+                <div className="flex justify-between">
+                    <span className="text-light-text-secondary dark:text-dark-text-secondary">Total Interest</span>
+                    <span className="text-red-500">{formatCurrency(totals.interest, account.currency)}</span>
+                </div>
+                <div className="flex justify-between border-l border-black/10 dark:border-white/10 pl-4">
+                    <span className="text-light-text-secondary dark:text-dark-text-secondary">Total Cost</span>
+                    <span className="font-bold">{formatCurrency(totals.totalPayment, account.currency)}</span>
+                </div>
+            </div>
         </div>
     );
 };
