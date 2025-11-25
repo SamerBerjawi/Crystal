@@ -2,7 +2,7 @@
 import React, { useState, useEffect, useMemo, useRef } from 'react';
 import Modal from './Modal';
 import { Account, AccountType, Currency, InvestmentSubType, PropertyType, Warrant, FuelType, VehicleOwnership, MileageLog, RecurrenceFrequency } from '../types';
-import { ALL_ACCOUNT_TYPES, CURRENCIES, ACCOUNT_TYPE_STYLES, INPUT_BASE_STYLE, BTN_PRIMARY_STYLE, BTN_SECONDARY_STYLE, BTN_DANGER_STYLE, SELECT_ARROW_STYLE, SELECT_WRAPPER_STYLE, ACCOUNT_ICON_LIST, INVESTMENT_SUB_TYPES, PROPERTY_TYPES, INVESTMENT_SUB_TYPE_STYLES, FUEL_TYPES, VEHICLE_OWNERSHIP_TYPES, CHECKBOX_STYLE, FREQUENCIES, ALL_ACCOUNT_TYPES as ALL_TYPES_CONST } from '../constants';
+import { ALL_ACCOUNT_TYPES, CURRENCIES, ACCOUNT_TYPE_STYLES, INPUT_BASE_STYLE, BTN_PRIMARY_STYLE, BTN_SECONDARY_STYLE, BTN_DANGER_STYLE, SELECT_ARROW_STYLE, SELECT_WRAPPER_STYLE, ACCOUNT_ICON_LIST, INVESTMENT_SUB_TYPES, PROPERTY_TYPES, INVESTMENT_SUB_TYPE_STYLES, FUEL_TYPES, VEHICLE_OWNERSHIP_TYPES, CHECKBOX_STYLE, FREQUENCIES, ALL_ACCOUNT_TYPES as ALL_TYPES_CONST, CARD_NETWORKS } from '../constants';
 import IconPicker from './IconPicker';
 // FIX: Import 'uuidv4' to generate unique IDs for mileage logs.
 import { v4 as uuidv4 } from 'uuid';
@@ -37,6 +37,11 @@ const EditAccountModal: React.FC<EditAccountModalProps> = ({ onClose, onSave, on
   const [routingNumber, setRoutingNumber] = useState(account.routingNumber || '');
   const [apy, setApy] = useState(account.apy != null ? String(account.apy) : '');
   const [openingDate, setOpeningDate] = useState(account.openingDate || '');
+
+  // Card Details
+  const [expirationDate, setExpirationDate] = useState(account.expirationDate || '');
+  const [cardNetwork, setCardNetwork] = useState(account.cardNetwork || '');
+  const [cardholderName, setCardholderName] = useState(account.cardholderName || '');
 
   // New detailed fields
   const [subType, setSubType] = useState<InvestmentSubType>(initialSubType);
@@ -244,6 +249,11 @@ const EditAccountModal: React.FC<EditAccountModalProps> = ({ onClose, onSave, on
       routingNumber: routingNumber || undefined,
       apy: apy !== '' ? parseFloat(apy) : undefined,
       openingDate: openingDate || undefined,
+      // Card details
+      expirationDate: (type === 'Credit Card' || type === 'Checking') && expirationDate ? expirationDate : undefined,
+      cardNetwork: (type === 'Credit Card' || type === 'Checking') && cardNetwork ? cardNetwork : undefined,
+      cardholderName: (type === 'Credit Card' || type === 'Checking') && cardholderName ? cardholderName : undefined,
+
       // Conditionally add new fields
       subType: type === 'Investment' ? subType : undefined,
       totalAmount: (type === 'Loan' || type === 'Lending') && totalAmount !== '' ? parseFloat(totalAmount) : undefined,
@@ -325,6 +335,7 @@ const EditAccountModal: React.FC<EditAccountModalProps> = ({ onClose, onSave, on
   
   const showLast4 = ['Checking', 'Savings', 'Credit Card'].includes(type);
   const showBankingDetails = ['Checking', 'Savings', 'Investment', 'Credit Card', 'Lending'].includes(type);
+  const showCardDetails = type === 'Credit Card' || type === 'Checking';
 
   return (
     <>
@@ -438,6 +449,32 @@ const EditAccountModal: React.FC<EditAccountModalProps> = ({ onClose, onSave, on
                     <input id="openingDate" type="date" value={openingDate} onChange={e => setOpeningDate(e.target.value)} className={INPUT_BASE_STYLE} />
                   </div>
                </div>
+            )}
+            
+            {showCardDetails && (
+                <div className="pt-4 mt-4 border-t border-black/10 dark:border-white/10">
+                    <h4 className="font-semibold text-light-text dark:text-dark-text mb-3">Card Details</h4>
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                        <div>
+                            <label htmlFor="cardNetwork" className={labelStyle}>Card Network</label>
+                            <div className={SELECT_WRAPPER_STYLE}>
+                                <select id="cardNetwork" value={cardNetwork} onChange={e => setCardNetwork(e.target.value)} className={INPUT_BASE_STYLE}>
+                                    <option value="">Select Network</option>
+                                    {CARD_NETWORKS.map(net => <option key={net} value={net}>{net}</option>)}
+                                </select>
+                                <div className={SELECT_ARROW_STYLE}><span className="material-symbols-outlined">expand_more</span></div>
+                            </div>
+                        </div>
+                         <div>
+                            <label htmlFor="expirationDate" className={labelStyle}>Expiration Date (MM/YY)</label>
+                            <input id="expirationDate" type="text" value={expirationDate} onChange={e => setExpirationDate(e.target.value)} className={INPUT_BASE_STYLE} placeholder="MM/YY" />
+                        </div>
+                        <div className="md:col-span-2">
+                            <label htmlFor="cardholderName" className={labelStyle}>Cardholder Name</label>
+                            <input id="cardholderName" type="text" value={cardholderName} onChange={e => setCardholderName(e.target.value)} className={INPUT_BASE_STYLE} placeholder="Name on Card" />
+                        </div>
+                    </div>
+                </div>
             )}
 
             {type === 'Investment' && (
@@ -811,7 +848,7 @@ const EditAccountModal: React.FC<EditAccountModalProps> = ({ onClose, onSave, on
               </div>
             )}
           </div>
-          
+
           {showLast4 && (
           <div>
               <label htmlFor="last-4" className={labelStyle}>Last 4 Digits (Optional)</label>

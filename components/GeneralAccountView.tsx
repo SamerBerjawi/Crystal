@@ -358,7 +358,7 @@ const GeneralAccountView: React.FC<GeneralAccountViewProps> = ({
   }, [accounts, account.id, allTransactions]);
 
   const showBankingDetails = useMemo(() => {
-      return !!(account.accountNumber || account.routingNumber || account.apy || account.openingDate);
+      return !!(account.accountNumber || account.routingNumber || account.apy || account.openingDate || account.expirationDate || account.cardNetwork || account.cardholderName);
   }, [account]);
 
   return (
@@ -423,6 +423,24 @@ const GeneralAccountView: React.FC<GeneralAccountViewProps> = ({
                     <div>
                          <p className="text-xs text-light-text-secondary dark:text-dark-text-secondary mb-1">Opened On</p>
                          <p className="font-medium text-light-text dark:text-dark-text">{parseDateAsUTC(account.openingDate).toLocaleDateString()}</p>
+                    </div>
+                )}
+                 {account.cardNetwork && (
+                    <div>
+                         <p className="text-xs text-light-text-secondary dark:text-dark-text-secondary mb-1">Network</p>
+                         <p className="font-medium text-light-text dark:text-dark-text">{account.cardNetwork}</p>
+                    </div>
+                )}
+                 {account.cardholderName && (
+                    <div>
+                         <p className="text-xs text-light-text-secondary dark:text-dark-text-secondary mb-1">Cardholder</p>
+                         <p className="font-medium text-light-text dark:text-dark-text">{account.cardholderName}</p>
+                    </div>
+                )}
+                 {account.expirationDate && (
+                    <div>
+                         <p className="text-xs text-light-text-secondary dark:text-dark-text-secondary mb-1">Expires</p>
+                         <p className="font-medium text-light-text dark:text-dark-text">{account.expirationDate}</p>
                     </div>
                 )}
             </div>

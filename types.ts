@@ -60,6 +60,11 @@ export interface Account {
   apy?: number; // Annual Percentage Yield for savings
   openingDate?: string; // Date account was opened
 
+  // Card specific
+  expirationDate?: string; // MM/YY
+  cardNetwork?: string; // Visa, Mastercard, etc.
+  cardholderName?: string;
+
   // Investment specific
   subType?: InvestmentSubType;
 
