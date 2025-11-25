@@ -14,6 +14,7 @@ import { useCategoryContext, useScheduleContext, useTagsContext } from '../conte
 const PropertyAccountView = React.lazy(() => import('../components/PropertyAccountView'));
 const LoanAccountView = React.lazy(() => import('../components/LoanAccountView'));
 const VehicleAccountView = React.lazy(() => import('../components/VehicleAccountView'));
+const CreditCardAccountView = React.lazy(() => import('../components/CreditCardAccountView'));
 const GeneralAccountView = React.lazy(() => import('../components/GeneralAccountView'));
 
 const AccountDetail: React.FC<{
@@ -192,6 +193,16 @@ const AccountDetail: React.FC<{
                         onAddLog={() => handleOpenMileageModal()}
                         onEditLog={handleOpenMileageModal}
                         onDeleteLog={handleDeleteMileageLog}
+                    />
+                );
+            case 'Credit Card':
+                return (
+                    <CreditCardAccountView
+                        {...commonProps}
+                        displayTransactionsList={displayTransactionsList}
+                        transactions={accountTransactions}
+                        allCategories={allCategories}
+                        onTransactionClick={handleTransactionClick}
                     />
                 );
             default:
