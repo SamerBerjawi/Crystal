@@ -113,7 +113,26 @@ export interface Account {
   outdoorParkingSpaces?: number;
   hasGarden?: boolean;
   gardenSize?: number;
+  hasTerrace?: boolean;
+  terraceSize?: number;
   
+  // Property Recurring Costs
+  propertyTaxAmount?: number;
+  propertyTaxDate?: string; // Next due date
+  
+  insuranceProvider?: string;
+  insurancePolicyNumber?: string;
+  insuranceAmount?: number;
+  insuranceFrequency?: RecurrenceFrequency;
+  insurancePaymentDate?: string;
+
+  hoaFeeAmount?: number;
+  hoaFeeFrequency?: RecurrenceFrequency;
+  
+  isRental?: boolean;
+  rentalIncomeAmount?: number;
+  rentalIncomeFrequency?: RecurrenceFrequency;
+
   // Other Assets/Liabilities
   notes?: string;
   

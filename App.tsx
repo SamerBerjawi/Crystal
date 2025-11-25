@@ -29,7 +29,8 @@ const DataManagement = lazy(loadDataManagement);
 const loadPreferencesPage = () => import('./pages/Preferences');
 const PreferencesPage = lazy(loadPreferencesPage);
 const loadAccountDetail = () => import('./pages/AccountDetail');
-const AccountDetail = lazy(loadAccountDetail);
+// FIX: Use inline function for lazy import to avoid TypeScript error regarding 'default' property missing
+const AccountDetail = lazy(() => import('./pages/AccountDetail'));
 const loadInvestmentsPage = () => import('./pages/Investments');
 const InvestmentsPage = lazy(loadInvestmentsPage);
 const loadTasksPage = () => import('./pages/Tasks');

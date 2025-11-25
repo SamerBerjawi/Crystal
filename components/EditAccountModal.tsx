@@ -1,8 +1,8 @@
 
 import React, { useState, useEffect, useMemo, useRef } from 'react';
 import Modal from './Modal';
-import { Account, AccountType, Currency, InvestmentSubType, PropertyType, Warrant, FuelType, VehicleOwnership, MileageLog } from '../types';
-import { ALL_ACCOUNT_TYPES, CURRENCIES, ACCOUNT_TYPE_STYLES, INPUT_BASE_STYLE, BTN_PRIMARY_STYLE, BTN_SECONDARY_STYLE, BTN_DANGER_STYLE, SELECT_ARROW_STYLE, SELECT_WRAPPER_STYLE, ACCOUNT_ICON_LIST, INVESTMENT_SUB_TYPES, PROPERTY_TYPES, INVESTMENT_SUB_TYPE_STYLES, FUEL_TYPES, VEHICLE_OWNERSHIP_TYPES, CHECKBOX_STYLE } from '../constants';
+import { Account, AccountType, Currency, InvestmentSubType, PropertyType, Warrant, FuelType, VehicleOwnership, MileageLog, RecurrenceFrequency } from '../types';
+import { ALL_ACCOUNT_TYPES, CURRENCIES, ACCOUNT_TYPE_STYLES, INPUT_BASE_STYLE, BTN_PRIMARY_STYLE, BTN_SECONDARY_STYLE, BTN_DANGER_STYLE, SELECT_ARROW_STYLE, SELECT_WRAPPER_STYLE, ACCOUNT_ICON_LIST, INVESTMENT_SUB_TYPES, PROPERTY_TYPES, INVESTMENT_SUB_TYPE_STYLES, FUEL_TYPES, VEHICLE_OWNERSHIP_TYPES, CHECKBOX_STYLE, FREQUENCIES, ALL_ACCOUNT_TYPES as ALL_TYPES_CONST } from '../constants';
 import IconPicker from './IconPicker';
 // FIX: Import 'uuidv4' to generate unique IDs for mileage logs.
 import { v4 as uuidv4 } from 'uuid';
@@ -93,6 +93,22 @@ const EditAccountModal: React.FC<EditAccountModalProps> = ({ onClose, onSave, on
   const [outdoorParkingSpaces, setOutdoorParkingSpaces] = useState(account.outdoorParkingSpaces != null ? String(account.outdoorParkingSpaces) : '');
   const [hasGarden, setHasGarden] = useState(account.hasGarden || false);
   const [gardenSize, setGardenSize] = useState(account.gardenSize != null ? String(account.gardenSize) : '');
+  const [hasTerrace, setHasTerrace] = useState(account.hasTerrace || false);
+  const [terraceSize, setTerraceSize] = useState(account.terraceSize != null ? String(account.terraceSize) : '');
+
+  // Property Recurring Expenses & Income
+  const [propertyTaxAmount, setPropertyTaxAmount] = useState(account.propertyTaxAmount != null ? String(account.propertyTaxAmount) : '');
+  const [propertyTaxDate, setPropertyTaxDate] = useState(account.propertyTaxDate || '');
+  const [insuranceProvider, setInsuranceProvider] = useState(account.insuranceProvider || '');
+  const [insurancePolicyNumber, setInsurancePolicyNumber] = useState(account.insurancePolicyNumber || '');
+  const [insuranceAmount, setInsuranceAmount] = useState(account.insuranceAmount != null ? String(account.insuranceAmount) : '');
+  const [insuranceFrequency, setInsuranceFrequency] = useState<RecurrenceFrequency>(account.insuranceFrequency || 'yearly');
+  const [insurancePaymentDate, setInsurancePaymentDate] = useState(account.insurancePaymentDate || '');
+  const [hoaFeeAmount, setHoaFeeAmount] = useState(account.hoaFeeAmount != null ? String(account.hoaFeeAmount) : '');
+  const [hoaFeeFrequency, setHoaFeeFrequency] = useState<RecurrenceFrequency>(account.hoaFeeFrequency || 'monthly');
+  const [isRental, setIsRental] = useState(account.isRental || false);
+  const [rentalIncomeAmount, setRentalIncomeAmount] = useState(account.rentalIncomeAmount != null ? String(account.rentalIncomeAmount) : '');
+  const [rentalIncomeFrequency, setRentalIncomeFrequency] = useState<RecurrenceFrequency>(account.rentalIncomeFrequency || 'monthly');
   
   const isComputedAccount = useMemo(() => {
     // An investment account is 'computed' and not manually editable if it's a warrant being tracked automatically.
@@ -261,6 +277,20 @@ const EditAccountModal: React.FC<EditAccountModalProps> = ({ onClose, onSave, on
       outdoorParkingSpaces: outdoorParkingSpaces !== '' ? parseInt(outdoorParkingSpaces, 10) : undefined,
       hasGarden,
       gardenSize: hasGarden && gardenSize !== '' ? parseFloat(gardenSize) : undefined,
+      hasTerrace,
+      terraceSize: hasTerrace && terraceSize !== '' ? parseFloat(terraceSize) : undefined,
+      propertyTaxAmount: type === 'Property' && propertyTaxAmount !== '' ? parseFloat(propertyTaxAmount) : undefined,
+      propertyTaxDate: type === 'Property' ? propertyTaxDate || undefined : undefined,
+      insuranceProvider: type === 'Property' ? insuranceProvider || undefined : undefined,
+      insurancePolicyNumber: type === 'Property' ? insurancePolicyNumber || undefined : undefined,
+      insuranceAmount: type === 'Property' && insuranceAmount !== '' ? parseFloat(insuranceAmount) : undefined,
+      insuranceFrequency: type === 'Property' ? insuranceFrequency : undefined,
+      insurancePaymentDate: type === 'Property' ? insurancePaymentDate || undefined : undefined,
+      hoaFeeAmount: type === 'Property' && hoaFeeAmount !== '' ? parseFloat(hoaFeeAmount) : undefined,
+      hoaFeeFrequency: type === 'Property' ? hoaFeeFrequency : undefined,
+      isRental: type === 'Property' ? isRental : undefined,
+      rentalIncomeAmount: type === 'Property' && isRental && rentalIncomeAmount !== '' ? parseFloat(rentalIncomeAmount) : undefined,
+      rentalIncomeFrequency: type === 'Property' && isRental ? rentalIncomeFrequency : undefined,
       notes: (type === 'Other Assets' || type === 'Other Liabilities') ? notes || undefined : undefined,
       statementStartDate: type === 'Credit Card' && statementStartDate !== '' ? parseInt(statementStartDate, 10) : undefined,
       paymentDate: type === 'Credit Card' && paymentDate !== '' ? parseInt(paymentDate, 10) : undefined,
@@ -524,85 +554,178 @@ const EditAccountModal: React.FC<EditAccountModalProps> = ({ onClose, onSave, on
                 </div>
             )}
             {type === 'Property' && (
-                <div className="space-y-4">
-                  <div className="grid grid-cols-2 gap-4">
-                    <div>
-                      <label htmlFor="propertyType" className={labelStyle}>Property Type</label>
-                      <div className={SELECT_WRAPPER_STYLE}>
-                        <select id="propertyType" value={propertyType} onChange={e => setPropertyType(e.target.value as PropertyType)} className={INPUT_BASE_STYLE}>
-                          {PROPERTY_TYPES.map(pt => <option key={pt} value={pt}>{pt}</option>)}
-                        </select>
-                         <div className={SELECT_ARROW_STYLE}><span className="material-symbols-outlined">expand_more</span></div>
-                      </div>
-                    </div>
-                     <div><label htmlFor="purchasePrice" className={labelStyle}>Purchase Price</label><input id="purchasePrice" type="number" step="0.01" value={purchasePrice} onChange={e=>setPurchasePrice(e.target.value)} className={INPUT_BASE_STYLE} disabled={isLoanForPropertyLinked} /></div>
-                  </div>
-                  <div><label htmlFor="address" className={labelStyle}>Address</label><input id="address" type="text" value={address} onChange={e=>setAddress(e.target.value)} className={INPUT_BASE_STYLE} /></div>
-                  
-                  <div className="grid grid-cols-3 gap-4">
-                     <div><label htmlFor="propertySize" className={labelStyle}>Size (m²)</label><input id="propertySize" type="number" value={propertySize} onChange={e=>setPropertySize(e.target.value)} className={INPUT_BASE_STYLE} /></div>
-                     <div><label htmlFor="yearBuilt" className={labelStyle}>Year Built</label><input id="yearBuilt" type="number" value={yearBuilt} onChange={e=>setYearBuilt(e.target.value)} className={INPUT_BASE_STYLE} /></div>
-                     <div><label htmlFor="floors" className={labelStyle}>Floors</label><input id="floors" type="number" value={floors} onChange={e=>setFloors(e.target.value)} className={INPUT_BASE_STYLE} /></div>
-                  </div>
-
-                  <div className="grid grid-cols-2 gap-4">
-                     <div><label htmlFor="bedrooms" className={labelStyle}>Bedrooms</label><input id="bedrooms" type="number" value={bedrooms} onChange={e=>setBedrooms(e.target.value)} className={INPUT_BASE_STYLE} /></div>
-                     <div><label htmlFor="bathrooms" className={labelStyle}>Bathrooms</label><input id="bathrooms" type="number" value={bathrooms} onChange={e=>setBathrooms(e.target.value)} className={INPUT_BASE_STYLE} /></div>
-                  </div>
-
-                  <div className="grid grid-cols-2 gap-4">
-                     <label className="flex items-center gap-2 cursor-pointer">
-                        <input type="checkbox" checked={hasBasement} onChange={e => setHasBasement(e.target.checked)} className={CHECKBOX_STYLE} />
-                        <span className="text-sm font-medium text-light-text dark:text-dark-text">Has Basement</span>
-                     </label>
-                     <label className="flex items-center gap-2 cursor-pointer">
-                        <input type="checkbox" checked={hasAttic} onChange={e => setHasAttic(e.target.checked)} className={CHECKBOX_STYLE} />
-                        <span className="text-sm font-medium text-light-text dark:text-dark-text">Has Attic</span>
-                     </label>
-                  </div>
-
-                  <div className="grid grid-cols-2 gap-4">
-                     <div><label htmlFor="indoorParking" className={labelStyle}>Indoor Parking (Cars)</label><input id="indoorParking" type="number" value={indoorParkingSpaces} onChange={e=>setIndoorParkingSpaces(e.target.value)} className={INPUT_BASE_STYLE} /></div>
-                     <div><label htmlFor="outdoorParking" className={labelStyle}>Outdoor Parking (Cars)</label><input id="outdoorParking" type="number" value={outdoorParkingSpaces} onChange={e=>setOutdoorParkingSpaces(e.target.value)} className={INPUT_BASE_STYLE} /></div>
-                  </div>
-
-                  <div className="grid grid-cols-2 gap-4 items-end">
-                     <div className="mb-3">
-                         <label className="flex items-center gap-2 cursor-pointer">
-                            <input type="checkbox" checked={hasGarden} onChange={e => setHasGarden(e.target.checked)} className={CHECKBOX_STYLE} />
-                            <span className="text-sm font-medium text-light-text dark:text-dark-text">Has Garden</span>
-                         </label>
-                     </div>
-                     <div>
-                        <label htmlFor="gardenSize" className={labelStyle}>Garden Size (m²)</label>
-                        <input id="gardenSize" type="number" value={gardenSize} onChange={e=>setGardenSize(e.target.value)} className={INPUT_BASE_STYLE} disabled={!hasGarden} />
-                     </div>
-                  </div>
-
-                  <div className="grid grid-cols-2 gap-4 border-t border-black/10 dark:border-white/10 pt-4">
-                      <div>
-                        <label htmlFor="linkedLoanId" className={labelStyle}>Linked Loan (Optional)</label>
-                        <div className={SELECT_WRAPPER_STYLE}>
-                            <select id="linkedLoanId" value={linkedLoanId} onChange={e => setLinkedLoanId(e.target.value)} className={INPUT_BASE_STYLE}>
-                                <option value="">None</option>
-                                {ALL_ACCOUNT_TYPES.map(type => {
-                                    const group = groupedLoanAccounts[type];
-                                    if (!group || group.length === 0) return null;
-                                    return (
-                                        <optgroup key={type} label={type}>
-                                            {group.map(acc => <option key={acc.id} value={acc.id}>{acc.name}</option>)}
-                                        </optgroup>
-                                    );
-                                })}
+                <div className="space-y-6">
+                  <div className="space-y-4">
+                      <div className="grid grid-cols-2 gap-4">
+                        <div>
+                          <label htmlFor="propertyType" className={labelStyle}>Property Type</label>
+                          <div className={SELECT_WRAPPER_STYLE}>
+                            <select id="propertyType" value={propertyType} onChange={e => setPropertyType(e.target.value as PropertyType)} className={INPUT_BASE_STYLE}>
+                              {PROPERTY_TYPES.map(pt => <option key={pt} value={pt}>{pt}</option>)}
                             </select>
-                            <div className={SELECT_ARROW_STYLE}><span className="material-symbols-outlined">expand_more</span></div>
+                             <div className={SELECT_ARROW_STYLE}><span className="material-symbols-outlined">expand_more</span></div>
+                          </div>
+                        </div>
+                         <div><label htmlFor="purchasePrice" className={labelStyle}>Purchase Price</label><input id="purchasePrice" type="number" step="0.01" value={purchasePrice} onChange={e=>setPurchasePrice(e.target.value)} className={INPUT_BASE_STYLE} disabled={isLoanForPropertyLinked} /></div>
+                      </div>
+                      <div><label htmlFor="address" className={labelStyle}>Address</label><input id="address" type="text" value={address} onChange={e=>setAddress(e.target.value)} className={INPUT_BASE_STYLE} /></div>
+                      
+                      <div className="grid grid-cols-3 gap-4">
+                         <div><label htmlFor="propertySize" className={labelStyle}>Size (m²)</label><input id="propertySize" type="number" value={propertySize} onChange={e=>setPropertySize(e.target.value)} className={INPUT_BASE_STYLE} /></div>
+                         <div><label htmlFor="yearBuilt" className={labelStyle}>Year Built</label><input id="yearBuilt" type="number" value={yearBuilt} onChange={e=>setYearBuilt(e.target.value)} className={INPUT_BASE_STYLE} /></div>
+                         <div><label htmlFor="floors" className={labelStyle}>Floors</label><input id="floors" type="number" value={floors} onChange={e=>setFloors(e.target.value)} className={INPUT_BASE_STYLE} /></div>
+                      </div>
+
+                      <div className="grid grid-cols-2 gap-4">
+                         <div><label htmlFor="bedrooms" className={labelStyle}>Bedrooms</label><input id="bedrooms" type="number" value={bedrooms} onChange={e=>setBedrooms(e.target.value)} className={INPUT_BASE_STYLE} /></div>
+                         <div><label htmlFor="bathrooms" className={labelStyle}>Bathrooms</label><input id="bathrooms" type="number" value={bathrooms} onChange={e=>setBathrooms(e.target.value)} className={INPUT_BASE_STYLE} /></div>
+                      </div>
+
+                      <div className="grid grid-cols-2 gap-4">
+                         <label className="flex items-center gap-2 cursor-pointer">
+                            <input type="checkbox" checked={hasBasement} onChange={e => setHasBasement(e.target.checked)} className={CHECKBOX_STYLE} />
+                            <span className="text-sm font-medium text-light-text dark:text-dark-text">Has Basement</span>
+                         </label>
+                         <label className="flex items-center gap-2 cursor-pointer">
+                            <input type="checkbox" checked={hasAttic} onChange={e => setHasAttic(e.target.checked)} className={CHECKBOX_STYLE} />
+                            <span className="text-sm font-medium text-light-text dark:text-dark-text">Has Attic</span>
+                         </label>
+                      </div>
+
+                      <div className="grid grid-cols-2 gap-4">
+                         <div><label htmlFor="indoorParking" className={labelStyle}>Indoor Parking (Cars)</label><input id="indoorParking" type="number" value={indoorParkingSpaces} onChange={e=>setIndoorParkingSpaces(e.target.value)} className={INPUT_BASE_STYLE} /></div>
+                         <div><label htmlFor="outdoorParking" className={labelStyle}>Outdoor Parking (Cars)</label><input id="outdoorParking" type="number" value={outdoorParkingSpaces} onChange={e=>setOutdoorParkingSpaces(e.target.value)} className={INPUT_BASE_STYLE} /></div>
+                      </div>
+
+                      <div className="grid grid-cols-2 gap-4 items-end">
+                         <div className="mb-3">
+                             <label className="flex items-center gap-2 cursor-pointer">
+                                <input type="checkbox" checked={hasGarden} onChange={e => setHasGarden(e.target.checked)} className={CHECKBOX_STYLE} />
+                                <span className="text-sm font-medium text-light-text dark:text-dark-text">Has Garden</span>
+                             </label>
+                         </div>
+                         <div>
+                            <label htmlFor="gardenSize" className={labelStyle}>Garden Size (m²)</label>
+                            <input id="gardenSize" type="number" value={gardenSize} onChange={e=>setGardenSize(e.target.value)} className={INPUT_BASE_STYLE} disabled={!hasGarden} />
+                         </div>
+                      </div>
+                      
+                      <div className="grid grid-cols-2 gap-4 items-end">
+                         <div className="mb-3">
+                             <label className="flex items-center gap-2 cursor-pointer">
+                                <input type="checkbox" checked={hasTerrace} onChange={e => setHasTerrace(e.target.checked)} className={CHECKBOX_STYLE} />
+                                <span className="text-sm font-medium text-light-text dark:text-dark-text">Has Terrace</span>
+                             </label>
+                         </div>
+                         <div>
+                            <label htmlFor="terraceSize" className={labelStyle}>Terrace Size (m²)</label>
+                            <input id="terraceSize" type="number" value={terraceSize} onChange={e=>setTerraceSize(e.target.value)} className={INPUT_BASE_STYLE} disabled={!hasTerrace} />
+                         </div>
+                      </div>
+
+                      <div className="grid grid-cols-2 gap-4 border-t border-black/10 dark:border-white/10 pt-4">
+                          <div>
+                            <label htmlFor="linkedLoanId" className={labelStyle}>Linked Loan (Optional)</label>
+                            <div className={SELECT_WRAPPER_STYLE}>
+                                <select id="linkedLoanId" value={linkedLoanId} onChange={e => setLinkedLoanId(e.target.value)} className={INPUT_BASE_STYLE}>
+                                    <option value="">None</option>
+                                    {ALL_ACCOUNT_TYPES.map(type => {
+                                        const group = groupedLoanAccounts[type];
+                                        if (!group || group.length === 0) return null;
+                                        return (
+                                            <optgroup key={type} label={type}>
+                                                {group.map(acc => <option key={acc.id} value={acc.id}>{acc.name}</option>)}
+                                            </optgroup>
+                                        );
+                                    })}
+                                </select>
+                                <div className={SELECT_ARROW_STYLE}><span className="material-symbols-outlined">expand_more</span></div>
+                            </div>
+                          </div>
+                           <div>
+                            <label htmlFor="principalOwned" className={labelStyle}>Principal Owned</label>
+                            <input id="principalOwned" type="number" step="0.01" value={principalOwned} onChange={e=>setPrincipalOwned(e.target.value)} className={INPUT_BASE_STYLE} disabled={isLoanForPropertyLinked} />
+                            {isLoanForPropertyLinked && <p className="text-xs text-light-text-secondary dark:text-dark-text-secondary mt-1">Calculated from linked loan.</p>}
                         </div>
                       </div>
-                       <div>
-                        <label htmlFor="principalOwned" className={labelStyle}>Principal Owned</label>
-                        <input id="principalOwned" type="number" step="0.01" value={principalOwned} onChange={e=>setPrincipalOwned(e.target.value)} className={INPUT_BASE_STYLE} disabled={isLoanForPropertyLinked} />
-                        {isLoanForPropertyLinked && <p className="text-xs text-light-text-secondary dark:text-dark-text-secondary mt-1">Calculated from linked loan.</p>}
-                    </div>
+                  </div>
+                  
+                  {/* Recurring Expenses & Income Section */}
+                  <div className="p-4 bg-black/5 dark:bg-white/5 rounded-lg space-y-4">
+                        <h4 className="font-semibold text-light-text dark:text-dark-text border-b border-black/10 dark:border-white/10 pb-2">Recurring Expenses & Income</h4>
+                        
+                        {/* Property Tax */}
+                        <div className="space-y-2">
+                            <p className="text-sm font-medium text-light-text-secondary dark:text-dark-text-secondary">Property Tax</p>
+                            <div className="grid grid-cols-2 gap-4">
+                                <div><label htmlFor="propTaxAmt" className={labelStyle}>Annual Amount</label><input id="propTaxAmt" type="number" step="0.01" value={propertyTaxAmount} onChange={e=>setPropertyTaxAmount(e.target.value)} className={INPUT_BASE_STYLE} placeholder="0.00" /></div>
+                                <div><label htmlFor="propTaxDate" className={labelStyle}>Next Due Date</label><input id="propTaxDate" type="date" value={propertyTaxDate} onChange={e=>setPropertyTaxDate(e.target.value)} className={INPUT_BASE_STYLE} /></div>
+                            </div>
+                        </div>
+
+                         {/* Home Insurance */}
+                         <div className="space-y-2 pt-2 border-t border-black/5 dark:border-white/5">
+                            <p className="text-sm font-medium text-light-text-secondary dark:text-dark-text-secondary">Home Insurance</p>
+                            <div className="grid grid-cols-2 gap-4">
+                                <div><label htmlFor="insProvider" className={labelStyle}>Provider</label><input id="insProvider" type="text" value={insuranceProvider} onChange={e=>setInsuranceProvider(e.target.value)} className={INPUT_BASE_STYLE} /></div>
+                                <div><label htmlFor="insPolicy" className={labelStyle}>Policy Number</label><input id="insPolicy" type="text" value={insurancePolicyNumber} onChange={e=>setInsurancePolicyNumber(e.target.value)} className={INPUT_BASE_STYLE} /></div>
+                            </div>
+                            <div className="grid grid-cols-3 gap-4">
+                                <div><label htmlFor="insAmount" className={labelStyle}>Amount</label><input id="insAmount" type="number" step="0.01" value={insuranceAmount} onChange={e=>setInsuranceAmount(e.target.value)} className={INPUT_BASE_STYLE} /></div>
+                                <div>
+                                    <label htmlFor="insFreq" className={labelStyle}>Frequency</label>
+                                    <div className={SELECT_WRAPPER_STYLE}>
+                                        <select id="insFreq" value={insuranceFrequency} onChange={e => setInsuranceFrequency(e.target.value as RecurrenceFrequency)} className={INPUT_BASE_STYLE}>
+                                            {FREQUENCIES.map(f => <option key={f.value} value={f.value}>{f.label}</option>)}
+                                        </select>
+                                        <div className={SELECT_ARROW_STYLE}><span className="material-symbols-outlined">expand_more</span></div>
+                                    </div>
+                                </div>
+                                <div><label htmlFor="insDate" className={labelStyle}>Next Payment</label><input id="insDate" type="date" value={insurancePaymentDate} onChange={e=>setInsurancePaymentDate(e.target.value)} className={INPUT_BASE_STYLE} /></div>
+                            </div>
+                        </div>
+                        
+                        {/* HOA Fees */}
+                         <div className="space-y-2 pt-2 border-t border-black/5 dark:border-white/5">
+                            <p className="text-sm font-medium text-light-text-secondary dark:text-dark-text-secondary">HOA / Syndic Fees</p>
+                            <div className="grid grid-cols-2 gap-4">
+                                <div><label htmlFor="hoaAmount" className={labelStyle}>Amount</label><input id="hoaAmount" type="number" step="0.01" value={hoaFeeAmount} onChange={e=>setHoaFeeAmount(e.target.value)} className={INPUT_BASE_STYLE} /></div>
+                                <div>
+                                    <label htmlFor="hoaFreq" className={labelStyle}>Frequency</label>
+                                    <div className={SELECT_WRAPPER_STYLE}>
+                                        <select id="hoaFreq" value={hoaFeeFrequency} onChange={e => setHoaFeeFrequency(e.target.value as RecurrenceFrequency)} className={INPUT_BASE_STYLE}>
+                                            {FREQUENCIES.map(f => <option key={f.value} value={f.value}>{f.label}</option>)}
+                                        </select>
+                                        <div className={SELECT_ARROW_STYLE}><span className="material-symbols-outlined">expand_more</span></div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        {/* Rental Income */}
+                        <div className="space-y-2 pt-2 border-t border-black/5 dark:border-white/5">
+                            <div className="flex items-center justify-between">
+                                <p className="text-sm font-medium text-light-text-secondary dark:text-dark-text-secondary">Rental Income</p>
+                                <label className="flex items-center gap-2 cursor-pointer">
+                                    <input type="checkbox" checked={isRental} onChange={e => setIsRental(e.target.checked)} className={CHECKBOX_STYLE} />
+                                    <span className="text-sm font-medium text-light-text dark:text-dark-text">Is Rental Property</span>
+                                </label>
+                            </div>
+                            {isRental && (
+                                <div className="grid grid-cols-2 gap-4">
+                                    <div><label htmlFor="rentAmount" className={labelStyle}>Income Amount</label><input id="rentAmount" type="number" step="0.01" value={rentalIncomeAmount} onChange={e=>setRentalIncomeAmount(e.target.value)} className={INPUT_BASE_STYLE} /></div>
+                                    <div>
+                                        <label htmlFor="rentFreq" className={labelStyle}>Frequency</label>
+                                        <div className={SELECT_WRAPPER_STYLE}>
+                                            <select id="rentFreq" value={rentalIncomeFrequency} onChange={e => setRentalIncomeFrequency(e.target.value as RecurrenceFrequency)} className={INPUT_BASE_STYLE}>
+                                                {FREQUENCIES.map(f => <option key={f.value} value={f.value}>{f.label}</option>)}
+                                            </select>
+                                            <div className={SELECT_ARROW_STYLE}><span className="material-symbols-outlined">expand_more</span></div>
+                                        </div>
+                                    </div>
+                                </div>
+                            )}
+                        </div>
                   </div>
                 </div>
             )}

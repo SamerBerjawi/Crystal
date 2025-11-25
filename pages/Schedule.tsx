@@ -4,7 +4,7 @@ import React, { useState, useMemo } from 'react';
 import { RecurringTransaction, Account, Category, BillPayment, Currency, AccountType, RecurringTransactionOverride, ScheduledItem, Transaction, Tag, LoanPaymentOverrides } from '../types';
 import Card from '../components/Card';
 import { BTN_PRIMARY_STYLE, BTN_SECONDARY_STYLE, INPUT_BASE_STYLE, SELECT_WRAPPER_STYLE, SELECT_ARROW_STYLE, LIQUID_ACCOUNT_TYPES, ACCOUNT_TYPE_STYLES, ALL_ACCOUNT_TYPES } from '../constants';
-import { formatCurrency, convertToEur, generateSyntheticLoanPayments, generateSyntheticCreditCardPayments } from '../utils';
+import { formatCurrency, convertToEur, generateSyntheticLoanPayments, generateSyntheticCreditCardPayments, generateSyntheticPropertyTransactions } from '../utils';
 import RecurringTransactionModal from '../components/RecurringTransactionModal';
 import Modal from '../components/Modal';
 import ScheduleHeatmap from '../components/ScheduleHeatmap';
@@ -123,7 +123,8 @@ const SchedulePage: React.FC<ScheduleProps> = () => {
 
         const syntheticLoanPayments = generateSyntheticLoanPayments(accounts, transactions, loanPaymentOverrides);
         const syntheticCreditCardPayments = generateSyntheticCreditCardPayments(accounts, transactions);
-        const allRecurringTransactions = [...recurringTransactions, ...syntheticLoanPayments, ...syntheticCreditCardPayments];
+        const syntheticPropertyTransactions = generateSyntheticPropertyTransactions(accounts);
+        const allRecurringTransactions = [...recurringTransactions, ...syntheticLoanPayments, ...syntheticCreditCardPayments, ...syntheticPropertyTransactions];
 
         allRecurringTransactions.forEach(rt => {
             let nextDate = parseAsUTC(rt.nextDueDate);
@@ -163,6 +164,7 @@ const SchedulePage: React.FC<ScheduleProps> = () => {
                     const itemDate = override?.date || originalDateStr;
                     const itemAmount = override?.amount !== undefined ? override.amount : (rt.type === 'expense' ? -rt.amount : rt.amount);
                     const itemDescription = override?.description || rt.description;
+                    const accountName = rt.accountId === 'external' ? 'External' : (rt.type === 'transfer' ? `${accountMap[rt.accountId]} → ${accountMap[rt.toAccountId!]}` : accountMap[rt.accountId]);
 
                     allUpcomingItems.push({
                         id: override ? `override-${rt.id}-${originalDateStr}` : `${rt.id}-${originalDateStr}`,
@@ -170,7 +172,7 @@ const SchedulePage: React.FC<ScheduleProps> = () => {
                         date: itemDate, 
                         description: itemDescription,
                         amount: itemAmount,
-                        accountName: rt.type === 'transfer' ? `${accountMap[rt.accountId]} → ${accountMap[rt.toAccountId!]}` : accountMap[rt.accountId],
+                        accountName,
                         type: rt.type, 
                         originalItem: rt, 
                         isTransfer: rt.type === 'transfer',
@@ -247,7 +249,7 @@ const SchedulePage: React.FC<ScheduleProps> = () => {
         let globalExpense = 0;
 
         const initializeSummary = (accountId: string) => {
-            if (!accountSummaries[accountId]) {
+            if (!accountSummaries[accountId] && accountId !== 'external') {
                 const account = accounts.find(a => a.id === accountId);
                 accountSummaries[accountId] = { income: 0, expense: 0, net: 0, currency: account?.currency || 'EUR' };
             }
@@ -261,21 +263,29 @@ const SchedulePage: React.FC<ScheduleProps> = () => {
                 const rt = originalItem as RecurringTransaction;
                 if (rt.type === 'transfer' && rt.toAccountId) {
                     initializeSummary(rt.accountId);
-                    accountSummaries[rt.accountId].expense += amountInEur;
-                    accountSummaries[rt.accountId].net -= amountInEur;
+                    if(accountSummaries[rt.accountId]) {
+                         accountSummaries[rt.accountId].expense += amountInEur;
+                         accountSummaries[rt.accountId].net -= amountInEur;
+                    }
         
                     initializeSummary(rt.toAccountId);
-                    accountSummaries[rt.toAccountId].income += amountInEur;
-                    accountSummaries[rt.toAccountId].net += amountInEur;
+                    if(accountSummaries[rt.toAccountId]) {
+                        accountSummaries[rt.toAccountId].income += amountInEur;
+                        accountSummaries[rt.toAccountId].net += amountInEur;
+                    }
                 } else {
                     initializeSummary(rt.accountId);
                     if (item.amount > 0) {
-                        accountSummaries[rt.accountId].income += amountInEur;
-                        accountSummaries[rt.accountId].net += amountInEur;
+                        if(accountSummaries[rt.accountId]) {
+                            accountSummaries[rt.accountId].income += amountInEur;
+                            accountSummaries[rt.accountId].net += amountInEur;
+                        }
                         globalIncome += amountInEur;
                     } else {
-                        accountSummaries[rt.accountId].expense += amountInEur;
-                        accountSummaries[rt.accountId].net -= amountInEur;
+                        if(accountSummaries[rt.accountId]) {
+                             accountSummaries[rt.accountId].expense += amountInEur;
+                             accountSummaries[rt.accountId].net -= amountInEur;
+                        }
                         globalExpense += amountInEur;
                     }
                 }
@@ -492,6 +502,15 @@ const SchedulePage: React.FC<ScheduleProps> = () => {
                                     groupKey = `cc-pmt-${rt.toAccountId}`;
                                     groupTitle = `Credit Card Payment: ${accountMap[rt.toAccountId]}`;
                                  }
+                            } else if (rt.isSynthetic && rt.id.startsWith('prop-')) {
+                                // Group property transactions
+                                const firstDash = rt.id.indexOf('-');
+                                const secondDash = rt.id.indexOf('-', firstDash + 1);
+                                if (secondDash > 0) {
+                                    // Group by prop-{type}-{propertyId}
+                                    groupKey = rt.id;
+                                    groupTitle = item.description;
+                                }
                             }
                             
                             if (!groupedBySource[groupKey]) {
@@ -552,6 +571,7 @@ const SchedulePage: React.FC<ScheduleProps> = () => {
                                                             onEdit={handleEditItem} 
                                                             onDelete={handleDeleteItem} 
                                                             onPost={handleOpenPostModal} 
+                                                            isReadOnly={(item.originalItem as RecurringTransaction).isSynthetic}
                                                         />
                                                     ))}
                                                 </div>
@@ -568,7 +588,7 @@ const SchedulePage: React.FC<ScheduleProps> = () => {
                     <div key={groupName} className="px-6 py-4">
                         <h4 className="font-semibold mb-2">{groupName}</h4>
                         <div className="space-y-2 -mx-4">
-                            {items.map(item => <ScheduledItemRow key={item.id} item={item} accounts={accounts} onEdit={handleEditItem} onDelete={handleDeleteItem} onPost={handleOpenPostModal} />)}
+                            {items.map(item => <ScheduledItemRow key={item.id} item={item} accounts={accounts} onEdit={handleEditItem} onDelete={handleDeleteItem} onPost={handleOpenPostModal} isReadOnly={item.isRecurring && (item.originalItem as RecurringTransaction).isSynthetic} />)}
                         </div>
                     </div>
                 );

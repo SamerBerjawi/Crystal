@@ -455,6 +455,94 @@ export function generateSyntheticCreditCardPayments(accounts: Account[], allTran
     return syntheticPayments;
 }
 
+export function generateSyntheticPropertyTransactions(accounts: Account[]): RecurringTransaction[] {
+    const syntheticItems: RecurringTransaction[] = [];
+    const properties = accounts.filter(acc => acc.type === 'Property');
+    const today = new Date().toISOString().split('T')[0];
+
+    properties.forEach(property => {
+        // 1. Property Taxes (Annual)
+        if (property.propertyTaxAmount && property.propertyTaxDate) {
+            const taxDate = parseDateAsUTC(property.propertyTaxDate);
+             syntheticItems.push({
+                id: `prop-tax-${property.id}`,
+                accountId: 'external', // Implicitly external if not linked, or handled during forecasting mapping if account is missing
+                description: `Property Tax: ${property.name}`,
+                amount: property.propertyTaxAmount,
+                type: 'expense',
+                category: 'Housing',
+                currency: property.currency,
+                frequency: 'yearly',
+                startDate: property.propertyTaxDate,
+                nextDueDate: property.propertyTaxDate,
+                dueDateOfMonth: taxDate.getUTCDate(),
+                weekendAdjustment: 'before',
+                isSynthetic: true,
+            });
+        }
+
+        // 2. Home Insurance
+        if (property.insuranceAmount && property.insuranceFrequency && property.insurancePaymentDate) {
+             const insDate = parseDateAsUTC(property.insurancePaymentDate);
+             syntheticItems.push({
+                id: `prop-ins-${property.id}`,
+                accountId: 'external',
+                description: `Home Insurance: ${property.name} (${property.insuranceProvider || 'Provider'})`,
+                amount: property.insuranceAmount,
+                type: 'expense',
+                category: 'Housing',
+                currency: property.currency,
+                frequency: property.insuranceFrequency,
+                startDate: property.insurancePaymentDate,
+                nextDueDate: property.insurancePaymentDate,
+                dueDateOfMonth: insDate.getUTCDate(),
+                weekendAdjustment: 'before',
+                isSynthetic: true,
+            });
+        }
+
+        // 3. HOA Fees
+        if (property.hoaFeeAmount && property.hoaFeeFrequency) {
+             syntheticItems.push({
+                id: `prop-hoa-${property.id}`,
+                accountId: 'external',
+                description: `HOA/Syndic Fees: ${property.name}`,
+                amount: property.hoaFeeAmount,
+                type: 'expense',
+                category: 'Housing',
+                currency: property.currency,
+                frequency: property.hoaFeeFrequency,
+                startDate: today, // Assume starts now if not specified
+                nextDueDate: today,
+                dueDateOfMonth: new Date().getDate(),
+                weekendAdjustment: 'before',
+                isSynthetic: true,
+            });
+        }
+
+        // 4. Rental Income
+        if (property.isRental && property.rentalIncomeAmount && property.rentalIncomeFrequency) {
+             syntheticItems.push({
+                id: `prop-rent-${property.id}`,
+                accountId: property.linkedAccountId || property.id, // Deposit into linked account or property itself (tracking value)
+                description: `Rental Income: ${property.name}`,
+                amount: property.rentalIncomeAmount,
+                type: 'income',
+                category: 'Income',
+                currency: property.currency,
+                frequency: property.rentalIncomeFrequency,
+                startDate: today,
+                nextDueDate: today,
+                dueDateOfMonth: 1, // Default to 1st of month
+                weekendAdjustment: 'after',
+                isSynthetic: true,
+            });
+        }
+    });
+
+    return syntheticItems;
+}
+
 export function generateBalanceForecast(
     accounts: Account[],
     recurringTransactions: RecurringTransaction[],
