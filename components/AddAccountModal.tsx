@@ -2,7 +2,7 @@
 import React, { useState, useEffect, useMemo, useRef } from 'react';
 import Modal from './Modal';
 import { Account, AccountType, Currency, InvestmentSubType, PropertyType, FuelType, VehicleOwnership } from '../types';
-import { ALL_ACCOUNT_TYPES, CURRENCIES, ACCOUNT_TYPE_STYLES, INPUT_BASE_STYLE, BTN_PRIMARY_STYLE, BTN_SECONDARY_STYLE, SELECT_ARROW_STYLE, SELECT_WRAPPER_STYLE, ACCOUNT_ICON_LIST, INVESTMENT_SUB_TYPES, PROPERTY_TYPES, INVESTMENT_SUB_TYPE_STYLES, FUEL_TYPES, VEHICLE_OWNERSHIP_TYPES } from '../constants';
+import { ALL_ACCOUNT_TYPES, CURRENCIES, ACCOUNT_TYPE_STYLES, INPUT_BASE_STYLE, BTN_PRIMARY_STYLE, BTN_SECONDARY_STYLE, SELECT_ARROW_STYLE, SELECT_WRAPPER_STYLE, ACCOUNT_ICON_LIST, INVESTMENT_SUB_TYPES, PROPERTY_TYPES, INVESTMENT_SUB_TYPE_STYLES, FUEL_TYPES, VEHICLE_OWNERSHIP_TYPES, CHECKBOX_STYLE } from '../constants';
 import IconPicker from './IconPicker';
 import { v4 as uuidv4 } from 'uuid';
 
@@ -40,7 +40,7 @@ const AddAccountModal: React.FC<AddAccountModalProps> = ({ onClose, onAdd, accou
   const [year, setYear] = useState('');
   const [purchasePrice, setPurchasePrice] = useState('');
   const [address, setAddress] = useState('');
-  const [propertyType, setPropertyType] = useState<PropertyType>('House');
+  const [propertyType, setPropertyType] = useState<PropertyType>('Detached House');
   const [notes, setNotes] = useState('');
   const [linkedAccountId, setLinkedAccountId] = useState<string>('');
   
@@ -70,6 +70,17 @@ const AddAccountModal: React.FC<AddAccountModalProps> = ({ onClose, onAdd, accou
   // Property specific
   const [principalOwned, setPrincipalOwned] = useState('');
   const [linkedLoanId, setLinkedLoanId] = useState<string>('');
+  const [propertySize, setPropertySize] = useState('');
+  const [yearBuilt, setYearBuilt] = useState('');
+  const [floors, setFloors] = useState('');
+  const [bedrooms, setBedrooms] = useState('');
+  const [bathrooms, setBathrooms] = useState('');
+  const [hasBasement, setHasBasement] = useState(false);
+  const [hasAttic, setHasAttic] = useState(false);
+  const [indoorParkingSpaces, setIndoorParkingSpaces] = useState('');
+  const [outdoorParkingSpaces, setOutdoorParkingSpaces] = useState('');
+  const [hasGarden, setHasGarden] = useState(false);
+  const [gardenSize, setGardenSize] = useState('');
 
 
   useEffect(() => {
@@ -202,6 +213,17 @@ const AddAccountModal: React.FC<AddAccountModalProps> = ({ onClose, onAdd, accou
         purchasePrice: !isLoanForPropertyLinked && purchasePrice !== '' ? parseFloat(purchasePrice) : undefined,
         principalOwned: !isLoanForPropertyLinked && principalOwned !== '' ? parseFloat(principalOwned) : undefined,
         linkedLoanId: linkedLoanId || undefined,
+        propertySize: propertySize !== '' ? parseFloat(propertySize) : undefined,
+        yearBuilt: yearBuilt !== '' ? parseInt(yearBuilt, 10) : undefined,
+        floors: floors !== '' ? parseInt(floors, 10) : undefined,
+        bedrooms: bedrooms !== '' ? parseInt(bedrooms, 10) : undefined,
+        bathrooms: bathrooms !== '' ? parseInt(bathrooms, 10) : undefined,
+        hasBasement,
+        hasAttic,
+        indoorParkingSpaces: indoorParkingSpaces !== '' ? parseInt(indoorParkingSpaces, 10) : undefined,
+        outdoorParkingSpaces: outdoorParkingSpaces !== '' ? parseInt(outdoorParkingSpaces, 10) : undefined,
+        hasGarden,
+        gardenSize: hasGarden && gardenSize !== '' ? parseFloat(gardenSize) : undefined,
       }),
       ...((type === 'Other Assets' || type === 'Other Liabilities') && { notes: notes || undefined }),
       ...(type === 'Credit Card' && {
@@ -453,7 +475,48 @@ const AddAccountModal: React.FC<AddAccountModalProps> = ({ onClose, onAdd, accou
                      <div><label htmlFor="purchasePrice" className={labelStyle}>Purchase Price</label><input id="purchasePrice" type="number" step="0.01" value={purchasePrice} onChange={e=>setPurchasePrice(e.target.value)} className={INPUT_BASE_STYLE} disabled={isLoanForPropertyLinked} /></div>
                   </div>
                   <div><label htmlFor="address" className={labelStyle}>Address</label><input id="address" type="text" value={address} onChange={e=>setAddress(e.target.value)} className={INPUT_BASE_STYLE} /></div>
+                  
+                  <div className="grid grid-cols-3 gap-4">
+                     <div><label htmlFor="propertySize" className={labelStyle}>Size (m²)</label><input id="propertySize" type="number" value={propertySize} onChange={e=>setPropertySize(e.target.value)} className={INPUT_BASE_STYLE} /></div>
+                     <div><label htmlFor="yearBuilt" className={labelStyle}>Year Built</label><input id="yearBuilt" type="number" value={yearBuilt} onChange={e=>setYearBuilt(e.target.value)} className={INPUT_BASE_STYLE} /></div>
+                     <div><label htmlFor="floors" className={labelStyle}>Floors</label><input id="floors" type="number" value={floors} onChange={e=>setFloors(e.target.value)} className={INPUT_BASE_STYLE} /></div>
+                  </div>
+
                   <div className="grid grid-cols-2 gap-4">
+                     <div><label htmlFor="bedrooms" className={labelStyle}>Bedrooms</label><input id="bedrooms" type="number" value={bedrooms} onChange={e=>setBedrooms(e.target.value)} className={INPUT_BASE_STYLE} /></div>
+                     <div><label htmlFor="bathrooms" className={labelStyle}>Bathrooms</label><input id="bathrooms" type="number" value={bathrooms} onChange={e=>setBathrooms(e.target.value)} className={INPUT_BASE_STYLE} /></div>
+                  </div>
+
+                  <div className="grid grid-cols-2 gap-4">
+                     <label className="flex items-center gap-2 cursor-pointer">
+                        <input type="checkbox" checked={hasBasement} onChange={e => setHasBasement(e.target.checked)} className={CHECKBOX_STYLE} />
+                        <span className="text-sm font-medium text-light-text dark:text-dark-text">Has Basement</span>
+                     </label>
+                     <label className="flex items-center gap-2 cursor-pointer">
+                        <input type="checkbox" checked={hasAttic} onChange={e => setHasAttic(e.target.checked)} className={CHECKBOX_STYLE} />
+                        <span className="text-sm font-medium text-light-text dark:text-dark-text">Has Attic</span>
+                     </label>
+                  </div>
+
+                  <div className="grid grid-cols-2 gap-4">
+                     <div><label htmlFor="indoorParking" className={labelStyle}>Indoor Parking (Cars)</label><input id="indoorParking" type="number" value={indoorParkingSpaces} onChange={e=>setIndoorParkingSpaces(e.target.value)} className={INPUT_BASE_STYLE} /></div>
+                     <div><label htmlFor="outdoorParking" className={labelStyle}>Outdoor Parking (Cars)</label><input id="outdoorParking" type="number" value={outdoorParkingSpaces} onChange={e=>setOutdoorParkingSpaces(e.target.value)} className={INPUT_BASE_STYLE} /></div>
+                  </div>
+
+                  <div className="grid grid-cols-2 gap-4 items-end">
+                     <div className="mb-3">
+                         <label className="flex items-center gap-2 cursor-pointer">
+                            <input type="checkbox" checked={hasGarden} onChange={e => setHasGarden(e.target.checked)} className={CHECKBOX_STYLE} />
+                            <span className="text-sm font-medium text-light-text dark:text-dark-text">Has Garden</span>
+                         </label>
+                     </div>
+                     <div>
+                        <label htmlFor="gardenSize" className={labelStyle}>Garden Size (m²)</label>
+                        <input id="gardenSize" type="number" value={gardenSize} onChange={e=>setGardenSize(e.target.value)} className={INPUT_BASE_STYLE} disabled={!hasGarden} />
+                     </div>
+                  </div>
+
+                  <div className="grid grid-cols-2 gap-4 border-t border-black/10 dark:border-white/10 pt-4">
                       <div>
                         <label htmlFor="linkedLoanId" className={labelStyle}>Linked Loan (Optional)</label>
                         <div className={SELECT_WRAPPER_STYLE}>

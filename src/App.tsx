@@ -1,5 +1,3 @@
-
-
 // FIX: Import `useMemo` from React to resolve the 'Cannot find name' error.
 import React, { useState, useEffect, useMemo, useCallback, Suspense, lazy, useRef } from 'react';
 import Sidebar from './components/Sidebar';
@@ -111,11 +109,20 @@ const PageLoader: React.FC<{ label?: string }> = ({ label = 'Loading content...'
   </div>
 );
 
-// FIX: Replaced constructor with class property for state initialization and used React.PropsWithChildren for props to resolve multiple type errors.
-class ErrorBoundary extends React.Component<React.PropsWithChildren<{}>, { hasError: boolean; message?: string }> {
-  state = { hasError: false, message: undefined };
+// FIX: Replaced ErrorBoundary definition to fix state/props type errors and ensure consistency.
+interface ErrorBoundaryProps {
+  children?: React.ReactNode;
+}
 
-  static getDerivedStateFromError(error: Error) {
+interface ErrorBoundaryState {
+  hasError: boolean;
+  message?: string;
+}
+
+class ErrorBoundary extends React.Component<ErrorBoundaryProps, ErrorBoundaryState> {
+  state: ErrorBoundaryState = { hasError: false, message: undefined };
+
+  static getDerivedStateFromError(error: Error): ErrorBoundaryState {
     return { hasError: true, message: error?.message };
   }
 
@@ -763,18 +770,32 @@ const App: React.FC = () => {
   const handleSaveAccount = (accountData: Omit<Account, 'id'> & { id?: string }) => {
     if (accountData.id) { // UPDATE
         setAccounts(prev => {
-            const updatedAccounts = prev.map(acc => acc.id === accountData.id ? { ...acc, ...accountData } as Account : acc);
+            // First, apply the update to the target account
+            const intermediateAccounts = prev.map(acc => acc.id === accountData.id ? { ...acc, ...accountData } as Account : acc);
+
+            // If this account is now primary, ensure no other account OF THE SAME TYPE is primary
             if (accountData.isPrimary) {
-                return updatedAccounts.map(acc => acc.id === accountData.id ? acc : { ...acc, isPrimary: false });
+                return intermediateAccounts.map(acc => {
+                    // If it's the same type but a different ID, unset primary
+                    if (acc.type === accountData.type && acc.id !== accountData.id && acc.isPrimary) {
+                        return { ...acc, isPrimary: false };
+                    }
+                    return acc;
+                });
             }
-            return updatedAccounts;
+            return intermediateAccounts;
         });
     } else { // ADD
         const newAccount = { ...accountData, id: `acc-${uuidv4()}`, status: 'open' as const } as Account;
         setAccounts(prev => {
-            const newAccounts = [...prev, newAccount];
+            let newAccounts = [...prev, newAccount];
             if (newAccount.isPrimary) {
-                return newAccounts.map(acc => acc.id === newAccount.id ? acc : { ...acc, isPrimary: false });
+                newAccounts = newAccounts.map(acc => {
+                    if (acc.type === newAccount.type && acc.id !== newAccount.id && acc.isPrimary) {
+                        return { ...acc, isPrimary: false };
+                    }
+                    return acc;
+                });
             }
             return newAccounts;
         });

@@ -2,7 +2,7 @@
 import React, { useState, useEffect, useMemo, useRef } from 'react';
 import Modal from './Modal';
 import { Account, AccountType, Currency, InvestmentSubType, PropertyType, Warrant, FuelType, VehicleOwnership, MileageLog } from '../types';
-import { ALL_ACCOUNT_TYPES, CURRENCIES, ACCOUNT_TYPE_STYLES, INPUT_BASE_STYLE, BTN_PRIMARY_STYLE, BTN_SECONDARY_STYLE, BTN_DANGER_STYLE, SELECT_ARROW_STYLE, SELECT_WRAPPER_STYLE, ACCOUNT_ICON_LIST, INVESTMENT_SUB_TYPES, PROPERTY_TYPES, INVESTMENT_SUB_TYPE_STYLES, FUEL_TYPES, VEHICLE_OWNERSHIP_TYPES } from '../constants';
+import { ALL_ACCOUNT_TYPES, CURRENCIES, ACCOUNT_TYPE_STYLES, INPUT_BASE_STYLE, BTN_PRIMARY_STYLE, BTN_SECONDARY_STYLE, BTN_DANGER_STYLE, SELECT_ARROW_STYLE, SELECT_WRAPPER_STYLE, ACCOUNT_ICON_LIST, INVESTMENT_SUB_TYPES, PROPERTY_TYPES, INVESTMENT_SUB_TYPE_STYLES, FUEL_TYPES, VEHICLE_OWNERSHIP_TYPES, CHECKBOX_STYLE } from '../constants';
 import IconPicker from './IconPicker';
 // FIX: Import 'uuidv4' to generate unique IDs for mileage logs.
 import { v4 as uuidv4 } from 'uuid';
@@ -49,7 +49,7 @@ const EditAccountModal: React.FC<EditAccountModalProps> = ({ onClose, onSave, on
   const [year, setYear] = useState(account.year != null ? String(account.year) : '');
   const [purchasePrice, setPurchasePrice] = useState(account.purchasePrice != null ? String(account.purchasePrice) : '');
   const [address, setAddress] = useState(account.address || '');
-  const [propertyType, setPropertyType] = useState<PropertyType>(account.propertyType || 'House');
+  const [propertyType, setPropertyType] = useState<PropertyType>(account.propertyType || 'Detached House');
   const [notes, setNotes] = useState(account.notes || '');
   const [linkedAccountId, setLinkedAccountId] = useState(account.linkedAccountId || '');
 
@@ -82,6 +82,17 @@ const EditAccountModal: React.FC<EditAccountModalProps> = ({ onClose, onSave, on
   // Property specific
   const [principalOwned, setPrincipalOwned] = useState(account.principalOwned != null ? String(account.principalOwned) : '');
   const [linkedLoanId, setLinkedLoanId] = useState(account.linkedLoanId || '');
+  const [propertySize, setPropertySize] = useState(account.propertySize != null ? String(account.propertySize) : '');
+  const [yearBuilt, setYearBuilt] = useState(account.yearBuilt != null ? String(account.yearBuilt) : '');
+  const [floors, setFloors] = useState(account.floors != null ? String(account.floors) : '');
+  const [bedrooms, setBedrooms] = useState(account.bedrooms != null ? String(account.bedrooms) : '');
+  const [bathrooms, setBathrooms] = useState(account.bathrooms != null ? String(account.bathrooms) : '');
+  const [hasBasement, setHasBasement] = useState(account.hasBasement || false);
+  const [hasAttic, setHasAttic] = useState(account.hasAttic || false);
+  const [indoorParkingSpaces, setIndoorParkingSpaces] = useState(account.indoorParkingSpaces != null ? String(account.indoorParkingSpaces) : '');
+  const [outdoorParkingSpaces, setOutdoorParkingSpaces] = useState(account.outdoorParkingSpaces != null ? String(account.outdoorParkingSpaces) : '');
+  const [hasGarden, setHasGarden] = useState(account.hasGarden || false);
+  const [gardenSize, setGardenSize] = useState(account.gardenSize != null ? String(account.gardenSize) : '');
   
   const isComputedAccount = useMemo(() => {
     // An investment account is 'computed' and not manually editable if it's a warrant being tracked automatically.
@@ -239,6 +250,17 @@ const EditAccountModal: React.FC<EditAccountModalProps> = ({ onClose, onSave, on
       purchasePrice: (type === 'Vehicle' || (type === 'Property' && !isLoanForPropertyLinked)) && purchasePrice !== '' ? parseFloat(purchasePrice) : undefined,
       principalOwned: type === 'Property' && !isLoanForPropertyLinked && principalOwned !== '' ? parseFloat(principalOwned) : undefined,
       linkedLoanId: type === 'Property' ? linkedLoanId || undefined : undefined,
+      propertySize: propertySize !== '' ? parseFloat(propertySize) : undefined,
+      yearBuilt: yearBuilt !== '' ? parseInt(yearBuilt, 10) : undefined,
+      floors: floors !== '' ? parseInt(floors, 10) : undefined,
+      bedrooms: bedrooms !== '' ? parseInt(bedrooms, 10) : undefined,
+      bathrooms: bathrooms !== '' ? parseInt(bathrooms, 10) : undefined,
+      hasBasement,
+      hasAttic,
+      indoorParkingSpaces: indoorParkingSpaces !== '' ? parseInt(indoorParkingSpaces, 10) : undefined,
+      outdoorParkingSpaces: outdoorParkingSpaces !== '' ? parseInt(outdoorParkingSpaces, 10) : undefined,
+      hasGarden,
+      gardenSize: hasGarden && gardenSize !== '' ? parseFloat(gardenSize) : undefined,
       notes: (type === 'Other Assets' || type === 'Other Liabilities') ? notes || undefined : undefined,
       statementStartDate: type === 'Credit Card' && statementStartDate !== '' ? parseInt(statementStartDate, 10) : undefined,
       paymentDate: type === 'Credit Card' && paymentDate !== '' ? parseInt(paymentDate, 10) : undefined,
@@ -516,7 +538,48 @@ const EditAccountModal: React.FC<EditAccountModalProps> = ({ onClose, onSave, on
                      <div><label htmlFor="purchasePrice" className={labelStyle}>Purchase Price</label><input id="purchasePrice" type="number" step="0.01" value={purchasePrice} onChange={e=>setPurchasePrice(e.target.value)} className={INPUT_BASE_STYLE} disabled={isLoanForPropertyLinked} /></div>
                   </div>
                   <div><label htmlFor="address" className={labelStyle}>Address</label><input id="address" type="text" value={address} onChange={e=>setAddress(e.target.value)} className={INPUT_BASE_STYLE} /></div>
+                  
+                  <div className="grid grid-cols-3 gap-4">
+                     <div><label htmlFor="propertySize" className={labelStyle}>Size (m²)</label><input id="propertySize" type="number" value={propertySize} onChange={e=>setPropertySize(e.target.value)} className={INPUT_BASE_STYLE} /></div>
+                     <div><label htmlFor="yearBuilt" className={labelStyle}>Year Built</label><input id="yearBuilt" type="number" value={yearBuilt} onChange={e=>setYearBuilt(e.target.value)} className={INPUT_BASE_STYLE} /></div>
+                     <div><label htmlFor="floors" className={labelStyle}>Floors</label><input id="floors" type="number" value={floors} onChange={e=>setFloors(e.target.value)} className={INPUT_BASE_STYLE} /></div>
+                  </div>
+
                   <div className="grid grid-cols-2 gap-4">
+                     <div><label htmlFor="bedrooms" className={labelStyle}>Bedrooms</label><input id="bedrooms" type="number" value={bedrooms} onChange={e=>setBedrooms(e.target.value)} className={INPUT_BASE_STYLE} /></div>
+                     <div><label htmlFor="bathrooms" className={labelStyle}>Bathrooms</label><input id="bathrooms" type="number" value={bathrooms} onChange={e=>setBathrooms(e.target.value)} className={INPUT_BASE_STYLE} /></div>
+                  </div>
+
+                  <div className="grid grid-cols-2 gap-4">
+                     <label className="flex items-center gap-2 cursor-pointer">
+                        <input type="checkbox" checked={hasBasement} onChange={e => setHasBasement(e.target.checked)} className={CHECKBOX_STYLE} />
+                        <span className="text-sm font-medium text-light-text dark:text-dark-text">Has Basement</span>
+                     </label>
+                     <label className="flex items-center gap-2 cursor-pointer">
+                        <input type="checkbox" checked={hasAttic} onChange={e => setHasAttic(e.target.checked)} className={CHECKBOX_STYLE} />
+                        <span className="text-sm font-medium text-light-text dark:text-dark-text">Has Attic</span>
+                     </label>
+                  </div>
+
+                  <div className="grid grid-cols-2 gap-4">
+                     <div><label htmlFor="indoorParking" className={labelStyle}>Indoor Parking (Cars)</label><input id="indoorParking" type="number" value={indoorParkingSpaces} onChange={e=>setIndoorParkingSpaces(e.target.value)} className={INPUT_BASE_STYLE} /></div>
+                     <div><label htmlFor="outdoorParking" className={labelStyle}>Outdoor Parking (Cars)</label><input id="outdoorParking" type="number" value={outdoorParkingSpaces} onChange={e=>setOutdoorParkingSpaces(e.target.value)} className={INPUT_BASE_STYLE} /></div>
+                  </div>
+
+                  <div className="grid grid-cols-2 gap-4 items-end">
+                     <div className="mb-3">
+                         <label className="flex items-center gap-2 cursor-pointer">
+                            <input type="checkbox" checked={hasGarden} onChange={e => setHasGarden(e.target.checked)} className={CHECKBOX_STYLE} />
+                            <span className="text-sm font-medium text-light-text dark:text-dark-text">Has Garden</span>
+                         </label>
+                     </div>
+                     <div>
+                        <label htmlFor="gardenSize" className={labelStyle}>Garden Size (m²)</label>
+                        <input id="gardenSize" type="number" value={gardenSize} onChange={e=>setGardenSize(e.target.value)} className={INPUT_BASE_STYLE} disabled={!hasGarden} />
+                     </div>
+                  </div>
+
+                  <div className="grid grid-cols-2 gap-4 border-t border-black/10 dark:border-white/10 pt-4">
                       <div>
                         <label htmlFor="linkedLoanId" className={labelStyle}>Linked Loan (Optional)</label>
                         <div className={SELECT_WRAPPER_STYLE}>

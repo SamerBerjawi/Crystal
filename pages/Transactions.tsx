@@ -1,3 +1,4 @@
+
 import React, { useState, useMemo, useRef, useEffect } from 'react';
 import { INPUT_BASE_STYLE, SELECT_WRAPPER_STYLE, SELECT_ARROW_STYLE, BTN_PRIMARY_STYLE, BTN_SECONDARY_STYLE, SELECT_STYLE, CHECKBOX_STYLE } from '../constants';
 // FIX: Imported the 'Category' type to resolve 'Cannot find name' errors throughout the component.
@@ -740,8 +741,8 @@ const Transactions: React.FC<TransactionsProps> = ({ accountFilter, setAccountFi
       
       <div className="flex-1 min-w-0 relative">
         <Card className="p-0 h-full flex flex-col relative">
-            {selectedIds.size > 0 && (
-                <div className="absolute top-0 left-0 right-0 z-20 bg-primary-500 dark:bg-primary-900 text-white px-6 flex justify-between items-center shadow-md h-[53px] rounded-t-xl">
+            {selectedIds.size > 0 ? (
+                <div className="bg-primary-500 dark:bg-primary-900 text-white px-6 flex justify-between items-center shadow-md h-[53px] rounded-t-xl">
                      <div className="flex items-center gap-3">
                          <button 
                             onClick={() => setSelectedIds(new Set())} 
@@ -753,25 +754,27 @@ const Transactions: React.FC<TransactionsProps> = ({ accountFilter, setAccountFi
                          <span className="font-semibold text-sm">{selectedIds.size} selected</span>
                      </div>
                     <div className="flex gap-2">
-                        <button onClick={() => setBulkEditModalOpen(true)} className="bg-white/20 hover:bg-white/30 text-white py-1 px-3 rounded-md text-xs font-medium transition-colors" disabled={containsTransfer}>Edit</button>
-                        <button onClick={handleOpenCategorizeModal} className="bg-white/20 hover:bg-white/30 text-white py-1 px-3 rounded-md text-xs font-medium transition-colors" disabled={containsTransfer}>Categorize</button>
-                        <button onClick={() => handleMakeRecurring()} className="bg-white/20 hover:bg-white/30 text-white py-1 px-3 rounded-md text-xs font-medium transition-colors" disabled={selectedIds.size !== 1}>Make Recurring</button>
-                        <button onClick={handleOpenDeleteModal} className="bg-white/20 hover:bg-red-600 text-white py-1 px-3 rounded-md text-xs font-medium transition-colors">Delete</button>
+                        <button type="button" onClick={() => setBulkEditModalOpen(true)} className="bg-white/20 hover:bg-white/30 text-white py-1 px-3 rounded-md text-xs font-medium transition-colors" disabled={containsTransfer}>Edit</button>
+                        <button type="button" onClick={handleOpenCategorizeModal} className="bg-white/20 hover:bg-white/30 text-white py-1 px-3 rounded-md text-xs font-medium transition-colors" disabled={containsTransfer}>Categorize</button>
+                        <button type="button" onClick={() => handleMakeRecurring()} className="bg-white/20 hover:bg-white/30 text-white py-1 px-3 rounded-md text-xs font-medium transition-colors" disabled={selectedIds.size !== 1}>Make Recurring</button>
+                        <button type="button" onClick={handleOpenDeleteModal} className="bg-white/20 hover:bg-red-600 text-white py-1 px-3 rounded-md text-xs font-medium transition-colors">Delete</button>
                     </div>
                 </div>
-            )}
-            <div className="px-6 py-3 border-b border-light-separator dark:border-dark-separator flex items-center gap-4 font-semibold text-light-text-secondary dark:text-dark-text-secondary flex-shrink-0 h-[53px]">
-                <input type="checkbox" onChange={handleSelectAll} checked={isAllSelected} className={CHECKBOX_STYLE} aria-label="Select all transactions"/>
-                <div className="flex-1 grid grid-cols-12 gap-4 ml-3 items-center">
-                    <span className="col-span-8 md:col-span-6 lg:col-span-3">Transaction</span>
-                    <span className="hidden md:block col-span-2 text-sm">Account</span>
-                    <span className="hidden lg:block col-span-2 text-sm">Merchant</span>
-                    <span className="hidden md:block col-span-2 text-sm">Category</span>
-                    <span className="hidden lg:block col-span-1 text-sm">Tags</span>
-                    <span className="col-span-4 md:col-span-2 text-right">Amount</span>
+            ) : (
+                <div className="px-6 py-3 border-b border-light-separator dark:border-dark-separator flex items-center gap-4 font-semibold text-light-text-secondary dark:text-dark-text-secondary flex-shrink-0 h-[53px]">
+                    <input type="checkbox" onChange={handleSelectAll} checked={isAllSelected} className={CHECKBOX_STYLE} aria-label="Select all transactions"/>
+                    <div className="flex-1 grid grid-cols-12 gap-4 ml-3 items-center">
+                        <span className="col-span-8 md:col-span-6 lg:col-span-3">Transaction</span>
+                        <span className="hidden md:block col-span-2 text-sm">Account</span>
+                        <span className="hidden lg:block col-span-2 text-sm">Merchant</span>
+                        <span className="hidden md:block col-span-2 text-sm">Category</span>
+                        <span className="hidden lg:block col-span-1 text-sm">Tags</span>
+                        <span className="col-span-4 md:col-span-2 text-right">Amount</span>
+                    </div>
+                    <div className="w-10"></div> {/* Spacer for actions */}
                 </div>
-                <div className="w-10"></div> {/* Spacer for actions */}
-            </div>
+            )}
+            
             <div className="overflow-y-auto flex-grow">
                  {Object.keys(groupedTransactions).length > 0 ? Object.entries(groupedTransactions).map(([date, group]) => {
                     const typedGroup = group as { transactions: DisplayTransaction[]; total: number };

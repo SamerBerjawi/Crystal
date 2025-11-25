@@ -1,3 +1,4 @@
+
 import React, { useState } from 'react';
 import Modal from './Modal';
 import { Category } from '../types';
@@ -10,15 +11,29 @@ interface BulkCategorizeModalProps {
     expenseCategories: Category[];
 }
 
+const RecursiveCategoryOptions: React.FC<{ categories: Category[], level: number }> = ({ categories, level }) => {
+    const indent = '\u00A0\u00A0'.repeat(level * 2);
+    return (
+        <>
+            {categories.map(cat => (
+                <React.Fragment key={cat.id}>
+                    <option value={cat.name}>{indent}{cat.name}</option>
+                    {cat.subCategories && cat.subCategories.length > 0 && (
+                        <RecursiveCategoryOptions categories={cat.subCategories} level={level + 1} />
+                    )}
+                </React.Fragment>
+            ))}
+        </>
+    );
+};
+
 const CategoryOptions: React.FC<{ categories: Category[] }> = ({ categories }) => (
   <>
     {categories.map(parentCat => (
       <optgroup key={parentCat.id} label={parentCat.name}>
         <option value={parentCat.name}>{parentCat.name}</option>
         {parentCat.subCategories.map(subCat => (
-          <option key={subCat.id} value={subCat.name}>
-            &nbsp;&nbsp;{subCat.name}
-          </option>
+           <RecursiveCategoryOptions key={subCat.id} categories={[subCat]} level={1} />
         ))}
       </optgroup>
     ))}

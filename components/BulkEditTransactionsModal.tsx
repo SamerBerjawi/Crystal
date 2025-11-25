@@ -1,25 +1,39 @@
+
 import React, { useState, useMemo, useRef, useEffect } from 'react';
 import Modal from './Modal';
 import { Transaction, Account, Category, Tag } from '../types';
 import { INPUT_BASE_STYLE, BTN_PRIMARY_STYLE, BTN_SECONDARY_STYLE, SELECT_WRAPPER_STYLE, SELECT_ARROW_STYLE, CHECKBOX_STYLE } from '../constants';
 import LocationAutocomplete from './LocationAutocomplete';
 
+const RecursiveCategoryOptions: React.FC<{ categories: Category[], level: number }> = ({ categories, level }) => {
+    const indent = '\u00A0\u00A0'.repeat(level * 2);
+    return (
+        <>
+            {categories.map(cat => (
+                <React.Fragment key={cat.id}>
+                    <option value={cat.name}>{indent}{cat.name}</option>
+                    {cat.subCategories && cat.subCategories.length > 0 && (
+                        <RecursiveCategoryOptions categories={cat.subCategories} level={level + 1} />
+                    )}
+                </React.Fragment>
+            ))}
+        </>
+    );
+};
+
 const CategoryOptions: React.FC<{ categories: Category[] }> = ({ categories }) => (
-    <>
-      <option value="">Select a category</option>
-      {categories.map(parentCat => (
-        <optgroup key={parentCat.id} label={parentCat.name}>
-          <option value={parentCat.name}>{parentCat.name}</option>
-          {parentCat.subCategories.map(subCat => (
-            <option key={subCat.id} value={subCat.name}>
-              &nbsp;&nbsp;{subCat.name}
-            </option>
-          ))}
-        </optgroup>
-      ))}
-    </>
-  );
-  
+  <>
+    <option value="">Select a category</option>
+    {categories.map(parentCat => (
+      <optgroup key={parentCat.id} label={parentCat.name}>
+        <option value={parentCat.name}>{parentCat.name}</option>
+        {parentCat.subCategories.map(subCat => (
+           <RecursiveCategoryOptions key={subCat.id} categories={[subCat]} level={1} />
+        ))}
+      </optgroup>
+    ))}
+  </>
+);
 
 interface BulkEditTransactionsModalProps {
   isOpen: boolean;
@@ -102,7 +116,7 @@ const BulkEditTransactionsModal: React.FC<BulkEditTransactionsModalProps> = ({
   const findCategory = (name: string, categories: Category[]): Category | undefined => {
     for (const cat of categories) {
         if (cat.name === name) return cat;
-        if (cat.subCategories.length > 0) {
+        if (cat.subCategories && cat.subCategories.length > 0) {
             const found = findCategory(name, cat.subCategories);
             if (found) return found;
         }

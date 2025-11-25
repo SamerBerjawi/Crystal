@@ -31,7 +31,7 @@ export interface Tag {
 }
 
 export type InvestmentSubType = 'Stock' | 'ETF' | 'Crypto' | 'Pension Fund' | 'Spare Change' | 'Other';
-export type PropertyType = 'House' | 'Apartment' | 'Land' | 'Commercial' | 'Other';
+export type PropertyType = 'Apartment' | 'Detached House' | 'Semi-Detached House' | 'Terraced House' | 'Land' | 'Commercial' | 'Other';
 
 // Vehicle Specific Types
 export type FuelType = 'Gasoline' | 'Diesel' | 'Electric' | 'Hybrid' | 'LPG';
@@ -102,6 +102,17 @@ export interface Account {
   purchasePrice?: number; // Shared with Vehicle
   principalOwned?: number;
   linkedLoanId?: string;
+  propertySize?: number; // sq meters
+  yearBuilt?: number;
+  floors?: number;
+  bedrooms?: number;
+  bathrooms?: number;
+  hasBasement?: boolean;
+  hasAttic?: boolean;
+  indoorParkingSpaces?: number;
+  outdoorParkingSpaces?: number;
+  hasGarden?: boolean;
+  gardenSize?: number;
   
   // Other Assets/Liabilities
   notes?: string;

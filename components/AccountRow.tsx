@@ -2,7 +2,7 @@
 import React, { useMemo } from 'react';
 import { Account, Transaction, Warrant } from '../types';
 import { convertToEur, formatCurrency } from '../utils';
-import { LineChart, Line } from 'recharts';
+import { LineChart, Line, ResponsiveContainer } from 'recharts';
 import { ACCOUNT_TYPE_STYLES } from '../constants';
 
 interface AccountRowProps {
@@ -38,7 +38,7 @@ const AccountRow: React.FC<AccountRowProps> = ({ account, transactions, warrants
         const NUM_POINTS = 30;
         const endDate = new Date();
         const startDate = new Date();
-        startDate.setDate(endDate.getDate() - 90); // last 90 days
+        startDate.setDate(endDate.getDate() - 90);
 
         if (transactions.length === 0) {
             return Array(NUM_POINTS).fill({ value: account.balance });
@@ -89,7 +89,6 @@ const AccountRow: React.FC<AccountRowProps> = ({ account, transactions, warrants
     const isAsset = displayBalance >= 0;
     
     const isComputedAccount = useMemo(() => {
-        // An investment account is 'computed' and not manually editable if it's a warrant being tracked automatically.
         if (account.type !== 'Investment' || !account.symbol) {
             return false;
         }
@@ -105,25 +104,15 @@ const AccountRow: React.FC<AccountRowProps> = ({ account, transactions, warrants
 
     const renderSecondaryDetails = () => {
         const details = [];
+        if (account.type === 'Property' && account.propertyType) details.push(account.propertyType);
+        else details.push(account.type);
+
         if (account.last4) details.push(`•••• ${account.last4}`);
         if (account.subType) details.push(account.subType);
         if (account.interestRate) details.push(`${account.interestRate}%`);
         if (account.make) details.push(`${account.year} ${account.make} ${account.model}`);
-        if (account.propertyType) details.push(account.propertyType);
         
-        if (details.length === 0) return <span>{account.type}</span>;
-
-        return (
-            <>
-                <span>{account.type}</span>
-                {details.map((detail, index) => (
-                    <React.Fragment key={index}>
-                        <span className="mx-1">&bull;</span>
-                        <span>{detail}</span>
-                    </React.Fragment>
-                ))}
-            </>
-        );
+        return details.join(' • ');
     };
 
     return (
@@ -138,7 +127,6 @@ const AccountRow: React.FC<AccountRowProps> = ({ account, transactions, warrants
             className={`flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 p-4 rounded-lg hover:bg-black/5 dark:hover:bg-white/5 transition-all duration-200 group hover:-translate-y-0.5 hover:shadow-md ${cursorClass} ${dragClasses} ${dragOverClasses} ${account.status === 'closed' ? 'opacity-60 grayscale' : ''}`} 
             onClick={onClick}
         >
-            {/* Left side: Icon, Name, Type */}
             <div className="flex items-center w-full flex-1 min-w-0">
                 <div className={`text-3xl mr-4 flex items-center justify-center w-12 h-12 shrink-0 ${style.color}`}>
                     <span className="material-symbols-outlined material-symbols-filled" style={{ fontSize: '32px' }}>
@@ -157,13 +145,13 @@ const AccountRow: React.FC<AccountRowProps> = ({ account, transactions, warrants
                 </div>
             </div>
 
-            {/* Right side: Balance, Sparkline, Edit button */}
             <div className="flex items-center justify-between sm:justify-end gap-2 sm:gap-4 w-full sm:w-auto">
                 <div className="w-24 h-10 shrink-0 hidden sm:block">
-                    {/* w-24 (6rem = 96px), h-10 (2.5rem = 40px) */}
-                    <LineChart width={96} height={40} data={sparklineData}>
-                        <Line type="natural" dataKey="value" stroke={sparklineColor} strokeWidth={2} dot={false} />
-                    </LineChart>
+                    <ResponsiveContainer minWidth={0} minHeight={0} debounce={50}>
+                        <LineChart width={96} height={40} data={sparklineData}>
+                            <Line type="natural" dataKey="value" stroke={sparklineColor} strokeWidth={2} dot={false} />
+                        </LineChart>
+                    </ResponsiveContainer>
                 </div>
                 <div className="text-right shrink-0 w-32 sm:w-40">
                     <p className={`font-bold text-lg sm:text-xl ${isAsset ? 'text-light-text dark:text-dark-text' : 'text-red-500'}`}>

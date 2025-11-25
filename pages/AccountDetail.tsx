@@ -184,55 +184,65 @@ const AccountDetail: React.FC<AccountDetailProps> = ({ account, setCurrentPage, 
 
     const { balanceHistory, totalIncome, totalExpenses } = useMemo(() => {
         const { start, end } = getDateRange(duration, transactions);
-        const filteredTxs = accountTransactions.filter(item => item.parsedDate >= start && item.parsedDate <= end);
-        
-        let totalIncome = 0;
-        let totalExpenses = 0;
-        
-        // Calculate starting balance
-        const txsBeforePeriod = accountTransactions.filter(item => item.parsedDate < start);
-        const balanceChangeBefore = txsBeforePeriod.reduce((sum, item) => sum + item.convertedAmount, 0);
-        // Assuming account.balance is current. We need to backtrack.
-        // Current Balance - (Change During Period) - (Change After Period) = Start Balance?
-        // Actually easier: Start Balance = Current Balance - (All changes after start date)
-        // But this assumes transactions are the only source of truth.
-        // Let's stick to a relative graph or simple accumulation if we trust the tx history.
-        
-        // A better approach for individual accounts is to just show the flow during the period
-        // Or try to reconstruct if possible.
-        // Let's just show the running total of the *transactions in the period* relative to 0 for now,
-        // or if it's a simple account, we can try to project back.
-        
-        // Let's project back from current balance.
-        const txsAfterPeriod = accountTransactions.filter(item => item.parsedDate > end);
-        const changeAfter = txsAfterPeriod.reduce((sum, item) => sum + item.convertedAmount, 0);
-        
-        const changeDuring = filteredTxs.reduce((sum, item) => sum + item.convertedAmount, 0);
-        
-        let currentRunningBalance = convertToEur(account.balance, account.currency) - changeAfter - changeDuring;
-        
-        const history = [];
-        // Group by day
-        const dailyMap = new Map<string, number>();
-        filteredTxs.forEach(item => {
-            const key = formatDateKey(item.parsedDate);
-            dailyMap.set(key, (dailyMap.get(key) || 0) + item.convertedAmount);
-            
-            if (item.convertedAmount > 0) totalIncome += item.convertedAmount;
-            else totalExpenses += Math.abs(item.convertedAmount);
-        });
-        
-        let iterDate = new Date(start);
-        while (iterDate <= end) {
-            const key = formatDateKey(iterDate);
-            const change = dailyMap.get(key) || 0;
-            currentRunningBalance += change;
-            history.push({ date: key, value: currentRunningBalance });
-            iterDate.setUTCDate(iterDate.getUTCDate() + 1);
+         // Performance optimization: cap 'ALL' time range to a few years to prevent massive loops
+        if (duration === 'ALL') {
+            const fiveYearsAgo = new Date(end);
+            fiveYearsAgo.setUTCFullYear(end.getUTCFullYear() - 5);
+            if (start < fiveYearsAgo) {
+                start.setTime(fiveYearsAgo.getTime());
+            }
         }
         
-        return { balanceHistory: history, totalIncome, totalExpenses };
-    }, [accountTransactions, duration, account]);
+        const currentBalance = convertToEur(account.balance, account.currency);
+        
+        const transactionsToReverse = transactions.filter(tx => {
+            if (tx.accountId !== account.id) return false;
+            const txDate = parseDateAsUTC(tx.date);
+            return txDate >= start; // Reverse all transactions from the start of the period
+        });
+
+        const totalChangeSinceStart = transactionsToReverse.reduce((sum, tx) => {
+            return sum + convertToEur(tx.amount, tx.currency);
+        }, 0);
+
+        const startingBalance = currentBalance - totalChangeSinceStart;
+        
+        const transactionsInPeriod = transactions.filter(tx => {
+            if (tx.accountId !== account.id) return false;
+            const txDate = parseDateAsUTC(tx.date);
+            return txDate >= start && txDate <= end;
+        });
+
+        const dailyChanges = new Map<string, number>();
+        let incomeInPeriod = 0;
+        let expensesInPeriod = 0;
+        
+        for (const tx of transactionsInPeriod) {
+            const dateStr = tx.date;
+            const change = convertToEur(tx.amount, tx.currency);
+            dailyChanges.set(dateStr, (dailyChanges.get(dateStr) || 0) + change);
+            if (change > 0) incomeInPeriod += change;
+            else expensesInPeriod += Math.abs(change);
+        }
+        
+        const history: { name: string, value: number }[] = [];
+        let runningBalance = startingBalance;
+        
+        let currentDate = new Date(start);
+    
+        while (currentDate <= end) {
+            const dateStr = toYYYYMMDD(currentDate);
+            runningBalance += dailyChanges.get(dateStr) || 0;
+            history.push({
+                name: dateStr,
+                value: parseFloat(runningBalance.toFixed(2))
+            });
+            currentDate.setUTCDate(currentDate.getUTCDate() + 1);
+        }
+        
+        return { balanceHistory: history, totalIncome: incomeInPeriod, totalExpenses: expensesInPeriod };
+    }, [accountTransactions, duration, account.balance, account.currency, transactions]);
+
 
     // Prepare display transactions
     const displayTransactionsList: DisplayTransaction[] = useMemo(() => {
@@ -275,7 +285,7 @@ const AccountDetail: React.FC<AccountDetailProps> = ({ account, setCurrentPage, 
             const dailyAllowance = account.annualMileageAllowance / 365;
             const expectedMileage = elapsedDays * dailyAllowance;
             mileageDiff = currentMileage - expectedMileage;
-            projectedMileage = (currentMileage / elapsedDays) * totalDays;
+            projectedMileage = (currentMileage / elapsedDays) * 365;
             
             // Tolerance of 1000km
             if (mileageDiff > 1000) mileageStatus = 'Over Budget';
@@ -302,6 +312,193 @@ const AccountDetail: React.FC<AccountDetailProps> = ({ account, setCurrentPage, 
 
     // Only show value if NOT leased, OR if leased and value is non-zero/present
     const showCurrentValue = account.ownership !== 'Leased' || (account.balance !== 0);
+
+    // --- Property Specific Helpers ---
+    if (account.type === 'Property') {
+        const linkedLoan = useMemo(() => {
+            if (account.linkedLoanId) {
+                return accounts.find(a => a.id === account.linkedLoanId);
+            }
+            return null;
+        }, [account.linkedLoanId, accounts]);
+    
+        const principalOwned = useMemo(() => {
+            if (linkedLoan) {
+                const loanPayments = transactions.filter(tx => tx.accountId === linkedLoan.id && tx.type === 'income');
+                const principalPaidOnLoan = loanPayments.reduce((sum, tx) => sum + (tx.principalAmount || 0), 0);
+                return principalPaidOnLoan + (linkedLoan.downPayment || 0);
+            }
+            return account.principalOwned || 0;
+        }, [linkedLoan, transactions, account.principalOwned]);
+    
+        const purchasePrice = useMemo(() => {
+            if (linkedLoan) {
+                return (linkedLoan.principalAmount || 0) + (linkedLoan.downPayment || 0);
+            }
+            return account.purchasePrice || 0;
+        }, [linkedLoan, account.purchasePrice]);
+
+        const features = [
+            account.hasBasement ? { label: 'Basement', icon: 'foundation' } : null,
+            account.hasAttic ? { label: 'Attic', icon: 'roofing' } : null,
+            account.hasGarden ? { label: `Garden ${account.gardenSize ? `(${account.gardenSize} m²)` : ''}`, icon: 'yard' } : null,
+            account.indoorParkingSpaces ? { label: `Indoor Parking (${account.indoorParkingSpaces})`, icon: 'garage' } : null,
+            account.outdoorParkingSpaces ? { label: `Outdoor Parking (${account.outdoorParkingSpaces})`, icon: 'local_parking' } : null,
+        ].filter(Boolean);
+
+        const equity = account.balance - (linkedLoan ? Math.abs(linkedLoan.balance) : 0);
+        const appreciation = account.balance - (purchasePrice || 0);
+        const appreciationPercent = purchasePrice ? (appreciation / purchasePrice) * 100 : 0;
+
+        return (
+            <div className="space-y-6">
+                 {isTransactionModalOpen && (
+                    <AddTransactionModal
+                        onClose={() => setTransactionModalOpen(false)}
+                        onSave={(data, toDelete) => {
+                            saveTransaction(data, toDelete);
+                            setTransactionModalOpen(false);
+                        }}
+                        accounts={accounts}
+                        incomeCategories={incomeCategories}
+                        expenseCategories={expenseCategories}
+                        transactionToEdit={editingTransaction}
+                        transactions={transactions}
+                        tags={tags}
+                        initialType={initialModalState.type}
+                        initialFromAccountId={initialModalState.from}
+                        initialToAccountId={initialModalState.to}
+                        initialDetails={initialModalState.details}
+                    />
+                )}
+
+                <header className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
+                    <div className="flex items-center gap-4 w-full">
+                        <button onClick={() => { setViewingAccountId(null); setCurrentPage('Accounts'); }} className="text-light-text-secondary dark:text-dark-text-secondary p-2 rounded-full hover:bg-black/5 dark:hover:bg-white/5 flex-shrink-0">
+                            <span className="material-symbols-outlined">arrow_back</span>
+                        </button>
+                         <div className="flex items-center gap-4 w-full">
+                            <div className={`w-16 h-16 rounded-xl flex items-center justify-center ${ACCOUNT_TYPE_STYLES[account.type]?.color || 'bg-gray-200 text-gray-600'} bg-opacity-10 border border-current`}>
+                                <span className="material-symbols-outlined text-4xl">{account.icon || 'home'}</span>
+                            </div>
+                            <div>
+                                <h1 className="text-2xl font-bold text-light-text dark:text-dark-text">{account.name}</h1>
+                                <div className="flex items-center gap-2 text-sm text-light-text-secondary dark:text-dark-text-secondary">
+                                    <span>{account.propertyType || 'Property'}</span>
+                                    {account.address && (
+                                        <>
+                                            <span>•</span>
+                                            <span className="truncate max-w-[200px]" title={account.address}>{account.address}</span>
+                                        </>
+                                    )}
+                                </div>
+                            </div>
+                            <div className="ml-auto">
+                                <button onClick={() => handleOpenTransactionModal()} className={BTN_PRIMARY_STYLE}>Add Transaction</button>
+                            </div>
+                        </div>
+                    </div>
+                </header>
+    
+                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
+                    <Card>
+                        <p className="text-xs uppercase tracking-wide text-light-text-secondary dark:text-dark-text-secondary font-semibold mb-1">Current Value</p>
+                        <p className="text-2xl font-bold text-light-text dark:text-dark-text">{formatCurrency(account.balance, account.currency)}</p>
+                    </Card>
+                    <Card>
+                        <p className="text-xs uppercase tracking-wide text-light-text-secondary dark:text-dark-text-secondary font-semibold mb-1">Purchase Price</p>
+                        <p className="text-2xl font-bold text-light-text dark:text-dark-text">{formatCurrency(purchasePrice, account.currency)}</p>
+                    </Card>
+                    <Card>
+                         <p className="text-xs uppercase tracking-wide text-light-text-secondary dark:text-dark-text-secondary font-semibold mb-1">Equity</p>
+                         <p className="text-2xl font-bold text-green-600 dark:text-green-400">{formatCurrency(equity, account.currency)}</p>
+                    </Card>
+                    <Card>
+                        <p className="text-xs uppercase tracking-wide text-light-text-secondary dark:text-dark-text-secondary font-semibold mb-1">Appreciation</p>
+                        <div className="flex items-baseline gap-2">
+                            <p className={`text-2xl font-bold ${appreciation >= 0 ? 'text-green-600 dark:text-green-400' : 'text-red-600 dark:text-red-400'}`}>
+                                {appreciation >= 0 ? '+' : ''}{formatCurrency(appreciation, account.currency)}
+                            </p>
+                            <p className={`text-sm font-semibold ${appreciation >= 0 ? 'text-green-600 dark:text-green-400' : 'text-red-600 dark:text-red-400'}`}>
+                                ({appreciationPercent >= 0 ? '+' : ''}{appreciationPercent.toFixed(1)}%)
+                            </p>
+                        </div>
+                    </Card>
+                </div>
+
+                <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+                    <Card className="lg:col-span-2">
+                        <h3 className="text-base font-semibold text-light-text dark:text-dark-text mb-4">Property Details</h3>
+                        <div className="grid grid-cols-2 sm:grid-cols-3 gap-6">
+                             <div>
+                                <p className="text-xs text-light-text-secondary dark:text-dark-text-secondary mb-1">Size</p>
+                                <p className="font-semibold text-lg">{account.propertySize ? `${account.propertySize} m²` : 'N/A'}</p>
+                            </div>
+                            <div>
+                                <p className="text-xs text-light-text-secondary dark:text-dark-text-secondary mb-1">Year Built</p>
+                                <p className="font-semibold text-lg">{account.yearBuilt || 'N/A'}</p>
+                            </div>
+                            <div>
+                                <p className="text-xs text-light-text-secondary dark:text-dark-text-secondary mb-1">Floors</p>
+                                <p className="font-semibold text-lg">{account.floors || 'N/A'}</p>
+                            </div>
+                            <div>
+                                <p className="text-xs text-light-text-secondary dark:text-dark-text-secondary mb-1">Bedrooms</p>
+                                <p className="font-semibold text-lg">{account.bedrooms || 'N/A'}</p>
+                            </div>
+                            <div>
+                                <p className="text-xs text-light-text-secondary dark:text-dark-text-secondary mb-1">Bathrooms</p>
+                                <p className="font-semibold text-lg">{account.bathrooms || 'N/A'}</p>
+                            </div>
+                             <div>
+                                <p className="text-xs text-light-text-secondary dark:text-dark-text-secondary mb-1">Linked Loan</p>
+                                {linkedLoan ? (
+                                    <button onClick={() => setViewingAccountId(linkedLoan.id)} className="font-semibold text-lg text-primary-500 hover:underline truncate max-w-full block text-left">
+                                        {linkedLoan.name}
+                                    </button>
+                                ) : (
+                                    <p className="font-semibold text-lg text-gray-400">None</p>
+                                )}
+                            </div>
+                        </div>
+                    </Card>
+
+                    <Card>
+                        <h3 className="text-base font-semibold text-light-text dark:text-dark-text mb-4">Features & Amenities</h3>
+                        {features.length > 0 ? (
+                            <div className="flex flex-wrap gap-3">
+                                {features.map((feature, idx) => (
+                                    <div key={idx} className="flex items-center gap-2 px-3 py-2 rounded-lg bg-light-fill dark:bg-dark-fill border border-black/5 dark:border-white/5">
+                                        <span className="material-symbols-outlined text-primary-500 text-xl">{feature?.icon}</span>
+                                        <span className="font-medium text-sm text-light-text dark:text-dark-text">{feature?.label}</span>
+                                    </div>
+                                ))}
+                            </div>
+                        ) : (
+                            <p className="text-sm text-light-text-secondary dark:text-dark-text-secondary italic">No features listed.</p>
+                        )}
+                    </Card>
+                </div>
+                
+                <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+                     {linkedLoan && (
+                        <LoanProgressCard title="Mortgage Progress" paid={principalOwned} total={purchasePrice || linkedLoan.totalAmount || 0} currency={account.currency} />
+                     )}
+                     
+                     <div className={linkedLoan ? "lg:col-span-2" : "lg:col-span-3"}>
+                         <Card>
+                            <h3 className="text-xl font-semibold mb-4 text-light-text dark:text-dark-text">Recent Activity</h3>
+                            <TransactionList
+                                transactions={displayTransactionsList}
+                                allCategories={allCategories}
+                                onTransactionClick={handleTransactionClick}
+                            />
+                        </Card>
+                     </div>
+                </div>
+            </div>
+        );
+    }
 
     return (
     <div className="space-y-8">
@@ -354,20 +551,9 @@ const AccountDetail: React.FC<AccountDetailProps> = ({ account, setCurrentPage, 
                 <button onClick={() => { setViewingAccountId(null); setCurrentPage('Accounts'); }} className="text-light-text-secondary dark:text-dark-text-secondary p-1 rounded-full hover:bg-black/5 dark:hover:bg-white/5">
                     <span className="material-symbols-outlined">arrow_back</span>
                 </button>
-                <div className="flex items-center gap-3">
-                    <div className={`w-12 h-12 rounded-full flex items-center justify-center ${ACCOUNT_TYPE_STYLES[account.type]?.color || 'bg-gray-200 text-gray-600'} bg-opacity-20`}>
-                        <span className="material-symbols-outlined text-3xl">{account.icon || 'wallet'}</span>
-                    </div>
-                    <div>
-                        <h1 className="text-2xl font-bold text-light-text dark:text-dark-text">{account.name}</h1>
-                        <p className="text-sm text-light-text-secondary dark:text-dark-text-secondary">{account.type} {account.last4 ? `•••• ${account.last4}` : ''}</p>
-                    </div>
-                </div>
             </div>
             <div className="flex gap-3">
-                {account.type === 'Vehicle' && (
-                    <button onClick={() => handleOpenMileageModal()} className={BTN_SECONDARY_STYLE}>Log Mileage</button>
-                )}
+                {(account.type !== 'Vehicle') && <DurationFilter selectedDuration={duration} onDurationChange={setDuration} />}
                 <button onClick={() => handleOpenTransactionModal()} className={BTN_PRIMARY_STYLE}>Add Transaction</button>
             </div>
         </header>
@@ -375,41 +561,32 @@ const AccountDetail: React.FC<AccountDetailProps> = ({ account, setCurrentPage, 
         {/* --- VEHICLE DASHBOARD --- */}
         {account.type === 'Vehicle' ? (
             <div className="space-y-6">
-                {/* Hero Section */}
-                <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-                    {/* Image Card */}
-                    <Card className="md:col-span-1 p-0 overflow-hidden flex items-center justify-center bg-white dark:bg-dark-card relative h-64 md:h-auto">
-                        <div className={`w-full h-full flex items-center justify-center ${account.imageUrl ? '' : 'bg-gray-100 dark:bg-gray-800'}`}>
-                            {account.imageUrl ? (
-                                <img 
-                                    src={account.imageUrl} 
-                                    alt={account.name} 
-                                    className="max-w-full max-h-full object-contain p-4" 
-                                />
-                            ) : (
+                <Card className="grid grid-cols-1 md:grid-cols-3 gap-6 items-center">
+                    <div className="md:col-span-1 relative aspect-video rounded-lg overflow-hidden flex items-center justify-center">
+                        {account.imageUrl ? (
+                            <img 
+                                src={account.imageUrl} 
+                                alt={account.name} 
+                                className="max-w-full max-h-full object-contain" 
+                            />
+                        ) : (
+                            <div className="w-full h-full bg-gray-100 dark:bg-gray-800 flex items-center justify-center">
                                 <span className="material-symbols-outlined text-6xl text-gray-300 dark:text-gray-600">directions_car</span>
-                            )}
-                        </div>
+                            </div>
+                        )}
                         <div className="absolute top-2 right-2 bg-black/50 text-white text-xs px-2 py-1 rounded backdrop-blur-sm">
                             {account.ownership || 'Owned'}
                         </div>
-                    </Card>
+                    </div>
 
-                    {/* Info & Stats Card */}
-                    <Card className="md:col-span-2 flex flex-col justify-center p-6 md:p-8">
-                        <div className="mb-6">
-                            <h2 className="text-3xl font-bold text-light-text dark:text-dark-text">
-                                {account.year} {account.make} {account.model}
-                            </h2>
-                            <p className="text-light-text-secondary dark:text-dark-text-secondary font-mono mt-1">
-                                VIN: {account.vin || 'N/A'}
-                            </p>
-                        </div>
-                        
-                        <div className="grid grid-cols-2 sm:grid-cols-4 gap-6">
-                            {showCurrentValue && (
+                    <div className="md:col-span-2 p-2">
+                        <h2 className="text-3xl font-bold text-light-text dark:text-dark-text">
+                            {account.year} {account.make} {account.model}
+                        </h2>
+                        <div className="mt-4 grid grid-cols-2 sm:grid-cols-4 gap-4 text-center md:text-left">
+                           {showCurrentValue && (
                                 <div>
-                                    <p className="text-xs uppercase tracking-wide text-light-text-secondary dark:text-dark-text-secondary font-semibold mb-1">Current Value</p>
+                                    <p className="text-xs uppercase tracking-wide text-light-text-secondary dark:text-dark-text-secondary font-semibold mb-1">Value</p>
                                     <p className="text-xl font-bold text-light-text dark:text-dark-text">{formatCurrency(account.balance, account.currency)}</p>
                                 </div>
                             )}
@@ -419,12 +596,9 @@ const AccountDetail: React.FC<AccountDetailProps> = ({ account, setCurrentPage, 
                             </div>
                             <div>
                                 <p className="text-xs uppercase tracking-wide text-light-text-secondary dark:text-dark-text-secondary font-semibold mb-1">Fuel</p>
-                                <div className="flex items-center gap-1">
-                                    <span className="material-symbols-outlined text-sm text-primary-500">local_gas_station</span>
-                                    <p className="text-lg font-medium text-light-text dark:text-dark-text">{account.fuelType || 'N/A'}</p>
-                                </div>
+                                <p className="text-lg font-medium text-light-text dark:text-dark-text">{account.fuelType || 'N/A'}</p>
                             </div>
-                            <div>
+                             <div>
                                 <p className="text-xs uppercase tracking-wide text-light-text-secondary dark:text-dark-text-secondary font-semibold mb-1">Plate</p>
                                 <div className="flex items-stretch bg-gray-200 dark:bg-gray-700 rounded overflow-hidden inline-flex h-8">
                                     {account.registrationCountryCode && (
@@ -440,18 +614,15 @@ const AccountDetail: React.FC<AccountDetailProps> = ({ account, setCurrentPage, 
                                 </div>
                             </div>
                         </div>
-                    </Card>
-                </div>
+                    </div>
+                </Card>
 
                 {/* Lease Dashboard */}
                 {account.ownership === 'Leased' && leaseStats && (
                     <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
                         <Card>
-                            <div className="flex justify-between items-start mb-4">
-                                <h3 className="font-semibold text-light-text dark:text-dark-text">Lease Timeline</h3>
-                                <span className="text-xs bg-blue-100 dark:bg-blue-900/30 text-blue-600 dark:text-blue-300 px-2 py-1 rounded-full">{leaseStats.daysRemaining} days left</span>
-                            </div>
-                            <div className="relative pt-2">
+                            <h3 className="font-semibold text-light-text dark:text-dark-text mb-4">Lease Timeline</h3>
+                             <div className="relative pt-2">
                                 <div className="flex justify-between text-xs text-light-text-secondary dark:text-dark-text-secondary mb-1">
                                     <span>{leaseStats.start.toLocaleDateString()}</span>
                                     <span>{leaseStats.end.toLocaleDateString()}</span>
@@ -459,35 +630,30 @@ const AccountDetail: React.FC<AccountDetailProps> = ({ account, setCurrentPage, 
                                 <div className="w-full bg-gray-200 dark:bg-gray-700 rounded-full h-3">
                                     <div className="bg-primary-500 h-3 rounded-full" style={{ width: `${leaseStats.progress}%` }}></div>
                                 </div>
-                                <p className="text-center text-sm font-bold mt-2">{leaseStats.progress.toFixed(1)}% Elapsed</p>
+                                <p className="text-center text-sm font-bold mt-2">{leaseStats.progress.toFixed(1)}% Elapsed ({leaseStats.daysRemaining} days left)</p>
                             </div>
                         </Card>
-
                         <Card>
-                            <div className="flex justify-between items-start mb-2">
-                                <h3 className="font-semibold text-light-text dark:text-dark-text">Mileage Health</h3>
-                                <span className={`text-xs px-2 py-1 rounded-full font-bold ${
-                                    leaseStats.mileageStatus === 'Over Budget' ? 'bg-red-100 text-red-600 dark:bg-red-900/30 dark:text-red-300' :
-                                    leaseStats.mileageStatus === 'Under Budget' ? 'bg-green-100 text-green-600 dark:bg-green-900/30 dark:text-green-300' :
-                                    'bg-gray-100 text-gray-600 dark:bg-gray-700 dark:text-gray-300'
-                                }`}>
-                                    {leaseStats.mileageStatus}
-                                </span>
-                            </div>
-                            <div className="mt-4">
-                                <div className="flex justify-between items-end mb-1">
+                            <h3 className="font-semibold text-light-text dark:text-dark-text mb-4">Mileage Health</h3>
+                             <div className="space-y-2">
+                                <div className="flex justify-between items-baseline">
                                     <span className="text-sm text-light-text-secondary">Allowance</span>
                                     <span className="text-lg font-bold">{(account.annualMileageAllowance || 0).toLocaleString()} <span className="text-xs font-normal text-gray-500">km/yr</span></span>
                                 </div>
-                                <div className="w-full bg-gray-200 dark:bg-gray-700 rounded-full h-2 mb-2 overflow-hidden">
-                                    {/* Visual bar for mileage health could go here, simplified for now */}
-                                    <div className={`h-full ${leaseStats.mileageDiff > 0 ? 'bg-red-500' : 'bg-green-500'}`} style={{width: '100%'}}></div>
+                                <div className="flex justify-between items-baseline">
+                                    <span className="text-sm text-light-text-secondary">Projected</span>
+                                    <span className="text-lg font-bold">{leaseStats.projectedMileage.toLocaleString(undefined, {maximumFractionDigits: 0})} <span className="text-xs font-normal text-gray-500">km/yr</span></span>
                                 </div>
-                                <p className="text-xs text-light-text-secondary dark:text-dark-text-secondary mt-2">
-                                    {leaseStats.mileageDiff > 0 
-                                        ? `${leaseStats.mileageDiff.toLocaleString()} km over pro-rated budget` 
-                                        : `${Math.abs(leaseStats.mileageDiff).toLocaleString()} km under pro-rated budget`}
-                                </p>
+                                 <div className="flex justify-between items-baseline">
+                                    <span className="text-sm text-light-text-secondary">Status</span>
+                                    <span className={`text-lg font-bold ${
+                                    leaseStats.mileageStatus === 'Over Budget' ? 'text-red-500' :
+                                    leaseStats.mileageStatus === 'Under Budget' ? 'text-green-500' :
+                                    'text-gray-500'
+                                }`}>
+                                    {Math.abs(leaseStats.mileageDiff).toLocaleString(undefined, {maximumFractionDigits: 0})} km {leaseStats.mileageStatus}
+                                </span>
+                                </div>
                             </div>
                         </Card>
 
@@ -498,11 +664,7 @@ const AccountDetail: React.FC<AccountDetailProps> = ({ account, setCurrentPage, 
                                     <span className="text-sm text-light-text-secondary">Monthly Payment</span>
                                     <span className="font-bold text-lg">{account.leasePaymentAmount ? formatCurrency(account.leasePaymentAmount, account.currency) : 'N/A'}</span>
                                 </div>
-                                <div className="flex justify-between items-center border-t border-gray-100 dark:border-gray-800 pt-2">
-                                    <span className="text-sm text-light-text-secondary">Due Date</span>
-                                    <span className="font-medium">Day {account.leasePaymentDay || '?'}</span>
-                                </div>
-                                <div className="flex justify-between items-center border-t border-gray-100 dark:border-gray-800 pt-2">
+                                <div className="flex justify-between items-center pt-2 border-t border-gray-100 dark:border-gray-800">
                                     <span className="text-sm text-light-text-secondary">Paid From</span>
                                     <span className="font-medium truncate max-w-[120px]">{accounts.find(a => a.id === account.leasePaymentAccountId)?.name || 'External'}</span>
                                 </div>
@@ -510,8 +672,6 @@ const AccountDetail: React.FC<AccountDetailProps> = ({ account, setCurrentPage, 
                         </Card>
                     </div>
                 )}
-
-                {/* Ownership Section */}
                 {account.ownership === 'Owned' && (
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                         <Card>
@@ -529,7 +689,7 @@ const AccountDetail: React.FC<AccountDetailProps> = ({ account, setCurrentPage, 
                         </Card>
                         <Card>
                             <h3 className="font-semibold text-light-text dark:text-dark-text mb-4">Depreciation</h3>
-                            <div className="flex items-center gap-4">
+                             <div className="flex items-center gap-4">
                                 <div className="p-3 rounded-full bg-red-100 dark:bg-red-900/30 text-red-600 dark:text-red-400">
                                     <span className="material-symbols-outlined">trending_down</span>
                                 </div>
@@ -541,21 +701,14 @@ const AccountDetail: React.FC<AccountDetailProps> = ({ account, setCurrentPage, 
                         </Card>
                     </div>
                 )}
-
-                {/* Mileage History */}
                 <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
                     <div className="lg:col-span-2">
                         <VehicleMileageChart logs={account.mileageLogs || []} />
                     </div>
                     <div className="lg:col-span-1">
                         <Card className="h-full flex flex-col">
-                            <div className="flex justify-between items-center mb-4">
-                                <h3 className="font-semibold text-light-text dark:text-dark-text">Log History</h3>
-                                <button onClick={() => handleOpenMileageModal()} className="text-primary-500 hover:bg-primary-50 dark:hover:bg-primary-900/20 p-1 rounded transition-colors">
-                                    <span className="material-symbols-outlined">add</span>
-                                </button>
-                            </div>
-                            <div className="flex-1 overflow-y-auto pr-2 space-y-2 max-h-64">
+                            <h3 className="font-semibold text-light-text dark:text-dark-text mb-4">Log History</h3>
+                            <div className="flex-1 overflow-y-auto pr-2 -mr-2 space-y-2 max-h-64">
                                 {(account.mileageLogs || []).sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime()).map(log => (
                                     <div key={log.id} className="flex justify-between items-center p-3 rounded-lg bg-gray-50 dark:bg-white/5 group">
                                         <div>
@@ -579,23 +732,12 @@ const AccountDetail: React.FC<AccountDetailProps> = ({ account, setCurrentPage, 
         ) : (
             // --- STANDARD ACCOUNT DASHBOARD (Existing Logic for other types) ---
             <div className="space-y-6">
-                {/* Standard summary for non-vehicle accounts */}
-                <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
+                 <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
                     <CurrentBalanceCard balance={account.balance} currency={account.currency} />
-                    <BalanceCard title="Income (1Y)" amount={totalIncome} sparklineData={[]} />
-                    <BalanceCard title="Expenses (1Y)" amount={totalExpenses} sparklineData={[]} />
-                    <Card className="flex items-center justify-between">
-                        <div>
-                            <h3 className="text-base font-semibold text-light-text-secondary dark:text-dark-text-secondary">Transactions</h3>
-                            <p className="text-2xl font-bold mt-1 text-light-text dark:text-dark-text">{accountTransactions.length}</p>
-                        </div>
-                        <div className="w-10 h-10 rounded-full flex items-center justify-center bg-primary-500/10">
-                            <span className="material-symbols-outlined text-2xl text-primary-500">receipt_long</span>
-                        </div>
-                    </Card>
-                </div>
-
-                {/* Loan specific section */}
+                    <BalanceCard title={`Income (${duration})`} amount={totalIncome} sparklineData={[]} />
+                    <BalanceCard title={`Expenses (${duration})`} amount={totalExpenses} sparklineData={[]} />
+                    <NetBalanceCard netBalance={totalIncome - totalExpenses} totalIncome={totalIncome} duration={duration} />
+                 </div>
                 {account.type === 'Loan' && account.principalAmount && account.duration && account.loanStartDate && (
                     <Card>
                         <h3 className="text-xl font-semibold mb-4 text-light-text dark:text-dark-text">Loan Payment Schedule</h3>
@@ -608,14 +750,10 @@ const AccountDetail: React.FC<AccountDetailProps> = ({ account, setCurrentPage, 
                         />
                     </Card>
                 )}
-
                 <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
                     <NetWorthChart data={balanceHistory} lineColor={ACCOUNT_TYPE_STYLES[account.type]?.color ? 'currentColor' : '#6366F1'} />
                     <Card className="flex flex-col">
-                        <div className="flex justify-between items-center mb-4">
-                            <h3 className="text-xl font-semibold text-light-text dark:text-dark-text">Recent Activity</h3>
-                            <DurationFilter selectedDuration={duration} onDurationChange={setDuration} />
-                        </div>
+                        <h3 className="text-xl font-semibold mb-4 text-light-text dark:text-dark-text">Recent Activity</h3>
                         <div className="flex-1 overflow-hidden">
                             <TransactionList transactions={displayTransactionsList} allCategories={allCategories} onTransactionClick={handleTransactionClick} />
                         </div>
