@@ -469,19 +469,19 @@ const GeneralAccountView: React.FC<GeneralAccountViewProps> = ({
     <div className="space-y-6 animate-fade-in-up">
       {/* Header */}
       <header className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
-        <div className="flex items-center gap-4 w-full">
+        <div className="flex items-center gap-4 flex-1 min-w-0">
           <button onClick={onBack} className="text-light-text-secondary dark:text-dark-text-secondary p-2 rounded-full hover:bg-black/5 dark:hover:bg-white/5 flex-shrink-0">
             <span className="material-symbols-outlined">arrow_back</span>
           </button>
-          <div className="flex items-center gap-4 w-full">
-            <div className={`w-16 h-16 rounded-xl flex items-center justify-center ${ACCOUNT_TYPE_STYLES[account.type]?.color || 'text-gray-600'} bg-current/10 border border-current/20`}>
+          <div className="flex items-center gap-4 min-w-0 flex-1">
+            <div className={`w-16 h-16 rounded-xl flex-shrink-0 flex items-center justify-center ${ACCOUNT_TYPE_STYLES[account.type]?.color || 'text-gray-600'} bg-current/10 border border-current/20`}>
               <span className="material-symbols-outlined text-4xl">{account.icon || 'wallet'}</span>
             </div>
-            <div>
+            <div className="min-w-0">
               <div className="flex items-center gap-2">
-                  <h1 className="text-2xl font-bold text-light-text dark:text-dark-text">{account.name}</h1>
+                  <h1 className="text-2xl font-bold text-light-text dark:text-dark-text truncate">{account.name}</h1>
                   {account.financialInstitution && (
-                      <span className="text-sm font-medium text-light-text-secondary dark:text-dark-text-secondary bg-black/5 dark:bg-white/5 px-2 py-0.5 rounded">
+                      <span className="text-sm font-medium text-light-text-secondary dark:text-dark-text-secondary bg-black/5 dark:bg-white/5 px-2 py-0.5 rounded flex-shrink-0">
                           {account.financialInstitution}
                       </span>
                   )}
@@ -490,10 +490,10 @@ const GeneralAccountView: React.FC<GeneralAccountViewProps> = ({
                 <span>{account.type}</span>
               </div>
             </div>
-            <div className="ml-auto">
-              <button onClick={onAddTransaction} className={BTN_PRIMARY_STYLE}>Add Transaction</button>
-            </div>
           </div>
+        </div>
+        <div className="flex-shrink-0 ml-auto md:ml-0">
+          <button onClick={onAddTransaction} className={BTN_PRIMARY_STYLE}>Add Transaction</button>
         </div>
       </header>
       
@@ -523,17 +523,17 @@ const GeneralAccountView: React.FC<GeneralAccountViewProps> = ({
                     </div>
   
                     <div className="z-10 mt-4">
-                         <div className="flex items-center gap-3 text-xl sm:text-2xl font-mono tracking-widest text-white/95 drop-shadow-md">
+                         <div className="flex items-center gap-3 text-xl sm:text-2xl font-mono tracking-widest text-white/95 drop-shadow-md truncate">
                              <span>••••</span> <span>••••</span> <span>••••</span> <span>{account.last4 || '0000'}</span>
                          </div>
                     </div>
   
                     <div className="flex justify-between items-end z-10">
-                        <div>
+                        <div className="min-w-0 flex-1 mr-4">
                             <p className="text-[9px] text-white/70 uppercase tracking-widest mb-0.5">Cardholder</p>
-                            <p className="font-medium uppercase tracking-wide text-sm sm:text-base text-white/95 drop-shadow-sm">{account.cardholderName || account.name}</p>
+                            <p className="font-medium uppercase tracking-wide text-sm sm:text-base text-white/95 drop-shadow-sm truncate">{account.cardholderName || account.name}</p>
                         </div>
-                        <div className="flex flex-col items-end">
+                        <div className="flex flex-col items-end flex-shrink-0">
                              {account.expirationDate && (
                                  <div className="text-center mb-2">
                                      <p className="text-[8px] text-white/70 uppercase">Valid Thru</p>

@@ -144,19 +144,19 @@ const CreditCardAccountView: React.FC<CreditCardAccountViewProps> = ({
     <div className="space-y-8 animate-fade-in-up">
       {/* Header Navigation */}
       <header className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
-        <div className="flex items-center gap-4 w-full">
+        <div className="flex items-center gap-4 flex-1 min-w-0">
           <button onClick={onBack} className="text-light-text-secondary dark:text-dark-text-secondary p-2 rounded-full hover:bg-black/5 dark:hover:bg-white/5 flex-shrink-0">
             <span className="material-symbols-outlined">arrow_back</span>
           </button>
-          <div className="flex items-center gap-4 w-full">
-            <div className={`w-16 h-16 rounded-xl flex items-center justify-center ${ACCOUNT_TYPE_STYLES[account.type]?.color || 'text-gray-600'} bg-current/10 border border-current/20`}>
+          <div className="flex items-center gap-4 min-w-0 flex-1">
+            <div className={`w-16 h-16 rounded-xl flex-shrink-0 flex items-center justify-center ${ACCOUNT_TYPE_STYLES[account.type]?.color || 'text-gray-600'} bg-current/10 border border-current/20`}>
               <span className="material-symbols-outlined text-4xl">{account.icon || 'credit_card'}</span>
             </div>
-            <div>
+            <div className="min-w-0">
               <div className="flex items-center gap-2">
-                  <h1 className="text-2xl font-bold text-light-text dark:text-dark-text">{account.name}</h1>
+                  <h1 className="text-2xl font-bold text-light-text dark:text-dark-text truncate">{account.name}</h1>
                   {account.financialInstitution && (
-                      <span className="text-sm font-medium text-light-text-secondary dark:text-dark-text-secondary bg-black/5 dark:bg-white/5 px-2 py-0.5 rounded">
+                      <span className="text-sm font-medium text-light-text-secondary dark:text-dark-text-secondary bg-black/5 dark:bg-white/5 px-2 py-0.5 rounded flex-shrink-0">
                           {account.financialInstitution}
                       </span>
                   )}
@@ -166,10 +166,10 @@ const CreditCardAccountView: React.FC<CreditCardAccountViewProps> = ({
                 {account.last4 && <span>• **** {account.last4}</span>}
               </div>
             </div>
-            <div className="ml-auto">
-              <button onClick={onAddTransaction} className={BTN_PRIMARY_STYLE}>Add Transaction</button>
-            </div>
           </div>
+        </div>
+        <div className="flex-shrink-0 ml-auto md:ml-0">
+            <button onClick={onAddTransaction} className={BTN_PRIMARY_STYLE}>Add Transaction</button>
         </div>
       </header>
 
@@ -199,17 +199,17 @@ const CreditCardAccountView: React.FC<CreditCardAccountViewProps> = ({
                   </div>
 
                   <div className="z-10 mt-4">
-                       <div className="flex items-center gap-3 text-xl sm:text-2xl font-mono tracking-widest text-white/95 drop-shadow-md">
+                       <div className="flex items-center gap-3 text-xl sm:text-2xl font-mono tracking-widest text-white/95 drop-shadow-md truncate">
                            <span>••••</span> <span>••••</span> <span>••••</span> <span>{account.last4 || '0000'}</span>
                        </div>
                   </div>
 
                   <div className="flex justify-between items-end z-10">
-                      <div>
+                      <div className="min-w-0 flex-1 mr-4">
                           <p className="text-[9px] text-white/70 uppercase tracking-widest mb-0.5">Cardholder</p>
-                          <p className="font-medium uppercase tracking-wide text-sm sm:text-base text-white/95 drop-shadow-sm">{account.cardholderName || account.name}</p>
+                          <p className="font-medium uppercase tracking-wide text-sm sm:text-base text-white/95 drop-shadow-sm truncate">{account.cardholderName || account.name}</p>
                       </div>
-                      <div className="flex flex-col items-end">
+                      <div className="flex flex-col items-end flex-shrink-0">
                            {account.expirationDate && (
                                <div className="text-center mb-2">
                                    <p className="text-[8px] text-white/70 uppercase">Valid Thru</p>
@@ -282,19 +282,19 @@ const CreditCardAccountView: React.FC<CreditCardAccountViewProps> = ({
               {statementInfo && (
                   <Card>
                       <h3 className="text-lg font-semibold text-light-text dark:text-dark-text mb-6">Billing Cycle</h3>
-                      <div className="relative pt-6 pb-2 px-2">
+                      <div className="relative pt-6 pb-2 px-8">
                           {/* Progress Bar Line */}
-                          <div className="absolute top-1/2 left-0 right-0 h-1 bg-gray-200 dark:bg-gray-700 -translate-y-1/2 z-0"></div>
+                          <div className="absolute top-1/2 left-8 right-8 h-1 bg-gray-200 dark:bg-gray-700 -translate-y-1/2 z-0"></div>
                           <div 
-                            className="absolute top-1/2 left-0 h-1 bg-primary-500 -translate-y-1/2 z-0 transition-all duration-1000"
-                            style={{ width: `${statementInfo.cycleProgress}%` }}
+                            className="absolute top-1/2 left-8 h-1 bg-primary-500 -translate-y-1/2 z-0 transition-all duration-1000"
+                            style={{ width: `calc(${statementInfo.cycleProgress}% - 4rem)` }}
                           ></div>
 
                           <div className="flex justify-between relative z-10">
                               {/* Start Node */}
                               <div className="flex flex-col items-center">
                                   <div className="w-4 h-4 rounded-full bg-primary-500 border-2 border-white dark:border-dark-card shadow-sm"></div>
-                                  <div className="mt-3 text-center">
+                                  <div className="mt-3 text-center absolute top-4 w-32 -ml-1">
                                       <p className="text-xs font-bold text-light-text dark:text-dark-text">Statement Open</p>
                                       <p className="text-xs text-light-text-secondary dark:text-dark-text-secondary">{statementInfo.start.toLocaleDateString(undefined, { month: 'short', day: 'numeric' })}</p>
                                   </div>
@@ -314,7 +314,7 @@ const CreditCardAccountView: React.FC<CreditCardAccountViewProps> = ({
                               {/* End Node */}
                               <div className="flex flex-col items-center">
                                   <div className={`w-4 h-4 rounded-full border-2 border-white dark:border-dark-card shadow-sm ${statementInfo.cycleProgress >= 100 ? 'bg-primary-500' : 'bg-gray-300 dark:bg-gray-600'}`}></div>
-                                  <div className="mt-3 text-center">
+                                  <div className="mt-3 text-center absolute top-4 w-32 -ml-20">
                                       <p className="text-xs font-bold text-light-text dark:text-dark-text">Statement Close</p>
                                       <p className="text-xs text-light-text-secondary dark:text-dark-text-secondary">{statementInfo.end.toLocaleDateString(undefined, { month: 'short', day: 'numeric' })}</p>
                                       <p className="text-[10px] font-semibold text-primary-500 mt-0.5">{statementInfo.daysToClose > 0 ? `${statementInfo.daysToClose} days left` : 'Closing today'}</p>
@@ -323,7 +323,7 @@ const CreditCardAccountView: React.FC<CreditCardAccountViewProps> = ({
                           </div>
                       </div>
                       
-                      <div className="mt-8 pt-6 border-t border-black/5 dark:border-white/5 flex justify-end">
+                      <div className="mt-16 pt-6 border-t border-black/5 dark:border-white/5 flex justify-end">
                           <div className="text-right">
                               <p className="text-xs text-light-text-secondary dark:text-dark-text-secondary font-medium uppercase tracking-wide">Payment Due Date</p>
                               <div className="flex items-center justify-end gap-2">
