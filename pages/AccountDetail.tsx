@@ -199,6 +199,7 @@ const AccountDetail: React.FC<{
                     <GeneralAccountView 
                         {...commonProps}
                         displayTransactionsList={displayTransactionsList}
+                        transactions={accountTransactions}
                         allCategories={allCategories}
                         onTransactionClick={handleTransactionClick}
                     />
