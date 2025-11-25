@@ -79,8 +79,8 @@ const VehicleAccountView: React.FC<VehicleAccountViewProps> = ({
            {/* Vehicle Image / Icon */}
            <div className="flex-shrink-0 relative group">
                 {account.imageUrl ? (
-                    <div className="w-40 h-40 lg:w-48 lg:h-48 rounded-2xl overflow-hidden shadow-md border-4 border-white dark:border-dark-bg ring-1 ring-black/5">
-                        <img src={account.imageUrl} alt="Vehicle" className="w-full h-full object-cover" />
+                    <div className="w-40 h-40 lg:w-48 lg:h-48 flex items-center justify-center">
+                        <img src={account.imageUrl} alt="Vehicle" className="max-w-full max-h-full object-contain" />
                     </div>
                 ) : (
                     <div className={`w-32 h-32 lg:w-40 lg:h-40 rounded-2xl flex items-center justify-center bg-gradient-to-br from-cyan-500 to-blue-600 text-white shadow-lg`}>
@@ -99,9 +99,16 @@ const VehicleAccountView: React.FC<VehicleAccountViewProps> = ({
                </div>
                <div className="flex flex-wrap justify-center lg:justify-start gap-3">
                    {account.licensePlate && (
-                       <span className="px-3 py-1 rounded-md bg-gray-100 dark:bg-white/10 text-sm font-mono font-semibold border border-black/10 dark:border-white/10">
-                           {account.licensePlate}
-                       </span>
+                       <div className="flex items-center rounded-md bg-gray-100 dark:bg-white/10 border border-black/10 dark:border-white/10 overflow-hidden h-7">
+                           {account.registrationCountryCode && (
+                               <div className="px-1.5 bg-blue-600 text-white text-[10px] font-bold flex items-center justify-center h-full">
+                                   {account.registrationCountryCode}
+                               </div>
+                           )}
+                           <span className="px-2 text-sm font-mono font-semibold text-gray-800 dark:text-gray-200">
+                               {account.licensePlate}
+                           </span>
+                       </div>
                    )}
                    <span className={`px-3 py-1 rounded-full text-sm font-bold uppercase tracking-wide ${account.ownership === 'Leased' ? 'bg-orange-100 text-orange-700 dark:bg-orange-900/40 dark:text-orange-300' : 'bg-green-100 text-green-700 dark:bg-green-900/40 dark:text-green-300'}`}>
                        {account.ownership}
