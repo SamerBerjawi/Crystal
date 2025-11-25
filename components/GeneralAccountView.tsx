@@ -358,7 +358,7 @@ const GeneralAccountView: React.FC<GeneralAccountViewProps> = ({
   }, [accounts, account.id, allTransactions]);
 
   const showBankingDetails = useMemo(() => {
-      return !!(account.accountNumber || account.routingNumber || account.apy || account.openingDate || account.expirationDate || account.cardNetwork || account.cardholderName);
+      return !!(account.accountNumber || account.routingNumber || account.apy || account.openingDate || account.expirationDate || account.cardNetwork || account.cardholderName || account.last4);
   }, [account]);
 
   return (
@@ -384,7 +384,6 @@ const GeneralAccountView: React.FC<GeneralAccountViewProps> = ({
               </div>
               <div className="flex items-center gap-2 text-sm text-light-text-secondary dark:text-dark-text-secondary">
                 <span>{account.type}</span>
-                {account.last4 && <><span>•</span><span className="font-mono">**** {account.last4}</span></>}
               </div>
             </div>
             <div className="ml-auto">
@@ -441,6 +440,12 @@ const GeneralAccountView: React.FC<GeneralAccountViewProps> = ({
                     <div>
                          <p className="text-xs text-light-text-secondary dark:text-dark-text-secondary mb-1">Expires</p>
                          <p className="font-medium text-light-text dark:text-dark-text">{account.expirationDate}</p>
+                    </div>
+                )}
+                {account.last4 && (
+                    <div>
+                         <p className="text-xs text-light-text-secondary dark:text-dark-text-secondary mb-1">Last 4 Digits</p>
+                         <p className="font-medium text-light-text dark:text-dark-text font-mono">**** {account.last4}</p>
                     </div>
                 )}
             </div>
