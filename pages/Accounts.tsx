@@ -1,3 +1,4 @@
+
 import React, { useState, useMemo, useEffect, useRef } from 'react';
 import { Account, Page, AccountType, Transaction, Warrant } from '../types';
 import AddAccountModal from '../components/AddAccountModal';
@@ -227,7 +228,10 @@ const Accounts: React.FC<AccountsProps> = ({ accounts, transactions, saveAccount
             return acc;
         }, {} as Record<AccountType, { value: number, color: string }>);
         
-        return Object.entries(grouped).map(([name, data]) => ({ name, value: Math.abs(data.value), color: data.color })).filter(item => item.value > 0);
+        return Object.entries(grouped)
+            .map(([name, data]) => ({ name, value: Math.abs(data.value), color: data.color }))
+            .filter(item => item.value > 0)
+            .sort((a, b) => b.value - a.value); // Sort highest to lowest percentage
     };
 
     return {
