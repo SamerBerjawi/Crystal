@@ -1,4 +1,3 @@
-
 import React from 'react';
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Legend } from 'recharts';
 import { ScheduledPayment, Currency } from '../types';
@@ -57,7 +56,7 @@ const MortgageAmortizationChart: React.FC<MortgageAmortizationChartProps> = ({ s
   return (
     <Card className="h-full flex flex-col">
       <h3 className="text-lg font-semibold text-light-text dark:text-dark-text mb-4">Amortization Schedule (Yearly)</h3>
-      <div className="flex-grow" style={{ width: '100%', minHeight: '300px' }}>
+      <div className="flex-grow" style={{ width: '100%', minHeight: '200px' }}>
         <ResponsiveContainer width="100%" height="100%">
           <BarChart
             data={yearlyData}
@@ -81,7 +80,7 @@ const MortgageAmortizationChart: React.FC<MortgageAmortizationChartProps> = ({ s
                 hide 
             />
             <Tooltip content={<CustomTooltip />} cursor={{fill: 'transparent'}} />
-            <Legend wrapperStyle={{ paddingTop: '20px' }} />
+            <Legend wrapperStyle={{ paddingTop: '10px' }} />
             <Bar dataKey="principal" name={principalName} stackId="a" fill="#3B82F6" radius={[0, 0, 4, 4]} />
             <Bar dataKey="interest" name={interestName} stackId="a" fill="#EF4444" radius={[4, 4, 0, 0]} />
           </BarChart>

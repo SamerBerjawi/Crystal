@@ -1,4 +1,3 @@
-
 import React, { useMemo } from 'react';
 import { Account, Transaction, ScheduledPayment } from '../types';
 import { formatCurrency, generateAmortizationSchedule, parseDateAsUTC } from '../utils';
@@ -83,7 +82,7 @@ const LoanAccountView: React.FC<LoanAccountViewProps> = ({
       </header>
 
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-        <div className="lg:col-span-2 space-y-6">
+        <div className="lg:col-span-2 flex flex-col gap-6">
           <div className="grid grid-cols-1 sm:grid-cols-3 gap-6">
             <Card>
               <p className="text-xs uppercase tracking-wide text-light-text-secondary dark:text-dark-text-secondary font-semibold mb-1">{isLending ? 'Outstanding Principal' : 'Outstanding Balance'}</p>
@@ -98,16 +97,11 @@ const LoanAccountView: React.FC<LoanAccountViewProps> = ({
               <p className="text-2xl font-bold text-orange-600 dark:text-orange-400">{formatCurrency(loanDetails.totalPaidInterest, account.currency)}</p>
             </Card>
           </div>
-          <MortgageAmortizationChart schedule={loanDetails.schedule} currency={account.currency} accountType={account.type} />
-          <PaymentPlanTable 
-            account={account} 
-            transactions={transactions} 
-            onMakePayment={onMakePayment} 
-            overrides={loanPaymentOverrides || {}} 
-            onOverridesChange={onOverridesChange} 
-          />
+          <div className="flex-1 min-h-[300px]">
+             <MortgageAmortizationChart schedule={loanDetails.schedule} currency={account.currency} accountType={account.type} />
+          </div>
         </div>
-        <div className="space-y-6">
+        <div className="space-y-6 flex flex-col">
           <Card>
             <h3 className="text-base font-semibold text-light-text dark:text-dark-text mb-4">Loan Details</h3>
             <div className="space-y-3 text-sm">
@@ -142,6 +136,13 @@ const LoanAccountView: React.FC<LoanAccountViewProps> = ({
           )}
         </div>
       </div>
+      <PaymentPlanTable 
+        account={account} 
+        transactions={transactions} 
+        onMakePayment={onMakePayment} 
+        overrides={loanPaymentOverrides || {}} 
+        onOverridesChange={onOverridesChange} 
+      />
     </div>
   );
 };
