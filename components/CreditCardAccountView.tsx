@@ -4,7 +4,7 @@ import { Account, Transaction, DisplayTransaction, Category } from '../types';
 import { formatCurrency, calculateStatementPeriods, getCreditCardStatementDetails } from '../utils';
 import Card from './Card';
 import TransactionList from './TransactionList';
-import { BTN_PRIMARY_STYLE } from '../constants';
+import { BTN_PRIMARY_STYLE, ACCOUNT_TYPE_STYLES } from '../constants';
 import { ResponsiveContainer, BarChart, CartesianGrid, XAxis, YAxis, Tooltip, Bar, Cell } from 'recharts';
 
 interface CreditCardAccountViewProps {
@@ -144,10 +144,33 @@ const CreditCardAccountView: React.FC<CreditCardAccountViewProps> = ({
     <div className="space-y-8 animate-fade-in-up">
       {/* Header Navigation */}
       <header className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
-        <button onClick={onBack} className="text-light-text-secondary dark:text-dark-text-secondary p-2 rounded-full hover:bg-black/5 dark:hover:bg-white/5 flex-shrink-0 -ml-2">
+        <div className="flex items-center gap-4 w-full">
+          <button onClick={onBack} className="text-light-text-secondary dark:text-dark-text-secondary p-2 rounded-full hover:bg-black/5 dark:hover:bg-white/5 flex-shrink-0">
             <span className="material-symbols-outlined">arrow_back</span>
-        </button>
-        <button onClick={onAddTransaction} className={BTN_PRIMARY_STYLE}>Add Transaction</button>
+          </button>
+          <div className="flex items-center gap-4 w-full">
+            <div className={`w-16 h-16 rounded-xl flex items-center justify-center ${ACCOUNT_TYPE_STYLES[account.type]?.color || 'text-gray-600'} bg-current/10 border border-current/20`}>
+              <span className="material-symbols-outlined text-4xl">{account.icon || 'credit_card'}</span>
+            </div>
+            <div>
+              <div className="flex items-center gap-2">
+                  <h1 className="text-2xl font-bold text-light-text dark:text-dark-text">{account.name}</h1>
+                  {account.financialInstitution && (
+                      <span className="text-sm font-medium text-light-text-secondary dark:text-dark-text-secondary bg-black/5 dark:bg-white/5 px-2 py-0.5 rounded">
+                          {account.financialInstitution}
+                      </span>
+                  )}
+              </div>
+              <div className="flex items-center gap-2 text-sm text-light-text-secondary dark:text-dark-text-secondary">
+                <span>{account.type}</span>
+                {account.last4 && <span>• **** {account.last4}</span>}
+              </div>
+            </div>
+            <div className="ml-auto">
+              <button onClick={onAddTransaction} className={BTN_PRIMARY_STYLE}>Add Transaction</button>
+            </div>
+          </div>
+        </div>
       </header>
 
       {/* Top Section: Virtual Card & Key Metrics */}
