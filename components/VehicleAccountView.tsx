@@ -137,62 +137,66 @@ const VehicleAccountView: React.FC<VehicleAccountViewProps> = ({
         <div className="lg:col-span-2 space-y-8">
           {/* Lease Dashboard */}
           {isLeased && leaseStats && (
-            <div className="bg-gray-50 dark:bg-dark-card/50 rounded-2xl p-6 border border-black/5 dark:border-white/10 shadow-sm relative overflow-hidden">
-                 <div className="absolute top-0 right-0 w-32 h-32 bg-primary-500/5 rounded-full blur-3xl -mr-10 -mt-10"></div>
+            <div className="bg-white dark:bg-dark-card rounded-2xl p-6 border border-black/5 dark:border-white/10 shadow-sm relative overflow-hidden group">
+              {/* Blurred Colored Background */}
+              <div className="absolute top-0 right-0 w-80 h-80 bg-primary-500/10 dark:bg-primary-500/20 rounded-full blur-3xl -mr-20 -mt-20 pointer-events-none"></div>
+              <div className="absolute bottom-0 left-0 w-80 h-80 bg-blue-500/10 dark:bg-blue-500/20 rounded-full blur-3xl -ml-20 -mb-20 pointer-events-none"></div>
               
-              <div className="flex justify-between items-center mb-6 relative z-10">
-                  <h3 className="text-lg font-bold text-light-text dark:text-dark-text flex items-center gap-2">
-                      <span className="material-symbols-outlined text-primary-500">contract</span>
-                      Lease Agreement
-                  </h3>
-                  {account.leaseProvider && (
-                      <span className="text-sm font-semibold bg-white dark:bg-white/10 px-3 py-1 rounded-full border border-black/5 dark:border-white/5 shadow-sm">
-                          {account.leaseProvider}
-                      </span>
-                  )}
-              </div>
-
-              <div className="grid grid-cols-1 sm:grid-cols-3 gap-6 mb-8 relative z-10">
-                 <div className="bg-white dark:bg-black/20 rounded-xl p-4 border border-black/5 dark:border-white/5">
-                    <p className="text-xs font-bold uppercase text-light-text-secondary dark:text-dark-text-secondary mb-2">Time Remaining</p>
-                    <p className="text-2xl font-bold text-light-text dark:text-dark-text">
-                        {leaseStats.daysRemaining} <span className="text-sm font-medium text-light-text-secondary">days ({leaseStats.progress.toFixed(0)}%)</span>
-                    </p>
-                    <div className="w-full bg-gray-200 dark:bg-gray-700 rounded-full h-1.5 mt-3">
-                        <div className="bg-primary-500 h-1.5 rounded-full" style={{ width: `${leaseStats.progress}%` }}></div>
-                    </div>
-                 </div>
-                 
-                 <div className="bg-white dark:bg-black/20 rounded-xl p-4 border border-black/5 dark:border-white/5">
-                    <p className="text-xs font-bold uppercase text-light-text-secondary dark:text-dark-text-secondary mb-2">Mileage Balance</p>
-                    <p className={`text-2xl font-bold ${leaseStats.mileageDiff > 0 ? 'text-red-500' : 'text-green-500'}`}>{leaseStats.mileageDiff > 0 ? '+' : ''}{Math.round(leaseStats.mileageDiff).toLocaleString()}</p>
-                    <p className="text-xs text-light-text-secondary dark:text-dark-text-secondary mt-1">vs. expected usage</p>
-                 </div>
-
-                 <div className="bg-white dark:bg-black/20 rounded-xl p-4 border border-black/5 dark:border-white/5">
-                    <p className="text-xs font-bold uppercase text-light-text-secondary dark:text-dark-text-secondary mb-2">Projected End</p>
-                    <p className="text-2xl font-bold text-light-text dark:text-dark-text">{Math.round(leaseStats.projectedMileage).toLocaleString()}</p>
-                     <p className="text-xs text-light-text-secondary dark:text-dark-text-secondary mt-1">km at lease end</p>
-                 </div>
-              </div>
-              
-              {account.annualMileageAllowance && (
-                  <div className="bg-white dark:bg-black/20 rounded-xl p-5 border border-black/5 dark:border-white/5 relative z-10">
-                    <div className="flex justify-between text-sm font-medium mb-2">
-                      <span className="text-light-text dark:text-dark-text">Total Mileage Usage</span>
-                      <span className={leaseStats.mileageStatus === 'Over Budget' ? 'text-red-500 font-bold' : 'text-green-500 font-bold'}>{leaseStats.mileageStatus}</span>
-                    </div>
-                    <div className="w-full bg-gray-200 dark:bg-gray-700 rounded-full h-3 relative">
-                      {/* Expected mileage marker */}
-                      <div className="absolute top-0 bottom-0 w-0.5 bg-black dark:bg-white z-20 shadow-sm" style={{ left: `${Math.min((leaseStats.progress), 100)}%` }} title="Expected Usage based on time elapsed"></div>
-                      <div className={`h-3 rounded-full transition-all duration-500 ${leaseStats.mileageStatus === 'Over Budget' ? 'bg-red-500' : 'bg-green-500'}`} style={{ width: `${Math.min((currentMileage / leaseStats.totalAllowance) * 100, 100)}%` }}></div>
-                    </div>
-                    <div className="flex justify-between text-xs text-light-text-secondary dark:text-dark-text-secondary mt-2">
-                        <span>0 km</span>
-                        <span>Limit: {leaseStats.totalAllowance.toLocaleString()} km</span>
-                    </div>
+              <div className="relative z-10">
+                  <div className="flex justify-between items-center mb-6">
+                      <h3 className="text-lg font-bold text-light-text dark:text-dark-text flex items-center gap-2">
+                          <span className="material-symbols-outlined text-primary-500">contract</span>
+                          Lease Agreement
+                      </h3>
+                      {account.leaseProvider && (
+                          <span className="text-sm font-semibold bg-white/80 dark:bg-black/20 px-3 py-1 rounded-full border border-black/5 dark:border-white/5 shadow-sm backdrop-blur-sm">
+                              {account.leaseProvider}
+                          </span>
+                      )}
                   </div>
-                )}
+
+                  <div className="grid grid-cols-1 sm:grid-cols-3 gap-6 mb-8">
+                     <div className="bg-white/60 dark:bg-black/20 rounded-xl p-4 border border-black/5 dark:border-white/5 backdrop-blur-sm">
+                        <p className="text-xs font-bold uppercase text-light-text-secondary dark:text-dark-text-secondary mb-2">Time Remaining</p>
+                        <p className="text-2xl font-bold text-light-text dark:text-dark-text">
+                            {leaseStats.daysRemaining} <span className="text-sm font-medium text-light-text-secondary">days ({leaseStats.progress.toFixed(0)}%)</span>
+                        </p>
+                        <div className="w-full bg-gray-200 dark:bg-gray-700 rounded-full h-1.5 mt-3">
+                            <div className="bg-primary-500 h-1.5 rounded-full" style={{ width: `${leaseStats.progress}%` }}></div>
+                        </div>
+                     </div>
+                     
+                     <div className="bg-white/60 dark:bg-black/20 rounded-xl p-4 border border-black/5 dark:border-white/5 backdrop-blur-sm">
+                        <p className="text-xs font-bold uppercase text-light-text-secondary dark:text-dark-text-secondary mb-2">Mileage Balance</p>
+                        <p className={`text-2xl font-bold ${leaseStats.mileageDiff > 0 ? 'text-red-500' : 'text-green-500'}`}>{leaseStats.mileageDiff > 0 ? '+' : ''}{Math.round(leaseStats.mileageDiff).toLocaleString()}</p>
+                        <p className="text-xs text-light-text-secondary dark:text-dark-text-secondary mt-1">vs. expected usage</p>
+                     </div>
+
+                     <div className="bg-white/60 dark:bg-black/20 rounded-xl p-4 border border-black/5 dark:border-white/5 backdrop-blur-sm">
+                        <p className="text-xs font-bold uppercase text-light-text-secondary dark:text-dark-text-secondary mb-2">Projected End</p>
+                        <p className="text-2xl font-bold text-light-text dark:text-dark-text">{Math.round(leaseStats.projectedMileage).toLocaleString()}</p>
+                         <p className="text-xs text-light-text-secondary dark:text-dark-text-secondary mt-1">km at lease end</p>
+                     </div>
+                  </div>
+                  
+                  {account.annualMileageAllowance && (
+                      <div className="bg-white/60 dark:bg-black/20 rounded-xl p-5 border border-black/5 dark:border-white/5 backdrop-blur-sm">
+                        <div className="flex justify-between text-sm font-medium mb-2">
+                          <span className="text-light-text dark:text-dark-text">Total Mileage Usage</span>
+                          <span className={leaseStats.mileageStatus === 'Over Budget' ? 'text-red-500 font-bold' : 'text-green-500 font-bold'}>{leaseStats.mileageStatus}</span>
+                        </div>
+                        <div className="w-full bg-gray-200 dark:bg-gray-700 rounded-full h-3 relative">
+                          {/* Expected mileage marker */}
+                          <div className="absolute top-0 bottom-0 w-0.5 bg-black dark:bg-white z-20 shadow-sm" style={{ left: `${Math.min((leaseStats.progress), 100)}%` }} title="Expected Usage based on time elapsed"></div>
+                          <div className={`h-3 rounded-full transition-all duration-500 ${leaseStats.mileageStatus === 'Over Budget' ? 'bg-red-500' : 'bg-green-500'}`} style={{ width: `${Math.min((currentMileage / leaseStats.totalAllowance) * 100, 100)}%` }}></div>
+                        </div>
+                        <div className="flex justify-between text-xs text-light-text-secondary dark:text-dark-text-secondary mt-2">
+                            <span>0 km</span>
+                            <span>Limit: {leaseStats.totalAllowance.toLocaleString()} km</span>
+                        </div>
+                      </div>
+                    )}
+              </div>
             </div>
           )}
           
@@ -235,7 +239,7 @@ const VehicleAccountView: React.FC<VehicleAccountViewProps> = ({
              </Card>
 
             {/* Log History */}
-            <Card className="h-full flex flex-col min-h-[300px]">
+            <Card className="flex flex-col">
                 <div className="flex justify-between items-center mb-4">
                 <h3 className="text-base font-bold text-light-text dark:text-dark-text">Log History</h3>
                 <button onClick={onAddLog} className={`${BTN_SECONDARY_STYLE} !py-1 !px-2 text-xs font-bold rounded-full`}>+ Log</button>
@@ -264,7 +268,7 @@ const VehicleAccountView: React.FC<VehicleAccountViewProps> = ({
                         })}
                     </div>
                 ) : (
-                    <div className="h-full flex flex-col items-center justify-center text-light-text-secondary dark:text-dark-text-secondary opacity-60">
+                    <div className="h-40 flex flex-col items-center justify-center text-light-text-secondary dark:text-dark-text-secondary opacity-60">
                          <span className="material-symbols-outlined text-3xl mb-2">history</span>
                         <p className="text-sm">No mileage logs recorded.</p>
                     </div>
