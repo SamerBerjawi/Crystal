@@ -1,13 +1,14 @@
 
 import React, { useMemo } from 'react';
 import { Account, DisplayTransaction, Category, Transaction, RecurringTransaction } from '../types';
-import { formatCurrency, parseDateAsUTC, generateSyntheticLoanPayments, generateSyntheticCreditCardPayments, generateBalanceForecast, convertToEur, generateSyntheticPropertyTransactions } from '../utils';
+import { formatCurrency, parseDateAsUTC, generateSyntheticLoanPayments, generateSyntheticCreditCardPayments, generateBalanceForecast, convertToEur, generateSyntheticPropertyTransactions, calculateStatementPeriods, getCreditCardStatementDetails, getPreferredTimeZone } from '../utils';
 import Card from './Card';
 import TransactionList from './TransactionList';
 import { BTN_PRIMARY_STYLE, ACCOUNT_TYPE_STYLES } from '../constants';
 import { AreaChart, Area, XAxis, YAxis, Tooltip, ResponsiveContainer, CartesianGrid, BarChart, Bar, Cell, Legend } from 'recharts';
 import { useGoalsContext, useScheduleContext } from '../contexts/FinancialDataContext';
 import { useAccountsContext, useTransactionsContext } from '../contexts/DomainProviders';
+import CreditCardStatementCard from './CreditCardStatementCard';
 
 interface GeneralAccountViewProps {
   account: Account;
@@ -311,6 +312,55 @@ const GeneralAccountView: React.FC<GeneralAccountViewProps> = ({
     return data.reverse();
   }, [metrics.realTodayBalance, transactions]);
 
+  const linkedCreditCardStatements = useMemo(() => {
+    // Find credit cards linked to this account (where settlementAccountId === this account.id)
+    const linkedCards = accounts.filter(acc => 
+      acc.type === 'Credit Card' && 
+      acc.settlementAccountId === account.id &&
+      acc.statementStartDate &&
+      acc.paymentDate
+    );
+
+    if (linkedCards.length === 0) return [];
+
+    return linkedCards.map(cardAccount => {
+        const periods = calculateStatementPeriods(cardAccount.statementStartDate!, cardAccount.paymentDate!);
+
+        const { statementBalance: prevBalance, amountPaid: prevAmountPaid } = getCreditCardStatementDetails(cardAccount, periods.previous.start, periods.previous.end, allTransactions);
+        const { statementBalance: currentBalance, amountPaid: currentAmountPaid } = getCreditCardStatementDetails(cardAccount, periods.current.start, periods.current.end, allTransactions);
+        const { statementBalance: futureBalance, amountPaid: futureAmountPaid } = getCreditCardStatementDetails(cardAccount, periods.future.start, periods.future.end, allTransactions);
+
+        const timeZone = getPreferredTimeZone();
+        const formatDate = (date: Date) => date.toLocaleDateString('en-US', { month: 'short', day: 'numeric', timeZone });
+        const formatFullDate = (date: Date) => date.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric', timeZone });
+
+        return {
+            id: cardAccount.id,
+            accountName: cardAccount.name,
+            currency: cardAccount.currency,
+            accountBalance: cardAccount.balance,
+            creditLimit: cardAccount.creditLimit,
+            current: {
+                balance: currentBalance,
+                amountPaid: currentAmountPaid,
+                previousStatementBalance: prevBalance,
+                period: `${formatDate(periods.current.start)} - ${formatDate(periods.current.end)}`,
+                paymentDue: formatFullDate(periods.current.paymentDue)
+            },
+            next: {
+                balance: futureBalance,
+                amountPaid: futureAmountPaid,
+                period: `${formatDate(periods.future.start)} - ${formatDate(periods.future.end)}`,
+                paymentDue: formatFullDate(periods.future.paymentDue)
+            }
+        };
+    });
+  }, [accounts, account.id, allTransactions]);
+
+  const showBankingDetails = useMemo(() => {
+      return !!(account.accountNumber || account.routingNumber || account.apy || account.openingDate);
+  }, [account]);
+
   return (
     <div className="space-y-6 animate-fade-in-up">
       {/* Header */}
@@ -343,6 +393,41 @@ const GeneralAccountView: React.FC<GeneralAccountViewProps> = ({
           </div>
         </div>
       </header>
+      
+      {/* Account Details Card (Banking Info) */}
+      {showBankingDetails && (
+        <Card className="bg-gradient-to-br from-gray-50 to-white dark:from-gray-900/50 dark:to-dark-card border border-black/5 dark:border-white/5">
+            <h3 className="text-sm font-bold uppercase tracking-wider text-light-text-secondary dark:text-dark-text-secondary mb-4 flex items-center gap-2">
+                <span className="material-symbols-outlined text-lg">info</span> Account Details
+            </h3>
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
+                {account.accountNumber && (
+                    <div>
+                        <p className="text-xs text-light-text-secondary dark:text-dark-text-secondary mb-1">Account Number / IBAN</p>
+                        <p className="font-mono font-medium text-light-text dark:text-dark-text break-all">{account.accountNumber}</p>
+                    </div>
+                )}
+                {account.routingNumber && (
+                    <div>
+                         <p className="text-xs text-light-text-secondary dark:text-dark-text-secondary mb-1">Routing / BIC</p>
+                         <p className="font-mono font-medium text-light-text dark:text-dark-text">{account.routingNumber}</p>
+                    </div>
+                )}
+                 {account.apy !== undefined && (
+                    <div>
+                         <p className="text-xs text-light-text-secondary dark:text-dark-text-secondary mb-1">APY / Interest Rate</p>
+                         <p className="font-bold text-green-600 dark:text-green-400 text-lg">{account.apy}%</p>
+                    </div>
+                )}
+                 {account.openingDate && (
+                    <div>
+                         <p className="text-xs text-light-text-secondary dark:text-dark-text-secondary mb-1">Opened On</p>
+                         <p className="font-medium text-light-text dark:text-dark-text">{parseDateAsUTC(account.openingDate).toLocaleDateString()}</p>
+                    </div>
+                )}
+            </div>
+        </Card>
+      )}
 
       {/* Grid 1: Key Metrics */}
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
@@ -402,6 +487,26 @@ const GeneralAccountView: React.FC<GeneralAccountViewProps> = ({
             </p>
         </Card>
       </div>
+
+      {/* Linked Credit Card Statements Section */}
+      {linkedCreditCardStatements.length > 0 && (
+        <div className="space-y-4">
+          <h3 className="text-lg font-semibold text-light-text dark:text-dark-text">Linked Credit Card Statements</h3>
+          <div className="grid grid-cols-1 xl:grid-cols-2 gap-6">
+            {linkedCreditCardStatements.map(statement => (
+              <CreditCardStatementCard
+                key={statement.id}
+                accountName={statement.accountName}
+                accountBalance={statement.accountBalance}
+                creditLimit={statement.creditLimit}
+                currency={statement.currency}
+                currentStatement={statement.current}
+                nextStatement={statement.next}
+              />
+            ))}
+          </div>
+        </div>
+      )}
 
       {/* Grid 2: Cash Flow Trend + Upcoming Payments */}
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">

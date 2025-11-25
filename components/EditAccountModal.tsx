@@ -32,6 +32,12 @@ const EditAccountModal: React.FC<EditAccountModalProps> = ({ onClose, onSave, on
   const [isIconPickerOpen, setIconPickerOpen] = useState(false);
   const [financialInstitution, setFinancialInstitution] = useState(account.financialInstitution || '');
   
+  // Banking Details
+  const [accountNumber, setAccountNumber] = useState(account.accountNumber || '');
+  const [routingNumber, setRoutingNumber] = useState(account.routingNumber || '');
+  const [apy, setApy] = useState(account.apy != null ? String(account.apy) : '');
+  const [openingDate, setOpeningDate] = useState(account.openingDate || '');
+
   // New detailed fields
   const [subType, setSubType] = useState<InvestmentSubType>(initialSubType);
   const [totalAmount, setTotalAmount] = useState(account.totalAmount != null ? String(account.totalAmount) : '');
@@ -234,6 +240,10 @@ const EditAccountModal: React.FC<EditAccountModalProps> = ({ onClose, onSave, on
       last4: last4 || undefined,
       financialInstitution: ['Checking', 'Savings', 'Credit Card'].includes(type) && financialInstitution ? financialInstitution : undefined,
       isPrimary,
+      accountNumber: accountNumber || undefined,
+      routingNumber: routingNumber || undefined,
+      apy: apy !== '' ? parseFloat(apy) : undefined,
+      openingDate: openingDate || undefined,
       // Conditionally add new fields
       subType: type === 'Investment' ? subType : undefined,
       totalAmount: (type === 'Loan' || type === 'Lending') && totalAmount !== '' ? parseFloat(totalAmount) : undefined,
@@ -314,6 +324,7 @@ const EditAccountModal: React.FC<EditAccountModalProps> = ({ onClose, onSave, on
   const labelStyle = "block text-sm font-medium text-light-text-secondary dark:text-dark-text-secondary mb-1";
   
   const showLast4 = ['Checking', 'Savings', 'Credit Card'].includes(type);
+  const showBankingDetails = ['Checking', 'Savings', 'Investment', 'Credit Card', 'Lending'].includes(type);
 
   return (
     <>
@@ -404,6 +415,29 @@ const EditAccountModal: React.FC<EditAccountModalProps> = ({ onClose, onSave, on
                         placeholder="e.g., Chase, Bank of America"
                     />
                 </div>
+            )}
+
+            {showBankingDetails && (
+               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <div>
+                    <label htmlFor="accountNumber" className={labelStyle}>Account Number / IBAN</label>
+                    <input id="accountNumber" type="text" value={accountNumber} onChange={e => setAccountNumber(e.target.value)} className={INPUT_BASE_STYLE} placeholder="Optional" />
+                  </div>
+                  <div>
+                    <label htmlFor="routingNumber" className={labelStyle}>Routing / BIC / Sort Code</label>
+                    <input id="routingNumber" type="text" value={routingNumber} onChange={e => setRoutingNumber(e.target.value)} className={INPUT_BASE_STYLE} placeholder="Optional" />
+                  </div>
+                  {['Checking', 'Savings', 'Investment'].includes(type) && (
+                     <div>
+                        <label htmlFor="apy" className={labelStyle}>APY / Interest Rate (%)</label>
+                        <input id="apy" type="number" step="0.01" value={apy} onChange={e => setApy(e.target.value)} className={INPUT_BASE_STYLE} placeholder="e.g. 4.5" />
+                     </div>
+                  )}
+                   <div>
+                    <label htmlFor="openingDate" className={labelStyle}>Opening Date</label>
+                    <input id="openingDate" type="date" value={openingDate} onChange={e => setOpeningDate(e.target.value)} className={INPUT_BASE_STYLE} />
+                  </div>
+               </div>
             )}
 
             {type === 'Investment' && (

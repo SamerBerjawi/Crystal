@@ -54,6 +54,12 @@ export interface Account {
   financialInstitution?: string;
   symbol?: string; // Ticker symbol for investments/warrants
 
+  // Banking specific
+  accountNumber?: string; // IBAN or local account number
+  routingNumber?: string; // BIC, SWIFT, Sort Code, or Routing Number
+  apy?: number; // Annual Percentage Yield for savings
+  openingDate?: string; // Date account was opened
+
   // Investment specific
   subType?: InvestmentSubType;
 
