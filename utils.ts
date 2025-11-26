@@ -66,7 +66,7 @@ export const getPreferredTimeZone = (fallback: string = 'UTC'): string => {
 };
 
 export const parseDateAsUTC = (dateString: string, timeZone?: string): Date => {
-    if (!dateString) return new Date(0);
+    if (!dateString || typeof dateString !== 'string') return new Date(0);
 
     const tz = getPreferredTimeZone(timeZone);
     const parts = dateString.split('-').map(Number);

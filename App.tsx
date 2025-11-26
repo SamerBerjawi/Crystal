@@ -1,3 +1,4 @@
+
 // FIX: Import `useMemo` from React to resolve the 'Cannot find name' error.
 import React, { useState, useEffect, useMemo, useCallback, Suspense, lazy, useRef, Component, ErrorInfo } from 'react';
 import Sidebar from './components/Sidebar';
@@ -331,7 +332,13 @@ const App: React.FC = () => {
     }));
 
     const prices = await fetchYahooPrices(targets);
-    setInvestmentPrices(prices);
+    
+    // Only update if prices have actually changed to prevent infinite re-render loops
+    setInvestmentPrices(prev => {
+        const isSame = Object.keys(prices).length === Object.keys(prev || {}).length &&
+                       Object.keys(prices).every(k => prices[k] === prev?.[k]);
+        return isSame ? prev : prices;
+    });
   }, [accounts, warrants]);
 
   const warrantHoldingsBySymbol = useMemo(() => {
@@ -380,8 +387,9 @@ const App: React.FC = () => {
     if (hasChanges) {
         setAccounts(updatedAccounts);
     }
+  // FIX: Added accounts to dependency array to prevent stale closure bugs. The loop is broken by equality check in setInvestmentPrices.
   // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [warrantPrices, investmentPrices, warrantHoldingsBySymbol]);
+  }, [warrantPrices, investmentPrices, warrantHoldingsBySymbol, accounts]);
 
   useEffect(() => {
     refreshInvestmentPrices();
@@ -392,8 +400,9 @@ const App: React.FC = () => {
 
   const loadAllFinancialData = useCallback((data: FinancialData | null, options?: { skipNextSave?: boolean }) => {
     const dataToLoad = data || initialFinancialData;
-    setAccounts(dataToLoad.accounts || []);
-    setTransactions(dataToLoad.transactions || []);
+    // Harden data loading against invalid types/nulls
+    setAccounts((dataToLoad.accounts || []).filter(a => a && a.id));
+    setTransactions((dataToLoad.transactions || []).filter(t => t && t.id && t.date));
     setInvestmentTransactions(dataToLoad.investmentTransactions || []);
     setRecurringTransactions(dataToLoad.recurringTransactions || []);
     setRecurringTransactionOverrides(dataToLoad.recurringTransactionOverrides || []);
