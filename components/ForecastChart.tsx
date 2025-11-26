@@ -350,7 +350,7 @@ const ForecastChart: React.FC<ForecastChartProps> = ({ data, oneTimeGoals, lowes
                   <ReferenceDot
                      x={lowestPoint.date}
                      y={lowestPoint.value}
-                     r={5}
+                     r={6}
                      fill="#EF4444"
                      stroke="white"
                      strokeWidth={2}
@@ -365,17 +365,19 @@ const ForecastChart: React.FC<ForecastChartProps> = ({ data, oneTimeGoals, lowes
                       stroke="#EF4444" 
                       strokeDasharray="2 2"
                       strokeOpacity={0.5}
+                      isFront // Make sure line is in front
                   >
                     <Label 
+                        position="top" 
                         content={({ viewBox }) => {
                              const x = viewBox?.x || 0;
-                             const y = viewBox?.y || 0; // Position near the dot vertically or top
-                             // We place the label at the top but align with the x-axis of the lowest point
+                             // Draw a badge at the top of the line
                              return (
-                                 <g transform={`translate(${x + 8}, ${30})`}> 
-                                     <rect x="0" y="-12" width="100" height="34" rx="4" fill="rgba(239, 68, 68, 0.1)" stroke="rgba(239, 68, 68, 0.3)" />
-                                     <text x="8" y="4" fill="#EF4444" fontSize="10" fontWeight="bold" textAnchor="start">LOWEST</text>
-                                     <text x="8" y="16" fill="#EF4444" fontSize="10" textAnchor="start">{formatCurrency(lowestPoint.value, 'EUR')}</text>
+                                 <g transform={`translate(${x}, ${20})`}> 
+                                     <rect x="-50" y="0" width="100" height="36" rx="6" fill="#EF4444" />
+                                     <text x="0" y="14" fill="white" fontSize="10" fontWeight="bold" textAnchor="middle">LOWEST</text>
+                                     <text x="0" y="28" fill="white" fontSize="11" fontWeight="bold" textAnchor="middle">{formatCurrency(lowestPoint.value, 'EUR')}</text>
+                                     <path d="M0 36 L-6 42 L6 42 Z" fill="#EF4444" /> {/* Triangle pointer */}
                                  </g>
                              )
                         }}
