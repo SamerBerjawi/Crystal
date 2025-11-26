@@ -36,8 +36,22 @@ const LoanAccountView: React.FC<LoanAccountViewProps> = ({
 
   const loanDetails = useMemo(() => {
     const schedule = generateAmortizationSchedule(account, transactions, loanPaymentOverrides);
+    
+    // Lifetime Totals (based on schedule)
+    const totalLifetimePrincipal = schedule.reduce((acc, p) => acc + p.principal, 0);
+    const totalLifetimeInterest = schedule.reduce((acc, p) => acc + p.interest, 0);
+    const totalLifetimeCost = totalLifetimePrincipal + totalLifetimeInterest;
+
+    // Paid Totals
     const totalPaidPrincipal = schedule.reduce((acc, p) => p.status === 'Paid' ? acc + p.principal : acc, 0);
-    const totalPaidInterest = schedule.reduce((acc, p) => p.status === 'Paid' ? acc + p.interest : acc, 0);
+    // const totalPaidInterest = schedule.reduce((acc, p) => p.status === 'Paid' ? acc + p.interest : acc, 0); // Unused
+    
+    // Remaining Balances
+    const remainingPrincipal = Math.max(0, totalLifetimePrincipal - totalPaidPrincipal);
+    // Calculate remaining interest by summing interest of unpaid payments
+    const remainingInterest = schedule.reduce((acc, p) => p.status !== 'Paid' ? acc + p.interest : acc, 0);
+    const totalRemaining = remainingPrincipal + remainingInterest;
+
     const linkedProperty = accounts.find(a => a.type === 'Property' && a.linkedLoanId === account.id);
     
     let ltv = 0;
@@ -45,7 +59,8 @@ const LoanAccountView: React.FC<LoanAccountViewProps> = ({
     
     if (linkedProperty) {
       const propertyValue = linkedProperty.balance;
-      const loanBalance = Math.abs(account.balance);
+      // Use calculated remaining principal for loan balance to be consistent with schedule
+      const loanBalance = remainingPrincipal; 
       if (propertyValue > 0) ltv = (loanBalance / propertyValue) * 100;
       marketEquity = propertyValue - loanBalance;
     }
@@ -56,7 +71,21 @@ const LoanAccountView: React.FC<LoanAccountViewProps> = ({
     const lastPayment = schedule[schedule.length - 1];
     const payoffDate = lastPayment ? parseDateAsUTC(lastPayment.date) : null;
     
-    return { schedule, totalPaidPrincipal, totalPaidInterest, linkedProperty, ltv, equity, marketEquity, payoffDate };
+    return { 
+        schedule, 
+        totalLifetimePrincipal, 
+        totalLifetimeInterest, 
+        totalLifetimeCost,
+        remainingPrincipal,
+        remainingInterest,
+        totalRemaining,
+        totalPaidPrincipal,
+        linkedProperty, 
+        ltv, 
+        equity, 
+        marketEquity, 
+        payoffDate 
+    };
   }, [account, transactions, loanPaymentOverrides, accounts]);
 
   // Linked Goals
@@ -93,16 +122,16 @@ const LoanAccountView: React.FC<LoanAccountViewProps> = ({
         <div className="lg:col-span-2 flex flex-col gap-6">
           <div className="grid grid-cols-1 sm:grid-cols-3 gap-6">
             <Card>
-              <p className="text-xs uppercase tracking-wide text-light-text-secondary dark:text-dark-text-secondary font-semibold mb-1">{isLending ? 'Outstanding Principal' : 'Outstanding Balance'}</p>
-              <p className={`text-2xl font-bold ${isLending ? 'text-teal-600 dark:text-teal-400' : 'text-red-600 dark:text-red-400'}`}>{formatCurrency(Math.abs(account.balance), account.currency)}</p>
+              <p className="text-xs uppercase tracking-wide text-light-text-secondary dark:text-dark-text-secondary font-semibold mb-1">{isLending ? 'Outstanding Principal' : 'Outstanding Principal'}</p>
+              <p className={`text-2xl font-bold ${isLending ? 'text-teal-600 dark:text-teal-400' : 'text-red-600 dark:text-red-400'}`}>{formatCurrency(loanDetails.remainingPrincipal, account.currency)}</p>
             </Card>
             <Card>
-              <p className="text-xs uppercase tracking-wide text-light-text-secondary dark:text-dark-text-secondary font-semibold mb-1">{isLending ? 'Principal Received' : 'Principal Paid'}</p>
-              <p className="text-2xl font-bold text-blue-600 dark:text-blue-400">{formatCurrency(loanDetails.totalPaidPrincipal, account.currency)}</p>
+              <p className="text-xs uppercase tracking-wide text-light-text-secondary dark:text-dark-text-secondary font-semibold mb-1">{isLending ? 'Remaining Interest' : 'Remaining Interest'}</p>
+              <p className="text-2xl font-bold text-orange-600 dark:text-orange-400">{formatCurrency(loanDetails.remainingInterest, account.currency)}</p>
             </Card>
             <Card>
-              <p className="text-xs uppercase tracking-wide text-light-text-secondary dark:text-dark-text-secondary font-semibold mb-1">{isLending ? 'Interest Earned' : 'Interest Paid'}</p>
-              <p className="text-2xl font-bold text-orange-600 dark:text-orange-400">{formatCurrency(loanDetails.totalPaidInterest, account.currency)}</p>
+              <p className="text-xs uppercase tracking-wide text-light-text-secondary dark:text-dark-text-secondary font-semibold mb-1">{isLending ? 'Total Remaining' : 'Total Remaining'}</p>
+              <p className="text-2xl font-bold text-blue-600 dark:text-blue-400">{formatCurrency(loanDetails.totalRemaining, account.currency)}</p>
             </Card>
           </div>
           <div className="flex-1 min-h-[300px]">
@@ -113,8 +142,11 @@ const LoanAccountView: React.FC<LoanAccountViewProps> = ({
           <Card>
             <h3 className="text-base font-semibold text-light-text dark:text-dark-text mb-4">Loan Details</h3>
             <div className="space-y-3 text-sm">
-              <div className="flex justify-between"><span className="text-light-text-secondary dark:text-dark-text-secondary">Total Amount</span><span className="font-medium">{formatCurrency(account.totalAmount || 0, account.currency)}</span></div>
-              <div className="flex justify-between"><span className="text-light-text-secondary dark:text-dark-text-secondary">Start Date</span><span className="font-medium">{account.loanStartDate ? parseDateAsUTC(account.loanStartDate).toLocaleDateString() : 'N/A'}</span></div>
+              <div className="flex justify-between"><span className="text-light-text-secondary dark:text-dark-text-secondary">Total Principal</span><span className="font-medium">{formatCurrency(loanDetails.totalLifetimePrincipal, account.currency)}</span></div>
+              <div className="flex justify-between"><span className="text-light-text-secondary dark:text-dark-text-secondary">Total Interest</span><span className="font-medium">{formatCurrency(loanDetails.totalLifetimeInterest, account.currency)}</span></div>
+              <div className="flex justify-between border-t border-black/5 dark:border-white/5 pt-2"><span className="text-light-text-secondary dark:text-dark-text-secondary font-semibold">Total Loan Amount</span><span className="font-bold">{formatCurrency(loanDetails.totalLifetimeCost, account.currency)}</span></div>
+              
+              <div className="flex justify-between mt-4"><span className="text-light-text-secondary dark:text-dark-text-secondary">Start Date</span><span className="font-medium">{account.loanStartDate ? parseDateAsUTC(account.loanStartDate).toLocaleDateString() : 'N/A'}</span></div>
               <div className="flex justify-between"><span className="text-light-text-secondary dark:text-dark-text-secondary">Term</span><span className="font-medium">{account.duration} months</span></div>
               <div className="flex justify-between"><span className="text-light-text-secondary dark:text-dark-text-secondary">Payoff Date</span><span className="font-medium">{loanDetails.payoffDate ? loanDetails.payoffDate.toLocaleDateString() : 'N/A'}</span></div>
               {account.linkedAccountId && <div className="flex justify-between"><span className="text-light-text-secondary dark:text-dark-text-secondary">Linked Account</span><span className="font-medium text-right truncate max-w-[150px]">{accounts.find(a=>a.id===account.linkedAccountId)?.name}</span></div>}
