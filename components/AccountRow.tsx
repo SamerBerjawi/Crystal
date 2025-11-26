@@ -2,7 +2,7 @@
 import React, { useMemo } from 'react';
 import { Account, Transaction, Warrant } from '../types';
 import { convertToEur, formatCurrency } from '../utils';
-import { LineChart, Line, ResponsiveContainer } from 'recharts';
+import { AreaChart, Area, ResponsiveContainer, YAxis } from 'recharts';
 import { ACCOUNT_TYPE_STYLES } from '../constants';
 
 interface AccountRowProps {
@@ -41,6 +41,7 @@ const AccountRow: React.FC<AccountRowProps> = ({ account, transactions, warrants
         startDate.setDate(endDate.getDate() - 90);
 
         if (transactions.length === 0) {
+            // Return flat line if no data
             return Array(NUM_POINTS).fill({ value: account.balance });
         }
         
@@ -95,11 +96,21 @@ const AccountRow: React.FC<AccountRowProps> = ({ account, transactions, warrants
         return warrants.some(w => w.isin === account.symbol);
     }, [account, warrants]);
 
-    const sparklineColor = isAsset ? '#22C55E' : '#F43F5E';
+    // Calculate trend stats
+    const startVal = sparklineData[0]?.value || 0;
+    const endVal = sparklineData[sparklineData.length - 1]?.value || 0;
+    const change = endVal - startVal;
+    const isPositiveTrend = change >= 0;
+    const trendPercent = startVal !== 0 ? Math.abs((change / startVal) * 100) : 0;
+
+    const sparklineColor = isAsset 
+        ? (isPositiveTrend ? '#22C55E' : '#F59E0B') // Green if up, Yellow/Orange if down but still asset
+        : (isPositiveTrend ? '#22C55E' : '#EF4444'); // Green if debt reducing (technically 'up'), Red if debt increasing
+
     const style = ACCOUNT_TYPE_STYLES[account.type];
     
-    const dragClasses = isBeingDragged ? 'opacity-40 scale-95' : '';
-    const dragOverClasses = isDragOver ? 'border-primary-500 ring-2 ring-primary-500/20 z-10' : 'border-transparent hover:border-black/5 dark:hover:border-white/10';
+    const dragClasses = isBeingDragged ? 'opacity-40 scale-95 shadow-none' : '';
+    const dragOverClasses = isDragOver ? 'ring-2 ring-primary-500 ring-offset-2 dark:ring-offset-dark-bg z-10' : 'hover:border-primary-500/50 dark:hover:border-primary-500/30 hover:shadow-md';
     const cursorClass = isDraggable ? 'cursor-grab active:cursor-grabbing' : 'cursor-pointer';
 
     const renderSecondaryDetails = () => {
@@ -110,8 +121,6 @@ const AccountRow: React.FC<AccountRowProps> = ({ account, transactions, warrants
         if (account.financialInstitution) details.push(account.financialInstitution);
         if (account.last4) details.push(`•••• ${account.last4}`);
         if (account.subType) details.push(account.subType);
-        if (account.interestRate) details.push(`${account.interestRate}%`);
-        if (account.make) details.push(`${account.year} ${account.make} ${account.model}`);
         
         return details.join(' • ');
     };
@@ -125,75 +134,96 @@ const AccountRow: React.FC<AccountRowProps> = ({ account, transactions, warrants
             onDrop={onDrop}
             onDragEnd={onDragEnd}
             onContextMenu={onContextMenu}
-            className={`group relative flex flex-col sm:flex-row items-center gap-4 p-5 bg-light-card dark:bg-dark-card rounded-2xl border shadow-card hover:shadow-lg transition-all duration-300 ease-in-out ${cursorClass} ${dragClasses} ${dragOverClasses} ${account.status === 'closed' ? 'opacity-60 grayscale' : ''}`} 
+            className={`
+                group relative bg-white dark:bg-dark-card rounded-2xl border border-gray-100 dark:border-white/5 shadow-sm transition-all duration-300 ease-in-out overflow-hidden h-[150px] flex flex-col
+                ${cursorClass} ${dragClasses} ${dragOverClasses} ${account.status === 'closed' ? 'opacity-60 grayscale' : ''}
+            `}
             onClick={onClick}
         >
-            {/* Account Icon & Info */}
-            <div className="flex items-center w-full sm:w-auto flex-1 min-w-0 gap-4">
-                <div className={`relative flex-shrink-0 w-12 h-12 rounded-xl flex items-center justify-center ${style.color} bg-current/10 border border-current/20`}>
-                    <span className="material-symbols-outlined" style={{ fontSize: '28px' }}>
-                        {account.icon || 'wallet'}
-                    </span>
-                     {account.isPrimary && (
-                        <div className="absolute -top-1 -right-1 bg-white dark:bg-dark-card rounded-full p-0.5 shadow-sm">
-                            <span className="material-symbols-outlined text-yellow-500 text-xs filled">star</span>
-                        </div>
-                    )}
-                </div>
-                
-                <div className="min-w-0 flex-col flex">
-                    <div className="flex items-baseline gap-2">
-                         <h3 className="font-bold text-base text-light-text dark:text-dark-text truncate">{account.name}</h3>
-                         {account.symbol && <span className="text-[10px] font-bold font-mono text-light-text-secondary dark:text-dark-text-secondary bg-black/5 dark:bg-white/10 px-1.5 py-0.5 rounded tracking-wide">{account.symbol}</span>}
+            {/* Info Layer (Z-Index 10) */}
+            <div className="relative z-10 p-5 flex justify-between items-start h-full">
+                <div className="flex items-start gap-4">
+                    <div className={`relative flex-shrink-0 w-12 h-12 rounded-2xl flex items-center justify-center ${style.color} bg-current/5 ring-1 ring-inset ring-current/10 shadow-sm`}>
+                        <span className="material-symbols-outlined" style={{ fontSize: '26px' }}>
+                            {account.icon || 'wallet'}
+                        </span>
+                         {account.isPrimary && (
+                            <div className="absolute -top-1.5 -right-1.5 bg-white dark:bg-dark-card rounded-full p-0.5 shadow-sm border border-gray-100 dark:border-gray-800 z-10">
+                                <span className="material-symbols-outlined text-yellow-500 text-[14px] filled">star</span>
+                            </div>
+                        )}
                     </div>
-                    <p className="text-xs font-medium text-light-text-secondary dark:text-dark-text-secondary mt-0.5 truncate">
-                        {renderSecondaryDetails()}
-                    </p>
-                </div>
-            </div>
-
-            {/* Actions, Sparkline, Amount */}
-            <div className="flex items-center justify-between w-full sm:w-auto gap-6">
-                
-                 {/* Sparkline - Hidden on very small screens */}
-                <div className="w-24 h-10 shrink-0 hidden md:block opacity-50 group-hover:opacity-100 transition-opacity">
-                    <ResponsiveContainer minWidth={0} minHeight={0} debounce={50}>
-                        <LineChart width={96} height={40} data={sparklineData}>
-                            <Line type="monotone" dataKey="value" stroke={sparklineColor} strokeWidth={2} dot={false} isAnimationActive={false} />
-                        </LineChart>
-                    </ResponsiveContainer>
+                    
+                    <div className="min-w-0 flex flex-col pt-0.5">
+                         <h3 className="font-bold text-lg text-gray-900 dark:text-white truncate leading-tight">{account.name}</h3>
+                         <p className="text-xs font-medium text-gray-500 dark:text-gray-400 mt-1 truncate">
+                            {renderSecondaryDetails()}
+                        </p>
+                    </div>
                 </div>
 
-                {/* Balance */}
-                <div className="text-right shrink-0">
-                    <p className={`font-bold text-lg font-mono tracking-tight ${isAsset ? 'text-light-text dark:text-dark-text' : 'text-red-500'}`}>
+                <div className="text-right flex flex-col items-end">
+                    <p className={`font-bold text-xl font-mono tracking-tight leading-none ${isAsset ? 'text-gray-900 dark:text-white' : 'text-red-600 dark:text-red-400'}`}>
                         {formatCurrency(convertToEur(displayBalance, account.currency), 'EUR')}
                     </p>
                      {account.currency !== 'EUR' && (
-                        <p className="text-[10px] font-medium text-light-text-secondary dark:text-dark-text-secondary mt-0.5">
+                        <p className="text-[10px] font-medium text-gray-400 dark:text-gray-500 mt-1">
                             {formatCurrency(displayBalance, account.currency)}
                         </p>
                     )}
+                    
+                    {/* Trend Badge */}
+                    {sparklineData.length > 1 && (
+                        <div className={`flex items-center gap-1 px-2 py-0.5 rounded-full text-[11px] font-bold mt-2 ${isPositiveTrend ? 'bg-green-100 text-green-700 dark:bg-green-500/20 dark:text-green-400' : 'bg-red-100 text-red-700 dark:bg-red-500/20 dark:text-red-400'}`}>
+                            <span className="material-symbols-outlined text-[14px]">
+                                {isPositiveTrend ? 'trending_up' : 'trending_down'}
+                            </span>
+                            <span>{trendPercent.toFixed(1)}%</span>
+                        </div>
+                    )}
                 </div>
+            </div>
 
-                {/* Floating Actions */}
-                <div className="flex items-center gap-1 opacity-100 sm:opacity-0 group-hover:opacity-100 transition-all duration-200 sm:translate-x-2 group-hover:translate-x-0">
-                    <button 
-                        onClick={handleAdjustBalanceClick} 
-                        className="p-1.5 rounded-lg text-gray-400 hover:text-primary-500 hover:bg-primary-50 dark:hover:bg-primary-900/30 transition-colors disabled:opacity-20 disabled:cursor-not-allowed" 
-                        title={isComputedAccount ? "Balance computed automatically" : "Adjust Balance"}
-                        disabled={isComputedAccount}
-                    >
-                        <span className="material-symbols-outlined text-[20px]">tune</span>
-                    </button>
-                    <button 
-                        onClick={handleEditClick} 
-                        className="p-1.5 rounded-lg text-gray-400 hover:text-primary-500 hover:bg-primary-50 dark:hover:bg-primary-900/30 transition-colors" 
-                        title="Edit Account"
-                    >
-                        <span className="material-symbols-outlined text-[20px]">edit</span>
-                    </button>
-                </div>
+            {/* Actions Layer (Z-Index 20) */}
+            <div className="absolute top-4 right-4 flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-all duration-200 z-20 bg-white/90 dark:bg-dark-card/90 backdrop-blur-sm rounded-lg p-1 shadow-sm border border-black/5 dark:border-white/5">
+                <button 
+                    onClick={handleAdjustBalanceClick} 
+                    className="p-1.5 rounded-md text-gray-500 hover:text-primary-600 hover:bg-primary-50 dark:hover:bg-primary-900/30 transition-colors disabled:opacity-20 disabled:cursor-not-allowed" 
+                    title={isComputedAccount ? "Balance computed automatically" : "Adjust Balance"}
+                    disabled={isComputedAccount}
+                >
+                    <span className="material-symbols-outlined text-[18px]">tune</span>
+                </button>
+                <button 
+                    onClick={handleEditClick} 
+                    className="p-1.5 rounded-md text-gray-500 hover:text-primary-600 hover:bg-primary-50 dark:hover:bg-primary-900/30 transition-colors" 
+                    title="Edit Account"
+                >
+                    <span className="material-symbols-outlined text-[18px]">edit</span>
+                </button>
+            </div>
+
+            {/* Sparkline Background (Z-Index 0) */}
+            <div className="absolute bottom-0 left-0 right-0 h-20 opacity-20 dark:opacity-30 pointer-events-none px-2 pb-2">
+                <ResponsiveContainer minWidth={0} minHeight={0} debounce={50}>
+                    <AreaChart data={sparklineData} margin={{ top: 0, right: 0, left: 0, bottom: 0 }}>
+                        <defs>
+                            <linearGradient id={`grad-${account.id}`} x1="0" y1="0" x2="0" y2="1">
+                                <stop offset="0%" stopColor={sparklineColor} stopOpacity={0.6}/>
+                                <stop offset="90%" stopColor={sparklineColor} stopOpacity={0}/>
+                            </linearGradient>
+                        </defs>
+                        <YAxis domain={['dataMin', 'dataMax']} hide />
+                        <Area 
+                            type="monotone" 
+                            dataKey="value" 
+                            stroke={sparklineColor} 
+                            strokeWidth={2} 
+                            fill={`url(#grad-${account.id})`} 
+                            isAnimationActive={false}
+                        />
+                    </AreaChart>
+                </ResponsiveContainer>
             </div>
         </div>
     );

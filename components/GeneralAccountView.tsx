@@ -452,9 +452,6 @@ const GeneralAccountView: React.FC<GeneralAccountViewProps> = ({
                       </span>
                   )}
               </div>
-              <div className="flex items-center gap-2 text-sm text-light-text-secondary dark:text-dark-text-secondary">
-                <span>{account.type}</span>
-              </div>
             </div>
           </div>
         </div>
@@ -529,7 +526,7 @@ const GeneralAccountView: React.FC<GeneralAccountViewProps> = ({
             <h3 className="text-sm font-bold uppercase tracking-wider text-light-text-secondary dark:text-dark-text-secondary mb-4 flex items-center gap-2">
                 <span className="material-symbols-outlined text-lg">info</span> Account Details
             </h3>
-            <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-6">
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
                 {account.accountNumber && (
                     <div>
                         <p className="text-xs text-light-text-secondary dark:text-dark-text-secondary mb-1">Account Number / IBAN</p>

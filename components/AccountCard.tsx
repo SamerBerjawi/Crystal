@@ -1,7 +1,6 @@
 
 import React, { useMemo } from 'react';
 import { Account } from '../types';
-import Card from './Card';
 import { convertToEur, formatCurrency } from '../utils';
 import { LineChart, Line, ResponsiveContainer } from 'recharts';
 import { ACCOUNT_TYPE_STYLES } from '../constants';
@@ -24,7 +23,6 @@ const AccountCard: React.FC<AccountCardProps> = ({
     account, 
     onClick, 
     onEdit, 
-    // FIX: Added 'isDraggable' to the destructured props to resolve the 'Cannot find name' error.
     isDraggable,
     isBeingDragged,
     isDragOver,
@@ -35,7 +33,7 @@ const AccountCard: React.FC<AccountCardProps> = ({
     onDragEnd
 }) => {
     const handleEditClick = (e: React.MouseEvent) => {
-        e.stopPropagation(); // Prevent card's onClick from firing
+        e.stopPropagation();
         onEdit();
     };
     
@@ -54,11 +52,12 @@ const AccountCard: React.FC<AccountCardProps> = ({
     }, [account.balance]);
     
     const isAsset = account.balance >= 0;
-    const sparklineColor = isAsset ? '#6366F1' : '#F43F5E';
+    const sparklineColor = isAsset ? '#22C55E' : '#F43F5E';
     const style = ACCOUNT_TYPE_STYLES[account.type];
 
-    const dragClasses = isBeingDragged ? 'opacity-50' : '';
-    const dragOverClasses = isDragOver ? 'border-t-4 border-primary-500 pt-1' : '';
+    const dragClasses = isBeingDragged ? 'opacity-50 scale-95' : '';
+    const dragOverClasses = isDragOver ? 'ring-2 ring-primary-500 ring-offset-2 dark:ring-offset-dark-bg' : 'hover:border-gray-300 dark:hover:border-white/20';
+    const cursorClass = isDraggable ? 'cursor-grab active:cursor-grabbing' : 'cursor-pointer';
 
     const secondaryText = account.type === 'Property' && account.propertyType ? account.propertyType : account.type;
 
@@ -70,49 +69,51 @@ const AccountCard: React.FC<AccountCardProps> = ({
             onDragLeave={onDragLeave}
             onDrop={onDrop}
             onDragEnd={onDragEnd}
-            className={`transition-all duration-150 ${dragOverClasses} ${isDraggable ? 'cursor-grab' : ''}`}
+            onClick={onClick}
+            className={`
+                group relative bg-white dark:bg-dark-card rounded-2xl p-5 border border-gray-100 dark:border-white/5 shadow-sm hover:shadow-md transition-all duration-200 overflow-hidden
+                ${cursorClass} ${dragClasses} ${dragOverClasses}
+            `}
         >
-            <Card 
-                className={`flex items-center justify-between h-full hover:shadow-lg transition-shadow duration-200 cursor-pointer group ${dragClasses}`} 
-                onClick={onClick}
-            >
-                <div className="flex items-center flex-1 min-w-0">
-                    <div className={`text-3xl mr-4 flex items-center justify-center w-12 h-12 shrink-0 ${style.color}`}>
-                        <span className="material-symbols-outlined" style={{ fontSize: '36px' }}>
+            <div className="flex items-center justify-between mb-4">
+                 <div className="flex items-center gap-3 min-w-0">
+                    <div className={`relative flex-shrink-0 w-10 h-10 rounded-xl flex items-center justify-center ${style.color} bg-current/5 ring-1 ring-inset ring-current/10`}>
+                        <span className="material-symbols-outlined text-[20px]">
                             {account.icon || 'wallet'}
                         </span>
                     </div>
                     <div className="min-w-0">
-                        <p className="font-semibold text-light-text dark:text-dark-text truncate">{account.name}</p>
-                        <div className="flex items-center gap-2 text-sm text-light-text-secondary dark:text-dark-text-secondary">
-                           <span>{secondaryText} {account.last4 ? `•••• ${account.last4}` : ''}</span>
-                        </div>
+                        <p className="font-bold text-sm text-gray-900 dark:text-white truncate leading-tight">{account.name}</p>
+                        <p className="text-xs text-gray-500 dark:text-gray-400 truncate mt-0.5">{secondaryText} {account.last4 ? `• ${account.last4}` : ''}</p>
                     </div>
-                </div>
+                 </div>
+                 <button 
+                    onClick={handleEditClick} 
+                    className="opacity-0 group-hover:opacity-100 transition-opacity p-1.5 rounded-lg text-gray-400 hover:text-primary-600 hover:bg-primary-50 dark:hover:bg-primary-900/30"
+                >
+                    <span className="material-symbols-outlined text-[18px]">edit</span>
+                </button>
+            </div>
 
-                <div className="flex items-center gap-4 ml-4">
-                    <div className="w-24 h-10 shrink-0">
-                        <ResponsiveContainer minWidth={0} minHeight={0} debounce={50}>
-                            <LineChart width={96} height={40} data={sparklineData}>
-                                 <Line type="natural" dataKey="value" stroke={sparklineColor} strokeWidth={2} dot={false} />
-                            </LineChart>
-                        </ResponsiveContainer>
-                    </div>
-                    <div className="text-right shrink-0 w-32">
-                        <p className={`font-bold text-xl ${isAsset ? 'text-light-text dark:text-dark-text' : 'text-red-500'}`}>
-                            {formatCurrency(convertToEur(account.balance, account.currency), 'EUR')}
-                        </p>
-                         {account.currency !== 'EUR' && (
-                            <p className="text-xs text-light-text-secondary dark:text-dark-text-secondary">
-                                {formatCurrency(account.balance, account.currency)}
-                            </p>
-                        )}
-                    </div>
-                    <button onClick={handleEditClick} className="opacity-0 group-hover:opacity-100 transition-opacity text-light-text-secondary dark:text-dark-text-secondary p-2 rounded-full hover:bg-black/5 dark:hover:bg-white/5">
-                        <span className="material-symbols-outlined">edit</span>
-                    </button>
+            <div className="flex items-end justify-between gap-4">
+                <div className="h-8 w-24 opacity-70 group-hover:opacity-100 transition-opacity">
+                    <ResponsiveContainer minWidth={0} minHeight={0} debounce={50}>
+                        <LineChart width={96} height={32} data={sparklineData}>
+                                <Line type="monotone" dataKey="value" stroke={sparklineColor} strokeWidth={2} dot={false} isAnimationActive={false} />
+                        </LineChart>
+                    </ResponsiveContainer>
                 </div>
-            </Card>
+                <div className="text-right min-w-0 flex-shrink-0">
+                    <p className={`font-bold text-lg font-mono tracking-tight leading-none ${isAsset ? 'text-gray-900 dark:text-white' : 'text-red-600 dark:text-red-400'}`}>
+                        {formatCurrency(convertToEur(account.balance, account.currency), 'EUR')}
+                    </p>
+                        {account.currency !== 'EUR' && (
+                        <p className="text-[10px] font-medium text-gray-400 dark:text-gray-500 mt-1">
+                            {formatCurrency(account.balance, account.currency)}
+                        </p>
+                    )}
+                </div>
+            </div>
         </div>
     );
 };
