@@ -39,6 +39,7 @@ const EditAccountModal: React.FC<EditAccountModalProps> = ({ onClose, onSave, on
   const [openingDate, setOpeningDate] = useState(account.openingDate || '');
 
   // Card Details
+  const [hasCard, setHasCard] = useState(!!(account.cardNetwork || account.last4 || account.expirationDate || account.cardholderName || account.type === 'Credit Card'));
   const [expirationDate, setExpirationDate] = useState(account.expirationDate || '');
   const [cardNetwork, setCardNetwork] = useState(account.cardNetwork || '');
   const [cardholderName, setCardholderName] = useState(account.cardholderName || '');
@@ -243,7 +244,7 @@ const EditAccountModal: React.FC<EditAccountModalProps> = ({ onClose, onSave, on
       balance: type === 'Loan' ? -Math.abs(principalAmount !== '' ? parseFloat(principalAmount) : 0) : (type === 'Lending' ? Math.abs(principalAmount !== '' ? parseFloat(principalAmount) : 0) : (isComputedAccount ? account.balance : (balance !== '' ? parseFloat(balance) : 0))),
       currency,
       icon,
-      last4: last4 || undefined,
+      last4: hasCard && last4 ? last4 : undefined,
       financialInstitution: ['Checking', 'Savings', 'Credit Card'].includes(type) && financialInstitution ? financialInstitution : undefined,
       isPrimary,
       accountNumber: accountNumber || undefined,
@@ -251,9 +252,9 @@ const EditAccountModal: React.FC<EditAccountModalProps> = ({ onClose, onSave, on
       apy: apy !== '' ? parseFloat(apy) : undefined,
       openingDate: openingDate || undefined,
       // Card details
-      expirationDate: (type === 'Credit Card' || type === 'Checking' || type === 'Savings') && expirationDate ? expirationDate : undefined,
-      cardNetwork: (type === 'Credit Card' || type === 'Checking' || type === 'Savings') && cardNetwork ? cardNetwork : undefined,
-      cardholderName: (type === 'Credit Card' || type === 'Checking' || type === 'Savings') && cardholderName ? cardholderName : undefined,
+      expirationDate: hasCard && expirationDate ? expirationDate : undefined,
+      cardNetwork: hasCard && cardNetwork ? cardNetwork : undefined,
+      cardholderName: hasCard && cardholderName ? cardholderName : undefined,
 
       // Conditionally add new fields
       subType: type === 'Investment' ? subType : undefined,
@@ -336,7 +337,7 @@ const EditAccountModal: React.FC<EditAccountModalProps> = ({ onClose, onSave, on
   const labelStyle = "block text-sm font-medium text-light-text-secondary dark:text-dark-text-secondary mb-1";
   
   const showBankingDetails = ['Checking', 'Savings', 'Investment', 'Credit Card', 'Lending'].includes(type);
-  const showCardDetails = ['Credit Card', 'Checking', 'Savings'].includes(type);
+  const canHaveCard = ['Credit Card', 'Checking', 'Savings'].includes(type);
 
   return (
     <>
@@ -452,41 +453,50 @@ const EditAccountModal: React.FC<EditAccountModalProps> = ({ onClose, onSave, on
                </div>
             )}
             
-            {showCardDetails && (
+            {canHaveCard && (
                 <div className="pt-4 mt-4 border-t border-black/10 dark:border-white/10">
-                    <h4 className="font-semibold text-light-text dark:text-dark-text mb-3">Card Details</h4>
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                        <div>
-                            <label htmlFor="cardNetwork" className={labelStyle}>Card Network</label>
-                            <div className={SELECT_WRAPPER_STYLE}>
-                                <select id="cardNetwork" value={cardNetwork} onChange={e => setCardNetwork(e.target.value)} className={INPUT_BASE_STYLE}>
-                                    <option value="">Select Network</option>
-                                    {CARD_NETWORKS.map(net => <option key={net} value={net}>{net}</option>)}
-                                </select>
-                                <div className={SELECT_ARROW_STYLE}><span className="material-symbols-outlined">expand_more</span></div>
+                    <div className="flex items-center justify-between mb-3">
+                        <h4 className="font-semibold text-light-text dark:text-dark-text">Card Details</h4>
+                         <label className="flex items-center gap-2 cursor-pointer">
+                            <input type="checkbox" checked={hasCard} onChange={e => setHasCard(e.target.checked)} className={CHECKBOX_STYLE} />
+                            <span className="text-sm font-medium text-light-text-secondary dark:text-dark-text-secondary">Has associated card?</span>
+                        </label>
+                    </div>
+                    
+                    {hasCard && (
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-4 animate-fade-in-up">
+                            <div>
+                                <label htmlFor="cardNetwork" className={labelStyle}>Card Network</label>
+                                <div className={SELECT_WRAPPER_STYLE}>
+                                    <select id="cardNetwork" value={cardNetwork} onChange={e => setCardNetwork(e.target.value)} className={INPUT_BASE_STYLE}>
+                                        <option value="">Select Network</option>
+                                        {CARD_NETWORKS.map(net => <option key={net} value={net}>{net}</option>)}
+                                    </select>
+                                    <div className={SELECT_ARROW_STYLE}><span className="material-symbols-outlined">expand_more</span></div>
+                                </div>
+                            </div>
+                            <div>
+                                <label htmlFor="last-4" className={labelStyle}>Last 4 Digits (Optional)</label>
+                                <input
+                                    id="last-4"
+                                    type="text"
+                                    maxLength={4}
+                                    value={last4}
+                                    onChange={(e) => setLast4(e.target.value.replace(/\D/g, ''))}
+                                    className={INPUT_BASE_STYLE}
+                                    placeholder="****"
+                                />
+                            </div>
+                            <div>
+                                <label htmlFor="expirationDate" className={labelStyle}>Expiration Date (MM/YY)</label>
+                                <input id="expirationDate" type="text" value={expirationDate} onChange={e => setExpirationDate(e.target.value)} className={INPUT_BASE_STYLE} placeholder="MM/YY" />
+                            </div>
+                            <div>
+                                <label htmlFor="cardholderName" className={labelStyle}>Cardholder Name</label>
+                                <input id="cardholderName" type="text" value={cardholderName} onChange={e => setCardholderName(e.target.value)} className={INPUT_BASE_STYLE} placeholder="Name on Card" />
                             </div>
                         </div>
-                        <div>
-                            <label htmlFor="last-4" className={labelStyle}>Last 4 Digits (Optional)</label>
-                            <input
-                                id="last-4"
-                                type="text"
-                                maxLength={4}
-                                value={last4}
-                                onChange={(e) => setLast4(e.target.value.replace(/\D/g, ''))}
-                                className={INPUT_BASE_STYLE}
-                                placeholder="****"
-                            />
-                        </div>
-                         <div>
-                            <label htmlFor="expirationDate" className={labelStyle}>Expiration Date (MM/YY)</label>
-                            <input id="expirationDate" type="text" value={expirationDate} onChange={e => setExpirationDate(e.target.value)} className={INPUT_BASE_STYLE} placeholder="MM/YY" />
-                        </div>
-                        <div>
-                            <label htmlFor="cardholderName" className={labelStyle}>Cardholder Name</label>
-                            <input id="cardholderName" type="text" value={cardholderName} onChange={e => setCardholderName(e.target.value)} className={INPUT_BASE_STYLE} placeholder="Name on Card" />
-                        </div>
-                    </div>
+                    )}
                 </div>
             )}
 

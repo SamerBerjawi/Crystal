@@ -134,6 +134,8 @@ const CreditCardAccountView: React.FC<CreditCardAccountViewProps> = ({
       if (network.includes('amex') || network.includes('american')) return <span className="font-bold text-lg text-blue-300 tracking-tighter border-2 border-blue-300 px-1 rounded">AMEX</span>;
       return <span className="font-bold text-xl text-white tracking-widest">CARD</span>;
   };
+  
+  const showVirtualCard = !!(account.cardNetwork || account.last4 || account.expirationDate || account.cardholderName);
 
   return (
     <div className="space-y-8 animate-fade-in-up">
@@ -172,53 +174,55 @@ const CreditCardAccountView: React.FC<CreditCardAccountViewProps> = ({
       <div className="grid grid-cols-1 lg:grid-cols-12 gap-8">
           
           {/* Virtual Card */}
-          <div className="lg:col-span-5 xl:col-span-4">
-              <div className={`w-full aspect-[1.586/1] rounded-2xl ${getCardGradient(account.id)} p-6 sm:p-8 text-white shadow-2xl relative overflow-hidden border border-white/20 flex flex-col justify-between group transition-transform hover:scale-[1.02] duration-300`}>
-                  {/* Texture Overlay */}
-                  <div className="absolute inset-0 bg-[url('https://www.transparenttextures.com/patterns/cubes.png')] opacity-10 pointer-events-none"></div>
-                  <div className="absolute -top-24 -right-24 w-64 h-64 bg-white/10 rounded-full blur-3xl pointer-events-none"></div>
-                  
-                  <div className="flex justify-between items-start z-10">
-                      <div className="w-12 h-9 bg-white/20 rounded-md border border-white/30 backdrop-blur-md flex items-center justify-center relative overflow-hidden shadow-sm">
-                           <div className="absolute inset-0 bg-gradient-to-tr from-white/10 to-transparent"></div>
-                           <div className="w-8 h-[1px] bg-black/20 absolute top-2"></div>
-                           <div className="w-8 h-[1px] bg-black/20 absolute bottom-2"></div>
-                           <div className="w-[1px] h-5 bg-black/20 absolute left-4"></div>
-                      </div>
-                      <div className="flex flex-col items-end">
-                          <span className="material-symbols-outlined text-2xl opacity-80 mb-1">rss_feed</span>
-                          <span className="text-white/80 font-mono text-xs font-semibold uppercase tracking-wider shadow-sm">
-                              {account.financialInstitution || 'Crystal Bank'}
-                          </span>
-                      </div>
-                  </div>
+          {showVirtualCard && (
+            <div className="lg:col-span-5 xl:col-span-4">
+                <div className={`w-full aspect-[1.586/1] rounded-2xl ${getCardGradient(account.id)} p-6 sm:p-8 text-white shadow-2xl relative overflow-hidden border border-white/20 flex flex-col justify-between group transition-transform hover:scale-[1.02] duration-300`}>
+                    {/* Texture Overlay */}
+                    <div className="absolute inset-0 bg-[url('https://www.transparenttextures.com/patterns/cubes.png')] opacity-10 pointer-events-none"></div>
+                    <div className="absolute -top-24 -right-24 w-64 h-64 bg-white/10 rounded-full blur-3xl pointer-events-none"></div>
+                    
+                    <div className="flex justify-between items-start z-10">
+                        <div className="w-12 h-9 bg-white/20 rounded-md border border-white/30 backdrop-blur-md flex items-center justify-center relative overflow-hidden shadow-sm">
+                            <div className="absolute inset-0 bg-gradient-to-tr from-white/10 to-transparent"></div>
+                            <div className="w-8 h-[1px] bg-black/20 absolute top-2"></div>
+                            <div className="w-8 h-[1px] bg-black/20 absolute bottom-2"></div>
+                            <div className="w-[1px] h-5 bg-black/20 absolute left-4"></div>
+                        </div>
+                        <div className="flex flex-col items-end">
+                            <span className="material-symbols-outlined text-2xl opacity-80 mb-1">rss_feed</span>
+                            <span className="text-white/80 font-mono text-xs font-semibold uppercase tracking-wider shadow-sm">
+                                {account.financialInstitution || 'Crystal Bank'}
+                            </span>
+                        </div>
+                    </div>
 
-                  <div className="z-10 mt-4">
-                       <div className="flex items-center gap-3 text-xl sm:text-2xl font-mono tracking-widest text-white/95 drop-shadow-md truncate">
-                           <span>••••</span> <span>••••</span> <span>••••</span> <span>{account.last4 || '0000'}</span>
-                       </div>
-                  </div>
+                    <div className="z-10 mt-4">
+                        <div className="flex items-center gap-3 text-xl sm:text-2xl font-mono tracking-widest text-white/95 drop-shadow-md truncate">
+                            <span>••••</span> <span>••••</span> <span>••••</span> <span>{account.last4 || '0000'}</span>
+                        </div>
+                    </div>
 
-                  <div className="flex justify-between items-end z-10">
-                      <div className="min-w-0 flex-1 mr-4">
-                          <p className="text-[9px] text-white/70 uppercase tracking-widest mb-0.5">Cardholder</p>
-                          <p className="font-medium uppercase tracking-wide text-sm sm:text-base text-white/95 drop-shadow-sm truncate">{account.cardholderName || account.name}</p>
-                      </div>
-                      <div className="flex flex-col items-end flex-shrink-0">
-                           {account.expirationDate && (
-                               <div className="text-center mb-2">
-                                   <p className="text-[8px] text-white/70 uppercase">Valid Thru</p>
-                                   <p className="font-mono text-sm font-semibold">{account.expirationDate}</p>
-                               </div>
-                           )}
-                           <NetworkLogo />
-                      </div>
-                  </div>
-              </div>
-          </div>
+                    <div className="flex justify-between items-end z-10">
+                        <div className="min-w-0 flex-1 mr-4">
+                            <p className="text-[9px] text-white/70 uppercase tracking-widest mb-0.5">Cardholder</p>
+                            <p className="font-medium uppercase tracking-wide text-sm sm:text-base text-white/95 drop-shadow-sm truncate">{account.cardholderName || account.name}</p>
+                        </div>
+                        <div className="flex flex-col items-end flex-shrink-0">
+                            {account.expirationDate && (
+                                <div className="text-center mb-2">
+                                    <p className="text-[8px] text-white/70 uppercase">Valid Thru</p>
+                                    <p className="font-mono text-sm font-semibold">{account.expirationDate}</p>
+                                </div>
+                            )}
+                            <NetworkLogo />
+                        </div>
+                    </div>
+                </div>
+            </div>
+          )}
 
           {/* Metrics Grid */}
-          <div className="lg:col-span-7 xl:col-span-8 grid grid-cols-1 sm:grid-cols-2 lg:grid-rows-2 gap-4 lg:h-full">
+          <div className={`${showVirtualCard ? 'lg:col-span-7 xl:col-span-8' : 'lg:col-span-12'} grid grid-cols-1 sm:grid-cols-2 ${showVirtualCard ? 'lg:grid-rows-2 lg:h-full' : 'lg:grid-cols-3'} gap-4`}>
               <Card className="flex flex-col justify-between h-full">
                   <div className="flex justify-between items-start">
                       <div>
@@ -249,7 +253,7 @@ const CreditCardAccountView: React.FC<CreditCardAccountViewProps> = ({
                   </div>
               </Card>
 
-              <Card className="sm:col-span-2 flex flex-col justify-between h-full">
+              <Card className={`${showVirtualCard ? 'sm:col-span-2' : ''} flex flex-col justify-between h-full`}>
                   <div className="flex justify-between items-end mb-2">
                       <div>
                           <p className="text-light-text-secondary dark:text-dark-text-secondary text-xs font-bold uppercase tracking-wider">Credit Utilization</p>

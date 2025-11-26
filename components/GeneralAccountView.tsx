@@ -344,9 +344,7 @@ const GeneralAccountView: React.FC<GeneralAccountViewProps> = ({
     );
   }, [accounts, account.id]);
 
-  const hasCardDetails = account.cardNetwork || account.last4 || account.expirationDate || account.cardholderName;
-  const showVirtualCard = (account.type === 'Checking' || account.type === 'Savings') || hasCardDetails;
-
+  const showVirtualCard = !!(account.cardNetwork || account.last4 || account.expirationDate || account.cardholderName);
   const hasLinkedCards = linkedCreditCards.length > 0;
   
   const hasAccountDetails = useMemo(() => {

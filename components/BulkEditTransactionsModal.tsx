@@ -35,6 +35,34 @@ const CategoryOptions: React.FC<{ categories: Category[] }> = ({ categories }) =
   </>
 );
 
+interface CheckboxFieldProps {
+  field: string;
+  label: string;
+  checked: boolean;
+  onChange: () => void;
+  children: React.ReactNode;
+}
+
+const CheckboxField: React.FC<CheckboxFieldProps> = ({field, label, checked, onChange, children}) => (
+    <div className="flex items-start gap-4 p-4 rounded-lg transition-colors duration-200 hover:bg-black/5 dark:hover:bg-white/5">
+      <div className="pt-2">
+          <input 
+              type="checkbox"
+              id={`cb-${field}`}
+              checked={checked}
+              onChange={onChange}
+              className={CHECKBOX_STYLE}
+          />
+      </div>
+      <div className="flex-grow">
+        <label htmlFor={`cb-${field}`} className="block text-sm font-medium text-light-text-secondary dark:text-dark-text-secondary mb-1 cursor-pointer">{label}</label>
+        <div className={!checked ? 'opacity-50 pointer-events-none' : ''}>
+          {children}
+        </div>
+      </div>
+    </div>
+);
+
 interface BulkEditTransactionsModalProps {
   isOpen: boolean;
   onClose: () => void;
@@ -157,34 +185,14 @@ const BulkEditTransactionsModal: React.FC<BulkEditTransactionsModalProps> = ({
     onSave(updatedTransactions);
   };
   
-  const CheckboxField: React.FC<{field: keyof typeof fieldsToUpdate, label: string, children: React.ReactNode}> = ({field, label, children}) => (
-      <div className="flex items-start gap-4 p-4 rounded-lg transition-colors duration-200 hover:bg-black/5 dark:hover:bg-white/5">
-        <div className="pt-2">
-            <input 
-                type="checkbox"
-                id={`cb-${field}`}
-                checked={fieldsToUpdate[field]}
-                onChange={() => handleToggle(field)}
-                className={CHECKBOX_STYLE}
-            />
-        </div>
-        <div className="flex-grow">
-          <label htmlFor={`cb-${field}`} className="block text-sm font-medium text-light-text-secondary dark:text-dark-text-secondary mb-1 cursor-pointer">{label}</label>
-          <div className={!fieldsToUpdate[field] ? 'opacity-50 pointer-events-none' : ''}>
-            {children}
-          </div>
-        </div>
-      </div>
-  );
-
   return (
     <Modal onClose={onClose} title={`Bulk Edit ${transactionsToEdit.length} Transactions`}>
         <form onSubmit={handleSubmit} className="space-y-2">
-            <CheckboxField field="date" label="Change Date">
+            <CheckboxField field="date" label="Change Date" checked={fieldsToUpdate.date} onChange={() => handleToggle('date')}>
                 <input type="date" value={updatedValues.date} onChange={e => handleChange('date', e.target.value)} className={INPUT_BASE_STYLE} />
             </CheckboxField>
             
-            <CheckboxField field="accountId" label="Change Account">
+            <CheckboxField field="accountId" label="Change Account" checked={fieldsToUpdate.accountId} onChange={() => handleToggle('accountId')}>
                  <div className={SELECT_WRAPPER_STYLE}>
                     <select value={updatedValues.accountId} onChange={e => handleChange('accountId', e.target.value)} className={INPUT_BASE_STYLE}>
                        {accounts.map(acc => <option key={acc.id} value={acc.id}>{acc.name}</option>)}
@@ -193,15 +201,15 @@ const BulkEditTransactionsModal: React.FC<BulkEditTransactionsModalProps> = ({
                 </div>
             </CheckboxField>
             
-             <CheckboxField field="description" label="Change Description">
+             <CheckboxField field="description" label="Change Description" checked={fieldsToUpdate.description} onChange={() => handleToggle('description')}>
                 <input type="text" value={updatedValues.description} onChange={e => handleChange('description', e.target.value)} className={INPUT_BASE_STYLE} placeholder="Enter new description" />
             </CheckboxField>
             
-             <CheckboxField field="merchant" label="Change Merchant">
+             <CheckboxField field="merchant" label="Change Merchant" checked={fieldsToUpdate.merchant} onChange={() => handleToggle('merchant')}>
                 <input type="text" value={updatedValues.merchant} onChange={e => handleChange('merchant', e.target.value)} className={INPUT_BASE_STYLE} placeholder="Enter new merchant name" />
             </CheckboxField>
             
-            <CheckboxField field="category" label="Change Category">
+            <CheckboxField field="category" label="Change Category" checked={fieldsToUpdate.category} onChange={() => handleToggle('category')}>
                 <div className={SELECT_WRAPPER_STYLE}>
                     <select value={updatedValues.category} onChange={e => handleChange('category', e.target.value)} className={INPUT_BASE_STYLE} >
                          <option value="" disabled>Select a category</option>
@@ -215,7 +223,7 @@ const BulkEditTransactionsModal: React.FC<BulkEditTransactionsModalProps> = ({
                  <p className="text-xs text-light-text-secondary dark:text-dark-text-secondary mt-1">Changing category will also update the transaction type (income/expense) and adjust the amount sign accordingly.</p>
             </CheckboxField>
             
-            <CheckboxField field="tags" label="Change Tags">
+            <CheckboxField field="tags" label="Change Tags" checked={fieldsToUpdate.tags} onChange={() => handleToggle('tags')}>
                 <div className="relative" ref={tagSelectorRef}>
                     <div
                         onClick={() => setIsTagSelectorOpen(prev => !prev)}
@@ -261,7 +269,7 @@ const BulkEditTransactionsModal: React.FC<BulkEditTransactionsModalProps> = ({
                 <p className="text-xs text-light-text-secondary dark:text-dark-text-secondary mt-1">This will replace all existing tags on the selected transactions.</p>
             </CheckboxField>
             
-            <CheckboxField field="location" label="Change Location">
+            <CheckboxField field="location" label="Change Location" checked={fieldsToUpdate.location} onChange={() => handleToggle('location')}>
                 <LocationAutocomplete
                     value={updatedValues.locationString}
                     onChange={(val, data) => {
