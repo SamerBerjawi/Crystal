@@ -3,7 +3,7 @@ import React, { useMemo } from 'react';
 import { Account, Transaction, DisplayTransaction, Category } from '../types';
 import { formatCurrency, parseDateAsUTC, convertToEur } from '../utils';
 import Card from './Card';
-import { BTN_PRIMARY_STYLE, ACCOUNT_TYPE_STYLES } from '../constants';
+import { BTN_PRIMARY_STYLE, ACCOUNT_TYPE_STYLES, INVESTMENT_SUB_TYPE_STYLES } from '../constants';
 import { AreaChart, Area, XAxis, YAxis, Tooltip, ResponsiveContainer, CartesianGrid } from 'recharts';
 import { useGoalsContext } from '../contexts/FinancialDataContext';
 import { useTransactionsContext, useWarrantsContext } from '../contexts/DomainProviders';
@@ -125,6 +125,13 @@ const InvestmentAccountView: React.FC<InvestmentAccountViewProps> = ({
       }
       return data;
   }, [assetTransactions]);
+  
+  const iconColorClass = useMemo(() => {
+    if (account.subType) {
+        return INVESTMENT_SUB_TYPE_STYLES[account.subType]?.color;
+    }
+    return ACCOUNT_TYPE_STYLES.Investment.color;
+  }, [account.subType]);
 
 
   return (
@@ -136,7 +143,7 @@ const InvestmentAccountView: React.FC<InvestmentAccountViewProps> = ({
             <span className="material-symbols-outlined">arrow_back</span>
           </button>
           <div className="flex items-center gap-4 min-w-0 flex-1">
-            <div className="w-16 h-16 rounded-2xl bg-indigo-100 dark:bg-indigo-900/30 text-indigo-600 dark:text-indigo-400 flex items-center justify-center border border-indigo-200 dark:border-indigo-800 flex-shrink-0">
+            <div className={`w-16 h-16 rounded-xl flex items-center justify-center border flex-shrink-0 ${iconColorClass || 'text-indigo-500'} bg-current/10 border-current/20`}>
               <span className="material-symbols-outlined text-4xl">{account.icon || 'show_chart'}</span>
             </div>
             <div className="min-w-0">

@@ -113,7 +113,7 @@ const OtherAccountView: React.FC<OtherAccountViewProps> = ({
             <span className="material-symbols-outlined">arrow_back</span>
           </button>
           <div className="flex items-center gap-4 min-w-0 flex-1">
-            <div className={`w-16 h-16 rounded-2xl ${theme.bg} ${theme.text} flex items-center justify-center border ${theme.border} flex-shrink-0`}>
+            <div className={`w-16 h-16 rounded-xl flex-shrink-0 ${theme.text} bg-current/10 border border-current/20 flex items-center justify-center flex-shrink-0`}>
               <span className="material-symbols-outlined text-4xl">{account.icon || (isLiability ? 'receipt' : 'category')}</span>
             </div>
             <div className="min-w-0">

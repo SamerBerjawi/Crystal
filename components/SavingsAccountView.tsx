@@ -4,7 +4,7 @@ import { Account, Transaction, DisplayTransaction, Category } from '../types';
 import { formatCurrency, parseDateAsUTC, convertToEur, getDateRange } from '../utils';
 import Card from './Card';
 import TransactionList from './TransactionList';
-import { BTN_PRIMARY_STYLE } from '../constants';
+import { BTN_PRIMARY_STYLE, ACCOUNT_TYPE_STYLES } from '../constants';
 import { AreaChart, Area, XAxis, YAxis, Tooltip, ResponsiveContainer, CartesianGrid } from 'recharts';
 import { useGoalsContext } from '../contexts/FinancialDataContext';
 
@@ -125,7 +125,7 @@ const SavingsAccountView: React.FC<SavingsAccountViewProps> = ({
             <span className="material-symbols-outlined">arrow_back</span>
           </button>
           <div className="flex items-center gap-4 min-w-0 flex-1">
-            <div className="w-16 h-16 rounded-2xl bg-emerald-100 dark:bg-emerald-900/30 text-emerald-600 dark:text-emerald-400 flex items-center justify-center border border-emerald-200 dark:border-emerald-800 flex-shrink-0">
+            <div className={`w-16 h-16 rounded-xl flex items-center justify-center border flex-shrink-0 ${ACCOUNT_TYPE_STYLES[account.type]?.color || 'text-emerald-500'} bg-current/10 border-current/20`}>
               <span className="material-symbols-outlined text-4xl">{account.icon || 'savings'}</span>
             </div>
             <div className="min-w-0">

@@ -348,9 +348,9 @@ const EditAccountModal: React.FC<EditAccountModalProps> = ({ onClose, onSave, on
             <button
               type="button"
               onClick={() => setIconPickerOpen(true)}
-              className="flex items-center justify-center w-16 h-16 bg-light-bg dark:bg-dark-bg rounded-full shadow-neu-raised-light dark:shadow-neu-raised-dark hover:shadow-neu-inset-light dark:hover:shadow-neu-inset-dark transition-shadow"
+              className="flex items-center justify-center w-16 h-16 bg-light-bg dark:bg-dark-bg rounded-2xl shadow-sm hover:bg-gray-100 dark:hover:bg-white/5 transition-colors border border-black/5 dark:border-white/10"
             >
-              <span className={`material-symbols-outlined ${iconColorClass}`} style={{ fontSize: '36px' }}>
+              <span className={`material-symbols-outlined ${iconColorClass}`} style={{ fontSize: '32px' }}>
                 {icon}
               </span>
             </button>

@@ -77,8 +77,8 @@ const AccountCard: React.FC<AccountCardProps> = ({
         >
             <div className="flex items-center justify-between mb-4">
                  <div className="flex items-center gap-3 min-w-0">
-                    <div className={`relative flex-shrink-0 w-10 h-10 rounded-xl flex items-center justify-center ${style.color} bg-current/5 ring-1 ring-inset ring-current/10`}>
-                        <span className="material-symbols-outlined text-[20px]">
+                    <div className={`relative flex-shrink-0 w-12 h-12 rounded-2xl flex items-center justify-center ${style.color} bg-current/10`}>
+                        <span className="material-symbols-outlined text-[24px]">
                             {account.icon || 'wallet'}
                         </span>
                     </div>
