@@ -41,7 +41,7 @@ const AccountsGridSection: React.FC<{
     setAccountOrder: React.Dispatch<React.SetStateAction<string[]>>;
     isCollapsible?: boolean;
 }> = ({ title, accounts, transactionsByAccount, onAccountClick, onEditClick, onAdjustBalanceClick, onToggleStatus, onDelete, sortBy, accountOrder, setAccountOrder, isCollapsible = true }) => {
-    const [isExpanded, setIsExpanded] = useState(isCollapsible ? false : true);
+    const [isExpanded, setIsExpanded] = useState(true);
     const [draggedId, setDraggedId] = useState<string | null>(null);
     const [dragOverId, setDragOverId] = useState<string | null>(null);
 
@@ -170,13 +170,30 @@ const Accounts: React.FC<AccountsProps> = ({ accounts, transactions, saveAccount
     };
   }, [accounts]);
 
+  // Define groups for display
+  const accountGroups = useMemo(() => {
+      const groups = [
+          { id: 'cash', title: 'Cash & Banking', types: ['Checking', 'Savings'], accounts: [] as Account[] },
+          { id: 'investments', title: 'Investments', types: ['Investment'], accounts: [] as Account[] },
+          { id: 'properties', title: 'Properties & Assets', types: ['Property', 'Vehicle', 'Other Assets', 'Lending'], accounts: [] as Account[] },
+          { id: 'credit', title: 'Credit Cards', types: ['Credit Card'], accounts: [] as Account[] },
+          { id: 'loans', title: 'Loans & Liabilities', types: ['Loan', 'Other Liabilities'], accounts: [] as Account[] },
+      ];
+
+      openAccounts.forEach(acc => {
+          const group = groups.find(g => g.types.includes(acc.type));
+          if (group) {
+              group.accounts.push(acc);
+          }
+      });
+
+      return groups.filter(g => g.accounts.length > 0);
+  }, [openAccounts]);
+
   const transactionsByAccount = useMemo(() => transactions.reduce((acc, transaction) => {
     (acc[transaction.accountId] = acc[transaction.accountId] || []).push(transaction);
     return acc;
   }, {} as Record<string, Transaction[]>), [transactions]);
-
-  const assetAccounts = useMemo(() => openAccounts.filter(acc => ASSET_TYPES.includes(acc.type)), [openAccounts]);
-  const debtAccounts = useMemo(() => openAccounts.filter(acc => DEBT_TYPES.includes(acc.type)), [openAccounts]);
 
   // --- Handlers ---
   const handleAccountClick = (accountId: string) => {
@@ -334,35 +351,23 @@ const Accounts: React.FC<AccountsProps> = ({ accounts, transactions, saveAccount
 
       {/* Grids */}
       <div className="space-y-12">
-        <AccountsGridSection
-            title="Assets"
-            accounts={assetAccounts}
-            transactionsByAccount={transactionsByAccount}
-            onAccountClick={handleAccountClick}
-            onEditClick={openEditModal}
-            onAdjustBalanceClick={openAdjustModal}
-            onToggleStatus={onToggleAccountStatus}
-            onDelete={handleDeleteRequest}
-            sortBy={sortBy}
-            accountOrder={accountOrder}
-            setAccountOrder={setAccountOrder}
-            isCollapsible={false}
-        />
-        
-        <AccountsGridSection
-            title="Liabilities"
-            accounts={debtAccounts}
-            transactionsByAccount={transactionsByAccount}
-            onAccountClick={handleAccountClick}
-            onEditClick={openEditModal}
-            onAdjustBalanceClick={openAdjustModal}
-            onToggleStatus={onToggleAccountStatus}
-            onDelete={handleDeleteRequest}
-            sortBy={sortBy}
-            accountOrder={accountOrder}
-            setAccountOrder={setAccountOrder}
-            isCollapsible={false}
-        />
+        {accountGroups.map(group => (
+             <AccountsGridSection
+                key={group.id}
+                title={group.title}
+                accounts={group.accounts}
+                transactionsByAccount={transactionsByAccount}
+                onAccountClick={handleAccountClick}
+                onEditClick={openEditModal}
+                onAdjustBalanceClick={openAdjustModal}
+                onToggleStatus={onToggleAccountStatus}
+                onDelete={handleDeleteRequest}
+                sortBy={sortBy}
+                accountOrder={accountOrder}
+                setAccountOrder={setAccountOrder}
+                isCollapsible={true}
+            />
+        ))}
 
         <AccountsGridSection
             title="Closed Accounts"

@@ -108,10 +108,6 @@ const AccountCard: React.FC<AccountCardProps> = ({
 
     // Green line if value went up (good for assets), Red if went down.
     // For liabilities, value going up (towards 0) is good (Green), going down (more negative) is bad (Red).
-    // Since change is end - start:
-    // Asset: 100 -> 120 (+20) -> Good (Green)
-    // Liability: -100 -> -80 (+20) -> Good (Green)
-    // So simply change >= 0 is generally "Good" or "Growth" direction mathematically.
     const sparklineColor = change >= 0 ? '#10B981' : '#EF4444';
 
     let style = ACCOUNT_TYPE_STYLES[account.type];
@@ -133,7 +129,7 @@ const AccountCard: React.FC<AccountCardProps> = ({
             onDragEnd={onDragEnd}
             onClick={onClick}
             className={`
-                group relative bg-white dark:bg-dark-card rounded-2xl p-5 border border-gray-200 dark:border-white/5 shadow-sm transition-all duration-300 ease-out overflow-visible h-[180px] flex flex-col justify-between
+                group relative bg-white dark:bg-dark-card rounded-2xl p-5 border border-gray-200 dark:border-white/5 shadow-sm transition-all duration-300 ease-out overflow-hidden h-[200px] flex flex-col justify-between
                 ${cursorClass} ${dragClasses} ${dragOverClasses} ${account.status === 'closed' ? 'opacity-60 grayscale' : ''}
             `}
         >
@@ -187,11 +183,26 @@ const AccountCard: React.FC<AccountCardProps> = ({
                 </div>
             </div>
 
-            {/* Middle: Balance */}
-            <div className="relative z-10 mt-4">
-                 <p className={`text-2xl font-bold tracking-tight ${!isLiabilityType && displayBalance < 0 ? 'text-red-500' : 'text-gray-900 dark:text-white'}`}>
-                    {formatCurrency(convertToEur(displayBalance, account.currency), 'EUR')}
-                 </p>
+            {/* Middle: Balance and Trend */}
+            <div className="relative z-10 mt-4 mb-auto">
+                 <div className="flex items-baseline gap-2 flex-wrap">
+                     <p className={`text-2xl font-bold tracking-tight ${!isLiabilityType && displayBalance < 0 ? 'text-red-500' : 'text-gray-900 dark:text-white'}`}>
+                        {formatCurrency(convertToEur(displayBalance, account.currency), 'EUR')}
+                     </p>
+                     {/* Trend Badge next to balance */}
+                     {sparklineData.length > 1 && (
+                        <div className={`flex items-center gap-0.5 px-1.5 py-0.5 rounded-md text-[10px] font-bold ${
+                            isPositiveTrend 
+                                ? 'bg-emerald-100 text-emerald-700 dark:bg-emerald-500/20 dark:text-emerald-400' 
+                                : 'bg-rose-100 text-rose-700 dark:bg-rose-500/20 dark:text-rose-400'
+                        }`}>
+                            <span className="material-symbols-outlined text-[12px]">
+                                {isPositiveTrend ? 'trending_up' : 'trending_down'}
+                            </span>
+                            <span>{trendPercent.toFixed(1)}%</span>
+                        </div>
+                    )}
+                 </div>
                  {account.currency !== 'EUR' && (
                      <p className="text-xs text-gray-400 dark:text-gray-500 font-medium mt-0.5">
                          {formatCurrency(displayBalance, account.currency)}
@@ -199,10 +210,10 @@ const AccountCard: React.FC<AccountCardProps> = ({
                  )}
             </div>
 
-            {/* Bottom: Sparkline & Trend */}
-            <div className="absolute bottom-0 left-0 right-0 h-16 opacity-30 pointer-events-none overflow-hidden rounded-b-2xl">
+            {/* Bottom: Sparkline */}
+            <div className="absolute bottom-0 left-0 right-0 h-20 opacity-30 pointer-events-none overflow-hidden rounded-b-2xl">
                  <ResponsiveContainer minWidth={0} minHeight={0}>
-                    <AreaChart data={sparklineData} margin={{ top: 0, right: 0, left: 0, bottom: 0 }}>
+                    <AreaChart data={sparklineData} margin={{ top: 5, right: 0, left: 0, bottom: 0 }}>
                         <defs>
                             <linearGradient id={`grad-${account.id}`} x1="0" y1="0" x2="0" y2="1">
                                 <stop offset="0%" stopColor={sparklineColor} stopOpacity={0.4}/>
@@ -221,22 +232,6 @@ const AccountCard: React.FC<AccountCardProps> = ({
                     </AreaChart>
                 </ResponsiveContainer>
             </div>
-
-            {/* Trend Badge (Bottom Right) */}
-            {sparklineData.length > 1 && (
-                <div className="absolute bottom-4 right-4 z-10">
-                    <div className={`flex items-center gap-1 px-2 py-1 rounded-lg text-[10px] font-bold backdrop-blur-md border ${
-                        isPositiveTrend 
-                            ? 'bg-emerald-500/10 text-emerald-700 dark:text-emerald-400 border-emerald-200 dark:border-emerald-500/30' 
-                            : 'bg-rose-500/10 text-rose-700 dark:text-rose-400 border-rose-200 dark:border-rose-500/30'
-                    }`}>
-                        <span className="material-symbols-outlined text-[12px]">
-                            {isPositiveTrend ? 'trending_up' : 'trending_down'}
-                        </span>
-                        <span>{trendPercent.toFixed(1)}%</span>
-                    </div>
-                </div>
-            )}
         </div>
     );
 };
