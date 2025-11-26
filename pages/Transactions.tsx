@@ -1,7 +1,6 @@
 
 import React, { useState, useMemo, useRef, useEffect } from 'react';
 import { INPUT_BASE_STYLE, SELECT_WRAPPER_STYLE, SELECT_ARROW_STYLE, BTN_PRIMARY_STYLE, BTN_SECONDARY_STYLE, SELECT_STYLE, CHECKBOX_STYLE } from '../constants';
-// FIX: Imported the 'Category' type to resolve 'Cannot find name' errors throughout the component.
 import { Transaction, Account, DisplayTransaction, RecurringTransaction, Category } from '../types';
 import Card from '../components/Card';
 import { formatCurrency, fuzzySearch, convertToEur, arrayToCSV, downloadCSV, parseDateAsUTC } from '../utils';
@@ -14,6 +13,7 @@ import MultiSelectFilter from '../components/MultiSelectFilter';
 import MultiAccountFilter from '../components/MultiAccountFilter';
 import { useAccountsContext, useTransactionsContext } from '../contexts/DomainProviders';
 import { useCategoryContext, useScheduleContext, useTagsContext } from '../contexts/FinancialDataContext';
+import { BarChart, Bar, Tooltip as RechartsTooltip, ResponsiveContainer, XAxis, Cell } from 'recharts';
 
 interface TransactionsProps {
   accountFilter: string | null;
@@ -49,13 +49,11 @@ const Transactions: React.FC<TransactionsProps> = ({ accountFilter, setAccountFi
   const [isBulkEditModalOpen, setBulkEditModalOpen] = useState(false);
   const [isDeleteConfirmOpen, setIsDeleteConfirmOpen] = useState(false);
   const [isRecurringModalOpen, setIsRecurringModalOpen] = useState(false);
-  // FIX: Updated state type to allow 'id' to be optional, resolving a type mismatch when setting a new recurring transaction for editing.
   const [transactionToMakeRecurring, setTransactionToMakeRecurring] = useState<(Omit<RecurringTransaction, 'id'> & { id?: string }) | null>(null);
   const searchInputRef = useRef<HTMLInputElement>(null);
   const [contextMenu, setContextMenu] = useState<{ x: number, y: number, transaction: DisplayTransaction } | null>(null);
   const contextMenuRef = useRef<HTMLDivElement>(null);
   const [showFilters, setShowFilters] = useState(false);
-  const [isFiltersExpanded, setIsFiltersExpanded] = useState(false);
 
   // Pagination state
   const [currentPage, setCurrentPage] = useState(1);
@@ -202,7 +200,7 @@ const Transactions: React.FC<TransactionsProps> = ({ accountFilter, setAccountFi
     const transactionList = displayTransactions.filter(tx => {
         const matchAccount = selectedAccountIds.length === 0 || 
             (tx.isTransfer 
-                ? selectedAccountIds.includes(accountMapByName[tx.fromAccountName!]?.id) || selectedAccountIds.includes(accountMapByName[tx.toAccountName!]?.id) 
+                ? selectedAccountIds.includes(accountMapByName[tx.fromAccountName!].id) || selectedAccountIds.includes(accountMapByName[tx.toAccountName!].id) 
                 : selectedAccountIds.includes(tx.accountId));
         
         const matchSearch = (
@@ -300,6 +298,77 @@ const Transactions: React.FC<TransactionsProps> = ({ accountFilter, setAccountFi
         return groups;
     }, [paginatedTransactions, selectedAccountIds, accounts, accountMapByName]);
   
+    // Calculate Summaries
+    const { totalIncome, totalExpenses, netChange, txCount, chartData } = useMemo(() => {
+        let inc = 0;
+        let exp = 0;
+        
+        const dailyMap = new Map<string, number>();
+
+        filteredTransactions.forEach(tx => {
+            let amount = tx.amount;
+            let currency = tx.currency;
+
+            if (tx.isTransfer) {
+                const fromAccount = accountMapByName[tx.fromAccountName!];
+                const toAccount = accountMapByName[tx.toAccountName!];
+                
+                if (selectedAccountIds.length > 0) {
+                    if (selectedAccountIds.includes(fromAccount?.id) && !selectedAccountIds.includes(toAccount?.id)) {
+                        amount = -tx.amount;
+                        if(fromAccount) currency = fromAccount.currency;
+                        exp += Math.abs(convertToEur(amount, currency));
+                    } else if (!selectedAccountIds.includes(fromAccount?.id) && selectedAccountIds.includes(toAccount?.id)) {
+                        amount = tx.amount;
+                        if(toAccount) currency = toAccount.currency;
+                        inc += Math.abs(convertToEur(amount, currency));
+                    }
+                    // Internal transfer or external transfer ignored for summary totals if both outside or both inside
+                }
+            } else {
+                if (tx.type === 'income') inc += Math.abs(convertToEur(amount, currency));
+                else exp += Math.abs(convertToEur(amount, currency));
+            }
+
+            // Chart data prep - signed amount
+            const signedAmount = convertToEur(amount, currency) * (tx.type === 'expense' && !tx.isTransfer ? -1 : 1);
+            // For transfers, only count if it's crossing the filter boundary
+            let chartAmount = 0;
+            if (!tx.isTransfer) {
+                chartAmount = signedAmount;
+            } else {
+                 // Logic similar to summary above
+                 const fromAccount = accountMapByName[tx.fromAccountName!];
+                 const toAccount = accountMapByName[tx.toAccountName!];
+                 if (selectedAccountIds.length > 0) {
+                     if (selectedAccountIds.includes(fromAccount?.id) && !selectedAccountIds.includes(toAccount?.id)) {
+                        chartAmount = -Math.abs(convertToEur(tx.amount, fromAccount?.currency || 'EUR'));
+                     } else if (!selectedAccountIds.includes(fromAccount?.id) && selectedAccountIds.includes(toAccount?.id)) {
+                        chartAmount = Math.abs(convertToEur(tx.amount, toAccount?.currency || 'EUR'));
+                     }
+                 }
+            }
+            
+            dailyMap.set(tx.date, (dailyMap.get(tx.date) || 0) + chartAmount);
+        });
+
+        const sortedDates = Array.from(dailyMap.keys()).sort();
+        const chartData = sortedDates.map(date => ({
+            date,
+            amount: dailyMap.get(date) || 0,
+            timestamp: parseDateAsUTC(date).getTime()
+        }));
+
+        return {
+            totalIncome: inc,
+            totalExpenses: exp,
+            netChange: inc - exp,
+            txCount: filteredTransactions.length,
+            chartData
+        };
+    }, [filteredTransactions, selectedAccountIds, accountMapByName]);
+
+
   const containsTransfer = useMemo(() => {
     return Array.from(selectedIds).some((id: string) => id.startsWith('transfer-'));
   }, [selectedIds]);
@@ -346,7 +415,6 @@ const Transactions: React.FC<TransactionsProps> = ({ accountFilter, setAccountFi
       const categoryDetails = findCategoryByName(newCategoryName, allCategories);
       if (!categoryDetails) {
           console.error("Could not find details for new category:", newCategoryName);
-          // Don't close if failed, maybe show an alert or just return
           return;
       }
       
@@ -444,7 +512,7 @@ const Transactions: React.FC<TransactionsProps> = ({ accountFilter, setAccountFi
         
         if (!expensePart || !incomePart) return;
         
-        transaction = expensePart; // Use expense part as base
+        transaction = expensePart;
         toAccountId = incomePart.accountId;
         type = 'transfer';
     } else {
@@ -454,7 +522,7 @@ const Transactions: React.FC<TransactionsProps> = ({ accountFilter, setAccountFi
     }
 
     const initialRecurringData: Omit<RecurringTransaction, 'id'> & { id?: string } = {
-        id: '', // No ID, so modal knows it's a new entry
+        id: '',
         accountId: transaction.accountId,
         toAccountId: toAccountId,
         description: transaction.description,
@@ -464,7 +532,7 @@ const Transactions: React.FC<TransactionsProps> = ({ accountFilter, setAccountFi
         currency: transaction.currency,
         frequency: 'monthly',
         startDate: new Date().toISOString().split('T')[0],
-        nextDueDate: new Date().toISOString().split('T')[0], // For simplicity
+        nextDueDate: new Date().toISOString().split('T')[0],
         weekendAdjustment: 'on',
     };
 
@@ -513,7 +581,7 @@ const Transactions: React.FC<TransactionsProps> = ({ accountFilter, setAccountFi
 
   const formatGroupDate = (dateString: string) => {
     const date = parseDateAsUTC(dateString);
-    return date.toLocaleDateString('en-US', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric', timeZone: 'UTC' });
+    return date.toLocaleDateString('en-US', { weekday: 'short', month: 'short', day: 'numeric', year: 'numeric', timeZone: 'UTC' });
   }
 
   const generateCategoryOptions = (categories: Category[], level = 0): { value: string, label: string, level: number }[] => {
@@ -535,7 +603,7 @@ const Transactions: React.FC<TransactionsProps> = ({ accountFilter, setAccountFi
 
   const tagOptions = useMemo(() => tags.map(t => ({ value: t.id, label: t.name })), [tags]);
   
-  const labelStyle = "block text-sm font-medium text-light-text-secondary dark:text-dark-text-secondary mb-1";
+  const labelStyle = "block text-xs font-bold uppercase tracking-wide text-light-text-secondary dark:text-dark-text-secondary mb-2";
   const typeFilterOptions: { label: string; value: 'all' | 'income' | 'expense' | 'transfer' }[] = [
     { label: 'All Types', value: 'all' },
     { label: 'Expenses', value: 'expense' },
@@ -545,6 +613,7 @@ const Transactions: React.FC<TransactionsProps> = ({ accountFilter, setAccountFi
 
   return (
     <div className="space-y-6 flex flex-col h-full">
+      {/* Hidden Modals */}
       {isTransactionModalOpen && (
         <AddTransactionModal 
           onClose={handleCloseModal}
@@ -641,224 +710,309 @@ const Transactions: React.FC<TransactionsProps> = ({ accountFilter, setAccountFi
             </div>
         )}
 
-      <header className="flex justify-between items-start">
-        <div>
-          <p className="text-light-text-secondary dark:text-dark-text-secondary mt-1">View and manage your transaction history.</p>
-        </div>
-        <div className="flex items-center gap-2">
-            <button onClick={handleExport} className={`${BTN_SECONDARY_STYLE} flex items-center gap-2`}>
-                <span className="material-symbols-outlined text-base">download</span>
-                Export
-            </button>
-            <button onClick={handleOpenAddModal} className={BTN_PRIMARY_STYLE}>
-                Add Transaction
-            </button>
-        </div>
-      </header>
-      
-      <div className="md:hidden flex justify-end">
-        <button onClick={() => setShowFilters(prev => !prev)} className={`${BTN_SECONDARY_STYLE} flex items-center gap-2`}>
-            <span className="material-symbols-outlined text-base">filter_list</span>
-            {showFilters ? 'Hide Filters' : 'Show Filters'}
-        </button>
+      {/* --- New Header Section --- */}
+      <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 animate-fade-in-up">
+         <div>
+             {/* <h1 className="text-2xl font-bold text-light-text dark:text-dark-text">Transactions</h1> */}
+             <p className="text-light-text-secondary dark:text-dark-text-secondary">Manage and analyze your spending.</p>
+         </div>
+         <div className="flex items-center gap-2 w-full md:w-auto">
+             <button onClick={handleExport} className={`${BTN_SECONDARY_STYLE} flex-1 md:flex-none flex items-center justify-center gap-2`}>
+                 <span className="material-symbols-outlined text-lg">download</span>
+                 Export
+             </button>
+             <button onClick={handleOpenAddModal} className={`${BTN_PRIMARY_STYLE} flex-1 md:flex-none flex items-center justify-center gap-2 shadow-lg shadow-primary-500/20`}>
+                 <span className="material-symbols-outlined text-lg">add</span>
+                 Add Transaction
+             </button>
+         </div>
       </div>
 
-      <div className={`p-4 bg-light-card dark:bg-dark-card rounded-xl shadow-card ${!showFilters ? 'hidden' : ''} md:block`}>
-          <div className="grid grid-cols-1 md:grid-cols-12 gap-4 items-end">
-              {/* Row 1 */}
-              <div className="md:col-span-6">
-                  <label htmlFor="search" className={labelStyle}>Search</label>
-                  <div className="relative">
-                      <span className="material-symbols-outlined absolute left-3 top-1/2 -translate-y-1/2 text-light-text-secondary dark:text-dark-text-secondary pointer-events-none">search</span>
-                      <input ref={searchInputRef} type="text" id="search" placeholder="Search description, category..." value={searchTerm} onChange={(e) => setSearchTerm(e.target.value)} className={`${INPUT_BASE_STYLE} pl-10`} />
-                  </div>
-              </div>
-              <div className="md:col-span-3">
-                  <label htmlFor="type-filter" className={labelStyle}>Type</label>
-                  <div className={SELECT_WRAPPER_STYLE}>
-                      <select id="type-filter" value={typeFilter} onChange={(e) => setTypeFilter(e.target.value as any)} className={`${INPUT_BASE_STYLE}`}>
-                          {typeFilterOptions.map(opt => <option key={opt.value} value={opt.value}>{opt.label}</option>)}
-                      </select>
-                      <div className={SELECT_ARROW_STYLE}><span className="material-symbols-outlined">expand_more</span></div>
-                  </div>
-              </div>
-              <div className="md:col-span-3">
-                  <label htmlFor="sort-by" className={labelStyle}>Sort By</label>
-                  <div className={SELECT_WRAPPER_STYLE}>
-                      <select id="sort-by" value={sortBy} onChange={(e) => setSortBy(e.target.value)} className={`${INPUT_BASE_STYLE}`}><option value="date-desc">Date (Newest)</option><option value="date-asc">Date (Oldest)</option><option value="amount-desc">Amount (High-Low)</option><option value="amount-asc">Amount (Low-High)</option></select>
-                      <div className={SELECT_ARROW_STYLE}><span className="material-symbols-outlined">expand_more</span></div>
-                  </div>
-              </div>
-              
-              {/* Collapsible Filters */}
-              {isFiltersExpanded && (
-                <>
-                  {/* Row 2 */}
-                  <div className="md:col-span-3">
-                      <label className={labelStyle}>Account</label>
-                      <MultiAccountFilter accounts={accounts} selectedAccountIds={selectedAccountIds} setSelectedAccountIds={setSelectedAccountIds}/>
-                  </div>
-                  <div className="md:col-span-3">
-                      <label className={labelStyle}>Category</label>
-                      <MultiSelectFilter options={categoryOptions} selectedValues={selectedCategoryNames} onChange={setSelectedCategoryNames} placeholder="All Categories"/>
-                  </div>
-                  <div className="md:col-span-3">
-                      <label className={labelStyle}>Tag</label>
-                      <MultiSelectFilter options={tagOptions} selectedValues={selectedTagIds} onChange={setSelectedTagIds} placeholder="All Tags"/>
-                  </div>
-                  <div className="md:col-span-3">
-                      <label htmlFor="merchant-filter" className={labelStyle}>Merchant</label>
-                      <input id="merchant-filter" type="text" placeholder="e.g., Amazon" value={merchantFilter} onChange={(e) => setMerchantFilter(e.target.value)} className={`${INPUT_BASE_STYLE}`} />
-                  </div>
-
-                  {/* Row 3 */}
-                  <div className="md:col-span-5 flex items-end gap-2">
-                      <div className="flex-1"><label htmlFor="start-date" className={labelStyle}>From Date</label><input id="start-date" type="date" value={startDate} onChange={e => setStartDate(e.target.value)} className={`${INPUT_BASE_STYLE}`}/></div>
-                      <div className="flex-1"><label htmlFor="end-date" className={labelStyle}>To Date</label><input id="end-date" type="date" value={endDate} onChange={e => setEndDate(e.target.value)} className={`${INPUT_BASE_STYLE}`}/></div>
-                  </div>
-                  <div className="md:col-span-5 flex items-end gap-2">
-                      <div className="flex-1"><label htmlFor="min-amount" className={labelStyle}>Min Amount</label><input id="min-amount" type="number" placeholder="0.00" value={minAmount} onChange={e => setMinAmount(e.target.value)} className={`${INPUT_BASE_STYLE}`}/></div>
-                      <div className="flex-1"><label htmlFor="max-amount" className={labelStyle}>Max Amount</label><input id="max-amount" type="number" placeholder="1000.00" value={maxAmount} onChange={e => setMaxAmount(e.target.value)} className={`${INPUT_BASE_STYLE}`}/></div>
-                  </div>
-                  <div className="md:col-span-2 flex justify-end">
-                      <button onClick={clearFilters} className={`${BTN_SECONDARY_STYLE} w-full`}>Clear Filters</button>
-                  </div>
-                </>
-              )}
-
-              {/* Expand/Collapse Toggle */}
-              <div className="md:col-span-12 flex justify-center border-t border-black/5 dark:border-white/5 pt-3 mt-2">
-                 <button 
-                    onClick={() => setIsFiltersExpanded(!isFiltersExpanded)}
-                    className="flex items-center gap-1 text-xs font-bold text-primary-500 hover:text-primary-600 uppercase tracking-wide transition-colors"
-                 >
-                    {isFiltersExpanded ? 'Less Filters' : 'More Filters'}
-                    <span className={`material-symbols-outlined text-sm transition-transform duration-200 ${isFiltersExpanded ? 'rotate-180' : ''}`}>expand_more</span>
-                 </button>
-              </div>
-          </div>
-      </div>
-      
-      <div className="flex-1 min-w-0 relative">
-        <Card className="p-0 h-full flex flex-col relative">
-            {selectedIds.size > 0 ? (
-                <div className="bg-primary-500 dark:bg-primary-900 text-white px-6 flex justify-between items-center shadow-md h-[53px] rounded-t-xl">
-                     <div className="flex items-center gap-3">
-                         <button 
-                            onClick={() => setSelectedIds(new Set())} 
-                            className="p-1 rounded-full hover:bg-white/20 transition-colors text-white"
-                            aria-label="Deselect all"
-                         >
-                             <span className="material-symbols-outlined text-lg">close</span>
-                         </button>
-                         <span className="font-semibold text-sm">{selectedIds.size} selected</span>
+      {/* --- Summary Cards & Chart --- */}
+      <div className="grid grid-cols-1 lg:grid-cols-4 gap-4 animate-fade-in-up">
+          <div className="lg:col-span-1 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-1 gap-4">
+             <Card className="p-4 flex flex-col justify-between bg-gradient-to-br from-white to-gray-50 dark:from-dark-card dark:to-dark-bg border border-black/5 dark:border-white/5">
+                 <div className="flex justify-between items-start mb-2">
+                     <p className="text-xs font-bold uppercase text-light-text-secondary dark:text-dark-text-secondary tracking-wider">Income</p>
+                     <div className="w-6 h-6 rounded-full bg-green-100 text-green-600 flex items-center justify-center"><span className="material-symbols-outlined text-sm">arrow_downward</span></div>
+                 </div>
+                 <p className="text-xl font-bold text-green-600 dark:text-green-400">{formatCurrency(totalIncome, 'EUR')}</p>
+             </Card>
+             <Card className="p-4 flex flex-col justify-between bg-gradient-to-br from-white to-gray-50 dark:from-dark-card dark:to-dark-bg border border-black/5 dark:border-white/5">
+                 <div className="flex justify-between items-start mb-2">
+                     <p className="text-xs font-bold uppercase text-light-text-secondary dark:text-dark-text-secondary tracking-wider">Expense</p>
+                     <div className="w-6 h-6 rounded-full bg-red-100 text-red-600 flex items-center justify-center"><span className="material-symbols-outlined text-sm">arrow_upward</span></div>
+                 </div>
+                 <p className="text-xl font-bold text-red-600 dark:text-red-400">{formatCurrency(totalExpenses, 'EUR')}</p>
+             </Card>
+             <div className="hidden lg:block">
+                <Card className="p-4 flex flex-col justify-between bg-gradient-to-br from-white to-gray-50 dark:from-dark-card dark:to-dark-bg border border-black/5 dark:border-white/5">
+                     <div className="flex justify-between items-start mb-2">
+                         <p className="text-xs font-bold uppercase text-light-text-secondary dark:text-dark-text-secondary tracking-wider">Net</p>
+                         <div className="w-6 h-6 rounded-full bg-blue-100 text-blue-600 flex items-center justify-center"><span className="material-symbols-outlined text-sm">functions</span></div>
                      </div>
-                    <div className="flex gap-2">
-                        <button type="button" onClick={() => setBulkEditModalOpen(true)} className="bg-white/20 hover:bg-white/30 text-white py-1 px-3 rounded-md text-xs font-medium transition-colors" disabled={containsTransfer}>Edit</button>
-                        <button type="button" onClick={handleOpenCategorizeModal} className="bg-white/20 hover:bg-white/30 text-white py-1 px-3 rounded-md text-xs font-medium transition-colors" disabled={containsTransfer}>Categorize</button>
-                        <button type="button" onClick={() => handleMakeRecurring()} className="bg-white/20 hover:bg-white/30 text-white py-1 px-3 rounded-md text-xs font-medium transition-colors" disabled={selectedIds.size !== 1}>Make Recurring</button>
-                        <button type="button" onClick={handleOpenDeleteModal} className="bg-white/20 hover:bg-red-600 text-white py-1 px-3 rounded-md text-xs font-medium transition-colors">Delete</button>
-                    </div>
-                </div>
-            ) : (
-                <div className="px-6 py-3 border-b border-light-separator dark:border-dark-separator flex items-center gap-4 font-semibold text-light-text-secondary dark:text-dark-text-secondary flex-shrink-0 h-[53px]">
-                    <input type="checkbox" onChange={handleSelectAll} checked={isAllSelected} className={CHECKBOX_STYLE} aria-label="Select all transactions"/>
-                    <div className="flex-1 grid grid-cols-12 gap-4 ml-3 items-center">
-                        <span className="col-span-8 md:col-span-6 lg:col-span-3">Transaction</span>
-                        <span className="hidden md:block col-span-2 text-sm">Account</span>
-                        <span className="hidden lg:block col-span-2 text-sm">Merchant</span>
-                        <span className="hidden md:block col-span-2 text-sm">Category</span>
-                        <span className="hidden lg:block col-span-1 text-sm">Tags</span>
-                        <span className="col-span-4 md:col-span-2 text-right">Amount</span>
-                    </div>
-                    <div className="w-10"></div> {/* Spacer for actions */}
-                </div>
-            )}
-            
-            <div className="overflow-y-auto flex-grow">
-                 {Object.keys(groupedTransactions).length > 0 ? Object.entries(groupedTransactions).map(([date, group]) => {
-                    const typedGroup = group as { transactions: DisplayTransaction[]; total: number };
-                    return (
-                    <div key={date}>
-                        <div className="px-6 py-3 border-b border-t border-light-separator dark:border-dark-separator bg-light-bg dark:bg-dark-bg/50">
-                            <div className="flex justify-between items-center">
-                                <span className="font-semibold text-base text-light-text dark:text-dark-text">{formatGroupDate(date)}</span>
-                                <span className={`font-semibold text-base ${typedGroup.total > 0 ? 'text-semantic-green' : typedGroup.total < 0 ? 'text-semantic-red' : 'text-light-text-secondary dark:text-dark-text-secondary'}`}>{formatCurrency(typedGroup.total, 'EUR', { showPlusSign: true })}</span>
-                            </div>
-                        </div>
-                        <div className="divide-y divide-light-separator/50 dark:divide-dark-separator/50">
-                            {typedGroup.transactions.map(tx => {
-                                let amount = tx.amount;
-                                let amountColor = tx.type === 'income' ? 'text-semantic-green' : 'text-semantic-red';
-
-                                if (tx.isTransfer) {
-                                    amountColor = 'text-light-text dark:text-dark-text';
-                                    if (selectedAccountIds.length > 0) {
-                                        const fromAcc = accountMapByName[tx.fromAccountName!];
-                                        const toAcc = accountMapByName[tx.toAccountName!];
-                                        if (selectedAccountIds.includes(fromAcc?.id) && !selectedAccountIds.includes(toAcc?.id)) { amount = -tx.amount; amountColor = 'text-semantic-red'; } 
-                                        else if (!selectedAccountIds.includes(fromAcc?.id) && selectedAccountIds.includes(toAcc?.id)) { amount = tx.amount; amountColor = 'text-semantic-green'; }
+                     <p className={`text-xl font-bold ${netChange >= 0 ? 'text-light-text dark:text-dark-text' : 'text-red-500'}`}>{formatCurrency(netChange, 'EUR')}</p>
+                 </Card>
+             </div>
+          </div>
+          
+          <Card className="lg:col-span-3 p-4 relative min-h-[200px]">
+                <h3 className="text-sm font-semibold text-light-text dark:text-dark-text mb-2 absolute top-4 left-4 z-10">Activity Timeline</h3>
+                <div className="h-full w-full pt-6">
+                    <ResponsiveContainer width="100%" height="100%">
+                        <BarChart data={chartData}>
+                             <XAxis 
+                                dataKey="date" 
+                                hide 
+                            />
+                             <RechartsTooltip 
+                                cursor={{fill: 'transparent'}}
+                                content={({ active, payload }) => {
+                                    if (active && payload && payload.length) {
+                                        const data = payload[0].payload;
+                                        return (
+                                            <div className="bg-light-card dark:bg-dark-card p-2 rounded shadow-lg text-xs border border-black/10 dark:border-white/10">
+                                                <p className="font-bold mb-1">{parseDateAsUTC(data.date).toLocaleDateString()}</p>
+                                                <p className={data.amount >= 0 ? 'text-green-500' : 'text-red-500'}>
+                                                    {formatCurrency(data.amount, 'EUR', { showPlusSign: true })}
+                                                </p>
+                                            </div>
+                                        );
                                     }
-                                }
-                                
-                                const categoryDetails = getCategoryDetails(tx.category, allCategories);
-                                const categoryColor = tx.isTransfer ? '#64748B' : (categoryDetails.color || '#A0AEC0');
-                                
-                                return (
-                                <div key={tx.id} className="flex items-center group hover:bg-light-fill dark:hover:bg-dark-fill cursor-pointer px-6" onClick={() => handleOpenEditModal(tx)} onContextMenu={(e) => { e.preventDefault(); setContextMenu({ x: e.clientX, y: e.clientY, transaction: tx }); }}>
-                                  <div className="flex items-center gap-3">
-                                      <input type="checkbox" className={CHECKBOX_STYLE} checked={selectedIds.has(tx.id)} onChange={(e) => { e.stopPropagation(); handleSelectOne(tx.id); }} onClick={e => e.stopPropagation()} aria-label={`Select transaction ${tx.description}`}/>
-                                      <div className="w-1.5 h-10 flex-shrink-0 rounded-full" style={{backgroundColor: categoryColor}}></div>
-                                  </div>
-                                  <div className="flex-1 grid grid-cols-12 gap-4 py-4 items-center ml-3">
-                                    <div className="col-span-8 md:col-span-6 lg:col-span-3 min-w-0">
-                                      <p className="font-semibold text-light-text dark:text-dark-text truncate">{tx.description}</p>
-                                      <div className="text-sm text-light-text-secondary dark:text-dark-text-secondary">
-                                          <p className="md:hidden truncate">{tx.isTransfer ? `${tx.fromAccountName} → ${tx.toAccountName}` : tx.accountName}</p>
-                                          <p className="lg:hidden truncate">{tx.merchant}</p>
-                                          {tx.tagIds && tx.tagIds.length > 0 && <div className="lg:hidden flex flex-wrap gap-1 mt-1">{tx.tagIds.map(tagId => { const tag = tags.find(t => t.id === tagId); if (!tag) return null; return (<span key={tag.id} className="text-xs px-2 py-0.5 rounded-full inline-flex items-center justify-center text-center" style={{ backgroundColor: `${tag.color}30`, color: tag.color }}>{tag.name}</span>);})}</div>}
-                                      </div>
-                                    </div>
-                                    <div className="hidden md:block col-span-2 text-sm text-light-text-secondary dark:text-dark-text-secondary truncate">{tx.isTransfer ? ( <div className="flex items-center gap-1 truncate"><span className="truncate">{tx.fromAccountName}</span><span className="material-symbols-outlined text-base">arrow_forward</span><span className="truncate">{tx.toAccountName}</span></div>) : tx.accountName}</div>
-                                    <div className="hidden lg:block col-span-2 text-sm text-light-text-secondary dark:text-dark-text-secondary truncate">{tx.merchant}</div>
-                                    <div className="hidden md:block col-span-2 text-sm text-light-text-secondary dark:text-dark-text-secondary truncate">{tx.category}</div>
-                                    <div className="hidden lg:flex col-span-1 flex-wrap gap-1">{tx.tagIds?.map(tagId => { const tag = tags.find(t => t.id === tagId); if (!tag) return null; return (<span key={tag.id} className="text-xs px-2 py-0.5 rounded-full inline-flex items-center justify-center text-center" style={{ backgroundColor: `${tag.color}30`, color: tag.color }} title={tag.name}>{tag.name}</span>);})}</div>
-                                      <div className={`col-span-4 md:col-span-2 font-mono font-semibold text-right text-base whitespace-nowrap ${amountColor}`}>
-                                        {tx.isTransfer && selectedAccountIds.length === 0
-                                          ? '-/+ ' + formatCurrency(convertToEur(Math.abs(amount), tx.currency), 'EUR')
-                                          : formatCurrency(convertToEur(amount, tx.currency), 'EUR', { showPlusSign: true })}
-                                      </div>
-                                  </div>
-                                  <div className="w-10 flex justify-end opacity-0 group-hover:opacity-100 transition">
-                                    <button
-                                      className="p-2 rounded-full hover:bg-light-fill dark:hover:bg-dark-fill"
-                                      onClick={(e) => {
-                                        e.preventDefault();
-                                        e.stopPropagation();
-                                        setContextMenu({ x: e.clientX, y: e.clientY, transaction: tx });
-                                      }}
-                                      aria-label="Open transaction actions"
-                                    >
-                                      <span className="material-symbols-outlined text-lg">more_vert</span>
-                                    </button>
-                                  </div>
-                                </div>
-                                  );
-                              })}
+                                    return null;
+                                }}
+                            />
+                            <Bar dataKey="amount" radius={[2, 2, 2, 2]}>
+                                {chartData.map((entry, index) => (
+                                    <Cell key={`cell-${index}`} fill={entry.amount >= 0 ? '#34D399' : '#F87171'} />
+                                ))}
+                            </Bar>
+                        </BarChart>
+                    </ResponsiveContainer>
+                </div>
+          </Card>
+      </div>
+
+      {/* --- Filter Bar --- */}
+      <Card className="p-4 sticky top-0 z-20 backdrop-blur-md bg-light-card/90 dark:bg-dark-card/90 border-b border-black/5 dark:border-white/5 transition-all">
+          <div className="flex flex-col gap-4">
+              {/* Main Search Row */}
+              <div className="flex flex-col md:flex-row gap-3">
+                   <div className="relative flex-grow">
+                      <span className="material-symbols-outlined absolute left-3 top-1/2 -translate-y-1/2 text-light-text-secondary dark:text-dark-text-secondary pointer-events-none">search</span>
+                      <input 
+                        ref={searchInputRef} 
+                        type="text" 
+                        placeholder="Search transactions..." 
+                        value={searchTerm} 
+                        onChange={(e) => setSearchTerm(e.target.value)} 
+                        className={`${INPUT_BASE_STYLE} pl-10 h-11 bg-light-bg dark:bg-dark-bg border-transparent focus:bg-white dark:focus:bg-black`} 
+                      />
+                  </div>
+                  <button 
+                    onClick={() => setShowFilters(!showFilters)} 
+                    className={`px-4 h-11 rounded-lg font-medium flex items-center gap-2 border transition-colors ${showFilters ? 'bg-primary-500 text-white border-primary-500' : 'bg-light-bg dark:bg-dark-bg text-light-text dark:text-dark-text border-transparent hover:bg-black/5 dark:hover:bg-white/5'}`}
+                  >
+                      <span className="material-symbols-outlined">tune</span>
+                      Filters
+                  </button>
+              </div>
+
+              {/* Advanced Filters */}
+              {showFilters && (
+                  <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 pt-2 animate-fade-in-up">
+                      <div>
+                          <label className={labelStyle}>Type</label>
+                          <div className={SELECT_WRAPPER_STYLE}>
+                              <select value={typeFilter} onChange={(e) => setTypeFilter(e.target.value as any)} className={INPUT_BASE_STYLE}>
+                                  {typeFilterOptions.map(opt => <option key={opt.value} value={opt.value}>{opt.label}</option>)}
+                              </select>
+                              <div className={SELECT_ARROW_STYLE}><span className="material-symbols-outlined">expand_more</span></div>
                           </div>
                       </div>
-                      );
-                  }) : (
-                      <div className="p-8 text-center text-light-text-secondary dark:text-dark-text-secondary">
-                          No transactions match the current filters.
+                      <div>
+                          <label className={labelStyle}>Date Range</label>
+                          <div className="flex gap-2">
+                               <input type="date" value={startDate} onChange={e => setStartDate(e.target.value)} className={`${INPUT_BASE_STYLE} text-xs px-2`} />
+                               <input type="date" value={endDate} onChange={e => setEndDate(e.target.value)} className={`${INPUT_BASE_STYLE} text-xs px-2`} />
+                          </div>
                       </div>
-                  )}
-              </div>
-              
-              {filteredTransactions.length > 0 && (
-                <div className="px-6 py-3 border-t border-light-separator dark:border-dark-separator flex flex-col sm:flex-row justify-between items-center bg-light-bg/50 dark:bg-dark-bg/30 flex-shrink-0 gap-4">
+                      <div>
+                           <label className={labelStyle}>Account</label>
+                           <MultiAccountFilter accounts={accounts} selectedAccountIds={selectedAccountIds} setSelectedAccountIds={setSelectedAccountIds}/>
+                      </div>
+                      <div>
+                           <label className={labelStyle}>Sort</label>
+                           <div className={SELECT_WRAPPER_STYLE}>
+                                <select value={sortBy} onChange={(e) => setSortBy(e.target.value)} className={INPUT_BASE_STYLE}>
+                                    <option value="date-desc">Newest First</option>
+                                    <option value="date-asc">Oldest First</option>
+                                    <option value="amount-desc">Highest Amount</option>
+                                    <option value="amount-asc">Lowest Amount</option>
+                                </select>
+                                <div className={SELECT_ARROW_STYLE}><span className="material-symbols-outlined">expand_more</span></div>
+                            </div>
+                      </div>
+                      <div className="sm:col-span-2 lg:col-span-1">
+                            <label className={labelStyle}>Category</label>
+                            <MultiSelectFilter options={categoryOptions} selectedValues={selectedCategoryNames} onChange={setSelectedCategoryNames} placeholder="All Categories"/>
+                      </div>
+                      <div className="sm:col-span-2 lg:col-span-1">
+                             <label className={labelStyle}>Tags</label>
+                             <MultiSelectFilter options={tagOptions} selectedValues={selectedTagIds} onChange={setSelectedTagIds} placeholder="All Tags"/>
+                      </div>
+                      <div className="sm:col-span-2 lg:col-span-2 flex justify-end items-end">
+                           <button onClick={clearFilters} className="text-sm text-primary-500 hover:underline font-medium px-2 py-2">Reset Filters</button>
+                      </div>
+                  </div>
+              )}
+          </div>
+      </Card>
+
+      {/* --- Main List --- */}
+      <div className="flex-1 min-w-0 relative pb-10">
+        <Card className="p-0 h-full flex flex-col relative overflow-hidden">
+            {/* Bulk Actions Bar */}
+            {selectedIds.size > 0 && (
+                 <div className="sticky top-0 z-30 bg-primary-600 text-white px-4 py-3 flex justify-between items-center shadow-md animate-fade-in-up">
+                     <div className="flex items-center gap-3">
+                         <button onClick={() => setSelectedIds(new Set())} className="p-1 rounded-full hover:bg-white/20 transition-colors"><span className="material-symbols-outlined">close</span></button>
+                         <span className="font-semibold">{selectedIds.size} selected</span>
+                     </div>
+                    <div className="flex gap-2">
+                        <button onClick={() => setBulkEditModalOpen(true)} className="bg-white/20 hover:bg-white/30 px-3 py-1.5 rounded text-sm font-medium disabled:opacity-50" disabled={containsTransfer}>Edit</button>
+                        <button onClick={handleOpenCategorizeModal} className="bg-white/20 hover:bg-white/30 px-3 py-1.5 rounded text-sm font-medium disabled:opacity-50" disabled={containsTransfer}>Categorize</button>
+                        <button onClick={handleOpenDeleteModal} className="bg-white/20 hover:bg-red-500 px-3 py-1.5 rounded text-sm font-medium transition-colors">Delete</button>
+                    </div>
+                </div>
+            )}
+
+            {/* List Content */}
+            <div className="overflow-x-auto">
+                {Object.keys(groupedTransactions).length > 0 ? (
+                    <div className="min-w-[600px]"> 
+                         {/* Header */}
+                         <div className="grid grid-cols-[auto_1fr_1fr_auto] gap-4 px-6 py-3 border-b border-black/5 dark:border-white/5 text-xs font-bold uppercase text-light-text-secondary dark:text-dark-text-secondary tracking-wider">
+                             <div className="w-8 flex justify-center"><input type="checkbox" onChange={handleSelectAll} checked={isAllSelected} className={CHECKBOX_STYLE} /></div>
+                             <div>Transaction Details</div>
+                             <div>Category & Tags</div>
+                             <div className="text-right">Amount</div>
+                         </div>
+
+                         {Object.entries(groupedTransactions).map(([date, group]) => {
+                             const typedGroup = group as { transactions: DisplayTransaction[]; total: number };
+                             return (
+                                 <div key={date}>
+                                     {/* Date Sticky Header */}
+                                     <div className="sticky top-0 z-10 px-6 py-2 bg-light-bg/95 dark:bg-dark-card/95 backdrop-blur-sm border-b border-black/5 dark:border-white/5 flex justify-between items-center">
+                                         <span className="font-bold text-sm text-light-text dark:text-dark-text">{formatGroupDate(date)}</span>
+                                         <span className={`font-mono text-sm font-medium ${typedGroup.total > 0 ? 'text-green-600' : typedGroup.total < 0 ? 'text-red-600' : 'text-gray-500'}`}>
+                                             {formatCurrency(typedGroup.total, 'EUR', { showPlusSign: true })}
+                                         </span>
+                                     </div>
+                                     
+                                     {/* Rows */}
+                                     <div>
+                                         {typedGroup.transactions.map(tx => {
+                                             let amount = tx.amount;
+                                             let amountColor = tx.type === 'income' ? 'text-green-600 dark:text-green-400' : 'text-light-text dark:text-dark-text';
+                                             
+                                             // Logic to handle transfer display amounts based on selected accounts
+                                             if (tx.isTransfer) {
+                                                amountColor = 'text-gray-500';
+                                                if (selectedAccountIds.length > 0) {
+                                                    const fromAcc = accountMapByName[tx.fromAccountName!];
+                                                    const toAcc = accountMapByName[tx.toAccountName!];
+                                                    if (selectedAccountIds.includes(fromAcc?.id) && !selectedAccountIds.includes(toAcc?.id)) { 
+                                                        amount = -tx.amount; 
+                                                        amountColor = 'text-light-text dark:text-dark-text'; 
+                                                    } else if (!selectedAccountIds.includes(fromAcc?.id) && selectedAccountIds.includes(toAcc?.id)) { 
+                                                        amount = tx.amount; 
+                                                        amountColor = 'text-green-600 dark:text-green-400'; 
+                                                    }
+                                                }
+                                            }
+
+                                             const categoryDetails = getCategoryDetails(tx.category, allCategories);
+                                             
+                                             return (
+                                                 <div 
+                                                    key={tx.id} 
+                                                    className={`grid grid-cols-[auto_1fr_1fr_auto] gap-4 items-center px-6 py-4 border-b border-black/5 dark:border-white/5 hover:bg-black/5 dark:hover:bg-white/5 transition-colors cursor-pointer group ${selectedIds.has(tx.id) ? 'bg-primary-50 dark:bg-primary-900/10' : ''}`}
+                                                    onClick={() => handleOpenEditModal(tx)}
+                                                    onContextMenu={(e) => { e.preventDefault(); setContextMenu({ x: e.clientX, y: e.clientY, transaction: tx }); }}
+                                                 >
+                                                     <div className="w-8 flex justify-center" onClick={(e) => e.stopPropagation()}>
+                                                         <input type="checkbox" className={CHECKBOX_STYLE} checked={selectedIds.has(tx.id)} onChange={() => handleSelectOne(tx.id)} />
+                                                     </div>
+                                                     
+                                                     <div className="flex items-center gap-3 overflow-hidden">
+                                                         <div className={`w-10 h-10 rounded-full flex items-center justify-center flex-shrink-0 ${tx.isTransfer ? 'bg-gray-200 text-gray-600 dark:bg-gray-700 dark:text-gray-300' : 'bg-light-fill dark:bg-dark-fill'}`} style={!tx.isTransfer && categoryDetails.color ? { backgroundColor: `${categoryDetails.color}20`, color: categoryDetails.color } : {}}>
+                                                             <span className="material-symbols-outlined text-[20px]">
+                                                                 {tx.isTransfer ? 'swap_horiz' : (categoryDetails.icon || 'receipt')}
+                                                             </span>
+                                                         </div>
+                                                         <div className="min-w-0">
+                                                             <p className="font-semibold text-sm text-light-text dark:text-dark-text truncate">{tx.description}</p>
+                                                             <p className="text-xs text-light-text-secondary dark:text-dark-text-secondary truncate">
+                                                                 {tx.isTransfer ? `${tx.fromAccountName} → ${tx.toAccountName}` : tx.accountName}
+                                                             </p>
+                                                         </div>
+                                                     </div>
+
+                                                     <div className="min-w-0">
+                                                         <div className="flex flex-wrap gap-2 items-center">
+                                                             <span className="text-sm text-light-text dark:text-dark-text truncate">{tx.category}</span>
+                                                             {tx.tagIds && tx.tagIds.length > 0 && (
+                                                                 <div className="flex gap-1">
+                                                                     {tx.tagIds.map(tagId => {
+                                                                         const tag = tags.find(t => t.id === tagId);
+                                                                         if (!tag) return null;
+                                                                         return <span key={tagId} className="w-2 h-2 rounded-full" style={{ backgroundColor: tag.color }} title={tag.name}></span>
+                                                                     })}
+                                                                 </div>
+                                                             )}
+                                                         </div>
+                                                         {tx.merchant && <p className="text-xs text-light-text-secondary dark:text-dark-text-secondary truncate">{tx.merchant}</p>}
+                                                     </div>
+
+                                                     <div className="text-right">
+                                                         <p className={`font-mono font-bold text-sm ${amountColor}`}>
+                                                             {tx.isTransfer && selectedAccountIds.length === 0 
+                                                                ? '-/+ ' + formatCurrency(convertToEur(Math.abs(amount), tx.currency), 'EUR')
+                                                                : formatCurrency(convertToEur(amount, tx.currency), 'EUR', { showPlusSign: true })
+                                                             }
+                                                         </p>
+                                                         <button 
+                                                            className="opacity-0 group-hover:opacity-100 p-1 rounded hover:bg-black/10 dark:hover:bg-white/10 text-light-text-secondary transition-opacity"
+                                                            onClick={(e) => { e.stopPropagation(); setContextMenu({ x: e.clientX, y: e.clientY, transaction: tx }); }}
+                                                         >
+                                                             <span className="material-symbols-outlined text-lg">more_horiz</span>
+                                                         </button>
+                                                     </div>
+                                                 </div>
+                                             );
+                                         })}
+                                     </div>
+                                 </div>
+                             );
+                         })}
+                    </div>
+                ) : (
+                     <div className="flex flex-col items-center justify-center py-20 text-light-text-secondary dark:text-dark-text-secondary">
+                         <span className="material-symbols-outlined text-6xl mb-4 opacity-20">search_off</span>
+                         <p className="text-lg font-medium">No transactions found</p>
+                         <p className="text-sm">Try adjusting your filters or search term.</p>
+                         <button onClick={clearFilters} className="mt-4 text-primary-500 font-semibold hover:underline">Clear all filters</button>
+                     </div>
+                )}
+            </div>
+             
+             {/* Pagination Footer */}
+             {filteredTransactions.length > 0 && (
+                <div className="px-6 py-4 border-t border-black/5 dark:border-white/5 flex flex-col sm:flex-row justify-between items-center bg-light-bg/50 dark:bg-dark-bg/50 gap-4">
                     <div className="flex items-center gap-2 text-sm text-light-text-secondary dark:text-dark-text-secondary">
-                        <span>Rows per page:</span>
+                        <span>Show:</span>
                         <div className={`${SELECT_WRAPPER_STYLE} !w-auto`}>
                             <select 
                                 value={itemsPerPage === Number.MAX_SAFE_INTEGER ? 'all' : itemsPerPage}
@@ -867,7 +1021,7 @@ const Transactions: React.FC<TransactionsProps> = ({ accountFilter, setAccountFi
                                     setItemsPerPage(val === 'all' ? Number.MAX_SAFE_INTEGER : Number(val));
                                     setCurrentPage(1);
                                 }}
-                                className={`${SELECT_STYLE} !py-1 !pl-2 !pr-8 !text-sm !h-8`}
+                                className={`${SELECT_STYLE} !py-1 !pl-2 !pr-8 !text-sm !h-8 bg-transparent`}
                             >
                                 <option value="10">10</option>
                                 <option value="25">25</option>
@@ -879,30 +1033,30 @@ const Transactions: React.FC<TransactionsProps> = ({ accountFilter, setAccountFi
                         </div>
                     </div>
 
-                    <div className="flex items-center gap-4">
+                    <div className="flex items-center gap-2">
                         <button
                             onClick={() => setCurrentPage(p => Math.max(1, p - 1))}
                             disabled={currentPage === 1}
-                            className={`${BTN_SECONDARY_STYLE} !py-1 !px-3 text-sm disabled:opacity-50 disabled:cursor-not-allowed`}
+                            className="p-2 rounded-lg hover:bg-black/5 dark:hover:bg-white/5 disabled:opacity-30 transition-colors"
                         >
-                            Previous
+                            <span className="material-symbols-outlined text-lg">chevron_left</span>
                         </button>
-                        <span className="text-sm text-light-text-secondary dark:text-dark-text-secondary font-medium">
+                        <span className="text-sm font-medium text-light-text dark:text-dark-text mx-2">
                             Page {currentPage} of {totalPages}
                         </span>
                         <button
                             onClick={() => setCurrentPage(p => Math.min(totalPages, p + 1))}
                             disabled={currentPage === totalPages}
-                            className={`${BTN_SECONDARY_STYLE} !py-1 !px-3 text-sm disabled:opacity-50 disabled:cursor-not-allowed`}
+                            className="p-2 rounded-lg hover:bg-black/5 dark:hover:bg-white/5 disabled:opacity-30 transition-colors"
                         >
-                            Next
+                             <span className="material-symbols-outlined text-lg">chevron_right</span>
                         </button>
                     </div>
                 </div>
             )}
-          </Card>
-        </div>
+        </Card>
       </div>
+    </div>
   );
 };
 
