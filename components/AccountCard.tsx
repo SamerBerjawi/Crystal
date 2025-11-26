@@ -215,7 +215,7 @@ const AccountCard: React.FC<AccountCardProps> = ({
 
             {/* Bottom: Sparkline */}
             <div 
-                className="absolute bottom-0 left-0 right-0 h-24 pointer-events-none overflow-hidden rounded-b-2xl px-4 pb-4"
+                className="absolute bottom-0 left-0 right-0 h-[86px] pointer-events-none overflow-hidden rounded-b-2xl px-4 pb-4"
                 style={{ 
                     maskImage: 'linear-gradient(to right, transparent, black 15%, black 85%, transparent)',
                     WebkitMaskImage: 'linear-gradient(to right, transparent, black 15%, black 85%, transparent)' 

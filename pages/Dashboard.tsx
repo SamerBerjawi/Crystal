@@ -1,4 +1,6 @@
 
+
+
 import React, { useMemo, useState, useCallback, useEffect, useRef } from 'react';
 import { User, Transaction, Account, Category, Duration, CategorySpending, Widget, WidgetConfig, DisplayTransaction, FinancialGoal, RecurringTransaction, BillPayment, Tag, Budget, RecurringTransactionOverride, LoanPaymentOverrides } from '../types';
 import { formatCurrency, getDateRange, calculateAccountTotals, convertToEur, calculateStatementPeriods, generateBalanceForecast, parseDateAsUTC, getCreditCardStatementDetails, generateSyntheticLoanPayments, generateSyntheticCreditCardPayments, getPreferredTimeZone, formatDateKey, generateSyntheticPropertyTransactions } from '../utils';
@@ -398,7 +400,15 @@ const Dashboard: React.FC<DashboardProps> = ({ user, activeGoalIds, selectedAcco
       'text-amber-500': '#f59e0b',
       'text-indigo-500': '#6366f1',
       'text-lime-600': '#65a30d',
-      'text-slate-500': '#64748b'
+      'text-slate-500': '#64748b',
+      // New additions for cool/warm asset/liability distinction
+      'text-emerald-500': '#10b981',
+      'text-emerald-600': '#059669',
+      'text-violet-500': '#8b5cf6',
+      'text-indigo-400': '#818cf8',
+      'text-sky-500': '#0ea5e9',
+      'text-rose-500': '#f43f5e',
+      'text-blue-600': '#2563eb',
   };
 
   const createBreakdown = (accs: Account[]) => {

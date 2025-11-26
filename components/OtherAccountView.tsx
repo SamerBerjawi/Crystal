@@ -1,4 +1,6 @@
 
+
+
 import React, { useMemo } from 'react';
 import { Account, Transaction, DisplayTransaction } from '../types';
 import { formatCurrency, parseDateAsUTC, convertToEur } from '../utils';
@@ -33,18 +35,18 @@ const OtherAccountView: React.FC<OtherAccountViewProps> = ({
   // --- Theme Config ---
   const theme = isLiability ? {
       gradient: 'from-pink-500 to-rose-600',
-      text: 'text-pink-600 dark:text-pink-400',
-      bg: 'bg-pink-100 dark:bg-pink-900/30',
-      border: 'border-pink-200 dark:border-pink-800',
-      stroke: '#db2777', // pink-600
-      fillId: 'colorPink',
+      text: 'text-rose-600 dark:text-rose-400',
+      bg: 'bg-rose-100 dark:bg-rose-900/30',
+      border: 'border-rose-200 dark:border-rose-800',
+      stroke: '#e11d48', // rose-600
+      fillId: 'colorRose',
   } : {
-      gradient: 'from-lime-500 to-green-600',
-      text: 'text-lime-600 dark:text-lime-400',
-      bg: 'bg-lime-100 dark:bg-lime-900/30',
-      border: 'border-lime-200 dark:border-lime-800',
-      stroke: '#65a30d', // lime-600
-      fillId: 'colorLime',
+      gradient: 'from-sky-500 to-blue-600',
+      text: 'text-sky-600 dark:text-sky-400',
+      bg: 'bg-sky-100 dark:bg-sky-900/30',
+      border: 'border-sky-200 dark:border-sky-800',
+      stroke: '#0284c7', // sky-600
+      fillId: 'colorSky',
   };
 
   // --- Metrics ---
