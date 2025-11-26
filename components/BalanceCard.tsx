@@ -15,50 +15,40 @@ interface BalanceCardProps {
 const BalanceCard: React.FC<BalanceCardProps> = ({ title, amount, change, changeType, sparklineData }) => {
   const isPositive = changeType === 'positive';
 
-  // Dynamic colors based on trend
-  const iconBg = isPositive ? 'bg-emerald-500/10' : 'bg-rose-500/10';
-  const iconColor = isPositive ? 'text-emerald-500' : 'text-rose-500';
-  const trendColor = isPositive ? 'text-emerald-600 dark:text-emerald-400' : 'text-rose-600 dark:text-rose-400';
-  const strokeColor = isPositive ? '#10B981' : '#F43F5E';
+  const iconColor = 'text-white';
+  const iconBgColor = isPositive ? 'bg-semantic-green' : 'bg-semantic-red';
+  const sparklineStroke = isPositive ? '#34C759' : '#FF3B30';
 
   return (
-    <Card className="relative overflow-hidden flex flex-col h-full min-h-[140px] !p-0">
-      <div className="p-6 relative z-10 flex flex-col h-full">
-        <div className="flex justify-between items-start">
-          <div>
-            <p className="text-sm font-medium text-light-text-secondary dark:text-dark-text-secondary uppercase tracking-wider">{title}</p>
-            <h3 className="text-3xl font-bold text-light-text dark:text-dark-text mt-1 tracking-tight">
-              {formatCurrency(amount, 'EUR')}
-            </h3>
-          </div>
-          <div className={`w-8 h-8 rounded-lg flex items-center justify-center ${iconBg} backdrop-blur-sm`}>
-            <span className={`material-symbols-outlined text-lg ${iconColor}`}>
-              {isPositive ? 'trending_up' : 'trending_down'}
-            </span>
-          </div>
-        </div>
-        
-        {change && (
-            <div className="flex items-center gap-1 mt-1">
-              <span className={`text-xs font-bold ${trendColor} bg-light-bg dark:bg-white/5 px-1.5 py-0.5 rounded`}>
-                {change}
-              </span>
-              <span className="text-xs text-light-text-secondary dark:text-dark-text-secondary">vs last period</span>
+    <Card className={`flex flex-col justify-between h-full`}>
+      <div>
+        <div className="flex items-start justify-between">
+            <div>
+                <h3 className={`text-base font-semibold text-light-text-secondary dark:text-dark-text-secondary`}>{title}</h3>
+                <p className={`text-2xl font-bold mt-1 text-light-text dark:text-dark-text`}>{formatCurrency(amount, 'EUR')}</p>
             </div>
+            <div className={`w-10 h-10 rounded-full flex items-center justify-center ${iconBgColor}`}>
+                <span className={`material-symbols-outlined text-2xl ${iconColor}`}>
+                {isPositive ? 'north' : 'south'}
+                </span>
+            </div>
+        </div>
+         {change && (
+              <p className={`text-sm font-medium mt-1 ${isPositive ? 'text-semantic-green' : 'text-semantic-red'}`}>
+                {change} vs. last period
+              </p>
         )}
       </div>
-
-      {/* Background Sparkline */}
-      <div className="absolute bottom-0 left-0 right-0 h-16 opacity-25 pointer-events-none">
-        <ResponsiveContainer width="100%" height="100%">
-          <LineChart data={sparklineData} margin={{ top: 5, right: 0, left: 0, bottom: 5 }}>
+      <div className="h-16 -mb-6 -mx-6 mt-4">
+        <ResponsiveContainer width="100%" height="100%" minWidth={0} minHeight={0} debounce={50}>
+          <LineChart data={sparklineData} margin={{ top: 5, right: 5, bottom: 20, left: 5 }}>
             <Line
-              type="monotone"
+              type="natural"
               dataKey="value"
-              stroke={strokeColor}
-              strokeWidth={3}
+              stroke={sparklineStroke}
+              strokeOpacity={0.8}
+              strokeWidth={2.5}
               dot={false}
-              isAnimationActive={false}
             />
           </LineChart>
         </ResponsiveContainer>

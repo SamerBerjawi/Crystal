@@ -166,7 +166,7 @@ const GeneralAccountView: React.FC<GeneralAccountViewProps> = ({
     // This ensures the forecast engine starts from the correct effective funds available now.
     const accountForForecast = { ...account, balance: realTodayBalance };
 
-    const { chartData } = generateBalanceForecast(
+    const { lowestPoint } = generateBalanceForecast(
         [accountForForecast],
         allRecurringItems,
         financialGoals,
@@ -174,11 +174,6 @@ const GeneralAccountView: React.FC<GeneralAccountViewProps> = ({
         forecastEndDate,
         recurringTransactionOverrides
     );
-
-    let lowestPoint = { value: accountForForecast.balance, date: '' }; // Default to current balance
-    if (chartData.length > 0) {
-        lowestPoint = chartData.reduce((min, p) => p.value < min.value ? { value: p.value, date: p.date } : min, { value: chartData[0].value, date: chartData[0].date });
-    }
     
     // `generateBalanceForecast` works in EUR. Convert the result back to the account's currency.
     // If account currency is same as base (EUR), rate is 1.
@@ -313,11 +308,6 @@ const GeneralAccountView: React.FC<GeneralAccountViewProps> = ({
       return list.sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime()).slice(0, 5);
   }, [recurringTransactions, billsAndPayments, accounts, account.id, allTransactions, loanPaymentOverrides]);
 
-  // Linked Goals
-  const linkedGoals = useMemo(() => {
-    return financialGoals.filter(g => g.paymentAccountId === account.id);
-  }, [financialGoals, account.id]);
-
   // Balance History (30 Days)
   const balanceHistory = useMemo(() => {
     const data = [];
@@ -354,17 +344,18 @@ const GeneralAccountView: React.FC<GeneralAccountViewProps> = ({
     );
   }, [accounts, account.id]);
 
-  const showVirtualCard = !!(account.cardNetwork || account.last4 || account.expirationDate || account.cardholderName);
-  const hasLinkedCards = linkedCreditCards.length > 0;
-  
-  const hasAccountDetails = useMemo(() => {
-      const basicDetails = !!(account.accountNumber || account.routingNumber || account.apy || account.openingDate);
-      if (showVirtualCard) return basicDetails;
-      
-      // If no virtual card, also check for card-like details to be shown in the list
-      return basicDetails || !!(account.expirationDate || account.cardNetwork || account.cardholderName || account.last4);
-  }, [account, showVirtualCard]);
+  const hasCardDetails = account.cardNetwork || account.last4 || account.expirationDate || account.cardholderName;
+  const showVirtualCard = (account.type === 'Checking' || account.type === 'Savings') || hasCardDetails;
 
+  const showBankingDetails = useMemo(() => {
+      const hasDetails = !!(account.accountNumber || account.routingNumber || account.apy || account.openingDate || account.expirationDate || account.cardNetwork || account.cardholderName || account.last4);
+      const hasLinkedCards = linkedCreditCards.length > 0;
+      if (showVirtualCard) {
+          // If showing virtual card, check if there are ANY details that are NOT on the card OR if there are linked cards
+          return !!(account.accountNumber || account.routingNumber || account.apy || account.openingDate) || hasLinkedCards;
+      }
+      return hasDetails || hasLinkedCards;
+  }, [account, showVirtualCard, linkedCreditCards.length]);
 
   const NetworkLogo = () => {
       const network = account.cardNetwork?.toLowerCase() || '';
@@ -448,7 +439,7 @@ const GeneralAccountView: React.FC<GeneralAccountViewProps> = ({
             <span className="material-symbols-outlined">arrow_back</span>
           </button>
           <div className="flex items-center gap-4 min-w-0 flex-1">
-            <div className={`w-16 h-16 rounded-2xl flex-shrink-0 flex items-center justify-center ${ACCOUNT_TYPE_STYLES[account.type]?.color || 'text-gray-600'} bg-current/10`}>
+            <div className={`w-16 h-16 rounded-xl flex-shrink-0 flex items-center justify-center ${ACCOUNT_TYPE_STYLES[account.type]?.color || 'text-gray-600'} bg-current/10 border border-current/20`}>
               <span className="material-symbols-outlined text-4xl">{account.icon || 'wallet'}</span>
             </div>
             <div className="min-w-0">
@@ -462,7 +453,6 @@ const GeneralAccountView: React.FC<GeneralAccountViewProps> = ({
               </div>
               <div className="flex items-center gap-2 text-sm text-light-text-secondary dark:text-dark-text-secondary">
                 <span>{account.type}</span>
-                {account.last4 && <span>• **** {account.last4}</span>}
               </div>
             </div>
           </div>
@@ -471,23 +461,23 @@ const GeneralAccountView: React.FC<GeneralAccountViewProps> = ({
           <button onClick={onAddTransaction} className={BTN_PRIMARY_STYLE}>Add Transaction</button>
         </div>
       </header>
-
-      <div className="grid grid-cols-1 lg:grid-cols-12 gap-8">
-          
-          {/* Virtual Card Column */}
-          {showVirtualCard && (
-            <div className="lg:col-span-5 xl:col-span-4 flex flex-col gap-6">
-                <div className={`w-full aspect-[1.586/1] rounded-2xl ${getCardGradient(account.id)} p-6 sm:p-8 text-white shadow-2xl relative overflow-hidden border border-white/20 flex flex-col justify-between group transition-transform hover:scale-[1.02] duration-300`}>
+      
+      {/* Top Section: Virtual Card & Metrics */}
+      {showVirtualCard ? (
+        <div className="grid grid-cols-1 lg:grid-cols-12 gap-8">
+            {/* Virtual Card */}
+            <div className="lg:col-span-5 xl:col-span-4">
+                <div className={`aspect-[1.586/1] rounded-2xl ${getCardGradient(account.id)} p-6 sm:p-8 text-white shadow-2xl relative overflow-hidden border border-white/20 flex flex-col justify-between group transition-transform hover:scale-[1.02] duration-300`}>
                     {/* Texture Overlay */}
                     <div className="absolute inset-0 bg-[url('https://www.transparenttextures.com/patterns/cubes.png')] opacity-10 pointer-events-none"></div>
                     <div className="absolute -top-24 -right-24 w-64 h-64 bg-white/10 rounded-full blur-3xl pointer-events-none"></div>
                     
                     <div className="flex justify-between items-start z-10">
                         <div className="w-12 h-9 bg-white/20 rounded-md border border-white/30 backdrop-blur-md flex items-center justify-center relative overflow-hidden shadow-sm">
-                            <div className="absolute inset-0 bg-gradient-to-tr from-white/10 to-transparent"></div>
-                            <div className="w-8 h-[1px] bg-black/20 absolute top-2"></div>
-                            <div className="w-8 h-[1px] bg-black/20 absolute bottom-2"></div>
-                            <div className="w-[1px] h-5 bg-black/20 absolute left-4"></div>
+                             <div className="absolute inset-0 bg-gradient-to-tr from-white/10 to-transparent"></div>
+                             <div className="w-8 h-[1px] bg-black/20 absolute top-2"></div>
+                             <div className="w-8 h-[1px] bg-black/20 absolute bottom-2"></div>
+                             <div className="w-[1px] h-5 bg-black/20 absolute left-4"></div>
                         </div>
                         <div className="flex flex-col items-end">
                             <span className="material-symbols-outlined text-2xl opacity-80 mb-1">rss_feed</span>
@@ -496,219 +486,276 @@ const GeneralAccountView: React.FC<GeneralAccountViewProps> = ({
                             </span>
                         </div>
                     </div>
-
+  
                     <div className="z-10 mt-4">
-                        <div className="flex items-center gap-3 text-xl sm:text-2xl font-mono tracking-widest text-white/95 drop-shadow-md truncate">
-                            <span>••••</span> <span>••••</span> <span>••••</span> <span>{account.last4 || '0000'}</span>
-                        </div>
+                         <div className="flex items-center gap-3 text-xl sm:text-2xl font-mono tracking-widest text-white/95 drop-shadow-md truncate">
+                             <span>••••</span> <span>••••</span> <span>••••</span> <span>{account.last4 || '0000'}</span>
+                         </div>
                     </div>
-
+  
                     <div className="flex justify-between items-end z-10">
                         <div className="min-w-0 flex-1 mr-4">
                             <p className="text-[9px] text-white/70 uppercase tracking-widest mb-0.5">Cardholder</p>
                             <p className="font-medium uppercase tracking-wide text-sm sm:text-base text-white/95 drop-shadow-sm truncate">{account.cardholderName || account.name}</p>
                         </div>
                         <div className="flex flex-col items-end flex-shrink-0">
-                            {account.expirationDate && (
-                                <div className="text-center mb-2">
-                                    <p className="text-[8px] text-white/70 uppercase">Valid Thru</p>
-                                    <p className="font-mono text-sm font-semibold">{account.expirationDate}</p>
-                                </div>
-                            )}
-                            <NetworkLogo />
+                             {account.expirationDate && (
+                                 <div className="text-center mb-2">
+                                     <p className="text-[8px] text-white/70 uppercase">Valid Thru</p>
+                                     <p className="font-mono text-sm font-semibold">{account.expirationDate}</p>
+                                 </div>
+                             )}
+                             <NetworkLogo />
                         </div>
                     </div>
                 </div>
+            </div>
 
-                {/* Linked Credit Cards Section */}
-                {hasLinkedCards && (
-                    <Card className="bg-gray-50 dark:bg-white/5 border-l-4 border-orange-500">
-                        <h3 className="text-sm font-bold text-light-text dark:text-dark-text uppercase tracking-wider mb-3">Linked Credit Cards</h3>
-                        <div className="space-y-3">
-                            {linkedCreditCards.map(cc => (
-                                <div key={cc.id} className="flex justify-between items-center cursor-pointer hover:bg-black/5 dark:hover:bg-white/10 p-2 -mx-2 rounded" onClick={() => setViewingAccountId(cc.id)}>
-                                    <div className="flex items-center gap-2">
-                                        <span className="material-symbols-outlined text-orange-500">credit_card</span>
-                                        <div>
-                                            <p className="font-semibold text-sm">{cc.name}</p>
-                                            <p className="text-xs text-light-text-secondary dark:text-dark-text-secondary">Bal: {formatCurrency(cc.balance, cc.currency)}</p>
-                                        </div>
-                                    </div>
-                                    <span className="material-symbols-outlined text-sm text-light-text-secondary">chevron_right</span>
-                                </div>
-                            ))}
-                        </div>
-                    </Card>
+            {/* Metrics Grid */}
+            <div className="lg:col-span-7 xl:col-span-8 grid grid-cols-1 sm:grid-cols-2 gap-4">
+                {metricsCards}
+            </div>
+        </div>
+      ) : (
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
+             {metricsCards}
+        </div>
+      )}
+
+      {/* Account Details Card (Banking Info & Linked Cards) */}
+      {showBankingDetails && (
+        <Card className="bg-gradient-to-br from-gray-50 to-white dark:from-gray-900/50 dark:to-dark-card border border-black/5 dark:border-white/5">
+            <h3 className="text-sm font-bold uppercase tracking-wider text-light-text-secondary dark:text-dark-text-secondary mb-4 flex items-center gap-2">
+                <span className="material-symbols-outlined text-lg">info</span> Account Details
+            </h3>
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
+                {account.accountNumber && (
+                    <div>
+                        <p className="text-xs text-light-text-secondary dark:text-dark-text-secondary mb-1">Account Number / IBAN</p>
+                        <p className="font-mono font-medium text-light-text dark:text-dark-text break-all">{account.accountNumber}</p>
+                    </div>
+                )}
+                {account.routingNumber && (
+                    <div>
+                         <p className="text-xs text-light-text-secondary dark:text-dark-text-secondary mb-1">Routing / BIC</p>
+                         <p className="font-mono font-medium text-light-text dark:text-dark-text">{account.routingNumber}</p>
+                    </div>
+                )}
+                 {account.apy !== undefined && (
+                    <div>
+                         <p className="text-xs text-light-text-secondary dark:text-dark-text-secondary mb-1">APY / Interest Rate</p>
+                         <p className="font-bold text-green-600 dark:text-green-400 text-lg">{account.apy}%</p>
+                    </div>
+                )}
+                 {account.openingDate && (
+                    <div>
+                         <p className="text-xs text-light-text-secondary dark:text-dark-text-secondary mb-1">Opened On</p>
+                         <p className="font-medium text-light-text dark:text-dark-text">{parseDateAsUTC(account.openingDate).toLocaleDateString()}</p>
+                    </div>
+                )}
+                {/* Show card details only if Virtual Card is NOT shown, to avoid duplication */}
+                {!showVirtualCard && (
+                    <>
+                         {account.cardNetwork && (
+                            <div>
+                                 <p className="text-xs text-light-text-secondary dark:text-dark-text-secondary mb-1">Network</p>
+                                 <p className="font-medium text-light-text dark:text-dark-text">{account.cardNetwork}</p>
+                            </div>
+                        )}
+                         {account.cardholderName && (
+                            <div>
+                                 <p className="text-xs text-light-text-secondary dark:text-dark-text-secondary mb-1">Cardholder</p>
+                                 <p className="font-medium text-light-text dark:text-dark-text">{account.cardholderName}</p>
+                            </div>
+                        )}
+                         {account.expirationDate && (
+                            <div>
+                                 <p className="text-xs text-light-text-secondary dark:text-dark-text-secondary mb-1">Expires</p>
+                                 <p className="font-medium text-light-text dark:text-dark-text">{account.expirationDate}</p>
+                            </div>
+                        )}
+                        {account.last4 && (
+                            <div>
+                                 <p className="text-xs text-light-text-secondary dark:text-dark-text-secondary mb-1">Last 4 Digits</p>
+                                 <p className="font-medium text-light-text dark:text-dark-text font-mono">**** {account.last4}</p>
+                            </div>
+                        )}
+                    </>
                 )}
             </div>
-          )}
+            {linkedCreditCards.length > 0 && (
+                 <div className="mt-6 pt-6 border-t border-black/5 dark:border-white/5">
+                     <p className="text-xs text-light-text-secondary dark:text-dark-text-secondary mb-3 uppercase tracking-wider font-semibold">Linked Credit Cards</p>
+                     <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                         {linkedCreditCards.map(card => (
+                              <div key={card.id} className="flex items-center justify-between bg-white dark:bg-black/20 p-3 rounded-lg border border-black/5 dark:border-white/5 hover:border-primary-500/30 transition-colors group">
+                                 <div className="flex items-center gap-3">
+                                      <div className="w-8 h-8 rounded-full bg-orange-100 dark:bg-orange-900/30 flex items-center justify-center text-orange-600 dark:text-orange-400 shrink-0">
+                                         <span className="material-symbols-outlined text-sm">credit_card</span>
+                                     </div>
+                                     <div>
+                                         <button onClick={() => setViewingAccountId(card.id)} className="font-medium text-sm text-light-text dark:text-dark-text hover:text-primary-500 hover:underline text-left truncate max-w-[150px] sm:max-w-[200px] block">
+                                             {card.name}
+                                         </button>
+                                         <p className={`text-xs font-mono ${card.balance < 0 ? 'text-red-500' : 'text-light-text-secondary dark:text-dark-text-secondary'}`}>
+                                             {formatCurrency(card.balance, card.currency)}
+                                         </p>
+                                     </div>
+                                 </div>
+                                  <button onClick={() => setViewingAccountId(card.id)} className="text-light-text-secondary dark:text-dark-text-secondary hover:text-primary-500 p-1 rounded-full">
+                                      <span className="material-symbols-outlined text-lg">chevron_right</span>
+                                  </button>
+                              </div>
+                         ))}
+                     </div>
+                 </div>
+            )}
+        </Card>
+      )}
 
-          {/* Metrics Grid (adjusts based on card presence) */}
-          <div className={`${showVirtualCard ? 'lg:col-span-7 xl:col-span-8' : 'lg:col-span-12'} grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-2 gap-4 auto-rows-fr`}>
-               {metricsCards}
-          </div>
-      </div>
-      
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
-          <div className="lg:col-span-2 space-y-8">
-              {/* Balance History Chart */}
-              <Card className="flex flex-col min-h-[300px]">
-                <h3 className="text-lg font-semibold text-light-text dark:text-dark-text mb-4">Balance History (30 Days)</h3>
-                <div className="flex-grow w-full min-h-0">
+      {/* Grid 2: Cash Flow Trend + Upcoming Payments */}
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+          <div className="lg:col-span-2 h-full">
+              <Card className="h-full flex flex-col min-h-[320px]">
+                  <h3 className="text-lg font-semibold text-light-text dark:text-dark-text mb-4">Monthly Cash Flow (6 Months)</h3>
+                  <div className="flex-grow w-full h-full">
                     <ResponsiveContainer width="100%" height="100%">
-                        <AreaChart data={balanceHistory} margin={{ top: 10, right: 0, left: -20, bottom: 0 }}>
-                            <defs>
-                                <linearGradient id="colorBalance" x1="0" y1="0" x2="0" y2="1">
-                                    <stop offset="5%" stopColor="#3b82f6" stopOpacity={0.3}/>
-                                    <stop offset="95%" stopColor="#3b82f6" stopOpacity={0}/>
-                                </linearGradient>
-                            </defs>
+                        <BarChart data={cashFlowData} margin={{ top: 10, right: 10, left: 0, bottom: 0 }}>
                             <CartesianGrid strokeDasharray="3 3" strokeOpacity={0.1} vertical={false} />
-                            <XAxis 
-                                dataKey="date" 
-                                axisLine={false} 
-                                tickLine={false} 
-                                tick={{ fill: 'currentColor', opacity: 0.5, fontSize: 12 }}
-                                tickFormatter={(val) => {
-                                    const d = new Date(val);
-                                    return d.toLocaleDateString(undefined, { month: 'short', day: 'numeric' });
-                                }}
-                                minTickGap={40}
-                            />
-                            <YAxis 
-                                axisLine={false} 
-                                tickLine={false} 
-                                tick={{ fill: 'currentColor', opacity: 0.5, fontSize: 12 }}
-                                tickFormatter={(val) => `${(val / 1000).toFixed(1)}k`} 
-                            />
+                            <XAxis dataKey="month" axisLine={false} tickLine={false} tick={{ fill: 'currentColor', opacity: 0.6, fontSize: 12 }} />
+                            <YAxis axisLine={false} tickLine={false} tick={{ fill: 'currentColor', opacity: 0.6, fontSize: 12 }} tickFormatter={(val) => `${val/1000}k`} width={30} />
                             <Tooltip 
                                 contentStyle={{ backgroundColor: 'var(--light-card)', borderColor: 'rgba(0,0,0,0.1)', borderRadius: '8px' }}
-                                labelStyle={{ color: 'var(--light-text)' }}
-                                formatter={(val: number) => [formatCurrency(val, account.currency), 'Balance']}
-                                labelFormatter={(label) => new Date(label).toLocaleDateString()}
+                                cursor={{fill: 'transparent'}}
+                                formatter={(val: number) => formatCurrency(val, account.currency)}
                             />
-                            <Area 
-                                type="monotone" 
-                                dataKey="value" 
-                                stroke="#3b82f6" 
-                                strokeWidth={3}
-                                fillOpacity={1} 
-                                fill="url(#colorBalance)" 
-                            />
-                        </AreaChart>
+                            <Legend wrapperStyle={{ paddingTop: '10px' }}/>
+                            <Bar dataKey="income" name="Money In" fill="#22c55e" radius={[4, 4, 0, 0]} barSize={20} />
+                            <Bar dataKey="expense" name="Money Out" fill="#ef4444" radius={[4, 4, 0, 0]} barSize={20} />
+                        </BarChart>
                     </ResponsiveContainer>
-                </div>
-              </Card>
-
-              {/* Cash Flow Trend Chart */}
-              <Card className="flex flex-col min-h-[300px]">
-                   <h3 className="text-lg font-semibold text-light-text dark:text-dark-text mb-4">Cash Flow Trend (6 Months)</h3>
-                   <div className="flex-grow w-full min-h-0">
-                     <ResponsiveContainer width="100%" height="100%">
-                          <BarChart data={cashFlowData} margin={{ top: 10, right: 10, left: 0, bottom: 0 }}>
-                              <CartesianGrid strokeDasharray="3 3" strokeOpacity={0.1} vertical={false} />
-                              <XAxis dataKey="month" axisLine={false} tickLine={false} tick={{ fill: 'currentColor', opacity: 0.6, fontSize: 12 }} />
-                              <YAxis axisLine={false} tickLine={false} tick={{ fill: 'currentColor', opacity: 0.6, fontSize: 12 }} />
-                              <Tooltip 
-                                  cursor={{ fill: 'transparent' }}
-                                  contentStyle={{ backgroundColor: 'var(--light-card)', borderColor: 'rgba(0,0,0,0.1)', borderRadius: '8px', color: 'var(--light-text)' }}
-                                  formatter={(value: number) => formatCurrency(value, account.currency)}
-                              />
-                              <Legend wrapperStyle={{ paddingTop: '10px' }}/>
-                              <Bar dataKey="income" name="Income" fill="#22c55e" radius={[4, 4, 0, 0]} />
-                              <Bar dataKey="expense" name="Expense" fill="#ef4444" radius={[4, 4, 0, 0]} />
-                          </BarChart>
-                     </ResponsiveContainer>
-                   </div>
+                  </div>
               </Card>
           </div>
-          
-          <div className="lg:col-span-1 space-y-8">
-               {/* Top Categories */}
-               <Card>
-                   <h3 className="text-lg font-semibold text-light-text dark:text-dark-text mb-4">Top Spending (30d)</h3>
-                   {topCategories.length > 0 ? (
-                       <div className="space-y-4">
-                           {topCategories.map((cat, idx) => {
-                               // Calculate percentage relative to the max value for bar width
-                               const maxVal = topCategories[0].value;
-                               const percent = (cat.value / maxVal) * 100;
-                               return (
-                                   <div key={idx}>
-                                       <div className="flex justify-between text-sm mb-1">
-                                           <span className="font-medium">{cat.name}</span>
-                                           <span className="font-semibold">{formatCurrency(cat.value, account.currency)}</span>
-                                       </div>
-                                       <div className="w-full bg-gray-100 dark:bg-white/10 rounded-full h-2">
-                                           <div className="h-2 rounded-full transition-all duration-500" style={{ width: `${percent}%`, backgroundColor: cat.color }}></div>
-                                       </div>
-                                   </div>
-                               );
-                           })}
-                       </div>
-                   ) : (
-                       <p className="text-center text-light-text-secondary dark:text-dark-text-secondary py-8 text-sm">No spending activity in the last 30 days.</p>
-                   )}
-               </Card>
-
-               {/* Upcoming Payments List */}
-               <Card>
-                   <h3 className="text-lg font-semibold text-light-text dark:text-dark-text mb-4">Upcoming (14d)</h3>
-                   {upcomingPayments.length > 0 ? (
-                       <div className="space-y-3">
-                           {upcomingPayments.map((item, idx) => (
-                               <div key={idx} className="flex justify-between items-center p-2 hover:bg-black/5 dark:hover:bg-white/5 rounded transition-colors">
-                                   <div className="flex items-center gap-3 overflow-hidden">
-                                        <div className={`w-10 h-10 rounded-full flex items-center justify-center flex-shrink-0 ${item.isRecurring ? 'bg-blue-100 text-blue-600 dark:bg-blue-900/30 dark:text-blue-400' : 'bg-orange-100 text-orange-600 dark:bg-orange-900/30 dark:text-orange-400'}`}>
-                                            <span className="material-symbols-outlined text-lg">{item.isRecurring ? 'update' : 'receipt_long'}</span>
-                                        </div>
-                                        <div className="min-w-0">
-                                            <p className="text-sm font-medium text-light-text dark:text-dark-text truncate">{item.description}</p>
-                                            <p className="text-xs text-light-text-secondary dark:text-dark-text-secondary">
-                                                {new Date(item.date).toLocaleDateString(undefined, { month: 'short', day: 'numeric' })}
-                                            </p>
-                                        </div>
-                                   </div>
-                                   <span className="font-semibold text-sm">{formatCurrency(item.amount, account.currency)}</span>
-                               </div>
-                           ))}
-                       </div>
-                   ) : (
-                       <p className="text-center text-light-text-secondary dark:text-dark-text-secondary py-8 text-sm">No upcoming payments scheduled.</p>
-                   )}
-               </Card>
-
-               {/* Account Details */}
-               {hasAccountDetails && (
-                   <Card>
-                       <h3 className="text-sm font-bold uppercase tracking-wider text-light-text-secondary dark:text-dark-text-secondary mb-4 border-b border-black/5 dark:border-white/5 pb-2">Account Details</h3>
-                       <div className="space-y-3 text-sm">
-                           {account.accountNumber && <div className="flex justify-between"><span className="text-light-text-secondary dark:text-dark-text-secondary">Account Number</span><span className="font-mono font-medium">{account.accountNumber}</span></div>}
-                           {account.routingNumber && <div className="flex justify-between"><span className="text-light-text-secondary dark:text-dark-text-secondary">Routing Number</span><span className="font-mono font-medium">{account.routingNumber}</span></div>}
-                           {account.apy && <div className="flex justify-between"><span className="text-light-text-secondary dark:text-dark-text-secondary">APY</span><span className="font-medium text-green-600 dark:text-green-400">{account.apy}%</span></div>}
-                           {account.openingDate && <div className="flex justify-between"><span className="text-light-text-secondary dark:text-dark-text-secondary">Opened</span><span className="font-medium">{new Date(account.openingDate).toLocaleDateString()}</span></div>}
-                           {account.cardNetwork && <div className="flex justify-between"><span className="text-light-text-secondary dark:text-dark-text-secondary">Network</span><span className="font-medium">{account.cardNetwork}</span></div>}
-                           {account.last4 && <div className="flex justify-between"><span className="text-light-text-secondary dark:text-dark-text-secondary">Card Ending</span><span className="font-mono font-medium">**** {account.last4}</span></div>}
-                           {account.expirationDate && <div className="flex justify-between"><span className="text-light-text-secondary dark:text-dark-text-secondary">Expires</span><span className="font-mono font-medium">{account.expirationDate}</span></div>}
-                       </div>
-                   </Card>
-               )}
+          <div className="lg:col-span-1 h-full">
+              <Card className="h-full flex flex-col">
+                  <h3 className="text-lg font-semibold text-light-text dark:text-dark-text mb-4">Upcoming Payments</h3>
+                  <div className="flex-grow overflow-y-auto max-h-[250px] space-y-3 pr-1">
+                      {upcomingPayments.length > 0 ? upcomingPayments.map((item, idx) => (
+                          <div key={idx} className="flex items-center justify-between p-2 rounded-lg hover:bg-black/5 dark:hover:bg-white/5 transition-colors">
+                              <div className="flex items-center gap-3 min-w-0">
+                                  <div className="bg-light-fill dark:bg-dark-fill w-10 h-10 rounded-lg flex flex-col items-center justify-center text-xs flex-shrink-0">
+                                      <span className="font-bold text-light-text dark:text-dark-text">{parseDateAsUTC(item.date).getDate()}</span>
+                                      <span className="text-[10px] uppercase text-light-text-secondary dark:text-dark-text-secondary">{parseDateAsUTC(item.date).toLocaleString('default', { month: 'short' })}</span>
+                                  </div>
+                                  <div className="min-w-0">
+                                      <p className="text-sm font-medium text-light-text dark:text-dark-text truncate">{item.description}</p>
+                                      <p className="text-xs text-light-text-secondary dark:text-dark-text-secondary">{item.isRecurring ? 'Recurring' : 'Bill'}</p>
+                                  </div>
+                              </div>
+                              <p className="text-sm font-semibold text-light-text dark:text-dark-text whitespace-nowrap">{formatCurrency(item.amount, account.currency)}</p>
+                          </div>
+                      )) : (
+                          <div className="h-full flex flex-col items-center justify-center text-light-text-secondary dark:text-dark-text-secondary opacity-60">
+                              <span className="material-symbols-outlined text-4xl mb-2">event_available</span>
+                              <p className="text-sm">No upcoming payments.</p>
+                          </div>
+                      )}
+                  </div>
+              </Card>
           </div>
       </div>
-      
-      {/* Recent Transactions Table */}
-      <Card className="flex flex-col h-full min-h-[500px]">
-          <div className="flex justify-between items-center mb-6">
-              <h3 className="text-xl font-bold text-light-text dark:text-dark-text">Recent Transactions</h3>
-          </div>
-          <div className="flex-grow overflow-hidden">
-              <TransactionList 
-                  transactions={displayTransactionsList} 
-                  allCategories={allCategories} 
-                  onTransactionClick={onTransactionClick} 
-              />
-          </div>
-      </Card>
+
+      {/* Grid 3: Top Categories + Balance History */}
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+           <div className="lg:col-span-1 h-full">
+              <Card className="h-full flex flex-col min-h-[300px]">
+                  <h3 className="text-lg font-semibold text-light-text dark:text-dark-text mb-4">Top Spending (30d)</h3>
+                  <div className="flex-grow space-y-4 overflow-y-auto max-h-[250px] pr-1">
+                      {topCategories.length > 0 ? topCategories.map((cat, idx) => (
+                          <div key={idx}>
+                              <div className="flex justify-between text-sm mb-1">
+                                  <span className="font-medium text-light-text dark:text-dark-text">{cat.name}</span>
+                                  <span className="text-light-text dark:text-dark-text">{formatCurrency(cat.value, account.currency)}</span>
+                              </div>
+                              <div className="w-full bg-light-fill dark:bg-dark-fill rounded-full h-2 overflow-hidden">
+                                  <div className="h-full rounded-full" style={{ width: `${(cat.value / topCategories[0].value) * 100}%`, backgroundColor: cat.color }}></div>
+                              </div>
+                          </div>
+                      )) : (
+                          <div className="h-full flex flex-col items-center justify-center text-light-text-secondary dark:text-dark-text-secondary opacity-60">
+                              <span className="material-symbols-outlined text-4xl mb-2">pie_chart</span>
+                              <p className="text-sm">No spending data.</p>
+                          </div>
+                      )}
+                  </div>
+              </Card>
+           </div>
+           <div className="lg:col-span-2 h-full">
+                <Card className="h-full flex flex-col min-h-[300px]">
+                    <h3 className="text-lg font-semibold text-light-text dark:text-dark-text mb-4">Balance History (30 Days)</h3>
+                    <div className="flex-grow w-full h-full min-h-[250px]">
+                        <ResponsiveContainer width="100%" height="100%">
+                            <AreaChart data={balanceHistory} margin={{ top: 10, right: 10, left: 0, bottom: 0 }}>
+                                <defs>
+                                    <linearGradient id="colorBalance" x1="0" y1="0" x2="0" y2="1">
+                                        <stop offset="5%" stopColor="#3b82f6" stopOpacity={0.3}/>
+                                        <stop offset="95%" stopColor="#3b82f6" stopOpacity={0}/>
+                                    </linearGradient>
+                                </defs>
+                                <CartesianGrid strokeDasharray="3 3" strokeOpacity={0.1} vertical={false} />
+                                <XAxis 
+                                    dataKey="date" 
+                                    axisLine={false} 
+                                    tickLine={false} 
+                                    tick={{ fill: 'currentColor', opacity: 0.5, fontSize: 12 }}
+                                    tickFormatter={(val) => {
+                                        const d = new Date(val);
+                                        return d.toLocaleDateString(undefined, { month: 'short', day: 'numeric' });
+                                    }}
+                                    minTickGap={30}
+                                />
+                                <YAxis 
+                                    axisLine={false} 
+                                    tickLine={false} 
+                                    tick={{ fill: 'currentColor', opacity: 0.5, fontSize: 12 }}
+                                    tickFormatter={(val) => formatCurrency(val, account.currency).replace(/[^0-9.,-]/g, '')} 
+                                    width={60}
+                                />
+                                <Tooltip 
+                                    contentStyle={{ backgroundColor: 'var(--light-card)', borderColor: 'rgba(0,0,0,0.1)', borderRadius: '8px' }}
+                                    labelStyle={{ color: 'var(--light-text)' }}
+                                    formatter={(val: number) => [formatCurrency(val, account.currency), 'Balance']}
+                                    labelFormatter={(label) => new Date(label).toLocaleDateString()}
+                                />
+                                <Area 
+                                    type="monotone" 
+                                    dataKey="value" 
+                                    stroke="#3b82f6" 
+                                    strokeWidth={2}
+                                    fillOpacity={1} 
+                                    fill="url(#colorBalance)" 
+                                />
+                            </AreaChart>
+                        </ResponsiveContainer>
+                    </div>
+                </Card>
+           </div>
+      </div>
+
+      {/* Grid 4: Recent Transactions */}
+      <Card className="h-full flex flex-col">
+        <div className="flex justify-between items-center mb-4">
+            <h3 className="text-lg font-semibold text-light-text dark:text-dark-text">Recent Transactions</h3>
+        </div>
+        <div className="flex-grow overflow-hidden">
+            <TransactionList 
+                transactions={displayTransactionsList.slice(0, 8)} 
+                allCategories={allCategories} 
+                onTransactionClick={onTransactionClick} 
+            />
+        </div>
+     </Card>
     </div>
   );
 };

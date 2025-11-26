@@ -1,7 +1,7 @@
 
 import React, { useState, useEffect, useMemo, useRef } from 'react';
 import Modal from './Modal';
-import { Account, AccountType, Currency, InvestmentSubType, PropertyType, FuelType, VehicleOwnership, RecurrenceFrequency, MileageLog } from '../types';
+import { Account, AccountType, Currency, InvestmentSubType, PropertyType, FuelType, VehicleOwnership, RecurrenceFrequency } from '../types';
 import { ALL_ACCOUNT_TYPES, CURRENCIES, ACCOUNT_TYPE_STYLES, INPUT_BASE_STYLE, BTN_PRIMARY_STYLE, BTN_SECONDARY_STYLE, SELECT_ARROW_STYLE, SELECT_WRAPPER_STYLE, ACCOUNT_ICON_LIST, INVESTMENT_SUB_TYPES, PROPERTY_TYPES, INVESTMENT_SUB_TYPE_STYLES, FUEL_TYPES, VEHICLE_OWNERSHIP_TYPES, CHECKBOX_STYLE, FREQUENCIES, CARD_NETWORKS } from '../constants';
 import IconPicker from './IconPicker';
 import { v4 as uuidv4 } from 'uuid';
@@ -30,7 +30,6 @@ const AddAccountModal: React.FC<AddAccountModalProps> = ({ onClose, onAdd, accou
   const [openingDate, setOpeningDate] = useState('');
 
   // Card Details
-  const [hasCard, setHasCard] = useState(false);
   const [expirationDate, setExpirationDate] = useState('');
   const [cardNetwork, setCardNetwork] = useState('');
   const [cardholderName, setCardholderName] = useState('');
@@ -119,13 +118,6 @@ const AddAccountModal: React.FC<AddAccountModalProps> = ({ onClose, onAdd, accou
     } else {
       setIcon(ACCOUNT_TYPE_STYLES[type].icon);
     }
-    
-    // Auto-enable hasCard for Credit Card type
-    if (type === 'Credit Card') {
-        setHasCard(true);
-    } else {
-        setHasCard(false);
-    }
   }, [type, subType]);
   
   // Loan amount calculation logic
@@ -182,6 +174,8 @@ const AddAccountModal: React.FC<AddAccountModalProps> = ({ onClose, onAdd, accou
             const price = (linkedLoan.principalAmount || 0) + (linkedLoan.downPayment || 0);
             setPurchasePrice(String(price));
         }
+    } else if (type === 'Property' && !linkedLoanId) {
+        setPurchasePrice('');
     }
   }, [linkedLoanId, type, accounts]);
 
@@ -198,23 +192,13 @@ const AddAccountModal: React.FC<AddAccountModalProps> = ({ onClose, onAdd, accou
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    
-    let mileageLogs: MileageLog[] = [];
-    if (type === 'Vehicle' && currentMileage) {
-        mileageLogs = [{
-            id: `log-${uuidv4()}`,
-            date: new Date().toISOString().split('T')[0],
-            reading: parseInt(currentMileage, 10)
-        }];
-    }
-
-    const newAccount: Omit<Account, 'id'> = {
+    const newAccountData: Omit<Account, 'id'> = {
       name,
       type,
       balance: type === 'Loan' ? -Math.abs(principalAmount !== '' ? parseFloat(principalAmount) : 0) : (type === 'Lending' ? Math.abs(principalAmount !== '' ? parseFloat(principalAmount) : 0) : (balance !== '' ? parseFloat(balance) : 0)),
       currency,
       icon,
-      last4: hasCard && last4 ? last4 : undefined,
+      last4: last4 || undefined,
       financialInstitution: ['Checking', 'Savings', 'Credit Card'].includes(type) && financialInstitution ? financialInstitution : undefined,
       isPrimary,
       accountNumber: accountNumber || undefined,
@@ -222,83 +206,94 @@ const AddAccountModal: React.FC<AddAccountModalProps> = ({ onClose, onAdd, accou
       apy: apy !== '' ? parseFloat(apy) : undefined,
       openingDate: openingDate || undefined,
       // Card details
-      expirationDate: hasCard && expirationDate ? expirationDate : undefined,
-      cardNetwork: hasCard && cardNetwork ? cardNetwork : undefined,
-      cardholderName: hasCard && cardholderName ? cardholderName : undefined,
-
+      expirationDate: (type === 'Credit Card' || type === 'Checking' || type === 'Savings') && expirationDate ? expirationDate : undefined,
+      cardNetwork: (type === 'Credit Card' || type === 'Checking' || type === 'Savings') && cardNetwork ? cardNetwork : undefined,
+      cardholderName: (type === 'Credit Card' || type === 'Checking' || type === 'Savings') && cardholderName ? cardholderName : undefined,
+      
       // Conditionally add new fields
-      subType: type === 'Investment' ? subType : undefined,
-      totalAmount: (type === 'Loan' || type === 'Lending') && totalAmount !== '' ? parseFloat(totalAmount) : undefined,
-      principalAmount: (type === 'Loan' || type === 'Lending') && principalAmount !== '' ? parseFloat(principalAmount) : undefined,
-      interestAmount: (type === 'Loan' || type === 'Lending') && interestAmount !== '' ? parseFloat(interestAmount) : undefined,
-      downPayment: type === 'Loan' && downPayment !== '' ? parseFloat(downPayment) : undefined,
-      duration: (type === 'Loan' || type === 'Lending') && duration !== '' ? parseInt(duration, 10) : undefined,
-      interestRate: (type === 'Loan' || type === 'Lending') && interestRate !== '' ? parseFloat(interestRate) : undefined,
-      loanStartDate: (type === 'Loan' || type === 'Lending') ? loanStartDate : undefined,
-      monthlyPayment: (type === 'Loan' || type === 'Lending') && monthlyPayment !== '' ? parseFloat(monthlyPayment) : undefined,
-      paymentDayOfMonth: (type === 'Loan' || type === 'Lending') && paymentDayOfMonth !== '' ? parseInt(paymentDayOfMonth, 10) : undefined,
-      linkedAccountId: (type === 'Loan' || type === 'Lending') ? linkedAccountId || undefined : undefined,
-      make: type === 'Vehicle' ? make || undefined : undefined,
-      model: type === 'Vehicle' ? model || undefined : undefined,
-      year: type === 'Vehicle' && year !== '' ? parseInt(year, 10) : undefined,
-      licensePlate: type === 'Vehicle' ? licensePlate || undefined : undefined,
-      registrationCountryCode: type === 'Vehicle' ? registrationCountryCode || undefined : undefined,
-      vin: type === 'Vehicle' ? vin || undefined : undefined,
-      fuelType: type === 'Vehicle' ? fuelType : undefined,
-      ownership: type === 'Vehicle' ? vehicleOwnership : undefined,
-      purchaseDate: type === 'Vehicle' && vehicleOwnership === 'Owned' && purchaseDate ? purchaseDate : undefined,
-      leaseProvider: type === 'Vehicle' && vehicleOwnership === 'Leased' && leaseProvider ? leaseProvider : undefined,
-      leaseStartDate: type === 'Vehicle' && vehicleOwnership === 'Leased' && leaseStartDate ? leaseStartDate : undefined,
-      leaseEndDate: type === 'Vehicle' && vehicleOwnership === 'Leased' && leaseEndDate ? leaseEndDate : undefined,
-      annualMileageAllowance: type === 'Vehicle' && vehicleOwnership === 'Leased' && annualMileageAllowance !== '' ? parseInt(annualMileageAllowance, 10) : undefined,
-      leasePaymentAmount: type === 'Vehicle' && vehicleOwnership === 'Leased' && leasePaymentAmount !== '' ? parseFloat(leasePaymentAmount) : undefined,
-      leasePaymentDay: type === 'Vehicle' && vehicleOwnership === 'Leased' && leasePaymentDay !== '' ? parseInt(leasePaymentDay, 10) : undefined,
-      leasePaymentAccountId: type === 'Vehicle' && vehicleOwnership === 'Leased' && leasePaymentAccountId ? leasePaymentAccountId : undefined,
-      mileageLogs: type === 'Vehicle' ? mileageLogs : undefined,
-      imageUrl: type === 'Vehicle' ? vehicleImage || undefined : undefined,
-      address: type === 'Property' ? address || undefined : undefined,
-      propertyType: type === 'Property' ? propertyType : undefined,
-      purchasePrice: (type === 'Vehicle' || (type === 'Property' && !isLoanForPropertyLinked)) && purchasePrice !== '' ? parseFloat(purchasePrice) : undefined,
-      principalOwned: type === 'Property' && !isLoanForPropertyLinked && principalOwned !== '' ? parseFloat(principalOwned) : undefined,
-      linkedLoanId: type === 'Property' ? linkedLoanId || undefined : undefined,
-      propertySize: propertySize !== '' ? parseFloat(propertySize) : undefined,
-      yearBuilt: yearBuilt !== '' ? parseInt(yearBuilt, 10) : undefined,
-      floors: floors !== '' ? parseInt(floors, 10) : undefined,
-      bedrooms: bedrooms !== '' ? parseInt(bedrooms, 10) : undefined,
-      bathrooms: bathrooms !== '' ? parseInt(bathrooms, 10) : undefined,
-      hasBasement,
-      hasAttic,
-      indoorParkingSpaces: indoorParkingSpaces !== '' ? parseInt(indoorParkingSpaces, 10) : undefined,
-      outdoorParkingSpaces: outdoorParkingSpaces !== '' ? parseInt(outdoorParkingSpaces, 10) : undefined,
-      hasGarden,
-      gardenSize: hasGarden && gardenSize !== '' ? parseFloat(gardenSize) : undefined,
-      hasTerrace,
-      terraceSize: hasTerrace && terraceSize !== '' ? parseFloat(terraceSize) : undefined,
-      propertyTaxAmount: type === 'Property' && propertyTaxAmount !== '' ? parseFloat(propertyTaxAmount) : undefined,
-      propertyTaxDate: type === 'Property' ? propertyTaxDate || undefined : undefined,
-      insuranceProvider: type === 'Property' ? insuranceProvider || undefined : undefined,
-      insurancePolicyNumber: type === 'Property' ? insurancePolicyNumber || undefined : undefined,
-      insuranceAmount: type === 'Property' && insuranceAmount !== '' ? parseFloat(insuranceAmount) : undefined,
-      insuranceFrequency: type === 'Property' ? insuranceFrequency : undefined,
-      insurancePaymentDate: type === 'Property' ? insurancePaymentDate || undefined : undefined,
-      hoaFeeAmount: type === 'Property' && hoaFeeAmount !== '' ? parseFloat(hoaFeeAmount) : undefined,
-      hoaFeeFrequency: type === 'Property' ? hoaFeeFrequency : undefined,
-      isRental: type === 'Property' ? isRental : undefined,
-      rentalIncomeAmount: type === 'Property' && isRental && rentalIncomeAmount !== '' ? parseFloat(rentalIncomeAmount) : undefined,
-      rentalIncomeFrequency: type === 'Property' && isRental ? rentalIncomeFrequency : undefined,
-      notes: (type === 'Other Assets' || type === 'Other Liabilities') ? notes || undefined : undefined,
-      statementStartDate: type === 'Credit Card' && statementStartDate !== '' ? parseInt(statementStartDate, 10) : undefined,
-      paymentDate: type === 'Credit Card' && paymentDate !== '' ? parseInt(paymentDate, 10) : undefined,
-      settlementAccountId: type === 'Credit Card' && settlementAccountId ? settlementAccountId : undefined,
-      creditLimit: type === 'Credit Card' && creditLimit !== '' ? parseFloat(creditLimit) : undefined,
+      ...(type === 'Investment' && { subType }),
+      ...((type === 'Loan' || type === 'Lending') && { 
+        totalAmount: totalAmount !== '' ? parseFloat(totalAmount) : undefined,
+        principalAmount: principalAmount !== '' ? parseFloat(principalAmount) : undefined,
+        interestAmount: interestAmount !== '' ? parseFloat(interestAmount) : undefined,
+        duration: duration !== '' ? parseInt(duration, 10) : undefined,
+        interestRate: interestRate !== '' ? parseFloat(interestRate) : undefined,
+        loanStartDate,
+        monthlyPayment: monthlyPayment !== '' ? parseFloat(monthlyPayment) : undefined,
+        paymentDayOfMonth: paymentDayOfMonth !== '' ? parseInt(paymentDayOfMonth, 10) : undefined,
+        linkedAccountId: linkedAccountId || undefined,
+      }),
+      ...(type === 'Loan' && { 
+        downPayment: downPayment !== '' ? parseFloat(downPayment) : undefined,
+      }),
+      ...(type === 'Vehicle' && { 
+        make: make || undefined,
+        model: model || undefined,
+        year: year !== '' ? parseInt(year, 10) : undefined,
+        purchasePrice: purchasePrice !== '' ? parseFloat(purchasePrice) : undefined,
+        licensePlate: licensePlate || undefined,
+        registrationCountryCode: registrationCountryCode || undefined,
+        vin: vin || undefined,
+        fuelType: fuelType || undefined,
+        ownership: vehicleOwnership,
+        purchaseDate: vehicleOwnership === 'Owned' && purchaseDate ? purchaseDate : undefined,
+        leaseProvider: vehicleOwnership === 'Leased' && leaseProvider ? leaseProvider : undefined,
+        leaseStartDate: vehicleOwnership === 'Leased' && leaseStartDate ? leaseStartDate : undefined,
+        leaseEndDate: vehicleOwnership === 'Leased' && leaseEndDate ? leaseEndDate : undefined,
+        annualMileageAllowance: vehicleOwnership === 'Leased' && annualMileageAllowance ? parseInt(annualMileageAllowance, 10) : undefined,
+        leasePaymentAmount: vehicleOwnership === 'Leased' && leasePaymentAmount !== '' ? parseFloat(leasePaymentAmount) : undefined,
+        leasePaymentDay: vehicleOwnership === 'Leased' && leasePaymentDay !== '' ? parseInt(leasePaymentDay, 10) : undefined,
+        leasePaymentAccountId: vehicleOwnership === 'Leased' && leasePaymentAccountId ? leasePaymentAccountId : undefined,
+        imageUrl: vehicleImage || undefined,
+        mileageLogs: currentMileage ? [{ id: `log-${uuidv4()}`, date: new Date().toISOString().split('T')[0], reading: parseInt(currentMileage, 10) }] : []
+      }),
+      ...(type === 'Property' && {
+        address: address || undefined,
+        propertyType,
+        purchasePrice: !isLoanForPropertyLinked && purchasePrice !== '' ? parseFloat(purchasePrice) : undefined,
+        principalOwned: !isLoanForPropertyLinked && principalOwned !== '' ? parseFloat(principalOwned) : undefined,
+        linkedLoanId: linkedLoanId || undefined,
+        propertySize: propertySize !== '' ? parseFloat(propertySize) : undefined,
+        yearBuilt: yearBuilt !== '' ? parseInt(yearBuilt, 10) : undefined,
+        floors: floors !== '' ? parseInt(floors, 10) : undefined,
+        bedrooms: bedrooms !== '' ? parseInt(bedrooms, 10) : undefined,
+        bathrooms: bathrooms !== '' ? parseInt(bathrooms, 10) : undefined,
+        hasBasement,
+        hasAttic,
+        indoorParkingSpaces: indoorParkingSpaces !== '' ? parseInt(indoorParkingSpaces, 10) : undefined,
+        outdoorParkingSpaces: outdoorParkingSpaces !== '' ? parseInt(outdoorParkingSpaces, 10) : undefined,
+        hasGarden,
+        gardenSize: hasGarden && gardenSize !== '' ? parseFloat(gardenSize) : undefined,
+        hasTerrace,
+        terraceSize: hasTerrace && terraceSize !== '' ? parseFloat(terraceSize) : undefined,
+        propertyTaxAmount: type === 'Property' && propertyTaxAmount !== '' ? parseFloat(propertyTaxAmount) : undefined,
+        propertyTaxDate: type === 'Property' ? propertyTaxDate || undefined : undefined,
+        insuranceProvider: type === 'Property' ? insuranceProvider || undefined : undefined,
+        insurancePolicyNumber: type === 'Property' ? insurancePolicyNumber || undefined : undefined,
+        insuranceAmount: type === 'Property' && insuranceAmount !== '' ? parseFloat(insuranceAmount) : undefined,
+        insuranceFrequency: type === 'Property' ? insuranceFrequency : undefined,
+        insurancePaymentDate: type === 'Property' ? insurancePaymentDate || undefined : undefined,
+        hoaFeeAmount: type === 'Property' && hoaFeeAmount !== '' ? parseFloat(hoaFeeAmount) : undefined,
+        hoaFeeFrequency: type === 'Property' ? hoaFeeFrequency : undefined,
+        isRental: type === 'Property' ? isRental : undefined,
+        rentalIncomeAmount: type === 'Property' && isRental && rentalIncomeAmount !== '' ? parseFloat(rentalIncomeAmount) : undefined,
+        rentalIncomeFrequency: type === 'Property' && isRental ? rentalIncomeFrequency : undefined,
+      }),
+      ...((type === 'Other Assets' || type === 'Other Liabilities') && { notes: notes || undefined }),
+      ...(type === 'Credit Card' && {
+        statementStartDate: statementStartDate !== '' ? parseInt(statementStartDate, 10) : undefined,
+        paymentDate: paymentDate !== '' ? parseInt(paymentDate, 10) : undefined,
+        settlementAccountId: settlementAccountId || undefined,
+        creditLimit: creditLimit !== '' ? parseFloat(creditLimit) : undefined,
+      })
     };
-    onAdd(newAccount);
+    onAdd(newAccountData);
   };
   
   const labelStyle = "block text-sm font-medium text-light-text-secondary dark:text-dark-text-secondary mb-1";
   
   const showBankingDetails = ['Checking', 'Savings', 'Investment', 'Credit Card', 'Lending'].includes(type);
-  const canHaveCard = ['Credit Card', 'Checking', 'Savings'].includes(type);
+  const showCardDetails = ['Credit Card', 'Checking', 'Savings'].includes(type);
 
   return (
     <>
@@ -309,9 +304,9 @@ const AddAccountModal: React.FC<AddAccountModalProps> = ({ onClose, onAdd, accou
             <button
               type="button"
               onClick={() => setIconPickerOpen(true)}
-              className="flex items-center justify-center w-16 h-16 bg-light-bg dark:bg-dark-bg rounded-2xl shadow-sm hover:bg-gray-100 dark:hover:bg-white/5 transition-colors border border-black/5 dark:border-white/10"
+              className={`flex items-center justify-center w-16 h-16 bg-light-bg dark:bg-dark-bg rounded-full shadow-neu-raised-light dark:shadow-neu-raised-dark hover:shadow-neu-inset-light dark:hover:shadow-neu-inset-dark transition-shadow`}
             >
-              <span className={`material-symbols-outlined ${iconColorClass}`} style={{ fontSize: '32px' }}>
+              <span className={`material-symbols-outlined ${iconColorClass}`} style={{ fontSize: '36px' }}>
                 {icon}
               </span>
             </button>
@@ -323,7 +318,6 @@ const AddAccountModal: React.FC<AddAccountModalProps> = ({ onClose, onAdd, accou
                 value={name}
                 onChange={(e) => setName(e.target.value)}
                 className={INPUT_BASE_STYLE}
-                placeholder="e.g. Main Checking"
                 required
               />
             </div>
@@ -346,7 +340,7 @@ const AddAccountModal: React.FC<AddAccountModalProps> = ({ onClose, onAdd, accou
             </div>
             {type !== 'Loan' && type !== 'Lending' && (
                 <div>
-                  <label htmlFor="account-balance" className={labelStyle}>{(type === 'Vehicle' || type === 'Property') ? 'Current Value' : 'Current Balance'}</label>
+                  <label htmlFor="account-balance" className={labelStyle}>{ (type === 'Vehicle' || type === 'Property') ? 'Current Value' : 'Current Balance'}</label>
                   <div className="relative flex">
                     <input
                       id="account-balance"
@@ -371,7 +365,7 @@ const AddAccountModal: React.FC<AddAccountModalProps> = ({ onClose, onAdd, accou
                 </div>
             )}
           </div>
-
+          
            {/* Dynamic fields based on type */}
           <div className="space-y-4 p-4 bg-black/5 dark:bg-white/5 rounded-lg">
             {['Checking', 'Savings', 'Credit Card'].includes(type) && (
@@ -410,51 +404,42 @@ const AddAccountModal: React.FC<AddAccountModalProps> = ({ onClose, onAdd, accou
                   </div>
                </div>
             )}
-            
-            {canHaveCard && (
+
+            {showCardDetails && (
                 <div className="pt-4 mt-4 border-t border-black/10 dark:border-white/10">
-                    <div className="flex items-center justify-between mb-3">
-                        <h4 className="font-semibold text-light-text dark:text-dark-text">Card Details</h4>
-                         <label className="flex items-center gap-2 cursor-pointer">
-                            <input type="checkbox" checked={hasCard} onChange={e => setHasCard(e.target.checked)} className={CHECKBOX_STYLE} />
-                            <span className="text-sm font-medium text-light-text-secondary dark:text-dark-text-secondary">Has associated card?</span>
-                        </label>
-                    </div>
-                    
-                    {hasCard && (
-                        <div className="grid grid-cols-1 md:grid-cols-2 gap-4 animate-fade-in-up">
-                            <div>
-                                <label htmlFor="cardNetwork" className={labelStyle}>Card Network</label>
-                                <div className={SELECT_WRAPPER_STYLE}>
-                                    <select id="cardNetwork" value={cardNetwork} onChange={e => setCardNetwork(e.target.value)} className={INPUT_BASE_STYLE}>
-                                        <option value="">Select Network</option>
-                                        {CARD_NETWORKS.map(net => <option key={net} value={net}>{net}</option>)}
-                                    </select>
-                                    <div className={SELECT_ARROW_STYLE}><span className="material-symbols-outlined">expand_more</span></div>
-                                </div>
-                            </div>
-                            <div>
-                                <label htmlFor="last-4" className={labelStyle}>Last 4 Digits (Optional)</label>
-                                <input
-                                    id="last-4"
-                                    type="text"
-                                    maxLength={4}
-                                    value={last4}
-                                    onChange={(e) => setLast4(e.target.value.replace(/\D/g, ''))}
-                                    className={INPUT_BASE_STYLE}
-                                    placeholder="****"
-                                />
-                            </div>
-                            <div>
-                                <label htmlFor="expirationDate" className={labelStyle}>Expiration Date (MM/YY)</label>
-                                <input id="expirationDate" type="text" value={expirationDate} onChange={e => setExpirationDate(e.target.value)} className={INPUT_BASE_STYLE} placeholder="MM/YY" />
-                            </div>
-                            <div>
-                                <label htmlFor="cardholderName" className={labelStyle}>Cardholder Name</label>
-                                <input id="cardholderName" type="text" value={cardholderName} onChange={e => setCardholderName(e.target.value)} className={INPUT_BASE_STYLE} placeholder="Name on Card" />
+                    <h4 className="font-semibold text-light-text dark:text-dark-text mb-3">Card Details</h4>
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                        <div>
+                            <label htmlFor="cardNetwork" className={labelStyle}>Card Network</label>
+                            <div className={SELECT_WRAPPER_STYLE}>
+                                <select id="cardNetwork" value={cardNetwork} onChange={e => setCardNetwork(e.target.value)} className={INPUT_BASE_STYLE}>
+                                    <option value="">Select Network</option>
+                                    {CARD_NETWORKS.map(net => <option key={net} value={net}>{net}</option>)}
+                                </select>
+                                <div className={SELECT_ARROW_STYLE}><span className="material-symbols-outlined">expand_more</span></div>
                             </div>
                         </div>
-                    )}
+                        <div>
+                            <label htmlFor="last-4" className={labelStyle}>Last 4 Digits (Optional)</label>
+                            <input
+                                id="last-4"
+                                type="text"
+                                maxLength={4}
+                                value={last4}
+                                onChange={(e) => setLast4(e.target.value.replace(/\D/g, ''))}
+                                className={INPUT_BASE_STYLE}
+                                placeholder="****"
+                            />
+                        </div>
+                         <div>
+                            <label htmlFor="expirationDate" className={labelStyle}>Expiration Date (MM/YY)</label>
+                            <input id="expirationDate" type="text" value={expirationDate} onChange={e => setExpirationDate(e.target.value)} className={INPUT_BASE_STYLE} placeholder="MM/YY" />
+                        </div>
+                        <div>
+                            <label htmlFor="cardholderName" className={labelStyle}>Cardholder Name</label>
+                            <input id="cardholderName" type="text" value={cardholderName} onChange={e => setCardholderName(e.target.value)} className={INPUT_BASE_STYLE} placeholder="Name on Card" />
+                        </div>
+                    </div>
                 </div>
             )}
 
@@ -462,7 +447,7 @@ const AddAccountModal: React.FC<AddAccountModalProps> = ({ onClose, onAdd, accou
               <div>
                 <label htmlFor="subType" className={labelStyle}>Investment Type</label>
                 <div className={SELECT_WRAPPER_STYLE}>
-                  <select id="subType" value={subType} onChange={(e) => setSubType(e.target.value as InvestmentSubType)} className={INPUT_BASE_STYLE}>
+                  <select id="subType" value={subType} onChange={e => setSubType(e.target.value as InvestmentSubType)} className={INPUT_BASE_STYLE}>
                     {INVESTMENT_SUB_TYPES.map(st => <option key={st} value={st}>{st}</option>)}
                   </select>
                   <div className={SELECT_ARROW_STYLE}><span className="material-symbols-outlined">expand_more</span></div>
@@ -471,7 +456,7 @@ const AddAccountModal: React.FC<AddAccountModalProps> = ({ onClose, onAdd, accou
             )}
             {(type === 'Loan' || type === 'Lending') && (
                 <div className="space-y-4">
-                  <div>
+                    <div>
                         <p className="font-medium mb-2">{type} Breakdown</p>
                         <p className="text-xs text-light-text-secondary dark:text-dark-text-secondary mb-2">Enter any two values to calculate the third. The account balance will be the {type === 'Loan' ? 'negative' : 'positive'} of the principal.</p>
                         <div className="grid grid-cols-3 gap-2">
@@ -480,14 +465,14 @@ const AddAccountModal: React.FC<AddAccountModalProps> = ({ onClose, onAdd, accou
                             <div><label htmlFor="interestAmount" className={labelStyle}>Interest</label><input id="interestAmount" type="number" step="0.01" value={interestAmount} onFocus={() => setLastEditedLoanField('interest')} onChange={e=>{setInterestAmount(e.target.value); setLastEditedLoanField('interest');}} className={INPUT_BASE_STYLE} /></div>
                         </div>
                     </div>
-                  <div className="grid grid-cols-2 gap-4 pt-4 border-t border-black/10 dark:border-white/10">
-                    <div><label htmlFor="interestRate" className={labelStyle}>Interest Rate (%)</label><input id="interestRate" type="number" step="0.01" value={interestRate} onChange={e=>setInterestRate(e.target.value)} className={INPUT_BASE_STYLE} /></div>
-                    <div><label htmlFor="duration" className={labelStyle}>Duration (months)</label><input id="duration" type="number" value={duration} onChange={e=>setDuration(e.target.value)} className={INPUT_BASE_STYLE} /></div>
-                  </div>
-                   <div className="grid grid-cols-2 gap-4">
+                    <div className="grid grid-cols-2 gap-4 pt-4 border-t border-black/10 dark:border-white/10">
+                        <div><label htmlFor="interestRate" className={labelStyle}>Interest Rate (%)</label><input id="interestRate" type="number" step="0.01" value={interestRate} onChange={e=>setInterestRate(e.target.value)} className={INPUT_BASE_STYLE} /></div>
+                        <div><label htmlFor="duration" className={labelStyle}>Duration (months)</label><input id="duration" type="number" value={duration} onChange={e=>setDuration(e.target.value)} className={INPUT_BASE_STYLE} /></div>
+                    </div>
+                     <div className="grid grid-cols-2 gap-4">
                         <div><label htmlFor="loanStartDate" className={labelStyle}>Start Date</label><input id="loanStartDate" type="date" value={loanStartDate} onChange={e=>setLoanStartDate(e.target.value)} className={INPUT_BASE_STYLE} /></div>
                         {type === 'Loan' && <div><label htmlFor="downPayment" className={labelStyle}>Down Payment (Optional)</label><input id="downPayment" type="number" step="0.01" value={downPayment} onChange={e=>setDownPayment(e.target.value)} className={INPUT_BASE_STYLE} /></div>}
-                   </div>
+                    </div>
                     <div className="pt-4 border-t border-black/10 dark:border-white/10 space-y-4">
                         <div className="grid grid-cols-2 gap-4">
                             <div>
@@ -504,28 +489,28 @@ const AddAccountModal: React.FC<AddAccountModalProps> = ({ onClose, onAdd, accou
                         </p>
                     </div>
                    <div>
-                        <label htmlFor="linkedAccountId" className={labelStyle}>Linked Debit Account</label>
-                        <div className={SELECT_WRAPPER_STYLE}>
-                            <select id="linkedAccountId" value={linkedAccountId} onChange={e => setLinkedAccountId(e.target.value)} className={INPUT_BASE_STYLE}>
-                                <option value="">None</option>
-                                {ALL_ACCOUNT_TYPES.map(type => {
-                                    const group = groupedDebitAccounts[type];
-                                    if (!group || group.length === 0) return null;
-                                    return (
-                                        <optgroup key={type} label={type}>
-                                            {group.map(acc => <option key={acc.id} value={acc.id}>{acc.name}</option>)}
-                                        </optgroup>
-                                    );
-                                })}
-                            </select>
-                            <div className={SELECT_ARROW_STYLE}><span className="material-symbols-outlined">expand_more</span></div>
-                        </div>
-                    </div>
+                      <label htmlFor="linkedAccountId" className={labelStyle}>Linked Debit Account</label>
+                      <div className={SELECT_WRAPPER_STYLE}>
+                          <select id="linkedAccountId" value={linkedAccountId} onChange={e => setLinkedAccountId(e.target.value)} className={INPUT_BASE_STYLE}>
+                              <option value="">None</option>
+                              {ALL_ACCOUNT_TYPES.map(type => {
+                                  const group = groupedDebitAccounts[type];
+                                  if (!group || group.length === 0) return null;
+                                  return (
+                                    <optgroup key={type} label={type}>
+                                      {group.map(acc => <option key={acc.id} value={acc.id}>{acc.name}</option>)}
+                                    </optgroup>
+                                  );
+                              })}
+                          </select>
+                          <div className={SELECT_ARROW_STYLE}><span className="material-symbols-outlined">expand_more</span></div>
+                      </div>
+                  </div>
                 </div>
             )}
              {type === 'Vehicle' && (
                 <div className="space-y-4">
-                    <div className="flex justify-center mb-4">
+                  <div className="flex justify-center mb-4">
                       <div className="relative group cursor-pointer" onClick={() => fileInputRef.current?.click()}>
                           <div className="w-24 h-24 rounded-full bg-light-fill dark:bg-dark-fill flex items-center justify-center overflow-hidden border border-black/10 dark:border-white/10">
                               {vehicleImage ? (
@@ -560,10 +545,7 @@ const AddAccountModal: React.FC<AddAccountModalProps> = ({ onClose, onAdd, accou
                             <div className={SELECT_ARROW_STYLE}><span className="material-symbols-outlined">expand_more</span></div>
                         </div>
                      </div>
-                     <div>
-                        <label htmlFor="currentMileage" className={labelStyle}>Current Mileage (km)</label>
-                        <input id="currentMileage" type="number" value={currentMileage} onChange={e => setCurrentMileage(e.target.value)} className={INPUT_BASE_STYLE} />
-                    </div>
+                     <div><label htmlFor="mileage" className={labelStyle}>Current Mileage (km)</label><input id="mileage" type="number" value={currentMileage} onChange={e=>setCurrentMileage(e.target.value)} className={INPUT_BASE_STYLE} /></div>
                   </div>
                    <div>
                         <label className={labelStyle}>Ownership</label>
@@ -585,7 +567,7 @@ const AddAccountModal: React.FC<AddAccountModalProps> = ({ onClose, onAdd, accou
                            <div className="grid grid-cols-2 gap-4">
                                 <div><label htmlFor="leaseStart" className={labelStyle}>Lease Start</label><input id="leaseStart" type="date" value={leaseStartDate} onChange={e=>setLeaseStartDate(e.target.value)} className={INPUT_BASE_STYLE} /></div>
                                 <div><label htmlFor="leaseEnd" className={labelStyle}>Lease End</label><input id="leaseEnd" type="date" value={leaseEndDate} onChange={e=>setLeaseEndDate(e.target.value)} className={INPUT_BASE_STYLE} /></div>
-                                <div className="col-span-2"><label htmlFor="annualMileageAllowance" className={labelStyle}>Annual Mileage Allowance (km)</label><input id="annualMileageAllowance" type="number" value={annualMileageAllowance} onChange={e=>setAnnualMileageAllowance(e.target.value)} className={INPUT_BASE_STYLE} placeholder="e.g. 15000" /></div>
+                                <div className="col-span-2"><label htmlFor="annualMileageAllowance" className={labelStyle}>Annual Mileage Allowance (km)</label><input id="annualMileageAllowance" type="number" value={annualMileageAllowance} onChange={e=>setAnnualMileageAllowance(e.target.value)} className={INPUT_BASE_STYLE} placeholder="e.g., 15000" /></div>
                                 <div><label htmlFor="leasePaymentAmount" className={labelStyle}>Lease Price (Optional)</label><input id="leasePaymentAmount" type="number" step="0.01" value={leasePaymentAmount} onChange={e=>setLeasePaymentAmount(e.target.value)} className={INPUT_BASE_STYLE} /></div>
                                 <div><label htmlFor="leasePaymentDay" className={labelStyle}>Payment Day (Optional)</label><input id="leasePaymentDay" type="number" min="1" max="31" value={leasePaymentDay} onChange={e=>setLeasePaymentDay(e.target.value)} className={INPUT_BASE_STYLE} /></div>
                                 <div className="col-span-2">
@@ -835,7 +817,7 @@ const AddAccountModal: React.FC<AddAccountModalProps> = ({ onClose, onAdd, accou
             </div>
           </div>
 
-          <div className="flex justify-end gap-4 pt-4 mt-4 border-t border-black/10 dark:border-white/10">
+          <div className="flex justify-end gap-4 pt-4">
             <button type="button" onClick={onClose} className={BTN_SECONDARY_STYLE}>Cancel</button>
             <button type="submit" className={BTN_PRIMARY_STYLE}>Add Account</button>
           </div>

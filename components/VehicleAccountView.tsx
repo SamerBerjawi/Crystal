@@ -5,7 +5,6 @@ import { formatCurrency, parseDateAsUTC } from '../utils';
 import Card from './Card';
 import VehicleMileageChart from './VehicleMileageChart';
 import { BTN_PRIMARY_STYLE, BTN_SECONDARY_STYLE, ACCOUNT_TYPE_STYLES } from '../constants';
-import { useGoalsContext } from '../contexts/FinancialDataContext';
 
 interface VehicleAccountViewProps {
   account: Account;
@@ -24,7 +23,6 @@ const VehicleAccountView: React.FC<VehicleAccountViewProps> = ({
   onDeleteLog,
   onBack
 }) => {
-  const { financialGoals } = useGoalsContext();
   const isLeased = account.ownership === 'Leased';
   
   const currentMileage = useMemo(() => {
@@ -61,11 +59,6 @@ const VehicleAccountView: React.FC<VehicleAccountViewProps> = ({
     
     return { start, end, progress, mileageStatus, mileageDiff, daysRemaining: Math.max(0, Math.ceil(totalDays - elapsedDays)), projectedMileage, totalAllowance };
   }, [account, currentMileage]);
-
-  // Linked Goals
-  const linkedGoals = useMemo(() => {
-    return financialGoals.filter(g => g.paymentAccountId === account.id);
-  }, [financialGoals, account.id]);
 
   return (
     <div className="space-y-8 animate-fade-in-up">
@@ -145,6 +138,9 @@ const VehicleAccountView: React.FC<VehicleAccountViewProps> = ({
           {/* Lease Dashboard */}
           {isLeased && leaseStats && (
             <div className="bg-white dark:bg-dark-card rounded-2xl p-6 border border-black/5 dark:border-white/10 shadow-sm relative overflow-hidden group">
+              {/* Blurred Colored Background */}
+              <div className="absolute top-0 right-0 w-80 h-80 bg-primary-500/10 dark:bg-primary-500/20 rounded-full blur-3xl -mr-20 -mt-20 pointer-events-none"></div>
+              <div className="absolute bottom-0 left-0 w-80 h-80 bg-blue-500/10 dark:bg-blue-500/20 rounded-full blur-3xl -ml-20 -mb-20 pointer-events-none"></div>
               
               <div className="relative z-10">
                   <div className="flex justify-between items-center mb-6">
@@ -241,42 +237,6 @@ const VehicleAccountView: React.FC<VehicleAccountViewProps> = ({
                      )}
                  </div>
              </Card>
-            
-            {/* Linked Goals */}
-            <Card className="flex-grow flex flex-col">
-                <h3 className="text-lg font-bold text-light-text dark:text-dark-text mb-4 flex items-center gap-2">
-                    <span className="material-symbols-outlined text-yellow-500">flag</span>
-                    Linked Goals
-                </h3>
-                <div className="flex-grow overflow-y-auto max-h-[200px] space-y-3 pr-1">
-                {linkedGoals.length > 0 ? (
-                    <div className="space-y-4">
-                        {linkedGoals.map(goal => {
-                            const progress = goal.amount > 0 ? (goal.currentAmount / goal.amount) * 100 : 0;
-                            return (
-                                <div key={goal.id} className="group">
-                                    <div className="flex justify-between text-sm font-medium mb-1">
-                                        <span className="text-light-text dark:text-dark-text">{goal.name}</span>
-                                        <span className="text-light-text-secondary dark:text-dark-text-secondary">{Math.min(progress, 100).toFixed(0)}%</span>
-                                    </div>
-                                    <div className="w-full bg-gray-200 dark:bg-gray-700 rounded-full h-2.5 mb-1">
-                                        <div className="bg-yellow-500 h-2.5 rounded-full transition-all duration-500" style={{ width: `${Math.min(progress, 100)}%` }}></div>
-                                    </div>
-                                    <p className="text-xs text-light-text-secondary dark:text-dark-text-secondary text-right">
-                                        {formatCurrency(goal.currentAmount, 'EUR')} of {formatCurrency(goal.amount, 'EUR')}
-                                    </p>
-                                </div>
-                            );
-                        })}
-                    </div>
-                ) : (
-                    <div className="h-full flex flex-col items-center justify-center text-light-text-secondary dark:text-dark-text-secondary opacity-60">
-                          <span className="material-symbols-outlined text-4xl mb-2">outlined_flag</span>
-                        <p className="text-sm">No goals linked.</p>
-                    </div>
-                )}
-                </div>
-            </Card>
 
             {/* Log History */}
             <Card className="flex flex-col">
@@ -293,11 +253,11 @@ const VehicleAccountView: React.FC<VehicleAccountViewProps> = ({
                              return (
                                 <div key={log.id} className="group flex justify-between items-center p-3 rounded-lg bg-light-bg dark:bg-dark-bg/50 hover:bg-gray-100 dark:hover:bg-white/10 transition-colors border border-transparent hover:border-black/5 dark:hover:border-white/10">
                                     <div>
-                                        <p className="font-bold text-base text-light-text dark:text-dark-text">{parseDateAsUTC(log.date).toLocaleDateString()}</p>
-                                        {diff > 0 && <p className="text-xs text-green-600 dark:text-green-400 font-medium">+{diff.toLocaleString()} km</p>}
+                                        <p className="font-bold text-sm text-light-text dark:text-dark-text">{parseDateAsUTC(log.date).toLocaleDateString()}</p>
+                                        {diff > 0 && <p className="text-[10px] text-green-600 dark:text-green-400 font-medium">+{diff.toLocaleString()} km</p>}
                                     </div>
                                     <div className="text-right">
-                                        <p className="font-mono font-medium text-base">{log.reading.toLocaleString()} km</p>
+                                        <p className="font-mono font-medium text-sm">{log.reading.toLocaleString()} km</p>
                                         <div className="flex justify-end gap-2 mt-1 opacity-0 group-hover:opacity-100 transition-opacity">
                                             <button onClick={() => onEditLog(log)} className="text-xs text-primary-500 hover:underline">Edit</button>
                                             <button onClick={() => onDeleteLog(log.id)} className="text-xs text-red-500 hover:underline">Delete</button>

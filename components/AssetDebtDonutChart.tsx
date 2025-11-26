@@ -39,7 +39,7 @@ const AssetDebtDonutChart: React.FC<DonutChartProps> = ({ assets, debt }) => {
             </div>
         </div>
       <div className="flex-grow relative -mt-4" style={{ width: '100%', minHeight: '180px' }}>
-         <ResponsiveContainer>
+        <ResponsiveContainer>
           <PieChart>
             <Pie
               data={data}

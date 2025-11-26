@@ -1,4 +1,3 @@
-
 import React from 'react';
 import { formatCurrency } from '../utils';
 import Card from './Card';
@@ -11,34 +10,33 @@ interface NetBalanceCardProps {
 
 const NetBalanceCard: React.FC<NetBalanceCardProps> = ({ netBalance, totalIncome, duration }) => {
   const progress = totalIncome > 0 ? Math.max(0, Math.min(100, (netBalance / totalIncome) * 100)) : 0;
-  const isPositive = netBalance >= 0;
-  const barColor = isPositive ? 'bg-primary-500' : 'bg-red-500';
-
+  
   return (
-    <Card className="flex flex-col justify-between h-full min-h-[140px]">
-      <div className="flex justify-between items-start">
-        <div>
-             <p className="text-sm font-medium text-light-text-secondary dark:text-dark-text-secondary uppercase tracking-wider">Net Balance</p>
-             <h3 className={`text-3xl font-bold mt-1 tracking-tight ${isPositive ? 'text-light-text dark:text-dark-text' : 'text-red-500'}`}>
-                {formatCurrency(netBalance, 'EUR')}
-            </h3>
+    <Card className={`flex flex-col justify-between h-full`}>
+      <div>
+        <div className="flex items-start justify-between">
+          <div>
+            <h3 className="text-base font-semibold text-light-text-secondary dark:text-dark-text-secondary">Net Balance</h3>
+            <p className="text-2xl font-bold mt-1 text-light-text dark:text-dark-text">{formatCurrency(netBalance, 'EUR')}</p>
+          </div>
+          <div className="w-10 h-10 rounded-full flex items-center justify-center bg-primary-500/10">
+            <span className="material-symbols-outlined text-2xl text-primary-500">
+              account_balance
+            </span>
+          </div>
         </div>
-        <div className="w-8 h-8 rounded-lg bg-primary-500/10 flex items-center justify-center text-primary-500">
-            <span className="material-symbols-outlined text-lg">account_balance_wallet</span>
-        </div>
+         <p className="text-sm font-medium mt-1 text-light-text-secondary dark:text-dark-text-secondary">
+              {duration} Period
+          </p>
       </div>
-
       <div className="mt-4">
-        <div className="flex justify-between text-xs mb-1.5">
-            <span className="font-medium text-light-text-secondary dark:text-dark-text-secondary">{duration} Saving Rate</span>
-            <span className="font-bold text-light-text dark:text-dark-text">{progress.toFixed(0)}%</span>
-        </div>
-        <div className="w-full bg-light-fill dark:bg-dark-fill rounded-full h-1.5 overflow-hidden">
+         <div className="w-full bg-light-fill dark:bg-dark-fill rounded-full h-2">
           <div
-            className={`h-full rounded-full transition-all duration-1000 ease-out ${barColor}`}
+            className="bg-primary-500 h-2 rounded-full transition-all duration-500"
             style={{ width: `${progress}%` }}
           ></div>
         </div>
+        <p className="text-xs text-right mt-1.5 text-light-text-secondary dark:text-dark-text-secondary">{progress.toFixed(0)}% of income remaining</p>
       </div>
     </Card>
   );

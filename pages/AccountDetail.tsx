@@ -15,10 +15,7 @@ const PropertyAccountView = React.lazy(() => import('../components/PropertyAccou
 const LoanAccountView = React.lazy(() => import('../components/LoanAccountView'));
 const VehicleAccountView = React.lazy(() => import('../components/VehicleAccountView'));
 const CreditCardAccountView = React.lazy(() => import('../components/CreditCardAccountView'));
-const SavingsAccountView = React.lazy(() => import('../components/SavingsAccountView'));
-const InvestmentAccountView = React.lazy(() => import('../components/InvestmentAccountView'));
 const GeneralAccountView = React.lazy(() => import('../components/GeneralAccountView'));
-const OtherAccountView = React.lazy(() => import('../components/OtherAccountView'));
 
 const AccountDetail: React.FC<{
     account: Account;
@@ -27,7 +24,7 @@ const AccountDetail: React.FC<{
     saveAccount: (account: Omit<Account, 'id'> & { id?: string }) => void;
 }> = ({ account, setCurrentPage, setViewingAccountId, saveAccount }) => {
     const { accounts } = useAccountsContext();
-    const { transactions: allTransactions, saveTransaction } = useTransactionsContext();
+    const { transactions, saveTransaction } = useTransactionsContext();
     const { incomeCategories, expenseCategories } = useCategoryContext();
     const { tags } = useTagsContext();
     const { loanPaymentOverrides, saveLoanPaymentOverrides } = useScheduleContext();
@@ -137,14 +134,14 @@ const AccountDetail: React.FC<{
     };
 
     const accountTransactions = useMemo(() => {
-        return allTransactions
+        return transactions
             .filter(tx => tx.accountId === account.id)
             .map(tx => ({
                 tx,
                 parsedDate: parseDateAsUTC(tx.date),
                 convertedAmount: convertToEur(tx.amount, tx.currency)
             }));
-    }, [allTransactions, account.id]);
+    }, [transactions, account.id]);
 
     const displayTransactionsList: DisplayTransaction[] = useMemo(() => {
         const sorted = [...accountTransactions].sort((a, b) => b.parsedDate.getTime() - a.parsedDate.getTime()).slice(0, 50);
@@ -174,7 +171,7 @@ const AccountDetail: React.FC<{
                     <PropertyAccountView 
                         {...commonProps}
                         accounts={accounts}
-                        transactions={allTransactions}
+                        transactions={transactions}
                     />
                 );
             case 'Loan':
@@ -182,7 +179,7 @@ const AccountDetail: React.FC<{
                 return (
                     <LoanAccountView 
                         {...commonProps}
-                        transactions={allTransactions}
+                        transactions={transactions}
                         accounts={accounts}
                         loanPaymentOverrides={loanPaymentOverrides[account.id] || {}}
                         onOverridesChange={handleOverridesChange}
@@ -201,34 +198,6 @@ const AccountDetail: React.FC<{
             case 'Credit Card':
                 return (
                     <CreditCardAccountView
-                        {...commonProps}
-                        displayTransactionsList={displayTransactionsList}
-                        transactions={accountTransactions}
-                        allCategories={allCategories}
-                        onTransactionClick={handleTransactionClick}
-                    />
-                );
-            case 'Savings':
-                return (
-                    <SavingsAccountView 
-                        {...commonProps}
-                        displayTransactionsList={displayTransactionsList}
-                        transactions={accountTransactions}
-                        allTransactions={allTransactions}
-                        allCategories={allCategories}
-                        onTransactionClick={handleTransactionClick}
-                    />
-                );
-            case 'Investment':
-                return (
-                    <InvestmentAccountView 
-                        {...commonProps}
-                    />
-                );
-            case 'Other Assets':
-            case 'Other Liabilities':
-                return (
-                     <OtherAccountView 
                         {...commonProps}
                         displayTransactionsList={displayTransactionsList}
                         transactions={accountTransactions}
@@ -256,7 +225,7 @@ const AccountDetail: React.FC<{
                     onClose={() => setTransactionModalOpen(false)}
                     onSave={(data, toDelete) => { saveTransaction(data, toDelete); setTransactionModalOpen(false); }}
                     accounts={accounts} incomeCategories={incomeCategories} expenseCategories={expenseCategories}
-                    transactionToEdit={editingTransaction} transactions={allTransactions} tags={tags}
+                    transactionToEdit={editingTransaction} transactions={transactions} tags={tags}
                     initialType={initialModalState.type} initialFromAccountId={initialModalState.from}
                     initialToAccountId={initialModalState.to} initialDetails={initialModalState.details}
                 />

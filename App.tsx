@@ -1,4 +1,3 @@
-
 // FIX: Import `useMemo` from React to resolve the 'Cannot find name' error.
 import React, { useState, useEffect, useMemo, useCallback, Suspense, lazy, useRef, Component, ErrorInfo } from 'react';
 import Sidebar from './components/Sidebar';
@@ -160,10 +159,8 @@ interface ErrorBoundaryState {
 }
 
 class ErrorBoundary extends Component<ErrorBoundaryProps, ErrorBoundaryState> {
-  // FIX: Explicitly declare state property to fix TS error "Property 'state' does not exist on type 'ErrorBoundary'"
   public state: ErrorBoundaryState = { hasError: false, message: undefined };
-  
-  // FIX: Explicitly declare props property to fix TS error "Property 'props' does not exist on type 'ErrorBoundary'"
+  // FIX: Explicitly declare props to satisfy TypeScript in environments where it might be missing on the superclass type
   declare props: Readonly<ErrorBoundaryProps>;
 
   constructor(props: ErrorBoundaryProps) {
@@ -332,13 +329,7 @@ const App: React.FC = () => {
     }));
 
     const prices = await fetchYahooPrices(targets);
-    
-    // Only update if prices have actually changed to prevent infinite re-render loops
-    setInvestmentPrices(prev => {
-        const isSame = Object.keys(prices).length === Object.keys(prev || {}).length &&
-                       Object.keys(prices).every(k => prices[k] === prev?.[k]);
-        return isSame ? prev : prices;
-    });
+    setInvestmentPrices(prices);
   }, [accounts, warrants]);
 
   const warrantHoldingsBySymbol = useMemo(() => {
@@ -387,9 +378,8 @@ const App: React.FC = () => {
     if (hasChanges) {
         setAccounts(updatedAccounts);
     }
-  // FIX: Added accounts to dependency array to prevent stale closure bugs. The loop is broken by equality check in setInvestmentPrices.
   // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [warrantPrices, investmentPrices, warrantHoldingsBySymbol, accounts]);
+  }, [warrantPrices, investmentPrices, warrantHoldingsBySymbol]);
 
   useEffect(() => {
     refreshInvestmentPrices();
@@ -400,9 +390,8 @@ const App: React.FC = () => {
 
   const loadAllFinancialData = useCallback((data: FinancialData | null, options?: { skipNextSave?: boolean }) => {
     const dataToLoad = data || initialFinancialData;
-    // Harden data loading against invalid types/nulls
-    setAccounts((dataToLoad.accounts || []).filter(a => a && a.id));
-    setTransactions((dataToLoad.transactions || []).filter(t => t && t.id && t.date));
+    setAccounts(dataToLoad.accounts || []);
+    setTransactions(dataToLoad.transactions || []);
     setInvestmentTransactions(dataToLoad.investmentTransactions || []);
     setRecurringTransactions(dataToLoad.recurringTransactions || []);
     setRecurringTransactionOverrides(dataToLoad.recurringTransactionOverrides || []);
@@ -1472,8 +1461,8 @@ const App: React.FC = () => {
     [accounts, accountOrder, handleSaveAccount]
   );
   const transactionsContextValue = useMemo(
-    () => ({ transactions, investmentTransactions, saveTransaction: handleSaveTransaction, deleteTransactions: handleDeleteTransactions, saveInvestmentTransaction: handleSaveInvestmentTransaction, deleteInvestmentTransaction: handleDeleteInvestmentTransaction }),
-    [transactions, investmentTransactions, handleDeleteTransactions, handleSaveTransaction, handleSaveInvestmentTransaction, handleDeleteInvestmentTransaction]
+    () => ({ transactions, saveTransaction: handleSaveTransaction, deleteTransactions: handleDeleteTransactions }),
+    [transactions, handleDeleteTransactions, handleSaveTransaction]
   );
   const warrantsContextValue = useMemo(
     () => ({ warrants, prices: warrantPrices }),

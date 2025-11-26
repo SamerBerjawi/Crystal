@@ -1,9 +1,9 @@
 
 import React, { useMemo } from 'react';
-import { AreaChart, Area, LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, ReferenceLine, Label, ReferenceDot } from 'recharts';
+import { AreaChart, Area, LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, ReferenceLine, Label, Legend } from 'recharts';
 import { formatCurrency, getPreferredTimeZone, parseDateAsUTC } from '../utils';
 import { FinancialGoal, Account } from '../types';
-import { ACCOUNT_TYPE_STYLES } from '../constants';
+import { ACCOUNT_TYPE_STYLES, INVESTMENT_SUB_TYPE_STYLES } from '../constants';
 
 // Helper to generate distinct colors if needed, or map to brand/account type colors
 const getColorForAccount = (account: Account, index: number) => {
@@ -12,16 +12,20 @@ const getColorForAccount = (account: Account, index: number) => {
         '#EC4899', '#14B8A6', '#F97316', '#06B6D4', '#84CC16'
     ];
     
+    // Try to match account type style first for consistency
     if (account.type && ACCOUNT_TYPE_STYLES[account.type]) {
+       // Since constants store Tailwind classes like 'text-blue-500', we can map or just use palette.
+       // For simplicity and better contrast on chart lines, let's cycle through the vivid palette.
        return palette[index % palette.length];
     }
     return palette[index % palette.length];
 };
 
+
 interface ChartData {
   date: string;
   value: number; // Total
-  [key: string]: number | string | { description: string, amount: number, type: string }[]; 
+  [key: string]: number | string | { description: string, amount: number, type: string }[]; // Dynamic keys for account IDs + dailySummary
 }
 
 interface ForecastChartProps {
@@ -43,6 +47,7 @@ const CustomTooltip: React.FC<{ active?: boolean; payload?: any[]; label?: strin
       const timeZone = getPreferredTimeZone();
       const formattedDate = new Date(Date.UTC(year, month - 1, day)).toLocaleDateString('en-US', { timeZone, year: 'numeric', month: 'long', day: 'numeric' });
       
+      // Sort payload by value descending for cleaner tooltip
       const sortedPayload = [...payload].sort((a, b) => b.value - a.value);
       const dataPoint = payload[0].payload;
       const dailySummary = dataPoint.dailySummary as { description: string; amount: number; type: string }[] | undefined;
@@ -50,56 +55,54 @@ const CustomTooltip: React.FC<{ active?: boolean; payload?: any[]; label?: strin
       const remainingCount = dailySummary ? dailySummary.length - 5 : 0;
 
       return (
-        <div className="bg-white/95 dark:bg-dark-card/95 backdrop-blur-md p-4 rounded-xl shadow-2xl border border-black/5 dark:border-white/10 text-sm max-w-[320px] ring-1 ring-black/5">
-          <p className="text-xs font-bold text-light-text-secondary dark:text-dark-text-secondary uppercase tracking-wide mb-2">{formattedDate}</p>
+        <div className="bg-light-card dark:bg-dark-card p-3 rounded-lg shadow-lg border border-black/5 dark:border-white/5 text-sm max-w-[300px]">
+          <p className="label font-bold text-light-text dark:text-dark-text mb-2 border-b border-black/5 dark:border-white/5 pb-1">{formattedDate}</p>
           
           {showIndividualLines ? (
-              <div className="space-y-2 max-h-60 overflow-y-auto mb-3">
+              <div className="space-y-1 max-h-60 overflow-y-auto">
                   {sortedPayload.map((entry: any) => {
+                      // Map dataKey (accountId) to account Name
                       const account = accounts?.find(a => a.id === entry.dataKey);
                       const name = account ? account.name : (entry.name === 'Projected Balance' ? 'Total' : entry.name);
                       return (
-                          <div key={entry.dataKey} className="flex justify-between items-center gap-4">
-                              <div className="flex items-center gap-2">
-                                  <div className="w-2 h-2 rounded-full" style={{ backgroundColor: entry.color }}></div>
-                                  <span className="text-light-text dark:text-dark-text font-medium">{name}</span>
-                              </div>
-                              <span className="font-mono font-semibold">{formatCurrency(entry.value, 'EUR')}</span>
+                          <div key={entry.dataKey} className="flex justify-between gap-4">
+                              <span style={{ color: entry.color }}>{name}:</span>
+                              <span className="font-mono">{formatCurrency(entry.value, 'EUR')}</span>
                           </div>
                       );
                   })}
               </div>
           ) : (
-             <div className="mb-4">
-                <span className="text-xs text-light-text-secondary dark:text-dark-text-secondary">Projected Balance</span>
-                <div className={`text-2xl font-bold ${payload[0].value < 0 ? 'text-red-500' : 'text-light-text dark:text-dark-text'}`}>
-                    {formatCurrency(payload[0].value, 'EUR')}
+             <div className="mb-3">
+                <div style={{ color: payload[0].color }} className="flex justify-between items-center font-semibold text-base">
+                    <span>Balance:</span>
+                    <span>{formatCurrency(payload[0].value, 'EUR')}</span>
                 </div>
              </div>
           )}
           
           {dailySummary && dailySummary.length > 0 && (
-            <div className="pt-3 border-t border-black/10 dark:border-white/10">
-                <p className="text-[10px] font-bold text-light-text-secondary dark:text-dark-text-secondary uppercase mb-2">Events</p>
-                <div className="space-y-2">
+            <div className="mt-3 pt-2 border-t border-black/10 dark:border-white/10">
+                <p className="text-xs font-semibold text-light-text-secondary dark:text-dark-text-secondary mb-1">Transactions:</p>
+                <div className="space-y-1">
                     {summaryToShow.map((item, idx) => (
-                        <div key={idx} className="flex justify-between text-xs group">
-                            <span className="truncate mr-3 text-light-text dark:text-dark-text font-medium">{item.description}</span>
+                        <div key={idx} className="flex justify-between text-xs">
+                            <span className="truncate mr-2 text-light-text dark:text-dark-text">{item.description}</span>
                             <span className={`font-mono whitespace-nowrap ${item.amount >= 0 ? 'text-green-600 dark:text-green-400' : 'text-red-600 dark:text-red-400'}`}>
-                                {item.amount >= 0 ? '+' : ''}{formatCurrency(item.amount, 'EUR')}
+                                {formatCurrency(item.amount, 'EUR')}
                             </span>
                         </div>
                     ))}
                     {remainingCount > 0 && (
-                        <p className="text-xs text-primary-500 font-medium text-center mt-2 bg-primary-50 dark:bg-primary-900/20 py-1 rounded">
-                            + {remainingCount} more items
+                        <p className="text-xs text-light-text-secondary dark:text-dark-text-secondary italic text-center mt-1">
+                            + {remainingCount} more
                         </p>
                     )}
                 </div>
             </div>
           )}
 
-          <p className="text-[10px] text-center mt-3 text-light-text-secondary dark:text-dark-text-secondary opacity-70">Tap to see details</p>
+          <p className="text-xs text-center mt-3 text-primary-500 font-medium cursor-pointer hover:underline">Click for full details</p>
         </div>
       );
     }
@@ -107,29 +110,17 @@ const CustomTooltip: React.FC<{ active?: boolean; payload?: any[]; label?: strin
 };
 
 const yAxisTickFormatter = (value: number) => {
-    if (value === 0) return '€0';
     if (Math.abs(value) >= 1000000) return `€${(value / 1000000).toFixed(1)}M`;
     if (Math.abs(value) >= 1000) return `€${(value / 1000).toFixed(0)}K`;
     return `€${value}`;
 };
 
 const ForecastChart: React.FC<ForecastChartProps> = ({ data, oneTimeGoals, lowestPoint, showIndividualLines = false, accounts = [], showGoalLines = true, onDataPointClick }) => {
-  
-  const gradientOffset = useMemo(() => {
-    if (showIndividualLines || !data.length) return 0;
-    
-    const dataMax = Math.max(...data.map((i) => i.value));
-    const dataMin = Math.min(...data.map((i) => i.value));
-  
-    if (dataMax <= 0) return 0;
-    if (dataMin >= 0) return 1;
-  
-    return dataMax / (dataMax - dataMin);
-  }, [data, showIndividualLines]);
+  if (!data || data.length === 0) {
+    return <div className="flex items-center justify-center h-full text-light-text-secondary dark:text-dark-text-secondary">Select accounts and a period to generate a forecast.</div>;
+  }
   
   const yDomain = useMemo(() => {
-    if (!data || data.length === 0) return [0, 0];
-
     const values = data.map(d => d.value); 
     let allValues: number[] = [];
     
@@ -148,26 +139,24 @@ const ForecastChart: React.FC<ForecastChartProps> = ({ data, oneTimeGoals, lowes
     const dataMin = Math.min(...allValues);
     const dataMax = Math.max(...allValues);
     
-    // Ensure the lowest point is visible even if it's an outlier
     const absoluteMin = Math.min(dataMin, lowestPoint?.value || Infinity);
     const absoluteMax = Math.max(dataMax);
 
-    // Add padding
     const range = absoluteMax - absoluteMin;
-    const buffer = range === 0 ? 1000 : range * 0.15; 
+    const buffer = range === 0 ? 5000 : range * 0.1; // 10% buffer
 
     return [Math.floor(absoluteMin - buffer), Math.ceil(absoluteMax + buffer)];
   }, [data, lowestPoint, showIndividualLines, accounts]);
 
 
   const { ticks, tickFormatter } = useMemo(() => {
-    if (!data || data.length < 2) return { ticks: [], tickFormatter: () => '' };
+    if (data.length < 2) return { ticks: [], tickFormatter: () => '' };
 
     const startDate = data.length ? parseDateAsUTC(data[0].date) : new Date(0);
     const endDate = data.length ? parseDateAsUTC(data[data.length - 1].date) : new Date(0);
     const rangeInDays = (endDate.getTime() - startDate.getTime()) / (1000 * 3600 * 24);
 
-    if (rangeInDays > 120) { 
+    if (rangeInDays > 120) { // For ranges longer than ~4 months, show one tick per month.
         const newTicks: string[] = [];
         const monthSet = new Set<string>();
 
@@ -188,7 +177,7 @@ const ForecastChart: React.FC<ForecastChartProps> = ({ data, oneTimeGoals, lowes
         };
         return { ticks: newTicks, tickFormatter: formatter };
 
-    } else {
+    } else { // For shorter ranges, show day and month, let recharts decide tick placement.
         const formatter = (dateStr: string) => {
             const [year, month, day] = dateStr.split('-').map(Number);
             const utcDate = new Date(Date.UTC(year, month - 1, day));
@@ -207,10 +196,11 @@ const ForecastChart: React.FC<ForecastChartProps> = ({ data, oneTimeGoals, lowes
       })
     : '';
   
+  // Common Props
   const commonAxisProps = {
       stroke: "currentColor",
-      opacity: 0.4,
-      fontSize: 11,
+      opacity: 0.6,
+      fontSize: 12,
       tickLine: false,
       axisLine: false,
   };
@@ -221,29 +211,20 @@ const ForecastChart: React.FC<ForecastChartProps> = ({ data, oneTimeGoals, lowes
       }
   };
 
-  if (!data || data.length === 0) {
-    return (
-        <div className="flex flex-col items-center justify-center h-[400px] text-light-text-secondary dark:text-dark-text-secondary bg-light-bg/50 dark:bg-dark-bg/50 rounded-xl border-2 border-dashed border-light-separator dark:border-dark-separator">
-            <span className="material-symbols-outlined text-4xl mb-2 opacity-50">query_stats</span>
-            <p>No forecast data available. Select accounts to view projections.</p>
-        </div>
-    );
-  }
-
   return (
     <div style={{ width: '100%', height: '400px' }}>
       <ResponsiveContainer minWidth={0} minHeight={0} debounce={50}>
         {showIndividualLines ? (
              <LineChart 
                 data={data} 
-                margin={{ top: 20, right: 20, left: 0, bottom: 20 }}
+                margin={{ top: 5, right: 20, left: 20, bottom: 20 }}
                 onClick={handleChartClick}
              >
-                <CartesianGrid strokeDasharray="3 3" stroke="currentColor" opacity={0.05} vertical={false} />
-                <XAxis dataKey="date" {...commonAxisProps} tickFormatter={tickFormatter} ticks={ticks} minTickGap={40} dy={10} />
+                <CartesianGrid strokeDasharray="3 3" stroke="currentColor" opacity={0.1} />
+                <XAxis dataKey="date" {...commonAxisProps} tickFormatter={tickFormatter} ticks={ticks} minTickGap={50} />
                 <YAxis {...commonAxisProps} tickFormatter={yAxisTickFormatter} domain={yDomain} allowDataOverflow={true} width={60} />
-                <Tooltip content={<CustomTooltip showIndividualLines={true} accounts={accounts} />} cursor={{stroke: 'rgba(0,0,0,0.1)', strokeWidth: 2}} />
-                
+                <Tooltip content={<CustomTooltip showIndividualLines={true} accounts={accounts} />} />
+                {/* Render a line for each account */}
                 {accounts.map((acc, idx) => (
                     <Line 
                         key={acc.id}
@@ -253,53 +234,33 @@ const ForecastChart: React.FC<ForecastChartProps> = ({ data, oneTimeGoals, lowes
                         stroke={getColorForAccount(acc, idx)} 
                         strokeWidth={2} 
                         dot={false} 
-                        activeDot={{ r: 5, strokeWidth: 0 }}
+                        activeDot={{ r: 4, onClick: (e: any, payload: any) => { if(onDataPointClick) onDataPointClick(payload.payload.date) } }}
                         cursor="pointer"
                     />
                 ))}
-                
                 {showGoalLines && oneTimeGoals.map(goal => (
-                    <ReferenceLine key={goal.id} x={goal.date} stroke="#F59E0B" strokeDasharray="4 4" strokeWidth={2}>
-                        <Label 
-                            value={goal.name} 
-                            position="insideTopRight" 
-                            fill="#B45309" 
-                            className="fill-amber-700 dark:fill-amber-400 text-xs font-bold bg-white"
-                            angle={-90}
-                            dx={20}
-                            dy={30}
-                        />
+                    <ReferenceLine key={goal.id} x={goal.date} stroke="#FBBF24" strokeDasharray="3 3">
+                        <Label value={goal.name} position="insideTopRight" fill="#FBBF24" fontSize={12} angle={-90} dx={10} dy={10} />
                     </ReferenceLine>
                 ))}
              </LineChart>
         ) : (
             <AreaChart 
                 data={data} 
-                margin={{ top: 20, right: 20, left: 0, bottom: 20 }}
+                margin={{ top: 5, right: 20, left: 20, bottom: 20 }}
                 onClick={handleChartClick}
             >
               <defs>
-                <linearGradient id="splitColor" x1="0" y1="0" x2="0" y2="1">
-                  <stop offset={gradientOffset} stopColor="#10B981" stopOpacity={0.25} />
-                  <stop offset={gradientOffset} stopColor="#EF4444" stopOpacity={0.25} />
-                </linearGradient>
-                <linearGradient id="splitStroke" x1="0" y1="0" x2="0" y2="1">
-                  <stop offset={gradientOffset} stopColor="#10B981" stopOpacity={1} />
-                  <stop offset={gradientOffset} stopColor="#EF4444" stopOpacity={1} />
-                </linearGradient>
+                <linearGradient id="colorValue" x1="0" y1="0" x2="0" y2="1"><stop offset="5%" stopColor="#6366F1" stopOpacity={0.7}/><stop offset="95%" stopColor="#6366F1" stopOpacity={0}/></linearGradient>
               </defs>
-              
-              <CartesianGrid strokeDasharray="3 3" stroke="currentColor" opacity={0.05} vertical={false} />
-              
+              <CartesianGrid strokeDasharray="3 3" stroke="currentColor" opacity={0.1} />
               <XAxis 
                 dataKey="date" 
                 {...commonAxisProps}
                 tickFormatter={tickFormatter}
                 ticks={ticks}
-                minTickGap={40}
-                dy={10}
+                minTickGap={50}
               />
-              
               <YAxis 
                 {...commonAxisProps}
                 tickFormatter={yAxisTickFormatter}
@@ -307,91 +268,40 @@ const ForecastChart: React.FC<ForecastChartProps> = ({ data, oneTimeGoals, lowes
                 allowDataOverflow={true}
                 width={60}
               />
-              
-              <Tooltip content={<CustomTooltip showIndividualLines={false} />} cursor={{stroke: 'rgba(0,0,0,0.1)', strokeWidth: 2, strokeDasharray: '5 5'}} />
-              
-              {/* Zero Line */}
-              <ReferenceLine y={0} stroke="currentColor" strokeOpacity={0.3} strokeWidth={1} />
-
-              {/* Goals */}
+              <Tooltip content={<CustomTooltip showIndividualLines={false} />} />
+              <ReferenceLine y={0} stroke="currentColor" strokeDasharray="4 4" opacity={0.5} />
               {showGoalLines && oneTimeGoals.map(goal => (
-                  <ReferenceLine key={goal.id} x={goal.date} stroke="#F59E0B" strokeDasharray="6 4" strokeWidth={1.5} isFront>
-                       <Label 
-                           content={({ viewBox }) => {
-                               const x = viewBox?.x || 0;
-                               const y = 20; // Fixed top position
-                               return (
-                                   <g transform={`translate(${x}, ${y})`}>
-                                       {/* Removed white bg rect to avoid clunky look, relying on careful placement */}
-                                       <text x="6" y="0" fill="#B45309" fontSize="12" textAnchor="middle" fontWeight="bold">★</text>
-                                       <text 
-                                            x="0" 
-                                            y="0" 
-                                            transform="rotate(90, 10, 10)" 
-                                            fill="#B45309" 
-                                            fontSize="11" 
-                                            fontWeight="600" 
-                                            dy={-5} // Position slightly to the right of the line (in rotated coords)
-                                            dx={35} // Push down to clear the star marker
-                                        >
-                                            {goal.name}
-                                        </text>
-                                   </g>
-                               );
-                           }}
-                       />
+                  <ReferenceLine key={goal.id} x={goal.date} stroke="#FBBF24" strokeDasharray="3 3">
+                      <Label value={goal.name} position="insideTopRight" fill="#FBBF24" fontSize={12} angle={-90} dx={10} dy={10} />
                   </ReferenceLine>
               ))}
-              
-              {/* Area with Split Gradient */}
               <Area 
                   type="monotone" 
                   dataKey="value" 
                   name="Projected Balance" 
-                  stroke="url(#splitStroke)" 
-                  fill="url(#splitColor)" 
-                  strokeWidth={3} 
+                  stroke="#6366F1" 
+                  fill="url(#colorValue)" 
+                  strokeWidth={2.5} 
                   dot={false} 
-                  activeDot={{ r: 6, strokeWidth: 0, fill: 'url(#splitStroke)' }} 
+                  activeDot={{ r: 5, onClick: (e: any, payload: any) => { if(onDataPointClick) onDataPointClick(payload.payload.date) } }} 
                   cursor="pointer"
               />
-              
-              {/* Lowest Point Marker */}
-              {data.length > 0 && lowestPoint && (
-                  <ReferenceDot
-                     x={lowestPoint.date}
-                     y={lowestPoint.value}
-                     r={6}
-                     fill="#EF4444"
-                     stroke="white"
-                     strokeWidth={2}
-                     isFront
-                  />
-              )}
-              
               {data.length > 0 && lowestPoint && (
                   <ReferenceLine
                       key="lowest-point-line"
                       x={lowestPoint.date}
-                      stroke="#EF4444" 
-                      strokeDasharray="2 2"
-                      strokeOpacity={0.5}
-                      isFront // Make sure line is in front
+                      stroke="#FF3B30" // Red
+                      strokeDasharray="3 3"
                   >
                     <Label 
-                        position="top" 
-                        content={({ viewBox }) => {
-                             const x = viewBox?.x || 0;
-                             // Draw a badge at the top of the line
-                             return (
-                                 <g transform={`translate(${x}, ${20})`}> 
-                                     <rect x="-50" y="0" width="100" height="36" rx="6" fill="#EF4444" />
-                                     <text x="0" y="14" fill="white" fontSize="10" fontWeight="bold" textAnchor="middle">LOWEST</text>
-                                     <text x="0" y="28" fill="white" fontSize="11" fontWeight="bold" textAnchor="middle">{formatCurrency(lowestPoint.value, 'EUR')}</text>
-                                     <path d="M0 36 L-6 42 L6 42 Z" fill="#EF4444" /> {/* Triangle pointer */}
-                                 </g>
-                             )
-                        }}
+                        value={`Lowest: ${formatCurrency(lowestPoint.value, 'EUR')} on ${lowestPointDateFormatted}`}
+                        position="insideTopRight" 
+                        fill="#FF3B30" 
+                        fontSize={12} 
+                        angle={-90} 
+                        dx={10} 
+                        dy={20} 
+                        fontWeight="bold"
                     />
                   </ReferenceLine>
               )}

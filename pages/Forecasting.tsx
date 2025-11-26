@@ -193,7 +193,7 @@ const Forecasting: React.FC<ForecastingProps> = ({ activeGoalIds, setActiveGoalI
         return goals;
     }, [financialGoals, activeGoalIds, filterGoalsByAccount, selectedAccountIds]);
 
-    const { forecastData, tableData, lowestPoint, goalsWithProjections, summaryMetrics } = useMemo(() => {
+    const { forecastData, tableData, lowestPoint, goalsWithProjections } = useMemo(() => {
         const projectionEndDate = new Date();
         projectionEndDate.setMonth(projectionEndDate.getMonth() + 12); // Align with 12-month schedule horizon
         projectionEndDate.setFullYear(new Date().getFullYear() + 2); // Capped at 2 years for performance
@@ -203,7 +203,7 @@ const Forecasting: React.FC<ForecastingProps> = ({ activeGoalIds, setActiveGoalI
         const syntheticPropertyTransactions = generateSyntheticPropertyTransactions(accounts);
         const allRecurringItems = [...recurringTransactions, ...syntheticLoanPayments, ...syntheticCreditCardPayments, ...syntheticPropertyTransactions];
 
-        const { chartData: fullData, tableData: fullTableData } = generateBalanceForecast(
+        const { chartData: fullData, tableData: fullTableData, lowestPoint: overallLowestPoint } = generateBalanceForecast(
             selectedAccounts,
             allRecurringItems,
             activeGoals,
@@ -253,19 +253,8 @@ const Forecasting: React.FC<ForecastingProps> = ({ activeGoalIds, setActiveGoalI
         if (forecastDataForPeriod.length > 0) {
             lowestPointInPeriod = forecastDataForPeriod.reduce((min, p) => p.value < min.value ? { value: p.value, date: p.date } : min, { value: forecastDataForPeriod[0].value, date: forecastDataForPeriod[0].date });
         }
-        
-        // Summary Metrics
-        const startValue = forecastDataForPeriod.length > 0 ? forecastDataForPeriod[0].value : 0;
-        const endValue = forecastDataForPeriod.length > 0 ? forecastDataForPeriod[forecastDataForPeriod.length - 1].value : 0;
-        const netChange = endValue - startValue;
 
-        return { 
-            forecastData: forecastDataForPeriod, 
-            tableData: tableDataForPeriod, 
-            lowestPoint: lowestPointInPeriod, 
-            goalsWithProjections,
-            summaryMetrics: { startValue, endValue, netChange }
-        };
+        return { forecastData: forecastDataForPeriod, tableData: tableDataForPeriod, lowestPoint: lowestPointInPeriod, goalsWithProjections };
     }, [selectedAccounts, recurringTransactions, recurringTransactionOverrides, loanPaymentOverrides, activeGoals, billsAndPayments, financialGoals, forecastDuration, accounts, transactions]);
 
     // Also filter goals passed to the planner to stay consistent with the view
@@ -399,8 +388,13 @@ const Forecasting: React.FC<ForecastingProps> = ({ activeGoalIds, setActiveGoalI
 
     const durationOptions = FORECAST_DURATION_OPTIONS;
 
+    // Styles for the segmented controls
+    const segmentItemBase = "flex-1 px-3 py-1.5 text-sm font-medium rounded-md transition-all duration-200 flex items-center justify-center whitespace-nowrap";
+    const segmentItemActive = "bg-light-card dark:bg-dark-card shadow-sm text-primary-600 dark:text-primary-400 font-semibold border border-black/5 dark:border-white/10";
+    const segmentItemInactive = "text-light-text-secondary dark:text-dark-text-secondary hover:text-light-text dark:hover:text-dark-text";
+
     return (
-        <div className="space-y-8 pb-8">
+        <div className="space-y-8">
             {/* Modals */}
             {isModalOpen && <GoalScenarioModal onClose={() => setIsModalOpen(false)} onSave={(d) => { saveFinancialGoal(d); setIsModalOpen(false); }} goalToEdit={editingGoal} financialGoals={financialGoals} parentId={parentIdForNewGoal} accounts={accounts} />}
             {isRecurringModalOpen && <RecurringTransactionModal onClose={() => setIsRecurringModalOpen(false)} onSave={(d) => { saveRecurringTransaction(d); setIsRecurringModalOpen(false); }} accounts={accounts} incomeCategories={incomeCategories} expenseCategories={expenseCategories} recurringTransactionToEdit={editingRecurring} />}
@@ -418,256 +412,174 @@ const Forecasting: React.FC<ForecastingProps> = ({ activeGoalIds, setActiveGoalI
                 />
             )}
 
-            <header className="flex flex-col gap-6">
-                 {/* Enhanced Control Bar */}
-                <div className="bg-white dark:bg-dark-card p-4 rounded-2xl border border-gray-200 dark:border-gray-700 shadow-sm grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-4 items-center">
+            <header className="flex flex-col xl:flex-row justify-between items-start xl:items-center gap-4">
+                <div>
+                    <p className="text-light-text-secondary dark:text-dark-text-secondary mt-1">Project your financial future and plan for your goals.</p>
+                </div>
+                
+                <div className="flex flex-col sm:flex-row items-start sm:items-center gap-3 w-full xl:w-auto flex-wrap">
                     
-                    {/* Group 1: Scope */}
-                    <div className="min-w-[200px]">
-                        <label className="text-xs font-bold text-gray-500 dark:text-gray-400 uppercase tracking-wider mb-2 block">Accounts</label>
-                        <MultiAccountFilter accounts={accounts} selectedAccountIds={selectedAccountIds} setSelectedAccountIds={setSelectedAccountIds} />
+                    {/* 1. Account Filter */}
+                    <div className="w-full sm:w-auto">
+                         <MultiAccountFilter accounts={accounts} selectedAccountIds={selectedAccountIds} setSelectedAccountIds={setSelectedAccountIds} />
                     </div>
-
-                    {/* Group 2: Forecast Period */}
-                    <div>
-                        <label className="text-xs font-bold text-gray-500 dark:text-gray-400 uppercase tracking-wider mb-2 block">Forecast Period</label>
-                        <div className="flex bg-white border border-gray-200 dark:bg-dark-card dark:border-gray-700 p-1 rounded-lg">
-                            {durationOptions.map(opt => (
-                                <button
-                                    key={opt.value}
-                                    onClick={() => setForecastDuration(opt.value)}
-                                    className={`flex-1 px-3 py-1.5 text-sm font-medium rounded-md transition-all ${forecastDuration === opt.value ? 'bg-amber-100 text-amber-900 dark:bg-amber-900/50 dark:text-amber-100 shadow-sm' : 'text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-200'}`}
-                                >
-                                    {opt.label}
-                                </button>
-                            ))}
-                        </div>
-                    </div>
-
-                    {/* Group 3: Chart Mode */}
-                    <div>
-                        <label className="text-xs font-bold text-gray-500 dark:text-gray-400 uppercase tracking-wider mb-2 block">Chart Mode</label>
-                        <div className="flex bg-white border border-gray-200 dark:bg-dark-card dark:border-gray-700 p-1 rounded-lg">
-                            <button onClick={() => setShowIndividualLines(false)} className={`flex-1 px-4 py-1.5 text-sm font-medium rounded-md transition-all ${!showIndividualLines ? 'bg-amber-100 text-amber-900 dark:bg-amber-900/50 dark:text-amber-100 shadow-sm' : 'text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-200'}`}>Total</button>
-                            <button onClick={() => setShowIndividualLines(true)} className={`flex-1 px-4 py-1.5 text-sm font-medium rounded-md transition-all ${showIndividualLines ? 'bg-amber-100 text-amber-900 dark:bg-amber-900/50 dark:text-amber-100 shadow-sm' : 'text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-200'}`}>Split</button>
-                        </div>
-                    </div>
-
-                    {/* Group 4: Overlay & Actions */}
-                    <div>
-                        <label className="text-xs font-bold text-gray-500 dark:text-gray-400 uppercase tracking-wider mb-2 block">Goals & Actions</label>
-                        <div className="flex gap-3">
+                    
+                    {/* 2. View Mode Segmented Control */}
+                    <div className="flex bg-light-fill dark:bg-dark-fill p-1 rounded-lg h-10 flex-shrink-0 w-full sm:w-auto">
                              <button 
-                                onClick={() => setShowGoalLines(!showGoalLines)}
-                                className={`h-10 px-4 flex-1 rounded-lg border transition-colors flex items-center justify-center gap-2 ${showGoalLines ? 'bg-amber-100 border-amber-200 text-amber-900 dark:bg-amber-900/50 dark:border-amber-800 dark:text-amber-100' : 'border-gray-200 dark:border-gray-700 text-gray-500 hover:bg-gray-50 dark:hover:bg-white/5'}`}
+                                onClick={() => setShowIndividualLines(false)} 
+                                className={`${segmentItemBase} ${!showIndividualLines ? segmentItemActive : segmentItemInactive}`}
                             >
-                                <span className={`material-symbols-outlined text-xl ${showGoalLines ? 'material-symbols-filled' : ''}`}>flag</span>
-                                <span className="text-sm font-medium">Overlay</span>
+                                Consolidated
                             </button>
-                            <button onClick={() => handleOpenModal()} className={`${BTN_PRIMARY_STYLE} h-10 flex-1 flex items-center justify-center gap-2 px-4 shadow-lg shadow-primary-500/20`}>
-                                <span className="material-symbols-outlined text-lg">add_circle</span>
-                                Add Goal
+                            <button 
+                                onClick={() => setShowIndividualLines(true)} 
+                                className={`${segmentItemBase} ${showIndividualLines ? segmentItemActive : segmentItemInactive}`}
+                            >
+                                Individual
                             </button>
-                        </div>
                     </div>
+                    
+                    {/* 3. Goals Toggle */}
+                    <button 
+                            onClick={() => setShowGoalLines(!showGoalLines)}
+                            className={`h-10 px-4 flex items-center justify-center gap-2 rounded-lg transition-all duration-200 border focus:outline-none focus:ring-2 focus:ring-primary-500 flex-shrink-0 w-full sm:w-auto ${showGoalLines ? 'border-black/5 dark:border-white/10 bg-light-card dark:bg-dark-card shadow-sm text-primary-600 dark:text-primary-400 font-semibold' : 'border-black/5 dark:border-white/10 bg-light-fill dark:bg-dark-fill text-light-text-secondary dark:text-dark-text-secondary hover:bg-black/5 dark:hover:bg-white/5'}`}
+                            title={showGoalLines ? "Hide goal lines" : "Show goal lines"}
+                        >
+                             <span className={`material-symbols-outlined text-xl ${showGoalLines ? 'material-symbols-filled' : ''}`}>flag</span>
+                             <span className="text-sm">Goals</span>
+                        </button>
+
+                    {/* 4. Time Range Segmented Control */}
+                    <div className="flex bg-light-fill dark:bg-dark-fill p-1 rounded-lg h-10 flex-shrink-0 w-full sm:w-auto overflow-x-auto no-scrollbar">
+                        {durationOptions.map(opt => (
+                            <button
+                                key={opt.value}
+                                onClick={() => setForecastDuration(opt.value)}
+                                className={`${segmentItemBase} ${forecastDuration === opt.value ? segmentItemActive : segmentItemInactive}`}
+                            >
+                                {opt.label}
+                            </button>
+                        ))}
+                    </div>
+                    
+                    {/* 5. Add Goal Button */}
+                    <button onClick={() => handleOpenModal()} className={`${BTN_PRIMARY_STYLE} flex-shrink-0 whitespace-nowrap w-full sm:w-auto h-10`}>
+                        <span className="material-symbols-outlined text-xl mr-2">add</span>
+                        Add Goal
+                    </button>
                 </div>
             </header>
-            
-            {/* KPI Strip */}
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-                <Card className="relative overflow-hidden !p-5 bg-gradient-to-br from-emerald-500 to-teal-600 text-white border-none">
-                    <div className="absolute top-0 right-0 p-3 opacity-10"><span className="material-symbols-outlined text-6xl">savings</span></div>
-                    <p className="text-emerald-100 text-xs font-bold uppercase tracking-wider mb-1">Projected End Balance</p>
-                    <h2 className="text-3xl font-bold">{formatCurrency(summaryMetrics.endValue, 'EUR')}</h2>
-                    <p className="text-emerald-100 text-xs mt-1 opacity-80">At end of period</p>
-                </Card>
 
-                <Card className={`relative overflow-hidden !p-5 border-none ${summaryMetrics.netChange >= 0 ? 'bg-gradient-to-br from-blue-500 to-indigo-600' : 'bg-gradient-to-br from-orange-500 to-red-600'} text-white`}>
-                     <div className="absolute top-0 right-0 p-3 opacity-10"><span className="material-symbols-outlined text-6xl">trending_up</span></div>
-                    <p className="text-white/70 text-xs font-bold uppercase tracking-wider mb-1">Net Change</p>
-                    <div className="flex items-baseline gap-2">
-                        <h2 className="text-3xl font-bold">{summaryMetrics.netChange >= 0 ? '+' : ''}{formatCurrency(summaryMetrics.netChange, 'EUR')}</h2>
-                    </div>
-                     <p className="text-white/70 text-xs mt-1 opacity-80">vs. current balance</p>
-                </Card>
-
-                <Card className={`relative overflow-hidden !p-5 border-none ${lowestPoint.value < 0 ? 'bg-gradient-to-br from-rose-500 to-pink-600' : 'bg-gradient-to-br from-gray-100 to-gray-200 dark:from-gray-800 dark:to-gray-900'} ${lowestPoint.value < 0 ? 'text-white' : 'text-light-text dark:text-dark-text'}`}>
-                     <div className="absolute top-0 right-0 p-3 opacity-10"><span className="material-symbols-outlined text-6xl">warning</span></div>
-                    <p className={`text-xs font-bold uppercase tracking-wider mb-1 ${lowestPoint.value < 0 ? 'text-rose-100' : 'text-light-text-secondary dark:text-dark-text-secondary'}`}>Lowest Point</p>
-                    <h2 className="text-3xl font-bold">{formatCurrency(lowestPoint.value, 'EUR')}</h2>
-                     <p className={`text-xs mt-1 opacity-80 ${lowestPoint.value < 0 ? 'text-rose-100' : 'text-light-text-secondary dark:text-dark-text-secondary'}`}>
-                        on {parseDateAsUTC(lowestPoint.date).toLocaleDateString()}
-                    </p>
-                </Card>
-            </div>
-
-            {/* Chart Section */}
-            <Card className="p-0 overflow-hidden border border-black/5 dark:border-white/10">
-                <div className="px-6 py-4 border-b border-black/5 dark:border-white/5 flex justify-between items-center bg-gray-50/50 dark:bg-white/5">
-                    <h3 className="text-lg font-bold text-light-text dark:text-dark-text flex items-center gap-2">
-                         <span className="material-symbols-outlined text-primary-500">ssid_chart</span>
-                         Cash Flow Forecast
-                    </h3>
-                </div>
-                <div className="p-6">
-                    <ForecastChart 
-                        data={forecastData} 
-                        lowestPoint={lowestPoint} 
-                        oneTimeGoals={activeGoals.filter(g => g.type === 'one-time')} 
-                        showIndividualLines={showIndividualLines}
-                        accounts={selectedAccounts}
-                        showGoalLines={showGoalLines}
-                        onDataPointClick={handleDateClick}
-                    />
-                </div>
+            <Card>
+                <h3 className="text-xl font-semibold mb-4 text-light-text dark:text-dark-text">Cash Flow Forecast</h3>
+                <ForecastChart 
+                    data={forecastData} 
+                    lowestPoint={lowestPoint} 
+                    oneTimeGoals={activeGoals.filter(g => g.type === 'one-time')} 
+                    showIndividualLines={showIndividualLines}
+                    accounts={selectedAccounts}
+                    showGoalLines={showGoalLines}
+                    onDataPointClick={handleDateClick}
+                />
             </Card>
-            
-            {/* Split View: Goals & Strategy */}
-            <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
-                
-                {/* Goals Column */}
-                <div className="lg:col-span-2 space-y-6">
-                     <div className="flex flex-wrap justify-between items-center gap-4">
-                        <h3 className="text-xl font-semibold text-light-text dark:text-dark-text">Financial Goals</h3>
-                        <div className="flex items-center gap-4">
-                            <label className="flex items-center gap-2 text-sm cursor-pointer select-none">
-                                <input 
-                                    type="checkbox" 
-                                    checked={filterGoalsByAccount} 
-                                    onChange={(e) => setFilterGoalsByAccount(e.target.checked)} 
-                                    className={CHECKBOX_STYLE}
-                                />
-                                <span className="text-light-text-secondary dark:text-dark-text-secondary">Filter by Account</span>
-                            </label>
-                            <button onClick={handleToggleAllDisplayed} className="text-sm font-semibold text-primary-500 hover:underline">
-                                {areAllDisplayedSelected ? 'Deselect All' : 'Select All'}
-                            </button>
-                        </div>
-                    </div>
-                    
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                        {topLevelGoals.length > 0 ? topLevelGoals.map(goal => {
-                            const subGoals = goalsByParentId.get(goal.id) || [];
-                            const isEffectivelyActive = goal.isBucket
-                            ? activeGoalIds.includes(goal.id) || subGoals.some(sg => activeGoalIds.includes(sg.id))
-                            : activeGoalIds.includes(goal.id);
 
-                            return (
-                                <FinancialGoalCard 
-                                    key={goal.id} 
-                                    goal={goal}
-                                    subGoals={subGoals}
-                                    isActive={isEffectivelyActive}
-                                    onToggle={handleToggleGoal}
-                                    onEdit={handleOpenModal}
-                                    onDelete={handleDeleteClick}
-                                    onAddSubGoal={handleAddSubGoal}
-                                    accounts={accounts}
-                                />
-                            );
-                        }) : (
-                            <div className="col-span-full p-8 bg-light-card dark:bg-dark-card rounded-xl border border-dashed border-light-separator dark:border-dark-separator text-center text-light-text-secondary dark:text-dark-text-secondary">
-                                <span className="material-symbols-outlined text-4xl mb-2 opacity-50">flag</span>
-                                <p>{filterGoalsByAccount ? 'No goals found for the selected accounts.' : 'No financial goals created yet.'}</p>
-                            </div>
-                        )}
-                    </div>
-                </div>
-
-                {/* Strategy & Details Column */}
-                <div className="space-y-6">
-                    <Card className="bg-gradient-to-br from-indigo-50 to-white dark:from-indigo-900/20 dark:to-dark-card border border-indigo-100 dark:border-indigo-800">
-                        <div className="flex items-center gap-3 mb-4">
-                             <div className="p-2 bg-indigo-100 dark:bg-indigo-900/50 rounded-lg text-indigo-600 dark:text-indigo-400">
-                                <span className="material-symbols-outlined">psychology</span>
-                             </div>
-                             <div>
-                                 <h3 className="text-lg font-bold text-indigo-900 dark:text-indigo-100">AI Strategy</h3>
-                                 <p className="text-xs text-indigo-600 dark:text-indigo-300">Smart Contribution Plan</p>
-                             </div>
-                        </div>
-                        
-                        <p className="text-sm text-light-text-secondary dark:text-dark-text-secondary mb-4">
-                            Let AI analyze your cash flow and suggest the best way to fund your goals without running out of money.
-                        </p>
-                        
-                        <button onClick={generatePlan} className={`${BTN_PRIMARY_STYLE} w-full flex items-center justify-center gap-2 mb-4`} disabled={isPlanLoading}>
-                            {isPlanLoading ? <div className="animate-spin h-4 w-4 border-2 border-white rounded-full border-t-transparent"></div> : <span className="material-symbols-outlined text-lg">auto_awesome</span>}
-                            {isPlanLoading ? 'Analyzing...' : 'Generate Plan'}
-                        </button>
-                        
-                        <GoalContributionPlan plan={plan} isLoading={isPlanLoading} error={planError} />
-                    </Card>
-                </div>
-            </div>
-
-             {/* Full Width Data Table */}
-             <Card className="overflow-hidden">
-                <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center mb-6 gap-4">
-                    <div>
-                        <h3 className="text-lg font-bold text-light-text dark:text-dark-text flex items-center gap-2">
-                            <span className="material-symbols-outlined text-primary-500">table_view</span>
-                            Detailed Forecast Data
-                        </h3>
-                        <p className="text-sm text-light-text-secondary dark:text-dark-text-secondary mt-1">
-                            Daily breakdown of projected balances and transactions.
-                        </p>
-                    </div>
-                </div>
-                
-                <div className="overflow-x-auto max-h-[600px] border border-gray-200 dark:border-gray-700 rounded-xl">
-                    <table className="w-full text-sm text-left">
-                        <thead className="sticky top-0 bg-gray-50 dark:bg-gray-800 z-10 text-xs uppercase font-semibold text-gray-500 dark:text-gray-400">
-                            <tr>
-                                <th className="px-6 py-3">Date</th>
-                                <th className="px-6 py-3">Description</th>
-                                <th className="px-6 py-3">Type</th>
-                                <th className="px-6 py-3 text-right">Amount</th>
-                                <th className="px-6 py-3 text-right">Balance</th>
+            <Card>
+                <h3 className="text-xl font-semibold mb-4 text-light-text dark:text-dark-text">Forecast Details</h3>
+                <div className="overflow-x-auto max-h-[400px]">
+                    <table className="w-full">
+                        <thead className="sticky top-0 bg-light-card dark:bg-dark-card z-10">
+                            <tr className="border-b border-light-separator dark:border-dark-separator">
+                                <th className="p-2 font-semibold text-left">Date</th>
+                                <th className="p-2 font-semibold text-left">Account</th>
+                                <th className="p-2 font-semibold text-left">Description</th>
+                                <th className="p-2 font-semibold text-right">Amount</th>
+                                <th className="p-2 font-semibold text-right">Balance</th>
+                                <th className="p-2 font-semibold text-left">Type</th>
                             </tr>
                         </thead>
-                        <tbody className="divide-y divide-gray-200 dark:divide-gray-700 bg-white dark:bg-dark-card">
-                            {tableData.slice(0, 100).map(row => (
-                                <tr key={row.id} onClick={() => handleEditForecastItem(row)} className="hover:bg-gray-50 dark:hover:bg-white/5 cursor-pointer transition-colors group">
-                                    <td className="px-6 py-3 whitespace-nowrap font-medium text-gray-900 dark:text-white">
-                                        {parseDateAsUTC(row.date, timeZone).toLocaleDateString(undefined, { weekday: 'short', month: 'short', day: 'numeric' })}
-                                    </td>
-                                    <td className="px-6 py-3">
-                                        <p className="truncate max-w-[300px] font-medium">{row.description}</p>
-                                        <p className="text-xs text-gray-500 dark:text-gray-400">{row.accountName}</p>
-                                    </td>
-                                    <td className="px-6 py-3">
-                                        <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${
-                                            row.type === 'Financial Goal' ? 'bg-amber-100 text-amber-800 dark:bg-amber-900/30 dark:text-amber-300' :
-                                            row.type === 'Recurring' ? 'bg-blue-100 text-blue-800 dark:bg-blue-900/30 dark:text-blue-300' :
-                                            'bg-purple-100 text-purple-800 dark:bg-purple-900/30 dark:text-purple-300'
-                                        }`}>
-                                            {row.type}
-                                        </span>
-                                    </td>
-                                    <td className={`px-6 py-3 text-right font-medium ${row.amount >= 0 ? 'text-emerald-600 dark:text-emerald-400' : 'text-rose-600 dark:text-rose-400'}`}>
-                                        {formatCurrency(row.amount, 'EUR', { showPlusSign: true })}
-                                    </td>
-                                    <td className="px-6 py-3 text-right font-mono font-medium text-gray-700 dark:text-gray-300">
-                                        {formatCurrency(row.balance, 'EUR')}
-                                    </td>
-                                </tr>
-                            ))}
-                            {tableData.length === 0 && (
-                                <tr>
-                                    <td colSpan={5} className="px-6 py-12 text-center text-gray-500 dark:text-gray-400">
-                                        No forecast data available for the selected period.
-                                    </td>
-                                </tr>
-                            )}
+                        <tbody>
+                            {tableData.map(row => {
+                                const isLowest = row.balance.toFixed(2) === lowestPoint.value.toFixed(2);
+                                const rowClass = `border-b border-light-separator/50 dark:border-dark-separator/50 hover:bg-black/5 dark:hover:bg-white/5 cursor-pointer
+                                    ${row.isGoal ? 'bg-yellow-100/50 dark:bg-yellow-900/20' : ''}
+                                    ${isLowest ? 'bg-red-100/50 dark:bg-red-900/20' : ''}`;
+                                return (
+                                    <tr key={row.id} className={rowClass} onClick={() => handleEditForecastItem(row)}>
+                                        <td className="p-2 whitespace-nowrap">{parseDateAsUTC(row.date, timeZone).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric', timeZone })}</td>
+                                        <td className="p-2">{row.accountName}</td>
+                                        <td className="p-2">{row.description}</td>
+                                        <td className={`p-2 text-right font-mono ${row.amount >= 0 ? 'text-green-600' : 'text-red-600'}`}>{formatCurrency(row.amount, 'EUR')}</td>
+                                        <td className={`p-2 text-right font-mono ${isLowest ? 'font-bold' : ''}`}>{formatCurrency(row.balance, 'EUR')}</td>
+                                        <td className="p-2">{row.type}</td>
+                                    </tr>
+                                );
+                            })}
                         </tbody>
                     </table>
-                    {tableData.length > 100 && (
-                        <div className="p-4 text-center border-t border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-800/50">
-                            <p className="text-sm text-gray-500">Showing first 100 items. Filter duration to see more specific details.</p>
-                        </div>
+                    {tableData.length === 0 && <p className="text-center py-8 text-light-text-secondary dark:text-dark-text-secondary">No forecast data to display for the selected period.</p>}
+                </div>
+            </Card>
+
+            <div className="space-y-6">
+                <div className="flex flex-wrap justify-between items-center gap-4">
+                    <h3 className="text-xl font-semibold text-light-text dark:text-dark-text">Financial Goals</h3>
+                    <div className="flex items-center gap-4">
+                        <label className="flex items-center gap-2 text-sm cursor-pointer select-none">
+                            <input 
+                                type="checkbox" 
+                                checked={filterGoalsByAccount} 
+                                onChange={(e) => setFilterGoalsByAccount(e.target.checked)} 
+                                className={CHECKBOX_STYLE}
+                            />
+                            <span className="text-light-text-secondary dark:text-dark-text-secondary">Filter by Account</span>
+                        </label>
+                        <button onClick={handleToggleAllDisplayed} className="text-sm font-semibold text-primary-500 hover:underline">
+                            {areAllDisplayedSelected ? 'Deselect All' : 'Select All'}
+                        </button>
+                    </div>
+                </div>
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                    {topLevelGoals.length > 0 ? topLevelGoals.map(goal => {
+                        const subGoals = goalsByParentId.get(goal.id) || [];
+                        // A bucket's toggle is active if ANY of its children are active OR if the bucket itself is active.
+                        // This allows the UI to reflect a partially-active state.
+                        const isEffectivelyActive = goal.isBucket
+                          ? activeGoalIds.includes(goal.id) || subGoals.some(sg => activeGoalIds.includes(sg.id))
+                          : activeGoalIds.includes(goal.id);
+
+                        return (
+                            <FinancialGoalCard 
+                                key={goal.id} 
+                                goal={goal}
+                                subGoals={subGoals}
+                                isActive={isEffectivelyActive}
+                                onToggle={handleToggleGoal}
+                                onEdit={handleOpenModal}
+                                onDelete={handleDeleteClick}
+                                onAddSubGoal={handleAddSubGoal}
+                                accounts={accounts}
+                            />
+                        );
+                    }) : (
+                        <p className="text-light-text-secondary dark:text-dark-text-secondary col-span-full text-center py-8">
+                            {filterGoalsByAccount ? 'No goals found for the selected accounts.' : 'No financial goals created yet.'}
+                        </p>
                     )}
                 </div>
+            </div>
+
+            <Card>
+                <div className="flex justify-between items-center">
+                    <div>
+                        <h3 className="text-xl font-semibold text-light-text dark:text-dark-text">Smart Contribution Plan</h3>
+                        <p className="text-sm text-light-text-secondary dark:text-dark-text-secondary mt-1">Let AI generate a step-by-step plan to reach your goals.</p>
+                    </div>
+                    <button onClick={generatePlan} className={BTN_PRIMARY_STYLE} disabled={isPlanLoading}>
+                        {isPlanLoading ? 'Generating...' : 'Generate Smart Plan'}
+                    </button>
+                </div>
+                <GoalContributionPlan plan={plan} isLoading={isPlanLoading} error={planError} />
             </Card>
         </div>
     );

@@ -6,7 +6,6 @@ import Card from './Card';
 import TransactionList from './TransactionList';
 import { BTN_PRIMARY_STYLE, ACCOUNT_TYPE_STYLES } from '../constants';
 import { ResponsiveContainer, BarChart, CartesianGrid, XAxis, YAxis, Tooltip, Bar, Cell } from 'recharts';
-import { useGoalsContext } from '../contexts/FinancialDataContext';
 
 interface CreditCardAccountViewProps {
   account: Account;
@@ -48,10 +47,9 @@ const CreditCardAccountView: React.FC<CreditCardAccountViewProps> = ({
   onTransactionClick,
   onBack
 }) => {
-  const { financialGoals } = useGoalsContext();
   // --- 1. Metrics & Utilization ---
   const creditLimit = account.creditLimit || 0;
-  const currentBalance = account.balance; 
+  const currentBalance = account.balance; // Usually negative for CCs in this app data model, but let's handle magnitude
   const balanceMagnitude = Math.abs(currentBalance);
   
   const availableCredit = Math.max(0, creditLimit - balanceMagnitude);
@@ -71,9 +69,12 @@ const CreditCardAccountView: React.FC<CreditCardAccountViewProps> = ({
   const statementInfo = useMemo(() => {
     if (!account.statementStartDate || !account.paymentDate) return null;
     
+    // Using shared utility
     const periods = calculateStatementPeriods(account.statementStartDate, account.paymentDate);
     const { start, end, paymentDue } = periods.current;
     
+    // Calculate Previous Statement Details (to see if paid off)
+    // Note: In this app model, credit card transactions are expenses (negative). Payments are transfers (positive).
     const allRawTxs = transactions.map(t => t.tx);
     const prevPeriod = periods.previous;
     const { statementBalance: prevStatementBal, amountPaid: paidForPrev } = getCreditCardStatementDetails(
@@ -83,6 +84,7 @@ const CreditCardAccountView: React.FC<CreditCardAccountViewProps> = ({
     const remainingPrevBalance = Math.abs(prevStatementBal) - paidForPrev;
     const isPrevPaidOff = remainingPrevBalance <= 0.01;
 
+    // Timeline Logic
     const now = new Date();
     const totalDuration = end.getTime() - start.getTime();
     const elapsed = now.getTime() - start.getTime();
@@ -114,6 +116,7 @@ const CreditCardAccountView: React.FC<CreditCardAccountViewProps> = ({
         const startOfMonth = new Date(Date.UTC(d.getFullYear(), d.getMonth(), 1));
         const endOfMonth = new Date(Date.UTC(d.getFullYear(), d.getMonth() + 1, 0));
         
+        // Filter for expenses only
         const totalSpent = transactions
             .filter(t => t.parsedDate >= startOfMonth && t.parsedDate <= endOfMonth && t.tx.amount < 0 && !t.tx.transferId)
             .reduce((sum, t) => sum + Math.abs(t.tx.amount), 0);
@@ -122,11 +125,6 @@ const CreditCardAccountView: React.FC<CreditCardAccountViewProps> = ({
     }
     return data;
   }, [transactions]);
-
-  // Linked Goals
-  const linkedGoals = useMemo(() => {
-    return financialGoals.filter(g => g.paymentAccountId === account.id);
-  }, [financialGoals, account.id]);
 
   // --- Visual Assets ---
   const NetworkLogo = () => {
@@ -141,8 +139,6 @@ const CreditCardAccountView: React.FC<CreditCardAccountViewProps> = ({
       if (network.includes('amex') || network.includes('american')) return <span className="font-bold text-lg text-blue-300 tracking-tighter border-2 border-blue-300 px-1 rounded">AMEX</span>;
       return <span className="font-bold text-xl text-white tracking-widest">CARD</span>;
   };
-  
-  const showVirtualCard = !!(account.cardNetwork || account.last4 || account.expirationDate || account.cardholderName);
 
   return (
     <div className="space-y-8 animate-fade-in-up">
@@ -181,56 +177,54 @@ const CreditCardAccountView: React.FC<CreditCardAccountViewProps> = ({
       <div className="grid grid-cols-1 lg:grid-cols-12 gap-8">
           
           {/* Virtual Card */}
-          {showVirtualCard && (
-            <div className="lg:col-span-5 xl:col-span-4">
-                <div className={`w-full aspect-[1.586/1] rounded-2xl ${getCardGradient(account.id)} p-6 sm:p-8 text-white shadow-2xl relative overflow-hidden border border-white/20 flex flex-col justify-between group transition-transform hover:scale-[1.02] duration-300`}>
-                    {/* Texture Overlay */}
-                    <div className="absolute inset-0 bg-[url('https://www.transparenttextures.com/patterns/cubes.png')] opacity-10 pointer-events-none"></div>
-                    <div className="absolute -top-24 -right-24 w-64 h-64 bg-white/10 rounded-full blur-3xl pointer-events-none"></div>
-                    
-                    <div className="flex justify-between items-start z-10">
-                        <div className="w-12 h-9 bg-white/20 rounded-md border border-white/30 backdrop-blur-md flex items-center justify-center relative overflow-hidden shadow-sm">
-                            <div className="absolute inset-0 bg-gradient-to-tr from-white/10 to-transparent"></div>
-                            <div className="w-8 h-[1px] bg-black/20 absolute top-2"></div>
-                            <div className="w-8 h-[1px] bg-black/20 absolute bottom-2"></div>
-                            <div className="w-[1px] h-5 bg-black/20 absolute left-4"></div>
-                        </div>
-                        <div className="flex flex-col items-end">
-                            <span className="material-symbols-outlined text-2xl opacity-80 mb-1">rss_feed</span>
-                            <span className="text-white/80 font-mono text-xs font-semibold uppercase tracking-wider shadow-sm">
-                                {account.financialInstitution || 'Crystal Bank'}
-                            </span>
-                        </div>
-                    </div>
+          <div className="lg:col-span-5 xl:col-span-4">
+              <div className={`aspect-[1.586/1] rounded-2xl ${getCardGradient(account.id)} p-6 sm:p-8 text-white shadow-2xl relative overflow-hidden border border-white/20 flex flex-col justify-between group transition-transform hover:scale-[1.02] duration-300`}>
+                  {/* Texture Overlay */}
+                  <div className="absolute inset-0 bg-[url('https://www.transparenttextures.com/patterns/cubes.png')] opacity-10 pointer-events-none"></div>
+                  <div className="absolute -top-24 -right-24 w-64 h-64 bg-white/10 rounded-full blur-3xl pointer-events-none"></div>
+                  
+                  <div className="flex justify-between items-start z-10">
+                      <div className="w-12 h-9 bg-white/20 rounded-md border border-white/30 backdrop-blur-md flex items-center justify-center relative overflow-hidden shadow-sm">
+                           <div className="absolute inset-0 bg-gradient-to-tr from-white/10 to-transparent"></div>
+                           <div className="w-8 h-[1px] bg-black/20 absolute top-2"></div>
+                           <div className="w-8 h-[1px] bg-black/20 absolute bottom-2"></div>
+                           <div className="w-[1px] h-5 bg-black/20 absolute left-4"></div>
+                      </div>
+                      <div className="flex flex-col items-end">
+                          <span className="material-symbols-outlined text-2xl opacity-80 mb-1">rss_feed</span>
+                          <span className="text-white/80 font-mono text-xs font-semibold uppercase tracking-wider shadow-sm">
+                              {account.financialInstitution || 'Crystal Bank'}
+                          </span>
+                      </div>
+                  </div>
 
-                    <div className="z-10 mt-4">
-                        <div className="flex items-center gap-3 text-xl sm:text-2xl font-mono tracking-widest text-white/95 drop-shadow-md truncate">
-                            <span>••••</span> <span>••••</span> <span>••••</span> <span>{account.last4 || '0000'}</span>
-                        </div>
-                    </div>
+                  <div className="z-10 mt-4">
+                       <div className="flex items-center gap-3 text-xl sm:text-2xl font-mono tracking-widest text-white/95 drop-shadow-md truncate">
+                           <span>••••</span> <span>••••</span> <span>••••</span> <span>{account.last4 || '0000'}</span>
+                       </div>
+                  </div>
 
-                    <div className="flex justify-between items-end z-10">
-                        <div className="min-w-0 flex-1 mr-4">
-                            <p className="text-[9px] text-white/70 uppercase tracking-widest mb-0.5">Cardholder</p>
-                            <p className="font-medium uppercase tracking-wide text-sm sm:text-base text-white/95 drop-shadow-sm truncate">{account.cardholderName || account.name}</p>
-                        </div>
-                        <div className="flex flex-col items-end flex-shrink-0">
-                            {account.expirationDate && (
-                                <div className="text-center mb-2">
-                                    <p className="text-[8px] text-white/70 uppercase">Valid Thru</p>
-                                    <p className="font-mono text-sm font-semibold">{account.expirationDate}</p>
-                                </div>
-                            )}
-                            <NetworkLogo />
-                        </div>
-                    </div>
-                </div>
-            </div>
-          )}
+                  <div className="flex justify-between items-end z-10">
+                      <div className="min-w-0 flex-1 mr-4">
+                          <p className="text-[9px] text-white/70 uppercase tracking-widest mb-0.5">Cardholder</p>
+                          <p className="font-medium uppercase tracking-wide text-sm sm:text-base text-white/95 drop-shadow-sm truncate">{account.cardholderName || account.name}</p>
+                      </div>
+                      <div className="flex flex-col items-end flex-shrink-0">
+                           {account.expirationDate && (
+                               <div className="text-center mb-2">
+                                   <p className="text-[8px] text-white/70 uppercase">Valid Thru</p>
+                                   <p className="font-mono text-sm font-semibold">{account.expirationDate}</p>
+                               </div>
+                           )}
+                           <NetworkLogo />
+                      </div>
+                  </div>
+              </div>
+          </div>
 
           {/* Metrics Grid */}
-          <div className={`${showVirtualCard ? 'lg:col-span-7 xl:col-span-8' : 'lg:col-span-12'} grid grid-cols-1 sm:grid-cols-2 ${showVirtualCard ? 'lg:grid-rows-2 lg:h-full' : 'lg:grid-cols-3'} gap-4`}>
-              <Card className="flex flex-col justify-between h-full">
+          <div className="lg:col-span-7 xl:col-span-8 grid grid-cols-1 sm:grid-cols-2 gap-4">
+              <Card className="flex flex-col justify-between">
                   <div className="flex justify-between items-start">
                       <div>
                           <p className="text-light-text-secondary dark:text-dark-text-secondary text-xs font-bold uppercase tracking-wider">Current Balance</p>
@@ -245,7 +239,7 @@ const CreditCardAccountView: React.FC<CreditCardAccountViewProps> = ({
                   </p>
               </Card>
 
-              <Card className="flex flex-col justify-between h-full">
+              <Card className="flex flex-col justify-between">
                   <div className="flex justify-between items-start">
                       <div>
                           <p className="text-light-text-secondary dark:text-dark-text-secondary text-xs font-bold uppercase tracking-wider">Available Credit</p>
@@ -260,7 +254,7 @@ const CreditCardAccountView: React.FC<CreditCardAccountViewProps> = ({
                   </div>
               </Card>
 
-              <Card className={`${showVirtualCard ? 'sm:col-span-2' : ''} flex flex-col justify-between h-full`}>
+              <Card className="sm:col-span-2">
                   <div className="flex justify-between items-end mb-2">
                       <div>
                           <p className="text-light-text-secondary dark:text-dark-text-secondary text-xs font-bold uppercase tracking-wider">Credit Utilization</p>
@@ -287,54 +281,49 @@ const CreditCardAccountView: React.FC<CreditCardAccountViewProps> = ({
           <div className="lg:col-span-2 space-y-8">
               {statementInfo && (
                   <Card>
-                      <h3 className="text-lg font-semibold text-light-text dark:text-dark-text mb-4">Billing Cycle</h3>
-                      
-                      <div className="relative mt-10 mb-20 mx-6 select-none">
-                          {/* Gray Background Line */}
-                          <div className="absolute top-1/2 left-0 right-0 h-1 bg-gray-200 dark:bg-gray-700 -translate-y-1/2 rounded-full"></div>
-                          
-                          {/* Colored Progress Line */}
+                      <h3 className="text-lg font-semibold text-light-text dark:text-dark-text mb-6">Billing Cycle</h3>
+                      <div className="relative pt-6 pb-2 px-8">
+                          {/* Progress Bar Line */}
+                          <div className="absolute top-1/2 left-8 right-8 h-1 bg-gray-200 dark:bg-gray-700 -translate-y-1/2 z-0"></div>
                           <div 
-                            className="absolute top-1/2 left-0 h-1 bg-primary-500 -translate-y-1/2 rounded-full transition-all duration-1000"
-                            style={{ width: `${statementInfo.cycleProgress}%` }}
+                            className="absolute top-1/2 left-8 h-1 bg-primary-500 -translate-y-1/2 z-0 transition-all duration-1000"
+                            style={{ width: `calc(${statementInfo.cycleProgress}% - 4rem)` }}
                           ></div>
 
-                          {/* Nodes Container */}
-                          <div className="relative flex justify-between w-full h-full z-10">
-                              
+                          <div className="flex justify-between relative z-10">
                               {/* Start Node */}
-                              <div className="relative flex flex-col items-center group">
-                                  <div className="w-4 h-4 rounded-full bg-primary-500 border-2 border-white dark:border-dark-card shadow-sm z-10"></div>
-                                  <div className="absolute top-8 left-1/2 -translate-x-1/2 w-32 text-center">
+                              <div className="flex flex-col items-center">
+                                  <div className="w-4 h-4 rounded-full bg-primary-500 border-2 border-white dark:border-dark-card shadow-sm"></div>
+                                  <div className="mt-3 text-center absolute top-4 w-32 -ml-1">
                                       <p className="text-xs font-bold text-light-text dark:text-dark-text">Statement Open</p>
                                       <p className="text-xs text-light-text-secondary dark:text-dark-text-secondary">{statementInfo.start.toLocaleDateString(undefined, { month: 'short', day: 'numeric' })}</p>
                                   </div>
                               </div>
 
+                              {/* Today Node (Absolute positioned based on progress) */}
+                              <div 
+                                className="absolute top-1/2 -translate-y-1/2 flex flex-col items-center transition-all duration-1000"
+                                style={{ left: `${statementInfo.cycleProgress}%`, transform: 'translate(-50%, -50%)' }}
+                              >
+                                  <div className="w-6 h-6 rounded-full bg-white dark:bg-dark-card border-4 border-primary-500 shadow-md"></div>
+                                  <div className="absolute top-8 text-center w-32">
+                                      <p className="text-xs font-bold text-primary-600 dark:text-primary-400 uppercase tracking-wider bg-primary-50 dark:bg-primary-900/50 px-2 py-0.5 rounded-full inline-block">Today</p>
+                                  </div>
+                              </div>
+
                               {/* End Node */}
-                              <div className="relative flex flex-col items-center">
-                                  <div className={`w-4 h-4 rounded-full border-2 border-white dark:border-dark-card shadow-sm z-10 ${statementInfo.cycleProgress >= 100 ? 'bg-primary-500' : 'bg-gray-300 dark:bg-gray-600'}`}></div>
-                                  <div className="absolute top-8 left-1/2 -translate-x-1/2 w-32 text-center">
+                              <div className="flex flex-col items-center">
+                                  <div className={`w-4 h-4 rounded-full border-2 border-white dark:border-dark-card shadow-sm ${statementInfo.cycleProgress >= 100 ? 'bg-primary-500' : 'bg-gray-300 dark:bg-gray-600'}`}></div>
+                                  <div className="mt-3 text-center absolute top-4 w-32 -ml-20">
                                       <p className="text-xs font-bold text-light-text dark:text-dark-text">Statement Close</p>
                                       <p className="text-xs text-light-text-secondary dark:text-dark-text-secondary">{statementInfo.end.toLocaleDateString(undefined, { month: 'short', day: 'numeric' })}</p>
                                       <p className="text-[10px] font-semibold text-primary-500 mt-0.5">{statementInfo.daysToClose > 0 ? `${statementInfo.daysToClose} days left` : 'Closing today'}</p>
                                   </div>
                               </div>
                           </div>
-
-                          {/* Today Node (Absolute positioning) */}
-                          <div 
-                            className="absolute top-1/2 -translate-y-1/2 -translate-x-1/2 flex flex-col items-center z-20 pointer-events-none"
-                            style={{ left: `${statementInfo.cycleProgress}%` }}
-                          >
-                              <div className="w-6 h-6 rounded-full bg-white dark:bg-dark-card border-4 border-primary-500 shadow-md"></div>
-                              <div className="absolute top-8 left-1/2 -translate-x-1/2 w-32 text-center">
-                                  <p className="text-[10px] font-bold text-primary-600 dark:text-primary-400 uppercase tracking-wider bg-primary-50 dark:bg-primary-900/50 px-2 py-0.5 rounded-full inline-block shadow-sm border border-primary-100 dark:border-primary-800">Today</p>
-                              </div>
-                          </div>
                       </div>
                       
-                      <div className="pt-6 border-t border-black/5 dark:border-white/5 flex justify-end">
+                      <div className="mt-12 pt-6 border-t border-black/5 dark:border-white/5 flex justify-end">
                           <div className="text-right">
                               <p className="text-xs text-light-text-secondary dark:text-dark-text-secondary font-medium uppercase tracking-wide">Payment Due Date</p>
                               <div className="flex items-center justify-end gap-2">
@@ -348,27 +337,25 @@ const CreditCardAccountView: React.FC<CreditCardAccountViewProps> = ({
               )}
 
               {/* Monthly Spending Trend */}
-              <Card className="flex flex-col min-h-[340px]">
+              <Card className="h-80">
                    <h3 className="text-lg font-semibold text-light-text dark:text-dark-text mb-4">Spending Trend (6 Months)</h3>
-                   <div className="flex-grow w-full min-h-0">
-                     <ResponsiveContainer width="100%" height="100%">
-                          <BarChart data={monthlySpendingData} margin={{ top: 10, right: 10, left: 0, bottom: 20 }}>
-                              <CartesianGrid strokeDasharray="3 3" strokeOpacity={0.1} vertical={false} />
-                              <XAxis dataKey="name" axisLine={false} tickLine={false} tick={{ fill: 'currentColor', opacity: 0.6, fontSize: 12 }} tickMargin={10} />
-                              <YAxis axisLine={false} tickLine={false} tick={{ fill: 'currentColor', opacity: 0.6, fontSize: 12 }} />
-                              <Tooltip 
-                                  cursor={{ fill: 'transparent' }}
-                                  contentStyle={{ backgroundColor: 'var(--light-card)', borderColor: 'rgba(0,0,0,0.1)', borderRadius: '8px', color: 'var(--light-text)' }}
-                                  formatter={(value: number) => [formatCurrency(value, account.currency), 'Spent']}
-                              />
-                              <Bar dataKey="value" radius={[4, 4, 0, 0]}>
-                                  {monthlySpendingData.map((entry, index) => (
-                                      <Cell key={`cell-${index}`} fill={index === monthlySpendingData.length - 1 ? '#3b82f6' : '#cbd5e1'} />
-                                  ))}
-                              </Bar>
-                          </BarChart>
-                     </ResponsiveContainer>
-                   </div>
+                   <ResponsiveContainer width="100%" height="100%">
+                        <BarChart data={monthlySpendingData} margin={{ top: 10, right: 10, left: -20, bottom: 5 }}>
+                            <CartesianGrid strokeDasharray="3 3" strokeOpacity={0.1} vertical={false} />
+                            <XAxis dataKey="name" axisLine={false} tickLine={false} tick={{ fill: 'currentColor', opacity: 0.6, fontSize: 12 }} />
+                            <YAxis axisLine={false} tickLine={false} tick={{ fill: 'currentColor', opacity: 0.6, fontSize: 12 }} />
+                            <Tooltip 
+                                cursor={{ fill: 'transparent' }}
+                                contentStyle={{ backgroundColor: 'var(--light-card)', borderColor: 'rgba(0,0,0,0.1)', borderRadius: '8px', color: 'var(--light-text)' }}
+                                formatter={(value: number) => [formatCurrency(value, account.currency), 'Spent']}
+                            />
+                            <Bar dataKey="value" radius={[4, 4, 0, 0]}>
+                                {monthlySpendingData.map((entry, index) => (
+                                    <Cell key={`cell-${index}`} fill={index === monthlySpendingData.length - 1 ? '#3b82f6' : '#cbd5e1'} />
+                                ))}
+                            </Bar>
+                        </BarChart>
+                   </ResponsiveContainer>
               </Card>
           </div>
 
@@ -408,7 +395,7 @@ const CreditCardAccountView: React.FC<CreditCardAccountViewProps> = ({
               )}
 
               {/* Recent Transactions */}
-              <Card className="flex flex-col h-full max-h-[400px]">
+              <Card className="flex flex-col h-full max-h-[500px]">
                   <div className="flex justify-between items-center mb-4">
                       <h3 className="text-lg font-semibold text-light-text dark:text-dark-text">Recent Activity</h3>
                   </div>
@@ -418,42 +405,6 @@ const CreditCardAccountView: React.FC<CreditCardAccountViewProps> = ({
                           allCategories={allCategories}
                           onTransactionClick={onTransactionClick}
                       />
-                  </div>
-              </Card>
-              
-              {/* Linked Goals */}
-              <Card className="flex-grow flex flex-col">
-                  <h3 className="text-lg font-semibold text-light-text dark:text-dark-text mb-4 flex items-center gap-2">
-                      <span className="material-symbols-outlined text-yellow-500">flag</span>
-                      Linked Goals
-                  </h3>
-                  <div className="flex-grow overflow-y-auto max-h-[200px] space-y-3 pr-1">
-                  {linkedGoals.length > 0 ? (
-                      <div className="space-y-4">
-                          {linkedGoals.map(goal => {
-                              const progress = goal.amount > 0 ? (goal.currentAmount / goal.amount) * 100 : 0;
-                              return (
-                                  <div key={goal.id} className="group">
-                                      <div className="flex justify-between text-sm font-medium mb-1">
-                                          <span className="text-light-text dark:text-dark-text">{goal.name}</span>
-                                          <span className="text-light-text-secondary dark:text-dark-text-secondary">{Math.min(progress, 100).toFixed(0)}%</span>
-                                      </div>
-                                      <div className="w-full bg-gray-200 dark:bg-gray-700 rounded-full h-2.5 mb-1">
-                                          <div className="bg-yellow-500 h-2.5 rounded-full transition-all duration-500" style={{ width: `${Math.min(progress, 100)}%` }}></div>
-                                      </div>
-                                      <p className="text-xs text-light-text-secondary dark:text-dark-text-secondary text-right">
-                                          {formatCurrency(goal.currentAmount, 'EUR')} of {formatCurrency(goal.amount, 'EUR')}
-                                      </p>
-                                  </div>
-                              );
-                          })}
-                      </div>
-                  ) : (
-                      <div className="h-full flex flex-col items-center justify-center text-light-text-secondary dark:text-dark-text-secondary opacity-60">
-                           <span className="material-symbols-outlined text-4xl mb-2">outlined_flag</span>
-                          <p className="text-sm">No goals linked.</p>
-                      </div>
-                  )}
                   </div>
               </Card>
           </div>

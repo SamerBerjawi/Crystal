@@ -182,24 +182,24 @@ export const QUICK_CREATE_BUDGET_OPTIONS: { value: number, label: string, shortL
 
 
 export const ACCOUNT_TYPE_STYLES: { [key in AccountType]: { icon: string; color: string } } = {
-    'Checking': { icon: 'account_balance', color: 'text-blue-500' }, // Cool
-    'Savings': { icon: 'savings', color: 'text-emerald-500' }, // Cool
-    'Credit Card': { icon: 'credit_card', color: 'text-orange-500' }, // Warm
-    'Investment': { icon: 'show_chart', color: 'text-violet-500' }, // Cool
-    'Loan': { icon: 'request_quote', color: 'text-red-500' }, // Warm
-    'Lending': { icon: 'real_estate_agent', color: 'text-teal-500' }, // Cool
-    'Property': { icon: 'home', color: 'text-indigo-500' }, // Cool
-    'Vehicle': { icon: 'directions_car', color: 'text-cyan-500' }, // Cool
-    'Other Assets': { icon: 'category', color: 'text-sky-500' }, // Cool
-    'Other Liabilities': { icon: 'receipt', color: 'text-rose-500' }, // Warm
+    'Checking': { icon: 'account_balance', color: 'text-blue-500' },
+    'Savings': { icon: 'savings', color: 'text-green-500' },
+    'Credit Card': { icon: 'credit_card', color: 'text-orange-500' },
+    'Investment': { icon: 'show_chart', color: 'text-purple-500' },
+    'Loan': { icon: 'request_quote', color: 'text-red-500' },
+    'Lending': { icon: 'real_estate_agent', color: 'text-teal-500' },
+    'Property': { icon: 'home', color: 'text-yellow-500' },
+    'Vehicle': { icon: 'directions_car', color: 'text-cyan-500' },
+    'Other Assets': { icon: 'category', color: 'text-lime-500' },
+    'Other Liabilities': { icon: 'receipt', color: 'text-pink-500' },
 };
 
 export const INVESTMENT_SUB_TYPE_STYLES: { [key in InvestmentSubType]: { icon: string; color: string } } = {
-    'Stock': { icon: 'show_chart', color: 'text-violet-500' }, // Cool
-    'ETF': { icon: 'account_tree', color: 'text-teal-500' }, // Cool
-    'Crypto': { icon: 'currency_bitcoin', color: 'text-indigo-500' }, // Cool
-    'Pension Fund': { icon: 'assured_workload', color: 'text-blue-600' }, // Cool
-    'Spare Change': { icon: 'monetization_on', color: 'text-emerald-600' }, // Cool
+    'Stock': { icon: 'show_chart', color: 'text-purple-500' },
+    'ETF': { icon: 'account_tree', color: 'text-teal-500' },
+    'Crypto': { icon: 'currency_bitcoin', color: 'text-amber-500' },
+    'Pension Fund': { icon: 'assured_workload', color: 'text-indigo-500' },
+    'Spare Change': { icon: 'monetization_on', color: 'text-lime-600' },
     'Other': { icon: 'category', color: 'text-slate-500' },
 };
 

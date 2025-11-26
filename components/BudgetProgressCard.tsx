@@ -1,4 +1,5 @@
 
+
 import React from 'react';
 import { Category } from '../types';
 import { formatCurrency } from '../utils';
@@ -15,94 +16,70 @@ const BudgetProgressCard: React.FC<BudgetProgressCardProps> = ({ category, budge
   const hasBudget = budgeted > 0;
   const remaining = hasBudget ? budgeted - spent : 0;
   const progress = hasBudget ? (spent / budgeted) * 100 : 0;
-  const isOverBudget = remaining < 0;
 
-  let progressBarColor = 'bg-emerald-500';
+  let progressBarColor = 'bg-primary-500';
   if (progress > 100) {
-    progressBarColor = 'bg-rose-500';
-  } else if (progress > 85) {
-    progressBarColor = 'bg-amber-500';
-  } else if (!hasBudget) {
-    progressBarColor = 'bg-gray-400';
+    progressBarColor = 'bg-red-500';
+  } else if (progress > 80) {
+    progressBarColor = 'bg-yellow-500';
   }
 
-  let statusColor = 'text-emerald-600 dark:text-emerald-400';
-  if (isOverBudget) {
-      statusColor = 'text-rose-600 dark:text-rose-400';
-  } else if (progress > 85) {
-      statusColor = 'text-amber-600 dark:text-amber-400';
-  } else if (!hasBudget) {
-      statusColor = 'text-light-text-secondary dark:text-dark-text-secondary';
+  let remainingColor = 'text-green-600 dark:text-green-400';
+  if (hasBudget && remaining < 0) {
+    remainingColor = 'text-red-600 dark:text-red-400';
+  } else if (remaining < budgeted * 0.2) {
+    remainingColor = 'text-yellow-600 dark:text-yellow-400';
   }
 
   return (
-    <div className="group relative bg-white dark:bg-dark-card rounded-2xl border border-gray-200 dark:border-white/5 shadow-sm hover:shadow-md transition-all duration-200 p-5 flex flex-col h-full">
-      {/* Edit Action (Hover) */}
-      <div className="absolute top-3 right-3 opacity-0 group-hover:opacity-100 transition-opacity">
-          <button onClick={onEdit} className="p-1.5 rounded-lg bg-gray-100 dark:bg-white/10 text-gray-600 dark:text-gray-300 hover:bg-primary-50 dark:hover:bg-primary-900/20 hover:text-primary-600" title={hasBudget ? 'Edit Budget' : 'Set Budget'}>
-            <span className="material-symbols-outlined text-sm">edit</span>
-          </button>
-      </div>
-
+    <Card className="flex flex-col gap-4 group transition-transform duration-200 hover:-translate-y-1">
       {/* Header */}
-      <div className="flex items-center gap-3 mb-4">
-          <div className="flex-shrink-0 w-10 h-10 rounded-xl bg-gray-50 dark:bg-white/5 flex items-center justify-center border border-gray-100 dark:border-white/5">
+      <div className="flex justify-between items-start">
+        <div className="flex items-center gap-3">
+          <div className="flex-shrink-0 h-10 w-10 rounded-full bg-light-bg dark:bg-dark-bg shadow-neu-inset-light dark:shadow-neu-inset-dark flex items-center justify-center">
             <span
               className="material-symbols-outlined"
               style={{
                 color: category.color,
-                fontSize: '20px'
+                fontVariationSettings: "'FILL' 1, 'wght' 300, 'GRAD' 0, 'opsz' 24"
               }}
             >
               {category.icon || 'category'}
             </span>
           </div>
-          <div className="min-w-0">
-             <h4 className="font-bold text-base text-gray-900 dark:text-white truncate">{category.name}</h4>
-             {hasBudget ? (
-                 <p className="text-xs text-gray-500 dark:text-gray-400 font-medium">Budget: {formatCurrency(budgeted, 'EUR')}</p>
-             ) : (
-                 <p className="text-xs text-gray-400 dark:text-gray-500 italic">No budget set</p>
-             )}
-          </div>
+          <h4 className="font-semibold text-lg text-light-text dark:text-dark-text">{category.name}</h4>
+        </div>
+        <button onClick={onEdit} className="p-2 text-light-text-secondary dark:text-dark-text-secondary hover:bg-black/10 dark:hover:bg-white/10 rounded-full opacity-0 group-hover:opacity-100 transition-opacity" title={hasBudget ? 'Edit Budget' : 'Set Budget'}>
+          <span className="material-symbols-outlined text-base">{hasBudget ? 'edit' : 'add'}</span>
+        </button>
       </div>
       
-      {/* Stats */}
-      <div className="mt-auto">
-        <div className="flex justify-between items-end mb-1.5">
-             <div className="flex flex-col">
-                 <span className="text-[10px] uppercase tracking-wide font-bold text-gray-400 dark:text-gray-500">Spent</span>
-                 <span className={`text-lg font-bold ${isOverBudget ? 'text-rose-600 dark:text-rose-400' : 'text-gray-900 dark:text-white'}`}>
-                     {formatCurrency(spent, 'EUR')}
-                 </span>
-             </div>
-             
-             <div className="text-right">
-                 <span className={`text-sm font-bold ${statusColor}`}>
-                     {hasBudget ? (
-                         isOverBudget 
-                            ? `${formatCurrency(Math.abs(remaining), 'EUR')} over` 
-                            : `${formatCurrency(remaining, 'EUR')} left`
-                     ) : (
-                         '—'
-                     )}
-                 </span>
-             </div>
-        </div>
-
-        {/* Progress Bar */}
+      {/* Progress Bar and Amounts */}
+      <div>
         {hasBudget ? (
-            <div className="w-full bg-gray-100 dark:bg-gray-800 rounded-full h-1.5 overflow-hidden">
+          <>
+            <div className="w-full bg-light-bg dark:bg-dark-bg rounded-full h-3 shadow-neu-inset-light dark:shadow-neu-inset-dark">
               <div
-                className={`h-full rounded-full transition-all duration-500 ${progressBarColor}`}
+                className={`${progressBarColor} h-3 rounded-full transition-all duration-500`}
                 style={{ width: `${Math.min(progress, 100)}%` }}
               ></div>
             </div>
+            <div className="flex justify-between text-sm mt-2">
+                <div>
+                    <span className="font-semibold text-light-text dark:text-dark-text">{formatCurrency(spent, 'EUR')}</span>
+                    <span className="text-light-text-secondary dark:text-dark-text-secondary"> of {formatCurrency(budgeted, 'EUR')}</span>
+                </div>
+                <span className={`font-semibold ${remainingColor}`}>{formatCurrency(remaining, 'EUR')} {remaining >= 0 ? 'left' : 'over'}</span>
+            </div>
+          </>
         ) : (
-             <div className="w-full bg-gray-100 dark:bg-gray-800 rounded-full h-1.5"></div>
+          <div className="text-center bg-light-bg dark:bg-dark-bg p-4 rounded-lg">
+            <p className="text-sm text-light-text-secondary dark:text-dark-text-secondary">Spent this month</p>
+            <p className="font-semibold text-2xl text-light-text dark:text-dark-text mt-1">{formatCurrency(spent, 'EUR')}</p>
+          </div>
         )}
       </div>
-    </div>
+    </Card>
   );
 };
 
