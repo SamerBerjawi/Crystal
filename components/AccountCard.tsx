@@ -102,7 +102,6 @@ const AccountCard: React.FC<AccountCardProps> = ({
     
     // Determine if it's an asset or liability for color coding
     const isLiabilityType = ['Credit Card', 'Loan', 'Other Liabilities'].includes(account.type);
-    // Visual check: liabilities usually negative balance, but we want to color code based on type intent
     
     // Trend calculation
     const startVal = sparklineData[0]?.value || 0;
@@ -111,9 +110,8 @@ const AccountCard: React.FC<AccountCardProps> = ({
     const isPositiveTrend = change >= 0;
     const trendPercent = startVal !== 0 ? Math.abs((change / startVal) * 100) : 0;
 
-    // Green line if value went up (good for assets), Red if went down.
-    // For liabilities, value going up (towards 0) is good (Green), going down (more negative) is bad (Red).
-    const sparklineColor = change >= 0 ? '#10B981' : '#EF4444';
+    // Slightly desaturated colors (Emerald 500 / Rose 500) instead of Neon Green/Red
+    const sparklineColor = change >= 0 ? '#10B981' : '#F43F5E';
 
     let style = ACCOUNT_TYPE_STYLES[account.type];
     if (account.type === 'Investment' && account.subType) {
@@ -216,13 +214,19 @@ const AccountCard: React.FC<AccountCardProps> = ({
             </div>
 
             {/* Bottom: Sparkline */}
-            <div className="absolute bottom-0 left-0 right-0 h-20 opacity-30 pointer-events-none overflow-hidden rounded-b-2xl">
+            <div 
+                className="absolute bottom-0 left-0 right-0 h-24 pointer-events-none overflow-hidden rounded-b-2xl px-4 pb-4"
+                style={{ 
+                    maskImage: 'linear-gradient(to right, transparent, black 15%, black 85%, transparent)',
+                    WebkitMaskImage: 'linear-gradient(to right, transparent, black 15%, black 85%, transparent)' 
+                }}
+            >
                  <ResponsiveContainer minWidth={0} minHeight={0}>
                     <AreaChart data={sparklineData} margin={{ top: 5, right: 0, left: 0, bottom: 0 }}>
                         <defs>
                             <linearGradient id={`grad-${account.id}`} x1="0" y1="0" x2="0" y2="1">
-                                <stop offset="0%" stopColor={sparklineColor} stopOpacity={0.4}/>
-                                <stop offset="100%" stopColor={sparklineColor} stopOpacity={0}/>
+                                <stop offset="0%" stopColor={sparklineColor} stopOpacity={0.6}/>
+                                <stop offset="90%" stopColor={sparklineColor} stopOpacity={0}/>
                             </linearGradient>
                         </defs>
                         <YAxis domain={['dataMin', 'dataMax']} hide />
@@ -230,7 +234,7 @@ const AccountCard: React.FC<AccountCardProps> = ({
                             type="monotone" 
                             dataKey="value" 
                             stroke={sparklineColor} 
-                            strokeWidth={2} 
+                            strokeWidth={3} 
                             fill={`url(#grad-${account.id})`} 
                             isAnimationActive={false}
                         />
