@@ -43,7 +43,6 @@ interface CheckboxFieldProps {
   children: React.ReactNode;
 }
 
-// Component defined outside to prevent re-mounting and loss of focus
 const CheckboxField: React.FC<CheckboxFieldProps> = ({field, label, checked, onChange, children}) => (
     <div className="flex items-start gap-4 p-4 rounded-lg transition-colors duration-200 hover:bg-black/5 dark:hover:bg-white/5">
       <div className="pt-2">
