@@ -1,3 +1,4 @@
+
 import React from 'react';
 import Card from './Card';
 
@@ -47,7 +48,7 @@ const WidgetWrapper: React.FC<WidgetWrapperProps> = ({
   };
 
   const dragClasses = isBeingDragged ? 'opacity-30' : '';
-  const dragOverClasses = isDragOver ? 'outline-2 outline-dashed outline-primary-500 bg-primary-500/5' : '';
+  const dragOverClasses = isDragOver ? 'ring-2 ring-primary-500 bg-primary-500/5' : '';
   
   return (
     <div 
@@ -56,29 +57,34 @@ const WidgetWrapper: React.FC<WidgetWrapperProps> = ({
         onDragStart={onDragStart}
         onDragEnter={onDragEnter}
         onDragLeave={onDragLeave}
-        onDragOver={(e) => e.preventDefault()} // Necessary for onDrop to fire
+        onDragOver={(e) => e.preventDefault()}
         onDrop={onDrop}
         onDragEnd={onDragEnd}
     >
-      <Card className={`flex flex-col h-full ${dragOverClasses} transition-all duration-200 ${isEditMode ? 'border-dashed border-primary-500/50' : ''}`}>
-        <header className={`flex items-center justify-between mb-4 -mt-2 ${isEditMode ? 'cursor-move' : ''}`}>
-          <h3 className="text-xl font-semibold text-light-text dark:text-dark-text">{title}</h3>
-          {isEditMode && (
-            <button onClick={onRemove} className="text-light-text-secondary dark:text-dark-text-secondary p-1.5 rounded-full hover:bg-black/5 dark:hover:bg-white/5 transition-colors cursor-pointer" title="Remove widget">
-              <span className="material-symbols-outlined text-base">close</span>
-            </button>
-          )}
+      <Card className={`flex flex-col h-full ${dragOverClasses} transition-all duration-200 ${isEditMode ? 'border-dashed border-primary-500/50 cursor-move' : ''}`}>
+        {isEditMode && (
+           <div className="absolute top-2 right-2 z-20">
+             <button onClick={onRemove} className="bg-red-500 text-white p-1 rounded-full hover:bg-red-600 shadow-sm">
+                <span className="material-symbols-outlined text-sm block">close</span>
+             </button>
+           </div>
+        )}
+        {/* Only show title if not in edit mode to keep it clean, or keep it minimal */}
+        <header className="flex items-center justify-between mb-4">
+           <h3 className="text-lg font-bold text-light-text dark:text-dark-text tracking-tight">{title}</h3>
         </header>
-        <div className="flex-grow">
+
+        <div className="flex-grow relative min-h-0">
           {children}
         </div>
+
         {isEditMode && (
-          <div className="absolute bottom-2 right-2 flex gap-1 bg-light-card dark:bg-dark-card/80 backdrop-blur-sm p-1 rounded-md shadow-lg border border-black/5 dark:border-white/10">
-            <button onClick={(e) => { e.stopPropagation(); onResize('w', -1); }} disabled={w <= 1} className="p-1 rounded disabled:opacity-30 hover:bg-black/5 dark:hover:bg-white/5"><span className="material-symbols-outlined text-sm">west</span></button>
-            <button onClick={(e) => { e.stopPropagation(); onResize('w', 1); }} disabled={w >= 4} className="p-1 rounded disabled:opacity-30 hover:bg-black/5 dark:hover:bg-white/5"><span className="material-symbols-outlined text-sm">east</span></button>
+          <div className="absolute bottom-2 right-2 flex gap-1 bg-white dark:bg-dark-card p-1 rounded-lg shadow-lg border border-black/10 dark:border-white/10 z-20">
+            <button onClick={(e) => { e.stopPropagation(); onResize('w', -1); }} disabled={w <= 1} className="p-1 hover:bg-gray-100 dark:hover:bg-white/10 rounded disabled:opacity-30"><span className="material-symbols-outlined text-sm">west</span></button>
+            <button onClick={(e) => { e.stopPropagation(); onResize('w', 1); }} disabled={w >= 4} className="p-1 hover:bg-gray-100 dark:hover:bg-white/10 rounded disabled:opacity-30"><span className="material-symbols-outlined text-sm">east</span></button>
             <div className="w-px bg-gray-200 dark:bg-gray-700 mx-1"></div>
-            <button onClick={(e) => { e.stopPropagation(); onResize('h', -1); }} disabled={h <= 1} className="p-1 rounded disabled:opacity-30 hover:bg-black/5 dark:hover:bg-white/5"><span className="material-symbols-outlined text-sm">north</span></button>
-            <button onClick={(e) => { e.stopPropagation(); onResize('h', 1); }} disabled={h >= 3} className="p-1 rounded disabled:opacity-30 hover:bg-black/5 dark:hover:bg-white/5"><span className="material-symbols-outlined text-sm">south</span></button>
+            <button onClick={(e) => { e.stopPropagation(); onResize('h', -1); }} disabled={h <= 1} className="p-1 hover:bg-gray-100 dark:hover:bg-white/10 rounded disabled:opacity-30"><span className="material-symbols-outlined text-sm">north</span></button>
+            <button onClick={(e) => { e.stopPropagation(); onResize('h', 1); }} disabled={h >= 3} className="p-1 hover:bg-gray-100 dark:hover:bg-white/10 rounded disabled:opacity-30"><span className="material-symbols-outlined text-sm">south</span></button>
           </div>
         )}
       </Card>

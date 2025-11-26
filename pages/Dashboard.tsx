@@ -1,7 +1,7 @@
 
 import React, { useMemo, useState, useCallback, useEffect, useRef } from 'react';
 import { User, Transaction, Account, Category, Duration, CategorySpending, Widget, WidgetConfig, DisplayTransaction, FinancialGoal, RecurringTransaction, BillPayment, Tag, Budget, RecurringTransactionOverride, LoanPaymentOverrides } from '../types';
-import { formatCurrency, getDateRange, calculateAccountTotals, convertToEur, calculateStatementPeriods, generateBalanceForecast, parseDateAsUTC, getCreditCardStatementDetails, generateSyntheticLoanPayments, generateSyntheticCreditCardPayments, getPreferredTimeZone, formatDateKey } from '../utils';
+import { formatCurrency, getDateRange, calculateAccountTotals, convertToEur, calculateStatementPeriods, generateBalanceForecast, parseDateAsUTC, getCreditCardStatementDetails, generateSyntheticLoanPayments, generateSyntheticCreditCardPayments, getPreferredTimeZone, formatDateKey, generateSyntheticPropertyTransactions } from '../utils';
 import AddTransactionModal from '../components/AddTransactionModal';
 import { BTN_PRIMARY_STYLE, BTN_SECONDARY_STYLE, LIQUID_ACCOUNT_TYPES, ASSET_TYPES, DEBT_TYPES, ACCOUNT_TYPE_STYLES, INVESTMENT_SUB_TYPE_STYLES } from '../constants';
 import TransactionDetailModal from '../components/TransactionDetailModal';
@@ -542,7 +542,7 @@ const Dashboard: React.FC<DashboardProps> = ({ user, activeGoalIds, selectedAcco
     if (netWorthData.length < 2) return '#6366F1';
     const startValue = netWorthData[0].value;
     const endValue = netWorthData[netWorthData.length - 1].value;
-    return endValue >= startValue ? '#34C759' : '#FF3B30';
+    return endValue >= startValue ? '#10B981' : '#F43F5E';
   }, [netWorthData]);
   
   const configuredCreditCards = useMemo(() => {
@@ -606,7 +606,8 @@ const Dashboard: React.FC<DashboardProps> = ({ user, activeGoalIds, selectedAcco
         // Generate synthetic transactions
         const syntheticLoanPayments = generateSyntheticLoanPayments(accounts, transactions, loanPaymentOverrides);
         const syntheticCreditCardPayments = generateSyntheticCreditCardPayments(accounts, transactions);
-        const allRecurringTransactions = [...recurringTransactions, ...syntheticLoanPayments, ...syntheticCreditCardPayments];
+        const syntheticPropertyTransactions = generateSyntheticPropertyTransactions(accounts);
+        const allRecurringTransactions = [...recurringTransactions, ...syntheticLoanPayments, ...syntheticCreditCardPayments, ...syntheticPropertyTransactions];
 
         // Filter active goals
         const activeGoals = financialGoals.filter(g => activeGoalIds.includes(g.id));
@@ -814,7 +815,7 @@ const Dashboard: React.FC<DashboardProps> = ({ user, activeGoalIds, selectedAcco
   const handleDragEnd = () => { setDraggedWidgetId(null); setDragOverWidgetId(null); };
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-6 pb-10">
       {isTransactionModalOpen && (
         <AddTransactionModal
           onClose={handleCloseTransactionModal}
@@ -854,7 +855,8 @@ const Dashboard: React.FC<DashboardProps> = ({ user, activeGoalIds, selectedAcco
       {/* Header */}
       <div className="flex flex-col xl:flex-row justify-between items-start xl:items-center gap-4">
         <div className="mb-1 xl:mb-0">
-          <p className="text-light-text-secondary dark:text-dark-text-secondary">Welcome back, {user.firstName}!</p>
+          <h2 className="text-xl font-bold text-light-text dark:text-dark-text">Overview</h2>
+          <p className="text-sm text-light-text-secondary dark:text-dark-text-secondary">Welcome back, {user.firstName}!</p>
         </div>
         
         <div className="flex flex-col sm:flex-row gap-3 w-full xl:w-auto">
@@ -881,13 +883,12 @@ const Dashboard: React.FC<DashboardProps> = ({ user, activeGoalIds, selectedAcco
                         </button>
                     </>
                   ) : (
-                    <button onClick={() => setIsEditMode(true)} className={`${BTN_SECONDARY_STYLE} flex-1 sm:flex-none flex items-center gap-2 justify-center`}>
+                    <button onClick={() => setIsEditMode(true)} className={`${BTN_SECONDARY_STYLE} flex-1 sm:flex-none flex items-center gap-2 justify-center px-3`}>
                         <span className="material-symbols-outlined text-base">edit</span>
-                        <span className="whitespace-nowrap">Edit Layout</span>
                     </button>
                   )}
 
-                  <button onClick={() => handleOpenTransactionModal()} className={`${BTN_PRIMARY_STYLE} flex-1 sm:flex-none justify-center whitespace-nowrap`}>
+                  <button onClick={() => handleOpenTransactionModal()} className={`${BTN_PRIMARY_STYLE} flex-1 sm:flex-none justify-center whitespace-nowrap shadow-lg shadow-primary-500/20`}>
                     Add Transaction
                   </button>
             </div>
@@ -896,18 +897,20 @@ const Dashboard: React.FC<DashboardProps> = ({ user, activeGoalIds, selectedAcco
       
       {/* New Suggestion Summary Card */}
       {suggestions.length > 0 && (
-          <Card>
+          <Card className="bg-primary-50 dark:bg-primary-900/20 border border-primary-100 dark:border-primary-800/50">
               <div className="flex flex-wrap justify-between items-center gap-4">
                   <div className="flex items-center gap-3">
-                      <span className="material-symbols-outlined text-2xl text-primary-500">autorenew</span>
+                      <div className="w-10 h-10 rounded-full bg-primary-100 dark:bg-primary-800 flex items-center justify-center text-primary-600 dark:text-primary-300">
+                        <span className="material-symbols-outlined text-xl">autorenew</span>
+                      </div>
                       <div>
-                          <h3 className="font-semibold text-lg">Potential Transfers Detected</h3>
+                          <h3 className="font-semibold text-lg text-light-text dark:text-dark-text">Potential Transfers Detected</h3>
                           <p className="text-sm text-light-text-secondary dark:text-dark-text-secondary">
                               We found {suggestions.length} pair(s) of transactions that might be transfers.
                           </p>
                       </div>
                   </div>
-                  <div className="flex items-center gap-4">
+                  <div className="flex items-center gap-3">
                       <button onClick={dismissAllSuggestions} className={BTN_SECONDARY_STYLE}>Dismiss All</button>
                       <button onClick={() => setIsMatcherModalOpen(true)} className={BTN_PRIMARY_STYLE}>Review All</button>
                   </div>
@@ -925,8 +928,11 @@ const Dashboard: React.FC<DashboardProps> = ({ user, activeGoalIds, selectedAcco
       
       {/* Lowest Balance Forecast */}
       {lowestBalanceForecasts && lowestBalanceForecasts.length > 0 && (
-        <div>
-            <h3 className="text-xl font-semibold mb-4 text-light-text dark:text-dark-text">Lowest Balance Forecast</h3>
+        <div className="animate-fade-in-up">
+            <h3 className="text-lg font-bold mb-4 text-light-text dark:text-dark-text flex items-center gap-2">
+                <span className="material-symbols-outlined text-primary-500">insights</span>
+                Projected Lows
+            </h3>
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
                 {lowestBalanceForecasts.map(forecast => (
                     <LowestBalanceForecastCard 
@@ -942,7 +948,7 @@ const Dashboard: React.FC<DashboardProps> = ({ user, activeGoalIds, selectedAcco
 
       {/* Credit Card Statements Section */}
       {creditCardStatements.length > 0 && (
-          <div className="space-y-6">
+          <div className="space-y-6 animate-fade-in-up">
               {creditCardStatements.map(statement => (
                   <CreditCardStatementCard
                       key={statement.accountName}
@@ -968,7 +974,7 @@ const Dashboard: React.FC<DashboardProps> = ({ user, activeGoalIds, selectedAcco
       )}
 
       {/* Customizable Widget Grid */}
-      <div className="grid grid-cols-1 md:grid-cols-4 gap-6" style={{ gridAutoRows: 'minmax(200px, auto)' }}>
+      <div className="grid grid-cols-1 md:grid-cols-4 gap-6 auto-rows-fr">
         {widgets.map(widget => {
             const widgetDetails = allWidgets.find(w => w.id === widget.id);
             if (!widgetDetails) return null;

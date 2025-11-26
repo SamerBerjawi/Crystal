@@ -1,3 +1,4 @@
+
 import React from 'react';
 import Card from './Card';
 import { formatCurrency, getPreferredTimeZone, parseDateAsUTC } from '../utils';
@@ -9,26 +10,35 @@ interface LowestBalanceForecastCardProps {
 }
 
 const LowestBalanceForecastCard: React.FC<LowestBalanceForecastCardProps> = ({ period, lowestBalance, date }) => {
-    const balanceColor = lowestBalance < 0 ? 'text-red-500' : 'text-light-text dark:text-dark-text';
+    const isRisk = lowestBalance < 0;
     const timeZone = getPreferredTimeZone();
-    const formattedDate = parseDateAsUTC(date, timeZone).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric', timeZone });
+    const formattedDate = parseDateAsUTC(date, timeZone).toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
+    
+    // Styling based on risk
+    const accentColor = isRisk ? 'bg-red-500' : 'bg-blue-500';
+    const textColor = isRisk ? 'text-red-600 dark:text-red-400' : 'text-light-text dark:text-dark-text';
+    const icon = isRisk ? 'warning' : 'trending_flat'; // or 'shield'
 
     return (
-        <Card className="flex flex-col justify-between">
-            <div>
-                <div className="flex items-start justify-between">
-                    <h3 className="text-base font-semibold text-light-text-secondary dark:text-dark-text-secondary">{period}</h3>
-                    <div className="w-10 h-10 rounded-full flex items-center justify-center bg-yellow-500/10">
-                        <span className="material-symbols-outlined text-2xl text-yellow-500">
-                        crisis_alert
-                        </span>
-                    </div>
-                </div>
-                <p className={`text-2xl font-bold mt-1 ${balanceColor}`}>{formatCurrency(lowestBalance, 'EUR')}</p>
+        <Card className={`flex flex-col justify-between h-full border-l-4 ${isRisk ? 'border-l-red-500' : 'border-l-blue-500'}`}>
+            <div className="flex justify-between items-start mb-2">
+                <h3 className="text-sm font-semibold text-light-text-secondary dark:text-dark-text-secondary">{period}</h3>
+                 <span className={`material-symbols-outlined text-lg ${isRisk ? 'text-red-500' : 'text-blue-500/70'}`}>
+                    {icon}
+                </span>
             </div>
-            <p className="text-sm text-light-text-secondary dark:text-dark-text-secondary mt-2">
-                Projected on {formattedDate}
-            </p>
+            
+            <div>
+                 <p className="text-xs text-light-text-secondary dark:text-dark-text-secondary mb-0.5">Projected Low</p>
+                 <p className={`text-xl font-bold ${textColor}`}>
+                    {formatCurrency(lowestBalance, 'EUR')}
+                 </p>
+            </div>
+
+            <div className="mt-3 pt-2 border-t border-black/5 dark:border-white/5 flex items-center gap-1 text-xs text-light-text-secondary dark:text-dark-text-secondary">
+                <span className="material-symbols-outlined text-sm">event</span>
+                <span>on {formattedDate}</span>
+            </div>
         </Card>
     );
 };

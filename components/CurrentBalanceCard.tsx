@@ -1,3 +1,4 @@
+
 import React from 'react';
 import { formatCurrency } from '../utils';
 import Card from './Card';
@@ -9,24 +10,27 @@ interface CurrentBalanceCardProps {
   title?: string;
 }
 
-const CurrentBalanceCard: React.FC<CurrentBalanceCardProps> = ({ balance, currency, title = "Current Balance" }) => {
+const CurrentBalanceCard: React.FC<CurrentBalanceCardProps> = ({ balance, currency, title = "Net Worth" }) => {
   return (
-    <Card className="flex flex-col justify-between h-full">
-      <div>
-        <div className="flex items-start justify-between">
-          <div>
-            <h3 className="text-base font-semibold text-light-text-secondary dark:text-dark-text-secondary">{title}</h3>
-            <p className="text-2xl font-bold mt-1 text-light-text dark:text-dark-text">{formatCurrency(balance, currency)}</p>
-          </div>
-          <div className="w-10 h-10 rounded-full flex items-center justify-center bg-primary-500/10">
-            <span className="material-symbols-outlined text-2xl text-primary-500">
-              wallet
-            </span>
-          </div>
+    <Card className="flex flex-col justify-between h-full min-h-[140px] relative overflow-hidden group">
+       {/* Decorative subtle gradient background */}
+       <div className="absolute inset-0 bg-gradient-to-br from-primary-500/5 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-500 pointer-events-none"></div>
+
+      <div className="flex justify-between items-start relative z-10">
+        <div>
+           <p className="text-sm font-medium text-light-text-secondary dark:text-dark-text-secondary uppercase tracking-wider">{title}</p>
+           <h3 className="text-3xl font-bold text-light-text dark:text-dark-text mt-1 tracking-tight">{formatCurrency(balance, currency)}</h3>
+        </div>
+        <div className="w-8 h-8 rounded-lg bg-indigo-500/10 flex items-center justify-center text-indigo-500">
+            <span className="material-symbols-outlined text-lg">savings</span>
         </div>
       </div>
-      <div className="mt-4">
-        <p className="text-xs text-right mt-1 text-light-text-secondary dark:text-dark-text-secondary">As of today</p>
+      
+      <div className="mt-4 relative z-10">
+        <p className="text-xs text-light-text-secondary dark:text-dark-text-secondary flex items-center gap-1">
+           <span className="w-1.5 h-1.5 rounded-full bg-green-500 inline-block"></span>
+           Live calculation
+        </p>
       </div>
     </Card>
   );
