@@ -425,18 +425,18 @@ const Dashboard: React.FC<DashboardProps> = ({ user, activeGoalIds, selectedAcco
   const { totalAssets, totalDebt, netWorth } = useMemo(() => {
     const safeAccounts = selectedAccounts || [];
     
-    const { totalAssets, totalDebt, netWorth } = calculateAccountTotals(safeAccounts);
+    const { totalAssets, totalDebt, netWorth } = calculateAccountTotals(safeAccounts, transactions);
 
     return {
         totalAssets,
         totalDebt,
         netWorth,
     };
-  }, [selectedAccounts]);
+  }, [selectedAccounts, transactions]);
 
   const { globalTotalAssets, globalTotalDebt, globalAssetBreakdown, globalDebtBreakdown } = useMemo(() => {
      const openAccounts = accounts.filter(acc => acc.status !== 'closed');
-     const { totalAssets, totalDebt } = calculateAccountTotals(openAccounts);
+     const { totalAssets, totalDebt } = calculateAccountTotals(openAccounts, transactions);
 
      return {
         globalTotalAssets: totalAssets,
@@ -444,7 +444,7 @@ const Dashboard: React.FC<DashboardProps> = ({ user, activeGoalIds, selectedAcco
         globalAssetBreakdown: createBreakdown(openAccounts.filter(acc => ASSET_TYPES.includes(acc.type))),
         globalDebtBreakdown: createBreakdown(openAccounts.filter(acc => DEBT_TYPES.includes(acc.type))),
      };
-  }, [accounts]);
+  }, [accounts, transactions]);
 
   const netWorthData = useMemo(() => {
     const transferGroups = new Map<string, Transaction[]>();

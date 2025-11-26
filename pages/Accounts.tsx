@@ -159,7 +159,7 @@ const Accounts: React.FC<AccountsProps> = ({ accounts, transactions, saveAccount
     const open = safeAccounts.filter(acc => acc.status !== 'closed');
     const closed = safeAccounts.filter(acc => acc.status === 'closed');
     
-    const { totalAssets, totalDebt, netWorth } = calculateAccountTotals(open);
+    const { totalAssets, totalDebt, netWorth } = calculateAccountTotals(open, transactions);
 
     return {
         openAccounts: open,
@@ -168,7 +168,7 @@ const Accounts: React.FC<AccountsProps> = ({ accounts, transactions, saveAccount
         totalDebt,
         netWorth,
     };
-  }, [accounts]);
+  }, [accounts, transactions]);
 
   // Define groups for display
   const accountGroups = useMemo(() => {

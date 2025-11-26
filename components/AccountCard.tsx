@@ -89,11 +89,16 @@ const AccountCard: React.FC<AccountCardProps> = ({
     }, [account, transactions]);
     
     const displayBalance = useMemo(() => {
-        // For loans, showing positive principal remaining is often more intuitive in list views,
-        // but we'll stick to raw balance for consistency, or handle loan logic if needed.
-        // Here we assume account.balance is the source of truth.
+        if (account.type === 'Loan' && account.totalAmount) {
+            const loanPayments = transactions.filter(tx => tx.accountId === account.id && tx.type === 'income');
+            const totalPrincipalPaid = loanPayments.reduce((sum, tx) => {
+                 const principalPart = tx.principalAmount !== undefined ? tx.principalAmount : tx.amount;
+                 return sum + principalPart;
+            }, 0);
+            return -(account.totalAmount - totalPrincipalPaid);
+        }
         return account.balance;
-    }, [account]);
+    }, [account, transactions]);
     
     // Determine if it's an asset or liability for color coding
     const isLiabilityType = ['Credit Card', 'Loan', 'Other Liabilities'].includes(account.type);

@@ -166,7 +166,7 @@ const GeneralAccountView: React.FC<GeneralAccountViewProps> = ({
     // This ensures the forecast engine starts from the correct effective funds available now.
     const accountForForecast = { ...account, balance: realTodayBalance };
 
-    const { lowestPoint } = generateBalanceForecast(
+    const { chartData } = generateBalanceForecast(
         [accountForForecast],
         allRecurringItems,
         financialGoals,
@@ -174,6 +174,11 @@ const GeneralAccountView: React.FC<GeneralAccountViewProps> = ({
         forecastEndDate,
         recurringTransactionOverrides
     );
+
+    let lowestPoint = { value: accountForForecast.balance, date: '' }; // Default to current balance
+    if (chartData.length > 0) {
+        lowestPoint = chartData.reduce((min, p) => p.value < min.value ? { value: p.value, date: p.date } : min, { value: chartData[0].value, date: chartData[0].date });
+    }
     
     // `generateBalanceForecast` works in EUR. Convert the result back to the account's currency.
     // If account currency is same as base (EUR), rate is 1.
