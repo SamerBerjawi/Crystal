@@ -1,9 +1,10 @@
 
-import React from 'react';
+import React, { useMemo } from 'react';
 import { Account, Transaction } from '../types';
 import { formatCurrency } from '../utils';
 import Card from './Card';
 import { BTN_PRIMARY_STYLE, ACCOUNT_TYPE_STYLES } from '../constants';
+import { useGoalsContext } from '../contexts/FinancialDataContext';
 
 interface PropertyAccountViewProps {
   account: Account;
@@ -22,6 +23,7 @@ const PropertyAccountView: React.FC<PropertyAccountViewProps> = ({
   setViewingAccountId,
   onBack
 }) => {
+  const { financialGoals } = useGoalsContext();
   const linkedLoan = accounts.find(a => a.id === account.linkedLoanId);
   
   // Calculate Equity and Appreciation
@@ -51,6 +53,11 @@ const PropertyAccountView: React.FC<PropertyAccountViewProps> = ({
       account.indoorParkingSpaces ? { label: `Indoor Parking (${account.indoorParkingSpaces})`, icon: 'garage' } : null,
       account.outdoorParkingSpaces ? { label: `Outdoor Parking (${account.outdoorParkingSpaces})`, icon: 'local_parking' } : null,
   ].filter(Boolean) as { label: string; icon: string }[];
+
+  // Linked Goals
+  const linkedGoals = useMemo(() => {
+    return financialGoals.filter(g => g.paymentAccountId === account.id);
+  }, [financialGoals, account.id]);
 
   return (
     <div className="space-y-6 animate-fade-in-up">
@@ -152,6 +159,42 @@ const PropertyAccountView: React.FC<PropertyAccountViewProps> = ({
                 </div>
               )}
             </div>
+          </Card>
+          
+          {/* Linked Goals */}
+          <Card className="flex-grow flex flex-col">
+              <h3 className="text-lg font-bold text-light-text dark:text-dark-text mb-4 flex items-center gap-2">
+                  <span className="material-symbols-outlined text-yellow-500">flag</span>
+                  Linked Goals
+              </h3>
+              <div className="flex-grow overflow-y-auto max-h-[200px] space-y-3 pr-1">
+              {linkedGoals.length > 0 ? (
+                  <div className="space-y-4">
+                      {linkedGoals.map(goal => {
+                          const progress = goal.amount > 0 ? (goal.currentAmount / goal.amount) * 100 : 0;
+                          return (
+                              <div key={goal.id} className="group">
+                                  <div className="flex justify-between text-sm font-medium mb-1">
+                                      <span className="text-light-text dark:text-dark-text">{goal.name}</span>
+                                      <span className="text-light-text-secondary dark:text-dark-text-secondary">{Math.min(progress, 100).toFixed(0)}%</span>
+                                  </div>
+                                  <div className="w-full bg-gray-200 dark:bg-gray-700 rounded-full h-2.5 mb-1">
+                                      <div className="bg-yellow-500 h-2.5 rounded-full transition-all duration-500" style={{ width: `${Math.min(progress, 100)}%` }}></div>
+                                  </div>
+                                  <p className="text-xs text-light-text-secondary dark:text-dark-text-secondary text-right">
+                                      {formatCurrency(goal.currentAmount, 'EUR')} of {formatCurrency(goal.amount, 'EUR')}
+                                  </p>
+                              </div>
+                          );
+                      })}
+                  </div>
+              ) : (
+                  <div className="h-full flex flex-col items-center justify-center text-light-text-secondary dark:text-dark-text-secondary opacity-60">
+                        <span className="material-symbols-outlined text-4xl mb-2">outlined_flag</span>
+                      <p className="text-sm">No goals linked.</p>
+                  </div>
+              )}
+              </div>
           </Card>
         </div>
       </div>

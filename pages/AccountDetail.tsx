@@ -15,6 +15,7 @@ const PropertyAccountView = React.lazy(() => import('../components/PropertyAccou
 const LoanAccountView = React.lazy(() => import('../components/LoanAccountView'));
 const VehicleAccountView = React.lazy(() => import('../components/VehicleAccountView'));
 const CreditCardAccountView = React.lazy(() => import('../components/CreditCardAccountView'));
+const SavingsAccountView = React.lazy(() => import('../components/SavingsAccountView'));
 const GeneralAccountView = React.lazy(() => import('../components/GeneralAccountView'));
 
 const AccountDetail: React.FC<{
@@ -24,7 +25,7 @@ const AccountDetail: React.FC<{
     saveAccount: (account: Omit<Account, 'id'> & { id?: string }) => void;
 }> = ({ account, setCurrentPage, setViewingAccountId, saveAccount }) => {
     const { accounts } = useAccountsContext();
-    const { transactions, saveTransaction } = useTransactionsContext();
+    const { transactions: allTransactions, saveTransaction } = useTransactionsContext();
     const { incomeCategories, expenseCategories } = useCategoryContext();
     const { tags } = useTagsContext();
     const { loanPaymentOverrides, saveLoanPaymentOverrides } = useScheduleContext();
@@ -134,14 +135,14 @@ const AccountDetail: React.FC<{
     };
 
     const accountTransactions = useMemo(() => {
-        return transactions
+        return allTransactions
             .filter(tx => tx.accountId === account.id)
             .map(tx => ({
                 tx,
                 parsedDate: parseDateAsUTC(tx.date),
                 convertedAmount: convertToEur(tx.amount, tx.currency)
             }));
-    }, [transactions, account.id]);
+    }, [allTransactions, account.id]);
 
     const displayTransactionsList: DisplayTransaction[] = useMemo(() => {
         const sorted = [...accountTransactions].sort((a, b) => b.parsedDate.getTime() - a.parsedDate.getTime()).slice(0, 50);
@@ -171,7 +172,7 @@ const AccountDetail: React.FC<{
                     <PropertyAccountView 
                         {...commonProps}
                         accounts={accounts}
-                        transactions={transactions}
+                        transactions={allTransactions}
                     />
                 );
             case 'Loan':
@@ -179,7 +180,7 @@ const AccountDetail: React.FC<{
                 return (
                     <LoanAccountView 
                         {...commonProps}
-                        transactions={transactions}
+                        transactions={allTransactions}
                         accounts={accounts}
                         loanPaymentOverrides={loanPaymentOverrides[account.id] || {}}
                         onOverridesChange={handleOverridesChange}
@@ -205,6 +206,17 @@ const AccountDetail: React.FC<{
                         onTransactionClick={handleTransactionClick}
                     />
                 );
+            case 'Savings':
+                return (
+                    <SavingsAccountView 
+                        {...commonProps}
+                        displayTransactionsList={displayTransactionsList}
+                        transactions={accountTransactions}
+                        allTransactions={allTransactions}
+                        allCategories={allCategories}
+                        onTransactionClick={handleTransactionClick}
+                    />
+                );
             default:
                 return (
                     <GeneralAccountView 
@@ -225,7 +237,7 @@ const AccountDetail: React.FC<{
                     onClose={() => setTransactionModalOpen(false)}
                     onSave={(data, toDelete) => { saveTransaction(data, toDelete); setTransactionModalOpen(false); }}
                     accounts={accounts} incomeCategories={incomeCategories} expenseCategories={expenseCategories}
-                    transactionToEdit={editingTransaction} transactions={transactions} tags={tags}
+                    transactionToEdit={editingTransaction} transactions={allTransactions} tags={tags}
                     initialType={initialModalState.type} initialFromAccountId={initialModalState.from}
                     initialToAccountId={initialModalState.to} initialDetails={initialModalState.details}
                 />
