@@ -347,15 +347,16 @@ const GeneralAccountView: React.FC<GeneralAccountViewProps> = ({
   const hasCardDetails = account.cardNetwork || account.last4 || account.expirationDate || account.cardholderName;
   const showVirtualCard = (account.type === 'Checking' || account.type === 'Savings') || hasCardDetails;
 
-  const showBankingDetails = useMemo(() => {
-      const hasDetails = !!(account.accountNumber || account.routingNumber || account.apy || account.openingDate || account.expirationDate || account.cardNetwork || account.cardholderName || account.last4);
-      const hasLinkedCards = linkedCreditCards.length > 0;
-      if (showVirtualCard) {
-          // If showing virtual card, check if there are ANY details that are NOT on the card OR if there are linked cards
-          return !!(account.accountNumber || account.routingNumber || account.apy || account.openingDate) || hasLinkedCards;
-      }
-      return hasDetails || hasLinkedCards;
-  }, [account, showVirtualCard, linkedCreditCards.length]);
+  const hasLinkedCards = linkedCreditCards.length > 0;
+  
+  const hasAccountDetails = useMemo(() => {
+      const basicDetails = !!(account.accountNumber || account.routingNumber || account.apy || account.openingDate);
+      if (showVirtualCard) return basicDetails;
+      
+      // If no virtual card, also check for card-like details to be shown in the list
+      return basicDetails || !!(account.expirationDate || account.cardNetwork || account.cardholderName || account.last4);
+  }, [account, showVirtualCard]);
+
 
   const NetworkLogo = () => {
       const network = account.cardNetwork?.toLowerCase() || '';
@@ -522,13 +523,13 @@ const GeneralAccountView: React.FC<GeneralAccountViewProps> = ({
         </div>
       )}
 
-      {/* Account Details Card (Banking Info & Linked Cards) */}
-      {showBankingDetails && (
+      {/* Account Details & Linked Cards Combined */}
+      {(hasAccountDetails || hasLinkedCards) && (
         <Card className="bg-gradient-to-br from-gray-50 to-white dark:from-gray-900/50 dark:to-dark-card border border-black/5 dark:border-white/5">
             <h3 className="text-sm font-bold uppercase tracking-wider text-light-text-secondary dark:text-dark-text-secondary mb-4 flex items-center gap-2">
                 <span className="material-symbols-outlined text-lg">info</span> Account Details
             </h3>
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
+            <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-6">
                 {account.accountNumber && (
                     <div>
                         <p className="text-xs text-light-text-secondary dark:text-dark-text-secondary mb-1">Account Number / IBAN</p>
@@ -537,79 +538,75 @@ const GeneralAccountView: React.FC<GeneralAccountViewProps> = ({
                 )}
                 {account.routingNumber && (
                     <div>
-                         <p className="text-xs text-light-text-secondary dark:text-dark-text-secondary mb-1">Routing / BIC</p>
-                         <p className="font-mono font-medium text-light-text dark:text-dark-text">{account.routingNumber}</p>
+                        <p className="text-xs text-light-text-secondary dark:text-dark-text-secondary mb-1">Routing / BIC</p>
+                        <p className="font-mono font-medium text-light-text dark:text-dark-text">{account.routingNumber}</p>
                     </div>
                 )}
-                 {account.apy !== undefined && (
+                {account.apy !== undefined && (
                     <div>
-                         <p className="text-xs text-light-text-secondary dark:text-dark-text-secondary mb-1">APY / Interest Rate</p>
-                         <p className="font-bold text-green-600 dark:text-green-400 text-lg">{account.apy}%</p>
+                        <p className="text-xs text-light-text-secondary dark:text-dark-text-secondary mb-1">Annual Rate</p>
+                        <p className="font-bold text-green-600 dark:text-green-400 text-lg">{account.apy}%</p>
                     </div>
                 )}
-                 {account.openingDate && (
+                {account.openingDate && (
                     <div>
-                         <p className="text-xs text-light-text-secondary dark:text-dark-text-secondary mb-1">Opened On</p>
-                         <p className="font-medium text-light-text dark:text-dark-text">{parseDateAsUTC(account.openingDate).toLocaleDateString()}</p>
+                        <p className="text-xs text-light-text-secondary dark:text-dark-text-secondary mb-1">Opened On</p>
+                        <p className="font-medium text-light-text dark:text-dark-text">{parseDateAsUTC(account.openingDate).toLocaleDateString()}</p>
                     </div>
                 )}
-                {/* Show card details only if Virtual Card is NOT shown, to avoid duplication */}
+                
                 {!showVirtualCard && (
                     <>
-                         {account.cardNetwork && (
+                        {account.cardNetwork && (
                             <div>
-                                 <p className="text-xs text-light-text-secondary dark:text-dark-text-secondary mb-1">Network</p>
-                                 <p className="font-medium text-light-text dark:text-dark-text">{account.cardNetwork}</p>
+                                <p className="text-xs text-light-text-secondary dark:text-dark-text-secondary mb-1">Network</p>
+                                <p className="font-medium text-light-text dark:text-dark-text">{account.cardNetwork}</p>
                             </div>
                         )}
-                         {account.cardholderName && (
+                        {account.cardholderName && (
                             <div>
-                                 <p className="text-xs text-light-text-secondary dark:text-dark-text-secondary mb-1">Cardholder</p>
-                                 <p className="font-medium text-light-text dark:text-dark-text">{account.cardholderName}</p>
+                                <p className="text-xs text-light-text-secondary dark:text-dark-text-secondary mb-1">Cardholder</p>
+                                <p className="font-medium text-light-text dark:text-dark-text">{account.cardholderName}</p>
                             </div>
                         )}
-                         {account.expirationDate && (
+                        {account.expirationDate && (
                             <div>
-                                 <p className="text-xs text-light-text-secondary dark:text-dark-text-secondary mb-1">Expires</p>
-                                 <p className="font-medium text-light-text dark:text-dark-text">{account.expirationDate}</p>
+                                <p className="text-xs text-light-text-secondary dark:text-dark-text-secondary mb-1">Expires</p>
+                                <p className="font-medium text-light-text dark:text-dark-text">{account.expirationDate}</p>
                             </div>
                         )}
                         {account.last4 && (
                             <div>
-                                 <p className="text-xs text-light-text-secondary dark:text-dark-text-secondary mb-1">Last 4 Digits</p>
-                                 <p className="font-medium text-light-text dark:text-dark-text font-mono">**** {account.last4}</p>
+                                <p className="text-xs text-light-text-secondary dark:text-dark-text-secondary mb-1">Last 4 Digits</p>
+                                <p className="font-medium text-light-text dark:text-dark-text font-mono">**** {account.last4}</p>
                             </div>
                         )}
                     </>
                 )}
+
+                {/* Linked Cards as grid items */}
+                {hasLinkedCards && linkedCreditCards.map(card => (
+                    <div key={card.id} className="col-span-1 min-w-[200px]">
+                        <p className="text-xs text-light-text-secondary dark:text-dark-text-secondary mb-1">Linked Credit Card</p>
+                        <div className="flex items-center justify-between bg-white dark:bg-black/20 p-3 rounded-lg border border-black/5 dark:border-white/5 hover:border-primary-500/30 transition-colors group cursor-pointer" onClick={() => setViewingAccountId(card.id)}>
+                            <div className="flex items-center gap-3 min-w-0">
+                                <div className="w-8 h-8 rounded-full bg-orange-100 dark:bg-orange-900/30 flex items-center justify-center text-orange-600 dark:text-orange-400 shrink-0">
+                                    <span className="material-symbols-outlined text-sm">credit_card</span>
+                                </div>
+                                <div className="min-w-0">
+                                    <span className="font-medium text-sm text-light-text dark:text-dark-text group-hover:text-primary-500 group-hover:underline text-left truncate block">
+                                        {card.name}
+                                    </span>
+                                    <p className={`text-xs font-mono ${card.balance < 0 ? 'text-red-500' : 'text-light-text-secondary dark:text-dark-text-secondary'}`}>
+                                        {formatCurrency(card.balance, card.currency)}
+                                    </p>
+                                </div>
+                            </div>
+                            <span className="material-symbols-outlined text-lg text-light-text-secondary dark:text-dark-text-secondary group-hover:text-primary-500">chevron_right</span>
+                        </div>
+                    </div>
+                ))}
             </div>
-            {linkedCreditCards.length > 0 && (
-                 <div className="mt-6 pt-6 border-t border-black/5 dark:border-white/5">
-                     <p className="text-xs text-light-text-secondary dark:text-dark-text-secondary mb-3 uppercase tracking-wider font-semibold">Linked Credit Cards</p>
-                     <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                         {linkedCreditCards.map(card => (
-                              <div key={card.id} className="flex items-center justify-between bg-white dark:bg-black/20 p-3 rounded-lg border border-black/5 dark:border-white/5 hover:border-primary-500/30 transition-colors group">
-                                 <div className="flex items-center gap-3">
-                                      <div className="w-8 h-8 rounded-full bg-orange-100 dark:bg-orange-900/30 flex items-center justify-center text-orange-600 dark:text-orange-400 shrink-0">
-                                         <span className="material-symbols-outlined text-sm">credit_card</span>
-                                     </div>
-                                     <div>
-                                         <button onClick={() => setViewingAccountId(card.id)} className="font-medium text-sm text-light-text dark:text-dark-text hover:text-primary-500 hover:underline text-left truncate max-w-[150px] sm:max-w-[200px] block">
-                                             {card.name}
-                                         </button>
-                                         <p className={`text-xs font-mono ${card.balance < 0 ? 'text-red-500' : 'text-light-text-secondary dark:text-dark-text-secondary'}`}>
-                                             {formatCurrency(card.balance, card.currency)}
-                                         </p>
-                                     </div>
-                                 </div>
-                                  <button onClick={() => setViewingAccountId(card.id)} className="text-light-text-secondary dark:text-dark-text-secondary hover:text-primary-500 p-1 rounded-full">
-                                      <span className="material-symbols-outlined text-lg">chevron_right</span>
-                                  </button>
-                              </div>
-                         ))}
-                     </div>
-                 </div>
-            )}
         </Card>
       )}
 
