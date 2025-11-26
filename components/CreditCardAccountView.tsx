@@ -25,7 +25,7 @@ const getCardGradient = (id: string) => {
         "from-orange-500 to-amber-500",
         "from-blue-500 to-cyan-500",
         "from-fuchsia-600 to-purple-600",
-        "from-indigo-500 to-blue-600",
+        "from-indigo-500 to-blue-500",
         "from-red-500 to-orange-500",
         "from-teal-400 to-emerald-600",
         "from-violet-600 to-fuchsia-500"
@@ -281,40 +281,45 @@ const CreditCardAccountView: React.FC<CreditCardAccountViewProps> = ({
           <div className="lg:col-span-2 space-y-8">
               {statementInfo && (
                   <Card>
-                      <h3 className="text-lg font-semibold text-light-text dark:text-dark-text mb-6">Billing Cycle</h3>
-                      <div className="relative pt-6 pb-2 px-8">
-                          {/* Progress Bar Line */}
-                          <div className="absolute top-1/2 left-8 right-8 h-1 bg-gray-200 dark:bg-gray-700 -translate-y-1/2 z-0"></div>
+                      <h3 className="text-lg font-semibold text-light-text dark:text-dark-text mb-4">Billing Cycle</h3>
+                      
+                      <div className="relative mt-8 mb-12 mx-4 select-none">
+                          {/* Gray Background Line */}
+                          <div className="absolute top-1/2 left-0 right-0 h-1 bg-gray-200 dark:bg-gray-700 -translate-y-1/2 rounded-full"></div>
+                          
+                          {/* Colored Progress Line */}
                           <div 
-                            className="absolute top-1/2 left-8 h-1 bg-primary-500 -translate-y-1/2 z-0 transition-all duration-1000"
-                            style={{ width: `calc(${statementInfo.cycleProgress}% - 4rem)` }}
+                            className="absolute top-1/2 left-0 h-1 bg-primary-500 -translate-y-1/2 rounded-full transition-all duration-1000"
+                            style={{ width: `${statementInfo.cycleProgress}%` }}
                           ></div>
 
-                          <div className="flex justify-between relative z-10">
+                          {/* Nodes Container */}
+                          <div className="relative flex justify-between w-full h-full z-10">
+                              
                               {/* Start Node */}
-                              <div className="flex flex-col items-center">
-                                  <div className="w-4 h-4 rounded-full bg-primary-500 border-2 border-white dark:border-dark-card shadow-sm"></div>
-                                  <div className="mt-3 text-center absolute top-4 w-32 -ml-1">
+                              <div className="relative flex flex-col items-center group">
+                                  <div className="w-4 h-4 rounded-full bg-primary-500 border-2 border-white dark:border-dark-card shadow-sm z-10"></div>
+                                  <div className="absolute top-6 left-1/2 -translate-x-1/2 w-32 text-center">
                                       <p className="text-xs font-bold text-light-text dark:text-dark-text">Statement Open</p>
                                       <p className="text-xs text-light-text-secondary dark:text-dark-text-secondary">{statementInfo.start.toLocaleDateString(undefined, { month: 'short', day: 'numeric' })}</p>
                                   </div>
                               </div>
 
-                              {/* Today Node (Absolute positioned based on progress) */}
+                              {/* Today Node (Absolute positioning) */}
                               <div 
-                                className="absolute top-1/2 -translate-y-1/2 flex flex-col items-center transition-all duration-1000"
-                                style={{ left: `${statementInfo.cycleProgress}%`, transform: 'translate(-50%, -50%)' }}
+                                className="absolute top-1/2 -translate-y-1/2 -translate-x-1/2 flex flex-col items-center z-20 pointer-events-none"
+                                style={{ left: `${statementInfo.cycleProgress}%` }}
                               >
-                                  <div className="w-6 h-6 rounded-full bg-white dark:bg-dark-card border-4 border-primary-500 shadow-md mb-8"></div>
-                                  <div className="absolute top-8 text-center w-32">
-                                      <p className="text-xs font-bold text-primary-600 dark:text-primary-400 uppercase tracking-wider bg-primary-50 dark:bg-primary-900/50 px-2 py-0.5 rounded-full inline-block">Today</p>
+                                  <div className="w-6 h-6 rounded-full bg-white dark:bg-dark-card border-4 border-primary-500 shadow-md"></div>
+                                  <div className="absolute top-8 left-1/2 -translate-x-1/2 w-32 text-center">
+                                      <p className="text-[10px] font-bold text-primary-600 dark:text-primary-400 uppercase tracking-wider bg-primary-50 dark:bg-primary-900/50 px-2 py-0.5 rounded-full inline-block shadow-sm border border-primary-100 dark:border-primary-800">Today</p>
                                   </div>
                               </div>
 
                               {/* End Node */}
-                              <div className="flex flex-col items-center">
-                                  <div className={`w-4 h-4 rounded-full border-2 border-white dark:border-dark-card shadow-sm ${statementInfo.cycleProgress >= 100 ? 'bg-primary-500' : 'bg-gray-300 dark:bg-gray-600'}`}></div>
-                                  <div className="mt-3 text-center absolute top-4 w-32 -ml-20">
+                              <div className="relative flex flex-col items-center">
+                                  <div className={`w-4 h-4 rounded-full border-2 border-white dark:border-dark-card shadow-sm z-10 ${statementInfo.cycleProgress >= 100 ? 'bg-primary-500' : 'bg-gray-300 dark:bg-gray-600'}`}></div>
+                                  <div className="absolute top-6 left-1/2 -translate-x-1/2 w-32 text-center">
                                       <p className="text-xs font-bold text-light-text dark:text-dark-text">Statement Close</p>
                                       <p className="text-xs text-light-text-secondary dark:text-dark-text-secondary">{statementInfo.end.toLocaleDateString(undefined, { month: 'short', day: 'numeric' })}</p>
                                       <p className="text-[10px] font-semibold text-primary-500 mt-0.5">{statementInfo.daysToClose > 0 ? `${statementInfo.daysToClose} days left` : 'Closing today'}</p>
@@ -323,7 +328,7 @@ const CreditCardAccountView: React.FC<CreditCardAccountViewProps> = ({
                           </div>
                       </div>
                       
-                      <div className="mt-16 pt-6 border-t border-black/5 dark:border-white/5 flex justify-end">
+                      <div className="pt-6 border-t border-black/5 dark:border-white/5 flex justify-end">
                           <div className="text-right">
                               <p className="text-xs text-light-text-secondary dark:text-dark-text-secondary font-medium uppercase tracking-wide">Payment Due Date</p>
                               <div className="flex items-center justify-end gap-2">
@@ -337,25 +342,27 @@ const CreditCardAccountView: React.FC<CreditCardAccountViewProps> = ({
               )}
 
               {/* Monthly Spending Trend */}
-              <Card className="h-80">
+              <Card className="h-80 flex flex-col">
                    <h3 className="text-lg font-semibold text-light-text dark:text-dark-text mb-4">Spending Trend (6 Months)</h3>
-                   <ResponsiveContainer width="100%" height="100%">
-                        <BarChart data={monthlySpendingData} margin={{ top: 10, right: 10, left: -20, bottom: 0 }}>
-                            <CartesianGrid strokeDasharray="3 3" strokeOpacity={0.1} vertical={false} />
-                            <XAxis dataKey="name" axisLine={false} tickLine={false} tick={{ fill: 'currentColor', opacity: 0.6, fontSize: 12 }} />
-                            <YAxis axisLine={false} tickLine={false} tick={{ fill: 'currentColor', opacity: 0.6, fontSize: 12 }} />
-                            <Tooltip 
-                                cursor={{ fill: 'transparent' }}
-                                contentStyle={{ backgroundColor: 'var(--light-card)', borderColor: 'rgba(0,0,0,0.1)', borderRadius: '8px', color: 'var(--light-text)' }}
-                                formatter={(value: number) => [formatCurrency(value, account.currency), 'Spent']}
-                            />
-                            <Bar dataKey="value" radius={[4, 4, 0, 0]}>
-                                {monthlySpendingData.map((entry, index) => (
-                                    <Cell key={`cell-${index}`} fill={index === monthlySpendingData.length - 1 ? '#3b82f6' : '#cbd5e1'} />
-                                ))}
-                            </Bar>
-                        </BarChart>
-                   </ResponsiveContainer>
+                   <div className="flex-grow w-full min-h-0">
+                     <ResponsiveContainer width="100%" height="100%">
+                          <BarChart data={monthlySpendingData} margin={{ top: 10, right: 10, left: -20, bottom: 20 }}>
+                              <CartesianGrid strokeDasharray="3 3" strokeOpacity={0.1} vertical={false} />
+                              <XAxis dataKey="name" axisLine={false} tickLine={false} tick={{ fill: 'currentColor', opacity: 0.6, fontSize: 12 }} />
+                              <YAxis axisLine={false} tickLine={false} tick={{ fill: 'currentColor', opacity: 0.6, fontSize: 12 }} />
+                              <Tooltip 
+                                  cursor={{ fill: 'transparent' }}
+                                  contentStyle={{ backgroundColor: 'var(--light-card)', borderColor: 'rgba(0,0,0,0.1)', borderRadius: '8px', color: 'var(--light-text)' }}
+                                  formatter={(value: number) => [formatCurrency(value, account.currency), 'Spent']}
+                              />
+                              <Bar dataKey="value" radius={[4, 4, 0, 0]}>
+                                  {monthlySpendingData.map((entry, index) => (
+                                      <Cell key={`cell-${index}`} fill={index === monthlySpendingData.length - 1 ? '#3b82f6' : '#cbd5e1'} />
+                                  ))}
+                              </Bar>
+                          </BarChart>
+                     </ResponsiveContainer>
+                   </div>
               </Card>
           </div>
 
