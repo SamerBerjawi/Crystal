@@ -159,8 +159,10 @@ interface ErrorBoundaryState {
 }
 
 class ErrorBoundary extends Component<ErrorBoundaryProps, ErrorBoundaryState> {
+  // FIX: Explicitly declare state property to fix TS error "Property 'state' does not exist on type 'ErrorBoundary'"
   public state: ErrorBoundaryState = { hasError: false, message: undefined };
-  // FIX: Explicitly declare props to satisfy TypeScript in environments where it might be missing on the superclass type
+  
+  // FIX: Explicitly declare props property to fix TS error "Property 'props' does not exist on type 'ErrorBoundary'"
   declare props: Readonly<ErrorBoundaryProps>;
 
   constructor(props: ErrorBoundaryProps) {
@@ -1461,8 +1463,8 @@ const App: React.FC = () => {
     [accounts, accountOrder, handleSaveAccount]
   );
   const transactionsContextValue = useMemo(
-    () => ({ transactions, saveTransaction: handleSaveTransaction, deleteTransactions: handleDeleteTransactions }),
-    [transactions, handleDeleteTransactions, handleSaveTransaction]
+    () => ({ transactions, investmentTransactions, saveTransaction: handleSaveTransaction, deleteTransactions: handleDeleteTransactions, saveInvestmentTransaction: handleSaveInvestmentTransaction, deleteInvestmentTransaction: handleDeleteInvestmentTransaction }),
+    [transactions, investmentTransactions, handleDeleteTransactions, handleSaveTransaction, handleSaveInvestmentTransaction, handleDeleteInvestmentTransaction]
   );
   const warrantsContextValue = useMemo(
     () => ({ warrants, prices: warrantPrices }),

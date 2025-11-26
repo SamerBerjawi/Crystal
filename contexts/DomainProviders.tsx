@@ -1,11 +1,14 @@
 import React, { createContext, useContext, useMemo, ReactNode } from 'react';
-import { Account, AppPreferences, Transaction, Warrant } from '../types';
+import { Account, AppPreferences, Transaction, Warrant, InvestmentTransaction } from '../types';
 
 export interface TransactionsContextValue {
   transactions: Transaction[];
+  investmentTransactions: InvestmentTransaction[];
   digest: string;
   saveTransaction: (txs: (Omit<Transaction, 'id'> & { id?: string })[], idsToDelete?: string[]) => void;
   deleteTransactions: (transactionIds: string[]) => void;
+  saveInvestmentTransaction: (invTx: Omit<InvestmentTransaction, 'id'> & { id?: string }, cashTx?: Omit<Transaction, 'id'>, newAccount?: Omit<Account, 'id'>) => void;
+  deleteInvestmentTransaction: (id: string) => void;
 }
 
 export interface AccountsContextValue {

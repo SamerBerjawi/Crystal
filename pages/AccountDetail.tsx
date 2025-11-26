@@ -16,7 +16,9 @@ const LoanAccountView = React.lazy(() => import('../components/LoanAccountView')
 const VehicleAccountView = React.lazy(() => import('../components/VehicleAccountView'));
 const CreditCardAccountView = React.lazy(() => import('../components/CreditCardAccountView'));
 const SavingsAccountView = React.lazy(() => import('../components/SavingsAccountView'));
+const InvestmentAccountView = React.lazy(() => import('../components/InvestmentAccountView'));
 const GeneralAccountView = React.lazy(() => import('../components/GeneralAccountView'));
+const OtherAccountView = React.lazy(() => import('../components/OtherAccountView'));
 
 const AccountDetail: React.FC<{
     account: Account;
@@ -213,6 +215,23 @@ const AccountDetail: React.FC<{
                         displayTransactionsList={displayTransactionsList}
                         transactions={accountTransactions}
                         allTransactions={allTransactions}
+                        allCategories={allCategories}
+                        onTransactionClick={handleTransactionClick}
+                    />
+                );
+            case 'Investment':
+                return (
+                    <InvestmentAccountView 
+                        {...commonProps}
+                    />
+                );
+            case 'Other Assets':
+            case 'Other Liabilities':
+                return (
+                     <OtherAccountView 
+                        {...commonProps}
+                        displayTransactionsList={displayTransactionsList}
+                        transactions={accountTransactions}
                         allCategories={allCategories}
                         onTransactionClick={handleTransactionClick}
                     />
