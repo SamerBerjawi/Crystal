@@ -266,8 +266,8 @@ const ForecastChart: React.FC<ForecastChartProps> = ({ data, oneTimeGoals, lowes
                             fill="#B45309" 
                             className="fill-amber-700 dark:fill-amber-400 text-xs font-bold bg-white"
                             angle={-90}
-                            dx={10}
-                            dy={20}
+                            dx={20}
+                            dy={30}
                         />
                     </ReferenceLine>
                 ))}
@@ -322,9 +322,20 @@ const ForecastChart: React.FC<ForecastChartProps> = ({ data, oneTimeGoals, lowes
                                const y = 20; // Fixed top position
                                return (
                                    <g transform={`translate(${x}, ${y})`}>
-                                       <rect x="-4" y="-15" width="20" height="20" rx="4" fill="#F59E0B" />
-                                       <text x="6" y="0" fill="white" fontSize="12" textAnchor="middle" fontWeight="bold">★</text>
-                                       <text x="0" y="0" transform="rotate(90, 10, 10)" fill="#F59E0B" fontSize="11" fontWeight="600" dy={10}>{goal.name}</text>
+                                       {/* Removed white bg rect to avoid clunky look, relying on careful placement */}
+                                       <text x="6" y="0" fill="#B45309" fontSize="12" textAnchor="middle" fontWeight="bold">★</text>
+                                       <text 
+                                            x="0" 
+                                            y="0" 
+                                            transform="rotate(90, 10, 10)" 
+                                            fill="#B45309" 
+                                            fontSize="11" 
+                                            fontWeight="600" 
+                                            dy={-5} // Position slightly to the right of the line (in rotated coords)
+                                            dx={35} // Push down to clear the star marker
+                                        >
+                                            {goal.name}
+                                        </text>
                                    </g>
                                );
                            }}

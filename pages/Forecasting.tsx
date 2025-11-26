@@ -419,66 +419,56 @@ const Forecasting: React.FC<ForecastingProps> = ({ activeGoalIds, setActiveGoalI
             )}
 
             <header className="flex flex-col gap-6">
-                <div>
-                    <h1 className="text-3xl font-bold text-light-text dark:text-dark-text">Forecasting</h1>
-                    <p className="text-light-text-secondary dark:text-dark-text-secondary mt-1">Project your cash flow and plan for financial goals.</p>
-                </div>
-                
                  {/* Enhanced Control Bar */}
-                <div className="bg-white dark:bg-dark-card p-5 rounded-2xl border border-gray-200 dark:border-gray-700 shadow-sm flex flex-col xl:flex-row items-start xl:items-center gap-6">
+                <div className="bg-white dark:bg-dark-card p-4 rounded-2xl border border-gray-200 dark:border-gray-700 shadow-sm grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-4 items-center">
                     
-                    {/* Filter Group 1: Scope */}
-                    <div className="flex flex-col sm:flex-row gap-6 w-full xl:w-auto flex-1">
-                        <div className="flex-1 sm:flex-none min-w-[240px]">
-                            <label className="text-xs font-bold text-gray-500 dark:text-gray-400 uppercase tracking-wider mb-2 block">Accounts</label>
-                            <MultiAccountFilter accounts={accounts} selectedAccountIds={selectedAccountIds} setSelectedAccountIds={setSelectedAccountIds} />
-                        </div>
+                    {/* Group 1: Scope */}
+                    <div className="min-w-[200px]">
+                        <label className="text-xs font-bold text-gray-500 dark:text-gray-400 uppercase tracking-wider mb-2 block">Accounts</label>
+                        <MultiAccountFilter accounts={accounts} selectedAccountIds={selectedAccountIds} setSelectedAccountIds={setSelectedAccountIds} />
+                    </div>
 
-                        <div className="flex-1 sm:flex-none">
-                            <label className="text-xs font-bold text-gray-500 dark:text-gray-400 uppercase tracking-wider mb-2 block">Forecast Period</label>
-                             <div className="flex bg-gray-100 dark:bg-gray-800 p-1 rounded-lg">
-                                {durationOptions.map(opt => (
-                                    <button
-                                        key={opt.value}
-                                        onClick={() => setForecastDuration(opt.value)}
-                                        className={`px-3 py-1.5 text-sm font-medium rounded-md transition-all ${forecastDuration === opt.value ? 'bg-white dark:bg-gray-700 shadow-sm text-gray-900 dark:text-white' : 'text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-200'}`}
-                                    >
-                                        {opt.label}
-                                    </button>
-                                ))}
-                            </div>
+                    {/* Group 2: Forecast Period */}
+                    <div>
+                        <label className="text-xs font-bold text-gray-500 dark:text-gray-400 uppercase tracking-wider mb-2 block">Forecast Period</label>
+                        <div className="flex bg-white border border-gray-200 dark:bg-dark-card dark:border-gray-700 p-1 rounded-lg">
+                            {durationOptions.map(opt => (
+                                <button
+                                    key={opt.value}
+                                    onClick={() => setForecastDuration(opt.value)}
+                                    className={`flex-1 px-3 py-1.5 text-sm font-medium rounded-md transition-all ${forecastDuration === opt.value ? 'bg-amber-100 text-amber-900 dark:bg-amber-900/50 dark:text-amber-100 shadow-sm' : 'text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-200'}`}
+                                >
+                                    {opt.label}
+                                </button>
+                            ))}
                         </div>
                     </div>
 
-                     <div className="w-full h-px xl:w-px xl:h-12 bg-gray-200 dark:bg-gray-700 hidden md:block"></div>
-
-                    {/* Filter Group 2: Display */}
-                    <div className="flex flex-wrap items-end gap-4 w-full xl:w-auto">
-                         <div>
-                            <label className="text-xs font-bold text-gray-500 dark:text-gray-400 uppercase tracking-wider mb-2 block">Chart Mode</label>
-                            <div className="flex bg-gray-100 dark:bg-gray-800 p-1 rounded-lg">
-                                <button onClick={() => setShowIndividualLines(false)} className={`px-4 py-1.5 text-sm font-medium rounded-md transition-all ${!showIndividualLines ? 'bg-white dark:bg-gray-700 shadow-sm text-gray-900 dark:text-white' : 'text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-200'}`}>Total</button>
-                                <button onClick={() => setShowIndividualLines(true)} className={`px-4 py-1.5 text-sm font-medium rounded-md transition-all ${showIndividualLines ? 'bg-white dark:bg-gray-700 shadow-sm text-gray-900 dark:text-white' : 'text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-200'}`}>Split</button>
-                            </div>
+                    {/* Group 3: Chart Mode */}
+                    <div>
+                        <label className="text-xs font-bold text-gray-500 dark:text-gray-400 uppercase tracking-wider mb-2 block">Chart Mode</label>
+                        <div className="flex bg-white border border-gray-200 dark:bg-dark-card dark:border-gray-700 p-1 rounded-lg">
+                            <button onClick={() => setShowIndividualLines(false)} className={`flex-1 px-4 py-1.5 text-sm font-medium rounded-md transition-all ${!showIndividualLines ? 'bg-amber-100 text-amber-900 dark:bg-amber-900/50 dark:text-amber-100 shadow-sm' : 'text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-200'}`}>Total</button>
+                            <button onClick={() => setShowIndividualLines(true)} className={`flex-1 px-4 py-1.5 text-sm font-medium rounded-md transition-all ${showIndividualLines ? 'bg-amber-100 text-amber-900 dark:bg-amber-900/50 dark:text-amber-100 shadow-sm' : 'text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-200'}`}>Split</button>
                         </div>
+                    </div>
 
-                        <div>
-                             <label className="text-xs font-bold text-gray-500 dark:text-gray-400 uppercase tracking-wider mb-2 block">Overlay</label>
-                            <button 
+                    {/* Group 4: Overlay & Actions */}
+                    <div>
+                        <label className="text-xs font-bold text-gray-500 dark:text-gray-400 uppercase tracking-wider mb-2 block">Goals & Actions</label>
+                        <div className="flex gap-3">
+                             <button 
                                 onClick={() => setShowGoalLines(!showGoalLines)}
-                                className={`h-[36px] px-4 rounded-lg border transition-colors flex items-center gap-2 ${showGoalLines ? 'bg-amber-50 border-amber-200 text-amber-700 dark:bg-amber-900/30 dark:border-amber-800 dark:text-amber-400' : 'border-gray-200 dark:border-gray-700 text-gray-500 hover:bg-gray-50 dark:hover:bg-white/5'}`}
+                                className={`h-10 px-4 flex-1 rounded-lg border transition-colors flex items-center justify-center gap-2 ${showGoalLines ? 'bg-amber-100 border-amber-200 text-amber-900 dark:bg-amber-900/50 dark:border-amber-800 dark:text-amber-100' : 'border-gray-200 dark:border-gray-700 text-gray-500 hover:bg-gray-50 dark:hover:bg-white/5'}`}
                             >
                                 <span className={`material-symbols-outlined text-xl ${showGoalLines ? 'material-symbols-filled' : ''}`}>flag</span>
-                                <span className="text-sm font-medium">Goals</span>
+                                <span className="text-sm font-medium">Overlay</span>
+                            </button>
+                            <button onClick={() => handleOpenModal()} className={`${BTN_PRIMARY_STYLE} h-10 flex-1 flex items-center justify-center gap-2 px-4 shadow-lg shadow-primary-500/20`}>
+                                <span className="material-symbols-outlined text-lg">add_circle</span>
+                                Add Goal
                             </button>
                         </div>
-                    </div>
-
-                    <div className="flex-grow xl:flex-grow-0 text-right">
-                         <button onClick={() => handleOpenModal()} className={`${BTN_PRIMARY_STYLE} h-[42px] flex items-center gap-2 px-6 shadow-lg shadow-primary-500/20`}>
-                            <span className="material-symbols-outlined">add_circle</span>
-                            Add Goal
-                        </button>
                     </div>
                 </div>
             </header>
