@@ -1,7 +1,7 @@
 
 import React, { useState, useEffect, useMemo, useRef } from 'react';
 import Modal from './Modal';
-import { Account, AccountType, Currency, InvestmentSubType, PropertyType, FuelType, VehicleOwnership, RecurrenceFrequency } from '../types';
+import { Account, AccountType, Currency, InvestmentSubType, PropertyType, FuelType, VehicleOwnership, RecurrenceFrequency, MileageLog } from '../types';
 import { ALL_ACCOUNT_TYPES, CURRENCIES, ACCOUNT_TYPE_STYLES, INPUT_BASE_STYLE, BTN_PRIMARY_STYLE, BTN_SECONDARY_STYLE, SELECT_ARROW_STYLE, SELECT_WRAPPER_STYLE, ACCOUNT_ICON_LIST, INVESTMENT_SUB_TYPES, PROPERTY_TYPES, INVESTMENT_SUB_TYPE_STYLES, FUEL_TYPES, VEHICLE_OWNERSHIP_TYPES, CHECKBOX_STYLE, FREQUENCIES, CARD_NETWORKS } from '../constants';
 import IconPicker from './IconPicker';
 import { v4 as uuidv4 } from 'uuid';
@@ -103,4 +103,746 @@ const AddAccountModal: React.FC<AddAccountModalProps> = ({ onClose, onAdd, accou
   const [propertyTaxDate, setPropertyTaxDate] = useState('');
   const [insuranceProvider, setInsuranceProvider] = useState('');
   const [insurancePolicyNumber, setInsurancePolicyNumber] = useState('');
-  const
+  const [insuranceAmount, setInsuranceAmount] = useState('');
+  const [insuranceFrequency, setInsuranceFrequency] = useState<RecurrenceFrequency>('yearly');
+  const [insurancePaymentDate, setInsurancePaymentDate] = useState('');
+  const [hoaFeeAmount, setHoaFeeAmount] = useState('');
+  const [hoaFeeFrequency, setHoaFeeFrequency] = useState<RecurrenceFrequency>('monthly');
+  const [isRental, setIsRental] = useState(false);
+  const [rentalIncomeAmount, setRentalIncomeAmount] = useState('');
+  const [rentalIncomeFrequency, setRentalIncomeFrequency] = useState<RecurrenceFrequency>('monthly');
+
+
+  useEffect(() => {
+    if (type === 'Investment') {
+      setIcon(INVESTMENT_SUB_TYPE_STYLES[subType].icon);
+    } else {
+      setIcon(ACCOUNT_TYPE_STYLES[type].icon);
+    }
+    
+    // Auto-enable hasCard for Credit Card type
+    if (type === 'Credit Card') {
+        setHasCard(true);
+    } else {
+        setHasCard(false);
+    }
+  }, [type, subType]);
+  
+  // Loan amount calculation logic
+  useEffect(() => {
+    const total = parseFloat(totalAmount);
+    const principal = parseFloat(principalAmount);
+    const interest = parseFloat(interestAmount);
+
+    if (lastEditedLoanField === 'total') {
+        if (!isNaN(total) && !isNaN(principal)) {
+            setInterestAmount((total - principal).toFixed(2));
+        }
+    } else if (lastEditedLoanField === 'principal' || lastEditedLoanField === 'interest') {
+        if (!isNaN(principal) && !isNaN(interest)) {
+            setTotalAmount((principal + interest).toFixed(2));
+        }
+    }
+  }, [totalAmount, principalAmount, interestAmount, lastEditedLoanField]);
+
+
+  const iconColorClass = useMemo(() => {
+    if (type === 'Investment') {
+        return INVESTMENT_SUB_TYPE_STYLES[subType]?.color || ACCOUNT_TYPE_STYLES.Investment.color;
+    }
+    return ACCOUNT_TYPE_STYLES[type]?.color || 'text-gray-500';
+  }, [type, subType]);
+
+  const groupedDebitAccounts = useMemo(() => {
+    const debitAccounts = accounts.filter(acc => acc.type === 'Checking' || acc.type === 'Savings');
+    const groups: Record<string, Account[]> = {};
+    debitAccounts.forEach(acc => {
+        if (!groups[acc.type]) groups[acc.type] = [];
+        groups[acc.type].push(acc);
+    });
+    return groups;
+  }, [accounts]);
+
+  const groupedLoanAccounts = useMemo(() => {
+    const loanAccounts = accounts.filter(acc => acc.type === 'Loan');
+    const groups: Record<string, Account[]> = {};
+    loanAccounts.forEach(acc => {
+        if (!groups[acc.type]) groups[acc.type] = [];
+        groups[acc.type].push(acc);
+    });
+    return groups;
+  }, [accounts]);
+
+  const isLoanForPropertyLinked = useMemo(() => type === 'Property' && !!linkedLoanId, [type, linkedLoanId]);
+  
+  useEffect(() => {
+    if (type === 'Property' && linkedLoanId) {
+        const linkedLoan = accounts.find(a => a.id === linkedLoanId);
+        if (linkedLoan) {
+            const price = (linkedLoan.principalAmount || 0) + (linkedLoan.downPayment || 0);
+            setPurchasePrice(String(price));
+        }
+    }
+  }, [linkedLoanId, type, accounts]);
+
+  const handleImageUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (file) {
+        const reader = new FileReader();
+        reader.onloadend = () => {
+            setVehicleImage(reader.result as string);
+        };
+        reader.readAsDataURL(file);
+    }
+  };
+
+  const handleSubmit = (e: React.FormEvent) => {
+    e.preventDefault();
+    
+    let mileageLogs: MileageLog[] = [];
+    if (type === 'Vehicle' && currentMileage) {
+        mileageLogs = [{
+            id: `log-${uuidv4()}`,
+            date: new Date().toISOString().split('T')[0],
+            reading: parseInt(currentMileage, 10)
+        }];
+    }
+
+    const newAccount: Omit<Account, 'id'> = {
+      name,
+      type,
+      balance: type === 'Loan' ? -Math.abs(principalAmount !== '' ? parseFloat(principalAmount) : 0) : (type === 'Lending' ? Math.abs(principalAmount !== '' ? parseFloat(principalAmount) : 0) : (balance !== '' ? parseFloat(balance) : 0)),
+      currency,
+      icon,
+      last4: hasCard && last4 ? last4 : undefined,
+      financialInstitution: ['Checking', 'Savings', 'Credit Card'].includes(type) && financialInstitution ? financialInstitution : undefined,
+      isPrimary,
+      accountNumber: accountNumber || undefined,
+      routingNumber: routingNumber || undefined,
+      apy: apy !== '' ? parseFloat(apy) : undefined,
+      openingDate: openingDate || undefined,
+      // Card details
+      expirationDate: hasCard && expirationDate ? expirationDate : undefined,
+      cardNetwork: hasCard && cardNetwork ? cardNetwork : undefined,
+      cardholderName: hasCard && cardholderName ? cardholderName : undefined,
+
+      // Conditionally add new fields
+      subType: type === 'Investment' ? subType : undefined,
+      totalAmount: (type === 'Loan' || type === 'Lending') && totalAmount !== '' ? parseFloat(totalAmount) : undefined,
+      principalAmount: (type === 'Loan' || type === 'Lending') && principalAmount !== '' ? parseFloat(principalAmount) : undefined,
+      interestAmount: (type === 'Loan' || type === 'Lending') && interestAmount !== '' ? parseFloat(interestAmount) : undefined,
+      downPayment: type === 'Loan' && downPayment !== '' ? parseFloat(downPayment) : undefined,
+      duration: (type === 'Loan' || type === 'Lending') && duration !== '' ? parseInt(duration, 10) : undefined,
+      interestRate: (type === 'Loan' || type === 'Lending') && interestRate !== '' ? parseFloat(interestRate) : undefined,
+      loanStartDate: (type === 'Loan' || type === 'Lending') ? loanStartDate : undefined,
+      monthlyPayment: (type === 'Loan' || type === 'Lending') && monthlyPayment !== '' ? parseFloat(monthlyPayment) : undefined,
+      paymentDayOfMonth: (type === 'Loan' || type === 'Lending') && paymentDayOfMonth !== '' ? parseInt(paymentDayOfMonth, 10) : undefined,
+      linkedAccountId: (type === 'Loan' || type === 'Lending') ? linkedAccountId || undefined : undefined,
+      make: type === 'Vehicle' ? make || undefined : undefined,
+      model: type === 'Vehicle' ? model || undefined : undefined,
+      year: type === 'Vehicle' && year !== '' ? parseInt(year, 10) : undefined,
+      licensePlate: type === 'Vehicle' ? licensePlate || undefined : undefined,
+      registrationCountryCode: type === 'Vehicle' ? registrationCountryCode || undefined : undefined,
+      vin: type === 'Vehicle' ? vin || undefined : undefined,
+      fuelType: type === 'Vehicle' ? fuelType : undefined,
+      ownership: type === 'Vehicle' ? vehicleOwnership : undefined,
+      purchaseDate: type === 'Vehicle' && vehicleOwnership === 'Owned' && purchaseDate ? purchaseDate : undefined,
+      leaseProvider: type === 'Vehicle' && vehicleOwnership === 'Leased' && leaseProvider ? leaseProvider : undefined,
+      leaseStartDate: type === 'Vehicle' && vehicleOwnership === 'Leased' && leaseStartDate ? leaseStartDate : undefined,
+      leaseEndDate: type === 'Vehicle' && vehicleOwnership === 'Leased' && leaseEndDate ? leaseEndDate : undefined,
+      annualMileageAllowance: type === 'Vehicle' && vehicleOwnership === 'Leased' && annualMileageAllowance !== '' ? parseInt(annualMileageAllowance, 10) : undefined,
+      leasePaymentAmount: type === 'Vehicle' && vehicleOwnership === 'Leased' && leasePaymentAmount !== '' ? parseFloat(leasePaymentAmount) : undefined,
+      leasePaymentDay: type === 'Vehicle' && vehicleOwnership === 'Leased' && leasePaymentDay !== '' ? parseInt(leasePaymentDay, 10) : undefined,
+      leasePaymentAccountId: type === 'Vehicle' && vehicleOwnership === 'Leased' && leasePaymentAccountId ? leasePaymentAccountId : undefined,
+      mileageLogs: type === 'Vehicle' ? mileageLogs : undefined,
+      imageUrl: type === 'Vehicle' ? vehicleImage || undefined : undefined,
+      address: type === 'Property' ? address || undefined : undefined,
+      propertyType: type === 'Property' ? propertyType : undefined,
+      purchasePrice: (type === 'Vehicle' || (type === 'Property' && !isLoanForPropertyLinked)) && purchasePrice !== '' ? parseFloat(purchasePrice) : undefined,
+      principalOwned: type === 'Property' && !isLoanForPropertyLinked && principalOwned !== '' ? parseFloat(principalOwned) : undefined,
+      linkedLoanId: type === 'Property' ? linkedLoanId || undefined : undefined,
+      propertySize: propertySize !== '' ? parseFloat(propertySize) : undefined,
+      yearBuilt: yearBuilt !== '' ? parseInt(yearBuilt, 10) : undefined,
+      floors: floors !== '' ? parseInt(floors, 10) : undefined,
+      bedrooms: bedrooms !== '' ? parseInt(bedrooms, 10) : undefined,
+      bathrooms: bathrooms !== '' ? parseInt(bathrooms, 10) : undefined,
+      hasBasement,
+      hasAttic,
+      indoorParkingSpaces: indoorParkingSpaces !== '' ? parseInt(indoorParkingSpaces, 10) : undefined,
+      outdoorParkingSpaces: outdoorParkingSpaces !== '' ? parseInt(outdoorParkingSpaces, 10) : undefined,
+      hasGarden,
+      gardenSize: hasGarden && gardenSize !== '' ? parseFloat(gardenSize) : undefined,
+      hasTerrace,
+      terraceSize: hasTerrace && terraceSize !== '' ? parseFloat(terraceSize) : undefined,
+      propertyTaxAmount: type === 'Property' && propertyTaxAmount !== '' ? parseFloat(propertyTaxAmount) : undefined,
+      propertyTaxDate: type === 'Property' ? propertyTaxDate || undefined : undefined,
+      insuranceProvider: type === 'Property' ? insuranceProvider || undefined : undefined,
+      insurancePolicyNumber: type === 'Property' ? insurancePolicyNumber || undefined : undefined,
+      insuranceAmount: type === 'Property' && insuranceAmount !== '' ? parseFloat(insuranceAmount) : undefined,
+      insuranceFrequency: type === 'Property' ? insuranceFrequency : undefined,
+      insurancePaymentDate: type === 'Property' ? insurancePaymentDate || undefined : undefined,
+      hoaFeeAmount: type === 'Property' && hoaFeeAmount !== '' ? parseFloat(hoaFeeAmount) : undefined,
+      hoaFeeFrequency: type === 'Property' ? hoaFeeFrequency : undefined,
+      isRental: type === 'Property' ? isRental : undefined,
+      rentalIncomeAmount: type === 'Property' && isRental && rentalIncomeAmount !== '' ? parseFloat(rentalIncomeAmount) : undefined,
+      rentalIncomeFrequency: type === 'Property' && isRental ? rentalIncomeFrequency : undefined,
+      notes: (type === 'Other Assets' || type === 'Other Liabilities') ? notes || undefined : undefined,
+      statementStartDate: type === 'Credit Card' && statementStartDate !== '' ? parseInt(statementStartDate, 10) : undefined,
+      paymentDate: type === 'Credit Card' && paymentDate !== '' ? parseInt(paymentDate, 10) : undefined,
+      settlementAccountId: type === 'Credit Card' && settlementAccountId ? settlementAccountId : undefined,
+      creditLimit: type === 'Credit Card' && creditLimit !== '' ? parseFloat(creditLimit) : undefined,
+    };
+    onAdd(newAccount);
+  };
+  
+  const labelStyle = "block text-sm font-medium text-light-text-secondary dark:text-dark-text-secondary mb-1";
+  
+  const showBankingDetails = ['Checking', 'Savings', 'Investment', 'Credit Card', 'Lending'].includes(type);
+  const canHaveCard = ['Credit Card', 'Checking', 'Savings'].includes(type);
+
+  return (
+    <>
+      {isIconPickerOpen && <IconPicker onClose={() => setIconPickerOpen(false)} onSelect={setIcon} iconList={ACCOUNT_ICON_LIST} />}
+      <Modal onClose={onClose} title="Add New Account" size="3xl">
+        <form onSubmit={handleSubmit} className="space-y-4">
+          <div className="flex items-center gap-4">
+            <button
+              type="button"
+              onClick={() => setIconPickerOpen(true)}
+              className="flex items-center justify-center w-16 h-16 bg-light-bg dark:bg-dark-bg rounded-2xl shadow-sm hover:bg-gray-100 dark:hover:bg-white/5 transition-colors border border-black/5 dark:border-white/10"
+            >
+              <span className={`material-symbols-outlined ${iconColorClass}`} style={{ fontSize: '32px' }}>
+                {icon}
+              </span>
+            </button>
+            <div className="flex-grow">
+              <label htmlFor="account-name" className={labelStyle}>Account Name</label>
+              <input
+                id="account-name"
+                type="text"
+                value={name}
+                onChange={(e) => setName(e.target.value)}
+                className={INPUT_BASE_STYLE}
+                placeholder="e.g. Main Checking"
+                required
+              />
+            </div>
+          </div>
+
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div>
+              <label htmlFor="account-type" className={labelStyle}>Account Type</label>
+              <div className={SELECT_WRAPPER_STYLE}>
+                 <select
+                    id="account-type"
+                    value={type}
+                    onChange={(e) => setType(e.target.value as AccountType)}
+                    className={INPUT_BASE_STYLE}
+                  >
+                    {ALL_ACCOUNT_TYPES.map(t => <option key={t} value={t}>{t}</option>)}
+                  </select>
+                  <div className={SELECT_ARROW_STYLE}><span className="material-symbols-outlined">expand_more</span></div>
+              </div>
+            </div>
+            {type !== 'Loan' && type !== 'Lending' && (
+                <div>
+                  <label htmlFor="account-balance" className={labelStyle}>{(type === 'Vehicle' || type === 'Property') ? 'Current Value' : 'Current Balance'}</label>
+                  <div className="relative flex">
+                    <input
+                      id="account-balance"
+                      type="number"
+                      step="0.01"
+                      value={balance}
+                      onChange={(e) => setBalance(e.target.value)}
+                      className={`${INPUT_BASE_STYLE} rounded-r-none`}
+                      required
+                    />
+                    <div className={`${SELECT_WRAPPER_STYLE} w-24`}>
+                        <select
+                          value={currency}
+                          onChange={(e) => setCurrency(e.target.value as Currency)}
+                          className={`${INPUT_BASE_STYLE} rounded-l-none border-l-2 border-transparent`}
+                        >
+                          {CURRENCIES.map(c => <option key={c} value={c}>{c}</option>)}
+                        </select>
+                         <div className={SELECT_ARROW_STYLE}><span className="material-symbols-outlined">expand_more</span></div>
+                    </div>
+                  </div>
+                </div>
+            )}
+          </div>
+
+           {/* Dynamic fields based on type */}
+          <div className="space-y-4 p-4 bg-black/5 dark:bg-white/5 rounded-lg">
+            {['Checking', 'Savings', 'Credit Card'].includes(type) && (
+                <div>
+                    <label htmlFor="financial-institution" className={labelStyle}>Financial Institution</label>
+                    <input
+                        id="financial-institution"
+                        type="text"
+                        value={financialInstitution}
+                        onChange={(e) => setFinancialInstitution(e.target.value)}
+                        className={INPUT_BASE_STYLE}
+                        placeholder="e.g., Chase, Bank of America"
+                    />
+                </div>
+            )}
+
+            {showBankingDetails && (
+               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <div>
+                    <label htmlFor="accountNumber" className={labelStyle}>Account Number / IBAN</label>
+                    <input id="accountNumber" type="text" value={accountNumber} onChange={e => setAccountNumber(e.target.value)} className={INPUT_BASE_STYLE} placeholder="Optional" />
+                  </div>
+                  <div>
+                    <label htmlFor="routingNumber" className={labelStyle}>Routing / BIC / Sort Code</label>
+                    <input id="routingNumber" type="text" value={routingNumber} onChange={e => setRoutingNumber(e.target.value)} className={INPUT_BASE_STYLE} placeholder="Optional" />
+                  </div>
+                  {['Checking', 'Savings', 'Investment'].includes(type) && (
+                     <div>
+                        <label htmlFor="apy" className={labelStyle}>APY / Interest Rate (%)</label>
+                        <input id="apy" type="number" step="0.01" value={apy} onChange={e => setApy(e.target.value)} className={INPUT_BASE_STYLE} placeholder="e.g. 4.5" />
+                     </div>
+                  )}
+                   <div>
+                    <label htmlFor="openingDate" className={labelStyle}>Opening Date</label>
+                    <input id="openingDate" type="date" value={openingDate} onChange={e => setOpeningDate(e.target.value)} className={INPUT_BASE_STYLE} />
+                  </div>
+               </div>
+            )}
+            
+            {canHaveCard && (
+                <div className="pt-4 mt-4 border-t border-black/10 dark:border-white/10">
+                    <div className="flex items-center justify-between mb-3">
+                        <h4 className="font-semibold text-light-text dark:text-dark-text">Card Details</h4>
+                         <label className="flex items-center gap-2 cursor-pointer">
+                            <input type="checkbox" checked={hasCard} onChange={e => setHasCard(e.target.checked)} className={CHECKBOX_STYLE} />
+                            <span className="text-sm font-medium text-light-text-secondary dark:text-dark-text-secondary">Has associated card?</span>
+                        </label>
+                    </div>
+                    
+                    {hasCard && (
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-4 animate-fade-in-up">
+                            <div>
+                                <label htmlFor="cardNetwork" className={labelStyle}>Card Network</label>
+                                <div className={SELECT_WRAPPER_STYLE}>
+                                    <select id="cardNetwork" value={cardNetwork} onChange={e => setCardNetwork(e.target.value)} className={INPUT_BASE_STYLE}>
+                                        <option value="">Select Network</option>
+                                        {CARD_NETWORKS.map(net => <option key={net} value={net}>{net}</option>)}
+                                    </select>
+                                    <div className={SELECT_ARROW_STYLE}><span className="material-symbols-outlined">expand_more</span></div>
+                                </div>
+                            </div>
+                            <div>
+                                <label htmlFor="last-4" className={labelStyle}>Last 4 Digits (Optional)</label>
+                                <input
+                                    id="last-4"
+                                    type="text"
+                                    maxLength={4}
+                                    value={last4}
+                                    onChange={(e) => setLast4(e.target.value.replace(/\D/g, ''))}
+                                    className={INPUT_BASE_STYLE}
+                                    placeholder="****"
+                                />
+                            </div>
+                            <div>
+                                <label htmlFor="expirationDate" className={labelStyle}>Expiration Date (MM/YY)</label>
+                                <input id="expirationDate" type="text" value={expirationDate} onChange={e => setExpirationDate(e.target.value)} className={INPUT_BASE_STYLE} placeholder="MM/YY" />
+                            </div>
+                            <div>
+                                <label htmlFor="cardholderName" className={labelStyle}>Cardholder Name</label>
+                                <input id="cardholderName" type="text" value={cardholderName} onChange={e => setCardholderName(e.target.value)} className={INPUT_BASE_STYLE} placeholder="Name on Card" />
+                            </div>
+                        </div>
+                    )}
+                </div>
+            )}
+
+            {type === 'Investment' && (
+              <div>
+                <label htmlFor="subType" className={labelStyle}>Investment Type</label>
+                <div className={SELECT_WRAPPER_STYLE}>
+                  <select id="subType" value={subType} onChange={(e) => setSubType(e.target.value as InvestmentSubType)} className={INPUT_BASE_STYLE}>
+                    {INVESTMENT_SUB_TYPES.map(st => <option key={st} value={st}>{st}</option>)}
+                  </select>
+                  <div className={SELECT_ARROW_STYLE}><span className="material-symbols-outlined">expand_more</span></div>
+                </div>
+              </div>
+            )}
+            {(type === 'Loan' || type === 'Lending') && (
+                <div className="space-y-4">
+                  <div>
+                        <p className="font-medium mb-2">{type} Breakdown</p>
+                        <p className="text-xs text-light-text-secondary dark:text-dark-text-secondary mb-2">Enter any two values to calculate the third. The account balance will be the {type === 'Loan' ? 'negative' : 'positive'} of the principal.</p>
+                        <div className="grid grid-cols-3 gap-2">
+                            <div><label htmlFor="totalAmount" className={labelStyle}>Total Amount</label><input id="totalAmount" type="number" step="0.01" value={totalAmount} onFocus={() => setLastEditedLoanField('total')} onChange={e=>{setTotalAmount(e.target.value); setLastEditedLoanField('total');}} className={INPUT_BASE_STYLE} /></div>
+                            <div><label htmlFor="principalAmount" className={labelStyle}>Principal</label><input id="principalAmount" type="number" step="0.01" value={principalAmount} onFocus={() => setLastEditedLoanField('principal')} onChange={e=>{setPrincipalAmount(e.target.value); setLastEditedLoanField('principal');}} className={INPUT_BASE_STYLE} /></div>
+                            <div><label htmlFor="interestAmount" className={labelStyle}>Interest</label><input id="interestAmount" type="number" step="0.01" value={interestAmount} onFocus={() => setLastEditedLoanField('interest')} onChange={e=>{setInterestAmount(e.target.value); setLastEditedLoanField('interest');}} className={INPUT_BASE_STYLE} /></div>
+                        </div>
+                    </div>
+                  <div className="grid grid-cols-2 gap-4 pt-4 border-t border-black/10 dark:border-white/10">
+                    <div><label htmlFor="interestRate" className={labelStyle}>Interest Rate (%)</label><input id="interestRate" type="number" step="0.01" value={interestRate} onChange={e=>setInterestRate(e.target.value)} className={INPUT_BASE_STYLE} /></div>
+                    <div><label htmlFor="duration" className={labelStyle}>Duration (months)</label><input id="duration" type="number" value={duration} onChange={e=>setDuration(e.target.value)} className={INPUT_BASE_STYLE} /></div>
+                  </div>
+                   <div className="grid grid-cols-2 gap-4">
+                        <div><label htmlFor="loanStartDate" className={labelStyle}>Start Date</label><input id="loanStartDate" type="date" value={loanStartDate} onChange={e=>setLoanStartDate(e.target.value)} className={INPUT_BASE_STYLE} /></div>
+                        {type === 'Loan' && <div><label htmlFor="downPayment" className={labelStyle}>Down Payment (Optional)</label><input id="downPayment" type="number" step="0.01" value={downPayment} onChange={e=>setDownPayment(e.target.value)} className={INPUT_BASE_STYLE} /></div>}
+                   </div>
+                    <div className="pt-4 border-t border-black/10 dark:border-white/10 space-y-4">
+                        <div className="grid grid-cols-2 gap-4">
+                            <div>
+                                <label htmlFor="monthlyPayment" className={labelStyle}>Monthly Payment (Optional)</label>
+                                <input id="monthlyPayment" type="number" step="0.01" value={monthlyPayment} onChange={e=>setMonthlyPayment(e.target.value)} className={INPUT_BASE_STYLE} />
+                            </div>
+                            <div>
+                                <label htmlFor="paymentDayOfMonth" className={labelStyle}>Payment Day of Month</label>
+                                <input id="paymentDayOfMonth" type="number" min="1" max="31" value={paymentDayOfMonth} onChange={e=>setPaymentDayOfMonth(e.target.value)} className={INPUT_BASE_STYLE} />
+                            </div>
+                        </div>
+                         <p className="text-xs text-light-text-secondary dark:text-dark-text-secondary -mt-2">
+                            If set, a recurring payment will be scheduled. If blank, payment is calculated from loan terms.
+                        </p>
+                    </div>
+                   <div>
+                        <label htmlFor="linkedAccountId" className={labelStyle}>Linked Debit Account</label>
+                        <div className={SELECT_WRAPPER_STYLE}>
+                            <select id="linkedAccountId" value={linkedAccountId} onChange={e => setLinkedAccountId(e.target.value)} className={INPUT_BASE_STYLE}>
+                                <option value="">None</option>
+                                {ALL_ACCOUNT_TYPES.map(type => {
+                                    const group = groupedDebitAccounts[type];
+                                    if (!group || group.length === 0) return null;
+                                    return (
+                                        <optgroup key={type} label={type}>
+                                            {group.map(acc => <option key={acc.id} value={acc.id}>{acc.name}</option>)}
+                                        </optgroup>
+                                    );
+                                })}
+                            </select>
+                            <div className={SELECT_ARROW_STYLE}><span className="material-symbols-outlined">expand_more</span></div>
+                        </div>
+                    </div>
+                </div>
+            )}
+             {type === 'Vehicle' && (
+                <div className="space-y-4">
+                    <div className="flex justify-center mb-4">
+                      <div className="relative group cursor-pointer" onClick={() => fileInputRef.current?.click()}>
+                          <div className="w-24 h-24 rounded-full bg-light-fill dark:bg-dark-fill flex items-center justify-center overflow-hidden border border-black/10 dark:border-white/10">
+                              {vehicleImage ? (
+                                  <img src={vehicleImage} alt="Vehicle" className="w-full h-full object-cover" />
+                              ) : (
+                                  <span className="material-symbols-outlined text-4xl text-gray-400">directions_car</span>
+                              )}
+                          </div>
+                          <div className="absolute inset-0 bg-black/40 rounded-full flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity">
+                              <span className="material-symbols-outlined text-white">upload</span>
+                          </div>
+                          <input type="file" ref={fileInputRef} onChange={handleImageUpload} accept="image/*" className="hidden" />
+                      </div>
+                  </div>
+                  <div className="grid grid-cols-3 gap-4">
+                    <div><label htmlFor="make" className={labelStyle}>Make</label><input id="make" type="text" value={make} onChange={e=>setMake(e.target.value)} className={INPUT_BASE_STYLE} /></div>
+                    <div><label htmlFor="model" className={labelStyle}>Model</label><input id="model" type="text" value={model} onChange={e=>setModel(e.target.value)} className={INPUT_BASE_STYLE} /></div>
+                    <div><label htmlFor="year" className={labelStyle}>Year</label><input id="year" type="number" value={year} onChange={e=>setYear(e.target.value)} className={INPUT_BASE_STYLE} /></div>
+                  </div>
+                  <div className="grid grid-cols-3 gap-4">
+                    <div className="col-span-1"><label htmlFor="regCode" className={labelStyle}>Reg. Code</label><input id="regCode" type="text" value={registrationCountryCode} onChange={e=>setRegistrationCountryCode(e.target.value)} className={INPUT_BASE_STYLE} placeholder="e.g. B" /></div>
+                    <div className="col-span-1"><label htmlFor="plate" className={labelStyle}>License Plate</label><input id="plate" type="text" value={licensePlate} onChange={e=>setLicensePlate(e.target.value)} className={INPUT_BASE_STYLE} /></div>
+                    <div className="col-span-1"><label htmlFor="vin" className={labelStyle}>VIN</label><input id="vin" type="text" value={vin} onChange={e=>setVin(e.target.value)} className={INPUT_BASE_STYLE} /></div>
+                  </div>
+                  <div className="grid grid-cols-2 gap-4">
+                     <div>
+                        <label htmlFor="fuel" className={labelStyle}>Fuel Type</label>
+                        <div className={SELECT_WRAPPER_STYLE}>
+                            <select id="fuel" value={fuelType} onChange={e => setFuelType(e.target.value as FuelType)} className={INPUT_BASE_STYLE}>
+                                {FUEL_TYPES.map(f => <option key={f} value={f}>{f}</option>)}
+                            </select>
+                            <div className={SELECT_ARROW_STYLE}><span className="material-symbols-outlined">expand_more</span></div>
+                        </div>
+                     </div>
+                     <div>
+                        <label htmlFor="currentMileage" className={labelStyle}>Current Mileage (km)</label>
+                        <input id="currentMileage" type="number" value={currentMileage} onChange={e => setCurrentMileage(e.target.value)} className={INPUT_BASE_STYLE} />
+                    </div>
+                  </div>
+                   <div>
+                        <label className={labelStyle}>Ownership</label>
+                        <div className="flex bg-light-fill dark:bg-dark-fill p-1 rounded-lg">
+                             {VEHICLE_OWNERSHIP_TYPES.map(o => (
+                                 <button key={o} type="button" onClick={() => setVehicleOwnership(o)} className={`flex-1 py-1 rounded-md text-sm font-medium transition-all ${vehicleOwnership === o ? 'bg-white dark:bg-dark-card shadow-sm text-primary-600' : 'text-gray-500'}`}>{o}</button>
+                             ))}
+                        </div>
+                   </div>
+                   {vehicleOwnership === 'Owned' && (
+                        <div className="grid grid-cols-2 gap-4">
+                            <div><label htmlFor="purchasePrice" className={labelStyle}>Purchase Price</label><input id="purchasePrice" type="number" step="0.01" value={purchasePrice} onChange={e=>setPurchasePrice(e.target.value)} className={INPUT_BASE_STYLE} /></div>
+                            <div><label htmlFor="purchaseDate" className={labelStyle}>Purchase Date</label><input id="purchaseDate" type="date" value={purchaseDate} onChange={e=>setPurchaseDate(e.target.value)} className={INPUT_BASE_STYLE} /></div>
+                        </div>
+                   )}
+                   {vehicleOwnership === 'Leased' && (
+                       <div className="space-y-4">
+                            <div><label htmlFor="leaseProvider" className={labelStyle}>Lease Provider</label><input id="leaseProvider" type="text" value={leaseProvider} onChange={e=>setLeaseProvider(e.target.value)} className={INPUT_BASE_STYLE} placeholder="e.g. LeasePlan" /></div>
+                           <div className="grid grid-cols-2 gap-4">
+                                <div><label htmlFor="leaseStart" className={labelStyle}>Lease Start</label><input id="leaseStart" type="date" value={leaseStartDate} onChange={e=>setLeaseStartDate(e.target.value)} className={INPUT_BASE_STYLE} /></div>
+                                <div><label htmlFor="leaseEnd" className={labelStyle}>Lease End</label><input id="leaseEnd" type="date" value={leaseEndDate} onChange={e=>setLeaseEndDate(e.target.value)} className={INPUT_BASE_STYLE} /></div>
+                                <div className="col-span-2"><label htmlFor="annualMileageAllowance" className={labelStyle}>Annual Mileage Allowance (km)</label><input id="annualMileageAllowance" type="number" value={annualMileageAllowance} onChange={e=>setAnnualMileageAllowance(e.target.value)} className={INPUT_BASE_STYLE} placeholder="e.g. 15000" /></div>
+                                <div><label htmlFor="leasePaymentAmount" className={labelStyle}>Lease Price (Optional)</label><input id="leasePaymentAmount" type="number" step="0.01" value={leasePaymentAmount} onChange={e=>setLeasePaymentAmount(e.target.value)} className={INPUT_BASE_STYLE} /></div>
+                                <div><label htmlFor="leasePaymentDay" className={labelStyle}>Payment Day (Optional)</label><input id="leasePaymentDay" type="number" min="1" max="31" value={leasePaymentDay} onChange={e=>setLeasePaymentDay(e.target.value)} className={INPUT_BASE_STYLE} /></div>
+                                <div className="col-span-2">
+                                    <label htmlFor="leasePaymentAccountId" className={labelStyle}>Payment Account (Optional)</label>
+                                    <div className={SELECT_WRAPPER_STYLE}>
+                                        <select id="leasePaymentAccountId" value={leasePaymentAccountId} onChange={e => setLeasePaymentAccountId(e.target.value)} className={INPUT_BASE_STYLE}>
+                                            <option value="">None</option>
+                                            {ALL_ACCOUNT_TYPES.map(type => {
+                                                const group = groupedDebitAccounts[type];
+                                                if (!group || group.length === 0) return null;
+                                                return (
+                                                    <optgroup key={type} label={type}>
+                                                        {group.map(acc => <option key={acc.id} value={acc.id}>{acc.name}</option>)}
+                                                    </optgroup>
+                                                );
+                                            })}
+                                        </select>
+                                        <div className={SELECT_ARROW_STYLE}><span className="material-symbols-outlined">expand_more</span></div>
+                                    </div>
+                                </div>
+                           </div>
+                       </div>
+                   )}
+                </div>
+            )}
+            {type === 'Property' && (
+                <div className="space-y-6">
+                  <div className="space-y-4">
+                      <div className="grid grid-cols-2 gap-4">
+                        <div>
+                          <label htmlFor="propertyType" className={labelStyle}>Property Type</label>
+                          <div className={SELECT_WRAPPER_STYLE}>
+                            <select id="propertyType" value={propertyType} onChange={e => setPropertyType(e.target.value as PropertyType)} className={INPUT_BASE_STYLE}>
+                              {PROPERTY_TYPES.map(pt => <option key={pt} value={pt}>{pt}</option>)}
+                            </select>
+                             <div className={SELECT_ARROW_STYLE}><span className="material-symbols-outlined">expand_more</span></div>
+                          </div>
+                        </div>
+                         <div><label htmlFor="purchasePrice" className={labelStyle}>Purchase Price</label><input id="purchasePrice" type="number" step="0.01" value={purchasePrice} onChange={e=>setPurchasePrice(e.target.value)} className={INPUT_BASE_STYLE} disabled={isLoanForPropertyLinked} /></div>
+                      </div>
+                      <div><label htmlFor="address" className={labelStyle}>Address</label><input id="address" type="text" value={address} onChange={e=>setAddress(e.target.value)} className={INPUT_BASE_STYLE} /></div>
+                      
+                      <div className="grid grid-cols-3 gap-4">
+                         <div><label htmlFor="propertySize" className={labelStyle}>Size (m²)</label><input id="propertySize" type="number" value={propertySize} onChange={e=>setPropertySize(e.target.value)} className={INPUT_BASE_STYLE} /></div>
+                         <div><label htmlFor="yearBuilt" className={labelStyle}>Year Built</label><input id="yearBuilt" type="number" value={yearBuilt} onChange={e=>setYearBuilt(e.target.value)} className={INPUT_BASE_STYLE} /></div>
+                         <div><label htmlFor="floors" className={labelStyle}>Floors</label><input id="floors" type="number" value={floors} onChange={e=>setFloors(e.target.value)} className={INPUT_BASE_STYLE} /></div>
+                      </div>
+
+                      <div className="grid grid-cols-2 gap-4">
+                         <div><label htmlFor="bedrooms" className={labelStyle}>Bedrooms</label><input id="bedrooms" type="number" value={bedrooms} onChange={e=>setBedrooms(e.target.value)} className={INPUT_BASE_STYLE} /></div>
+                         <div><label htmlFor="bathrooms" className={labelStyle}>Bathrooms</label><input id="bathrooms" type="number" value={bathrooms} onChange={e=>setBathrooms(e.target.value)} className={INPUT_BASE_STYLE} /></div>
+                      </div>
+
+                      <div className="grid grid-cols-2 gap-4">
+                         <label className="flex items-center gap-2 cursor-pointer">
+                            <input type="checkbox" checked={hasBasement} onChange={e => setHasBasement(e.target.checked)} className={CHECKBOX_STYLE} />
+                            <span className="text-sm font-medium text-light-text dark:text-dark-text">Has Basement</span>
+                         </label>
+                         <label className="flex items-center gap-2 cursor-pointer">
+                            <input type="checkbox" checked={hasAttic} onChange={e => setHasAttic(e.target.checked)} className={CHECKBOX_STYLE} />
+                            <span className="text-sm font-medium text-light-text dark:text-dark-text">Has Attic</span>
+                         </label>
+                      </div>
+
+                      <div className="grid grid-cols-2 gap-4">
+                         <div><label htmlFor="indoorParking" className={labelStyle}>Indoor Parking (Cars)</label><input id="indoorParking" type="number" value={indoorParkingSpaces} onChange={e=>setIndoorParkingSpaces(e.target.value)} className={INPUT_BASE_STYLE} /></div>
+                         <div><label htmlFor="outdoorParking" className={labelStyle}>Outdoor Parking (Cars)</label><input id="outdoorParking" type="number" value={outdoorParkingSpaces} onChange={e=>setOutdoorParkingSpaces(e.target.value)} className={INPUT_BASE_STYLE} /></div>
+                      </div>
+
+                      <div className="grid grid-cols-2 gap-4 items-end">
+                         <div className="mb-3">
+                             <label className="flex items-center gap-2 cursor-pointer">
+                                <input type="checkbox" checked={hasGarden} onChange={e => setHasGarden(e.target.checked)} className={CHECKBOX_STYLE} />
+                                <span className="text-sm font-medium text-light-text dark:text-dark-text">Has Garden</span>
+                             </label>
+                         </div>
+                         <div>
+                            <label htmlFor="gardenSize" className={labelStyle}>Garden Size (m²)</label>
+                            <input id="gardenSize" type="number" value={gardenSize} onChange={e=>setGardenSize(e.target.value)} className={INPUT_BASE_STYLE} disabled={!hasGarden} />
+                         </div>
+                      </div>
+                      
+                      <div className="grid grid-cols-2 gap-4 items-end">
+                         <div className="mb-3">
+                             <label className="flex items-center gap-2 cursor-pointer">
+                                <input type="checkbox" checked={hasTerrace} onChange={e => setHasTerrace(e.target.checked)} className={CHECKBOX_STYLE} />
+                                <span className="text-sm font-medium text-light-text dark:text-dark-text">Has Terrace</span>
+                             </label>
+                         </div>
+                         <div>
+                            <label htmlFor="terraceSize" className={labelStyle}>Terrace Size (m²)</label>
+                            <input id="terraceSize" type="number" value={terraceSize} onChange={e=>setTerraceSize(e.target.value)} className={INPUT_BASE_STYLE} disabled={!hasTerrace} />
+                         </div>
+                      </div>
+
+                      <div className="grid grid-cols-2 gap-4 border-t border-black/10 dark:border-white/10 pt-4">
+                          <div>
+                            <label htmlFor="linkedLoanId" className={labelStyle}>Linked Loan (Optional)</label>
+                            <div className={SELECT_WRAPPER_STYLE}>
+                                <select id="linkedLoanId" value={linkedLoanId} onChange={e => setLinkedLoanId(e.target.value)} className={INPUT_BASE_STYLE}>
+                                    <option value="">None</option>
+                                    {ALL_ACCOUNT_TYPES.map(type => {
+                                        const group = groupedLoanAccounts[type];
+                                        if (!group || group.length === 0) return null;
+                                        return (
+                                            <optgroup key={type} label={type}>
+                                                {group.map(acc => <option key={acc.id} value={acc.id}>{acc.name}</option>)}
+                                            </optgroup>
+                                        );
+                                    })}
+                                </select>
+                                <div className={SELECT_ARROW_STYLE}><span className="material-symbols-outlined">expand_more</span></div>
+                            </div>
+                          </div>
+                           <div>
+                            <label htmlFor="principalOwned" className={labelStyle}>Principal Owned</label>
+                            <input id="principalOwned" type="number" step="0.01" value={principalOwned} onChange={e=>setPrincipalOwned(e.target.value)} className={INPUT_BASE_STYLE} disabled={isLoanForPropertyLinked} />
+                            {isLoanForPropertyLinked && <p className="text-xs text-light-text-secondary dark:text-dark-text-secondary mt-1">Calculated from linked loan.</p>}
+                        </div>
+                      </div>
+                  </div>
+                  
+                  {/* Recurring Expenses & Income Section */}
+                  <div className="p-4 bg-black/5 dark:bg-white/5 rounded-lg space-y-4">
+                        <h4 className="font-semibold text-light-text dark:text-dark-text border-b border-black/10 dark:border-white/10 pb-2">Recurring Expenses & Income</h4>
+                        
+                        {/* Property Tax */}
+                        <div className="space-y-2">
+                            <p className="text-sm font-medium text-light-text-secondary dark:text-dark-text-secondary">Property Tax</p>
+                            <div className="grid grid-cols-2 gap-4">
+                                <div><label htmlFor="propTaxAmt" className={labelStyle}>Annual Amount</label><input id="propTaxAmt" type="number" step="0.01" value={propertyTaxAmount} onChange={e=>setPropertyTaxAmount(e.target.value)} className={INPUT_BASE_STYLE} placeholder="0.00" /></div>
+                                <div><label htmlFor="propTaxDate" className={labelStyle}>Next Due Date</label><input id="propTaxDate" type="date" value={propertyTaxDate} onChange={e=>setPropertyTaxDate(e.target.value)} className={INPUT_BASE_STYLE} /></div>
+                            </div>
+                        </div>
+
+                         {/* Home Insurance */}
+                         <div className="space-y-2 pt-2 border-t border-black/5 dark:border-white/5">
+                            <p className="text-sm font-medium text-light-text-secondary dark:text-dark-text-secondary">Home Insurance</p>
+                            <div className="grid grid-cols-2 gap-4">
+                                <div><label htmlFor="insProvider" className={labelStyle}>Provider</label><input id="insProvider" type="text" value={insuranceProvider} onChange={e=>setInsuranceProvider(e.target.value)} className={INPUT_BASE_STYLE} /></div>
+                                <div><label htmlFor="insPolicy" className={labelStyle}>Policy Number</label><input id="insPolicy" type="text" value={insurancePolicyNumber} onChange={e=>setInsurancePolicyNumber(e.target.value)} className={INPUT_BASE_STYLE} /></div>
+                            </div>
+                            <div className="grid grid-cols-3 gap-4">
+                                <div><label htmlFor="insAmount" className={labelStyle}>Amount</label><input id="insAmount" type="number" step="0.01" value={insuranceAmount} onChange={e=>setInsuranceAmount(e.target.value)} className={INPUT_BASE_STYLE} /></div>
+                                <div>
+                                    <label htmlFor="insFreq" className={labelStyle}>Frequency</label>
+                                    <div className={SELECT_WRAPPER_STYLE}>
+                                        <select id="insFreq" value={insuranceFrequency} onChange={e => setInsuranceFrequency(e.target.value as RecurrenceFrequency)} className={INPUT_BASE_STYLE}>
+                                            {FREQUENCIES.map(f => <option key={f.value} value={f.value}>{f.label}</option>)}
+                                        </select>
+                                        <div className={SELECT_ARROW_STYLE}><span className="material-symbols-outlined">expand_more</span></div>
+                                    </div>
+                                </div>
+                                <div><label htmlFor="insDate" className={labelStyle}>Next Payment</label><input id="insDate" type="date" value={insurancePaymentDate} onChange={e=>setInsurancePaymentDate(e.target.value)} className={INPUT_BASE_STYLE} /></div>
+                            </div>
+                        </div>
+                        
+                        {/* HOA Fees */}
+                         <div className="space-y-2 pt-2 border-t border-black/5 dark:border-white/5">
+                            <p className="text-sm font-medium text-light-text-secondary dark:text-dark-text-secondary">HOA / Syndic Fees</p>
+                            <div className="grid grid-cols-2 gap-4">
+                                <div><label htmlFor="hoaAmount" className={labelStyle}>Amount</label><input id="hoaAmount" type="number" step="0.01" value={hoaFeeAmount} onChange={e=>setHoaFeeAmount(e.target.value)} className={INPUT_BASE_STYLE} /></div>
+                                <div>
+                                    <label htmlFor="hoaFreq" className={labelStyle}>Frequency</label>
+                                    <div className={SELECT_WRAPPER_STYLE}>
+                                        <select id="hoaFreq" value={hoaFeeFrequency} onChange={e => setHoaFeeFrequency(e.target.value as RecurrenceFrequency)} className={INPUT_BASE_STYLE}>
+                                            {FREQUENCIES.map(f => <option key={f.value} value={f.value}>{f.label}</option>)}
+                                        </select>
+                                        <div className={SELECT_ARROW_STYLE}><span className="material-symbols-outlined">expand_more</span></div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+
+                        {/* Rental Income */}
+                        <div className="space-y-2 pt-2 border-t border-black/5 dark:border-white/5">
+                            <div className="flex items-center justify-between">
+                                <p className="text-sm font-medium text-light-text-secondary dark:text-dark-text-secondary">Rental Income</p>
+                                <label className="flex items-center gap-2 cursor-pointer">
+                                    <input type="checkbox" checked={isRental} onChange={e => setIsRental(e.target.checked)} className={CHECKBOX_STYLE} />
+                                    <span className="text-sm font-medium text-light-text dark:text-dark-text">Is Rental Property</span>
+                                </label>
+                            </div>
+                            {isRental && (
+                                <div className="grid grid-cols-2 gap-4">
+                                    <div><label htmlFor="rentAmount" className={labelStyle}>Income Amount</label><input id="rentAmount" type="number" step="0.01" value={rentalIncomeAmount} onChange={e=>setRentalIncomeAmount(e.target.value)} className={INPUT_BASE_STYLE} /></div>
+                                    <div>
+                                        <label htmlFor="rentFreq" className={labelStyle}>Frequency</label>
+                                        <div className={SELECT_WRAPPER_STYLE}>
+                                            <select id="rentFreq" value={rentalIncomeFrequency} onChange={e => setRentalIncomeFrequency(e.target.value as RecurrenceFrequency)} className={INPUT_BASE_STYLE}>
+                                                {FREQUENCIES.map(f => <option key={f.value} value={f.value}>{f.label}</option>)}
+                                            </select>
+                                            <div className={SELECT_ARROW_STYLE}><span className="material-symbols-outlined">expand_more</span></div>
+                                        </div>
+                                    </div>
+                                </div>
+                            )}
+                        </div>
+                  </div>
+                </div>
+            )}
+            {(type === 'Other Assets' || type === 'Other Liabilities') && (
+              <div><label htmlFor="notes" className={labelStyle}>Notes</label><textarea id="notes" value={notes} onChange={e=>setNotes(e.target.value)} className={INPUT_BASE_STYLE} rows={2}></textarea></div>
+            )}
+
+            {type === 'Credit Card' && (
+              <div className="space-y-4">
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                      <div><label htmlFor="statement-start" className={labelStyle}>Statement Day</label><input id="statement-start" type="number" min="1" max="31" value={statementStartDate} onChange={(e) => setStatementStartDate(e.target.value)} className={INPUT_BASE_STYLE} /></div>
+                       <div><label htmlFor="payment-date" className={labelStyle}>Payment Day</label><input id="payment-date" type="number" min="1" max="31" value={paymentDate} onChange={(e) => setPaymentDate(e.target.value)} className={INPUT_BASE_STYLE} /></div>
+                  </div>
+                  <div>
+                      <label htmlFor="settlement-account" className={labelStyle}>Settlement Account</label>
+                      <div className={SELECT_WRAPPER_STYLE}>
+                           <select id="settlement-account" value={settlementAccountId} onChange={(e) => setSettlementAccountId(e.target.value)} className={INPUT_BASE_STYLE}>
+                              <option value="">Select an account</option>
+                              {ALL_ACCOUNT_TYPES.map(type => {
+                                  const group = groupedDebitAccounts[type];
+                                  if (!group || group.length === 0) return null;
+                                  return (
+                                    <optgroup key={type} label={type}>
+                                      {group.map(acc => <option key={acc.id} value={acc.id}>{acc.name}</option>)}
+                                    </optgroup>
+                                  );
+                              })}
+                          </select>
+                          <div className={SELECT_ARROW_STYLE}><span className="material-symbols-outlined">expand_more</span></div>
+                      </div>
+                  </div>
+                  <div><label htmlFor="credit-limit" className={labelStyle}>Credit Limit (Optional)</label><input id="credit-limit" type="number" step="0.01" value={creditLimit} onChange={(e) => setCreditLimit(e.target.value)} className={INPUT_BASE_STYLE} /></div>
+              </div>
+            )}
+          </div>
+
+          <div className="p-4 bg-black/5 dark:bg-white/5 rounded-lg">
+            <div className="flex justify-between items-center">
+                <div>
+                    <p className="font-medium text-light-text dark:text-dark-text">Primary Account</p>
+                    <p className="text-sm text-light-text-secondary dark:text-dark-text-secondary">Set as the default account for this account type (e.g., default {type}).</p>
+                </div>
+                <div 
+                  onClick={() => setIsPrimary(!isPrimary)}
+                  className={`w-12 h-6 rounded-full p-1 flex items-center cursor-pointer transition-colors ${isPrimary ? 'bg-primary-500' : 'bg-gray-300 dark:bg-gray-700'}`}
+                >
+                  <div className={`w-4 h-4 rounded-full bg-white shadow-md transform transition-transform ${isPrimary ? 'translate-x-6' : 'translate-x-0'}`}></div>
+                </div>
+            </div>
+          </div>
+
+          <div className="flex justify-end gap-4 pt-4 mt-4 border-t border-black/10 dark:border-white/10">
+            <button type="button" onClick={onClose} className={BTN_SECONDARY_STYLE}>Cancel</button>
+            <button type="submit" className={BTN_PRIMARY_STYLE}>Add Account</button>
+          </div>
+        </form>
+      </Modal>
+    </>
+  );
+};
+
+export default AddAccountModal;
