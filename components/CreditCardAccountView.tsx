@@ -49,7 +49,7 @@ const CreditCardAccountView: React.FC<CreditCardAccountViewProps> = ({
 }) => {
   // --- 1. Metrics & Utilization ---
   const creditLimit = account.creditLimit || 0;
-  const currentBalance = account.balance; // Usually negative for CCs in this app data model, but let's handle magnitude
+  const currentBalance = account.balance; 
   const balanceMagnitude = Math.abs(currentBalance);
   
   const availableCredit = Math.max(0, creditLimit - balanceMagnitude);
@@ -69,12 +69,9 @@ const CreditCardAccountView: React.FC<CreditCardAccountViewProps> = ({
   const statementInfo = useMemo(() => {
     if (!account.statementStartDate || !account.paymentDate) return null;
     
-    // Using shared utility
     const periods = calculateStatementPeriods(account.statementStartDate, account.paymentDate);
     const { start, end, paymentDue } = periods.current;
     
-    // Calculate Previous Statement Details (to see if paid off)
-    // Note: In this app model, credit card transactions are expenses (negative). Payments are transfers (positive).
     const allRawTxs = transactions.map(t => t.tx);
     const prevPeriod = periods.previous;
     const { statementBalance: prevStatementBal, amountPaid: paidForPrev } = getCreditCardStatementDetails(
@@ -84,7 +81,6 @@ const CreditCardAccountView: React.FC<CreditCardAccountViewProps> = ({
     const remainingPrevBalance = Math.abs(prevStatementBal) - paidForPrev;
     const isPrevPaidOff = remainingPrevBalance <= 0.01;
 
-    // Timeline Logic
     const now = new Date();
     const totalDuration = end.getTime() - start.getTime();
     const elapsed = now.getTime() - start.getTime();
@@ -116,7 +112,6 @@ const CreditCardAccountView: React.FC<CreditCardAccountViewProps> = ({
         const startOfMonth = new Date(Date.UTC(d.getFullYear(), d.getMonth(), 1));
         const endOfMonth = new Date(Date.UTC(d.getFullYear(), d.getMonth() + 1, 0));
         
-        // Filter for expenses only
         const totalSpent = transactions
             .filter(t => t.parsedDate >= startOfMonth && t.parsedDate <= endOfMonth && t.tx.amount < 0 && !t.tx.transferId)
             .reduce((sum, t) => sum + Math.abs(t.tx.amount), 0);
@@ -178,7 +173,7 @@ const CreditCardAccountView: React.FC<CreditCardAccountViewProps> = ({
           
           {/* Virtual Card */}
           <div className="lg:col-span-5 xl:col-span-4">
-              <div className={`aspect-[1.586/1] rounded-2xl ${getCardGradient(account.id)} p-6 sm:p-8 text-white shadow-2xl relative overflow-hidden border border-white/20 flex flex-col justify-between group transition-transform hover:scale-[1.02] duration-300`}>
+              <div className={`w-full aspect-[1.586/1] rounded-2xl ${getCardGradient(account.id)} p-6 sm:p-8 text-white shadow-2xl relative overflow-hidden border border-white/20 flex flex-col justify-between group transition-transform hover:scale-[1.02] duration-300`}>
                   {/* Texture Overlay */}
                   <div className="absolute inset-0 bg-[url('https://www.transparenttextures.com/patterns/cubes.png')] opacity-10 pointer-events-none"></div>
                   <div className="absolute -top-24 -right-24 w-64 h-64 bg-white/10 rounded-full blur-3xl pointer-events-none"></div>
@@ -223,8 +218,8 @@ const CreditCardAccountView: React.FC<CreditCardAccountViewProps> = ({
           </div>
 
           {/* Metrics Grid */}
-          <div className="lg:col-span-7 xl:col-span-8 grid grid-cols-1 sm:grid-cols-2 gap-4">
-              <Card className="flex flex-col justify-between">
+          <div className="lg:col-span-7 xl:col-span-8 grid grid-cols-1 sm:grid-cols-2 lg:grid-rows-2 gap-4 lg:h-full">
+              <Card className="flex flex-col justify-between h-full">
                   <div className="flex justify-between items-start">
                       <div>
                           <p className="text-light-text-secondary dark:text-dark-text-secondary text-xs font-bold uppercase tracking-wider">Current Balance</p>
@@ -239,7 +234,7 @@ const CreditCardAccountView: React.FC<CreditCardAccountViewProps> = ({
                   </p>
               </Card>
 
-              <Card className="flex flex-col justify-between">
+              <Card className="flex flex-col justify-between h-full">
                   <div className="flex justify-between items-start">
                       <div>
                           <p className="text-light-text-secondary dark:text-dark-text-secondary text-xs font-bold uppercase tracking-wider">Available Credit</p>
@@ -254,7 +249,7 @@ const CreditCardAccountView: React.FC<CreditCardAccountViewProps> = ({
                   </div>
               </Card>
 
-              <Card className="sm:col-span-2">
+              <Card className="sm:col-span-2 flex flex-col justify-between h-full">
                   <div className="flex justify-between items-end mb-2">
                       <div>
                           <p className="text-light-text-secondary dark:text-dark-text-secondary text-xs font-bold uppercase tracking-wider">Credit Utilization</p>
@@ -283,7 +278,7 @@ const CreditCardAccountView: React.FC<CreditCardAccountViewProps> = ({
                   <Card>
                       <h3 className="text-lg font-semibold text-light-text dark:text-dark-text mb-4">Billing Cycle</h3>
                       
-                      <div className="relative mt-8 mb-12 mx-4 select-none">
+                      <div className="relative mt-10 mb-20 mx-6 select-none">
                           {/* Gray Background Line */}
                           <div className="absolute top-1/2 left-0 right-0 h-1 bg-gray-200 dark:bg-gray-700 -translate-y-1/2 rounded-full"></div>
                           
@@ -299,31 +294,31 @@ const CreditCardAccountView: React.FC<CreditCardAccountViewProps> = ({
                               {/* Start Node */}
                               <div className="relative flex flex-col items-center group">
                                   <div className="w-4 h-4 rounded-full bg-primary-500 border-2 border-white dark:border-dark-card shadow-sm z-10"></div>
-                                  <div className="absolute top-6 left-1/2 -translate-x-1/2 w-32 text-center">
+                                  <div className="absolute top-8 left-1/2 -translate-x-1/2 w-32 text-center">
                                       <p className="text-xs font-bold text-light-text dark:text-dark-text">Statement Open</p>
                                       <p className="text-xs text-light-text-secondary dark:text-dark-text-secondary">{statementInfo.start.toLocaleDateString(undefined, { month: 'short', day: 'numeric' })}</p>
-                                  </div>
-                              </div>
-
-                              {/* Today Node (Absolute positioning) */}
-                              <div 
-                                className="absolute top-1/2 -translate-y-1/2 -translate-x-1/2 flex flex-col items-center z-20 pointer-events-none"
-                                style={{ left: `${statementInfo.cycleProgress}%` }}
-                              >
-                                  <div className="w-6 h-6 rounded-full bg-white dark:bg-dark-card border-4 border-primary-500 shadow-md"></div>
-                                  <div className="absolute top-8 left-1/2 -translate-x-1/2 w-32 text-center">
-                                      <p className="text-[10px] font-bold text-primary-600 dark:text-primary-400 uppercase tracking-wider bg-primary-50 dark:bg-primary-900/50 px-2 py-0.5 rounded-full inline-block shadow-sm border border-primary-100 dark:border-primary-800">Today</p>
                                   </div>
                               </div>
 
                               {/* End Node */}
                               <div className="relative flex flex-col items-center">
                                   <div className={`w-4 h-4 rounded-full border-2 border-white dark:border-dark-card shadow-sm z-10 ${statementInfo.cycleProgress >= 100 ? 'bg-primary-500' : 'bg-gray-300 dark:bg-gray-600'}`}></div>
-                                  <div className="absolute top-6 left-1/2 -translate-x-1/2 w-32 text-center">
+                                  <div className="absolute top-8 left-1/2 -translate-x-1/2 w-32 text-center">
                                       <p className="text-xs font-bold text-light-text dark:text-dark-text">Statement Close</p>
                                       <p className="text-xs text-light-text-secondary dark:text-dark-text-secondary">{statementInfo.end.toLocaleDateString(undefined, { month: 'short', day: 'numeric' })}</p>
                                       <p className="text-[10px] font-semibold text-primary-500 mt-0.5">{statementInfo.daysToClose > 0 ? `${statementInfo.daysToClose} days left` : 'Closing today'}</p>
                                   </div>
+                              </div>
+                          </div>
+
+                          {/* Today Node (Absolute positioning) */}
+                          <div 
+                            className="absolute top-1/2 -translate-y-1/2 -translate-x-1/2 flex flex-col items-center z-20 pointer-events-none"
+                            style={{ left: `${statementInfo.cycleProgress}%` }}
+                          >
+                              <div className="w-6 h-6 rounded-full bg-white dark:bg-dark-card border-4 border-primary-500 shadow-md"></div>
+                              <div className="absolute top-8 left-1/2 -translate-x-1/2 w-32 text-center">
+                                  <p className="text-[10px] font-bold text-primary-600 dark:text-primary-400 uppercase tracking-wider bg-primary-50 dark:bg-primary-900/50 px-2 py-0.5 rounded-full inline-block shadow-sm border border-primary-100 dark:border-primary-800">Today</p>
                               </div>
                           </div>
                       </div>
@@ -342,13 +337,13 @@ const CreditCardAccountView: React.FC<CreditCardAccountViewProps> = ({
               )}
 
               {/* Monthly Spending Trend */}
-              <Card className="h-80 flex flex-col">
+              <Card className="flex flex-col min-h-[340px]">
                    <h3 className="text-lg font-semibold text-light-text dark:text-dark-text mb-4">Spending Trend (6 Months)</h3>
                    <div className="flex-grow w-full min-h-0">
                      <ResponsiveContainer width="100%" height="100%">
-                          <BarChart data={monthlySpendingData} margin={{ top: 10, right: 10, left: -20, bottom: 20 }}>
+                          <BarChart data={monthlySpendingData} margin={{ top: 10, right: 10, left: 0, bottom: 20 }}>
                               <CartesianGrid strokeDasharray="3 3" strokeOpacity={0.1} vertical={false} />
-                              <XAxis dataKey="name" axisLine={false} tickLine={false} tick={{ fill: 'currentColor', opacity: 0.6, fontSize: 12 }} />
+                              <XAxis dataKey="name" axisLine={false} tickLine={false} tick={{ fill: 'currentColor', opacity: 0.6, fontSize: 12 }} tickMargin={10} />
                               <YAxis axisLine={false} tickLine={false} tick={{ fill: 'currentColor', opacity: 0.6, fontSize: 12 }} />
                               <Tooltip 
                                   cursor={{ fill: 'transparent' }}
