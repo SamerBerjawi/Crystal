@@ -46,8 +46,6 @@ const AccountRow: React.FC<AccountRowProps> = ({ account, transactions, warrants
         return account.balance;
     }, [account, transactions]);
 
-    const isAsset = displayBalance >= 0;
-
     const sparklineData = useMemo(() => {
         const NUM_POINTS = 20;
         const endDate = new Date();
@@ -129,24 +127,24 @@ const AccountRow: React.FC<AccountRowProps> = ({ account, transactions, warrants
                 relative group overflow-hidden
                 bg-white dark:bg-dark-card 
                 rounded-2xl 
-                border border-gray-200 dark:border-white/10
-                hover:border-primary-500/50 dark:hover:border-primary-500/50
-                shadow-sm hover:shadow-xl 
+                border border-gray-200 dark:border-white/5
+                hover:border-primary-500/30 dark:hover:border-primary-500/30
+                shadow-sm hover:shadow-lg 
                 transition-all duration-300 ease-out
-                p-5
+                p-4
                 ${cursorClass} ${dragClasses} ${dragOverClasses}
                 ${account.status === 'closed' ? 'opacity-60 grayscale' : ''}
             `}
         >
             {/* Background Gradient based on trend */}
-             <div className={`absolute inset-0 bg-gradient-to-br ${isPositiveTrend ? 'from-green-50/50 dark:from-green-900/10' : 'from-red-50/50 dark:from-red-900/10'} to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-500 pointer-events-none`} />
+             <div className={`absolute inset-0 bg-gradient-to-br ${isPositiveTrend ? 'from-green-50/30 dark:from-green-900/5' : 'from-red-50/30 dark:from-red-900/5'} to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-500 pointer-events-none`} />
 
             <div className="relative z-10 flex justify-between items-start">
                 <div className="flex items-center gap-4 overflow-hidden">
                     {/* Icon Container */}
                     <div className={`
                         w-12 h-12 rounded-xl flex items-center justify-center 
-                        shadow-sm group-hover:scale-110 transition-transform duration-300
+                        shadow-sm group-hover:scale-105 transition-transform duration-300
                         ${styleConfig?.color ? styleConfig.color.replace('text-', 'bg-').replace('500', '100') + ' dark:' + styleConfig.color.replace('text-', 'bg-').replace('500', '900/30') : 'bg-gray-100 dark:bg-gray-800'}
                         ${typeColor}
                     `}>
@@ -154,29 +152,31 @@ const AccountRow: React.FC<AccountRowProps> = ({ account, transactions, warrants
                     </div>
 
                     {/* Name & Details */}
-                    <div className="flex flex-col overflow-hidden">
+                    <div className="flex flex-col overflow-hidden min-w-0">
                         <div className="flex items-center gap-2">
-                            <h3 className="font-bold text-gray-900 dark:text-white truncate text-lg leading-tight">
+                            <h3 className="font-bold text-gray-900 dark:text-white truncate text-base leading-tight">
                                 {account.name}
                             </h3>
                             {account.isPrimary && (
-                                <span className="material-symbols-outlined text-yellow-500 text-sm" title="Primary Account">star</span>
+                                <span className="material-symbols-outlined text-yellow-500 text-xs" title="Primary Account">star</span>
                             )}
-                            {account.symbol && (
+                        </div>
+                        <div className="flex items-center gap-2 mt-0.5">
+                             {account.symbol && (
                                 <span className="text-[10px] font-bold px-1.5 py-0.5 rounded bg-gray-100 dark:bg-white/10 text-gray-600 dark:text-gray-300 font-mono">
                                     {account.symbol}
                                 </span>
                             )}
+                             <p className="text-xs text-gray-500 dark:text-gray-400 truncate font-medium">
+                                 {renderSecondaryDetails() || account.type}
+                             </p>
                         </div>
-                         <p className="text-xs text-gray-500 dark:text-gray-400 truncate mt-0.5 font-medium">
-                             {renderSecondaryDetails() || account.type}
-                         </p>
                     </div>
                 </div>
 
                 {/* Balance */}
                 <div className="text-right flex-shrink-0 ml-4">
-                    <p className={`text-xl font-bold tracking-tight ${displayBalance < 0 ? 'text-red-600 dark:text-red-400' : 'text-gray-900 dark:text-white'}`}>
+                    <p className={`text-lg font-bold tracking-tight ${displayBalance < 0 ? 'text-light-text dark:text-dark-text' : 'text-light-text dark:text-dark-text'}`}>
                          {formatCurrency(convertToEur(displayBalance, account.currency), 'EUR')}
                     </p>
                      {account.currency !== 'EUR' && (
@@ -188,9 +188,9 @@ const AccountRow: React.FC<AccountRowProps> = ({ account, transactions, warrants
             </div>
 
             {/* Middle Section: Sparkline & Actions */}
-            <div className="relative mt-6 h-16 flex items-end justify-between">
+            <div className="relative mt-6 h-12 flex items-end justify-between">
                 {/* Sparkline Chart */}
-                <div className="absolute inset-0 -mx-5 -mb-5 opacity-50 group-hover:opacity-80 transition-opacity duration-300">
+                <div className="absolute inset-0 -mx-4 -mb-4 opacity-40 group-hover:opacity-70 transition-opacity duration-300">
                      <ResponsiveContainer width="100%" height="100%">
                         <AreaChart data={sparklineData}>
                             <defs>
@@ -212,29 +212,27 @@ const AccountRow: React.FC<AccountRowProps> = ({ account, transactions, warrants
                 </div>
 
                 {/* Action Buttons (Visible on Hover) */}
-                 <div className="relative z-20 flex gap-2 opacity-0 group-hover:opacity-100 translate-y-2 group-hover:translate-y-0 transition-all duration-300 mb-1">
+                 <div className="relative z-20 flex gap-1 opacity-0 group-hover:opacity-100 translate-y-2 group-hover:translate-y-0 transition-all duration-300 mb-1">
                     <button 
                         onClick={handleAdjustBalanceClick} 
-                        className="flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-white dark:bg-gray-800 shadow-sm border border-gray-200 dark:border-gray-700 text-xs font-semibold text-gray-700 dark:text-gray-200 hover:bg-gray-50 dark:hover:bg-gray-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+                        className="flex items-center justify-center w-8 h-8 rounded-full bg-white dark:bg-gray-800 shadow-sm border border-gray-200 dark:border-gray-700 text-gray-700 dark:text-gray-200 hover:bg-gray-50 dark:hover:bg-gray-700 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
                         title="Adjust Balance"
                         disabled={isComputedAccount}
                     >
                         <span className="material-symbols-outlined text-sm">tune</span>
-                        <span>Adjust</span>
                     </button>
                     <button 
                          onClick={handleEditClick} 
-                         className="flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-white dark:bg-gray-800 shadow-sm border border-gray-200 dark:border-gray-700 text-xs font-semibold text-gray-700 dark:text-gray-200 hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors"
+                         className="flex items-center justify-center w-8 h-8 rounded-full bg-white dark:bg-gray-800 shadow-sm border border-gray-200 dark:border-gray-700 text-gray-700 dark:text-gray-200 hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors"
                          title="Edit Account"
                     >
                          <span className="material-symbols-outlined text-sm">edit</span>
-                         <span>Edit</span>
                     </button>
                  </div>
                  
                  {/* Trend Badge */}
                  <div className="relative z-10 mb-1 ml-auto opacity-100 group-hover:opacity-0 transition-opacity duration-200">
-                     <span className={`text-xs font-bold px-2 py-1 rounded-full ${isPositiveTrend ? 'bg-green-100 dark:bg-green-900/30 text-green-700 dark:text-green-400' : 'bg-red-100 dark:bg-red-900/30 text-red-700 dark:text-red-400'}`}>
+                     <span className={`text-[10px] font-bold px-2 py-1 rounded-full border ${isPositiveTrend ? 'bg-green-50 dark:bg-green-900/20 border-green-100 dark:border-green-900 text-green-700 dark:text-green-400' : 'bg-red-50 dark:bg-red-900/20 border-red-100 dark:border-red-900 text-red-700 dark:text-red-400'}`}>
                          {isPositiveTrend ? '+' : ''}{formatCurrency(trend, 'EUR')} (30d)
                      </span>
                  </div>

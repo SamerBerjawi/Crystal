@@ -15,28 +15,33 @@ interface AccountBreakdownCardProps {
 }
 
 const AccountBreakdownCard: React.FC<AccountBreakdownCardProps> = ({ title, totalValue, breakdownData }) => {
+    const isAsset = title === 'Assets';
+    const iconColor = isAsset ? 'text-emerald-600 dark:text-emerald-400' : 'text-rose-600 dark:text-rose-400';
+    const iconBg = isAsset ? 'bg-emerald-100 dark:bg-emerald-900/30' : 'bg-rose-100 dark:bg-rose-900/30';
+    const iconName = isAsset ? 'account_balance' : 'credit_card';
+
     return (
-        <div className="flex flex-col h-full">
-            <div className="mb-6">
-                <div className="flex justify-between items-start mb-6">
-                    <div>
-                         <p className="text-xs font-bold uppercase tracking-wider text-light-text-secondary dark:text-dark-text-secondary mb-1">{title}</p>
-                        <h3 className="text-2xl font-bold text-light-text dark:text-dark-text">{formatCurrency(totalValue, 'EUR')}</h3>
+        <div className="flex flex-col h-full justify-between">
+            <div>
+                <div className="flex justify-between items-start mb-4">
+                    <div className={`w-10 h-10 rounded-xl flex items-center justify-center ${iconBg} ${iconColor}`}>
+                        <span className="material-symbols-outlined text-xl">{iconName}</span>
                     </div>
-                    <div className={`w-10 h-10 rounded-full flex items-center justify-center ${title === 'Assets' ? 'bg-green-100 text-green-600 dark:bg-green-900/30 dark:text-green-400' : 'bg-red-100 text-red-600 dark:bg-red-900/30 dark:text-red-400'}`}>
-                        <span className="material-symbols-outlined text-xl">{title === 'Assets' ? 'account_balance' : 'credit_card'}</span>
+                    <div className="text-right">
+                        <p className="text-xs font-bold uppercase tracking-wider text-light-text-secondary dark:text-dark-text-secondary mb-0.5">{title}</p>
+                        <h3 className="text-2xl font-bold text-light-text dark:text-dark-text">{formatCurrency(totalValue, 'EUR')}</h3>
                     </div>
                 </div>
                 
-                <div className="flex h-3 rounded-full overflow-hidden bg-gray-100 dark:bg-gray-800 w-full">
+                {/* Segmented Bar */}
+                <div className="flex h-2.5 rounded-full overflow-hidden bg-gray-100 dark:bg-gray-800 w-full mb-4">
                     {breakdownData.map((item, index) => {
                         const percentage = totalValue > 0 ? (item.value / totalValue) * 100 : 0;
-                        // Add a separator unless it's the last item
-                        const separator = index < breakdownData.length - 1 ? 'border-r-2 border-white dark:border-dark-card' : '';
+                        if (percentage < 1) return null; // Hide tiny segments
                         return (
                             <div
                                 key={item.name}
-                                className={`h-full ${separator}`}
+                                className={`h-full ${index < breakdownData.length - 1 ? 'border-r border-white dark:border-dark-card' : ''}`}
                                 style={{
                                     width: `${percentage}%`,
                                     backgroundColor: item.color,
@@ -48,16 +53,17 @@ const AccountBreakdownCard: React.FC<AccountBreakdownCardProps> = ({ title, tota
                 </div>
             </div>
 
-            <div className="grid grid-cols-2 gap-x-4 gap-y-3 mt-auto">
-                {breakdownData.map(item => {
+            {/* Legend Grid */}
+            <div className="grid grid-cols-2 gap-x-2 gap-y-2">
+                {breakdownData.slice(0, 6).map(item => {
                     const percentage = totalValue > 0 ? (item.value / totalValue) * 100 : 0;
                     return (
-                        <div key={item.name} className="flex items-center justify-between text-sm group">
-                            <div className="flex items-center gap-2 min-w-0">
-                                <div className="w-2 h-2 rounded-full flex-shrink-0" style={{ backgroundColor: item.color }}></div>
+                        <div key={item.name} className="flex items-center justify-between text-xs group">
+                            <div className="flex items-center gap-1.5 min-w-0">
+                                <div className="w-1.5 h-1.5 rounded-full flex-shrink-0" style={{ backgroundColor: item.color }}></div>
                                 <span className="text-light-text-secondary dark:text-dark-text-secondary truncate group-hover:text-light-text dark:group-hover:text-dark-text transition-colors">{item.name}</span>
                             </div>
-                            <span className="font-semibold text-light-text dark:text-dark-text">{percentage.toFixed(0)}%</span>
+                            <span className="font-semibold text-light-text dark:text-dark-text opacity-80">{percentage.toFixed(0)}%</span>
                         </div>
                     );
                 })}

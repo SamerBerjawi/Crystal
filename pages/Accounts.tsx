@@ -114,17 +114,20 @@ const AccountsListSection: React.FC<{
         <section className="animate-fade-in-up">
             <div 
                 onClick={() => isCollapsible && setIsExpanded(prev => !prev)} 
-                className={`flex justify-between items-center mb-4 group ${isCollapsible ? 'cursor-pointer' : ''}`}
+                className={`flex justify-between items-center mb-4 group ${isCollapsible ? 'cursor-pointer py-2' : ''}`}
             >
-                <div className="flex items-center gap-2">
+                <div className="flex items-center gap-3">
                      {isCollapsible && (
                         <span className={`material-symbols-outlined transition-transform duration-300 text-light-text-secondary dark:text-dark-text-secondary group-hover:text-primary-500 ${isExpanded ? 'rotate-180' : ''}`}>
                             expand_more
                         </span>
                     )}
-                    <h3 className="text-lg font-bold text-light-text dark:text-dark-text uppercase tracking-wide">{title}</h3>
-                    <span className="bg-light-fill dark:bg-dark-fill text-xs font-semibold px-2 py-0.5 rounded-full text-light-text-secondary dark:text-dark-text-secondary">{accounts.length}</span>
+                    <h3 className="text-base font-bold text-light-text dark:text-dark-text uppercase tracking-wider">{title}</h3>
+                    <span className="bg-light-fill dark:bg-dark-fill text-[10px] font-bold px-2 py-0.5 rounded-full text-light-text-secondary dark:text-dark-text-secondary">{accounts.length}</span>
                 </div>
+                {!isCollapsible && (
+                    <div className="h-px flex-grow bg-black/5 dark:bg-white/10 ml-4"></div>
+                )}
             </div>
             
             {isExpanded && (
@@ -133,14 +136,14 @@ const AccountsListSection: React.FC<{
                         const accountsInGroup = groupedAccounts[groupName as AccountType];
                         const groupTotal = accountsInGroup.reduce((sum, acc) => sum + convertToEur(acc.balance, acc.currency), 0);
                         return (
-                            <div key={groupName} className="space-y-3">
-                                <div onClick={() => toggleGroup(groupName)} className="flex justify-between items-center cursor-pointer group select-none px-1">
+                            <div key={groupName} className="space-y-2">
+                                <div onClick={() => toggleGroup(groupName)} className="flex justify-between items-center cursor-pointer group select-none px-1 py-1 rounded hover:bg-black/5 dark:hover:bg-white/5 transition-colors">
                                     <div className="flex items-center gap-2">
                                         <div className={`w-1 h-4 rounded-full bg-primary-500 transition-all duration-300 ${expandedGroups[groupName] ? 'h-4' : 'h-2 opacity-50'}`}></div>
                                         <h4 className="font-semibold text-light-text dark:text-dark-text text-sm">{groupName}</h4>
                                     </div>
-                                    <div className="flex items-center gap-3">
-                                        <span className="font-mono text-sm font-medium text-light-text-secondary dark:text-dark-text-secondary group-hover:text-light-text dark:group-hover:text-dark-text transition-colors">
+                                    <div className="flex items-center gap-2">
+                                        <span className="font-mono text-xs font-medium text-light-text-secondary dark:text-dark-text-secondary group-hover:text-light-text dark:group-hover:text-dark-text transition-colors">
                                             {formatCurrency(groupTotal, 'EUR')}
                                         </span>
                                          <span className={`material-symbols-outlined text-sm text-light-text-secondary dark:text-dark-text-secondary transition-transform duration-200 ${expandedGroups[groupName] ? 'rotate-0' : '-rotate-90'}`}>expand_more</span>
@@ -148,7 +151,7 @@ const AccountsListSection: React.FC<{
                                 </div>
                                 
                                 {expandedGroups[groupName] && (
-                                    <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
+                                    <div className="grid grid-cols-1 gap-3">
                                         {accountsInGroup.map(acc => (
                                             <AccountRow
                                                 key={acc.id}
@@ -174,7 +177,7 @@ const AccountsListSection: React.FC<{
                             </div>
                         );
                     }) : (
-                        <div className="text-center py-12 bg-light-card/50 dark:bg-dark-card/30 rounded-xl border border-dashed border-black/10 dark:border-white/10 text-light-text-secondary dark:text-dark-text-secondary">
+                        <div className="text-center py-8 bg-light-card/50 dark:bg-dark-card/30 rounded-xl border border-dashed border-black/10 dark:border-white/10 text-light-text-secondary dark:text-dark-text-secondary text-sm">
                             <p>No {title.toLowerCase()} found.</p>
                         </div>
                     )}
@@ -382,95 +385,122 @@ const Accounts: React.FC<AccountsProps> = ({ accounts, transactions, saveAccount
             </ul>
         </div>
       )}
-
-      <header className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
-        <div className="flex flex-col gap-1">
-            <h1 className="text-3xl font-bold text-light-text dark:text-dark-text">
-                {formatCurrency(netWorth, 'EUR')}
-            </h1>
-            <p className="text-sm font-medium text-light-text-secondary dark:text-dark-text-secondary uppercase tracking-wider">
-                Total Net Worth
-            </p>
-        </div>
-        <div className="flex flex-wrap items-center gap-3 w-full md:w-auto">
-            <div className={`${SELECT_WRAPPER_STYLE} w-full md:w-auto`}>
-                <select value={sortBy} onChange={e => setSortBy(e.target.value as any)} className={`${SELECT_STYLE} !w-full md:!w-auto min-w-[10rem] cursor-pointer`}>
-                    <option value="manual">Sort: Manual</option>
-                    <option value="name">Sort: Name (A-Z)</option>
-                    <option value="balance">Sort: Balance (High-Low)</option>
-                </select>
-                <div className={SELECT_ARROW_STYLE}><span className="material-symbols-outlined">expand_more</span></div>
-            </div>
-          <button onClick={() => setAddModalOpen(true)} className={`${BTN_PRIMARY_STYLE} whitespace-nowrap shadow-lg shadow-primary-500/20 w-full md:w-auto`}>
-             <span className="material-symbols-outlined text-lg mr-2">add</span>
-             Add Account
-          </button>
-        </div>
-      </header>
-
-      {/* Summary Grid */}
-      <section className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-        <Card className="h-full">
-            <AccountBreakdownCard 
-                title="Assets" 
-                totalValue={totalAssets} 
-                breakdownData={assetBreakdown} 
-            />
-        </Card>
-        <Card className="h-full">
-            <AccountBreakdownCard 
-                title="Liabilities" 
-                totalValue={Math.abs(totalDebt)} 
-                breakdownData={debtBreakdown} 
-            />
-        </Card>
-      </section>
-
-      {/* Lists */}
-      <div className="space-y-10">
-        <AccountsListSection
-            title="Assets"
-            accounts={assetAccounts}
-            transactionsByAccount={transactionsByAccount}
-            warrants={warrants}
-            onAccountClick={handleAccountClick}
-            onEditClick={openEditModal}
-            onAdjustBalanceClick={openAdjustModal}
-            sortBy={sortBy}
-            accountOrder={accountOrder}
-            setAccountOrder={setAccountOrder}
-            onContextMenu={handleContextMenu}
-            isCollapsible={false}
-        />
-        <AccountsListSection
-            title="Liabilities"
-            accounts={debtAccounts}
-            transactionsByAccount={transactionsByAccount}
-            warrants={warrants}
-            onAccountClick={handleAccountClick}
-            onEditClick={openEditModal}
-            onAdjustBalanceClick={openAdjustModal}
-            sortBy={sortBy}
-            accountOrder={accountOrder}
-            setAccountOrder={setAccountOrder}
-            onContextMenu={handleContextMenu}
-            isCollapsible={false}
-        />
-        <AccountsListSection
-            title="Closed Accounts"
-            accounts={closedAccounts}
-            transactionsByAccount={transactionsByAccount}
-            warrants={warrants}
-            onAccountClick={handleAccountClick}
-            onEditClick={openEditModal}
-            onAdjustBalanceClick={openAdjustModal}
-            sortBy={sortBy}
-            accountOrder={accountOrder}
-            setAccountOrder={setAccountOrder}
-            onContextMenu={handleContextMenu}
-            isCollapsible={true}
-        />
+      
+      {/* Net Worth Hero Section */}
+      <div className="relative overflow-hidden rounded-3xl bg-gradient-to-br from-primary-600 to-primary-900 dark:from-primary-800 dark:to-black text-white shadow-xl p-8 md:p-10">
+         <div className="absolute top-0 right-0 p-8 opacity-10 pointer-events-none">
+             <span className="material-symbols-outlined text-[12rem]">savings</span>
+         </div>
+         <div className="relative z-10 flex flex-col md:flex-row justify-between items-start md:items-end gap-8">
+             <div>
+                 <p className="text-white/70 font-bold uppercase tracking-wider text-sm mb-2">Total Net Worth</p>
+                 <h1 className="text-5xl md:text-6xl font-bold tracking-tight text-white">{formatCurrency(netWorth, 'EUR')}</h1>
+                 <div className="flex gap-6 mt-6">
+                    <div>
+                        <p className="text-xs font-bold uppercase text-white/60 mb-1">Total Assets</p>
+                        <p className="text-xl font-semibold text-emerald-300">{formatCurrency(totalAssets, 'EUR')}</p>
+                    </div>
+                    <div className="w-px bg-white/20 h-10"></div>
+                     <div>
+                        <p className="text-xs font-bold uppercase text-white/60 mb-1">Total Liabilities</p>
+                        <p className="text-xl font-semibold text-rose-300">{formatCurrency(Math.abs(totalDebt), 'EUR')}</p>
+                    </div>
+                 </div>
+             </div>
+             
+             <div className="w-full md:w-auto flex flex-col items-end gap-4">
+                 <div className="flex gap-2">
+                     <button onClick={() => setAddModalOpen(true)} className="bg-white text-primary-900 hover:bg-white/90 px-5 py-2.5 rounded-xl font-bold text-sm shadow-lg flex items-center gap-2 transition-all hover:-translate-y-0.5 active:translate-y-0">
+                         <span className="material-symbols-outlined text-lg">add</span> Add Account
+                     </button>
+                 </div>
+                 
+                <div className="bg-black/20 backdrop-blur-sm rounded-lg p-1 flex border border-white/10">
+                    <select 
+                        value={sortBy} 
+                        onChange={e => setSortBy(e.target.value as any)} 
+                        className="bg-transparent text-white text-xs font-medium px-2 py-1 outline-none cursor-pointer"
+                    >
+                        <option value="manual" className="text-black">Sort: Manual</option>
+                        <option value="name" className="text-black">Sort: Name</option>
+                        <option value="balance" className="text-black">Sort: Balance</option>
+                    </select>
+                </div>
+             </div>
+         </div>
       </div>
+
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 items-start">
+          {/* Left Column: Assets */}
+          <div className="space-y-6">
+                <Card className="!bg-transparent !shadow-none !p-0 !border-none">
+                    <AccountBreakdownCard 
+                        title="Assets" 
+                        totalValue={totalAssets} 
+                        breakdownData={assetBreakdown} 
+                    />
+                </Card>
+                <AccountsListSection
+                    title="Asset Accounts"
+                    accounts={assetAccounts}
+                    transactionsByAccount={transactionsByAccount}
+                    warrants={warrants}
+                    onAccountClick={handleAccountClick}
+                    onEditClick={openEditModal}
+                    onAdjustBalanceClick={openAdjustModal}
+                    sortBy={sortBy}
+                    accountOrder={accountOrder}
+                    setAccountOrder={setAccountOrder}
+                    onContextMenu={handleContextMenu}
+                    isCollapsible={false}
+                />
+          </div>
+
+          {/* Right Column: Liabilities */}
+          <div className="space-y-6">
+               <Card className="!bg-transparent !shadow-none !p-0 !border-none">
+                    <AccountBreakdownCard 
+                        title="Liabilities" 
+                        totalValue={Math.abs(totalDebt)} 
+                        breakdownData={debtBreakdown} 
+                    />
+                </Card>
+                <AccountsListSection
+                    title="Liability Accounts"
+                    accounts={debtAccounts}
+                    transactionsByAccount={transactionsByAccount}
+                    warrants={warrants}
+                    onAccountClick={handleAccountClick}
+                    onEditClick={openEditModal}
+                    onAdjustBalanceClick={openAdjustModal}
+                    sortBy={sortBy}
+                    accountOrder={accountOrder}
+                    setAccountOrder={setAccountOrder}
+                    onContextMenu={handleContextMenu}
+                    isCollapsible={false}
+                />
+          </div>
+      </div>
+
+      {/* Closed Accounts */}
+      {closedAccounts.length > 0 && (
+          <div className="pt-8 mt-8 border-t border-black/5 dark:border-white/5 opacity-70 hover:opacity-100 transition-opacity">
+            <AccountsListSection
+                title="Archived Accounts"
+                accounts={closedAccounts}
+                transactionsByAccount={transactionsByAccount}
+                warrants={warrants}
+                onAccountClick={handleAccountClick}
+                onEditClick={openEditModal}
+                onAdjustBalanceClick={openAdjustModal}
+                sortBy={sortBy}
+                accountOrder={accountOrder}
+                setAccountOrder={setAccountOrder}
+                onContextMenu={handleContextMenu}
+                isCollapsible={true}
+            />
+          </div>
+      )}
     </div>
   );
 };
