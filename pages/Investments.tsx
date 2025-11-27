@@ -186,7 +186,32 @@ const Investments: React.FC<InvestmentsProps> = ({
 
     const totalGainLoss = totalValue - totalCostBasis;
     const totalGainLossPercent = totalCostBasis > 0 ? (totalGainLoss / totalCostBasis) * 100 : 0;
-    const sortedTransactions = [...investmentTransactions].sort((a, b) => parseDateAsUTC(b.date).getTime() - parseDateAsUTC(a.date).getTime());
+    
+    const recentActivity = useMemo(() => {
+        const txs = investmentTransactions.map(tx => ({
+            id: tx.id,
+            date: tx.date,
+            type: tx.type === 'buy' ? 'BUY' : 'SELL',
+            symbol: tx.symbol,
+            quantity: tx.quantity,
+            price: tx.price,
+            isWarrant: false,
+            data: tx
+        }));
+
+        const grants = warrants.map(w => ({
+            id: w.id,
+            date: w.grantDate,
+            type: 'GRANT',
+            symbol: w.isin,
+            quantity: w.quantity,
+            price: w.grantPrice,
+            isWarrant: true,
+            data: w
+        }));
+
+        return [...txs, ...grants].sort((a, b) => parseDateAsUTC(b.date).getTime() - parseDateAsUTC(a.date).getTime());
+    }, [investmentTransactions, warrants]);
 
     return (
         <div className="space-y-8 pb-12 animate-fade-in-up">
@@ -397,24 +422,38 @@ const Investments: React.FC<InvestmentsProps> = ({
                     <Card>
                          <h3 className="text-lg font-bold text-light-text dark:text-dark-text mb-4">Recent Activity</h3>
                          <div className="space-y-4">
-                            {sortedTransactions.slice(0, 5).map(tx => (
-                                <div key={tx.id} className="flex items-center justify-between p-3 rounded-lg hover:bg-black/5 dark:hover:bg-white/5 transition-colors cursor-pointer border border-transparent hover:border-black/5 dark:hover:border-white/10" onClick={() => handleOpenModal(tx)}>
-                                    <div className="flex items-center gap-4">
-                                        <div className={`w-10 h-10 rounded-full flex items-center justify-center font-bold text-xs ${tx.type === 'buy' ? 'bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400' : 'bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-400'}`}>
-                                            {tx.type === 'buy' ? 'BUY' : 'SELL'}
+                            {recentActivity.slice(0, 5).map(item => {
+                                const isBuy = item.type === 'BUY';
+                                const isGrant = item.type === 'GRANT';
+                                const badgeClass = isGrant 
+                                    ? 'bg-purple-100 text-purple-700 dark:bg-purple-900/30 dark:text-purple-400'
+                                    : isBuy 
+                                        ? 'bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400' 
+                                        : 'bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-400';
+                                
+                                return (
+                                    <div 
+                                        key={item.id} 
+                                        className="flex items-center justify-between p-3 rounded-lg hover:bg-black/5 dark:hover:bg-white/5 transition-colors cursor-pointer border border-transparent hover:border-black/5 dark:hover:border-white/10" 
+                                        onClick={() => item.isWarrant ? handleOpenWarrantModal(item.data as Warrant) : handleOpenModal(item.data as InvestmentTransaction)}
+                                    >
+                                        <div className="flex items-center gap-4">
+                                            <div className={`w-12 h-10 rounded-full flex items-center justify-center font-bold text-xs px-2 ${badgeClass}`}>
+                                                {item.type}
+                                            </div>
+                                            <div>
+                                                <p className="font-bold text-light-text dark:text-dark-text">{item.symbol}</p>
+                                                <p className="text-xs text-light-text-secondary dark:text-dark-text-secondary">{parseDateAsUTC(item.date).toLocaleDateString()}</p>
+                                            </div>
                                         </div>
-                                        <div>
-                                            <p className="font-bold text-light-text dark:text-dark-text">{tx.symbol}</p>
-                                            <p className="text-xs text-light-text-secondary dark:text-dark-text-secondary">{parseDateAsUTC(tx.date).toLocaleDateString()}</p>
+                                        <div className="text-right">
+                                            <p className="font-bold text-light-text dark:text-dark-text">{formatCurrency(item.quantity * item.price, 'EUR')}</p>
+                                            <p className="text-xs text-light-text-secondary dark:text-dark-text-secondary">{item.quantity} @ {formatCurrency(item.price, 'EUR')}</p>
                                         </div>
                                     </div>
-                                    <div className="text-right">
-                                        <p className="font-bold text-light-text dark:text-dark-text">{formatCurrency(tx.quantity * tx.price, 'EUR')}</p>
-                                        <p className="text-xs text-light-text-secondary dark:text-dark-text-secondary">{tx.quantity} @ {formatCurrency(tx.price, 'EUR')}</p>
-                                    </div>
-                                </div>
-                            ))}
-                            {sortedTransactions.length === 0 && <p className="text-center text-light-text-secondary dark:text-dark-text-secondary py-4">No recent activity.</p>}
+                                );
+                            })}
+                            {recentActivity.length === 0 && <p className="text-center text-light-text-secondary dark:text-dark-text-secondary py-4">No recent activity.</p>}
                          </div>
                     </Card>
                 </div>
