@@ -36,7 +36,8 @@ const loadInvestmentsPage = () => import('./pages/Investments');
 const InvestmentsPage = lazy(loadInvestmentsPage);
 const loadTasksPage = () => import('./pages/Tasks');
 const TasksPage = lazy(loadTasksPage);
-// Warrants page removed
+const loadWarrantsPage = () => import('./pages/Warrants');
+const WarrantsPage = lazy(loadWarrantsPage);
 const loadAIAssistantSettingsPage = () => import('./pages/AIAssistantSettings');
 const AIAssistantSettingsPage = lazy(loadAIAssistantSettingsPage);
 const loadDocumentation = () => import('./pages/Documentation');
@@ -57,6 +58,7 @@ const pagePreloaders = [
   loadAccountDetail,
   loadInvestmentsPage,
   loadTasksPage,
+  loadWarrantsPage,
   loadAIAssistantSettingsPage,
   loadDocumentation,
 ];
@@ -261,11 +263,13 @@ const App: React.FC = () => {
       if (manualWarrantPrices[warrant.isin] !== undefined) {
         resolved[warrant.isin] = manualWarrantPrices[warrant.isin];
       } else {
-        resolved[warrant.isin] = null;
+        // Fallback to fetched prices from Yahoo/provider if manual override isn't set
+        resolved[warrant.isin] = investmentPrices[warrant.isin] ?? null;
       }
     });
+
     return resolved;
-  }, [manualWarrantPrices, warrants]);
+  }, [manualWarrantPrices, warrants, investmentPrices]);
 
   // States lifted up for persistence & preference linking
   const [dashboardAccountIds, setDashboardAccountIds] = useState<string[]>([]);
@@ -314,21 +318,29 @@ const App: React.FC = () => {
   const refreshInvestmentPrices = useCallback(async () => {
     if (typeof window === 'undefined') return;
 
-    const investmentAccountsWithSymbols = accounts
+    // Get investments with symbols
+    const investmentAccountsTargets = accounts
       .filter(acc => acc.type === 'Investment' && acc.symbol)
-      .filter(acc => !warrants.some(w => w.isin === acc.symbol));
+      .map(acc => ({
+        symbol: acc.symbol as string,
+        subType: acc.subType,
+      }));
 
-    if (investmentAccountsWithSymbols.length === 0) {
+    // Get warrants with ISINs
+    const warrantTargets = warrants.map(w => ({
+        symbol: w.isin,
+        subType: 'Other' as InvestmentSubType
+    }));
+    
+    // Combine targets for one batch request
+    const allTargets = [...investmentAccountsTargets, ...warrantTargets];
+
+    if (allTargets.length === 0) {
       setInvestmentPrices({});
       return;
     }
 
-    const targets = investmentAccountsWithSymbols.map(acc => ({
-      symbol: acc.symbol as string,
-      subType: acc.subType,
-    }));
-
-    const prices = await fetchYahooPrices(targets);
+    const prices = await fetchYahooPrices(allTargets);
     setInvestmentPrices(prices);
   }, [accounts, warrants]);
 
@@ -1453,6 +1465,7 @@ const App: React.FC = () => {
             deleteWarrant={handleDeleteWarrant}
             manualPrices={manualWarrantPrices}
             onManualPriceChange={handleManualWarrantPrice}
+            warrantPrices={warrantPrices}
         />;
       case 'Tasks':
         return <TasksPage tasks={tasks} saveTask={handleSaveTask} deleteTask={handleDeleteTask} taskOrder={taskOrder} setTaskOrder={setTaskOrder} />;

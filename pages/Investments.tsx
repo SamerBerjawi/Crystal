@@ -22,6 +22,7 @@ interface InvestmentsProps {
     deleteWarrant: (id: string) => void;
     manualPrices: Record<string, number | undefined>;
     onManualPriceChange: (isin: string, price: number | null) => void;
+    warrantPrices: Record<string, number | null>; // New Prop for consolidated prices
 }
 
 // Helper components for the redesign
@@ -56,7 +57,8 @@ const Investments: React.FC<InvestmentsProps> = ({
     saveWarrant,
     deleteWarrant,
     manualPrices,
-    onManualPriceChange
+    onManualPriceChange,
+    warrantPrices
 }) => {
     const [isModalOpen, setIsModalOpen] = useState(false);
     const [isWarrantModalOpen, setWarrantModalOpen] = useState(false);
@@ -67,7 +69,7 @@ const Investments: React.FC<InvestmentsProps> = ({
 
     const investmentAccounts = useMemo(() => (accounts || []).filter(a => a.type === 'Investment'), [accounts]);
 
-    const { holdings, totalValue, totalCostBasis, distributionData, typeBreakdown } = useMemo(() => {
+    const { holdings, totalValue, totalCostBasis, investedCapital, grantedCapital, distributionData, typeBreakdown } = useMemo(() => {
         const holdingsMap: Record<string, {
             symbol: string;
             name: string;
@@ -89,7 +91,7 @@ const Investments: React.FC<InvestmentsProps> = ({
                     name: acc.name,
                     quantity: 0,
                     totalCost: 0,
-                    currentValue: acc.balance,
+                    currentValue: acc.balance, // This balance is updated in App.tsx based on (quantity * price)
                     currentPrice: 0, 
                     type: 'Standard',
                     subType: acc.subType
@@ -134,17 +136,37 @@ const Investments: React.FC<InvestmentsProps> = ({
              }
              
              const holding = holdingsMap[w.isin];
+             // If the holding was initialized from an account, it's a warrant
+             holding.type = 'Warrant';
              holding.quantity += w.quantity;
+             // Accumulate cost basis: Initial grant price * Quantity
              holding.totalCost += w.quantity * w.grantPrice; 
-             
-             const price = manualPrices[w.isin] ?? 0;
-             holding.currentValue += w.quantity * price;
-             holding.currentPrice = price;
+        });
+
+        // Final pass to ensure warrant values are correct (Qty * Price)
+        Object.values(holdingsMap).forEach(h => {
+            if (h.type === 'Warrant') {
+                const price = warrantPrices[h.symbol] ?? 0;
+                h.currentPrice = price;
+                h.currentValue = h.quantity * price;
+            }
         });
 
         const filteredHoldings = Object.values(holdingsMap).filter(h => h.quantity > 0.000001);
         const totalVal = filteredHoldings.reduce((sum, h) => sum + h.currentValue, 0);
-        const totalCost = filteredHoldings.reduce((sum, h) => sum + h.totalCost, 0);
+        
+        let investedCap = 0;
+        let grantedCap = 0;
+        
+        filteredHoldings.forEach(h => {
+             if (h.type === 'Warrant') {
+                 grantedCap += h.totalCost;
+             } else {
+                 investedCap += h.totalCost;
+             }
+        });
+        
+        const totalCost = investedCap + grantedCap;
 
         const distData = filteredHoldings.map((holding, index) => {
             const color = BRAND_COLORS[index % BRAND_COLORS.length];
@@ -166,8 +188,16 @@ const Investments: React.FC<InvestmentsProps> = ({
             name, value, color: ['#6366F1', '#10B981', '#F59E0B', '#EF4444', '#8B5CF6'][idx % 5]
         })).sort((a,b) => b.value - a.value);
 
-        return { holdings: filteredHoldings, totalValue: totalVal, totalCostBasis: totalCost, distributionData: distData, typeBreakdown };
-    }, [investmentAccounts, investmentTransactions, warrants, manualPrices]);
+        return { 
+            holdings: filteredHoldings, 
+            totalValue: totalVal, 
+            totalCostBasis: totalCost, 
+            investedCapital: investedCap, 
+            grantedCapital: grantedCap, 
+            distributionData: distData, 
+            typeBreakdown 
+        };
+    }, [investmentAccounts, investmentTransactions, warrants, manualPrices, warrantPrices]);
 
     const handleOpenModal = (tx?: InvestmentTransaction) => {
         setEditingTransaction(tx || null);
@@ -271,7 +301,7 @@ const Investments: React.FC<InvestmentsProps> = ({
                             <p className="text-white/70 font-bold uppercase tracking-wider text-sm mb-2">Total Portfolio Value</p>
                             <h2 className="text-5xl font-bold tracking-tight">{formatCurrency(totalValue, 'EUR')}</h2>
                         </div>
-                        <div className="mt-8 flex gap-8">
+                        <div className="mt-8 flex flex-wrap gap-8">
                             <div>
                                 <p className="text-white/70 text-xs font-bold uppercase mb-1">Total Return</p>
                                 <p className="text-2xl font-semibold flex items-center gap-2">
@@ -282,8 +312,12 @@ const Investments: React.FC<InvestmentsProps> = ({
                                 </p>
                             </div>
                             <div>
-                                <p className="text-white/70 text-xs font-bold uppercase mb-1">Invested Capital</p>
-                                <p className="text-2xl font-semibold opacity-90">{formatCurrency(totalCostBasis, 'EUR')}</p>
+                                <p className="text-white/70 text-xs font-bold uppercase mb-1">Invested</p>
+                                <p className="text-2xl font-semibold opacity-90">{formatCurrency(investedCapital, 'EUR')}</p>
+                            </div>
+                            <div>
+                                <p className="text-white/70 text-xs font-bold uppercase mb-1">Granted</p>
+                                <p className="text-2xl font-semibold opacity-90">{formatCurrency(grantedCapital, 'EUR')}</p>
                             </div>
                         </div>
                     </div>
@@ -331,7 +365,7 @@ const Investments: React.FC<InvestmentsProps> = ({
                                     <tr className="text-xs font-bold text-light-text-secondary dark:text-dark-text-secondary uppercase tracking-wider border-b border-black/5 dark:border-white/5">
                                         <th className="pb-3 pl-2">Asset</th>
                                         <th className="pb-3 text-right">Price</th>
-                                        <th className="pb-3 text-right">Balance</th>
+                                        <th className="pb-3 text-right">Quantity</th>
                                         <th className="pb-3 text-right">Value</th>
                                         <th className="pb-3 text-right">Return</th>
                                         <th className="pb-3 w-10"></th>
