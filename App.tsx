@@ -1,3 +1,4 @@
+
 // FIX: Import `useMemo` from React to resolve the 'Cannot find name' error.
 import React, { useState, useEffect, useMemo, useCallback, Suspense, lazy, useRef, Component, ErrorInfo } from 'react';
 import Sidebar from './components/Sidebar';
@@ -35,8 +36,7 @@ const loadInvestmentsPage = () => import('./pages/Investments');
 const InvestmentsPage = lazy(loadInvestmentsPage);
 const loadTasksPage = () => import('./pages/Tasks');
 const TasksPage = lazy(loadTasksPage);
-const loadWarrantsPage = () => import('./pages/Warrants');
-const WarrantsPage = lazy(loadWarrantsPage);
+// Warrants page removed
 const loadAIAssistantSettingsPage = () => import('./pages/AIAssistantSettings');
 const AIAssistantSettingsPage = lazy(loadAIAssistantSettingsPage);
 const loadDocumentation = () => import('./pages/Documentation');
@@ -57,7 +57,6 @@ const pagePreloaders = [
   loadAccountDetail,
   loadInvestmentsPage,
   loadTasksPage,
-  loadWarrantsPage,
   loadAIAssistantSettingsPage,
   loadDocumentation,
 ];
@@ -249,7 +248,7 @@ const App: React.FC = () => {
   // State for AI Chat
   const [isChatOpen, setIsChatOpen] = useState(false);
   
-  // State for Warrant prices
+  // State for Asset/Warrant prices
   const [manualWarrantPrices, setManualWarrantPrices] = useState<Record<string, number | undefined>>(initialFinancialData.manualWarrantPrices || {});
   const [lastUpdated, setLastUpdated] = useState<Date | null>(null);
   const [investmentPrices, setInvestmentPrices] = useState<Record<string, number | null>>({});
@@ -263,7 +262,6 @@ const App: React.FC = () => {
         resolved[warrant.isin] = null;
       }
     });
-
     return resolved;
   }, [manualWarrantPrices, warrants]);
 
@@ -352,24 +350,24 @@ const App: React.FC = () => {
     const updatedAccounts = accounts.map(account => {
       // FIX: The type 'Crypto' is not a valid AccountType. 'Crypto' is a subtype of 'Investment'.
       // The check is simplified to only verify if the account type is 'Investment'.
-      if (account.symbol && account.type === 'Investment' && warrantPrices[account.symbol] !== undefined) {
-        const price = warrantPrices[account.symbol];
-        const quantity = warrantHoldingsBySymbol[account.symbol] || 0;
-        const calculatedBalance = price !== null ? quantity * price : 0;
-
-        if (Math.abs((account.balance || 0) - calculatedBalance) > 0.0001) {
-            hasChanges = true;
-            return { ...account, balance: calculatedBalance };
+      if (account.symbol && account.type === 'Investment') {
+        // Check Manual override first, then Warrants list, then Yahoo prices
+        let price = manualWarrantPrices[account.symbol];
+        
+        if (price === undefined) {
+            // Fallback to Yahoo prices
+            price = investmentPrices[account.symbol] ?? undefined;
         }
-      }
-      if (account.symbol && account.type === 'Investment' && investmentPrices[account.symbol] !== undefined) {
-        const price = investmentPrices[account.symbol];
-        const quantity = warrantHoldingsBySymbol[account.symbol] || 0;
-        const calculatedBalance = price !== null ? quantity * price : 0;
 
-        if (Math.abs((account.balance || 0) - calculatedBalance) > 0.0001) {
-            hasChanges = true;
-            return { ...account, balance: calculatedBalance };
+        // If we have a price (manual or fetched), update the balance
+        if (price !== undefined && price !== null) {
+            const quantity = warrantHoldingsBySymbol[account.symbol] || 0;
+            const calculatedBalance = price * quantity;
+
+            if (Math.abs((account.balance || 0) - calculatedBalance) > 0.0001) {
+                hasChanges = true;
+                return { ...account, balance: calculatedBalance };
+            }
         }
       }
       return account;
@@ -379,7 +377,7 @@ const App: React.FC = () => {
         setAccounts(updatedAccounts);
     }
   // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [warrantPrices, investmentPrices, warrantHoldingsBySymbol]);
+  }, [manualWarrantPrices, investmentPrices, warrantHoldingsBySymbol]);
 
   useEffect(() => {
     refreshInvestmentPrices();
@@ -1441,9 +1439,19 @@ const App: React.FC = () => {
       case 'Preferences':
         return <PreferencesPage preferences={preferences} setPreferences={setPreferences} theme={theme} setTheme={setTheme} setCurrentPage={setCurrentPage} />;
       case 'Investments':
-        return <InvestmentsPage accounts={accounts} cashAccounts={accounts.filter(a => a.type === 'Checking' || a.type === 'Savings')} investmentTransactions={investmentTransactions} saveInvestmentTransaction={handleSaveInvestmentTransaction} deleteInvestmentTransaction={handleDeleteInvestmentTransaction} saveTransaction={handleSaveTransaction} warrants={warrants} />;
-      case 'Warrants':
-        return <WarrantsPage warrants={warrants} saveWarrant={handleSaveWarrant} deleteWarrant={handleDeleteWarrant} prices={warrantPrices} manualPrices={manualWarrantPrices} lastUpdated={lastUpdated} onManualPriceChange={handleManualWarrantPrice} />;
+        return <InvestmentsPage 
+            accounts={accounts} 
+            cashAccounts={accounts.filter(a => a.type === 'Checking' || a.type === 'Savings')} 
+            investmentTransactions={investmentTransactions} 
+            saveInvestmentTransaction={handleSaveInvestmentTransaction} 
+            deleteInvestmentTransaction={handleDeleteInvestmentTransaction} 
+            saveTransaction={handleSaveTransaction} 
+            warrants={warrants} 
+            saveWarrant={handleSaveWarrant}
+            deleteWarrant={handleDeleteWarrant}
+            manualPrices={manualWarrantPrices}
+            onManualPriceChange={handleManualWarrantPrice}
+        />;
       case 'Tasks':
         return <TasksPage tasks={tasks} saveTask={handleSaveTask} deleteTask={handleDeleteTask} taskOrder={taskOrder} setTaskOrder={setTaskOrder} />;
       case 'Documentation':
