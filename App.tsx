@@ -42,6 +42,9 @@ const loadAIAssistantSettingsPage = () => import('./pages/AIAssistantSettings');
 const AIAssistantSettingsPage = lazy(loadAIAssistantSettingsPage);
 const loadDocumentation = () => import('./pages/Documentation');
 const Documentation = lazy(loadDocumentation);
+const loadSavingsChallenges = () => import('./pages/SavingsChallenges');
+const SavingsChallenges = lazy(loadSavingsChallenges);
+
 const pagePreloaders = [
   loadDashboard,
   loadAccounts,
@@ -61,11 +64,12 @@ const pagePreloaders = [
   loadWarrantsPage,
   loadAIAssistantSettingsPage,
   loadDocumentation,
+  loadSavingsChallenges,
 ];
 // UserManagement is removed
 // FIX: Import FinancialData from types.ts
 // FIX: Add `Tag` to the import from `types.ts`.
-import { Page, Theme, Category, User, Transaction, Account, RecurringTransaction, RecurringTransactionOverride, WeekendAdjustment, FinancialGoal, Budget, ImportExportHistoryItem, AppPreferences, AccountType, InvestmentTransaction, Task, Warrant, ImportDataType, FinancialData, Currency, BillPayment, BillPaymentStatus, Duration, InvestmentSubType, Tag, LoanPaymentOverrides, ScheduledPayment } from './types';
+import { Page, Theme, Category, User, Transaction, Account, RecurringTransaction, RecurringTransactionOverride, WeekendAdjustment, FinancialGoal, Budget, ImportExportHistoryItem, AppPreferences, AccountType, InvestmentTransaction, Task, Warrant, ImportDataType, FinancialData, Currency, BillPayment, BillPaymentStatus, Duration, InvestmentSubType, Tag, LoanPaymentOverrides, ScheduledPayment, Challenge } from './types';
 import { MOCK_INCOME_CATEGORIES, MOCK_EXPENSE_CATEGORIES, LIQUID_ACCOUNT_TYPES } from './constants';
 import { v4 as uuidv4 } from 'uuid';
 import ChatFab from './components/ChatFab';
@@ -109,6 +113,7 @@ const initialFinancialData: FinancialData = {
         country: 'Belgium',
         defaultForecastPeriod: '1Y',
     },
+    challenges: [],
 };
 
 const safeLocalStorage = {
@@ -239,6 +244,8 @@ const App: React.FC = () => {
   const [billsAndPayments, setBillsAndPayments] = useState<BillPayment[]>(initialFinancialData.billsAndPayments);
   // FIX: Add state for tags and tag filtering to support the Tags feature.
   const [tags, setTags] = useState<Tag[]>(initialFinancialData.tags || []);
+  const [challenges, setChallenges] = useState<Challenge[]>(initialFinancialData.challenges || []);
+
   const latestDataRef = useRef<FinancialData>(initialFinancialData);
   const lastSavedSignatureRef = useRef<string | null>(null);
   const skipNextSaveRef = useRef(false);
@@ -252,7 +259,7 @@ const App: React.FC = () => {
   // State for AI Chat
   const [isChatOpen, setIsChatOpen] = useState(false);
   
-  // State for Asset/Warrant prices
+  // State for Warrant prices
   const [manualWarrantPrices, setManualWarrantPrices] = useState<Record<string, number | undefined>>(initialFinancialData.manualWarrantPrices || {});
   const [lastUpdated, setLastUpdated] = useState<Date | null>(null);
   const [investmentPrices, setInvestmentPrices] = useState<Record<string, number | null>>({});
@@ -263,13 +270,12 @@ const App: React.FC = () => {
       if (manualWarrantPrices[warrant.isin] !== undefined) {
         resolved[warrant.isin] = manualWarrantPrices[warrant.isin];
       } else {
-        // Fallback to fetched prices from Yahoo/provider if manual override isn't set
-        resolved[warrant.isin] = investmentPrices[warrant.isin] ?? null;
+        resolved[warrant.isin] = null;
       }
     });
 
     return resolved;
-  }, [manualWarrantPrices, warrants, investmentPrices]);
+  }, [manualWarrantPrices, warrants]);
 
   // States lifted up for persistence & preference linking
   const [dashboardAccountIds, setDashboardAccountIds] = useState<string[]>([]);
@@ -318,29 +324,21 @@ const App: React.FC = () => {
   const refreshInvestmentPrices = useCallback(async () => {
     if (typeof window === 'undefined') return;
 
-    // Get investments with symbols
-    const investmentAccountsTargets = accounts
+    const investmentAccountsWithSymbols = accounts
       .filter(acc => acc.type === 'Investment' && acc.symbol)
-      .map(acc => ({
-        symbol: acc.symbol as string,
-        subType: acc.subType,
-      }));
+      .filter(acc => !warrants.some(w => w.isin === acc.symbol));
 
-    // Get warrants with ISINs
-    const warrantTargets = warrants.map(w => ({
-        symbol: w.isin,
-        subType: 'Other' as InvestmentSubType
-    }));
-    
-    // Combine targets for one batch request
-    const allTargets = [...investmentAccountsTargets, ...warrantTargets];
-
-    if (allTargets.length === 0) {
+    if (investmentAccountsWithSymbols.length === 0) {
       setInvestmentPrices({});
       return;
     }
 
-    const prices = await fetchYahooPrices(allTargets);
+    const targets = investmentAccountsWithSymbols.map(acc => ({
+      symbol: acc.symbol as string,
+      subType: acc.subType,
+    }));
+
+    const prices = await fetchYahooPrices(targets);
     setInvestmentPrices(prices);
   }, [accounts, warrants]);
 
@@ -364,24 +362,24 @@ const App: React.FC = () => {
     const updatedAccounts = accounts.map(account => {
       // FIX: The type 'Crypto' is not a valid AccountType. 'Crypto' is a subtype of 'Investment'.
       // The check is simplified to only verify if the account type is 'Investment'.
-      if (account.symbol && account.type === 'Investment') {
-        // Check Manual override first, then Warrants list, then Yahoo prices
-        let price = manualWarrantPrices[account.symbol];
-        
-        if (price === undefined) {
-            // Fallback to Yahoo prices
-            price = investmentPrices[account.symbol] ?? undefined;
+      if (account.symbol && account.type === 'Investment' && warrantPrices[account.symbol] !== undefined) {
+        const price = warrantPrices[account.symbol];
+        const quantity = warrantHoldingsBySymbol[account.symbol] || 0;
+        const calculatedBalance = price !== null ? quantity * price : 0;
+
+        if (Math.abs((account.balance || 0) - calculatedBalance) > 0.0001) {
+            hasChanges = true;
+            return { ...account, balance: calculatedBalance };
         }
+      }
+      if (account.symbol && account.type === 'Investment' && investmentPrices[account.symbol] !== undefined) {
+        const price = investmentPrices[account.symbol];
+        const quantity = warrantHoldingsBySymbol[account.symbol] || 0;
+        const calculatedBalance = price !== null ? quantity * price : 0;
 
-        // If we have a price (manual or fetched), update the balance
-        if (price !== undefined && price !== null) {
-            const quantity = warrantHoldingsBySymbol[account.symbol] || 0;
-            const calculatedBalance = price * quantity;
-
-            if (Math.abs((account.balance || 0) - calculatedBalance) > 0.0001) {
-                hasChanges = true;
-                return { ...account, balance: calculatedBalance };
-            }
+        if (Math.abs((account.balance || 0) - calculatedBalance) > 0.0001) {
+            hasChanges = true;
+            return { ...account, balance: calculatedBalance };
         }
       }
       return account;
@@ -391,7 +389,7 @@ const App: React.FC = () => {
         setAccounts(updatedAccounts);
     }
   // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [manualWarrantPrices, investmentPrices, warrantHoldingsBySymbol]);
+  }, [warrantPrices, investmentPrices, warrantHoldingsBySymbol]);
 
   useEffect(() => {
     refreshInvestmentPrices();
@@ -415,6 +413,7 @@ const App: React.FC = () => {
     setImportExportHistory(dataToLoad.importExportHistory || []);
     setBillsAndPayments(dataToLoad.billsAndPayments || []);
     setManualWarrantPrices(dataToLoad.manualWarrantPrices || {});
+    setChallenges(dataToLoad.challenges || []);
     // FIX: Add `tags` to the data loading logic.
     setTags(dataToLoad.tags || []);
     setIncomeCategories(dataToLoad.incomeCategories && dataToLoad.incomeCategories.length > 0 ? dataToLoad.incomeCategories : MOCK_INCOME_CATEGORIES);
@@ -491,11 +490,11 @@ const App: React.FC = () => {
   const dataToSave: FinancialData = useMemo(() => ({
     accounts, transactions, investmentTransactions, recurringTransactions,
     recurringTransactionOverrides, loanPaymentOverrides, financialGoals, budgets, tasks, warrants, importExportHistory, incomeCategories,
-    expenseCategories, preferences, billsAndPayments, accountOrder, taskOrder, tags, manualWarrantPrices
+    expenseCategories, preferences, billsAndPayments, accountOrder, taskOrder, tags, manualWarrantPrices, challenges
   }), [
     accounts, transactions, investmentTransactions,
     recurringTransactions, recurringTransactionOverrides, loanPaymentOverrides, financialGoals, budgets, tasks, warrants, importExportHistory,
-    incomeCategories, expenseCategories, preferences, billsAndPayments, accountOrder, taskOrder, tags, manualWarrantPrices
+    incomeCategories, expenseCategories, preferences, billsAndPayments, accountOrder, taskOrder, tags, manualWarrantPrices, challenges
   ]);
 
   const debouncedDirtySignal = useDebounce(dirtySignal, 900);
@@ -521,6 +520,7 @@ const App: React.FC = () => {
     if (dirtySlices.has('taskOrder')) payload.taskOrder = taskOrder;
     if (dirtySlices.has('tags')) payload.tags = tags;
     if (dirtySlices.has('manualWarrantPrices')) payload.manualWarrantPrices = manualWarrantPrices;
+    if (dirtySlices.has('challenges')) payload.challenges = challenges;
 
     return { ...latestDataRef.current, ...payload } as FinancialData;
   }, [
@@ -543,6 +543,7 @@ const App: React.FC = () => {
     transactions,
     warrants,
     manualWarrantPrices,
+    challenges,
   ]);
   const debouncedDataToSave = useDebounce(dataToSave, 1500);
   const debouncedDataSignature = useMemo(
@@ -648,6 +649,12 @@ const App: React.FC = () => {
     if (!isDataLoaded || restoreInProgressRef.current) return;
     markSliceDirty('tags');
   }, [tags, isDataLoaded, markSliceDirty]);
+
+  useEffect(() => {
+    if (!isDataLoaded || restoreInProgressRef.current) return;
+    markSliceDirty('challenges');
+  }, [challenges, isDataLoaded, markSliceDirty]);
+
 
   // Persist data to backend on change
   const saveData = useCallback(
@@ -1242,6 +1249,20 @@ const App: React.FC = () => {
     }
   };
 
+  // --- Savings Challenges Handlers ---
+  const handleSaveChallenge = (challengeData: Omit<Challenge, 'id'> & { id?: string }) => {
+      if (challengeData.id) {
+          setChallenges(prev => prev.map(c => c.id === challengeData.id ? { ...c, ...challengeData } as Challenge : c));
+      } else {
+          const newChallenge: Challenge = { ...challengeData, id: `challenge-${uuidv4()}` } as Challenge;
+          setChallenges(prev => [...prev, newChallenge]);
+      }
+  };
+
+  const handleDeleteChallenge = (id: string) => {
+      setChallenges(prev => prev.filter(c => c.id !== id));
+  };
+
 
   // --- Data Import / Export ---
   const handlePublishImport = (
@@ -1473,6 +1494,8 @@ const App: React.FC = () => {
         return <Documentation setCurrentPage={setCurrentPage} />;
       case 'AI Assistant':
         return <AIAssistantSettingsPage setCurrentPage={setCurrentPage} />;
+      case 'Savings Challenges':
+        return <SavingsChallenges challenges={challenges} transactions={transactions} incomeCategories={incomeCategories} expenseCategories={expenseCategories} saveChallenge={handleSaveChallenge} deleteChallenge={handleDeleteChallenge} />;
       default:
         return <div>Page not found</div>;
     }

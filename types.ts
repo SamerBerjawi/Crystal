@@ -1,8 +1,8 @@
 
 import React, { Dispatch, SetStateAction } from 'react';
 
-// FIX: Add 'AI Assistant' to Page type
-export type Page = 'Dashboard' | 'Accounts' | 'Transactions' | 'Budget' | 'Forecasting' | 'Settings' | 'Schedule & Bills' | 'Tasks' | 'Categories' | 'Tags' | 'Personal Info' | 'Data Management' | 'Preferences' | 'AccountDetail' | 'Investments' | 'Warrants' | 'Documentation' | 'AI Assistant';
+// FIX: Add 'AI Assistant' and 'Savings Challenges' to Page type
+export type Page = 'Dashboard' | 'Accounts' | 'Transactions' | 'Budget' | 'Forecasting' | 'Settings' | 'Schedule & Bills' | 'Tasks' | 'Categories' | 'Tags' | 'Personal Info' | 'Data Management' | 'Preferences' | 'AccountDetail' | 'Investments' | 'Warrants' | 'Documentation' | 'AI Assistant' | 'Savings Challenges';
 
 export type AccountType = 'Checking' | 'Savings' | 'Credit Card' | 'Investment' | 'Loan' | 'Property' | 'Vehicle' | 'Other Assets' | 'Other Liabilities' | 'Lending';
 
@@ -372,6 +372,21 @@ export interface AccountDetailProps {
   saveAccount: (account: Omit<Account, 'id'> & { id?: string }) => void;
 }
 
+export type ChallengeType = 'spend-limit' | 'streak';
+
+export interface Challenge {
+    id: string;
+    name: string;
+    description: string;
+    type: ChallengeType;
+    targetAmount: number; // Max spend amount (for spend-limit) or unused for streak
+    startDate: string;
+    endDate: string;
+    categoryNames: string[]; // Which categories to track
+    color: string;
+    icon: string;
+}
+
 // FIX: Move FinancialData interface from App.tsx to types.ts to resolve import error in mockData.ts
 export interface FinancialData {
     accounts: Account[];
@@ -393,6 +408,7 @@ export interface FinancialData {
     accountOrder?: string[];
     tags?: Tag[];
     manualWarrantPrices?: Record<string, number | undefined>;
+    challenges?: Challenge[];
 }
 
 // New types for Tasks feature

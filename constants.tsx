@@ -1,6 +1,6 @@
 
 import React, { useState, useEffect } from 'react';
-import { Category, Page, AccountType, Currency, Theme, RecurrenceFrequency, WeekendAdjustment, DefaultAccountOrder, Duration, InvestmentSubType, PropertyType, FuelType, VehicleOwnership, ForecastDuration } from './types';
+import { Category, Page, AccountType, Currency, Theme, RecurrenceFrequency, WeekendAdjustment, DefaultAccountOrder, Duration, InvestmentSubType, PropertyType, FuelType, VehicleOwnership, ForecastDuration, Challenge } from './types';
 
 
 // FIX: Renamed AuraFinanceLogo to CrystalLogo to finalize rebranding.
@@ -105,6 +105,7 @@ export const NAV_ITEMS: NavItem[] = [
   { name: 'Schedule & Bills', icon: 'calendar_month' },
   { name: 'Forecasting', icon: 'show_chart' },
   { name: 'Budget', icon: 'pie_chart' },
+  { name: 'Savings Challenges', icon: 'emoji_events' },
   { name: 'Investments', icon: 'candlestick_chart' },
   { name: 'Tasks', icon: 'task_alt' },
   { name: 'Settings', icon: 'settings' },
@@ -247,4 +248,11 @@ export const CATEGORY_ICON_LIST: string[] = [
     'child_care', 'pets', 'school', 'card_giftcard', 'redeem', 'celebration', 'family_restroom', 'construction', 'build',
     'attach_money', 'work', 'payments', 'account_balance', 'currency_exchange', 'sell',
     'emergency', 'report'
+];
+
+export const PREDEFINED_CHALLENGES: Omit<Challenge, 'id'>[] = [
+  { name: "No Spend November", description: "Try to spend $0 on non-essential categories.", type: "spend-limit", targetAmount: 0, categoryNames: ["Shopping", "Entertainment", "Dining Out"], startDate: new Date(new Date().getFullYear(), 10, 1).toISOString().split('T')[0], endDate: new Date(new Date().getFullYear(), 10, 30).toISOString().split('T')[0], icon: "calendar_month", color: "#F59E0B" },
+  { name: "Coffee Detox", description: "Limit coffee shop spending to $20/month.", type: "spend-limit", targetAmount: 20, categoryNames: ["Cafes & Snacks"], startDate: new Date().toISOString().split('T')[0], endDate: new Date(new Date().setMonth(new Date().getMonth() + 1)).toISOString().split('T')[0], icon: "local_cafe", color: "#78350f" },
+  { name: "Dining Out Limit", description: "Keep restaurant spending under $150.", type: "spend-limit", targetAmount: 150, categoryNames: ["Dining Out", "Delivery & Takeaway"], startDate: new Date().toISOString().split('T')[0], endDate: new Date(new Date().setMonth(new Date().getMonth() + 1)).toISOString().split('T')[0], icon: "restaurant", color: "#EF4444" },
+  { name: "Shopping Ban", description: "Resist the urge to shop for 30 days.", type: "streak", targetAmount: 0, categoryNames: ["Shopping", "Electronics & Gadgets"], startDate: new Date().toISOString().split('T')[0], endDate: new Date(new Date().setDate(new Date().getDate() + 30)).toISOString().split('T')[0], icon: "shopping_bag", color: "#8B5CF6" },
 ];
