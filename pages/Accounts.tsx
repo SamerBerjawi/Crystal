@@ -43,7 +43,8 @@ const AccountsListSection: React.FC<{
     onContextMenu: (event: React.MouseEvent, account: Account) => void;
     isCollapsible?: boolean;
     defaultExpanded?: boolean;
-}> = ({ title, accounts, transactionsByAccount, warrants, onAccountClick, onEditClick, onAdjustBalanceClick, sortBy, accountOrder, setAccountOrder, onContextMenu, isCollapsible = true, defaultExpanded = true }) => {
+    layoutMode: 'grid' | 'list';
+}> = ({ title, accounts, transactionsByAccount, warrants, onAccountClick, onEditClick, onAdjustBalanceClick, sortBy, accountOrder, setAccountOrder, onContextMenu, isCollapsible = true, defaultExpanded = true, layoutMode }) => {
     const [isExpanded, setIsExpanded] = useState(defaultExpanded);
     const [draggedId, setDraggedId] = useState<string | null>(null);
     const [dragOverId, setDragOverId] = useState<string | null>(null);
@@ -152,7 +153,7 @@ const AccountsListSection: React.FC<{
                                 </div>
                                 
                                 {expandedGroups[groupName] && (
-                                    <div className="grid grid-cols-1 gap-3">
+                                    <div className={`grid gap-3 ${layoutMode === 'grid' ? 'grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4' : 'grid-cols-1'}`}>
                                         {accountsInGroup.map(acc => (
                                             <AccountRow
                                                 key={acc.id}
@@ -507,11 +508,9 @@ const Accounts: React.FC<AccountsProps> = ({ accounts, transactions, saveAccount
             </button>
       </div>
 
-      {/* Asset / Liability Breakdowns Removed in favor of new sleek grid above */}
-
       {/* Main Accounts Grid/List */}
-      <div className={`grid gap-8 ${layoutMode === 'grid' ? 'grid-cols-1 lg:grid-cols-2 items-start' : 'grid-cols-1'}`}>
-            <div className="space-y-8">
+      <div className="space-y-8">
+           <div className="space-y-4">
                  <div className="flex items-center gap-2 pb-2 border-b border-black/5 dark:border-white/5">
                      <span className="material-symbols-outlined text-emerald-500">account_balance</span>
                      <h2 className="text-xl font-bold text-light-text dark:text-dark-text">Assets</h2>
@@ -529,10 +528,11 @@ const Accounts: React.FC<AccountsProps> = ({ accounts, transactions, saveAccount
                     setAccountOrder={setAccountOrder}
                     onContextMenu={handleContextMenu}
                     isCollapsible={false}
+                    layoutMode={layoutMode}
                  />
             </div>
 
-            <div className="space-y-8">
+            <div className="space-y-4">
                  <div className="flex items-center gap-2 pb-2 border-b border-black/5 dark:border-white/5">
                      <span className="material-symbols-outlined text-rose-500">credit_card</span>
                      <h2 className="text-xl font-bold text-light-text dark:text-dark-text">Liabilities</h2>
@@ -550,6 +550,7 @@ const Accounts: React.FC<AccountsProps> = ({ accounts, transactions, saveAccount
                     setAccountOrder={setAccountOrder}
                     onContextMenu={handleContextMenu}
                     isCollapsible={false}
+                    layoutMode={layoutMode}
                  />
             </div>
       </div>
@@ -571,6 +572,7 @@ const Accounts: React.FC<AccountsProps> = ({ accounts, transactions, saveAccount
                 onContextMenu={handleContextMenu}
                 isCollapsible={true}
                 defaultExpanded={false}
+                layoutMode={layoutMode}
              />
           </div>
       )}

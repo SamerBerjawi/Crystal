@@ -57,17 +57,11 @@ const AccountRow: React.FC<AccountRowProps> = ({ account, transactions, warrants
         
         // Calculate daily balances working backwards
         let currentBal = convertToEur(displayBalance, account.currency);
-        const dailyBalances: { date: number, value: number }[] = [];
         
-        // We need to calculate balances for the last 30 days
         // Map transactions to dates for O(1) lookup or simple filtering
         const txsByDate: Record<string, number> = {};
         sortedTransactions.forEach(tx => {
             const dateStr = tx.date; // YYYY-MM-DD
-            // Reverse the effect: if it was income (+), subtract it. If expense (-), add it back.
-            // But we are going backwards in time.
-            // Wait, to get history from current balance:
-            // Balance(T-1) = Balance(T) - Income(T) + Expense(T)
             const amount = convertToEur(tx.amount, tx.currency);
             txsByDate[dateStr] = (txsByDate[dateStr] || 0) + amount;
         });
@@ -127,15 +121,6 @@ const AccountRow: React.FC<AccountRowProps> = ({ account, transactions, warrants
     const dragOverClasses = isDragOver ? 'ring-2 ring-primary-500 scale-[1.02]' : '';
     const cursorClass = isDraggable ? 'cursor-grab active:cursor-grabbing' : 'cursor-pointer';
 
-    const renderSecondaryDetails = () => {
-        const details = [];
-        if (account.type === 'Property' && account.propertyType) details.push(account.propertyType);
-        if (account.financialInstitution) details.push(account.financialInstitution);
-        if (account.last4) details.push(`•••• ${account.last4}`);
-        if (account.subType) details.push(account.subType);
-        return details.join(' • ');
-    };
-
     return (
         <div 
             draggable={isDraggable}
@@ -148,112 +133,99 @@ const AccountRow: React.FC<AccountRowProps> = ({ account, transactions, warrants
             onClick={onClick}
             className={`
                 relative group overflow-hidden
-                bg-white dark:bg-dark-card 
+                bg-light-card dark:bg-dark-card
                 rounded-2xl 
-                border border-black/5 dark:border-white/5
-                hover:border-primary-500/30 dark:hover:border-primary-500/30
-                shadow-sm hover:shadow-md hover:-translate-y-0.5
+                shadow-sm hover:shadow-lg hover:-translate-y-1
                 transition-all duration-300 ease-out
-                p-4
+                p-5 min-h-[160px] flex flex-col
                 ${cursorClass} ${dragClasses} ${dragOverClasses}
                 ${account.status === 'closed' ? 'opacity-60 grayscale' : ''}
             `}
         >
-            {/* Background Gradient on Hover */}
-             <div className={`absolute inset-0 bg-gradient-to-r from-transparent via-transparent to-gray-50/50 dark:to-white/5 opacity-0 group-hover:opacity-100 transition-opacity duration-500 pointer-events-none`} />
-
-            <div className="relative z-10 flex justify-between items-center">
-                <div className="flex items-center gap-4 min-w-0 flex-1">
-                    {/* Icon Container */}
-                    <div className={`
-                        w-12 h-12 rounded-2xl flex items-center justify-center flex-shrink-0
-                        shadow-sm group-hover:scale-105 transition-transform duration-300
-                        ${styleConfig?.color ? styleConfig.color.replace('text-', 'bg-').replace('500', '100') + ' dark:' + styleConfig.color.replace('text-', 'bg-').replace('500', '900/20') : 'bg-gray-100 dark:bg-gray-800'}
-                        ${typeColor}
-                    `}>
-                        <span className="material-symbols-outlined text-[24px]">{account.icon || 'wallet'}</span>
-                    </div>
-
-                    {/* Name & Details */}
-                    <div className="flex flex-col min-w-0">
-                        <div className="flex items-center gap-2">
-                            <h3 className="font-bold text-gray-900 dark:text-white truncate text-base">
+            <div className="relative z-10">
+                {/* Top Section: Icon, Name, Details */}
+                <div className="flex items-start justify-between">
+                    <div className="flex items-center gap-3 min-w-0">
+                        <div className={`
+                            w-10 h-10 rounded-xl flex items-center justify-center flex-shrink-0
+                            ${styleConfig?.color ? styleConfig.color.replace('text-', 'bg-').replace('500', '100') + ' dark:' + styleConfig.color.replace('text-', 'bg-').replace('500', '900/20') : 'bg-gray-100 dark:bg-gray-800'}
+                            ${typeColor}
+                        `}>
+                            <span className="material-symbols-outlined text-[20px]">{account.icon || 'wallet'}</span>
+                        </div>
+                        <div className="min-w-0">
+                            <h3 className="font-bold text-light-text dark:text-dark-text truncate text-sm leading-tight">
                                 {account.name}
                             </h3>
-                            {account.isPrimary && (
-                                <span className="material-symbols-outlined text-yellow-500 text-[14px]" title="Primary Account">star</span>
-                            )}
-                            {account.status === 'closed' && (
-                                <span className="text-[10px] font-bold uppercase bg-gray-200 dark:bg-gray-700 text-gray-600 dark:text-gray-300 px-1.5 rounded">Closed</span>
-                            )}
-                        </div>
-                        <div className="flex items-center gap-2 mt-0.5">
-                             {account.symbol && (
-                                <span className="text-[10px] font-bold px-1.5 py-0.5 rounded bg-gray-100 dark:bg-white/10 text-gray-600 dark:text-gray-300 font-mono tracking-wide border border-black/5 dark:border-white/10">
-                                    {account.symbol}
-                                </span>
-                            )}
-                             <p className="text-xs text-gray-500 dark:text-gray-400 truncate font-medium">
-                                 {renderSecondaryDetails() || account.type}
-                             </p>
+                            <p className="text-xs text-light-text-secondary dark:text-dark-text-secondary truncate font-medium mt-0.5 tracking-wide">
+                                {account.financialInstitution || account.type}
+                                {account.last4 && <span className="opacity-70 ml-1">•••• {account.last4}</span>}
+                            </p>
                         </div>
                     </div>
+                    {account.isPrimary && (
+                        <span className="material-symbols-outlined text-yellow-500 text-[16px]" title="Primary Account">star</span>
+                    )}
                 </div>
 
-                {/* Balance & Sparkline Group */}
-                <div className="flex items-center gap-6">
-                     {/* Sparkline (Hidden on very small screens) */}
-                     <div className="hidden sm:block h-10 w-24 opacity-50 group-hover:opacity-100 transition-opacity duration-300">
-                        <ResponsiveContainer width="100%" height="100%">
-                            <AreaChart data={sparklineData}>
-                                <defs>
-                                    <linearGradient id={`gradient-${account.id}`} x1="0" y1="0" x2="0" y2="1">
-                                        <stop offset="5%" stopColor={chartColor} stopOpacity={0.3}/>
-                                        <stop offset="95%" stopColor={chartColor} stopOpacity={0}/>
-                                    </linearGradient>
-                                </defs>
-                                <Area 
-                                    type="monotone" 
-                                    dataKey="value" 
-                                    stroke={chartColor} 
-                                    strokeWidth={2} 
-                                    fill={`url(#gradient-${account.id})`}
-                                    isAnimationActive={false}
-                                />
-                            </AreaChart>
-                        </ResponsiveContainer>
-                    </div>
-
-                    <div className="text-right">
-                        <p className={`text-lg font-extrabold tracking-tight ${displayBalance < 0 ? 'text-light-text dark:text-dark-text' : 'text-light-text dark:text-dark-text'}`}>
-                             {formatCurrency(convertToEur(displayBalance, account.currency), 'EUR')}
-                        </p>
-                        {transactions.length > 0 && (
-                            <p className={`text-[10px] font-bold flex items-center justify-end gap-1 ${isPositiveTrend ? 'text-green-600 dark:text-green-400' : 'text-red-600 dark:text-red-400'}`}>
-                                <span className="material-symbols-outlined text-[10px]">{isPositiveTrend ? 'trending_up' : 'trending_down'}</span>
-                                {formatCurrency(Math.abs(trend), 'EUR')} (30d)
-                            </p>
-                        )}
-                    </div>
+                {/* Middle: Balance & Trend */}
+                <div className="mt-3 flex items-center gap-3">
+                    <p className={`text-2xl font-extrabold tracking-tight ${displayBalance < 0 ? 'text-light-text dark:text-dark-text' : 'text-light-text dark:text-dark-text'}`}>
+                        {formatCurrency(convertToEur(displayBalance, account.currency), 'EUR')}
+                    </p>
+                    {transactions.length > 0 && (
+                        <div className={`inline-flex items-center gap-0.5 px-1.5 py-0.5 rounded-md text-[10px] font-bold uppercase ${isPositiveTrend ? 'bg-green-100 dark:bg-green-900/30 text-green-700 dark:text-green-400' : 'bg-red-100 dark:bg-red-900/30 text-red-700 dark:text-red-400'}`}>
+                            <span>{isPositiveTrend ? '+' : ''}{formatCurrency(trend, 'EUR', { showPlusSign: false })}</span>
+                        </div>
+                    )}
                 </div>
             </div>
 
+            {/* Bottom: Sparkline (Absolute Positioned) */}
+            <div className="absolute bottom-4 left-0 right-0 h-12 w-full px-4 pointer-events-none">
+                <div className="w-full h-full relative">
+                     {/* Left Fade */}
+                     <div className="absolute left-0 top-0 bottom-0 w-4 bg-gradient-to-r from-light-card dark:from-dark-card to-transparent z-10"></div>
+                     {/* Right Fade */}
+                     <div className="absolute right-0 top-0 bottom-0 w-4 bg-gradient-to-l from-light-card dark:from-dark-card to-transparent z-10"></div>
+                     
+                     <ResponsiveContainer width="100%" height="100%">
+                        <AreaChart data={sparklineData}>
+                            <defs>
+                                <linearGradient id={`gradient-${account.id}`} x1="0" y1="0" x2="0" y2="1">
+                                    <stop offset="5%" stopColor={chartColor} stopOpacity={0.2}/>
+                                    <stop offset="95%" stopColor={chartColor} stopOpacity={0}/>
+                                </linearGradient>
+                            </defs>
+                            <Area 
+                                type="monotone" 
+                                dataKey="value" 
+                                stroke={chartColor} 
+                                strokeWidth={3} 
+                                fill={`url(#gradient-${account.id})`}
+                                isAnimationActive={false}
+                            />
+                        </AreaChart>
+                    </ResponsiveContainer>
+                </div>
+            </div>
+            
             {/* Actions (Visible on Hover) */}
-             <div className="absolute right-4 top-1/2 -translate-y-1/2 flex gap-2 opacity-0 group-hover:opacity-100 transition-all duration-200 translate-x-4 group-hover:translate-x-0 bg-white/80 dark:bg-dark-card/80 backdrop-blur-sm p-1 rounded-full shadow-sm border border-black/5 dark:border-white/5">
+             <div className="absolute top-3 right-3 flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity duration-200 z-20">
                 <button 
                     onClick={handleAdjustBalanceClick} 
-                    className="flex items-center justify-center w-8 h-8 rounded-full text-gray-600 dark:text-gray-300 hover:bg-primary-100 dark:hover:bg-primary-900/50 hover:text-primary-600 dark:hover:text-primary-400 disabled:opacity-30 disabled:cursor-not-allowed transition-colors"
+                    className="p-1.5 rounded-full bg-white dark:bg-black/40 text-light-text-secondary dark:text-dark-text-secondary hover:text-primary-500 hover:bg-gray-100 dark:hover:bg-white/10 shadow-sm border border-black/5 dark:border-white/10 transition-colors"
                     title="Adjust Balance"
                     disabled={isComputedAccount}
                 >
-                    <span className="material-symbols-outlined text-sm">tune</span>
+                    <span className="material-symbols-outlined text-xs">tune</span>
                 </button>
                 <button 
                      onClick={handleEditClick} 
-                     className="flex items-center justify-center w-8 h-8 rounded-full text-gray-600 dark:text-gray-300 hover:bg-blue-100 dark:hover:bg-blue-900/50 hover:text-blue-600 dark:hover:text-blue-400 transition-colors"
+                     className="p-1.5 rounded-full bg-white dark:bg-black/40 text-light-text-secondary dark:text-dark-text-secondary hover:text-blue-500 hover:bg-gray-100 dark:hover:bg-white/10 shadow-sm border border-black/5 dark:border-white/10 transition-colors"
                      title="Edit Account"
                 >
-                     <span className="material-symbols-outlined text-sm">edit</span>
+                     <span className="material-symbols-outlined text-xs">edit</span>
                 </button>
              </div>
         </div>
