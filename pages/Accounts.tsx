@@ -10,6 +10,7 @@ import AccountRow from '../components/AccountRow';
 import BalanceAdjustmentModal from '../components/BalanceAdjustmentModal';
 import FinalConfirmationModal from '../components/FinalConfirmationModal';
 import Card from '../components/Card';
+import useLocalStorage from '../hooks/useLocalStorage';
 
 interface AccountsProps {
     accounts: Account[];
@@ -42,8 +43,9 @@ const AccountsListSection: React.FC<{
     setAccountOrder: React.Dispatch<React.SetStateAction<string[]>>;
     onContextMenu: (event: React.MouseEvent, account: Account) => void;
     isCollapsible?: boolean;
-}> = ({ title, accounts, transactionsByAccount, warrants, onAccountClick, onEditClick, onAdjustBalanceClick, sortBy, accountOrder, setAccountOrder, onContextMenu, isCollapsible = true }) => {
-    const [isExpanded, setIsExpanded] = useState(isCollapsible ? false : true);
+    defaultExpanded?: boolean;
+}> = ({ title, accounts, transactionsByAccount, warrants, onAccountClick, onEditClick, onAdjustBalanceClick, sortBy, accountOrder, setAccountOrder, onContextMenu, isCollapsible = true, defaultExpanded = true }) => {
+    const [isExpanded, setIsExpanded] = useState(defaultExpanded);
     const [draggedId, setDraggedId] = useState<string | null>(null);
     const [dragOverId, setDragOverId] = useState<string | null>(null);
 
@@ -112,23 +114,23 @@ const AccountsListSection: React.FC<{
 
     return (
         <section className="animate-fade-in-up">
-            <div 
-                onClick={() => isCollapsible && setIsExpanded(prev => !prev)} 
-                className={`flex justify-between items-center mb-4 group ${isCollapsible ? 'cursor-pointer py-2' : ''}`}
-            >
-                <div className="flex items-center gap-3">
-                     {isCollapsible && (
-                        <span className={`material-symbols-outlined transition-transform duration-300 text-light-text-secondary dark:text-dark-text-secondary group-hover:text-primary-500 ${isExpanded ? 'rotate-180' : ''}`}>
-                            expand_more
-                        </span>
-                    )}
-                    <h3 className="text-base font-bold text-light-text dark:text-dark-text uppercase tracking-wider">{title}</h3>
-                    <span className="bg-light-fill dark:bg-dark-fill text-[10px] font-bold px-2 py-0.5 rounded-full text-light-text-secondary dark:text-dark-text-secondary">{accounts.length}</span>
+            {isCollapsible && (
+                <div 
+                    onClick={() => setIsExpanded(prev => !prev)} 
+                    className="flex justify-between items-center mb-4 group cursor-pointer py-2 select-none"
+                >
+                    <div className="flex items-center gap-3">
+                        <div className={`w-8 h-8 rounded-lg bg-light-fill dark:bg-dark-fill flex items-center justify-center transition-colors group-hover:bg-primary-100 dark:group-hover:bg-primary-900/30`}>
+                             <span className={`material-symbols-outlined transition-transform duration-300 text-light-text-secondary dark:text-dark-text-secondary group-hover:text-primary-500 ${isExpanded ? 'rotate-180' : ''}`}>
+                                expand_more
+                            </span>
+                        </div>
+                        <h3 className="text-base font-bold text-light-text dark:text-dark-text uppercase tracking-wider">{title}</h3>
+                        <span className="bg-light-fill dark:bg-dark-fill text-[10px] font-bold px-2 py-0.5 rounded-full text-light-text-secondary dark:text-dark-text-secondary">{accounts.length}</span>
+                    </div>
+                    <div className="h-px flex-grow bg-black/5 dark:bg-white/5 ml-4"></div>
                 </div>
-                {!isCollapsible && (
-                    <div className="h-px flex-grow bg-black/5 dark:bg-white/10 ml-4"></div>
-                )}
-            </div>
+            )}
             
             {isExpanded && (
                 <div className="space-y-6">
@@ -196,6 +198,7 @@ const Accounts: React.FC<AccountsProps> = ({ accounts, transactions, saveAccount
   const [contextMenu, setContextMenu] = useState<{ x: number, y: number, account: Account } | null>(null);
   const [deletingAccount, setDeletingAccount] = useState<Account | null>(null);
   const contextMenuRef = useRef<HTMLDivElement>(null);
+  const [layoutMode, setLayoutMode] = useLocalStorage<'grid' | 'list'>('crystal_accounts_layout', 'grid');
 
   useEffect(() => {
     const handleClickOutside = (event: MouseEvent) => {
@@ -354,9 +357,16 @@ const Accounts: React.FC<AccountsProps> = ({ accounts, transactions, saveAccount
                 <li>
                     <button onClick={() => { handleAccountClick(contextMenu.account.id); setContextMenu(null); }} className="w-full text-left flex items-center gap-3 px-4 py-2 hover:bg-black/5 dark:hover:bg-white/10">
                         <span className="material-symbols-outlined text-base">visibility</span>
-                        <span>View Details</span>
+                        <span>View Transactions</span>
                     </button>
                 </li>
+                <li>
+                    <button onClick={() => { setAccountFilter(contextMenu.account.name); setCurrentPage('Transactions'); setContextMenu(null); }} className="w-full text-left flex items-center gap-3 px-4 py-2 hover:bg-black/5 dark:hover:bg-white/10">
+                        <span className="material-symbols-outlined text-base">filter_list</span>
+                        <span>Filter Transactions</span>
+                    </button>
+                </li>
+                <div className="my-1 h-px bg-black/5 dark:bg-white/5"></div>
                 <li>
                     <button onClick={() => { openEditModal(contextMenu.account); setContextMenu(null); }} className="w-full text-left flex items-center gap-3 px-4 py-2 hover:bg-black/5 dark:hover:bg-white/10">
                         <span className="material-symbols-outlined text-base">edit</span>
@@ -364,20 +374,14 @@ const Accounts: React.FC<AccountsProps> = ({ accounts, transactions, saveAccount
                     </button>
                 </li>
                 <li>
-                    <button onClick={() => { onToggleAccountStatus(contextMenu.account.id); setContextMenu(null); }} className="w-full text-left flex items-center gap-3 px-4 py-2 hover:bg-black/5 dark:hover:bg-white/10">
-                         <span className="material-symbols-outlined text-base">{contextMenu.account.status === 'closed' ? 'undo' : 'archive'}</span>
-                        <span>{contextMenu.account.status === 'closed' ? 'Reopen Account' : 'Close Account'}</span>
-                    </button>
-                </li>
-                <li>
-                    <button onClick={() => { openAdjustModal(contextMenu.account); setContextMenu(null); }} className="w-full text-left flex items-center gap-3 px-4 py-2 hover:bg-black/5 dark:hover:bg-white/10" disabled={contextMenu.account.type === 'Investment'}>
+                    <button onClick={() => { openAdjustModal(contextMenu.account); setContextMenu(null); }} className="w-full text-left flex items-center gap-3 px-4 py-2 hover:bg-black/5 dark:hover:bg-white/10">
                         <span className="material-symbols-outlined text-base">tune</span>
                         <span>Adjust Balance</span>
                     </button>
                 </li>
-                <div className="my-1 h-px bg-light-separator dark:bg-dark-separator"></div>
+                <div className="my-1 h-px bg-black/5 dark:bg-white/5"></div>
                 <li>
-                    <button onClick={() => { setDeletingAccount(contextMenu.account); setContextMenu(null); }} className="w-full text-left flex items-center gap-3 px-4 py-2 text-semantic-red hover:bg-semantic-red/10">
+                    <button onClick={() => { setDeletingAccount(contextMenu.account); setContextMenu(null); }} className="w-full text-left flex items-center gap-3 px-4 py-2 text-red-500 hover:bg-red-50 dark:hover:bg-red-900/20">
                         <span className="material-symbols-outlined text-base">delete</span>
                         <span>Delete Account</span>
                     </button>
@@ -385,120 +389,141 @@ const Accounts: React.FC<AccountsProps> = ({ accounts, transactions, saveAccount
             </ul>
         </div>
       )}
-      
+
       {/* Net Worth Hero Section */}
-      <div className="relative overflow-hidden rounded-3xl bg-gradient-to-br from-primary-600 to-primary-900 dark:from-primary-800 dark:to-black text-white shadow-xl p-8 md:p-10">
-         <div className="absolute top-0 right-0 p-8 opacity-10 pointer-events-none">
-             <span className="material-symbols-outlined text-[12rem]">savings</span>
-         </div>
-         <div className="relative z-10 flex flex-col md:flex-row justify-between items-start md:items-end gap-8">
-             <div>
-                 <p className="text-white/70 font-bold uppercase tracking-wider text-sm mb-2">Total Net Worth</p>
-                 <h1 className="text-5xl md:text-6xl font-bold tracking-tight text-white">{formatCurrency(netWorth, 'EUR')}</h1>
-                 <div className="flex gap-6 mt-6">
-                    <div>
-                        <p className="text-xs font-bold uppercase text-white/60 mb-1">Total Assets</p>
-                        <p className="text-xl font-semibold text-emerald-300">{formatCurrency(totalAssets, 'EUR')}</p>
-                    </div>
-                    <div className="w-px bg-white/20 h-10"></div>
-                     <div>
-                        <p className="text-xs font-bold uppercase text-white/60 mb-1">Total Liabilities</p>
-                        <p className="text-xl font-semibold text-rose-300">{formatCurrency(Math.abs(totalDebt), 'EUR')}</p>
-                    </div>
-                 </div>
-             </div>
-             
-             <div className="w-full md:w-auto flex flex-col items-end gap-4">
-                 <div className="flex gap-2">
-                     <button onClick={() => setAddModalOpen(true)} className="bg-white text-primary-900 hover:bg-white/90 px-5 py-2.5 rounded-xl font-bold text-sm shadow-lg flex items-center gap-2 transition-all hover:-translate-y-0.5 active:translate-y-0">
-                         <span className="material-symbols-outlined text-lg">add</span> Add Account
-                     </button>
-                 </div>
-                 
-                <div className="bg-black/20 backdrop-blur-sm rounded-lg p-1 flex border border-white/10">
-                    <select 
-                        value={sortBy} 
-                        onChange={e => setSortBy(e.target.value as any)} 
-                        className="bg-transparent text-white text-xs font-medium px-2 py-1 outline-none cursor-pointer"
+      <div className="bg-gradient-to-br from-primary-600 to-primary-800 dark:from-primary-900 dark:to-black text-white p-8 rounded-3xl shadow-xl relative overflow-hidden">
+           <div className="absolute top-0 right-0 p-8 opacity-10 pointer-events-none">
+                <span className="material-symbols-outlined text-[12rem]">account_balance</span>
+           </div>
+           
+           <div className="relative z-10">
+               <div className="flex flex-col md:flex-row justify-between items-start md:items-end gap-8">
+                   <div>
+                       <p className="text-primary-100 font-bold uppercase tracking-wider text-sm mb-1">Net Worth</p>
+                       <h2 className="text-5xl font-extrabold tracking-tight">{formatCurrency(netWorth, 'EUR')}</h2>
+                   </div>
+                   <div className="flex gap-8">
+                       <div>
+                           <p className="text-primary-200 text-xs font-bold uppercase mb-1">Assets</p>
+                           <p className="text-2xl font-bold">{formatCurrency(totalAssets, 'EUR')}</p>
+                       </div>
+                       <div>
+                           <p className="text-primary-200 text-xs font-bold uppercase mb-1">Liabilities</p>
+                           <p className="text-2xl font-bold">{formatCurrency(totalDebt, 'EUR')}</p>
+                       </div>
+                   </div>
+               </div>
+           </div>
+      </div>
+
+      {/* Controls Bar */}
+      <div className="flex flex-wrap justify-between items-center gap-4 sticky top-20 z-10 bg-light-bg/80 dark:bg-dark-bg/80 backdrop-blur-md py-4 -my-4 px-1 rounded-b-xl">
+           <div className="flex items-center gap-3">
+               <div className="flex bg-light-fill dark:bg-dark-fill p-1 rounded-lg shadow-sm">
+                    <button 
+                        onClick={() => setLayoutMode('grid')} 
+                        className={`p-2 rounded-md transition-all duration-200 ${layoutMode === 'grid' ? 'bg-white dark:bg-dark-card shadow text-primary-600' : 'text-light-text-secondary dark:text-dark-text-secondary hover:text-primary-500'}`}
+                        title="Grid View"
                     >
-                        <option value="manual" className="text-black">Sort: Manual</option>
-                        <option value="name" className="text-black">Sort: Name</option>
-                        <option value="balance" className="text-black">Sort: Balance</option>
+                        <span className="material-symbols-outlined text-xl">view_column</span>
+                    </button>
+                    <button 
+                        onClick={() => setLayoutMode('list')} 
+                        className={`p-2 rounded-md transition-all duration-200 ${layoutMode === 'list' ? 'bg-white dark:bg-dark-card shadow text-primary-600' : 'text-light-text-secondary dark:text-dark-text-secondary hover:text-primary-500'}`}
+                        title="List View"
+                    >
+                        <span className="material-symbols-outlined text-xl">view_stream</span>
+                    </button>
+               </div>
+               
+                <div className={SELECT_WRAPPER_STYLE}>
+                    <select
+                        value={sortBy}
+                        onChange={(e) => setSortBy(e.target.value as any)}
+                        className={`${SELECT_STYLE} !py-2 !h-auto !text-sm`}
+                    >
+                        <option value="manual">Manual Sort</option>
+                        <option value="name">Sort by Name</option>
+                        <option value="balance">Sort by Balance</option>
                     </select>
+                    <div className={SELECT_ARROW_STYLE}><span className="material-symbols-outlined text-sm">expand_more</span></div>
                 </div>
-             </div>
-         </div>
+           </div>
+           <button onClick={() => setAddModalOpen(true)} className={BTN_PRIMARY_STYLE}>
+                <span className="material-symbols-outlined text-xl mr-2">add</span>
+                Add Account
+            </button>
       </div>
 
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 items-start">
-          {/* Left Column: Assets */}
-          <div className="space-y-6">
-                <Card className="!bg-transparent !shadow-none !p-0 !border-none">
-                    <AccountBreakdownCard 
-                        title="Assets" 
-                        totalValue={totalAssets} 
-                        breakdownData={assetBreakdown} 
-                    />
-                </Card>
-                <AccountsListSection
-                    title="Asset Accounts"
-                    accounts={assetAccounts}
-                    transactionsByAccount={transactionsByAccount}
+      {/* Asset / Liability Breakdowns */}
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+          <AccountBreakdownCard title="Assets" totalValue={totalAssets} breakdownData={assetBreakdown} />
+          <AccountBreakdownCard title="Liabilities" totalValue={Math.abs(totalDebt)} breakdownData={debtBreakdown} />
+      </div>
+
+      {/* Main Accounts Grid/List */}
+      <div className={`grid gap-8 ${layoutMode === 'grid' ? 'grid-cols-1 lg:grid-cols-2 items-start' : 'grid-cols-1'}`}>
+            <div className="space-y-8">
+                 <div className="flex items-center gap-2 pb-2 border-b border-black/5 dark:border-white/5">
+                     <span className="material-symbols-outlined text-emerald-500">account_balance</span>
+                     <h2 className="text-xl font-bold text-light-text dark:text-dark-text">Assets</h2>
+                 </div>
+                 <AccountsListSection 
+                    title="Cash & Investments"
+                    accounts={assetAccounts} 
+                    transactionsByAccount={transactionsByAccount} 
                     warrants={warrants}
-                    onAccountClick={handleAccountClick}
-                    onEditClick={openEditModal}
+                    onAccountClick={handleAccountClick} 
+                    onEditClick={openEditModal} 
                     onAdjustBalanceClick={openAdjustModal}
                     sortBy={sortBy}
                     accountOrder={accountOrder}
                     setAccountOrder={setAccountOrder}
                     onContextMenu={handleContextMenu}
                     isCollapsible={false}
-                />
-          </div>
+                 />
+            </div>
 
-          {/* Right Column: Liabilities */}
-          <div className="space-y-6">
-               <Card className="!bg-transparent !shadow-none !p-0 !border-none">
-                    <AccountBreakdownCard 
-                        title="Liabilities" 
-                        totalValue={Math.abs(totalDebt)} 
-                        breakdownData={debtBreakdown} 
-                    />
-                </Card>
-                <AccountsListSection
-                    title="Liability Accounts"
-                    accounts={debtAccounts}
-                    transactionsByAccount={transactionsByAccount}
+            <div className="space-y-8">
+                 <div className="flex items-center gap-2 pb-2 border-b border-black/5 dark:border-white/5">
+                     <span className="material-symbols-outlined text-rose-500">credit_card</span>
+                     <h2 className="text-xl font-bold text-light-text dark:text-dark-text">Liabilities</h2>
+                 </div>
+                 <AccountsListSection 
+                    title="Debt & Loans"
+                    accounts={debtAccounts} 
+                    transactionsByAccount={transactionsByAccount} 
                     warrants={warrants}
-                    onAccountClick={handleAccountClick}
-                    onEditClick={openEditModal}
+                    onAccountClick={handleAccountClick} 
+                    onEditClick={openEditModal} 
                     onAdjustBalanceClick={openAdjustModal}
                     sortBy={sortBy}
                     accountOrder={accountOrder}
                     setAccountOrder={setAccountOrder}
                     onContextMenu={handleContextMenu}
                     isCollapsible={false}
-                />
-          </div>
+                 />
+            </div>
       </div>
 
-      {/* Closed Accounts */}
+      {/* Closed Accounts Section */}
       {closedAccounts.length > 0 && (
-          <div className="pt-8 mt-8 border-t border-black/5 dark:border-white/5 opacity-70 hover:opacity-100 transition-opacity">
-            <AccountsListSection
-                title="Archived Accounts"
-                accounts={closedAccounts}
-                transactionsByAccount={transactionsByAccount}
+          <div className="opacity-60 hover:opacity-100 transition-opacity duration-300 mt-12 pt-8 border-t border-black/5 dark:border-white/5">
+              <AccountsListSection 
+                title="Closed Accounts"
+                accounts={closedAccounts} 
+                transactionsByAccount={transactionsByAccount} 
                 warrants={warrants}
-                onAccountClick={handleAccountClick}
-                onEditClick={openEditModal}
+                onAccountClick={handleAccountClick} 
+                onEditClick={openEditModal} 
                 onAdjustBalanceClick={openAdjustModal}
                 sortBy={sortBy}
                 accountOrder={accountOrder}
                 setAccountOrder={setAccountOrder}
                 onContextMenu={handleContextMenu}
                 isCollapsible={true}
-            />
+                defaultExpanded={false}
+             />
           </div>
       )}
     </div>
