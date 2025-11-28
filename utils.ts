@@ -1,6 +1,5 @@
 
-
-import { Currency, Account, Transaction, Duration, Category, FinancialGoal, RecurringTransaction, BillPayment, ScheduledPayment, RecurringTransactionOverride, LoanPaymentOverrides, Budget } from './types';
+import { Currency, Account, Transaction, Duration, Category, FinancialGoal, RecurringTransaction, BillPayment, ScheduledPayment, RecurringTransactionOverride, LoanPaymentOverrides } from './types';
 import { ASSET_TYPES, DEBT_TYPES, LIQUID_ACCOUNT_TYPES } from './constants';
 import { v4 as uuidv4 } from 'uuid';
 
@@ -103,15 +102,10 @@ export function calculateAccountTotals(accounts: Account[]) {
       .filter(acc => acc.type === 'Credit Card')
       .reduce((sum, acc) => sum + Math.abs(convertToEur(acc.balance, acc.currency)), 0);
 
-    // FIX: Calculate liquidCash to ensure return type compatibility with calculateFinancialHealth
-    const liquidCash = accounts
-      .filter(acc => LIQUID_ACCOUNT_TYPES.includes(acc.type))
-      .reduce((sum, acc) => sum + convertToEur(acc.balance, acc.currency), 0);
-
     // Debts reduce net worth, so subtract the total debt (which we treat as a positive number)
     const netWorth = totalAssets - totalDebt;
 
-    return { totalAssets, totalDebt, netWorth, creditCardDebt, liquidCash };
+    return { totalAssets, totalDebt, netWorth, creditCardDebt };
 }
 
 export function getDateRange(duration: Duration, allTransactions: Transaction[] = []): { start: Date, end: Date } {
@@ -931,120 +925,4 @@ export function generateAmortizationSchedule(
     outstandingBalance = newOutstandingBalance;
   }
   return schedule;
-}
-
-export interface FinancialHealthScore {
-    score: number;
-    rank: string;
-    breakdown: {
-        liquidity: { score: number; max: number; value: number; status: string; label: string; };
-        solvency: { score: number; max: number; value: number; status: string; label: string; };
-        savings: { score: number; max: number; value: number; status: string; label: string; };
-        budget: { score: number; max: number; value: number; status: string; label: string; };
-    };
-}
-
-export function calculateFinancialHealth(
-    accounts: Account[], 
-    transactions: Transaction[], 
-    budgets: Budget[],
-    recurringTransactions: RecurringTransaction[]
-): FinancialHealthScore {
-    const { totalAssets, totalDebt, liquidCash } = calculateAccountTotals(accounts);
-    
-    // 1. Liquidity (Emergency Fund)
-    // Target: 3-6 months of expenses
-    const today = new Date();
-    const threeMonthsAgo = new Date();
-    threeMonthsAgo.setMonth(today.getMonth() - 3);
-    
-    const recentExpenses = transactions.filter(t => {
-        const d = parseDateAsUTC(t.date);
-        return d >= threeMonthsAgo && d <= today && t.type === 'expense' && !t.transferId;
-    }).reduce((sum, t) => sum + convertToEur(Math.abs(t.amount), t.currency), 0);
-    
-    const avgMonthlyExpense = recentExpenses / 3;
-    const monthsRunway = avgMonthlyExpense > 0 ? liquidCash / avgMonthlyExpense : 0;
-    
-    let liquidityScore = 0;
-    let liquidityStatus = 'Needs Attention';
-    if (monthsRunway >= 6) { liquidityScore = 25; liquidityStatus = 'Excellent'; }
-    else if (monthsRunway >= 3) { liquidityScore = 20; liquidityStatus = 'Good'; }
-    else if (monthsRunway >= 1) { liquidityScore = 10; liquidityStatus = 'Fair'; }
-    else { liquidityScore = 5; }
-
-    // 2. Solvency (Debt Ratio)
-    // Target: Debt < 30% of Assets (Low leverage)
-    const debtRatio = totalAssets > 0 ? (totalDebt / totalAssets) * 100 : 0;
-    let solvencyScore = 0;
-    let solvencyStatus = 'High Debt';
-    
-    if (totalDebt === 0) { solvencyScore = 25; solvencyStatus = 'Debt Free'; }
-    else if (debtRatio < 20) { solvencyScore = 22; solvencyStatus = 'Excellent'; }
-    else if (debtRatio < 40) { solvencyScore = 15; solvencyStatus = 'Good'; }
-    else if (debtRatio < 60) { solvencyScore = 10; solvencyStatus = 'Fair'; }
-    else { solvencyScore = 5; }
-
-    // 3. Savings Rate (Estimated)
-    // Target: > 20%
-    const recentIncome = transactions.filter(t => {
-        const d = parseDateAsUTC(t.date);
-        return d >= threeMonthsAgo && d <= today && t.type === 'income' && !t.transferId;
-    }).reduce((sum, t) => sum + convertToEur(t.amount, t.currency), 0);
-    
-    const avgMonthlyIncome = recentIncome / 3;
-    const savingsRate = avgMonthlyIncome > 0 ? ((avgMonthlyIncome - avgMonthlyExpense) / avgMonthlyIncome) * 100 : 0;
-    
-    let savingsScore = 0;
-    let savingsStatus = 'Low';
-    if (savingsRate >= 50) { savingsScore = 25; savingsStatus = 'Super Saver'; }
-    else if (savingsRate >= 20) { savingsScore = 20; savingsStatus = 'Healthy'; }
-    else if (savingsRate >= 10) { savingsScore = 15; savingsStatus = 'Good'; }
-    else if (savingsRate > 0) { savingsScore = 10; savingsStatus = 'Positive'; }
-    else { savingsScore = 0; savingsStatus = 'Negative'; }
-
-    // 4. Budget Discipline
-    // Target: Staying under budget
-    let budgetScore = 25;
-    let budgetStatus = 'Disciplined';
-    const currentMonthTxs = transactions.filter(t => {
-         const d = parseDateAsUTC(t.date);
-         return d.getMonth() === today.getMonth() && d.getFullYear() === today.getFullYear() && t.type === 'expense' && !t.transferId;
-    });
-    
-    let overBudgetCount = 0;
-    if (budgets.length > 0) {
-        budgets.forEach(b => {
-             const spent = currentMonthTxs
-                .filter(t => t.category === b.categoryName) // Simplified matching
-                .reduce((sum, t) => sum + convertToEur(Math.abs(t.amount), t.currency), 0);
-             if (spent > b.amount) overBudgetCount++;
-        });
-        
-        if (overBudgetCount > 2) { budgetScore = 10; budgetStatus = 'Needs Review'; }
-        else if (overBudgetCount > 0) { budgetScore = 18; budgetStatus = 'Mostly Good'; }
-    } else {
-        // If no budgets, fallback to a neutral score or base it on spending trend vs last month
-        budgetScore = 15; 
-        budgetStatus = 'No Budgets Set';
-    }
-
-    const totalScore = liquidityScore + solvencyScore + savingsScore + budgetScore;
-    
-    let rank = 'Financial Novice';
-    if (totalScore >= 90) rank = 'Wealth Wizard';
-    else if (totalScore >= 80) rank = 'Financial Architect';
-    else if (totalScore >= 60) rank = 'Budget Master';
-    else if (totalScore >= 40) rank = 'Saver';
-
-    return {
-        score: totalScore,
-        rank,
-        breakdown: {
-            liquidity: { score: liquidityScore, max: 25, value: monthsRunway, status: liquidityStatus, label: 'Emergency Fund' },
-            solvency: { score: solvencyScore, max: 25, value: debtRatio, status: solvencyStatus, label: 'Debt Ratio' },
-            savings: { score: savingsScore, max: 25, value: savingsRate, status: savingsStatus, label: 'Savings Rate' },
-            budget: { score: budgetScore, max: 25, value: overBudgetCount, status: budgetStatus, label: 'Budgeting' },
-        }
-    };
 }

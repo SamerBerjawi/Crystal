@@ -6,6 +6,8 @@ import Modal from '../components/Modal';
 import TasksHeatmap from '../components/TasksHeatmap';
 import TaskItem from '../components/TaskItem';
 import ConfirmationModal from '../components/ConfirmationModal';
+import Card from '../components/Card';
+import { parseDateAsUTC } from '../utils';
 
 interface TasksProps {
   tasks: Task[];
@@ -114,10 +116,27 @@ const TaskForm: React.FC<{ task?: Task | null, onSave: (task: Omit<Task, 'id'> &
     );
 };
 
+const MetricCard: React.FC<{ label: string; value: string | number; subtext?: string; color?: string; icon?: string }> = ({ label, value, subtext, color = 'text-light-text dark:text-dark-text', icon }) => (
+    <Card className="flex flex-col justify-between h-full p-5">
+        <div className="flex justify-between items-start">
+            <div>
+                <p className="text-xs font-bold uppercase tracking-wider text-light-text-secondary dark:text-dark-text-secondary mb-1">{label}</p>
+                <p className={`text-3xl font-bold ${color}`}>{value}</p>
+            </div>
+            {icon && (
+                <div className="p-2 bg-black/5 dark:bg-white/5 rounded-full">
+                    <span className="material-symbols-outlined text-xl opacity-70">{icon}</span>
+                </div>
+            )}
+        </div>
+        {subtext && <p className="text-xs text-light-text-secondary dark:text-dark-text-secondary mt-2 font-medium">{subtext}</p>}
+    </Card>
+);
+
 const Tasks: React.FC<TasksProps> = ({ tasks, saveTask, deleteTask, taskOrder, setTaskOrder }) => {
     const [isModalOpen, setIsModalOpen] = useState(false);
     const [editingTask, setEditingTask] = useState<Task | null>(null);
-    const [sortBy, setSortBy] = useState<'priority-desc' | 'dueDate-asc' | 'manual'>('priority-desc');
+    const [sortBy, setSortBy] = useState<'priority-desc' | 'dueDate-asc' | 'manual'>('manual');
     const [justCompletedTaskId, setJustCompletedTaskId] = useState<string | null>(null);
     const [draggedItem, setDraggedItem] = useState<Task | null>(null);
     const [dragOverItem, setDragOverItem] = useState<Task | null>(null);
@@ -126,6 +145,26 @@ const Tasks: React.FC<TasksProps> = ({ tasks, saveTask, deleteTask, taskOrder, s
     const [isDeleteConfirmOpen, setIsDeleteConfirmOpen] = useState(false);
     const [taskToDeleteId, setTaskToDeleteId] = useState<string | null>(null);
 
+    // Derived Statistics
+    const stats = useMemo(() => {
+        const total = tasks.length;
+        const completed = tasks.filter(t => t.status === 'Done').length;
+        const rate = total > 0 ? Math.round((completed / total) * 100) : 0;
+        const pendingHigh = tasks.filter(t => t.priority === 'High' && t.status !== 'Done').length;
+        
+        const today = new Date();
+        today.setHours(0, 0, 0, 0);
+        const next7Days = new Date(today);
+        next7Days.setDate(today.getDate() + 7);
+
+        const dueSoon = tasks.filter(t => {
+            if (t.status === 'Done' || !t.dueDate) return false;
+            const d = parseDateAsUTC(t.dueDate);
+            return d >= today && d <= next7Days;
+        }).length;
+
+        return { total, completed, rate, pendingHigh, dueSoon };
+    }, [tasks]);
 
     const handleOpenModal = (task?: Task) => {
         setEditingTask(task || null);
@@ -230,7 +269,7 @@ const Tasks: React.FC<TasksProps> = ({ tasks, saveTask, deleteTask, taskOrder, s
     };
 
     return (
-        <div className="space-y-6">
+        <div className="space-y-8 pb-10 animate-fade-in-up">
             {isModalOpen && <TaskForm task={editingTask} onSave={handleSave} onClose={() => setIsModalOpen(false)} onDelete={handleDeleteRequest} />}
             
             <ConfirmationModal 
@@ -243,69 +282,138 @@ const Tasks: React.FC<TasksProps> = ({ tasks, saveTask, deleteTask, taskOrder, s
                 confirmButtonVariant="danger"
             />
 
-            <TasksHeatmap tasks={tasks} />
-
-            <header className="flex flex-wrap justify-between items-center gap-4">
+            <header className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
                 <div>
-                    {/* <h2 className="text-3xl font-bold">Tasks</h2> */}
-                    <p className="text-light-text-secondary dark:text-dark-text-secondary mt-1">Manage your financial to-dos.</p>
+                    {/* <h2 className="text-3xl font-bold text-light-text dark:text-dark-text">Tasks</h2> */}
+                    <p className="text-light-text-secondary dark:text-dark-text-secondary mt-1">Manage your financial to-dos and track productivity.</p>
                 </div>
-                <div className="flex items-end gap-4">
-                     <div className={SELECT_WRAPPER_STYLE}>
-                        <select value={sortBy} onChange={e => setSortBy(e.target.value as any)} className={SELECT_STYLE}>
-                            <option value="manual">Sort by Manual</option>
-                            <option value="priority-desc">Sort by Priority</option>
-                            <option value="dueDate-asc">Sort by Due Date</option>
-                        </select>
-                        <div className={SELECT_ARROW_STYLE}><span className="material-symbols-outlined">expand_more</span></div>
-                    </div>
-                    <button onClick={() => handleOpenModal()} className={BTN_PRIMARY_STYLE}>Add Task</button>
-                </div>
+                <button onClick={() => handleOpenModal()} className={BTN_PRIMARY_STYLE}>
+                    <span className="material-symbols-outlined text-xl mr-2">add</span>
+                    Add Task
+                </button>
             </header>
 
+            {/* Productivity Metrics */}
+            <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 lg:gap-6">
+                <div className="col-span-2 lg:col-span-1">
+                    <Card className="bg-gradient-to-br from-primary-600 to-primary-700 text-white border-none relative overflow-hidden h-full p-5">
+                         <div className="absolute right-0 top-0 p-4 opacity-10 pointer-events-none">
+                             <span className="material-symbols-outlined text-6xl">check_circle</span>
+                         </div>
+                         <div className="relative z-10 flex flex-col justify-between h-full">
+                            <div>
+                                <p className="text-xs font-bold uppercase tracking-wider opacity-80 mb-1">Completion Rate</p>
+                                <p className="text-4xl font-extrabold">{stats.rate}%</p>
+                            </div>
+                            <p className="text-xs font-medium opacity-80 mt-2">{stats.completed} of {stats.total} tasks done</p>
+                         </div>
+                    </Card>
+                </div>
+                <MetricCard 
+                    label="High Priority Pending" 
+                    value={stats.pendingHigh} 
+                    subtext="Critical items to address" 
+                    color={stats.pendingHigh > 0 ? 'text-red-600 dark:text-red-400' : 'text-green-600 dark:text-green-400'}
+                    icon="priority_high"
+                />
+                <MetricCard 
+                    label="Due in 7 Days" 
+                    value={stats.dueSoon} 
+                    subtext="Upcoming deadlines" 
+                    color="text-amber-600 dark:text-amber-400"
+                    icon="event_upcoming"
+                />
+                <MetricCard 
+                    label="Total Active" 
+                    value={stats.total - stats.completed} 
+                    subtext="Current workload" 
+                    icon="list_alt"
+                />
+            </div>
+
+            {/* Controls */}
+            <div className="flex justify-end">
+                 <div className={SELECT_WRAPPER_STYLE}>
+                    <select value={sortBy} onChange={e => setSortBy(e.target.value as any)} className={`${SELECT_STYLE} !py-2 !text-sm`}>
+                        <option value="manual">Manual Sort (Drag & Drop)</option>
+                        <option value="priority-desc">Sort by Priority</option>
+                        <option value="dueDate-asc">Sort by Due Date</option>
+                    </select>
+                    <div className={SELECT_ARROW_STYLE}><span className="material-symbols-outlined">expand_more</span></div>
+                </div>
+            </div>
+
+            {/* Kanban Board */}
             <div className="grid grid-cols-1 md:grid-cols-3 gap-6 items-start">
                 {STATUS_ORDER.map(status => {
                     const tasksInColumn = groupedAndSortedTasks[status] || [];
+                    const columnColor = status === 'To Do' ? 'bg-gray-100 dark:bg-white/5' 
+                        : status === 'In Progress' ? 'bg-blue-50 dark:bg-blue-900/10' 
+                        : 'bg-green-50 dark:bg-green-900/10';
+                    
                     return (
-                        <div key={status} className="bg-light-bg dark:bg-dark-bg/50 p-4 rounded-xl space-y-4">
-                            <h3 className="font-semibold text-lg flex items-center gap-2">
-                                <span>{status}</span>
-                                <span className="text-sm bg-gray-200 dark:bg-gray-700 rounded-full px-2">{tasksInColumn.length}</span>
-                            </h3>
-                            <div className="space-y-4 min-h-[100px]">
-                                {tasksInColumn.map(task => {
-                                    const isDraggable = sortBy === 'manual' && (task.status === 'To Do' || task.status === 'In Progress');
-                                    const isBeingDragged = draggedItem?.id === task.id;
-                                    const isDragOver = dragOverItem?.id === task.id;
-                                    const dragOverClass = isDragOver ? 'border-t-2 border-primary-500 pt-2' : '';
-
-                                    return (
-                                        <div
-                                            key={task.id}
-                                            className={`transition-all duration-150 ${dragOverClass}`}
-                                            onDragOver={(e) => isDraggable && handleDragOver(e, task)}
-                                            onDrop={() => isDraggable && handleDrop(task)}
-                                            onDragLeave={isDraggable ? handleDragLeave : undefined}
-                                        >
+                        <div key={status} className={`rounded-2xl p-4 ${columnColor} border border-black/5 dark:border-white/5 flex flex-col h-full min-h-[300px]`}>
+                            <header className="flex justify-between items-center mb-4 px-1">
+                                <h3 className="font-bold text-light-text dark:text-dark-text flex items-center gap-2">
+                                    {status}
+                                    <span className="text-xs font-bold bg-white dark:bg-black/20 px-2 py-0.5 rounded-full opacity-70">{tasksInColumn.length}</span>
+                                </h3>
+                                {status === 'To Do' && (
+                                    <button onClick={() => handleOpenModal()} className="text-primary-500 hover:bg-primary-50 dark:hover:bg-primary-900/30 p-1 rounded transition-colors" title="Quick Add">
+                                        <span className="material-symbols-outlined text-lg">add</span>
+                                    </button>
+                                )}
+                            </header>
+                            
+                            <div className="space-y-3 flex-grow">
+                                {tasksInColumn.length === 0 ? (
+                                    <div className="h-32 border-2 border-dashed border-black/5 dark:border-white/10 rounded-xl flex items-center justify-center text-sm text-light-text-secondary dark:text-dark-text-secondary italic">
+                                        No tasks
+                                    </div>
+                                ) : (
+                                    tasksInColumn.map(task => {
+                                        const isDraggable = sortBy === 'manual' && (task.status === 'To Do' || task.status === 'In Progress');
+                                        const isBeingDragged = draggedItem?.id === task.id;
+                                        const isDragOver = dragOverItem?.id === task.id;
+                                        
+                                        return (
                                             <div
-                                                draggable={isDraggable}
-                                                onDragStart={(e) => isDraggable && handleDragStart(e, task)}
-                                                onDragEnd={isDraggable ? handleDragEnd : undefined}
-                                                className={`${isDraggable ? 'cursor-grab' : ''} ${isBeingDragged ? 'opacity-30' : ''}`}
+                                                key={task.id}
+                                                className={`transition-all duration-200 ${isDragOver ? 'translate-y-2' : ''}`}
+                                                onDragOver={(e) => isDraggable && handleDragOver(e, task)}
+                                                onDrop={() => isDraggable && handleDrop(task)}
+                                                onDragLeave={isDraggable ? handleDragLeave : undefined}
                                             >
-                                                <TaskItem 
-                                                    task={task} 
-                                                    onEdit={handleOpenModal} 
-                                                    isJustCompleted={task.id === justCompletedTaskId}
-                                                />
+                                                {isDragOver && <div className="h-1 bg-primary-500 rounded-full mb-2 opacity-50"></div>}
+                                                <div
+                                                    draggable={isDraggable}
+                                                    onDragStart={(e) => isDraggable && handleDragStart(e, task)}
+                                                    onDragEnd={isDraggable ? handleDragEnd : undefined}
+                                                    className={`${isDraggable ? 'cursor-grab active:cursor-grabbing' : ''} ${isBeingDragged ? 'opacity-40 scale-95' : ''}`}
+                                                >
+                                                    <TaskItem 
+                                                        task={task} 
+                                                        onEdit={handleOpenModal} 
+                                                        isJustCompleted={task.id === justCompletedTaskId}
+                                                    />
+                                                </div>
                                             </div>
-                                        </div>
-                                    )
-                                })}
+                                        )
+                                    })
+                                )}
                             </div>
                         </div>
                     );
                 })}
+            </div>
+
+            {/* Consistency Tracker */}
+            <div className="mt-12">
+                 <h3 className="text-lg font-bold text-light-text dark:text-dark-text mb-4 flex items-center gap-2">
+                    <span className="material-symbols-outlined text-primary-500">history</span>
+                    Consistency Tracker
+                 </h3>
+                 <TasksHeatmap tasks={tasks} />
             </div>
         </div>
     );
