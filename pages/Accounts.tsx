@@ -43,7 +43,7 @@ const AccountsListSection: React.FC<{
     onContextMenu: (event: React.MouseEvent, account: Account) => void;
     isCollapsible?: boolean;
     defaultExpanded?: boolean;
-    layoutMode: 'grid' | 'list';
+    layoutMode: 'stacked' | 'columns';
 }> = ({ title, accounts, transactionsByAccount, warrants, onAccountClick, onEditClick, onAdjustBalanceClick, sortBy, accountOrder, setAccountOrder, onContextMenu, isCollapsible = true, defaultExpanded = true, layoutMode }) => {
     const [isExpanded, setIsExpanded] = useState(defaultExpanded);
     const [draggedId, setDraggedId] = useState<string | null>(null);
@@ -111,9 +111,15 @@ const AccountsListSection: React.FC<{
     if (accounts.length === 0) {
         return null;
     }
+    
+    // Determine grid columns based on layout mode
+    // If columns mode (side-by-side), we need fewer columns per row on XL screens because the section width is halved
+    const gridClasses = layoutMode === 'columns' 
+        ? 'grid-cols-1 sm:grid-cols-2 xl:grid-cols-1 2xl:grid-cols-2' 
+        : 'grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4';
 
     return (
-        <section className="animate-fade-in-up">
+        <section className="animate-fade-in-up h-full flex flex-col">
             {isCollapsible && (
                 <div 
                     onClick={() => setIsExpanded(prev => !prev)} 
@@ -133,7 +139,7 @@ const AccountsListSection: React.FC<{
             )}
             
             {isExpanded && (
-                <div className="space-y-6">
+                <div className="space-y-6 flex-1">
                     {groupOrder.length > 0 ? groupOrder.map(groupName => {
                         const accountsInGroup = groupedAccounts[groupName as AccountType];
                         const groupTotal = accountsInGroup.reduce((sum, acc) => sum + convertToEur(acc.balance, acc.currency), 0);
@@ -153,7 +159,7 @@ const AccountsListSection: React.FC<{
                                 </div>
                                 
                                 {expandedGroups[groupName] && (
-                                    <div className={`grid gap-3 ${layoutMode === 'grid' ? 'grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4' : 'grid-cols-1'}`}>
+                                    <div className={`grid gap-3 ${gridClasses}`}>
                                         {accountsInGroup.map(acc => (
                                             <AccountRow
                                                 key={acc.id}
@@ -198,7 +204,7 @@ const Accounts: React.FC<AccountsProps> = ({ accounts, transactions, saveAccount
   const [contextMenu, setContextMenu] = useState<{ x: number, y: number, account: Account } | null>(null);
   const [deletingAccount, setDeletingAccount] = useState<Account | null>(null);
   const contextMenuRef = useRef<HTMLDivElement>(null);
-  const [layoutMode, setLayoutMode] = useLocalStorage<'grid' | 'list'>('crystal_accounts_layout', 'grid');
+  const [layoutMode, setLayoutMode] = useLocalStorage<'stacked' | 'columns'>('crystal_accounts_section_layout', 'stacked');
 
   useEffect(() => {
     const handleClickOutside = (event: MouseEvent) => {
@@ -474,16 +480,16 @@ const Accounts: React.FC<AccountsProps> = ({ accounts, transactions, saveAccount
            <div className="flex items-center gap-3">
                <div className="flex bg-light-fill dark:bg-dark-fill p-1 rounded-lg shadow-sm">
                     <button 
-                        onClick={() => setLayoutMode('grid')} 
-                        className={`p-2 rounded-md transition-all duration-200 ${layoutMode === 'grid' ? 'bg-white dark:bg-dark-card shadow text-primary-600' : 'text-light-text-secondary dark:text-dark-text-secondary hover:text-primary-500'}`}
-                        title="Grid View"
+                        onClick={() => setLayoutMode('columns')} 
+                        className={`p-2 rounded-md transition-all duration-200 ${layoutMode === 'columns' ? 'bg-white dark:bg-dark-card shadow text-primary-600' : 'text-light-text-secondary dark:text-dark-text-secondary hover:text-primary-500'}`}
+                        title="Column View (Assets & Liabilities side-by-side)"
                     >
                         <span className="material-symbols-outlined text-xl">view_column</span>
                     </button>
                     <button 
-                        onClick={() => setLayoutMode('list')} 
-                        className={`p-2 rounded-md transition-all duration-200 ${layoutMode === 'list' ? 'bg-white dark:bg-dark-card shadow text-primary-600' : 'text-light-text-secondary dark:text-dark-text-secondary hover:text-primary-500'}`}
-                        title="List View"
+                        onClick={() => setLayoutMode('stacked')} 
+                        className={`p-2 rounded-md transition-all duration-200 ${layoutMode === 'stacked' ? 'bg-white dark:bg-dark-card shadow text-primary-600' : 'text-light-text-secondary dark:text-dark-text-secondary hover:text-primary-500'}`}
+                        title="Stacked View (Assets above Liabilities)"
                     >
                         <span className="material-symbols-outlined text-xl">view_stream</span>
                     </button>
@@ -509,8 +515,8 @@ const Accounts: React.FC<AccountsProps> = ({ accounts, transactions, saveAccount
       </div>
 
       {/* Main Accounts Grid/List */}
-      <div className="space-y-8">
-           <div className="space-y-4">
+      <div className={`gap-8 ${layoutMode === 'columns' ? 'grid grid-cols-1 xl:grid-cols-2 items-start' : 'flex flex-col space-y-8'}`}>
+           <div className="space-y-4 min-w-0">
                  <div className="flex items-center gap-2 pb-2 border-b border-black/5 dark:border-white/5">
                      <span className="material-symbols-outlined text-emerald-500">account_balance</span>
                      <h2 className="text-xl font-bold text-light-text dark:text-dark-text">Assets</h2>
@@ -532,7 +538,7 @@ const Accounts: React.FC<AccountsProps> = ({ accounts, transactions, saveAccount
                  />
             </div>
 
-            <div className="space-y-4">
+            <div className="space-y-4 min-w-0">
                  <div className="flex items-center gap-2 pb-2 border-b border-black/5 dark:border-white/5">
                      <span className="material-symbols-outlined text-rose-500">credit_card</span>
                      <h2 className="text-xl font-bold text-light-text dark:text-dark-text">Liabilities</h2>
