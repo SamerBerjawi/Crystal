@@ -3,9 +3,8 @@ import React, { useState, useMemo, useEffect, useRef } from 'react';
 import { Account, Page, AccountType, Transaction, Warrant } from '../types';
 import AddAccountModal from '../components/AddAccountModal';
 import EditAccountModal from '../components/EditAccountModal';
-import { ASSET_TYPES, DEBT_TYPES, BTN_PRIMARY_STYLE, ACCOUNT_TYPE_STYLES, BTN_SECONDARY_STYLE, SELECT_WRAPPER_STYLE, SELECT_ARROW_STYLE, SELECT_STYLE } from '../constants';
-import { calculateAccountTotals, convertToEur, formatCurrency } from '../utils';
-import AccountBreakdownCard from '../components/AccountBreakdownCard';
+import { ASSET_TYPES, DEBT_TYPES, BTN_PRIMARY_STYLE, ACCOUNT_TYPE_STYLES, BTN_SECONDARY_STYLE, SELECT_WRAPPER_STYLE, SELECT_ARROW_STYLE, SELECT_STYLE, LIQUID_ACCOUNT_TYPES } from '../constants';
+import { calculateAccountTotals, convertToEur, formatCurrency, parseDateAsUTC } from '../utils';
 import AccountRow from '../components/AccountRow';
 import BalanceAdjustmentModal from '../components/BalanceAdjustmentModal';
 import FinalConfirmationModal from '../components/FinalConfirmationModal';
@@ -214,32 +213,27 @@ const Accounts: React.FC<AccountsProps> = ({ accounts, transactions, saveAccount
   
 
   // --- Data Processing ---
-  const { openAccounts, closedAccounts, totalAssets, totalDebt, assetBreakdown, debtBreakdown, netWorth } = useMemo(() => {
+  const { openAccounts, closedAccounts, totalAssets, totalDebt, netWorth, liquidCash, netChange30d, debtRatio } = useMemo(() => {
     const safeAccounts = accounts || [];
     const open = safeAccounts.filter(acc => acc.status !== 'closed');
     const closed = safeAccounts.filter(acc => acc.status === 'closed');
     
     const { totalAssets, totalDebt, netWorth } = calculateAccountTotals(open);
+    const liquidCash = open.filter(acc => LIQUID_ACCOUNT_TYPES.includes(acc.type))
+                           .reduce((sum, acc) => sum + convertToEur(acc.balance, acc.currency), 0);
 
-    const colorClassToHex: { [key: string]: string } = {
-        'text-blue-500': '#3b82f6', 'text-green-500': '#22c55e', 'text-orange-500': '#f97316',
-        'text-purple-500': '#8b5cf6', 'text-red-500': '#ef4444', 'text-yellow-500': '#eab308',
-        'text-amber-500': '#f59e0b', 'text-cyan-500': '#06b6d4', 'text-lime-500': '#84cc16', 'text-pink-500': '#ec4899',
-    };
+    // Calculate 30 day net change from transactions
+    const thirtyDaysAgo = new Date();
+    thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
+    const netChange30d = transactions.reduce((sum, tx) => {
+        const txDate = parseDateAsUTC(tx.date);
+        if (txDate >= thirtyDaysAgo && open.some(a => a.id === tx.accountId)) {
+            return sum + convertToEur(tx.amount, tx.currency);
+        }
+        return sum;
+    }, 0);
 
-    const createBreakdown = (accs: Account[]) => {
-        const grouped = accs.reduce((acc, account) => {
-            const group = acc[account.type] || { value: 0, color: colorClassToHex[ACCOUNT_TYPE_STYLES[account.type]?.color] || '#A0AEC0' };
-            group.value += convertToEur(account.balance, account.currency);
-            acc[account.type] = group;
-            return acc;
-        }, {} as Record<AccountType, { value: number, color: string }>);
-        
-        return Object.entries(grouped)
-            .map(([name, data]) => ({ name, value: Math.abs(data.value), color: data.color }))
-            .filter(item => item.value > 0)
-            .sort((a, b) => b.value - a.value); // Sort highest to lowest percentage
-    };
+    const debtRatio = totalAssets > 0 ? (totalDebt / totalAssets) * 100 : 0;
 
     return {
         openAccounts: open,
@@ -247,10 +241,11 @@ const Accounts: React.FC<AccountsProps> = ({ accounts, transactions, saveAccount
         totalAssets,
         totalDebt,
         netWorth,
-        assetBreakdown: createBreakdown(open.filter(acc => ASSET_TYPES.includes(acc.type))),
-        debtBreakdown: createBreakdown(open.filter(acc => DEBT_TYPES.includes(acc.type))),
+        liquidCash,
+        netChange30d,
+        debtRatio
     };
-  }, [accounts]);
+  }, [accounts, transactions]);
 
   const transactionsByAccount = useMemo(() => transactions.reduce((acc, transaction) => {
     (acc[transaction.accountId] = acc[transaction.accountId] || []).push(transaction);
@@ -390,29 +385,86 @@ const Accounts: React.FC<AccountsProps> = ({ accounts, transactions, saveAccount
         </div>
       )}
 
-      {/* Net Worth Hero Section */}
-      <div className="bg-gradient-to-br from-primary-600 to-primary-800 dark:from-primary-900 dark:to-black text-white p-8 rounded-3xl shadow-xl relative overflow-hidden">
-           <div className="absolute top-0 right-0 p-8 opacity-10 pointer-events-none">
-                <span className="material-symbols-outlined text-[12rem]">account_balance</span>
+      {/* --- NEW PORTFOLIO DASHBOARD SECTION --- */}
+      <div className="grid grid-cols-1 xl:grid-cols-3 gap-6 mb-8">
+           {/* Hero Card: Net Worth */}
+           <div className="bg-gradient-to-br from-primary-600 to-primary-900 text-white p-8 rounded-3xl shadow-xl relative overflow-hidden flex flex-col justify-between min-h-[240px] xl:min-h-auto">
+                <div className="absolute top-0 right-0 p-8 opacity-10 pointer-events-none">
+                    <span className="material-symbols-outlined text-[10rem]">account_balance</span>
+                </div>
+                <div>
+                    <div className="flex items-center gap-2 mb-2 opacity-80">
+                         <span className="material-symbols-outlined text-xl">verified</span>
+                         <span className="font-bold uppercase tracking-wider text-sm">Net Worth</span>
+                    </div>
+                    <h2 className="text-5xl font-extrabold tracking-tight mb-4">{formatCurrency(netWorth, 'EUR')}</h2>
+                </div>
+                <div className="mt-auto">
+                    <div className="flex items-center gap-3">
+                         <span className={`flex items-center gap-1 px-3 py-1.5 rounded-full text-sm font-bold backdrop-blur-md bg-white/20 ${netChange30d >= 0 ? 'text-green-100' : 'text-red-100'}`}>
+                             <span className="material-symbols-outlined text-base">{netChange30d >= 0 ? 'trending_up' : 'trending_down'}</span>
+                             {formatCurrency(Math.abs(netChange30d), 'EUR')}
+                         </span>
+                         <span className="text-sm opacity-70">30 Day Change</span>
+                    </div>
+                </div>
            </div>
-           
-           <div className="relative z-10">
-               <div className="flex flex-col md:flex-row justify-between items-start md:items-end gap-8">
-                   <div>
-                       <p className="text-primary-100 font-bold uppercase tracking-wider text-sm mb-1">Net Worth</p>
-                       <h2 className="text-5xl font-extrabold tracking-tight">{formatCurrency(netWorth, 'EUR')}</h2>
-                   </div>
-                   <div className="flex gap-8">
-                       <div>
-                           <p className="text-primary-200 text-xs font-bold uppercase mb-1">Assets</p>
-                           <p className="text-2xl font-bold">{formatCurrency(totalAssets, 'EUR')}</p>
-                       </div>
-                       <div>
-                           <p className="text-primary-200 text-xs font-bold uppercase mb-1">Liabilities</p>
-                           <p className="text-2xl font-bold">{formatCurrency(totalDebt, 'EUR')}</p>
-                       </div>
-                   </div>
-               </div>
+
+           {/* Metrics Grid */}
+           <div className="xl:col-span-2 grid grid-cols-1 sm:grid-cols-2 gap-6">
+                
+                {/* Assets */}
+                <div className="bg-white dark:bg-dark-card rounded-2xl p-6 border border-black/5 dark:border-white/5 shadow-sm hover:shadow-md transition-shadow">
+                    <div className="flex justify-between items-start mb-4">
+                        <div className="w-12 h-12 rounded-xl bg-emerald-100 dark:bg-emerald-900/30 text-emerald-600 dark:text-emerald-400 flex items-center justify-center">
+                             <span className="material-symbols-outlined text-2xl">account_balance</span>
+                        </div>
+                        <span className="text-xs font-bold text-light-text-secondary dark:text-dark-text-secondary uppercase tracking-wider">Assets</span>
+                    </div>
+                    <p className="text-2xl font-bold text-light-text dark:text-dark-text">{formatCurrency(totalAssets, 'EUR')}</p>
+                    <p className="text-sm text-light-text-secondary dark:text-dark-text-secondary mt-1">{assetAccounts.length} accounts</p>
+                </div>
+
+                {/* Liabilities */}
+                 <div className="bg-white dark:bg-dark-card rounded-2xl p-6 border border-black/5 dark:border-white/5 shadow-sm hover:shadow-md transition-shadow">
+                    <div className="flex justify-between items-start mb-4">
+                        <div className="w-12 h-12 rounded-xl bg-rose-100 dark:bg-rose-900/30 text-rose-600 dark:text-rose-400 flex items-center justify-center">
+                             <span className="material-symbols-outlined text-2xl">credit_card</span>
+                        </div>
+                        <span className="text-xs font-bold text-light-text-secondary dark:text-dark-text-secondary uppercase tracking-wider">Liabilities</span>
+                    </div>
+                    <p className="text-2xl font-bold text-light-text dark:text-dark-text">{formatCurrency(totalDebt, 'EUR')}</p>
+                    <p className={`text-sm font-medium mt-1 flex items-center gap-1 ${debtRatio > 50 ? 'text-orange-500' : 'text-green-500'}`}>
+                        {debtRatio.toFixed(1)}% Debt Ratio
+                    </p>
+                </div>
+
+                {/* Liquid Cash */}
+                 <div className="bg-white dark:bg-dark-card rounded-2xl p-6 border border-black/5 dark:border-white/5 shadow-sm hover:shadow-md transition-shadow">
+                    <div className="flex justify-between items-start mb-4">
+                        <div className="w-12 h-12 rounded-xl bg-blue-100 dark:bg-blue-900/30 text-blue-600 dark:text-blue-400 flex items-center justify-center">
+                             <span className="material-symbols-outlined text-2xl">savings</span>
+                        </div>
+                         <span className="text-xs font-bold text-light-text-secondary dark:text-dark-text-secondary uppercase tracking-wider">Liquidity</span>
+                    </div>
+                    <p className="text-2xl font-bold text-light-text dark:text-dark-text">{formatCurrency(liquidCash, 'EUR')}</p>
+                    <p className="text-sm text-light-text-secondary dark:text-dark-text-secondary mt-1">Available Cash</p>
+                </div>
+
+                {/* Monthly Flow */}
+                <div className="bg-white dark:bg-dark-card rounded-2xl p-6 border border-black/5 dark:border-white/5 shadow-sm hover:shadow-md transition-shadow">
+                    <div className="flex justify-between items-start mb-4">
+                        <div className="w-12 h-12 rounded-xl bg-purple-100 dark:bg-purple-900/30 text-purple-600 dark:text-purple-400 flex items-center justify-center">
+                             <span className="material-symbols-outlined text-2xl">payments</span>
+                        </div>
+                        <span className="text-xs font-bold text-light-text-secondary dark:text-dark-text-secondary uppercase tracking-wider">30d Net Flow</span>
+                    </div>
+                    <p className={`text-2xl font-bold ${netChange30d >= 0 ? 'text-green-600 dark:text-green-400' : 'text-red-600 dark:text-red-400'}`}>
+                        {netChange30d >= 0 ? '+' : ''}{formatCurrency(netChange30d, 'EUR')}
+                    </p>
+                     <p className="text-sm text-light-text-secondary dark:text-dark-text-secondary mt-1">Income - Expenses</p>
+                </div>
+
            </div>
       </div>
 
@@ -455,11 +507,7 @@ const Accounts: React.FC<AccountsProps> = ({ accounts, transactions, saveAccount
             </button>
       </div>
 
-      {/* Asset / Liability Breakdowns */}
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-          <AccountBreakdownCard title="Assets" totalValue={totalAssets} breakdownData={assetBreakdown} />
-          <AccountBreakdownCard title="Liabilities" totalValue={Math.abs(totalDebt)} breakdownData={debtBreakdown} />
-      </div>
+      {/* Asset / Liability Breakdowns Removed in favor of new sleek grid above */}
 
       {/* Main Accounts Grid/List */}
       <div className={`grid gap-8 ${layoutMode === 'grid' ? 'grid-cols-1 lg:grid-cols-2 items-start' : 'grid-cols-1'}`}>
