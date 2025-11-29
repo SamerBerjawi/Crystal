@@ -4,7 +4,6 @@ import Modal from './Modal';
 import { Account, AccountType, Currency, InvestmentSubType, PropertyType, Warrant, FuelType, VehicleOwnership, MileageLog, RecurrenceFrequency } from '../types';
 import { ALL_ACCOUNT_TYPES, CURRENCIES, ACCOUNT_TYPE_STYLES, INPUT_BASE_STYLE, BTN_PRIMARY_STYLE, BTN_SECONDARY_STYLE, BTN_DANGER_STYLE, SELECT_ARROW_STYLE, SELECT_WRAPPER_STYLE, ACCOUNT_ICON_LIST, INVESTMENT_SUB_TYPES, PROPERTY_TYPES, INVESTMENT_SUB_TYPE_STYLES, FUEL_TYPES, VEHICLE_OWNERSHIP_TYPES, CHECKBOX_STYLE, FREQUENCIES, ALL_ACCOUNT_TYPES as ALL_TYPES_CONST, CARD_NETWORKS } from '../constants';
 import IconPicker from './IconPicker';
-// FIX: Import 'uuidv4' to generate unique IDs for mileage logs.
 import { v4 as uuidv4 } from 'uuid';
 
 interface EditAccountModalProps {
@@ -39,7 +38,9 @@ const EditAccountModal: React.FC<EditAccountModalProps> = ({ onClose, onSave, on
   const [openingDate, setOpeningDate] = useState(account.openingDate || '');
 
   // Card Details
+  // Initialize hasCard based on whether any card-specific data exists for this account
   const [hasCard, setHasCard] = useState(!!(account.cardNetwork || account.last4 || account.expirationDate || account.cardholderName || account.type === 'Credit Card'));
+  
   const [expirationDate, setExpirationDate] = useState(account.expirationDate || '');
   const [cardNetwork, setCardNetwork] = useState(account.cardNetwork || '');
   const [cardholderName, setCardholderName] = useState(account.cardholderName || '');
@@ -237,6 +238,9 @@ const EditAccountModal: React.FC<EditAccountModalProps> = ({ onClose, onSave, on
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
+    
+    // If card is toggled off, we clear the card-related fields.
+    // We also handle potential cleanup of Credit Card specific logic if type is changed.
     const updatedAccount: Account = {
       ...account,
       name,
@@ -251,7 +255,7 @@ const EditAccountModal: React.FC<EditAccountModalProps> = ({ onClose, onSave, on
       routingNumber: routingNumber || undefined,
       apy: apy !== '' ? parseFloat(apy) : undefined,
       openingDate: openingDate || undefined,
-      // Card details
+      // Card details - Only include if hasCard is true
       expirationDate: hasCard && expirationDate ? expirationDate : undefined,
       cardNetwork: hasCard && cardNetwork ? cardNetwork : undefined,
       cardholderName: hasCard && cardholderName ? cardholderName : undefined,
