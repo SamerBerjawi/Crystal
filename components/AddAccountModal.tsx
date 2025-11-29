@@ -39,6 +39,7 @@ const AddAccountModal: React.FC<AddAccountModalProps> = ({ onClose, onAdd, accou
   const [subType, setSubType] = useState<InvestmentSubType>('Stock');
   const [otherAssetSubType, setOtherAssetSubType] = useState<OtherAssetSubType>('Other');
   const [otherLiabilitySubType, setOtherLiabilitySubType] = useState<OtherLiabilitySubType>('Other');
+  const [expectedRetirementYear, setExpectedRetirementYear] = useState('');
   
   const [totalAmount, setTotalAmount] = useState('');
   const [principalAmount, setPrincipalAmount] = useState('');
@@ -237,7 +238,11 @@ const AddAccountModal: React.FC<AddAccountModalProps> = ({ onClose, onAdd, accou
       cardholderName: hasCard && cardholderName ? cardholderName : undefined,
       
       // Conditionally add new fields
-      ...(type === 'Investment' && { subType }),
+      ...(type === 'Investment' && { 
+          subType,
+          expectedRetirementYear: subType === 'Pension Fund' && expectedRetirementYear ? parseInt(expectedRetirementYear, 10) : undefined,
+          linkedAccountId: subType === 'Spare Change' ? linkedAccountId : undefined,
+      }),
       ...(type === 'Other Assets' && { 
           otherSubType: otherAssetSubType,
           location: location || undefined,
@@ -494,14 +499,42 @@ const AddAccountModal: React.FC<AddAccountModalProps> = ({ onClose, onAdd, accou
             )}
 
             {type === 'Investment' && (
-              <div>
-                <label htmlFor="subType" className={labelStyle}>Investment Type</label>
-                <div className={SELECT_WRAPPER_STYLE}>
-                  <select id="subType" value={subType} onChange={e => setSubType(e.target.value as InvestmentSubType)} className={INPUT_BASE_STYLE}>
-                    {INVESTMENT_SUB_TYPES.map(st => <option key={st} value={st}>{st}</option>)}
-                  </select>
-                  <div className={SELECT_ARROW_STYLE}><span className="material-symbols-outlined">expand_more</span></div>
+              <div className="space-y-4">
+                <div>
+                  <label htmlFor="subType" className={labelStyle}>Investment Type</label>
+                  <div className={SELECT_WRAPPER_STYLE}>
+                    <select id="subType" value={subType} onChange={e => setSubType(e.target.value as InvestmentSubType)} className={INPUT_BASE_STYLE}>
+                      {INVESTMENT_SUB_TYPES.map(st => <option key={st} value={st}>{st}</option>)}
+                    </select>
+                    <div className={SELECT_ARROW_STYLE}><span className="material-symbols-outlined">expand_more</span></div>
+                  </div>
                 </div>
+                {subType === 'Pension Fund' && (
+                     <div>
+                        <label htmlFor="retirementYear" className={labelStyle}>Expected Retirement Year</label>
+                        <input id="retirementYear" type="number" value={expectedRetirementYear} onChange={e => setExpectedRetirementYear(e.target.value)} className={INPUT_BASE_STYLE} placeholder="e.g. 2055" />
+                    </div>
+                )}
+                 {subType === 'Spare Change' && (
+                    <div>
+                      <label htmlFor="linkedAccountId" className={labelStyle}>Source Account (Round-ups)</label>
+                      <div className={SELECT_WRAPPER_STYLE}>
+                          <select id="linkedAccountId" value={linkedAccountId} onChange={e => setLinkedAccountId(e.target.value)} className={INPUT_BASE_STYLE}>
+                              <option value="">None</option>
+                              {ALL_ACCOUNT_TYPES.map(type => {
+                                  const group = groupedDebitAccounts[type];
+                                  if (!group || group.length === 0) return null;
+                                  return (
+                                    <optgroup key={type} label={type}>
+                                      {group.map(acc => <option key={acc.id} value={acc.id}>{acc.name}</option>)}
+                                    </optgroup>
+                                  );
+                              })}
+                          </select>
+                          <div className={SELECT_ARROW_STYLE}><span className="material-symbols-outlined">expand_more</span></div>
+                      </div>
+                  </div>
+                )}
               </div>
             )}
             {type === 'Other Assets' && (

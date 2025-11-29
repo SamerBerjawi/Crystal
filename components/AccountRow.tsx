@@ -127,6 +127,18 @@ const AccountRow: React.FC<AccountRowProps> = ({ account, transactions, warrants
     const dragOverClasses = isDragOver ? 'ring-2 ring-primary-500 scale-[1.02]' : '';
     const cursorClass = isDraggable ? 'cursor-grab active:cursor-grabbing' : 'cursor-pointer';
 
+    // Sub-details text logic
+    let detailsText = account.financialInstitution || account.type;
+    if (account.type === 'Other Assets' || account.type === 'Other Liabilities') {
+        detailsText = account.otherSubType || detailsText;
+    } else if (account.type === 'Investment' && account.subType) {
+        if (account.subType === 'Pension Fund' && account.expectedRetirementYear) {
+            detailsText = `Pension • Retires ${account.expectedRetirementYear}`;
+        } else {
+            detailsText = account.subType;
+        }
+    }
+
     return (
         <div 
             draggable={isDraggable}
@@ -157,14 +169,14 @@ const AccountRow: React.FC<AccountRowProps> = ({ account, transactions, warrants
                             ${styleConfig?.color ? styleConfig.color.replace('text-', 'bg-').replace('500', '100') + ' dark:' + styleConfig.color.replace('text-', 'bg-').replace('500', '900/20') : 'bg-gray-100 dark:bg-gray-800'}
                             ${typeColor}
                         `}>
-                            <span className="material-symbols-outlined text-[20px]">{account.icon || 'wallet'}</span>
+                            <span className="material-symbols-outlined text-[20px]">{account.icon || styleConfig?.icon || 'wallet'}</span>
                         </div>
                         <div className="min-w-0">
                             <h3 className="font-bold text-light-text dark:text-dark-text truncate text-sm leading-tight">
                                 {account.name}
                             </h3>
                             <p className="text-xs text-light-text-secondary dark:text-dark-text-secondary truncate font-medium mt-0.5 tracking-wide">
-                                {account.otherSubType || account.financialInstitution || account.type}
+                                {detailsText}
                                 {account.last4 && <span className="opacity-70 ml-1">•••• {account.last4}</span>}
                             </p>
                         </div>

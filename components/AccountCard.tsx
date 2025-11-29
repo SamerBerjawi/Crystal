@@ -4,7 +4,7 @@ import { Account, OtherAssetSubType, OtherLiabilitySubType } from '../types';
 import Card from './Card';
 import { convertToEur, formatCurrency } from '../utils';
 import { LineChart, Line, ResponsiveContainer } from 'recharts';
-import { ACCOUNT_TYPE_STYLES, OTHER_ASSET_SUB_TYPE_STYLES, OTHER_LIABILITY_SUB_TYPE_STYLES } from '../constants';
+import { ACCOUNT_TYPE_STYLES, OTHER_ASSET_SUB_TYPE_STYLES, OTHER_LIABILITY_SUB_TYPE_STYLES, INVESTMENT_SUB_TYPE_STYLES } from '../constants';
 
 interface AccountCardProps {
     account: Account;
@@ -61,12 +61,28 @@ const AccountCard: React.FC<AccountCardProps> = ({
         style = OTHER_ASSET_SUB_TYPE_STYLES[account.otherSubType as OtherAssetSubType] || style;
     } else if (account.type === 'Other Liabilities' && account.otherSubType) {
         style = OTHER_LIABILITY_SUB_TYPE_STYLES[account.otherSubType as OtherLiabilitySubType] || style;
+    } else if (account.type === 'Investment' && account.subType) {
+        style = INVESTMENT_SUB_TYPE_STYLES[account.subType] || style;
     }
 
     const dragClasses = isBeingDragged ? 'opacity-50' : '';
     const dragOverClasses = isDragOver ? 'border-t-4 border-primary-500 pt-1' : '';
 
-    const secondaryText = account.otherSubType || (account.type === 'Property' && account.propertyType ? account.propertyType : account.type);
+    // Improved Secondary Text Logic
+    let secondaryText = account.type;
+    if (account.type === 'Other Assets' || account.type === 'Other Liabilities') {
+        secondaryText = account.otherSubType || account.type;
+    } else if (account.type === 'Property' && account.propertyType) {
+        secondaryText = account.propertyType;
+    } else if (account.type === 'Investment' && account.subType) {
+        secondaryText = account.subType;
+        if (account.subType === 'Pension Fund' && account.expectedRetirementYear) {
+            secondaryText = `Retires: ${account.expectedRetirementYear}`;
+        } else if (account.subType === 'Spare Change' && account.linkedAccountId) {
+            // Ideally we would lookup account name, but here we just indicate it's linked
+            secondaryText = 'Round-ups Active'; 
+        }
+    }
 
     return (
         <div
@@ -85,7 +101,7 @@ const AccountCard: React.FC<AccountCardProps> = ({
                 <div className="flex items-center flex-1 min-w-0">
                     <div className={`text-3xl mr-4 flex items-center justify-center w-12 h-12 shrink-0 ${style.color}`}>
                         <span className="material-symbols-outlined" style={{ fontSize: '36px' }}>
-                            {account.icon || 'wallet'}
+                            {account.icon || style.icon}
                         </span>
                     </div>
                     <div className="min-w-0">

@@ -51,6 +51,7 @@ const EditAccountModal: React.FC<EditAccountModalProps> = ({ onClose, onSave, on
   const [subType, setSubType] = useState<InvestmentSubType>(initialSubType);
   const [otherAssetSubType, setOtherAssetSubType] = useState<OtherAssetSubType>(initialOtherAssetSubType);
   const [otherLiabilitySubType, setOtherLiabilitySubType] = useState<OtherLiabilitySubType>(initialOtherLiabilitySubType);
+  const [expectedRetirementYear, setExpectedRetirementYear] = useState(account.expectedRetirementYear != null ? String(account.expectedRetirementYear) : '');
   
   const [totalAmount, setTotalAmount] = useState(account.totalAmount != null ? String(account.totalAmount) : '');
   const [principalAmount, setPrincipalAmount] = useState(account.principalAmount != null ? String(account.principalAmount) : '');
@@ -280,6 +281,9 @@ const EditAccountModal: React.FC<EditAccountModalProps> = ({ onClose, onSave, on
 
       // Conditionally add new fields
       subType: type === 'Investment' ? subType : undefined,
+      expectedRetirementYear: type === 'Investment' && subType === 'Pension Fund' && expectedRetirementYear ? parseInt(expectedRetirementYear, 10) : undefined,
+      linkedAccountId: (type === 'Investment' && subType === 'Spare Change') || (type === 'Loan' || type === 'Lending') || (type === 'Property') ? linkedAccountId || undefined : undefined,
+
       ...(type === 'Other Assets' && { 
           otherSubType: otherAssetSubType,
           location: location || undefined,
@@ -292,16 +296,19 @@ const EditAccountModal: React.FC<EditAccountModalProps> = ({ onClose, onSave, on
           interestRate: interestRate !== '' ? parseFloat(interestRate) : undefined,
        }),
 
-      totalAmount: (type === 'Loan' || type === 'Lending') && totalAmount !== '' ? parseFloat(totalAmount) : undefined,
-      principalAmount: (type === 'Loan' || type === 'Lending') && principalAmount !== '' ? parseFloat(principalAmount) : undefined,
-      interestAmount: (type === 'Loan' || type === 'Lending') && interestAmount !== '' ? parseFloat(interestAmount) : undefined,
-      downPayment: type === 'Loan' && downPayment !== '' ? parseFloat(downPayment) : undefined,
-      duration: (type === 'Loan' || type === 'Lending') && duration !== '' ? parseInt(duration, 10) : undefined,
-      interestRate: (type === 'Loan' || type === 'Lending') && interestRate !== '' ? parseFloat(interestRate) : undefined,
-      loanStartDate: (type === 'Loan' || type === 'Lending') ? loanStartDate : undefined,
-      monthlyPayment: (type === 'Loan' || type === 'Lending') && monthlyPayment !== '' ? parseFloat(monthlyPayment) : undefined,
-      paymentDayOfMonth: (type === 'Loan' || type === 'Lending') && paymentDayOfMonth !== '' ? parseInt(paymentDayOfMonth, 10) : undefined,
-      linkedAccountId: (type === 'Loan' || type === 'Lending') ? linkedAccountId || undefined : undefined,
+      ...((type === 'Loan' || type === 'Lending') && { 
+          totalAmount: totalAmount !== '' ? parseFloat(totalAmount) : undefined,
+          principalAmount: principalAmount !== '' ? parseFloat(principalAmount) : undefined,
+          interestAmount: interestAmount !== '' ? parseFloat(interestAmount) : undefined,
+          duration: duration !== '' ? parseInt(duration, 10) : undefined,
+          interestRate: interestRate !== '' ? parseFloat(interestRate) : undefined,
+          loanStartDate,
+          monthlyPayment: monthlyPayment !== '' ? parseFloat(monthlyPayment) : undefined,
+          paymentDayOfMonth: paymentDayOfMonth !== '' ? parseInt(paymentDayOfMonth, 10) : undefined,
+      }),
+      
+      ...(type === 'Loan' && { downPayment: downPayment !== '' ? parseFloat(downPayment) : undefined }),
+
       make: type === 'Vehicle' ? make || undefined : undefined,
       model: type === 'Vehicle' ? model || undefined : undefined,
       year: type === 'Vehicle' && year !== '' ? parseInt(year, 10) : undefined,
@@ -537,14 +544,42 @@ const EditAccountModal: React.FC<EditAccountModalProps> = ({ onClose, onSave, on
             )}
 
             {type === 'Investment' && (
-              <div>
-                <label htmlFor="subType" className={labelStyle}>Investment Type</label>
-                <div className={SELECT_WRAPPER_STYLE}>
-                  <select id="subType" value={subType} onChange={(e) => setSubType(e.target.value as InvestmentSubType)} className={INPUT_BASE_STYLE}>
-                    {INVESTMENT_SUB_TYPES.map(st => <option key={st} value={st}>{st}</option>)}
-                  </select>
-                  <div className={SELECT_ARROW_STYLE}><span className="material-symbols-outlined">expand_more</span></div>
+              <div className="space-y-4">
+                <div>
+                  <label htmlFor="subType" className={labelStyle}>Investment Type</label>
+                  <div className={SELECT_WRAPPER_STYLE}>
+                    <select id="subType" value={subType} onChange={(e) => setSubType(e.target.value as InvestmentSubType)} className={INPUT_BASE_STYLE}>
+                      {INVESTMENT_SUB_TYPES.map(st => <option key={st} value={st}>{st}</option>)}
+                    </select>
+                    <div className={SELECT_ARROW_STYLE}><span className="material-symbols-outlined">expand_more</span></div>
+                  </div>
                 </div>
+                {subType === 'Pension Fund' && (
+                     <div>
+                        <label htmlFor="retirementYear" className={labelStyle}>Expected Retirement Year</label>
+                        <input id="retirementYear" type="number" value={expectedRetirementYear} onChange={e => setExpectedRetirementYear(e.target.value)} className={INPUT_BASE_STYLE} placeholder="e.g. 2055" />
+                    </div>
+                )}
+                 {subType === 'Spare Change' && (
+                    <div>
+                      <label htmlFor="linkedAccountId" className={labelStyle}>Source Account (Round-ups)</label>
+                      <div className={SELECT_WRAPPER_STYLE}>
+                          <select id="linkedAccountId" value={linkedAccountId} onChange={e => setLinkedAccountId(e.target.value)} className={INPUT_BASE_STYLE}>
+                              <option value="">None</option>
+                              {ALL_ACCOUNT_TYPES.map(type => {
+                                  const group = groupedDebitAccounts[type];
+                                  if (!group || group.length === 0) return null;
+                                  return (
+                                    <optgroup key={type} label={type}>
+                                      {group.map(acc => <option key={acc.id} value={acc.id}>{acc.name}</option>)}
+                                    </optgroup>
+                                  );
+                              })}
+                          </select>
+                          <div className={SELECT_ARROW_STYLE}><span className="material-symbols-outlined">expand_more</span></div>
+                      </div>
+                  </div>
+                )}
               </div>
             )}
              {type === 'Other Assets' && (

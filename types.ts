@@ -69,6 +69,7 @@ export interface Account {
 
   // Investment specific
   subType?: InvestmentSubType;
+  expectedRetirementYear?: number; // For Pension Funds
   
   // Other Assets/Liabilities specific
   otherSubType?: OtherAssetSubType | OtherLiabilitySubType;
@@ -89,7 +90,7 @@ export interface Account {
   duration?: number; // in months
   interestRate?: number; // percentage
   loanStartDate?: string;
-  linkedAccountId?: string;
+  linkedAccountId?: string; // Used for Loans (Debit account) and Spare Change (Source account)
   downPayment?: number;
   monthlyPayment?: number;
   paymentDayOfMonth?: number;

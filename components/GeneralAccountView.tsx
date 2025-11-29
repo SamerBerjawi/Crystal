@@ -346,7 +346,8 @@ const GeneralAccountView: React.FC<GeneralAccountViewProps> = ({
 
   const hasCardDetails = account.cardNetwork || account.last4 || account.expirationDate || account.cardholderName;
   const showVirtualCard = (account.type === 'Checking' || account.type === 'Savings') || hasCardDetails;
-
+  const showInvestmentDetails = account.type === 'Investment';
+  
   const showBankingDetails = useMemo(() => {
       const hasDetails = !!(account.accountNumber || account.routingNumber || account.apy || account.openingDate || account.expirationDate || account.cardNetwork || account.cardholderName || account.last4);
       const hasLinkedCards = linkedCreditCards.length > 0;
@@ -526,7 +527,7 @@ const GeneralAccountView: React.FC<GeneralAccountViewProps> = ({
       )}
 
       {/* Account Details Card (Banking Info & Linked Cards) */}
-      {(showBankingDetails || showOtherDetails) && (
+      {(showBankingDetails || showOtherDetails || showInvestmentDetails) && (
         <Card className="bg-gradient-to-br from-gray-50 to-white dark:from-gray-900/50 dark:to-dark-card border border-black/5 dark:border-white/5">
             <h3 className="text-sm font-bold uppercase tracking-wider text-light-text-secondary dark:text-dark-text-secondary mb-4 flex items-center gap-2">
                 <span className="material-symbols-outlined text-lg">info</span> Account Details
@@ -556,6 +557,30 @@ const GeneralAccountView: React.FC<GeneralAccountViewProps> = ({
                          <p className="text-xs text-light-text-secondary dark:text-dark-text-secondary mb-1">Opened On</p>
                          <p className="font-medium text-light-text dark:text-dark-text">{parseDateAsUTC(account.openingDate).toLocaleDateString()}</p>
                     </div>
+                )}
+                
+                {/* Investment Specific */}
+                {account.type === 'Investment' && (
+                    <>
+                        <div>
+                            <p className="text-xs text-light-text-secondary dark:text-dark-text-secondary mb-1">Sub-Type</p>
+                            <p className="font-medium text-light-text dark:text-dark-text">{account.subType}</p>
+                        </div>
+                        {account.subType === 'Pension Fund' && account.expectedRetirementYear && (
+                             <div>
+                                <p className="text-xs text-light-text-secondary dark:text-dark-text-secondary mb-1">Expected Retirement</p>
+                                <p className="font-medium text-light-text dark:text-dark-text">{account.expectedRetirementYear}</p>
+                             </div>
+                        )}
+                         {account.subType === 'Spare Change' && account.linkedAccountId && (
+                             <div>
+                                <p className="text-xs text-light-text-secondary dark:text-dark-text-secondary mb-1">Source Account</p>
+                                <button onClick={() => setViewingAccountId(account.linkedAccountId!)} className="font-medium text-primary-500 hover:underline text-left">
+                                    {accounts.find(a => a.id === account.linkedAccountId)?.name || 'Unknown'}
+                                </button>
+                             </div>
+                        )}
+                    </>
                 )}
                 
                 {/* Other Assets/Liabilities Fields */}
