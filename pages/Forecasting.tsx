@@ -589,7 +589,7 @@ const Forecasting: React.FC<ForecastingProps> = ({ activeGoalIds, setActiveGoalI
                 />
             )}
 
-            {/* Updated Header */}
+            {/* Header */}
             <header className="flex flex-col xl:flex-row justify-between items-start xl:items-center gap-4">
                 <div>
                      <h1 className="text-3xl font-bold text-light-text dark:text-dark-text">Financial Forecast</h1>
@@ -656,9 +656,10 @@ const Forecasting: React.FC<ForecastingProps> = ({ activeGoalIds, setActiveGoalI
                 </div>
             </div>
             
-            {/* Forecast Horizon - Synchronized with Dashboard Style */}
+            {/* Forecast Horizon */}
             <ForecastOverview forecasts={lowestBalanceForecasts} currency="EUR" />
 
+            {/* Main Chart */}
             <Card>
                 <div className="flex justify-between items-center mb-4">
                     <h3 className="text-xl font-semibold text-light-text dark:text-dark-text">Cash Flow Forecast</h3>
@@ -787,49 +788,85 @@ const Forecasting: React.FC<ForecastingProps> = ({ activeGoalIds, setActiveGoalI
                 </div>
             </div>
             
-            <Card>
-                <div className="flex justify-between items-center mb-6">
-                    <h3 className="text-xl font-semibold text-light-text dark:text-dark-text">Detailed Forecast Data</h3>
-                    <div className="text-xs font-medium text-light-text-secondary dark:text-dark-text-secondary bg-black/5 dark:bg-white/10 px-3 py-1 rounded-full">
-                        {tableData.length} days projected
+            {/* Detailed Forecast Data Section */}
+            <Card className="overflow-hidden border-0 shadow-lg bg-white dark:bg-dark-card">
+                <div className="p-6 border-b border-black/5 dark:border-white/5 flex flex-col sm:flex-row sm:justify-between sm:items-center gap-4">
+                    <div>
+                        <h3 className="text-lg font-bold text-light-text dark:text-dark-text">Forecast Ledger</h3>
+                        <p className="text-sm text-light-text-secondary dark:text-dark-text-secondary mt-1">Daily breakdown of projected transactions</p>
+                    </div>
+                     <div className="flex items-center gap-2 text-xs font-medium bg-black/5 dark:bg-white/5 px-3 py-1.5 rounded-full text-light-text-secondary dark:text-dark-text-secondary">
+                        <span className="w-2 h-2 rounded-full bg-red-500 animate-pulse"></span>
+                        Lowest Balance Point Highlighted
                     </div>
                 </div>
-                <div className="overflow-x-auto max-h-[500px] rounded-xl border border-black/5 dark:border-white/5">
-                    <table className="w-full text-sm">
-                        <thead className="sticky top-0 bg-gray-50 dark:bg-dark-card/95 z-10 shadow-sm backdrop-blur-md">
-                            <tr className="border-b border-black/10 dark:border-white/10 text-left text-xs font-bold text-light-text-secondary dark:text-dark-text-secondary uppercase tracking-wider">
-                                <th className="p-4">Date</th>
-                                <th className="p-4">Account</th>
-                                <th className="p-4">Description</th>
-                                <th className="p-4 text-right">Amount</th>
-                                <th className="p-4 text-right">Balance</th>
-                                <th className="p-4">Type</th>
+                <div className="overflow-x-auto max-h-[600px]">
+                    <table className="w-full text-sm text-left">
+                         <thead className="sticky top-0 z-20 bg-gray-50/95 dark:bg-black/40 backdrop-blur-md text-xs uppercase font-bold tracking-wider text-light-text-secondary dark:text-dark-text-secondary border-b border-black/5 dark:border-white/5 shadow-sm">
+                            <tr>
+                                <th className="px-6 py-4">Date</th>
+                                <th className="px-6 py-4">Account</th>
+                                <th className="px-6 py-4">Description</th>
+                                <th className="px-6 py-4 text-right">Amount</th>
+                                <th className="px-6 py-4 text-right">Run. Bal.</th>
+                                <th className="px-6 py-4 text-center">Type</th>
                             </tr>
-                        </thead>
-                        <tbody className="divide-y divide-black/5 dark:divide-white/5">
+                         </thead>
+                         <tbody className="divide-y divide-black/5 dark:divide-white/5">
                             {tableData.map(row => {
                                 const isLowest = row.balance.toFixed(2) === lowestPoint.value.toFixed(2);
-                                const rowClass = `hover:bg-black/5 dark:hover:bg-white/5 cursor-pointer transition-colors group
-                                    ${row.isGoal ? 'bg-yellow-50/50 dark:bg-yellow-900/10' : ''}
-                                    ${isLowest ? 'bg-red-50/50 dark:bg-red-900/10 border-l-4 border-l-red-500' : 'border-l-4 border-l-transparent'}`;
+                                const isGoal = row.type === 'Financial Goal';
+                                
+                                let rowBg = 'hover:bg-black/5 dark:hover:bg-white/5';
+                                if (isLowest) rowBg = 'bg-red-50/50 dark:bg-red-900/10 hover:bg-red-50 dark:hover:bg-red-900/20';
+                                else if (isGoal) rowBg = 'bg-yellow-50/30 dark:bg-yellow-900/10 hover:bg-yellow-50/50 dark:hover:bg-yellow-900/20';
+
+                                const amountClass = row.amount >= 0 
+                                    ? 'text-emerald-600 dark:text-emerald-400 font-medium' 
+                                    : 'text-rose-600 dark:text-rose-400 font-medium';
+
                                 return (
-                                    <tr key={row.id} className={rowClass} onClick={() => handleEditForecastItem(row)}>
-                                        <td className="p-4 whitespace-nowrap font-mono text-xs font-medium">{parseDateAsUTC(row.date, timeZone).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric', timeZone })}</td>
-                                        <td className="p-4 truncate max-w-[150px] font-medium text-light-text dark:text-dark-text">{row.accountName}</td>
-                                        <td className="p-4 truncate max-w-[240px] text-light-text-secondary dark:text-dark-text-secondary group-hover:text-light-text dark:group-hover:text-dark-text transition-colors">{row.description}</td>
-                                        <td className={`p-4 text-right font-mono font-bold ${row.amount >= 0 ? 'text-green-600 dark:text-green-400' : 'text-red-600 dark:text-red-400'}`}>{formatCurrency(row.amount, 'EUR')}</td>
-                                        <td className={`p-4 text-right font-mono ${isLowest ? 'font-bold text-red-600 dark:text-red-400' : 'text-light-text dark:text-dark-text'}`}>{formatCurrency(row.balance, 'EUR')}</td>
-                                        <td className="p-4">
-                                            <span className={`text-xs font-bold uppercase tracking-wide px-2 py-1 rounded-md ${row.type === 'Financial Goal' ? 'bg-yellow-100 text-yellow-800 dark:bg-yellow-900/30 dark:text-yellow-300' : 'bg-gray-100 text-gray-600 dark:bg-white/10 dark:text-gray-300'}`}>
-                                                {row.type}
+                                    <tr 
+                                        key={row.id} 
+                                        className={`cursor-pointer transition-colors duration-150 group ${rowBg}`}
+                                        onClick={() => handleEditForecastItem(row)}
+                                    >
+                                        <td className="px-6 py-4 whitespace-nowrap font-mono text-xs text-light-text-secondary dark:text-dark-text-secondary group-hover:text-light-text dark:group-hover:text-dark-text transition-colors">
+                                            {parseDateAsUTC(row.date, timeZone).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric', timeZone })}
+                                        </td>
+                                        <td className="px-6 py-4">
+                                            <span className="font-medium text-light-text dark:text-dark-text truncate block max-w-[140px]">{row.accountName}</span>
+                                        </td>
+                                        <td className="px-6 py-4">
+                                            <span className="truncate block max-w-[200px] text-light-text-secondary dark:text-dark-text-secondary group-hover:text-light-text dark:group-hover:text-dark-text transition-colors">{row.description}</span>
+                                        </td>
+                                        <td className={`px-6 py-4 text-right font-mono ${amountClass}`}>
+                                            {formatCurrency(row.amount, 'EUR')}
+                                        </td>
+                                        <td className={`px-6 py-4 text-right font-mono font-bold ${isLowest ? 'text-red-600 dark:text-red-400' : 'text-light-text dark:text-dark-text'}`}>
+                                            {formatCurrency(row.balance, 'EUR')}
+                                        </td>
+                                        <td className="px-6 py-4 text-center">
+                                             <span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-[10px] font-bold uppercase tracking-wide ${
+                                                row.type === 'Financial Goal' ? 'bg-yellow-100 text-yellow-800 dark:bg-yellow-900/40 dark:text-yellow-300' :
+                                                row.type === 'Bill/Payment' ? 'bg-orange-100 text-orange-800 dark:bg-orange-900/40 dark:text-orange-300' :
+                                                'bg-blue-100 text-blue-800 dark:bg-blue-900/40 dark:text-blue-300'
+                                            }`}>
+                                                {row.type === 'Financial Goal' ? 'Goal' : row.type === 'Bill/Payment' ? 'Bill' : 'Recurring'}
                                             </span>
                                         </td>
                                     </tr>
                                 );
                             })}
-                        </tbody>
+                            {tableData.length === 0 && (
+                                <tr>
+                                    <td colSpan={6} className="px-6 py-12 text-center text-light-text-secondary dark:text-dark-text-secondary italic">
+                                        No forecast data available for the selected period.
+                                    </td>
+                                </tr>
+                            )}
+                         </tbody>
                     </table>
-                    {tableData.length === 0 && <p className="text-center py-12 text-light-text-secondary dark:text-dark-text-secondary">No forecast data to display for the selected period.</p>}
                 </div>
             </Card>
         </div>

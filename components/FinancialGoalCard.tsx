@@ -1,3 +1,4 @@
+
 import React, { useState, useMemo } from 'react';
 import { FinancialGoal, Account } from '../types';
 import { formatCurrency, getPreferredTimeZone, parseDateAsUTC } from '../utils';
@@ -56,115 +57,132 @@ const FinancialGoalCard: React.FC<FinancialGoalCardProps> = ({ goal, subGoals, i
   };
   
   const statusConfig = {
-    'on-track': { text: 'On Track', color: 'text-green-500', icon: 'check_circle' },
-    'at-risk': { text: 'At Risk', color: 'text-yellow-500', icon: 'warning' },
-    'off-track': { text: 'Off Track', color: 'text-red-500', icon: 'error' },
+    'on-track': { text: 'On Track', bg: 'bg-emerald-100 dark:bg-emerald-900/30', textCol: 'text-emerald-700 dark:text-emerald-400', icon: 'check_circle' },
+    'at-risk': { text: 'At Risk', bg: 'bg-amber-100 dark:bg-amber-900/30', textCol: 'text-amber-700 dark:text-amber-400', icon: 'warning' },
+    'off-track': { text: 'Off Track', bg: 'bg-rose-100 dark:bg-rose-900/30', textCol: 'text-rose-700 dark:text-rose-400', icon: 'error' },
   };
+
+  const statusStyle = goalToDisplay.projection ? statusConfig[goalToDisplay.projection.status] : null;
 
   const paymentAccountName = useMemo(() => {
     if (!goalToDisplay.paymentAccountId) return null;
     return accounts.find(a => a.id === goalToDisplay.paymentAccountId)?.name;
   }, [goalToDisplay.paymentAccountId, accounts]);
 
-  const handleToggle = () => {
+  const handleToggle = (e: React.MouseEvent) => {
+    e.stopPropagation();
     onToggle(goal.id);
   };
-  
+
   return (
-    <Card className="flex flex-col justify-between group transition-transform duration-200 hover:-translate-y-1">
-      <div>
-        <div className="flex justify-between items-start">
-          <h4 className="font-semibold text-lg text-light-text dark:text-dark-text pr-2">{goal.name}</h4>
-          <div className="flex items-center gap-1 opacity-100 sm:opacity-0 sm:group-hover:opacity-100 transition-opacity">
-            {isBucket && <button onClick={() => onAddSubGoal(goal.id)} className="p-1 rounded-full text-light-text-secondary dark:text-dark-text-secondary hover:bg-black/5 dark:hover:bg-white/5" title="Add Item"><span className="material-symbols-outlined text-base">add</span></button>}
-            <button onClick={() => onEdit(goal)} className="p-1 rounded-full text-light-text-secondary dark:text-dark-text-secondary hover:bg-black/5 dark:hover:bg-white/5"><span className="material-symbols-outlined text-base">edit</span></button>
-            <button onClick={() => onDelete(goal.id)} className="p-1 rounded-full text-red-500/80 hover:bg-red-500/10"><span className="material-symbols-outlined text-base">delete</span></button>
-          </div>
+    <div className={`relative group bg-white dark:bg-dark-card rounded-2xl p-5 border shadow-sm hover:shadow-md transition-all duration-300 flex flex-col ${isActive ? 'border-primary-500/30 ring-1 ring-primary-500/10' : 'border-black/5 dark:border-white/5'}`}>
+      {/* Header Section */}
+      <div className="flex justify-between items-start mb-4">
+        <div className="flex-1 pr-4">
+            <div className="flex items-center gap-2 mb-1">
+                <h4 className="font-bold text-lg text-light-text dark:text-dark-text truncate">{goal.name}</h4>
+                {statusStyle && isActive && (
+                    <span className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-md text-[10px] font-bold uppercase tracking-wider ${statusStyle.bg} ${statusStyle.textCol}`}>
+                        <span className="material-symbols-outlined text-[12px]">{statusStyle.icon}</span>
+                        {statusStyle.text}
+                    </span>
+                )}
+            </div>
+            <p className="text-xs text-light-text-secondary dark:text-dark-text-secondary flex items-center gap-1">
+                {goalToDisplay.date && !isBucket && <span className="flex items-center gap-1"><span className="material-symbols-outlined text-[14px]">event</span> {formatDate(goalToDisplay.date)}</span>}
+                {paymentAccountName && !isBucket && <span className="flex items-center gap-1 before:content-['•'] before:mx-1"><span className="material-symbols-outlined text-[14px]">credit_card</span> {paymentAccountName}</span>}
+            </p>
         </div>
-        <p className="text-light-text-secondary dark:text-dark-text-secondary">Target: {formatCurrency(goalToDisplay.amount, 'EUR')} {goalToDisplay.date && !isBucket ? `by ${formatDate(goalToDisplay.date)}` : ''}</p>
-        {paymentAccountName && !isBucket && (
-          <p className="text-sm text-light-text-secondary dark:text-dark-text-secondary mt-1 flex items-center gap-1">
-            <span className="material-symbols-outlined text-sm">credit_card</span>
-            <span>From: {paymentAccountName}</span>
-          </p>
-        )}
+        
+        {/* Actions */}
+        <div className="flex items-center gap-1">
+             <button 
+                onClick={handleToggle}
+                className={`relative inline-flex h-5 w-9 items-center rounded-full transition-colors focus:outline-none ${isActive ? 'bg-primary-500' : 'bg-gray-200 dark:bg-gray-700'}`}
+                title={isActive ? 'Exclude from forecast' : 'Include in forecast'}
+            >
+                <span className={`inline-block h-3.5 w-3.5 transform rounded-full bg-white shadow-sm transition-transform duration-200 ease-in-out ${isActive ? 'translate-x-4.5' : 'translate-x-1'}`} />
+            </button>
+            
+            <div className="opacity-0 group-hover:opacity-100 transition-opacity flex items-center gap-1 ml-2 border-l border-gray-200 dark:border-gray-700 pl-2">
+                {isBucket && <button onClick={() => onAddSubGoal(goal.id)} className="p-1.5 rounded-lg text-light-text-secondary hover:text-primary-600 hover:bg-primary-50 dark:hover:bg-primary-900/20 transition-colors" title="Add Item"><span className="material-symbols-outlined text-lg">add</span></button>}
+                <button onClick={() => onEdit(goal)} className="p-1.5 rounded-lg text-light-text-secondary hover:text-blue-600 hover:bg-blue-50 dark:hover:bg-blue-900/20 transition-colors"><span className="material-symbols-outlined text-lg">edit</span></button>
+                <button onClick={() => onDelete(goal.id)} className="p-1.5 rounded-lg text-light-text-secondary hover:text-red-600 hover:bg-red-50 dark:hover:bg-red-900/20 transition-colors"><span className="material-symbols-outlined text-lg">delete</span></button>
+            </div>
+        </div>
       </div>
 
-      <div className="my-4">
-        <div className="flex justify-between text-sm mb-1">
-          <span className="font-medium text-light-text dark:text-dark-text">{formatCurrency(goalToDisplay.currentAmount, 'EUR')}</span>
-          <span className="text-light-text-secondary dark:text-dark-text-secondary">{progress.toFixed(0)}%</span>
+      {/* Progress Section */}
+      <div className="mb-6">
+        <div className="flex justify-between items-end mb-2">
+            <div>
+                 <span className="text-2xl font-bold text-light-text dark:text-dark-text tracking-tight">{formatCurrency(goalToDisplay.currentAmount, 'EUR')}</span>
+                 <span className="text-xs text-light-text-secondary dark:text-dark-text-secondary ml-1">saved</span>
+            </div>
+            <div className="text-right">
+                <span className="text-sm font-semibold text-light-text dark:text-dark-text">{progress.toFixed(0)}%</span>
+                <span className="text-xs text-light-text-secondary dark:text-dark-text-secondary block">of {formatCurrency(goalToDisplay.amount, 'EUR')}</span>
+            </div>
         </div>
-        <div className="w-full bg-light-bg dark:bg-dark-bg rounded-full h-2.5 shadow-neu-inset-light dark:shadow-neu-inset-dark">
+        <div className="w-full bg-gray-100 dark:bg-gray-800 rounded-full h-2.5 overflow-hidden">
           <div
-            className="bg-primary-500 h-2.5 rounded-full transition-all duration-500"
+            className="h-full rounded-full transition-all duration-700 ease-out bg-gradient-to-r from-primary-500 to-purple-500"
             style={{ width: `${Math.min(progress, 100)}%` }}
           ></div>
         </div>
       </div>
       
+      {/* Forecast Info Box */}
+      {goalToDisplay.projection && isActive && (
+         <div className="mt-auto bg-gray-50 dark:bg-white/5 rounded-xl p-3 border border-black/5 dark:border-white/5 flex justify-between items-center text-sm">
+             <span className="text-light-text-secondary dark:text-dark-text-secondary font-medium">Estimated Completion</span>
+             <span className="font-bold text-light-text dark:text-dark-text">{formatDate(goalToDisplay.projection.projectedDate)}</span>
+         </div>
+      )}
+
+      {/* Bucket Items Accordion */}
       {isBucket && subGoals.length > 0 && (
-          <div className="mb-4 text-sm">
-            <button onClick={() => setIsExpanded(!isExpanded)} className="w-full flex justify-between items-center font-semibold text-light-text-secondary dark:text-dark-text-secondary">
-                <span>Items ({subGoals.length})</span>
-                <span className={`material-symbols-outlined transition-transform duration-200 ${isExpanded ? 'rotate-180' : ''}`}>expand_more</span>
+          <div className="mt-4 pt-4 border-t border-gray-100 dark:border-gray-800">
+            <button 
+                onClick={() => setIsExpanded(!isExpanded)} 
+                className="w-full flex justify-between items-center text-xs font-bold text-light-text-secondary dark:text-dark-text-secondary uppercase tracking-wider hover:text-primary-500 transition-colors"
+            >
+                <span>Bucket Items ({subGoals.length})</span>
+                <span className={`material-symbols-outlined text-base transition-transform duration-200 ${isExpanded ? 'rotate-180' : ''}`}>expand_more</span>
             </button>
+            
             {isExpanded && (
-                <ul className="mt-2 space-y-3">
+                <ul className="mt-3 space-y-2">
                     {subGoals.map(sg => {
                         const subGoalPaymentAccountName = accounts.find(a => a.id === sg.paymentAccountId)?.name;
                         return (
-                        <li key={sg.id} className="text-sm">
-                            <div className="flex justify-between items-center group/item">
-                                <div className="flex-1 min-w-0">
-                                    <p className="font-medium text-light-text dark:text-dark-text truncate">{sg.name}</p>
-                                    <p className="text-light-text-secondary dark:text-dark-text-secondary">{formatDate(sg.date)}</p>
+                        <li key={sg.id} className="group/item flex items-center justify-between p-2 rounded-lg hover:bg-gray-50 dark:hover:bg-white/5 transition-colors text-sm">
+                            <div className="min-w-0 flex-1">
+                                <div className="flex items-center gap-2">
+                                    <span className="font-medium text-light-text dark:text-dark-text truncate">{sg.name}</span>
+                                    {sg.projection?.status && (
+                                        <div className={`w-1.5 h-1.5 rounded-full ${sg.projection.status === 'on-track' ? 'bg-green-500' : sg.projection.status === 'at-risk' ? 'bg-amber-500' : 'bg-red-500'}`} title={sg.projection.status.replace('-', ' ')}></div>
+                                    )}
                                 </div>
-                                <div className="flex items-center gap-2 flex-shrink-0 ml-2">
-                                    <span className="font-semibold">{formatCurrency(sg.amount, 'EUR')}</span>
-                                    <div className="opacity-0 group-hover/item:opacity-100 flex items-center">
-                                        <button onClick={() => onEdit(sg)} className="p-1 rounded-full text-light-text-secondary dark:text-dark-text-secondary hover:bg-black/5 dark:hover:bg-white/5"><span className="material-symbols-outlined text-sm">edit</span></button>
-                                        <button onClick={() => onDelete(sg.id)} className="p-1 rounded-full text-red-500/80 hover:bg-red-500/10"><span className="material-symbols-outlined text-sm">delete</span></button>
-                                    </div>
+                                <div className="flex items-center gap-2 text-xs text-light-text-secondary dark:text-dark-text-secondary mt-0.5">
+                                    <span>{formatDate(sg.date)}</span>
+                                    {subGoalPaymentAccountName && <span className="truncate max-w-[100px]">• {subGoalPaymentAccountName}</span>}
                                 </div>
                             </div>
-                            {subGoalPaymentAccountName && (
-                                <p className="text-light-text-secondary dark:text-dark-text-secondary truncate pl-1 flex items-center gap-1">
-                                    <span className="material-symbols-outlined text-xs">subdirectory_arrow_right</span>
-                                    <span>from {subGoalPaymentAccountName}</span>
-                                </p>
-                            )}
+                            <div className="flex items-center gap-3">
+                                <span className="font-semibold text-light-text dark:text-dark-text">{formatCurrency(sg.amount, 'EUR')}</span>
+                                <div className="opacity-0 group-hover/item:opacity-100 flex items-center gap-1 transition-opacity">
+                                    <button onClick={(e) => { e.stopPropagation(); onEdit(sg); }} className="text-gray-400 hover:text-blue-500 transition-colors"><span className="material-symbols-outlined text-base">edit</span></button>
+                                    <button onClick={(e) => { e.stopPropagation(); onDelete(sg.id); }} className="text-gray-400 hover:text-red-500 transition-colors"><span className="material-symbols-outlined text-base">delete</span></button>
+                                </div>
+                            </div>
                         </li>
                     )})}
                 </ul>
             )}
           </div>
       )}
-
-      {goalToDisplay.projection && isActive && (
-        <div className="p-3 rounded-lg bg-light-bg dark:bg-dark-bg mb-4">
-            <div className="flex justify-between items-center text-sm">
-                <span className="font-semibold text-light-text-secondary dark:text-dark-text-secondary">PROJECTED DATE</span>
-                <div className="flex items-center gap-2">
-                    <span className="font-semibold">{formatDate(goalToDisplay.projection.projectedDate)}</span>
-                    <span className={`flex items-center gap-1 font-semibold ${statusConfig[goalToDisplay.projection.status].color}`} title={statusConfig[goalToDisplay.projection.status].text}>
-                        <span className="material-symbols-outlined text-base">{statusConfig[goalToDisplay.projection.status].icon}</span>
-                    </span>
-                </div>
-            </div>
-        </div>
-      )}
-
-      <div className="flex justify-between items-center mt-auto">
-        <span className="text-sm font-medium">Include in Forecast</span>
-        <div 
-          onClick={handleToggle}
-          className={`w-12 h-6 rounded-full p-1 flex items-center cursor-pointer transition-colors ${isActive ? 'bg-primary-500' : 'bg-gray-200 dark:bg-gray-700'}`}
-        >
-          <div className={`w-4 h-4 rounded-full bg-white dark:bg-dark-card shadow-md transform transition-transform ${isActive ? 'translate-x-6' : 'translate-x-0'}`}></div>
-        </div>
-      </div>
-    </Card>
+    </div>
   );
 };
 
