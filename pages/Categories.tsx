@@ -1,6 +1,6 @@
 
 import React, { useState, useMemo } from 'react';
-import { BTN_PRIMARY_STYLE, BTN_SECONDARY_STYLE, INPUT_BASE_STYLE } from '../constants';
+import { BTN_PRIMARY_STYLE, INPUT_BASE_STYLE } from '../constants';
 import { Category, Page } from '../types';
 import Card from '../components/Card';
 import CategoryModal from '../components/CategoryModal';
@@ -34,6 +34,14 @@ const Categories: React.FC<CategoriesProps> = ({ incomeCategories, setIncomeCate
 
   const [draggedItem, setDraggedItem] = useState<{ id: string; classification: 'income' | 'expense' } | null>(null);
   const [dropTarget, setDropTarget] = useState<{ id: string; position: 'top' | 'bottom' | 'middle' } | null>(null);
+
+  const activeCategoriesList = activeTab === 'income' ? incomeCategories : expenseCategories;
+
+  const stats = useMemo(() => {
+    const parents = activeCategoriesList.length;
+    const subs = activeCategoriesList.reduce((acc, cat) => acc + (cat.subCategories?.length || 0), 0);
+    return { parents, subs, total: parents + subs };
+  }, [activeCategoriesList]);
 
   const openModal = (
     mode: 'add' | 'edit', 
@@ -205,57 +213,147 @@ const Categories: React.FC<CategoriesProps> = ({ incomeCategories, setIncomeCate
     };
 
   return (
-    <div className="space-y-8">
+    <div className="space-y-8 pb-12 animate-fade-in-up">
       {isModalOpen && editingState && <CategoryModal isOpen={isModalOpen} onClose={() => setModalOpen(false)} onSave={handleSaveCategory} category={editingState.category} parentId={editingState.parentId} mode={modalMode} classification={editingState.classification} />}
-      {confirmingDelete && <Modal onClose={() => setConfirmingDelete(null)} title="Confirm Deletion"><div className="space-y-6"><p>Are you sure you want to delete this category and all its sub-categories? This action cannot be undone.</p><div className="flex justify-end gap-4"><button type="button" onClick={() => setConfirmingDelete(null)} className={BTN_SECONDARY_STYLE}>Cancel</button><button type="button" onClick={executeDelete} className="bg-red-500 text-white font-semibold py-2 px-4 rounded-lg">Delete</button></div></div></Modal>}
+      {confirmingDelete && (
+          <Modal onClose={() => setConfirmingDelete(null)} title="Confirm Deletion">
+              <div className="space-y-6">
+                  <p className="text-light-text-secondary dark:text-dark-text-secondary">
+                      Are you sure you want to delete this category? Any sub-categories will also be deleted.
+                  </p>
+                  <div className="flex justify-end gap-4 pt-4 border-t border-black/10 dark:border-white/10">
+                      <button type="button" onClick={() => setConfirmingDelete(null)} className="px-4 py-2 rounded-lg text-sm font-medium text-light-text dark:text-dark-text bg-light-fill dark:bg-dark-fill hover:bg-black/10 dark:hover:bg-white/10 transition-colors">Cancel</button>
+                      <button type="button" onClick={executeDelete} className="px-4 py-2 rounded-lg text-sm font-medium text-white bg-red-500 hover:bg-red-600 shadow-sm transition-colors">Delete</button>
+                  </div>
+              </div>
+          </Modal>
+      )}
       
-      <header>
+      <header className="flex flex-col md:flex-row md:items-center justify-between gap-4">
         <div className="flex items-center gap-4">
-            <button onClick={() => setCurrentPage('Settings')} className="text-light-text-secondary dark:text-dark-text-secondary p-1 rounded-full hover:bg-black/5 dark:hover:bg-white/5"><span className="material-symbols-outlined">arrow_back</span></button>
-            <div className="text-sm text-light-text-secondary dark:text-dark-text-secondary"><span onClick={() => setCurrentPage('Settings')} className="hover:underline cursor-pointer">Settings</span><span> / </span><span className="text-light-text dark:text-dark-text font-medium">Categories</span></div>
+            <button onClick={() => setCurrentPage('Settings')} className="text-light-text-secondary dark:text-dark-text-secondary p-2 rounded-full hover:bg-black/5 dark:hover:bg-white/5 transition-colors">
+                <span className="material-symbols-outlined">arrow_back</span>
+            </button>
+            <div>
+                <div className="text-sm text-light-text-secondary dark:text-dark-text-secondary flex items-center gap-2">
+                    <span onClick={() => setCurrentPage('Settings')} className="hover:underline cursor-pointer">Settings</span>
+                    <span>/</span>
+                    <span>Organization</span>
+                </div>
+                <h1 className="text-3xl font-bold text-light-text dark:text-dark-text">Categories</h1>
+            </div>
         </div>
-        <div className="mt-4 flex justify-between items-center"><p className="text-light-text-secondary dark:text-dark-text-secondary mt-1">Manage and reorder your income and expense categories.</p></div>
+        <button onClick={() => openModal('add', activeTab)} className={BTN_PRIMARY_STYLE}>
+            <span className="material-symbols-outlined text-xl mr-2">add</span>
+            New Category
+        </button>
       </header>
 
-      <div className="border-b border-light-separator dark:border-dark-separator">
-        <nav className="-mb-px flex space-x-6">
-            <button onClick={() => setActiveTab('expense')} className={`whitespace-nowrap py-3 px-1 border-b-2 font-semibold text-base transition-colors ${activeTab === 'expense' ? 'border-primary-500 text-primary-600 dark:text-primary-400' : 'border-transparent text-gray-500 hover:text-gray-700 dark:hover:text-gray-300'}`}>Expense Categories</button>
-            <button onClick={() => setActiveTab('income')} className={`whitespace-nowrap py-3 px-1 border-b-2 font-semibold text-base transition-colors ${activeTab === 'income' ? 'border-primary-500 text-primary-600 dark:text-primary-400' : 'border-transparent text-gray-500 hover:text-gray-700 dark:hover:text-gray-300'}`}>Income Categories</button>
-        </nav>
+      {/* Stats Row */}
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+          <Card className="p-5 flex items-center justify-between bg-gradient-to-br from-blue-500 to-indigo-600 text-white border-none relative overflow-hidden">
+             <div className="relative z-10">
+                 <p className="text-xs font-bold uppercase opacity-80 tracking-wider">Total Categories</p>
+                 <p className="text-3xl font-extrabold mt-1">{stats.parents}</p>
+             </div>
+             <div className="w-12 h-12 rounded-full bg-white/20 flex items-center justify-center backdrop-blur-sm relative z-10">
+                  <span className="material-symbols-outlined text-2xl">category</span>
+             </div>
+              <div className="absolute -right-4 -bottom-8 text-white opacity-10">
+                   <span className="material-symbols-outlined text-9xl">folder_open</span>
+              </div>
+          </Card>
+          
+           <Card className="p-5 flex items-center justify-between">
+             <div>
+                 <p className="text-xs font-bold uppercase text-light-text-secondary dark:text-dark-text-secondary tracking-wider">Sub-Categories</p>
+                 <p className="text-3xl font-extrabold text-light-text dark:text-dark-text mt-1">{stats.subs}</p>
+             </div>
+             <div className="w-12 h-12 rounded-full bg-purple-100 dark:bg-purple-900/30 text-purple-600 dark:text-purple-400 flex items-center justify-center">
+                  <span className="material-symbols-outlined text-2xl">subdirectory_arrow_right</span>
+             </div>
+          </Card>
+
+          <Card className="p-5 flex items-center justify-between">
+             <div>
+                 <p className="text-xs font-bold uppercase text-light-text-secondary dark:text-dark-text-secondary tracking-wider">Total Items</p>
+                 <p className="text-3xl font-extrabold text-light-text dark:text-dark-text mt-1">{stats.total}</p>
+             </div>
+             <div className="w-12 h-12 rounded-full bg-emerald-100 dark:bg-emerald-900/30 text-emerald-600 dark:text-emerald-400 flex items-center justify-center">
+                  <span className="material-symbols-outlined text-2xl">list_alt</span>
+             </div>
+          </Card>
       </div>
 
-      <div className="max-w-4xl mx-auto">
-        <div className="flex justify-between items-center mb-4">
-          <div className="relative w-full max-w-sm">
-              <span className="material-symbols-outlined absolute left-3 top-1/2 -translate-y-1/2 text-light-text-secondary dark:text-dark-text-secondary pointer-events-none">search</span>
-              <input type="text" placeholder="Search categories..." value={searchTerm} onChange={(e) => setSearchTerm(e.target.value)} className={`${INPUT_BASE_STYLE} pl-10`} />
-          </div>
-          <button onClick={() => openModal('add', activeTab)} className={BTN_PRIMARY_STYLE}>Add New</button>
+      {/* Controls Section */}
+      <div className="flex flex-col sm:flex-row justify-between gap-4 bg-light-card dark:bg-dark-card p-2 rounded-xl shadow-sm border border-black/5 dark:border-white/5">
+        {/* Tab Switcher */}
+        <div className="flex bg-light-fill dark:bg-dark-fill p-1 rounded-lg w-full sm:w-auto">
+            <button 
+                onClick={() => setActiveTab('expense')} 
+                className={`flex-1 sm:flex-none px-6 py-2 rounded-md text-sm font-semibold transition-all duration-200 ${activeTab === 'expense' ? 'bg-white dark:bg-dark-card text-primary-600 dark:text-primary-400 shadow-sm' : 'text-light-text-secondary dark:text-dark-text-secondary hover:text-light-text dark:hover:text-dark-text'}`}
+            >
+                Expenses
+            </button>
+            <button 
+                onClick={() => setActiveTab('income')} 
+                className={`flex-1 sm:flex-none px-6 py-2 rounded-md text-sm font-semibold transition-all duration-200 ${activeTab === 'income' ? 'bg-white dark:bg-dark-card text-primary-600 dark:text-primary-400 shadow-sm' : 'text-light-text-secondary dark:text-dark-text-secondary hover:text-light-text dark:hover:text-dark-text'}`}
+            >
+                Income
+            </button>
         </div>
-        <Card className="p-4">
-            <div className="space-y-2">
-                {activeCategories.map(cat => (
-                  <CategoryItem
-                    key={cat.id}
-                    category={cat}
-                    onEdit={(category) => openModal('edit', activeTab, category)}
-                    onDelete={(id) => handleDeleteCategory(id, activeTab)}
-                    onAddSubCategory={(parentId) => openModal('add', activeTab, undefined, parentId)}
-                    level={0}
-                    classification={activeTab}
-                    draggedItem={draggedItem}
-                    dropTarget={dropTarget}
-                    handleDragStart={handleDragStart}
-                    handleDragOver={handleDragOver}
-                    handleDragLeave={handleDragLeave}
-                    handleDrop={handleDrop}
-                    handleDragEnd={handleDragEnd}
-                  />
-                ))}
-            </div>
-            {activeCategories.length === 0 && <p className="text-center text-light-text-secondary dark:text-dark-text-secondary py-8">{searchTerm ? 'No matching categories found.' : 'No categories defined.'}</p>}
-        </Card>
+
+        {/* Search */}
+        <div className="relative flex-grow max-w-md">
+             <span className="material-symbols-outlined absolute left-3 top-1/2 -translate-y-1/2 text-light-text-secondary dark:text-dark-text-secondary pointer-events-none">search</span>
+             <input 
+                type="text" 
+                placeholder="Search categories..." 
+                value={searchTerm} 
+                onChange={(e) => setSearchTerm(e.target.value)} 
+                className={`${INPUT_BASE_STYLE} pl-10 w-full !h-10 !bg-transparent border-none focus:ring-0`}
+             />
+        </div>
       </div>
+
+      {/* Categories List - Single Column Stack */}
+      {activeCategories.length > 0 ? (
+          <div className="space-y-2 max-w-5xl mx-auto">
+            {activeCategories.map(cat => (
+              <CategoryItem
+                key={cat.id}
+                category={cat}
+                onEdit={(category) => openModal('edit', activeTab, category)}
+                onDelete={(id) => handleDeleteCategory(id, activeTab)}
+                onAddSubCategory={(parentId) => openModal('add', activeTab, undefined, parentId)}
+                level={0}
+                classification={activeTab}
+                draggedItem={draggedItem}
+                dropTarget={dropTarget}
+                handleDragStart={handleDragStart}
+                handleDragOver={handleDragOver}
+                handleDragLeave={handleDragLeave}
+                handleDrop={handleDrop}
+                handleDragEnd={handleDragEnd}
+              />
+            ))}
+        </div>
+      ) : (
+        <div className="flex flex-col items-center justify-center py-20 text-center bg-light-card/50 dark:bg-dark-card/50 rounded-2xl border border-dashed border-black/10 dark:border-white/10">
+            <div className="w-16 h-16 bg-gray-100 dark:bg-gray-800 rounded-full flex items-center justify-center mb-4">
+                <span className="material-symbols-outlined text-3xl text-gray-400 dark:text-gray-500">category</span>
+            </div>
+            <h3 className="text-lg font-semibold text-light-text dark:text-dark-text">No Categories Found</h3>
+            <p className="text-sm text-light-text-secondary dark:text-dark-text-secondary mt-1 max-w-xs">
+                {searchTerm ? `No categories match "${searchTerm}".` : `You haven't created any ${activeTab} categories yet.`}
+            </p>
+            {!searchTerm && (
+                <button onClick={() => openModal('add', activeTab)} className={`${BTN_PRIMARY_STYLE} mt-4`}>
+                    Create First Category
+                </button>
+            )}
+        </div>
+      )}
     </div>
   );
 };
