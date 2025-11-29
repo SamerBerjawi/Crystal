@@ -2,7 +2,7 @@
 import React from 'react';
 import { formatCurrency } from '../utils';
 import Card from './Card';
-import { LineChart, Line, ResponsiveContainer } from 'recharts';
+import { LineChart, Line, ResponsiveContainer, Area, AreaChart } from 'recharts';
 
 interface BalanceCardProps {
   title: string;
@@ -14,43 +14,54 @@ interface BalanceCardProps {
 
 const BalanceCard: React.FC<BalanceCardProps> = ({ title, amount, change, changeType, sparklineData }) => {
   const isPositive = changeType === 'positive';
-
-  const iconColor = 'text-white';
-  const iconBgColor = isPositive ? 'bg-semantic-green' : 'bg-semantic-red';
-  const sparklineStroke = isPositive ? '#34C759' : '#FF3B30';
+  const chartColor = isPositive ? '#22C55E' : '#EF4444'; // Green or Red
 
   return (
-    <Card className={`flex flex-col justify-between h-full`}>
-      <div>
-        <div className="flex items-start justify-between">
-            <div>
-                <h3 className={`text-base font-semibold text-light-text-secondary dark:text-dark-text-secondary`}>{title}</h3>
-                <p className={`text-2xl font-bold mt-1 text-light-text dark:text-dark-text`}>{formatCurrency(amount, 'EUR')}</p>
-            </div>
-            <div className={`w-10 h-10 rounded-full flex items-center justify-center ${iconBgColor}`}>
-                <span className={`material-symbols-outlined text-2xl ${iconColor}`}>
-                {isPositive ? 'north' : 'south'}
+    <Card className="relative overflow-hidden flex flex-col justify-between h-full border border-gray-100 dark:border-white/5 shadow-sm hover:shadow-md transition-all duration-200 group">
+      <div className="relative z-10 flex flex-col h-full">
+        <div className="flex justify-between items-start mb-2">
+            <h3 className="text-xs font-bold uppercase tracking-wider text-light-text-secondary dark:text-dark-text-secondary">{title}</h3>
+            <div className={`p-1.5 rounded-lg ${isPositive ? 'bg-green-50 dark:bg-green-900/20 text-green-600 dark:text-green-400' : 'bg-red-50 dark:bg-red-900/20 text-red-600 dark:text-red-400'}`}>
+                <span className="material-symbols-outlined text-lg">
+                    {title === 'Expenses' ? 'arrow_upward' : 'arrow_downward'}
                 </span>
             </div>
         </div>
-         {change && (
-              <p className={`text-sm font-medium mt-1 ${isPositive ? 'text-semantic-green' : 'text-semantic-red'}`}>
-                {change} vs. last period
-              </p>
-        )}
+        
+        <div className="mb-auto">
+            <p className="text-2xl font-extrabold text-light-text dark:text-dark-text tracking-tight">
+                {formatCurrency(amount, 'EUR')}
+            </p>
+            
+            {change && (
+                <div className="flex items-center gap-2 mt-1.5">
+                    <span className={`text-xs font-bold px-1.5 py-0.5 rounded-md ${isPositive ? 'bg-green-100 text-green-700 dark:bg-green-900/40 dark:text-green-400' : 'bg-red-100 text-red-700 dark:bg-red-900/40 dark:text-red-400'}`}>
+                        {change}
+                    </span>
+                    <span className="text-xs text-light-text-secondary dark:text-dark-text-secondary font-medium">vs last period</span>
+                </div>
+            )}
+        </div>
       </div>
-      <div className="h-16 -mb-6 -mx-6 mt-4">
-        <ResponsiveContainer width="100%" height="100%" minWidth={0} minHeight={0} debounce={50}>
-          <LineChart data={sparklineData} margin={{ top: 5, right: 5, bottom: 20, left: 5 }}>
-            <Line
-              type="natural"
+
+      {/* Background Sparkline */}
+      <div className="absolute bottom-0 left-0 right-0 h-16 opacity-10 group-hover:opacity-20 transition-opacity pointer-events-none">
+        <ResponsiveContainer width="100%" height="100%">
+          <AreaChart data={sparklineData} margin={{ top: 0, right: 0, left: 0, bottom: 0 }}>
+             <defs>
+                <linearGradient id={`gradient-${title}`} x1="0" y1="0" x2="0" y2="1">
+                  <stop offset="0%" stopColor={chartColor} stopOpacity={0.5}/>
+                  <stop offset="100%" stopColor={chartColor} stopOpacity={0}/>
+                </linearGradient>
+              </defs>
+            <Area
+              type="monotone"
               dataKey="value"
-              stroke={sparklineStroke}
-              strokeOpacity={0.8}
-              strokeWidth={2.5}
-              dot={false}
+              stroke={chartColor}
+              strokeWidth={2}
+              fill={`url(#gradient-${title})`}
             />
-          </LineChart>
+          </AreaChart>
         </ResponsiveContainer>
       </div>
     </Card>

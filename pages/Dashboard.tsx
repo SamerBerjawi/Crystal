@@ -1,7 +1,7 @@
 
 import React, { useMemo, useState, useCallback, useEffect, useRef } from 'react';
 import { User, Transaction, Account, Category, Duration, CategorySpending, Widget, WidgetConfig, DisplayTransaction, FinancialGoal, RecurringTransaction, BillPayment, Tag, Budget, RecurringTransactionOverride, LoanPaymentOverrides } from '../types';
-import { formatCurrency, getDateRange, calculateAccountTotals, convertToEur, calculateStatementPeriods, generateBalanceForecast, parseDateAsUTC, getCreditCardStatementDetails, generateSyntheticLoanPayments, generateSyntheticCreditCardPayments, getPreferredTimeZone, formatDateKey } from '../utils';
+import { formatCurrency, getDateRange, calculateAccountTotals, convertToEur, calculateStatementPeriods, generateBalanceForecast, parseDateAsUTC, getCreditCardStatementDetails, generateSyntheticLoanPayments, generateSyntheticCreditCardPayments, getPreferredTimeZone, formatDateKey, generateSyntheticPropertyTransactions } from '../utils';
 import AddTransactionModal from '../components/AddTransactionModal';
 import { BTN_PRIMARY_STYLE, BTN_SECONDARY_STYLE, LIQUID_ACCOUNT_TYPES, ASSET_TYPES, DEBT_TYPES, ACCOUNT_TYPE_STYLES, INVESTMENT_SUB_TYPE_STYLES } from '../constants';
 import TransactionDetailModal from '../components/TransactionDetailModal';
@@ -27,7 +27,7 @@ import AccountBreakdownCard from '../components/AccountBreakdownCard';
 import TransactionMapWidget from '../components/TransactionMapWidget';
 import { useAccountsContext, useTransactionsContext } from '../contexts/DomainProviders';
 import { useBudgetsContext, useCategoryContext, useGoalsContext, useScheduleContext, useTagsContext } from '../contexts/FinancialDataContext';
-
+import { AreaChart, Area, LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, ReferenceLine, Label, Legend, BarChart, Bar, PieChart, Pie, Cell } from 'recharts';
 
 interface DashboardProps {
   user: User;
@@ -71,9 +71,22 @@ type DashboardTab = 'overview' | 'analysis' | 'activity';
 
 const WIDGET_TABS: Record<DashboardTab, string[]> = {
     overview: ['netWorthOverTime'],
-    analysis: ['assetBreakdown', 'liabilityBreakdown', 'budgetOverview', 'netWorthBreakdown'],
+    analysis: [], // Handled by custom layout now
     activity: ['outflowsByCategory', 'recentActivity', 'transactionMap']
 };
+
+const AnalysisStatCard: React.FC<{ title: string; value: string; subtext: string; icon: string; colorClass: string }> = ({ title, value, subtext, icon, colorClass }) => (
+    <div className="bg-white dark:bg-dark-card p-6 rounded-2xl border border-black/5 dark:border-white/5 shadow-sm flex items-center gap-5 hover:shadow-md transition-all duration-200">
+        <div className={`w-14 h-14 rounded-xl flex items-center justify-center ${colorClass} shrink-0`}>
+            <span className="material-symbols-outlined text-3xl">{icon}</span>
+        </div>
+        <div>
+            <p className="text-xs font-bold uppercase text-light-text-secondary dark:text-dark-text-secondary tracking-wider mb-1">{title}</p>
+            <p className="text-2xl font-extrabold text-light-text dark:text-dark-text">{value}</p>
+            <p className="text-xs text-light-text-secondary dark:text-dark-text-secondary mt-1 font-medium">{subtext}</p>
+        </div>
+    </div>
+);
 
 const Dashboard: React.FC<DashboardProps> = ({ user, activeGoalIds, selectedAccountIds, setSelectedAccountIds, duration, setDuration }) => {
   const { accounts } = useAccountsContext();
@@ -822,6 +835,44 @@ const Dashboard: React.FC<DashboardProps> = ({ user, activeGoalIds, selectedAcco
   };
   const handleDragEnd = () => { setDraggedWidgetId(null); setDragOverWidgetId(null); };
 
+  // Metrics for Analysis Tab
+  const { liquidityRatio, savingsRate } = useMemo(() => {
+      const openAccounts = accounts.filter(acc => acc.status !== 'closed');
+      const liquidCash = openAccounts.filter(acc => LIQUID_ACCOUNT_TYPES.includes(acc.type))
+                           .reduce((sum, acc) => sum + convertToEur(acc.balance, acc.currency), 0);
+      
+      // avgMonthlySpend was calculated in GeneralAccountView logic but not available here easily.
+      // Let's recalculate simplified avg monthly spend for this global view.
+      const threeMonthsAgo = new Date(); threeMonthsAgo.setMonth(threeMonthsAgo.getMonth() - 3);
+      const expenseTxs = transactions.filter(t => {
+          const d = parseDateAsUTC(t.date);
+          return d >= threeMonthsAgo && t.type === 'expense' && !t.transferId;
+      });
+      const totalSpend = expenseTxs.reduce((sum, tx) => sum + Math.abs(convertToEur(tx.amount, tx.currency)), 0);
+      const avgMonthlySpend = totalSpend / 3;
+
+      const liquidityRatio = avgMonthlySpend > 0 ? (liquidCash / avgMonthlySpend) : 0;
+
+      // Calculate savings rate based on selected period (duration)
+      let totalIncomePeriod = 0;
+      let totalExpensePeriod = 0;
+      const { start, end } = getDateRange(duration, transactions);
+      const periodTxs = transactions.filter(t => {
+          const d = parseDateAsUTC(t.date);
+          return d >= start && d <= end && !t.transferId;
+      });
+      periodTxs.forEach(tx => {
+          const val = convertToEur(tx.amount, tx.currency);
+          if (tx.type === 'income') totalIncomePeriod += val;
+          else totalExpensePeriod += Math.abs(val);
+      });
+      const netFlowPeriod = totalIncomePeriod - totalExpensePeriod;
+      const savingsRate = totalIncomePeriod > 0 ? (netFlowPeriod / totalIncomePeriod) * 100 : 0;
+
+      return { liquidityRatio, savingsRate };
+
+  }, [accounts, transactions, duration]);
+
   // Styles for tab navigation
   const tabBaseClass = "px-4 py-2 font-semibold text-sm rounded-lg transition-all duration-200 focus:outline-none whitespace-nowrap";
   const tabActiveClass = "bg-white dark:bg-dark-card text-primary-600 dark:text-primary-400 shadow-sm";
@@ -830,7 +881,7 @@ const Dashboard: React.FC<DashboardProps> = ({ user, activeGoalIds, selectedAcco
   return (
     <div className="space-y-6">
       {isTransactionModalOpen && (
-        <AddTransactionModal
+        <AddTransactionModal 
           onClose={handleCloseTransactionModal}
           onSave={(data, toDelete) => {
             saveTransaction(data, toDelete);
@@ -992,37 +1043,175 @@ const Dashboard: React.FC<DashboardProps> = ({ user, activeGoalIds, selectedAcco
         </>
       )}
 
-      {/* Customizable Widget Grid */}
-      <div className="grid grid-cols-1 md:grid-cols-4 gap-6" style={{ gridAutoRows: 'minmax(200px, auto)' }}>
-        {widgets
-            .filter(widget => WIDGET_TABS[activeTab].includes(widget.id))
-            .map(widget => {
-                const widgetDetails = allWidgets.find(w => w.id === widget.id);
-                if (!widgetDetails) return null;
-                const WidgetComponent = widgetDetails.component;
+      {activeTab === 'analysis' && (
+          <div className="space-y-8 animate-fade-in-up">
+              {/* Financial Health Scorecard */}
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+                  <AnalysisStatCard 
+                    title="Liquidity Ratio" 
+                    value={`${liquidityRatio.toFixed(1)} months`} 
+                    subtext="Runway based on avg. spend" 
+                    icon="savings" 
+                    colorClass="bg-blue-100 dark:bg-blue-900/30 text-blue-600 dark:text-blue-400"
+                  />
+                  <AnalysisStatCard 
+                    title="Savings Rate" 
+                    value={`${savingsRate.toFixed(0)}%`} 
+                    subtext={`of total income (${duration})`}
+                    icon="trending_up" 
+                    colorClass="bg-green-100 dark:bg-green-900/30 text-green-600 dark:text-green-400"
+                  />
+                  <AnalysisStatCard 
+                    title="Debt Ratio" 
+                    value={`${(globalTotalAssets > 0 ? (Math.abs(globalTotalDebt) / globalTotalAssets) * 100 : 0).toFixed(1)}%`} 
+                    subtext="Liabilities / Assets"
+                    icon="pie_chart" 
+                    colorClass="bg-purple-100 dark:bg-purple-900/30 text-purple-600 dark:text-purple-400"
+                  />
+              </div>
 
-                return (
-                    <WidgetWrapper
-                        key={widget.id}
-                        title={widget.title}
-                        w={widget.w}
-                        h={widget.h}
-                        onRemove={() => removeWidget(widget.id)}
-                        onResize={(dim, change) => handleResize(widget.id, dim, change)}
-                        isEditMode={isEditMode}
-                        isBeingDragged={draggedWidgetId === widget.id}
-                        isDragOver={dragOverWidgetId === widget.id}
-                        onDragStart={e => handleDragStart(e, widget.id)}
-                        onDragEnter={e => handleDragEnter(e, widget.id)}
-                        onDragLeave={handleDragLeave}
-                        onDrop={e => handleDrop(e, widget.id)}
-                        onDragEnd={handleDragEnd}
-                    >
-                        <WidgetComponent {...widgetDetails.props as any} />
-                    </WidgetWrapper>
-                );
-        })}
-      </div>
+              {/* Combined Net Worth Composition Widget */}
+              <Card className="overflow-hidden">
+                  <div className="flex flex-col lg:flex-row gap-8">
+                      {/* Left: Chart & High Level */}
+                      <div className="lg:w-1/3 flex flex-col justify-center border-b lg:border-b-0 lg:border-r border-black/5 dark:border-white/5 pb-8 lg:pb-0 lg:pr-8">
+                          <h3 className="text-lg font-bold text-light-text dark:text-dark-text mb-6 self-start">Net Worth Composition</h3>
+                          <div className="h-64 w-full relative">
+                              <ResponsiveContainer width="100%" height="100%">
+                                  <PieChart>
+                                      <Pie
+                                          data={[
+                                              { name: 'Assets', value: globalTotalAssets > 0 ? globalTotalAssets : 0 },
+                                              { name: 'Liabilities', value: Math.abs(globalTotalDebt) > 0 ? Math.abs(globalTotalDebt) : 0 }
+                                          ]}
+                                          cx="50%"
+                                          cy="50%"
+                                          innerRadius={60}
+                                          outerRadius={80}
+                                          paddingAngle={5}
+                                          dataKey="value"
+                                      >
+                                          <Cell fill="#22C55E" stroke="none" />
+                                          <Cell fill="#EF4444" stroke="none" />
+                                      </Pie>
+                                  </PieChart>
+                              </ResponsiveContainer>
+                              <div className="absolute inset-0 flex flex-col items-center justify-center pointer-events-none">
+                                  <span className="text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">Net Worth</span>
+                                  <span className="text-2xl font-bold text-gray-900 dark:text-white">{formatCurrency(globalTotalAssets + globalTotalDebt, 'EUR')}</span>
+                              </div>
+                          </div>
+                          <div className="w-full mt-8 grid grid-cols-2 gap-4">
+                              <div className="p-3 rounded-xl bg-green-50 dark:bg-green-900/20 border border-green-100 dark:border-green-900/30 text-center">
+                                  <p className="text-xs text-green-600 dark:text-green-400 font-semibold uppercase mb-1">Assets</p>
+                                  <p className="text-lg font-bold text-green-700 dark:text-green-300">{formatCurrency(globalTotalAssets, 'EUR')}</p>
+                              </div>
+                              <div className="p-3 rounded-xl bg-red-50 dark:bg-red-900/20 border border-red-100 dark:border-red-900/30 text-center">
+                                  <p className="text-xs text-red-600 dark:text-red-400 font-semibold uppercase mb-1">Liabilities</p>
+                                  <p className="text-lg font-bold text-red-700 dark:text-red-300">{formatCurrency(Math.abs(globalTotalDebt), 'EUR')}</p>
+                              </div>
+                          </div>
+                      </div>
+
+                      {/* Right: Detailed Breakdown */}
+                      <div className="lg:w-2/3 grid grid-cols-1 sm:grid-cols-2 gap-8">
+                          {/* Assets Column */}
+                          <div>
+                              <h4 className="text-sm font-bold text-light-text-secondary dark:text-dark-text-secondary uppercase tracking-wider mb-4">Assets Breakdown</h4>
+                              <div className="space-y-4">
+                                  {globalAssetBreakdown.map((item) => (
+                                      <div key={item.name} className="group">
+                                          <div className="flex justify-between text-sm mb-1.5">
+                                              <span className="font-medium text-gray-700 dark:text-gray-200 group-hover:text-primary-600 transition-colors">{item.name}</span>
+                                              <span className="font-mono font-medium text-gray-900 dark:text-white">{formatCurrency(item.value, 'EUR')}</span>
+                                          </div>
+                                          <div className="w-full bg-gray-100 dark:bg-white/10 rounded-full h-2 overflow-hidden">
+                                              <div className="h-full rounded-full" style={{ width: `${(item.value / globalTotalAssets) * 100}%`, backgroundColor: item.color }}></div>
+                                          </div>
+                                          <p className="text-[10px] text-right text-gray-400 mt-1 opacity-0 group-hover:opacity-100 transition-opacity">
+                                              {((item.value / globalTotalAssets) * 100).toFixed(1)}%
+                                          </p>
+                                      </div>
+                                  ))}
+                                  {globalAssetBreakdown.length === 0 && <p className="text-sm text-light-text-secondary dark:text-dark-text-secondary italic">No assets found.</p>}
+                              </div>
+                          </div>
+
+                          {/* Liabilities Column */}
+                          <div>
+                              <h4 className="text-sm font-bold text-light-text-secondary dark:text-dark-text-secondary uppercase tracking-wider mb-4">Liabilities Breakdown</h4>
+                              <div className="space-y-4">
+                                  {globalDebtBreakdown.map((item) => (
+                                      <div key={item.name} className="group">
+                                          <div className="flex justify-between text-sm mb-1.5">
+                                              <span className="font-medium text-gray-700 dark:text-gray-200 group-hover:text-red-500 transition-colors">{item.name}</span>
+                                              <span className="font-mono font-medium text-gray-900 dark:text-white">{formatCurrency(item.value, 'EUR')}</span>
+                                          </div>
+                                          <div className="w-full bg-gray-100 dark:bg-white/10 rounded-full h-2 overflow-hidden">
+                                              <div className="h-full rounded-full" style={{ width: `${(item.value / Math.abs(globalTotalDebt)) * 100}%`, backgroundColor: item.color }}></div>
+                                          </div>
+                                          <p className="text-[10px] text-right text-gray-400 mt-1 opacity-0 group-hover:opacity-100 transition-opacity">
+                                              {((item.value / Math.abs(globalTotalDebt)) * 100).toFixed(1)}%
+                                          </p>
+                                      </div>
+                                  ))}
+                                  {globalDebtBreakdown.length === 0 && (
+                                      <div className="p-4 text-center text-sm text-gray-400 italic bg-gray-50 dark:bg-gray-800/50 rounded-lg">
+                                          No liabilities recorded.
+                                      </div>
+                                  )}
+                              </div>
+                          </div>
+                      </div>
+                  </div>
+              </Card>
+              
+              {/* Budget Overview */}
+              <Card className="min-h-[400px] flex flex-col">
+                    <div className="flex justify-between items-center mb-4">
+                        <h3 className="text-xl font-bold text-light-text dark:text-dark-text">Budget Performance</h3>
+                        <button onClick={() => handleBudgetClick()} className="text-sm text-primary-500 hover:underline">View Details</button>
+                    </div>
+                    <div className="flex-grow">
+                         <BudgetOverviewWidget budgets={budgets} transactions={transactions} expenseCategories={expenseCategories} accounts={accounts} duration={duration} onBudgetClick={handleBudgetClick} />
+                    </div>
+              </Card>
+          </div>
+      )}
+
+      {/* Customizable Widget Grid (Only for relevant tabs) */}
+      {(activeTab === 'overview' || activeTab === 'activity') && (
+        <div className="grid grid-cols-1 md:grid-cols-4 gap-6" style={{ gridAutoRows: 'minmax(200px, auto)' }}>
+            {widgets
+                .filter(widget => WIDGET_TABS[activeTab].includes(widget.id))
+                .map(widget => {
+                    const widgetDetails = allWidgets.find(w => w.id === widget.id);
+                    if (!widgetDetails) return null;
+                    const WidgetComponent = widgetDetails.component;
+
+                    return (
+                        <WidgetWrapper
+                            key={widget.id}
+                            title={widget.title}
+                            w={widget.w}
+                            h={widget.h}
+                            onRemove={() => removeWidget(widget.id)}
+                            onResize={(dim, change) => handleResize(widget.id, dim, change)}
+                            isEditMode={isEditMode}
+                            isBeingDragged={draggedWidgetId === widget.id}
+                            isDragOver={dragOverWidgetId === widget.id}
+                            onDragStart={e => handleDragStart(e, widget.id)}
+                            onDragEnter={e => handleDragEnter(e, widget.id)}
+                            onDragLeave={handleDragLeave}
+                            onDrop={e => handleDrop(e, widget.id)}
+                            onDragEnd={handleDragEnd}
+                        >
+                            <WidgetComponent {...widgetDetails.props as any} />
+                        </WidgetWrapper>
+                    );
+            })}
+        </div>
+      )}
     </div>
   );
 };

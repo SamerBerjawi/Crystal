@@ -24,9 +24,9 @@ const NetWorthChart: React.FC<NetWorthChartProps> = ({ data, lineColor = '#6366F
   const CustomTooltip = ({ active, payload, label }: any) => {
       if (active && payload && payload.length) {
         return (
-          <div className="bg-light-bg dark:bg-dark-bg p-3 rounded-xl shadow-lg border border-black/5 dark:border-white/10">
-            <p className="label font-semibold text-light-text-secondary dark:text-dark-text-secondary text-sm">{parseDateAsUTC(label).toLocaleDateString('en-US', { timeZone: 'UTC', day: 'numeric', month: 'long', year: 'numeric' })}</p>
-            <p className="font-bold text-lg" style={{ color: lineColor }}>{formatCurrency(payload[0].value, 'EUR')}</p>
+          <div className="bg-white dark:bg-dark-card p-3 rounded-xl shadow-lg border border-black/5 dark:border-white/10">
+            <p className="label font-semibold text-light-text-secondary dark:text-dark-text-secondary text-xs mb-1">{parseDateAsUTC(label).toLocaleDateString('en-US', { timeZone: 'UTC', day: 'numeric', month: 'long', year: 'numeric' })}</p>
+            <p className="font-bold text-lg text-light-text dark:text-dark-text">{formatCurrency(payload[0].value, 'EUR')}</p>
           </div>
         );
       }
@@ -60,29 +60,46 @@ const NetWorthChart: React.FC<NetWorthChartProps> = ({ data, lineColor = '#6366F
       <ResponsiveContainer minWidth={0} minHeight={0} debounce={50}>
         <AreaChart
           data={data}
-          margin={{ top: 10, right: 10, left: -10, bottom: 0 }}
+          margin={{ top: 10, right: 0, left: -20, bottom: 0 }}
         >
           <defs>
             <linearGradient id={gradientId} x1="0" y1="0" x2="0" y2="1">
-              <stop offset="5%" stopColor={lineColor} stopOpacity={0.8}/>
-              <stop offset="95%" stopColor={lineColor} stopOpacity={0.1}/>
+              <stop offset="5%" stopColor={lineColor} stopOpacity={0.3}/>
+              <stop offset="95%" stopColor={lineColor} stopOpacity={0}/>
             </linearGradient>
           </defs>
-          <CartesianGrid strokeDasharray="3 3" stroke="currentColor" opacity={0.1} vertical={false} />
-          <XAxis dataKey="name" stroke="currentColor" opacity={0.6} fontSize={12} tickFormatter={tickFormatter} minTickGap={40} axisLine={false} tickLine={false} />
-          <YAxis stroke="currentColor" opacity={0.6} fontSize={12} tickFormatter={yAxisTickFormatter} axisLine={false} tickLine={false} width={80} />
+          <CartesianGrid strokeDasharray="3 3" stroke="currentColor" opacity={0.05} vertical={false} />
+          <XAxis 
+            dataKey="name" 
+            stroke="currentColor" 
+            opacity={0.4} 
+            fontSize={11} 
+            tickFormatter={tickFormatter} 
+            minTickGap={40} 
+            axisLine={false} 
+            tickLine={false} 
+            dy={10}
+          />
+          <YAxis 
+            stroke="currentColor" 
+            opacity={0.4} 
+            fontSize={11} 
+            tickFormatter={yAxisTickFormatter} 
+            axisLine={false} 
+            tickLine={false} 
+          />
           <Tooltip 
-            cursor={{ stroke: lineColor, strokeWidth: 1, strokeDasharray: '3 3' }}
+            cursor={{ stroke: lineColor, strokeWidth: 1, strokeDasharray: '4 4', opacity: 0.5 }}
             content={<CustomTooltip />} 
            />
           <Area 
-            type="natural" 
+            type="monotone" 
             dataKey="value" 
             name="Net Worth" 
             stroke={lineColor} 
             fill={`url(#${gradientId})`} 
             strokeWidth={3}
-            activeDot={{ r: 5, fill: 'white', stroke: lineColor, strokeWidth: 2 }}
+            activeDot={{ r: 6, fill: 'white', stroke: lineColor, strokeWidth: 3 }}
           />
         </AreaChart>
       </ResponsiveContainer>

@@ -30,95 +30,75 @@ const CreditCardStatementCard: React.FC<CreditCardStatementCardProps> = ({
     nextStatement 
 }) => {
     const usedPercentage = creditLimit && creditLimit > 0 ? (Math.abs(accountBalance) / creditLimit) * 100 : 0;
-    
-    let progressBarColor = 'bg-orange-400';
-    if (usedPercentage > 90) progressBarColor = 'bg-red-500';
-    else if (usedPercentage > 75) progressBarColor = 'bg-orange-500';
+    const progressBarColor = usedPercentage > 90 ? 'bg-red-500' : usedPercentage > 75 ? 'bg-orange-500' : 'bg-blue-500';
 
-    const hasSettlementInfo = (currentStatement.amountPaid !== undefined && currentStatement.amountPaid > 0) || (currentStatement.previousStatementBalance !== undefined && Math.abs(currentStatement.previousStatementBalance) > 0);
-
-    const renderStatementBlock = (title: string, data: StatementInfo) => {
-        const balanceColor = data.balance > 0 ? 'text-green-500' : data.balance < 0 ? 'text-red-500' : 'text-light-text dark:text-dark-text';
+    const StatementBlock: React.FC<{ title: string; data: StatementInfo; isHighlight?: boolean }> = ({ title, data, isHighlight }) => {
+        const isPaid = (data.amountPaid || 0) >= Math.abs(data.previousStatementBalance || 0) && Math.abs(data.previousStatementBalance || 0) > 0;
         return (
-           <div className="flex flex-col h-full justify-between">
-               <div>
-                   <h4 className="font-semibold text-xs text-light-text-secondary dark:text-dark-text-secondary uppercase mb-2 tracking-wider">{title}</h4>
-                   <p className="text-xs text-light-text-secondary dark:text-dark-text-secondary mb-3 font-medium bg-black/5 dark:bg-white/5 py-1 px-2 rounded inline-block">
-                       {data.period}
-                   </p>
-               </div>
-               <div className="flex items-end justify-between">
-                   <div>
-                       <p className="text-xs text-light-text-secondary dark:text-dark-text-secondary mb-0.5">Balance</p>
-                       <p className={`text-xl font-bold ${balanceColor}`}>{formatCurrency(data.balance, currency)}</p>
-                   </div>
-                   <div className="text-right">
-                       <p className="text-xs text-light-text-secondary dark:text-dark-text-secondary mb-0.5">Due</p>
-                       <p className="font-semibold text-light-text dark:text-dark-text text-sm">{data.dueDate}</p>
-                   </div>
-               </div>
-           </div>
+            <div className={`p-4 rounded-xl border ${isHighlight ? 'bg-blue-50 dark:bg-blue-900/10 border-blue-100 dark:border-blue-800/30' : 'bg-gray-50 dark:bg-white/5 border-transparent'}`}>
+                <div className="flex justify-between items-center mb-3">
+                    <h4 className={`text-xs font-bold uppercase tracking-wider ${isHighlight ? 'text-blue-700 dark:text-blue-300' : 'text-light-text-secondary dark:text-dark-text-secondary'}`}>{title}</h4>
+                    {isPaid && title.includes("Current") && (
+                        <span className="flex items-center gap-1 text-[10px] font-bold uppercase bg-green-100 dark:bg-green-900/30 text-green-700 dark:text-green-400 px-1.5 py-0.5 rounded">
+                            <span className="material-symbols-outlined text-xs">check</span> Paid
+                        </span>
+                    )}
+                </div>
+                <div className="space-y-1">
+                    <div className="flex justify-between items-end">
+                        <span className="text-xs text-light-text-secondary dark:text-dark-text-secondary">Balance</span>
+                        <span className="text-lg font-bold text-light-text dark:text-dark-text">{formatCurrency(data.balance, currency)}</span>
+                    </div>
+                    <div className="flex justify-between items-end">
+                        <span className="text-xs text-light-text-secondary dark:text-dark-text-secondary">Due Date</span>
+                        <span className={`text-sm font-semibold ${title.includes("Current") ? 'text-light-text dark:text-dark-text' : 'text-light-text-secondary dark:text-dark-text-secondary'}`}>{data.dueDate}</span>
+                    </div>
+                </div>
+                {title.includes("Current") && (data.previousStatementBalance !== undefined && Math.abs(data.previousStatementBalance) > 0) && (
+                     <div className="mt-3 pt-2 border-t border-black/5 dark:border-white/5 flex justify-between text-xs">
+                        <span className="text-light-text-secondary dark:text-dark-text-secondary">Prev. Bill</span>
+                        <span className="font-mono">{formatCurrency(Math.abs(data.previousStatementBalance), currency)}</span>
+                     </div>
+                )}
+            </div>
         );
-   }
+    };
 
     return (
-        <Card className="flex flex-col h-full">
-            {/* Header Row: Account Name + Previous Settle + Credit Available */}
-            <div className="flex flex-col md:flex-row md:items-center justify-between mb-6 pb-4 border-b border-black/10 dark:border-white/10 gap-4">
-                <div className="flex items-center gap-3">
-                    <div className="w-10 h-10 rounded-full bg-orange-100 dark:bg-orange-900/30 flex items-center justify-center text-orange-600 dark:text-orange-400 shrink-0">
-                        <span className="material-symbols-outlined">credit_card</span>
+        <Card className="border border-gray-100 dark:border-white/5 shadow-sm">
+            <div className="flex flex-col md:flex-row gap-6 h-full">
+                {/* Left: Card Info */}
+                <div className="md:w-1/3 flex flex-col justify-between">
+                    <div>
+                        <div className="flex items-center gap-3 mb-1">
+                            <div className="w-8 h-8 rounded-lg bg-primary-100 dark:bg-primary-900/30 text-primary-600 dark:text-primary-400 flex items-center justify-center">
+                                <span className="material-symbols-outlined text-lg">credit_card</span>
+                            </div>
+                            <h3 className="font-bold text-lg text-light-text dark:text-dark-text truncate">{accountName}</h3>
+                        </div>
+                        <p className="text-xs text-light-text-secondary dark:text-dark-text-secondary ml-11 mb-6">Statement Summary</p>
                     </div>
-                    <h3 className="font-bold text-xl text-light-text dark:text-dark-text truncate">{accountName}</h3>
-                </div>
-
-                <div className="flex flex-wrap items-center gap-6 md:gap-8 ml-12 md:ml-0">
-                    {/* Previous Settlement */}
-                    {hasSettlementInfo && (
-                        <div className="flex flex-col items-start md:items-end">
-                            <p className="text-xs text-light-text-secondary dark:text-dark-text-secondary uppercase tracking-wider font-semibold">Prev. Settlement</p>
-                            <div className="flex items-baseline gap-1 mt-0.5">
-                                <p className={`font-bold ${currentStatement.amountPaid && currentStatement.amountPaid > 0 ? 'text-green-500' : 'text-light-text-secondary dark:text-dark-text-secondary'}`}>
-                                    {formatCurrency(currentStatement.amountPaid || 0, currency)}
-                                </p>
-                                {currentStatement.previousStatementBalance !== undefined && (
-                                    <span className="text-xs text-light-text-secondary dark:text-dark-text-secondary">
-                                        / {formatCurrency(Math.abs(currentStatement.previousStatementBalance), currency)}
-                                    </span>
-                                )}
-                            </div>
-                        </div>
-                    )}
-
-                    {/* Available Credit */}
+                    
                     {creditLimit && creditLimit > 0 && (
-                        <div className="flex flex-col min-w-[140px]">
-                            <div className="flex justify-between items-baseline">
-                                <p className="text-xs text-light-text-secondary dark:text-dark-text-secondary uppercase tracking-wider font-semibold">Available</p>
-                                <p className="text-xs font-bold text-light-text dark:text-dark-text">
-                                    {formatCurrency(creditLimit - Math.abs(accountBalance), currency)}
-                                </p>
+                        <div>
+                            <div className="flex justify-between text-xs font-medium mb-1.5">
+                                <span className="text-light-text-secondary dark:text-dark-text-secondary">Credit Used</span>
+                                <span className="text-light-text dark:text-dark-text">{usedPercentage.toFixed(0)}%</span>
                             </div>
-                            <div className="w-full bg-light-bg dark:bg-dark-bg rounded-full h-1.5 mt-1.5 shadow-inner">
-                                <div
-                                    className={`${progressBarColor} h-1.5 rounded-full transition-all duration-300`}
-                                    style={{ width: `${Math.min(usedPercentage, 100)}%` }}
-                                ></div>
+                            <div className="w-full bg-gray-100 dark:bg-white/5 rounded-full h-1.5 overflow-hidden mb-2">
+                                <div className={`h-full rounded-full ${progressBarColor}`} style={{ width: `${Math.min(usedPercentage, 100)}%` }}></div>
                             </div>
+                            <p className="text-[10px] text-light-text-secondary dark:text-dark-text-secondary text-right">
+                                {formatCurrency(creditLimit - Math.abs(accountBalance), currency)} available
+                            </p>
                         </div>
                     )}
                 </div>
-            </div>
 
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-8 flex-grow">
-                {/* Current Statement */}
-                <div className="md:border-r md:border-black/5 md:dark:border-white/5 md:pr-8 pb-4 md:pb-0 border-b md:border-b-0 border-black/5 dark:border-white/5">
-                    {renderStatementBlock("Current Statement", currentStatement)}
-                </div>
-
-                {/* Next Statement */}
-                <div>
-                    {renderStatementBlock("Next Statement", nextStatement)}
+                {/* Right: Statements Grid */}
+                <div className="md:w-2/3 grid grid-cols-1 sm:grid-cols-2 gap-4">
+                    <StatementBlock title="Current Statement" data={currentStatement} isHighlight={true} />
+                    <StatementBlock title="Next Statement" data={nextStatement} />
                 </div>
             </div>
         </Card>
