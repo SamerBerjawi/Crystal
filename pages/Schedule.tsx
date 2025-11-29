@@ -144,7 +144,7 @@ const ScheduleSummaryCard: React.FC<{ title: string; value: number; type: 'incom
     }
 
     return (
-        <div className={`p-5 rounded-2xl border ${bgClass} flex flex-col justify-between h-full relative overflow-hidden`}>
+        <div className={`p-5 rounded-2xl border ${bgClass} flex flex-col justify-between h-full relative overflow-hidden shadow-sm`}>
              <div className="flex justify-between items-start z-10">
                 <div>
                     <p className="text-xs font-bold uppercase tracking-wider opacity-70 mb-1">{title}</p>
@@ -259,6 +259,7 @@ const SchedulePage: React.FC<ScheduleProps> = () => {
         summaryMetrics,
         categoryBreakdown,
         majorOutflow,
+        majorInflow,
         recurringList
     } = useMemo(() => {
         const today = new Date();
@@ -280,7 +281,36 @@ const SchedulePage: React.FC<ScheduleProps> = () => {
         const allRecurringTransactions = [...recurringTransactions, ...syntheticLoanPayments, ...syntheticCreditCardPayments, ...syntheticPropertyTransactions];
 
         // Prepare list for "List View" (Management)
-        const recurringListItems = allRecurringTransactions.map(rt => ({
+        // Group synthetic loan payments by account to avoid listing every month separately
+        const processedRecurringList: RecurringTransaction[] = [];
+        const processedLoanAccountIds = new Set<string>();
+
+        allRecurringTransactions.forEach(rt => {
+            if (rt.isSynthetic) {
+                 // Check if it is a loan or lending synthetic payment
+                 // We identify them by ID prefix or check if they correspond to a loan account
+                 const isLoan = rt.id.startsWith('loan-pmt-');
+                 if (isLoan) {
+                     // Group by account
+                     if (!processedLoanAccountIds.has(rt.accountId)) {
+                        processedLoanAccountIds.add(rt.accountId);
+                        // Create a representative item
+                        processedRecurringList.push({
+                            ...rt,
+                            id: `synthetic-group-${rt.accountId}`, // Unique group ID
+                            description: `${rt.type === 'transfer' ? 'Loan Repayment' : 'Payment'}: ${accountMap[rt.accountId] || 'Loan Account'}`,
+                            // Show grouped info, maybe sum or just one instance details
+                            // We use the current rt details as representative
+                        });
+                     }
+                     return; // Skip individual addition
+                 }
+            }
+            // Add standard recurring and other synthetic types normally
+            processedRecurringList.push(rt);
+        });
+
+        const recurringListItems = processedRecurringList.map(rt => ({
             ...rt,
             isSynthetic: rt.isSynthetic || false,
             accountName: rt.accountId === 'external' ? 'External' : (rt.type === 'transfer' ? `${accountMap[rt.accountId]} → ${accountMap[rt.toAccountId!]}` : accountMap[rt.accountId])
@@ -372,6 +402,7 @@ const SchedulePage: React.FC<ScheduleProps> = () => {
 
         const categorySpending: Record<string, number> = {};
         let maxOutflowItem: ScheduledItem | null = null;
+        let maxInflowItem: ScheduledItem | null = null;
         
         // Grouping for Timeline View
         const groups: Record<string, ScheduledItem[]> = {};
@@ -394,6 +425,10 @@ const SchedulePage: React.FC<ScheduleProps> = () => {
                 if (item.type === 'income' || item.type === 'deposit') {
                     totalIncome30d += amountEur;
                     incomeCount30d++;
+                    
+                    if (!maxInflowItem || amountEur > convertToEur(maxInflowItem.amount, (maxInflowItem.originalItem as any).currency)) {
+                        maxInflowItem = item;
+                    }
                 } else if (item.type === 'expense' || item.type === 'payment') {
                     totalExpense30d += Math.abs(amountEur);
                     expenseCount30d++;
@@ -466,6 +501,7 @@ const SchedulePage: React.FC<ScheduleProps> = () => {
             },
             categoryBreakdown: categoryBreakdownData,
             majorOutflow: maxOutflowItem,
+            majorInflow: maxInflowItem,
             recurringList: recurringListItems.filter(item => !searchQuery || fuzzySearch(searchQuery, item.description) || fuzzySearch(searchQuery, item.accountName || ''))
         };
     }, [recurringTransactions, billsAndPayments, accounts, accountMap, recurringTransactionOverrides, transactions, searchQuery, loanPaymentOverrides]);
@@ -644,147 +680,29 @@ const SchedulePage: React.FC<ScheduleProps> = () => {
                 </div>
             </header>
 
-            {/* Summary Metrics - Top Row */}
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-                <ScheduleSummaryCard title="Scheduled Income (30d)" value={summaryMetrics.income} type="income" count={summaryMetrics.incCount} />
-                <ScheduleSummaryCard title="Scheduled Expenses (30d)" value={summaryMetrics.expense} type="expense" count={summaryMetrics.expCount} />
-                <ScheduleSummaryCard title="Net Forecast (30d)" value={summaryMetrics.net} type="net" />
-            </div>
-
-            <div className="grid grid-cols-1 xl:grid-cols-3 gap-8">
+            {/* TOP SECTION: Visual Activity & Highlights */}
+            <div className="space-y-6">
+                {/* 1. Heatmap */}
+                <ScheduleHeatmap items={allUpcomingForHeatmap} />
                 
-                {/* Main Column: Scheduled Items */}
-                <div className="xl:col-span-2 space-y-6">
-                    
-                    {/* Controls & Tabs */}
-                    <div className="flex flex-col sm:flex-row justify-between gap-4 bg-light-card dark:bg-dark-card p-2 rounded-xl shadow-sm border border-black/5 dark:border-white/5">
-                         <div className="flex bg-light-fill dark:bg-dark-fill p-1 rounded-lg w-full sm:w-auto">
-                            <button 
-                                onClick={() => setViewMode('timeline')} 
-                                className={`flex-1 sm:flex-none px-4 py-2 rounded-md text-sm font-semibold transition-all duration-200 flex items-center justify-center gap-2 ${viewMode === 'timeline' ? 'bg-white dark:bg-dark-card text-primary-600 dark:text-primary-400 shadow-sm' : 'text-light-text-secondary dark:text-dark-text-secondary hover:text-light-text dark:hover:text-dark-text'}`}
-                            >
-                                <span className="material-symbols-outlined text-base">calendar_view_day</span>
-                                Timeline
-                            </button>
-                            <button 
-                                onClick={() => setViewMode('list')} 
-                                className={`flex-1 sm:flex-none px-4 py-2 rounded-md text-sm font-semibold transition-all duration-200 flex items-center justify-center gap-2 ${viewMode === 'list' ? 'bg-white dark:bg-dark-card text-primary-600 dark:text-primary-400 shadow-sm' : 'text-light-text-secondary dark:text-dark-text-secondary hover:text-light-text dark:hover:text-dark-text'}`}
-                            >
-                                <span className="material-symbols-outlined text-base">list</span>
-                                Recurring Rules
-                            </button>
+                {/* 2. Insights Row (Breakdown & Major Flows) */}
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+                    {/* Expense Breakdown */}
+                    <Card className="flex flex-col justify-between relative overflow-hidden">
+                        <div className="flex justify-between items-start z-10">
+                            <h3 className="text-base font-bold text-light-text dark:text-dark-text">Expenses (Next 30d)</h3>
                         </div>
-                        <div className="relative flex-grow max-w-md">
-                             <span className="material-symbols-outlined absolute left-3 top-1/2 -translate-y-1/2 text-light-text-secondary dark:text-dark-text-secondary pointer-events-none">search</span>
-                             <input 
-                                type="text" 
-                                placeholder={viewMode === 'timeline' ? "Search upcoming..." : "Search rules..."} 
-                                value={searchQuery} 
-                                onChange={(e) => setSearchQuery(e.target.value)} 
-                                className={`${INPUT_BASE_STYLE} pl-10 w-full !h-10 !bg-transparent border-none focus:ring-0`}
-                             />
-                        </div>
-                    </div>
-
-                    {viewMode === 'timeline' ? (
-                         <div className="space-y-8">
-                            {sortedGroupKeys.map(groupKey => {
-                                const items = groupedItems[groupKey];
-                                if (!items || items.length === 0) return null;
-                                const groupTotal = items.reduce((sum, item) => sum + convertToEur(item.amount, (item.originalItem as any).currency), 0);
-
-                                return (
-                                    <ScheduleGroup 
-                                        key={groupKey} 
-                                        title={groupKey} 
-                                        items={items} 
-                                        accounts={accounts} 
-                                        onEdit={handleEditItem} 
-                                        onDelete={handleDeleteItem} 
-                                        onPost={handleOpenPostModal}
-                                        totalAmount={groupTotal}
-                                        defaultOpen={['Overdue', 'Today', 'Next 7 Days'].includes(groupKey)}
-                                    />
-                                );
-                            })}
-                            
-                            {sortedGroupKeys.length === 0 && (
-                                 <div className="text-center py-12 bg-light-card dark:bg-dark-card rounded-xl border border-dashed border-black/10 dark:border-white/10">
-                                    <span className="material-symbols-outlined text-4xl text-gray-400 mb-2">event_busy</span>
-                                    <p className="text-light-text-secondary dark:text-dark-text-secondary">No upcoming items found.</p>
-                                 </div>
-                            )}
-                        </div>
-                    ) : (
-                        <div className="space-y-4">
-                             {recurringList.map((rt) => (
-                                <div key={rt.id} className="flex items-center justify-between p-4 bg-white dark:bg-dark-card rounded-xl border border-black/5 dark:border-white/5 shadow-sm hover:shadow-md transition-all">
-                                    <div>
-                                        <div className="flex items-center gap-2">
-                                            <h4 className="font-bold text-light-text dark:text-dark-text">{rt.description}</h4>
-                                            {rt.isSynthetic && (
-                                                <span className="text-[10px] font-bold bg-gray-100 dark:bg-white/10 text-gray-600 dark:text-gray-300 px-2 py-0.5 rounded uppercase">Auto</span>
-                                            )}
-                                        </div>
-                                        <div className="flex items-center gap-3 text-xs text-light-text-secondary dark:text-dark-text-secondary mt-1">
-                                            <span className="capitalize bg-black/5 dark:bg-white/5 px-2 py-0.5 rounded">{rt.frequency}</span>
-                                            <span>Next: {rt.nextDueDate}</span>
-                                            <span className="truncate max-w-[150px]">{rt.accountName}</span>
-                                        </div>
-                                    </div>
-                                    <div className="text-right">
-                                        <p className={`font-bold font-mono ${rt.type === 'income' ? 'text-green-600 dark:text-green-400' : 'text-light-text dark:text-dark-text'}`}>
-                                            {formatCurrency(rt.amount, rt.currency)}
-                                        </p>
-                                        <div className="flex justify-end gap-2 mt-2">
-                                            <button 
-                                                onClick={() => handleOpenRecurringModal(rt as RecurringTransaction)} 
-                                                className="text-light-text-secondary hover:text-primary-500 transition-colors disabled:opacity-30"
-                                                disabled={rt.isSynthetic}
-                                                title="Edit"
-                                            >
-                                                <span className="material-symbols-outlined text-lg">edit</span>
-                                            </button>
-                                            <button 
-                                                onClick={() => handleDeleteItem(rt.id, true)} 
-                                                className="text-light-text-secondary hover:text-red-500 transition-colors disabled:opacity-30"
-                                                disabled={rt.isSynthetic}
-                                                title="Delete"
-                                            >
-                                                <span className="material-symbols-outlined text-lg">delete</span>
-                                            </button>
-                                        </div>
-                                    </div>
-                                </div>
-                             ))}
-                             {recurringList.length === 0 && (
-                                 <div className="text-center py-12 bg-light-card dark:bg-dark-card rounded-xl border border-dashed border-black/10 dark:border-white/10">
-                                    <p className="text-light-text-secondary dark:text-dark-text-secondary">No recurring transactions found.</p>
-                                 </div>
-                             )}
-                        </div>
-                    )}
-                </div>
-
-                {/* Sidebar Column: Analysis */}
-                <div className="space-y-8">
-                    {/* Calendar Heatmap */}
-                    <ScheduleHeatmap items={allUpcomingForHeatmap} />
-
-                    {/* Category Breakdown */}
-                    <Card>
-                        <h3 className="text-lg font-bold text-light-text dark:text-dark-text mb-4">Expense Breakdown (30d)</h3>
-                        {categoryBreakdown.length > 0 ? (
-                             <div className="h-64">
+                        <div className="flex items-center gap-4 mt-2 z-10 h-32">
+                             <div className="w-24 h-24 relative flex-shrink-0">
                                 <ResponsiveContainer width="100%" height="100%">
                                     <PieChart>
                                         <Pie
                                             data={categoryBreakdown}
                                             cx="50%"
                                             cy="50%"
-                                            innerRadius={60}
-                                            outerRadius={80}
-                                            paddingAngle={5}
+                                            innerRadius={35}
+                                            outerRadius={45}
+                                            paddingAngle={2}
                                             dataKey="value"
                                         >
                                             {categoryBreakdown.map((entry, index) => (
@@ -793,43 +711,199 @@ const SchedulePage: React.FC<ScheduleProps> = () => {
                                         </Pie>
                                         <RechartsTooltip 
                                             formatter={(val: number) => formatCurrency(val, 'EUR')}
-                                            contentStyle={{ backgroundColor: 'var(--light-card)', borderColor: 'rgba(0,0,0,0.1)', borderRadius: '8px', color: 'var(--light-text)' }}
+                                            contentStyle={{ backgroundColor: 'var(--light-card)', borderColor: 'rgba(0,0,0,0.1)', borderRadius: '8px', color: 'var(--light-text)', fontSize: '12px' }}
                                         />
                                     </PieChart>
                                 </ResponsiveContainer>
-                                <div className="mt-4 space-y-2">
-                                    {categoryBreakdown.map((cat, idx) => (
-                                        <div key={cat.name} className="flex justify-between text-sm">
-                                            <div className="flex items-center gap-2">
-                                                <div className="w-3 h-3 rounded-full" style={{ backgroundColor: PIE_COLORS[idx % PIE_COLORS.length] }}></div>
-                                                <span className="text-light-text dark:text-dark-text">{cat.name}</span>
-                                            </div>
-                                            <span className="font-medium">{formatCurrency(cat.value, 'EUR')}</span>
-                                        </div>
-                                    ))}
+                                <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
+                                    <span className="material-symbols-outlined text-gray-400 text-xl">pie_chart</span>
                                 </div>
                              </div>
-                        ) : (
-                            <p className="text-sm text-light-text-secondary dark:text-dark-text-secondary text-center py-8">No upcoming expenses.</p>
-                        )}
+                             <div className="flex-1 space-y-1 min-w-0">
+                                {categoryBreakdown.slice(0, 3).map((cat, idx) => (
+                                    <div key={cat.name} className="flex justify-between items-center text-xs">
+                                        <div className="flex items-center gap-1.5 truncate">
+                                            <div className="w-2 h-2 rounded-full flex-shrink-0" style={{ backgroundColor: PIE_COLORS[idx % PIE_COLORS.length] }}></div>
+                                            <span className="truncate max-w-[80px]">{cat.name}</span>
+                                        </div>
+                                        <span className="font-medium">{formatCurrency(cat.value, 'EUR')}</span>
+                                    </div>
+                                ))}
+                             </div>
+                        </div>
+                    </Card>
+
+                    {/* Next Major Inflow */}
+                    <Card className="relative overflow-hidden bg-gradient-to-br from-emerald-50 to-teal-50 dark:from-emerald-900/20 dark:to-teal-900/20 border-emerald-100 dark:border-emerald-800/30">
+                         <div className="absolute top-0 right-0 p-4 opacity-5 pointer-events-none">
+                            <span className="material-symbols-outlined text-8xl text-emerald-500">savings</span>
+                        </div>
+                        <div className="relative z-10 flex flex-col h-full justify-between">
+                            <div>
+                                <p className="text-xs font-bold uppercase tracking-wider text-emerald-700 dark:text-emerald-400 mb-1">Next Major Inflow</p>
+                                {majorInflow ? (
+                                    <>
+                                        <h3 className="text-2xl font-extrabold text-emerald-800 dark:text-emerald-300">{formatCurrency(majorInflow.amount, (majorInflow.originalItem as any).currency)}</h3>
+                                        <p className="font-bold text-sm text-emerald-900/80 dark:text-emerald-200/80 mt-1 truncate">{majorInflow.description}</p>
+                                        <p className="text-xs text-emerald-700/70 dark:text-emerald-400/70 mt-0.5">Due {parseAsUTC(majorInflow.date).toLocaleDateString()}</p>
+                                    </>
+                                ) : (
+                                    <p className="text-sm text-emerald-700/60 dark:text-emerald-400/60 mt-2">No upcoming income found.</p>
+                                )}
+                            </div>
+                            <div className="mt-2">
+                                <span className="inline-flex items-center gap-1 px-2 py-1 rounded-md bg-emerald-100 dark:bg-emerald-800/40 text-emerald-700 dark:text-emerald-300 text-[10px] font-bold uppercase">
+                                    <span className="material-symbols-outlined text-sm">arrow_downward</span> Income
+                                </span>
+                            </div>
+                        </div>
                     </Card>
 
                     {/* Next Major Outflow */}
-                    {majorOutflow && (
-                        <div className="bg-gradient-to-br from-rose-500 to-red-600 rounded-2xl p-6 text-white shadow-lg relative overflow-hidden">
-                            <div className="absolute top-0 right-0 p-4 opacity-10 pointer-events-none">
-                                <span className="material-symbols-outlined text-8xl">payments</span>
+                    <Card className="relative overflow-hidden bg-gradient-to-br from-rose-50 to-red-50 dark:from-rose-900/20 dark:to-red-900/20 border-rose-100 dark:border-rose-800/30">
+                        <div className="absolute top-0 right-0 p-4 opacity-5 pointer-events-none">
+                            <span className="material-symbols-outlined text-8xl text-rose-500">payments</span>
+                        </div>
+                         <div className="relative z-10 flex flex-col h-full justify-between">
+                            <div>
+                                <p className="text-xs font-bold uppercase tracking-wider text-rose-700 dark:text-rose-400 mb-1">Next Major Outflow</p>
+                                {majorOutflow ? (
+                                    <>
+                                        <h3 className="text-2xl font-extrabold text-rose-800 dark:text-rose-300">{formatCurrency(Math.abs(majorOutflow.amount), (majorOutflow.originalItem as any).currency)}</h3>
+                                        <p className="font-bold text-sm text-rose-900/80 dark:text-rose-200/80 mt-1 truncate">{majorOutflow.description}</p>
+                                        <p className="text-xs text-rose-700/70 dark:text-rose-400/70 mt-0.5">Due {parseAsUTC(majorOutflow.date).toLocaleDateString()}</p>
+                                    </>
+                                ) : (
+                                    <p className="text-sm text-rose-700/60 dark:text-rose-400/60 mt-2">No upcoming large expenses.</p>
+                                )}
                             </div>
-                            <p className="text-xs font-bold uppercase tracking-wider opacity-80 mb-1">Next Major Outflow</p>
-                            <h3 className="text-2xl font-extrabold mb-4">{formatCurrency(Math.abs(majorOutflow.amount), (majorOutflow.originalItem as any).currency)}</h3>
-                            
-                            <div className="bg-white/10 backdrop-blur-sm rounded-lg p-3">
-                                <p className="font-bold text-sm truncate">{majorOutflow.description}</p>
-                                <p className="text-xs opacity-80 mt-1">Due {parseAsUTC(majorOutflow.date).toLocaleDateString()}</p>
+                             <div className="mt-2">
+                                <span className="inline-flex items-center gap-1 px-2 py-1 rounded-md bg-rose-100 dark:bg-rose-800/40 text-rose-700 dark:text-rose-300 text-[10px] font-bold uppercase">
+                                    <span className="material-symbols-outlined text-sm">arrow_upward</span> Expense
+                                </span>
                             </div>
                         </div>
-                    )}
+                    </Card>
                 </div>
+            </div>
+
+            {/* Summary Metrics - Middle Row (Moved from top) */}
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+                <ScheduleSummaryCard title="Scheduled Income (30d)" value={summaryMetrics.income} type="income" count={summaryMetrics.incCount} />
+                <ScheduleSummaryCard title="Scheduled Expenses (30d)" value={summaryMetrics.expense} type="expense" count={summaryMetrics.expCount} />
+                <ScheduleSummaryCard title="Net Forecast (30d)" value={summaryMetrics.net} type="net" />
+            </div>
+
+            {/* Main Content: Scheduled Items List */}
+            <div className="space-y-6">
+                 {/* Controls & Tabs */}
+                <div className="flex flex-col sm:flex-row justify-between gap-4 bg-light-card dark:bg-dark-card p-2 rounded-xl shadow-sm border border-black/5 dark:border-white/5">
+                        <div className="flex bg-light-fill dark:bg-dark-fill p-1 rounded-lg w-full sm:w-auto">
+                        <button 
+                            onClick={() => setViewMode('timeline')} 
+                            className={`flex-1 sm:flex-none px-4 py-2 rounded-md text-sm font-semibold transition-all duration-200 flex items-center justify-center gap-2 ${viewMode === 'timeline' ? 'bg-white dark:bg-dark-card text-primary-600 dark:text-primary-400 shadow-sm' : 'text-light-text-secondary dark:text-dark-text-secondary hover:text-light-text dark:hover:text-dark-text'}`}
+                        >
+                            <span className="material-symbols-outlined text-base">calendar_view_day</span>
+                            Timeline
+                        </button>
+                        <button 
+                            onClick={() => setViewMode('list')} 
+                            className={`flex-1 sm:flex-none px-4 py-2 rounded-md text-sm font-semibold transition-all duration-200 flex items-center justify-center gap-2 ${viewMode === 'list' ? 'bg-white dark:bg-dark-card text-primary-600 dark:text-primary-400 shadow-sm' : 'text-light-text-secondary dark:text-dark-text-secondary hover:text-light-text dark:hover:text-dark-text'}`}
+                        >
+                            <span className="material-symbols-outlined text-base">list</span>
+                            Recurring Rules
+                        </button>
+                    </div>
+                    <div className="relative flex-grow max-w-md">
+                            <span className="material-symbols-outlined absolute left-3 top-1/2 -translate-y-1/2 text-light-text-secondary dark:text-dark-text-secondary pointer-events-none">search</span>
+                            <input 
+                            type="text" 
+                            placeholder={viewMode === 'timeline' ? "Search upcoming..." : "Search rules..."} 
+                            value={searchQuery} 
+                            onChange={(e) => setSearchQuery(e.target.value)} 
+                            className={`${INPUT_BASE_STYLE} pl-10 w-full !h-10 !bg-transparent border-none focus:ring-0`}
+                            />
+                    </div>
+                </div>
+
+                {viewMode === 'timeline' ? (
+                        <div className="space-y-8">
+                        {sortedGroupKeys.map(groupKey => {
+                            const items = groupedItems[groupKey];
+                            if (!items || items.length === 0) return null;
+                            const groupTotal = items.reduce((sum, item) => sum + convertToEur(item.amount, (item.originalItem as any).currency), 0);
+
+                            return (
+                                <ScheduleGroup 
+                                    key={groupKey} 
+                                    title={groupKey} 
+                                    items={items} 
+                                    accounts={accounts} 
+                                    onEdit={handleEditItem} 
+                                    onDelete={handleDeleteItem} 
+                                    onPost={handleOpenPostModal}
+                                    totalAmount={groupTotal}
+                                    defaultOpen={['Overdue', 'Today', 'Next 7 Days'].includes(groupKey)}
+                                />
+                            );
+                        })}
+                        
+                        {sortedGroupKeys.length === 0 && (
+                                <div className="text-center py-12 bg-light-card dark:bg-dark-card rounded-xl border border-dashed border-black/10 dark:border-white/10">
+                                <span className="material-symbols-outlined text-4xl text-gray-400 mb-2">event_busy</span>
+                                <p className="text-light-text-secondary dark:text-dark-text-secondary">No upcoming items found.</p>
+                                </div>
+                        )}
+                    </div>
+                ) : (
+                    <div className="space-y-4">
+                            {recurringList.map((rt) => (
+                            <div key={rt.id} className="flex items-center justify-between p-4 bg-white dark:bg-dark-card rounded-xl border border-black/5 dark:border-white/5 shadow-sm hover:shadow-md transition-all">
+                                <div>
+                                    <div className="flex items-center gap-2">
+                                        <h4 className="font-bold text-light-text dark:text-dark-text">{rt.description}</h4>
+                                        {rt.isSynthetic && (
+                                            <span className="text-[10px] font-bold bg-gray-100 dark:bg-white/10 text-gray-600 dark:text-gray-300 px-2 py-0.5 rounded uppercase">Auto</span>
+                                        )}
+                                    </div>
+                                    <div className="flex items-center gap-3 text-xs text-light-text-secondary dark:text-dark-text-secondary mt-1">
+                                        <span className="capitalize bg-black/5 dark:bg-white/5 px-2 py-0.5 rounded">{rt.frequency}</span>
+                                        <span>Next: {rt.nextDueDate}</span>
+                                        <span className="truncate max-w-[150px]">{rt.accountName}</span>
+                                    </div>
+                                </div>
+                                <div className="text-right">
+                                    <p className={`font-bold font-mono ${rt.type === 'income' ? 'text-green-600 dark:text-green-400' : 'text-light-text dark:text-dark-text'}`}>
+                                        {formatCurrency(rt.amount, rt.currency)}
+                                    </p>
+                                    <div className="flex justify-end gap-2 mt-2">
+                                        <button 
+                                            onClick={() => handleOpenRecurringModal(rt as RecurringTransaction)} 
+                                            className="text-light-text-secondary hover:text-primary-500 transition-colors disabled:opacity-30"
+                                            disabled={rt.isSynthetic}
+                                            title="Edit"
+                                        >
+                                            <span className="material-symbols-outlined text-lg">edit</span>
+                                        </button>
+                                        <button 
+                                            onClick={() => handleDeleteItem(rt.id, true)} 
+                                            className="text-light-text-secondary hover:text-red-500 transition-colors disabled:opacity-30"
+                                            disabled={rt.isSynthetic}
+                                            title="Delete"
+                                        >
+                                            <span className="material-symbols-outlined text-lg">delete</span>
+                                        </button>
+                                    </div>
+                                </div>
+                            </div>
+                            ))}
+                            {recurringList.length === 0 && (
+                                <div className="text-center py-12 bg-light-card dark:bg-dark-card rounded-xl border border-dashed border-black/10 dark:border-white/10">
+                                <p className="text-light-text-secondary dark:text-dark-text-secondary">No recurring transactions found.</p>
+                                </div>
+                            )}
+                    </div>
+                )}
             </div>
         </div>
     );
