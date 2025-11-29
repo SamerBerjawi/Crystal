@@ -30,6 +30,7 @@ const AddAccountModal: React.FC<AddAccountModalProps> = ({ onClose, onAdd, accou
   const [openingDate, setOpeningDate] = useState('');
 
   // Card Details
+  const [hasCard, setHasCard] = useState(false);
   const [expirationDate, setExpirationDate] = useState('');
   const [cardNetwork, setCardNetwork] = useState('');
   const [cardholderName, setCardholderName] = useState('');
@@ -120,6 +121,13 @@ const AddAccountModal: React.FC<AddAccountModalProps> = ({ onClose, onAdd, accou
     }
   }, [type, subType]);
   
+  // Auto-enable card for Credit Card type
+  useEffect(() => {
+    if (type === 'Credit Card') {
+        setHasCard(true);
+    }
+  }, [type]);
+  
   // Loan amount calculation logic
   useEffect(() => {
     const total = parseFloat(totalAmount);
@@ -198,7 +206,7 @@ const AddAccountModal: React.FC<AddAccountModalProps> = ({ onClose, onAdd, accou
       balance: type === 'Loan' ? -Math.abs(principalAmount !== '' ? parseFloat(principalAmount) : 0) : (type === 'Lending' ? Math.abs(principalAmount !== '' ? parseFloat(principalAmount) : 0) : (balance !== '' ? parseFloat(balance) : 0)),
       currency,
       icon,
-      last4: last4 || undefined,
+      last4: hasCard && last4 ? last4 : undefined,
       financialInstitution: ['Checking', 'Savings', 'Credit Card'].includes(type) && financialInstitution ? financialInstitution : undefined,
       isPrimary,
       accountNumber: accountNumber || undefined,
@@ -206,9 +214,9 @@ const AddAccountModal: React.FC<AddAccountModalProps> = ({ onClose, onAdd, accou
       apy: apy !== '' ? parseFloat(apy) : undefined,
       openingDate: openingDate || undefined,
       // Card details
-      expirationDate: (type === 'Credit Card' || type === 'Checking' || type === 'Savings') && expirationDate ? expirationDate : undefined,
-      cardNetwork: (type === 'Credit Card' || type === 'Checking' || type === 'Savings') && cardNetwork ? cardNetwork : undefined,
-      cardholderName: (type === 'Credit Card' || type === 'Checking' || type === 'Savings') && cardholderName ? cardholderName : undefined,
+      expirationDate: hasCard && expirationDate ? expirationDate : undefined,
+      cardNetwork: hasCard && cardNetwork ? cardNetwork : undefined,
+      cardholderName: hasCard && cardholderName ? cardholderName : undefined,
       
       // Conditionally add new fields
       ...(type === 'Investment' && { subType }),
@@ -293,7 +301,6 @@ const AddAccountModal: React.FC<AddAccountModalProps> = ({ onClose, onAdd, accou
   const labelStyle = "block text-sm font-medium text-light-text-secondary dark:text-dark-text-secondary mb-1";
   
   const showBankingDetails = ['Checking', 'Savings', 'Investment', 'Credit Card', 'Lending'].includes(type);
-  const showCardDetails = ['Credit Card', 'Checking', 'Savings'].includes(type);
 
   return (
     <>
@@ -404,9 +411,21 @@ const AddAccountModal: React.FC<AddAccountModalProps> = ({ onClose, onAdd, accou
                   </div>
                </div>
             )}
+            
+            {/* Card Details Toggle */}
+            <div className="flex items-center justify-between py-2">
+              <label className="text-sm font-medium text-light-text dark:text-dark-text">Link a Bank Card</label>
+              <button
+                type="button"
+                onClick={() => setHasCard(!hasCard)}
+                className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors ${hasCard ? 'bg-primary-500' : 'bg-gray-300 dark:bg-gray-700'}`}
+              >
+                <span className={`inline-block h-4 w-4 transform rounded-full bg-white shadow-sm transition-transform ${hasCard ? 'translate-x-6' : 'translate-x-1'}`} />
+              </button>
+            </div>
 
-            {showCardDetails && (
-                <div className="pt-4 mt-4 border-t border-black/10 dark:border-white/10">
+            {hasCard && (
+                <div className="pt-4 mt-4 border-t border-black/10 dark:border-white/10 animate-fade-in-up">
                     <h4 className="font-semibold text-light-text dark:text-dark-text mb-3">Card Details</h4>
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                         <div>

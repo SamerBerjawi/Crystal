@@ -39,6 +39,7 @@ const EditAccountModal: React.FC<EditAccountModalProps> = ({ onClose, onSave, on
   const [openingDate, setOpeningDate] = useState(account.openingDate || '');
 
   // Card Details
+  const [hasCard, setHasCard] = useState(!!(account.cardNetwork || account.last4 || account.expirationDate || account.cardholderName || account.type === 'Credit Card'));
   const [expirationDate, setExpirationDate] = useState(account.expirationDate || '');
   const [cardNetwork, setCardNetwork] = useState(account.cardNetwork || '');
   const [cardholderName, setCardholderName] = useState(account.cardholderName || '');
@@ -243,7 +244,7 @@ const EditAccountModal: React.FC<EditAccountModalProps> = ({ onClose, onSave, on
       balance: type === 'Loan' ? -Math.abs(principalAmount !== '' ? parseFloat(principalAmount) : 0) : (type === 'Lending' ? Math.abs(principalAmount !== '' ? parseFloat(principalAmount) : 0) : (isComputedAccount ? account.balance : (balance !== '' ? parseFloat(balance) : 0))),
       currency,
       icon,
-      last4: last4 || undefined,
+      last4: hasCard && last4 ? last4 : undefined,
       financialInstitution: ['Checking', 'Savings', 'Credit Card'].includes(type) && financialInstitution ? financialInstitution : undefined,
       isPrimary,
       accountNumber: accountNumber || undefined,
@@ -251,9 +252,9 @@ const EditAccountModal: React.FC<EditAccountModalProps> = ({ onClose, onSave, on
       apy: apy !== '' ? parseFloat(apy) : undefined,
       openingDate: openingDate || undefined,
       // Card details
-      expirationDate: (type === 'Credit Card' || type === 'Checking' || type === 'Savings') && expirationDate ? expirationDate : undefined,
-      cardNetwork: (type === 'Credit Card' || type === 'Checking' || type === 'Savings') && cardNetwork ? cardNetwork : undefined,
-      cardholderName: (type === 'Credit Card' || type === 'Checking' || type === 'Savings') && cardholderName ? cardholderName : undefined,
+      expirationDate: hasCard && expirationDate ? expirationDate : undefined,
+      cardNetwork: hasCard && cardNetwork ? cardNetwork : undefined,
+      cardholderName: hasCard && cardholderName ? cardholderName : undefined,
 
       // Conditionally add new fields
       subType: type === 'Investment' ? subType : undefined,
@@ -336,7 +337,6 @@ const EditAccountModal: React.FC<EditAccountModalProps> = ({ onClose, onSave, on
   const labelStyle = "block text-sm font-medium text-light-text-secondary dark:text-dark-text-secondary mb-1";
   
   const showBankingDetails = ['Checking', 'Savings', 'Investment', 'Credit Card', 'Lending'].includes(type);
-  const showCardDetails = ['Credit Card', 'Checking', 'Savings'].includes(type);
 
   return (
     <>
@@ -452,8 +452,20 @@ const EditAccountModal: React.FC<EditAccountModalProps> = ({ onClose, onSave, on
                </div>
             )}
             
-            {showCardDetails && (
-                <div className="pt-4 mt-4 border-t border-black/10 dark:border-white/10">
+            {/* Card Details Toggle */}
+            <div className="flex items-center justify-between py-2 border-t border-black/10 dark:border-white/10 mt-4 pt-4">
+              <label className="text-sm font-medium text-light-text dark:text-dark-text">Link a Bank Card</label>
+              <button
+                type="button"
+                onClick={() => setHasCard(!hasCard)}
+                className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors ${hasCard ? 'bg-primary-500' : 'bg-gray-300 dark:bg-gray-700'}`}
+              >
+                <span className={`inline-block h-4 w-4 transform rounded-full bg-white shadow-sm transition-transform ${hasCard ? 'translate-x-6' : 'translate-x-1'}`} />
+              </button>
+            </div>
+
+            {hasCard && (
+                <div className="pt-4 animate-fade-in-up">
                     <h4 className="font-semibold text-light-text dark:text-dark-text mb-3">Card Details</h4>
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                         <div>
