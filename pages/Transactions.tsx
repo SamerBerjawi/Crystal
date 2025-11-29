@@ -1,7 +1,6 @@
 
 import React, { useState, useMemo, useRef, useEffect } from 'react';
 import { INPUT_BASE_STYLE, SELECT_WRAPPER_STYLE, SELECT_ARROW_STYLE, BTN_PRIMARY_STYLE, BTN_SECONDARY_STYLE, SELECT_STYLE, CHECKBOX_STYLE } from '../constants';
-// FIX: Imported the 'Category' type to resolve 'Cannot find name' errors throughout the component.
 import { Transaction, Account, DisplayTransaction, RecurringTransaction, Category } from '../types';
 import Card from '../components/Card';
 import { formatCurrency, fuzzySearch, convertToEur, arrayToCSV, downloadCSV, parseDateAsUTC } from '../utils';
@@ -34,12 +33,86 @@ const MetricCard: React.FC<{ label: string; value: string; colorClass?: string; 
     </div>
 );
 
+// Helper Component for Column Header
+const ColumnHeader: React.FC<{
+    label: string;
+    sortKey?: string;
+    currentSort: string;
+    onSort: (key: string) => void;
+    isFilterActive?: boolean;
+    filterContent?: React.ReactNode;
+    className?: string;
+    alignRight?: boolean;
+}> = ({ label, sortKey, currentSort, onSort, isFilterActive, filterContent, className = "", alignRight = false }) => {
+    const [isFilterOpen, setIsFilterOpen] = useState(false);
+    const filterRef = useRef<HTMLDivElement>(null);
+
+    useEffect(() => {
+        const handleClickOutside = (event: MouseEvent) => {
+            if (filterRef.current && !filterRef.current.contains(event.target as Node)) {
+                setIsFilterOpen(false);
+            }
+        };
+        document.addEventListener("mousedown", handleClickOutside);
+        return () => document.removeEventListener("mousedown", handleClickOutside);
+    }, []);
+
+    const isSorted = currentSort.startsWith(sortKey || '___');
+    const isAsc = currentSort.endsWith('-asc');
+
+    const handleSort = () => {
+        if (!sortKey) return;
+        // Default to desc for date/amount, asc for text
+        const defaultDir = (sortKey === 'date' || sortKey === 'amount') ? 'desc' : 'asc';
+        
+        if (isSorted) {
+            onSort(`${sortKey}-${isAsc ? 'desc' : 'asc'}`);
+        } else {
+            onSort(`${sortKey}-${defaultDir}`);
+        }
+    };
+
+    return (
+        <div className={`flex items-center gap-1 ${className} ${alignRight ? 'justify-end' : 'justify-start'}`} ref={filterRef}>
+            <div 
+                className={`flex items-center gap-1 select-none group/sort ${sortKey ? 'cursor-pointer hover:text-primary-500' : ''}`} 
+                onClick={handleSort}
+            >
+                <span className="font-bold text-xs uppercase tracking-wider">{label}</span>
+                {sortKey && (
+                    <div className={`flex flex-col text-[8px] leading-[6px] ${isSorted ? 'opacity-100' : 'opacity-30 group-hover/sort:opacity-70'}`}>
+                        <span className={isSorted && isAsc ? 'text-primary-500' : ''}>▲</span>
+                        <span className={isSorted && !isAsc ? 'text-primary-500' : ''}>▼</span>
+                    </div>
+                )}
+            </div>
+            {filterContent && (
+                <div className="relative">
+                    <button 
+                        onClick={(e) => { e.stopPropagation(); setIsFilterOpen(!isFilterOpen); }}
+                        className={`p-1 rounded hover:bg-black/5 dark:hover:bg-white/10 transition-colors ${isFilterActive ? 'text-primary-500 bg-primary-50 dark:bg-primary-900/20' : 'text-light-text-secondary dark:text-dark-text-secondary opacity-50 hover:opacity-100'}`}
+                        title="Filter"
+                    >
+                        <span className="material-symbols-outlined text-[16px] filled-icon">filter_alt</span>
+                    </button>
+                    {isFilterOpen && (
+                        <div className={`absolute top-full mt-2 ${alignRight ? 'right-0' : 'left-0'} z-50 w-64 bg-white dark:bg-dark-card rounded-xl shadow-xl border border-black/5 dark:border-white/10 p-3 animate-fade-in-up cursor-default text-left normal-case font-normal text-light-text dark:text-dark-text`} onClick={e => e.stopPropagation()}>
+                            {filterContent}
+                        </div>
+                    )}
+                </div>
+            )}
+        </div>
+    );
+};
+
 const Transactions: React.FC<TransactionsProps> = ({ accountFilter, setAccountFilter, tagFilter, setTagFilter }) => {
   const { transactions, saveTransaction, deleteTransactions } = useTransactionsContext();
   const { accounts } = useAccountsContext();
   const { incomeCategories, expenseCategories } = useCategoryContext();
   const { tags } = useTagsContext();
   const { saveRecurringTransaction } = useScheduleContext();
+  
   const [searchTerm, setSearchTerm] = useState('');
   const [sortBy, setSortBy] = useState('date-desc');
   const [typeFilter, setTypeFilter] = useState<'all' | 'income' | 'expense' | 'transfer'>('all');
@@ -61,7 +134,6 @@ const Transactions: React.FC<TransactionsProps> = ({ accountFilter, setAccountFi
   const [isBulkEditModalOpen, setBulkEditModalOpen] = useState(false);
   const [isDeleteConfirmOpen, setIsDeleteConfirmOpen] = useState(false);
   const [isRecurringModalOpen, setIsRecurringModalOpen] = useState(false);
-  // FIX: Updated state type to allow 'id' to be optional, resolving a type mismatch when setting a new recurring transaction for editing.
   const [transactionToMakeRecurring, setTransactionToMakeRecurring] = useState<(Omit<RecurringTransaction, 'id'> & { id?: string }) | null>(null);
   const searchInputRef = useRef<HTMLInputElement>(null);
   const [contextMenu, setContextMenu] = useState<{ x: number, y: number, transaction: DisplayTransaction } | null>(null);
@@ -255,6 +327,10 @@ const Transactions: React.FC<TransactionsProps> = ({ accountFilter, setAccountFi
         case 'date-asc': return parseDateAsUTC(a.date).getTime() - parseDateAsUTC(b.date).getTime();
         case 'amount-desc': return Math.abs(b.amount) - Math.abs(a.amount);
         case 'amount-asc': return Math.abs(a.amount) - Math.abs(b.amount);
+        case 'merchant-asc': return (a.merchant || '').localeCompare(b.merchant || '');
+        case 'merchant-desc': return (b.merchant || '').localeCompare(a.merchant || '');
+        case 'category-asc': return a.category.localeCompare(b.category);
+        case 'category-desc': return b.category.localeCompare(a.category);
         case 'date-desc': default: return parseDateAsUTC(b.date).getTime() - parseDateAsUTC(a.date).getTime();
       }
     });
@@ -567,6 +643,25 @@ const Transactions: React.FC<TransactionsProps> = ({ accountFilter, setAccountFi
     { label: 'Transfers', value: 'transfer' },
   ];
 
+  const handleAccountToggle = (id: string) => {
+      setSelectedAccountIds(prev => 
+          prev.includes(id) ? prev.filter(x => x !== id) : [...prev, id]
+      );
+  };
+
+  const handleCategoryToggle = (name: string) => {
+      setSelectedCategoryNames(prev =>
+          prev.includes(name) ? prev.filter(x => x !== name) : [...prev, name]
+      );
+  };
+  
+  const handleTagToggle = (id: string) => {
+      setSelectedTagIds(prev =>
+        prev.includes(id) ? prev.filter(x => x !== id) : [...prev, id]
+      );
+  };
+
+
   return (
     <div className="space-y-6 flex flex-col h-full animate-fade-in-up">
       {isTransactionModalOpen && (
@@ -714,7 +809,16 @@ const Transactions: React.FC<TransactionsProps> = ({ accountFilter, setAccountFi
                       <div>
                           <label htmlFor="sort-by" className={labelStyle}>Sort By</label>
                           <div className={SELECT_WRAPPER_STYLE}>
-                              <select id="sort-by" value={sortBy} onChange={(e) => setSortBy(e.target.value)} className={`${INPUT_BASE_STYLE} py-2`}><option value="date-desc">Newest First</option><option value="date-asc">Oldest First</option><option value="amount-desc">Highest Amount</option><option value="amount-asc">Lowest Amount</option></select>
+                              <select id="sort-by" value={sortBy} onChange={(e) => setSortBy(e.target.value)} className={`${INPUT_BASE_STYLE} py-2`}>
+                                <option value="date-desc">Date (Newest)</option>
+                                <option value="date-asc">Date (Oldest)</option>
+                                <option value="amount-desc">Amount (High)</option>
+                                <option value="amount-asc">Amount (Low)</option>
+                                <option value="merchant-asc">Merchant (A-Z)</option>
+                                <option value="merchant-desc">Merchant (Z-A)</option>
+                                <option value="category-asc">Category (A-Z)</option>
+                                <option value="category-desc">Category (Z-A)</option>
+                              </select>
                               <div className={SELECT_ARROW_STYLE}><span className="material-symbols-outlined">expand_more</span></div>
                           </div>
                       </div>
@@ -789,17 +893,156 @@ const Transactions: React.FC<TransactionsProps> = ({ accountFilter, setAccountFi
                     </div>
                 </div>
             ) : (
-                <div className="px-6 py-4 border-b border-black/5 dark:border-white/5 flex items-center gap-4 text-light-text-secondary dark:text-dark-text-secondary text-xs font-bold uppercase tracking-wider bg-gray-50/50 dark:bg-white/[0.02]">
+                <div className="px-6 py-3 border-b border-black/5 dark:border-white/5 flex items-center gap-4 text-light-text dark:text-dark-text bg-gray-50/50 dark:bg-white/[0.02]">
                     <div className="flex items-center justify-center w-5">
                          <input type="checkbox" onChange={handleSelectAll} checked={isAllSelected} className={CHECKBOX_STYLE} aria-label="Select all transactions"/>
                     </div>
-                    <div className="flex-1 grid grid-cols-12 gap-4 ml-2">
-                        <span className="col-span-8 md:col-span-6 lg:col-span-3">Transaction</span>
-                        <span className="hidden md:block col-span-2">Account</span>
-                        <span className="hidden lg:block col-span-2">Merchant</span>
-                        <span className="hidden md:block col-span-2">Category</span>
-                        <span className="hidden lg:block col-span-1">Tags</span>
-                        <span className="col-span-4 md:col-span-2 text-right">Amount</span>
+                    <div className="flex-1 grid grid-cols-12 gap-4 ml-2 items-center">
+                        <div className="col-span-8 md:col-span-6 lg:col-span-3">
+                            <ColumnHeader 
+                                label="Transaction" 
+                                sortKey="date" 
+                                currentSort={sortBy} 
+                                onSort={setSortBy}
+                                isFilterActive={!!startDate || !!endDate}
+                                filterContent={
+                                    <div className="space-y-3 p-1">
+                                        <div className="grid gap-2">
+                                            <label className="text-xs font-semibold text-light-text-secondary dark:text-dark-text-secondary">From</label>
+                                            <input type="date" value={startDate} onChange={e => setStartDate(e.target.value)} className={INPUT_BASE_STYLE} />
+                                        </div>
+                                        <div className="grid gap-2">
+                                            <label className="text-xs font-semibold text-light-text-secondary dark:text-dark-text-secondary">To</label>
+                                            <input type="date" value={endDate} onChange={e => setEndDate(e.target.value)} className={INPUT_BASE_STYLE} />
+                                        </div>
+                                        {(startDate || endDate) && (
+                                            <button onClick={() => {setStartDate(''); setEndDate('')}} className="text-xs text-red-500 w-full text-center hover:underline">Clear Date Filter</button>
+                                        )}
+                                    </div>
+                                }
+                            />
+                        </div>
+                        <div className="hidden md:block col-span-2">
+                             <ColumnHeader 
+                                label="Account" 
+                                isFilterActive={selectedAccountIds.length > 0}
+                                currentSort={sortBy}
+                                onSort={setSortBy} // No sort key for account, just label
+                                filterContent={
+                                    <div className="space-y-2">
+                                         <div className="max-h-48 overflow-y-auto space-y-1 pr-1">
+                                            {accounts.map(acc => (
+                                                 <label key={acc.id} className="flex items-center gap-2 text-sm p-1.5 rounded hover:bg-black/5 dark:hover:bg-white/5 cursor-pointer">
+                                                     <input type="checkbox" checked={selectedAccountIds.includes(acc.id)} onChange={() => handleAccountToggle(acc.id)} className={CHECKBOX_STYLE} />
+                                                     <span className="truncate">{acc.name}</span>
+                                                 </label>
+                                            ))}
+                                        </div>
+                                        {selectedAccountIds.length > 0 && (
+                                            <button onClick={() => setSelectedAccountIds([])} className="text-xs text-red-500 w-full text-center hover:underline pt-1 border-t border-black/5 dark:border-white/5">Clear Selection</button>
+                                        )}
+                                    </div>
+                                }
+                             />
+                        </div>
+                        <div className="hidden lg:block col-span-2">
+                            <ColumnHeader 
+                                label="Merchant"
+                                sortKey="merchant"
+                                currentSort={sortBy}
+                                onSort={setSortBy}
+                                isFilterActive={!!merchantFilter}
+                                filterContent={
+                                    <div className="space-y-2 p-1">
+                                        <input 
+                                            type="text" 
+                                            placeholder="Filter merchant..." 
+                                            value={merchantFilter}
+                                            onChange={(e) => setMerchantFilter(e.target.value)} 
+                                            className={INPUT_BASE_STYLE} 
+                                            autoFocus
+                                        />
+                                        {merchantFilter && <button onClick={() => setMerchantFilter('')} className="text-xs text-red-500 w-full text-center hover:underline">Clear</button>}
+                                    </div>
+                                }
+                            />
+                        </div>
+                        <div className="hidden md:block col-span-2">
+                            <ColumnHeader 
+                                label="Category"
+                                sortKey="category"
+                                currentSort={sortBy}
+                                onSort={setSortBy}
+                                isFilterActive={selectedCategoryNames.length > 0}
+                                filterContent={
+                                    <div className="space-y-2">
+                                         <div className="max-h-48 overflow-y-auto space-y-1 pr-1">
+                                            {categoryOptions.map(cat => (
+                                                 <label key={cat.value} className="flex items-center gap-2 text-sm p-1.5 rounded hover:bg-black/5 dark:hover:bg-white/5 cursor-pointer">
+                                                     <input type="checkbox" checked={selectedCategoryNames.includes(cat.value)} onChange={() => handleCategoryToggle(cat.value)} className={CHECKBOX_STYLE} />
+                                                     <span className="truncate" style={{ paddingLeft: cat.level * 12 }}>{cat.label}</span>
+                                                 </label>
+                                            ))}
+                                        </div>
+                                        {selectedCategoryNames.length > 0 && (
+                                            <button onClick={() => setSelectedCategoryNames([])} className="text-xs text-red-500 w-full text-center hover:underline pt-1 border-t border-black/5 dark:border-white/5">Clear Selection</button>
+                                        )}
+                                    </div>
+                                }
+                            />
+                        </div>
+                        <div className="hidden lg:block col-span-1">
+                            <ColumnHeader 
+                                label="Tags"
+                                currentSort={sortBy}
+                                onSort={setSortBy}
+                                isFilterActive={selectedTagIds.length > 0}
+                                filterContent={
+                                    <div className="space-y-2">
+                                        {tagOptions.length > 0 ? (
+                                            <div className="max-h-48 overflow-y-auto space-y-1 pr-1">
+                                                {tagOptions.map(tag => (
+                                                    <label key={tag.value} className="flex items-center gap-2 text-sm p-1.5 rounded hover:bg-black/5 dark:hover:bg-white/5 cursor-pointer">
+                                                        <input type="checkbox" checked={selectedTagIds.includes(tag.value)} onChange={() => handleTagToggle(tag.value)} className={CHECKBOX_STYLE} />
+                                                        <span className="truncate">{tag.label}</span>
+                                                    </label>
+                                                ))}
+                                            </div>
+                                        ) : (
+                                            <p className="text-xs text-light-text-secondary dark:text-dark-text-secondary p-2 text-center">No tags found.</p>
+                                        )}
+                                        {selectedTagIds.length > 0 && (
+                                            <button onClick={() => setSelectedTagIds([])} className="text-xs text-red-500 w-full text-center hover:underline pt-1 border-t border-black/5 dark:border-white/5">Clear Selection</button>
+                                        )}
+                                    </div>
+                                }
+                            />
+                        </div>
+                        <div className="col-span-4 md:col-span-2 text-right flex justify-end">
+                             <ColumnHeader 
+                                label="Amount"
+                                sortKey="amount"
+                                currentSort={sortBy}
+                                onSort={setSortBy}
+                                alignRight
+                                isFilterActive={!!minAmount || !!maxAmount}
+                                filterContent={
+                                    <div className="space-y-3 p-1">
+                                        <div className="grid gap-2">
+                                            <label className="text-xs font-semibold text-light-text-secondary dark:text-dark-text-secondary">Min</label>
+                                            <input type="number" placeholder="0.00" value={minAmount} onChange={e => setMinAmount(e.target.value)} className={INPUT_BASE_STYLE} />
+                                        </div>
+                                        <div className="grid gap-2">
+                                            <label className="text-xs font-semibold text-light-text-secondary dark:text-dark-text-secondary">Max</label>
+                                            <input type="number" placeholder="1000.00" value={maxAmount} onChange={e => setMaxAmount(e.target.value)} className={INPUT_BASE_STYLE} />
+                                        </div>
+                                        {(minAmount || maxAmount) && (
+                                            <button onClick={() => {setMinAmount(''); setMaxAmount('')}} className="text-xs text-red-500 w-full text-center hover:underline">Clear Amount Filter</button>
+                                        )}
+                                    </div>
+                                }
+                            />
+                        </div>
                     </div>
                     <div className="w-8"></div>
                 </div>
