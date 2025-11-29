@@ -490,11 +490,6 @@ const Dashboard: React.FC<DashboardProps> = ({ user, activeGoalIds, selectedAcco
                     break;
                 }
             }
-            // Add equity from loans to Other Assets to match totalAssets logic
-            if (acc.type === 'Loan' && acc.downPayment) {
-                 const downPaymentVal = convertToEur(acc.downPayment, acc.currency);
-                 assetGroups['Other Assets'].value += downPaymentVal;
-            }
         }
     });
 
