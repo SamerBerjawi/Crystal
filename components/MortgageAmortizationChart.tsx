@@ -1,3 +1,4 @@
+
 import React from 'react';
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Legend } from 'recharts';
 import { ScheduledPayment, Currency } from '../types';
@@ -66,7 +67,6 @@ const MortgageAmortizationChart: React.FC<MortgageAmortizationChartProps> = ({ s
               left: 20,
               bottom: 5,
             }}
-            stacked
           >
             <CartesianGrid strokeDasharray="3 3" strokeOpacity={0.1} vertical={false} />
             <XAxis 

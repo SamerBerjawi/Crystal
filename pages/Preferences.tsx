@@ -1,3 +1,4 @@
+
 import React from 'react';
 import { AppPreferences, Theme, Page } from '../types';
 import Card from '../components/Card';
@@ -11,10 +12,25 @@ interface PreferencesProps {
   setCurrentPage: (page: Page) => void;
 }
 
-const PreferenceRow: React.FC<{ label: string; children: React.ReactNode }> = ({ label, children }) => (
-  <div className="grid grid-cols-1 md:grid-cols-2 items-center py-4 border-b border-black/5 dark:border-white/10 last:border-b-0">
-    <label className="font-medium text-base text-light-text dark:text-dark-text">{label}</label>
-    <div className="mt-2 md:mt-0">
+const SectionHeader: React.FC<{ title: string; icon: string; description: string }> = ({ title, icon, description }) => (
+  <div className="mb-6 pb-4 border-b border-black/5 dark:border-white/5">
+    <div className="flex items-center gap-3 mb-2">
+        <div className="w-8 h-8 rounded-lg bg-primary-100 dark:bg-primary-900/30 text-primary-600 dark:text-primary-400 flex items-center justify-center shrink-0">
+        <span className="material-symbols-outlined text-lg">{icon}</span>
+        </div>
+        <h3 className="text-lg font-bold text-light-text dark:text-dark-text">{title}</h3>
+    </div>
+    <p className="text-sm text-light-text-secondary dark:text-dark-text-secondary ml-11">{description}</p>
+  </div>
+);
+
+const SettingRow: React.FC<{ label: string; description?: string; children: React.ReactNode }> = ({ label, description, children }) => (
+  <div className="flex flex-col sm:flex-row sm:items-start justify-between gap-4 py-4 border-b border-black/5 dark:border-white/5 last:border-0">
+    <div className="flex-1 max-w-md">
+      <label className="font-semibold text-sm text-light-text dark:text-dark-text block mb-1">{label}</label>
+      {description && <p className="text-xs text-light-text-secondary dark:text-dark-text-secondary leading-relaxed">{description}</p>}
+    </div>
+    <div className="w-full sm:w-64 shrink-0">
       {children}
     </div>
   </div>
@@ -25,59 +41,24 @@ const ThemeCard: React.FC<{
   theme: Theme;
   currentTheme: Theme;
   setTheme: (theme: Theme) => void;
-}> = ({ label, theme, currentTheme, setTheme }) => {
+  icon: string;
+}> = ({ label, theme, currentTheme, setTheme, icon }) => {
   const isSelected = currentTheme === theme;
   
-  const lightSvg = (
-    <svg width="100%" height="100%" viewBox="0 0 160 100" fill="none" xmlns="http://www.w3.org/2000/svg">
-      <rect width="160" height="100" rx="6" fill="#F7F8FC"/>
-      <rect x="10" y="10" width="30" height="80" rx="4" fill="#FFFFFF"/>
-      <rect x="48" y="10" width="102" height="15" rx="4" fill="#FFFFFF"/>
-      <rect x="58" y="35" width="84" height="4" rx="2" fill="#E2E8F0"/>
-      <rect x="58" y="45" width="64" height="4" rx="2" fill="#E2E8F0"/>
-      <path d="M58 70L78 55L98 65L118 50L138 60" stroke="#48BB78" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
-    </svg>
-  );
-
-  const darkSvg = (
-    <svg width="100%" height="100%" viewBox="0 0 160 100" fill="none" xmlns="http://www.w3.org/2000/svg">
-      <rect width="160" height="100" rx="6" fill="#1A202C"/>
-      <rect x="10" y="10" width="30" height="80" rx="4" fill="#2D3748"/>
-      <rect x="48" y="10" width="102" height="15" rx="4" fill="#2D3748"/>
-      <rect x="58" y="35" width="84" height="4" rx="2" fill="#4A5568"/>
-      <rect x="58" y="45" width="64" height="4" rx="2" fill="#4A5568"/>
-      <path d="M58 70L78 55L98 65L118 50L138 60" stroke="#48BB78" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
-    </svg>
-  );
-
-  const systemSvg = (
-     <svg width="100%" height="100%" viewBox="0 0 160 100" fill="none" xmlns="http://www.w3.org/2000/svg">
-      <path d="M0 6C0 2.68629 2.68629 0 6 0H80V100H6C2.68629 100 0 97.3137 0 94V6Z" fill="#F7F8FC"/>
-      <path d="M154 0H80V100H154C157.314 100 160 97.3137 160 94V6C160 2.68629 157.314 0 154 0Z" fill="#1A202C"/>
-      <path d="M58 70L78 55L98 65L118 50L138 60" stroke="#48BB78" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"/>
-    </svg>
-  );
-  
-  const getVisual = () => {
-    switch (theme) {
-      case 'light': return lightSvg;
-      case 'dark': return darkSvg;
-      case 'system': return systemSvg;
-    }
-  };
-  
   return (
-    <div
+    <button
       onClick={() => setTheme(theme)}
-      className={`cursor-pointer rounded-lg p-3 transition-all duration-200 ${
-        isSelected ? 'ring-2 ring-primary-500 bg-primary-500/10' : 'ring-1 ring-transparent hover:ring-primary-400'
+      className={`flex-1 flex flex-col items-center p-4 rounded-xl border-2 transition-all duration-200 outline-none focus:ring-2 focus:ring-primary-500 focus:ring-offset-2 dark:focus:ring-offset-dark-card ${
+        isSelected 
+          ? 'border-primary-500 bg-primary-50 dark:bg-primary-900/20' 
+          : 'border-transparent bg-light-bg dark:bg-dark-bg hover:bg-black/5 dark:hover:bg-white/5'
       }`}
     >
-      <div className={`aspect-[1.6/1] rounded-md overflow-hidden border ${isSelected ? 'border-transparent' : 'border-gray-200 dark:border-gray-700'}`}>
-        {getVisual()}
+      <div className={`w-12 h-12 rounded-full flex items-center justify-center mb-3 transition-colors ${isSelected ? 'bg-primary-100 text-primary-600 dark:bg-primary-900/50 dark:text-primary-400' : 'bg-white dark:bg-white/10 text-gray-500'}`}>
+        <span className="material-symbols-outlined text-2xl">{icon}</span>
       </div>
-      <p className="text-center font-semibold text-base mt-3">{label}</p>
-    </div>
+      <span className={`text-sm font-semibold ${isSelected ? 'text-primary-700 dark:text-primary-300' : 'text-light-text dark:text-dark-text'}`}>{label}</span>
+    </button>
   );
 };
 
@@ -93,123 +74,141 @@ const Preferences: React.FC<PreferencesProps> = ({ preferences, setPreferences, 
   };
 
   return (
-    <div className="space-y-8 max-w-4xl mx-auto">
+    <div className="space-y-8 max-w-5xl mx-auto pb-12 animate-fade-in-up">
       <header>
         <div className="flex items-center gap-4">
-            <button onClick={() => setCurrentPage('Settings')} className="text-light-text-secondary dark:text-dark-text-secondary p-1 rounded-full hover:bg-black/5 dark:hover:bg-white/5">
+            <button onClick={() => setCurrentPage('Settings')} className="text-light-text-secondary dark:text-dark-text-secondary p-2 rounded-full hover:bg-black/5 dark:hover:bg-white/5 transition-colors">
                 <span className="material-symbols-outlined">arrow_back</span>
             </button>
             <div className="text-sm text-light-text-secondary dark:text-dark-text-secondary">
                 <span onClick={() => setCurrentPage('Settings')} className="hover:underline cursor-pointer">Settings</span>
-                <span> / </span>
+                <span className="mx-2">/</span>
                 <span className="text-light-text dark:text-dark-text font-medium">Preferences</span>
             </div>
         </div>
         <div className="mt-4">
-            {/* <h2 className="text-3xl font-bold text-light-text dark:text-dark-text">Preferences</h2> */}
-            <p className="text-light-text-secondary dark:text-dark-text-secondary mt-1">Configure your personal preferences for the app.</p>
+            <h1 className="text-3xl font-bold text-light-text dark:text-dark-text">Preferences</h1>
+            <p className="text-light-text-secondary dark:text-dark-text-secondary mt-2">Customize how Crystal looks and behaves to match your personal workflow.</p>
         </div>
       </header>
       
-      <Card>
-        <h3 className="text-xl font-semibold mb-2 text-light-text dark:text-dark-text">General</h3>
-        <p className="text-sm text-light-text-secondary dark:text-dark-text-secondary mb-4">Configure your preferences</p>
-        <div className="divide-y divide-black/5 dark:divide-white/10">
-          <PreferenceRow label="Currency">
-            <div className={SELECT_WRAPPER_STYLE}>
-              <select name="currency" value={preferences.currency} onChange={handleChange} className={INPUT_BASE_STYLE}>
-                {CURRENCY_OPTIONS.map(c => <option key={c} value={c}>{c}</option>)}
-              </select>
-              <div className={SELECT_ARROW_STYLE}><span className="material-symbols-outlined">expand_more</span></div>
-            </div>
-          </PreferenceRow>
-          <PreferenceRow label="Language">
-            <div className={SELECT_WRAPPER_STYLE}>
-              <select name="language" value={preferences.language} onChange={handleChange} className={INPUT_BASE_STYLE}>
-                <option>English (en)</option>
-                <option>Français (fr)</option>
-                <option>Español (es)</option>
-              </select>
-              <div className={SELECT_ARROW_STYLE}><span className="material-symbols-outlined">expand_more</span></div>
-            </div>
-          </PreferenceRow>
-          <PreferenceRow label="Timezone">
-             <div className={SELECT_WRAPPER_STYLE}>
-              <select name="timezone" value={preferences.timezone} onChange={handleChange} className={INPUT_BASE_STYLE}>
-                {TIMEZONE_OPTIONS.map(tz => <option key={tz} value={tz}>{tz.replace(/_/g, ' ')}</option>)}
-              </select>
-              <div className={SELECT_ARROW_STYLE}><span className="material-symbols-outlined">expand_more</span></div>
-            </div>
-          </PreferenceRow>
-          <PreferenceRow label="Date format">
-             <div className={SELECT_WRAPPER_STYLE}>
-              <select name="dateFormat" value={preferences.dateFormat} onChange={handleChange} className={INPUT_BASE_STYLE}>
-                <option>DD/MM/YYYY</option>
-                <option>MM/DD/YYYY</option>
-                <option>YYYY-MM-DD</option>
-              </select>
-              <div className={SELECT_ARROW_STYLE}><span className="material-symbols-outlined">expand_more</span></div>
-            </div>
-          </PreferenceRow>
-          <PreferenceRow label="Default Period">
-            <div className={SELECT_WRAPPER_STYLE}>
-              <select name="defaultPeriod" value={preferences.defaultPeriod} onChange={handleChange} className={INPUT_BASE_STYLE}>
-                {DURATION_OPTIONS.map(opt => <option key={opt.value} value={opt.value}>{opt.label}</option>)}
-              </select>
-              <div className={SELECT_ARROW_STYLE}><span className="material-symbols-outlined">expand_more</span></div>
-            </div>
-          </PreferenceRow>
-          <PreferenceRow label="Default Forecast Period">
-            <div className={SELECT_WRAPPER_STYLE}>
-              <select
-                name="defaultForecastPeriod"
-                value={preferences.defaultForecastPeriod || '1Y'}
-                onChange={handleChange}
-                className={INPUT_BASE_STYLE}
-              >
-                {FORECAST_DURATION_OPTIONS.map(opt => <option key={opt.value} value={opt.value}>{opt.label}</option>)}
-              </select>
-              <div className={SELECT_ARROW_STYLE}><span className="material-symbols-outlined">expand_more</span></div>
-            </div>
-          </PreferenceRow>
-          <PreferenceRow label="Default Account Order">
-            <div className={SELECT_WRAPPER_STYLE}>
-              <select name="defaultAccountOrder" value={preferences.defaultAccountOrder} onChange={handleChange} className={INPUT_BASE_STYLE}>
-                {DEFAULT_ACCOUNT_ORDER_OPTIONS.map(opt => <option key={opt.value} value={opt.value}>{opt.label}</option>)}
-              </select>
-              <div className={SELECT_ARROW_STYLE}><span className="material-symbols-outlined">expand_more</span></div>
-            </div>
-          </PreferenceRow>
-          <PreferenceRow label="Default Quick Create Period">
-            <div className={SELECT_WRAPPER_STYLE}>
-                <select name="defaultQuickCreatePeriod" value={preferences.defaultQuickCreatePeriod || 3} onChange={handleChange} className={INPUT_BASE_STYLE}>
-                    {QUICK_CREATE_BUDGET_OPTIONS.map(opt => <option key={opt.value} value={opt.value}>{opt.label}</option>)}
-                </select>
-                <div className={SELECT_ARROW_STYLE}><span className="material-symbols-outlined">expand_more</span></div>
-            </div>
-          </PreferenceRow>
-          <PreferenceRow label="Country">
-            <div className={SELECT_WRAPPER_STYLE}>
-              <select name="country" value={preferences.country} onChange={handleChange} className={INPUT_BASE_STYLE}>
-                {COUNTRY_OPTIONS.map(c => <option key={c} value={c}>{c}</option>)}
-              </select>
-              <div className={SELECT_ARROW_STYLE}><span className="material-symbols-outlined">expand_more</span></div>
-            </div>
-             <p className="text-xs text-light-text-secondary dark:text-dark-text-secondary mt-2">Please note, we are still working on translations for various languages.</p>
-          </PreferenceRow>
-        </div>
-      </Card>
+      <div className="grid grid-cols-1 xl:grid-cols-2 gap-8">
+        
+        {/* Left Column */}
+        <div className="space-y-8">
+          <Card>
+            <SectionHeader title="Regional Settings" icon="public" description="Set your region, currency, and formatting preferences." />
+            <div className="space-y-2">
+              <SettingRow label="Primary Currency" description="The default currency used for dashboard summaries and reports.">
+                <div className={SELECT_WRAPPER_STYLE}>
+                  <select name="currency" value={preferences.currency} onChange={handleChange} className={INPUT_BASE_STYLE}>
+                    {CURRENCY_OPTIONS.map(c => <option key={c} value={c}>{c}</option>)}
+                  </select>
+                  <div className={SELECT_ARROW_STYLE}><span className="material-symbols-outlined">expand_more</span></div>
+                </div>
+              </SettingRow>
 
-      <Card>
-        <h3 className="text-xl font-semibold mb-2 text-light-text dark:text-dark-text">Theme</h3>
-        <p className="text-sm text-light-text-secondary dark:text-dark-text-secondary mb-6">Choose a preferred theme for the app.</p>
-        <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-6">
-          <ThemeCard label="Light" theme="light" currentTheme={theme} setTheme={setTheme} />
-          <ThemeCard label="Dark" theme="dark" currentTheme={theme} setTheme={setTheme} />
-          <ThemeCard label="System" theme="system" currentTheme={theme} setTheme={setTheme} />
-        </div>
-      </Card>
+              <SettingRow label="Language" description="Select your preferred display language.">
+                <div className={SELECT_WRAPPER_STYLE}>
+                  <select name="language" value={preferences.language} onChange={handleChange} className={INPUT_BASE_STYLE}>
+                    <option>English (en)</option>
+                    <option>Français (fr)</option>
+                    <option>Español (es)</option>
+                  </select>
+                  <div className={SELECT_ARROW_STYLE}><span className="material-symbols-outlined">expand_more</span></div>
+                </div>
+              </SettingRow>
 
+              <SettingRow label="Country" description="Used for regional defaults like date formats.">
+                <div className={SELECT_WRAPPER_STYLE}>
+                  <select name="country" value={preferences.country} onChange={handleChange} className={INPUT_BASE_STYLE}>
+                    {COUNTRY_OPTIONS.map(c => <option key={c} value={c}>{c}</option>)}
+                  </select>
+                  <div className={SELECT_ARROW_STYLE}><span className="material-symbols-outlined">expand_more</span></div>
+                </div>
+              </SettingRow>
+
+              <SettingRow label="Timezone" description="Ensure transaction times are recorded accurately.">
+                 <div className={SELECT_WRAPPER_STYLE}>
+                  <select name="timezone" value={preferences.timezone} onChange={handleChange} className={INPUT_BASE_STYLE}>
+                    {TIMEZONE_OPTIONS.map(tz => <option key={tz} value={tz}>{tz.replace(/_/g, ' ')}</option>)}
+                  </select>
+                  <div className={SELECT_ARROW_STYLE}><span className="material-symbols-outlined">expand_more</span></div>
+                </div>
+              </SettingRow>
+
+              <SettingRow label="Date Format" description="Choose how dates are displayed throughout the app.">
+                 <div className={SELECT_WRAPPER_STYLE}>
+                  <select name="dateFormat" value={preferences.dateFormat} onChange={handleChange} className={INPUT_BASE_STYLE}>
+                    <option>DD/MM/YYYY</option>
+                    <option>MM/DD/YYYY</option>
+                    <option>YYYY-MM-DD</option>
+                  </select>
+                  <div className={SELECT_ARROW_STYLE}><span className="material-symbols-outlined">expand_more</span></div>
+                </div>
+              </SettingRow>
+            </div>
+          </Card>
+        </div>
+
+        {/* Right Column */}
+        <div className="space-y-8">
+          <Card>
+            <SectionHeader title="Appearance" icon="palette" description="Choose a theme that suits your environment." />
+            <div className="flex gap-4">
+              <ThemeCard label="Light" theme="light" currentTheme={theme} setTheme={setTheme} icon="light_mode" />
+              <ThemeCard label="Dark" theme="dark" currentTheme={theme} setTheme={setTheme} icon="dark_mode" />
+              <ThemeCard label="System" theme="system" currentTheme={theme} setTheme={setTheme} icon="settings_brightness" />
+            </div>
+          </Card>
+
+           <Card>
+             <SectionHeader title="App Behavior" icon="tune" description="Configure default settings for efficiency." />
+             <div className="space-y-2">
+                <SettingRow label="Default Dashboard Period" description="The time range initially selected on the dashboard.">
+                  <div className={SELECT_WRAPPER_STYLE}>
+                    <select name="defaultPeriod" value={preferences.defaultPeriod} onChange={handleChange} className={INPUT_BASE_STYLE}>
+                      {DURATION_OPTIONS.map(opt => <option key={opt.value} value={opt.value}>{opt.label}</option>)}
+                    </select>
+                    <div className={SELECT_ARROW_STYLE}><span className="material-symbols-outlined">expand_more</span></div>
+                  </div>
+                </SettingRow>
+
+                <SettingRow label="Default Forecast Horizon" description="The default projection length for forecasting charts.">
+                  <div className={SELECT_WRAPPER_STYLE}>
+                    <select
+                      name="defaultForecastPeriod"
+                      value={preferences.defaultForecastPeriod || '1Y'}
+                      onChange={handleChange}
+                      className={INPUT_BASE_STYLE}
+                    >
+                      {FORECAST_DURATION_OPTIONS.map(opt => <option key={opt.value} value={opt.value}>{opt.label}</option>)}
+                    </select>
+                    <div className={SELECT_ARROW_STYLE}><span className="material-symbols-outlined">expand_more</span></div>
+                  </div>
+                </SettingRow>
+
+                <SettingRow label="Default Account Sorting" description="How accounts are ordered on the Accounts page.">
+                  <div className={SELECT_WRAPPER_STYLE}>
+                    <select name="defaultAccountOrder" value={preferences.defaultAccountOrder} onChange={handleChange} className={INPUT_BASE_STYLE}>
+                      {DEFAULT_ACCOUNT_ORDER_OPTIONS.map(opt => <option key={opt.value} value={opt.value}>{opt.label}</option>)}
+                    </select>
+                    <div className={SELECT_ARROW_STYLE}><span className="material-symbols-outlined">expand_more</span></div>
+                  </div>
+                </SettingRow>
+
+                <SettingRow label="Budget Quick Create Basis" description="Months of history used when auto-generating budgets.">
+                  <div className={SELECT_WRAPPER_STYLE}>
+                      <select name="defaultQuickCreatePeriod" value={preferences.defaultQuickCreatePeriod || 3} onChange={handleChange} className={INPUT_BASE_STYLE}>
+                          {QUICK_CREATE_BUDGET_OPTIONS.map(opt => <option key={opt.value} value={opt.value}>{opt.label}</option>)}
+                      </select>
+                      <div className={SELECT_ARROW_STYLE}><span className="material-symbols-outlined">expand_more</span></div>
+                  </div>
+                </SettingRow>
+             </div>
+           </Card>
+        </div>
+      </div>
     </div>
   );
 };
