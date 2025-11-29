@@ -193,7 +193,7 @@ const sections: Section[] = [
                     </div>
                 </div>
                 <p className="text-xs text-gray-500">
-                    Note: You must configure your own API Key in the Settings > AI Assistant page to enable this feature.
+                    Note: You must configure your own API Key in the Settings &gt; AI Assistant page to enable this feature.
                 </p>
             </div>
         )
