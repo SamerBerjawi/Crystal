@@ -318,7 +318,7 @@ const Accounts: React.FC<AccountsProps> = ({ accounts, transactions, saveAccount
   };
 
   return (
-    <div className="space-y-8 pb-10">
+    <div className="flex flex-col h-full">
       {isAddModalOpen && <AddAccountModal onClose={() => setAddModalOpen(false)} onAdd={handleAddAccount} accounts={accounts} />}
       {isEditModalOpen && editingAccount && <EditAccountModal onClose={() => setEditModalOpen(false)} onSave={handleUpdateAccount} onDelete={(accountId) => { setEditModalOpen(false); setDeletingAccount(editingAccount);}} account={editingAccount} accounts={accounts} warrants={warrants} onToggleStatus={onToggleAccountStatus} />}
       {isAdjustModalOpen && adjustingAccount && (
@@ -393,7 +393,7 @@ const Accounts: React.FC<AccountsProps> = ({ accounts, transactions, saveAccount
       )}
 
       {/* Controls Bar */}
-      <div className="sticky top-0 z-30 flex flex-wrap items-center justify-between gap-3 px-4 pt-4 pb-4 mb-6 border-b shadow-sm bg-light-bg/90 dark:bg-dark-bg/90 backdrop-blur-xl md:px-8 md:pt-6 md:-mx-8 -mx-4 -mt-4 md:-mt-8 border-black/5 dark:border-white/5 transition-all">
+      <div className="flex-shrink-0 z-30 flex flex-wrap items-center justify-between gap-3 px-4 pt-4 pb-4 border-b shadow-sm bg-light-bg/90 dark:bg-dark-bg/90 backdrop-blur-xl md:px-8 md:pt-6 md:-mx-8 -mx-4 -mt-4 md:-mt-8 border-black/5 dark:border-white/5 transition-all">
            
            <div className="flex items-center gap-3">
                {/* Layout Toggle */}
@@ -444,121 +444,144 @@ const Accounts: React.FC<AccountsProps> = ({ accounts, transactions, saveAccount
             </button>
       </div>
 
-      {/* --- NEW PORTFOLIO DASHBOARD SECTION --- */}
-      <div className="grid grid-cols-1 xl:grid-cols-3 gap-6 mb-8">
-           {/* Hero Card: Net Worth */}
-           <div className="bg-gradient-to-br from-primary-600 to-primary-900 text-white p-8 rounded-3xl shadow-xl relative overflow-hidden flex flex-col justify-between min-h-[240px] xl:min-h-auto">
-                <div className="absolute top-0 right-0 p-8 opacity-10 pointer-events-none">
-                    <span className="material-symbols-outlined text-[10rem]">account_balance</span>
-                </div>
-                <div>
-                    <div className="flex items-center gap-2 mb-2 opacity-80">
-                         <span className="material-symbols-outlined text-xl">verified</span>
-                         <span className="font-bold uppercase tracking-wider text-sm">Net Worth</span>
+      {/* Scrollable Content */}
+      <div className="flex-1 overflow-y-auto min-h-0 -mx-4 md:-mx-8 px-4 md:px-8 pt-6 space-y-8 pb-10">
+        {/* --- NEW PORTFOLIO DASHBOARD SECTION --- */}
+        <div className="grid grid-cols-1 xl:grid-cols-3 gap-6">
+            {/* Hero Card: Net Worth */}
+            <div className="bg-gradient-to-br from-primary-600 to-primary-900 text-white p-8 rounded-3xl shadow-xl relative overflow-hidden flex flex-col justify-between min-h-[240px] xl:min-h-auto">
+                    <div className="absolute top-0 right-0 p-8 opacity-10 pointer-events-none">
+                        <span className="material-symbols-outlined text-[10rem]">account_balance</span>
                     </div>
-                    <h2 className="text-5xl font-extrabold tracking-tight mb-4">{formatCurrency(netWorth, 'EUR')}</h2>
-                </div>
-                <div className="mt-auto">
-                    <div className="flex items-center gap-3">
-                         <span className={`flex items-center gap-1 px-3 py-1.5 rounded-full text-sm font-bold backdrop-blur-md bg-white/20 ${netChange30d >= 0 ? 'text-green-100' : 'text-red-100'}`}>
-                             <span className="material-symbols-outlined text-base">{netChange30d >= 0 ? 'trending_up' : 'trending_down'}</span>
-                             {formatCurrency(Math.abs(netChange30d), 'EUR')}
-                         </span>
-                         <span className="text-sm opacity-70">30 Day Change</span>
-                    </div>
-                </div>
-           </div>
-
-           {/* Metrics Grid */}
-           <div className="xl:col-span-2 grid grid-cols-1 sm:grid-cols-2 gap-6">
-                
-                {/* Assets */}
-                <div className="bg-white dark:bg-dark-card rounded-2xl p-6 border border-black/5 dark:border-white/5 shadow-sm hover:shadow-md transition-shadow">
-                    <div className="flex justify-between items-start mb-4">
-                        <div className="w-12 h-12 rounded-xl bg-emerald-100 dark:bg-emerald-900/30 text-emerald-600 dark:text-emerald-400 flex items-center justify-center">
-                             <span className="material-symbols-outlined text-2xl">account_balance</span>
+                    <div>
+                        <div className="flex items-center gap-2 mb-2 opacity-80">
+                            <span className="material-symbols-outlined text-xl">verified</span>
+                            <span className="font-bold uppercase tracking-wider text-sm">Net Worth</span>
                         </div>
-                        <span className="text-xs font-bold text-light-text-secondary dark:text-dark-text-secondary uppercase tracking-wider">Assets</span>
+                        <h2 className="text-5xl font-extrabold tracking-tight mb-4">{formatCurrency(netWorth, 'EUR')}</h2>
                     </div>
-                    <p className="text-2xl font-bold text-light-text dark:text-dark-text">{formatCurrency(totalAssets, 'EUR')}</p>
-                    <p className="text-sm text-light-text-secondary dark:text-dark-text-secondary mt-1">{assetAccounts.length} accounts</p>
-                </div>
-
-                {/* Liabilities */}
-                 <div className="bg-white dark:bg-dark-card rounded-2xl p-6 border border-black/5 dark:border-white/5 shadow-sm hover:shadow-md transition-shadow">
-                    <div className="flex justify-between items-start mb-4">
-                        <div className="w-12 h-12 rounded-xl bg-rose-100 dark:bg-rose-900/30 text-rose-600 dark:text-rose-400 flex items-center justify-center">
-                             <span className="material-symbols-outlined text-2xl">credit_card</span>
+                    <div className="mt-auto">
+                        <div className="flex items-center gap-3">
+                            <span className={`flex items-center gap-1 px-3 py-1.5 rounded-full text-sm font-bold backdrop-blur-md bg-white/20 ${netChange30d >= 0 ? 'text-green-100' : 'text-red-100'}`}>
+                                <span className="material-symbols-outlined text-base">{netChange30d >= 0 ? 'trending_up' : 'trending_down'}</span>
+                                {formatCurrency(Math.abs(netChange30d), 'EUR')}
+                            </span>
+                            <span className="text-sm opacity-70">30 Day Change</span>
                         </div>
-                        <span className="text-xs font-bold text-light-text-secondary dark:text-dark-text-secondary uppercase tracking-wider">Liabilities</span>
                     </div>
-                    <p className="text-2xl font-bold text-light-text dark:text-dark-text">{formatCurrency(totalDebt, 'EUR')}</p>
-                    <p className={`text-sm font-medium mt-1 flex items-center gap-1 ${debtRatio > 50 ? 'text-orange-500' : 'text-green-500'}`}>
-                        {debtRatio.toFixed(1)}% Debt Ratio
-                    </p>
-                </div>
-
-                {/* Liquid Cash */}
-                 <div className="bg-white dark:bg-dark-card rounded-2xl p-6 border border-black/5 dark:border-white/5 shadow-sm hover:shadow-md transition-shadow">
-                    <div className="flex justify-between items-start mb-4">
-                        <div className="w-12 h-12 rounded-xl bg-blue-100 dark:bg-blue-900/30 text-blue-600 dark:text-blue-400 flex items-center justify-center">
-                             <span className="material-symbols-outlined text-2xl">savings</span>
-                        </div>
-                         <span className="text-xs font-bold text-light-text-secondary dark:text-dark-text-secondary uppercase tracking-wider">Liquidity</span>
-                    </div>
-                    <p className="text-2xl font-bold text-light-text dark:text-dark-text">{formatCurrency(liquidCash, 'EUR')}</p>
-                    <p className="text-sm text-light-text-secondary dark:text-dark-text-secondary mt-1">Available Cash</p>
-                </div>
-
-                {/* Monthly Flow */}
-                <div className="bg-white dark:bg-dark-card rounded-2xl p-6 border border-black/5 dark:border-white/5 shadow-sm hover:shadow-md transition-shadow">
-                    <div className="flex justify-between items-start mb-4">
-                        <div className="w-12 h-12 rounded-xl bg-purple-100 dark:bg-purple-900/30 text-purple-600 dark:text-purple-400 flex items-center justify-center">
-                             <span className="material-symbols-outlined text-2xl">payments</span>
-                        </div>
-                        <span className="text-xs font-bold text-light-text-secondary dark:text-dark-text-secondary uppercase tracking-wider">30d Net Flow</span>
-                    </div>
-                    <p className={`text-2xl font-bold ${netChange30d >= 0 ? 'text-green-600 dark:text-green-400' : 'text-red-600 dark:text-red-400'}`}>
-                        {netChange30d >= 0 ? '+' : ''}{formatCurrency(netChange30d, 'EUR')}
-                    </p>
-                     <p className="text-sm text-light-text-secondary dark:text-dark-text-secondary mt-1">Income - Expenses</p>
-                </div>
-
-           </div>
-      </div>
-
-      {/* Main Accounts Grid/List */}
-      <div className={`gap-8 ${layoutMode === 'columns' ? 'grid grid-cols-1 xl:grid-cols-2 items-start' : 'flex flex-col space-y-8'}`}>
-           <div className="space-y-4 min-w-0">
-                 <div className="flex items-center gap-2 pb-2 border-b border-black/5 dark:border-white/5">
-                     <span className="material-symbols-outlined text-emerald-500">account_balance</span>
-                     <h2 className="text-xl font-bold text-light-text dark:text-dark-text">Assets</h2>
-                 </div>
-                 <AccountsListSection 
-                    title="Cash & Investments"
-                    accounts={assetAccounts} 
-                    transactionsByAccount={transactionsByAccount} 
-                    warrants={warrants}
-                    onAccountClick={handleAccountClick} 
-                    onEditClick={openEditModal} 
-                    onAdjustBalanceClick={openAdjustModal}
-                    sortBy={sortBy}
-                    accountOrder={accountOrder}
-                    setAccountOrder={setAccountOrder}
-                    onContextMenu={handleContextMenu}
-                    isCollapsible={false}
-                    layoutMode={layoutMode}
-                 />
             </div>
 
+            {/* Metrics Grid */}
+            <div className="xl:col-span-2 grid grid-cols-1 sm:grid-cols-2 gap-6">
+                    
+                    {/* Assets */}
+                    <div className="bg-white dark:bg-dark-card rounded-2xl p-6 border border-black/5 dark:border-white/5 shadow-sm hover:shadow-md transition-shadow">
+                        <div className="flex justify-between items-start mb-4">
+                            <div className="w-12 h-12 rounded-xl bg-emerald-100 dark:bg-emerald-900/30 text-emerald-600 dark:text-emerald-400 flex items-center justify-center">
+                                <span className="material-symbols-outlined text-2xl">account_balance</span>
+                            </div>
+                            <span className="text-xs font-bold text-light-text-secondary dark:text-dark-text-secondary uppercase tracking-wider">Assets</span>
+                        </div>
+                        <p className="text-2xl font-bold text-light-text dark:text-dark-text">{formatCurrency(totalAssets, 'EUR')}</p>
+                        <p className="text-sm text-light-text-secondary dark:text-dark-text-secondary mt-1">{assetAccounts.length} accounts</p>
+                    </div>
+
+                    {/* Liabilities */}
+                    <div className="bg-white dark:bg-dark-card rounded-2xl p-6 border border-black/5 dark:border-white/5 shadow-sm hover:shadow-md transition-shadow">
+                        <div className="flex justify-between items-start mb-4">
+                            <div className="w-12 h-12 rounded-xl bg-rose-100 dark:bg-rose-900/30 text-rose-600 dark:text-rose-400 flex items-center justify-center">
+                                <span className="material-symbols-outlined text-2xl">credit_card</span>
+                            </div>
+                            <span className="text-xs font-bold text-light-text-secondary dark:text-dark-text-secondary uppercase tracking-wider">Liabilities</span>
+                        </div>
+                        <p className="text-2xl font-bold text-light-text dark:text-dark-text">{formatCurrency(totalDebt, 'EUR')}</p>
+                        <p className={`text-sm font-medium mt-1 flex items-center gap-1 ${debtRatio > 50 ? 'text-orange-500' : 'text-green-500'}`}>
+                            {debtRatio.toFixed(1)}% Debt Ratio
+                        </p>
+                    </div>
+
+                    {/* Liquid Cash */}
+                    <div className="bg-white dark:bg-dark-card rounded-2xl p-6 border border-black/5 dark:border-white/5 shadow-sm hover:shadow-md transition-shadow">
+                        <div className="flex justify-between items-start mb-4">
+                            <div className="w-12 h-12 rounded-xl bg-blue-100 dark:bg-blue-900/30 text-blue-600 dark:text-blue-400 flex items-center justify-center">
+                                <span className="material-symbols-outlined text-2xl">savings</span>
+                            </div>
+                            <span className="text-xs font-bold text-light-text-secondary dark:text-dark-text-secondary uppercase tracking-wider">Liquidity</span>
+                        </div>
+                        <p className="text-2xl font-bold text-light-text dark:text-dark-text">{formatCurrency(liquidCash, 'EUR')}</p>
+                        <p className="text-sm text-light-text-secondary dark:text-dark-text-secondary mt-1">Available Cash</p>
+                    </div>
+
+                    {/* Monthly Flow */}
+                    <div className="bg-white dark:bg-dark-card rounded-2xl p-6 border border-black/5 dark:border-white/5 shadow-sm hover:shadow-md transition-shadow">
+                        <div className="flex justify-between items-start mb-4">
+                            <div className="w-12 h-12 rounded-xl bg-purple-100 dark:bg-purple-900/30 text-purple-600 dark:text-purple-400 flex items-center justify-center">
+                                <span className="material-symbols-outlined text-2xl">payments</span>
+                            </div>
+                            <span className="text-xs font-bold text-light-text-secondary dark:text-dark-text-secondary uppercase tracking-wider">30d Net Flow</span>
+                        </div>
+                        <p className={`text-2xl font-bold ${netChange30d >= 0 ? 'text-green-600 dark:text-green-400' : 'text-red-600 dark:text-red-400'}`}>
+                            {netChange30d >= 0 ? '+' : ''}{formatCurrency(netChange30d, 'EUR')}
+                        </p>
+                        <p className="text-sm text-light-text-secondary dark:text-dark-text-secondary mt-1">Income - Expenses</p>
+                    </div>
+
+            </div>
+        </div>
+
+        {/* Main Accounts Grid/List */}
+        <div className={`gap-8 ${layoutMode === 'columns' ? 'grid grid-cols-1 xl:grid-cols-2 items-start' : 'flex flex-col space-y-8'}`}>
             <div className="space-y-4 min-w-0">
-                 <div className="flex items-center gap-2 pb-2 border-b border-black/5 dark:border-white/5">
-                     <span className="material-symbols-outlined text-rose-500">credit_card</span>
-                     <h2 className="text-xl font-bold text-light-text dark:text-dark-text">Liabilities</h2>
-                 </div>
-                 <AccountsListSection 
-                    title="Debt & Loans"
-                    accounts={debtAccounts} 
+                    <div className="flex items-center gap-2 pb-2 border-b border-black/5 dark:border-white/5">
+                        <span className="material-symbols-outlined text-emerald-500">account_balance</span>
+                        <h2 className="text-xl font-bold text-light-text dark:text-dark-text">Assets</h2>
+                    </div>
+                    <AccountsListSection 
+                        title="Cash & Investments"
+                        accounts={assetAccounts} 
+                        transactionsByAccount={transactionsByAccount} 
+                        warrants={warrants}
+                        onAccountClick={handleAccountClick} 
+                        onEditClick={openEditModal} 
+                        onAdjustBalanceClick={openAdjustModal}
+                        sortBy={sortBy}
+                        accountOrder={accountOrder}
+                        setAccountOrder={setAccountOrder}
+                        onContextMenu={handleContextMenu}
+                        isCollapsible={false}
+                        layoutMode={layoutMode}
+                    />
+                </div>
+
+                <div className="space-y-4 min-w-0">
+                    <div className="flex items-center gap-2 pb-2 border-b border-black/5 dark:border-white/5">
+                        <span className="material-symbols-outlined text-rose-500">credit_card</span>
+                        <h2 className="text-xl font-bold text-light-text dark:text-dark-text">Liabilities</h2>
+                    </div>
+                    <AccountsListSection 
+                        title="Debt & Loans"
+                        accounts={debtAccounts} 
+                        transactionsByAccount={transactionsByAccount} 
+                        warrants={warrants}
+                        onAccountClick={handleAccountClick} 
+                        onEditClick={openEditModal} 
+                        onAdjustBalanceClick={openAdjustModal}
+                        sortBy={sortBy}
+                        accountOrder={accountOrder}
+                        setAccountOrder={setAccountOrder}
+                        onContextMenu={handleContextMenu}
+                        isCollapsible={false}
+                        layoutMode={layoutMode}
+                    />
+                </div>
+        </div>
+
+        {/* Closed Accounts Section */}
+        {closedAccounts.length > 0 && (
+            <div className="opacity-60 hover:opacity-100 transition-opacity duration-300 mt-12 pt-8 border-t border-black/5 dark:border-white/5">
+                <AccountsListSection 
+                    title="Closed Accounts"
+                    accounts={closedAccounts} 
                     transactionsByAccount={transactionsByAccount} 
                     warrants={warrants}
                     onAccountClick={handleAccountClick} 
@@ -568,33 +591,13 @@ const Accounts: React.FC<AccountsProps> = ({ accounts, transactions, saveAccount
                     accountOrder={accountOrder}
                     setAccountOrder={setAccountOrder}
                     onContextMenu={handleContextMenu}
-                    isCollapsible={false}
+                    isCollapsible={true}
+                    defaultExpanded={false}
                     layoutMode={layoutMode}
-                 />
+                />
             </div>
+        )}
       </div>
-
-      {/* Closed Accounts Section */}
-      {closedAccounts.length > 0 && (
-          <div className="opacity-60 hover:opacity-100 transition-opacity duration-300 mt-12 pt-8 border-t border-black/5 dark:border-white/5">
-              <AccountsListSection 
-                title="Closed Accounts"
-                accounts={closedAccounts} 
-                transactionsByAccount={transactionsByAccount} 
-                warrants={warrants}
-                onAccountClick={handleAccountClick} 
-                onEditClick={openEditModal} 
-                onAdjustBalanceClick={openAdjustModal}
-                sortBy={sortBy}
-                accountOrder={accountOrder}
-                setAccountOrder={setAccountOrder}
-                onContextMenu={handleContextMenu}
-                isCollapsible={true}
-                defaultExpanded={false}
-                layoutMode={layoutMode}
-             />
-          </div>
-      )}
     </div>
   );
 };
