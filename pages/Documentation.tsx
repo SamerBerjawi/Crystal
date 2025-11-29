@@ -1,5 +1,5 @@
 
-import React, { useState, useMemo, useRef, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { Page } from '../types';
 import Card from '../components/Card';
 
@@ -7,342 +7,341 @@ interface DocumentationProps {
   setCurrentPage: (page: Page) => void;
 }
 
-const features = [
+interface Section {
+    id: string;
+    title: string;
+    icon: string;
+    iconColor: string;
+    content: React.ReactNode;
+}
+
+const sections: Section[] = [
     {
+        id: 'getting-started',
         title: 'Getting Started',
         icon: 'rocket_launch',
+        iconColor: 'text-blue-500',
         content: (
-            <>
-                <p>Spin up Crystal quickly with built-in authentication, demo data, and onboarding flows.</p>
-                <ul className="list-disc list-inside space-y-2 pl-2">
-                    <li><strong>Sign Up or Continue in Demo Mode:</strong> Create an account or launch a disposable demo session directly from the sign-in page to explore the full experience.</li>
-                    <li><strong>Guided Onboarding:</strong> A multi-step wizard helps you choose your base currency, add your first accounts, set a savings goal, and log a recurring transaction so forecasts are meaningful from day one.</li>
-                    <li><strong>Save or Restore Data:</strong> Data is persisted locally; you can also export a full backup and restore it later from Data Management.</li>
-                </ul>
-            </>
+            <div className="space-y-4">
+                <p className="text-lg leading-relaxed">
+                    Welcome to Crystal! This guide will help you set up your financial workspace quickly and efficiently.
+                </p>
+                
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mt-6">
+                    <div className="bg-blue-50 dark:bg-blue-900/20 p-4 rounded-lg border border-blue-100 dark:border-blue-800">
+                        <h4 className="font-bold text-blue-700 dark:text-blue-300 mb-2 flex items-center gap-2">
+                            <span className="material-symbols-outlined text-sm">login</span> Authentication
+                        </h4>
+                        <p className="text-sm">Sign up for a secure account or use the <strong>Demo Mode</strong> to explore features with sample data without any commitment.</p>
+                    </div>
+                    <div className="bg-green-50 dark:bg-green-900/20 p-4 rounded-lg border border-green-100 dark:border-green-800">
+                        <h4 className="font-bold text-green-700 dark:text-green-300 mb-2 flex items-center gap-2">
+                            <span className="material-symbols-outlined text-sm">check_circle</span> Onboarding
+                        </h4>
+                        <p className="text-sm">Our wizard guides you through setting your base currency, adding your first account, and creating a budget goal.</p>
+                    </div>
+                </div>
+
+                <div className="mt-6">
+                    <h4 className="font-semibold text-light-text dark:text-dark-text mb-2">Data Privacy</h4>
+                    <p>
+                        Your data is persisted locally in your browser for performance. You can also perform a full 
+                        <strong> JSON Backup</strong> at any time from the Data Management page to secure your records or migrate devices.
+                    </p>
+                </div>
+            </div>
         )
     },
     {
+        id: 'dashboard',
         title: 'Dashboard',
         icon: 'space_dashboard',
+        iconColor: 'text-purple-500',
         content: (
-            <>
-                <p>Your financial command center. Get an instant, high-level overview of your finances tailored to what matters most to you.</p>
-                <ul className="list-disc list-inside space-y-2 pl-2">
-                    <li><strong>Build Your Perfect View:</strong> Customize your dashboard with modular widgets. Simply enter 'Edit Layout' mode to drag, drop, and resize components for a personalized experience.</li>
-                    <li><strong>Dynamic Filtering:</strong> Instantly filter your entire dashboard by any combination of accounts and timeframes to slice and dice your data.</li>
-                    <li><strong>Intelligent Transaction Matching:</strong> Effortlessly clean up your records. Our system automatically finds and links transfers between your accounts, ensuring perfect accuracy.</li>
+            <div className="space-y-4">
+                <p>
+                    Your financial command center. The dashboard is designed to be modular and customizable, giving you an instant overview of your net worth, cash flow, and recent activity.
+                </p>
+                <ul className="list-disc list-inside space-y-2 ml-2 text-light-text-secondary dark:text-dark-text-secondary">
+                    <li><strong>Edit Layout:</strong> Click the "Edit Layout" button to enter customization mode. You can drag, drop, and resize widgets to build your perfect view.</li>
+                    <li><strong>Global Filtering:</strong> Use the filters at the top to slice your data by specific accounts or time ranges (e.g., "Last 30 Days", "Year to Date").</li>
+                    <li><strong>Smart Insights:</strong> Widgets like "Cash Flow" and "Net Worth" automatically update based on your selected filters.</li>
                 </ul>
-            </>
+                <div className="bg-yellow-50 dark:bg-yellow-900/20 p-3 rounded-md border-l-4 border-yellow-400 text-sm mt-4">
+                    <strong>Pro Tip:</strong> Try adding the "Transaction Map" widget to visualize your spending locations!
+                </div>
+            </div>
         )
     },
     {
-        title: 'Accounts & Transactions',
+        id: 'accounts',
+        title: 'Accounts',
         icon: 'wallet',
+        iconColor: 'text-emerald-500',
         content: (
-            <>
-                <p>The foundation of your financial picture. Manage all your accounts and transactions with precision and ease.</p>
-                <ul className="list-disc list-inside space-y-2 pl-2">
-                    <li><strong>Track Everything:</strong> From checking and savings to complex loans, properties, and investment portfolios, our detailed account types have you covered.</li>
-                    <li><strong>Organize Your Way:</strong> Sort accounts by name or balance, or create a custom order with simple drag-and-drop in 'Manual' sort mode.</li>
-                    <li><strong>Master Your History:</strong> Utilize advanced multi-select filters and powerful bulk-editing tools to manage your transaction data efficiently.</li>
-                    <li><strong>Dive Deeper:</strong> Click any account to access a dedicated, customizable dashboard with a focused view of its performance and history.</li>
-                </ul>
-            </>
+            <div className="space-y-4">
+                <p>
+                    Crystal supports a wide variety of account types to mirror your real-world portfolio.
+                </p>
+                <div className="overflow-x-auto">
+                    <table className="min-w-full text-sm text-left">
+                        <thead className="bg-gray-50 dark:bg-white/5 font-semibold">
+                            <tr>
+                                <th className="p-2 rounded-tl-md">Type</th>
+                                <th className="p-2 rounded-tr-md">Description</th>
+                            </tr>
+                        </thead>
+                        <tbody className="divide-y divide-gray-100 dark:divide-white/5">
+                            <tr><td className="p-2 font-medium">Liquid</td><td className="p-2 text-gray-500">Checking, Savings, Cash. Used for day-to-day spending.</td></tr>
+                            <tr><td className="p-2 font-medium">Credit</td><td className="p-2 text-gray-500">Credit Cards with limit tracking and billing cycle management.</td></tr>
+                            <tr><td className="p-2 font-medium">Assets</td><td className="p-2 text-gray-500">Property, Vehicles, and other high-value items with depreciation/appreciation tracking.</td></tr>
+                            <tr><td className="p-2 font-medium">Investments</td><td className="p-2 text-gray-500">Stocks, ETFs, Crypto, and Warrants.</td></tr>
+                        </tbody>
+                    </table>
+                </div>
+                <p className="mt-2">
+                    <strong>Transaction Matching:</strong> The system automatically detects potential transfers between accounts (e.g., a debit in Checking matching a credit in Savings) and suggests linking them to keep your records clean.
+                </p>
+            </div>
         )
     },
     {
+        id: 'budgeting',
         title: 'Budgeting',
         icon: 'pie_chart',
+        iconColor: 'text-orange-500',
         content: (
-             <>
-                <p>Master your spending with intelligent budgeting tools designed for clarity and control.</p>
-                <ul className="list-disc list-inside space-y-2 pl-2">
-                    <li><strong>Budget Smarter, Not Harder:</strong> Get AI-powered budget suggestions based on your actual spending habits to set realistic and achievable goals.</li>
-                    <li><strong>Effortless Expense Tracking:</strong> All spending is categorized automatically, allowing you to set formal budgets only where you need them.</li>
-                    <li><strong>Stay on Track with Real-Time Progress:</strong> Instantly see how your spending compares to your budget with clear, visual feedback.</li>
+            <div className="space-y-4">
+                <p>
+                    Move away from rigid spreadsheets. Crystal's budgeting is flexible and intelligent.
+                </p>
+                <ul className="space-y-3">
+                    <li className="flex gap-3">
+                        <span className="material-symbols-outlined text-primary-500">auto_awesome</span>
+                        <div>
+                            <strong>AI Suggestions:</strong> Tap the "AI Advice" button to analyze your last 3 months of spending and auto-generate realistic budget limits for each category.
+                        </div>
+                    </li>
+                    <li className="flex gap-3">
+                        <span className="material-symbols-outlined text-primary-500">notifications_active</span>
+                        <div>
+                            <strong>Visual Alerts:</strong> Progress bars turn yellow (warning) or red (over budget) as you spend, giving you instant feedback on your financial health.
+                        </div>
+                    </li>
                 </ul>
-            </>
+            </div>
         )
     },
     {
+        id: 'forecasting',
         title: 'Forecasting',
         icon: 'show_chart',
+        iconColor: 'text-indigo-500',
         content: (
-            <>
-                <p>See your financial future and make informed decisions with powerful projection and planning tools.</p>
-                 <ul className="list-disc list-inside space-y-2 pl-2">
-                    <li><strong>Project Your Cash Flow:</strong> Visualize your estimated balance weeks, months, or even years ahead based on your recurring transactions and goals.</li>
-                    <li><strong>Plan for What's Next:</strong> Set, track, and manage financial goals, from one-time expenses to long-term savings. Organize related items into "buckets" for clarity.</li>
-                    <li><strong>Achieve Goals Faster:</strong> Use the AI Smart Planner to get an intelligent, step-by-step contribution plan that prioritizes your goals and maximizes your savings potential.</li>
-                </ul>
-            </>
+            <div className="space-y-4">
+                <p>
+                    Predict your future balance based on your scheduled income, bills, and savings goals.
+                </p>
+                <div className="p-4 bg-gray-50 dark:bg-white/5 rounded-lg">
+                    <h5 className="font-semibold mb-2">How it works:</h5>
+                    <ol className="list-decimal list-inside space-y-1 text-sm text-light-text-secondary dark:text-dark-text-secondary">
+                        <li>Define your <strong>Recurring Transactions</strong> (Salary, Rent, Netflix).</li>
+                        <li>Set <strong>Financial Goals</strong> (Vacation, Emergency Fund).</li>
+                        <li>Crystal projects your daily balance up to 2 years into the future.</li>
+                    </ol>
+                </div>
+                <p>
+                    This allows you to spot potential cash flow issues ("Will I go overdraft next month?") or opportunities to invest more.
+                </p>
+            </div>
         )
     },
     {
-        title: 'Investments & Warrants',
+        id: 'investments',
+        title: 'Investments',
         icon: 'candlestick_chart',
+        iconColor: 'text-cyan-500',
         content: (
-            <>
-                <p>Monitor and manage your investment portfolio with detailed tracking and automated tools.</p>
-                 <ul className="list-disc list-inside space-y-2 pl-2">
-                    <li><strong>See the Complete Picture:</strong> Log buy and sell transactions for stocks, crypto, and other assets to track performance, cost basis, and total gains.</li>
-                    <li><strong>Specialized Warrant Tracking:</strong> A dedicated tool for employee warrants, complete with a configurable web scraper to automatically fetch and update live prices.</li>
+            <div className="space-y-4">
+                <p>
+                    Track your portfolio performance with automated price updates.
+                </p>
+                <ul className="list-disc list-inside space-y-2 ml-2">
+                    <li><strong>Standard Assets:</strong> Stocks and Crypto prices are fetched automatically where available.</li>
+                    <li><strong>Warrants:</strong> Specialized tracking for employee equity grants. You can even configure a custom web scraper to fetch live prices for private or obscure assets.</li>
+                    <li><strong>Analysis:</strong> View asset allocation pie charts and track your total gains/losses over time.</li>
                 </ul>
-            </>
+            </div>
         )
     },
     {
-        title: 'Schedule & Bills',
-        icon: 'calendar_month',
-        content: (
-            <>
-                <p>Stay ahead of your financial obligations by automating and visualizing your upcoming payments.</p>
-                <ul className="list-disc list-inside space-y-2 pl-2">
-                    <li><strong>Automate Your Cash Flow:</strong> Schedule recurring income and expenses to streamline data entry and improve forecast accuracy. Easily edit or skip single occurrences.</li>
-                    <li><strong>Get a Complete Financial Picture:</strong> Crystal automatically creates scheduled payments for your loans and credit cards, giving you a comprehensive view of your upcoming cash flow.</li>
-                    <li><strong>Manage One-Time Payments:</strong> Track individual bills and deposits, and mark them as paid to automatically generate a corresponding transaction.</li>
-                    <li><strong>Visualize Your Year Ahead:</strong> A 12-month calendar heatmap provides an at-a-glance view of your scheduled financial activity.</li>
-                </ul>
-            </>
-        )
-    },
-     {
-        title: 'Tasks & Tags',
-        icon: 'task_alt',
-        content: (
-            <>
-                <p>Organize your financial life beyond transactions with powerful, flexible tools.</p>
-                 <ul className="list-disc list-inside space-y-2 pl-2">
-                    <li><strong>Stay on Top of Your Admin:</strong> Create a financial to-do list, assign priorities, and manage tasks with an intuitive Kanban board and priority heatmap.</li>
-                    <li><strong>Connect Your Spending:</strong> Use tags to group related transactions across any category—perfect for tracking project costs or vacation spending.</li>
-                </ul>
-            </>
-        )
-    },
-    {
-        title: 'Data Management',
-        icon: 'database',
-        content: (
-            <>
-                <p>Your data, your rules. Import, export, and manage your financial information with complete control.</p>
-                 <ul className="list-disc list-inside space-y-2 pl-2">
-                    <li><strong>Import with Ease:</strong> A powerful, step-by-step wizard for CSV imports that automatically maps columns, detects formats, previews errors, and lets you clean data before publishing.</li>
-                    <li><strong>Full Backup & Restore:</strong> Export a complete JSON snapshot of your data for backup or migration, restore it anytime, or fully reset your workspace after a confirmation flow.</li>
-                    <li><strong>Flexible CSV Exports:</strong> Export specific data sets like accounts, transactions, or budgets to individual CSV files.</li>
-                    <li><strong>Audit Your History:</strong> View a detailed log of imports and exports, including statuses and file details, with quick access to per-import diagnostics.</li>
-
-                </ul>
-            </>
-        )
-    },
-    {
+        id: 'ai-assistant',
         title: 'AI Assistant',
         icon: 'smart_toy',
+        iconColor: 'text-pink-500',
         content: (
-            <p>Your personal finance expert is just a click away. Tap the chat icon to interact with our AI assistant, powered by Google's Gemini models. Ask questions in plain language—"How much did I spend on groceries last month?" or "What's my biggest budget category?"—and get instant, insightful answers based on your data.</p>
-        )
-    },
-
-    {
-        title: 'Preferences & Appearance',
-        icon: 'tune',
-        content: (
-            <>
-                <p>Make Crystal feel like home with granular preferences and theming.</p>
-                <ul className="list-disc list-inside space-y-2 pl-2">
-                    <li><strong>Theme Control:</strong> Switch between light, dark, or system themes and preview the look before applying.</li>
-                    <li><strong>Regional Settings:</strong> Choose your currency, language, timezone, date format, and default reporting periods so summaries match your locale.</li>
-                    <li><strong>Default Behaviors:</strong> Set default account sorting, quick-create budget ranges, and forecast horizons to speed up daily workflows.</li>
-                </ul>
-            </>
-        )
-    },
-
-    {
-        title: 'Profile & Security',
-        icon: 'shield_person',
-        content: (
-            <>
-                <p>Keep your workspace secure and your profile current.</p>
-                <ul className="list-disc list-inside space-y-2 pl-2">
-                    <li><strong>Update Personal Details:</strong> Manage your name, phone, address, and profile photo directly from the Personal Info screen.</li>
-                    <li><strong>Strengthen Access:</strong> Change your password, toggle two-factor authentication, and review security settings in one place.</li>
-                </ul>
-            </>
-        )
-    },
-
-    {
-        title: 'Branding & Identity',
-        icon: 'palette',
-        content: (
-            <>
-                <p>The philosophy behind Crystal's design is to embody clarity, energy, and foresight.</p>
-                <ul className="list-disc list-inside space-y-2 pl-2">
-                    <li><strong>The Name:</strong> "Crystal" evokes the idea of a crystal ball, symbolizing our commitment to providing a clear, insightful view into your financial future.</li>
-                    <li><strong>The Logo:</strong> A modern, minimalist crystal ball, representing focus, clarity, and the power to see what's ahead.</li>
-                    <li><strong>The Palette:</strong> A vibrant gradient of orange and red serves as a powerful accent, signifying energy and drawing attention to key insights. The broader UI uses this palette to maintain a consistent and distinctive identity.</li>
-                </ul>
-            </>
+            <div className="space-y-4">
+                <p>
+                    Crystal integrates with Google's Gemini AI to provide a conversational interface for your finances.
+                </p>
+                <div className="flex items-start gap-4 p-4 border border-pink-200 dark:border-pink-900/50 bg-pink-50 dark:bg-pink-900/10 rounded-xl">
+                    <span className="material-symbols-outlined text-pink-500 text-2xl">forum</span>
+                    <div>
+                        <p className="font-semibold text-pink-900 dark:text-pink-100">Ask anything:</p>
+                        <p className="text-sm text-pink-800 dark:text-pink-300 italic mt-1">"How much did I spend on coffee last month?"</p>
+                        <p className="text-sm text-pink-800 dark:text-pink-300 italic">"Can I afford a vacation in July?"</p>
+                    </div>
+                </div>
+                <p className="text-xs text-gray-500">
+                    Note: You must configure your own API Key in the Settings > AI Assistant page to enable this feature.
+                </p>
+            </div>
         )
     }
 ];
 
 const Documentation: React.FC<DocumentationProps> = ({ setCurrentPage }) => {
-    const [activeSection, setActiveSection] = useState(features[0].title);
-    const [openSections, setOpenSections] = useState<Record<string, boolean>>({ [features[0].title]: true });
+    const [activeSection, setActiveSection] = useState(sections[0].id);
     const sectionRefs = useRef<Record<string, HTMLElement | null>>({});
-    const containerRef = useRef<HTMLDivElement>(null);
 
+    // Scroll Spy Logic
     useEffect(() => {
-        const observerOptions = {
-            rootMargin: '-30% 0px -70% 0px',
-            threshold: 0,
-        };
+        const handleScroll = () => {
+            const scrollPosition = window.scrollY + 150; // Offset for header
 
-        const observer = new IntersectionObserver((entries) => {
-            entries.forEach(entry => {
-                if (entry.isIntersecting) {
-                    const id = entry.target.id;
-                    const matchingFeature = features.find(f => f.title.replace(/\s+/g, '-').toLowerCase() === id);
-                    if (matchingFeature) {
-                        setActiveSection(matchingFeature.title);
+            for (const section of sections) {
+                const element = sectionRefs.current[section.id];
+                if (element) {
+                    const offsetTop = element.offsetTop;
+                    const offsetHeight = element.offsetHeight;
+
+                    if (scrollPosition >= offsetTop && scrollPosition < offsetTop + offsetHeight) {
+                        setActiveSection(section.id);
+                        break;
                     }
                 }
-            });
-        }, observerOptions);
-        
-        const currentRefs = sectionRefs.current;
-        Object.values(currentRefs).forEach(el => {
-            if (el instanceof HTMLElement) {
-                observer.observe(el);
             }
-        });
-
-        return () => {
-             Object.values(currentRefs).forEach(el => {
-                if (el instanceof HTMLElement) {
-                    observer.unobserve(el);
-                }
-            });
         };
+
+        window.addEventListener('scroll', handleScroll);
+        return () => window.removeEventListener('scroll', handleScroll);
     }, []);
 
-    const handleNavClick = (title: string) => {
-        sectionRefs.current[title]?.scrollIntoView({
-            behavior: 'smooth',
-            block: 'start'
-        });
-        setOpenSections(prev => ({ ...prev, [title]: true }));
-    };
-
-    const toggleSection = (title: string) => {
-        setOpenSections(prev => ({ ...prev, [title]: !prev[title] }));
-    };
-    
-    const handleBackToTop = () => {
-        const mainContent = containerRef.current?.closest('main');
-        if (mainContent) {
-            mainContent.scrollTo({ top: 0, behavior: 'smooth' });
+    const scrollToSection = (id: string) => {
+        const element = sectionRefs.current[id];
+        if (element) {
+            const yOffset = -100; // Header height offset
+            const y = element.getBoundingClientRect().top + window.pageYOffset + yOffset;
+            window.scrollTo({ top: y, behavior: 'smooth' });
         }
     };
 
+    const handleBackToTop = () => {
+        window.scrollTo({ top: 0, behavior: 'smooth' });
+    };
+
     return (
-        <div className="max-w-7xl mx-auto" ref={containerRef}>
-            <header className="mb-12">
-                <div className="flex items-center gap-4 mb-4">
-                    <button onClick={() => setCurrentPage('Settings')} className="text-light-text-secondary dark:text-dark-text-secondary p-2 rounded-full hover:bg-black/5 dark:hover:bg-white/5">
-                        <span className="material-symbols-outlined">arrow_back</span>
+        <div className="max-w-7xl mx-auto animate-fade-in-up pb-24 relative">
+            {/* Header */}
+            <header className="mb-12 pt-4">
+                <div className="flex items-center gap-3 mb-6 text-sm text-light-text-secondary dark:text-dark-text-secondary">
+                    <button onClick={() => setCurrentPage('Settings')} className="hover:text-primary-500 flex items-center gap-1 transition-colors">
+                         <span className="material-symbols-outlined text-base">arrow_back</span> Settings
                     </button>
-                    <div className="text-sm text-light-text-secondary dark:text-dark-text-secondary">
-                        <span onClick={() => setCurrentPage('Settings')} className="hover:underline cursor-pointer">Settings</span>
-                        <span> / </span>
-                        <span className="text-light-text dark:text-dark-text font-medium">Documentation</span>
-                    </div>
+                    <span>/</span>
+                    <span className="text-light-text dark:text-dark-text font-medium">Documentation</span>
                 </div>
-                <div className="text-center">
-                    <h1 className="text-5xl font-bold mb-4 text-light-text dark:text-dark-text">Documentation</h1>
-                    <p className="text-lg text-light-text-secondary dark:text-dark-text-secondary max-w-2xl mx-auto">
-                        Find everything you need to know about Crystal's features. Browse the topics below to get started.
+                <div className="text-center md:text-left">
+                    <h1 className="text-4xl md:text-5xl font-extrabold text-transparent bg-clip-text bg-gradient-to-r from-primary-600 to-purple-600 dark:from-primary-400 dark:to-purple-400 mb-4">
+                        Documentation
+                    </h1>
+                    <p className="text-lg text-light-text-secondary dark:text-dark-text-secondary max-w-2xl">
+                        Everything you need to know to master your finances with Crystal. 
+                        Explore features, learn workflows, and unlock the full potential of your dashboard.
                     </p>
                 </div>
             </header>
-            
-            <nav className="my-12">
-                <ul className="flex flex-wrap justify-center gap-3">
-                    {features.map(feature => (
-                        <li key={feature.title}>
+
+            <div className="flex flex-col lg:flex-row gap-12">
+                {/* Sticky Navigation Sidebar */}
+                <aside className="hidden lg:block w-64 flex-shrink-0">
+                    <div className="sticky top-24 space-y-1">
+                        <p className="px-4 mb-2 text-xs font-bold uppercase tracking-wider text-light-text-secondary dark:text-dark-text-secondary">
+                            Contents
+                        </p>
+                        {sections.map(section => (
                             <button
-                                onClick={() => handleNavClick(feature.title)}
-                                className={`flex items-center gap-2 px-4 py-2 rounded-full transition-colors duration-200 ${
-                                    activeSection === feature.title
-                                        ? 'bg-primary-500 text-white font-semibold'
-                                        : 'bg-light-bg dark:bg-dark-card text-light-text-secondary dark:text-dark-text-secondary hover:bg-primary-100 dark:hover:bg-primary-900/50'
+                                key={section.id}
+                                onClick={() => scrollToSection(section.id)}
+                                className={`w-full text-left px-4 py-2 rounded-lg text-sm font-medium transition-all duration-200 flex items-center gap-3 ${
+                                    activeSection === section.id
+                                        ? 'bg-primary-50 text-primary-700 dark:bg-primary-900/20 dark:text-primary-300 translate-x-1'
+                                        : 'text-light-text-secondary dark:text-dark-text-secondary hover:bg-black/5 dark:hover:bg-white/5 hover:text-light-text dark:hover:text-dark-text'
                                 }`}
                             >
-                                <span className="material-symbols-outlined text-base">{feature.icon}</span>
-                                <span className="text-sm font-medium">{feature.title}</span>
+                                <span className={`material-symbols-outlined text-[18px] ${activeSection === section.id ? 'opacity-100' : 'opacity-0'}`}>
+                                    chevron_right
+                                </span>
+                                {section.title}
                             </button>
-                        </li>
-                    ))}
-                </ul>
-            </nav>
+                        ))}
+                    </div>
+                </aside>
 
-            <main className="max-w-4xl mx-auto space-y-6">
-                {features.map(feature => {
-                    const isOpen = !!openSections[feature.title];
-                    const sectionId = feature.title.replace(/\s+/g, '-').toLowerCase();
-
-                    return (
-                        <section
-                            key={feature.title}
-                            id={sectionId}
-                            // FIX: Changed the ref callback to a block body to avoid returning a value, which is not allowed for callback refs.
-                            ref={(element) => { sectionRefs.current[feature.title] = element; }}
+                {/* Mobile Navigation (Dropdown style or Horizontal Scroll) */}
+                <div className="lg:hidden overflow-x-auto pb-4 -mx-4 px-4 flex gap-2 snap-x no-scrollbar">
+                     {sections.map(section => (
+                        <button
+                            key={section.id}
+                            onClick={() => scrollToSection(section.id)}
+                            className={`flex-shrink-0 px-4 py-2 rounded-full text-sm font-medium whitespace-nowrap border transition-colors ${
+                                activeSection === section.id
+                                    ? 'bg-primary-500 text-white border-primary-500'
+                                    : 'bg-white dark:bg-dark-card text-light-text-secondary dark:text-dark-text-secondary border-black/10 dark:border-white/10'
+                            }`}
                         >
-                            <Card className="p-0 overflow-hidden transition-all duration-300">
-                                <button
-                                    onClick={() => toggleSection(feature.title)}
-                                    className="w-full text-left p-6 flex justify-between items-center hover:bg-black/5 dark:hover:bg-white/5 transition-colors"
-                                    aria-expanded={isOpen}
-                                    aria-controls={`content-${sectionId}`}
-                                >
-                                    <h2 className="text-2xl lg:text-3xl flex items-center gap-4 text-light-text dark:text-dark-text font-bold">
-                                        <span className="material-symbols-outlined text-primary-500 text-3xl">{feature.icon}</span>
-                                        {feature.title}
-                                    </h2>
-                                    <span className={`material-symbols-outlined text-3xl text-light-text-secondary dark:text-dark-text-secondary transform transition-transform duration-300 ${isOpen ? 'rotate-180' : ''}`}>
-                                        expand_more
-                                    </span>
-                                </button>
-                                
-                                <div
-                                    id={`content-${sectionId}`}
-                                    className={`transition-all duration-500 ease-in-out grid ${isOpen ? 'grid-rows-[1fr] opacity-100' : 'grid-rows-[0fr] opacity-0'}`}
-                                >
-                                    <div className="overflow-hidden">
-                                        <div className="px-6 pb-6 pt-2">
-                                            <div className="prose dark:prose-invert max-w-none prose-p:leading-loose prose-p:mb-8 prose-li:leading-loose prose-li:my-4 prose-li:marker:text-primary-500 prose-headings:font-semibold prose-headings:text-light-text prose-headings:dark:text-dark-text prose-p:text-light-text-secondary prose-p:dark:text-dark-text-secondary prose-li:text-light-text-secondary prose-li:dark:text-dark-text-secondary">
-                                                {feature.content}
-                                            </div>
-                                            <div className="mt-8 pt-4 border-t border-black/10 dark:border-white/10 text-right">
-                                                <button
-                                                    onClick={handleBackToTop}
-                                                    className="text-sm font-semibold text-primary-500 hover:underline flex items-center gap-1 ml-auto"
-                                                >
-                                                    <span className="material-symbols-outlined text-base">arrow_upward</span>
-                                                    Back to Top
-                                                </button>
-                                            </div>
+                            {section.title}
+                        </button>
+                    ))}
+                </div>
+
+                {/* Main Content */}
+                <div className="flex-1 space-y-12">
+                    {sections.map(section => (
+                        <section 
+                            key={section.id} 
+                            id={section.id} 
+                            // FIX: Changed the ref callback to a block body to avoid returning a value, which is not allowed for callback refs.
+                            ref={(el) => { sectionRefs.current[section.id] = el; }}
+                            className="scroll-mt-24"
+                        >
+                            <Card className="p-0 overflow-hidden border-l-4 border-l-transparent hover:border-l-primary-500 transition-all duration-300">
+                                <div className="p-6 md:p-8">
+                                    <div className="flex items-center gap-4 mb-6">
+                                        <div className={`w-12 h-12 rounded-xl bg-gray-100 dark:bg-gray-800 flex items-center justify-center ${section.iconColor}`}>
+                                            <span className="material-symbols-outlined text-3xl">{section.icon}</span>
                                         </div>
+                                        <h2 className="text-2xl font-bold text-light-text dark:text-dark-text">{section.title}</h2>
+                                    </div>
+                                    <div className="prose dark:prose-invert max-w-none text-light-text dark:text-dark-text leading-relaxed">
+                                        {section.content}
                                     </div>
                                 </div>
                             </Card>
                         </section>
-                    );
-                })}
-            </main>
+                    ))}
+
+                    <div className="flex justify-center pt-8">
+                        <button 
+                            onClick={handleBackToTop}
+                            className="flex items-center gap-2 px-6 py-3 rounded-full bg-light-fill dark:bg-dark-fill hover:bg-black/10 dark:hover:bg-white/10 text-light-text-secondary dark:text-dark-text-secondary transition-colors font-medium text-sm"
+                        >
+                            <span className="material-symbols-outlined">arrow_upward</span>
+                            Back to Top
+                        </button>
+                    </div>
+                </div>
+            </div>
         </div>
     );
 };
