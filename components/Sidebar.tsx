@@ -1,3 +1,4 @@
+
 import React, { useState, useRef, useEffect } from 'react';
 import { Page, Theme, User } from '../types';
 import { NAV_ITEMS, CrystalLogo, NavItem } from '../constants';
@@ -22,8 +23,6 @@ const Sidebar: React.FC<SidebarProps> = ({ currentPage, setCurrentPage, isSideba
   const [isProfileMenuOpen, setProfileMenuOpen] = useState(false);
   const profileMenuRef = useRef<HTMLDivElement>(null);
   
-  const navItems = NAV_ITEMS;
-
   useEffect(() => {
     const handleClickOutside = (event: MouseEvent) => {
       if (profileMenuRef.current && !profileMenuRef.current.contains(event.target as Node)) {
@@ -40,7 +39,6 @@ const Sidebar: React.FC<SidebarProps> = ({ currentPage, setCurrentPage, isSideba
   const handleNavClick = (page: Page, hasSubItems?: boolean) => {
     if (isSidebarCollapsed && hasSubItems) {
         setSidebarCollapsed(false);
-        // Toggle the submenu to be open once the sidebar expands
         setOpenSubMenu(openSubMenu === page ? null : page);
         return;
     }
@@ -60,8 +58,20 @@ const Sidebar: React.FC<SidebarProps> = ({ currentPage, setCurrentPage, isSideba
     const isParentActive = !isSubItem && item.subItems?.some(sub => sub.name === currentPage);
     const isSubMenuOpen = openSubMenu === item.name;
 
+    const baseClasses = `group flex items-center justify-between p-3 rounded-xl transition-all duration-200 cursor-pointer mb-1`;
+    const activeClasses = `bg-gradient-to-r from-primary-600 to-primary-500 text-white shadow-lg shadow-primary-500/30`;
+    const inactiveClasses = `text-light-text-secondary dark:text-dark-text-secondary hover:bg-light-fill dark:hover:bg-white/5 hover:text-primary-600 dark:hover:text-primary-400`;
+    const parentActiveClasses = `bg-primary-50 dark:bg-primary-900/20 text-primary-700 dark:text-primary-300 font-semibold`;
+
+    let className = baseClasses;
+    if (isActive) className += ` ${activeClasses}`;
+    else if (isParentActive) className += ` ${parentActiveClasses}`;
+    else className += ` ${inactiveClasses}`;
+
+    if (isSidebarCollapsed) className += ' justify-center px-2';
+
     const iconEl = (
-        <span className={`material-symbols-outlined ${(isActive || isParentActive) ? 'material-symbols-filled' : ''} transition-transform duration-200 group-hover:scale-110`}>
+        <span className={`material-symbols-outlined ${isActive || isParentActive ? 'material-symbols-filled' : ''} text-[22px] transition-transform duration-200 group-hover:scale-110`}>
             {item.icon}
         </span>
     );
@@ -69,114 +79,129 @@ const Sidebar: React.FC<SidebarProps> = ({ currentPage, setCurrentPage, isSideba
     if (item.subItems) {
       return (
         <li key={item.name} title={isSidebarCollapsed ? item.name : undefined}>
-          <a
-            href="#"
-            onClick={(e) => {
-              e.preventDefault();
-              handleNavClick(item.name, true);
-            }}
-            className={`group flex items-center justify-between p-3 rounded-lg transition-colors duration-200 ${
-              isParentActive ? 'text-primary-600 font-semibold dark:text-primary-300 bg-primary-500/10' : 'text-light-text-secondary hover:bg-black/5 dark:text-dark-text-secondary dark:hover:bg-white/10'
-            } ${isSidebarCollapsed ? 'md:px-2' : ''}`}
+          <div
+            onClick={() => handleNavClick(item.name, true)}
+            className={className}
           >
-            <div className={`flex items-center ${isSidebarCollapsed ? 'md:w-full md:justify-center' : 'gap-3'}`}>
+            <div className={`flex items-center ${isSidebarCollapsed ? 'w-full justify-center' : 'gap-3'}`}>
               {iconEl}
-              <span className={`font-medium transition-opacity ${isSidebarCollapsed ? 'md:hidden' : ''}`}>{item.name}</span>
+              <span className={`font-medium whitespace-nowrap transition-all duration-300 ${isSidebarCollapsed ? 'w-0 opacity-0 overflow-hidden' : 'w-auto opacity-100'}`}>{item.name}</span>
             </div>
-            <span className={`material-symbols-outlined transition-transform duration-300 ${isSubMenuOpen ? 'rotate-180' : ''} ${isSidebarCollapsed ? 'md:hidden' : ''}`}>expand_more</span>
-          </a>
-          {isSubMenuOpen && !isSidebarCollapsed && (
-            <ul className="pl-4 pt-1 space-y-1">
+            {!isSidebarCollapsed && (
+                 <span className={`material-symbols-outlined text-sm transition-transform duration-300 ${isSubMenuOpen ? 'rotate-180' : ''}`}>expand_more</span>
+            )}
+          </div>
+          <div className={`overflow-hidden transition-all duration-300 ease-in-out ${isSubMenuOpen && !isSidebarCollapsed ? 'max-h-48 opacity-100' : 'max-h-0 opacity-0'}`}>
+             <ul className="pl-3 py-1 space-y-1 border-l-2 border-primary-100 dark:border-primary-900/50 ml-6 mb-2">
               {item.subItems.map(sub => renderNavItem(sub, true))}
             </ul>
-          )}
+          </div>
         </li>
       );
     }
 
     return (
       <li key={item.name} title={isSidebarCollapsed ? item.name : undefined}>
-        <a
-          href="#"
-          onClick={(e) => {
-            e.preventDefault();
-            handleNavClick(item.name);
-          }}
-          className={`group flex items-center p-3 rounded-lg transition-colors duration-200 ${ isSidebarCollapsed ? `md:px-2 md:justify-center md:gap-0` : `px-3 gap-3 ${isSubItem ? 'pl-7' : ''}`} ${
-            isActive
-              ? 'text-white font-semibold shadow-md'
-              : `text-light-text-secondary hover:bg-black/5 dark:text-dark-text-secondary dark:hover:bg-white/10`
-          }`}
-          style={isActive ? { background: 'linear-gradient(140deg,rgba(255, 149, 0, 1) 28%, rgba(253, 29, 29, 1) 100%)' } : {}}
+        <div
+          onClick={() => handleNavClick(item.name)}
+          className={`${className} ${isSubItem ? 'py-2 pl-4 text-sm' : ''}`}
         >
-          {iconEl}
-          <span className={`font-medium transition-opacity ${isSidebarCollapsed ? 'md:hidden' : ''}`}>{item.name}</span>
-        </a>
+            <div className={`flex items-center ${isSidebarCollapsed ? 'w-full justify-center' : 'gap-3'}`}>
+              {iconEl}
+              <span className={`font-medium whitespace-nowrap transition-all duration-300 ${isSidebarCollapsed ? 'w-0 opacity-0 overflow-hidden' : 'w-auto opacity-100'}`}>{item.name}</span>
+            </div>
+        </div>
       </li>
     );
   };
 
   return (
     <>
+      {/* Mobile Backdrop */}
       <div 
-        className={`fixed inset-0 z-30 bg-black/30 transition-opacity md:hidden ${isSidebarOpen ? 'opacity-100' : 'opacity-0 pointer-events-none'}`} 
+        className={`fixed inset-0 z-30 bg-black/40 backdrop-blur-sm transition-opacity md:hidden ${isSidebarOpen ? 'opacity-100' : 'opacity-0 pointer-events-none'}`} 
         onClick={() => setSidebarOpen(false)}
       ></div>
+      
       <aside
-        className={`fixed top-0 left-0 bottom-0 z-40 bg-light-card dark:bg-dark-card flex flex-col transition-all duration-300 ease-in-out md:relative md:h-screen md:translate-x-0 ${isSidebarOpen ? 'translate-x-0 w-64' : '-translate-x-full w-64'} ${isSidebarCollapsed ? 'md:w-20' : 'md:w-64'}`}
+        className={`fixed top-0 left-0 bottom-0 z-40 bg-light-card/95 dark:bg-dark-card/95 backdrop-blur-xl border-r border-black/5 dark:border-white/5 flex flex-col transition-all duration-300 ease-[cubic-bezier(0.4,0,0.2,1)] md:relative md:h-screen ${isSidebarOpen ? 'translate-x-0 shadow-2xl' : '-translate-x-full md:translate-x-0'} ${isSidebarCollapsed ? 'md:w-20' : 'md:w-72'}`}
       >
-        <div className={`flex items-center h-20 flex-shrink-0 transition-all duration-300 ${isSidebarCollapsed ? 'md:px-3 justify-center' : 'px-4 justify-between'}`}>
-            <div className={`flex items-center gap-3 overflow-hidden ${isSidebarCollapsed ? 'w-auto' : 'w-full'}`}>
-                <CrystalLogo showText={false} />
-                <span className={`font-bold text-xl transition-opacity ${isSidebarCollapsed ? 'md:hidden md:opacity-0' : 'opacity-100'}`}>Crystal</span>
-            </div>
-            <div className="flex items-center">
-                 <button
-                    onClick={() => setSidebarCollapsed(!isSidebarCollapsed)}
-                    className={`hidden md:flex items-center justify-center p-2 rounded-full text-light-text-secondary dark:text-dark-text-secondary hover:bg-black/5 dark:hover:bg-white/10 transition-colors ${isSidebarCollapsed ? 'hidden' : ''}`}
-                    title={isSidebarCollapsed ? 'Expand sidebar' : 'Collapse sidebar'}
-                >
-                    <span className="material-symbols-outlined">
-                        menu_open
-                    </span>
-                </button>
+        {/* Header / Logo */}
+        <div className={`flex items-center h-24 flex-shrink-0 transition-all duration-300 ${isSidebarCollapsed ? 'justify-center px-0' : 'justify-between px-6'}`}>
+            <div className={`flex items-center gap-3 overflow-hidden transition-all duration-300 ${isSidebarCollapsed ? 'w-10' : 'w-full'}`}>
+                <div className="flex-shrink-0 transition-transform duration-300 hover:scale-105">
+                     <CrystalLogo showText={false} />
+                </div>
+                <div className={`flex flex-col transition-opacity duration-300 ${isSidebarCollapsed ? 'opacity-0 w-0 overflow-hidden' : 'opacity-100'}`}>
+                    <span className="font-extrabold text-xl tracking-tight text-light-text dark:text-dark-text">Crystal</span>
+                    <span className="text-[10px] font-bold text-primary-500 tracking-widest uppercase">Finance</span>
+                </div>
             </div>
         </div>
-        <nav className={`flex-1 min-h-0 py-4 overflow-y-auto transition-all duration-300 ${isSidebarCollapsed ? 'px-2' : 'px-4'}`}>
-          <ul className="space-y-2">
-            {navItems.map((item) => renderNavItem(item))}
+
+        {/* Navigation */}
+        <nav className="flex-1 min-h-0 py-2 overflow-y-auto overflow-x-hidden scrollbar-thin scrollbar-thumb-gray-200 dark:scrollbar-thumb-gray-800 px-4">
+          <ul className="space-y-1">
+            {NAV_ITEMS.map((item) => renderNavItem(item))}
           </ul>
         </nav>
-        <div ref={profileMenuRef} className={`relative px-4 py-3 mt-auto border-t border-black/5 dark:border-white/10 ${isSidebarCollapsed ? 'md:px-2' : ''}`}>
-          {isProfileMenuOpen && (
-            <div className="animate-fade-in-up absolute bottom-full left-2 right-2 mb-2 bg-light-card dark:bg-dark-card rounded-lg shadow-lg border border-black/10 dark:border-white/10 py-2 z-10">
-              <button
-                onClick={() => { setCurrentPage('Personal Info'); setProfileMenuOpen(false); }}
-                className="w-full text-left px-4 py-2 text-sm flex items-center gap-3 text-light-text dark:text-dark-text hover:bg-black/5 dark:hover:bg-white/10"
-              >
-                <span className="material-symbols-outlined text-base">person</span>
-                <span>Personal Info</span>
-              </button>
-              <button
-                onClick={onLogout}
-                className="w-full text-left px-4 py-2 text-sm flex items-center gap-3 text-semantic-red hover:bg-semantic-red/10"
-              >
-                <span className="material-symbols-outlined text-base">logout</span>
-                <span>Logout</span>
-              </button>
+
+        {/* Footer / User Profile */}
+        <div className="p-4 mt-auto relative">
+            {/* Collapse Toggle Button - Absolute positioned on the border */}
+            <button
+                onClick={() => setSidebarCollapsed(!isSidebarCollapsed)}
+                className="hidden md:flex absolute -top-4 right-4 w-8 h-8 items-center justify-center rounded-full bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 shadow-sm text-gray-500 hover:text-primary-500 transition-all hover:scale-110 z-10"
+                title={isSidebarCollapsed ? 'Expand' : 'Collapse'}
+            >
+                <span className="material-symbols-outlined text-lg transform transition-transform duration-300" style={{ transform: isSidebarCollapsed ? 'rotate(180deg)' : 'rotate(0deg)' }}>
+                    chevron_left
+                </span>
+            </button>
+
+            <div ref={profileMenuRef} className="relative">
+                {isProfileMenuOpen && (
+                    <div className="animate-fade-in-up absolute bottom-full left-0 right-0 mb-3 bg-white dark:bg-gray-800 rounded-xl shadow-xl border border-black/5 dark:border-white/5 overflow-hidden p-1 ring-1 ring-black/5">
+                        <button
+                            onClick={() => { setCurrentPage('Personal Info'); setProfileMenuOpen(false); }}
+                            className="w-full text-left px-3 py-2.5 text-sm flex items-center gap-3 text-gray-700 dark:text-gray-200 hover:bg-gray-100 dark:hover:bg-white/5 rounded-lg transition-colors"
+                        >
+                            <div className="p-1.5 bg-blue-50 dark:bg-blue-900/30 rounded-md text-blue-600 dark:text-blue-400">
+                                <span className="material-symbols-outlined text-lg">person</span>
+                            </div>
+                            <span className="font-medium">Account</span>
+                        </button>
+                        <div className="h-px bg-gray-100 dark:bg-white/5 my-1 mx-2"></div>
+                        <button
+                            onClick={onLogout}
+                            className="w-full text-left px-3 py-2.5 text-sm flex items-center gap-3 text-red-600 hover:bg-red-50 dark:hover:bg-red-900/20 rounded-lg transition-colors"
+                        >
+                            <div className="p-1.5 bg-red-50 dark:bg-red-900/30 rounded-md text-red-500">
+                                <span className="material-symbols-outlined text-lg">logout</span>
+                            </div>
+                            <span className="font-medium">Sign Out</span>
+                        </button>
+                    </div>
+                )}
+                
+                <button
+                    onClick={() => setProfileMenuOpen(prev => !prev)}
+                    className={`w-full flex items-center p-2 rounded-xl transition-all duration-200 hover:bg-white dark:hover:bg-white/5 hover:shadow-sm border border-transparent hover:border-black/5 dark:hover:border-white/5 ${isSidebarCollapsed ? 'justify-center' : 'gap-3'}`}
+                >
+                    <div className="relative">
+                         <img className="h-10 w-10 rounded-full object-cover ring-2 ring-white dark:ring-gray-700 shadow-sm" src={user.profilePictureUrl} alt="User" />
+                         <div className="absolute bottom-0 right-0 w-3 h-3 bg-green-500 border-2 border-white dark:border-gray-800 rounded-full"></div>
+                    </div>
+                    
+                    <div className={`flex-grow text-left overflow-hidden transition-all duration-300 ${isSidebarCollapsed ? 'w-0 opacity-0' : 'w-auto opacity-100'}`}>
+                        <p className="font-bold text-sm truncate text-light-text dark:text-dark-text">{user.firstName} {user.lastName}</p>
+                        <p className="text-xs text-light-text-secondary dark:text-dark-text-secondary truncate">{user.role}</p>
+                    </div>
+                    {!isSidebarCollapsed && (
+                        <span className="material-symbols-outlined text-light-text-secondary dark:text-dark-text-secondary text-lg">more_vert</span>
+                    )}
+                </button>
             </div>
-          )}
-          <button
-            onClick={() => setProfileMenuOpen(prev => !prev)}
-            className={`w-full flex items-center gap-3 p-2 rounded-lg hover:bg-black/5 dark:hover:bg-white/10 transition-colors ${isSidebarCollapsed ? 'md:justify-center' : ''}`}
-            title="Profile options"
-          >
-            <img className="h-9 w-9 rounded-full object-cover flex-shrink-0" src={user.profilePictureUrl} alt="User" />
-            <div className={`flex-grow text-left overflow-hidden transition-all ${isSidebarCollapsed ? 'md:hidden' : ''}`}>
-              <p className="font-semibold text-sm truncate">{user.firstName} {user.lastName}</p>
-              <p className="text-xs text-light-text-secondary dark:text-dark-text-secondary truncate">{user.email}</p>
-            </div>
-          </button>
         </div>
       </aside>
     </>
