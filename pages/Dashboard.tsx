@@ -67,6 +67,13 @@ const findCategoryById = (id: string, categories: Category[]): Category | undefi
 }
 
 type EnrichedTransaction = Transaction & { convertedAmount: number; parsedDate: Date };
+type DashboardTab = 'overview' | 'analysis' | 'activity';
+
+const WIDGET_TABS: Record<DashboardTab, string[]> = {
+    overview: ['netWorthOverTime'],
+    analysis: ['assetBreakdown', 'liabilityBreakdown', 'budgetOverview', 'netWorthBreakdown'],
+    activity: ['outflowsByCategory', 'recentActivity', 'transactionMap']
+};
 
 const Dashboard: React.FC<DashboardProps> = ({ user, activeGoalIds, selectedAccountIds, setSelectedAccountIds, duration, setDuration }) => {
   const { accounts } = useAccountsContext();
@@ -88,6 +95,7 @@ const Dashboard: React.FC<DashboardProps> = ({ user, activeGoalIds, selectedAcco
   const [isAddWidgetModalOpen, setIsAddWidgetModalOpen] = useState(false);
   const [isEditMode, setIsEditMode] = useState(false);
   const [isMatcherModalOpen, setIsMatcherModalOpen] = useState(false);
+  const [activeTab, setActiveTab] = useState<DashboardTab>('overview');
 
   const { suggestions, confirmMatch, dismissSuggestion, confirmAllMatches, dismissAllSuggestions } = useTransactionMatcher(transactions, accounts, saveTransaction);
 
@@ -786,8 +794,9 @@ const Dashboard: React.FC<DashboardProps> = ({ user, activeGoalIds, selectedAcco
 
   const availableWidgetsToAdd = useMemo(() => {
     const currentWidgetIds = widgets.map(w => w.id);
-    return allWidgets.filter(w => !currentWidgetIds.includes(w.id));
-  }, [widgets, allWidgets]);
+    const allowedWidgets = WIDGET_TABS[activeTab];
+    return allWidgets.filter(w => !currentWidgetIds.includes(w.id) && allowedWidgets.includes(w.id));
+  }, [widgets, allWidgets, activeTab]);
 
   const [draggedWidgetId, setDraggedWidgetId] = useState<string | null>(null);
   const [dragOverWidgetId, setDragOverWidgetId] = useState<string | null>(null);
@@ -812,6 +821,11 @@ const Dashboard: React.FC<DashboardProps> = ({ user, activeGoalIds, selectedAcco
     });
   };
   const handleDragEnd = () => { setDraggedWidgetId(null); setDragOverWidgetId(null); };
+
+  // Styles for tab navigation
+  const tabBaseClass = "px-4 py-2 font-semibold text-sm rounded-lg transition-all duration-200 focus:outline-none whitespace-nowrap";
+  const tabActiveClass = "bg-white dark:bg-dark-card text-primary-600 dark:text-primary-400 shadow-sm";
+  const tabInactiveClass = "text-light-text-secondary dark:text-dark-text-secondary hover:text-light-text dark:hover:text-dark-text hover:bg-black/5 dark:hover:bg-white/5";
 
   return (
     <div className="space-y-6">
@@ -858,6 +872,13 @@ const Dashboard: React.FC<DashboardProps> = ({ user, activeGoalIds, selectedAcco
         </div>
         
         <div className="flex flex-col sm:flex-row gap-3 w-full xl:w-auto">
+             {/* Tab Navigation */}
+             <div className="flex bg-light-fill dark:bg-dark-fill p-1 rounded-lg w-full sm:w-auto overflow-x-auto no-scrollbar">
+                <button onClick={() => setActiveTab('overview')} className={`${tabBaseClass} ${activeTab === 'overview' ? tabActiveClass : tabInactiveClass}`}>Overview</button>
+                <button onClick={() => setActiveTab('analysis')} className={`${tabBaseClass} ${activeTab === 'analysis' ? tabActiveClass : tabInactiveClass}`}>Analysis</button>
+                <button onClick={() => setActiveTab('activity')} className={`${tabBaseClass} ${activeTab === 'activity' ? tabActiveClass : tabInactiveClass}`}>Activity</button>
+            </div>
+
             {/* Filters */}
             <div className="flex gap-3 w-full sm:w-auto">
                 <div className="flex-1 sm:flex-none">
@@ -915,85 +936,91 @@ const Dashboard: React.FC<DashboardProps> = ({ user, activeGoalIds, selectedAcco
           </Card>
       )}
 
-      {/* Top Summary Grid */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-        <BalanceCard title="Income" amount={income} change={incomeChange} changeType="positive" sparklineData={incomeSparkline} />
-        <BalanceCard title="Expenses" amount={expenses} change={expenseChange} changeType="negative" sparklineData={expenseSparkline} />
-        <NetBalanceCard netBalance={income - expenses} totalIncome={income} duration={duration} />
-        <CurrentBalanceCard balance={netWorth} currency="EUR" title="Net Worth" />
-      </div>
-      
-      {/* Lowest Balance Forecast */}
-      {lowestBalanceForecasts && lowestBalanceForecasts.length > 0 && (
-        <div>
-            <h3 className="text-xl font-semibold mb-4 text-light-text dark:text-dark-text">Lowest Balance Forecast</h3>
+      {activeTab === 'overview' && (
+        <>
+            {/* Top Summary Grid */}
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-                {lowestBalanceForecasts.map(forecast => (
-                    <LowestBalanceForecastCard 
-                        key={forecast.period}
-                        period={forecast.period}
-                        lowestBalance={forecast.lowestBalance}
-                        date={forecast.date}
-                    />
-                ))}
+                <BalanceCard title="Income" amount={income} change={incomeChange} changeType="positive" sparklineData={incomeSparkline} />
+                <BalanceCard title="Expenses" amount={expenses} change={expenseChange} changeType="negative" sparklineData={expenseSparkline} />
+                <NetBalanceCard netBalance={income - expenses} totalIncome={income} duration={duration} />
+                <CurrentBalanceCard balance={netWorth} currency="EUR" title="Net Worth" />
             </div>
-        </div>
-       )}
+            
+            {/* Lowest Balance Forecast */}
+            {lowestBalanceForecasts && lowestBalanceForecasts.length > 0 && (
+                <div>
+                    <h3 className="text-xl font-semibold mb-4 text-light-text dark:text-dark-text">Lowest Balance Forecast</h3>
+                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+                        {lowestBalanceForecasts.map(forecast => (
+                            <LowestBalanceForecastCard 
+                                key={forecast.period}
+                                period={forecast.period}
+                                lowestBalance={forecast.lowestBalance}
+                                date={forecast.date}
+                            />
+                        ))}
+                    </div>
+                </div>
+            )}
 
-      {/* Credit Card Statements Section */}
-      {creditCardStatements.length > 0 && (
-          <div className="space-y-6">
-              {creditCardStatements.map(statement => (
-                  <CreditCardStatementCard
-                      key={statement.accountName}
-                      accountName={statement.accountName}
-                      accountBalance={statement.accountBalance}
-                      creditLimit={statement.creditLimit}
-                      currency={statement.currency}
-                      currentStatement={{
-                          period: statement.current.period,
-                          balance: statement.current.balance,
-                          dueDate: statement.current.paymentDue,
-                          amountPaid: statement.current.amountPaid,
-                          previousStatementBalance: statement.current.previousStatementBalance
-                      }}
-                      nextStatement={{
-                          period: statement.future.period,
-                          balance: statement.future.balance,
-                          dueDate: statement.future.paymentDue
-                      }}
-                  />
-              ))}
-          </div>
+            {/* Credit Card Statements Section */}
+            {creditCardStatements.length > 0 && (
+                <div className="space-y-6">
+                    {creditCardStatements.map(statement => (
+                        <CreditCardStatementCard
+                            key={statement.accountName}
+                            accountName={statement.accountName}
+                            accountBalance={statement.accountBalance}
+                            creditLimit={statement.creditLimit}
+                            currency={statement.currency}
+                            currentStatement={{
+                                period: statement.current.period,
+                                balance: statement.current.balance,
+                                dueDate: statement.current.paymentDue,
+                                amountPaid: statement.current.amountPaid,
+                                previousStatementBalance: statement.current.previousStatementBalance
+                            }}
+                            nextStatement={{
+                                period: statement.future.period,
+                                balance: statement.future.balance,
+                                dueDate: statement.future.paymentDue
+                            }}
+                        />
+                    ))}
+                </div>
+            )}
+        </>
       )}
 
       {/* Customizable Widget Grid */}
       <div className="grid grid-cols-1 md:grid-cols-4 gap-6" style={{ gridAutoRows: 'minmax(200px, auto)' }}>
-        {widgets.map(widget => {
-            const widgetDetails = allWidgets.find(w => w.id === widget.id);
-            if (!widgetDetails) return null;
-            const WidgetComponent = widgetDetails.component;
+        {widgets
+            .filter(widget => WIDGET_TABS[activeTab].includes(widget.id))
+            .map(widget => {
+                const widgetDetails = allWidgets.find(w => w.id === widget.id);
+                if (!widgetDetails) return null;
+                const WidgetComponent = widgetDetails.component;
 
-            return (
-                <WidgetWrapper
-                    key={widget.id}
-                    title={widget.title}
-                    w={widget.w}
-                    h={widget.h}
-                    onRemove={() => removeWidget(widget.id)}
-                    onResize={(dim, change) => handleResize(widget.id, dim, change)}
-                    isEditMode={isEditMode}
-                    isBeingDragged={draggedWidgetId === widget.id}
-                    isDragOver={dragOverWidgetId === widget.id}
-                    onDragStart={e => handleDragStart(e, widget.id)}
-                    onDragEnter={e => handleDragEnter(e, widget.id)}
-                    onDragLeave={handleDragLeave}
-                    onDrop={e => handleDrop(e, widget.id)}
-                    onDragEnd={handleDragEnd}
-                >
-                    <WidgetComponent {...widgetDetails.props as any} />
-                </WidgetWrapper>
-            );
+                return (
+                    <WidgetWrapper
+                        key={widget.id}
+                        title={widget.title}
+                        w={widget.w}
+                        h={widget.h}
+                        onRemove={() => removeWidget(widget.id)}
+                        onResize={(dim, change) => handleResize(widget.id, dim, change)}
+                        isEditMode={isEditMode}
+                        isBeingDragged={draggedWidgetId === widget.id}
+                        isDragOver={dragOverWidgetId === widget.id}
+                        onDragStart={e => handleDragStart(e, widget.id)}
+                        onDragEnter={e => handleDragEnter(e, widget.id)}
+                        onDragLeave={handleDragLeave}
+                        onDrop={e => handleDrop(e, widget.id)}
+                        onDragEnd={handleDragEnd}
+                    >
+                        <WidgetComponent {...widgetDetails.props as any} />
+                    </WidgetWrapper>
+                );
         })}
       </div>
     </div>
