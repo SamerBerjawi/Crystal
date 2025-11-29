@@ -16,7 +16,7 @@ interface HeaderProps {
 
 const Header: React.FC<HeaderProps> = ({ user, setSidebarOpen, theme, setTheme, currentPage, titleOverride }) => {
   return (
-    <header className="flex-shrink-0 bg-light-card/80 dark:bg-dark-card/80 backdrop-blur-xl h-20 flex items-center sticky top-0 z-20 border-b border-black/5 dark:border-white/5 transition-all duration-300">
+    <header className="flex-shrink-0 bg-light-card/80 dark:bg-dark-card/80 backdrop-blur-xl h-20 flex items-center sticky top-0 z-20 transition-all duration-300">
         <div className="flex items-center justify-between w-full px-6 md:px-8">
             <div className="flex items-center gap-4">
                 <button 

@@ -1598,7 +1598,7 @@ const App: React.FC = () => {
             currentPage={currentPage}
             titleOverride={viewingAccount?.name}
           />
-          <main className="flex-1 overflow-x-hidden overflow-y-auto p-4 md:p-8 bg-light-bg dark:bg-dark-bg md:rounded-tl-3xl border-l border-t border-black/5 dark:border-white/5 shadow-2xl">
+          <main className="flex-1 overflow-x-hidden overflow-y-auto p-4 md:p-8 bg-light-bg dark:bg-dark-bg">
             <Suspense fallback={<PageLoader />}>
               {renderPage()}
             </Suspense>

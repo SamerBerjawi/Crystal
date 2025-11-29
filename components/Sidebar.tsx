@@ -124,7 +124,7 @@ const Sidebar: React.FC<SidebarProps> = ({ currentPage, setCurrentPage, isSideba
       ></div>
       
       <aside
-        className={`fixed top-0 left-0 bottom-0 z-40 bg-light-card/95 dark:bg-dark-card/95 backdrop-blur-xl border-r border-black/5 dark:border-white/5 flex flex-col transition-all duration-300 ease-[cubic-bezier(0.4,0,0.2,1)] md:relative md:h-screen ${isSidebarOpen ? 'translate-x-0 shadow-2xl' : '-translate-x-full md:translate-x-0'} ${isSidebarCollapsed ? 'md:w-20' : 'md:w-72'}`}
+        className={`fixed top-0 left-0 bottom-0 z-40 bg-light-card/95 dark:bg-dark-card/95 backdrop-blur-xl flex flex-col transition-all duration-300 ease-[cubic-bezier(0.4,0,0.2,1)] md:relative md:h-screen ${isSidebarOpen ? 'translate-x-0 shadow-2xl' : '-translate-x-full md:translate-x-0'} ${isSidebarCollapsed ? 'md:w-20' : 'md:w-72'}`}
       >
         {/* Header / Logo */}
         <div className={`flex items-center h-24 flex-shrink-0 transition-all duration-300 ${isSidebarCollapsed ? 'justify-center px-0' : 'justify-between px-6'}`}>
@@ -164,9 +164,9 @@ const Sidebar: React.FC<SidebarProps> = ({ currentPage, setCurrentPage, isSideba
                     <div className="animate-fade-in-up absolute bottom-full left-0 right-0 mb-3 bg-white dark:bg-gray-800 rounded-xl shadow-xl border border-black/5 dark:border-white/5 overflow-hidden p-1 ring-1 ring-black/5">
                         <button
                             onClick={() => { setCurrentPage('Personal Info'); setProfileMenuOpen(false); }}
-                            className="w-full text-left px-3 py-2.5 text-sm flex items-center gap-3 text-gray-700 dark:text-gray-200 hover:bg-gray-100 dark:hover:bg-white/5 rounded-lg transition-colors"
+                            className="w-full text-left px-3 py-2.5 text-sm flex items-center gap-3 text-gray-700 dark:text-gray-200 hover:bg-black/5 dark:hover:bg-white/5 rounded-lg transition-colors"
                         >
-                            <div className="p-1.5 bg-blue-50 dark:bg-blue-900/30 rounded-md text-blue-600 dark:text-blue-400">
+                            <div className="p-1.5 bg-black/5 dark:bg-white/10 rounded-md text-gray-600 dark:text-gray-300">
                                 <span className="material-symbols-outlined text-lg">person</span>
                             </div>
                             <span className="font-medium">Account</span>
@@ -174,9 +174,9 @@ const Sidebar: React.FC<SidebarProps> = ({ currentPage, setCurrentPage, isSideba
                         <div className="h-px bg-gray-100 dark:bg-white/5 my-1 mx-2"></div>
                         <button
                             onClick={onLogout}
-                            className="w-full text-left px-3 py-2.5 text-sm flex items-center gap-3 text-red-600 hover:bg-red-50 dark:hover:bg-red-900/20 rounded-lg transition-colors"
+                            className="w-full text-left px-3 py-2.5 text-sm flex items-center gap-3 text-red-600 hover:bg-black/5 dark:hover:bg-red-900/20 rounded-lg transition-colors"
                         >
-                            <div className="p-1.5 bg-red-50 dark:bg-red-900/30 rounded-md text-red-500">
+                            <div className="p-1.5 bg-black/5 dark:bg-white/10 rounded-md text-red-500">
                                 <span className="material-symbols-outlined text-lg">logout</span>
                             </div>
                             <span className="font-medium">Sign Out</span>
