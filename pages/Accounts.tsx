@@ -392,6 +392,58 @@ const Accounts: React.FC<AccountsProps> = ({ accounts, transactions, saveAccount
         </div>
       )}
 
+      {/* Controls Bar */}
+      <div className="sticky top-0 z-30 flex flex-wrap items-center justify-between gap-3 px-4 pt-4 pb-4 mb-6 border-b shadow-sm bg-light-bg/90 dark:bg-dark-bg/90 backdrop-blur-xl md:px-8 md:pt-6 md:-mx-8 -mx-4 -mt-4 md:-mt-8 border-black/5 dark:border-white/5 transition-all">
+           
+           <div className="flex items-center gap-3">
+               {/* Layout Toggle */}
+               <div className="flex p-1 space-x-1 rounded-lg bg-black/5 dark:bg-white/5">
+                    <button 
+                        onClick={() => setLayoutMode('columns')} 
+                        className={`p-1.5 rounded-md transition-all duration-200 flex items-center ${layoutMode === 'columns' ? 'bg-white dark:bg-dark-card shadow-sm text-primary-600 dark:text-primary-400' : 'text-light-text-secondary dark:text-dark-text-secondary hover:text-light-text dark:hover:text-dark-text'}`}
+                        title="Grid View"
+                    >
+                        <span className="material-symbols-outlined text-[20px]">grid_view</span>
+                    </button>
+                    <button 
+                        onClick={() => setLayoutMode('stacked')} 
+                        className={`p-1.5 rounded-md transition-all duration-200 flex items-center ${layoutMode === 'stacked' ? 'bg-white dark:bg-dark-card shadow-sm text-primary-600 dark:text-primary-400' : 'text-light-text-secondary dark:text-dark-text-secondary hover:text-light-text dark:hover:text-dark-text'}`}
+                        title="List View"
+                    >
+                        <span className="material-symbols-outlined text-[20px]">view_list</span>
+                    </button>
+               </div>
+               
+               {/* Divider */}
+               <div className="w-px h-6 bg-black/10 dark:bg-white/10"></div>
+
+               {/* Sort Dropdown */}
+                <div className="relative">
+                    <select
+                        value={sortBy}
+                        onChange={(e) => setSortBy(e.target.value as any)}
+                        className="h-9 pl-3 pr-8 text-sm font-medium transition-colors bg-transparent border rounded-lg appearance-none cursor-pointer border-black/10 dark:border-white/10 text-light-text dark:text-dark-text hover:bg-black/5 dark:hover:bg-white/5 focus:outline-none focus:ring-2 focus:ring-primary-500/50"
+                    >
+                        <option value="manual">Manual Sort</option>
+                        <option value="name">Name (A-Z)</option>
+                        <option value="balance">Value (High-Low)</option>
+                    </select>
+                    <div className="absolute inset-y-0 right-0 flex items-center px-2 pointer-events-none text-light-text-secondary dark:text-dark-text-secondary">
+                        <span className="material-symbols-outlined text-[18px]">expand_more</span>
+                    </div>
+                </div>
+           </div>
+
+           {/* Add Button */}
+           <button 
+                onClick={() => setAddModalOpen(true)} 
+                className="flex items-center justify-center h-9 gap-2 px-4 text-sm font-semibold text-white transition-all duration-200 rounded-lg shadow-sm bg-primary-600 hover:bg-primary-700 hover:shadow-md active:scale-95"
+            >
+                <span className="material-symbols-outlined text-[18px]">add</span>
+                <span>Add Account</span>
+            </button>
+      </div>
+
       {/* --- NEW PORTFOLIO DASHBOARD SECTION --- */}
       <div className="grid grid-cols-1 xl:grid-cols-3 gap-6 mb-8">
            {/* Hero Card: Net Worth */}
@@ -473,45 +525,6 @@ const Accounts: React.FC<AccountsProps> = ({ accounts, transactions, saveAccount
                 </div>
 
            </div>
-      </div>
-
-      {/* Controls Bar */}
-      <div className="flex flex-wrap justify-between items-center gap-4 sticky top-20 z-10 bg-light-bg/80 dark:bg-dark-bg/80 backdrop-blur-md py-4 -my-4 px-1 rounded-b-xl">
-           <div className="flex items-center gap-3">
-               <div className="flex bg-light-fill dark:bg-dark-fill p-1 rounded-lg shadow-sm">
-                    <button 
-                        onClick={() => setLayoutMode('columns')} 
-                        className={`p-2 rounded-md transition-all duration-200 ${layoutMode === 'columns' ? 'bg-white dark:bg-dark-card shadow text-primary-600' : 'text-light-text-secondary dark:text-dark-text-secondary hover:text-primary-500'}`}
-                        title="Column View (Assets & Liabilities side-by-side)"
-                    >
-                        <span className="material-symbols-outlined text-xl">view_column</span>
-                    </button>
-                    <button 
-                        onClick={() => setLayoutMode('stacked')} 
-                        className={`p-2 rounded-md transition-all duration-200 ${layoutMode === 'stacked' ? 'bg-white dark:bg-dark-card shadow text-primary-600' : 'text-light-text-secondary dark:text-dark-text-secondary hover:text-primary-500'}`}
-                        title="Stacked View (Assets above Liabilities)"
-                    >
-                        <span className="material-symbols-outlined text-xl">view_stream</span>
-                    </button>
-               </div>
-               
-                <div className={SELECT_WRAPPER_STYLE}>
-                    <select
-                        value={sortBy}
-                        onChange={(e) => setSortBy(e.target.value as any)}
-                        className={`${SELECT_STYLE} !py-2 !h-auto !text-sm`}
-                    >
-                        <option value="manual">Manual Sort</option>
-                        <option value="name">Sort by Name</option>
-                        <option value="balance">Sort by Balance</option>
-                    </select>
-                    <div className={SELECT_ARROW_STYLE}><span className="material-symbols-outlined text-sm">expand_more</span></div>
-                </div>
-           </div>
-           <button onClick={() => setAddModalOpen(true)} className={BTN_PRIMARY_STYLE}>
-                <span className="material-symbols-outlined text-xl mr-2">add</span>
-                Add Account
-            </button>
       </div>
 
       {/* Main Accounts Grid/List */}
