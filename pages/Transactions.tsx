@@ -22,8 +22,8 @@ interface TransactionsProps {
 }
 
 const MetricCard: React.FC<{ label: string; value: string; colorClass?: string; icon: string }> = ({ label, value, colorClass = "text-light-text dark:text-dark-text", icon }) => (
-    <div className="bg-white dark:bg-dark-card p-4 rounded-xl shadow-sm border border-black/5 dark:border-white/5 flex items-center gap-4 transition-transform hover:scale-[1.02] duration-200">
-        <div className={`w-12 h-12 rounded-full flex items-center justify-center bg-light-bg dark:bg-white/5 text-light-text-secondary dark:text-dark-text-secondary`}>
+    <div className="bg-white dark:bg-dark-card p-4 rounded-xl shadow-sm border border-black/5 dark:border-white/5 flex items-center gap-4 transition-transform hover:scale-[1.02] duration-200 h-full">
+        <div className={`w-12 h-12 rounded-full flex items-center justify-center bg-light-bg dark:bg-white/5 text-light-text-secondary dark:text-dark-text-secondary flex-shrink-0`}>
             <span className="material-symbols-outlined text-2xl">{icon}</span>
         </div>
         <div>
@@ -138,7 +138,6 @@ const Transactions: React.FC<TransactionsProps> = ({ accountFilter, setAccountFi
   const searchInputRef = useRef<HTMLInputElement>(null);
   const [contextMenu, setContextMenu] = useState<{ x: number, y: number, transaction: DisplayTransaction } | null>(null);
   const contextMenuRef = useRef<HTMLDivElement>(null);
-  const [showFilters, setShowFilters] = useState(false);
   const [isFiltersExpanded, setIsFiltersExpanded] = useState(false);
 
   // Pagination state
@@ -778,14 +777,23 @@ const Transactions: React.FC<TransactionsProps> = ({ accountFilter, setAccountFi
 
       {/* Metrics Summary */}
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+        <Card className="bg-gradient-to-br from-blue-500 to-cyan-600 text-white border-none relative overflow-hidden p-5 flex flex-col justify-center h-full">
+            <div className="relative z-10">
+                <p className="text-xs font-bold uppercase opacity-80 tracking-wider">Total Transactions</p>
+                <p className="text-3xl font-extrabold mt-1">{filteredTransactions.length}</p>
+                <p className="text-sm opacity-80 mt-1">in selected period</p>
+            </div>
+            <div className="absolute -right-4 -bottom-6 text-white opacity-10">
+                <span className="material-symbols-outlined text-9xl">receipt_long</span>
+            </div>
+        </Card>
         <MetricCard label="Total Income" value={formatCurrency(totalIncome, 'EUR')} colorClass="text-green-600 dark:text-green-400" icon="arrow_downward" />
         <MetricCard label="Total Expenses" value={formatCurrency(totalExpense, 'EUR')} colorClass="text-red-600 dark:text-red-400" icon="arrow_upward" />
         <MetricCard label="Net Cash Flow" value={formatCurrency(netFlow, 'EUR', { showPlusSign: true })} colorClass={netFlow >= 0 ? 'text-green-600 dark:text-green-400' : 'text-red-600 dark:text-red-400'} icon="account_balance_wallet" />
-        <MetricCard label="Transactions" value={filteredTransactions.length.toString()} icon="receipt_long" />
       </div>
       
       {/* Filter Toolbar */}
-      <div className={`p-4 bg-white dark:bg-dark-card rounded-2xl border border-black/5 dark:border-white/5 shadow-sm transition-all duration-300 ${showFilters ? '' : 'overflow-hidden'}`}>
+      <div className={`p-4 bg-white dark:bg-dark-card rounded-2xl border border-black/5 dark:border-white/5 shadow-sm transition-all duration-300`}>
           <div className="flex flex-col gap-4">
               {/* Main Row */}
               <div className="flex flex-col xl:flex-row gap-4 items-start xl:items-end">
