@@ -3,8 +3,8 @@ import React, { useState, useMemo } from 'react';
 // FIX: Import ScheduledItem from global types and remove local definition.
 import { RecurringTransaction, Account, Category, BillPayment, Currency, AccountType, RecurringTransactionOverride, ScheduledItem, Transaction, Tag, LoanPaymentOverrides } from '../types';
 import Card from '../components/Card';
-import { BTN_PRIMARY_STYLE, BTN_SECONDARY_STYLE, INPUT_BASE_STYLE, SELECT_WRAPPER_STYLE, SELECT_ARROW_STYLE, LIQUID_ACCOUNT_TYPES, ACCOUNT_TYPE_STYLES, ALL_ACCOUNT_TYPES } from '../constants';
-import { formatCurrency, convertToEur, generateSyntheticLoanPayments, generateSyntheticCreditCardPayments, generateSyntheticPropertyTransactions, parseDateAsUTC } from '../utils';
+import { BTN_PRIMARY_STYLE, BTN_SECONDARY_STYLE, INPUT_BASE_STYLE, SELECT_WRAPPER_STYLE, SELECT_ARROW_STYLE, LIQUID_ACCOUNT_TYPES, ACCOUNT_TYPE_STYLES, ALL_ACCOUNT_TYPES, BTN_DANGER_STYLE } from '../constants';
+import { formatCurrency, convertToEur, generateSyntheticLoanPayments, generateSyntheticCreditCardPayments, generateSyntheticPropertyTransactions, parseDateAsUTC, fuzzySearch } from '../utils';
 import RecurringTransactionModal from '../components/RecurringTransactionModal';
 import Modal from '../components/Modal';
 import ScheduleHeatmap from '../components/ScheduleHeatmap';
@@ -30,7 +30,8 @@ const ScheduledItemRow: React.FC<{
     onDelete: (id: string, isRecurring: boolean) => void;
     onPost: (item: ScheduledItem) => void;
     isReadOnly?: boolean;
-}> = ({ item, accounts, onEdit, onDelete, onPost, isReadOnly = false }) => {
+    compact?: boolean;
+}> = ({ item, accounts, onEdit, onDelete, onPost, isReadOnly = false, compact = false }) => {
     
     const isIncome = item.type === 'income' || item.type === 'deposit';
     const isTransfer = item.type === 'transfer';
@@ -57,17 +58,17 @@ const ScheduledItemRow: React.FC<{
             : 'text-rose-600 dark:text-rose-400';
     
     return (
-      <div className="group relative flex items-center gap-4 p-4 bg-white dark:bg-dark-card rounded-xl border border-black/5 dark:border-white/5 shadow-sm hover:shadow-md transition-all duration-200">
+      <div className={`group relative flex items-center gap-4 ${compact ? 'p-3' : 'p-4'} bg-white dark:bg-dark-card rounded-xl border border-black/5 dark:border-white/5 shadow-sm hover:shadow-md transition-all duration-200`}>
         {/* Date Block */}
-        <div className={`flex-shrink-0 flex flex-col items-center justify-center w-14 h-14 rounded-xl border ${isOverdue ? 'bg-red-50 dark:bg-red-900/20 border-red-200 dark:border-red-800' : 'bg-gray-50 dark:bg-white/5 border-black/5 dark:border-white/10'}`}>
-            <span className={`text-[10px] font-bold uppercase tracking-wider ${isOverdue ? 'text-red-500' : 'text-light-text-secondary dark:text-dark-text-secondary'}`}>{month}</span>
-            <span className={`text-xl font-extrabold leading-none ${isOverdue ? 'text-red-600 dark:text-red-400' : 'text-light-text dark:text-dark-text'}`}>{day}</span>
+        <div className={`flex-shrink-0 flex flex-col items-center justify-center ${compact ? 'w-10 h-10 rounded-lg' : 'w-14 h-14 rounded-xl'} border ${isOverdue ? 'bg-red-50 dark:bg-red-900/20 border-red-200 dark:border-red-800' : 'bg-gray-50 dark:bg-white/5 border-black/5 dark:border-white/10'}`}>
+            <span className={`${compact ? 'text-[8px]' : 'text-[10px]'} font-bold uppercase tracking-wider ${isOverdue ? 'text-red-500' : 'text-light-text-secondary dark:text-dark-text-secondary'}`}>{month}</span>
+            <span className={`${compact ? 'text-sm' : 'text-xl'} font-extrabold leading-none ${isOverdue ? 'text-red-600 dark:text-red-400' : 'text-light-text dark:text-dark-text'}`}>{day}</span>
         </div>
 
         {/* Content */}
         <div className="flex-grow min-w-0">
             <div className="flex items-center gap-2 mb-0.5">
-                <h4 className="font-bold text-light-text dark:text-dark-text truncate text-base">{item.description}</h4>
+                <h4 className={`font-bold text-light-text dark:text-dark-text truncate ${compact ? 'text-sm' : 'text-base'}`}>{item.description}</h4>
                 {item.isOverride && (
                     <span className="flex-shrink-0 px-1.5 py-0.5 rounded text-[10px] font-bold bg-amber-100 text-amber-700 dark:bg-amber-900/40 dark:text-amber-400 uppercase tracking-wide">Modified</span>
                 )}
@@ -87,7 +88,7 @@ const ScheduledItemRow: React.FC<{
 
         {/* Amount & Actions */}
         <div className="flex flex-col items-end gap-1">
-             <span className={`text-base font-bold font-mono tracking-tight ${amountColor}`}>
+             <span className={`${compact ? 'text-sm' : 'text-base'} font-bold font-mono tracking-tight ${amountColor}`}>
                 {formatCurrency(item.amount, 'EUR')}
              </span>
              
@@ -164,6 +165,53 @@ const ScheduleSummaryCard: React.FC<{ title: string; value: number; type: 'incom
     )
 }
 
+// --- Collapsible Group Component ---
+const ScheduleGroup = ({ title, items, accounts, onEdit, onDelete, onPost, defaultOpen = true, totalAmount }: any) => {
+    const [isOpen, setIsOpen] = useState(defaultOpen);
+    
+    return (
+        <div className="mb-6 last:mb-0">
+            <div 
+                className="flex justify-between items-center p-2 mb-2 cursor-pointer rounded-lg hover:bg-black/5 dark:hover:bg-white/5 transition-colors select-none"
+                onClick={() => setIsOpen(!isOpen)}
+            >
+                <div className="flex items-center gap-3">
+                     <div className={`p-1 rounded-md transition-transform duration-200 ${isOpen ? 'rotate-0' : '-rotate-90'}`}>
+                         <span className="material-symbols-outlined text-light-text-secondary dark:text-dark-text-secondary">expand_more</span>
+                     </div>
+                     <h3 className={`text-base font-bold ${title === 'Overdue' ? 'text-red-600 dark:text-red-400' : 'text-light-text dark:text-dark-text'}`}>
+                        {title}
+                     </h3>
+                     <span className="text-xs font-bold text-light-text-secondary dark:text-dark-text-secondary bg-black/5 dark:bg-white/10 px-2 py-0.5 rounded-full">
+                        {items.length}
+                     </span>
+                </div>
+                <div className="flex items-center gap-4">
+                     <span className={`text-sm font-mono font-bold ${totalAmount >= 0 ? 'text-emerald-600 dark:text-emerald-400' : 'text-rose-600 dark:text-rose-400'}`}>
+                        {formatCurrency(totalAmount, 'EUR', { showPlusSign: true })}
+                    </span>
+                </div>
+            </div>
+            
+            {isOpen && (
+                <div className="space-y-3 pl-2">
+                     {items.map((item: any) => (
+                        <ScheduledItemRow 
+                            key={item.id} 
+                            item={item} 
+                            accounts={accounts} 
+                            onEdit={onEdit} 
+                            onDelete={onDelete} 
+                            onPost={onPost} 
+                            isReadOnly={item.isRecurring && item.originalItem.isSynthetic} 
+                        />
+                     ))}
+                </div>
+            )}
+        </div>
+    );
+}
+
 // --- Main Page Component ---
 
 interface ScheduleProps {}
@@ -187,6 +235,8 @@ const SchedulePage: React.FC<ScheduleProps> = () => {
         loanPaymentOverrides,
     } = useScheduleContext();
 
+    const [viewMode, setViewMode] = useState<'timeline' | 'list'>('timeline');
+    const [searchQuery, setSearchQuery] = useState('');
     const [isRecurringModalOpen, setIsRecurringModalOpen] = useState(false);
     const [isBillModalOpen, setIsBillModalOpen] = useState(false);
     const [editingTransaction, setEditingTransaction] = useState<RecurringTransaction | null>(null);
@@ -195,11 +245,6 @@ const SchedulePage: React.FC<ScheduleProps> = () => {
     const [overrideModalItem, setOverrideModalItem] = useState<ScheduledItem | null>(null);
     const [isTransactionModalOpen, setIsTransactionModalOpen] = useState(false);
     const [itemToPost, setItemToPost] = useState<ScheduledItem | null>(null);
-    const [expandedScheduleGroups, setExpandedScheduleGroups] = useState<Record<string, boolean>>({});
-
-    const toggleScheduleGroup = (id: string) => {
-        setExpandedScheduleGroups(prev => ({ ...prev, [id]: !prev[id] }));
-    };
 
     const accountMap = React.useMemo(() => accounts.reduce((acc, current) => {
         acc[current.id] = current.name;
@@ -208,13 +253,13 @@ const SchedulePage: React.FC<ScheduleProps> = () => {
     
     // --- Data Processing ---
     const { 
-        upcomingRecurring, 
-        upcomingBills, 
-        paidItems, 
+        groupedItems,
+        sortedGroupKeys,
         allUpcomingForHeatmap, 
         summaryMetrics,
         categoryBreakdown,
-        majorOutflow
+        majorOutflow,
+        recurringList
     } = useMemo(() => {
         const today = new Date();
         const todayUTC = new Date(Date.UTC(today.getUTCFullYear(), today.getUTCMonth(), today.getUTCDate()));
@@ -223,6 +268,9 @@ const SchedulePage: React.FC<ScheduleProps> = () => {
         // Used for "Next 30 Days" metrics
         const next30DaysEnd = new Date(todayUTC);
         next30DaysEnd.setUTCDate(todayUTC.getUTCDate() + 30);
+        
+        const next7DaysEnd = new Date(todayUTC);
+        next7DaysEnd.setUTCDate(todayUTC.getUTCDate() + 7);
 
         const allUpcomingItems: ScheduledItem[] = [];
 
@@ -231,6 +279,15 @@ const SchedulePage: React.FC<ScheduleProps> = () => {
         const syntheticPropertyTransactions = generateSyntheticPropertyTransactions(accounts);
         const allRecurringTransactions = [...recurringTransactions, ...syntheticLoanPayments, ...syntheticCreditCardPayments, ...syntheticPropertyTransactions];
 
+        // Prepare list for "List View" (Management)
+        const recurringListItems = allRecurringTransactions.map(rt => ({
+            ...rt,
+            isSynthetic: rt.isSynthetic || false,
+            accountName: rt.accountId === 'external' ? 'External' : (rt.type === 'transfer' ? `${accountMap[rt.accountId]} → ${accountMap[rt.toAccountId!]}` : accountMap[rt.accountId])
+        }));
+
+
+        // Generate occurrences for timeline
         allRecurringTransactions.forEach(rt => {
             let nextDate = parseAsUTC(rt.nextDueDate);
             const endDateUTC = rt.endDate ? parseAsUTC(rt.endDate) : null;
@@ -238,11 +295,10 @@ const SchedulePage: React.FC<ScheduleProps> = () => {
 
             // Fast forward past dates before "recently"
             const startRecurringScanDate = new Date(todayUTC);
-            startRecurringScanDate.setUTCDate(startRecurringScanDate.getUTCDate() - 7); // Look back a week for overdue
+            startRecurringScanDate.setUTCDate(startRecurringScanDate.getUTCDate() - 30); // Look back a month for overdue
 
             while (nextDate < startRecurringScanDate && (!endDateUTC || nextDate < endDateUTC)) {
                 const interval = rt.frequencyInterval || 1;
-                // Simplified increment logic for brevity, full logic in utils
                 const d = new Date(nextDate);
                 if (rt.frequency === 'monthly') d.setMonth(d.getMonth() + interval);
                 else if (rt.frequency === 'weekly') d.setDate(d.getDate() + (7 * interval));
@@ -283,7 +339,8 @@ const SchedulePage: React.FC<ScheduleProps> = () => {
                     const targetDay = rt.dueDateOfMonth || startDateUTC.getUTCDate();
                     d.setMonth(d.getMonth() + interval);
                     // Handle month length logic basic
-                    d.setDate(targetDay); // Simplified
+                    const lastDayOfMonth = new Date(Date.UTC(d.getUTCFullYear(), d.getUTCMonth() + 1, 0)).getUTCDate();
+                    d.setUTCDate(Math.min(targetDay, lastDayOfMonth));
                 }
                 else if (rt.frequency === 'weekly') d.setDate(d.getDate() + (7 * interval));
                 else if (rt.frequency === 'daily') d.setDate(d.getDate() + interval);
@@ -307,10 +364,7 @@ const SchedulePage: React.FC<ScheduleProps> = () => {
 
         allUpcomingItems.sort((a, b) => parseAsUTC(a.date).getTime() - parseAsUTC(b.date).getTime());
 
-        // --- Splits & Metrics ---
-        const upcomingRecurringItems: ScheduledItem[] = [];
-        const upcomingBillsItems: ScheduledItem[] = [];
-        
+        // --- Metrics & Grouping ---
         let totalIncome30d = 0;
         let totalExpense30d = 0;
         let incomeCount30d = 0;
@@ -318,22 +372,22 @@ const SchedulePage: React.FC<ScheduleProps> = () => {
 
         const categorySpending: Record<string, number> = {};
         let maxOutflowItem: ScheduledItem | null = null;
+        
+        // Grouping for Timeline View
+        const groups: Record<string, ScheduledItem[]> = {};
+        
+        // Filter by search query
+        const filteredItems = allUpcomingItems.filter(item => 
+            !searchQuery || 
+            fuzzySearch(searchQuery, item.description) || 
+            fuzzySearch(searchQuery, item.accountName || '')
+        );
 
-        allUpcomingItems.forEach(item => {
+        filteredItems.forEach(item => {
             const itemDate = parseAsUTC(item.date);
             const isWithin30Days = itemDate >= todayUTC && itemDate <= next30DaysEnd;
 
-            // Populate lists (filter out very old items if needed, here we keep them as overdue)
-            if (item.isRecurring) {
-                 // Filter logic for bills vs recurring
-                 const rt = item.originalItem as RecurringTransaction;
-                 if (rt.isSynthetic && rt.id.startsWith('cc-pmt-')) upcomingBillsItems.push(item);
-                 else upcomingRecurringItems.push(item);
-            } else {
-                upcomingBillsItems.push(item);
-            }
-
-            // Metrics Calculation
+            // Metrics Calculation (only if within 30 days)
             if (isWithin30Days) {
                 const amountEur = convertToEur(item.amount, (item.originalItem as any).currency);
                 
@@ -344,7 +398,6 @@ const SchedulePage: React.FC<ScheduleProps> = () => {
                     totalExpense30d += Math.abs(amountEur);
                     expenseCount30d++;
                     
-                    // Category Breakdown
                     let catName = 'Other';
                     if (item.isRecurring) {
                         const rt = item.originalItem as RecurringTransaction;
@@ -355,29 +408,55 @@ const SchedulePage: React.FC<ScheduleProps> = () => {
                     }
                     categorySpending[catName] = (categorySpending[catName] || 0) + Math.abs(amountEur);
 
-                    // Max Outflow
                     if (!maxOutflowItem || Math.abs(amountEur) > Math.abs(convertToEur(maxOutflowItem.amount, (maxOutflowItem.originalItem as any).currency))) {
                         maxOutflowItem = item;
                     }
                 }
             }
+
+            // Grouping Logic
+            if (itemDate < todayUTC) {
+                if (!groups['Overdue']) groups['Overdue'] = [];
+                groups['Overdue'].push(item);
+            } else if (itemDate.getTime() === todayUTC.getTime()) {
+                if (!groups['Today']) groups['Today'] = [];
+                groups['Today'].push(item);
+            } else if (itemDate <= next7DaysEnd) {
+                if (!groups['Next 7 Days']) groups['Next 7 Days'] = [];
+                groups['Next 7 Days'].push(item);
+            } else {
+                const monthYear = itemDate.toLocaleString('default', { month: 'long', year: 'numeric', timeZone: 'UTC' });
+                if (!groups[monthYear]) groups[monthYear] = [];
+                groups[monthYear].push(item);
+            }
         });
+
+        // Define custom sort order for group keys
+        const monthKeys = Object.keys(groups).filter(k => k !== 'Overdue' && k !== 'Today' && k !== 'Next 7 Days');
+        // Sort month keys chronologically based on the date of the first item in each group
+        monthKeys.sort((a, b) => {
+             const dateA = parseAsUTC(groups[a][0].date);
+             const dateB = parseAsUTC(groups[b][0].date);
+             return dateA.getTime() - dateB.getTime();
+        });
+        
+        const sortedGroupKeys = [
+            groups['Overdue'] ? 'Overdue' : null,
+            groups['Today'] ? 'Today' : null,
+            groups['Next 7 Days'] ? 'Next 7 Days' : null,
+            ...monthKeys
+        ].filter(Boolean) as string[];
+
 
         const categoryBreakdownData = Object.entries(categorySpending)
             .map(([name, value]) => ({ name, value }))
             .sort((a, b) => b.value - a.value)
             .slice(0, 5); // Top 5
 
-        const paidItems = billsAndPayments
-            .filter(b => b.status === 'paid')
-            .sort((a, b) => parseAsUTC(b.dueDate).getTime() - parseAsUTC(a.dueDate).getTime())
-            .slice(0, 10);
-
         return {
-            upcomingRecurring: upcomingRecurringItems,
-            upcomingBills: upcomingBillsItems,
-            paidItems,
-            allUpcomingForHeatmap: allUpcomingItems,
+            groupedItems: groups,
+            sortedGroupKeys,
+            allUpcomingForHeatmap: allUpcomingItems, // Use unfiltered for heatmap to show full picture
             summaryMetrics: {
                 income: totalIncome30d,
                 expense: totalExpense30d,
@@ -386,9 +465,10 @@ const SchedulePage: React.FC<ScheduleProps> = () => {
                 expCount: expenseCount30d
             },
             categoryBreakdown: categoryBreakdownData,
-            majorOutflow: maxOutflowItem
+            majorOutflow: maxOutflowItem,
+            recurringList: recurringListItems.filter(item => !searchQuery || fuzzySearch(searchQuery, item.description) || fuzzySearch(searchQuery, item.accountName || ''))
         };
-    }, [recurringTransactions, billsAndPayments, accounts, accountMap, recurringTransactionOverrides, transactions]);
+    }, [recurringTransactions, billsAndPayments, accounts, accountMap, recurringTransactionOverrides, transactions, searchQuery, loanPaymentOverrides]);
 
     const handleOpenRecurringModal = (rt?: RecurringTransaction) => {
         setEditingTransaction(rt || null);
@@ -426,9 +506,13 @@ const SchedulePage: React.FC<ScheduleProps> = () => {
 
     const handleDeleteItem = (id: string, isRecurring: boolean) => {
         if (isRecurring) {
-            deleteRecurringTransaction(id);
+            if (window.confirm('Delete this recurring series?')) {
+                deleteRecurringTransaction(id);
+            }
         } else {
-            deleteBillPayment(id);
+            if (window.confirm('Delete this bill?')) {
+                deleteBillPayment(id);
+            }
         }
     };
 
@@ -521,28 +605,6 @@ const SchedulePage: React.FC<ScheduleProps> = () => {
         };
     }, [itemToPost]);
 
-    const groupItems = (items: ScheduledItem[]) => {
-        const groups: Record<string, ScheduledItem[]> = { 'Overdue': [], 'Today': [], 'Next 7 Days': [], 'Next 30 Days': [], 'Later': [] };
-        const today = new Date();
-        const todayUTC = new Date(Date.UTC(today.getUTCFullYear(), today.getUTCMonth(), today.getUTCDate()));
-        const next7Days = new Date(todayUTC); next7Days.setUTCDate(todayUTC.getUTCDate() + 7);
-        const next30Days = new Date(todayUTC); next30Days.setUTCDate(todayUTC.getUTCDate() + 30);
-        
-        items.forEach(item => {
-            const itemDate = parseAsUTC(item.date);
-            if (itemDate < todayUTC) { groups['Overdue'].push(item); } 
-            else if (itemDate.getTime() === todayUTC.getTime()) { groups['Today'].push(item); } 
-            else if (itemDate <= next7Days) { groups['Next 7 Days'].push(item); } 
-            else if (itemDate <= next30Days) { groups['Next 30 Days'].push(item); } 
-            else { groups['Later'].push(item); }
-        });
-        return groups;
-    };
-    
-    // Merge lists for main view
-    const combinedItems = [...upcomingRecurring, ...upcomingBills];
-    const groupedItems = groupItems(combinedItems);
-
     const PIE_COLORS = ['#6366F1', '#F59E0B', '#10B981', '#EF4444', '#8B5CF6'];
 
     return (
@@ -592,47 +654,115 @@ const SchedulePage: React.FC<ScheduleProps> = () => {
             <div className="grid grid-cols-1 xl:grid-cols-3 gap-8">
                 
                 {/* Main Column: Scheduled Items */}
-                <div className="xl:col-span-2 space-y-8">
-                    {['Overdue', 'Today', 'Next 7 Days', 'Next 30 Days', 'Later'].map(groupKey => {
-                        const items = groupedItems[groupKey];
-                        if (!items || items.length === 0) return null;
-                        
-                        const groupTotal = items.reduce((sum, item) => sum + convertToEur(item.amount, (item.originalItem as any).currency), 0);
-
-                        return (
-                            <div key={groupKey}>
-                                <div className="flex justify-between items-center mb-4">
-                                    <h3 className={`text-lg font-bold flex items-center gap-2 ${groupKey === 'Overdue' ? 'text-red-600 dark:text-red-400' : 'text-light-text dark:text-dark-text'}`}>
-                                        {groupKey === 'Overdue' && <span className="material-symbols-outlined">warning</span>}
-                                        {groupKey} 
-                                        <span className="text-xs font-medium text-light-text-secondary dark:text-dark-text-secondary bg-black/5 dark:bg-white/5 px-2 py-0.5 rounded-full">{items.length}</span>
-                                    </h3>
-                                    <span className={`text-sm font-mono font-bold ${groupTotal >= 0 ? 'text-emerald-600 dark:text-emerald-400' : 'text-rose-600 dark:text-rose-400'}`}>
-                                        {formatCurrency(groupTotal, 'EUR', { showPlusSign: true })}
-                                    </span>
-                                </div>
-                                <div className="space-y-3">
-                                    {items.map(item => (
-                                        <ScheduledItemRow 
-                                            key={item.id} 
-                                            item={item} 
-                                            accounts={accounts} 
-                                            onEdit={handleEditItem} 
-                                            onDelete={handleDeleteItem} 
-                                            onPost={handleOpenPostModal}
-                                            isReadOnly={item.isRecurring && (item.originalItem as RecurringTransaction).isSynthetic} 
-                                        />
-                                    ))}
-                                </div>
-                            </div>
-                        );
-                    })}
+                <div className="xl:col-span-2 space-y-6">
                     
-                    {combinedItems.length === 0 && (
-                         <div className="text-center py-12 bg-light-card dark:bg-dark-card rounded-xl border border-dashed border-black/10 dark:border-white/10">
-                            <span className="material-symbols-outlined text-4xl text-gray-400 mb-2">event_busy</span>
-                            <p className="text-light-text-secondary dark:text-dark-text-secondary">No scheduled items found.</p>
-                         </div>
+                    {/* Controls & Tabs */}
+                    <div className="flex flex-col sm:flex-row justify-between gap-4 bg-light-card dark:bg-dark-card p-2 rounded-xl shadow-sm border border-black/5 dark:border-white/5">
+                         <div className="flex bg-light-fill dark:bg-dark-fill p-1 rounded-lg w-full sm:w-auto">
+                            <button 
+                                onClick={() => setViewMode('timeline')} 
+                                className={`flex-1 sm:flex-none px-4 py-2 rounded-md text-sm font-semibold transition-all duration-200 flex items-center justify-center gap-2 ${viewMode === 'timeline' ? 'bg-white dark:bg-dark-card text-primary-600 dark:text-primary-400 shadow-sm' : 'text-light-text-secondary dark:text-dark-text-secondary hover:text-light-text dark:hover:text-dark-text'}`}
+                            >
+                                <span className="material-symbols-outlined text-base">calendar_view_day</span>
+                                Timeline
+                            </button>
+                            <button 
+                                onClick={() => setViewMode('list')} 
+                                className={`flex-1 sm:flex-none px-4 py-2 rounded-md text-sm font-semibold transition-all duration-200 flex items-center justify-center gap-2 ${viewMode === 'list' ? 'bg-white dark:bg-dark-card text-primary-600 dark:text-primary-400 shadow-sm' : 'text-light-text-secondary dark:text-dark-text-secondary hover:text-light-text dark:hover:text-dark-text'}`}
+                            >
+                                <span className="material-symbols-outlined text-base">list</span>
+                                Recurring Rules
+                            </button>
+                        </div>
+                        <div className="relative flex-grow max-w-md">
+                             <span className="material-symbols-outlined absolute left-3 top-1/2 -translate-y-1/2 text-light-text-secondary dark:text-dark-text-secondary pointer-events-none">search</span>
+                             <input 
+                                type="text" 
+                                placeholder={viewMode === 'timeline' ? "Search upcoming..." : "Search rules..."} 
+                                value={searchQuery} 
+                                onChange={(e) => setSearchQuery(e.target.value)} 
+                                className={`${INPUT_BASE_STYLE} pl-10 w-full !h-10 !bg-transparent border-none focus:ring-0`}
+                             />
+                        </div>
+                    </div>
+
+                    {viewMode === 'timeline' ? (
+                         <div className="space-y-8">
+                            {sortedGroupKeys.map(groupKey => {
+                                const items = groupedItems[groupKey];
+                                if (!items || items.length === 0) return null;
+                                const groupTotal = items.reduce((sum, item) => sum + convertToEur(item.amount, (item.originalItem as any).currency), 0);
+
+                                return (
+                                    <ScheduleGroup 
+                                        key={groupKey} 
+                                        title={groupKey} 
+                                        items={items} 
+                                        accounts={accounts} 
+                                        onEdit={handleEditItem} 
+                                        onDelete={handleDeleteItem} 
+                                        onPost={handleOpenPostModal}
+                                        totalAmount={groupTotal}
+                                        defaultOpen={['Overdue', 'Today', 'Next 7 Days'].includes(groupKey)}
+                                    />
+                                );
+                            })}
+                            
+                            {sortedGroupKeys.length === 0 && (
+                                 <div className="text-center py-12 bg-light-card dark:bg-dark-card rounded-xl border border-dashed border-black/10 dark:border-white/10">
+                                    <span className="material-symbols-outlined text-4xl text-gray-400 mb-2">event_busy</span>
+                                    <p className="text-light-text-secondary dark:text-dark-text-secondary">No upcoming items found.</p>
+                                 </div>
+                            )}
+                        </div>
+                    ) : (
+                        <div className="space-y-4">
+                             {recurringList.map((rt) => (
+                                <div key={rt.id} className="flex items-center justify-between p-4 bg-white dark:bg-dark-card rounded-xl border border-black/5 dark:border-white/5 shadow-sm hover:shadow-md transition-all">
+                                    <div>
+                                        <div className="flex items-center gap-2">
+                                            <h4 className="font-bold text-light-text dark:text-dark-text">{rt.description}</h4>
+                                            {rt.isSynthetic && (
+                                                <span className="text-[10px] font-bold bg-gray-100 dark:bg-white/10 text-gray-600 dark:text-gray-300 px-2 py-0.5 rounded uppercase">Auto</span>
+                                            )}
+                                        </div>
+                                        <div className="flex items-center gap-3 text-xs text-light-text-secondary dark:text-dark-text-secondary mt-1">
+                                            <span className="capitalize bg-black/5 dark:bg-white/5 px-2 py-0.5 rounded">{rt.frequency}</span>
+                                            <span>Next: {rt.nextDueDate}</span>
+                                            <span className="truncate max-w-[150px]">{rt.accountName}</span>
+                                        </div>
+                                    </div>
+                                    <div className="text-right">
+                                        <p className={`font-bold font-mono ${rt.type === 'income' ? 'text-green-600 dark:text-green-400' : 'text-light-text dark:text-dark-text'}`}>
+                                            {formatCurrency(rt.amount, rt.currency)}
+                                        </p>
+                                        <div className="flex justify-end gap-2 mt-2">
+                                            <button 
+                                                onClick={() => handleOpenRecurringModal(rt as RecurringTransaction)} 
+                                                className="text-light-text-secondary hover:text-primary-500 transition-colors disabled:opacity-30"
+                                                disabled={rt.isSynthetic}
+                                                title="Edit"
+                                            >
+                                                <span className="material-symbols-outlined text-lg">edit</span>
+                                            </button>
+                                            <button 
+                                                onClick={() => handleDeleteItem(rt.id, true)} 
+                                                className="text-light-text-secondary hover:text-red-500 transition-colors disabled:opacity-30"
+                                                disabled={rt.isSynthetic}
+                                                title="Delete"
+                                            >
+                                                <span className="material-symbols-outlined text-lg">delete</span>
+                                            </button>
+                                        </div>
+                                    </div>
+                                </div>
+                             ))}
+                             {recurringList.length === 0 && (
+                                 <div className="text-center py-12 bg-light-card dark:bg-dark-card rounded-xl border border-dashed border-black/10 dark:border-white/10">
+                                    <p className="text-light-text-secondary dark:text-dark-text-secondary">No recurring transactions found.</p>
+                                 </div>
+                             )}
+                        </div>
                     )}
                 </div>
 
