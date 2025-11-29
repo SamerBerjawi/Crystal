@@ -689,47 +689,32 @@ const SchedulePage: React.FC<ScheduleProps> = () => {
                 <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
                     {/* Expense Breakdown */}
                     <Card className="flex flex-col justify-between relative overflow-hidden">
-                        <div className="flex justify-between items-start z-10">
-                            <h3 className="text-base font-bold text-light-text dark:text-dark-text">Expenses (Next 30d)</h3>
+                        <div className="flex justify-between items-start z-10 mb-4">
+                            <h3 className="text-base font-bold text-light-text dark:text-dark-text">Expense Breakdown (30d)</h3>
+                            <span className="text-xs font-medium text-light-text-secondary dark:text-dark-text-secondary">
+                                Total: {formatCurrency(summaryMetrics.expense, 'EUR')}
+                            </span>
                         </div>
-                        <div className="flex items-center gap-4 mt-2 z-10 h-32">
-                             <div className="w-24 h-24 relative flex-shrink-0">
-                                <ResponsiveContainer width="100%" height="100%">
-                                    <PieChart>
-                                        <Pie
-                                            data={categoryBreakdown}
-                                            cx="50%"
-                                            cy="50%"
-                                            innerRadius={35}
-                                            outerRadius={45}
-                                            paddingAngle={2}
-                                            dataKey="value"
-                                        >
-                                            {categoryBreakdown.map((entry, index) => (
-                                                <Cell key={`cell-${index}`} fill={PIE_COLORS[index % PIE_COLORS.length]} stroke="none" />
-                                            ))}
-                                        </Pie>
-                                        <RechartsTooltip 
-                                            formatter={(val: number) => formatCurrency(val, 'EUR')}
-                                            contentStyle={{ backgroundColor: 'var(--light-card)', borderColor: 'rgba(0,0,0,0.1)', borderRadius: '8px', color: 'var(--light-text)', fontSize: '12px' }}
-                                        />
-                                    </PieChart>
-                                </ResponsiveContainer>
-                                <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
-                                    <span className="material-symbols-outlined text-gray-400 text-xl">pie_chart</span>
-                                </div>
-                             </div>
-                             <div className="flex-1 space-y-1 min-w-0">
-                                {categoryBreakdown.slice(0, 3).map((cat, idx) => (
-                                    <div key={cat.name} className="flex justify-between items-center text-xs">
-                                        <div className="flex items-center gap-1.5 truncate">
-                                            <div className="w-2 h-2 rounded-full flex-shrink-0" style={{ backgroundColor: PIE_COLORS[idx % PIE_COLORS.length] }}></div>
-                                            <span className="truncate max-w-[80px]">{cat.name}</span>
+                        <div className="flex-1 overflow-y-auto space-y-3 pr-1 custom-scrollbar">
+                            {categoryBreakdown.length > 0 ? (
+                                categoryBreakdown.map((cat, index) => {
+                                    const percent = summaryMetrics.expense > 0 ? (cat.value / summaryMetrics.expense) * 100 : 0;
+                                    const color = PIE_COLORS[index % PIE_COLORS.length];
+                                    return (
+                                        <div key={cat.name} className="group">
+                                            <div className="flex justify-between text-xs mb-1">
+                                                <span className="font-medium text-light-text dark:text-dark-text truncate max-w-[120px]">{cat.name}</span>
+                                                <span className="text-light-text-secondary dark:text-dark-text-secondary">{formatCurrency(cat.value, 'EUR')}</span>
+                                            </div>
+                                            <div className="w-full bg-gray-100 dark:bg-white/5 rounded-full h-1.5 overflow-hidden">
+                                                 <div className="h-full rounded-full" style={{ width: `${percent}%`, backgroundColor: color }}></div>
+                                            </div>
                                         </div>
-                                        <span className="font-medium">{formatCurrency(cat.value, 'EUR')}</span>
-                                    </div>
-                                ))}
-                             </div>
+                                    )
+                                })
+                            ) : (
+                                 <p className="text-sm text-light-text-secondary dark:text-dark-text-secondary text-center mt-4">No scheduled expenses.</p>
+                            )}
                         </div>
                     </Card>
 
