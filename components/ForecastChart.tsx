@@ -339,13 +339,13 @@ const ForecastChart: React.FC<ForecastChartProps> = ({ data, oneTimeGoals, lowes
                   >
                     <Label 
                         value={`Low: ${formatCurrency(lowestPoint.value, 'EUR')}`}
-                        position="insideBottomRight" 
+                        position="insideTopRight" 
                         fill="#EF4444" 
                         fontSize={11} 
                         fontWeight={700}
                         angle={-90} 
                         dx={12} 
-                        dy={-20} 
+                        dy={40} 
                     />
                   </ReferenceLine>
               )}

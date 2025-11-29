@@ -24,8 +24,6 @@ const ForecastOverview: React.FC<ForecastOverviewProps> = ({ forecasts, currency
          return 0; 
     });
     
-    const globalLowest = Math.min(...forecasts.map(f => f.lowestBalance));
-
     return (
         <Card className="bg-gradient-to-b from-white to-gray-50 dark:from-dark-card dark:to-black/20 border border-black/5 dark:border-white/5 shadow-sm">
             <div className="flex items-center gap-2 mb-6">
@@ -41,7 +39,6 @@ const ForecastOverview: React.FC<ForecastOverviewProps> = ({ forecasts, currency
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
                 {sortedForecasts.map((item) => {
                     const isLow = item.lowestBalance < 0;
-                    const isGlobalLowest = Math.abs(item.lowestBalance - globalLowest) < 0.01;
                     
                     let statusColor = 'bg-gray-100 dark:bg-gray-800 text-light-text dark:text-dark-text';
                     let amountColor = 'text-light-text dark:text-dark-text';
@@ -60,25 +57,14 @@ const ForecastOverview: React.FC<ForecastOverviewProps> = ({ forecasts, currency
                          amountColor = 'text-emerald-600 dark:text-emerald-400';
                          icon = 'check_circle';
                     }
-                    
-                    // Highlight the absolute lowest point
-                    const containerClass = isGlobalLowest 
-                        ? `ring-2 ring-offset-2 ring-indigo-500 dark:ring-indigo-400 dark:ring-offset-dark-bg transform scale-[1.02]` 
-                        : '';
 
                     const formattedDate = parseDateAsUTC(item.date, timeZone).toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
 
                     return (
                         <div 
                             key={item.period} 
-                            className={`relative p-4 rounded-xl transition-all duration-300 ${statusColor} ${containerClass}`}
+                            className={`relative p-4 rounded-xl transition-all duration-300 ${statusColor}`}
                         >
-                            {isGlobalLowest && (
-                                <div className="absolute -top-3 left-1/2 -translate-x-1/2 px-2 py-0.5 bg-indigo-500 text-white text-[10px] font-bold uppercase tracking-wider rounded-full shadow-sm">
-                                    Lowest Point
-                                </div>
-                            )}
-                            
                             <div className="flex justify-between items-start mb-3">
                                 <span className="text-xs font-bold uppercase tracking-wider opacity-70">{item.period}</span>
                                 <span className={`material-symbols-outlined text-lg ${isLow ? 'text-red-500' : 'opacity-30'}`}>{icon}</span>
