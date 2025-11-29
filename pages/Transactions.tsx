@@ -22,6 +22,18 @@ interface TransactionsProps {
   setTagFilter: (tagId: string | null) => void;
 }
 
+const MetricCard: React.FC<{ label: string; value: string; colorClass?: string; icon: string }> = ({ label, value, colorClass = "text-light-text dark:text-dark-text", icon }) => (
+    <div className="bg-white dark:bg-dark-card p-4 rounded-xl shadow-sm border border-black/5 dark:border-white/5 flex items-center gap-4 transition-transform hover:scale-[1.02] duration-200">
+        <div className={`w-12 h-12 rounded-full flex items-center justify-center bg-light-bg dark:bg-white/5 text-light-text-secondary dark:text-dark-text-secondary`}>
+            <span className="material-symbols-outlined text-2xl">{icon}</span>
+        </div>
+        <div>
+            <p className="text-xs font-bold uppercase tracking-wider text-light-text-secondary dark:text-dark-text-secondary mb-0.5">{label}</p>
+            <p className={`text-xl font-bold ${colorClass}`}>{value}</p>
+        </div>
+    </div>
+);
+
 const Transactions: React.FC<TransactionsProps> = ({ accountFilter, setAccountFilter, tagFilter, setTagFilter }) => {
   const { transactions, saveTransaction, deleteTransactions } = useTransactionsContext();
   const { accounts } = useAccountsContext();
@@ -299,6 +311,18 @@ const Transactions: React.FC<TransactionsProps> = ({ accountFilter, setAccountFi
 
         return groups;
     }, [paginatedTransactions, selectedAccountIds, accounts, accountMapByName]);
+
+  const { totalIncome, totalExpense, netFlow } = useMemo(() => {
+    let income = 0;
+    let expense = 0;
+    filteredTransactions.forEach(tx => {
+        if (tx.isTransfer) return; // Exclude transfers from totals for cleaner flow view
+        const amount = convertToEur(tx.amount, tx.currency);
+        if (tx.type === 'income') income += amount;
+        else expense += Math.abs(amount);
+    });
+    return { totalIncome: income, totalExpense: expense, netFlow: income - expense };
+  }, [filteredTransactions]);
   
   const containsTransfer = useMemo(() => {
     return Array.from(selectedIds).some((id: string) => id.startsWith('transfer-'));
@@ -544,7 +568,7 @@ const Transactions: React.FC<TransactionsProps> = ({ accountFilter, setAccountFi
   ];
 
   return (
-    <div className="space-y-6 flex flex-col h-full">
+    <div className="space-y-6 flex flex-col h-full animate-fade-in-up">
       {isTransactionModalOpen && (
         <AddTransactionModal 
           onClose={handleCloseModal}
@@ -611,7 +635,7 @@ const Transactions: React.FC<TransactionsProps> = ({ accountFilter, setAccountFi
             >
                 <ul className="text-sm">
                     <li>
-                        <button onClick={() => { handleOpenEditModal(contextMenu.transaction); setContextMenu(null); }} className="w-full text-left flex items-center gap-3 px-4 py-2 hover:bg-black/5 dark:hover:bg-white/10">
+                        <button onClick={() => { setEditingTransaction(transactions.find(t => t.id === (contextMenu.transaction.isTransfer ? contextMenu.transaction.originalId : contextMenu.transaction.id)) || null); setIsTransactionModalOpen(true); setContextMenu(null); }} className="w-full text-left flex items-center gap-3 px-4 py-2 hover:bg-black/5 dark:hover:bg-white/10">
                             <span className="material-symbols-outlined text-base">edit</span>
                             <span>Edit Transaction</span>
                         </button>
@@ -641,109 +665,113 @@ const Transactions: React.FC<TransactionsProps> = ({ accountFilter, setAccountFi
             </div>
         )}
 
-      <header className="flex justify-between items-start">
+      <header className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
         <div>
-          <p className="text-light-text-secondary dark:text-dark-text-secondary mt-1">View and manage your transaction history.</p>
+          <p className="text-light-text-secondary dark:text-dark-text-secondary mt-1">View and manage your financial activity.</p>
         </div>
-        <div className="flex items-center gap-2">
+        <div className="flex items-center gap-3">
             <button onClick={handleExport} className={`${BTN_SECONDARY_STYLE} flex items-center gap-2`}>
                 <span className="material-symbols-outlined text-base">download</span>
                 Export
             </button>
-            <button onClick={handleOpenAddModal} className={BTN_PRIMARY_STYLE}>
+            <button onClick={handleOpenAddModal} className={`${BTN_PRIMARY_STYLE} flex items-center gap-2`}>
+                <span className="material-symbols-outlined text-base">add</span>
                 Add Transaction
             </button>
         </div>
       </header>
-      
-      <div className="md:hidden flex justify-end">
-        <button onClick={() => setShowFilters(prev => !prev)} className={`${BTN_SECONDARY_STYLE} flex items-center gap-2`}>
-            <span className="material-symbols-outlined text-base">filter_list</span>
-            {showFilters ? 'Hide Filters' : 'Show Filters'}
-        </button>
-      </div>
 
-      <div className={`p-4 bg-light-card dark:bg-dark-card rounded-xl shadow-card ${!showFilters ? 'hidden' : ''} md:block`}>
-          <div className="grid grid-cols-1 md:grid-cols-12 gap-4 items-end">
-              {/* Row 1 */}
-              <div className="md:col-span-6">
-                  <label htmlFor="search" className={labelStyle}>Search</label>
-                  <div className="relative">
-                      <span className="material-symbols-outlined absolute left-3 top-1/2 -translate-y-1/2 text-light-text-secondary dark:text-dark-text-secondary pointer-events-none">search</span>
-                      <input ref={searchInputRef} type="text" id="search" placeholder="Search description, category..." value={searchTerm} onChange={(e) => setSearchTerm(e.target.value)} className={`${INPUT_BASE_STYLE} pl-10`} />
-                  </div>
-              </div>
-              <div className="md:col-span-3">
-                  <label htmlFor="type-filter" className={labelStyle}>Type</label>
-                  <div className={SELECT_WRAPPER_STYLE}>
-                      <select id="type-filter" value={typeFilter} onChange={(e) => setTypeFilter(e.target.value as any)} className={`${INPUT_BASE_STYLE}`}>
-                          {typeFilterOptions.map(opt => <option key={opt.value} value={opt.value}>{opt.label}</option>)}
-                      </select>
-                      <div className={SELECT_ARROW_STYLE}><span className="material-symbols-outlined">expand_more</span></div>
-                  </div>
-              </div>
-              <div className="md:col-span-3">
-                  <label htmlFor="sort-by" className={labelStyle}>Sort By</label>
-                  <div className={SELECT_WRAPPER_STYLE}>
-                      <select id="sort-by" value={sortBy} onChange={(e) => setSortBy(e.target.value)} className={`${INPUT_BASE_STYLE}`}><option value="date-desc">Date (Newest)</option><option value="date-asc">Date (Oldest)</option><option value="amount-desc">Amount (High-Low)</option><option value="amount-asc">Amount (Low-High)</option></select>
-                      <div className={SELECT_ARROW_STYLE}><span className="material-symbols-outlined">expand_more</span></div>
-                  </div>
+      {/* Metrics Summary */}
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+        <MetricCard label="Total Income" value={formatCurrency(totalIncome, 'EUR')} colorClass="text-green-600 dark:text-green-400" icon="arrow_downward" />
+        <MetricCard label="Total Expenses" value={formatCurrency(totalExpense, 'EUR')} colorClass="text-red-600 dark:text-red-400" icon="arrow_upward" />
+        <MetricCard label="Net Cash Flow" value={formatCurrency(netFlow, 'EUR', { showPlusSign: true })} colorClass={netFlow >= 0 ? 'text-green-600 dark:text-green-400' : 'text-red-600 dark:text-red-400'} icon="account_balance_wallet" />
+        <MetricCard label="Transactions" value={filteredTransactions.length.toString()} icon="receipt_long" />
+      </div>
+      
+      {/* Filter Toolbar */}
+      <div className={`p-4 bg-white dark:bg-dark-card rounded-2xl border border-black/5 dark:border-white/5 shadow-sm transition-all duration-300 ${showFilters ? '' : 'overflow-hidden'}`}>
+          <div className="flex flex-col gap-4">
+              {/* Main Row */}
+              <div className="flex flex-col xl:flex-row gap-4 items-start xl:items-end">
+                 <div className="flex-grow w-full xl:w-auto">
+                      <label htmlFor="search" className={labelStyle}>Search</label>
+                      <div className="relative">
+                          <span className="material-symbols-outlined absolute left-3 top-1/2 -translate-y-1/2 text-light-text-secondary dark:text-dark-text-secondary pointer-events-none">search</span>
+                          <input ref={searchInputRef} type="text" id="search" placeholder="Description, category, account..." value={searchTerm} onChange={(e) => setSearchTerm(e.target.value)} className={`${INPUT_BASE_STYLE} pl-10`} />
+                      </div>
+                 </div>
+                 <div className="grid grid-cols-2 md:grid-cols-4 gap-4 w-full xl:w-auto">
+                      <div>
+                          <label htmlFor="type-filter" className={labelStyle}>Type</label>
+                          <div className={SELECT_WRAPPER_STYLE}>
+                              <select id="type-filter" value={typeFilter} onChange={(e) => setTypeFilter(e.target.value as any)} className={`${INPUT_BASE_STYLE} py-2`}>
+                                  {typeFilterOptions.map(opt => <option key={opt.value} value={opt.value}>{opt.label}</option>)}
+                              </select>
+                              <div className={SELECT_ARROW_STYLE}><span className="material-symbols-outlined">expand_more</span></div>
+                          </div>
+                      </div>
+                      <div>
+                          <label htmlFor="sort-by" className={labelStyle}>Sort By</label>
+                          <div className={SELECT_WRAPPER_STYLE}>
+                              <select id="sort-by" value={sortBy} onChange={(e) => setSortBy(e.target.value)} className={`${INPUT_BASE_STYLE} py-2`}><option value="date-desc">Newest First</option><option value="date-asc">Oldest First</option><option value="amount-desc">Highest Amount</option><option value="amount-asc">Lowest Amount</option></select>
+                              <div className={SELECT_ARROW_STYLE}><span className="material-symbols-outlined">expand_more</span></div>
+                          </div>
+                      </div>
+                      <div className="col-span-2 md:col-span-2 flex items-end">
+                         <button 
+                            onClick={() => setIsFiltersExpanded(!isFiltersExpanded)}
+                            className={`w-full flex items-center justify-center gap-2 py-2 rounded-lg font-semibold text-sm transition-colors ${isFiltersExpanded ? 'bg-primary-100 dark:bg-primary-900/30 text-primary-700 dark:text-primary-300' : 'bg-light-fill dark:bg-dark-fill text-light-text-secondary dark:text-dark-text-secondary hover:text-light-text dark:hover:text-dark-text'}`}
+                        >
+                            <span className="material-symbols-outlined text-lg">tune</span>
+                            {isFiltersExpanded ? 'Less Filters' : 'More Filters'}
+                         </button>
+                      </div>
+                 </div>
               </div>
               
-              {/* Collapsible Filters */}
+              {/* Expanded Filters */}
               {isFiltersExpanded && (
-                <>
-                  {/* Row 2 */}
-                  <div className="md:col-span-3">
+                <div className="pt-4 border-t border-black/5 dark:border-white/5 grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-4 animate-fade-in-up">
+                  <div>
                       <label className={labelStyle}>Account</label>
                       <MultiAccountFilter accounts={accounts} selectedAccountIds={selectedAccountIds} setSelectedAccountIds={setSelectedAccountIds}/>
                   </div>
-                  <div className="md:col-span-3">
+                  <div>
                       <label className={labelStyle}>Category</label>
                       <MultiSelectFilter options={categoryOptions} selectedValues={selectedCategoryNames} onChange={setSelectedCategoryNames} placeholder="All Categories"/>
                   </div>
-                  <div className="md:col-span-3">
-                      <label className={labelStyle}>Tag</label>
+                  <div>
+                      <label className={labelStyle}>Tags</label>
                       <MultiSelectFilter options={tagOptions} selectedValues={selectedTagIds} onChange={setSelectedTagIds} placeholder="All Tags"/>
                   </div>
-                  <div className="md:col-span-3">
+                  <div>
                       <label htmlFor="merchant-filter" className={labelStyle}>Merchant</label>
                       <input id="merchant-filter" type="text" placeholder="e.g., Amazon" value={merchantFilter} onChange={(e) => setMerchantFilter(e.target.value)} className={`${INPUT_BASE_STYLE}`} />
                   </div>
 
-                  {/* Row 3 */}
-                  <div className="md:col-span-5 flex items-end gap-2">
+                  <div className="md:col-span-2 flex items-end gap-2">
                       <div className="flex-1"><label htmlFor="start-date" className={labelStyle}>From Date</label><input id="start-date" type="date" value={startDate} onChange={e => setStartDate(e.target.value)} className={`${INPUT_BASE_STYLE}`}/></div>
                       <div className="flex-1"><label htmlFor="end-date" className={labelStyle}>To Date</label><input id="end-date" type="date" value={endDate} onChange={e => setEndDate(e.target.value)} className={`${INPUT_BASE_STYLE}`}/></div>
                   </div>
-                  <div className="md:col-span-5 flex items-end gap-2">
+                  <div className="md:col-span-2 flex items-end gap-2">
                       <div className="flex-1"><label htmlFor="min-amount" className={labelStyle}>Min Amount</label><input id="min-amount" type="number" placeholder="0.00" value={minAmount} onChange={e => setMinAmount(e.target.value)} className={`${INPUT_BASE_STYLE}`}/></div>
                       <div className="flex-1"><label htmlFor="max-amount" className={labelStyle}>Max Amount</label><input id="max-amount" type="number" placeholder="1000.00" value={maxAmount} onChange={e => setMaxAmount(e.target.value)} className={`${INPUT_BASE_STYLE}`}/></div>
                   </div>
-                  <div className="md:col-span-2 flex justify-end">
-                      <button onClick={clearFilters} className={`${BTN_SECONDARY_STYLE} w-full`}>Clear Filters</button>
+                  <div className="xl:col-span-4 flex justify-end">
+                      <button onClick={clearFilters} className="text-sm text-primary-500 hover:underline font-medium">Clear All Filters</button>
                   </div>
-                </>
+                </div>
               )}
-
-              {/* Expand/Collapse Toggle */}
-              <div className="md:col-span-12 flex justify-center border-t border-black/5 dark:border-white/5 pt-3 mt-2">
-                 <button 
-                    onClick={() => setIsFiltersExpanded(!isFiltersExpanded)}
-                    className="flex items-center gap-1 text-xs font-bold text-primary-500 hover:text-primary-600 uppercase tracking-wide transition-colors"
-                 >
-                    {isFiltersExpanded ? 'Less Filters' : 'More Filters'}
-                    <span className={`material-symbols-outlined text-sm transition-transform duration-200 ${isFiltersExpanded ? 'rotate-180' : ''}`}>expand_more</span>
-                 </button>
-              </div>
           </div>
       </div>
       
+      {/* Transaction List Card */}
       <div className="flex-1 min-w-0 relative">
-        <Card className="p-0 h-full flex flex-col relative">
+        <Card className="p-0 h-full flex flex-col relative overflow-hidden border border-black/5 dark:border-white/5 shadow-sm">
             {selectedIds.size > 0 ? (
-                <div className="bg-primary-500 dark:bg-primary-900 text-white px-6 flex justify-between items-center shadow-md h-[53px] rounded-t-xl">
-                     <div className="flex items-center gap-3">
+                <div className="bg-primary-600 dark:bg-primary-800 text-white px-6 flex justify-between items-center h-[60px] z-20 relative">
+                     <div className="flex items-center gap-4">
                          <button 
                             onClick={() => setSelectedIds(new Set())} 
                             className="p-1 rounded-full hover:bg-white/20 transition-colors text-white"
@@ -751,95 +779,141 @@ const Transactions: React.FC<TransactionsProps> = ({ accountFilter, setAccountFi
                          >
                              <span className="material-symbols-outlined text-lg">close</span>
                          </button>
-                         <span className="font-semibold text-sm">{selectedIds.size} selected</span>
+                         <span className="font-bold text-sm">{selectedIds.size} selected</span>
                      </div>
                     <div className="flex gap-2">
-                        <button type="button" onClick={() => setBulkEditModalOpen(true)} className="bg-white/20 hover:bg-white/30 text-white py-1 px-3 rounded-md text-xs font-medium transition-colors" disabled={containsTransfer}>Edit</button>
-                        <button type="button" onClick={handleOpenCategorizeModal} className="bg-white/20 hover:bg-white/30 text-white py-1 px-3 rounded-md text-xs font-medium transition-colors" disabled={containsTransfer}>Categorize</button>
-                        <button type="button" onClick={() => handleMakeRecurring()} className="bg-white/20 hover:bg-white/30 text-white py-1 px-3 rounded-md text-xs font-medium transition-colors" disabled={selectedIds.size !== 1}>Make Recurring</button>
-                        <button type="button" onClick={handleOpenDeleteModal} className="bg-white/20 hover:bg-red-600 text-white py-1 px-3 rounded-md text-xs font-medium transition-colors">Delete</button>
+                        <button type="button" onClick={() => setBulkEditModalOpen(true)} className="bg-white/20 hover:bg-white/30 text-white py-1.5 px-3 rounded-lg text-xs font-semibold transition-colors backdrop-blur-sm" disabled={containsTransfer}>Edit</button>
+                        <button type="button" onClick={handleOpenCategorizeModal} className="bg-white/20 hover:bg-white/30 text-white py-1.5 px-3 rounded-lg text-xs font-semibold transition-colors backdrop-blur-sm" disabled={containsTransfer}>Categorize</button>
+                        <button type="button" onClick={() => handleMakeRecurring()} className="bg-white/20 hover:bg-white/30 text-white py-1.5 px-3 rounded-lg text-xs font-semibold transition-colors backdrop-blur-sm" disabled={selectedIds.size !== 1}>Recurring</button>
+                        <button type="button" onClick={handleOpenDeleteModal} className="bg-red-500/80 hover:bg-red-500 text-white py-1.5 px-3 rounded-lg text-xs font-semibold transition-colors backdrop-blur-sm">Delete</button>
                     </div>
                 </div>
             ) : (
-                <div className="px-6 py-3 border-b border-light-separator dark:border-dark-separator flex items-center gap-4 font-semibold text-light-text-secondary dark:text-dark-text-secondary flex-shrink-0 h-[53px]">
-                    <input type="checkbox" onChange={handleSelectAll} checked={isAllSelected} className={CHECKBOX_STYLE} aria-label="Select all transactions"/>
-                    <div className="flex-1 grid grid-cols-12 gap-4 ml-3 items-center">
+                <div className="px-6 py-4 border-b border-black/5 dark:border-white/5 flex items-center gap-4 text-light-text-secondary dark:text-dark-text-secondary text-xs font-bold uppercase tracking-wider bg-gray-50/50 dark:bg-white/[0.02]">
+                    <div className="flex items-center justify-center w-5">
+                         <input type="checkbox" onChange={handleSelectAll} checked={isAllSelected} className={CHECKBOX_STYLE} aria-label="Select all transactions"/>
+                    </div>
+                    <div className="flex-1 grid grid-cols-12 gap-4 ml-2">
                         <span className="col-span-8 md:col-span-6 lg:col-span-3">Transaction</span>
-                        <span className="hidden md:block col-span-2 text-sm">Account</span>
-                        <span className="hidden lg:block col-span-2 text-sm">Merchant</span>
-                        <span className="hidden md:block col-span-2 text-sm">Category</span>
-                        <span className="hidden lg:block col-span-1 text-sm">Tags</span>
+                        <span className="hidden md:block col-span-2">Account</span>
+                        <span className="hidden lg:block col-span-2">Merchant</span>
+                        <span className="hidden md:block col-span-2">Category</span>
+                        <span className="hidden lg:block col-span-1">Tags</span>
                         <span className="col-span-4 md:col-span-2 text-right">Amount</span>
                     </div>
-                    <div className="w-10"></div> {/* Spacer for actions */}
+                    <div className="w-8"></div>
                 </div>
             )}
             
-            <div className="overflow-y-auto flex-grow">
+            <div className="overflow-y-auto flex-grow bg-white dark:bg-dark-card">
                  {Object.keys(groupedTransactions).length > 0 ? Object.entries(groupedTransactions).map(([date, group]) => {
                     const typedGroup = group as { transactions: DisplayTransaction[]; total: number };
                     return (
                     <div key={date}>
-                        <div className="px-6 py-3 border-b border-t border-light-separator dark:border-dark-separator bg-light-bg dark:bg-dark-bg/50">
-                            <div className="flex justify-between items-center">
-                                <span className="font-semibold text-base text-light-text dark:text-dark-text">{formatGroupDate(date)}</span>
-                                <span className={`font-semibold text-base ${typedGroup.total > 0 ? 'text-semantic-green' : typedGroup.total < 0 ? 'text-semantic-red' : 'text-light-text-secondary dark:text-dark-text-secondary'}`}>{formatCurrency(typedGroup.total, 'EUR', { showPlusSign: true })}</span>
-                            </div>
+                        <div className="px-6 py-2 border-b border-black/5 dark:border-white/5 bg-gray-50 dark:bg-black/20 flex justify-between items-center sticky top-0 z-10 backdrop-blur-sm">
+                            <span className="font-bold text-sm text-light-text dark:text-dark-text">{formatGroupDate(date)}</span>
+                            <span className={`font-bold text-sm ${typedGroup.total > 0 ? 'text-green-600 dark:text-green-400' : typedGroup.total < 0 ? 'text-red-600 dark:text-red-400' : 'text-light-text-secondary dark:text-dark-text-secondary'}`}>{formatCurrency(typedGroup.total, 'EUR', { showPlusSign: true })}</span>
                         </div>
-                        <div className="divide-y divide-light-separator/50 dark:divide-dark-separator/50">
+                        <div className="divide-y divide-black/5 dark:divide-white/5">
                             {typedGroup.transactions.map(tx => {
                                 let amount = tx.amount;
-                                let amountColor = tx.type === 'income' ? 'text-semantic-green' : 'text-semantic-red';
+                                let amountColor = tx.type === 'income' ? 'text-green-600 dark:text-green-400' : 'text-red-600 dark:text-red-400';
 
                                 if (tx.isTransfer) {
                                     amountColor = 'text-light-text dark:text-dark-text';
                                     if (selectedAccountIds.length > 0) {
                                         const fromAcc = accountMapByName[tx.fromAccountName!];
                                         const toAcc = accountMapByName[tx.toAccountName!];
-                                        if (selectedAccountIds.includes(fromAcc?.id) && !selectedAccountIds.includes(toAcc?.id)) { amount = -tx.amount; amountColor = 'text-semantic-red'; } 
-                                        else if (!selectedAccountIds.includes(fromAcc?.id) && selectedAccountIds.includes(toAcc?.id)) { amount = tx.amount; amountColor = 'text-semantic-green'; }
+                                        if (selectedAccountIds.includes(fromAcc?.id) && !selectedAccountIds.includes(toAcc?.id)) { amount = -tx.amount; amountColor = 'text-red-600 dark:text-red-400'; } 
+                                        else if (!selectedAccountIds.includes(fromAcc?.id) && selectedAccountIds.includes(toAcc?.id)) { amount = tx.amount; amountColor = 'text-green-600 dark:text-green-400'; }
                                     }
                                 }
                                 
                                 const categoryDetails = getCategoryDetails(tx.category, allCategories);
                                 const categoryColor = tx.isTransfer ? '#64748B' : (categoryDetails.color || '#A0AEC0');
+                                const categoryIcon = tx.isTransfer ? 'swap_horiz' : (categoryDetails.icon || 'category');
                                 
                                 return (
-                                <div key={tx.id} className="flex items-center group hover:bg-light-fill dark:hover:bg-dark-fill cursor-pointer px-6" onClick={() => handleOpenEditModal(tx)} onContextMenu={(e) => { e.preventDefault(); setContextMenu({ x: e.clientX, y: e.clientY, transaction: tx }); }}>
-                                  <div className="flex items-center gap-3">
+                                <div key={tx.id} className="flex items-center group hover:bg-gray-50 dark:hover:bg-white/5 transition-colors px-6 py-3 cursor-default relative" onClick={() => { /* handle row click if needed */ }} onContextMenu={(e) => { e.preventDefault(); setContextMenu({ x: e.clientX, y: e.clientY, transaction: tx }); }}>
+                                  <div className="flex items-center gap-4">
                                       <input type="checkbox" className={CHECKBOX_STYLE} checked={selectedIds.has(tx.id)} onChange={(e) => { e.stopPropagation(); handleSelectOne(tx.id); }} onClick={e => e.stopPropagation()} aria-label={`Select transaction ${tx.description}`}/>
-                                      <div className="w-1.5 h-10 flex-shrink-0 rounded-full" style={{backgroundColor: categoryColor}}></div>
+                                      <div className={`w-10 h-10 rounded-full flex items-center justify-center text-white shadow-sm shrink-0`} style={{backgroundColor: categoryColor}}>
+                                          <span className="material-symbols-outlined text-[20px]">{categoryIcon}</span>
+                                      </div>
                                   </div>
-                                  <div className="flex-1 grid grid-cols-12 gap-4 py-4 items-center ml-3">
+                                  
+                                  <div className="flex-1 grid grid-cols-12 gap-4 items-center ml-4 min-w-0">
+                                    {/* Description & Date (Mobile/Desktop) */}
                                     <div className="col-span-8 md:col-span-6 lg:col-span-3 min-w-0">
-                                      <p className="font-semibold text-light-text dark:text-dark-text truncate">{tx.description}</p>
-                                      <div className="text-sm text-light-text-secondary dark:text-dark-text-secondary">
-                                          <p className="md:hidden truncate">{tx.isTransfer ? `${tx.fromAccountName} → ${tx.toAccountName}` : tx.accountName}</p>
-                                          <p className="lg:hidden truncate">{tx.merchant}</p>
-                                          {tx.tagIds && tx.tagIds.length > 0 && <div className="lg:hidden flex flex-wrap gap-1 mt-1">{tx.tagIds.map(tagId => { const tag = tags.find(t => t.id === tagId); if (!tag) return null; return (<span key={tag.id} className="text-xs px-2 py-0.5 rounded-full inline-flex items-center justify-center text-center" style={{ backgroundColor: `${tag.color}30`, color: tag.color }}>{tag.name}</span>);})}</div>}
+                                      <p className="font-bold text-light-text dark:text-dark-text truncate text-sm">{tx.description}</p>
+                                      <div className="flex flex-wrap gap-2 text-xs text-light-text-secondary dark:text-dark-text-secondary mt-0.5">
+                                          <span className="md:hidden truncate bg-gray-100 dark:bg-white/10 px-1.5 rounded">{tx.isTransfer ? `${tx.fromAccountName} → ${tx.toAccountName}` : tx.accountName}</span>
+                                          {tx.tagIds && tx.tagIds.length > 0 && (
+                                              <div className="lg:hidden flex flex-wrap gap-1">
+                                                  {tx.tagIds.map(tagId => { 
+                                                      const tag = tags.find(t => t.id === tagId); 
+                                                      if (!tag) return null; 
+                                                      return (<span key={tag.id} className="text-[10px] px-1.5 py-0.5 rounded-full font-medium" style={{ backgroundColor: `${tag.color}20`, color: tag.color }}>#{tag.name}</span>);
+                                                  })}
+                                              </div>
+                                          )}
                                       </div>
                                     </div>
-                                    <div className="hidden md:block col-span-2 text-sm text-light-text-secondary dark:text-dark-text-secondary truncate">{tx.isTransfer ? ( <div className="flex items-center gap-1 truncate"><span className="truncate">{tx.fromAccountName}</span><span className="material-symbols-outlined text-base">arrow_forward</span><span className="truncate">{tx.toAccountName}</span></div>) : tx.accountName}</div>
-                                    <div className="hidden lg:block col-span-2 text-sm text-light-text-secondary dark:text-dark-text-secondary truncate">{tx.merchant}</div>
-                                    <div className="hidden md:block col-span-2 text-sm text-light-text-secondary dark:text-dark-text-secondary truncate">{tx.category}</div>
-                                    <div className="hidden lg:flex col-span-1 flex-wrap gap-1">{tx.tagIds?.map(tagId => { const tag = tags.find(t => t.id === tagId); if (!tag) return null; return (<span key={tag.id} className="text-xs px-2 py-0.5 rounded-full inline-flex items-center justify-center text-center" style={{ backgroundColor: `${tag.color}30`, color: tag.color }} title={tag.name}>{tag.name}</span>);})}</div>
-                                      <div className={`col-span-4 md:col-span-2 font-mono font-semibold text-right text-base whitespace-nowrap ${amountColor}`}>
+                                    
+                                    {/* Account */}
+                                    <div className="hidden md:flex col-span-2 text-sm text-light-text-secondary dark:text-dark-text-secondary items-center truncate">
+                                        {tx.isTransfer ? ( 
+                                            <div className="flex items-center gap-1 truncate bg-gray-100 dark:bg-white/5 px-2 py-1 rounded-md">
+                                                <span className="truncate max-w-[80px]">{tx.fromAccountName}</span>
+                                                <span className="material-symbols-outlined text-xs opacity-60">arrow_forward</span>
+                                                <span className="truncate max-w-[80px]">{tx.toAccountName}</span>
+                                            </div>
+                                        ) : (
+                                            <span className="truncate">{tx.accountName}</span>
+                                        )}
+                                    </div>
+
+                                    {/* Merchant */}
+                                    <div className="hidden lg:block col-span-2 text-sm text-light-text-secondary dark:text-dark-text-secondary truncate">{tx.merchant || '—'}</div>
+
+                                    {/* Category */}
+                                    <div className="hidden md:block col-span-2 text-sm font-medium text-light-text-secondary dark:text-dark-text-secondary truncate">
+                                        <span className="px-2 py-0.5 rounded-full border border-black/5 dark:border-white/10 bg-white dark:bg-black/20">{tx.category}</span>
+                                    </div>
+
+                                    {/* Tags */}
+                                    <div className="hidden lg:flex col-span-1 flex-wrap gap-1">
+                                        {tx.tagIds?.map(tagId => { 
+                                            const tag = tags.find(t => t.id === tagId); 
+                                            if (!tag) return null; 
+                                            return (
+                                                <span key={tag.id} className="text-[10px] px-1.5 py-0.5 rounded-full font-bold tracking-wide" style={{ backgroundColor: `${tag.color}20`, color: tag.color }} title={tag.name}>
+                                                    {tag.name}
+                                                </span>
+                                            );
+                                        })}
+                                    </div>
+
+                                    {/* Amount */}
+                                    <div className={`col-span-4 md:col-span-2 font-mono font-bold text-right text-sm whitespace-nowrap ${amountColor}`}>
                                         {tx.isTransfer && selectedAccountIds.length === 0
                                           ? '-/+ ' + formatCurrency(convertToEur(Math.abs(amount), tx.currency), 'EUR')
                                           : formatCurrency(convertToEur(amount, tx.currency), 'EUR', { showPlusSign: true })}
-                                      </div>
+                                    </div>
                                   </div>
-                                  <div className="w-10 flex justify-end opacity-0 group-hover:opacity-100 transition">
+
+                                  {/* Action Button */}
+                                  <div className="w-8 flex justify-end opacity-0 group-hover:opacity-100 transition-opacity duration-200">
                                     <button
-                                      className="p-2 rounded-full hover:bg-light-fill dark:hover:bg-dark-fill"
+                                      className="p-1.5 rounded-full hover:bg-black/10 dark:hover:bg-white/10 text-light-text-secondary dark:text-dark-text-secondary"
                                       onClick={(e) => {
                                         e.preventDefault();
                                         e.stopPropagation();
                                         setContextMenu({ x: e.clientX, y: e.clientY, transaction: tx });
                                       }}
-                                      aria-label="Open transaction actions"
+                                      aria-label="Actions"
                                     >
-                                      <span className="material-symbols-outlined text-lg">more_vert</span>
+                                      <span className="material-symbols-outlined text-xl">more_vert</span>
                                     </button>
                                   </div>
                                 </div>
@@ -849,15 +923,16 @@ const Transactions: React.FC<TransactionsProps> = ({ accountFilter, setAccountFi
                       </div>
                       );
                   }) : (
-                      <div className="p-8 text-center text-light-text-secondary dark:text-dark-text-secondary">
-                          No transactions match the current filters.
+                      <div className="flex flex-col items-center justify-center py-16 text-light-text-secondary dark:text-dark-text-secondary opacity-70">
+                          <span className="material-symbols-outlined text-5xl mb-2">search_off</span>
+                          <p>No transactions match the current filters.</p>
                       </div>
                   )}
-              </div>
-              
-              {filteredTransactions.length > 0 && (
-                <div className="px-6 py-3 border-t border-light-separator dark:border-dark-separator flex flex-col sm:flex-row justify-between items-center bg-light-bg/50 dark:bg-dark-bg/30 flex-shrink-0 gap-4">
-                    <div className="flex items-center gap-2 text-sm text-light-text-secondary dark:text-dark-text-secondary">
+            </div>
+            
+            {filteredTransactions.length > 0 && (
+                <div className="px-6 py-3 border-t border-black/5 dark:border-white/5 flex flex-col sm:flex-row justify-between items-center bg-gray-50/50 dark:bg-black/20 flex-shrink-0 gap-4 text-sm">
+                    <div className="flex items-center gap-3 text-light-text-secondary dark:text-dark-text-secondary">
                         <span>Rows per page:</span>
                         <div className={`${SELECT_WRAPPER_STYLE} !w-auto`}>
                             <select 
@@ -867,7 +942,7 @@ const Transactions: React.FC<TransactionsProps> = ({ accountFilter, setAccountFi
                                     setItemsPerPage(val === 'all' ? Number.MAX_SAFE_INTEGER : Number(val));
                                     setCurrentPage(1);
                                 }}
-                                className={`${SELECT_STYLE} !py-1 !pl-2 !pr-8 !text-sm !h-8`}
+                                className={`${SELECT_STYLE} !py-1 !pl-3 !pr-8 !text-xs !h-8 bg-white dark:bg-dark-card`}
                             >
                                 <option value="10">10</option>
                                 <option value="25">25</option>
@@ -879,30 +954,30 @@ const Transactions: React.FC<TransactionsProps> = ({ accountFilter, setAccountFi
                         </div>
                     </div>
 
-                    <div className="flex items-center gap-4">
-                        <button
-                            onClick={() => setCurrentPage(p => Math.max(1, p - 1))}
-                            disabled={currentPage === 1}
-                            className={`${BTN_SECONDARY_STYLE} !py-1 !px-3 text-sm disabled:opacity-50 disabled:cursor-not-allowed`}
-                        >
-                            Previous
-                        </button>
-                        <span className="text-sm text-light-text-secondary dark:text-dark-text-secondary font-medium">
+                    <div className="flex items-center gap-2">
+                        <span className="text-light-text-secondary dark:text-dark-text-secondary font-medium mr-2">
                             Page {currentPage} of {totalPages}
                         </span>
                         <button
+                            onClick={() => setCurrentPage(p => Math.max(1, p - 1))}
+                            disabled={currentPage === 1}
+                            className="p-1.5 rounded-lg border border-black/10 dark:border-white/10 bg-white dark:bg-dark-card disabled:opacity-50 disabled:cursor-not-allowed hover:bg-gray-50 dark:hover:bg-white/5 transition-colors"
+                        >
+                            <span className="material-symbols-outlined text-lg">chevron_left</span>
+                        </button>
+                        <button
                             onClick={() => setCurrentPage(p => Math.min(totalPages, p + 1))}
                             disabled={currentPage === totalPages}
-                            className={`${BTN_SECONDARY_STYLE} !py-1 !px-3 text-sm disabled:opacity-50 disabled:cursor-not-allowed`}
+                            className="p-1.5 rounded-lg border border-black/10 dark:border-white/10 bg-white dark:bg-dark-card disabled:opacity-50 disabled:cursor-not-allowed hover:bg-gray-50 dark:hover:bg-white/5 transition-colors"
                         >
-                            Next
+                            <span className="material-symbols-outlined text-lg">chevron_right</span>
                         </button>
                     </div>
                 </div>
             )}
           </Card>
-        </div>
       </div>
+    </div>
   );
 };
 
