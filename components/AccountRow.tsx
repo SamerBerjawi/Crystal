@@ -1,9 +1,10 @@
 
 import React, { useMemo } from 'react';
 import { Account, OtherAssetSubType, OtherLiabilitySubType, Transaction, Warrant } from '../types';
-import { convertToEur, formatCurrency } from '../utils';
+import { convertToEur, formatCurrency, generateAmortizationSchedule } from '../utils';
 import { AreaChart, Area, ResponsiveContainer } from 'recharts';
 import { ACCOUNT_TYPE_STYLES, INVESTMENT_SUB_TYPE_STYLES, OTHER_ASSET_SUB_TYPE_STYLES, OTHER_LIABILITY_SUB_TYPE_STYLES } from '../constants';
+import { useScheduleContext } from '../contexts/FinancialDataContext';
 
 interface AccountRowProps {
     account: Account;
@@ -24,6 +25,8 @@ interface AccountRowProps {
 }
 
 const AccountRow: React.FC<AccountRowProps> = ({ account, transactions, warrants, onClick, onEdit, onAdjustBalance, isDraggable, isBeingDragged, isDragOver, onDragStart, onDragOver, onDragLeave, onDrop, onDragEnd, onContextMenu }) => {
+    const { loanPaymentOverrides } = useScheduleContext();
+
     const handleEditClick = (e: React.MouseEvent) => {
         e.stopPropagation();
         onEdit();
@@ -35,16 +38,36 @@ const AccountRow: React.FC<AccountRowProps> = ({ account, transactions, warrants
     };
 
     const displayBalance = useMemo(() => {
-        if (account.type === 'Loan' && account.totalAmount) {
-             const loanPayments = transactions.filter(tx => tx.type === 'income');
-            const totalPaid = loanPayments.reduce((sum, tx) => {
-                const totalPayment = (tx.principalAmount || 0) + (tx.interestAmount || 0);
-                return sum + (totalPayment > 0 ? totalPayment : tx.amount);
-            }, 0);
-            return -(account.totalAmount - totalPaid);
+        if (account.type === 'Loan') {
+             // Use robust amortization calculation if details are available
+             if (account.principalAmount && account.duration && account.loanStartDate && account.interestRate !== undefined) {
+                 const overrides = loanPaymentOverrides[account.id] || {};
+                 const schedule = generateAmortizationSchedule(account, transactions, overrides);
+                 
+                 const totalScheduledPrincipal = schedule.reduce((sum, p) => sum + p.principal, 0);
+                 const totalScheduledInterest = schedule.reduce((sum, p) => sum + p.interest, 0);
+    
+                 const totalPaidPrincipal = schedule.reduce((acc, p) => p.status === 'Paid' ? acc + p.principal : acc, 0);
+                 const totalPaidInterest = schedule.reduce((acc, p) => p.status === 'Paid' ? acc + p.interest : acc, 0);
+                
+                 const outstandingPrincipal = Math.max(0, totalScheduledPrincipal - totalPaidPrincipal);
+                 const outstandingInterest = Math.max(0, totalScheduledInterest - totalPaidInterest);
+                 
+                 return -(outstandingPrincipal + outstandingInterest);
+             }
+
+             // Fallback for loans with incomplete setup
+             if (account.totalAmount) {
+                const loanPayments = transactions.filter(tx => tx.type === 'income');
+                const totalPaid = loanPayments.reduce((sum, tx) => {
+                    const totalPayment = (tx.principalAmount || 0) + (tx.interestAmount || 0);
+                    return sum + (totalPayment > 0 ? totalPayment : tx.amount);
+                }, 0);
+                return -(account.totalAmount - totalPaid);
+             }
         }
         return account.balance;
-    }, [account, transactions]);
+    }, [account, transactions, loanPaymentOverrides]);
 
     const { sparklineData, trend, isPositiveTrend } = useMemo(() => {
         const NUM_POINTS = 15;

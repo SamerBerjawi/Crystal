@@ -90,19 +90,30 @@ export const formatDateKey = (date: Date, timeZone?: string): string => {
 };
 
 export function calculateAccountTotals(accounts: Account[]) {
-    const totalAssets = accounts
-      .filter(acc => ASSET_TYPES.includes(acc.type))
-      .reduce((sum, acc) => sum + convertToEur(acc.balance, acc.currency), 0);
-    
-    const totalDebt = accounts
-      .filter(acc => DEBT_TYPES.includes(acc.type))
-      .reduce((sum, acc) => sum + Math.abs(convertToEur(acc.balance, acc.currency)), 0);
-      
-    const creditCardDebt = accounts
-      .filter(acc => acc.type === 'Credit Card')
-      .reduce((sum, acc) => sum + Math.abs(convertToEur(acc.balance, acc.currency)), 0);
+    let totalAssets = 0;
+    let totalDebt = 0;
+    let creditCardDebt = 0;
 
-    // Debts reduce net worth, so subtract the total debt (which we treat as a positive number)
+    accounts.forEach(acc => {
+        const balanceEur = convertToEur(acc.balance, acc.currency);
+        
+        if (ASSET_TYPES.includes(acc.type)) {
+            totalAssets += balanceEur;
+        } else if (DEBT_TYPES.includes(acc.type)) {
+            totalDebt += Math.abs(balanceEur);
+            
+            if (acc.type === 'Credit Card') {
+                creditCardDebt += Math.abs(balanceEur);
+            }
+
+            // Add down payment as an asset (equity)
+            if (acc.type === 'Loan' && acc.downPayment) {
+                totalAssets += convertToEur(acc.downPayment, acc.currency);
+            }
+        }
+    });
+
+    // Debts reduce net worth, so subtract the total debt
     const netWorth = totalAssets - totalDebt;
 
     return { totalAssets, totalDebt, netWorth, creditCardDebt };
@@ -749,6 +760,10 @@ export function generateBalanceForecast(
     accounts.forEach(acc => {
         const balanceEur = convertToEur(acc.balance, acc.currency);
         currentBalances[acc.id] = balanceEur;
+        
+        // Include in total sum if it's an asset (positive) or if it's a loan/debt (negative, but we add it algebraically)
+        // However, typically forecast is for liquid cash flow. 
+        // If user selected "Loan" accounts in filter, their negative balance will pull down the total.
         runningTotalBalance += balanceEur;
     });
     
