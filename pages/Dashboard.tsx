@@ -8,20 +8,19 @@ import TransactionDetailModal from '../components/TransactionDetailModal';
 import WidgetWrapper from '../components/WidgetWrapper';
 import OutflowsChart from '../components/OutflowsChart';
 import DurationFilter from '../components/DurationFilter';
-import BalanceCard from '../components/BalanceCard';
-import NetBalanceCard from '../components/SpendingChart';
 import NetWorthChart from '../components/NetWorthChart';
 import AssetDebtDonutChart from '../components/AssetDebtDonutChart';
 import TransactionList from '../components/TransactionList';
 import MultiAccountFilter from '../components/MultiAccountFilter';
-import CurrentBalanceCard from '../components/CurrentBalanceCard';
+import CashFlowCard from '../components/CashFlowCard';
+import NetWorthCard from '../components/NetWorthCard';
+import ForecastOverview from '../components/ForecastOverview';
 import useLocalStorage from '../hooks/useLocalStorage';
 import AddWidgetModal from '../components/AddWidgetModal';
 import { useTransactionMatcher } from '../hooks/useTransactionMatcher';
 import TransactionMatcherModal from '../components/TransactionMatcherModal';
 import Card from '../components/Card';
 import CreditCardStatementCard from '../components/CreditCardStatementCard';
-import LowestBalanceForecastCard from '../components/LowestBalanceForecastCard';
 import BudgetOverviewWidget from '../components/BudgetOverviewWidget';
 import AccountBreakdownCard from '../components/AccountBreakdownCard';
 import TransactionMapWidget from '../components/TransactionMapWidget';
@@ -1027,28 +1026,32 @@ const Dashboard: React.FC<DashboardProps> = ({ user, activeGoalIds, selectedAcco
 
       {activeTab === 'overview' && (
         <>
-            {/* Top Summary Grid */}
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-                <BalanceCard title="Income" amount={income} change={incomeChange} changeType="positive" sparklineData={incomeSparkline} />
-                <BalanceCard title="Expenses" amount={expenses} change={expenseChange} changeType="negative" sparklineData={expenseSparkline} />
-                <NetBalanceCard netBalance={income - expenses} totalIncome={income} duration={duration} />
-                <CurrentBalanceCard balance={netWorth} currency="EUR" title="Net Worth" />
+            {/* New Combined Top Section */}
+            <div className="grid grid-cols-1 xl:grid-cols-3 gap-6">
+                {/* Column 1: Net Worth Card (Left) */}
+                <div className="xl:col-span-1 h-[320px] xl:h-auto">
+                    <NetWorthCard amount={netWorth} currency="EUR" />
+                </div>
+                
+                {/* Column 2: Cash Flow Summary (Right - Spans 2 cols) */}
+                <div className="xl:col-span-2 h-[320px] xl:h-auto">
+                     <CashFlowCard 
+                        income={income} 
+                        expenses={expenses} 
+                        incomeChange={incomeChange} 
+                        expenseChange={expenseChange} 
+                        incomeSparkline={incomeSparkline} 
+                        expenseSparkline={expenseSparkline} 
+                        netBalance={income - expenses} 
+                        duration={duration}
+                     />
+                </div>
             </div>
             
-            {/* Lowest Balance Forecast */}
+            {/* Lowest Balance Forecast Horizon */}
             {lowestBalanceForecasts && lowestBalanceForecasts.length > 0 && (
                 <div>
-                    <h3 className="text-xl font-semibold mb-4 text-light-text dark:text-dark-text">Lowest Balance Forecast</h3>
-                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-                        {lowestBalanceForecasts.map(forecast => (
-                            <LowestBalanceForecastCard 
-                                key={forecast.period}
-                                period={forecast.period}
-                                lowestBalance={forecast.lowestBalance}
-                                date={forecast.date}
-                            />
-                        ))}
-                    </div>
+                    <ForecastOverview forecasts={lowestBalanceForecasts} currency="EUR" />
                 </div>
             )}
 
