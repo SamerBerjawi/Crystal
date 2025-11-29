@@ -42,6 +42,9 @@ const loadAIAssistantSettingsPage = () => import('./pages/AIAssistantSettings');
 const AIAssistantSettingsPage = lazy(loadAIAssistantSettingsPage);
 const loadDocumentation = () => import('./pages/Documentation');
 const Documentation = lazy(loadDocumentation);
+const loadSubscriptionsPage = () => import('./pages/Subscriptions');
+const SubscriptionsPage = lazy(loadSubscriptionsPage);
+
 const pagePreloaders = [
   loadDashboard,
   loadAccounts,
@@ -61,6 +64,7 @@ const pagePreloaders = [
   loadWarrantsPage,
   loadAIAssistantSettingsPage,
   loadDocumentation,
+  loadSubscriptionsPage
 ];
 // UserManagement is removed
 // FIX: Import FinancialData from types.ts
@@ -252,7 +256,7 @@ const App: React.FC = () => {
   // State for AI Chat
   const [isChatOpen, setIsChatOpen] = useState(false);
   
-  // State for Asset/Warrant prices
+  // State for Warrant prices
   const [manualWarrantPrices, setManualWarrantPrices] = useState<Record<string, number | undefined>>(initialFinancialData.manualWarrantPrices || {});
   const [lastUpdated, setLastUpdated] = useState<Date | null>(null);
   const [investmentPrices, setInvestmentPrices] = useState<Record<string, number | null>>({});
@@ -263,13 +267,12 @@ const App: React.FC = () => {
       if (manualWarrantPrices[warrant.isin] !== undefined) {
         resolved[warrant.isin] = manualWarrantPrices[warrant.isin];
       } else {
-        // Fallback to fetched prices from Yahoo/provider if manual override isn't set
-        resolved[warrant.isin] = investmentPrices[warrant.isin] ?? null;
+        resolved[warrant.isin] = null;
       }
     });
 
     return resolved;
-  }, [manualWarrantPrices, warrants, investmentPrices]);
+  }, [manualWarrantPrices, warrants]);
 
   // States lifted up for persistence & preference linking
   const [dashboardAccountIds, setDashboardAccountIds] = useState<string[]>([]);
@@ -318,29 +321,21 @@ const App: React.FC = () => {
   const refreshInvestmentPrices = useCallback(async () => {
     if (typeof window === 'undefined') return;
 
-    // Get investments with symbols
-    const investmentAccountsTargets = accounts
+    const investmentAccountsWithSymbols = accounts
       .filter(acc => acc.type === 'Investment' && acc.symbol)
-      .map(acc => ({
-        symbol: acc.symbol as string,
-        subType: acc.subType,
-      }));
+      .filter(acc => !warrants.some(w => w.isin === acc.symbol));
 
-    // Get warrants with ISINs
-    const warrantTargets = warrants.map(w => ({
-        symbol: w.isin,
-        subType: 'Other' as InvestmentSubType
-    }));
-    
-    // Combine targets for one batch request
-    const allTargets = [...investmentAccountsTargets, ...warrantTargets];
-
-    if (allTargets.length === 0) {
+    if (investmentAccountsWithSymbols.length === 0) {
       setInvestmentPrices({});
       return;
     }
 
-    const prices = await fetchYahooPrices(allTargets);
+    const targets = investmentAccountsWithSymbols.map(acc => ({
+      symbol: acc.symbol as string,
+      subType: acc.subType,
+    }));
+
+    const prices = await fetchYahooPrices(targets);
     setInvestmentPrices(prices);
   }, [accounts, warrants]);
 
@@ -364,24 +359,24 @@ const App: React.FC = () => {
     const updatedAccounts = accounts.map(account => {
       // FIX: The type 'Crypto' is not a valid AccountType. 'Crypto' is a subtype of 'Investment'.
       // The check is simplified to only verify if the account type is 'Investment'.
-      if (account.symbol && account.type === 'Investment') {
-        // Check Manual override first, then Warrants list, then Yahoo prices
-        let price = manualWarrantPrices[account.symbol];
-        
-        if (price === undefined) {
-            // Fallback to Yahoo prices
-            price = investmentPrices[account.symbol] ?? undefined;
+      if (account.symbol && account.type === 'Investment' && warrantPrices[account.symbol] !== undefined) {
+        const price = warrantPrices[account.symbol];
+        const quantity = warrantHoldingsBySymbol[account.symbol] || 0;
+        const calculatedBalance = price !== null ? quantity * price : 0;
+
+        if (Math.abs((account.balance || 0) - calculatedBalance) > 0.0001) {
+            hasChanges = true;
+            return { ...account, balance: calculatedBalance };
         }
+      }
+      if (account.symbol && account.type === 'Investment' && investmentPrices[account.symbol] !== undefined) {
+        const price = investmentPrices[account.symbol];
+        const quantity = warrantHoldingsBySymbol[account.symbol] || 0;
+        const calculatedBalance = price !== null ? quantity * price : 0;
 
-        // If we have a price (manual or fetched), update the balance
-        if (price !== undefined && price !== null) {
-            const quantity = warrantHoldingsBySymbol[account.symbol] || 0;
-            const calculatedBalance = price * quantity;
-
-            if (Math.abs((account.balance || 0) - calculatedBalance) > 0.0001) {
-                hasChanges = true;
-                return { ...account, balance: calculatedBalance };
-            }
+        if (Math.abs((account.balance || 0) - calculatedBalance) > 0.0001) {
+            hasChanges = true;
+            return { ...account, balance: calculatedBalance };
         }
       }
       return account;
@@ -391,7 +386,7 @@ const App: React.FC = () => {
         setAccounts(updatedAccounts);
     }
   // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [manualWarrantPrices, investmentPrices, warrantHoldingsBySymbol]);
+  }, [warrantPrices, investmentPrices, warrantHoldingsBySymbol]);
 
   useEffect(() => {
     refreshInvestmentPrices();
@@ -1473,6 +1468,8 @@ const App: React.FC = () => {
         return <Documentation setCurrentPage={setCurrentPage} />;
       case 'AI Assistant':
         return <AIAssistantSettingsPage setCurrentPage={setCurrentPage} />;
+      case 'Subscriptions':
+        return <SubscriptionsPage />;
       default:
         return <div>Page not found</div>;
     }
