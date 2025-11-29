@@ -31,7 +31,7 @@ const BreakdownBarChart: React.FC<BreakdownBarChartProps> = ({ data }) => {
   return (
     <Card>
       <div style={{ width: '100%', height: '162px' }}>
-        <ResponsiveContainer>
+        <ResponsiveContainer width="100%" height="100%" minWidth={0} minHeight={0}>
           <BarChart data={data} layout="vertical" margin={{ top: 5, right: 20, left: 10, bottom: 5 }}>
             <XAxis type="number" hide />
             <YAxis 
