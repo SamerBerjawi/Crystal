@@ -1,6 +1,6 @@
 
 import React, { useMemo, useState, useCallback, useEffect, useRef } from 'react';
-import { User, Transaction, Account, Category, Duration, CategorySpending, Widget, WidgetConfig, DisplayTransaction, FinancialGoal, RecurringTransaction, BillPayment, Tag, Budget, RecurringTransactionOverride, LoanPaymentOverrides } from '../types';
+import { User, Transaction, Account, Category, Duration, CategorySpending, Widget, WidgetConfig, DisplayTransaction, FinancialGoal, RecurringTransaction, BillPayment, Tag, Budget, RecurringTransactionOverride, LoanPaymentOverrides, AccountType } from '../types';
 import { formatCurrency, getDateRange, calculateAccountTotals, convertToEur, calculateStatementPeriods, generateBalanceForecast, parseDateAsUTC, getCreditCardStatementDetails, generateSyntheticLoanPayments, generateSyntheticCreditCardPayments, getPreferredTimeZone, formatDateKey, generateSyntheticPropertyTransactions } from '../utils';
 import AddTransactionModal from '../components/AddTransactionModal';
 import { BTN_PRIMARY_STYLE, BTN_SECONDARY_STYLE, LIQUID_ACCOUNT_TYPES, ASSET_TYPES, DEBT_TYPES, ACCOUNT_TYPE_STYLES, INVESTMENT_SUB_TYPE_STYLES } from '../constants';
@@ -72,7 +72,7 @@ type DashboardTab = 'overview' | 'analysis' | 'activity';
 const WIDGET_TABS: Record<DashboardTab, string[]> = {
     overview: ['netWorthOverTime'],
     analysis: [], // Handled by custom layout now
-    activity: ['outflowsByCategory', 'recentActivity', 'transactionMap']
+    activity: ['transactionMap', 'outflowsByCategory', 'recentActivity']
 };
 
 const AnalysisStatCard: React.FC<{ title: string; value: string; subtext: string; icon: string; colorClass: string }> = ({ title, value, subtext, icon, colorClass }) => (
@@ -341,7 +341,7 @@ const Dashboard: React.FC<DashboardProps> = ({ user, activeGoalIds, selectedAcco
     const fullTransactionsList = [...transactions];
   
     for (const tx of sortedSourceTransactions) {
-      if (result.length >= 5) break;
+      if (result.length >= 50) break; // Load more for activity view
   
       if (tx.transferId) {
         if (processedTransferIds.has(tx.transferId)) continue;
@@ -370,7 +370,7 @@ const Dashboard: React.FC<DashboardProps> = ({ user, activeGoalIds, selectedAcco
         result.push({ ...tx, accountName: accountMap[tx.accountId] });
       }
     }
-    return result.slice(0, 5);
+    return result.slice(0, 30);
   }, [transactions, selectedAccountIds, accountMap]);
   
   const { incomeSparkline, expenseSparkline } = useMemo(() => {
@@ -455,15 +455,52 @@ const Dashboard: React.FC<DashboardProps> = ({ user, activeGoalIds, selectedAcco
     };
   }, [selectedAccounts]);
 
-  const { globalTotalAssets, globalTotalDebt, globalAssetBreakdown, globalDebtBreakdown } = useMemo(() => {
+  const { globalTotalAssets, globalTotalDebt, globalAssetBreakdown, globalDebtBreakdown, assetGroups, liabilityGroups } = useMemo(() => {
      const openAccounts = accounts.filter(acc => acc.status !== 'closed');
      const { totalAssets, totalDebt } = calculateAccountTotals(openAccounts);
+
+    // Group accounts for the detailed breakdown
+    const assetGroups: Record<string, { types: AccountType[], value: number, color: string, icon: string }> = {
+        'Liquid Cash': { types: ['Checking', 'Savings'], value: 0, color: '#3B82F6', icon: 'savings' }, // Blue
+        'Investments': { types: ['Investment'], value: 0, color: '#8B5CF6', icon: 'show_chart' }, // Purple
+        'Properties': { types: ['Property'], value: 0, color: '#10B981', icon: 'home' }, // Emerald
+        'Vehicles': { types: ['Vehicle'], value: 0, color: '#F59E0B', icon: 'directions_car' }, // Amber
+        'Other Assets': { types: ['Other Assets', 'Lending'], value: 0, color: '#64748B', icon: 'category' }, // Slate
+    };
+
+    const liabilityGroups: Record<string, { types: AccountType[], value: number, color: string, icon: string }> = {
+        'Loans': { types: ['Loan'], value: 0, color: '#EF4444', icon: 'request_quote' }, // Red
+        'Credit Cards': { types: ['Credit Card'], value: 0, color: '#F43F5E', icon: 'credit_card' }, // Rose
+        'Other Liabilities': { types: ['Other Liabilities'], value: 0, color: '#94A3B8', icon: 'receipt' }, // Gray
+    };
+
+    openAccounts.forEach(acc => {
+        const val = convertToEur(acc.balance, acc.currency);
+        if (ASSET_TYPES.includes(acc.type)) {
+            // Find which group it belongs to
+            for (const groupName in assetGroups) {
+                if (assetGroups[groupName].types.includes(acc.type)) {
+                    assetGroups[groupName].value += val;
+                    break;
+                }
+            }
+        } else {
+             for (const groupName in liabilityGroups) {
+                if (liabilityGroups[groupName].types.includes(acc.type)) {
+                    liabilityGroups[groupName].value += Math.abs(val); // Store liability as positive for display
+                    break;
+                }
+            }
+        }
+    });
 
      return {
         globalTotalAssets: totalAssets,
         globalTotalDebt: totalDebt,
         globalAssetBreakdown: createBreakdown(openAccounts.filter(acc => ASSET_TYPES.includes(acc.type))),
         globalDebtBreakdown: createBreakdown(openAccounts.filter(acc => DEBT_TYPES.includes(acc.type))),
+        assetGroups,
+        liabilityGroups
      };
   }, [accounts]);
 
@@ -627,7 +664,8 @@ const Dashboard: React.FC<DashboardProps> = ({ user, activeGoalIds, selectedAcco
         // Generate synthetic transactions
         const syntheticLoanPayments = generateSyntheticLoanPayments(accounts, transactions, loanPaymentOverrides);
         const syntheticCreditCardPayments = generateSyntheticCreditCardPayments(accounts, transactions);
-        const allRecurringTransactions = [...recurringTransactions, ...syntheticLoanPayments, ...syntheticCreditCardPayments];
+        const syntheticPropertyTransactions = generateSyntheticPropertyTransactions(accounts);
+        const allRecurringTransactions = [...recurringTransactions, ...syntheticLoanPayments, ...syntheticCreditCardPayments, ...syntheticPropertyTransactions];
 
         // Filter active goals
         const activeGoals = financialGoals.filter(g => activeGoalIds.includes(g.id));
@@ -772,11 +810,11 @@ const Dashboard: React.FC<DashboardProps> = ({ user, activeGoalIds, selectedAcco
     { id: 'netWorthOverTime', name: 'Net Worth Over Time', defaultW: 4, defaultH: 2, component: NetWorthChart, props: { data: netWorthData, lineColor: netWorthTrendColor } },
     { id: 'outflowsByCategory', name: 'Outflows by Category', defaultW: 2, defaultH: 2, component: OutflowsChart, props: { data: outflowsByCategory, onCategoryClick: handleCategoryClick } },
     { id: 'netWorthBreakdown', name: 'Net Worth Breakdown', defaultW: 2, defaultH: 2, component: AssetDebtDonutChart, props: { assets: totalAssets, debt: totalDebt } },
-    { id: 'recentActivity', name: 'Recent Activity', defaultW: 4, defaultH: 2, component: TransactionList, props: { transactions: recentTransactions, allCategories: allCategories, onTransactionClick: handleTransactionClick } },
+    { id: 'recentActivity', name: 'Recent Activity', defaultW: 4, defaultH: 3, component: TransactionList, props: { transactions: recentTransactions, allCategories: allCategories, onTransactionClick: handleTransactionClick } },
     { id: 'assetBreakdown', name: 'Asset Breakdown', defaultW: 2, defaultH: 2, component: AccountBreakdownCard, props: { title: 'Assets', totalValue: globalTotalAssets, breakdownData: globalAssetBreakdown } },
     { id: 'liabilityBreakdown', name: 'Liability Breakdown', defaultW: 2, defaultH: 2, component: AccountBreakdownCard, props: { title: 'Liabilities', totalValue: Math.abs(globalTotalDebt), breakdownData: globalDebtBreakdown } },
     { id: 'budgetOverview', name: 'Budget Overview', defaultW: 2, defaultH: 2, component: BudgetOverviewWidget, props: { budgets: budgets, transactions: transactions, expenseCategories: expenseCategories, accounts: accounts, duration: duration, onBudgetClick: handleBudgetClick } },
-    { id: 'transactionMap', name: 'Transaction Map', defaultW: 4, defaultH: 2, component: TransactionMapWidget, props: { transactions: filteredTransactions } },
+    { id: 'transactionMap', name: 'Transaction Map', defaultW: 2, defaultH: 2, component: TransactionMapWidget, props: { transactions: filteredTransactions } },
   ], [netWorthData, netWorthTrendColor, outflowsByCategory, handleCategoryClick, totalAssets, totalDebt, recentTransactions, allCategories, handleTransactionClick, globalTotalAssets, globalAssetBreakdown, globalTotalDebt, globalDebtBreakdown, budgets, transactions, expenseCategories, accounts, duration, handleBudgetClick, filteredTransactions]);
 
   const [widgets, setWidgets] = useLocalStorage<WidgetConfig[]>('dashboard-layout', allWidgets.map(w => ({ id: w.id, title: w.name, w: w.defaultW, h: w.defaultH })));
@@ -1075,15 +1113,18 @@ const Dashboard: React.FC<DashboardProps> = ({ user, activeGoalIds, selectedAcco
                   <div className="flex flex-col lg:flex-row gap-8">
                       {/* Left: Chart & High Level */}
                       <div className="lg:w-1/3 flex flex-col justify-center border-b lg:border-b-0 lg:border-r border-black/5 dark:border-white/5 pb-8 lg:pb-0 lg:pr-8">
-                          <h3 className="text-lg font-bold text-light-text dark:text-dark-text mb-6 self-start">Net Worth Composition</h3>
+                          <h3 className="text-lg font-bold text-light-text dark:text-dark-text mb-6 self-start">Asset Allocation</h3>
                           <div className="h-64 w-full relative">
                               <ResponsiveContainer width="100%" height="100%">
                                   <PieChart>
                                       <Pie
                                           data={[
-                                              { name: 'Assets', value: globalTotalAssets > 0 ? globalTotalAssets : 0 },
-                                              { name: 'Liabilities', value: Math.abs(globalTotalDebt) > 0 ? Math.abs(globalTotalDebt) : 0 }
-                                          ]}
+                                              { name: 'Liquid Cash', value: assetGroups['Liquid Cash'].value, color: assetGroups['Liquid Cash'].color },
+                                              { name: 'Investments', value: assetGroups['Investments'].value, color: assetGroups['Investments'].color },
+                                              { name: 'Properties', value: assetGroups['Properties'].value, color: assetGroups['Properties'].color },
+                                              { name: 'Vehicles', value: assetGroups['Vehicles'].value, color: assetGroups['Vehicles'].color },
+                                              { name: 'Other Assets', value: assetGroups['Other Assets'].value, color: assetGroups['Other Assets'].color }
+                                          ].filter(d => d.value > 0)}
                                           cx="50%"
                                           cy="50%"
                                           innerRadius={60}
@@ -1091,8 +1132,16 @@ const Dashboard: React.FC<DashboardProps> = ({ user, activeGoalIds, selectedAcco
                                           paddingAngle={5}
                                           dataKey="value"
                                       >
-                                          <Cell fill="#22C55E" stroke="none" />
-                                          <Cell fill="#EF4444" stroke="none" />
+                                          {/* Cells generated from data color property */}
+                                          {[
+                                              { name: 'Liquid Cash', value: assetGroups['Liquid Cash'].value, color: assetGroups['Liquid Cash'].color },
+                                              { name: 'Investments', value: assetGroups['Investments'].value, color: assetGroups['Investments'].color },
+                                              { name: 'Properties', value: assetGroups['Properties'].value, color: assetGroups['Properties'].color },
+                                              { name: 'Vehicles', value: assetGroups['Vehicles'].value, color: assetGroups['Vehicles'].color },
+                                              { name: 'Other Assets', value: assetGroups['Other Assets'].value, color: assetGroups['Other Assets'].color }
+                                          ].filter(d => d.value > 0).map((entry, index) => (
+                                              <Cell key={`cell-${index}`} fill={entry.color} stroke="none" />
+                                          ))}
                                       </Pie>
                                   </PieChart>
                               </ResponsiveContainer>
@@ -1119,21 +1168,30 @@ const Dashboard: React.FC<DashboardProps> = ({ user, activeGoalIds, selectedAcco
                           <div>
                               <h4 className="text-sm font-bold text-light-text-secondary dark:text-dark-text-secondary uppercase tracking-wider mb-4">Assets Breakdown</h4>
                               <div className="space-y-4">
-                                  {globalAssetBreakdown.map((item) => (
-                                      <div key={item.name} className="group">
-                                          <div className="flex justify-between text-sm mb-1.5">
-                                              <span className="font-medium text-gray-700 dark:text-gray-200 group-hover:text-primary-600 transition-colors">{item.name}</span>
-                                              <span className="font-mono font-medium text-gray-900 dark:text-white">{formatCurrency(item.value, 'EUR')}</span>
-                                          </div>
-                                          <div className="w-full bg-gray-100 dark:bg-white/10 rounded-full h-2 overflow-hidden">
-                                              <div className="h-full rounded-full" style={{ width: `${(item.value / globalTotalAssets) * 100}%`, backgroundColor: item.color }}></div>
-                                          </div>
-                                          <p className="text-[10px] text-right text-gray-400 mt-1 opacity-0 group-hover:opacity-100 transition-opacity">
-                                              {((item.value / globalTotalAssets) * 100).toFixed(1)}%
-                                          </p>
-                                      </div>
-                                  ))}
-                                  {globalAssetBreakdown.length === 0 && <p className="text-sm text-light-text-secondary dark:text-dark-text-secondary italic">No assets found.</p>}
+                                  {Object.entries(assetGroups).map(([name, grp]) => {
+                                      const group = grp as { value: number; color: string; icon: string };
+                                      if (group.value === 0) return null;
+                                      return (
+                                        <div key={name} className="group">
+                                            <div className="flex justify-between text-sm mb-1.5">
+                                                <div className="flex items-center gap-2">
+                                                    <div className="w-6 h-6 rounded-md flex items-center justify-center text-white shadow-sm" style={{ backgroundColor: group.color }}>
+                                                        <span className="material-symbols-outlined text-[14px]">{group.icon}</span>
+                                                    </div>
+                                                    <span className="font-medium text-gray-700 dark:text-gray-200">{name}</span>
+                                                </div>
+                                                <span className="font-mono font-medium text-gray-900 dark:text-white">{formatCurrency(group.value, 'EUR')}</span>
+                                            </div>
+                                            <div className="w-full bg-gray-100 dark:bg-white/10 rounded-full h-2 overflow-hidden">
+                                                <div className="h-full rounded-full" style={{ width: `${(group.value / globalTotalAssets) * 100}%`, backgroundColor: group.color }}></div>
+                                            </div>
+                                            <p className="text-[10px] text-right text-gray-400 mt-1 opacity-0 group-hover:opacity-100 transition-opacity">
+                                                {((group.value / globalTotalAssets) * 100).toFixed(1)}%
+                                            </p>
+                                        </div>
+                                      );
+                                  })}
+                                  {globalTotalAssets === 0 && <p className="text-sm text-light-text-secondary dark:text-dark-text-secondary italic">No assets found.</p>}
                               </div>
                           </div>
 
@@ -1141,21 +1199,30 @@ const Dashboard: React.FC<DashboardProps> = ({ user, activeGoalIds, selectedAcco
                           <div>
                               <h4 className="text-sm font-bold text-light-text-secondary dark:text-dark-text-secondary uppercase tracking-wider mb-4">Liabilities Breakdown</h4>
                               <div className="space-y-4">
-                                  {globalDebtBreakdown.map((item) => (
-                                      <div key={item.name} className="group">
-                                          <div className="flex justify-between text-sm mb-1.5">
-                                              <span className="font-medium text-gray-700 dark:text-gray-200 group-hover:text-red-500 transition-colors">{item.name}</span>
-                                              <span className="font-mono font-medium text-gray-900 dark:text-white">{formatCurrency(item.value, 'EUR')}</span>
+                                  {Object.entries(liabilityGroups).map(([name, grp]) => {
+                                      const group = grp as { value: number; color: string; icon: string };
+                                      if (group.value === 0) return null;
+                                      return (
+                                          <div key={name} className="group">
+                                              <div className="flex justify-between text-sm mb-1.5">
+                                                   <div className="flex items-center gap-2">
+                                                        <div className="w-6 h-6 rounded-md flex items-center justify-center text-white shadow-sm" style={{ backgroundColor: group.color }}>
+                                                            <span className="material-symbols-outlined text-[14px]">{group.icon}</span>
+                                                        </div>
+                                                        <span className="font-medium text-gray-700 dark:text-gray-200">{name}</span>
+                                                    </div>
+                                                  <span className="font-mono font-medium text-gray-900 dark:text-white">{formatCurrency(group.value, 'EUR')}</span>
+                                              </div>
+                                              <div className="w-full bg-gray-100 dark:bg-white/10 rounded-full h-2 overflow-hidden">
+                                                  <div className="h-full rounded-full" style={{ width: `${(group.value / Math.abs(globalTotalDebt)) * 100}%`, backgroundColor: group.color }}></div>
+                                              </div>
+                                              <p className="text-[10px] text-right text-gray-400 mt-1 opacity-0 group-hover:opacity-100 transition-opacity">
+                                                  {((group.value / Math.abs(globalTotalDebt)) * 100).toFixed(1)}%
+                                              </p>
                                           </div>
-                                          <div className="w-full bg-gray-100 dark:bg-white/10 rounded-full h-2 overflow-hidden">
-                                              <div className="h-full rounded-full" style={{ width: `${(item.value / Math.abs(globalTotalDebt)) * 100}%`, backgroundColor: item.color }}></div>
-                                          </div>
-                                          <p className="text-[10px] text-right text-gray-400 mt-1 opacity-0 group-hover:opacity-100 transition-opacity">
-                                              {((item.value / Math.abs(globalTotalDebt)) * 100).toFixed(1)}%
-                                          </p>
-                                      </div>
-                                  ))}
-                                  {globalDebtBreakdown.length === 0 && (
+                                      );
+                                  })}
+                                  {globalTotalDebt === 0 && (
                                       <div className="p-4 text-center text-sm text-gray-400 italic bg-gray-50 dark:bg-gray-800/50 rounded-lg">
                                           No liabilities recorded.
                                       </div>

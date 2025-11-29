@@ -12,9 +12,9 @@ interface OutflowsChartProps {
 const CustomTooltip = ({ active, payload, label }: any) => {
     if (active && payload && payload.length) {
       return (
-        <div className="bg-light-card dark:bg-dark-card p-3 rounded-lg shadow-lg border border-black/5 dark:border-white/5">
-          <p className="label font-semibold text-light-text dark:text-dark-text mb-1">{label}</p>
-          <p style={{ color: payload[0].payload.color }}>{`Spent: ${formatCurrency(payload[0].value, 'EUR')}`}</p>
+        <div className="bg-light-card/90 dark:bg-dark-card/90 backdrop-blur-sm p-3 rounded-lg shadow-xl border border-white/10 text-sm">
+          <p className="label font-bold text-light-text dark:text-dark-text mb-1">{label}</p>
+          <p style={{ color: payload[0].payload.color }} className="font-mono">{`Spent: ${formatCurrency(payload[0].value, 'EUR')}`}</p>
         </div>
       );
     }
@@ -24,8 +24,9 @@ const CustomTooltip = ({ active, payload, label }: any) => {
 const OutflowsChart: React.FC<OutflowsChartProps> = ({ data, onCategoryClick }) => {
   if (!data || data.length === 0) {
     return (
-      <div className="flex items-center justify-center h-full text-light-text-secondary dark:text-dark-text-secondary">
-        <p>No outflow data for this period.</p>
+      <div className="flex items-center justify-center h-full text-light-text-secondary dark:text-dark-text-secondary opacity-60 flex-col gap-2">
+        <span className="material-symbols-outlined text-3xl">bar_chart_4_bars</span>
+        <p>No outflow data.</p>
       </div>
     );
   }
@@ -36,9 +37,9 @@ const OutflowsChart: React.FC<OutflowsChartProps> = ({ data, onCategoryClick }) 
         <BarChart
           data={data}
           layout="vertical"
-          margin={{ top: 5, right: 30, left: 10, bottom: 5 }}
+          margin={{ top: 10, right: 30, left: 10, bottom: 5 }}
         >
-          <CartesianGrid strokeDasharray="3 3" stroke="currentColor" opacity={0.1} horizontal={false} />
+          <CartesianGrid strokeDasharray="3 3" stroke="currentColor" opacity={0.05} horizontal={false} />
           <XAxis type="number" hide />
           <YAxis
             type="category"
@@ -46,14 +47,14 @@ const OutflowsChart: React.FC<OutflowsChartProps> = ({ data, onCategoryClick }) 
             axisLine={false}
             tickLine={false}
             width={120}
-            tick={{ fill: 'currentColor', opacity: 0.8, fontSize: 13 }}
+            tick={{ fill: 'currentColor', opacity: 0.7, fontSize: 12, fontWeight: 500 }}
             style={{ cursor: 'pointer' }}
             onClick={(payload) => onCategoryClick(payload.value)}
           />
-          <Tooltip content={<CustomTooltip />} cursor={{ fill: 'rgba(128, 128, 128, 0.1)' }} />
-          <Bar dataKey="value" barSize={20} radius={[0, 8, 8, 0]} onClick={(barData: any) => onCategoryClick(barData.name)}>
+          <Tooltip content={<CustomTooltip />} cursor={{ fill: 'rgba(128, 128, 128, 0.05)', radius: 8 }} />
+          <Bar dataKey="value" barSize={12} radius={[0, 6, 6, 0]} onClick={(barData: any) => onCategoryClick(barData.name)}>
             {data.map((entry) => (
-              <Cell key={`cell-${entry.name}`} fill={entry.color} cursor="pointer" />
+              <Cell key={`cell-${entry.name}`} fill={entry.color} cursor="pointer" style={{ transition: 'all 0.3s ease' }} />
             ))}
           </Bar>
         </BarChart>
