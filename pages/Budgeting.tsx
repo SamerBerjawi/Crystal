@@ -527,7 +527,7 @@ const Budgeting: React.FC<BudgetingProps> = ({ budgets, transactions, expenseCat
 
               <Card>
                   <h3 className="text-base font-bold text-light-text dark:text-dark-text mb-4">Watchlist</h3>
-                  <p className="text-xs text-light-text-secondary dark:text-dark-text-secondary mb-3">Categories > 80% utilized</p>
+                  <p className="text-xs text-light-text-secondary dark:text-dark-text-secondary mb-3">Categories &gt; 80% utilized</p>
                   <div className="space-y-3">
                       {budgets.filter(b => {
                            const spent = spendingByCategory[b.categoryName] || 0;
