@@ -32,6 +32,8 @@ export interface Tag {
 
 export type InvestmentSubType = 'Stock' | 'ETF' | 'Crypto' | 'Pension Fund' | 'Spare Change' | 'Other';
 export type PropertyType = 'Apartment' | 'Detached House' | 'Semi-Detached House' | 'Terraced House' | 'Land' | 'Commercial' | 'Other';
+export type OtherAssetSubType = 'Cash' | 'Precious Metals' | 'Collectibles' | 'Art' | 'Business Equity' | 'Private Loan' | 'Electronics' | 'Furniture' | 'Other';
+export type OtherLiabilitySubType = 'Tax' | 'Private Debt' | 'Legal Settlement' | 'Business Debt' | 'Other';
 
 // Vehicle Specific Types
 export type FuelType = 'Gasoline' | 'Diesel' | 'Electric' | 'Hybrid' | 'LPG';
@@ -67,6 +69,12 @@ export interface Account {
 
   // Investment specific
   subType?: InvestmentSubType;
+  
+  // Other Assets/Liabilities specific
+  otherSubType?: OtherAssetSubType | OtherLiabilitySubType;
+  counterparty?: string; // Who owes you or who you owe
+  assetCondition?: string; // Mint, Good, Fair
+  location?: string; // Physical location of asset
 
   // Credit Card specific fields
   statementStartDate?: number; // Day of the month (1-31)

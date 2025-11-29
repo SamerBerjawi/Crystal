@@ -1,8 +1,8 @@
 
 import React, { useState, useEffect, useMemo, useRef } from 'react';
 import Modal from './Modal';
-import { Account, AccountType, Currency, InvestmentSubType, PropertyType, FuelType, VehicleOwnership, RecurrenceFrequency } from '../types';
-import { ALL_ACCOUNT_TYPES, CURRENCIES, ACCOUNT_TYPE_STYLES, INPUT_BASE_STYLE, BTN_PRIMARY_STYLE, BTN_SECONDARY_STYLE, SELECT_ARROW_STYLE, SELECT_WRAPPER_STYLE, ACCOUNT_ICON_LIST, INVESTMENT_SUB_TYPES, PROPERTY_TYPES, INVESTMENT_SUB_TYPE_STYLES, FUEL_TYPES, VEHICLE_OWNERSHIP_TYPES, CHECKBOX_STYLE, FREQUENCIES, CARD_NETWORKS } from '../constants';
+import { Account, AccountType, Currency, InvestmentSubType, PropertyType, FuelType, VehicleOwnership, RecurrenceFrequency, OtherAssetSubType, OtherLiabilitySubType } from '../types';
+import { ALL_ACCOUNT_TYPES, CURRENCIES, ACCOUNT_TYPE_STYLES, INPUT_BASE_STYLE, BTN_PRIMARY_STYLE, BTN_SECONDARY_STYLE, SELECT_ARROW_STYLE, SELECT_WRAPPER_STYLE, ACCOUNT_ICON_LIST, INVESTMENT_SUB_TYPES, PROPERTY_TYPES, INVESTMENT_SUB_TYPE_STYLES, FUEL_TYPES, VEHICLE_OWNERSHIP_TYPES, CHECKBOX_STYLE, FREQUENCIES, CARD_NETWORKS, OTHER_ASSET_SUB_TYPES, OTHER_LIABILITY_SUB_TYPES, OTHER_ASSET_SUB_TYPE_STYLES, OTHER_LIABILITY_SUB_TYPE_STYLES } from '../constants';
 import IconPicker from './IconPicker';
 import { v4 as uuidv4 } from 'uuid';
 
@@ -37,6 +37,9 @@ const AddAccountModal: React.FC<AddAccountModalProps> = ({ onClose, onAdd, accou
 
   // New detailed fields
   const [subType, setSubType] = useState<InvestmentSubType>('Stock');
+  const [otherAssetSubType, setOtherAssetSubType] = useState<OtherAssetSubType>('Other');
+  const [otherLiabilitySubType, setOtherLiabilitySubType] = useState<OtherLiabilitySubType>('Other');
+  
   const [totalAmount, setTotalAmount] = useState('');
   const [principalAmount, setPrincipalAmount] = useState('');
   const [interestAmount, setInterestAmount] = useState('');
@@ -57,6 +60,11 @@ const AddAccountModal: React.FC<AddAccountModalProps> = ({ onClose, onAdd, accou
   const [notes, setNotes] = useState('');
   const [linkedAccountId, setLinkedAccountId] = useState<string>('');
   
+  // Other Asset/Liability Specific
+  const [counterparty, setCounterparty] = useState('');
+  const [assetCondition, setAssetCondition] = useState('');
+  const [location, setLocation] = useState('');
+
   // Vehicle Specific
   const [licensePlate, setLicensePlate] = useState('');
   const [registrationCountryCode, setRegistrationCountryCode] = useState('');
@@ -116,10 +124,14 @@ const AddAccountModal: React.FC<AddAccountModalProps> = ({ onClose, onAdd, accou
   useEffect(() => {
     if (type === 'Investment') {
       setIcon(INVESTMENT_SUB_TYPE_STYLES[subType].icon);
+    } else if (type === 'Other Assets') {
+        setIcon(OTHER_ASSET_SUB_TYPE_STYLES[otherAssetSubType].icon);
+    } else if (type === 'Other Liabilities') {
+        setIcon(OTHER_LIABILITY_SUB_TYPE_STYLES[otherLiabilitySubType].icon);
     } else {
       setIcon(ACCOUNT_TYPE_STYLES[type].icon);
     }
-  }, [type, subType]);
+  }, [type, subType, otherAssetSubType, otherLiabilitySubType]);
   
   // Auto-enable card for Credit Card type
   useEffect(() => {
@@ -150,8 +162,14 @@ const AddAccountModal: React.FC<AddAccountModalProps> = ({ onClose, onAdd, accou
     if (type === 'Investment') {
         return INVESTMENT_SUB_TYPE_STYLES[subType]?.color || ACCOUNT_TYPE_STYLES.Investment.color;
     }
+    if (type === 'Other Assets') {
+        return OTHER_ASSET_SUB_TYPE_STYLES[otherAssetSubType]?.color || ACCOUNT_TYPE_STYLES['Other Assets'].color;
+    }
+    if (type === 'Other Liabilities') {
+        return OTHER_LIABILITY_SUB_TYPE_STYLES[otherLiabilitySubType]?.color || ACCOUNT_TYPE_STYLES['Other Liabilities'].color;
+    }
     return ACCOUNT_TYPE_STYLES[type]?.color || 'text-gray-500';
-  }, [type, subType]);
+  }, [type, subType, otherAssetSubType, otherLiabilitySubType]);
 
   const groupedDebitAccounts = useMemo(() => {
     const debitAccounts = accounts.filter(acc => acc.type === 'Checking' || acc.type === 'Savings');
@@ -220,6 +238,19 @@ const AddAccountModal: React.FC<AddAccountModalProps> = ({ onClose, onAdd, accou
       
       // Conditionally add new fields
       ...(type === 'Investment' && { subType }),
+      ...(type === 'Other Assets' && { 
+          otherSubType: otherAssetSubType,
+          location: location || undefined,
+          assetCondition: assetCondition || undefined,
+          counterparty: counterparty || undefined,
+       }),
+       ...(type === 'Other Liabilities' && { 
+          otherSubType: otherLiabilitySubType,
+          counterparty: counterparty || undefined,
+          interestRate: interestRate !== '' ? parseFloat(interestRate) : undefined,
+          // Reuse paymentDate logic for due date if needed, or add new field
+       }),
+
       ...((type === 'Loan' || type === 'Lending') && { 
         totalAmount: totalAmount !== '' ? parseFloat(totalAmount) : undefined,
         principalAmount: principalAmount !== '' ? parseFloat(principalAmount) : undefined,
@@ -472,6 +503,60 @@ const AddAccountModal: React.FC<AddAccountModalProps> = ({ onClose, onAdd, accou
                   <div className={SELECT_ARROW_STYLE}><span className="material-symbols-outlined">expand_more</span></div>
                 </div>
               </div>
+            )}
+            {type === 'Other Assets' && (
+                <div className="space-y-4">
+                  <div className="grid grid-cols-2 gap-4">
+                    <div>
+                        <label htmlFor="otherAssetSubType" className={labelStyle}>Sub-Type</label>
+                        <div className={SELECT_WRAPPER_STYLE}>
+                        <select id="otherAssetSubType" value={otherAssetSubType} onChange={e => setOtherAssetSubType(e.target.value as OtherAssetSubType)} className={INPUT_BASE_STYLE}>
+                            {OTHER_ASSET_SUB_TYPES.map(st => <option key={st} value={st}>{st}</option>)}
+                        </select>
+                        <div className={SELECT_ARROW_STYLE}><span className="material-symbols-outlined">expand_more</span></div>
+                        </div>
+                    </div>
+                    <div>
+                        <label htmlFor="counterparty" className={labelStyle}>Counterparty (Optional)</label>
+                        <input id="counterparty" type="text" value={counterparty} onChange={e => setCounterparty(e.target.value)} className={INPUT_BASE_STYLE} placeholder="e.g., John Doe" />
+                    </div>
+                  </div>
+                   <div className="grid grid-cols-2 gap-4">
+                    <div>
+                        <label htmlFor="location" className={labelStyle}>Location (Optional)</label>
+                        <input id="location" type="text" value={location} onChange={e => setLocation(e.target.value)} className={INPUT_BASE_STYLE} placeholder="e.g., Safe Box" />
+                    </div>
+                     <div>
+                        <label htmlFor="assetCondition" className={labelStyle}>Condition (Optional)</label>
+                        <input id="assetCondition" type="text" value={assetCondition} onChange={e => setAssetCondition(e.target.value)} className={INPUT_BASE_STYLE} placeholder="e.g., Mint" />
+                    </div>
+                   </div>
+                </div>
+            )}
+            {type === 'Other Liabilities' && (
+                 <div className="space-y-4">
+                    <div className="grid grid-cols-2 gap-4">
+                        <div>
+                            <label htmlFor="otherLiabilitySubType" className={labelStyle}>Sub-Type</label>
+                            <div className={SELECT_WRAPPER_STYLE}>
+                            <select id="otherLiabilitySubType" value={otherLiabilitySubType} onChange={e => setOtherLiabilitySubType(e.target.value as OtherLiabilitySubType)} className={INPUT_BASE_STYLE}>
+                                {OTHER_LIABILITY_SUB_TYPES.map(st => <option key={st} value={st}>{st}</option>)}
+                            </select>
+                            <div className={SELECT_ARROW_STYLE}><span className="material-symbols-outlined">expand_more</span></div>
+                            </div>
+                        </div>
+                        <div>
+                            <label htmlFor="counterparty" className={labelStyle}>Owed To (Optional)</label>
+                            <input id="counterparty" type="text" value={counterparty} onChange={e => setCounterparty(e.target.value)} className={INPUT_BASE_STYLE} placeholder="e.g., Tax Authority" />
+                        </div>
+                    </div>
+                     <div className="grid grid-cols-2 gap-4">
+                         <div>
+                            <label htmlFor="interestRate" className={labelStyle}>Interest Rate (%)</label>
+                            <input id="interestRate" type="number" step="0.01" value={interestRate} onChange={e=>setInterestRate(e.target.value)} className={INPUT_BASE_STYLE} />
+                        </div>
+                     </div>
+                 </div>
             )}
             {(type === 'Loan' || type === 'Lending') && (
                 <div className="space-y-4">

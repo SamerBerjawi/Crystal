@@ -1,6 +1,6 @@
 
 import React, { useState, useEffect } from 'react';
-import { Category, Page, AccountType, Currency, Theme, RecurrenceFrequency, WeekendAdjustment, DefaultAccountOrder, Duration, InvestmentSubType, PropertyType, FuelType, VehicleOwnership, ForecastDuration } from './types';
+import { Category, Page, AccountType, Currency, Theme, RecurrenceFrequency, WeekendAdjustment, DefaultAccountOrder, Duration, InvestmentSubType, PropertyType, FuelType, VehicleOwnership, ForecastDuration, OtherAssetSubType, OtherLiabilitySubType } from './types';
 
 
 // FIX: Renamed AuraFinanceLogo to CrystalLogo to finalize rebranding.
@@ -120,6 +120,9 @@ export const INVESTMENT_SUB_TYPES: InvestmentSubType[] = ['Stock', 'ETF', 'Crypt
 export const PROPERTY_TYPES: PropertyType[] = ['Apartment', 'Detached House', 'Semi-Detached House', 'Terraced House', 'Land', 'Commercial', 'Other'];
 export const FUEL_TYPES: FuelType[] = ['Gasoline', 'Diesel', 'Electric', 'Hybrid', 'LPG'];
 export const VEHICLE_OWNERSHIP_TYPES: VehicleOwnership[] = ['Owned', 'Leased'];
+export const OTHER_ASSET_SUB_TYPES: OtherAssetSubType[] = ['Cash', 'Precious Metals', 'Collectibles', 'Art', 'Business Equity', 'Private Loan', 'Electronics', 'Furniture', 'Other'];
+export const OTHER_LIABILITY_SUB_TYPES: OtherLiabilitySubType[] = ['Tax', 'Private Debt', 'Legal Settlement', 'Business Debt', 'Other'];
+
 export const CARD_NETWORKS = ['Visa', 'Mastercard', 'American Express', 'Discover', 'UnionPay', 'JCB', 'Other'];
 
 export const FREQUENCIES: { value: RecurrenceFrequency, label: string }[] = [
@@ -203,6 +206,27 @@ export const INVESTMENT_SUB_TYPE_STYLES: { [key in InvestmentSubType]: { icon: s
     'Other': { icon: 'category', color: 'text-slate-500' },
 };
 
+export const OTHER_ASSET_SUB_TYPE_STYLES: { [key in OtherAssetSubType]: { icon: string; color: string } } = {
+    'Cash': { icon: 'payments', color: 'text-green-500' },
+    'Precious Metals': { icon: 'diamond', color: 'text-yellow-600' },
+    'Collectibles': { icon: 'local_mall', color: 'text-purple-500' },
+    'Art': { icon: 'palette', color: 'text-pink-500' },
+    'Business Equity': { icon: 'store', color: 'text-blue-500' },
+    'Private Loan': { icon: 'handshake', color: 'text-teal-500' },
+    'Electronics': { icon: 'devices', color: 'text-gray-500' },
+    'Furniture': { icon: 'chair', color: 'text-orange-500' },
+    'Other': { icon: 'category', color: 'text-slate-500' },
+};
+
+export const OTHER_LIABILITY_SUB_TYPE_STYLES: { [key in OtherLiabilitySubType]: { icon: string; color: string } } = {
+    'Tax': { icon: 'receipt_long', color: 'text-red-500' },
+    'Private Debt': { icon: 'handshake', color: 'text-orange-500' },
+    'Legal Settlement': { icon: 'gavel', color: 'text-purple-500' },
+    'Business Debt': { icon: 'store', color: 'text-blue-500' },
+    'Other': { icon: 'receipt', color: 'text-slate-500' },
+};
+
+
 // Mock data for current prices, as we don't have a live API
 export const MOCK_CURRENT_PRICES: Record<string, number> = {
   'AAPL': 175.50,
@@ -235,7 +259,7 @@ export const MOCK_EXPENSE_CATEGORIES: Category[] = [
 ];
 
 export const ACCOUNT_ICON_LIST: string[] = [
-    'account_balance', 'savings', 'credit_card', 'show_chart', 'request_quote', 'home', 'currency_bitcoin', 'directions_car', 'palette', 'school', 'receipt', 'category', 'wallet', 'paid', 'account_balance_wallet', 'monetization_on', 'euro_symbol', 'payments', 'store', 'apartment', 'business_center', 'cottage', 'flight', 'local_gas_station', 'local_mall', 'restaurant', 'shopping_cart', 'work', 'build', 'real_estate_agent'
+    'account_balance', 'savings', 'credit_card', 'show_chart', 'request_quote', 'home', 'currency_bitcoin', 'directions_car', 'palette', 'school', 'receipt', 'category', 'wallet', 'paid', 'account_balance_wallet', 'monetization_on', 'euro_symbol', 'payments', 'store', 'apartment', 'business_center', 'cottage', 'flight', 'local_gas_station', 'local_mall', 'restaurant', 'shopping_cart', 'work', 'build', 'real_estate_agent', 'diamond', 'handshake', 'devices', 'chair', 'gavel'
 ];
 
 export const CATEGORY_ICON_LIST: string[] = [

@@ -356,6 +356,9 @@ const GeneralAccountView: React.FC<GeneralAccountViewProps> = ({
       }
       return hasDetails || hasLinkedCards;
   }, [account, showVirtualCard, linkedCreditCards.length]);
+  
+  // Show "Other" specific details if applicable
+  const showOtherDetails = (account.type === 'Other Assets' || account.type === 'Other Liabilities');
 
   const NetworkLogo = () => {
       const network = account.cardNetwork?.toLowerCase() || '';
@@ -452,7 +455,7 @@ const GeneralAccountView: React.FC<GeneralAccountViewProps> = ({
                   )}
               </div>
               <div className="flex items-center gap-2 text-sm text-light-text-secondary dark:text-dark-text-secondary">
-                <span>{account.type}</span>
+                <span>{account.otherSubType || account.type}</span>
               </div>
             </div>
           </div>
@@ -523,12 +526,13 @@ const GeneralAccountView: React.FC<GeneralAccountViewProps> = ({
       )}
 
       {/* Account Details Card (Banking Info & Linked Cards) */}
-      {showBankingDetails && (
+      {(showBankingDetails || showOtherDetails) && (
         <Card className="bg-gradient-to-br from-gray-50 to-white dark:from-gray-900/50 dark:to-dark-card border border-black/5 dark:border-white/5">
             <h3 className="text-sm font-bold uppercase tracking-wider text-light-text-secondary dark:text-dark-text-secondary mb-4 flex items-center gap-2">
                 <span className="material-symbols-outlined text-lg">info</span> Account Details
             </h3>
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
+                {/* Banking Fields */}
                 {account.accountNumber && (
                     <div>
                         <p className="text-xs text-light-text-secondary dark:text-dark-text-secondary mb-1">Account Number / IBAN</p>
@@ -553,6 +557,46 @@ const GeneralAccountView: React.FC<GeneralAccountViewProps> = ({
                          <p className="font-medium text-light-text dark:text-dark-text">{parseDateAsUTC(account.openingDate).toLocaleDateString()}</p>
                     </div>
                 )}
+                
+                {/* Other Assets/Liabilities Fields */}
+                {account.otherSubType && (
+                    <div>
+                        <p className="text-xs text-light-text-secondary dark:text-dark-text-secondary mb-1">Sub-Type</p>
+                        <p className="font-medium text-light-text dark:text-dark-text">{account.otherSubType}</p>
+                    </div>
+                )}
+                {account.counterparty && (
+                    <div>
+                        <p className="text-xs text-light-text-secondary dark:text-dark-text-secondary mb-1">{account.type === 'Other Liabilities' ? 'Owed To' : 'Counterparty'}</p>
+                        <p className="font-medium text-light-text dark:text-dark-text">{account.counterparty}</p>
+                    </div>
+                )}
+                {account.location && (
+                    <div>
+                        <p className="text-xs text-light-text-secondary dark:text-dark-text-secondary mb-1">Location</p>
+                        <p className="font-medium text-light-text dark:text-dark-text">{account.location}</p>
+                    </div>
+                )}
+                 {account.assetCondition && (
+                    <div>
+                        <p className="text-xs text-light-text-secondary dark:text-dark-text-secondary mb-1">Condition</p>
+                        <p className="font-medium text-light-text dark:text-dark-text">{account.assetCondition}</p>
+                    </div>
+                )}
+                {account.interestRate && (
+                    <div>
+                         <p className="text-xs text-light-text-secondary dark:text-dark-text-secondary mb-1">Interest Rate</p>
+                         <p className="font-bold text-red-600 dark:text-red-400 text-lg">{account.interestRate}%</p>
+                    </div>
+                )}
+                {account.notes && (
+                    <div className="col-span-full mt-2 pt-2 border-t border-black/5 dark:border-white/5">
+                         <p className="text-xs text-light-text-secondary dark:text-dark-text-secondary mb-1">Notes</p>
+                         <p className="text-sm text-light-text dark:text-dark-text whitespace-pre-wrap">{account.notes}</p>
+                    </div>
+                )}
+
+
                 {/* Show card details only if Virtual Card is NOT shown, to avoid duplication */}
                 {!showVirtualCard && (
                     <>

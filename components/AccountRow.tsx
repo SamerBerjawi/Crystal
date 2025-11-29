@@ -1,9 +1,9 @@
 
 import React, { useMemo } from 'react';
-import { Account, Transaction, Warrant } from '../types';
+import { Account, OtherAssetSubType, OtherLiabilitySubType, Transaction, Warrant } from '../types';
 import { convertToEur, formatCurrency } from '../utils';
 import { AreaChart, Area, ResponsiveContainer } from 'recharts';
-import { ACCOUNT_TYPE_STYLES, INVESTMENT_SUB_TYPE_STYLES } from '../constants';
+import { ACCOUNT_TYPE_STYLES, INVESTMENT_SUB_TYPE_STYLES, OTHER_ASSET_SUB_TYPE_STYLES, OTHER_LIABILITY_SUB_TYPE_STYLES } from '../constants';
 
 interface AccountRowProps {
     account: Account;
@@ -109,9 +109,15 @@ const AccountRow: React.FC<AccountRowProps> = ({ account, transactions, warrants
     }, [account, warrants]);
 
     // Style determination
-    const styleConfig = account.type === 'Investment' && account.subType
-        ? INVESTMENT_SUB_TYPE_STYLES[account.subType]
-        : ACCOUNT_TYPE_STYLES[account.type];
+    let styleConfig = ACCOUNT_TYPE_STYLES[account.type];
+
+    if (account.type === 'Investment' && account.subType) {
+        styleConfig = INVESTMENT_SUB_TYPE_STYLES[account.subType];
+    } else if (account.type === 'Other Assets' && account.otherSubType) {
+        styleConfig = OTHER_ASSET_SUB_TYPE_STYLES[account.otherSubType as OtherAssetSubType];
+    } else if (account.type === 'Other Liabilities' && account.otherSubType) {
+        styleConfig = OTHER_LIABILITY_SUB_TYPE_STYLES[account.otherSubType as OtherLiabilitySubType];
+    }
         
     const typeColor = styleConfig?.color || 'text-gray-500';
     
@@ -158,7 +164,7 @@ const AccountRow: React.FC<AccountRowProps> = ({ account, transactions, warrants
                                 {account.name}
                             </h3>
                             <p className="text-xs text-light-text-secondary dark:text-dark-text-secondary truncate font-medium mt-0.5 tracking-wide">
-                                {account.financialInstitution || account.type}
+                                {account.otherSubType || account.financialInstitution || account.type}
                                 {account.last4 && <span className="opacity-70 ml-1">•••• {account.last4}</span>}
                             </p>
                         </div>

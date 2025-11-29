@@ -1,10 +1,10 @@
 
 import React, { useMemo } from 'react';
-import { Account } from '../types';
+import { Account, OtherAssetSubType, OtherLiabilitySubType } from '../types';
 import Card from './Card';
 import { convertToEur, formatCurrency } from '../utils';
 import { LineChart, Line, ResponsiveContainer } from 'recharts';
-import { ACCOUNT_TYPE_STYLES } from '../constants';
+import { ACCOUNT_TYPE_STYLES, OTHER_ASSET_SUB_TYPE_STYLES, OTHER_LIABILITY_SUB_TYPE_STYLES } from '../constants';
 
 interface AccountCardProps {
     account: Account;
@@ -55,12 +55,18 @@ const AccountCard: React.FC<AccountCardProps> = ({
     
     const isAsset = account.balance >= 0;
     const sparklineColor = isAsset ? '#6366F1' : '#F43F5E';
-    const style = ACCOUNT_TYPE_STYLES[account.type];
+    
+    let style = ACCOUNT_TYPE_STYLES[account.type];
+    if (account.type === 'Other Assets' && account.otherSubType) {
+        style = OTHER_ASSET_SUB_TYPE_STYLES[account.otherSubType as OtherAssetSubType] || style;
+    } else if (account.type === 'Other Liabilities' && account.otherSubType) {
+        style = OTHER_LIABILITY_SUB_TYPE_STYLES[account.otherSubType as OtherLiabilitySubType] || style;
+    }
 
     const dragClasses = isBeingDragged ? 'opacity-50' : '';
     const dragOverClasses = isDragOver ? 'border-t-4 border-primary-500 pt-1' : '';
 
-    const secondaryText = account.type === 'Property' && account.propertyType ? account.propertyType : account.type;
+    const secondaryText = account.otherSubType || (account.type === 'Property' && account.propertyType ? account.propertyType : account.type);
 
     return (
         <div

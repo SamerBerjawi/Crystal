@@ -1,8 +1,8 @@
 
 import React, { useState, useEffect, useMemo, useRef } from 'react';
 import Modal from './Modal';
-import { Account, AccountType, Currency, InvestmentSubType, PropertyType, Warrant, FuelType, VehicleOwnership, MileageLog, RecurrenceFrequency } from '../types';
-import { ALL_ACCOUNT_TYPES, CURRENCIES, ACCOUNT_TYPE_STYLES, INPUT_BASE_STYLE, BTN_PRIMARY_STYLE, BTN_SECONDARY_STYLE, BTN_DANGER_STYLE, SELECT_ARROW_STYLE, SELECT_WRAPPER_STYLE, ACCOUNT_ICON_LIST, INVESTMENT_SUB_TYPES, PROPERTY_TYPES, INVESTMENT_SUB_TYPE_STYLES, FUEL_TYPES, VEHICLE_OWNERSHIP_TYPES, CHECKBOX_STYLE, FREQUENCIES, ALL_ACCOUNT_TYPES as ALL_TYPES_CONST, CARD_NETWORKS } from '../constants';
+import { Account, AccountType, Currency, InvestmentSubType, PropertyType, Warrant, FuelType, VehicleOwnership, MileageLog, RecurrenceFrequency, OtherAssetSubType, OtherLiabilitySubType } from '../types';
+import { ALL_ACCOUNT_TYPES, CURRENCIES, ACCOUNT_TYPE_STYLES, INPUT_BASE_STYLE, BTN_PRIMARY_STYLE, BTN_SECONDARY_STYLE, BTN_DANGER_STYLE, SELECT_ARROW_STYLE, SELECT_WRAPPER_STYLE, ACCOUNT_ICON_LIST, INVESTMENT_SUB_TYPES, PROPERTY_TYPES, INVESTMENT_SUB_TYPE_STYLES, FUEL_TYPES, VEHICLE_OWNERSHIP_TYPES, CHECKBOX_STYLE, FREQUENCIES, ALL_ACCOUNT_TYPES as ALL_TYPES_CONST, CARD_NETWORKS, OTHER_ASSET_SUB_TYPES, OTHER_LIABILITY_SUB_TYPES, OTHER_ASSET_SUB_TYPE_STYLES, OTHER_LIABILITY_SUB_TYPE_STYLES } from '../constants';
 import IconPicker from './IconPicker';
 import { v4 as uuidv4 } from 'uuid';
 
@@ -20,6 +20,8 @@ const EditAccountModal: React.FC<EditAccountModalProps> = ({ onClose, onSave, on
   // Gracefully handle legacy 'Crypto' type by migrating it to an 'Investment' type
   const initialType = (account.type as string) === 'Crypto' ? 'Investment' : account.type;
   const initialSubType = (account.type as string) === 'Crypto' ? 'Crypto' : account.subType || 'Stock';
+  const initialOtherAssetSubType = account.otherSubType as OtherAssetSubType || 'Other';
+  const initialOtherLiabilitySubType = account.otherSubType as OtherLiabilitySubType || 'Other';
 
   const [name, setName] = useState(account.name);
   const [type, setType] = useState<AccountType>(initialType);
@@ -47,6 +49,9 @@ const EditAccountModal: React.FC<EditAccountModalProps> = ({ onClose, onSave, on
 
   // New detailed fields
   const [subType, setSubType] = useState<InvestmentSubType>(initialSubType);
+  const [otherAssetSubType, setOtherAssetSubType] = useState<OtherAssetSubType>(initialOtherAssetSubType);
+  const [otherLiabilitySubType, setOtherLiabilitySubType] = useState<OtherLiabilitySubType>(initialOtherLiabilitySubType);
+  
   const [totalAmount, setTotalAmount] = useState(account.totalAmount != null ? String(account.totalAmount) : '');
   const [principalAmount, setPrincipalAmount] = useState(account.principalAmount != null ? String(account.principalAmount) : '');
   const [interestAmount, setInterestAmount] = useState(account.interestAmount != null ? String(account.interestAmount) : '');
@@ -66,6 +71,11 @@ const EditAccountModal: React.FC<EditAccountModalProps> = ({ onClose, onSave, on
   const [propertyType, setPropertyType] = useState<PropertyType>(account.propertyType || 'Detached House');
   const [notes, setNotes] = useState(account.notes || '');
   const [linkedAccountId, setLinkedAccountId] = useState(account.linkedAccountId || '');
+  
+  // Other Asset/Liability Specific
+  const [counterparty, setCounterparty] = useState(account.counterparty || '');
+  const [assetCondition, setAssetCondition] = useState(account.assetCondition || '');
+  const [location, setLocation] = useState(account.location || '');
 
   // Vehicle Specific
   const [licensePlate, setLicensePlate] = useState(account.licensePlate || '');
@@ -135,23 +145,25 @@ const EditAccountModal: React.FC<EditAccountModalProps> = ({ onClose, onSave, on
 
   useEffect(() => {
     // Determine the default icon for the account's original state
-    const oldDefaultIcon = (account.type as string) === 'Investment'
-      ? INVESTMENT_SUB_TYPE_STYLES[account.subType || 'Stock']?.icon
-      : ACCOUNT_TYPE_STYLES[account.type as AccountType]?.icon || 'wallet';
+    let oldDefaultIcon = 'wallet';
+    if (account.type === 'Investment') oldDefaultIcon = INVESTMENT_SUB_TYPE_STYLES[account.subType || 'Stock']?.icon;
+    else if (account.type === 'Other Assets') oldDefaultIcon = OTHER_ASSET_SUB_TYPE_STYLES[account.otherSubType as OtherAssetSubType || 'Other']?.icon;
+    else if (account.type === 'Other Liabilities') oldDefaultIcon = OTHER_LIABILITY_SUB_TYPE_STYLES[account.otherSubType as OtherLiabilitySubType || 'Other']?.icon;
+    else oldDefaultIcon = ACCOUNT_TYPE_STYLES[account.type as AccountType]?.icon;
 
     // Only update the icon if it's currently the default for the *original* type/subtype.
-    // This preserves any custom icon the user has set.
     if (icon === oldDefaultIcon) {
-      const newDefaultIcon = type === 'Investment'
-        ? INVESTMENT_SUB_TYPE_STYLES[subType]?.icon
-        : ACCOUNT_TYPE_STYLES[type as AccountType]?.icon;
+        let newDefaultIcon = ACCOUNT_TYPE_STYLES[type as AccountType]?.icon;
+        if (type === 'Investment') newDefaultIcon = INVESTMENT_SUB_TYPE_STYLES[subType]?.icon;
+        else if (type === 'Other Assets') newDefaultIcon = OTHER_ASSET_SUB_TYPE_STYLES[otherAssetSubType]?.icon;
+        else if (type === 'Other Liabilities') newDefaultIcon = OTHER_LIABILITY_SUB_TYPE_STYLES[otherLiabilitySubType]?.icon;
       
-      if (newDefaultIcon) {
-          setIcon(newDefaultIcon);
-      }
+        if (newDefaultIcon) {
+            setIcon(newDefaultIcon);
+        }
     }
   // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [type, subType]);
+  }, [type, subType, otherAssetSubType, otherLiabilitySubType]);
   
   // Loan amount calculation logic
   useEffect(() => {
@@ -175,8 +187,14 @@ const EditAccountModal: React.FC<EditAccountModalProps> = ({ onClose, onSave, on
     if (type === 'Investment') {
         return INVESTMENT_SUB_TYPE_STYLES[subType]?.color || ACCOUNT_TYPE_STYLES.Investment.color;
     }
+    if (type === 'Other Assets') {
+        return OTHER_ASSET_SUB_TYPE_STYLES[otherAssetSubType]?.color || ACCOUNT_TYPE_STYLES['Other Assets'].color;
+    }
+    if (type === 'Other Liabilities') {
+        return OTHER_LIABILITY_SUB_TYPE_STYLES[otherLiabilitySubType]?.color || ACCOUNT_TYPE_STYLES['Other Liabilities'].color;
+    }
     return ACCOUNT_TYPE_STYLES[type as AccountType]?.color || 'text-gray-500';
-  }, [type, subType]);
+  }, [type, subType, otherAssetSubType, otherLiabilitySubType]);
 
 
   const groupedDebitAccounts = useMemo(() => {
@@ -262,6 +280,18 @@ const EditAccountModal: React.FC<EditAccountModalProps> = ({ onClose, onSave, on
 
       // Conditionally add new fields
       subType: type === 'Investment' ? subType : undefined,
+      ...(type === 'Other Assets' && { 
+          otherSubType: otherAssetSubType,
+          location: location || undefined,
+          assetCondition: assetCondition || undefined,
+          counterparty: counterparty || undefined,
+       }),
+       ...(type === 'Other Liabilities' && { 
+          otherSubType: otherLiabilitySubType,
+          counterparty: counterparty || undefined,
+          interestRate: interestRate !== '' ? parseFloat(interestRate) : undefined,
+       }),
+
       totalAmount: (type === 'Loan' || type === 'Lending') && totalAmount !== '' ? parseFloat(totalAmount) : undefined,
       principalAmount: (type === 'Loan' || type === 'Lending') && principalAmount !== '' ? parseFloat(principalAmount) : undefined,
       interestAmount: (type === 'Loan' || type === 'Lending') && interestAmount !== '' ? parseFloat(interestAmount) : undefined,
@@ -516,6 +546,60 @@ const EditAccountModal: React.FC<EditAccountModalProps> = ({ onClose, onSave, on
                   <div className={SELECT_ARROW_STYLE}><span className="material-symbols-outlined">expand_more</span></div>
                 </div>
               </div>
+            )}
+             {type === 'Other Assets' && (
+                <div className="space-y-4">
+                  <div className="grid grid-cols-2 gap-4">
+                    <div>
+                        <label htmlFor="otherAssetSubType" className={labelStyle}>Sub-Type</label>
+                        <div className={SELECT_WRAPPER_STYLE}>
+                        <select id="otherAssetSubType" value={otherAssetSubType} onChange={e => setOtherAssetSubType(e.target.value as OtherAssetSubType)} className={INPUT_BASE_STYLE}>
+                            {OTHER_ASSET_SUB_TYPES.map(st => <option key={st} value={st}>{st}</option>)}
+                        </select>
+                        <div className={SELECT_ARROW_STYLE}><span className="material-symbols-outlined">expand_more</span></div>
+                        </div>
+                    </div>
+                    <div>
+                        <label htmlFor="counterparty" className={labelStyle}>Counterparty (Optional)</label>
+                        <input id="counterparty" type="text" value={counterparty} onChange={e => setCounterparty(e.target.value)} className={INPUT_BASE_STYLE} placeholder="e.g., John Doe" />
+                    </div>
+                  </div>
+                   <div className="grid grid-cols-2 gap-4">
+                    <div>
+                        <label htmlFor="location" className={labelStyle}>Location (Optional)</label>
+                        <input id="location" type="text" value={location} onChange={e => setLocation(e.target.value)} className={INPUT_BASE_STYLE} placeholder="e.g., Safe Box" />
+                    </div>
+                     <div>
+                        <label htmlFor="assetCondition" className={labelStyle}>Condition (Optional)</label>
+                        <input id="assetCondition" type="text" value={assetCondition} onChange={e => setAssetCondition(e.target.value)} className={INPUT_BASE_STYLE} placeholder="e.g., Mint" />
+                    </div>
+                   </div>
+                </div>
+            )}
+            {type === 'Other Liabilities' && (
+                 <div className="space-y-4">
+                    <div className="grid grid-cols-2 gap-4">
+                        <div>
+                            <label htmlFor="otherLiabilitySubType" className={labelStyle}>Sub-Type</label>
+                            <div className={SELECT_WRAPPER_STYLE}>
+                            <select id="otherLiabilitySubType" value={otherLiabilitySubType} onChange={e => setOtherLiabilitySubType(e.target.value as OtherLiabilitySubType)} className={INPUT_BASE_STYLE}>
+                                {OTHER_LIABILITY_SUB_TYPES.map(st => <option key={st} value={st}>{st}</option>)}
+                            </select>
+                            <div className={SELECT_ARROW_STYLE}><span className="material-symbols-outlined">expand_more</span></div>
+                            </div>
+                        </div>
+                        <div>
+                            <label htmlFor="counterparty" className={labelStyle}>Owed To (Optional)</label>
+                            <input id="counterparty" type="text" value={counterparty} onChange={e => setCounterparty(e.target.value)} className={INPUT_BASE_STYLE} placeholder="e.g., Tax Authority" />
+                        </div>
+                    </div>
+                     <div className="grid grid-cols-2 gap-4">
+                         <div>
+                            <label htmlFor="interestRate" className={labelStyle}>Interest Rate (%)</label>
+                            <input id="interestRate" type="number" step="0.01" value={interestRate} onChange={e=>setInterestRate(e.target.value)} className={INPUT_BASE_STYLE} />
+                        </div>
+                     </div>
+                 </div>
             )}
             {(type === 'Loan' || type === 'Lending') && (
                 <div className="space-y-4">
