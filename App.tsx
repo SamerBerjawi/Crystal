@@ -75,7 +75,6 @@ import { v4 as uuidv4 } from 'uuid';
 import ChatFab from './components/ChatFab';
 const Chatbot = lazy(() => import('./components/Chatbot'));
 import { convertToEur, CONVERSION_RATES, arrayToCSV, downloadCSV, parseDateAsUTC } from './utils';
-import { fetchYahooPrices } from './utils/investmentPrices';
 import { useDebounce } from './hooks/useDebounce';
 import { useAuth } from './hooks/useAuth';
 import useLocalStorage from './hooks/useLocalStorage';
@@ -259,8 +258,6 @@ const App: React.FC = () => {
   // State for Warrant prices
   const [manualWarrantPrices, setManualWarrantPrices] = useState<Record<string, number | undefined>>(initialFinancialData.manualWarrantPrices || {});
   const [lastUpdated, setLastUpdated] = useState<Date | null>(null);
-  const [investmentPrices, setInvestmentPrices] = useState<Record<string, number | null>>({});
-
   const warrantPrices = useMemo(() => {
     const resolved: Record<string, number | null> = {};
     warrants.forEach(warrant => {
@@ -397,16 +394,6 @@ const App: React.FC = () => {
             return { ...account, balance: calculatedBalance };
         }
       }
-      if (account.symbol && account.type === 'Investment' && investmentPrices[account.symbol] !== undefined) {
-        const price = investmentPrices[account.symbol];
-        const quantity = warrantHoldingsBySymbol[account.symbol] || 0;
-        const calculatedBalance = price !== null ? quantity * price : 0;
-
-        if (Math.abs((account.balance || 0) - calculatedBalance) > 0.0001) {
-            hasChanges = true;
-            return { ...account, balance: calculatedBalance };
-        }
-      }
       return account;
     });
 
@@ -414,14 +401,7 @@ const App: React.FC = () => {
         setAccounts(updatedAccounts);
     }
   // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [warrantPrices, investmentPrices, warrantHoldingsBySymbol]);
-
-  useEffect(() => {
-    refreshInvestmentPrices();
-    if (typeof window === 'undefined') return;
-    const intervalId = window.setInterval(refreshInvestmentPrices, 5 * 60 * 1000);
-    return () => window.clearInterval(intervalId);
-  }, [refreshInvestmentPrices]);
+  }, [warrantPrices, warrantHoldingsBySymbol]);
 
   const loadAllFinancialData = useCallback((data: FinancialData | null, options?: { skipNextSave?: boolean }) => {
     const dataToLoad = data || initialFinancialData;
