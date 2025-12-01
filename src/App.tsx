@@ -566,11 +566,6 @@ const App: React.FC = () => {
     warrants,
     manualWarrantPrices,
   ]);
-  const debouncedDataToSave = useDebounce(dataToSave, 1500);
-  const debouncedDataSignature = useMemo(
-    () => JSON.stringify(debouncedDataToSave),
-    [debouncedDataToSave]
-  );
 
   useEffect(() => {
     latestDataRef.current = dataToSave;
@@ -1484,6 +1479,8 @@ const App: React.FC = () => {
         return <Documentation setCurrentPage={setCurrentPage} />;
       case 'AI Assistant':
         return <AIAssistantSettingsPage setCurrentPage={setCurrentPage} />;
+      case 'Subscriptions':
+        return <SubscriptionsPage />;
       default:
         return <div>Page not found</div>;
     }

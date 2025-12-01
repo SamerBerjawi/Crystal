@@ -1,9 +1,9 @@
+
 import React, { createContext, useContext, useMemo, ReactNode } from 'react';
 import { Account, AppPreferences, Transaction, Warrant } from '../types';
 
 export interface TransactionsContextValue {
   transactions: Transaction[];
-  digest: string;
   saveTransaction: (txs: (Omit<Transaction, 'id'> & { id?: string })[], idsToDelete?: string[]) => void;
   deleteTransactions: (transactionIds: string[]) => void;
 }
@@ -30,19 +30,13 @@ const AccountsContext = createContext<AccountsContextValue | undefined>(undefine
 const PreferencesContext = createContext<PreferencesContextValue | undefined>(undefined);
 const WarrantsContext = createContext<WarrantsContextValue | undefined>(undefined);
 
-const createDigest = (transactions: Transaction[]) =>
-  transactions
-    .map((tx) => `${tx.id}:${tx.date}:${tx.amount}:${tx.accountId}:${tx.currency}:${tx.type}:${tx.latitude ?? ''}:${tx.longitude ?? ''}:${tx.city ?? ''}:${tx.country ?? ''}`)
-    .join('|');
-
 export const TransactionsProvider: React.FC<{
   children: ReactNode;
-  value: Omit<TransactionsContextValue, 'digest'>;
+  value: TransactionsContextValue;
 }> = ({ children, value }) => {
-  const digest = useMemo(() => createDigest(value.transactions), [value.transactions]);
   const memoValue = useMemo(
-    () => ({ ...value, digest }),
-    [value, digest]
+    () => value,
+    [value]
   );
 
   return <TransactionsContext.Provider value={memoValue}>{children}</TransactionsContext.Provider>;
