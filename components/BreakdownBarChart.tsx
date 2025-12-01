@@ -1,3 +1,4 @@
+
 import React from 'react';
 import { BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, Cell } from 'recharts';
 import Card from './Card';
@@ -31,7 +32,7 @@ const BreakdownBarChart: React.FC<BreakdownBarChartProps> = ({ data }) => {
   return (
     <Card>
       <div style={{ width: '100%', height: '162px' }}>
-        <ResponsiveContainer>
+        <ResponsiveContainer minWidth={0} minHeight={0}>
           <BarChart data={data} layout="vertical" margin={{ top: 5, right: 20, left: 10, bottom: 5 }}>
             <XAxis type="number" hide />
             <YAxis 

@@ -688,7 +688,7 @@ const GeneralAccountView: React.FC<GeneralAccountViewProps> = ({
               <Card className="h-full flex flex-col min-h-[320px]">
                   <h3 className="text-lg font-semibold text-light-text dark:text-dark-text mb-4">Monthly Cash Flow (6 Months)</h3>
                   <div className="flex-grow w-full h-full">
-                    <ResponsiveContainer width="100%" height="100%">
+                    <ResponsiveContainer width="100%" height="100%" minWidth={0} minHeight={0}>
                         <BarChart data={cashFlowData} margin={{ top: 10, right: 10, left: 0, bottom: 0 }}>
                             <CartesianGrid strokeDasharray="3 3" strokeOpacity={0.1} vertical={false} />
                             <XAxis dataKey="month" axisLine={false} tickLine={false} tick={{ fill: 'currentColor', opacity: 0.6, fontSize: 12 }} />
@@ -764,7 +764,7 @@ const GeneralAccountView: React.FC<GeneralAccountViewProps> = ({
                 <Card className="h-full flex flex-col min-h-[300px]">
                     <h3 className="text-lg font-semibold text-light-text dark:text-dark-text mb-4">Balance History (30 Days)</h3>
                     <div className="flex-grow w-full h-full min-h-[250px]">
-                        <ResponsiveContainer width="100%" height="100%">
+                        <ResponsiveContainer width="100%" height="100%" minWidth={0} minHeight={0}>
                             <AreaChart data={balanceHistory} margin={{ top: 10, right: 10, left: 0, bottom: 0 }}>
                                 <defs>
                                     <linearGradient id="colorBalance" x1="0" y1="0" x2="0" y2="1">

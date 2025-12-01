@@ -339,7 +339,7 @@ const CreditCardAccountView: React.FC<CreditCardAccountViewProps> = ({
               {/* Monthly Spending Trend */}
               <Card className="h-80">
                    <h3 className="text-lg font-semibold text-light-text dark:text-dark-text mb-4">Spending Trend (6 Months)</h3>
-                   <ResponsiveContainer width="100%" height="100%">
+                   <ResponsiveContainer width="100%" height="100%" minWidth={0} minHeight={0}>
                         <BarChart data={monthlySpendingData} margin={{ top: 10, right: 10, left: -20, bottom: 5 }}>
                             <CartesianGrid strokeDasharray="3 3" strokeOpacity={0.1} vertical={false} />
                             <XAxis dataKey="name" axisLine={false} tickLine={false} tick={{ fill: 'currentColor', opacity: 0.6, fontSize: 12 }} />

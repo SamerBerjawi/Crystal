@@ -917,6 +917,14 @@ const Dashboard: React.FC<DashboardProps> = ({ user, activeGoalIds, selectedAcco
   const tabActiveClass = "bg-white dark:bg-dark-card text-primary-600 dark:text-primary-400 shadow-sm";
   const tabInactiveClass = "text-light-text-secondary dark:text-dark-text-secondary hover:text-light-text dark:hover:text-dark-text hover:bg-black/5 dark:hover:bg-white/5";
 
+  const assetAllocationData = useMemo(() => [ // Renamed from pieChartData
+      { name: 'Liquid Cash', value: assetGroups['Liquid Cash'].value, color: assetGroups['Liquid Cash'].color },
+      { name: 'Investments', value: assetGroups['Investments'].value, color: assetGroups['Investments'].color },
+      { name: 'Properties', value: assetGroups['Properties'].value, color: assetGroups['Properties'].color },
+      { name: 'Vehicles', value: assetGroups['Vehicles'].value, color: assetGroups['Vehicles'].color },
+      { name: 'Other Assets', value: assetGroups['Other Assets'].value, color: assetGroups['Other Assets'].color }
+  ].filter(d => d.value > 0).sort((a, b) => b.value - a.value), [assetGroups]);
+
   return (
     <div className="space-y-6">
       {isTransactionModalOpen && (
@@ -1123,13 +1131,7 @@ const Dashboard: React.FC<DashboardProps> = ({ user, activeGoalIds, selectedAcco
                               <ResponsiveContainer width="100%" height="100%">
                                   <PieChart>
                                       <Pie
-                                          data={[
-                                              { name: 'Liquid Cash', value: assetGroups['Liquid Cash'].value, color: assetGroups['Liquid Cash'].color },
-                                              { name: 'Investments', value: assetGroups['Investments'].value, color: assetGroups['Investments'].color },
-                                              { name: 'Properties', value: assetGroups['Properties'].value, color: assetGroups['Properties'].color },
-                                              { name: 'Vehicles', value: assetGroups['Vehicles'].value, color: assetGroups['Vehicles'].color },
-                                              { name: 'Other Assets', value: assetGroups['Other Assets'].value, color: assetGroups['Other Assets'].color }
-                                          ].filter(d => d.value > 0)}
+                                          data={assetAllocationData}
                                           cx="50%"
                                           cy="50%"
                                           innerRadius={60}
@@ -1138,13 +1140,7 @@ const Dashboard: React.FC<DashboardProps> = ({ user, activeGoalIds, selectedAcco
                                           dataKey="value"
                                       >
                                           {/* Cells generated from data color property */}
-                                          {[
-                                              { name: 'Liquid Cash', value: assetGroups['Liquid Cash'].value, color: assetGroups['Liquid Cash'].color },
-                                              { name: 'Investments', value: assetGroups['Investments'].value, color: assetGroups['Investments'].color },
-                                              { name: 'Properties', value: assetGroups['Properties'].value, color: assetGroups['Properties'].color },
-                                              { name: 'Vehicles', value: assetGroups['Vehicles'].value, color: assetGroups['Vehicles'].color },
-                                              { name: 'Other Assets', value: assetGroups['Other Assets'].value, color: assetGroups['Other Assets'].color }
-                                          ].filter(d => d.value > 0).map((entry, index) => (
+                                          {assetAllocationData.map((entry, index) => (
                                               <Cell key={`cell-${index}`} fill={entry.color} stroke="none" />
                                           ))}
                                       </Pie>

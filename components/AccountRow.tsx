@@ -230,7 +230,7 @@ const AccountRow: React.FC<AccountRowProps> = ({ account, transactions, warrants
                      {/* Right Fade */}
                      <div className="absolute right-0 top-0 bottom-0 w-4 bg-gradient-to-l from-light-card dark:from-dark-card to-transparent z-10"></div>
                      
-                     <ResponsiveContainer width="100%" height="100%">
+                     <ResponsiveContainer width="100%" height="100%" minWidth={0} minHeight={0}>
                         <AreaChart data={sparklineData}>
                             <defs>
                                 <linearGradient id={`gradient-${account.id}`} x1="0" y1="0" x2="0" y2="1">

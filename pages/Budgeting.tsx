@@ -490,7 +490,7 @@ const Budgeting: React.FC<BudgetingProps> = ({ budgets, transactions, expenseCat
               <Card className="h-96 flex flex-col">
                   <h3 className="text-base font-bold text-light-text dark:text-dark-text mb-4">Allocation</h3>
                   <div className="flex-grow min-h-0">
-                    <ResponsiveContainer width="100%" height="100%">
+                    <ResponsiveContainer width="100%" height="100%" minWidth={0} minHeight={0}>
                         <PieChart>
                             <Pie
                                 data={allocationData}

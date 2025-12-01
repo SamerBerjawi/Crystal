@@ -497,7 +497,7 @@ const Investments: React.FC<InvestmentsProps> = ({
                     <Card>
                         <h3 className="text-lg font-bold text-light-text dark:text-dark-text mb-6">Allocation</h3>
                         <div className="h-64 relative">
-                            <ResponsiveContainer width="100%" height="100%">
+                            <ResponsiveContainer width="100%" height="100%" minWidth={0} minHeight={0}>
                                 <PieChart>
                                     <Pie
                                         data={distributionData}

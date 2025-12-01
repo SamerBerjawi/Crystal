@@ -58,7 +58,7 @@ const MortgageAmortizationChart: React.FC<MortgageAmortizationChartProps> = ({ s
     <Card className="h-full flex flex-col">
       <h3 className="text-lg font-semibold text-light-text dark:text-dark-text mb-4">Amortization Schedule (Yearly)</h3>
       <div className="flex-grow" style={{ width: '100%', minHeight: '200px' }}>
-        <ResponsiveContainer width="100%" height="100%">
+        <ResponsiveContainer width="100%" height="100%" minWidth={0} minHeight={0}>
           <BarChart
             data={yearlyData}
             margin={{

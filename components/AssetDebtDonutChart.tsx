@@ -1,3 +1,4 @@
+
 import React from 'react';
 import { PieChart, Pie, Cell, ResponsiveContainer } from 'recharts';
 import { formatCurrency } from '../utils';
@@ -39,7 +40,7 @@ const AssetDebtDonutChart: React.FC<DonutChartProps> = ({ assets, debt }) => {
             </div>
         </div>
       <div className="flex-grow relative -mt-4" style={{ width: '100%', minHeight: '180px' }}>
-        <ResponsiveContainer>
+        <ResponsiveContainer minWidth={0} minHeight={0}>
           <PieChart>
             <Pie
               data={data}
