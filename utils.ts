@@ -45,29 +45,50 @@ export const convertToEur = (balance: number, currency: Currency): number => {
 }
 
 export const getPreferredTimeZone = (fallback?: string): string => {
-    const systemTz = typeof Intl !== 'undefined' ? Intl.DateTimeFormat().resolvedOptions().timeZone : 'UTC';
-    // Return the system timezone to ensure the app matches the device's local time.
-    // Fallback allows for explicit overrides if needed in future, but defaults to system.
-    return fallback || systemTz;
+    // Always prefer the device's local timezone to avoid date shift confusion
+    // Fallback logic is kept minimal as resolvedOptions().timeZone is widely supported
+    try {
+        return Intl.DateTimeFormat().resolvedOptions().timeZone;
+    } catch (e) {
+        return 'UTC';
+    }
 };
 
 export const parseDateAsUTC = (dateString: string, timeZone?: string): Date => {
     if (!dateString) return new Date();
 
-    // Parse YYYY-MM-DD string directly into a Local Date object (midnight)
-    // This ensures that "Today" matches the device's concept of Today, avoiding
-    // shift issues (Yesterday/Tomorrow) caused by UTC offsets.
-    const parts = dateString.split('-').map(Number);
-    if (parts.length === 3 && !isNaN(parts[0])) {
-        return new Date(parts[0], parts[1] - 1, parts[2]);
+    try {
+        // Parse YYYY-MM-DD string directly into a Local Date object (midnight)
+        // This ensures that "Today" matches the device's concept of Today, avoiding
+        // shift issues (Yesterday/Tomorrow) caused by UTC offsets when using new Date(string).
+        const parts = dateString.split('-').map(Number);
+        if (parts.length === 3 && !isNaN(parts[0]) && !isNaN(parts[1]) && !isNaN(parts[2])) {
+            return new Date(parts[0], parts[1] - 1, parts[2]);
+        }
+        
+        const d = new Date(dateString);
+        if (isNaN(d.getTime())) {
+            console.warn(`Invalid date string: ${dateString}`);
+            return new Date(); // Fallback to now to prevent crashes
+        }
+        return d;
+    } catch (e) {
+        console.error('Error parsing date:', e);
+        return new Date();
     }
-    return new Date(dateString);
 };
 
 export const formatDateKey = (date: Date, timeZone?: string): string => {
+    if (!date || isNaN(date.getTime())) return '';
+    
     const tz = getPreferredTimeZone(timeZone);
-    // Using en-CA to get YYYY-MM-DD format
-    return new Intl.DateTimeFormat('en-CA', { timeZone: tz }).format(date);
+    try {
+        // Using en-CA to get YYYY-MM-DD format
+        return new Intl.DateTimeFormat('en-CA', { timeZone: tz }).format(date);
+    } catch (e) {
+        // Fallback if timezone is invalid
+        return new Intl.DateTimeFormat('en-CA').format(date);
+    }
 };
 
 export function calculateAccountTotals(accounts: Account[]) {
@@ -129,7 +150,10 @@ export function getDateRange(duration: Duration, allTransactions: Transaction[] 
                 const firstDateString = allTransactions.reduce((earliest, tx) => {
                     return tx.date < earliest ? tx.date : earliest;
                 }, allTransactions[0].date);
-                start.setTime(parseDateAsUTC(firstDateString).getTime());
+                const parsedFirst = parseDateAsUTC(firstDateString);
+                if (!isNaN(parsedFirst.getTime())) {
+                     start.setTime(parsedFirst.getTime());
+                }
             }
             break;
     }

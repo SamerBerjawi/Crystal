@@ -292,6 +292,14 @@ const App: React.FC = () => {
       setDirtySignal(signal => signal + 1);
     }
   }, []);
+  
+  useEffect(() => {
+      // Always sync app preference to device timezone on load to prevent "tomorrow/yesterday" bugs
+      const deviceTimezone = typeof Intl !== 'undefined' ? Intl.DateTimeFormat().resolvedOptions().timeZone : 'UTC';
+      if (preferences.timezone !== deviceTimezone) {
+          setPreferences(prev => ({ ...prev, timezone: deviceTimezone }));
+      }
+  }, [preferences.timezone]);
 
   useEffect(() => {
     // Set default dashboard account filter only on initial load

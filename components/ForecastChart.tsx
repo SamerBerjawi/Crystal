@@ -35,10 +35,20 @@ interface ForecastChartProps {
 }
 
 const CustomTooltip: React.FC<{ active?: boolean; payload?: any[]; label?: string, showIndividualLines?: boolean, accounts?: Account[] }> = ({ active, payload, label, showIndividualLines, accounts }) => {
-    if (active && payload && payload.length) {
-      const [year, month, day] = label!.split('-').map(Number);
-      const timeZone = getPreferredTimeZone();
-      const formattedDate = new Date(Date.UTC(year, month - 1, day)).toLocaleDateString('en-US', { timeZone, year: 'numeric', month: 'long', day: 'numeric' });
+    if (active && payload && payload.length && label) {
+      let formattedDate = label;
+      try {
+          const parts = label.split('-').map(Number);
+          if (parts.length === 3) {
+               const [year, month, day] = parts;
+               const timeZone = getPreferredTimeZone();
+               // Construct local date for display
+               const dateObj = new Date(year, month - 1, day);
+               formattedDate = dateObj.toLocaleDateString('en-US', { timeZone, year: 'numeric', month: 'long', day: 'numeric' });
+          }
+      } catch (e) {
+          console.warn("Tooltip date parse error", e);
+      }
       
       // Sort payload by value descending for cleaner tooltip
       const sortedPayload = [...payload].sort((a, b) => b.value - a.value);
