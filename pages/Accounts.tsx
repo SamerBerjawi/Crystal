@@ -80,10 +80,26 @@ const AccountsListSection: React.FC<{
     const groupOrder = useMemo(() => Object.keys(groupedAccounts).sort(), [groupedAccounts]);
 
     const [expandedGroups, setExpandedGroups] = useState<Record<string, boolean>>({});
+    const lastGroupOrderRef = useRef<string>('');
 
     useEffect(() => {
+        const orderKey = groupOrder.join('|');
+
+        // Avoid resetting state if the group order hasn't materially changed. This
+        // prevents an unnecessary state update loop that can surface as
+        // "Maximum update depth exceeded" (React error #185) in production when the
+        // memoized dependencies still produce a new array reference each render.
+        if (orderKey === lastGroupOrderRef.current) {
+            return;
+        }
+
+        lastGroupOrderRef.current = orderKey;
+
         const initialExpanded: Record<string, boolean> = {};
-        groupOrder.forEach(key => initialExpanded[key] = true);
+        groupOrder.forEach(key => {
+            initialExpanded[key] = true;
+        });
+
         setExpandedGroups(initialExpanded);
     }, [groupOrder]);
 
