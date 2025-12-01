@@ -1406,6 +1406,17 @@ const App: React.FC = () => {
   const viewingAccount = useMemo(() => accounts.find(a => a.id === viewingAccountId), [accounts, viewingAccountId]);
   const currentUser = useMemo(() => isDemoMode ? demoUser : user, [isDemoMode, demoUser, user]);
 
+  // Memoize the chatbot payload to prevent unnecessary re-initialization loops when the
+  // parent component re-renders without the underlying data changing.
+  const chatbotFinancialData = useMemo(() => ({
+    accounts,
+    transactions,
+    budgets,
+    financialGoals,
+    recurringTransactions,
+    investmentTransactions,
+  }), [accounts, budgets, financialGoals, investmentTransactions, recurringTransactions, transactions]);
+
   // Reset the account detail view if the referenced account no longer exists to avoid state updates during render
   useEffect(() => {
     if (viewingAccountId && !viewingAccount) {
@@ -1623,14 +1634,7 @@ const App: React.FC = () => {
             <Chatbot
               isOpen={isChatOpen}
               onClose={() => setIsChatOpen(false)}
-              financialData={{
-                accounts,
-                transactions,
-                budgets,
-                financialGoals,
-                recurringTransactions,
-                investmentTransactions,
-              }}
+              financialData={chatbotFinancialData}
             />
           )}
         </Suspense>
