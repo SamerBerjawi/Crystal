@@ -142,6 +142,10 @@ const Dashboard: React.FC<DashboardProps> = ({ user, activeGoalIds, selectedAcco
     setDetailModalOpen(true);
   }, [transactions]);
 
+  useEffect(() => {
+    aggregateCacheRef.current.clear();
+  }, [transactionsKey]);
+
   const { filteredTransactions, income, expenses } = useMemo(() => {
     const cacheKey = `${transactionsKey}|${selectedAccountIds.join(',')}|${duration}`;
     const cached = aggregateCacheRef.current.get(cacheKey);
@@ -196,6 +200,14 @@ const Dashboard: React.FC<DashboardProps> = ({ user, activeGoalIds, selectedAcco
         income: calculatedIncome,
         expenses: calculatedExpenses,
     };
+
+    if (aggregateCacheRef.current.size >= 20) {
+      const oldestKey = aggregateCacheRef.current.keys().next().value;
+      if (oldestKey) {
+        aggregateCacheRef.current.delete(oldestKey);
+      }
+    }
+
     aggregateCacheRef.current.set(cacheKey, result);
     return result;
   }, [aggregateCacheRef, duration, selectedAccountIds, transactions, transactionsKey]);
