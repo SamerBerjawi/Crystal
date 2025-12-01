@@ -424,40 +424,46 @@ const App: React.FC = () => {
 
   const loadAllFinancialData = useCallback((data: FinancialData | null, options?: { skipNextSave?: boolean }) => {
     const dataToLoad = data || initialFinancialData;
-    setAccounts(dataToLoad.accounts || []);
-    setTransactions(dataToLoad.transactions || []);
-    setInvestmentTransactions(dataToLoad.investmentTransactions || []);
-    setRecurringTransactions(dataToLoad.recurringTransactions || []);
-    setRecurringTransactionOverrides(dataToLoad.recurringTransactionOverrides || []);
-    setLoanPaymentOverrides(dataToLoad.loanPaymentOverrides || {});
-    setFinancialGoals(dataToLoad.financialGoals || []);
-    setBudgets(dataToLoad.budgets || []);
-    setTasks(dataToLoad.tasks || []);
-    setWarrants(dataToLoad.warrants || []);
-    setImportExportHistory(dataToLoad.importExportHistory || []);
-    setBillsAndPayments(dataToLoad.billsAndPayments || []);
-    setManualWarrantPrices(dataToLoad.manualWarrantPrices || {});
-    // FIX: Add `tags` to the data loading logic.
-    setTags(dataToLoad.tags || []);
-    setIncomeCategories(dataToLoad.incomeCategories && dataToLoad.incomeCategories.length > 0 ? dataToLoad.incomeCategories : MOCK_INCOME_CATEGORIES);
-    setExpenseCategories(dataToLoad.expenseCategories && dataToLoad.expenseCategories.length > 0 ? dataToLoad.expenseCategories : MOCK_EXPENSE_CATEGORIES);
-    
-    const loadedPrefs = dataToLoad.preferences || initialFinancialData.preferences;
-    setPreferences(loadedPrefs);
-    setDashboardDuration(loadedPrefs.defaultPeriod as Duration);
-    setAccountsSortBy(loadedPrefs.defaultAccountOrder);
+    restoreInProgressRef.current = true;
 
-    setAccountOrder(dataToLoad.accountOrder || []);
-    setTaskOrder(dataToLoad.taskOrder || []);
+    try {
+      setAccounts(dataToLoad.accounts || []);
+      setTransactions(dataToLoad.transactions || []);
+      setInvestmentTransactions(dataToLoad.investmentTransactions || []);
+      setRecurringTransactions(dataToLoad.recurringTransactions || []);
+      setRecurringTransactionOverrides(dataToLoad.recurringTransactionOverrides || []);
+      setLoanPaymentOverrides(dataToLoad.loanPaymentOverrides || {});
+      setFinancialGoals(dataToLoad.financialGoals || []);
+      setBudgets(dataToLoad.budgets || []);
+      setTasks(dataToLoad.tasks || []);
+      setWarrants(dataToLoad.warrants || []);
+      setImportExportHistory(dataToLoad.importExportHistory || []);
+      setBillsAndPayments(dataToLoad.billsAndPayments || []);
+      setManualWarrantPrices(dataToLoad.manualWarrantPrices || {});
+      // FIX: Add `tags` to the data loading logic.
+      setTags(dataToLoad.tags || []);
+      setIncomeCategories(dataToLoad.incomeCategories && dataToLoad.incomeCategories.length > 0 ? dataToLoad.incomeCategories : MOCK_INCOME_CATEGORIES);
+      setExpenseCategories(dataToLoad.expenseCategories && dataToLoad.expenseCategories.length > 0 ? dataToLoad.expenseCategories : MOCK_EXPENSE_CATEGORIES);
 
-    if (options?.skipNextSave) {
-      skipNextSaveRef.current = true;
+      const loadedPrefs = dataToLoad.preferences || initialFinancialData.preferences;
+      setPreferences(loadedPrefs);
+      setDashboardDuration(loadedPrefs.defaultPeriod as Duration);
+      setAccountsSortBy(loadedPrefs.defaultAccountOrder);
+
+      setAccountOrder(dataToLoad.accountOrder || []);
+      setTaskOrder(dataToLoad.taskOrder || []);
+
+      if (options?.skipNextSave) {
+        skipNextSaveRef.current = true;
+      }
+      const dataSignature = JSON.stringify(dataToLoad);
+      latestDataRef.current = dataToLoad;
+      dirtySlicesRef.current.clear();
+      setDirtySignal(0);
+      lastSavedSignatureRef.current = dataSignature;
+    } finally {
+      restoreInProgressRef.current = false;
     }
-    const dataSignature = JSON.stringify(dataToLoad);
-    latestDataRef.current = dataToLoad;
-    dirtySlicesRef.current.clear();
-    setDirtySignal(0);
-    lastSavedSignatureRef.current = dataSignature;
   }, [setAccountOrder, setTaskOrder]);
   
   const handleEnterDemoMode = () => {
