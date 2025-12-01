@@ -1150,7 +1150,7 @@ const Dashboard: React.FC<DashboardProps> = ({ user, activeGoalIds, selectedAcco
                               </ResponsiveContainer>
                               <div className="absolute inset-0 flex flex-col items-center justify-center pointer-events-none">
                                   <span className="text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">Net Worth</span>
-                                  <span className="text-2xl font-bold text-gray-900 dark:text-white">{formatCurrency(globalTotalAssets + globalTotalDebt, 'EUR')}</span>
+                                  <span className="text-2xl font-bold text-gray-900 dark:text-white">{formatCurrency(globalTotalAssets - globalTotalDebt, 'EUR')}</span>
                               </div>
                           </div>
                           <div className="w-full mt-8 grid grid-cols-2 gap-4">
