@@ -1,6 +1,17 @@
 import React, { createContext, useContext, useMemo, ReactNode } from 'react';
-import { Category, Tag, Budget, FinancialGoal, RecurringTransaction, RecurringTransactionOverride, LoanPaymentOverrides, BillPayment, ScheduledPayment } from '../types';
-import { AccountsContextValue, AccountsProvider, PreferencesContextValue, PreferencesProvider, TransactionsContextValue, TransactionsProvider, WarrantsContextValue, WarrantsProvider } from './DomainProviders';
+import { Category, Tag, FinancialGoal, RecurringTransaction, RecurringTransactionOverride, LoanPaymentOverrides, BillPayment, ScheduledPayment } from '../types';
+import {
+  AccountsContextValue,
+  AccountsProvider,
+  PreferencesContextValue,
+  PreferencesProvider,
+  TransactionsContextValue,
+  TransactionsProvider,
+  WarrantsContextValue,
+  WarrantsProvider,
+  BudgetsContextValue,
+  BudgetsProvider,
+} from './DomainProviders';
 
 interface CategoryContextValue {
   incomeCategories: Category[];
@@ -13,12 +24,6 @@ interface TagsContextValue {
   tags: Tag[];
   saveTag: (tag: Tag) => void;
   deleteTag: (tagId: string) => void;
-}
-
-interface BudgetsContextValue {
-  budgets: Budget[];
-  saveBudget: (budget: Budget) => void;
-  deleteBudget: (budgetId: string) => void;
 }
 
 interface GoalsContextValue {
@@ -48,7 +53,6 @@ interface ScheduleContextValue {
 
 const CategoryContext = createContext<CategoryContextValue | undefined>(undefined);
 const TagsContext = createContext<TagsContextValue | undefined>(undefined);
-const BudgetsContext = createContext<BudgetsContextValue | undefined>(undefined);
 const GoalsContext = createContext<GoalsContextValue | undefined>(undefined);
 const ScheduleContext = createContext<ScheduleContextValue | undefined>(undefined);
 
@@ -79,7 +83,6 @@ export const FinancialDataProvider: React.FC<FinancialDataProviderProps> = ({
 }) => {
   const memoCategories = useMemo(() => categories, [categories]);
   const memoTags = useMemo(() => tags, [tags]);
-  const memoBudgets = useMemo(() => budgets, [budgets]);
   const memoGoals = useMemo(() => goals, [goals]);
   const memoSchedule = useMemo(() => schedule, [schedule]);
 
@@ -88,17 +91,17 @@ export const FinancialDataProvider: React.FC<FinancialDataProviderProps> = ({
       <AccountsProvider value={accounts}>
         <TransactionsProvider value={transactions}>
           <WarrantsProvider value={warrants}>
-            <CategoryContext.Provider value={memoCategories}>
-              <TagsContext.Provider value={memoTags}>
-                <BudgetsContext.Provider value={memoBudgets}>
+            <BudgetsProvider value={budgets}>
+              <CategoryContext.Provider value={memoCategories}>
+                <TagsContext.Provider value={memoTags}>
                   <GoalsContext.Provider value={memoGoals}>
                     <ScheduleContext.Provider value={memoSchedule}>
                       {children}
                     </ScheduleContext.Provider>
                   </GoalsContext.Provider>
-                </BudgetsContext.Provider>
-              </TagsContext.Provider>
-            </CategoryContext.Provider>
+                </TagsContext.Provider>
+              </CategoryContext.Provider>
+            </BudgetsProvider>
           </WarrantsProvider>
         </TransactionsProvider>
       </AccountsProvider>
@@ -118,11 +121,7 @@ export const useTagsContext = () => {
   return context;
 };
 
-export const useBudgetsContext = () => {
-  const context = useContext(BudgetsContext);
-  if (!context) throw new Error('useBudgetsContext must be used within FinancialDataProvider');
-  return context;
-};
+export { useBudgetsContext } from './DomainProviders';
 
 export const useGoalsContext = () => {
   const context = useContext(GoalsContext);
