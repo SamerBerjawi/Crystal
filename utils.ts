@@ -44,48 +44,29 @@ export const convertToEur = (balance: number, currency: Currency): number => {
     return balance * (CONVERSION_RATES[currency] || 1);
 }
 
-export const getPreferredTimeZone = (fallback: string = 'UTC'): string => {
-    if (typeof window === 'undefined') return fallback;
-
-    // Use the cached timezone set by the app whenever possible so reads are cheap.
-    const cachedTz = (window as any).__crystalTimezone;
-    if (typeof cachedTz === 'string' && cachedTz.trim().length > 0) return cachedTz;
-
-    try {
-        const stored = window.localStorage.getItem('financialData');
-        if (stored) {
-            const parsed = JSON.parse(stored);
-            const prefTz = parsed?.preferences?.timezone;
-            if (typeof prefTz === 'string' && prefTz.trim().length > 0) return prefTz;
-        }
-    } catch (error) {
-        console.warn('Unable to read preferred timezone from storage', error);
-    }
-
-    return fallback;
+export const getPreferredTimeZone = (fallback?: string): string => {
+    const systemTz = typeof Intl !== 'undefined' ? Intl.DateTimeFormat().resolvedOptions().timeZone : 'UTC';
+    // Return the system timezone to ensure the app matches the device's local time.
+    // Fallback allows for explicit overrides if needed in future, but defaults to system.
+    return fallback || systemTz;
 };
 
 export const parseDateAsUTC = (dateString: string, timeZone?: string): Date => {
-    if (!dateString) return new Date(0);
+    if (!dateString) return new Date();
 
-    const tz = getPreferredTimeZone(timeZone);
+    // Parse YYYY-MM-DD string directly into a Local Date object (midnight)
+    // This ensures that "Today" matches the device's concept of Today, avoiding
+    // shift issues (Yesterday/Tomorrow) caused by UTC offsets.
     const parts = dateString.split('-').map(Number);
-    const baseDate = (!isNaN(parts[0]) && !isNaN(parts[1]) && !isNaN(parts[2]))
-        ? new Date(Date.UTC(parts[0], parts[1] - 1, parts[2]))
-        : new Date(dateString);
-
-    if (isNaN(baseDate.getTime())) return new Date(0);
-
-    // Align the parsed date to midnight in the user's preferred timezone so that
-    // grouping by day and range comparisons remain consistent even when the
-    // preferred timezone is not UTC.
-    const asLocale = new Date(baseDate.toLocaleString('en-US', { timeZone: tz }));
-    const offsetMs = asLocale.getTime() - baseDate.getTime();
-    return new Date(baseDate.getTime() - offsetMs);
+    if (parts.length === 3 && !isNaN(parts[0])) {
+        return new Date(parts[0], parts[1] - 1, parts[2]);
+    }
+    return new Date(dateString);
 };
 
 export const formatDateKey = (date: Date, timeZone?: string): string => {
     const tz = getPreferredTimeZone(timeZone);
+    // Using en-CA to get YYYY-MM-DD format
     return new Intl.DateTimeFormat('en-CA', { timeZone: tz }).format(date);
 };
 
@@ -109,40 +90,39 @@ export function calculateAccountTotals(accounts: Account[]) {
 }
 
 export function getDateRange(duration: Duration, allTransactions: Transaction[] = []): { start: Date, end: Date } {
-    const tz = getPreferredTimeZone();
     const now = new Date();
-    const nowInPreferredTz = new Date(now.toLocaleString('en-US', { timeZone: tz }));
-    const end = new Date(Date.UTC(nowInPreferredTz.getUTCFullYear(), nowInPreferredTz.getUTCMonth(), nowInPreferredTz.getUTCDate(), 23, 59, 59, 999));
-    const start = new Date(Date.UTC(nowInPreferredTz.getUTCFullYear(), nowInPreferredTz.getUTCMonth(), nowInPreferredTz.getUTCDate(), 0, 0, 0, 0));
+    // Construct range using Local Time to match device timezone
+    const end = new Date(now.getFullYear(), now.getMonth(), now.getDate(), 23, 59, 59, 999);
+    const start = new Date(now.getFullYear(), now.getMonth(), now.getDate(), 0, 0, 0, 0);
 
     switch (duration) {
         case 'TODAY':
             break;
         case 'WTD':
-            const dayOfWeek = start.getUTCDay(); // Sunday - 0, Monday - 1, ...
-            const diff = start.getUTCDate() - dayOfWeek + (dayOfWeek === 0 ? -6 : 1); // adjust when week starts on Monday
-            start.setUTCDate(diff);
+            const dayOfWeek = start.getDay(); // Sunday - 0, Monday - 1, ...
+            const diff = start.getDate() - dayOfWeek + (dayOfWeek === 0 ? -6 : 1); // adjust when week starts on Monday
+            start.setDate(diff);
             break;
         case 'MTD':
-            start.setUTCDate(1);
+            start.setDate(1);
             break;
         case '30D':
-            start.setUTCDate(start.getUTCDate() - 29);
+            start.setDate(start.getDate() - 29);
             break;
         case '60D':
-            start.setUTCDate(start.getUTCDate() - 59);
+            start.setDate(start.getDate() - 59);
             break;
         case '90D':
-            start.setUTCDate(start.getUTCDate() - 89);
+            start.setDate(start.getDate() - 89);
             break;
         case '6M':
-            start.setUTCMonth(start.getUTCMonth() - 6);
+            start.setMonth(start.getMonth() - 6);
             break;
         case 'YTD':
-            start.setUTCMonth(0, 1);
+            start.setMonth(0, 1);
             break;
         case '1Y':
-            start.setUTCFullYear(start.getUTCFullYear() - 1);
+            start.setFullYear(start.getFullYear() - 1);
             break;
         case 'ALL':
             if (allTransactions.length > 0) {
@@ -221,48 +201,48 @@ export const downloadCSV = (csvString: string, filename: string) => {
 
 export function calculateStatementPeriods(statementStartDay: number, paymentDueDay: number) {
     const today = new Date();
-    const todayStart = new Date(Date.UTC(today.getUTCFullYear(), today.getUTCMonth(), today.getUTCDate()));
+    const todayStart = new Date(today.getFullYear(), today.getMonth(), today.getDate());
 
     let currentStatementStart: Date;
-    const todayDay = todayStart.getUTCDate();
-    const todayMonth = todayStart.getUTCMonth();
-    const todayYear = todayStart.getUTCFullYear();
+    const todayDay = todayStart.getDate();
+    const todayMonth = todayStart.getMonth();
+    const todayYear = todayStart.getFullYear();
 
     if (todayDay >= statementStartDay) {
-        currentStatementStart = new Date(Date.UTC(todayYear, todayMonth, statementStartDay));
+        currentStatementStart = new Date(todayYear, todayMonth, statementStartDay);
     } else {
-        currentStatementStart = new Date(Date.UTC(todayYear, todayMonth - 1, statementStartDay));
+        currentStatementStart = new Date(todayYear, todayMonth - 1, statementStartDay);
     }
 
     // Previous Period
     const previousStatementStart = new Date(currentStatementStart);
-    previousStatementStart.setUTCMonth(previousStatementStart.getUTCMonth() - 1);
+    previousStatementStart.setMonth(previousStatementStart.getMonth() - 1);
     const previousStatementEnd = new Date(previousStatementStart);
-    previousStatementEnd.setUTCMonth(previousStatementEnd.getUTCMonth() + 1);
-    previousStatementEnd.setUTCDate(previousStatementEnd.getUTCDate() - 1);
-    let previousPaymentDueDate = new Date(Date.UTC(previousStatementEnd.getUTCFullYear(), previousStatementEnd.getUTCMonth(), paymentDueDay));
+    previousStatementEnd.setMonth(previousStatementEnd.getMonth() + 1);
+    previousStatementEnd.setDate(previousStatementEnd.getDate() - 1);
+    let previousPaymentDueDate = new Date(previousStatementEnd.getFullYear(), previousStatementEnd.getMonth(), paymentDueDay);
     if (previousPaymentDueDate <= previousStatementEnd) {
-        previousPaymentDueDate.setUTCMonth(previousPaymentDueDate.getUTCMonth() + 1);
+        previousPaymentDueDate.setMonth(previousPaymentDueDate.getMonth() + 1);
     }
 
     // Current Period
     const currentStatementEnd = new Date(currentStatementStart);
-    currentStatementEnd.setUTCMonth(currentStatementEnd.getUTCMonth() + 1);
-    currentStatementEnd.setUTCDate(currentStatementEnd.getUTCDate() - 1);
-    let currentPaymentDueDate = new Date(Date.UTC(currentStatementEnd.getUTCFullYear(), currentStatementEnd.getUTCMonth(), paymentDueDay));
+    currentStatementEnd.setMonth(currentStatementEnd.getMonth() + 1);
+    currentStatementEnd.setDate(currentStatementEnd.getDate() - 1);
+    let currentPaymentDueDate = new Date(currentStatementEnd.getFullYear(), currentStatementEnd.getMonth(), paymentDueDay);
     if (currentPaymentDueDate <= currentStatementEnd) {
-        currentPaymentDueDate.setUTCMonth(currentPaymentDueDate.getUTCMonth() + 1);
+        currentPaymentDueDate.setMonth(currentPaymentDueDate.getMonth() + 1);
     }
 
     // Future Period
     const futureStatementStart = new Date(currentStatementStart);
-    futureStatementStart.setUTCMonth(futureStatementStart.getUTCMonth() + 1);
+    futureStatementStart.setMonth(futureStatementStart.getMonth() + 1);
     const futureStatementEnd = new Date(futureStatementStart);
-    futureStatementEnd.setUTCMonth(futureStatementEnd.getUTCMonth() + 1);
-    futureStatementEnd.setUTCDate(futureStatementEnd.getUTCDate() - 1);
-    let futurePaymentDueDate = new Date(Date.UTC(futureStatementEnd.getUTCFullYear(), futureStatementEnd.getUTCMonth(), paymentDueDay));
+    futureStatementEnd.setMonth(futureStatementEnd.getMonth() + 1);
+    futureStatementEnd.setDate(futureStatementEnd.getDate() - 1);
+    let futurePaymentDueDate = new Date(futureStatementEnd.getFullYear(), futureStatementEnd.getMonth(), paymentDueDay);
     if (futurePaymentDueDate <= futureStatementEnd) {
-        futurePaymentDueDate.setUTCMonth(futurePaymentDueDate.getUTCMonth() + 1);
+        futurePaymentDueDate.setMonth(futurePaymentDueDate.getMonth() + 1);
     }
     
     return {
@@ -322,7 +302,7 @@ export function generateSyntheticLoanPayments(accounts: Account[], transactions:
     const syntheticPayments: RecurringTransaction[] = [];
 
     const today = new Date();
-    const todayUTC = new Date(Date.UTC(today.getUTCFullYear(), today.getUTCMonth(), today.getUTCDate()));
+    const todayUTC = new Date(today.getFullYear(), today.getMonth(), today.getDate());
 
     const loanAccounts = accounts.filter(
         (acc) =>
@@ -354,7 +334,7 @@ export function generateSyntheticLoanPayments(accounts: Account[], transactions:
                 startDate: payment.date,
                 nextDueDate: payment.date,
                 endDate: payment.date,
-                dueDateOfMonth: parseDateAsUTC(payment.date).getUTCDate(),
+                dueDateOfMonth: parseDateAsUTC(payment.date).getDate(),
                 weekendAdjustment: 'after',
                 isSynthetic: true,
             });
@@ -374,7 +354,7 @@ export function generateSyntheticCreditCardPayments(accounts: Account[], allTran
     );
 
     const today = new Date();
-    const todayUTC = new Date(Date.UTC(today.getUTCFullYear(), today.getUTCMonth(), today.getUTCDate()));
+    const todayUTC = new Date(today.getFullYear(), today.getMonth(), today.getDate());
 
     for (const account of configuredCreditCards) {
         const periods = calculateStatementPeriods(account.statementStartDate!, account.paymentDate!);
@@ -395,7 +375,7 @@ export function generateSyntheticCreditCardPayments(accounts: Account[], allTran
                 id: `cc-pmt-${account.id}-${dueDateStr}`,
                 accountId: account.settlementAccountId!,
                 toAccountId: account.id,
-                description: `Payment for ${account.name} (Statement ending ${periods.previous.end.toLocaleDateString('en-US', { month: 'short', day: 'numeric', timeZone: 'UTC' })})`,
+                description: `Payment for ${account.name} (Statement ending ${periods.previous.end.toLocaleDateString('en-US', { month: 'short', day: 'numeric' })})`,
                 amount: unpaidBalance,
                 type: 'transfer',
                 currency: account.currency,
@@ -475,7 +455,7 @@ export function generateSyntheticPropertyTransactions(accounts: Account[]): Recu
                 frequency: 'yearly',
                 startDate: property.propertyTaxDate,
                 nextDueDate: property.propertyTaxDate,
-                dueDateOfMonth: taxDate.getUTCDate(),
+                dueDateOfMonth: taxDate.getDate(),
                 weekendAdjustment: 'before',
                 isSynthetic: true,
             });
@@ -495,7 +475,7 @@ export function generateSyntheticPropertyTransactions(accounts: Account[]): Recu
                 frequency: property.insuranceFrequency,
                 startDate: property.insurancePaymentDate,
                 nextDueDate: property.insurancePaymentDate,
-                dueDateOfMonth: insDate.getUTCDate(),
+                dueDateOfMonth: insDate.getDate(),
                 weekendAdjustment: 'before',
                 isSynthetic: true,
             });
@@ -574,7 +554,7 @@ export function generateBalanceForecast(
 
     const accountMap = new Map(accounts.map(a => [a.id, a.name]));
     const now = new Date();
-    const startDate = new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), now.getUTCDate()));
+    const startDate = new Date(now.getFullYear(), now.getMonth(), now.getDate());
 
     // Optimization: Create a map for overrides for O(1) lookup
     const overrideMap = new Map<string, RecurringTransactionOverride>();
@@ -612,21 +592,21 @@ export function generateBalanceForecast(
             // This logic fast-forwards past-due occurrences to catch up to the present day for the forecast
             const interval = rt.frequencyInterval || 1;
             switch(rt.frequency) {
-                case 'daily': nextDate.setUTCDate(nextDate.getUTCDate() + interval); break;
-                case 'weekly': nextDate.setUTCDate(nextDate.getUTCDate() + 7 * interval); break;
+                case 'daily': nextDate.setDate(nextDate.getDate() + interval); break;
+                case 'weekly': nextDate.setDate(nextDate.getDate() + 7 * interval); break;
                 case 'monthly': {
-                    const d = rt.dueDateOfMonth || startDateUTC.getUTCDate();
-                    nextDate.setUTCMonth(nextDate.getUTCMonth() + interval, 1);
-                    const lastDay = new Date(Date.UTC(nextDate.getUTCFullYear(), nextDate.getUTCMonth() + 1, 0)).getUTCDate();
-                    nextDate.setUTCDate(Math.min(d, lastDay));
+                    const d = rt.dueDateOfMonth || startDateUTC.getDate();
+                    nextDate.setMonth(nextDate.getMonth() + interval, 1);
+                    const lastDay = new Date(nextDate.getFullYear(), nextDate.getMonth() + 1, 0).getDate();
+                    nextDate.setDate(Math.min(d, lastDay));
                     break;
                 }
                 case 'yearly': {
-                     const d = rt.dueDateOfMonth || startDateUTC.getUTCDate();
-                     const m = startDateUTC.getUTCMonth();
-                     nextDate.setUTCFullYear(nextDate.getUTCFullYear() + interval);
-                     const lastDay = new Date(Date.UTC(nextDate.getUTCFullYear(), m + 1, 0)).getUTCDate();
-                     nextDate.setUTCMonth(m, Math.min(d, lastDay));
+                     const d = rt.dueDateOfMonth || startDateUTC.getDate();
+                     const m = startDateUTC.getMonth();
+                     nextDate.setFullYear(nextDate.getFullYear() + interval);
+                     const lastDay = new Date(nextDate.getFullYear(), m + 1, 0).getDate();
+                     nextDate.setMonth(m, Math.min(d, lastDay));
                      break;
                 }
             }
@@ -691,21 +671,21 @@ export function generateBalanceForecast(
 
             const interval = rt.frequencyInterval || 1;
              switch(rt.frequency) {
-                case 'daily': nextDate.setUTCDate(nextDate.getUTCDate() + interval); break;
-                case 'weekly': nextDate.setUTCDate(nextDate.getUTCDate() + 7 * interval); break;
+                case 'daily': nextDate.setDate(nextDate.getDate() + interval); break;
+                case 'weekly': nextDate.setDate(nextDate.getDate() + 7 * interval); break;
                 case 'monthly': {
-                    const d = rt.dueDateOfMonth || startDateUTC.getUTCDate();
-                    nextDate.setUTCMonth(nextDate.getUTCMonth() + interval, 1);
-                    const lastDay = new Date(Date.UTC(nextDate.getUTCFullYear(), nextDate.getUTCMonth() + 1, 0)).getUTCDate();
-                    nextDate.setUTCDate(Math.min(d, lastDay));
+                    const d = rt.dueDateOfMonth || startDateUTC.getDate();
+                    nextDate.setMonth(nextDate.getMonth() + interval, 1);
+                    const lastDay = new Date(nextDate.getFullYear(), nextDate.getMonth() + 1, 0).getDate();
+                    nextDate.setDate(Math.min(d, lastDay));
                     break;
                 }
                 case 'yearly': {
-                     const d = rt.dueDateOfMonth || startDateUTC.getUTCDate();
-                     const m = startDateUTC.getUTCMonth();
-                     nextDate.setUTCFullYear(nextDate.getUTCFullYear() + interval);
-                     const lastDay = new Date(Date.UTC(nextDate.getUTCFullYear(), m + 1, 0)).getUTCDate();
-                     nextDate.setUTCMonth(m, Math.min(d, lastDay));
+                     const d = rt.dueDateOfMonth || startDateUTC.getDate();
+                     const m = startDateUTC.getMonth();
+                     nextDate.setFullYear(nextDate.getFullYear() + interval);
+                     const lastDay = new Date(nextDate.getFullYear(), m + 1, 0).getDate();
+                     nextDate.setMonth(m, Math.min(d, lastDay));
                      break;
                 }
             }
@@ -798,7 +778,7 @@ export function generateBalanceForecast(
         });
         
         chartData.push(dataPoint);
-        currentDate.setUTCDate(currentDate.getUTCDate() + 1);
+        currentDate.setDate(currentDate.getDate() + 1);
     }
     
     let lowestPoint = { value: Infinity, date: '' };
@@ -847,16 +827,16 @@ export function generateAmortizationSchedule(
 
   for (let i = 1; i <= duration; i++) {
     const scheduledDate = parseDateAsUTC(loanStartDate);
-    scheduledDate.setUTCMonth(scheduledDate.getUTCMonth() + i);
+    scheduledDate.setMonth(scheduledDate.getMonth() + i);
     const monthYearKey = parseDateAsUTC(scheduledDate.toISOString()).toISOString().slice(0, 7);
     
     const realPaymentForPeriod = paymentMap.get(monthYearKey);
 
     if (paymentDayOfMonth && !realPaymentForPeriod && scheduledDate >= today) {
-        const year = parseDateAsUTC(scheduledDate.toISOString()).getUTCFullYear();
-        const month = scheduledDate.getUTCMonth();
-        const lastDayOfMonth = new Date(Date.UTC(year, month + 1, 0)).getUTCDate();
-        scheduledDate.setUTCDate(Math.min(paymentDayOfMonth, lastDayOfMonth));
+        const year = scheduledDate.getFullYear();
+        const month = scheduledDate.getMonth();
+        const lastDayOfMonth = new Date(year, month + 1, 0).getDate();
+        scheduledDate.setDate(Math.min(paymentDayOfMonth, lastDayOfMonth));
     }
     const dateStr = scheduledDate.toISOString().split('T')[0];
 

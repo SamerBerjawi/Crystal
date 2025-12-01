@@ -106,7 +106,7 @@ const initialFinancialData: FinancialData = {
     preferences: {
         currency: 'EUR (€)',
         language: 'English (en)',
-        timezone: 'Europe/Brussels',
+        timezone: typeof Intl !== 'undefined' ? Intl.DateTimeFormat().resolvedOptions().timeZone : 'UTC',
         dateFormat: 'DD/MM/YYYY',
         defaultPeriod: 'MTD',
         defaultAccountOrder: 'name',
