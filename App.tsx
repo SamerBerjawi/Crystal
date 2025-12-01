@@ -323,6 +323,47 @@ const App: React.FC = () => {
     }
   }, [financialGoals, activeGoalIds.length]);
 
+  const lastInvestmentPriceSignature = useRef<string | null>(null);
+  const isFetchingInvestmentPrices = useRef(false);
+
+  const refreshInvestmentPrices = useCallback(async () => {
+    if (typeof window === 'undefined') return;
+    if (isFetchingInvestmentPrices.current) return;
+
+    const investmentAccountsWithSymbols = accounts
+      .filter(acc => acc.type === 'Investment' && acc.symbol)
+      .filter(acc => !warrants.some(w => w.isin === acc.symbol));
+
+    if (investmentAccountsWithSymbols.length === 0) {
+      setInvestmentPrices({});
+      lastInvestmentPriceSignature.current = null;
+      return;
+    }
+
+    const targets = investmentAccountsWithSymbols.map(acc => ({
+      symbol: acc.symbol as string,
+      subType: acc.subType,
+    }));
+
+    const signature = targets
+      .map(target => `${target.symbol}:${target.subType || 'default'}`)
+      .sort()
+      .join('|');
+
+    if (signature === lastInvestmentPriceSignature.current) {
+      return;
+    }
+
+    isFetchingInvestmentPrices.current = true;
+    try {
+      const prices = await fetchYahooPrices(targets);
+      setInvestmentPrices(prices);
+      lastInvestmentPriceSignature.current = signature;
+    } finally {
+      isFetchingInvestmentPrices.current = false;
+    }
+  }, [accounts, warrants]);
+
   const warrantHoldingsBySymbol = useMemo(() => {
     const holdings: Record<string, number> = {};
 
