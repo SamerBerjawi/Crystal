@@ -3,6 +3,7 @@ import React, { useState } from 'react';
 import Modal from './Modal';
 import { Warrant } from '../types';
 import { INPUT_BASE_STYLE, BTN_PRIMARY_STYLE, BTN_SECONDARY_STYLE } from '../constants';
+import { toLocalISOString } from '../utils';
 
 interface WarrantModalProps {
   onClose: () => void;
@@ -15,7 +16,7 @@ const WarrantModal: React.FC<WarrantModalProps> = ({ onClose, onSave, warrantToE
     
     const [isin, setIsin] = useState(warrantToEdit?.isin || '');
     const [name, setName] = useState(warrantToEdit?.name || '');
-    const [grantDate, setGrantDate] = useState(warrantToEdit?.grantDate || new Date().toISOString().split('T')[0]);
+    const [grantDate, setGrantDate] = useState(warrantToEdit?.grantDate || toLocalISOString(new Date()));
     const [quantity, setQuantity] = useState(warrantToEdit?.quantity ? String(warrantToEdit.quantity) : '');
     // FIX: Check for undefined/null to allow 0 as a valid price
     const [grantPrice, setGrantPrice] = useState(warrantToEdit?.grantPrice !== undefined ? String(warrantToEdit.grantPrice) : '10.00');

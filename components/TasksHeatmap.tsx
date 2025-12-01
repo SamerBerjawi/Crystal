@@ -20,13 +20,13 @@ const TasksHeatmap: React.FC<TasksHeatmapProps> = ({ tasks }) => {
 
     const { gridDays, monthLabels, tasksByDate, totalColumns } = useMemo(() => {
         const now = new Date();
-        // Start from the 1st of the current month in UTC to avoid timezone offsets affecting "1st"
-        const startDate = new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), 1));
+        // Start from the 1st of the current month in LOCAL time
+        const startDate = new Date(now.getFullYear(), now.getMonth(), 1);
         
         // Show 12 full months roughly (53 weeks cover a year + a bit)
         const endDate = new Date(startDate);
-        endDate.setUTCFullYear(endDate.getUTCFullYear() + 1);
-        endDate.setUTCDate(0); // Back up to last day of previous month
+        endDate.setFullYear(endDate.getFullYear() + 1);
+        endDate.setDate(0); // Back up to last day of previous month
 
         const tasksByDate = new Map<string, { priority: TaskPriority, count: number }>();
         tasks.forEach(task => {
@@ -52,12 +52,12 @@ const TasksHeatmap: React.FC<TasksHeatmapProps> = ({ tasks }) => {
         let currentDate = new Date(startDate);
         while (currentDate <= endDate) {
             allDays.push(new Date(currentDate));
-            currentDate.setUTCDate(currentDate.getUTCDate() + 1);
+            currentDate.setDate(currentDate.getDate() + 1);
         }
 
         // Logic to make Monday the first day of the week (Row 0)
-        // getUTCDay() returns 0 for Sunday. We want Mon=0, Tue=1... Sun=6.
-        const startDayOfWeek = (startDate.getUTCDay() + 6) % 7;
+        // getDay() returns 0 for Sunday. We want Mon=0, Tue=1... Sun=6.
+        const startDayOfWeek = (startDate.getDay() + 6) % 7;
         
         // Pad the start
         const paddedDays: (Date | null)[] = [...Array(startDayOfWeek).fill(null), ...allDays];
@@ -67,7 +67,7 @@ const TasksHeatmap: React.FC<TasksHeatmapProps> = ({ tasks }) => {
 
         paddedDays.forEach((day, index) => {
             if (day) {
-                const month = day.getUTCMonth();
+                const month = day.getMonth();
                 if (month !== lastMonth) {
                     // Calculate column index (0-based)
                     const colIndex = Math.floor(index / 7);
@@ -79,7 +79,7 @@ const TasksHeatmap: React.FC<TasksHeatmapProps> = ({ tasks }) => {
                     // We need at least 3 columns gap to show the next label comfortably
                     if (currentColStart - prevColStart >= 3) {
                          monthLabels.push({ 
-                            label: day.toLocaleString('default', { month: 'short', timeZone: 'UTC' }), 
+                            label: day.toLocaleString('default', { month: 'short' }), 
                             colStart: currentColStart // Grid lines are 1-based
                         });
                         lastMonth = month;
@@ -146,8 +146,8 @@ const TasksHeatmap: React.FC<TasksHeatmapProps> = ({ tasks }) => {
                                 const dayData = tasksByDate.get(dateStr);
                                 const color = dayData ? PRIORITY_COLORS[dayData.priority] : NO_TASK_COLOR;
                                 const tooltip = dayData
-                                    ? `${day.toLocaleDateString('en-US', { timeZone: 'UTC' })}: ${dayData.count} task(s), highest: ${dayData.priority}`
-                                    : day.toLocaleDateString('en-US', { timeZone: 'UTC' });
+                                    ? `${day.toLocaleDateString()}: ${dayData.count} task(s), highest: ${dayData.priority}`
+                                    : day.toLocaleDateString();
 
                                 return (
                                     <div 

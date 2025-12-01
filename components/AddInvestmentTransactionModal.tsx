@@ -3,7 +3,7 @@ import React, { useState, useEffect, useMemo } from 'react';
 import Modal from './Modal';
 import { Account, InvestmentTransaction, Transaction, AccountType, InvestmentSubType } from '../types';
 import { INPUT_BASE_STYLE, BTN_PRIMARY_STYLE, BTN_SECONDARY_STYLE, SELECT_WRAPPER_STYLE, SELECT_ARROW_STYLE, INVESTMENT_SUB_TYPES, ALL_ACCOUNT_TYPES } from '../constants';
-import { formatCurrency } from '../utils';
+import { formatCurrency, toLocalISOString } from '../utils';
 import { v4 as uuidv4 } from 'uuid';
 
 interface AddInvestmentTransactionModalProps {
@@ -22,7 +22,7 @@ const AddInvestmentTransactionModal: React.FC<AddInvestmentTransactionModalProps
     const [name, setName] = useState(isEditing ? transactionToEdit.name : '');
     const [quantity, setQuantity] = useState(isEditing ? String(transactionToEdit.quantity) : '');
     const [price, setPrice] = useState(isEditing ? String(transactionToEdit.price) : '');
-    const [date, setDate] = useState(isEditing ? transactionToEdit.date : new Date().toISOString().split('T')[0]);
+    const [date, setDate] = useState(isEditing ? transactionToEdit.date : toLocalISOString(new Date()));
     const [createCashTx, setCreateCashTx] = useState(!isEditing);
     const [cashAccountId, setCashAccountId] = useState(cashAccounts.length > 0 ? cashAccounts[0].id : '');
     const [newAccountSubType, setNewAccountSubType] = useState<InvestmentSubType>('Stock');

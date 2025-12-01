@@ -1,8 +1,9 @@
+
 import React, { useState, useMemo } from 'react';
 import Modal from './Modal';
 import { Account } from '../types';
 import { INPUT_BASE_STYLE, BTN_PRIMARY_STYLE, BTN_SECONDARY_STYLE } from '../constants';
-import { formatCurrency } from '../utils';
+import { formatCurrency, toLocalISOString } from '../utils';
 
 interface BalanceAdjustmentModalProps {
   onClose: () => void;
@@ -12,7 +13,7 @@ interface BalanceAdjustmentModalProps {
 
 const BalanceAdjustmentModal: React.FC<BalanceAdjustmentModalProps> = ({ onClose, onSave, account }) => {
   const [newBalance, setNewBalance] = useState(String(account.balance));
-  const [date, setDate] = useState(new Date().toISOString().split('T')[0]);
+  const [date, setDate] = useState(toLocalISOString(new Date()));
   const [notes, setNotes] = useState('');
   
   const adjustmentAmount = useMemo(() => {

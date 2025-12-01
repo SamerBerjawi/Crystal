@@ -4,6 +4,7 @@ import Modal from './Modal';
 import { Transaction, Account, Category, Tag } from '../types';
 import { INPUT_BASE_STYLE, BTN_PRIMARY_STYLE, BTN_SECONDARY_STYLE, SELECT_WRAPPER_STYLE, SELECT_ARROW_STYLE, CHECKBOX_STYLE } from '../constants';
 import LocationAutocomplete from './LocationAutocomplete';
+import { toLocalISOString } from '../utils';
 
 const RecursiveCategoryOptions: React.FC<{ categories: Category[], level: number }> = ({ categories, level }) => {
     const indent = '\u00A0\u00A0'.repeat(level * 2);
@@ -67,7 +68,7 @@ const BulkEditTransactionsModal: React.FC<BulkEditTransactionsModalProps> = ({
   });
 
   const [updatedValues, setUpdatedValues] = useState({
-    date: new Date().toISOString().split('T')[0],
+    date: toLocalISOString(new Date()),
     accountId: accounts.length > 0 ? accounts[0].id : '',
     description: '',
     merchant: '',

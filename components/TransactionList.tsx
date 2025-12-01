@@ -1,3 +1,4 @@
+
 import React, { useMemo, useEffect, useRef, useState } from 'react';
 import { Category, DisplayTransaction } from '../types';
 import { formatCurrency, convertToEur, parseDateAsUTC } from '../utils';
@@ -28,7 +29,7 @@ const TransactionList: React.FC<TransactionListProps> = ({ transactions, allCate
   };
 
   const formatDate = (dateString: string) => {
-    return parseDateAsUTC(dateString).toLocaleDateString('en-US', { timeZone: 'UTC', month: 'short', day: 'numeric' });
+    return parseDateAsUTC(dateString).toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
   };
 
   const preparedTransactions = useMemo(

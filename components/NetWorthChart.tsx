@@ -25,7 +25,7 @@ const NetWorthChart: React.FC<NetWorthChartProps> = ({ data, lineColor = '#6366F
       if (active && payload && payload.length) {
         return (
           <div className="bg-white dark:bg-dark-card p-3 rounded-xl shadow-lg border border-black/5 dark:border-white/10">
-            <p className="label font-semibold text-light-text-secondary dark:text-dark-text-secondary text-xs mb-1">{parseDateAsUTC(label).toLocaleDateString('en-US', { timeZone: 'UTC', day: 'numeric', month: 'long', year: 'numeric' })}</p>
+            <p className="label font-semibold text-light-text-secondary dark:text-dark-text-secondary text-xs mb-1">{parseDateAsUTC(label).toLocaleDateString('en-US', { day: 'numeric', month: 'long', year: 'numeric' })}</p>
             <p className="font-bold text-lg text-light-text dark:text-dark-text">{formatCurrency(payload[0].value, 'EUR')}</p>
           </div>
         );
@@ -43,14 +43,14 @@ const NetWorthChart: React.FC<NetWorthChartProps> = ({ data, lineColor = '#6366F
     const rangeInDays = (endDate.getTime() - startDate.getTime()) / (1000 * 3600 * 24);
 
     if (rangeInDays <= 31) {
-      return date.toLocaleDateString('en-US', { timeZone: 'UTC', month: 'short', day: 'numeric' });
+      return date.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
     }
     
-    if (startDate.getUTCFullYear() === endDate.getUTCFullYear()) {
-      return date.toLocaleDateString('en-US', { timeZone: 'UTC', month: 'short' });
+    if (startDate.getFullYear() === endDate.getFullYear()) {
+      return date.toLocaleDateString('en-US', { month: 'short' });
     }
     
-    return date.toLocaleDateString('en-US', { timeZone: 'UTC', month: 'short', year: '2-digit' });
+    return date.toLocaleDateString('en-US', { month: 'short', year: '2-digit' });
   };
   
   const gradientId = `colorNetWorth-${lineColor.replace('#', '')}`;

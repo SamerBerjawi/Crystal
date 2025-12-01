@@ -3,6 +3,7 @@ import React, { useState, useEffect, useMemo } from 'react';
 import Modal from './Modal';
 import { FinancialGoal, GoalType, RecurrenceFrequency, Currency, Account } from '../types';
 import { INPUT_BASE_STYLE, BTN_PRIMARY_STYLE, BTN_SECONDARY_STYLE, SELECT_WRAPPER_STYLE, SELECT_ARROW_STYLE, FREQUENCIES, ALL_ACCOUNT_TYPES } from '../constants';
+import { toLocalISOString } from '../utils';
 
 interface GoalScenarioModalProps {
     onClose: () => void;
@@ -21,9 +22,9 @@ const GoalScenarioModal: React.FC<GoalScenarioModalProps> = ({ onClose, onSave, 
     const [transactionType, setTransactionType] = useState<'income' | 'expense'>('expense');
     const [amount, setAmount] = useState('');
     const [currentAmount, setCurrentAmount] = useState('0');
-    const [date, setDate] = useState(new Date().toISOString().split('T')[0]);
+    const [date, setDate] = useState(toLocalISOString(new Date()));
     const [frequency, setFrequency] = useState<RecurrenceFrequency>('monthly');
-    const [startDate, setStartDate] = useState(new Date().toISOString().split('T')[0]);
+    const [startDate, setStartDate] = useState(toLocalISOString(new Date()));
     const [monthlyContribution, setMonthlyContribution] = useState('');
     const [dueDateOfMonth, setDueDateOfMonth] = useState('');
     const [isBucket, setIsBucket] = useState(false);
@@ -50,9 +51,9 @@ const GoalScenarioModal: React.FC<GoalScenarioModalProps> = ({ onClose, onSave, 
             setTransactionType(goalToEdit.transactionType);
             setAmount(String(goalToEdit.amount));
             setCurrentAmount(String(goalToEdit.currentAmount || 0));
-            setDate(goalToEdit.date || new Date().toISOString().split('T')[0]);
+            setDate(goalToEdit.date || toLocalISOString(new Date()));
             setFrequency(goalToEdit.frequency || 'monthly');
-            setStartDate(goalToEdit.startDate || new Date().toISOString().split('T')[0]);
+            setStartDate(goalToEdit.startDate || toLocalISOString(new Date()));
             setMonthlyContribution(String(goalToEdit.monthlyContribution || ''));
             setDueDateOfMonth(String(goalToEdit.dueDateOfMonth || ''));
             setIsBucket(!!goalToEdit.isBucket);
@@ -64,9 +65,9 @@ const GoalScenarioModal: React.FC<GoalScenarioModalProps> = ({ onClose, onSave, 
             setTransactionType('expense');
             setAmount('');
             setCurrentAmount('0');
-            setDate(new Date().toISOString().split('T')[0]);
+            setDate(toLocalISOString(new Date()));
             setFrequency('monthly');
-            setStartDate(new Date().toISOString().split('T')[0]);
+            setStartDate(toLocalISOString(new Date()));
             setMonthlyContribution('');
             setDueDateOfMonth('');
             setIsBucket(false);

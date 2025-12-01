@@ -1,113 +1,151 @@
 
-import React, { useMemo } from 'react';
-import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Legend, ReferenceLine } from 'recharts';
-import { Transaction, Duration } from '../types';
-import { formatCurrency, getDateRange, convertToEur, parseDateAsUTC } from '../utils';
+import React from 'react';
+import { formatCurrency, parseDateAsUTC } from '../utils';
 import Card from './Card';
+import { AreaChart, Area, ResponsiveContainer, LineChart, Line } from 'recharts';
+import { Currency } from '../types';
 
-interface CashFlowChartProps {
-  transactions: Transaction[];
-  duration: Duration;
+interface CashFlowCardProps {
+  income: number;
+  expenses: number;
+  incomeChange?: string | null;
+  expenseChange?: string | null;
+  incomeSparkline: { value: number }[];
+  expenseSparkline: { value: number }[];
+  netBalance: number;
+  currency?: Currency;
+  duration: string;
 }
 
-const CustomTooltip = ({ active, payload, label }: any) => {
-    if (active && payload && payload.length) {
-      const date = new Date(label);
-      const formattedDate = date.toLocaleDateString('en-US', { timeZone: 'UTC', month: 'short', day: 'numeric', year: 'numeric' });
-      
-      const income = payload.find((p: any) => p.dataKey === 'income')?.value || 0;
-      const expenses = payload.find((p: any) => p.dataKey === 'expenses')?.value || 0;
-
-      return (
-        <div className="bg-light-card dark:bg-dark-card p-3 rounded-lg shadow-modal border border-light-separator dark:border-dark-separator">
-          <p className="font-semibold mb-2">{formattedDate}</p>
-          {income > 0 && <p className="text-semantic-green">Income: {formatCurrency(income, 'EUR')}</p>}
-          {expenses > 0 && <p className="text-semantic-red">Expenses: {formatCurrency(expenses, 'EUR')}</p>}
-        </div>
-      );
-    }
-    return null;
-};
-
-const CashFlowChart: React.FC<CashFlowChartProps> = ({ transactions, duration }) => {
-  const chartData = useMemo(() => {
-    const { start, end } = getDateRange(duration, transactions);
-    const dataMap: { [key: string]: { date: string; timestamp: number; income: number; expenses: number } } = {};
-
-    let currentDate = new Date(start);
-    while (currentDate <= end) {
-      const dateKey = currentDate.toISOString().split('T')[0];
-      dataMap[dateKey] = { date: dateKey, timestamp: currentDate.getTime(), income: 0, expenses: 0 };
-      currentDate.setUTCDate(currentDate.getUTCDate() + 1);
-    }
-    
-    transactions.forEach(tx => {
-      const txDate = parseDateAsUTC(tx.date);
-
-      if (txDate >= start && txDate <= end) {
-        const dateKey = tx.date;
-        if (dataMap[dateKey]) {
-          const amount = convertToEur(tx.amount, tx.currency);
-          if (tx.type === 'income') {
-            dataMap[dateKey].income += amount;
-          } else {
-            dataMap[dateKey].expenses += Math.abs(amount);
-          }
-        }
-      }
-    });
-
-    return Object.values(dataMap);
-  }, [transactions, duration]);
+const CashFlowCard: React.FC<CashFlowCardProps> = ({
+  income,
+  expenses,
+  incomeChange,
+  expenseChange,
+  incomeSparkline,
+  expenseSparkline,
+  netBalance,
+  currency = 'EUR',
+  duration
+}) => {
+  const savingsRate = income > 0 ? (netBalance / income) * 100 : 0;
+  const expenseRatio = income > 0 ? (expenses / income) * 100 : 0;
+  const isPositiveNet = netBalance >= 0;
   
-  const tickFormatter = (timestamp: number) => {
-    const date = new Date(timestamp);
-    return date.toLocaleDateString('en-US', { timeZone: 'UTC', month: 'short', day: 'numeric' });
-  };
+  // Color Logic
+  let savingsColorClass = 'text-green-600 dark:text-green-400';
+  let savingsBgClass = 'bg-green-100 dark:bg-green-900/30';
   
-  const yAxisTickFormatter = (value: number) => {
-      if (Math.abs(value) >= 1000) return `€${(value / 1000).toFixed(0)}k`;
-      return `€${value}`;
+  if (savingsRate < 0) {
+      savingsColorClass = 'text-red-600 dark:text-red-400';
+      savingsBgClass = 'bg-red-100 dark:bg-red-900/30';
+  } else if (savingsRate < 20) {
+      savingsColorClass = 'text-yellow-600 dark:text-yellow-400';
+      savingsBgClass = 'bg-yellow-100 dark:bg-yellow-900/30';
   }
 
+  const StatBlock = ({ 
+    label, 
+    amount, 
+    change, 
+    data, 
+    color 
+  }: { 
+    label: string; 
+    amount: number; 
+    change?: string | null; 
+    data: { value: number }[]; 
+    color: string 
+  }) => {
+      const isGreen = color === 'green';
+      const textColor = isGreen ? 'text-emerald-600 dark:text-emerald-400' : 'text-rose-600 dark:text-rose-400';
+      const strokeColor = isGreen ? '#10B981' : '#F43F5E';
+
+      return (
+        <div className="flex flex-col h-full justify-between">
+            <div>
+                <p className="text-xs font-bold uppercase text-light-text-secondary dark:text-dark-text-secondary tracking-wider mb-1">{label}</p>
+                <p className={`text-xl font-bold ${textColor}`}>
+                    {formatCurrency(amount, currency as Currency)}
+                </p>
+                {change && (
+                    <p className="text-[10px] font-medium text-light-text-secondary dark:text-dark-text-secondary mt-0.5">
+                        <span className={change.startsWith('+') ? 'text-green-600' : 'text-red-600'}>{change}</span> vs prev.
+                    </p>
+                )}
+            </div>
+            <div className="h-10 w-full mt-2 opacity-60">
+                 <ResponsiveContainer width="100%" height="100%">
+                    <LineChart data={data}>
+                        <Line 
+                            type="monotone" 
+                            dataKey="value" 
+                            stroke={strokeColor} 
+                            strokeWidth={2} 
+                            dot={false} 
+                        />
+                    </LineChart>
+                </ResponsiveContainer>
+            </div>
+        </div>
+      );
+  };
+
   return (
-    <Card className="h-full flex flex-col">
-      <h3 className="text-xl font-semibold mb-4 text-light-text dark:text-dark-text">Cash Flow</h3>
-      <div className="flex-grow" style={{ width: '100%', minHeight: 270 }}>
-        <ResponsiveContainer minWidth={0} minHeight={0} debounce={50}>
-          <BarChart data={chartData} margin={{ top: 5, right: 20, left: 0, bottom: 5 }}>
-            <CartesianGrid strokeDasharray="3 3" stroke="var(--light-separator, #E5E7EB)" opacity={0.5} vertical={false} />
-            <XAxis 
-                dataKey="timestamp"
-                type="number"
-                domain={['dataMin', 'dataMax']}
-                tickFormatter={tickFormatter} 
-                fontSize={12} 
-                stroke="currentColor" 
-                tick={{ fill: 'currentColor', opacity: 0.6 }}
-                axisLine={false}
-                tickLine={false}
-                minTickGap={20}
-            />
-            <YAxis 
-                tickFormatter={yAxisTickFormatter}
-                fontSize={12} 
-                width={80} 
-                stroke="currentColor" 
-                tick={{ fill: 'currentColor', opacity: 0.6 }}
-                axisLine={false}
-                tickLine={false}
-            />
-            <Tooltip content={<CustomTooltip />} cursor={{ fill: 'rgba(128, 128, 128, 0.1)' }} />
-            <Legend wrapperStyle={{ fontSize: '14px' }} />
-            <ReferenceLine y={0} stroke="currentColor" opacity={0.3} />
-            <Bar dataKey="income" fill="#34C759" name="Income" radius={[4, 4, 0, 0]} />
-            <Bar dataKey="expenses" fill="#FF3B30" name="Expenses" radius={[4, 4, 0, 0]} />
-          </BarChart>
-        </ResponsiveContainer>
-      </div>
+    <Card className="h-full flex flex-col justify-between p-0 overflow-hidden border border-gray-100 dark:border-white/5 shadow-sm">
+        {/* Header: Net Balance */}
+        <div className="p-6 pb-4">
+             <div className="flex justify-between items-start mb-2">
+                <div>
+                    <p className="text-xs font-bold uppercase text-light-text-secondary dark:text-dark-text-secondary tracking-wider mb-1">Net Cash Flow</p>
+                    <h3 className={`text-3xl font-extrabold tracking-tight ${isPositiveNet ? 'text-light-text dark:text-dark-text' : 'text-red-500'}`}>
+                        {formatCurrency(netBalance, currency as Currency, { showPlusSign: true })}
+                    </h3>
+                </div>
+                <div className={`px-3 py-1 rounded-lg flex flex-col items-center justify-center ${savingsBgClass}`}>
+                    <span className={`text-lg font-bold ${savingsColorClass}`}>{savingsRate.toFixed(0)}%</span>
+                    <span className={`text-[10px] font-bold uppercase ${savingsColorClass} opacity-80`}>Savings</span>
+                </div>
+             </div>
+
+             {/* Visualization Bar */}
+             <div className="mt-4">
+                <div className="flex justify-between text-[10px] font-bold uppercase text-light-text-secondary dark:text-dark-text-secondary mb-1.5">
+                    <span>Out {Math.min(expenseRatio, 100).toFixed(0)}%</span>
+                    <span>In 100%</span>
+                </div>
+                <div className="w-full h-2 bg-emerald-100 dark:bg-emerald-900/20 rounded-full overflow-hidden flex">
+                    <div className="h-full bg-rose-500 rounded-full" style={{ width: `${Math.min(expenseRatio, 100)}%` }}></div>
+                </div>
+             </div>
+        </div>
+
+        {/* Divider */}
+        <div className="h-px w-full bg-black/5 dark:bg-white/5"></div>
+
+        {/* Bottom Grid: Income vs Expense */}
+        <div className="grid grid-cols-2 divide-x divide-black/5 dark:divide-white/5 bg-gray-50/50 dark:bg-white/[0.02] flex-grow">
+            <div className="p-5">
+                <StatBlock 
+                    label="Income" 
+                    amount={income} 
+                    change={incomeChange} 
+                    data={incomeSparkline} 
+                    color="green" 
+                />
+            </div>
+            <div className="p-5">
+                <StatBlock 
+                    label="Expenses" 
+                    amount={expenses} 
+                    change={expenseChange} 
+                    data={expenseSparkline} 
+                    color="red" 
+                />
+            </div>
+        </div>
     </Card>
   );
 };
 
-export default CashFlowChart;
+export default CashFlowCard;

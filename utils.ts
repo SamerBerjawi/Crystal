@@ -54,6 +54,13 @@ export const getPreferredTimeZone = (fallback?: string): string => {
     }
 };
 
+export const toLocalISOString = (date: Date): string => {
+    const year = date.getFullYear();
+    const month = String(date.getMonth() + 1).padStart(2, '0');
+    const day = String(date.getDate()).padStart(2, '0');
+    return `${year}-${month}-${day}`;
+};
+
 export const parseDateAsUTC = (dateString: string, timeZone?: string): Date => {
     if (!dateString) return new Date();
 
@@ -80,15 +87,7 @@ export const parseDateAsUTC = (dateString: string, timeZone?: string): Date => {
 
 export const formatDateKey = (date: Date, timeZone?: string): string => {
     if (!date || isNaN(date.getTime())) return '';
-    
-    const tz = getPreferredTimeZone(timeZone);
-    try {
-        // Using en-CA to get YYYY-MM-DD format
-        return new Intl.DateTimeFormat('en-CA', { timeZone: tz }).format(date);
-    } catch (e) {
-        // Fallback if timezone is invalid
-        return new Intl.DateTimeFormat('en-CA').format(date);
-    }
+    return toLocalISOString(date);
 };
 
 export function calculateAccountTotals(accounts: Account[]) {
@@ -394,7 +393,7 @@ export function generateSyntheticCreditCardPayments(accounts: Account[], allTran
         const unpaidBalance = Math.abs(prevStatementBalance) - prevAmountPaid;
 
         if (unpaidBalance > 0.005) { // Use a small epsilon to avoid floating point issues
-            const dueDateStr = periods.previous.paymentDue.toISOString().split('T')[0];
+            const dueDateStr = toLocalISOString(periods.previous.paymentDue);
             const syntheticRT: RecurringTransaction = {
                 id: `cc-pmt-${account.id}-${dueDateStr}`,
                 accountId: account.settlementAccountId!,
@@ -431,7 +430,7 @@ export function generateSyntheticCreditCardPayments(accounts: Account[], allTran
 
                 if (statementBalance < 0) {
                     const paymentAmount = Math.abs(statementBalance);
-                    const dueDateStr = detail.period.paymentDue.toISOString().split('T')[0];
+                    const dueDateStr = toLocalISOString(detail.period.paymentDue);
 
                     // Don't duplicate if we already created an unpaid entry for the same date
                     if (!syntheticPayments.some(p => p.id === `cc-pmt-${account.id}-${dueDateStr}`)) {
@@ -462,7 +461,7 @@ export function generateSyntheticCreditCardPayments(accounts: Account[], allTran
 export function generateSyntheticPropertyTransactions(accounts: Account[]): RecurringTransaction[] {
     const syntheticItems: RecurringTransaction[] = [];
     const properties = accounts.filter(acc => acc.type === 'Property');
-    const today = new Date().toISOString().split('T')[0];
+    const today = toLocalISOString(new Date());
 
     properties.forEach(property => {
         // 1. Property Taxes (Annual)
@@ -570,7 +569,7 @@ export function generateBalanceForecast(
     lowestPoint: { value: number; date: string };
 } {
     const accountIds = new Set(accounts.map(a => a.id));
-    const today = new Date().toISOString().split('T')[0];
+    const today = toLocalISOString(new Date());
 
     if (accounts.length === 0) {
         return { chartData: [], tableData: [], lowestPoint: { value: 0, date: today } };
@@ -637,7 +636,7 @@ export function generateBalanceForecast(
         }
         
         while (nextDate <= forecastEndDate && (!endDateUTC || nextDate <= endDateUTC)) {
-            const dateStr = nextDate.toISOString().split('T')[0];
+            const dateStr = toLocalISOString(nextDate);
             // Use Map lookup instead of .find()
             const override = overrideMap.get(`${rt.id}-${dateStr}`);
 
@@ -758,7 +757,7 @@ export function generateBalanceForecast(
     
     let currentDate = new Date(startDate.getTime());
     while (currentDate <= forecastEndDate) {
-        const dateStr = currentDate.toISOString().split('T')[0];
+        const dateStr = toLocalISOString(currentDate);
         const eventsForDay = dailyEvents.get(dateStr) || [];
         
         // Sort expenses first just for table display logic
@@ -862,7 +861,7 @@ export function generateAmortizationSchedule(
         const lastDayOfMonth = new Date(year, month + 1, 0).getDate();
         scheduledDate.setDate(Math.min(paymentDayOfMonth, lastDayOfMonth));
     }
-    const dateStr = scheduledDate.toISOString().split('T')[0];
+    const dateStr = toLocalISOString(scheduledDate);
 
     const override = overrides[i];
 

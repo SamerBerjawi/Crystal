@@ -1,7 +1,9 @@
+
 import React, { useState, useEffect } from 'react';
 import Modal from './Modal';
 import { MileageLog } from '../types';
 import { INPUT_BASE_STYLE, BTN_PRIMARY_STYLE, BTN_SECONDARY_STYLE } from '../constants';
+import { toLocalISOString } from '../utils';
 
 interface AddMileageLogModalProps {
   onClose: () => void;
@@ -11,7 +13,7 @@ interface AddMileageLogModalProps {
 
 const AddMileageLogModal: React.FC<AddMileageLogModalProps> = ({ onClose, onSave, logToEdit }) => {
   const isEditing = !!logToEdit;
-  const [date, setDate] = useState(new Date().toISOString().split('T')[0]);
+  const [date, setDate] = useState(toLocalISOString(new Date()));
   const [reading, setReading] = useState('');
 
   useEffect(() => {
@@ -19,7 +21,7 @@ const AddMileageLogModal: React.FC<AddMileageLogModalProps> = ({ onClose, onSave
       setDate(logToEdit.date);
       setReading(String(logToEdit.reading));
     } else {
-      setDate(new Date().toISOString().split('T')[0]);
+      setDate(toLocalISOString(new Date()));
       setReading('');
     }
   }, [logToEdit]);

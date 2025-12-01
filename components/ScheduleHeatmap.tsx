@@ -3,6 +3,7 @@ import React, { useMemo } from 'react';
 // FIX: Import 'ScheduledItem' from '../types' as it is no longer exported from '../pages/Schedule'.
 import { ScheduledItem } from '../types';
 import Card from './Card';
+import { parseDateAsUTC } from '../utils';
 
 // Define new color constants
 const INCOME_COLOR = 'bg-green-500';
@@ -21,26 +22,21 @@ const ScheduleHeatmap: React.FC<ScheduleHeatmapProps> = ({ items }) => {
 
     const { gridDays, monthLabels, itemsByDate, totalColumns } = useMemo(() => {
         const now = new Date();
-        // Start from the 1st of the current month in UTC to avoid timezone offsets
-        const startDate = new Date(Date.UTC(now.getUTCFullYear(), now.getUTCMonth(), 1));
+        // Start from the 1st of the current month in LOCAL time
+        const startDate = new Date(now.getFullYear(), now.getMonth(), 1);
         
         // Show 12 full months roughly (covers a year + a bit)
         const endDate = new Date(startDate);
-        endDate.setUTCFullYear(endDate.getUTCFullYear() + 1);
-        endDate.setUTCDate(0); // Back up to last day of previous month
+        endDate.setFullYear(endDate.getFullYear() + 1);
+        endDate.setDate(0); // Back up to last day of previous month
 
         const itemsByDate = new Map<string, { incomeCount: number, expenseCount: number, transferCount: number }>();
-        
-        const parseAsUTCLocal = (dateString: string): Date => {
-            const [year, month, day] = dateString.split('-').map(Number);
-            return new Date(Date.UTC(year, month - 1, day));
-        };
 
         items.forEach(item => {
-            const itemDate = parseAsUTCLocal(item.date);
+            const itemDate = parseDateAsUTC(item.date);
             if (itemDate >= startDate && itemDate <= endDate) {
                 // Re-format date to ensure consistency with grid date strings (YYYY-MM-DD)
-                const dateStr = itemDate.toISOString().split('T')[0];
+                const dateStr = item.date; // Assuming item.date is already YYYY-MM-DD
                 
                 const existing = itemsByDate.get(dateStr) || { incomeCount: 0, expenseCount: 0, transferCount: 0 };
                 
@@ -59,13 +55,12 @@ const ScheduleHeatmap: React.FC<ScheduleHeatmapProps> = ({ items }) => {
         let currentDate = new Date(startDate);
         while (currentDate <= endDate) {
             allDays.push(new Date(currentDate));
-            currentDate.setUTCDate(currentDate.getUTCDate() + 1);
+            currentDate.setDate(currentDate.getDate() + 1);
         }
 
         // Logic to make Monday the first day of the week (Row 0)
-        // getUTCDay() returns 0 for Sunday. We want Mon=0, Tue=1... Sun=6.
-        // Formula: (day + 6) % 7
-        const startDayOfWeek = (startDate.getUTCDay() + 6) % 7;
+        // getDay() returns 0 for Sunday. We want Mon=0, Tue=1... Sun=6.
+        const startDayOfWeek = (startDate.getDay() + 6) % 7;
         
         // Pad the start
         const paddedDays: (Date | null)[] = [...Array(startDayOfWeek).fill(null), ...allDays];
@@ -75,7 +70,7 @@ const ScheduleHeatmap: React.FC<ScheduleHeatmapProps> = ({ items }) => {
         
         paddedDays.forEach((day, index) => {
             if (day) {
-                const month = day.getUTCMonth();
+                const month = day.getMonth();
                 if (month !== lastMonth) {
                     // Calculate column index (0-based)
                     const colIndex = Math.floor(index / 7);
@@ -86,7 +81,7 @@ const ScheduleHeatmap: React.FC<ScheduleHeatmapProps> = ({ items }) => {
 
                     if (currentColStart - prevColStart >= 3) {
                         monthLabels.push({ 
-                            label: day.toLocaleString('default', { month: 'short', timeZone: 'UTC' }), 
+                            label: day.toLocaleString('default', { month: 'short' }), 
                             colStart: currentColStart 
                         });
                         lastMonth = month;
@@ -171,13 +166,13 @@ const ScheduleHeatmap: React.FC<ScheduleHeatmapProps> = ({ items }) => {
                                 const dayData = itemsByDate.get(dateStr);
                                 const color = getActivityColor(dayData);
                                 
-                                let tooltip = day.toLocaleDateString(undefined, { timeZone: 'UTC' });
+                                let tooltip = day.toLocaleDateString();
                                 if (dayData) {
                                     const parts = [];
                                     if (dayData.transferCount > 0) parts.push(`${dayData.transferCount} transfer(s)`);
                                     if (dayData.incomeCount > 0) parts.push(`${dayData.incomeCount} income`);
                                     if (dayData.expenseCount > 0) parts.push(`${dayData.expenseCount} expense(s)`);
-                                    tooltip = `${day.toLocaleDateString(undefined, { timeZone: 'UTC' })}: ${parts.join(', ')}`;
+                                    tooltip = `${day.toLocaleDateString()}: ${parts.join(', ')}`;
                                 }
 
                                 return <div key={dateStr} className={`w-[14px] h-[14px] rounded-sm ${color} hover:opacity-80 transition-opacity ${isToday ? 'ring-2 ring-primary-500 dark:ring-primary-400 z-10' : ''}`} title={isToday ? `Today - ${tooltip}` : tooltip} />;

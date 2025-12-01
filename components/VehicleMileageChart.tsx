@@ -13,7 +13,7 @@ const CustomTooltip = ({ active, payload, label }: any) => {
       const date = parseDateAsUTC(label);
       return (
         <div className="bg-light-card dark:bg-dark-card p-3 rounded-lg shadow-lg border border-black/5 dark:border-white/5">
-          <p className="label font-semibold text-light-text dark:text-dark-text mb-1">{date.toLocaleDateString('en-US', { timeZone: 'UTC', day: 'numeric', month: 'long', year: 'numeric' })}</p>
+          <p className="label font-semibold text-light-text dark:text-dark-text mb-1">{date.toLocaleDateString('en-US', { day: 'numeric', month: 'long', year: 'numeric' })}</p>
           <p className="text-primary-500">{`Odometer: ${payload[0].value.toLocaleString()} km`}</p>
         </div>
       );
@@ -34,7 +34,7 @@ const VehicleMileageChart: React.FC<VehicleMileageChartProps> = ({ logs }) => {
 
   const tickFormatter = (dateStr: string) => {
     const date = parseDateAsUTC(dateStr);
-    return date.toLocaleDateString('en-US', { timeZone: 'UTC', month: 'short', year: '2-digit' });
+    return date.toLocaleDateString('en-US', { month: 'short', year: '2-digit' });
   };
 
   return (

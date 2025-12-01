@@ -1,3 +1,4 @@
+
 import React, { useEffect, useState } from 'react';
 import Modal from './Modal';
 import { BTN_PRIMARY_STYLE, BTN_SECONDARY_STYLE } from '../constants';
@@ -27,7 +28,7 @@ const SuggestionItem: React.FC<{
 
     const formatDate = (dateString: string) => {
         const date = parseDateAsUTC(dateString);
-        return date.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric', timeZone: 'UTC' });
+        return date.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
     };
 
     return (

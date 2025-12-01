@@ -3,6 +3,7 @@ import React, { useState, useMemo } from 'react';
 import Modal from './Modal';
 import { Account, BillPayment } from '../types';
 import { BTN_PRIMARY_STYLE, BTN_SECONDARY_STYLE, INPUT_BASE_STYLE, SELECT_WRAPPER_STYLE, SELECT_ARROW_STYLE, LIQUID_ACCOUNT_TYPES, ALL_ACCOUNT_TYPES } from '../constants';
+import { toLocalISOString } from '../utils';
 
 interface BillPaymentModalProps {
     bill: Omit<BillPayment, 'id'> & { id?: string } | null;
@@ -17,7 +18,7 @@ const BillPaymentModal: React.FC<BillPaymentModalProps> = ({ bill, onSave, onClo
     const [description, setDescription] = useState(bill?.description || '');
     const [amount, setAmount] = useState(bill ? String(Math.abs(bill.amount)) : '');
     const [type, setType] = useState<'payment' | 'deposit'>(bill?.type || 'payment');
-    const [dueDate, setDueDate] = useState(bill?.dueDate || initialDate || new Date().toISOString().split('T')[0]);
+    const [dueDate, setDueDate] = useState(bill?.dueDate || initialDate || toLocalISOString(new Date()));
     const [accountId, setAccountId] = useState(bill?.accountId || '');
 
     const handleSubmit = (e: React.FormEvent) => {

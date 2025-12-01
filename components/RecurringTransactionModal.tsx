@@ -1,9 +1,9 @@
 
-
 import React, { useState, useMemo, useEffect } from 'react';
 import Modal from './Modal';
 import { Account, Category, RecurringTransaction, RecurrenceFrequency, WeekendAdjustment } from '../types';
 import { INPUT_BASE_STYLE, BTN_PRIMARY_STYLE, BTN_SECONDARY_STYLE, SELECT_WRAPPER_STYLE, SELECT_ARROW_STYLE, FREQUENCIES, WEEKEND_ADJUSTMENTS, ALL_ACCOUNT_TYPES } from '../constants';
+import { toLocalISOString } from '../utils';
 
 interface RecurringTransactionModalProps {
     onClose: () => void;
@@ -71,7 +71,7 @@ const RecurringTransactionModal: React.FC<RecurringTransactionModalProps> = ({ o
     const [category, setCategory] = useState('');
     const [frequency, setFrequency] = useState<RecurrenceFrequency>('monthly');
     const [frequencyInterval, setFrequencyInterval] = useState('1');
-    const [startDate, setStartDate] = useState(new Date().toISOString().split('T')[0]);
+    const [startDate, setStartDate] = useState(toLocalISOString(new Date()));
     const [endDate, setEndDate] = useState('');
     const [nextDueDate, setNextDueDate] = useState('');
     const [weekendAdjustment, setWeekendAdjustment] = useState<WeekendAdjustment>('on');
@@ -105,7 +105,7 @@ const RecurringTransactionModal: React.FC<RecurringTransactionModalProps> = ({ o
             setCategory('');
             setFrequency('monthly');
             setFrequencyInterval('1');
-            setStartDate(new Date().toISOString().split('T')[0]);
+            setStartDate(toLocalISOString(new Date()));
             setEndDate('');
             setWeekendAdjustment('on');
             setNextDueDate('');
@@ -164,7 +164,7 @@ const RecurringTransactionModal: React.FC<RecurringTransactionModalProps> = ({ o
             }
         }
 
-        const firstDueDate = nextDue.toISOString().split('T')[0];
+        const firstDueDate = toLocalISOString(nextDue);
 
         const dataToSave: Omit<RecurringTransaction, 'id'> & { id?: string } = {
             id: isEditing ? recurringTransactionToEdit.id : undefined,

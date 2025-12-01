@@ -1,3 +1,4 @@
+
 import React from 'react';
 import Modal from './Modal';
 import { Transaction, Account } from '../types';
@@ -15,7 +16,7 @@ const TransactionDetailModal: React.FC<TransactionDetailModalProps> = ({ isOpen,
   if (!isOpen) return null;
 
   const formatDate = (dateString: string) => {
-    return parseDateAsUTC(dateString).toLocaleDateString('en-US', { timeZone: 'UTC', month: 'long', day: 'numeric', year: 'numeric' });
+    return parseDateAsUTC(dateString).toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric' });
   };
   
   if (transactions.length === 1) {

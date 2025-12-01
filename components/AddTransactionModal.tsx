@@ -5,6 +5,7 @@ import { Account, Category, Transaction, Tag } from '../types';
 import { INPUT_BASE_STYLE, BTN_PRIMARY_STYLE, BTN_SECONDARY_STYLE, SELECT_WRAPPER_STYLE, SELECT_ARROW_STYLE, CHECKBOX_STYLE, ALL_ACCOUNT_TYPES } from '../constants';
 import { v4 as uuidv4 } from 'uuid';
 import LocationAutocomplete from './LocationAutocomplete';
+import { toLocalISOString } from '../utils';
 
 interface AddTransactionModalProps {
   onClose: () => void;
@@ -82,7 +83,7 @@ const AddTransactionModal: React.FC<AddTransactionModalProps> = ({ onClose, onSa
   }, [accounts]);
   
   const [type, setType] = useState<'expense' | 'income' | 'transfer'>(isEditing ? (transactionToEdit.transferId ? 'transfer' : transactionToEdit.type) : (initialType || 'expense'));
-  const [date, setDate] = useState(new Date().toISOString().split('T')[0]);
+  const [date, setDate] = useState(toLocalISOString(new Date()));
   const [fromAccountId, setFromAccountId] = useState(initialFromAccountId || defaultAccountId);
   const [toAccountId, setToAccountId] = useState(initialToAccountId || defaultAccountId);
   const [description, setDescription] = useState('');
@@ -224,7 +225,7 @@ const AddTransactionModal: React.FC<AddTransactionModalProps> = ({ onClose, onSa
     } else {
         // Reset for new transaction
         setType(initialType || 'expense');
-        setDate(initialDetails?.date || new Date().toISOString().split('T')[0]);
+        setDate(initialDetails?.date || toLocalISOString(new Date()));
         setFromAccountId(initialFromAccountId || defaultAccountId);
         setToAccountId(initialToAccountId || defaultAccountId);
         setDescription(initialDetails?.description || '');
