@@ -1,5 +1,5 @@
 import React, { createContext, useContext, useMemo, ReactNode } from 'react';
-import { Account, AppPreferences, Transaction, Warrant } from '../types';
+import { Account, AppPreferences, Budget, Transaction, Warrant } from '../types';
 
 export interface TransactionsContextValue {
   transactions: Transaction[];
@@ -25,10 +25,17 @@ export interface WarrantsContextValue {
   prices: Record<string, number | null>;
 }
 
+export interface BudgetsContextValue {
+  budgets: Budget[];
+  saveBudget: (budgetData: Omit<Budget, 'id'> & { id?: string }) => void;
+  deleteBudget: (budgetId: string) => void;
+}
+
 const TransactionsContext = createContext<TransactionsContextValue | undefined>(undefined);
 const AccountsContext = createContext<AccountsContextValue | undefined>(undefined);
 const PreferencesContext = createContext<PreferencesContextValue | undefined>(undefined);
 const WarrantsContext = createContext<WarrantsContextValue | undefined>(undefined);
+const BudgetsContext = createContext<BudgetsContextValue | undefined>(undefined);
 
 const createDigest = (transactions: Transaction[]) =>
   transactions
@@ -63,6 +70,11 @@ export const WarrantsProvider: React.FC<{ children: ReactNode; value: WarrantsCo
   return <WarrantsContext.Provider value={memoValue}>{children}</WarrantsContext.Provider>;
 };
 
+export const BudgetsProvider: React.FC<{ children: ReactNode; value: BudgetsContextValue }> = ({ children, value }) => {
+  const memoValue = useMemo(() => value, [value]);
+  return <BudgetsContext.Provider value={memoValue}>{children}</BudgetsContext.Provider>;
+};
+
 export const useTransactionsContext = () => {
   const context = useContext(TransactionsContext);
   if (!context) throw new Error('useTransactionsContext must be used within a TransactionsProvider');
@@ -87,6 +99,12 @@ export const useWarrantsContext = () => {
   return context;
 };
 
+export const useBudgetsContext = () => {
+  const context = useContext(BudgetsContext);
+  if (!context) throw new Error('useBudgetsContext must be used within a BudgetsProvider');
+  return context;
+};
+
 export const useTransactionSelector = <T,>(selector: (transactions: Transaction[]) => T) => {
   const { transactions } = useTransactionsContext();
   return useMemo(() => selector(transactions), [selector, transactions]);
@@ -105,4 +123,9 @@ export const usePreferencesSelector = <T,>(selector: (preferences: AppPreference
 export const useWarrantSelector = <T,>(selector: (warrants: Warrant[]) => T) => {
   const { warrants } = useWarrantsContext();
   return useMemo(() => selector(warrants), [selector, warrants]);
+};
+
+export const useBudgetsSelector = <T,>(selector: (budgets: Budget[]) => T) => {
+  const { budgets } = useBudgetsContext();
+  return useMemo(() => selector(budgets), [selector, budgets]);
 };

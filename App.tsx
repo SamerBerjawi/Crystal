@@ -829,7 +829,7 @@ const App: React.FC = () => {
     }
   }, [isDemoMode, setUser]);
 
-  const handleSaveAccount = (accountData: Omit<Account, 'id'> & { id?: string }) => {
+  const handleSaveAccount = useCallback((accountData: Omit<Account, 'id'> & { id?: string }) => {
     if (accountData.id) { // UPDATE
         setAccounts(prev => {
             // First, apply the update to the target account
@@ -862,15 +862,15 @@ const App: React.FC = () => {
             return newAccounts;
         });
     }
-  };
+  }, [setAccounts]);
 
-  const handleToggleAccountStatus = (accountId: string) => {
-    setAccounts(prev => prev.map(acc => 
-        acc.id === accountId 
-            ? { ...acc, status: acc.status === 'closed' ? 'open' : 'closed' } 
+  const handleToggleAccountStatus = useCallback((accountId: string) => {
+    setAccounts(prev => prev.map(acc =>
+        acc.id === accountId
+            ? { ...acc, status: acc.status === 'closed' ? 'open' : 'closed' }
             : acc
     ));
-  };
+  }, [setAccounts]);
 
   const handleDeleteAccount = useCallback((accountId: string) => {
     const accountToDelete = accounts.find(acc => acc.id === accountId);
@@ -1106,18 +1106,18 @@ const App: React.FC = () => {
     setActiveGoalIds((prev) => prev.filter((activeId) => !idsToDelete.includes(activeId)));
   };
   
-  const handleSaveBudget = (budgetData: Omit<Budget, 'id'> & { id?: string }) => {
+  const handleSaveBudget = useCallback((budgetData: Omit<Budget, 'id'> & { id?: string }) => {
     if (budgetData.id) {
         setBudgets(prev => prev.map(b => b.id === budgetData.id ? { ...b, ...budgetData } as Budget : b));
     } else {
         const newBudget: Budget = { ...budgetData, id: `bud-${uuidv4()}` } as Budget;
         setBudgets(prev => [...prev, newBudget]);
     }
-  };
+  }, [setBudgets]);
 
-  const handleDeleteBudget = (id: string) => {
+  const handleDeleteBudget = useCallback((id: string) => {
     setBudgets(prev => prev.filter(b => b.id !== id));
-  };
+  }, [setBudgets]);
 
   const handleSaveTask = (taskData: Omit<Task, 'id'> & { id?: string }) => {
     if (taskData.id) {
@@ -1132,31 +1132,31 @@ const App: React.FC = () => {
     setTasks(prev => prev.filter(t => t.id !== taskId));
   };
 
-  const handleSaveWarrant = (warrantData: Omit<Warrant, 'id'> & { id?: string }) => {
+  const handleSaveWarrant = useCallback((warrantData: Omit<Warrant, 'id'> & { id?: string }) => {
     const isNewWarrant = !warrantData.id;
 
     if (!isNewWarrant) { // Editing
-        setWarrants(prev => prev.map(w => w.id === warrantData.id ? { ...w, ...warrantData } as Warrant : w));
+      setWarrants(prev => prev.map(w => w.id === warrantData.id ? { ...w, ...warrantData } as Warrant : w));
     } else { // Adding new
-        const newWarrant: Warrant = { ...warrantData, id: `warr-${uuidv4()}` } as Warrant;
-        setWarrants(prev => [...prev, newWarrant]);
+      const newWarrant: Warrant = { ...warrantData, id: `warr-${uuidv4()}` } as Warrant;
+      setWarrants(prev => [...prev, newWarrant]);
 
-        const accountExists = accounts.some(acc => acc.symbol === warrantData.isin.toUpperCase());
-        if (!accountExists) {
-            const newAccount: Omit<Account, 'id'> = {
-                name: warrantData.name,
-                type: 'Investment', 
-                subType: 'ETF',
-                symbol: warrantData.isin.toUpperCase(),
-                balance: 0, 
-                currency: 'EUR',
-            };
-            handleSaveAccount(newAccount);
-        }
+      const accountExists = accounts.some(acc => acc.symbol === warrantData.isin.toUpperCase());
+      if (!accountExists) {
+        const newAccount: Omit<Account, 'id'> = {
+          name: warrantData.name,
+          type: 'Investment',
+          subType: 'ETF',
+          symbol: warrantData.isin.toUpperCase(),
+          balance: 0,
+          currency: 'EUR',
+        };
+        handleSaveAccount(newAccount);
+      }
     }
-  };
+  }, [accounts, handleSaveAccount]);
 
-  const handleDeleteWarrant = (warrantId: string) => {
+  const handleDeleteWarrant = useCallback((warrantId: string) => {
     const warrantToDelete = warrants.find(w => w.id === warrantId);
     setWarrants(prev => prev.filter(w => w.id !== warrantId));
 
@@ -1168,9 +1168,9 @@ const App: React.FC = () => {
         return updated;
       });
     }
-  };
+  }, [warrants]);
 
-  const handleManualWarrantPrice = (isin: string, price: number | null) => {
+  const handleManualWarrantPrice = useCallback((isin: string, price: number | null) => {
     setManualWarrantPrices(prev => {
       const updated = { ...prev };
       if (price === null) {
@@ -1181,7 +1181,7 @@ const App: React.FC = () => {
       return updated;
     });
     setLastUpdated(new Date());
-  };
+  }, []);
   
   // FIX: Add handlers for saving and deleting tags.
   const handleSaveTag = (tagData: Omit<Tag, 'id'> & { id?: string }) => {
