@@ -252,6 +252,7 @@ const App: React.FC = () => {
   const [tagFilter, setTagFilter] = useState<string | null>(null);
   const [accountOrder, setAccountOrder] = useLocalStorage<string[]>('crystal-account-order', []);
   const [taskOrder, setTaskOrder] = useLocalStorage<string[]>('crystal-task-order', []);
+  const [txRevision, setTxRevision] = useState(0);
   
   // State for AI Chat
   const [isChatOpen, setIsChatOpen] = useState(false);
@@ -958,7 +959,9 @@ const App: React.FC = () => {
         });
 
         // Finally, add new transactions
-        return [...updatedTransactions, ...transactionsToAdd];
+        const newState = [...updatedTransactions, ...transactionsToAdd];
+        setTxRevision(r => r + 1);
+        return newState;
     });
 
     setAccounts(prevAccounts => 
@@ -1423,7 +1426,7 @@ const App: React.FC = () => {
       case 'Preferences':
         return <PreferencesPage preferences={preferences} setPreferences={setPreferences} theme={theme} setTheme={setTheme} setCurrentPage={setCurrentPage} />;
       case 'Investments':
-        return <InvestmentsPage accounts={accounts} cashAccounts={accounts.filter(a => a.type === 'Checking' || a.type === 'Savings')} investmentTransactions={investmentTransactions} saveInvestmentTransaction={handleSaveInvestmentTransaction} deleteInvestmentTransaction={handleDeleteInvestmentTransaction} saveTransaction={handleSaveTransaction} warrants={warrants} />;
+        return <InvestmentsPage accounts={accounts} cashAccounts={accounts.filter(a => a.type === 'Checking' || a.type === 'Savings')} investmentTransactions={investmentTransactions} saveInvestmentTransaction={handleSaveInvestmentTransaction} deleteInvestmentTransaction={handleDeleteInvestmentTransaction} saveTransaction={handleSaveTransaction} warrants={warrants} saveWarrant={handleSaveWarrant} deleteWarrant={handleDeleteWarrant} manualPrices={manualWarrantPrices} onManualPriceChange={handleManualWarrantPrice} warrantPrices={warrantPrices} />;
       case 'Warrants':
         return <WarrantsPage warrants={warrants} saveWarrant={handleSaveWarrant} deleteWarrant={handleDeleteWarrant} prices={warrantPrices} manualPrices={manualWarrantPrices} lastUpdated={lastUpdated} onManualPriceChange={handleManualWarrantPrice} />;
       case 'Tasks':
@@ -1445,8 +1448,8 @@ const App: React.FC = () => {
     [accounts, accountOrder, handleSaveAccount]
   );
   const transactionsContextValue = useMemo(
-    () => ({ transactions, saveTransaction: handleSaveTransaction, deleteTransactions: handleDeleteTransactions }),
-    [transactions, handleDeleteTransactions, handleSaveTransaction]
+    () => ({ transactions, saveTransaction: handleSaveTransaction, deleteTransactions: handleDeleteTransactions, digest: txRevision.toString() }),
+    [transactions, handleDeleteTransactions, handleSaveTransaction, txRevision]
   );
   const warrantsContextValue = useMemo(
     () => ({ warrants, prices: warrantPrices }),

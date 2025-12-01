@@ -69,7 +69,8 @@ const AccountCard: React.FC<AccountCardProps> = ({
     const dragOverClasses = isDragOver ? 'border-t-4 border-primary-500 pt-1' : '';
 
     // Improved Secondary Text Logic
-    let secondaryText = account.type;
+    // FIX: Explicitly type secondaryText as string to avoid AccountType incompatibility errors
+    let secondaryText: string = account.type;
     if (account.type === 'Other Assets' || account.type === 'Other Liabilities') {
         secondaryText = account.otherSubType || account.type;
     } else if (account.type === 'Property' && account.propertyType) {

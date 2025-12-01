@@ -6,6 +6,7 @@ export interface TransactionsContextValue {
   transactions: Transaction[];
   saveTransaction: (txs: (Omit<Transaction, 'id'> & { id?: string })[], idsToDelete?: string[]) => void;
   deleteTransactions: (transactionIds: string[]) => void;
+  digest?: string;
 }
 
 export interface AccountsContextValue {
