@@ -1,6 +1,6 @@
 
 import React, { useMemo, useState, useCallback, useEffect, useRef } from 'react';
-import { User, Transaction, Account, Category, Duration, CategorySpending, Widget, WidgetConfig, DisplayTransaction, FinancialGoal, RecurringTransaction, BillPayment, Tag, Budget, RecurringTransactionOverride, LoanPaymentOverrides, AccountType } from '../types';
+import { User, Transaction, Account, Category, Duration, CategorySpending, Widget, WidgetConfig, DisplayTransaction, FinancialGoal, RecurringTransaction, BillPayment, Tag, Budget, RecurringTransactionOverride, LoanPaymentOverrides, AccountType, ForecastDuration } from '../types';
 import { formatCurrency, getDateRange, calculateAccountTotals, convertToEur, calculateStatementPeriods, generateBalanceForecast, parseDateAsUTC, getCreditCardStatementDetails, generateSyntheticLoanPayments, generateSyntheticCreditCardPayments, getPreferredTimeZone, formatDateKey, generateSyntheticPropertyTransactions } from '../utils';
 import AddTransactionModal from '../components/AddTransactionModal';
 import { BTN_PRIMARY_STYLE, BTN_SECONDARY_STYLE, LIQUID_ACCOUNT_TYPES, ASSET_TYPES, DEBT_TYPES, ACCOUNT_TYPE_STYLES, INVESTMENT_SUB_TYPE_STYLES } from '../constants';
@@ -24,9 +24,10 @@ import CreditCardStatementCard from '../components/CreditCardStatementCard';
 import BudgetOverviewWidget from '../components/BudgetOverviewWidget';
 import AccountBreakdownCard from '../components/AccountBreakdownCard';
 import TransactionMapWidget from '../components/TransactionMapWidget';
-import { useAccountsContext, useTransactionsContext } from '../contexts/DomainProviders';
+import { useAccountsContext, useTransactionsContext, usePreferencesContext } from '../contexts/DomainProviders';
 import { useBudgetsContext, useCategoryContext, useGoalsContext, useScheduleContext, useTagsContext } from '../contexts/FinancialDataContext';
 import { AreaChart, Area, LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, ReferenceLine, Label, Legend, BarChart, Bar, PieChart, Pie, Cell } from 'recharts';
+import { loadGenAiModule } from '../genAiLoader';
 
 interface DashboardProps {
   user: User;
@@ -95,6 +96,7 @@ const Dashboard: React.FC<DashboardProps> = ({ user, activeGoalIds, selectedAcco
   const { recurringTransactions, recurringTransactionOverrides, loanPaymentOverrides, billsAndPayments } = useScheduleContext();
   const { tags } = useTagsContext();
   const { budgets } = useBudgetsContext();
+  const { preferences } = usePreferencesContext();
   
   const [isTransactionModalOpen, setTransactionModalOpen] = useState(false);
   const [editingTransaction, setEditingTransaction] = useState<Transaction | null>(null);
@@ -115,6 +117,26 @@ const Dashboard: React.FC<DashboardProps> = ({ user, activeGoalIds, selectedAcco
   const selectedAccounts = useMemo(() => 
       accounts.filter(a => selectedAccountIds.includes(a.id)),
   [accounts, selectedAccountIds]);
+
+  const [forecastDuration, setForecastDuration] = useState<ForecastDuration>(preferences.defaultForecastPeriod || '1Y');
+  const [filterGoalsByAccount, setFilterGoalsByAccount] = useState(false);
+  const [showIndividualLines, setShowIndividualLines] = useState(false);
+  const [showGoalLines, setShowGoalLines] = useState(true);
+  const [selectedForecastDate, setSelectedForecastDate] = useState<string | null>(null);
+  const [isRecurringModalOpen, setIsRecurringModalOpen] = useState(false);
+  const [isBillModalOpen, setIsBillModalOpen] = useState(false);
+  const [editingRecurring, setEditingRecurring] = useState<RecurringTransaction | null>(null);
+  const [editingBill, setEditingBill] = useState<BillPayment | null>(null);
+  const [isModalOpen, setIsModalOpen] = useState(false);
+  const [editingGoal, setEditingGoal] = useState<FinancialGoal | null>(null);
+  const [parentIdForNewGoal, setParentIdForNewGoal] = useState<string | undefined>();
+  const [deletingGoal, setDeletingGoal] = useState<FinancialGoal | null>(null);
+  const { saveFinancialGoal, deleteFinancialGoal } = useGoalsContext();
+  const { saveRecurringTransaction, saveBillPayment } = useScheduleContext();
+
+  useEffect(() => {
+      setForecastDuration(preferences.defaultForecastPeriod || '1Y');
+  }, [preferences.defaultForecastPeriod]);
 
   const handleOpenTransactionModal = (tx?: Transaction) => {
     setEditingTransaction(tx || null);
@@ -649,42 +671,48 @@ const Dashboard: React.FC<DashboardProps> = ({ user, activeGoalIds, selectedAcco
       });
   }, [configuredCreditCards, transactions]);
 
-    const lowestBalanceForecasts = useMemo(() => {
-        const forecastEndDate = new Date();
-        forecastEndDate.setFullYear(forecastEndDate.getFullYear() + 1, forecastEndDate.getMonth() + 1, 0);
-
-        // Filter selected accounts to include only liquid accounts for cash flow forecast
-        const liquidSelectedAccounts = selectedAccounts.filter(a => LIQUID_ACCOUNT_TYPES.includes(a.type));
-        
-        // Generate synthetic transactions
+    const { allRecurringItems, syntheticItemsOnly } = useMemo(() => {
         const syntheticLoanPayments = generateSyntheticLoanPayments(accounts, transactions, loanPaymentOverrides);
         const syntheticCreditCardPayments = generateSyntheticCreditCardPayments(accounts, transactions);
         const syntheticPropertyTransactions = generateSyntheticPropertyTransactions(accounts);
-        const allRecurringTransactions = [...recurringTransactions, ...syntheticLoanPayments, ...syntheticCreditCardPayments, ...syntheticPropertyTransactions];
+        
+        const all = [...recurringTransactions, ...syntheticLoanPayments, ...syntheticCreditCardPayments, ...syntheticPropertyTransactions];
+        const synthetic = [...syntheticLoanPayments, ...syntheticCreditCardPayments, ...syntheticPropertyTransactions];
+        return { allRecurringItems: all, syntheticItemsOnly: synthetic };
+    }, [accounts, transactions, loanPaymentOverrides, recurringTransactions]);
 
-        // Filter active goals
-        const activeGoals = financialGoals.filter(g => activeGoalIds.includes(g.id));
+    const activeGoals = useMemo(() => {
+        let goals = financialGoals.filter(g => activeGoalIds.includes(g.id));
+        if (filterGoalsByAccount) {
+             goals = goals.filter(g => 
+                !g.paymentAccountId || 
+                selectedAccountIds.includes(g.paymentAccountId)
+            );
+        }
+        return goals;
+    }, [financialGoals, activeGoalIds, filterGoalsByAccount, selectedAccountIds]);
 
-        // FIX: Access the .chartData property from the returned object of generateBalanceForecast.
-        const forecastData = generateBalanceForecast(
-            liquidSelectedAccounts, 
-            allRecurringTransactions, 
-            activeGoals, 
-            billsAndPayments, 
-            forecastEndDate,
+    // 1. Generate Full Forecast (2 Years) - This is the stable base for all views
+    const fullForecast = useMemo(() => {
+        const projectionEndDate = new Date();
+        projectionEndDate.setMonth(projectionEndDate.getMonth() + 24); // 2 years
+
+        return generateBalanceForecast(
+            selectedAccounts,
+            allRecurringItems,
+            activeGoals,
+            billsAndPayments,
+            projectionEndDate,
             recurringTransactionOverrides
-        ).chartData;
+        );
+    }, [selectedAccounts, allRecurringItems, activeGoals, billsAndPayments, recurringTransactionOverrides]);
 
-        const today = new Date();
-        today.setUTCHours(0, 0, 0, 0);
+    const lowestBalanceForecasts = useMemo(() => {
+        // FIX: Access the .chartData property from the returned object of generateBalanceForecast.
+        const { chartData } = fullForecast;
 
-        const getInitialBalance = () => {
-            return liquidSelectedAccounts
-                .reduce((sum, acc) => sum + convertToEur(acc.balance, acc.currency), 0);
-        };
-
-        if (forecastData.length === 0) {
-            const initialBalance = getInitialBalance();
+        if (chartData.length === 0) {
+            const initialBalance = selectedAccounts.reduce((sum, acc) => sum + convertToEur(acc.balance, acc.currency), 0);
             const todayStr = new Date().toISOString().split('T')[0];
             const periods = ['This Month', 'Next 3 Months', 'Next 6 Months', 'Next Year'];
             return periods.map(period => ({
@@ -693,6 +721,11 @@ const Dashboard: React.FC<DashboardProps> = ({ user, activeGoalIds, selectedAcco
                 date: todayStr,
             }));
         }
+
+        const today = new Date();
+        today.setUTCHours(0, 0, 0, 0);
+        const startBalance = chartData[0].value;
+        const todayStr = new Date().toISOString().split('T')[0];
 
         const findNthLowestUniquePoint = (
             data: { date: string; value: number }[],
@@ -746,7 +779,7 @@ const Dashboard: React.FC<DashboardProps> = ({ user, activeGoalIds, selectedAcco
     
         for (const period of periods) {
             // FIX: Access the .chartData property from the returned object of generateBalanceForecast.
-            const dataForPeriod = forecastData.filter(d => {
+            const dataForPeriod = chartData.filter(d => {
                 const dDate = parseDateAsUTC(d.date);
                 return dDate >= period.startDate && dDate <= period.endDate;
             });
@@ -759,12 +792,12 @@ const Dashboard: React.FC<DashboardProps> = ({ user, activeGoalIds, selectedAcco
                 
                 if (!point) {
                     // FIX: Access the .chartData property from the returned object of generateBalanceForecast.
-                    const lastKnownBalancePoint = forecastData
+                    const lastKnownBalancePoint = chartData
                         .filter(d => parseDateAsUTC(d.date) < period.startDate)
                         .pop();
                     
-                    const fallbackValue = lastKnownBalancePoint ? lastKnownBalancePoint.value : getInitialBalance();
-                    const fallbackDate = lastKnownBalancePoint ? lastKnownBalancePoint.date : new Date().toISOString().split('T')[0];
+                    const fallbackValue = lastKnownBalancePoint ? lastKnownBalancePoint.value : startBalance;
+                    const fallbackDate = lastKnownBalancePoint ? lastKnownBalancePoint.date : todayStr;
 
                     displayedPoint = { value: fallbackValue, date: fallbackDate };
                     break;
@@ -793,7 +826,7 @@ const Dashboard: React.FC<DashboardProps> = ({ user, activeGoalIds, selectedAcco
         
         return results;
 
-    }, [selectedAccounts, recurringTransactions, financialGoals, billsAndPayments, accounts, transactions, recurringTransactionOverrides, loanPaymentOverrides, activeGoalIds]);
+    }, [fullForecast]);
 
   const handleBudgetClick = useCallback(() => {
     // A real implementation might navigate to the budget page and filter by category
@@ -912,15 +945,230 @@ const Dashboard: React.FC<DashboardProps> = ({ user, activeGoalIds, selectedAcco
   const tabInactiveClass = "text-light-text-secondary dark:text-dark-text-secondary hover:text-light-text dark:hover:text-dark-text hover:bg-black/5 dark:hover:bg-white/5";
 
   const assetAllocationData = useMemo(() => {
+      const groups = assetGroups as any; // Cast to any to solve TS error
       const data = [ // Renamed from pieChartData
-      { name: 'Liquid Cash', value: assetGroups['Liquid Cash'].value, color: assetGroups['Liquid Cash'].color },
-      { name: 'Investments', value: assetGroups['Investments'].value, color: assetGroups['Investments'].color },
-      { name: 'Properties', value: assetGroups['Properties'].value, color: assetGroups['Properties'].color },
-      { name: 'Vehicles', value: assetGroups['Vehicles'].value, color: assetGroups['Vehicles'].color },
-      { name: 'Other Assets', value: assetGroups['Other Assets'].value, color: assetGroups['Other Assets'].color }
+      { name: 'Liquid Cash', value: groups['Liquid Cash'].value, color: groups['Liquid Cash'].color },
+      { name: 'Investments', value: groups['Investments'].value, color: groups['Investments'].color },
+      { name: 'Properties', value: groups['Properties'].value, color: groups['Properties'].color },
+      { name: 'Vehicles', value: groups['Vehicles'].value, color: groups['Vehicles'].color },
+      { name: 'Other Assets', value: groups['Other Assets'].value, color: groups['Other Assets'].color }
     ];
       return data.filter(d => d.value > 0).sort((a, b) => b.value - a.value);
   }, [assetGroups]);
+
+    // --- AI Planner Hook Definition ---
+    const useSmartGoalPlanner = (
+        accounts: Account[],
+        recurringTransactions: RecurringTransaction[],
+        financialGoals: FinancialGoal[]
+    ) => {
+        const [plan, setPlan] = useState<Record<string, any[]> | null>(null);
+        const [isLoading, setIsLoading] = useState(false);
+        const [error, setError] = useState<string | null>(null);
+    
+        const generatePlan = useCallback(async () => {
+            setIsLoading(true);
+            setError(null);
+            setPlan(null);
+    
+            if (!process.env.API_KEY) {
+                setError("The AI Planner is not configured. An API key is required. Please see Settings > AI Assistant for configuration instructions.");
+                setIsLoading(false);
+                return;
+            }
+    
+            try {
+                const { GoogleGenAI, Type } = await loadGenAiModule();
+                const ai = new GoogleGenAI({ apiKey: process.env.API_KEY });
+                
+                const liquidAccounts = accounts.filter(a => LIQUID_ACCOUNT_TYPES.includes(a.type));
+                const context = {
+                    current_date: new Date().toISOString().split('T')[0],
+                    liquid_accounts: liquidAccounts.map(({ name, balance, currency }) => ({ name, balance, currency })),
+                    recurring_transactions: recurringTransactions.map(({ description, amount, type, frequency, nextDueDate }) => ({ description, amount, type, frequency, nextDueDate })),
+                    financial_goals: financialGoals.filter(g => g.projection).map(({ name, amount, currentAmount, date, projection }) => ({ name, target_amount: amount, current_amount: currentAmount, target_date: date, projected_status: projection?.status })),
+                };
+    
+                const prompt = `You are a financial planner. Based on the user's financial data, create a smart contribution plan to help them achieve their goals. 
+                Prioritize goals that are "at-risk" or "off-track". Suggest an "Upfront Contribution" if there's enough cash in checking/savings accounts. 
+                For shortfalls, add a final step with accountName "Unfunded Shortfall" and notes explaining the situation.
+                
+                User's Data: ${JSON.stringify(context, null, 2)}`;
+                
+                const responseSchema = {
+                    type: Type.OBJECT,
+                    properties: {
+                        plan: {
+                            type: Type.ARRAY,
+                            description: "The array of contribution plans for each goal.",
+                            items: {
+                                type: Type.OBJECT,
+                                properties: {
+                                    goalName: { type: Type.STRING },
+                                    steps: {
+                                        type: Type.ARRAY,
+                                        items: {
+                                            type: Type.OBJECT,
+                                            properties: {
+                                                date: { type: Type.STRING, description: "Contribution date (YYYY-MM) or 'Upfront Contribution'." },
+                                                amount: { type: Type.NUMBER },
+                                                accountName: { type: Type.STRING, description: "The name of the account to contribute from, or 'Unfunded Shortfall'." },
+                                                notes: { type: Type.STRING, description: "Optional notes or warnings." }
+                                            },
+                                            required: ['date', 'amount', 'accountName']
+                                        }
+                                    }
+                                },
+                                required: ['goalName', 'steps']
+                            }
+                        }
+                    },
+                    required: ['plan']
+                };
+    
+                const response = await ai.models.generateContent({
+                    model: 'gemini-2.5-pro',
+                    contents: prompt,
+                    config: {
+                        responseMimeType: 'application/json',
+                        responseSchema
+                    }
+                });
+                
+                const parsedJson = JSON.parse(response.text);
+                
+                const planObject = parsedJson.plan.reduce((acc: any, goalPlan: {goalName: string, steps: any[]}) => {
+                    acc[goalPlan.goalName] = goalPlan.steps;
+                    return acc;
+                }, {} as Record<string, any[]>);
+    
+                setPlan(planObject);
+    
+            } catch (err: any) {
+                console.error("Error generating smart plan:", err);
+                setError(err.message || "An error occurred while generating the plan.");
+            } finally {
+                setIsLoading(false);
+            }
+        }, [accounts, recurringTransactions, financialGoals]);
+        
+        return { generatePlan, plan, isLoading, error };
+    };
+
+    const { generatePlan, plan, isLoading: isPlanLoading, error: planError } = useSmartGoalPlanner(selectedAccounts, recurringTransactions, plannerGoals);
+
+    const handleToggleGoal = (id: string) => {
+        const goal = financialGoals.find(g => g.id === id);
+        if (!goal) return;
+        
+        const subGoalIds = goal.isBucket ? financialGoals.filter(g => g.parentId === id).map(g => g.id) : [];
+        const allRelatedIds = [id, ...subGoalIds];
+        
+        // Logic to toggle goals
+    };
+
+    const handleOpenModal = (goal?: FinancialGoal) => {
+        setEditingGoal(goal || null);
+        setParentIdForNewGoal(undefined);
+        setIsModalOpen(true);
+    };
+
+    const handleAddSubGoal = (parentId: string) => {
+        setEditingGoal(null);
+        setParentIdForNewGoal(parentId);
+        setIsModalOpen(true);
+    };
+    
+    const handleDeleteClick = (goalId: string) => {
+        const goal = financialGoals.find(g => g.id === goalId);
+        if (goal) setDeletingGoal(goal);
+    };
+
+    const handleConfirmDelete = () => {
+        if (!deletingGoal) return;
+        deleteFinancialGoal(deletingGoal.id);
+        setDeletingGoal(null);
+    };
+
+    const subGoalsOfDeleting = useMemo(() => {
+        if (!deletingGoal || !deletingGoal.isBucket) return [];
+        return financialGoals.filter(g => g.parentId === deletingGoal.id);
+    }, [deletingGoal, financialGoals]);
+
+    const { topLevelGoals, goalsByParentId, displayedGoals } = useMemo(() => {
+        const visibleGoals = goalsWithProjections.filter(g => 
+            !filterGoalsByAccount || 
+            !g.paymentAccountId || 
+            selectedAccountIds.includes(g.paymentAccountId)
+        );
+
+        const topLevel: FinancialGoal[] = [];
+        const byParent = new Map<string, FinancialGoal[]>();
+        
+        visibleGoals.forEach(g => {
+            if (g.parentId) {
+                if (!byParent.has(g.parentId)) {
+                    byParent.set(g.parentId, []);
+                }
+                byParent.get(g.parentId)!.push(g);
+            } else {
+                topLevel.push(g);
+            }
+        });
+        return { topLevelGoals: topLevel, goalsByParentId: byParent, displayedGoals: visibleGoals };
+    }, [goalsWithProjections, filterGoalsByAccount, selectedAccountIds]);
+
+    const areAllDisplayedSelected = useMemo(() => {
+        if (displayedGoals.length === 0) return false;
+        return displayedGoals.every(g => activeGoalIds.includes(g.id));
+    }, [displayedGoals, activeGoalIds]);
+
+    const handleToggleAllDisplayed = () => {
+        // Logic to toggle all
+    };
+
+    const handleDateClick = (date: string) => {
+        setSelectedForecastDate(date);
+    };
+
+    const selectedDayItems = useMemo(() => {
+        if (!selectedForecastDate) return [];
+        return tableData.filter(item => item.date === selectedForecastDate);
+    }, [selectedForecastDate, tableData]);
+
+    const handleEditForecastItem = (item: any) => {
+        setSelectedForecastDate(null);
+        if (item.type === 'Financial Goal') {
+             handleOpenModal(item.originalItem);
+        } else if (item.type === 'Recurring') {
+             setEditingRecurring(item.originalItem);
+             setIsRecurringModalOpen(true);
+        } else if (item.type === 'Bill/Payment') {
+             setEditingBill(item.originalItem);
+             setIsBillModalOpen(true);
+        }
+    };
+
+    const handleAddNewToDate = () => {
+        setEditingRecurring(null);
+        setIsRecurringModalOpen(true);
+    };
+
+    const durationOptions = [
+        { value: '3M', label: '3 Months' },
+        { value: '6M', label: '6 Months' },
+        { value: 'EOY', label: 'End of Year' },
+        { value: '1Y', label: '1 Year' }
+    ];
+    
+    const segmentItemBase = "flex-1 px-3 py-1.5 text-sm font-medium rounded-md transition-all duration-200 flex items-center justify-center whitespace-nowrap";
+    const segmentItemActive = "bg-light-card dark:bg-dark-card shadow-sm text-primary-600 dark:text-primary-400 font-semibold border border-black/5 dark:border-white/10";
+    const segmentItemInactive = "text-light-text-secondary dark:text-dark-text-secondary hover:text-light-text dark:hover:text-dark-text hover:bg-black/5 dark:hover:bg-white/5";
+
+    const netChange = endBalance - startBalance;
+    const totalGoalTarget = displayedGoals.reduce((sum, g) => sum + (g.isBucket ? 0 : g.amount), 0);
+    const totalGoalSaved = displayedGoals.reduce((sum, g) => sum + (g.isBucket ? 0 : g.currentAmount), 0);
+    const goalProgress = totalGoalTarget > 0 ? (totalGoalSaved / totalGoalTarget) * 100 : 0;
 
   return (
     <div className="space-y-6">
