@@ -1,4 +1,3 @@
-
 import React, { useMemo, useState, useCallback, useEffect, useRef } from 'react';
 import { User, Transaction, Account, Category, Duration, CategorySpending, Widget, WidgetConfig, DisplayTransaction, FinancialGoal, RecurringTransaction, BillPayment, Tag, Budget, RecurringTransactionOverride, LoanPaymentOverrides, AccountType } from '../types';
 import { formatCurrency, getDateRange, calculateAccountTotals, convertToEur, calculateStatementPeriods, generateBalanceForecast, parseDateAsUTC, getCreditCardStatementDetails, generateSyntheticLoanPayments, generateSyntheticCreditCardPayments, getPreferredTimeZone, formatDateKey, generateSyntheticPropertyTransactions } from '../utils';
@@ -142,10 +141,6 @@ const Dashboard: React.FC<DashboardProps> = ({ user, activeGoalIds, selectedAcco
     setDetailModalOpen(true);
   }, [transactions]);
 
-  useEffect(() => {
-    aggregateCacheRef.current.clear();
-  }, [transactionsKey]);
-
   const { filteredTransactions, income, expenses } = useMemo(() => {
     const cacheKey = `${transactionsKey}|${selectedAccountIds.join(',')}|${duration}`;
     const cached = aggregateCacheRef.current.get(cacheKey);
@@ -200,14 +195,6 @@ const Dashboard: React.FC<DashboardProps> = ({ user, activeGoalIds, selectedAcco
         income: calculatedIncome,
         expenses: calculatedExpenses,
     };
-
-    if (aggregateCacheRef.current.size >= 20) {
-      const oldestKey = aggregateCacheRef.current.keys().next().value;
-      if (oldestKey) {
-        aggregateCacheRef.current.delete(oldestKey);
-      }
-    }
-
     aggregateCacheRef.current.set(cacheKey, result);
     return result;
   }, [aggregateCacheRef, duration, selectedAccountIds, transactions, transactionsKey]);
@@ -1153,6 +1140,7 @@ const Dashboard: React.FC<DashboardProps> = ({ user, activeGoalIds, selectedAcco
                                           paddingAngle={5}
                                           dataKey="value"
                                       >
+                                          {/* Cells generated from data color property */}
                                           {assetAllocationData.map((entry, index) => (
                                               <Cell key={`cell-${index}`} fill={entry.color} stroke="none" />
                                           ))}

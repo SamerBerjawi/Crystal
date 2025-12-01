@@ -97,7 +97,7 @@ const Warrants: React.FC<WarrantsProps> = ({ warrants, saveWarrant, deleteWarran
                     onSave={onManualPriceChange}
                     isin={editingHoldingForPrice.isin}
                     name={editingHoldingForPrice.name}
-                    scrapedPrice={prices[editingHoldingForPrice.isin]}
+                    scrapedPrice={null}
                     manualPrice={manualPrices[editingHoldingForPrice.isin]}
                 />
             )}
@@ -147,7 +147,7 @@ const Warrants: React.FC<WarrantsProps> = ({ warrants, saveWarrant, deleteWarran
                                 const hasPrice = currentPrice !== undefined && currentPrice !== null;
                                 const currentValue = hasPrice ? holding.quantity * currentPrice : 0;
                                 const gainLoss = hasPrice ? currentValue - holding.totalGrantValue : 0;
-                                const manualPrice = manualPrices[holding.isin];
+                                
                                 return (
                                 <div key={holding.isin} className="grid grid-cols-2 sm:grid-cols-3 gap-x-4 gap-y-2 items-center p-4">
                                     <div className="col-span-2 sm:col-span-1">
@@ -165,16 +165,9 @@ const Warrants: React.FC<WarrantsProps> = ({ warrants, saveWarrant, deleteWarran
                                         {hasPrice ? (
                                             <p className={`text-sm font-semibold ${gainLoss >= 0 ? 'text-green-500' : 'text-red-500'}`}>{gainLoss >= 0 ? '+' : ''}{formatCurrency(gainLoss, 'EUR')}</p>
                                         ) : (
-                                            <p className="text-xs text-light-text-secondary dark:text-dark-text-secondary">Set a manual price to see gains</p>
+                                            <p className="text-xs text-light-text-secondary dark:text-dark-text-secondary">Set a price</p>
                                         )}
                                         <div className="mt-2 flex justify-end items-center gap-2">
-                                            {manualPrice !== undefined ? (
-                                                <span className="text-xs bg-primary-100 dark:bg-primary-900/50 text-primary-700 dark:text-primary-200 px-2 py-1 rounded-full">
-                                                    Manual: {formatCurrency(manualPrice, 'EUR')}
-                                                </span>
-                                            ) : (
-                                                 <span className="text-xs text-light-text-secondary dark:text-dark-text-secondary">Live price</span>
-                                            )}
                                             <button onClick={() => handleOpenPriceModal(holding.isin, holding.name)} className="p-1 rounded-full text-light-text-secondary dark:text-dark-text-secondary hover:bg-black/10 dark:hover:bg-white/10" title="Set Manual Price">
                                                 <span className="material-symbols-outlined text-base">edit_note</span>
                                             </button>

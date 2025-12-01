@@ -145,11 +145,10 @@ const Investments: React.FC<InvestmentsProps> = ({
 
         // Final pass to ensure warrant values are correct (Qty * Price)
         Object.values(holdingsMap).forEach(h => {
-            if (h.type === 'Warrant') {
-                const price = warrantPrices[h.symbol] ?? 0;
-                h.currentPrice = price;
-                h.currentValue = h.quantity * price;
-            }
+            // For both Warrants and Standard Investments, rely on the manually set price map passed from App
+            const price = warrantPrices[h.symbol] ?? 0;
+            h.currentPrice = price;
+            h.currentValue = h.quantity * price;
         });
 
         const filteredHoldings = Object.values(holdingsMap).filter(h => h.quantity > 0.000001);
@@ -381,6 +380,9 @@ const Investments: React.FC<InvestmentsProps> = ({
                                             : INVESTMENT_SUB_TYPE_STYLES[holding.subType || 'Stock'] 
                                                 ? { bg: INVESTMENT_SUB_TYPE_STYLES[holding.subType || 'Stock'].color.replace('text-', 'bg-').replace('500', '100'), text: INVESTMENT_SUB_TYPE_STYLES[holding.subType || 'Stock'].color, icon: INVESTMENT_SUB_TYPE_STYLES[holding.subType || 'Stock'].icon }
                                                 : { bg: 'bg-gray-100', text: 'text-gray-600', icon: 'category' };
+                                        
+                                        const currentPrice = holding.currentPrice;
+                                        const hasPrice = currentPrice !== 0;
 
                                         return (
                                             <tr key={holding.symbol} className="group hover:bg-black/5 dark:hover:bg-white/5 transition-colors">
@@ -397,9 +399,6 @@ const Investments: React.FC<InvestmentsProps> = ({
                                                 </td>
                                                 <td className="py-4 text-right">
                                                     <div className="font-medium text-light-text dark:text-dark-text">{formatCurrency(holding.currentPrice, 'EUR')}</div>
-                                                    {manualPrices[holding.symbol] !== undefined && (
-                                                        <span className="text-[10px] font-bold bg-yellow-100 dark:bg-yellow-900/40 text-yellow-700 dark:text-yellow-400 px-1.5 py-0.5 rounded">Manual</span>
-                                                    )}
                                                 </td>
                                                 <td className="py-4 text-right">
                                                     <div className="font-medium text-light-text dark:text-dark-text">{holding.quantity.toLocaleString(undefined, { maximumFractionDigits: 4 })}</div>

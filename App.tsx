@@ -75,6 +75,7 @@ import { v4 as uuidv4 } from 'uuid';
 import ChatFab from './components/ChatFab';
 const Chatbot = lazy(() => import('./components/Chatbot'));
 import { convertToEur, CONVERSION_RATES, arrayToCSV, downloadCSV, parseDateAsUTC } from './utils';
+// fetchYahooPrices removed
 import { useDebounce } from './hooks/useDebounce';
 import { useAuth } from './hooks/useAuth';
 import useLocalStorage from './hooks/useLocalStorage';
@@ -255,17 +256,26 @@ const App: React.FC = () => {
   // State for AI Chat
   const [isChatOpen, setIsChatOpen] = useState(false);
   
-  // State for Warrant prices
+  // State for Manual Asset prices
   const [manualWarrantPrices, setManualWarrantPrices] = useState<Record<string, number | undefined>>(initialFinancialData.manualWarrantPrices || {});
   const [lastUpdated, setLastUpdated] = useState<Date | null>(null);
+  
+  // Unified price map using only manual inputs
   const warrantPrices = useMemo(() => {
     const resolved: Record<string, number | null> = {};
+    // Initialize with warrants
     warrants.forEach(warrant => {
       if (manualWarrantPrices[warrant.isin] !== undefined) {
         resolved[warrant.isin] = manualWarrantPrices[warrant.isin];
       } else {
         resolved[warrant.isin] = null;
       }
+    });
+    
+    // Also allow other investment accounts to have manual prices via the same mechanism
+    // (The manualWarrantPrices state can store any symbol)
+    Object.keys(manualWarrantPrices).forEach(symbol => {
+        resolved[symbol] = manualWarrantPrices[symbol] || 0;
     });
 
     return resolved;
@@ -323,47 +333,6 @@ const App: React.FC = () => {
     }
   }, [financialGoals, activeGoalIds.length]);
 
-  const lastInvestmentPriceSignature = useRef<string | null>(null);
-  const isFetchingInvestmentPrices = useRef(false);
-
-  const refreshInvestmentPrices = useCallback(async () => {
-    if (typeof window === 'undefined') return;
-    if (isFetchingInvestmentPrices.current) return;
-
-    const investmentAccountsWithSymbols = accounts
-      .filter(acc => acc.type === 'Investment' && acc.symbol)
-      .filter(acc => !warrants.some(w => w.isin === acc.symbol));
-
-    if (investmentAccountsWithSymbols.length === 0) {
-      setInvestmentPrices({});
-      lastInvestmentPriceSignature.current = null;
-      return;
-    }
-
-    const targets = investmentAccountsWithSymbols.map(acc => ({
-      symbol: acc.symbol as string,
-      subType: acc.subType,
-    }));
-
-    const signature = targets
-      .map(target => `${target.symbol}:${target.subType || 'default'}`)
-      .sort()
-      .join('|');
-
-    if (signature === lastInvestmentPriceSignature.current) {
-      return;
-    }
-
-    isFetchingInvestmentPrices.current = true;
-    try {
-      const prices = await fetchYahooPrices(targets);
-      setInvestmentPrices(prices);
-      lastInvestmentPriceSignature.current = signature;
-    } finally {
-      isFetchingInvestmentPrices.current = false;
-    }
-  }, [accounts, warrants]);
-
   const warrantHoldingsBySymbol = useMemo(() => {
     const holdings: Record<string, number> = {};
 
@@ -382,8 +351,6 @@ const App: React.FC = () => {
   useEffect(() => {
     let hasChanges = false;
     const updatedAccounts = accounts.map(account => {
-      // FIX: The type 'Crypto' is not a valid AccountType. 'Crypto' is a subtype of 'Investment'.
-      // The check is simplified to only verify if the account type is 'Investment'.
       if (account.symbol && account.type === 'Investment' && warrantPrices[account.symbol] !== undefined) {
         const price = warrantPrices[account.symbol];
         const quantity = warrantHoldingsBySymbol[account.symbol] || 0;
@@ -829,7 +796,7 @@ const App: React.FC = () => {
     }
   }, [isDemoMode, setUser]);
 
-  const handleSaveAccount = useCallback((accountData: Omit<Account, 'id'> & { id?: string }) => {
+  const handleSaveAccount = (accountData: Omit<Account, 'id'> & { id?: string }) => {
     if (accountData.id) { // UPDATE
         setAccounts(prev => {
             // First, apply the update to the target account
@@ -862,15 +829,15 @@ const App: React.FC = () => {
             return newAccounts;
         });
     }
-  }, [setAccounts]);
+  };
 
-  const handleToggleAccountStatus = useCallback((accountId: string) => {
-    setAccounts(prev => prev.map(acc =>
-        acc.id === accountId
-            ? { ...acc, status: acc.status === 'closed' ? 'open' : 'closed' }
+  const handleToggleAccountStatus = (accountId: string) => {
+    setAccounts(prev => prev.map(acc => 
+        acc.id === accountId 
+            ? { ...acc, status: acc.status === 'closed' ? 'open' : 'closed' } 
             : acc
     ));
-  }, [setAccounts]);
+  };
 
   const handleDeleteAccount = useCallback((accountId: string) => {
     const accountToDelete = accounts.find(acc => acc.id === accountId);
@@ -1106,18 +1073,18 @@ const App: React.FC = () => {
     setActiveGoalIds((prev) => prev.filter((activeId) => !idsToDelete.includes(activeId)));
   };
   
-  const handleSaveBudget = useCallback((budgetData: Omit<Budget, 'id'> & { id?: string }) => {
+  const handleSaveBudget = (budgetData: Omit<Budget, 'id'> & { id?: string }) => {
     if (budgetData.id) {
         setBudgets(prev => prev.map(b => b.id === budgetData.id ? { ...b, ...budgetData } as Budget : b));
     } else {
         const newBudget: Budget = { ...budgetData, id: `bud-${uuidv4()}` } as Budget;
         setBudgets(prev => [...prev, newBudget]);
     }
-  }, [setBudgets]);
+  };
 
-  const handleDeleteBudget = useCallback((id: string) => {
+  const handleDeleteBudget = (id: string) => {
     setBudgets(prev => prev.filter(b => b.id !== id));
-  }, [setBudgets]);
+  };
 
   const handleSaveTask = (taskData: Omit<Task, 'id'> & { id?: string }) => {
     if (taskData.id) {
@@ -1132,31 +1099,31 @@ const App: React.FC = () => {
     setTasks(prev => prev.filter(t => t.id !== taskId));
   };
 
-  const handleSaveWarrant = useCallback((warrantData: Omit<Warrant, 'id'> & { id?: string }) => {
+  const handleSaveWarrant = (warrantData: Omit<Warrant, 'id'> & { id?: string }) => {
     const isNewWarrant = !warrantData.id;
 
     if (!isNewWarrant) { // Editing
-      setWarrants(prev => prev.map(w => w.id === warrantData.id ? { ...w, ...warrantData } as Warrant : w));
+        setWarrants(prev => prev.map(w => w.id === warrantData.id ? { ...w, ...warrantData } as Warrant : w));
     } else { // Adding new
-      const newWarrant: Warrant = { ...warrantData, id: `warr-${uuidv4()}` } as Warrant;
-      setWarrants(prev => [...prev, newWarrant]);
+        const newWarrant: Warrant = { ...warrantData, id: `warr-${uuidv4()}` } as Warrant;
+        setWarrants(prev => [...prev, newWarrant]);
 
-      const accountExists = accounts.some(acc => acc.symbol === warrantData.isin.toUpperCase());
-      if (!accountExists) {
-        const newAccount: Omit<Account, 'id'> = {
-          name: warrantData.name,
-          type: 'Investment',
-          subType: 'ETF',
-          symbol: warrantData.isin.toUpperCase(),
-          balance: 0,
-          currency: 'EUR',
-        };
-        handleSaveAccount(newAccount);
-      }
+        const accountExists = accounts.some(acc => acc.symbol === warrantData.isin.toUpperCase());
+        if (!accountExists) {
+            const newAccount: Omit<Account, 'id'> = {
+                name: warrantData.name,
+                type: 'Investment', 
+                subType: 'ETF',
+                symbol: warrantData.isin.toUpperCase(),
+                balance: 0, 
+                currency: 'EUR',
+            };
+            handleSaveAccount(newAccount);
+        }
     }
-  }, [accounts, handleSaveAccount]);
+  };
 
-  const handleDeleteWarrant = useCallback((warrantId: string) => {
+  const handleDeleteWarrant = (warrantId: string) => {
     const warrantToDelete = warrants.find(w => w.id === warrantId);
     setWarrants(prev => prev.filter(w => w.id !== warrantId));
 
@@ -1168,9 +1135,9 @@ const App: React.FC = () => {
         return updated;
       });
     }
-  }, [warrants]);
+  };
 
-  const handleManualWarrantPrice = useCallback((isin: string, price: number | null) => {
+  const handleManualWarrantPrice = (isin: string, price: number | null) => {
     setManualWarrantPrices(prev => {
       const updated = { ...prev };
       if (price === null) {
@@ -1181,7 +1148,7 @@ const App: React.FC = () => {
       return updated;
     });
     setLastUpdated(new Date());
-  }, []);
+  };
   
   // FIX: Add handlers for saving and deleting tags.
   const handleSaveTag = (tagData: Omit<Tag, 'id'> & { id?: string }) => {
@@ -1387,17 +1354,6 @@ const App: React.FC = () => {
   const viewingAccount = useMemo(() => accounts.find(a => a.id === viewingAccountId), [accounts, viewingAccountId]);
   const currentUser = useMemo(() => isDemoMode ? demoUser : user, [isDemoMode, demoUser, user]);
 
-  // Memoize the chatbot payload to prevent unnecessary re-initialization loops when the
-  // parent component re-renders without the underlying data changing.
-  const chatbotFinancialData = useMemo(() => ({
-    accounts,
-    transactions,
-    budgets,
-    financialGoals,
-    recurringTransactions,
-    investmentTransactions,
-  }), [accounts, budgets, financialGoals, investmentTransactions, recurringTransactions, transactions]);
-
   // Reset the account detail view if the referenced account no longer exists to avoid state updates during render
   useEffect(() => {
     if (viewingAccountId && !viewingAccount) {
@@ -1467,28 +1423,15 @@ const App: React.FC = () => {
       case 'Preferences':
         return <PreferencesPage preferences={preferences} setPreferences={setPreferences} theme={theme} setTheme={setTheme} setCurrentPage={setCurrentPage} />;
       case 'Investments':
-        return <InvestmentsPage 
-            accounts={accounts} 
-            cashAccounts={accounts.filter(a => a.type === 'Checking' || a.type === 'Savings')} 
-            investmentTransactions={investmentTransactions} 
-            saveInvestmentTransaction={handleSaveInvestmentTransaction} 
-            deleteInvestmentTransaction={handleDeleteInvestmentTransaction} 
-            saveTransaction={handleSaveTransaction} 
-            warrants={warrants} 
-            saveWarrant={handleSaveWarrant}
-            deleteWarrant={handleDeleteWarrant}
-            manualPrices={manualWarrantPrices}
-            onManualPriceChange={handleManualWarrantPrice}
-            warrantPrices={warrantPrices}
-        />;
+        return <InvestmentsPage accounts={accounts} cashAccounts={accounts.filter(a => a.type === 'Checking' || a.type === 'Savings')} investmentTransactions={investmentTransactions} saveInvestmentTransaction={handleSaveInvestmentTransaction} deleteInvestmentTransaction={handleDeleteInvestmentTransaction} saveTransaction={handleSaveTransaction} warrants={warrants} manualPrices={manualWarrantPrices} onManualPriceChange={handleManualWarrantPrice} warrantPrices={warrantPrices} />;
+      case 'Warrants':
+        return <WarrantsPage warrants={warrants} saveWarrant={handleSaveWarrant} deleteWarrant={handleDeleteWarrant} prices={warrantPrices} manualPrices={manualWarrantPrices} lastUpdated={lastUpdated} onManualPriceChange={handleManualWarrantPrice} />;
       case 'Tasks':
         return <TasksPage tasks={tasks} saveTask={handleSaveTask} deleteTask={handleDeleteTask} taskOrder={taskOrder} setTaskOrder={setTaskOrder} />;
       case 'Documentation':
         return <Documentation setCurrentPage={setCurrentPage} />;
       case 'AI Assistant':
         return <AIAssistantSettingsPage setCurrentPage={setCurrentPage} />;
-      case 'Subscriptions':
-        return <SubscriptionsPage />;
       default:
         return <div>Page not found</div>;
     }
@@ -1614,7 +1557,7 @@ const App: React.FC = () => {
             currentPage={currentPage}
             titleOverride={viewingAccount?.name}
           />
-          <main className="flex-1 overflow-x-hidden overflow-y-auto p-4 md:p-8 bg-light-bg dark:bg-dark-bg">
+          <main className="flex-1 overflow-x-hidden overflow-y-auto p-4 md:p-8 bg-light-bg dark:bg-dark-bg md:rounded-tl-3xl border-l border-t border-black/5 dark:border-white/5 shadow-2xl">
             <Suspense fallback={<PageLoader />}>
               {renderPage()}
             </Suspense>
@@ -1628,7 +1571,14 @@ const App: React.FC = () => {
             <Chatbot
               isOpen={isChatOpen}
               onClose={() => setIsChatOpen(false)}
-              financialData={chatbotFinancialData}
+              financialData={{
+                accounts,
+                transactions,
+                budgets,
+                financialGoals,
+                recurringTransactions,
+                investmentTransactions,
+              }}
             />
           )}
         </Suspense>

@@ -1,3 +1,4 @@
+
 import React, { useState } from 'react';
 import Modal from './Modal';
 import { BTN_PRIMARY_STYLE, BTN_SECONDARY_STYLE, BTN_DANGER_STYLE, INPUT_BASE_STYLE } from '../constants';
@@ -34,16 +35,11 @@ const WarrantPriceModal: React.FC<WarrantPriceModalProps> = ({ onClose, onSave, 
     const labelStyle = "block text-sm font-medium text-light-text-secondary dark:text-dark-text-secondary mb-1";
     
     return (
-        <Modal onClose={onClose} title={`Set Manual Price for ${name}`}>
+        <Modal onClose={onClose} title={`Set Price for ${name}`}>
             <form onSubmit={handleSubmit} className="space-y-4">
                 
-                <div className="p-4 rounded-lg bg-light-bg dark:bg-dark-bg text-center">
-                    <p className={labelStyle}>Live Market Price</p>
-                    <p className="text-2xl font-bold">{scrapedPrice !== null ? formatCurrency(scrapedPrice, 'EUR') : 'Not available'}</p>
-                </div>
-
                 <div>
-                    <label htmlFor="manual-price" className={labelStyle}>New Manual Price (€)</label>
+                    <label htmlFor="manual-price" className={labelStyle}>Current Price (€)</label>
                     <input
                         id="manual-price"
                         type="number"
@@ -55,13 +51,13 @@ const WarrantPriceModal: React.FC<WarrantPriceModalProps> = ({ onClose, onSave, 
                         autoFocus
                     />
                      <p className="text-xs text-light-text-secondary dark:text-dark-text-secondary mt-1">
-                        Enter a price to override the live price. Leave blank and save to remove the override.
+                        Enter the current market price for this asset.
                      </p>
                 </div>
                 
                 <div className="flex justify-between items-center pt-4">
                     <button type="button" onClick={handleClear} className={BTN_DANGER_STYLE} disabled={manualPrice === undefined}>
-                        Remove Override
+                        Remove Price
                     </button>
                     <div className="flex gap-4">
                         <button type="button" onClick={onClose} className={BTN_SECONDARY_STYLE}>Cancel</button>
