@@ -832,7 +832,7 @@ const Forecasting: React.FC<ForecastingProps> = ({ activeGoalIds, setActiveGoalI
                                         onClick={() => handleEditForecastItem(row)}
                                     >
                                         <td className="px-6 py-4 whitespace-nowrap font-mono text-xs text-light-text-secondary dark:text-dark-text-secondary group-hover:text-light-text dark:group-hover:text-dark-text transition-colors">
-                                            {parseDateAsUTC(row.date, timeZone).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric', timeZone })}
+                                            {parseDateAsUTC(row.date).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric', timeZone })}
                                         </td>
                                         <td className="px-6 py-4">
                                             <span className="font-medium text-light-text dark:text-dark-text truncate block max-w-[140px]">{row.accountName}</span>

@@ -28,7 +28,7 @@ const ForecastDayModal: React.FC<ForecastDayModalProps> = ({ isOpen, onClose, da
     if (!isOpen) return null;
 
     const timeZone = getPreferredTimeZone();
-    const formattedDate = parseDateAsUTC(date, timeZone).toLocaleDateString('en-US', {
+    const formattedDate = parseDateAsUTC(date).toLocaleDateString('en-US', {
         weekday: 'long',
         year: 'numeric',
         month: 'long',

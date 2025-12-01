@@ -58,7 +58,7 @@ const ForecastOverview: React.FC<ForecastOverviewProps> = ({ forecasts, currency
                          icon = 'check_circle';
                     }
 
-                    const formattedDate = parseDateAsUTC(item.date, timeZone).toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
+                    const formattedDate = parseDateAsUTC(item.date).toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
 
                     return (
                         <div 

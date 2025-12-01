@@ -16,7 +16,7 @@ const LowestBalanceForecastCard: React.FC<LowestBalanceForecastCardProps> = ({ p
     const icon = isLow ? 'warning' : 'trending_flat';
     
     const timeZone = getPreferredTimeZone();
-    const formattedDate = parseDateAsUTC(date, timeZone).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric', timeZone });
+    const formattedDate = parseDateAsUTC(date).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric', timeZone });
 
     return (
         <Card className="flex flex-col justify-between border border-gray-100 dark:border-white/5 shadow-sm hover:shadow-md transition-all duration-200">

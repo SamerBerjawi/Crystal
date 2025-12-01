@@ -1,7 +1,7 @@
 
 import React, { useMemo } from 'react';
 import { AreaChart, Area, LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, ReferenceLine, Label, Legend } from 'recharts';
-import { formatCurrency, getPreferredTimeZone, parseDateAsUTC } from '../utils';
+import { formatCurrency, getPreferredTimeZone, parseLocalDate } from '../utils';
 import { FinancialGoal, Account } from '../types';
 import { ACCOUNT_TYPE_STYLES } from '../constants';
 
@@ -38,14 +38,8 @@ const CustomTooltip: React.FC<{ active?: boolean; payload?: any[]; label?: strin
     if (active && payload && payload.length && label) {
       let formattedDate = label;
       try {
-          const parts = label.split('-').map(Number);
-          if (parts.length === 3) {
-               const [year, month, day] = parts;
-               const timeZone = getPreferredTimeZone();
-               // Construct local date for display
-               const dateObj = new Date(year, month - 1, day);
-               formattedDate = dateObj.toLocaleDateString('en-US', { timeZone, year: 'numeric', month: 'long', day: 'numeric' });
-          }
+           const dateObj = parseLocalDate(label);
+           formattedDate = dateObj.toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric' });
       } catch (e) {
           console.warn("Tooltip date parse error", e);
       }
@@ -167,8 +161,8 @@ const ForecastChart: React.FC<ForecastChartProps> = ({ data, oneTimeGoals, lowes
   const { ticks, tickFormatter } = useMemo(() => {
     if (data.length < 2) return { ticks: [], tickFormatter: () => '' };
 
-    const startDate = data.length ? parseDateAsUTC(data[0].date) : new Date(0);
-    const endDate = data.length ? parseDateAsUTC(data[data.length - 1].date) : new Date(0);
+    const startDate = data.length ? parseLocalDate(data[0].date) : new Date(0);
+    const endDate = data.length ? parseLocalDate(data[data.length - 1].date) : new Date(0);
     const rangeInDays = (endDate.getTime() - startDate.getTime()) / (1000 * 3600 * 24);
 
     if (rangeInDays > 120) { // For ranges longer than ~4 months, show one tick per month.
@@ -176,7 +170,7 @@ const ForecastChart: React.FC<ForecastChartProps> = ({ data, oneTimeGoals, lowes
         const monthSet = new Set<string>();
 
         for (const item of data) {
-            const date = parseDateAsUTC(item.date);
+            const date = parseLocalDate(item.date);
             const monthKey = `${date.getFullYear()}-${date.getMonth()}`;
             if (!monthSet.has(monthKey)) {
                 newTicks.push(item.date);
@@ -185,27 +179,22 @@ const ForecastChart: React.FC<ForecastChartProps> = ({ data, oneTimeGoals, lowes
         }
         
         const formatter = (dateStr: string) => {
-            const [year, month] = dateStr.split('-').map(Number);
-            const utcDate = new Date(Date.UTC(year, month - 1, 1));
-          const timeZone = getPreferredTimeZone();
-          return utcDate.toLocaleDateString('en-US', { timeZone, month: 'short', year: '2-digit' });
+            const localDate = parseLocalDate(dateStr);
+            return localDate.toLocaleDateString('en-US', { month: 'short', year: '2-digit' });
         };
         return { ticks: newTicks, tickFormatter: formatter };
 
     } else { // For shorter ranges, show day and month
         const formatter = (dateStr: string) => {
-            const [year, month, day] = dateStr.split('-').map(Number);
-            const utcDate = new Date(Date.UTC(year, month - 1, day));
-          const timeZone = getPreferredTimeZone();
-          return utcDate.toLocaleDateString('en-US', { timeZone, month: 'short', day: 'numeric' });
+            const localDate = parseLocalDate(dateStr);
+            return localDate.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
         };
         return { ticks: undefined, tickFormatter: formatter };
     }
   }, [data]);
 
   const lowestPointDateFormatted = lowestPoint?.date
-    ? parseDateAsUTC(lowestPoint.date).toLocaleDateString('en-US', {
-        timeZone: getPreferredTimeZone(),
+    ? parseLocalDate(lowestPoint.date).toLocaleDateString('en-US', {
         month: 'short',
         day: 'numeric',
       })

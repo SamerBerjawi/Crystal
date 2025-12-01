@@ -61,7 +61,12 @@ export const toLocalISOString = (date: Date): string => {
     return `${year}-${month}-${day}`;
 };
 
-export const parseDateAsUTC = (dateString: string, timeZone?: string): Date => {
+/**
+ * Parses a YYYY-MM-DD string into a Date object set to Local Midnight.
+ * This ensures that the date component remains stable regardless of the user's timezone
+ * when displayed using local formatting functions.
+ */
+export const parseLocalDate = (dateString: string): Date => {
     if (!dateString) return new Date();
 
     try {
@@ -84,6 +89,9 @@ export const parseDateAsUTC = (dateString: string, timeZone?: string): Date => {
         return new Date();
     }
 };
+
+// Deprecated alias for backward compatibility
+export const parseDateAsUTC = parseLocalDate;
 
 export const formatDateKey = (date: Date, timeZone?: string): string => {
     if (!date || isNaN(date.getTime())) return '';
@@ -186,7 +194,7 @@ export function getDateRange(duration: Duration, allTransactions: Transaction[] 
                 const firstDateString = allTransactions.reduce((earliest, tx) => {
                     return tx.date < earliest ? tx.date : earliest;
                 }, allTransactions[0].date);
-                const parsedFirst = parseDateAsUTC(firstDateString);
+                const parsedFirst = parseLocalDate(firstDateString);
                 if (!isNaN(parsedFirst.getTime())) {
                      start.setTime(parsedFirst.getTime());
                 }
@@ -324,7 +332,7 @@ export function getCreditCardStatementDetails(
 
     const transactionsInPeriod = allTransactions.filter(tx => {
         if (tx.accountId !== creditCardAccount.id) return false;
-        const txDate = parseDateAsUTC(tx.date);
+        const txDate = parseLocalDate(tx.date);
         return txDate >= statementStart && txDate <= statementEnd;
     });
 
@@ -377,7 +385,7 @@ export function generateSyntheticLoanPayments(accounts: Account[], transactions:
         const isLending = account.type === 'Lending';
 
         schedule.forEach(payment => {
-            const paymentDate = parseDateAsUTC(payment.date);
+            const paymentDate = parseLocalDate(payment.date);
             if (payment.status === 'Paid' || paymentDate < todayUTC) {
                 return;
             }
@@ -394,7 +402,7 @@ export function generateSyntheticLoanPayments(accounts: Account[], transactions:
                 startDate: payment.date,
                 nextDueDate: payment.date,
                 endDate: payment.date,
-                dueDateOfMonth: parseDateAsUTC(payment.date).getDate(),
+                dueDateOfMonth: parseLocalDate(payment.date).getDate(),
                 weekendAdjustment: 'after',
                 isSynthetic: true,
             });
@@ -503,7 +511,7 @@ export function generateSyntheticPropertyTransactions(accounts: Account[]): Recu
     properties.forEach(property => {
         // 1. Property Taxes (Annual)
         if (property.propertyTaxAmount && property.propertyTaxDate) {
-            const taxDate = parseDateAsUTC(property.propertyTaxDate);
+            const taxDate = parseLocalDate(property.propertyTaxDate);
              syntheticItems.push({
                 id: `prop-tax-${property.id}`,
                 accountId: 'external', // Implicitly external if not linked, or handled during forecasting mapping if account is missing
@@ -523,7 +531,7 @@ export function generateSyntheticPropertyTransactions(accounts: Account[]): Recu
 
         // 2. Home Insurance
         if (property.insuranceAmount && property.insuranceFrequency && property.insurancePaymentDate) {
-             const insDate = parseDateAsUTC(property.insurancePaymentDate);
+             const insDate = parseLocalDate(property.insurancePaymentDate);
              syntheticItems.push({
                 id: `prop-ins-${property.id}`,
                 accountId: 'external',
@@ -644,9 +652,9 @@ export function generateBalanceForecast(
     };
 
     recurringTransactions.forEach(rt => {
-        let nextDate = parseDateAsUTC(rt.nextDueDate);
-        const endDateUTC = rt.endDate ? parseDateAsUTC(rt.endDate) : null;
-        const startDateUTC = parseDateAsUTC(rt.startDate);
+        let nextDate = parseLocalDate(rt.nextDueDate);
+        const endDateUTC = rt.endDate ? parseLocalDate(rt.endDate) : null;
+        const startDateUTC = parseLocalDate(rt.startDate);
 
         while (nextDate < startDate && (!endDateUTC || nextDate < endDateUTC)) {
             // This logic fast-forwards past-due occurrences to catch up to the present day for the forecast
@@ -758,7 +766,7 @@ export function generateBalanceForecast(
         }
 
         if (goal.type === 'one-time' && goal.date) {
-            const goalDate = parseDateAsUTC(goal.date);
+            const goalDate = parseLocalDate(goal.date);
             if (goalDate >= startDate && goalDate <= forecastEndDate) {
                 const amount = goal.transactionType === 'expense' ? -(goal.amount - goal.currentAmount) : (goal.amount - goal.currentAmount);
                 if (amount === 0) return;
@@ -769,7 +777,7 @@ export function generateBalanceForecast(
 
     billsAndPayments.forEach(bill => {
         if (bill.status === 'unpaid') {
-            const dueDate = parseDateAsUTC(bill.dueDate);
+            const dueDate = parseLocalDate(bill.dueDate);
             if (dueDate >= startDate && dueDate <= forecastEndDate) {
                 // If bill has an accountId and it's selected, map it. If not, it might be general (External)
                 if (!bill.accountId || accountIds.has(bill.accountId)) {
@@ -867,11 +875,11 @@ export function generateAmortizationSchedule(
     tx.accountId === account.id &&
     tx.transferId &&
     ( (account.type === 'Loan' && tx.type === 'income') || (account.type === 'Lending' && tx.type === 'expense') )
-  ).sort((a, b) => parseDateAsUTC(a.date).getTime() - parseDateAsUTC(b.date).getTime());
+  ).sort((a, b) => parseLocalDate(a.date).getTime() - parseLocalDate(b.date).getTime());
   
   const paymentMap = new Map<string, Transaction>();
   paymentTransactions.forEach(p => {
-    const monthYear = parseDateAsUTC(p.date).toISOString().slice(0, 7);
+    const monthYear = parseLocalDate(p.date).toISOString().slice(0, 7);
     paymentMap.set(monthYear, p);
   });
 
@@ -886,9 +894,9 @@ export function generateAmortizationSchedule(
     : (principalAmount / duration);
 
   for (let i = 1; i <= duration; i++) {
-    const scheduledDate = parseDateAsUTC(loanStartDate);
+    const scheduledDate = parseLocalDate(loanStartDate);
     scheduledDate.setMonth(scheduledDate.getMonth() + i);
-    const monthYearKey = parseDateAsUTC(scheduledDate.toISOString()).toISOString().slice(0, 7);
+    const monthYearKey = parseLocalDate(scheduledDate.toISOString()).toISOString().slice(0, 7);
     
     const realPaymentForPeriod = paymentMap.get(monthYearKey);
 

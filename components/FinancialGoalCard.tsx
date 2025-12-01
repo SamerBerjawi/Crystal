@@ -52,7 +52,7 @@ const FinancialGoalCard: React.FC<FinancialGoalCardProps> = ({ goal, subGoals, i
 
   const formatDate = (dateString?: string) => {
     if (!dateString || dateString === 'Beyond forecast') return 'Beyond forecast';
-    const date = parseDateAsUTC(dateString, timeZone);
+    const date = parseDateAsUTC(dateString);
     return date.toLocaleDateString('en-US', { year: 'numeric', month: 'short', day: 'numeric', timeZone });
   };
   
