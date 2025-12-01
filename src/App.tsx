@@ -42,6 +42,9 @@ const loadAIAssistantSettingsPage = () => import('./pages/AIAssistantSettings');
 const AIAssistantSettingsPage = lazy(loadAIAssistantSettingsPage);
 const loadDocumentation = () => import('./pages/Documentation');
 const Documentation = lazy(loadDocumentation);
+const loadSubscriptionsPage = () => import('./pages/Subscriptions');
+const SubscriptionsPage = lazy(loadSubscriptionsPage);
+
 const pagePreloaders = [
   loadDashboard,
   loadAccounts,
@@ -61,6 +64,7 @@ const pagePreloaders = [
   loadWarrantsPage,
   loadAIAssistantSettingsPage,
   loadDocumentation,
+  loadSubscriptionsPage
 ];
 // UserManagement is removed
 // FIX: Import FinancialData from types.ts
@@ -102,7 +106,7 @@ const initialFinancialData: FinancialData = {
     preferences: {
         currency: 'EUR (€)',
         language: 'English (en)',
-        timezone: 'Europe/Brussels',
+        timezone: typeof Intl !== 'undefined' ? Intl.DateTimeFormat().resolvedOptions().timeZone : 'UTC',
         dateFormat: 'DD/MM/YYYY',
         defaultPeriod: 'MTD',
         defaultAccountOrder: 'name',
@@ -288,6 +292,14 @@ const App: React.FC = () => {
       setDirtySignal(signal => signal + 1);
     }
   }, []);
+  
+  useEffect(() => {
+      // Always sync app preference to device timezone on load to prevent "tomorrow/yesterday" bugs
+      const deviceTimezone = typeof Intl !== 'undefined' ? Intl.DateTimeFormat().resolvedOptions().timeZone : 'UTC';
+      if (preferences.timezone !== deviceTimezone) {
+          setPreferences(prev => ({ ...prev, timezone: deviceTimezone }));
+      }
+  }, [preferences.timezone]);
 
   useEffect(() => {
     // Set default dashboard account filter only on initial load
@@ -314,10 +326,28 @@ const App: React.FC = () => {
     }
   }, [financialGoals, activeGoalIds.length]);
 
+  // Create a ref for accounts to avoid circular dependencies in the refresh callback
+  const accountsRef = useRef(accounts);
+  useEffect(() => {
+    accountsRef.current = accounts;
+  }, [accounts]);
+
+  // Create a stable signature for investment accounts to only trigger refetch when symbols change
+  const investmentSymbolsSignature = useMemo(() => {
+    return accounts
+      .filter(a => a.type === 'Investment' && a.symbol)
+      .map(a => `${a.symbol}:${a.subType}`)
+      .sort()
+      .join('|');
+  }, [accounts]);
+
   const refreshInvestmentPrices = useCallback(async () => {
     if (typeof window === 'undefined') return;
+    
+    // Use ref to get current accounts without adding 'accounts' to dependency array
+    const currentAccounts = accountsRef.current;
 
-    const investmentAccountsWithSymbols = accounts
+    const investmentAccountsWithSymbols = currentAccounts
       .filter(acc => acc.type === 'Investment' && acc.symbol)
       .filter(acc => !warrants.some(w => w.isin === acc.symbol));
 
@@ -333,7 +363,7 @@ const App: React.FC = () => {
 
     const prices = await fetchYahooPrices(targets);
     setInvestmentPrices(prices);
-  }, [accounts, warrants]);
+  }, [warrants]); // warrants is stable enough or relevant
 
   const warrantHoldingsBySymbol = useMemo(() => {
     const holdings: Record<string, number> = {};
@@ -389,7 +419,8 @@ const App: React.FC = () => {
     if (typeof window === 'undefined') return;
     const intervalId = window.setInterval(refreshInvestmentPrices, 5 * 60 * 1000);
     return () => window.clearInterval(intervalId);
-  }, [refreshInvestmentPrices]);
+  // Include investmentSymbolsSignature to trigger update only when symbols actually change
+  }, [refreshInvestmentPrices, investmentSymbolsSignature]);
 
   const loadAllFinancialData = useCallback((data: FinancialData | null, options?: { skipNextSave?: boolean }) => {
     const dataToLoad = data || initialFinancialData;

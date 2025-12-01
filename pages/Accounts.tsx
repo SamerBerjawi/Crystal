@@ -10,6 +10,7 @@ import BalanceAdjustmentModal from '../components/BalanceAdjustmentModal';
 import FinalConfirmationModal from '../components/FinalConfirmationModal';
 import Card from '../components/Card';
 import useLocalStorage from '../hooks/useLocalStorage';
+import { useScheduleContext } from '../contexts/FinancialDataContext';
 
 interface AccountsProps {
     accounts: Account[];
@@ -205,6 +206,7 @@ const Accounts: React.FC<AccountsProps> = ({ accounts, transactions, saveAccount
   const [deletingAccount, setDeletingAccount] = useState<Account | null>(null);
   const contextMenuRef = useRef<HTMLDivElement>(null);
   const [layoutMode, setLayoutMode] = useLocalStorage<'stacked' | 'columns'>('crystal_accounts_section_layout', 'stacked');
+  const { loanPaymentOverrides } = useScheduleContext();
 
   useEffect(() => {
     const handleClickOutside = (event: MouseEvent) => {
@@ -225,7 +227,7 @@ const Accounts: React.FC<AccountsProps> = ({ accounts, transactions, saveAccount
     const open = safeAccounts.filter(acc => acc.status !== 'closed');
     const closed = safeAccounts.filter(acc => acc.status === 'closed');
     
-    const { totalAssets, totalDebt, netWorth } = calculateAccountTotals(open);
+    const { totalAssets, totalDebt, netWorth } = calculateAccountTotals(open, transactions, loanPaymentOverrides);
     const liquidCash = open.filter(acc => LIQUID_ACCOUNT_TYPES.includes(acc.type))
                            .reduce((sum, acc) => sum + convertToEur(acc.balance, acc.currency), 0);
 
@@ -252,7 +254,7 @@ const Accounts: React.FC<AccountsProps> = ({ accounts, transactions, saveAccount
         netChange30d,
         debtRatio
     };
-  }, [accounts, transactions]);
+  }, [accounts, transactions, loanPaymentOverrides]);
 
   const transactionsByAccount = useMemo(() => transactions.reduce((acc, transaction) => {
     (acc[transaction.accountId] = acc[transaction.accountId] || []).push(transaction);

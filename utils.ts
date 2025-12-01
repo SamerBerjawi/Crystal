@@ -90,14 +90,51 @@ export const formatDateKey = (date: Date, timeZone?: string): string => {
     return toLocalISOString(date);
 };
 
-export function calculateAccountTotals(accounts: Account[]) {
+export function calculateAccountTotals(
+    accounts: Account[], 
+    transactions: Transaction[] = [], 
+    loanPaymentOverrides: LoanPaymentOverrides = {}
+) {
     const totalAssets = accounts
       .filter(acc => ASSET_TYPES.includes(acc.type))
       .reduce((sum, acc) => sum + convertToEur(acc.balance, acc.currency), 0);
     
     const totalDebt = accounts
       .filter(acc => DEBT_TYPES.includes(acc.type))
-      .reduce((sum, acc) => sum + Math.abs(convertToEur(acc.balance, acc.currency)), 0);
+      .reduce((sum, acc) => {
+          let debtValue = Math.abs(convertToEur(acc.balance, acc.currency));
+
+          // Special handling for Loans to include Interest in Total Liabilities (Total Payoff Amount)
+          if (acc.type === 'Loan') {
+             if (acc.principalAmount && acc.duration && acc.loanStartDate && acc.interestRate !== undefined) {
+                 const overrides = loanPaymentOverrides[acc.id] || {};
+                 const schedule = generateAmortizationSchedule(acc, transactions, overrides);
+                 
+                 const totalScheduledPrincipal = schedule.reduce((s, p) => s + p.principal, 0);
+                 const totalScheduledInterest = schedule.reduce((s, p) => s + p.interest, 0);
+
+                 const totalPaidPrincipal = schedule.reduce((a, p) => p.status === 'Paid' ? a + p.principal : a, 0);
+                 const totalPaidInterest = schedule.reduce((a, p) => p.status === 'Paid' ? a + p.interest : a, 0);
+                 
+                 const outstandingPrincipal = Math.max(0, totalScheduledPrincipal - totalPaidPrincipal);
+                 const outstandingInterest = Math.max(0, totalScheduledInterest - totalPaidInterest);
+                 
+                 const totalOutstanding = outstandingPrincipal + outstandingInterest;
+                 debtValue = convertToEur(totalOutstanding, acc.currency);
+             } else if (acc.totalAmount) {
+                 // Fallback: Total Amount - Total Paid (Principal + Interest)
+                  const loanPayments = transactions.filter(tx => tx.accountId === acc.id && tx.type === 'income');
+                  const totalPaid = loanPayments.reduce((s, tx) => {
+                      const totalPayment = (tx.principalAmount || 0) + (tx.interestAmount || 0);
+                      return s + (totalPayment > 0 ? totalPayment : tx.amount);
+                  }, 0);
+                  const outstanding = Math.max(0, acc.totalAmount - totalPaid);
+                  debtValue = convertToEur(outstanding, acc.currency);
+             }
+          }
+          
+          return sum + debtValue;
+      }, 0);
       
     const creditCardDebt = accounts
       .filter(acc => acc.type === 'Credit Card')
