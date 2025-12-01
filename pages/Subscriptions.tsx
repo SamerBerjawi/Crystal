@@ -1,6 +1,6 @@
 
 import React, { useState, useMemo, useEffect } from 'react';
-import { RecurringTransaction, Transaction, RecurrenceFrequency } from '../types';
+import { RecurringTransaction, Transaction, RecurrenceFrequency, Currency } from '../types';
 import { formatCurrency, convertToEur, parseDateAsUTC } from '../utils';
 import Card from '../components/Card';
 import { BTN_PRIMARY_STYLE, BTN_SECONDARY_STYLE, BTN_DANGER_STYLE } from '../constants';
@@ -20,7 +20,7 @@ interface DetectedSubscription {
   lastDate: string;
   occurrences: number;
   accountId: string;
-  currency: any;
+  currency: Currency;
 }
 
 const normalizeString = (str: string) => {
