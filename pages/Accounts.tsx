@@ -220,10 +220,21 @@ const Accounts: React.FC<AccountsProps> = ({ accounts, transactions, saveAccount
     };
   }, []);
   
+  // Filter accounts: Exclude active Stock/ETF/Crypto types from the main Accounts list
+  // They are now managed in the Investments page.
+  const visibleAccounts = useMemo(() => {
+      return accounts.filter(acc => {
+          if (acc.type === 'Investment') {
+               // Keep Pension, Spare Change, Other. Hide Stock, ETF, Crypto.
+               return ['Pension Fund', 'Spare Change', 'Other', undefined].includes(acc.subType);
+          }
+          return true;
+      });
+  }, [accounts]);
 
   // --- Data Processing ---
   const { openAccounts, closedAccounts, totalAssets, totalDebt, netWorth, liquidCash, netChange30d, debtRatio } = useMemo(() => {
-    const safeAccounts = accounts || [];
+    const safeAccounts = visibleAccounts || [];
     const open = safeAccounts.filter(acc => acc.status !== 'closed');
     const closed = safeAccounts.filter(acc => acc.status === 'closed');
     
@@ -254,7 +265,7 @@ const Accounts: React.FC<AccountsProps> = ({ accounts, transactions, saveAccount
         netChange30d,
         debtRatio
     };
-  }, [accounts, transactions, loanPaymentOverrides]);
+  }, [visibleAccounts, transactions, loanPaymentOverrides]);
 
   const transactionsByAccount = useMemo(() => transactions.reduce((acc, transaction) => {
     (acc[transaction.accountId] = acc[transaction.accountId] || []).push(transaction);
@@ -458,7 +469,7 @@ const Accounts: React.FC<AccountsProps> = ({ accounts, transactions, saveAccount
                     <div>
                         <div className="flex items-center gap-2 mb-2 opacity-80">
                             <span className="material-symbols-outlined text-xl">verified</span>
-                            <span className="font-bold uppercase tracking-wider text-sm">Net Worth</span>
+                            <span className="font-bold uppercase tracking-wider text-sm">Net Worth (Visible Accounts)</span>
                         </div>
                         <h2 className="text-5xl font-extrabold tracking-tight mb-4">{formatCurrency(netWorth, 'EUR')}</h2>
                     </div>
@@ -539,7 +550,7 @@ const Accounts: React.FC<AccountsProps> = ({ accounts, transactions, saveAccount
                         <h2 className="text-xl font-bold text-light-text dark:text-dark-text">Assets</h2>
                     </div>
                     <AccountsListSection 
-                        title="Cash & Investments"
+                        title="Cash & Properties"
                         accounts={assetAccounts} 
                         transactionsByAccount={transactionsByAccount} 
                         warrants={warrants}

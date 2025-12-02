@@ -67,7 +67,8 @@ const Investments: React.FC<InvestmentsProps> = ({
     const [isPriceModalOpen, setIsPriceModalOpen] = useState(false);
     const [editingPriceItem, setEditingPriceItem] = useState<{ symbol: string; name: string; currentPrice: number | null } | null>(null);
 
-    const investmentAccounts = useMemo(() => (accounts || []).filter(a => a.type === 'Investment'), [accounts]);
+    // Include only Stocks, ETFs, Crypto for the Investments page
+    const investmentAccounts = useMemo(() => (accounts || []).filter(a => a.type === 'Investment' && ['Stock', 'ETF', 'Crypto'].includes(a.subType || '')), [accounts]);
 
     const { holdings, totalValue, totalCostBasis, investedCapital, grantedCapital, distributionData, typeBreakdown } = useMemo(() => {
         const holdingsMap: Record<string, {
@@ -270,12 +271,12 @@ const Investments: React.FC<InvestmentsProps> = ({
                     manualPrice={manualPrices[editingPriceItem.symbol]}
                 />
             )}
-
+            
             {/* Header Section */}
             <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
                 <div>
-                    {/* <h1 className="text-3xl font-bold text-light-text dark:text-dark-text">Investments</h1> */}
-                    <p className="text-light-text-secondary dark:text-dark-text-secondary">Track and manage your portfolio assets.</p>
+                     <h1 className="text-3xl font-bold text-light-text dark:text-dark-text">Investments</h1>
+                    <p className="text-light-text-secondary dark:text-dark-text-secondary mt-1">Track and manage your portfolio assets.</p>
                 </div>
                 <div className="flex gap-3">
                     <button onClick={() => handleOpenWarrantModal()} className={`${BTN_SECONDARY_STYLE} flex items-center gap-2`}>

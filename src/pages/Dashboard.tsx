@@ -28,6 +28,13 @@ import { useAccountsContext, useTransactionsContext, usePreferencesContext } fro
 import { useBudgetsContext, useCategoryContext, useGoalsContext, useScheduleContext, useTagsContext } from '../contexts/FinancialDataContext';
 import { AreaChart, Area, LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, ReferenceLine, Label, Legend, BarChart, Bar, PieChart, Pie, Cell } from 'recharts';
 import { loadGenAiModule } from '../genAiLoader';
+import GoalContributionPlan from '../components/GoalContributionPlan';
+import GoalScenarioModal from '../components/GoalScenarioModal';
+import RecurringTransactionModal from '../components/RecurringTransactionModal';
+import BillPaymentModal from '../components/BillPaymentModal';
+import ForecastDayModal from '../components/ForecastDayModal';
+import ConfirmationModal from '../components/ConfirmationModal';
+import ForecastChart from '../components/ForecastChart';
 
 interface DashboardProps {
   user: User;
@@ -42,6 +49,7 @@ interface DashboardProps {
   setSelectedAccountIds: (ids: string[]) => void;
   duration: Duration;
   setDuration: (duration: Duration) => void;
+  setActiveGoalIds: React.Dispatch<React.SetStateAction<string[]>>;
 }
 
 const findCategoryDetails = (name: string, categories: Category[]): Category | undefined => {
@@ -88,7 +96,7 @@ const AnalysisStatCard: React.FC<{ title: string; value: string; subtext: string
     </div>
 );
 
-const Dashboard: React.FC<DashboardProps> = ({ user, activeGoalIds, selectedAccountIds, setSelectedAccountIds, duration, setDuration }) => {
+const Dashboard: React.FC<DashboardProps> = ({ user, activeGoalIds, selectedAccountIds, setSelectedAccountIds, duration, setDuration, setActiveGoalIds }) => {
   const { accounts } = useAccountsContext();
   const { transactions, saveTransaction } = useTransactionsContext();
   const { incomeCategories, expenseCategories } = useCategoryContext();
@@ -133,6 +141,7 @@ const Dashboard: React.FC<DashboardProps> = ({ user, activeGoalIds, selectedAcco
   const [deletingGoal, setDeletingGoal] = useState<FinancialGoal | null>(null);
   const { saveFinancialGoal, deleteFinancialGoal } = useGoalsContext();
   const { saveRecurringTransaction, saveBillPayment } = useScheduleContext();
+  const timeZone = getPreferredTimeZone();
 
   useEffect(() => {
       setForecastDuration(preferences.defaultForecastPeriod || '1Y');
@@ -944,7 +953,7 @@ const Dashboard: React.FC<DashboardProps> = ({ user, activeGoalIds, selectedAcco
   const tabActiveClass = "bg-white dark:bg-dark-card text-primary-600 dark:text-primary-400 shadow-sm";
   const tabInactiveClass = "text-light-text-secondary dark:text-dark-text-secondary hover:text-light-text dark:hover:text-dark-text hover:bg-black/5 dark:hover:bg-white/5";
 
-  const assetAllocationData = useMemo(() => {
+  const assetAllocationData: { name: string; value: number; color: string }[] = useMemo(() => {
       const groups = assetGroups as any; // Cast to any to solve TS error
       const data = [ // Renamed from pieChartData
       { name: 'Liquid Cash', value: groups['Liquid Cash'].value, color: groups['Liquid Cash'].color },
@@ -952,7 +961,7 @@ const Dashboard: React.FC<DashboardProps> = ({ user, activeGoalIds, selectedAcco
       { name: 'Properties', value: groups['Properties'].value, color: groups['Properties'].color },
       { name: 'Vehicles', value: groups['Vehicles'].value, color: groups['Vehicles'].color },
       { name: 'Other Assets', value: groups['Other Assets'].value, color: groups['Other Assets'].color }
-    ];
+    ] as { name: string; value: number; color: string }[];
       return data.filter(d => d.value > 0).sort((a, b) => b.value - a.value);
   }, [assetGroups]);
 
@@ -1055,6 +1064,75 @@ const Dashboard: React.FC<DashboardProps> = ({ user, activeGoalIds, selectedAcco
         return { generatePlan, plan, isLoading, error };
     };
 
+    // 3. Derived Data for Chart and Table (Filtered by selected Duration)
+    const { forecastData, tableData, lowestPoint, goalsWithProjections, startBalance, endBalance } = useMemo(() => {
+        const { chartData, tableData, lowestPoint } = fullForecast;
+        
+        const goalsWithProjections = financialGoals.map(goal => {
+            if (goal.isBucket) return { ...goal, projection: undefined };
+            
+            const goalDate = goal.date ? parseDateAsUTC(goal.date) : null;
+            let projectedDate = 'Beyond forecast';
+            let status: 'on-track' | 'at-risk' | 'off-track' = 'off-track';
+
+            for (const point of chartData) {
+                if (point.value >= goal.amount) {
+                    projectedDate = point.date;
+                    if (goalDate) {
+                        const projDate = parseDateAsUTC(projectedDate);
+                        if (projDate <= goalDate) {
+                            status = 'on-track';
+                        } else {
+                            const diffDays = (projDate.getTime() - goalDate.getTime()) / (1000 * 3600 * 24);
+                            status = diffDays <= 90 ? 'at-risk' : 'off-track';
+                        }
+                    }
+                    break;
+                }
+            }
+            // FIX: status type
+            return { ...goal, projection: { projectedDate, status } };
+        });
+
+        const endDate = new Date();
+        switch (forecastDuration) {
+            case '3M': endDate.setMonth(endDate.getMonth() + 3); break;
+            case '6M': endDate.setMonth(endDate.getMonth() + 6); break;
+            case 'EOY': endDate.setFullYear(endDate.getFullYear(), 11, 31); break;
+            case '1Y': endDate.setFullYear(endDate.getFullYear() + 1); break;
+        }
+
+        const forecastDataForPeriod = chartData.filter(d => parseDateAsUTC(d.date) <= endDate);
+        const tableDataForPeriod = tableData.filter(d => parseDateAsUTC(d.date) <= endDate);
+
+        let lowestPointInPeriod = { value: Infinity, date: '' };
+        if (forecastDataForPeriod.length > 0) {
+            lowestPointInPeriod = forecastDataForPeriod.reduce((min, p) => p.value < min.value ? { value: p.value, date: p.date } : min, { value: forecastDataForPeriod[0].value, date: forecastDataForPeriod[0].date });
+        }
+        
+        const startBal = forecastDataForPeriod.length > 0 ? forecastDataForPeriod[0].value : 0;
+        const endBal = forecastDataForPeriod.length > 0 ? forecastDataForPeriod[forecastDataForPeriod.length - 1].value : 0;
+
+        return { 
+            forecastData: forecastDataForPeriod, 
+            tableData: tableDataForPeriod, 
+            lowestPoint: lowestPointInPeriod, 
+            goalsWithProjections,
+            startBalance: startBal,
+            endBalance: endBal
+        };
+    }, [fullForecast, financialGoals, forecastDuration]);
+
+    const plannerGoals = useMemo(() => {
+        return goalsWithProjections.filter(g => {
+            if (!activeGoalIds.includes(g.id)) return false;
+            if (filterGoalsByAccount) {
+                return !g.paymentAccountId || selectedAccountIds.includes(g.paymentAccountId);
+            }
+            return true;
+        });
+    }, [goalsWithProjections, activeGoalIds, filterGoalsByAccount, selectedAccountIds]);
+
     const { generatePlan, plan, isLoading: isPlanLoading, error: planError } = useSmartGoalPlanner(selectedAccounts, recurringTransactions, plannerGoals);
 
     const handleToggleGoal = (id: string) => {
@@ -1064,7 +1142,14 @@ const Dashboard: React.FC<DashboardProps> = ({ user, activeGoalIds, selectedAcco
         const subGoalIds = goal.isBucket ? financialGoals.filter(g => g.parentId === id).map(g => g.id) : [];
         const allRelatedIds = [id, ...subGoalIds];
         
-        // Logic to toggle goals
+        setActiveGoalIds(prev => {
+            const isGroupActive = allRelatedIds.some(relatedId => prev.includes(relatedId));
+            if (isGroupActive) {
+                return prev.filter(activeId => !allRelatedIds.includes(activeId));
+            } else {
+                return [...new Set([...prev, ...allRelatedIds])];
+            }
+        });
     };
 
     const handleOpenModal = (goal?: FinancialGoal) => {
@@ -1124,7 +1209,13 @@ const Dashboard: React.FC<DashboardProps> = ({ user, activeGoalIds, selectedAcco
     }, [displayedGoals, activeGoalIds]);
 
     const handleToggleAllDisplayed = () => {
-        // Logic to toggle all
+        if (areAllDisplayedSelected) {
+            const visibleIds = new Set(displayedGoals.map(g => g.id));
+            setActiveGoalIds(prev => prev.filter(id => !visibleIds.has(id)));
+        } else {
+            const visibleIds = displayedGoals.map(g => g.id);
+            setActiveGoalIds(prev => [...new Set([...prev, ...visibleIds])]);
+        }
     };
 
     const handleDateClick = (date: string) => {
@@ -1170,6 +1261,55 @@ const Dashboard: React.FC<DashboardProps> = ({ user, activeGoalIds, selectedAcco
     const totalGoalSaved = displayedGoals.reduce((sum, g) => sum + (g.isBucket ? 0 : g.currentAmount), 0);
     const goalProgress = totalGoalTarget > 0 ? (totalGoalSaved / totalGoalTarget) * 100 : 0;
 
+    const majorUpcomingOutflows = useMemo(() => {
+        const endDate = new Date();
+        switch (forecastDuration) {
+            case '3M': endDate.setMonth(endDate.getMonth() + 3); break;
+            case '6M': endDate.setMonth(endDate.getMonth() + 6); break;
+            case 'EOY': endDate.setFullYear(endDate.getFullYear(), 11, 31); break;
+            case '1Y': endDate.setFullYear(endDate.getFullYear() + 1); break;
+        }
+        const today = new Date();
+
+        const outflows: any[] = [];
+
+        // 1. Recurring
+        allRecurringItems.forEach(rt => {
+            if (rt.type !== 'expense' && rt.type !== 'transfer') return;
+            if (selectedAccountIds.length > 0 && !selectedAccountIds.includes(rt.accountId)) return;
+            
+            const nextDue = parseDateAsUTC(rt.nextDueDate);
+            if (nextDue >= today && nextDue <= endDate) {
+                outflows.push({
+                    name: rt.description,
+                    amount: Math.abs(rt.amount),
+                    date: rt.nextDueDate,
+                    isRecurring: true
+                });
+            }
+        });
+
+        // 2. Bills
+        billsAndPayments.forEach(bill => {
+            if (bill.status === 'paid') return;
+            if (bill.type !== 'payment') return;
+            if (selectedAccountIds.length > 0 && bill.accountId && !selectedAccountIds.includes(bill.accountId)) return;
+
+            const due = parseDateAsUTC(bill.dueDate);
+            if (due >= today && due <= endDate) {
+                 outflows.push({
+                    name: bill.description,
+                    amount: Math.abs(bill.amount),
+                    date: bill.dueDate,
+                    isRecurring: false
+                });
+            }
+        });
+        
+        return outflows.sort((a, b) => b.amount - a.amount).slice(0, 5);
+
+    }, [forecastDuration, allRecurringItems, billsAndPayments, selectedAccountIds]);
+
   return (
     <div className="space-y-6">
       {isTransactionModalOpen && (
@@ -1205,6 +1345,21 @@ const Dashboard: React.FC<DashboardProps> = ({ user, activeGoalIds, selectedAcco
               onDismissSuggestion={dismissSuggestion}
               onConfirmAll={confirmAllMatches}
               onDismissAll={dismissAllSuggestions}
+          />
+      )}
+      {isModalOpen && <GoalScenarioModal onClose={() => setIsModalOpen(false)} onSave={(d) => { saveFinancialGoal(d); setIsModalOpen(false); }} goalToEdit={editingGoal} financialGoals={financialGoals} parentId={parentIdForNewGoal} accounts={accounts} />}
+      {isRecurringModalOpen && <RecurringTransactionModal onClose={() => setIsRecurringModalOpen(false)} onSave={(d) => { saveRecurringTransaction(d); setIsRecurringModalOpen(false); }} accounts={accounts} incomeCategories={incomeCategories} expenseCategories={expenseCategories} recurringTransactionToEdit={editingRecurring} />}
+      {isBillModalOpen && <BillPaymentModal onClose={() => setIsBillModalOpen(false)} onSave={(d) => { saveBillPayment(d); setIsBillModalOpen(false); }} bill={editingBill} accounts={accounts} initialDate={selectedForecastDate || undefined} />}
+      {selectedForecastDate && <ForecastDayModal isOpen={!!selectedForecastDate} onClose={() => setSelectedForecastDate(null)} date={selectedForecastDate} items={selectedDayItems} onEditItem={handleEditForecastItem} onAddTransaction={handleAddNewToDate} />}
+      
+      {deletingGoal && (
+          <ConfirmationModal
+              isOpen={!!deletingGoal}
+              onClose={() => setDeletingGoal(null)}
+              onConfirm={handleConfirmDelete}
+              title="Delete Goal"
+              message={deletingGoal.isBucket ? `Are you sure you want to delete "${deletingGoal.name}" and its ${subGoalsOfDeleting.length} sub-goals? This action cannot be undone.` : `Are you sure you want to delete "${deletingGoal.name}"? This action cannot be undone.`}
+              confirmButtonText="Delete"
           />
       )}
       
@@ -1489,6 +1644,25 @@ const Dashboard: React.FC<DashboardProps> = ({ user, activeGoalIds, selectedAcco
                          <BudgetOverviewWidget budgets={budgets} transactions={transactions} expenseCategories={expenseCategories} accounts={accounts} duration={duration} onBudgetClick={handleBudgetClick} />
                     </div>
               </Card>
+
+              {/* Main Chart */}
+            <Card>
+                <div className="flex justify-between items-center mb-4">
+                    <h3 className="text-xl font-semibold text-light-text dark:text-dark-text">Cash Flow Forecast</h3>
+                    <div className="text-sm text-light-text-secondary dark:text-dark-text-secondary">
+                        <span className="font-semibold">{forecastData.length}</span> data points
+                    </div>
+                </div>
+                <ForecastChart 
+                    data={forecastData} 
+                    lowestPoint={lowestPoint} 
+                    oneTimeGoals={activeGoals.filter(g => g.type === 'one-time')} 
+                    showIndividualLines={showIndividualLines}
+                    accounts={selectedAccounts}
+                    showGoalLines={showGoalLines}
+                    onDataPointClick={handleDateClick}
+                />
+            </Card>
           </div>
       )}
 

@@ -97,8 +97,6 @@ const Dashboard: React.FC<DashboardProps> = ({ user, activeGoalIds, selectedAcco
   const { budgets } = useBudgetsContext();
   const transactionsKey = transactionsDigest;
   const aggregateCacheRef = useRef<Map<string, { filteredTransactions: Transaction[]; income: number; expenses: number }>>(new Map());
-  const lastTransactionsKeyRef = useRef<string | null>(null);
-  const AGGREGATE_CACHE_LIMIT = 24;
   const [isTransactionModalOpen, setTransactionModalOpen] = useState(false);
   const [editingTransaction, setEditingTransaction] = useState<Transaction | null>(null);
   
@@ -145,11 +143,6 @@ const Dashboard: React.FC<DashboardProps> = ({ user, activeGoalIds, selectedAcco
   }, [transactions]);
 
   const { filteredTransactions, income, expenses } = useMemo(() => {
-    if (lastTransactionsKeyRef.current !== transactionsKey) {
-      aggregateCacheRef.current.clear();
-      lastTransactionsKeyRef.current = transactionsKey;
-    }
-
     const cacheKey = `${transactionsKey}|${selectedAccountIds.join(',')}|${duration}`;
     const cached = aggregateCacheRef.current.get(cacheKey);
     if (cached) return cached;
@@ -204,12 +197,6 @@ const Dashboard: React.FC<DashboardProps> = ({ user, activeGoalIds, selectedAcco
         expenses: calculatedExpenses,
     };
     aggregateCacheRef.current.set(cacheKey, result);
-    if (aggregateCacheRef.current.size > AGGREGATE_CACHE_LIMIT) {
-      const oldestKey = aggregateCacheRef.current.keys().next().value;
-      if (oldestKey) {
-        aggregateCacheRef.current.delete(oldestKey);
-      }
-    }
     return result;
   }, [aggregateCacheRef, duration, selectedAccountIds, transactions, transactionsKey]);
 

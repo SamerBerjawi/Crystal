@@ -1,4 +1,3 @@
-
 // FIX: Import `useMemo` from React to resolve the 'Cannot find name' error.
 import React, { useState, useEffect, useMemo, useCallback, Suspense, lazy, useRef, Component, ErrorInfo } from 'react';
 import Sidebar from './components/Sidebar';
@@ -252,19 +251,22 @@ const App: React.FC = () => {
   const [tagFilter, setTagFilter] = useState<string | null>(null);
   const [accountOrder, setAccountOrder] = useLocalStorage<string[]>('crystal-account-order', []);
   const [taskOrder, setTaskOrder] = useLocalStorage<string[]>('crystal-task-order', []);
-  const [txRevision, setTxRevision] = useState(0);
   
   // State for AI Chat
   const [isChatOpen, setIsChatOpen] = useState(false);
   
-  // State for Manual Asset prices
+  // State for Warrant prices
   const [manualWarrantPrices, setManualWarrantPrices] = useState<Record<string, number | undefined>>(initialFinancialData.manualWarrantPrices || {});
   const [lastUpdated, setLastUpdated] = useState<Date | null>(null);
   
-  // Unified price map using only manual inputs
-  const warrantPrices = useMemo(() => {
+  // Note: 'investmentPrices' was removed as we now only use manual input for all assets
+  
+  // Unified price map for Warrants and other Investment Accounts (Stocks, Crypto, etc.)
+  // We use `manualWarrantPrices` as the source of truth for all manual prices.
+  const assetPrices = useMemo(() => {
     const resolved: Record<string, number | null> = {};
-    // Initialize with warrants
+    
+    // Populate from warrants
     warrants.forEach(warrant => {
       if (manualWarrantPrices[warrant.isin] !== undefined) {
         resolved[warrant.isin] = manualWarrantPrices[warrant.isin];
@@ -273,14 +275,20 @@ const App: React.FC = () => {
       }
     });
     
-    // Also allow other investment accounts to have manual prices via the same mechanism
-    // (The manualWarrantPrices state can store any symbol)
-    Object.keys(manualWarrantPrices).forEach(symbol => {
-        resolved[symbol] = manualWarrantPrices[symbol] || 0;
+    // Populate from Investment Accounts (Stocks, Crypto, etc)
+    accounts.forEach(acc => {
+        if (acc.type === 'Investment' && acc.symbol) {
+             if (manualWarrantPrices[acc.symbol] !== undefined) {
+                resolved[acc.symbol] = manualWarrantPrices[acc.symbol];
+             } else {
+                 // If no price set, check if it's already null (don't overwrite warrant logic if symbol collision)
+                 if (resolved[acc.symbol] === undefined) resolved[acc.symbol] = null;
+             }
+        }
     });
 
     return resolved;
-  }, [manualWarrantPrices, warrants]);
+  }, [manualWarrantPrices, warrants, accounts]);
 
   // States lifted up for persistence & preference linking
   const [dashboardAccountIds, setDashboardAccountIds] = useState<string[]>([]);
@@ -334,6 +342,12 @@ const App: React.FC = () => {
     }
   }, [financialGoals, activeGoalIds.length]);
 
+  // Create a ref for accounts to avoid circular dependencies in the refresh callback
+  const accountsRef = useRef(accounts);
+  useEffect(() => {
+    accountsRef.current = accounts;
+  }, [accounts]);
+
   const warrantHoldingsBySymbol = useMemo(() => {
     const holdings: Record<string, number> = {};
 
@@ -349,14 +363,17 @@ const App: React.FC = () => {
     return holdings;
   }, [investmentTransactions, warrants]);
 
+  // Update account balances based on manual prices (Stocks, Crypto, Warrants)
   useEffect(() => {
     let hasChanges = false;
     const updatedAccounts = accounts.map(account => {
-      if (account.symbol && account.type === 'Investment' && warrantPrices[account.symbol] !== undefined) {
-        const price = warrantPrices[account.symbol];
+      // Check if this account is an Investment type that relies on price * quantity
+      if (account.symbol && account.type === 'Investment' && assetPrices[account.symbol] !== undefined) {
+        const price = assetPrices[account.symbol];
         const quantity = warrantHoldingsBySymbol[account.symbol] || 0;
         const calculatedBalance = price !== null ? quantity * price : 0;
 
+        // Only update if the balance has drifted significantly (floating point check)
         if (Math.abs((account.balance || 0) - calculatedBalance) > 0.0001) {
             hasChanges = true;
             return { ...account, balance: calculatedBalance };
@@ -369,50 +386,44 @@ const App: React.FC = () => {
         setAccounts(updatedAccounts);
     }
   // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [warrantPrices, warrantHoldingsBySymbol]);
+  }, [assetPrices, warrantHoldingsBySymbol]);
 
   const loadAllFinancialData = useCallback((data: FinancialData | null, options?: { skipNextSave?: boolean }) => {
     const dataToLoad = data || initialFinancialData;
-    restoreInProgressRef.current = true;
+    setAccounts(dataToLoad.accounts || []);
+    setTransactions(dataToLoad.transactions || []);
+    setInvestmentTransactions(dataToLoad.investmentTransactions || []);
+    setRecurringTransactions(dataToLoad.recurringTransactions || []);
+    setRecurringTransactionOverrides(dataToLoad.recurringTransactionOverrides || []);
+    setLoanPaymentOverrides(dataToLoad.loanPaymentOverrides || {});
+    setFinancialGoals(dataToLoad.financialGoals || []);
+    setBudgets(dataToLoad.budgets || []);
+    setTasks(dataToLoad.tasks || []);
+    setWarrants(dataToLoad.warrants || []);
+    setImportExportHistory(dataToLoad.importExportHistory || []);
+    setBillsAndPayments(dataToLoad.billsAndPayments || []);
+    setManualWarrantPrices(dataToLoad.manualWarrantPrices || {});
+    // FIX: Add `tags` to the data loading logic.
+    setTags(dataToLoad.tags || []);
+    setIncomeCategories(dataToLoad.incomeCategories && dataToLoad.incomeCategories.length > 0 ? dataToLoad.incomeCategories : MOCK_INCOME_CATEGORIES);
+    setExpenseCategories(dataToLoad.expenseCategories && dataToLoad.expenseCategories.length > 0 ? dataToLoad.expenseCategories : MOCK_EXPENSE_CATEGORIES);
+    
+    const loadedPrefs = dataToLoad.preferences || initialFinancialData.preferences;
+    setPreferences(loadedPrefs);
+    setDashboardDuration(loadedPrefs.defaultPeriod as Duration);
+    setAccountsSortBy(loadedPrefs.defaultAccountOrder);
 
-    try {
-      setAccounts(dataToLoad.accounts || []);
-      setTransactions(dataToLoad.transactions || []);
-      setInvestmentTransactions(dataToLoad.investmentTransactions || []);
-      setRecurringTransactions(dataToLoad.recurringTransactions || []);
-      setRecurringTransactionOverrides(dataToLoad.recurringTransactionOverrides || []);
-      setLoanPaymentOverrides(dataToLoad.loanPaymentOverrides || {});
-      setFinancialGoals(dataToLoad.financialGoals || []);
-      setBudgets(dataToLoad.budgets || []);
-      setTasks(dataToLoad.tasks || []);
-      setWarrants(dataToLoad.warrants || []);
-      setImportExportHistory(dataToLoad.importExportHistory || []);
-      setBillsAndPayments(dataToLoad.billsAndPayments || []);
-      setManualWarrantPrices(dataToLoad.manualWarrantPrices || {});
-      // FIX: Add `tags` to the data loading logic.
-      setTags(dataToLoad.tags || []);
-      setIncomeCategories(dataToLoad.incomeCategories && dataToLoad.incomeCategories.length > 0 ? dataToLoad.incomeCategories : MOCK_INCOME_CATEGORIES);
-      setExpenseCategories(dataToLoad.expenseCategories && dataToLoad.expenseCategories.length > 0 ? dataToLoad.expenseCategories : MOCK_EXPENSE_CATEGORIES);
+    setAccountOrder(dataToLoad.accountOrder || []);
+    setTaskOrder(dataToLoad.taskOrder || []);
 
-      const loadedPrefs = dataToLoad.preferences || initialFinancialData.preferences;
-      setPreferences(loadedPrefs);
-      setDashboardDuration(loadedPrefs.defaultPeriod as Duration);
-      setAccountsSortBy(loadedPrefs.defaultAccountOrder);
-
-      setAccountOrder(dataToLoad.accountOrder || []);
-      setTaskOrder(dataToLoad.taskOrder || []);
-
-      if (options?.skipNextSave) {
-        skipNextSaveRef.current = true;
-      }
-      const dataSignature = JSON.stringify(dataToLoad);
-      latestDataRef.current = dataToLoad;
-      dirtySlicesRef.current.clear();
-      setDirtySignal(0);
-      lastSavedSignatureRef.current = dataSignature;
-    } finally {
-      restoreInProgressRef.current = false;
+    if (options?.skipNextSave) {
+      skipNextSaveRef.current = true;
     }
+    const dataSignature = JSON.stringify(dataToLoad);
+    latestDataRef.current = dataToLoad;
+    dirtySlicesRef.current.clear();
+    setDirtySignal(0);
+    lastSavedSignatureRef.current = dataSignature;
   }, [setAccountOrder, setTaskOrder]);
   
   const handleEnterDemoMode = () => {
@@ -521,11 +532,6 @@ const App: React.FC = () => {
     warrants,
     manualWarrantPrices,
   ]);
-  const debouncedDataToSave = useDebounce(dataToSave, 1500);
-  const debouncedDataSignature = useMemo(
-    () => JSON.stringify(debouncedDataToSave),
-    [debouncedDataToSave]
-  );
 
   useEffect(() => {
     latestDataRef.current = dataToSave;
@@ -965,9 +971,7 @@ const App: React.FC = () => {
         });
 
         // Finally, add new transactions
-        const newState = [...updatedTransactions, ...transactionsToAdd];
-        setTxRevision(r => r + 1);
-        return newState;
+        return [...updatedTransactions, ...transactionsToAdd];
     });
 
     setAccounts(prevAccounts => 
@@ -1399,6 +1403,7 @@ const App: React.FC = () => {
             setSelectedAccountIds={setDashboardAccountIds}
             duration={dashboardDuration}
             setDuration={setDashboardDuration}
+            setActiveGoalIds={setActiveGoalIds}
         />;
       case 'Accounts':
         return <Accounts accounts={accounts} transactions={transactions} saveAccount={handleSaveAccount} deleteAccount={handleDeleteAccount} setCurrentPage={setCurrentPage} setAccountFilter={setAccountFilter} setViewingAccountId={setViewingAccountId} saveTransaction={handleSaveTransaction} accountOrder={accountOrder} setAccountOrder={setAccountOrder} sortBy={accountsSortBy} setSortBy={setAccountsSortBy} warrants={warrants} onToggleAccountStatus={handleToggleAccountStatus} />;
@@ -1432,9 +1437,9 @@ const App: React.FC = () => {
       case 'Preferences':
         return <PreferencesPage preferences={preferences} setPreferences={setPreferences} theme={theme} setTheme={setTheme} setCurrentPage={setCurrentPage} />;
       case 'Investments':
-        return <InvestmentsPage accounts={accounts} cashAccounts={accounts.filter(a => a.type === 'Checking' || a.type === 'Savings')} investmentTransactions={investmentTransactions} saveInvestmentTransaction={handleSaveInvestmentTransaction} deleteInvestmentTransaction={handleDeleteInvestmentTransaction} saveTransaction={handleSaveTransaction} warrants={warrants} saveWarrant={handleSaveWarrant} deleteWarrant={handleDeleteWarrant} manualPrices={manualWarrantPrices} onManualPriceChange={handleManualWarrantPrice} warrantPrices={warrantPrices} />;
+        return <InvestmentsPage accounts={accounts} cashAccounts={accounts.filter(a => a.type === 'Checking' || a.type === 'Savings')} investmentTransactions={investmentTransactions} saveInvestmentTransaction={handleSaveInvestmentTransaction} deleteInvestmentTransaction={handleDeleteInvestmentTransaction} saveTransaction={handleSaveTransaction} warrants={warrants} saveWarrant={handleSaveWarrant} deleteWarrant={handleDeleteWarrant} manualPrices={manualWarrantPrices} onManualPriceChange={handleManualWarrantPrice} warrantPrices={assetPrices} />;
       case 'Warrants':
-        return <WarrantsPage warrants={warrants} saveWarrant={handleSaveWarrant} deleteWarrant={handleDeleteWarrant} prices={warrantPrices} manualPrices={manualWarrantPrices} lastUpdated={lastUpdated} onManualPriceChange={handleManualWarrantPrice} />;
+        return <WarrantsPage warrants={warrants} saveWarrant={handleSaveWarrant} deleteWarrant={handleDeleteWarrant} prices={assetPrices} manualPrices={manualWarrantPrices} lastUpdated={lastUpdated} onManualPriceChange={handleManualWarrantPrice} />;
       case 'Tasks':
         return <TasksPage tasks={tasks} saveTask={handleSaveTask} deleteTask={handleDeleteTask} taskOrder={taskOrder} setTaskOrder={setTaskOrder} />;
       case 'Documentation':
@@ -1454,12 +1459,12 @@ const App: React.FC = () => {
     [accounts, accountOrder, handleSaveAccount]
   );
   const transactionsContextValue = useMemo(
-    () => ({ transactions, saveTransaction: handleSaveTransaction, deleteTransactions: handleDeleteTransactions, digest: txRevision.toString() }),
-    [transactions, handleDeleteTransactions, handleSaveTransaction, txRevision]
+    () => ({ transactions, saveTransaction: handleSaveTransaction, deleteTransactions: handleDeleteTransactions }),
+    [transactions, handleDeleteTransactions, handleSaveTransaction]
   );
   const warrantsContextValue = useMemo(
-    () => ({ warrants, prices: warrantPrices }),
-    [warrantPrices, warrants]
+    () => ({ warrants, prices: assetPrices }),
+    [assetPrices, warrants]
   );
   const categoryContextValue = useMemo(
     () => ({ incomeCategories, expenseCategories, setIncomeCategories, setExpenseCategories }),
