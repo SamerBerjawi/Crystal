@@ -1043,12 +1043,12 @@ const Dashboard: React.FC<DashboardProps> = ({ user, activeGoalIds, selectedAcco
             {/* New Combined Top Section */}
             <div className="grid grid-cols-1 xl:grid-cols-3 gap-6">
                 {/* Column 1: Net Worth Card (Left) */}
-                <div className="xl:col-span-1 h-[320px] xl:h-auto">
+                <div className="xl:col-span-1 h-[240px]">
                     <NetWorthCard amount={netWorth} currency="EUR" />
                 </div>
                 
                 {/* Column 2: Cash Flow Summary (Right - Spans 2 cols) */}
-                <div className="xl:col-span-2 h-[320px] xl:h-auto">
+                <div className="xl:col-span-2 h-[240px]">
                      <CashFlowCard 
                         income={income} 
                         expenses={expenses} 

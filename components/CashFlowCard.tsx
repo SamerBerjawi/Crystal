@@ -94,7 +94,7 @@ const CashFlowCard: React.FC<CashFlowCardProps> = ({
   return (
     <Card className="h-full flex flex-col justify-between p-0 overflow-hidden border border-gray-100 dark:border-white/5 shadow-sm">
         {/* Header: Net Balance */}
-        <div className="p-6 pb-4">
+        <div className="p-5 pb-3">
              <div className="flex justify-between items-start mb-2">
                 <div>
                     <p className="text-xs font-bold uppercase text-light-text-secondary dark:text-dark-text-secondary tracking-wider mb-1">Net Cash Flow</p>
@@ -125,7 +125,7 @@ const CashFlowCard: React.FC<CashFlowCardProps> = ({
 
         {/* Bottom Grid: Income vs Expense */}
         <div className="grid grid-cols-2 divide-x divide-black/5 dark:divide-white/5 bg-gray-50/50 dark:bg-white/[0.02] flex-grow">
-            <div className="p-5">
+            <div className="p-4">
                 <StatBlock 
                     label="Income" 
                     amount={income} 
@@ -134,7 +134,7 @@ const CashFlowCard: React.FC<CashFlowCardProps> = ({
                     color="green" 
                 />
             </div>
-            <div className="p-5">
+            <div className="p-4">
                 <StatBlock 
                     label="Expenses" 
                     amount={expenses} 
