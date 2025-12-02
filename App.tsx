@@ -1,3 +1,4 @@
+
 // FIX: Import `useMemo` from React to resolve the 'Cannot find name' error.
 import React, { useState, useEffect, useMemo, useCallback, Suspense, lazy, useRef, Component, ErrorInfo } from 'react';
 import Sidebar from './components/Sidebar';
@@ -259,8 +260,6 @@ const App: React.FC = () => {
   const [manualWarrantPrices, setManualWarrantPrices] = useState<Record<string, number | undefined>>(initialFinancialData.manualWarrantPrices || {});
   const [lastUpdated, setLastUpdated] = useState<Date | null>(null);
   
-  // Note: 'investmentPrices' was removed as we now only use manual input for all assets
-  
   // Unified price map for Warrants and other Investment Accounts (Stocks, Crypto, etc.)
   // We use `manualWarrantPrices` as the source of truth for all manual prices.
   const assetPrices = useMemo(() => {
@@ -362,31 +361,6 @@ const App: React.FC = () => {
 
     return holdings;
   }, [investmentTransactions, warrants]);
-
-  // Update account balances based on manual prices (Stocks, Crypto, Warrants)
-  useEffect(() => {
-    let hasChanges = false;
-    const updatedAccounts = accounts.map(account => {
-      // Check if this account is an Investment type that relies on price * quantity
-      if (account.symbol && account.type === 'Investment' && assetPrices[account.symbol] !== undefined) {
-        const price = assetPrices[account.symbol];
-        const quantity = warrantHoldingsBySymbol[account.symbol] || 0;
-        const calculatedBalance = price !== null ? quantity * price : 0;
-
-        // Only update if the balance has drifted significantly (floating point check)
-        if (Math.abs((account.balance || 0) - calculatedBalance) > 0.0001) {
-            hasChanges = true;
-            return { ...account, balance: calculatedBalance };
-        }
-      }
-      return account;
-    });
-
-    if (hasChanges) {
-        setAccounts(updatedAccounts);
-    }
-  // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [assetPrices, warrantHoldingsBySymbol]);
 
   const loadAllFinancialData = useCallback((data: FinancialData | null, options?: { skipNextSave?: boolean }) => {
     const dataToLoad = data || initialFinancialData;
@@ -1161,6 +1135,30 @@ const App: React.FC = () => {
       return updated;
     });
     setLastUpdated(new Date());
+
+    if (price !== null) {
+        setAccounts(prevAccounts => prevAccounts.map(acc => {
+            if (acc.type === 'Investment' && acc.symbol === isin) {
+                // Re-calculate balance based on quantity * price
+                // We need to access warrantHoldingsBySymbol here, but since we are in a closure inside App, 
+                // we can just replicate the logic or use the existing memo if accessible.
+                // Simpler: Recalculate holding quantity for THIS symbol on the fly.
+                let quantity = 0;
+                investmentTransactions.forEach(tx => {
+                    if (tx.symbol === isin) {
+                        quantity += (tx.type === 'buy' ? tx.quantity : -tx.quantity);
+                    }
+                });
+                warrants.forEach(w => {
+                    if (w.isin === isin) {
+                        quantity += w.quantity;
+                    }
+                });
+                return { ...acc, balance: quantity * price };
+            }
+            return acc;
+        }));
+    }
   };
   
   // FIX: Add handlers for saving and deleting tags.

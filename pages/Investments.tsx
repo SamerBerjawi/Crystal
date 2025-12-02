@@ -92,7 +92,7 @@ const Investments: React.FC<InvestmentsProps> = ({
                     name: acc.name,
                     quantity: 0,
                     totalCost: 0,
-                    currentValue: acc.balance, // This balance is updated in App.tsx based on (quantity * price)
+                    currentValue: acc.balance, 
                     currentPrice: 0, 
                     type: 'Standard',
                     subType: acc.subType
@@ -114,11 +114,6 @@ const Investments: React.FC<InvestmentsProps> = ({
             }
         });
         
-        Object.values(holdingsMap).forEach(h => {
-            if (h.type === 'Standard' && h.quantity > 0) {
-                h.currentPrice = h.currentValue / h.quantity;
-            }
-        });
 
         // 2. Process Warrants
         warrants.forEach(w => {
