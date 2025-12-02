@@ -1,3 +1,4 @@
+
 import React, { useMemo, useState, useCallback, useEffect, useRef } from 'react';
 import { User, Transaction, Account, Category, Duration, CategorySpending, Widget, WidgetConfig, DisplayTransaction, FinancialGoal, RecurringTransaction, BillPayment, Tag, Budget, RecurringTransactionOverride, LoanPaymentOverrides, AccountType } from '../types';
 import { formatCurrency, getDateRange, calculateAccountTotals, convertToEur, calculateStatementPeriods, generateBalanceForecast, parseDateAsUTC, getCreditCardStatementDetails, generateSyntheticLoanPayments, generateSyntheticCreditCardPayments, getPreferredTimeZone, formatDateKey, generateSyntheticPropertyTransactions } from '../utils';
@@ -11,8 +12,7 @@ import NetWorthChart from '../components/NetWorthChart';
 import AssetDebtDonutChart from '../components/AssetDebtDonutChart';
 import TransactionList from '../components/TransactionList';
 import MultiAccountFilter from '../components/MultiAccountFilter';
-import CashFlowCard from '../components/CashFlowCard';
-import NetWorthCard from '../components/NetWorthCard';
+import FinancialOverview from '../components/FinancialOverview';
 import ForecastOverview from '../components/ForecastOverview';
 import useLocalStorage from '../hooks/useLocalStorage';
 import AddWidgetModal from '../components/AddWidgetModal';
@@ -917,13 +917,13 @@ const Dashboard: React.FC<DashboardProps> = ({ user, activeGoalIds, selectedAcco
   const tabInactiveClass = "text-light-text-secondary dark:text-dark-text-secondary hover:text-light-text dark:hover:text-dark-text hover:bg-black/5 dark:hover:bg-white/5";
 
   const assetAllocationData: { name: string; value: number; color: string }[] = useMemo(() => {
-      const groups = assetGroups as Record<string, { value: number; color: string }>;
+      const groups = assetGroups as unknown as Record<string, { value: number; color: string }>;
       const data = [ // Renamed from pieChartData
-      { name: 'Liquid Cash', value: groups['Liquid Cash'].value, color: groups['Liquid Cash'].color },
-      { name: 'Investments', value: groups['Investments'].value, color: groups['Investments'].color },
-      { name: 'Properties', value: groups['Properties'].value, color: groups['Properties'].color },
-      { name: 'Vehicles', value: groups['Vehicles'].value, color: groups['Vehicles'].color },
-      { name: 'Other Assets', value: groups['Other Assets'].value, color: groups['Other Assets'].color }
+      { name: 'Liquid Cash', value: groups['Liquid Cash']?.value || 0, color: groups['Liquid Cash']?.color || '#A0AEC0' },
+      { name: 'Investments', value: groups['Investments']?.value || 0, color: groups['Investments']?.color || '#A0AEC0' },
+      { name: 'Properties', value: groups['Properties']?.value || 0, color: groups['Properties']?.color || '#A0AEC0' },
+      { name: 'Vehicles', value: groups['Vehicles']?.value || 0, color: groups['Vehicles']?.color || '#A0AEC0' },
+      { name: 'Other Assets', value: groups['Other Assets']?.value || 0, color: groups['Other Assets']?.color || '#A0AEC0' }
     ] as { name: string; value: number; color: string }[];
       return data.filter(d => d.value > 0).sort((a, b) => b.value - a.value);
   }, [assetGroups]);
@@ -1039,27 +1039,15 @@ const Dashboard: React.FC<DashboardProps> = ({ user, activeGoalIds, selectedAcco
 
       {activeTab === 'overview' && (
         <>
-            {/* New Combined Top Section */}
-            <div className="grid grid-cols-1 xl:grid-cols-3 gap-6">
-                {/* Column 1: Net Worth Card (Left) */}
-                <div className="xl:col-span-1 h-[240px]">
-                    <NetWorthCard amount={netWorth} currency="EUR" />
-                </div>
-                
-                {/* Column 2: Cash Flow Summary (Right - Spans 2 cols) */}
-                <div className="xl:col-span-2 h-[240px]">
-                     <CashFlowCard 
-                        income={income} 
-                        expenses={expenses} 
-                        incomeChange={incomeChange} 
-                        expenseChange={expenseChange} 
-                        incomeSparkline={incomeSparkline} 
-                        expenseSparkline={expenseSparkline} 
-                        netBalance={income - expenses} 
-                        duration={duration}
-                     />
-                </div>
-            </div>
+            {/* Replaced Separate Net Worth and Cash Flow Cards with Unified Financial Overview */}
+            <FinancialOverview
+                netWorth={netWorth}
+                income={income}
+                expenses={expenses}
+                incomeChange={incomeChange}
+                expenseChange={expenseChange}
+                currency="EUR"
+            />
             
             {/* Lowest Balance Forecast Horizon */}
             {lowestBalanceForecasts && lowestBalanceForecasts.length > 0 && (
