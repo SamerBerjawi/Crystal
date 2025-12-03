@@ -1270,6 +1270,39 @@ const Dashboard: React.FC<DashboardProps> = ({ user, activeGoalIds, selectedAcco
             })}
         </div>
       )}
+      {/* Analysis Tab Dynamic Widgets */}
+      {activeTab === 'analysis' && (
+        <div className="grid grid-cols-1 md:grid-cols-4 gap-6" style={{ gridAutoRows: 'minmax(200px, auto)' }}>
+            {widgets
+                .filter(widget => WIDGET_TABS[activeTab].includes(widget.id))
+                .map(widget => {
+                    const widgetDetails = allWidgets.find(w => w.id === widget.id);
+                    if (!widgetDetails) return null;
+                    const WidgetComponent = widgetDetails.component;
+
+                    return (
+                        <WidgetWrapper
+                            key={widget.id}
+                            title={widget.title}
+                            w={widget.w}
+                            h={widget.h}
+                            onRemove={() => removeWidget(widget.id)}
+                            onResize={(dim, change) => handleResize(widget.id, dim, change)}
+                            isEditMode={isEditMode}
+                            isBeingDragged={draggedWidgetId === widget.id}
+                            isDragOver={dragOverWidgetId === widget.id}
+                            onDragStart={e => handleDragStart(e, widget.id)}
+                            onDragEnter={e => handleDragEnter(e, widget.id)}
+                            onDragLeave={handleDragLeave}
+                            onDrop={e => handleDrop(e, widget.id)}
+                            onDragEnd={handleDragEnd}
+                        >
+                            <WidgetComponent {...widgetDetails.props as any} />
+                        </WidgetWrapper>
+                    );
+            })}
+        </div>
+      )}
     </div>
   );
 };

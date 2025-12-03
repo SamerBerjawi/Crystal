@@ -23,6 +23,7 @@ import CreditCardStatementCard from '../components/CreditCardStatementCard';
 import BudgetOverviewWidget from '../components/BudgetOverviewWidget';
 import AccountBreakdownCard from '../components/AccountBreakdownCard';
 import TransactionMapWidget from '../components/TransactionMapWidget';
+import CashflowSankey from '../components/CashflowSankey';
 import { useAccountsContext, useTransactionsContext } from '../contexts/DomainProviders';
 import { useBudgetsContext, useCategoryContext, useGoalsContext, useScheduleContext, useTagsContext } from '../contexts/FinancialDataContext';
 import { AreaChart, Area, LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, ReferenceLine, Label, Legend, BarChart, Bar, PieChart, Pie, Cell } from 'recharts';
@@ -69,7 +70,7 @@ type DashboardTab = 'overview' | 'analysis' | 'activity';
 
 const WIDGET_TABS: Record<DashboardTab, string[]> = {
     overview: ['netWorthOverTime'],
-    analysis: [], // Handled by custom layout now
+    analysis: ['cashflowSankey'], // Added here
     activity: ['transactionMap', 'outflowsByCategory', 'recentActivity']
 };
 
@@ -302,7 +303,7 @@ const Dashboard: React.FC<DashboardProps> = ({ user, activeGoalIds, selectedAcco
         }
     });
 
-    return Object.values(spending).sort((a, b) => b.value - a.value);
+    return Object.values(spending).sort((a: CategorySpending, b: CategorySpending) => b.value - a.value);
   }, [enrichedTransactions, selectedAccountIds, transactions, expenseCategories]);
   
   const handleCategoryClick = useCallback((categoryName: string) => {
@@ -503,6 +504,17 @@ const Dashboard: React.FC<DashboardProps> = ({ user, activeGoalIds, selectedAcco
         liabilityGroups
      };
   }, [accounts, transactions, loanPaymentOverrides]);
+
+  const assetAllocationData: { name: string; value: number; color: string }[] = useMemo(() => {
+      const data = [
+      { name: 'Liquid Cash', value: assetGroups['Liquid Cash']?.value || 0, color: assetGroups['Liquid Cash']?.color || '#A0AEC0' },
+      { name: 'Investments', value: assetGroups['Investments']?.value || 0, color: assetGroups['Investments']?.color || '#A0AEC0' },
+      { name: 'Properties', value: assetGroups['Properties']?.value || 0, color: assetGroups['Properties']?.color || '#A0AEC0' },
+      { name: 'Vehicles', value: assetGroups['Vehicles']?.value || 0, color: assetGroups['Vehicles']?.color || '#A0AEC0' },
+      { name: 'Other Assets', value: assetGroups['Other Assets']?.value || 0, color: assetGroups['Other Assets']?.color || '#A0AEC0' }
+    ];
+      return data.filter(d => d.value > 0).sort((a, b) => b.value - a.value);
+  }, [assetGroups]);
 
   const netWorthData = useMemo(() => {
     const transferGroups = new Map<string, Transaction[]>();
@@ -815,7 +827,8 @@ const Dashboard: React.FC<DashboardProps> = ({ user, activeGoalIds, selectedAcco
     { id: 'liabilityBreakdown', name: 'Liability Breakdown', defaultW: 2, defaultH: 2, component: AccountBreakdownCard, props: { title: 'Liabilities', totalValue: Math.abs(globalTotalDebt), breakdownData: globalDebtBreakdown } },
     { id: 'budgetOverview', name: 'Budget Overview', defaultW: 2, defaultH: 2, component: BudgetOverviewWidget, props: { budgets: budgets, transactions: transactions, expenseCategories: expenseCategories, accounts: accounts, duration: duration, onBudgetClick: handleBudgetClick } },
     { id: 'transactionMap', name: 'Transaction Map', defaultW: 2, defaultH: 2, component: TransactionMapWidget, props: { transactions: filteredTransactions } },
-  ], [netWorthData, netWorthTrendColor, outflowsByCategory, handleCategoryClick, totalAssets, totalDebt, recentTransactions, allCategories, handleTransactionClick, globalTotalAssets, globalAssetBreakdown, globalTotalDebt, globalDebtBreakdown, budgets, transactions, expenseCategories, accounts, duration, handleBudgetClick, filteredTransactions]);
+    { id: 'cashflowSankey', name: 'Cash Flow Sankey', defaultW: 4, defaultH: 2, component: CashflowSankey, props: { transactions: filteredTransactions, incomeCategories, expenseCategories } }
+  ], [netWorthData, netWorthTrendColor, outflowsByCategory, handleCategoryClick, totalAssets, totalDebt, recentTransactions, allCategories, handleTransactionClick, globalTotalAssets, globalAssetBreakdown, globalTotalDebt, globalDebtBreakdown, budgets, transactions, expenseCategories, accounts, duration, handleBudgetClick, filteredTransactions, incomeCategories]);
 
   const [widgets, setWidgets] = useLocalStorage<WidgetConfig[]>('dashboard-layout', allWidgets.map(w => ({ id: w.id, title: w.name, w: w.defaultW, h: w.defaultH })));
 
@@ -915,18 +928,6 @@ const Dashboard: React.FC<DashboardProps> = ({ user, activeGoalIds, selectedAcco
   const tabBaseClass = "px-4 py-2 font-semibold text-sm rounded-lg transition-all duration-200 focus:outline-none whitespace-nowrap";
   const tabActiveClass = "bg-white dark:bg-dark-card text-primary-600 dark:text-primary-400 shadow-sm";
   const tabInactiveClass = "text-light-text-secondary dark:text-dark-text-secondary hover:text-light-text dark:hover:text-dark-text hover:bg-black/5 dark:hover:bg-white/5";
-
-  const assetAllocationData: { name: string; value: number; color: string }[] = useMemo(() => {
-      const groups = assetGroups as any;
-      const data = [ // Renamed from pieChartData
-      { name: 'Liquid Cash', value: groups['Liquid Cash']?.value || 0, color: groups['Liquid Cash']?.color || '#A0AEC0' },
-      { name: 'Investments', value: groups['Investments']?.value || 0, color: groups['Investments']?.color || '#A0AEC0' },
-      { name: 'Properties', value: groups['Properties']?.value || 0, color: groups['Properties']?.color || '#A0AEC0' },
-      { name: 'Vehicles', value: groups['Vehicles']?.value || 0, color: groups['Vehicles']?.color || '#A0AEC0' },
-      { name: 'Other Assets', value: groups['Other Assets']?.value || 0, color: groups['Other Assets']?.color || '#A0AEC0' }
-    ] as { name: string; value: number; color: string }[];
-      return data.filter(d => d.value > 0).sort((a, b) => b.value - a.value);
-  }, [assetGroups]);
 
   return (
     <div className="space-y-6">
@@ -1240,6 +1241,39 @@ const Dashboard: React.FC<DashboardProps> = ({ user, activeGoalIds, selectedAcco
 
       {/* Customizable Widget Grid (Only for relevant tabs) */}
       {(activeTab === 'overview' || activeTab === 'activity') && (
+        <div className="grid grid-cols-1 md:grid-cols-4 gap-6" style={{ gridAutoRows: 'minmax(200px, auto)' }}>
+            {widgets
+                .filter(widget => WIDGET_TABS[activeTab].includes(widget.id))
+                .map(widget => {
+                    const widgetDetails = allWidgets.find(w => w.id === widget.id);
+                    if (!widgetDetails) return null;
+                    const WidgetComponent = widgetDetails.component;
+
+                    return (
+                        <WidgetWrapper
+                            key={widget.id}
+                            title={widget.title}
+                            w={widget.w}
+                            h={widget.h}
+                            onRemove={() => removeWidget(widget.id)}
+                            onResize={(dim, change) => handleResize(widget.id, dim, change)}
+                            isEditMode={isEditMode}
+                            isBeingDragged={draggedWidgetId === widget.id}
+                            isDragOver={dragOverWidgetId === widget.id}
+                            onDragStart={e => handleDragStart(e, widget.id)}
+                            onDragEnter={e => handleDragEnter(e, widget.id)}
+                            onDragLeave={handleDragLeave}
+                            onDrop={e => handleDrop(e, widget.id)}
+                            onDragEnd={handleDragEnd}
+                        >
+                            <WidgetComponent {...widgetDetails.props as any} />
+                        </WidgetWrapper>
+                    );
+            })}
+        </div>
+      )}
+      {/* Analysis Tab Dynamic Widgets */}
+      {activeTab === 'analysis' && (
         <div className="grid grid-cols-1 md:grid-cols-4 gap-6" style={{ gridAutoRows: 'minmax(200px, auto)' }}>
             {widgets
                 .filter(widget => WIDGET_TABS[activeTab].includes(widget.id))
