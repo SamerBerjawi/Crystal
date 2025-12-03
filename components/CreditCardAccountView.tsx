@@ -5,7 +5,7 @@ import { formatCurrency, calculateStatementPeriods, getCreditCardStatementDetail
 import Card from './Card';
 import TransactionList from './TransactionList';
 import { BTN_PRIMARY_STYLE, ACCOUNT_TYPE_STYLES } from '../constants';
-import { ResponsiveContainer, BarChart, CartesianGrid, XAxis, YAxis, Tooltip, Bar, Cell } from 'recharts';
+import { ResponsiveContainer, BarChart, CartesianGrid, XAxis, YAxis, Tooltip, Bar, Cell, ReferenceLine } from 'recharts';
 
 interface CreditCardAccountViewProps {
   account: Account;
@@ -49,7 +49,7 @@ const CreditCardAccountView: React.FC<CreditCardAccountViewProps> = ({
 }) => {
   // --- 1. Metrics & Utilization ---
   const creditLimit = account.creditLimit || 0;
-  const currentBalance = account.balance; // Usually negative for CCs in this app data model, but let's handle magnitude
+  const currentBalance = account.balance; 
   const balanceMagnitude = Math.abs(currentBalance);
   
   const availableCredit = Math.max(0, creditLimit - balanceMagnitude);
@@ -69,32 +69,24 @@ const CreditCardAccountView: React.FC<CreditCardAccountViewProps> = ({
   const statementInfo = useMemo(() => {
     if (!account.statementStartDate || !account.paymentDate) return null;
     
-    // Using shared utility to get Start, End, and Payment Due dates
     const periods = calculateStatementPeriods(account.statementStartDate, account.paymentDate);
     const { start, end } = periods.current;
     
-    // The "Next Payment" is usually the payment for the *Previous* statement, unless that date has passed.
-    // If today is past the previous payment due date, we look at the current statement's due date.
     const now = new Date();
-    // Normalize now to midnight
     const today = new Date(now.getFullYear(), now.getMonth(), now.getDate());
     
     let relevantPaymentDate = periods.previous.paymentDue;
     let relevantPeriodLabel = "Previous Statement";
     
-    // If the previous bill was due in the past, the "Next Payment" is for the current cycle (future)
     if (today > periods.previous.paymentDue) {
         relevantPaymentDate = periods.current.paymentDue;
         relevantPeriodLabel = "Current Statement";
     }
 
-    // Calculate Progress of the Spending Cycle (Start -> End)
     const totalDuration = end.getTime() - start.getTime();
     const elapsed = now.getTime() - start.getTime();
     const cycleProgress = Math.min(100, Math.max(0, (elapsed / totalDuration) * 100));
     const daysToClose = Math.ceil((end.getTime() - now.getTime()) / (1000 * 60 * 60 * 24));
-    
-    // Calculate Payment Urgency
     const daysToDue = Math.ceil((relevantPaymentDate.getTime() - now.getTime()) / (1000 * 60 * 60 * 24));
 
     return {
@@ -119,7 +111,6 @@ const CreditCardAccountView: React.FC<CreditCardAccountViewProps> = ({
         const startOfMonth = new Date(Date.UTC(d.getFullYear(), d.getMonth(), 1));
         const endOfMonth = new Date(Date.UTC(d.getFullYear(), d.getMonth() + 1, 0));
         
-        // Filter for expenses only
         const totalSpent = transactions
             .filter(t => t.parsedDate >= startOfMonth && t.parsedDate <= endOfMonth && t.tx.amount < 0 && !t.tx.transferId)
             .reduce((sum, t) => sum + Math.abs(t.tx.amount), 0);
@@ -129,7 +120,11 @@ const CreditCardAccountView: React.FC<CreditCardAccountViewProps> = ({
     return data;
   }, [transactions]);
 
-  // --- Visual Assets ---
+  const averageMonthlySpend = useMemo(() => {
+      const total = monthlySpendingData.reduce((sum, item) => sum + item.value, 0);
+      return total / monthlySpendingData.length || 0;
+  }, [monthlySpendingData]);
+
   const NetworkLogo = () => {
       const network = account.cardNetwork?.toLowerCase() || '';
       if (network.includes('visa')) return <span className="font-bold text-2xl italic text-white">VISA</span>;
@@ -147,7 +142,7 @@ const CreditCardAccountView: React.FC<CreditCardAccountViewProps> = ({
 
   return (
     <div className="space-y-8 animate-fade-in-up">
-      {/* Header Navigation */}
+      {/* Header */}
       <header className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
         <div className="flex items-center gap-4 flex-1 min-w-0">
           <button onClick={onBack} className="text-light-text-secondary dark:text-dark-text-secondary p-2 rounded-full hover:bg-black/5 dark:hover:bg-white/5 flex-shrink-0">
@@ -178,16 +173,12 @@ const CreditCardAccountView: React.FC<CreditCardAccountViewProps> = ({
         </div>
       </header>
 
-      {/* Top Section: Virtual Card & Key Metrics */}
+      {/* Virtual Card & Metrics */}
       <div className="grid grid-cols-1 lg:grid-cols-12 gap-8">
-          
-          {/* Virtual Card */}
           <div className="lg:col-span-5 xl:col-span-4">
               <div className={`aspect-[1.586/1] rounded-2xl ${getCardGradient(account.id)} p-6 sm:p-8 text-white shadow-2xl relative overflow-hidden border border-white/20 flex flex-col justify-between group transition-transform hover:scale-[1.02] duration-300`}>
-                  {/* Texture Overlay */}
                   <div className="absolute inset-0 bg-[url('https://www.transparenttextures.com/patterns/cubes.png')] opacity-10 pointer-events-none"></div>
                   <div className="absolute -top-24 -right-24 w-64 h-64 bg-white/10 rounded-full blur-3xl pointer-events-none"></div>
-                  
                   <div className="flex justify-between items-start z-10">
                       <div className="w-12 h-9 bg-white/20 rounded-md border border-white/30 backdrop-blur-md flex items-center justify-center relative overflow-hidden shadow-sm">
                            <div className="absolute inset-0 bg-gradient-to-tr from-white/10 to-transparent"></div>
@@ -202,13 +193,11 @@ const CreditCardAccountView: React.FC<CreditCardAccountViewProps> = ({
                           </span>
                       </div>
                   </div>
-
                   <div className="z-10 mt-4">
                        <div className="flex items-center gap-3 text-xl sm:text-2xl font-mono tracking-widest text-white/95 drop-shadow-md truncate">
                            <span>••••</span> <span>••••</span> <span>••••</span> <span>{account.last4 || '0000'}</span>
                        </div>
                   </div>
-
                   <div className="flex justify-between items-end z-10">
                       <div className="min-w-0 flex-1 mr-4">
                           <p className="text-[9px] text-white/70 uppercase tracking-widest mb-0.5">Cardholder</p>
@@ -226,8 +215,6 @@ const CreditCardAccountView: React.FC<CreditCardAccountViewProps> = ({
                   </div>
               </div>
           </div>
-
-          {/* Metrics Grid */}
           <div className="lg:col-span-7 xl:col-span-8 grid grid-cols-1 sm:grid-cols-2 gap-4">
               <Card className="flex flex-col justify-between">
                   <div className="flex justify-between items-start">
@@ -239,11 +226,8 @@ const CreditCardAccountView: React.FC<CreditCardAccountViewProps> = ({
                           <span className="material-symbols-outlined">account_balance_wallet</span>
                       </div>
                   </div>
-                  <p className="text-sm text-light-text-secondary dark:text-dark-text-secondary mt-4">
-                      Updated today
-                  </p>
+                  <p className="text-sm text-light-text-secondary dark:text-dark-text-secondary mt-4">Updated today</p>
               </Card>
-
               <Card className="flex flex-col justify-between">
                   <div className="flex justify-between items-start">
                       <div>
@@ -258,7 +242,6 @@ const CreditCardAccountView: React.FC<CreditCardAccountViewProps> = ({
                        <span className="text-sm text-light-text-secondary dark:text-dark-text-secondary">Limit: {formatCurrency(creditLimit, account.currency)}</span>
                   </div>
               </Card>
-
               <Card className="sm:col-span-2">
                   <div className="flex justify-between items-end mb-2">
                       <div>
@@ -296,54 +279,52 @@ const CreditCardAccountView: React.FC<CreditCardAccountViewProps> = ({
                           </span>
                       </div>
 
-                      <div className="relative pt-8 pb-2 px-6 mb-6">
-                          {/* Track Container */}
-                          <div className="relative h-2 w-full flex items-center">
-                              {/* Base Track */}
-                              <div className="absolute w-full h-1.5 bg-gray-100 dark:bg-white/5 rounded-full"></div>
-                              
-                              {/* Active Track */}
-                              <div 
-                                  className="absolute h-1.5 bg-gradient-to-r from-primary-400 to-primary-600 rounded-full transition-all duration-1000"
-                                  style={{ width: `${statementInfo.cycleProgress}%` }}
-                              ></div>
+                      <div className="relative pb-6 px-2">
+                          {/* Track Container - Ensuring proper spacing */}
+                          <div className="relative h-12 flex items-center">
+                                {/* Track Line */}
+                                <div className="absolute w-full h-2 bg-gray-200 dark:bg-gray-700 rounded-full overflow-hidden">
+                                    <div 
+                                        className="h-full bg-gradient-to-r from-primary-400 to-primary-600 rounded-full transition-all duration-1000 ease-out"
+                                        style={{ width: `${statementInfo.cycleProgress}%` }}
+                                    ></div>
+                                </div>
 
-                              {/* Start Circle */}
-                              <div className="absolute left-0 w-3 h-3 rounded-full bg-primary-600 ring-4 ring-white dark:ring-dark-card shadow-sm -translate-x-1/2 z-10"></div>
+                                {/* Start Marker */}
+                                <div className="absolute left-0 w-4 h-4 bg-white dark:bg-dark-card border-4 border-primary-600 rounded-full z-10 shadow-sm"></div>
 
-                              {/* End Circle */}
-                              <div className={`absolute right-0 w-3 h-3 rounded-full ring-4 ring-white dark:ring-dark-card shadow-sm translate-x-1/2 z-10 ${statementInfo.cycleProgress >= 100 ? 'bg-primary-600' : 'bg-gray-300 dark:bg-gray-600'}`}></div>
-
-                              {/* Today Indicator */}
-                              <div 
-                                  className="absolute top-1/2 -translate-y-1/2 -translate-x-1/2 z-20 transition-all duration-1000"
-                                  style={{ left: `${statementInfo.cycleProgress}%` }}
-                              >
-                                  {/* The marker */}
-                                  <div className="w-5 h-5 bg-white dark:bg-dark-card rounded-full border-[3px] border-primary-500 shadow-md"></div>
-                                  
-                                  {/* The Label */}
-                                  <div className="absolute -top-8 left-1/2 -translate-x-1/2 bg-primary-500 text-white text-[10px] font-bold px-2 py-0.5 rounded shadow-sm whitespace-nowrap after:content-[''] after:absolute after:top-full after:left-1/2 after:-translate-x-1/2 after:border-4 after:border-transparent after:border-t-primary-500">
-                                      Today
-                                  </div>
-                              </div>
+                                {/* End Marker */}
+                                <div className={`absolute right-0 w-4 h-4 bg-white dark:bg-dark-card border-4 rounded-full z-10 shadow-sm ${statementInfo.cycleProgress >= 100 ? 'border-primary-600' : 'border-gray-400 dark:border-gray-500'}`}></div>
+                                
+                                {/* Today Marker */}
+                                <div 
+                                    className="absolute top-1/2 -translate-y-1/2 z-20 transition-all duration-1000 ease-out"
+                                    style={{ left: `${statementInfo.cycleProgress}%`, transform: 'translate(-50%, -50%)' }}
+                                >
+                                     {/* Tooltip Label */}
+                                     <div className="absolute -top-10 left-1/2 -translate-x-1/2 bg-primary-600 text-white text-[10px] font-bold px-2 py-1 rounded shadow-md whitespace-nowrap flex flex-col items-center">
+                                        Today
+                                        <div className="w-0 h-0 border-l-[4px] border-l-transparent border-r-[4px] border-r-transparent border-t-[4px] border-t-primary-600 mt-0.5"></div>
+                                    </div>
+                                    <div className="w-5 h-5 bg-white dark:bg-dark-card rounded-full border-[5px] border-primary-500 shadow-md"></div>
+                                </div>
                           </div>
 
-                          {/* Labels */}
-                          <div className="flex justify-between mt-4 -mx-2">
+                          {/* Labels Container - Decoupled from the track logic for safer alignment */}
+                          <div className="flex justify-between mt-1 w-full">
                               <div className="text-left">
-                                  <p className="text-[10px] font-bold text-light-text-secondary dark:text-dark-text-secondary uppercase tracking-wider">Open</p>
-                                  <p className="text-sm font-bold text-light-text dark:text-dark-text">{statementInfo.start.toLocaleDateString(undefined, { month: 'short', day: 'numeric', timeZone })}</p>
+                                   <p className="text-[10px] font-bold text-light-text-secondary dark:text-dark-text-secondary uppercase tracking-wider mb-0.5">Open</p>
+                                   <p className="text-xs font-bold text-light-text dark:text-dark-text">{statementInfo.start.toLocaleDateString(undefined, { month: 'short', day: 'numeric' })}</p>
                               </div>
                               <div className="text-right">
-                                  <p className="text-[10px] font-bold text-light-text-secondary dark:text-dark-text-secondary uppercase tracking-wider">Close</p>
-                                  <p className="text-sm font-bold text-light-text dark:text-dark-text">{statementInfo.end.toLocaleDateString(undefined, { month: 'short', day: 'numeric', timeZone })}</p>
+                                   <p className="text-[10px] font-bold text-light-text-secondary dark:text-dark-text-secondary uppercase tracking-wider mb-0.5">Close</p>
+                                   <p className="text-xs font-bold text-light-text dark:text-dark-text">{statementInfo.end.toLocaleDateString(undefined, { month: 'short', day: 'numeric' })}</p>
                               </div>
                           </div>
                       </div>
                       
                       {/* Next Payment Section */}
-                      <div className="bg-gray-50 dark:bg-white/5 rounded-xl p-4 flex flex-wrap items-center justify-between gap-4 border border-black/5 dark:border-white/5">
+                      <div className="bg-gray-50 dark:bg-white/5 rounded-xl p-4 flex flex-wrap items-center justify-between gap-4 border border-black/5 dark:border-white/5 mt-4">
                           <div>
                               <p className="text-xs text-light-text-secondary dark:text-dark-text-secondary font-bold uppercase tracking-wider mb-1">Next Payment Due</p>
                               <div className="flex items-center gap-2">
@@ -368,25 +349,54 @@ const CreditCardAccountView: React.FC<CreditCardAccountViewProps> = ({
               )}
 
               {/* Monthly Spending Trend */}
-              <Card className="h-80">
-                   <h3 className="text-lg font-semibold text-light-text dark:text-dark-text mb-4">Spending Trend (6 Months)</h3>
-                   <ResponsiveContainer width="100%" height="100%" minWidth={0} minHeight={0}>
-                        <BarChart data={monthlySpendingData} margin={{ top: 10, right: 10, left: -20, bottom: 5 }}>
-                            <CartesianGrid strokeDasharray="3 3" strokeOpacity={0.1} vertical={false} />
-                            <XAxis dataKey="name" axisLine={false} tickLine={false} tick={{ fill: 'currentColor', opacity: 0.6, fontSize: 12 }} />
-                            <YAxis axisLine={false} tickLine={false} tick={{ fill: 'currentColor', opacity: 0.6, fontSize: 12 }} />
-                            <Tooltip 
-                                cursor={{ fill: 'transparent' }}
-                                contentStyle={{ backgroundColor: 'var(--light-card)', borderColor: 'rgba(0,0,0,0.1)', borderRadius: '8px', color: 'var(--light-text)' }}
-                                formatter={(value: number) => [formatCurrency(value, account.currency), 'Spent']}
-                            />
-                            <Bar dataKey="value" radius={[4, 4, 0, 0]}>
-                                {monthlySpendingData.map((entry, index) => (
-                                    <Cell key={`cell-${index}`} fill={index === monthlySpendingData.length - 1 ? '#3b82f6' : '#cbd5e1'} />
-                                ))}
-                            </Bar>
-                        </BarChart>
-                   </ResponsiveContainer>
+              <Card className="h-96 flex flex-col">
+                   <div className="flex justify-between items-end mb-6">
+                       <div>
+                           <h3 className="text-lg font-bold text-light-text dark:text-dark-text">Spending Trend</h3>
+                           <p className="text-xs text-light-text-secondary dark:text-dark-text-secondary mt-1">Last 6 months</p>
+                       </div>
+                       <div className="text-right">
+                           <p className="text-xs font-bold uppercase text-light-text-secondary dark:text-dark-text-secondary tracking-wider mb-0.5">6-Mo Average</p>
+                           <p className="text-xl font-bold text-light-text dark:text-dark-text">{formatCurrency(averageMonthlySpend, account.currency)}</p>
+                       </div>
+                   </div>
+                   
+                   <div className="flex-grow w-full min-h-0">
+                       <ResponsiveContainer width="100%" height="100%">
+                            <BarChart data={monthlySpendingData} margin={{ top: 20, right: 10, left: -10, bottom: 20 }} barSize={36}>
+                                <CartesianGrid strokeDasharray="3 3" strokeOpacity={0.06} vertical={false} />
+                                <XAxis 
+                                    dataKey="name" 
+                                    axisLine={false} 
+                                    tickLine={false} 
+                                    tick={{ fill: 'currentColor', opacity: 0.6, fontSize: 12, fontWeight: 500 }} 
+                                    dy={10}
+                                />
+                                <YAxis 
+                                    axisLine={false} 
+                                    tickLine={false} 
+                                    tick={{ fill: 'currentColor', opacity: 0.6, fontSize: 12, fontWeight: 500 }} 
+                                    tickFormatter={(val) => val >= 1000 ? `${(val/1000).toFixed(0)}k` : val}
+                                />
+                                <Tooltip 
+                                    cursor={{ fill: 'rgba(128, 128, 128, 0.05)', radius: 4 }}
+                                    contentStyle={{ backgroundColor: 'var(--light-card)', borderColor: 'rgba(0,0,0,0.05)', borderRadius: '12px', boxShadow: '0 10px 15px -3px rgba(0, 0, 0, 0.1)', color: 'var(--light-text)' }}
+                                    formatter={(value: number) => [formatCurrency(value, account.currency), 'Spent']}
+                                    labelStyle={{ color: 'var(--light-text-secondary)', marginBottom: '0.25rem', fontSize: '0.75rem', textTransform: 'uppercase', letterSpacing: '0.05em' }}
+                                />
+                                <ReferenceLine y={averageMonthlySpend} stroke="#F59E0B" strokeDasharray="3 3" strokeOpacity={0.8} strokeWidth={1.5} />
+                                <Bar dataKey="value" radius={[6, 6, 0, 0]}>
+                                    {monthlySpendingData.map((entry, index) => (
+                                        <Cell 
+                                            key={`cell-${index}`} 
+                                            fill={entry.value > averageMonthlySpend * 1.1 ? '#F43F5E' : (index === monthlySpendingData.length - 1 ? '#3B82F6' : '#CBD5E1')} 
+                                            fillOpacity={index === monthlySpendingData.length - 1 ? 1 : 0.8}
+                                        />
+                                    ))}
+                                </Bar>
+                            </BarChart>
+                       </ResponsiveContainer>
+                   </div>
               </Card>
           </div>
 

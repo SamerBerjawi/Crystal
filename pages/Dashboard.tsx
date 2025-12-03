@@ -917,13 +917,13 @@ const Dashboard: React.FC<DashboardProps> = ({ user, activeGoalIds, selectedAcco
   const tabInactiveClass = "text-light-text-secondary dark:text-dark-text-secondary hover:text-light-text dark:hover:text-dark-text hover:bg-black/5 dark:hover:bg-white/5";
 
   const assetAllocationData: { name: string; value: number; color: string }[] = useMemo(() => {
-      const groups = assetGroups as Record<string, { value: number; color: string }>;
+      const groups = assetGroups as any;
       const data = [ // Renamed from pieChartData
-      { name: 'Liquid Cash', value: groups['Liquid Cash'].value, color: groups['Liquid Cash'].color },
-      { name: 'Investments', value: groups['Investments'].value, color: groups['Investments'].color },
-      { name: 'Properties', value: groups['Properties'].value, color: groups['Properties'].color },
-      { name: 'Vehicles', value: groups['Vehicles'].value, color: groups['Vehicles'].color },
-      { name: 'Other Assets', value: groups['Other Assets'].value, color: groups['Other Assets'].color }
+      { name: 'Liquid Cash', value: groups['Liquid Cash']?.value || 0, color: groups['Liquid Cash']?.color || '#A0AEC0' },
+      { name: 'Investments', value: groups['Investments']?.value || 0, color: groups['Investments']?.color || '#A0AEC0' },
+      { name: 'Properties', value: groups['Properties']?.value || 0, color: groups['Properties']?.color || '#A0AEC0' },
+      { name: 'Vehicles', value: groups['Vehicles']?.value || 0, color: groups['Vehicles']?.color || '#A0AEC0' },
+      { name: 'Other Assets', value: groups['Other Assets']?.value || 0, color: groups['Other Assets']?.color || '#A0AEC0' }
     ] as { name: string; value: number; color: string }[];
       return data.filter(d => d.value > 0).sort((a, b) => b.value - a.value);
   }, [assetGroups]);
