@@ -1,7 +1,7 @@
 
 import React, { useMemo } from 'react';
 import { Account, Transaction, DisplayTransaction, Category } from '../types';
-import { formatCurrency, calculateStatementPeriods, getCreditCardStatementDetails } from '../utils';
+import { formatCurrency, calculateStatementPeriods, getCreditCardStatementDetails, getPreferredTimeZone } from '../utils';
 import Card from './Card';
 import TransactionList from './TransactionList';
 import { BTN_PRIMARY_STYLE, ACCOUNT_TYPE_STYLES } from '../constants';
@@ -69,41 +69,44 @@ const CreditCardAccountView: React.FC<CreditCardAccountViewProps> = ({
   const statementInfo = useMemo(() => {
     if (!account.statementStartDate || !account.paymentDate) return null;
     
-    // Using shared utility
+    // Using shared utility to get Start, End, and Payment Due dates
     const periods = calculateStatementPeriods(account.statementStartDate, account.paymentDate);
-    const { start, end, paymentDue } = periods.current;
+    const { start, end } = periods.current;
     
-    // Calculate Previous Statement Details (to see if paid off)
-    // Note: In this app model, credit card transactions are expenses (negative). Payments are transfers (positive).
-    const allRawTxs = transactions.map(t => t.tx);
-    const prevPeriod = periods.previous;
-    const { statementBalance: prevStatementBal, amountPaid: paidForPrev } = getCreditCardStatementDetails(
-        account, prevPeriod.start, prevPeriod.end, allRawTxs
-    );
-
-    const remainingPrevBalance = Math.abs(prevStatementBal) - paidForPrev;
-    const isPrevPaidOff = remainingPrevBalance <= 0.01;
-
-    // Timeline Logic
+    // The "Next Payment" is usually the payment for the *Previous* statement, unless that date has passed.
+    // If today is past the previous payment due date, we look at the current statement's due date.
     const now = new Date();
+    // Normalize now to midnight
+    const today = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+    
+    let relevantPaymentDate = periods.previous.paymentDue;
+    let relevantPeriodLabel = "Previous Statement";
+    
+    // If the previous bill was due in the past, the "Next Payment" is for the current cycle (future)
+    if (today > periods.previous.paymentDue) {
+        relevantPaymentDate = periods.current.paymentDue;
+        relevantPeriodLabel = "Current Statement";
+    }
+
+    // Calculate Progress of the Spending Cycle (Start -> End)
     const totalDuration = end.getTime() - start.getTime();
     const elapsed = now.getTime() - start.getTime();
     const cycleProgress = Math.min(100, Math.max(0, (elapsed / totalDuration) * 100));
-    
     const daysToClose = Math.ceil((end.getTime() - now.getTime()) / (1000 * 60 * 60 * 24));
-    const daysToDue = Math.ceil((paymentDue.getTime() - now.getTime()) / (1000 * 60 * 60 * 24));
+    
+    // Calculate Payment Urgency
+    const daysToDue = Math.ceil((relevantPaymentDate.getTime() - now.getTime()) / (1000 * 60 * 60 * 24));
 
     return {
-        start, end, paymentDue,
-        daysToClose,
-        daysToDue,
-        cycleProgress,
-        prevStatementBal: Math.abs(prevStatementBal),
-        paidForPrev,
-        remainingPrevBalance: Math.max(0, remainingPrevBalance),
-        isPrevPaidOff
+        start, 
+        end, 
+        relevantPaymentDate,
+        relevantPeriodLabel,
+        daysToClose: Math.max(0, daysToClose),
+        daysToDue: Math.max(0, daysToDue),
+        cycleProgress
     };
-  }, [account, transactions]);
+  }, [account]);
 
   // --- 3. Monthly Spending Data ---
   const monthlySpendingData = useMemo(() => {
@@ -139,6 +142,8 @@ const CreditCardAccountView: React.FC<CreditCardAccountViewProps> = ({
       if (network.includes('amex') || network.includes('american')) return <span className="font-bold text-lg text-blue-300 tracking-tighter border-2 border-blue-300 px-1 rounded">AMEX</span>;
       return <span className="font-bold text-xl text-white tracking-widest">CARD</span>;
   };
+  
+  const timeZone = getPreferredTimeZone();
 
   return (
     <div className="space-y-8 animate-fade-in-up">
@@ -281,56 +286,82 @@ const CreditCardAccountView: React.FC<CreditCardAccountViewProps> = ({
           <div className="lg:col-span-2 space-y-8">
               {statementInfo && (
                   <Card>
-                      <h3 className="text-lg font-semibold text-light-text dark:text-dark-text mb-6">Billing Cycle</h3>
-                      <div className="relative pt-6 pb-2 px-8">
-                          {/* Progress Bar Line */}
-                          <div className="absolute top-1/2 left-8 right-8 h-1 bg-gray-200 dark:bg-gray-700 -translate-y-1/2 z-0"></div>
-                          <div 
-                            className="absolute top-1/2 left-8 h-1 bg-primary-500 -translate-y-1/2 z-0 transition-all duration-1000"
-                            style={{ width: `calc(${statementInfo.cycleProgress}% - 4rem)` }}
-                          ></div>
+                      <div className="flex flex-wrap justify-between items-center mb-8 gap-4">
+                          <h3 className="text-lg font-semibold text-light-text dark:text-dark-text flex items-center gap-2">
+                              <span className="material-symbols-outlined text-primary-500">date_range</span>
+                              Billing Cycle
+                          </h3>
+                          <span className="text-xs font-bold bg-black/5 dark:bg-white/10 px-3 py-1 rounded-full text-light-text-secondary dark:text-dark-text-secondary uppercase tracking-wide">
+                              {statementInfo.daysToClose > 0 ? `${statementInfo.daysToClose} Days Left` : 'Closing Today'}
+                          </span>
+                      </div>
 
-                          <div className="flex justify-between relative z-10">
-                              {/* Start Node */}
-                              <div className="flex flex-col items-center">
-                                  <div className="w-4 h-4 rounded-full bg-primary-500 border-2 border-white dark:border-dark-card shadow-sm"></div>
-                                  <div className="mt-3 text-center absolute top-4 w-32 -ml-1">
-                                      <p className="text-xs font-bold text-light-text dark:text-dark-text">Statement Open</p>
-                                      <p className="text-xs text-light-text-secondary dark:text-dark-text-secondary">{statementInfo.start.toLocaleDateString(undefined, { month: 'short', day: 'numeric' })}</p>
-                                  </div>
-                              </div>
-
-                              {/* Today Node (Absolute positioned based on progress) */}
+                      <div className="relative pt-8 pb-2 px-6 mb-6">
+                          {/* Track Container */}
+                          <div className="relative h-2 w-full flex items-center">
+                              {/* Base Track */}
+                              <div className="absolute w-full h-1.5 bg-gray-100 dark:bg-white/5 rounded-full"></div>
+                              
+                              {/* Active Track */}
                               <div 
-                                className="absolute top-1/2 -translate-y-1/2 flex flex-col items-center transition-all duration-1000"
-                                style={{ left: `${statementInfo.cycleProgress}%`, transform: 'translate(-50%, -50%)' }}
+                                  className="absolute h-1.5 bg-gradient-to-r from-primary-400 to-primary-600 rounded-full transition-all duration-1000"
+                                  style={{ width: `${statementInfo.cycleProgress}%` }}
+                              ></div>
+
+                              {/* Start Circle */}
+                              <div className="absolute left-0 w-3 h-3 rounded-full bg-primary-600 ring-4 ring-white dark:ring-dark-card shadow-sm -translate-x-1/2 z-10"></div>
+
+                              {/* End Circle */}
+                              <div className={`absolute right-0 w-3 h-3 rounded-full ring-4 ring-white dark:ring-dark-card shadow-sm translate-x-1/2 z-10 ${statementInfo.cycleProgress >= 100 ? 'bg-primary-600' : 'bg-gray-300 dark:bg-gray-600'}`}></div>
+
+                              {/* Today Indicator */}
+                              <div 
+                                  className="absolute top-1/2 -translate-y-1/2 -translate-x-1/2 z-20 transition-all duration-1000"
+                                  style={{ left: `${statementInfo.cycleProgress}%` }}
                               >
-                                  <div className="w-6 h-6 rounded-full bg-white dark:bg-dark-card border-4 border-primary-500 shadow-md"></div>
-                                  <div className="absolute top-8 text-center w-32">
-                                      <p className="text-xs font-bold text-primary-600 dark:text-primary-400 uppercase tracking-wider bg-primary-50 dark:bg-primary-900/50 px-2 py-0.5 rounded-full inline-block">Today</p>
+                                  {/* The marker */}
+                                  <div className="w-5 h-5 bg-white dark:bg-dark-card rounded-full border-[3px] border-primary-500 shadow-md"></div>
+                                  
+                                  {/* The Label */}
+                                  <div className="absolute -top-8 left-1/2 -translate-x-1/2 bg-primary-500 text-white text-[10px] font-bold px-2 py-0.5 rounded shadow-sm whitespace-nowrap after:content-[''] after:absolute after:top-full after:left-1/2 after:-translate-x-1/2 after:border-4 after:border-transparent after:border-t-primary-500">
+                                      Today
                                   </div>
                               </div>
+                          </div>
 
-                              {/* End Node */}
-                              <div className="flex flex-col items-center">
-                                  <div className={`w-4 h-4 rounded-full border-2 border-white dark:border-dark-card shadow-sm ${statementInfo.cycleProgress >= 100 ? 'bg-primary-500' : 'bg-gray-300 dark:bg-gray-600'}`}></div>
-                                  <div className="mt-3 text-center absolute top-4 w-32 -ml-20">
-                                      <p className="text-xs font-bold text-light-text dark:text-dark-text">Statement Close</p>
-                                      <p className="text-xs text-light-text-secondary dark:text-dark-text-secondary">{statementInfo.end.toLocaleDateString(undefined, { month: 'short', day: 'numeric' })}</p>
-                                      <p className="text-[10px] font-semibold text-primary-500 mt-0.5">{statementInfo.daysToClose > 0 ? `${statementInfo.daysToClose} days left` : 'Closing today'}</p>
-                                  </div>
+                          {/* Labels */}
+                          <div className="flex justify-between mt-4 -mx-2">
+                              <div className="text-left">
+                                  <p className="text-[10px] font-bold text-light-text-secondary dark:text-dark-text-secondary uppercase tracking-wider">Open</p>
+                                  <p className="text-sm font-bold text-light-text dark:text-dark-text">{statementInfo.start.toLocaleDateString(undefined, { month: 'short', day: 'numeric', timeZone })}</p>
+                              </div>
+                              <div className="text-right">
+                                  <p className="text-[10px] font-bold text-light-text-secondary dark:text-dark-text-secondary uppercase tracking-wider">Close</p>
+                                  <p className="text-sm font-bold text-light-text dark:text-dark-text">{statementInfo.end.toLocaleDateString(undefined, { month: 'short', day: 'numeric', timeZone })}</p>
                               </div>
                           </div>
                       </div>
                       
-                      <div className="mt-12 pt-6 border-t border-black/5 dark:border-white/5 flex justify-end">
-                          <div className="text-right">
-                              <p className="text-xs text-light-text-secondary dark:text-dark-text-secondary font-medium uppercase tracking-wide">Payment Due Date</p>
-                              <div className="flex items-center justify-end gap-2">
-                                  <span className="material-symbols-outlined text-red-500 text-sm">event_busy</span>
-                                  <p className="text-lg font-bold text-light-text dark:text-dark-text">{statementInfo.paymentDue.toLocaleDateString(undefined, { month: 'long', day: 'numeric', year: 'numeric' })}</p>
+                      {/* Next Payment Section */}
+                      <div className="bg-gray-50 dark:bg-white/5 rounded-xl p-4 flex flex-wrap items-center justify-between gap-4 border border-black/5 dark:border-white/5">
+                          <div>
+                              <p className="text-xs text-light-text-secondary dark:text-dark-text-secondary font-bold uppercase tracking-wider mb-1">Next Payment Due</p>
+                              <div className="flex items-center gap-2">
+                                  <span className="material-symbols-outlined text-red-500">event_busy</span>
+                                  <span className="text-lg font-bold text-light-text dark:text-dark-text">
+                                      {statementInfo.relevantPaymentDate.toLocaleDateString(undefined, { month: 'long', day: 'numeric', year: 'numeric', timeZone })}
+                                  </span>
                               </div>
-                              <p className="text-xs text-red-500 font-medium">{statementInfo.daysToDue} days remaining</p>
+                              <p className="text-xs text-light-text-secondary dark:text-dark-text-secondary mt-1">
+                                  For {statementInfo.relevantPeriodLabel}
+                              </p>
+                          </div>
+                          
+                          <div className="text-right">
+                              <p className={`text-2xl font-extrabold ${statementInfo.daysToDue <= 5 ? 'text-red-600 dark:text-red-400' : 'text-light-text dark:text-dark-text'}`}>
+                                  {statementInfo.daysToDue}
+                              </p>
+                              <p className="text-xs font-medium text-light-text-secondary dark:text-dark-text-secondary">days remaining</p>
                           </div>
                       </div>
                   </Card>
@@ -360,40 +391,6 @@ const CreditCardAccountView: React.FC<CreditCardAccountViewProps> = ({
           </div>
 
           <div className="space-y-8">
-              {/* Statement Summary */}
-              {statementInfo && (
-                  <Card>
-                      <h3 className="text-sm font-bold uppercase tracking-wider text-light-text-secondary dark:text-dark-text-secondary mb-4 border-b border-black/5 dark:border-white/5 pb-2">Previous Statement</h3>
-                      <div className="space-y-4">
-                           <div className="flex justify-between items-center">
-                               <span className="text-sm text-light-text dark:text-dark-text">Statement Balance</span>
-                               <span className="font-semibold">{formatCurrency(statementInfo.prevStatementBal, account.currency)}</span>
-                           </div>
-                           <div className="flex justify-between items-center">
-                               <span className="text-sm text-light-text dark:text-dark-text">Payments Made</span>
-                               <span className="font-semibold text-green-500">-{formatCurrency(statementInfo.paidForPrev, account.currency)}</span>
-                           </div>
-                           <div className="pt-2 border-t border-black/5 dark:border-white/5 flex justify-between items-center">
-                               <span className="font-bold text-light-text dark:text-dark-text">Remaining Due</span>
-                               <span className={`font-bold text-lg ${statementInfo.isPrevPaidOff ? 'text-green-500' : 'text-red-500'}`}>
-                                   {formatCurrency(statementInfo.remainingPrevBalance, account.currency)}
-                               </span>
-                           </div>
-                           {statementInfo.isPrevPaidOff ? (
-                               <div className="bg-green-100 dark:bg-green-900/30 text-green-700 dark:text-green-300 text-xs p-2 rounded flex items-center gap-2">
-                                   <span className="material-symbols-outlined text-sm">check_circle</span>
-                                   Fully Paid
-                               </div>
-                           ) : (
-                               <div className="bg-red-100 dark:bg-red-900/30 text-red-700 dark:text-red-300 text-xs p-2 rounded flex items-center gap-2">
-                                   <span className="material-symbols-outlined text-sm">warning</span>
-                                   Payment Required
-                               </div>
-                           )}
-                      </div>
-                  </Card>
-              )}
-
               {/* Recent Transactions */}
               <Card className="flex flex-col h-full max-h-[500px]">
                   <div className="flex justify-between items-center mb-4">
