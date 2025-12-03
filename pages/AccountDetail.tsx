@@ -6,6 +6,7 @@ import AddTransactionModal from '../components/AddTransactionModal';
 import TransactionDetailModal from '../components/TransactionDetailModal';
 import AddMileageLogModal from '../components/AddMileageLogModal';
 import ConfirmationModal from '../components/ConfirmationModal';
+import BalanceAdjustmentModal from '../components/BalanceAdjustmentModal';
 import { v4 as uuidv4 } from 'uuid';
 import { useAccountsContext, useTransactionsContext } from '../contexts/DomainProviders';
 import { useCategoryContext, useScheduleContext, useTagsContext } from '../contexts/FinancialDataContext';
@@ -16,6 +17,7 @@ const LoanAccountView = React.lazy(() => import('../components/LoanAccountView')
 const VehicleAccountView = React.lazy(() => import('../components/VehicleAccountView'));
 const CreditCardAccountView = React.lazy(() => import('../components/CreditCardAccountView'));
 const GeneralAccountView = React.lazy(() => import('../components/GeneralAccountView'));
+const CashAccountView = React.lazy(() => import('../components/CashAccountView'));
 
 const AccountDetail: React.FC<{
     account: Account;
@@ -52,6 +54,7 @@ const AccountDetail: React.FC<{
     const [isMileageModalOpen, setIsMileageModalOpen] = useState(false);
     const [editingLog, setEditingLog] = useState<MileageLog | null>(null);
     const [deletingLogId, setDeletingLogId] = useState<string | null>(null);
+    const [isAdjustModalOpen, setAdjustModalOpen] = useState(false);
 
     const handleOpenTransactionModal = (tx?: Transaction) => {
         setEditingTransaction(tx || null);
@@ -71,6 +74,26 @@ const AccountDetail: React.FC<{
             setInitialModalState({});
         }
         setTransactionModalOpen(true);
+    };
+    
+    const handleOpenAdjustModal = () => {
+        setAdjustModalOpen(true);
+    };
+
+    const handleSaveAdjustment = (adjustmentAmount: number, date: string, notes: string) => {
+        const txData: Omit<Transaction, 'id'> = {
+            accountId: account.id,
+            date,
+            description: 'Cash Reconciliation',
+            merchant: notes || 'Manual count adjustment',
+            amount: adjustmentAmount,
+            category: adjustmentAmount >= 0 ? 'Income' : 'Miscellaneous',
+            type: adjustmentAmount >= 0 ? 'income' : 'expense',
+            currency: account.currency,
+        };
+        
+        saveTransaction([txData], []);
+        setAdjustModalOpen(false);
     };
 
     // Specialized handler for Loan/Lending payments
@@ -165,6 +188,19 @@ const AccountDetail: React.FC<{
     };
 
     const renderContent = () => {
+        if (account.type === 'Other Assets' && account.otherSubType === 'Cash') {
+            return (
+                <CashAccountView
+                    {...commonProps}
+                    displayTransactionsList={displayTransactionsList}
+                    transactions={accountTransactions}
+                    allCategories={allCategories}
+                    onTransactionClick={handleTransactionClick}
+                    onAdjustBalance={handleOpenAdjustModal}
+                />
+            );
+        }
+
         switch (account.type) {
             case 'Property':
                 return (
@@ -238,6 +274,14 @@ const AccountDetail: React.FC<{
                 transactions={modalTransactions} 
                 accounts={accounts} 
             />
+            
+            {isAdjustModalOpen && (
+                <BalanceAdjustmentModal
+                    onClose={() => setAdjustModalOpen(false)}
+                    onSave={handleSaveAdjustment}
+                    account={account}
+                />
+            )}
 
             {isMileageModalOpen && (
                 <AddMileageLogModal

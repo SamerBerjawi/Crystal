@@ -363,7 +363,7 @@ const CreditCardAccountView: React.FC<CreditCardAccountViewProps> = ({
                    
                    <div className="flex-grow w-full min-h-0">
                        <ResponsiveContainer width="100%" height="100%">
-                            <BarChart data={monthlySpendingData} margin={{ top: 20, right: 10, left: -10, bottom: 20 }} barSize={36}>
+                            <BarChart data={monthlySpendingData} margin={{ top: 20, right: 10, left: -10, bottom: 50 }} barSize={36}>
                                 <CartesianGrid strokeDasharray="3 3" strokeOpacity={0.06} vertical={false} />
                                 <XAxis 
                                     dataKey="name" 
