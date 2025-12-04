@@ -60,6 +60,21 @@ const persistToken = (newToken: string | null) => {
   }
 };
 
+const fetchWithTimeout = async (
+  input: RequestInfo | URL,
+  init: RequestInit = {},
+  timeoutMs = 15000
+) => {
+  const controller = new AbortController();
+  const timeout = setTimeout(() => controller.abort(), timeoutMs);
+
+  try {
+    return await fetch(input, { ...init, signal: controller.signal });
+  } finally {
+    clearTimeout(timeout);
+  }
+};
+
 export const useAuth = () => {
   const [user, setUserState] = useState<User | null>(null);
   const [token, setToken] = useState<string | null>(getStoredToken());
@@ -107,7 +122,7 @@ export const useAuth = () => {
       setError(null);
 
       try {
-        const response = await fetch('/api/auth/login', {
+        const response = await fetchWithTimeout('/api/auth/login', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ email, password }),
@@ -140,7 +155,7 @@ export const useAuth = () => {
       setError(null);
 
       try {
-        const response = await fetch('/api/auth/register', {
+        const response = await fetchWithTimeout('/api/auth/register', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify(newUserData),
@@ -180,10 +195,10 @@ export const useAuth = () => {
 
     try {
       const [userRes, dataRes] = await Promise.all([
-        fetch('/api/auth/me', {
+        fetchWithTimeout('/api/auth/me', {
           headers: { Authorization: `Bearer ${storedToken}` },
         }),
-        fetch('/api/data', {
+        fetchWithTimeout('/api/data', {
           headers: { Authorization: `Bearer ${storedToken}` },
         }),
       ]);

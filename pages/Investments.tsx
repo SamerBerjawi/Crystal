@@ -262,7 +262,6 @@ const Investments: React.FC<InvestmentsProps> = ({
                     onSave={onManualPriceChange}
                     isin={editingPriceItem.symbol}
                     name={editingPriceItem.name}
-                    scrapedPrice={null} 
                     manualPrice={manualPrices[editingPriceItem.symbol]}
                 />
             )}

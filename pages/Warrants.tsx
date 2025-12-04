@@ -97,7 +97,6 @@ const Warrants: React.FC<WarrantsProps> = ({ warrants, saveWarrant, deleteWarran
                     onSave={onManualPriceChange}
                     isin={editingHoldingForPrice.isin}
                     name={editingHoldingForPrice.name}
-                    scrapedPrice={null}
                     manualPrice={manualPrices[editingHoldingForPrice.isin]}
                 />
             )}
