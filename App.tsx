@@ -83,6 +83,57 @@ const OnboardingModal = lazy(() => import('./components/OnboardingModal'));
 import { FinancialDataProvider } from './contexts/FinancialDataContext';
 import { AccountsProvider, PreferencesProvider, TransactionsProvider, WarrantsProvider } from './contexts/DomainProviders';
 
+const routePathMap: Record<Page, string> = {
+  Dashboard: '/',
+  Accounts: '/accounts',
+  Transactions: '/transactions',
+  Budget: '/budget',
+  Forecasting: '/forecasting',
+  Settings: '/settings',
+  'Schedule & Bills': '/schedule',
+  Tasks: '/tasks',
+  Categories: '/categories',
+  Tags: '/tags',
+  'Personal Info': '/personal-info',
+  'Data Management': '/data-management',
+  Preferences: '/preferences',
+  AccountDetail: '/accounts',
+  Investments: '/investments',
+  Warrants: '/warrants',
+  Documentation: '/documentation',
+  'AI Assistant': '/ai-assistant',
+  Subscriptions: '/subscriptions',
+};
+
+type RouteInfo = { page: Page; matched: boolean; accountId?: string | null };
+
+const parseRoute = (pathname: string): RouteInfo => {
+  const rawPath = pathname.split('?')[0] || '/';
+  const normalizedPath = rawPath !== '/' && rawPath.endsWith('/') ? rawPath.slice(0, -1) : rawPath;
+  const accountMatch = normalizedPath.match(/^\/accounts\/([^/]+)$/);
+
+  if (accountMatch?.[1]) {
+    return { page: 'AccountDetail', matched: true, accountId: decodeURIComponent(accountMatch[1]) };
+  }
+
+  const matchedPage = (Object.entries(routePathMap) as [Page, string][])
+    .find(([, path]) => path === normalizedPath)?.[0];
+
+  if (matchedPage) {
+    return { page: matchedPage, matched: true, accountId: null };
+  }
+
+  return { page: 'Dashboard', matched: false, accountId: null };
+};
+
+const pageToPath = (page: Page, accountId?: string | null) => {
+  if (page === 'AccountDetail' && accountId) {
+    return `/accounts/${encodeURIComponent(accountId)}`;
+  }
+
+  return routePathMap[page] || '/';
+};
+
 const initialFinancialData: FinancialData = {
     accounts: [],
     transactions: [],
@@ -209,17 +260,21 @@ class ErrorBoundary extends Component<ErrorBoundaryProps, ErrorBoundaryState> {
 
 // FIX: Changed to a default export to align with the import in index.tsx and fix the module resolution error.
 const App: React.FC = () => {
+  const initialPath = typeof window !== 'undefined' ? window.location.pathname : '/';
+  const initialRoute = parseRoute(initialPath);
+
   const { user, setUser, token, isAuthenticated, isLoading: isAuthLoading, error: authError, signIn, signUp, signOut, checkAuthStatus, setError: setAuthError, changePassword } = useAuth();
   const [authPage, setAuthPage] = useState<'signIn' | 'signUp'>('signIn');
   const [isDemoMode, setIsDemoMode] = useState(false);
   const [demoUser, setDemoUser] = useState<User | null>(null);
   const [isDataLoaded, setIsDataLoaded] = useState(false);
 
-  const [currentPage, setCurrentPage] = useState<Page>('Dashboard');
+  const [currentPath, setCurrentPath] = useState(initialPath);
+  const [currentPage, setCurrentPageState] = useState<Page>(initialRoute.page);
   const [isSidebarOpen, setSidebarOpen] = useState(false);
   const [isSidebarCollapsed, setSidebarCollapsed] = useState(false);
   const [accountFilter, setAccountFilter] = useState<string | null>(null);
-  const [viewingAccountId, setViewingAccountId] = useState<string | null>(null);
+  const [viewingAccountId, setViewingAccountId] = useState<string | null>(initialRoute.accountId ?? null);
   const [theme, setTheme] = useState<Theme>(() => {
     const storedTheme = safeLocalStorage.getItem('theme');
     return storedTheme === 'light' || storedTheme === 'dark' || storedTheme === 'system' ? storedTheme : 'system';
@@ -261,6 +316,39 @@ const App: React.FC = () => {
   const [lastUpdated, setLastUpdated] = useState<Date | null>(null);
   const [investmentPrices, setInvestmentPrices] = useState<Record<string, number | null>>({});
 
+  const navigateToPath = useCallback((path: string, replace = false) => {
+    if (typeof window === 'undefined') return;
+
+    const nextPath = path || '/';
+    if (replace) {
+      window.history.replaceState(null, '', nextPath);
+    } else {
+      window.history.pushState(null, '', nextPath);
+    }
+    setCurrentPath(nextPath);
+  }, []);
+
+  useEffect(() => {
+    if (typeof window === 'undefined') return;
+
+    const handlePopState = () => {
+      setCurrentPath(window.location.pathname || '/');
+    };
+
+    window.addEventListener('popstate', handlePopState);
+    return () => window.removeEventListener('popstate', handlePopState);
+  }, []);
+
+  useEffect(() => {
+    const route = parseRoute(currentPath);
+    setCurrentPageState(route.page);
+    setViewingAccountId(route.accountId ?? null);
+
+    if (!route.matched && currentPath !== '/') {
+      navigateToPath('/', true);
+    }
+  }, [currentPath, navigateToPath]);
+
   const warrantPrices = useMemo(() => {
     const resolved: Record<string, number | null> = {};
     warrants.forEach(warrant => {
@@ -273,6 +361,22 @@ const App: React.FC = () => {
 
     return resolved;
   }, [manualWarrantPrices, warrants]);
+
+  const setCurrentPage = useCallback((page: Page) => {
+    const targetPath = pageToPath(page, page === 'AccountDetail' ? viewingAccountId : null);
+    navigateToPath(targetPath);
+    setCurrentPageState(page);
+
+    if (page !== 'AccountDetail') {
+      setViewingAccountId(null);
+    }
+  }, [navigateToPath, viewingAccountId]);
+
+  const handleOpenAccountDetail = useCallback((accountId: string) => {
+    setViewingAccountId(accountId);
+    setCurrentPageState('AccountDetail');
+    navigateToPath(pageToPath('AccountDetail', accountId));
+  }, [navigateToPath]);
 
   // States lifted up for persistence & preference linking
   const [dashboardAccountIds, setDashboardAccountIds] = useState<string[]>([]);
@@ -1468,7 +1572,7 @@ const App: React.FC = () => {
             saveTask={handleSaveTask}
         />;
       case 'Accounts':
-        return <Accounts accounts={accounts} transactions={transactions} saveAccount={handleSaveAccount} deleteAccount={handleDeleteAccount} setCurrentPage={setCurrentPage} setAccountFilter={setAccountFilter} setViewingAccountId={setViewingAccountId} saveTransaction={handleSaveTransaction} accountOrder={accountOrder} setAccountOrder={setAccountOrder} sortBy={accountsSortBy} setSortBy={setAccountsSortBy} warrants={warrants} onToggleAccountStatus={handleToggleAccountStatus} />;
+        return <Accounts accounts={accounts} transactions={transactions} saveAccount={handleSaveAccount} deleteAccount={handleDeleteAccount} setCurrentPage={setCurrentPage} setAccountFilter={setAccountFilter} setViewingAccountId={setViewingAccountId} onViewAccount={handleOpenAccountDetail} saveTransaction={handleSaveTransaction} accountOrder={accountOrder} setAccountOrder={setAccountOrder} sortBy={accountsSortBy} setSortBy={setAccountsSortBy} warrants={warrants} onToggleAccountStatus={handleToggleAccountStatus} />;
       case 'Transactions':
         return <Transactions accountFilter={accountFilter} setAccountFilter={setAccountFilter} tagFilter={tagFilter} setTagFilter={setTagFilter} />;
       case 'Budget':
