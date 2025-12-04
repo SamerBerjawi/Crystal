@@ -13,6 +13,7 @@ import MultiSelectFilter from '../components/MultiSelectFilter';
 import MultiAccountFilter from '../components/MultiAccountFilter';
 import { useAccountsContext, useTransactionsContext } from '../contexts/DomainProviders';
 import { useCategoryContext, useScheduleContext, useTagsContext } from '../contexts/FinancialDataContext';
+import VirtualizedList from '../components/VirtualizedList';
 
 interface TransactionsProps {
   accountFilter: string | null;
@@ -151,9 +152,9 @@ const Transactions: React.FC<TransactionsProps> = ({ accountFilter, setAccountFi
   const contextMenuRef = useRef<HTMLDivElement>(null);
   const [isFiltersExpanded, setIsFiltersExpanded] = useState(false);
 
-  // Pagination state
-  const [currentPage, setCurrentPage] = useState(1);
-  const [itemsPerPage, setItemsPerPage] = useState(50);
+  // Virtualized list sizing
+  const [listHeight, setListHeight] = useState(600);
+  const listContainerRef = useRef<HTMLDivElement>(null);
 
   // Sync with global filters from props
   useEffect(() => {
@@ -194,11 +195,30 @@ const Transactions: React.FC<TransactionsProps> = ({ accountFilter, setAccountFi
     };
   }, []);
 
-  // Reset to first page whenever filters change
   useEffect(() => {
-    setCurrentPage(1);
-  }, [searchTerm, sortBy, typeFilter, startDate, endDate, selectedAccountIds, selectedCategoryNames, selectedTagIds, minAmount, maxAmount, merchantFilter]);
+    const updateHeight = () => {
+      if (!listContainerRef.current) return;
+      const measuredHeight = listContainerRef.current.clientHeight;
+      setListHeight(measuredHeight > 0 ? measuredHeight : 600);
+    };
 
+    updateHeight();
+
+    const resizeObserver = new ResizeObserver(updateHeight);
+    if (listContainerRef.current) {
+      resizeObserver.observe(listContainerRef.current);
+    }
+
+    window.addEventListener('resize', updateHeight);
+
+    return () => {
+      if (listContainerRef.current) {
+        resizeObserver.unobserve(listContainerRef.current);
+      }
+      resizeObserver.disconnect();
+      window.removeEventListener('resize', updateHeight);
+    };
+  }, []);
 
   const allCategories = useMemo(() => [...incomeCategories, ...expenseCategories], [incomeCategories, expenseCategories]);
   const accountMap = useMemo(() => accounts.reduce((map, acc) => { map[acc.id] = acc; return map; }, {} as { [key: string]: Account }), [accounts]);
@@ -347,56 +367,83 @@ const Transactions: React.FC<TransactionsProps> = ({ accountFilter, setAccountFi
 
   }, [searchTerm, sortBy, typeFilter, startDate, endDate, displayTransactions, selectedAccountIds, selectedCategoryNames, selectedTagIds, minAmount, maxAmount, allCategories, accountMapByName, merchantFilter]);
   
-  const paginatedTransactions = useMemo(() => {
-    return filteredTransactions.slice((currentPage - 1) * itemsPerPage, currentPage * itemsPerPage);
-  }, [filteredTransactions, currentPage, itemsPerPage]);
+  type VirtualRow = { type: 'header'; date: string; total: number } | { type: 'transaction'; transaction: DisplayTransaction };
 
-  const totalPages = Math.ceil(filteredTransactions.length / itemsPerPage) || 1;
+  const virtualRows: VirtualRow[] = useMemo(() => {
+    const transactionsByDate = new Map<string, DisplayTransaction[]>();
+    const dateOrder: string[] = [];
 
-  useEffect(() => {
-    setCurrentPage((page) => Math.min(Math.max(1, page), Math.max(1, totalPages)));
-  }, [totalPages]);
+    filteredTransactions.forEach((tx) => {
+      if (!transactionsByDate.has(tx.date)) {
+        dateOrder.push(tx.date);
+        transactionsByDate.set(tx.date, []);
+      }
+      transactionsByDate.get(tx.date)!.push(tx);
+    });
 
-    const groupedTransactions = useMemo(() => {
-        const groups: Record<string, { transactions: DisplayTransaction[]; total: number }> = {};
+    const totalsByDate = new Map<string, number>();
 
-        paginatedTransactions.forEach(tx => {
-            const date = tx.date;
-            if (!groups[date]) {
-                groups[date] = { transactions: [], total: 0 };
-            }
-            groups[date].transactions.push(tx);
-        });
+    dateOrder.forEach((date) => {
+      const txs = transactionsByDate.get(date) || [];
+      let dailyTotal = 0;
 
-        for (const date in groups) {
-            let dailyTotal = 0;
-            groups[date].transactions.forEach(tx => {
-                let amount = tx.amount;
-                let currency = tx.currency;
+      txs.forEach((tx) => {
+        let amount = tx.amount;
+        let currency = tx.currency;
 
-                if (tx.isTransfer) {
-                    const fromAccount = accountMapByName[tx.fromAccountName!];
-                    const toAccount = accountMapByName[tx.toAccountName!];
-                    
-                    if (selectedAccountIds.length === 0) {
-                        amount = 0;
-                    } else if (selectedAccountIds.includes(fromAccount?.id) && !selectedAccountIds.includes(toAccount?.id)) {
-                        amount = -tx.amount;
-                        if (fromAccount) currency = fromAccount.currency;
-                    } else if (!selectedAccountIds.includes(fromAccount?.id) && selectedAccountIds.includes(toAccount?.id)) {
-                        amount = tx.amount;
-                         if (toAccount) currency = toAccount.currency;
-                    } else {
-                        amount = 0;
-                    }
-                }
-                dailyTotal += convertToEur(amount, currency);
-            });
-            groups[date].total = dailyTotal;
+        if (tx.isTransfer) {
+          const fromAccount = accountMapByName[tx.fromAccountName!];
+          const toAccount = accountMapByName[tx.toAccountName!];
+
+          if (selectedAccountIds.length === 0) {
+            amount = 0;
+          } else if (selectedAccountIds.includes(fromAccount?.id) && !selectedAccountIds.includes(toAccount?.id)) {
+            amount = -tx.amount;
+            if (fromAccount) currency = fromAccount.currency;
+          } else if (!selectedAccountIds.includes(fromAccount?.id) && selectedAccountIds.includes(toAccount?.id)) {
+            amount = tx.amount;
+            if (toAccount) currency = toAccount.currency;
+          } else {
+            amount = 0;
+          }
         }
+        dailyTotal += convertToEur(amount, currency);
+      });
 
-        return groups;
-    }, [paginatedTransactions, selectedAccountIds, accounts, accountMapByName]);
+      totalsByDate.set(date, dailyTotal);
+    });
+
+    const rows: VirtualRow[] = [];
+    dateOrder.forEach((date) => {
+      rows.push({ type: 'header', date, total: totalsByDate.get(date) || 0 });
+      const txs = transactionsByDate.get(date) || [];
+      txs.forEach((tx) => rows.push({ type: 'transaction', transaction: tx }));
+    });
+
+    return rows;
+  }, [filteredTransactions, selectedAccountIds, accountMapByName]);
+
+  const getRowSize = useCallback(
+    (index: number) => {
+      const row = virtualRows[index];
+      if (!row) return 72;
+      if (row.type === 'header') return 48;
+
+      const tagCount = row.transaction.tagIds?.length || 0;
+      const extraTagRows = tagCount > 0 ? Math.ceil(tagCount / 3) : 0;
+      return 88 + extraTagRows * 18;
+    },
+    [virtualRows]
+  );
+
+  const getRowKey = useCallback(
+    (index: number) => {
+      const row = virtualRows[index];
+      if (!row) return index;
+      return row.type === 'header' ? `header-${row.date}` : row.transaction.id;
+    },
+    [virtualRows]
+  );
 
   const { totalIncome, totalExpense, netFlow } = useMemo(() => {
     let income = 0;
@@ -415,9 +462,9 @@ const Transactions: React.FC<TransactionsProps> = ({ accountFilter, setAccountFi
   }, [selectedIds]);
 
   const isAllSelected = useMemo(() => {
-      if (paginatedTransactions.length === 0) return false;
-      return paginatedTransactions.every(tx => selectedIds.has(tx.id));
-  }, [paginatedTransactions, selectedIds]);
+      if (filteredTransactions.length === 0) return false;
+      return filteredTransactions.every(tx => selectedIds.has(tx.id));
+  }, [filteredTransactions, selectedIds]);
   
     const selectedTransactions = useMemo(() => {
         const regularTxIds = Array.from(selectedIds).filter((id: string) => !id.startsWith('transfer-'));
@@ -426,7 +473,7 @@ const Transactions: React.FC<TransactionsProps> = ({ accountFilter, setAccountFi
 
   const handleSelectAll = (e: React.ChangeEvent<HTMLInputElement>) => {
     if (e.target.checked) {
-        const allIds = new Set(paginatedTransactions.map(tx => tx.id));
+        const allIds = new Set(filteredTransactions.map(tx => tx.id));
         setSelectedIds(allIds);
     } else {
         setSelectedIds(new Set());
@@ -1079,176 +1126,156 @@ const Transactions: React.FC<TransactionsProps> = ({ accountFilter, setAccountFi
                 </div>
             )}
             
-            <div className="overflow-y-auto flex-grow bg-white dark:bg-dark-card">
-                 {Object.keys(groupedTransactions).length > 0 ? Object.entries(groupedTransactions).map(([date, group]) => {
-                    const typedGroup = group as { transactions: DisplayTransaction[]; total: number };
-                    return (
-                    <div key={date}>
-                        <div className="px-6 py-2 border-b border-black/5 dark:border-white/5 bg-gray-50 dark:bg-black/20 flex justify-between items-center sticky top-0 z-10 backdrop-blur-sm">
-                            <span className="font-bold text-sm text-light-text dark:text-dark-text">{formatGroupDate(date)}</span>
-                            <span className={`font-bold text-sm ${typedGroup.total > 0 ? 'text-green-600 dark:text-green-400' : typedGroup.total < 0 ? 'text-red-600 dark:text-red-400' : 'text-light-text-secondary dark:text-dark-text-secondary'}`}>{formatCurrency(typedGroup.total, 'EUR', { showPlusSign: true })}</span>
+
+            <div
+              ref={listContainerRef}
+              className="flex-grow bg-white dark:bg-dark-card"
+              style={{ height: '60vh', minHeight: '400px' }}
+            >
+              {virtualRows.length > 0 ? (
+                <VirtualizedList
+                  height={listHeight}
+                  itemCount={virtualRows.length}
+                  estimatedItemSize={96}
+                  getItemSize={getRowSize}
+                  itemKey={getRowKey}
+                >
+                  {({ index, style }) => {
+                    const row = virtualRows[index];
+                    if (!row) return null;
+
+                    if (row.type === 'header') {
+                      return (
+                        <div
+                          style={style}
+                          className="px-6 py-2 border-b border-black/5 dark:border-white/5 bg-gray-50 dark:bg-black/20 flex justify-between items-center"
+                        >
+                          <span className="font-bold text-sm text-light-text dark:text-dark-text">{formatGroupDate(row.date)}</span>
+                          <span className={`font-bold text-sm ${row.total > 0 ? 'text-green-600 dark:text-green-400' : row.total < 0 ? 'text-red-600 dark:text-red-400' : 'text-light-text-secondary dark:text-dark-text-secondary'}`}>
+                            {formatCurrency(row.total, 'EUR', { showPlusSign: true })}
+                          </span>
                         </div>
-                        <div className="divide-y divide-black/5 dark:divide-white/5">
-                            {typedGroup.transactions.map(tx => {
-                                let amount = tx.amount;
-                                let amountColor = tx.type === 'income' ? 'text-green-600 dark:text-green-400' : 'text-red-600 dark:text-red-400';
-
-                                if (tx.isTransfer) {
-                                    amountColor = 'text-light-text dark:text-dark-text';
-                                    if (selectedAccountIds.length > 0) {
-                                        const fromAcc = accountMapByName[tx.fromAccountName!];
-                                        const toAcc = accountMapByName[tx.toAccountName!];
-                                        if (selectedAccountIds.includes(fromAcc?.id) && !selectedAccountIds.includes(toAcc?.id)) { amount = -tx.amount; amountColor = 'text-red-600 dark:text-red-400'; } 
-                                        else if (!selectedAccountIds.includes(fromAcc?.id) && selectedAccountIds.includes(toAcc?.id)) { amount = tx.amount; amountColor = 'text-green-600 dark:text-green-400'; }
-                                    }
-                                }
-                                
-                                const categoryDetails = getCategoryDetails(tx.category, allCategories);
-                                const categoryColor = tx.isTransfer ? '#64748B' : (categoryDetails.color || '#A0AEC0');
-                                const categoryIcon = tx.isTransfer ? 'swap_horiz' : (categoryDetails.icon || 'category');
-                                
-                                return (
-                                <div key={tx.id} className="flex items-center group hover:bg-gray-50 dark:hover:bg-white/5 transition-colors px-6 py-3 cursor-default relative" onClick={() => { /* handle row click if needed */ }} onContextMenu={(e) => { e.preventDefault(); setContextMenu({ x: e.clientX, y: e.clientY, transaction: tx }); }}>
-                                  <div className="flex items-center gap-4">
-                                      <input type="checkbox" className={CHECKBOX_STYLE} checked={selectedIds.has(tx.id)} onChange={(e) => { e.stopPropagation(); handleSelectOne(tx.id); }} onClick={e => e.stopPropagation()} aria-label={`Select transaction ${tx.description}`}/>
-                                      <div className={`w-10 h-10 rounded-full flex items-center justify-center text-white shadow-sm shrink-0`} style={{backgroundColor: categoryColor}}>
-                                          <span className="material-symbols-outlined text-[20px]">{categoryIcon}</span>
-                                      </div>
-                                  </div>
-                                  
-                                  <div className="flex-1 grid grid-cols-12 gap-4 items-center ml-4 min-w-0">
-                                    {/* Description & Date (Mobile/Desktop) */}
-                                    <div className="col-span-8 md:col-span-6 lg:col-span-3 min-w-0">
-                                      <p className="font-bold text-light-text dark:text-dark-text truncate text-sm">{tx.description}</p>
-                                      <div className="flex flex-wrap gap-2 text-xs text-light-text-secondary dark:text-dark-text-secondary mt-0.5">
-                                          <span className="md:hidden truncate bg-gray-100 dark:bg-white/10 px-1.5 rounded">{tx.isTransfer ? `${tx.fromAccountName} → ${tx.toAccountName}` : tx.accountName}</span>
-                                          {tx.tagIds && tx.tagIds.length > 0 && (
-                                              <div className="lg:hidden flex flex-wrap gap-1">
-                                                  {tx.tagIds.map(tagId => { 
-                                                      const tag = tags.find(t => t.id === tagId); 
-                                                      if (!tag) return null; 
-                                                      return (<span key={tag.id} className="text-[10px] px-1.5 py-0.5 rounded-full font-medium" style={{ backgroundColor: `${tag.color}20`, color: tag.color }}>#{tag.name}</span>);
-                                                  })}
-                                              </div>
-                                          )}
-                                      </div>
-                                    </div>
-                                    
-                                    {/* Account */}
-                                    <div className="hidden md:flex col-span-2 text-sm text-light-text-secondary dark:text-dark-text-secondary items-center truncate">
-                                        {tx.isTransfer ? ( 
-                                            <div className="flex items-center gap-1 truncate bg-gray-100 dark:bg-white/5 px-2 py-1 rounded-md">
-                                                <span className="truncate max-w-[80px]">{tx.fromAccountName}</span>
-                                                <span className="material-symbols-outlined text-xs opacity-60">arrow_forward</span>
-                                                <span className="truncate max-w-[80px]">{tx.toAccountName}</span>
-                                            </div>
-                                        ) : (
-                                            <span className="truncate">{tx.accountName}</span>
-                                        )}
-                                    </div>
-
-                                    {/* Merchant */}
-                                    <div className="hidden lg:block col-span-2 text-sm text-light-text-secondary dark:text-dark-text-secondary truncate">{tx.merchant || '—'}</div>
-
-                                    {/* Category */}
-                                    <div className="hidden md:block col-span-2 text-sm font-medium text-light-text-secondary dark:text-dark-text-secondary truncate">
-                                        <span className="px-2 py-0.5 rounded-full border border-black/5 dark:border-white/10 bg-white dark:bg-black/20">{tx.category}</span>
-                                    </div>
-
-                                    {/* Tags */}
-                                    <div className="hidden lg:flex col-span-1 flex-wrap gap-1">
-                                        {tx.tagIds?.map(tagId => { 
-                                            const tag = tags.find(t => t.id === tagId); 
-                                            if (!tag) return null; 
-                                            return (
-                                                <span key={tag.id} className="text-[10px] px-1.5 py-0.5 rounded-full font-bold tracking-wide" style={{ backgroundColor: `${tag.color}20`, color: tag.color }} title={tag.name}>
-                                                    {tag.name}
-                                                </span>
-                                            );
-                                        })}
-                                    </div>
-
-                                    {/* Amount */}
-                                    <div className={`col-span-4 md:col-span-2 font-mono font-bold text-right text-sm whitespace-nowrap ${amountColor}`}>
-                                        {tx.isTransfer && selectedAccountIds.length === 0
-                                          ? '-/+ ' + formatCurrency(convertToEur(Math.abs(amount), tx.currency), 'EUR')
-                                          : formatCurrency(convertToEur(amount, tx.currency), 'EUR', { showPlusSign: true })}
-                                    </div>
-                                  </div>
-
-                                  {/* Action Button */}
-                                  <div className="w-8 flex justify-end opacity-0 group-hover:opacity-100 transition-opacity duration-200">
-                                    <button
-                                      className="p-1.5 rounded-full hover:bg-black/10 dark:hover:bg-white/10 text-light-text-secondary dark:text-dark-text-secondary"
-                                      onClick={(e) => {
-                                        e.preventDefault();
-                                        e.stopPropagation();
-                                        setContextMenu({ x: e.clientX, y: e.clientY, transaction: tx });
-                                      }}
-                                      aria-label="Actions"
-                                    >
-                                      <span className="material-symbols-outlined text-xl">more_vert</span>
-                                    </button>
-                                  </div>
-                                </div>
-                                  );
-                              })}
-                          </div>
-                      </div>
                       );
-                  }) : (
-                      <div className="flex flex-col items-center justify-center py-16 text-light-text-secondary dark:text-dark-text-secondary opacity-70">
-                          <span className="material-symbols-outlined text-5xl mb-2">search_off</span>
-                          <p>No transactions match the current filters.</p>
-                      </div>
-                  )}
-            </div>
-            
-            {filteredTransactions.length > 0 && (
-                <div className="px-6 py-3 border-t border-black/5 dark:border-white/5 flex flex-col sm:flex-row justify-between items-center bg-gray-50/50 dark:bg-black/20 flex-shrink-0 gap-4 text-sm">
-                    <div className="flex items-center gap-3 text-light-text-secondary dark:text-dark-text-secondary">
-                        <span>Rows per page:</span>
-                        <div className={`${SELECT_WRAPPER_STYLE} !w-auto`}>
-                            <select 
-                                value={itemsPerPage === Number.MAX_SAFE_INTEGER ? 'all' : itemsPerPage}
-                                onChange={(e) => {
-                                    const val = e.target.value;
-                                    setItemsPerPage(val === 'all' ? Number.MAX_SAFE_INTEGER : Number(val));
-                                    setCurrentPage(1);
-                                }}
-                                className={`${SELECT_STYLE} !py-1 !pl-3 !pr-8 !text-xs !h-8 bg-white dark:bg-dark-card`}
-                            >
-                                <option value="10">10</option>
-                                <option value="25">25</option>
-                                <option value="50">50</option>
-                                <option value="100">100</option>
-                                <option value="all">All</option>
-                            </select>
-                            <div className={`${SELECT_ARROW_STYLE} right-1`}><span className="material-symbols-outlined text-sm">expand_more</span></div>
-                        </div>
-                    </div>
+                    }
 
-                    <div className="flex items-center gap-2">
-                        <span className="text-light-text-secondary dark:text-dark-text-secondary font-medium mr-2">
-                            Page {currentPage} of {totalPages}
-                        </span>
-                        <button
-                            onClick={() => setCurrentPage(p => Math.max(1, p - 1))}
-                            disabled={currentPage === 1}
-                            className="p-1.5 rounded-lg border border-black/10 dark:border-white/10 bg-white dark:bg-dark-card disabled:opacity-50 disabled:cursor-not-allowed hover:bg-gray-50 dark:hover:bg-white/5 transition-colors"
-                        >
-                            <span className="material-symbols-outlined text-lg">chevron_left</span>
-                        </button>
-                        <button
-                            onClick={() => setCurrentPage(p => Math.min(totalPages, p + 1))}
-                            disabled={currentPage === totalPages}
-                            className="p-1.5 rounded-lg border border-black/10 dark:border-white/10 bg-white dark:bg-dark-card disabled:opacity-50 disabled:cursor-not-allowed hover:bg-gray-50 dark:hover:bg-white/5 transition-colors"
-                        >
-                            <span className="material-symbols-outlined text-lg">chevron_right</span>
-                        </button>
-                    </div>
+                    const tx = row.transaction;
+                    let amount = tx.amount;
+                    let amountColor = tx.type === 'income' ? 'text-green-600 dark:text-green-400' : 'text-red-600 dark:text-red-400';
+
+                    if (tx.isTransfer) {
+                      amountColor = 'text-light-text dark:text-dark-text';
+                      if (selectedAccountIds.length > 0) {
+                        const fromAcc = accountMapByName[tx.fromAccountName!];
+                        const toAcc = accountMapByName[tx.toAccountName!];
+                        if (selectedAccountIds.includes(fromAcc?.id) && !selectedAccountIds.includes(toAcc?.id)) { amount = -tx.amount; amountColor = 'text-red-600 dark:text-red-400'; }
+                        else if (!selectedAccountIds.includes(fromAcc?.id) && selectedAccountIds.includes(toAcc?.id)) { amount = tx.amount; amountColor = 'text-green-600 dark:text-green-400'; }
+                      }
+                    }
+
+                    const categoryDetails = getCategoryDetails(tx.category, allCategories);
+                    const categoryColor = tx.isTransfer ? '#64748B' : (categoryDetails.color || '#A0AEC0');
+                    const categoryIcon = tx.isTransfer ? 'swap_horiz' : (categoryDetails.icon || 'category');
+
+                    return (
+                      <div
+                        key={tx.id}
+                        style={style}
+                        className="flex items-center group hover:bg-gray-50 dark:hover:bg-white/5 transition-colors px-6 py-3 cursor-default relative border-b border-black/5 dark:border-white/5"
+                        onClick={() => { /* handle row click if needed */ }}
+                        onContextMenu={(e) => { e.preventDefault(); setContextMenu({ x: e.clientX, y: e.clientY, transaction: tx }); }}
+                      >
+                        <div className="flex items-center gap-4">
+                          <input type="checkbox" className={CHECKBOX_STYLE} checked={selectedIds.has(tx.id)} onChange={(e) => { e.stopPropagation(); handleSelectOne(tx.id); }} onClick={e => e.stopPropagation()} aria-label={`Select transaction ${tx.description}`} />
+                          <div className={`w-10 h-10 rounded-full flex items-center justify-center text-white shadow-sm shrink-0`} style={{ backgroundColor: categoryColor }}>
+                            <span className="material-symbols-outlined text-[20px]">{categoryIcon}</span>
+                          </div>
+                        </div>
+
+                        <div className="flex-1 grid grid-cols-12 gap-4 items-center ml-4 min-w-0">
+                          {/* Description & Date (Mobile/Desktop) */}
+                          <div className="col-span-8 md:col-span-6 lg:col-span-3 min-w-0">
+                            <p className="font-bold text-light-text dark:text-dark-text truncate text-sm">{tx.description}</p>
+                            <div className="flex flex-wrap gap-2 text-xs text-light-text-secondary dark:text-dark-text-secondary mt-0.5">
+                              <span className="md:hidden truncate bg-gray-100 dark:bg-white/10 px-1.5 rounded">{tx.isTransfer ? `${tx.fromAccountName} → ${tx.toAccountName}` : tx.accountName}</span>
+                              {tx.tagIds && tx.tagIds.length > 0 && (
+                                <div className="lg:hidden flex flex-wrap gap-1">
+                                  {tx.tagIds.map(tagId => {
+                                    const tag = tags.find(t => t.id === tagId);
+                                    if (!tag) return null;
+                                    return (<span key={tag.id} className="text-[10px] px-1.5 py-0.5 rounded-full font-medium" style={{ backgroundColor: `${tag.color}20`, color: tag.color }}>#{tag.name}</span>);
+                                  })}
+                                </div>
+                              )}
+                            </div>
+                          </div>
+
+                          {/* Account */}
+                          <div className="hidden md:flex col-span-2 text-sm text-light-text-secondary dark:text-dark-text-secondary items-center truncate">
+                            {tx.isTransfer ? (
+                              <div className="flex items-center gap-1 truncate bg-gray-100 dark:bg-white/5 px-2 py-1 rounded-md">
+                                <span className="truncate max-w-[80px]">{tx.fromAccountName}</span>
+                                <span className="material-symbols-outlined text-xs opacity-60">arrow_forward</span>
+                                <span className="truncate max-w-[80px]">{tx.toAccountName}</span>
+                              </div>
+                            ) : (
+                              <span className="truncate">{tx.accountName}</span>
+                            )}
+                          </div>
+
+                          {/* Merchant */}
+                          <div className="hidden lg:block col-span-2 text-sm text-light-text-secondary dark:text-dark-text-secondary truncate">{tx.merchant || '—'}</div>
+
+                          {/* Category */}
+                          <div className="hidden md:block col-span-2 text-sm font-medium text-light-text-secondary dark:text-dark-text-secondary truncate">
+                            <span className="px-2 py-0.5 rounded-full border border-black/5 dark:border-white/10 bg-white dark:bg-black/20">{tx.category}</span>
+                          </div>
+
+                          {/* Tags */}
+                          <div className="hidden lg:flex col-span-1 flex-wrap gap-1">
+                            {tx.tagIds?.map(tagId => {
+                              const tag = tags.find(t => t.id === tagId);
+                              if (!tag) return null;
+                              return (
+                                <span key={tag.id} className="text-[10px] px-1.5 py-0.5 rounded-full font-bold tracking-wide" style={{ backgroundColor: `${tag.color}20`, color: tag.color }} title={tag.name}>
+                                  {tag.name}
+                                </span>
+                              );
+                            })}
+                          </div>
+
+                          {/* Amount */}
+                          <div className={`col-span-4 md:col-span-2 font-mono font-bold text-right text-sm whitespace-nowrap ${amountColor}`}>
+                            {tx.isTransfer && selectedAccountIds.length === 0
+                              ? '-/+ ' + formatCurrency(convertToEur(Math.abs(amount), tx.currency), 'EUR')
+                              : formatCurrency(convertToEur(amount, tx.currency), 'EUR', { showPlusSign: true })}
+                          </div>
+                        </div>
+
+                        {/* Action Button */}
+                        <div className="w-8 flex justify-end opacity-0 group-hover:opacity-100 transition-opacity duration-200">
+                          <button
+                            className="p-1.5 rounded-full hover:bg-black/10 dark:hover:bg-white/10 text-light-text-secondary dark:text-dark-text-secondary"
+                            onClick={(e) => {
+                              e.preventDefault();
+                              e.stopPropagation();
+                              setContextMenu({ x: e.clientX, y: e.clientY, transaction: tx });
+                            }}
+                            aria-label="Actions"
+                          >
+                            <span className="material-symbols-outlined text-xl">more_vert</span>
+                          </button>
+                        </div>
+                      </div>
+                    );
+                  }}
+                </VirtualizedList>
+              ) : (
+                <div className="flex flex-col items-center justify-center py-16 text-light-text-secondary dark:text-dark-text-secondary opacity-70">
+                  <span className="material-symbols-outlined text-5xl mb-2">search_off</span>
+                  <p>No transactions match the current filters.</p>
                 </div>
-            )}
+              )}
+            </div>
           </Card>
       </div>
     </div>
