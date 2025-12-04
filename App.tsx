@@ -82,6 +82,7 @@ import useLocalStorage from './hooks/useLocalStorage';
 const OnboardingModal = lazy(() => import('./components/OnboardingModal'));
 import { FinancialDataProvider } from './contexts/FinancialDataContext';
 import { AccountsProvider, PreferencesProvider, TransactionsProvider, WarrantsProvider } from './contexts/DomainProviders';
+import { InsightsViewProvider } from './contexts/InsightsViewContext';
 
 const routePathMap: Record<Page, string> = {
   Dashboard: '/',
@@ -1734,70 +1735,76 @@ const App: React.FC = () => {
         transactions={transactionsContextValue}
         warrants={warrantsContextValue}
       >
-      <div className={`flex h-screen bg-light-card dark:bg-dark-card text-light-text dark:text-dark-text font-sans`}>
-        <Sidebar
-          currentPage={currentPage}
-          setCurrentPage={(page) => { setViewingAccountId(null); setCurrentPage(page); }}
-          isSidebarOpen={isSidebarOpen}
-          setSidebarOpen={setSidebarOpen}
-          theme={theme}
-          isSidebarCollapsed={isSidebarCollapsed}
-          setSidebarCollapsed={setSidebarCollapsed}
-          onLogout={handleLogout}
-          user={currentUser!}
-        />
-        <div className="flex-1 flex flex-col overflow-hidden relative z-0">
-          <Header
-            user={currentUser!}
-            setSidebarOpen={setSidebarOpen}
-            theme={theme}
-            setTheme={setTheme}
-            currentPage={currentPage}
-            titleOverride={viewingAccount?.name}
-          />
-          <main className="flex-1 overflow-x-hidden overflow-y-auto p-4 md:p-8 bg-light-bg dark:bg-dark-bg md:rounded-tl-3xl border-l border-t border-black/5 dark:border-white/5 shadow-2xl">
-            <Suspense fallback={<PageLoader />}>
-              {renderPage()}
-            </Suspense>
-          </main>
-        </div>
-
-        {/* AI Chat */}
-        <ChatFab onClick={() => setIsChatOpen(prev => !prev)} />
-        <Suspense fallback={null}>
-          {isChatOpen && (
-            <Chatbot
-              isOpen={isChatOpen}
-              onClose={() => setIsChatOpen(false)}
-              financialData={{
-                accounts,
-                transactions,
-                budgets,
-                financialGoals,
-                recurringTransactions,
-                investmentTransactions,
-              }}
-            />
-          )}
-        </Suspense>
-        <Suspense fallback={null}>
-          {isOnboardingOpen && (
-            <OnboardingModal
-              isOpen={isOnboardingOpen}
-              onClose={handleOnboardingFinish}
+        <InsightsViewProvider
+          accounts={accounts}
+          financialGoals={financialGoals}
+          defaultDuration={preferences.defaultPeriod as Duration}
+        >
+          <div className={`flex h-screen bg-light-card dark:bg-dark-card text-light-text dark:text-dark-text font-sans`}>
+            <Sidebar
+              currentPage={currentPage}
+              setCurrentPage={(page) => { setViewingAccountId(null); setCurrentPage(page); }}
+              isSidebarOpen={isSidebarOpen}
+              setSidebarOpen={setSidebarOpen}
+              theme={theme}
+              isSidebarCollapsed={isSidebarCollapsed}
+              setSidebarCollapsed={setSidebarCollapsed}
+              onLogout={handleLogout}
               user={currentUser!}
-              saveAccount={handleSaveAccount}
-              saveFinancialGoal={handleSaveFinancialGoal}
-              saveRecurringTransaction={handleSaveRecurringTransaction}
-              preferences={preferences}
-              setPreferences={setPreferences}
-              accounts={accounts}
-              incomeCategories={incomeCategories}
-              expenseCategories={expenseCategories}
             />
-          )}
-        </Suspense>
-      </div>
+            <div className="flex-1 flex flex-col overflow-hidden relative z-0">
+              <Header
+                user={currentUser!}
+                setSidebarOpen={setSidebarOpen}
+                theme={theme}
+                setTheme={setTheme}
+                currentPage={currentPage}
+                titleOverride={viewingAccount?.name}
+              />
+              <main className="flex-1 overflow-x-hidden overflow-y-auto p-4 md:p-8 bg-light-bg dark:bg-dark-bg md:rounded-tl-3xl border-l border-t border-black/5 dark:border-white/5 shadow-2xl">
+                <Suspense fallback={<PageLoader />}>
+                  {renderPage()}
+                </Suspense>
+              </main>
+            </div>
+
+            {/* AI Chat */}
+            <ChatFab onClick={() => setIsChatOpen(prev => !prev)} />
+            <Suspense fallback={null}>
+              {isChatOpen && (
+                <Chatbot
+                  isOpen={isChatOpen}
+                  onClose={() => setIsChatOpen(false)}
+                  financialData={{
+                    accounts,
+                    transactions,
+                    budgets,
+                    financialGoals,
+                    recurringTransactions,
+                    investmentTransactions,
+                  }}
+                />
+              )}
+            </Suspense>
+            <Suspense fallback={null}>
+              {isOnboardingOpen && (
+                <OnboardingModal
+                  isOpen={isOnboardingOpen}
+                  onClose={handleOnboardingFinish}
+                  user={currentUser!}
+                  saveAccount={handleSaveAccount}
+                  saveFinancialGoal={handleSaveFinancialGoal}
+                  saveRecurringTransaction={handleSaveRecurringTransaction}
+                  preferences={preferences}
+                  setPreferences={setPreferences}
+                  accounts={accounts}
+                  incomeCategories={incomeCategories}
+                  expenseCategories={expenseCategories}
+                />
+              )}
+            </Suspense>
+          </div>
+        </InsightsViewProvider>
       </FinancialDataProvider>
     </ErrorBoundary>
   );
