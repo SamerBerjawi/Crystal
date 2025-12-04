@@ -88,7 +88,7 @@ const VehicleAccountView: React.FC<VehicleAccountViewProps> = ({
            <div className="flex-shrink-0 relative group">
                 {account.imageUrl ? (
                     <div className="w-40 h-40 lg:w-48 lg:h-48 flex items-center justify-center">
-                        <img src={account.imageUrl} alt="Vehicle" className="max-w-full max-h-full object-contain" />
+                        <img src={account.imageUrl} alt="Vehicle" className="max-w-full max-h-full object-contain" loading="lazy" decoding="async" />
                     </div>
                 ) : (
                     <div className={`w-32 h-32 lg:w-40 lg:h-40 rounded-2xl flex items-center justify-center bg-gradient-to-br from-cyan-500 to-blue-600 text-white shadow-lg`}>

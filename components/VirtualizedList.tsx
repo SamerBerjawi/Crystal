@@ -1,4 +1,5 @@
 import React, { CSSProperties, ReactNode, useCallback, useMemo, useState } from 'react';
+import { useThrottledCallback } from '../hooks/useThrottledCallback';
 
 interface VirtualizedListProps {
   height: number;
@@ -101,10 +102,12 @@ const VirtualizedList: React.FC<VirtualizedListProps> = ({
     );
   }
 
+  const handleScroll = useThrottledCallback((offset: number) => setScrollOffset(offset), 100);
+
   return (
     <div
       style={{ height, width, overflowY: 'auto', position: 'relative' }}
-      onScroll={(e) => setScrollOffset(e.currentTarget.scrollTop)}
+      onScroll={(e) => handleScroll(e.currentTarget.scrollTop)}
     >
       <div style={{ height: measurements.totalSize, position: 'relative' }}>
         {items}

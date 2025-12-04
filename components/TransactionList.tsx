@@ -2,6 +2,7 @@
 import React, { useMemo, useEffect, useRef, useState } from 'react';
 import { Category, DisplayTransaction } from '../types';
 import { formatCurrency, convertToEur, parseDateAsUTC } from '../utils';
+import { useThrottledCallback } from '../hooks/useThrottledCallback';
 
 interface TransactionListProps {
   transactions: DisplayTransaction[];
@@ -54,13 +55,16 @@ const TransactionList: React.FC<TransactionListProps> = ({ transactions, allCate
   const ROW_HEIGHT = 72;
   const OVERSCAN = 8;
 
+  const handleScroll = useThrottledCallback((position: number) => setScrollTop(position), 100);
+  const handleResize = useThrottledCallback((height: number) => setViewportHeight(height), 100);
+
   useEffect(() => {
     const node = containerRef.current;
     if (!node) return;
-    const onScroll = () => setScrollTop(node.scrollTop);
+    const onScroll = () => handleScroll(node.scrollTop);
     const resizeObserver = new ResizeObserver(entries => {
       const entry = entries[0];
-      setViewportHeight(entry.contentRect.height);
+      handleResize(entry.contentRect.height);
     });
     node.addEventListener('scroll', onScroll);
     resizeObserver.observe(node);
@@ -68,7 +72,7 @@ const TransactionList: React.FC<TransactionListProps> = ({ transactions, allCate
       node.removeEventListener('scroll', onScroll);
       resizeObserver.disconnect();
     };
-  }, []);
+  }, [handleResize, handleScroll]);
 
   const startIndex = Math.max(0, Math.floor(scrollTop / ROW_HEIGHT) - OVERSCAN);
   const visibleCount = Math.ceil(viewportHeight / ROW_HEIGHT) + OVERSCAN * 2;
