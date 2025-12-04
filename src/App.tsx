@@ -45,6 +45,34 @@ const Documentation = lazy(loadDocumentation);
 const loadSubscriptionsPage = () => import('./pages/Subscriptions');
 const SubscriptionsPage = lazy(loadSubscriptionsPage);
 
+const pagePathMap: Record<Page, string> = {
+  Dashboard: '/',
+  Accounts: '/accounts',
+  Transactions: '/transactions',
+  Budget: '/budget',
+  Forecasting: '/forecasting',
+  Settings: '/settings',
+  'Schedule & Bills': '/schedule-bills',
+  Categories: '/categories',
+  Tags: '/tags',
+  'Personal Info': '/personal-info',
+  'Data Management': '/data-management',
+  Preferences: '/preferences',
+  Investments: '/investments',
+  Tasks: '/tasks',
+  Warrants: '/warrants',
+  'AI Assistant Settings': '/ai-assistant-settings',
+  Documentation: '/documentation',
+  Subscriptions: '/subscriptions',
+};
+
+const normalizePath = (path: string) => path.replace(/\/+$/, '').toLowerCase() || '/';
+
+const pathToPage = (path: string): Page | null => {
+  const normalizedPath = normalizePath(path);
+  return (Object.entries(pagePathMap).find(([, route]) => route === normalizedPath)?.[0] as Page | undefined) ?? null;
+};
+
 const pagePreloaders = [
   loadDashboard,
   loadAccounts,
@@ -75,7 +103,6 @@ import { v4 as uuidv4 } from 'uuid';
 import ChatFab from './components/ChatFab';
 const Chatbot = lazy(() => import('./components/Chatbot'));
 import { convertToEur, CONVERSION_RATES, arrayToCSV, downloadCSV, parseDateAsUTC } from './utils';
-import { fetchYahooPrices } from './utils/investmentPrices';
 import { useDebounce } from './hooks/useDebounce';
 import { useAuth } from './hooks/useAuth';
 import useLocalStorage from './hooks/useLocalStorage';
@@ -114,6 +141,23 @@ const initialFinancialData: FinancialData = {
         country: 'Belgium',
         defaultForecastPeriod: '1Y',
     },
+};
+
+const shallowEqual = <T extends Record<string, unknown>>(a: T, b: T) => {
+  const aKeys = Object.keys(a);
+  const bKeys = Object.keys(b);
+
+  if (aKeys.length !== bKeys.length) {
+    return false;
+  }
+
+  for (const key of aKeys) {
+    if (!Object.prototype.hasOwnProperty.call(b, key) || !Object.is(a[key], b[key])) {
+      return false;
+    }
+  }
+
+  return true;
 };
 
 const safeLocalStorage = {
@@ -216,7 +260,13 @@ const App: React.FC = () => {
   const [demoUser, setDemoUser] = useState<User | null>(null);
   const [isDataLoaded, setIsDataLoaded] = useState(false);
 
-  const [currentPage, setCurrentPage] = useState<Page>('Dashboard');
+  const [currentPage, setCurrentPage] = useState<Page>(() => {
+    if (typeof window !== 'undefined') {
+      const pageFromPath = pathToPage(window.location.pathname);
+      if (pageFromPath) return pageFromPath;
+    }
+    return 'Dashboard';
+  });
   const [isSidebarOpen, setSidebarOpen] = useState(false);
   const [isSidebarCollapsed, setSidebarCollapsed] = useState(false);
   const [viewingAccountId, setViewingAccountId] = useState<string | null>(null);
@@ -259,20 +309,23 @@ const App: React.FC = () => {
   // State for Warrant prices
   const [manualWarrantPrices, setManualWarrantPrices] = useState<Record<string, number | undefined>>(initialFinancialData.manualWarrantPrices || {});
   const [lastUpdated, setLastUpdated] = useState<Date | null>(null);
-  const [investmentPrices, setInvestmentPrices] = useState<Record<string, number | null>>({});
-
   const warrantPrices = useMemo(() => {
     const resolved: Record<string, number | null> = {};
-    warrants.forEach(warrant => {
-      if (manualWarrantPrices[warrant.isin] !== undefined) {
-        resolved[warrant.isin] = manualWarrantPrices[warrant.isin];
-      } else {
-        resolved[warrant.isin] = null;
+    const symbols = new Set<string>();
+
+    warrants.forEach(warrant => symbols.add(warrant.isin));
+    accounts.forEach(account => {
+      if (account.type === 'Investment' && account.symbol) {
+        symbols.add(account.symbol);
       }
     });
 
+    symbols.forEach(symbol => {
+      resolved[symbol] = manualWarrantPrices[symbol] ?? null;
+    });
+
     return resolved;
-  }, [manualWarrantPrices, warrants]);
+  }, [accounts, manualWarrantPrices, warrants]);
 
   // Onboarding flow state
   const [hasCompletedOnboarding, setHasCompletedOnboarding] = useLocalStorage('crystal-onboarding-complete', false);
@@ -295,6 +348,16 @@ const App: React.FC = () => {
     setCurrentPage('Transactions');
   }, []);
 
+  useEffect(() => {
+    if (typeof window === 'undefined') return;
+    const resolvedPath = pagePathMap[currentPage];
+    const currentPath = normalizePath(window.location.pathname);
+
+    if (resolvedPath && normalizePath(resolvedPath) !== currentPath) {
+      window.history.replaceState(null, '', resolvedPath);
+    }
+  }, [currentPage]);
+
   const clearPendingTransactionFilters = useCallback(() => {
     transactionsViewFilters.current = {};
   }, []);
@@ -306,45 +369,6 @@ const App: React.FC = () => {
           setPreferences(prev => ({ ...prev, timezone: deviceTimezone }));
       }
   }, [preferences.timezone]);
-
-  // Create a ref for accounts to avoid circular dependencies in the refresh callback
-  const accountsRef = useRef(accounts);
-  useEffect(() => {
-    accountsRef.current = accounts;
-  }, [accounts]);
-
-  // Create a stable signature for investment accounts to only trigger refetch when symbols change
-  const investmentSymbolsSignature = useMemo(() => {
-    return accounts
-      .filter(a => a.type === 'Investment' && a.symbol)
-      .map(a => `${a.symbol}:${a.subType}`)
-      .sort()
-      .join('|');
-  }, [accounts]);
-
-  const refreshInvestmentPrices = useCallback(async () => {
-    if (typeof window === 'undefined') return;
-    
-    // Use ref to get current accounts without adding 'accounts' to dependency array
-    const currentAccounts = accountsRef.current;
-
-    const investmentAccountsWithSymbols = currentAccounts
-      .filter(acc => acc.type === 'Investment' && acc.symbol)
-      .filter(acc => !warrants.some(w => w.isin === acc.symbol));
-
-    if (investmentAccountsWithSymbols.length === 0) {
-      setInvestmentPrices({});
-      return;
-    }
-
-    const targets = investmentAccountsWithSymbols.map(acc => ({
-      symbol: acc.symbol as string,
-      subType: acc.subType,
-    }));
-
-    const prices = await fetchYahooPrices(targets);
-    setInvestmentPrices(prices);
-  }, [warrants]); // warrants is stable enough or relevant
 
   const warrantHoldingsBySymbol = useMemo(() => {
     const holdings: Record<string, number> = {};
@@ -376,16 +400,6 @@ const App: React.FC = () => {
             return { ...account, balance: calculatedBalance };
         }
       }
-      if (account.symbol && account.type === 'Investment' && investmentPrices[account.symbol] !== undefined) {
-        const price = investmentPrices[account.symbol];
-        const quantity = warrantHoldingsBySymbol[account.symbol] || 0;
-        const calculatedBalance = price !== null ? quantity * price : 0;
-
-        if (Math.abs((account.balance || 0) - calculatedBalance) > 0.0001) {
-            hasChanges = true;
-            return { ...account, balance: calculatedBalance };
-        }
-      }
       return account;
     });
 
@@ -393,15 +407,7 @@ const App: React.FC = () => {
         setAccounts(updatedAccounts);
     }
   // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [warrantPrices, investmentPrices, warrantHoldingsBySymbol]);
-
-  useEffect(() => {
-    refreshInvestmentPrices();
-    if (typeof window === 'undefined') return;
-    const intervalId = window.setInterval(refreshInvestmentPrices, 5 * 60 * 1000);
-    return () => window.clearInterval(intervalId);
-  // Include investmentSymbolsSignature to trigger update only when symbols actually change
-  }, [refreshInvestmentPrices, investmentSymbolsSignature]);
+  }, [warrantPrices, warrantHoldingsBySymbol]);
 
   const loadAllFinancialData = useCallback((data: FinancialData | null, options?: { skipNextSave?: boolean }) => {
     const dataToLoad = data || initialFinancialData;
@@ -417,7 +423,8 @@ const App: React.FC = () => {
     setWarrants(dataToLoad.warrants || []);
     setImportExportHistory(dataToLoad.importExportHistory || []);
     setBillsAndPayments(dataToLoad.billsAndPayments || []);
-    setManualWarrantPrices(dataToLoad.manualWarrantPrices || {});
+    const manualPrices = dataToLoad.manualWarrantPrices || {};
+    setManualWarrantPrices(prev => (shallowEqual(prev, manualPrices) ? prev : manualPrices));
     // FIX: Add `tags` to the data loading logic.
     setTags(dataToLoad.tags || []);
     setIncomeCategories(dataToLoad.incomeCategories && dataToLoad.incomeCategories.length > 0 ? dataToLoad.incomeCategories : MOCK_INCOME_CATEGORIES);
@@ -1148,7 +1155,7 @@ const App: React.FC = () => {
       setManualWarrantPrices(prev => {
         const updated = { ...prev };
         delete updated[targetIsin];
-        return updated;
+        return shallowEqual(prev, updated) ? prev : updated;
       });
     }
   };
@@ -1161,7 +1168,7 @@ const App: React.FC = () => {
       } else {
         updated[isin] = price;
       }
-      return updated;
+      return shallowEqual(prev, updated) ? prev : updated;
     });
     setLastUpdated(new Date());
   };
