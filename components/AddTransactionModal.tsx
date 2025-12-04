@@ -5,7 +5,7 @@ import { Account, Category, Transaction, Tag } from '../types';
 import { INPUT_BASE_STYLE, BTN_PRIMARY_STYLE, BTN_SECONDARY_STYLE, SELECT_WRAPPER_STYLE, SELECT_ARROW_STYLE, CHECKBOX_STYLE, ALL_ACCOUNT_TYPES } from '../constants';
 import { v4 as uuidv4 } from 'uuid';
 import LocationAutocomplete from './LocationAutocomplete';
-import { toLocalISOString } from '../utils';
+import { toLocalISOString, formatCurrency } from '../utils';
 
 interface AddTransactionModalProps {
   onClose: () => void;
@@ -102,6 +102,10 @@ const AddTransactionModal: React.FC<AddTransactionModalProps> = ({ onClose, onSa
   // Loan payment split state
   const [principalPayment, setPrincipalPayment] = useState('');
   const [interestPayment, setInterestPayment] = useState('');
+  
+  // Spare Change State
+  const [enableRoundUp, setEnableRoundUp] = useState(false);
+  const [roundUpBehavior, setRoundUpBehavior] = useState<'skip' | 'unit'>('skip');
 
   const isLoanPayment = useMemo(() => {
     const targetAccountId = type === 'income' ? toAccountId : (type === 'transfer' ? toAccountId : null);
@@ -109,6 +113,37 @@ const AddTransactionModal: React.FC<AddTransactionModalProps> = ({ onClose, onSa
     const targetAccount = accounts.find(a => a.id === targetAccountId);
     return targetAccount?.type === 'Loan';
   }, [type, toAccountId, accounts]);
+
+  // Detect linked spare change account
+  const linkedSpareChangeAccount = useMemo(() => {
+    if (type !== 'expense' || !fromAccountId) return null;
+    // Find an account that is type Investment, subType Spare Change, and linked to the current From account
+    return accounts.find(a => 
+        a.type === 'Investment' && 
+        a.subType === 'Spare Change' && 
+        a.linkedAccountId === fromAccountId
+    );
+  }, [accounts, fromAccountId, type]);
+
+  // Calculate Round Up
+  const roundUpAmount = useMemo(() => {
+      const val = parseFloat(amount);
+      if (isNaN(val) || val <= 0) return 0;
+      
+      // Logic: 3.82 -> ceil is 4.00. Diff is 0.18.
+      // Logic: 4.00 -> ceil is 4.00. Diff is 0.
+      
+      const remainder = val % 1;
+      // Floating point correction
+      const cleanRemainder = parseFloat(remainder.toFixed(2));
+      
+      if (cleanRemainder === 0) {
+          return roundUpBehavior === 'unit' ? 1.00 : 0;
+      }
+      
+      return 1.00 - cleanRemainder;
+  }, [amount, roundUpBehavior]);
+
 
   // Auto-calculate principal and interest for loan payments
   useEffect(() => {
@@ -237,6 +272,7 @@ const AddTransactionModal: React.FC<AddTransactionModalProps> = ({ onClose, onSa
         setTagIds([]);
         setLocationString('');
         setLocationData({});
+        setEnableRoundUp(false);
     }
   }, [transactionToEdit, isEditing, accounts, transactions, initialType, initialFromAccountId, initialToAccountId, initialDetails, defaultAccountId, initialCategory]);
   
@@ -395,6 +431,37 @@ const AddTransactionModal: React.FC<AddTransactionModalProps> = ({ onClose, onSa
         }
 
         toSave.push(transactionData);
+        
+        // Handle Round Up Transfer if enabled
+        if (type === 'expense' && linkedSpareChangeAccount && enableRoundUp && roundUpAmount > 0) {
+             const spareChangeTransferId = `spare-${uuidv4()}`;
+             
+             const spareExpenseTx: Omit<Transaction, 'id'> = {
+                accountId: fromAccountId,
+                date,
+                description: `Spare change for ${description || 'Transaction'}`,
+                merchant: 'Round Up',
+                amount: -Math.abs(roundUpAmount),
+                category: 'Transfer',
+                type: 'expense',
+                currency: selectedAccount.currency,
+                transferId: spareChangeTransferId,
+            };
+
+            const spareIncomeTx: Omit<Transaction, 'id'> = {
+                accountId: linkedSpareChangeAccount.id,
+                date,
+                description: `Spare change from ${description || 'Transaction'}`,
+                merchant: 'Round Up',
+                amount: Math.abs(roundUpAmount),
+                category: 'Transfer',
+                type: 'income',
+                currency: linkedSpareChangeAccount.currency,
+                transferId: spareChangeTransferId,
+            };
+            
+            toSave.push(spareExpenseTx, spareIncomeTx);
+        }
     }
     
     onSave(toSave, toDelete);
@@ -479,6 +546,44 @@ const AddTransactionModal: React.FC<AddTransactionModalProps> = ({ onClose, onSa
               <input id="tx-date" type="date" value={date} onChange={e => setDate(e.target.value)} className={INPUT_BASE_STYLE} required />
             </div>
         </div>
+        
+        {/* Spare Change / Round Up UI */}
+        {type === 'expense' && linkedSpareChangeAccount && (
+            <div className="bg-blue-50 dark:bg-blue-900/20 p-3 rounded-lg border border-blue-100 dark:border-blue-800/30">
+                <div className="flex items-center justify-between">
+                    <label className="flex items-center gap-2 cursor-pointer">
+                        <input 
+                            type="checkbox" 
+                            checked={enableRoundUp} 
+                            onChange={e => setEnableRoundUp(e.target.checked)} 
+                            className={CHECKBOX_STYLE} 
+                        />
+                        <span className="text-sm font-medium text-light-text dark:text-dark-text">
+                            Round up to {linkedSpareChangeAccount.name}
+                        </span>
+                    </label>
+                    <span className="font-bold font-mono text-blue-600 dark:text-blue-400">
+                        {formatCurrency(roundUpAmount, 'EUR')}
+                    </span>
+                </div>
+                {enableRoundUp && (
+                     <div className="mt-2 pt-2 border-t border-blue-200 dark:border-blue-800/50 text-xs flex items-center gap-2 text-light-text-secondary dark:text-dark-text-secondary">
+                        <span>On exact amounts:</span>
+                        <div className={SELECT_WRAPPER_STYLE + ' w-auto'}>
+                             <select 
+                                value={roundUpBehavior} 
+                                onChange={e => setRoundUpBehavior(e.target.value as 'skip' | 'unit')} 
+                                className={`${INPUT_BASE_STYLE} !h-7 !py-0 !text-xs !pl-2 !pr-6`}
+                             >
+                                <option value="skip">Transfer €0.00</option>
+                                <option value="unit">Transfer €1.00</option>
+                            </select>
+                             <div className={SELECT_ARROW_STYLE + ' right-1'}><span className="material-symbols-outlined text-sm">expand_more</span></div>
+                        </div>
+                     </div>
+                )}
+            </div>
+        )}
         
         {isLoanPayment && (
             <div className="p-4 bg-black/5 dark:bg-white/5 rounded-lg space-y-2">
