@@ -45,6 +45,34 @@ const Documentation = lazy(loadDocumentation);
 const loadSubscriptionsPage = () => import('./pages/Subscriptions');
 const SubscriptionsPage = lazy(loadSubscriptionsPage);
 
+const pagePathMap: Record<Page, string> = {
+  Dashboard: '/',
+  Accounts: '/accounts',
+  Transactions: '/transactions',
+  Budget: '/budget',
+  Forecasting: '/forecasting',
+  Settings: '/settings',
+  'Schedule & Bills': '/schedule-bills',
+  Categories: '/categories',
+  Tags: '/tags',
+  'Personal Info': '/personal-info',
+  'Data Management': '/data-management',
+  Preferences: '/preferences',
+  Investments: '/investments',
+  Tasks: '/tasks',
+  Warrants: '/warrants',
+  'AI Assistant Settings': '/ai-assistant-settings',
+  Documentation: '/documentation',
+  Subscriptions: '/subscriptions',
+};
+
+const normalizePath = (path: string) => path.replace(/\/+$/, '').toLowerCase() || '/';
+
+const pathToPage = (path: string): Page | null => {
+  const normalizedPath = normalizePath(path);
+  return (Object.entries(pagePathMap).find(([, route]) => route === normalizedPath)?.[0] as Page | undefined) ?? null;
+};
+
 const pagePreloaders = [
   loadDashboard,
   loadAccounts,
@@ -75,7 +103,6 @@ import { v4 as uuidv4 } from 'uuid';
 import ChatFab from './components/ChatFab';
 const Chatbot = lazy(() => import('./components/Chatbot'));
 import { convertToEur, CONVERSION_RATES, arrayToCSV, downloadCSV, parseDateAsUTC } from './utils';
-import { fetchYahooPrices } from './utils/investmentPrices';
 import { useDebounce } from './hooks/useDebounce';
 import { useAuth } from './hooks/useAuth';
 import useLocalStorage from './hooks/useLocalStorage';
@@ -83,57 +110,6 @@ const OnboardingModal = lazy(() => import('./components/OnboardingModal'));
 import { FinancialDataProvider } from './contexts/FinancialDataContext';
 import { AccountsProvider, PreferencesProvider, TransactionsProvider, WarrantsProvider } from './contexts/DomainProviders';
 import { InsightsViewProvider } from './contexts/InsightsViewContext';
-
-const routePathMap: Record<Page, string> = {
-  Dashboard: '/',
-  Accounts: '/accounts',
-  Transactions: '/transactions',
-  Budget: '/budget',
-  Forecasting: '/forecasting',
-  Settings: '/settings',
-  'Schedule & Bills': '/schedule',
-  Tasks: '/tasks',
-  Categories: '/categories',
-  Tags: '/tags',
-  'Personal Info': '/personal-info',
-  'Data Management': '/data-management',
-  Preferences: '/preferences',
-  AccountDetail: '/accounts',
-  Investments: '/investments',
-  Warrants: '/warrants',
-  Documentation: '/documentation',
-  'AI Assistant': '/ai-assistant',
-  Subscriptions: '/subscriptions',
-};
-
-type RouteInfo = { page: Page; matched: boolean; accountId?: string | null };
-
-const parseRoute = (pathname: string): RouteInfo => {
-  const rawPath = pathname.split('?')[0] || '/';
-  const normalizedPath = rawPath !== '/' && rawPath.endsWith('/') ? rawPath.slice(0, -1) : rawPath;
-  const accountMatch = normalizedPath.match(/^\/accounts\/([^/]+)$/);
-
-  if (accountMatch?.[1]) {
-    return { page: 'AccountDetail', matched: true, accountId: decodeURIComponent(accountMatch[1]) };
-  }
-
-  const matchedPage = (Object.entries(routePathMap) as [Page, string][])
-    .find(([, path]) => path === normalizedPath)?.[0];
-
-  if (matchedPage) {
-    return { page: matchedPage, matched: true, accountId: null };
-  }
-
-  return { page: 'Dashboard', matched: false, accountId: null };
-};
-
-const pageToPath = (page: Page, accountId?: string | null) => {
-  if (page === 'AccountDetail' && accountId) {
-    return `/accounts/${encodeURIComponent(accountId)}`;
-  }
-
-  return routePathMap[page] || '/';
-};
 
 const initialFinancialData: FinancialData = {
     accounts: [],
@@ -165,6 +141,23 @@ const initialFinancialData: FinancialData = {
         country: 'Belgium',
         defaultForecastPeriod: '1Y',
     },
+};
+
+const shallowEqual = <T extends Record<string, unknown>>(a: T, b: T) => {
+  const aKeys = Object.keys(a);
+  const bKeys = Object.keys(b);
+
+  if (aKeys.length !== bKeys.length) {
+    return false;
+  }
+
+  for (const key of aKeys) {
+    if (!Object.prototype.hasOwnProperty.call(b, key) || !Object.is(a[key], b[key])) {
+      return false;
+    }
+  }
+
+  return true;
 };
 
 const safeLocalStorage = {
@@ -261,21 +254,22 @@ class ErrorBoundary extends Component<ErrorBoundaryProps, ErrorBoundaryState> {
 
 // FIX: Changed to a default export to align with the import in index.tsx and fix the module resolution error.
 const App: React.FC = () => {
-  const initialPath = typeof window !== 'undefined' ? window.location.pathname : '/';
-  const initialRoute = parseRoute(initialPath);
-
   const { user, setUser, token, isAuthenticated, isLoading: isAuthLoading, error: authError, signIn, signUp, signOut, checkAuthStatus, setError: setAuthError, changePassword } = useAuth();
   const [authPage, setAuthPage] = useState<'signIn' | 'signUp'>('signIn');
   const [isDemoMode, setIsDemoMode] = useState(false);
   const [demoUser, setDemoUser] = useState<User | null>(null);
   const [isDataLoaded, setIsDataLoaded] = useState(false);
 
-  const [currentPath, setCurrentPath] = useState(initialPath);
-  const [currentPage, setCurrentPageState] = useState<Page>(initialRoute.page);
+  const [currentPage, setCurrentPage] = useState<Page>(() => {
+    if (typeof window !== 'undefined') {
+      const pageFromPath = pathToPage(window.location.pathname);
+      if (pageFromPath) return pageFromPath;
+    }
+    return 'Dashboard';
+  });
   const [isSidebarOpen, setSidebarOpen] = useState(false);
   const [isSidebarCollapsed, setSidebarCollapsed] = useState(false);
-  const [accountFilter, setAccountFilter] = useState<string | null>(null);
-  const [viewingAccountId, setViewingAccountId] = useState<string | null>(initialRoute.accountId ?? null);
+  const [viewingAccountId, setViewingAccountId] = useState<string | null>(null);
   const [theme, setTheme] = useState<Theme>(() => {
     const storedTheme = safeLocalStorage.getItem('theme');
     return storedTheme === 'light' || storedTheme === 'dark' || storedTheme === 'system' ? storedTheme : 'system';
@@ -305,9 +299,9 @@ const App: React.FC = () => {
   const restoreInProgressRef = useRef(false);
   const dirtySlicesRef = useRef<Set<keyof FinancialData>>(new Set());
   const [dirtySignal, setDirtySignal] = useState(0);
-  const [tagFilter, setTagFilter] = useState<string | null>(null);
   const [accountOrder, setAccountOrder] = useLocalStorage<string[]>('crystal-account-order', []);
   const [taskOrder, setTaskOrder] = useLocalStorage<string[]>('crystal-task-order', []);
+  const transactionsViewFilters = useRef<{ accountName?: string | null; tagId?: string | null }>({});
   
   // State for AI Chat
   const [isChatOpen, setIsChatOpen] = useState(false);
@@ -315,75 +309,23 @@ const App: React.FC = () => {
   // State for Warrant prices
   const [manualWarrantPrices, setManualWarrantPrices] = useState<Record<string, number | undefined>>(initialFinancialData.manualWarrantPrices || {});
   const [lastUpdated, setLastUpdated] = useState<Date | null>(null);
-  const [investmentPrices, setInvestmentPrices] = useState<Record<string, number | null>>({});
-
-  const navigateToPath = useCallback((path: string, replace = false) => {
-    if (typeof window === 'undefined') return;
-
-    const nextPath = path || '/';
-    if (replace) {
-      window.history.replaceState(null, '', nextPath);
-    } else {
-      window.history.pushState(null, '', nextPath);
-    }
-    setCurrentPath(nextPath);
-  }, []);
-
-  useEffect(() => {
-    if (typeof window === 'undefined') return;
-
-    const handlePopState = () => {
-      setCurrentPath(window.location.pathname || '/');
-    };
-
-    window.addEventListener('popstate', handlePopState);
-    return () => window.removeEventListener('popstate', handlePopState);
-  }, []);
-
-  useEffect(() => {
-    const route = parseRoute(currentPath);
-    setCurrentPageState(route.page);
-    setViewingAccountId(route.accountId ?? null);
-
-    if (!route.matched && currentPath !== '/') {
-      navigateToPath('/', true);
-    }
-  }, [currentPath, navigateToPath]);
-
   const warrantPrices = useMemo(() => {
     const resolved: Record<string, number | null> = {};
-    warrants.forEach(warrant => {
-      if (manualWarrantPrices[warrant.isin] !== undefined) {
-        resolved[warrant.isin] = manualWarrantPrices[warrant.isin];
-      } else {
-        resolved[warrant.isin] = null;
+    const symbols = new Set<string>();
+
+    warrants.forEach(warrant => symbols.add(warrant.isin));
+    accounts.forEach(account => {
+      if (account.type === 'Investment' && account.symbol) {
+        symbols.add(account.symbol);
       }
     });
 
+    symbols.forEach(symbol => {
+      resolved[symbol] = manualWarrantPrices[symbol] ?? null;
+    });
+
     return resolved;
-  }, [manualWarrantPrices, warrants]);
-
-  const setCurrentPage = useCallback((page: Page) => {
-    const targetPath = pageToPath(page, page === 'AccountDetail' ? viewingAccountId : null);
-    navigateToPath(targetPath);
-    setCurrentPageState(page);
-
-    if (page !== 'AccountDetail') {
-      setViewingAccountId(null);
-    }
-  }, [navigateToPath, viewingAccountId]);
-
-  const handleOpenAccountDetail = useCallback((accountId: string) => {
-    setViewingAccountId(accountId);
-    setCurrentPageState('AccountDetail');
-    navigateToPath(pageToPath('AccountDetail', accountId));
-  }, [navigateToPath]);
-
-  // States lifted up for persistence & preference linking
-  const [dashboardAccountIds, setDashboardAccountIds] = useState<string[]>([]);
-  const [activeGoalIds, setActiveGoalIds] = useState<string[]>([]);
-  const [dashboardDuration, setDashboardDuration] = useState<Duration>(preferences.defaultPeriod as Duration);
-  const [accountsSortBy, setAccountsSortBy] = useState<'name' | 'balance' | 'manual'>(preferences.defaultAccountOrder);
+  }, [accounts, manualWarrantPrices, warrants]);
 
   // Onboarding flow state
   const [hasCompletedOnboarding, setHasCompletedOnboarding] = useLocalStorage('crystal-onboarding-complete', false);
@@ -397,6 +339,28 @@ const App: React.FC = () => {
       setDirtySignal(signal => signal + 1);
     }
   }, []);
+
+  const navigateToTransactions = useCallback((filters?: { accountName?: string | null; tagId?: string | null }) => {
+    transactionsViewFilters.current = {
+      accountName: filters?.accountName ?? null,
+      tagId: filters?.tagId ?? null,
+    };
+    setCurrentPage('Transactions');
+  }, []);
+
+  useEffect(() => {
+    if (typeof window === 'undefined') return;
+    const resolvedPath = pagePathMap[currentPage];
+    const currentPath = normalizePath(window.location.pathname);
+
+    if (resolvedPath && normalizePath(resolvedPath) !== currentPath) {
+      window.history.replaceState(null, '', resolvedPath);
+    }
+  }, [currentPage]);
+
+  const clearPendingTransactionFilters = useCallback(() => {
+    transactionsViewFilters.current = {};
+  }, []);
   
   useEffect(() => {
       // Always sync app preference to device timezone on load to prevent "tomorrow/yesterday" bugs
@@ -405,70 +369,6 @@ const App: React.FC = () => {
           setPreferences(prev => ({ ...prev, timezone: deviceTimezone }));
       }
   }, [preferences.timezone]);
-
-  useEffect(() => {
-    // Set default dashboard account filter only on initial load
-    if (accounts.length > 0 && dashboardAccountIds.length === 0) {
-        // Select all primary accounts
-        const primaryAccounts = accounts.filter(a => a.isPrimary);
-        if (primaryAccounts.length > 0) {
-            setDashboardAccountIds(primaryAccounts.map(a => a.id));
-        } else {
-            // Fallback: Select the first open account if no primary accounts exist
-            const openAccounts = accounts.filter(a => a.status !== 'closed');
-            const fallbackAccount = (openAccounts.length > 0 ? openAccounts : accounts)[0];
-            if (fallbackAccount) {
-                setDashboardAccountIds([fallbackAccount.id]);
-            }
-        }
-    }
-  }, [accounts, dashboardAccountIds.length]);
-  
-  useEffect(() => {
-    // Set default active goals only on initial load
-    if (financialGoals.length > 0 && activeGoalIds.length === 0) {
-        setActiveGoalIds(financialGoals.map(g => g.id));
-    }
-  }, [financialGoals, activeGoalIds.length]);
-
-  // Create a ref for accounts to avoid circular dependencies in the refresh callback
-  const accountsRef = useRef(accounts);
-  useEffect(() => {
-    accountsRef.current = accounts;
-  }, [accounts]);
-
-  // Create a stable signature for investment accounts to only trigger refetch when symbols change
-  const investmentSymbolsSignature = useMemo(() => {
-    return accounts
-      .filter(a => a.type === 'Investment' && a.symbol)
-      .map(a => `${a.symbol}:${a.subType}`)
-      .sort()
-      .join('|');
-  }, [accounts]);
-
-  const refreshInvestmentPrices = useCallback(async () => {
-    if (typeof window === 'undefined') return;
-    
-    // Use ref to get current accounts without adding 'accounts' to dependency array
-    const currentAccounts = accountsRef.current;
-
-    const investmentAccountsWithSymbols = currentAccounts
-      .filter(acc => acc.type === 'Investment' && acc.symbol)
-      .filter(acc => !warrants.some(w => w.isin === acc.symbol));
-
-    if (investmentAccountsWithSymbols.length === 0) {
-      setInvestmentPrices({});
-      return;
-    }
-
-    const targets = investmentAccountsWithSymbols.map(acc => ({
-      symbol: acc.symbol as string,
-      subType: acc.subType,
-    }));
-
-    const prices = await fetchYahooPrices(targets);
-    setInvestmentPrices(prices);
-  }, [warrants]); // warrants is stable enough or relevant
 
   const warrantHoldingsBySymbol = useMemo(() => {
     const holdings: Record<string, number> = {};
@@ -500,16 +400,6 @@ const App: React.FC = () => {
             return { ...account, balance: calculatedBalance };
         }
       }
-      if (account.symbol && account.type === 'Investment' && investmentPrices[account.symbol] !== undefined) {
-        const price = investmentPrices[account.symbol];
-        const quantity = warrantHoldingsBySymbol[account.symbol] || 0;
-        const calculatedBalance = price !== null ? quantity * price : 0;
-
-        if (Math.abs((account.balance || 0) - calculatedBalance) > 0.0001) {
-            hasChanges = true;
-            return { ...account, balance: calculatedBalance };
-        }
-      }
       return account;
     });
 
@@ -517,15 +407,7 @@ const App: React.FC = () => {
         setAccounts(updatedAccounts);
     }
   // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [warrantPrices, investmentPrices, warrantHoldingsBySymbol]);
-
-  useEffect(() => {
-    refreshInvestmentPrices();
-    if (typeof window === 'undefined') return;
-    const intervalId = window.setInterval(refreshInvestmentPrices, 5 * 60 * 1000);
-    return () => window.clearInterval(intervalId);
-  // Include investmentSymbolsSignature to trigger update only when symbols actually change
-  }, [refreshInvestmentPrices, investmentSymbolsSignature]);
+  }, [warrantPrices, warrantHoldingsBySymbol]);
 
   const loadAllFinancialData = useCallback((data: FinancialData | null, options?: { skipNextSave?: boolean }) => {
     const dataToLoad = data || initialFinancialData;
@@ -541,7 +423,8 @@ const App: React.FC = () => {
     setWarrants(dataToLoad.warrants || []);
     setImportExportHistory(dataToLoad.importExportHistory || []);
     setBillsAndPayments(dataToLoad.billsAndPayments || []);
-    setManualWarrantPrices(dataToLoad.manualWarrantPrices || {});
+    const manualPrices = dataToLoad.manualWarrantPrices || {};
+    setManualWarrantPrices(prev => (shallowEqual(prev, manualPrices) ? prev : manualPrices));
     // FIX: Add `tags` to the data loading logic.
     setTags(dataToLoad.tags || []);
     setIncomeCategories(dataToLoad.incomeCategories && dataToLoad.incomeCategories.length > 0 ? dataToLoad.incomeCategories : MOCK_INCOME_CATEGORIES);
@@ -844,18 +727,9 @@ const App: React.FC = () => {
 
     const dirtySlices = new Set(dirtySlicesRef.current);
     const persistDirtySlices = async () => {
-      const payload = buildDirtyPayload(dirtySlices);
-      const payloadSignature = JSON.stringify(payload);
-
-      if (payloadSignature === lastSavedSignatureRef.current) {
-        dirtySlicesRef.current.clear();
-        return;
-      }
-
-      const succeeded = await saveData(payload);
+      const succeeded = await saveData(buildDirtyPayload(dirtySlices));
       if (succeeded) {
         dirtySlices.forEach(slice => dirtySlicesRef.current.delete(slice));
-        lastSavedSignatureRef.current = payloadSignature;
       }
     };
 
@@ -868,34 +742,17 @@ const App: React.FC = () => {
     }
 
     const handleBeforeUnload = () => {
-      if (!isDataLoaded || dirtySlicesRef.current.size === 0) {
+      if (!isDataLoaded) {
         return;
       }
-
-      const dirtySlices = new Set(dirtySlicesRef.current);
-      const payload = buildDirtyPayload(dirtySlices);
-      const payloadSignature = JSON.stringify(payload);
-
-      if (payloadSignature === lastSavedSignatureRef.current) {
-        return;
-      }
-
-      saveData(payload, { keepalive: true, suppressErrors: true })
-        .then(succeeded => {
-          if (succeeded) {
-            lastSavedSignatureRef.current = payloadSignature;
-          }
-        })
-        .catch(() => {
-          // Avoid blocking the unload flow on errors
-        });
+      saveData(latestDataRef.current, { keepalive: true, suppressErrors: true });
     };
 
     window.addEventListener('beforeunload', handleBeforeUnload);
     return () => {
       window.removeEventListener('beforeunload', handleBeforeUnload);
     };
-  }, [buildDirtyPayload, isAuthenticated, isDataLoaded, isDemoMode, saveData]);
+  }, [isAuthenticated, isDataLoaded, isDemoMode, saveData]);
   
   // Keep accountOrder in sync with accounts list
   useEffect(() => {
@@ -1036,20 +893,14 @@ const App: React.FC = () => {
       );
     }
     setBillsAndPayments(prev => prev.filter(bill => bill.accountId !== accountId));
-    setDashboardAccountIds(prev => prev.filter(id => id !== accountId));
 
     if (viewingAccountId === accountId) {
       setViewingAccountId(null);
       setCurrentPage('Accounts');
     }
-
-    if (accountToDelete && accountFilter === accountToDelete.name) {
-      setAccountFilter(null);
-    }
   }, [
     accounts,
     recurringTransactions,
-    accountFilter,
     viewingAccountId,
     setCurrentPage,
   ]);
@@ -1229,11 +1080,6 @@ const App: React.FC = () => {
     } else {
       const newGoal: FinancialGoal = { ...goalData, id: `goal-${uuidv4()}` } as FinancialGoal;
       setFinancialGoals((prev) => [...prev, newGoal]);
-  
-      // FIX: If a new sub-goal is created and its parent is active, make the new goal active too.
-      if (newGoal.parentId && activeGoalIds.includes(newGoal.parentId)) {
-        setActiveGoalIds((prev) => [...prev, newGoal.id]);
-      }
     }
   };
 
@@ -1246,9 +1092,8 @@ const App: React.FC = () => {
       const childIds = financialGoals.filter((g) => g.parentId === id).map((g) => g.id);
       idsToDelete.push(...childIds);
     }
-  
+
     setFinancialGoals((prev) => prev.filter((g) => !idsToDelete.includes(g.id)));
-    setActiveGoalIds((prev) => prev.filter((activeId) => !idsToDelete.includes(activeId)));
   };
   
   const handleSaveBudget = (budgetData: Omit<Budget, 'id'> & { id?: string }) => {
@@ -1310,7 +1155,7 @@ const App: React.FC = () => {
       setManualWarrantPrices(prev => {
         const updated = { ...prev };
         delete updated[targetIsin];
-        return updated;
+        return shallowEqual(prev, updated) ? prev : updated;
       });
     }
   };
@@ -1323,7 +1168,7 @@ const App: React.FC = () => {
       } else {
         updated[isin] = price;
       }
-      return updated;
+      return shallowEqual(prev, updated) ? prev : updated;
     });
     setLastUpdated(new Date());
   };
@@ -1349,9 +1194,6 @@ const App: React.FC = () => {
               return tx;
           })
       );
-      if (tagFilter === tagId) {
-          setTagFilter(null);
-      }
   };
   
   const handleSaveBillPayment = (billData: Omit<BillPayment, 'id'> & { id?: string }) => {
@@ -1560,38 +1402,29 @@ const App: React.FC = () => {
             incomeCategories={incomeCategories}
             expenseCategories={expenseCategories}
             financialGoals={financialGoals}
-            recurringTransactions={recurringTransactions} 
+            recurringTransactions={recurringTransactions}
             recurringTransactionOverrides={recurringTransactionOverrides}
             loanPaymentOverrides={loanPaymentOverrides}
-            activeGoalIds={activeGoalIds}
-            selectedAccountIds={dashboardAccountIds}
-            setSelectedAccountIds={setDashboardAccountIds}
-            duration={dashboardDuration}
-            setDuration={setDashboardDuration}
-            setActiveGoalIds={setActiveGoalIds}
             tasks={tasks}
             saveTask={handleSaveTask}
         />;
       case 'Accounts':
-        return <Accounts accounts={accounts} transactions={transactions} saveAccount={handleSaveAccount} deleteAccount={handleDeleteAccount} setCurrentPage={setCurrentPage} setAccountFilter={setAccountFilter} setViewingAccountId={setViewingAccountId} onViewAccount={handleOpenAccountDetail} saveTransaction={handleSaveTransaction} accountOrder={accountOrder} setAccountOrder={setAccountOrder} sortBy={accountsSortBy} setSortBy={setAccountsSortBy} warrants={warrants} onToggleAccountStatus={handleToggleAccountStatus} />;
+        return <Accounts accounts={accounts} transactions={transactions} saveAccount={handleSaveAccount} deleteAccount={handleDeleteAccount} setCurrentPage={setCurrentPage} setViewingAccountId={setViewingAccountId} saveTransaction={handleSaveTransaction} accountOrder={accountOrder} setAccountOrder={setAccountOrder} initialSortBy={preferences.defaultAccountOrder as 'name' | 'balance' | 'manual'} warrants={warrants} onToggleAccountStatus={handleToggleAccountStatus} onNavigateToTransactions={navigateToTransactions} />;
       case 'Transactions':
-        return <Transactions accountFilter={accountFilter} setAccountFilter={setAccountFilter} tagFilter={tagFilter} setTagFilter={setTagFilter} />;
+        return <Transactions initialAccountFilter={transactionsViewFilters.current.accountName ?? null} initialTagFilter={transactionsViewFilters.current.tagId ?? null} onClearInitialFilters={clearPendingTransactionFilters} />;
       case 'Budget':
         // FIX: Add `preferences` to the `Budgeting` component to resolve the missing prop error.
         return <Budgeting budgets={budgets} transactions={transactions} expenseCategories={expenseCategories} saveBudget={handleSaveBudget} deleteBudget={handleDeleteBudget} accounts={accounts} preferences={preferences} />;
       case 'Forecasting':
-        return <Forecasting
-          activeGoalIds={activeGoalIds}
-          setActiveGoalIds={setActiveGoalIds}
-        />;
+        return <Forecasting />;
       case 'Settings':
         return <SettingsPage setCurrentPage={setCurrentPage} user={currentUser!} />;
       case 'Schedule & Bills':
         return <SchedulePage />;
       case 'Categories':
         return <CategoriesPage incomeCategories={incomeCategories} setIncomeCategories={setIncomeCategories} expenseCategories={expenseCategories} setExpenseCategories={setExpenseCategories} setCurrentPage={setCurrentPage} />;
-      case 'Tags':
-        return <TagsPage tags={tags} transactions={transactions} saveTag={handleSaveTag} deleteTag={handleDeleteTag} setCurrentPage={setCurrentPage} setTagFilter={setTagFilter} />;
+        case 'Tags':
+          return <TagsPage tags={tags} transactions={transactions} saveTag={handleSaveTag} deleteTag={handleDeleteTag} setCurrentPage={setCurrentPage} onNavigateToTransactions={navigateToTransactions} />;
       case 'Personal Info':
         return <PersonalInfoPage user={currentUser!} setUser={handleSetUser} onChangePassword={changePassword} setCurrentPage={setCurrentPage} />;
       case 'Data Management':
@@ -1604,7 +1437,7 @@ const App: React.FC = () => {
       case 'Preferences':
         return <PreferencesPage preferences={preferences} setPreferences={setPreferences} theme={theme} setTheme={setTheme} setCurrentPage={setCurrentPage} />;
       case 'Investments':
-        return <InvestmentsPage accounts={accounts} cashAccounts={accounts.filter(a => a.type === 'Checking' || a.type === 'Savings')} investmentTransactions={investmentTransactions} saveInvestmentTransaction={handleSaveInvestmentTransaction} deleteInvestmentTransaction={handleDeleteInvestmentTransaction} saveTransaction={handleSaveTransaction} warrants={warrants} saveWarrant={handleSaveWarrant} deleteWarrant={handleDeleteWarrant} manualPrices={manualWarrantPrices} onManualPriceChange={handleManualWarrantPrice} warrantPrices={warrantPrices} />;
+        return <InvestmentsPage accounts={accounts} cashAccounts={accounts.filter(a => a.type === 'Checking' || a.type === 'Savings')} investmentTransactions={investmentTransactions} saveInvestmentTransaction={handleSaveInvestmentTransaction} deleteInvestmentTransaction={handleDeleteInvestmentTransaction} saveTransaction={handleSaveTransaction} warrants={warrants} />;
       case 'Warrants':
         return <WarrantsPage warrants={warrants} saveWarrant={handleSaveWarrant} deleteWarrant={handleDeleteWarrant} prices={warrantPrices} manualPrices={manualWarrantPrices} lastUpdated={lastUpdated} onManualPriceChange={handleManualWarrantPrice} />;
       case 'Tasks':
@@ -1735,6 +1568,7 @@ const App: React.FC = () => {
         transactions={transactionsContextValue}
         warrants={warrantsContextValue}
       >
+      <InsightsViewProvider accounts={accounts} financialGoals={financialGoals} defaultDuration={preferences.defaultPeriod as Duration}>
         <div className={`flex h-screen bg-light-card dark:bg-dark-card text-light-text dark:text-dark-text font-sans`}>
           <Sidebar
             currentPage={currentPage}
@@ -1756,17 +1590,11 @@ const App: React.FC = () => {
               currentPage={currentPage}
               titleOverride={viewingAccount?.name}
             />
-            <InsightsViewProvider
-              accounts={accounts}
-              financialGoals={financialGoals}
-              defaultDuration={preferences.defaultPeriod as Duration}
-            >
-              <main className="flex-1 overflow-x-hidden overflow-y-auto p-4 md:p-8 bg-light-bg dark:bg-dark-bg md:rounded-tl-3xl border-l border-t border-black/5 dark:border-white/5 shadow-2xl">
-                <Suspense fallback={<PageLoader />}>
-                  {renderPage()}
-                </Suspense>
-              </main>
-            </InsightsViewProvider>
+            <main className="flex-1 overflow-x-hidden overflow-y-auto p-4 md:p-8 bg-light-bg dark:bg-dark-bg md:rounded-tl-3xl border-l border-t border-black/5 dark:border-white/5 shadow-2xl">
+              <Suspense fallback={<PageLoader />}>
+                {renderPage()}
+              </Suspense>
+            </main>
           </div>
 
           {/* AI Chat */}
@@ -1805,6 +1633,7 @@ const App: React.FC = () => {
             )}
           </Suspense>
         </div>
+      </InsightsViewProvider>
       </FinancialDataProvider>
     </ErrorBoundary>
   );
