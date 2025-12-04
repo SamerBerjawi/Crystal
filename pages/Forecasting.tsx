@@ -734,8 +734,8 @@ const Forecasting: React.FC = () => {
                             Major Upcoming Outflows
                         </h3>
                          <div className="space-y-3">
-                            {majorUpcomingOutflows.length > 0 ? majorUpcomingOutflows.map((item, idx) => (
-                                <div key={idx} className="flex justify-between items-center p-3 rounded-xl bg-light-bg dark:bg-dark-bg/50 hover:bg-gray-100 dark:hover:bg-white/10 transition-colors border border-transparent hover:border-black/5 dark:hover:border-white/10 cursor-default group">
+                            {majorUpcomingOutflows.length > 0 ? majorUpcomingOutflows.map(item => (
+                                <div key={`${item.name}-${item.date}-${item.amount}`} className="flex justify-between items-center p-3 rounded-xl bg-light-bg dark:bg-dark-bg/50 hover:bg-gray-100 dark:hover:bg-white/10 transition-colors border border-transparent hover:border-black/5 dark:hover:border-white/10 cursor-default group">
                                     <div className="min-w-0 pr-4">
                                         <p className="font-bold text-sm text-light-text dark:text-dark-text truncate">{item.name}</p>
                                         <p className="text-xs text-light-text-secondary dark:text-dark-text-secondary flex items-center gap-1 mt-0.5">

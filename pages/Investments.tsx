@@ -505,8 +505,8 @@ const Investments: React.FC<InvestmentsProps> = ({
                                         dataKey="value"
                                         stroke="none"
                                     >
-                                        {distributionData.map((entry, index) => (
-                                            <Cell key={`cell-${index}`} fill={entry.color} />
+                                        {distributionData.map(entry => (
+                                            <Cell key={entry.name} fill={entry.color} />
                                         ))}
                                     </Pie>
                                     <Tooltip 

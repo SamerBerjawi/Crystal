@@ -53,7 +53,7 @@ const PortfolioDistributionChart: React.FC<PortfolioDistributionChartProps> = ({
                     startAngle={90}
                     endAngle={-270}
                 >
-                    {data.map((entry, index) => <Cell key={`cell-${index}`} fill={entry.color} stroke={entry.color} />)}
+                    {data.map(entry => <Cell key={entry.name} fill={entry.color} stroke={entry.color} />)}
                 </Pie>
                 <Tooltip content={<CustomTooltip />} />
                 {showLegend && <Legend iconType="circle" iconSize={8} layout="vertical" verticalAlign="middle" align="right" />}
