@@ -24,11 +24,19 @@ const VehicleAccountView: React.FC<VehicleAccountViewProps> = ({
   onBack
 }) => {
   const isLeased = account.ownership === 'Leased';
-  
-  const currentMileage = useMemo(() => {
-    if (!account.mileageLogs || account.mileageLogs.length === 0) return 0;
-    return Math.max(...account.mileageLogs.map(l => l.reading));
+
+  const sortedMileageLogs = useMemo(() => {
+    return [...(account.mileageLogs || [])].sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime());
   }, [account.mileageLogs]);
+
+  const sortedMileageLogsDesc = useMemo(() => {
+    return [...sortedMileageLogs].reverse();
+  }, [sortedMileageLogs]);
+
+  const currentMileage = useMemo(() => {
+    if (sortedMileageLogs.length === 0) return 0;
+    return sortedMileageLogs[sortedMileageLogs.length - 1].reading;
+  }, [sortedMileageLogs]);
 
   const leaseStats = useMemo(() => {
     if (account.ownership !== 'Leased' || !account.leaseStartDate || !account.leaseEndDate) return null;
@@ -203,7 +211,7 @@ const VehicleAccountView: React.FC<VehicleAccountViewProps> = ({
           {/* Usage Trends */}
           <Card>
              <h3 className="text-lg font-semibold text-light-text dark:text-dark-text mb-4">Usage Trends</h3>
-             <VehicleMileageChart logs={account.mileageLogs || []} />
+             <VehicleMileageChart logs={sortedMileageLogs} />
           </Card>
         </div>
 
@@ -245,9 +253,9 @@ const VehicleAccountView: React.FC<VehicleAccountViewProps> = ({
                 <button onClick={onAddLog} className={`${BTN_SECONDARY_STYLE} !py-1 !px-2 text-xs font-bold rounded-full`}>+ Log</button>
                 </div>
                 <div className="flex-grow overflow-y-auto max-h-[350px] -mx-2 px-2">
-                {account.mileageLogs && account.mileageLogs.length > 0 ? (
+                {sortedMileageLogsDesc.length > 0 ? (
                     <div className="space-y-2">
-                        {[...account.mileageLogs].sort((a,b) => new Date(b.date).getTime() - new Date(a.date).getTime()).map((log, index, arr) => {
+                        {sortedMileageLogsDesc.map((log, index, arr) => {
                              const prevLog = arr[index + 1];
                              const diff = prevLog ? log.reading - prevLog.reading : 0;
                              return (

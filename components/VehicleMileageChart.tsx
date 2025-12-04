@@ -1,5 +1,5 @@
 
-import React from 'react';
+import React, { useMemo } from 'react';
 import { LineChart, Line, XAxis, YAxis, Tooltip, ResponsiveContainer, CartesianGrid, Label } from 'recharts';
 import { MileageLog } from '../types';
 import { parseDateAsUTC } from '../utils';
@@ -22,7 +22,9 @@ const CustomTooltip = ({ active, payload, label }: any) => {
 };
 
 const VehicleMileageChart: React.FC<VehicleMileageChartProps> = ({ logs }) => {
-    const sortedLogs = [...logs].sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime());
+    const sortedLogs = useMemo(() => {
+        return [...logs].sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime());
+    }, [logs]);
     
   if (sortedLogs.length < 2) {
     return (
