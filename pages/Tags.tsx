@@ -14,13 +14,13 @@ interface TagsProps {
   saveTag: (tag: Omit<Tag, 'id'> & { id?: string }) => void;
   deleteTag: (tagId: string) => void;
   setCurrentPage: (page: Page) => void;
-  setTagFilter: (tagId: string | null) => void;
+  onNavigateToTransactions: (filters?: { tagId?: string | null }) => void;
 }
 
 type SortOption = 'name' | 'count' | 'amount';
 type ViewMode = 'grid' | 'list';
 
-const Tags: React.FC<TagsProps> = ({ tags, transactions, saveTag, deleteTag, setCurrentPage, setTagFilter }) => {
+const Tags: React.FC<TagsProps> = ({ tags, transactions, saveTag, deleteTag, setCurrentPage, onNavigateToTransactions }) => {
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [editingTag, setEditingTag] = useState<Tag | null>(null);
   const [deletingTagId, setDeletingTagId] = useState<string | null>(null);
@@ -126,8 +126,7 @@ const Tags: React.FC<TagsProps> = ({ tags, transactions, saveTag, deleteTag, set
   };
 
   const handleTagClick = (tagId: string) => {
-    setTagFilter(tagId);
-    setCurrentPage('Transactions');
+    onNavigateToTransactions({ tagId });
   };
 
   const handleDeleteConfirm = () => {
