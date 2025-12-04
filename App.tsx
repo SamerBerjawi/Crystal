@@ -739,9 +739,18 @@ const App: React.FC = () => {
 
     const dirtySlices = new Set(dirtySlicesRef.current);
     const persistDirtySlices = async () => {
-      const succeeded = await saveData(buildDirtyPayload(dirtySlices));
+      const payload = buildDirtyPayload(dirtySlices);
+      const payloadSignature = JSON.stringify(payload);
+
+      if (payloadSignature === lastSavedSignatureRef.current) {
+        dirtySlicesRef.current.clear();
+        return;
+      }
+
+      const succeeded = await saveData(payload);
       if (succeeded) {
         dirtySlices.forEach(slice => dirtySlicesRef.current.delete(slice));
+        lastSavedSignatureRef.current = payloadSignature;
       }
     };
 
@@ -754,17 +763,34 @@ const App: React.FC = () => {
     }
 
     const handleBeforeUnload = () => {
-      if (!isDataLoaded) {
+      if (!isDataLoaded || dirtySlicesRef.current.size === 0) {
         return;
       }
-      saveData(latestDataRef.current, { keepalive: true, suppressErrors: true });
+
+      const dirtySlices = new Set(dirtySlicesRef.current);
+      const payload = buildDirtyPayload(dirtySlices);
+      const payloadSignature = JSON.stringify(payload);
+
+      if (payloadSignature === lastSavedSignatureRef.current) {
+        return;
+      }
+
+      saveData(payload, { keepalive: true, suppressErrors: true })
+        .then(succeeded => {
+          if (succeeded) {
+            lastSavedSignatureRef.current = payloadSignature;
+          }
+        })
+        .catch(() => {
+          // Avoid blocking the unload flow on errors
+        });
     };
 
     window.addEventListener('beforeunload', handleBeforeUnload);
     return () => {
       window.removeEventListener('beforeunload', handleBeforeUnload);
     };
-  }, [isAuthenticated, isDataLoaded, isDemoMode, saveData]);
+  }, [buildDirtyPayload, isAuthenticated, isDataLoaded, isDemoMode, saveData]);
   
   // Keep accountOrder in sync with accounts list
   useEffect(() => {
