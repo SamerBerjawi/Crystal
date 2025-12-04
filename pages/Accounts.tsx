@@ -19,7 +19,8 @@ interface AccountsProps {
     deleteAccount: (accountId: string) => void;
     setCurrentPage: (page: Page) => void;
     setAccountFilter: (accountName: string | null) => void;
-    setViewingAccountId: (id: string) => void;
+    setViewingAccountId: (id: string | null) => void;
+    onViewAccount?: (id: string) => void;
     saveTransaction: (transactions: (Omit<Transaction, 'id'> & { id?: string })[], idsToDelete?: string[]) => void;
     accountOrder: string[];
     setAccountOrder: React.Dispatch<React.SetStateAction<string[]>>;
@@ -196,7 +197,7 @@ const AccountsListSection: React.FC<{
     );
 };
 
-const Accounts: React.FC<AccountsProps> = ({ accounts, transactions, saveAccount, deleteAccount, setCurrentPage, setAccountFilter, setViewingAccountId, saveTransaction, accountOrder, setAccountOrder, sortBy, setSortBy, warrants, onToggleAccountStatus }) => {
+const Accounts: React.FC<AccountsProps> = ({ accounts, transactions, saveAccount, deleteAccount, setCurrentPage, setAccountFilter, setViewingAccountId, onViewAccount, saveTransaction, accountOrder, setAccountOrder, sortBy, setSortBy, warrants, onToggleAccountStatus }) => {
   const [isAddModalOpen, setAddModalOpen] = useState(false);
   const [isEditModalOpen, setEditModalOpen] = useState(false);
   const [editingAccount, setEditingAccount] = useState<Account | null>(null);
@@ -277,8 +278,12 @@ const Accounts: React.FC<AccountsProps> = ({ accounts, transactions, saveAccount
 
   // --- Handlers ---
   const handleAccountClick = (accountId: string) => {
-    setViewingAccountId(accountId);
-    setCurrentPage('AccountDetail');
+    if (onViewAccount) {
+      onViewAccount(accountId);
+    } else {
+      setViewingAccountId(accountId);
+      setCurrentPage('AccountDetail');
+    }
   };
 
   const openEditModal = (account: Account) => {
