@@ -27,6 +27,7 @@ import CashflowSankey from '../components/CashflowSankey';
 import TodayWidget from '../components/TodayWidget';
 import { useAccountsContext, usePreferencesContext, useTransactionsContext } from '../contexts/DomainProviders';
 import { useBudgetsContext, useCategoryContext, useGoalsContext, useScheduleContext, useTagsContext } from '../contexts/FinancialDataContext';
+import { useInsightsView } from '../contexts/InsightsViewContext';
 import { AreaChart, Area, LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, ReferenceLine, Label, Legend, BarChart, Bar, PieChart, Pie, Cell } from 'recharts';
 import ForecastDayModal from '../components/ForecastDayModal';
 import RecurringTransactionModal from '../components/RecurringTransactionModal';
@@ -53,11 +54,6 @@ interface DashboardProps {
   recurringTransactions: RecurringTransaction[];
   recurringTransactionOverrides: RecurringTransactionOverride[];
   loanPaymentOverrides: LoanPaymentOverrides;
-  activeGoalIds: string[];
-  selectedAccountIds: string[];
-  setSelectedAccountIds: (ids: string[]) => void;
-  duration: Duration;
-  setDuration: (duration: Duration) => void;
   tasks: Task[];
   saveTask: (task: Omit<Task, 'id'> & { id?: string }) => void;
 }
@@ -106,7 +102,8 @@ const AnalysisStatCard: React.FC<{ title: string; value: string; subtext: string
     </div>
 );
 
-const Dashboard: React.FC<DashboardProps> = ({ user, activeGoalIds, selectedAccountIds, setSelectedAccountIds, duration, setDuration, tasks, saveTask }) => {
+const Dashboard: React.FC<DashboardProps> = ({ user, tasks, saveTask }) => {
+  const { activeGoalIds, setActiveGoalIds, dashboardAccountIds: selectedAccountIds, setDashboardAccountIds: setSelectedAccountIds, dashboardDuration: duration, setDashboardDuration: setDuration } = useInsightsView();
   const { accounts } = useAccountsContext();
   const { transactions, saveTransaction, digest: transactionsDigest } = useTransactionsContext();
   const { incomeCategories, expenseCategories } = useCategoryContext();

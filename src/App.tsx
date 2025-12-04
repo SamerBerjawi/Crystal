@@ -82,6 +82,7 @@ import useLocalStorage from './hooks/useLocalStorage';
 const OnboardingModal = lazy(() => import('./components/OnboardingModal'));
 import { FinancialDataProvider } from './contexts/FinancialDataContext';
 import { AccountsProvider, PreferencesProvider, TransactionsProvider, WarrantsProvider } from './contexts/DomainProviders';
+import { InsightsViewProvider } from './contexts/InsightsViewContext';
 
 const initialFinancialData: FinancialData = {
     accounts: [],
@@ -218,7 +219,6 @@ const App: React.FC = () => {
   const [currentPage, setCurrentPage] = useState<Page>('Dashboard');
   const [isSidebarOpen, setSidebarOpen] = useState(false);
   const [isSidebarCollapsed, setSidebarCollapsed] = useState(false);
-  const [accountFilter, setAccountFilter] = useState<string | null>(null);
   const [viewingAccountId, setViewingAccountId] = useState<string | null>(null);
   const [theme, setTheme] = useState<Theme>(() => {
     const storedTheme = safeLocalStorage.getItem('theme');
@@ -249,9 +249,9 @@ const App: React.FC = () => {
   const restoreInProgressRef = useRef(false);
   const dirtySlicesRef = useRef<Set<keyof FinancialData>>(new Set());
   const [dirtySignal, setDirtySignal] = useState(0);
-  const [tagFilter, setTagFilter] = useState<string | null>(null);
   const [accountOrder, setAccountOrder] = useLocalStorage<string[]>('crystal-account-order', []);
   const [taskOrder, setTaskOrder] = useLocalStorage<string[]>('crystal-task-order', []);
+  const transactionsViewFilters = useRef<{ accountName?: string | null; tagId?: string | null }>({});
   
   // State for AI Chat
   const [isChatOpen, setIsChatOpen] = useState(false);
@@ -274,12 +274,6 @@ const App: React.FC = () => {
     return resolved;
   }, [manualWarrantPrices, warrants]);
 
-  // States lifted up for persistence & preference linking
-  const [dashboardAccountIds, setDashboardAccountIds] = useState<string[]>([]);
-  const [activeGoalIds, setActiveGoalIds] = useState<string[]>([]);
-  const [dashboardDuration, setDashboardDuration] = useState<Duration>(preferences.defaultPeriod as Duration);
-  const [accountsSortBy, setAccountsSortBy] = useState<'name' | 'balance' | 'manual'>(preferences.defaultAccountOrder);
-
   // Onboarding flow state
   const [hasCompletedOnboarding, setHasCompletedOnboarding] = useLocalStorage('crystal-onboarding-complete', false);
   const [isOnboardingOpen, setIsOnboardingOpen] = useState(false);
@@ -292,6 +286,18 @@ const App: React.FC = () => {
       setDirtySignal(signal => signal + 1);
     }
   }, []);
+
+  const navigateToTransactions = useCallback((filters?: { accountName?: string | null; tagId?: string | null }) => {
+    transactionsViewFilters.current = {
+      accountName: filters?.accountName ?? null,
+      tagId: filters?.tagId ?? null,
+    };
+    setCurrentPage('Transactions');
+  }, []);
+
+  const clearPendingTransactionFilters = useCallback(() => {
+    transactionsViewFilters.current = {};
+  }, []);
   
   useEffect(() => {
       // Always sync app preference to device timezone on load to prevent "tomorrow/yesterday" bugs
@@ -300,31 +306,6 @@ const App: React.FC = () => {
           setPreferences(prev => ({ ...prev, timezone: deviceTimezone }));
       }
   }, [preferences.timezone]);
-
-  useEffect(() => {
-    // Set default dashboard account filter only on initial load
-    if (accounts.length > 0 && dashboardAccountIds.length === 0) {
-        // Select all primary accounts
-        const primaryAccounts = accounts.filter(a => a.isPrimary);
-        if (primaryAccounts.length > 0) {
-            setDashboardAccountIds(primaryAccounts.map(a => a.id));
-        } else {
-            // Fallback: Select the first open account if no primary accounts exist
-            const openAccounts = accounts.filter(a => a.status !== 'closed');
-            const fallbackAccount = (openAccounts.length > 0 ? openAccounts : accounts)[0];
-            if (fallbackAccount) {
-                setDashboardAccountIds([fallbackAccount.id]);
-            }
-        }
-    }
-  }, [accounts, dashboardAccountIds.length]);
-  
-  useEffect(() => {
-    // Set default active goals only on initial load
-    if (financialGoals.length > 0 && activeGoalIds.length === 0) {
-        setActiveGoalIds(financialGoals.map(g => g.id));
-    }
-  }, [financialGoals, activeGoalIds.length]);
 
   // Create a ref for accounts to avoid circular dependencies in the refresh callback
   const accountsRef = useRef(accounts);
@@ -905,20 +886,14 @@ const App: React.FC = () => {
       );
     }
     setBillsAndPayments(prev => prev.filter(bill => bill.accountId !== accountId));
-    setDashboardAccountIds(prev => prev.filter(id => id !== accountId));
 
     if (viewingAccountId === accountId) {
       setViewingAccountId(null);
       setCurrentPage('Accounts');
     }
-
-    if (accountToDelete && accountFilter === accountToDelete.name) {
-      setAccountFilter(null);
-    }
   }, [
     accounts,
     recurringTransactions,
-    accountFilter,
     viewingAccountId,
     setCurrentPage,
   ]);
@@ -1098,11 +1073,6 @@ const App: React.FC = () => {
     } else {
       const newGoal: FinancialGoal = { ...goalData, id: `goal-${uuidv4()}` } as FinancialGoal;
       setFinancialGoals((prev) => [...prev, newGoal]);
-  
-      // FIX: If a new sub-goal is created and its parent is active, make the new goal active too.
-      if (newGoal.parentId && activeGoalIds.includes(newGoal.parentId)) {
-        setActiveGoalIds((prev) => [...prev, newGoal.id]);
-      }
     }
   };
 
@@ -1115,9 +1085,8 @@ const App: React.FC = () => {
       const childIds = financialGoals.filter((g) => g.parentId === id).map((g) => g.id);
       idsToDelete.push(...childIds);
     }
-  
+
     setFinancialGoals((prev) => prev.filter((g) => !idsToDelete.includes(g.id)));
-    setActiveGoalIds((prev) => prev.filter((activeId) => !idsToDelete.includes(activeId)));
   };
   
   const handleSaveBudget = (budgetData: Omit<Budget, 'id'> & { id?: string }) => {
@@ -1218,9 +1187,6 @@ const App: React.FC = () => {
               return tx;
           })
       );
-      if (tagFilter === tagId) {
-          setTagFilter(null);
-      }
   };
   
   const handleSaveBillPayment = (billData: Omit<BillPayment, 'id'> & { id?: string }) => {
@@ -1429,35 +1395,29 @@ const App: React.FC = () => {
             incomeCategories={incomeCategories}
             expenseCategories={expenseCategories}
             financialGoals={financialGoals}
-            recurringTransactions={recurringTransactions} 
+            recurringTransactions={recurringTransactions}
             recurringTransactionOverrides={recurringTransactionOverrides}
             loanPaymentOverrides={loanPaymentOverrides}
-            activeGoalIds={activeGoalIds}
-            selectedAccountIds={dashboardAccountIds}
-            setSelectedAccountIds={setDashboardAccountIds}
-            duration={dashboardDuration}
-            setDuration={setDashboardDuration}
+            tasks={tasks}
+            saveTask={handleSaveTask}
         />;
       case 'Accounts':
-        return <Accounts accounts={accounts} transactions={transactions} saveAccount={handleSaveAccount} deleteAccount={handleDeleteAccount} setCurrentPage={setCurrentPage} setAccountFilter={setAccountFilter} setViewingAccountId={setViewingAccountId} saveTransaction={handleSaveTransaction} accountOrder={accountOrder} setAccountOrder={setAccountOrder} sortBy={accountsSortBy} setSortBy={setAccountsSortBy} warrants={warrants} onToggleAccountStatus={handleToggleAccountStatus} />;
+        return <Accounts accounts={accounts} transactions={transactions} saveAccount={handleSaveAccount} deleteAccount={handleDeleteAccount} setCurrentPage={setCurrentPage} setViewingAccountId={setViewingAccountId} saveTransaction={handleSaveTransaction} accountOrder={accountOrder} setAccountOrder={setAccountOrder} initialSortBy={preferences.defaultAccountOrder as 'name' | 'balance' | 'manual'} warrants={warrants} onToggleAccountStatus={handleToggleAccountStatus} onNavigateToTransactions={navigateToTransactions} />;
       case 'Transactions':
-        return <Transactions accountFilter={accountFilter} setAccountFilter={setAccountFilter} tagFilter={tagFilter} setTagFilter={setTagFilter} />;
+        return <Transactions initialAccountFilter={transactionsViewFilters.current.accountName ?? null} initialTagFilter={transactionsViewFilters.current.tagId ?? null} onClearInitialFilters={clearPendingTransactionFilters} />;
       case 'Budget':
         // FIX: Add `preferences` to the `Budgeting` component to resolve the missing prop error.
         return <Budgeting budgets={budgets} transactions={transactions} expenseCategories={expenseCategories} saveBudget={handleSaveBudget} deleteBudget={handleDeleteBudget} accounts={accounts} preferences={preferences} />;
       case 'Forecasting':
-        return <Forecasting
-          activeGoalIds={activeGoalIds}
-          setActiveGoalIds={setActiveGoalIds}
-        />;
+        return <Forecasting />;
       case 'Settings':
         return <SettingsPage setCurrentPage={setCurrentPage} user={currentUser!} />;
       case 'Schedule & Bills':
         return <SchedulePage />;
       case 'Categories':
         return <CategoriesPage incomeCategories={incomeCategories} setIncomeCategories={setIncomeCategories} expenseCategories={expenseCategories} setExpenseCategories={setExpenseCategories} setCurrentPage={setCurrentPage} />;
-      case 'Tags':
-        return <TagsPage tags={tags} transactions={transactions} saveTag={handleSaveTag} deleteTag={handleDeleteTag} setCurrentPage={setCurrentPage} setTagFilter={setTagFilter} />;
+        case 'Tags':
+          return <TagsPage tags={tags} transactions={transactions} saveTag={handleSaveTag} deleteTag={handleDeleteTag} setCurrentPage={setCurrentPage} onNavigateToTransactions={navigateToTransactions} />;
       case 'Personal Info':
         return <PersonalInfoPage user={currentUser!} setUser={handleSetUser} onChangePassword={changePassword} setCurrentPage={setCurrentPage} />;
       case 'Data Management':
@@ -1601,70 +1561,72 @@ const App: React.FC = () => {
         transactions={transactionsContextValue}
         warrants={warrantsContextValue}
       >
-      <div className={`flex h-screen bg-light-card dark:bg-dark-card text-light-text dark:text-dark-text font-sans`}>
-        <Sidebar
-          currentPage={currentPage}
-          setCurrentPage={(page) => { setViewingAccountId(null); setCurrentPage(page); }}
-          isSidebarOpen={isSidebarOpen}
-          setSidebarOpen={setSidebarOpen}
-          theme={theme}
-          isSidebarCollapsed={isSidebarCollapsed}
-          setSidebarCollapsed={setSidebarCollapsed}
-          onLogout={handleLogout}
-          user={currentUser!}
-        />
-        <div className="flex-1 flex flex-col overflow-hidden relative z-0">
-          <Header
-            user={currentUser!}
+      <InsightsViewProvider accounts={accounts} financialGoals={financialGoals} defaultDuration={preferences.defaultPeriod as Duration}>
+        <div className={`flex h-screen bg-light-card dark:bg-dark-card text-light-text dark:text-dark-text font-sans`}>
+          <Sidebar
+            currentPage={currentPage}
+            setCurrentPage={(page) => { setViewingAccountId(null); setCurrentPage(page); }}
+            isSidebarOpen={isSidebarOpen}
             setSidebarOpen={setSidebarOpen}
             theme={theme}
-            setTheme={setTheme}
-            currentPage={currentPage}
-            titleOverride={viewingAccount?.name}
+            isSidebarCollapsed={isSidebarCollapsed}
+            setSidebarCollapsed={setSidebarCollapsed}
+            onLogout={handleLogout}
+            user={currentUser!}
           />
-          <main className="flex-1 overflow-x-hidden overflow-y-auto p-4 md:p-8 bg-light-bg dark:bg-dark-bg md:rounded-tl-3xl border-l border-t border-black/5 dark:border-white/5 shadow-2xl">
-            <Suspense fallback={<PageLoader />}>
-              {renderPage()}
-            </Suspense>
-          </main>
-        </div>
-
-        {/* AI Chat */}
-        <ChatFab onClick={() => setIsChatOpen(prev => !prev)} />
-        <Suspense fallback={null}>
-          {isChatOpen && (
-            <Chatbot
-              isOpen={isChatOpen}
-              onClose={() => setIsChatOpen(false)}
-              financialData={{
-                accounts,
-                transactions,
-                budgets,
-                financialGoals,
-                recurringTransactions,
-                investmentTransactions,
-              }}
-            />
-          )}
-        </Suspense>
-        <Suspense fallback={null}>
-          {isOnboardingOpen && (
-            <OnboardingModal
-              isOpen={isOnboardingOpen}
-              onClose={handleOnboardingFinish}
+          <div className="flex-1 flex flex-col overflow-hidden relative z-0">
+            <Header
               user={currentUser!}
-              saveAccount={handleSaveAccount}
-              saveFinancialGoal={handleSaveFinancialGoal}
-              saveRecurringTransaction={handleSaveRecurringTransaction}
-              preferences={preferences}
-              setPreferences={setPreferences}
-              accounts={accounts}
-              incomeCategories={incomeCategories}
-              expenseCategories={expenseCategories}
+              setSidebarOpen={setSidebarOpen}
+              theme={theme}
+              setTheme={setTheme}
+              currentPage={currentPage}
+              titleOverride={viewingAccount?.name}
             />
-          )}
-        </Suspense>
-      </div>
+            <main className="flex-1 overflow-x-hidden overflow-y-auto p-4 md:p-8 bg-light-bg dark:bg-dark-bg md:rounded-tl-3xl border-l border-t border-black/5 dark:border-white/5 shadow-2xl">
+              <Suspense fallback={<PageLoader />}>
+                {renderPage()}
+              </Suspense>
+            </main>
+          </div>
+
+          {/* AI Chat */}
+          <ChatFab onClick={() => setIsChatOpen(prev => !prev)} />
+          <Suspense fallback={null}>
+            {isChatOpen && (
+              <Chatbot
+                isOpen={isChatOpen}
+                onClose={() => setIsChatOpen(false)}
+                financialData={{
+                  accounts,
+                  transactions,
+                  budgets,
+                  financialGoals,
+                  recurringTransactions,
+                  investmentTransactions,
+                }}
+              />
+            )}
+          </Suspense>
+          <Suspense fallback={null}>
+            {isOnboardingOpen && (
+              <OnboardingModal
+                isOpen={isOnboardingOpen}
+                onClose={handleOnboardingFinish}
+                user={currentUser!}
+                saveAccount={handleSaveAccount}
+                saveFinancialGoal={handleSaveFinancialGoal}
+                saveRecurringTransaction={handleSaveRecurringTransaction}
+                preferences={preferences}
+                setPreferences={setPreferences}
+                accounts={accounts}
+                incomeCategories={incomeCategories}
+                expenseCategories={expenseCategories}
+              />
+            )}
+          </Suspense>
+        </div>
+      </InsightsViewProvider>
       </FinancialDataProvider>
     </ErrorBoundary>
   );

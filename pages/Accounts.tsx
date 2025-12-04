@@ -18,16 +18,15 @@ interface AccountsProps {
     saveAccount: (account: Omit<Account, 'id'> & { id?: string }) => void;
     deleteAccount: (accountId: string) => void;
     setCurrentPage: (page: Page) => void;
-    setAccountFilter: (accountName: string | null) => void;
     setViewingAccountId: (id: string | null) => void;
     onViewAccount?: (id: string) => void;
     saveTransaction: (transactions: (Omit<Transaction, 'id'> & { id?: string })[], idsToDelete?: string[]) => void;
     accountOrder: string[];
     setAccountOrder: React.Dispatch<React.SetStateAction<string[]>>;
-    sortBy: 'name' | 'balance' | 'manual';
-    setSortBy: React.Dispatch<React.SetStateAction<'name' | 'balance' | 'manual'>>;
+    initialSortBy: 'name' | 'balance' | 'manual';
     warrants: Warrant[];
     onToggleAccountStatus: (accountId: string) => void;
+    onNavigateToTransactions: (filters?: { accountName?: string | null }) => void;
 }
 
 // A new component for the list section
@@ -197,7 +196,7 @@ const AccountsListSection: React.FC<{
     );
 };
 
-const Accounts: React.FC<AccountsProps> = ({ accounts, transactions, saveAccount, deleteAccount, setCurrentPage, setAccountFilter, setViewingAccountId, onViewAccount, saveTransaction, accountOrder, setAccountOrder, sortBy, setSortBy, warrants, onToggleAccountStatus }) => {
+const Accounts: React.FC<AccountsProps> = ({ accounts, transactions, saveAccount, deleteAccount, setCurrentPage, setViewingAccountId, onViewAccount, saveTransaction, accountOrder, setAccountOrder, initialSortBy, warrants, onToggleAccountStatus, onNavigateToTransactions }) => {
   const [isAddModalOpen, setAddModalOpen] = useState(false);
   const [isEditModalOpen, setEditModalOpen] = useState(false);
   const [editingAccount, setEditingAccount] = useState<Account | null>(null);
@@ -207,6 +206,7 @@ const Accounts: React.FC<AccountsProps> = ({ accounts, transactions, saveAccount
   const [deletingAccount, setDeletingAccount] = useState<Account | null>(null);
   const contextMenuRef = useRef<HTMLDivElement>(null);
   const [layoutMode, setLayoutMode] = useLocalStorage<'stacked' | 'columns'>('crystal_accounts_section_layout', 'stacked');
+  const [sortBy, setSortBy] = useState<'name' | 'balance' | 'manual'>(initialSortBy);
   const { loanPaymentOverrides } = useScheduleContext();
 
   useEffect(() => {
@@ -381,7 +381,7 @@ const Accounts: React.FC<AccountsProps> = ({ accounts, transactions, saveAccount
                     </button>
                 </li>
                 <li>
-                    <button onClick={() => { setAccountFilter(contextMenu.account.name); setCurrentPage('Transactions'); setContextMenu(null); }} className="w-full text-left flex items-center gap-3 px-4 py-2 hover:bg-black/5 dark:hover:bg-white/10">
+                    <button onClick={() => { onNavigateToTransactions({ accountName: contextMenu.account.name }); setContextMenu(null); }} className="w-full text-left flex items-center gap-3 px-4 py-2 hover:bg-black/5 dark:hover:bg-white/10">
                         <span className="material-symbols-outlined text-base">filter_list</span>
                         <span>Filter Transactions</span>
                     </button>

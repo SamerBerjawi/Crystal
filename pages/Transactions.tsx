@@ -18,10 +18,9 @@ import { useDebounce } from '../hooks/useDebounce';
 import { useThrottledCallback } from '../hooks/useThrottledCallback';
 
 interface TransactionsProps {
-  accountFilter: string | null;
-  setAccountFilter: (accountName: string | null) => void;
-  tagFilter: string | null;
-  setTagFilter: (tagId: string | null) => void;
+  initialAccountFilter?: string | null;
+  initialTagFilter?: string | null;
+  onClearInitialFilters?: () => void;
 }
 
 const MetricCard = React.memo(function MetricCard({ label, value, colorClass = "text-light-text dark:text-dark-text", icon }: { label: string; value: string; colorClass?: string; icon: string }) {
@@ -120,12 +119,20 @@ const ColumnHeader = React.memo(function ColumnHeader({
     );
 });
 
-const Transactions: React.FC<TransactionsProps> = ({ accountFilter, setAccountFilter, tagFilter, setTagFilter }) => {
+const Transactions: React.FC<TransactionsProps> = ({ initialAccountFilter, initialTagFilter, onClearInitialFilters }) => {
   const { transactions, saveTransaction, deleteTransactions } = useTransactionsContext();
   const { accounts } = useAccountsContext();
   const { incomeCategories, expenseCategories } = useCategoryContext();
   const { tags } = useTagsContext();
   const { saveRecurringTransaction } = useScheduleContext();
+  const [accountFilter, setAccountFilter] = useState<string | null>(initialAccountFilter ?? null);
+  const [tagFilter, setTagFilter] = useState<string | null>(initialTagFilter ?? null);
+
+  useEffect(() => {
+    setAccountFilter(initialAccountFilter ?? null);
+    setTagFilter(initialTagFilter ?? null);
+    onClearInitialFilters?.();
+  }, [initialAccountFilter, initialTagFilter, onClearInitialFilters]);
 
   const [searchTerm, setSearchTerm] = useState('');
   const debouncedSearchTerm = useDebounce(searchTerm, 300);
