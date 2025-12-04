@@ -12,39 +12,46 @@ interface PreferencesProps {
   setCurrentPage: (page: Page) => void;
 }
 
-const SectionHeader: React.FC<{ title: string; icon: string; description: string }> = ({ title, icon, description }) => (
-  <div className="mb-6 pb-4 border-b border-black/5 dark:border-white/5">
-    <div className="flex items-center gap-3 mb-2">
-        <div className="w-8 h-8 rounded-lg bg-primary-100 dark:bg-primary-900/30 text-primary-600 dark:text-primary-400 flex items-center justify-center shrink-0">
-        <span className="material-symbols-outlined text-lg">{icon}</span>
-        </div>
-        <h3 className="text-lg font-bold text-light-text dark:text-dark-text">{title}</h3>
+interface SectionHeaderProps { title: string; icon: string; description: string }
+const SectionHeader = React.memo(function SectionHeader({ title, icon, description }: SectionHeaderProps) {
+  return (
+    <div className="mb-6 pb-4 border-b border-black/5 dark:border-white/5">
+      <div className="flex items-center gap-3 mb-2">
+          <div className="w-8 h-8 rounded-lg bg-primary-100 dark:bg-primary-900/30 text-primary-600 dark:text-primary-400 flex items-center justify-center shrink-0">
+          <span className="material-symbols-outlined text-lg">{icon}</span>
+          </div>
+          <h3 className="text-lg font-bold text-light-text dark:text-dark-text">{title}</h3>
+      </div>
+      <p className="text-sm text-light-text-secondary dark:text-dark-text-secondary ml-11">{description}</p>
     </div>
-    <p className="text-sm text-light-text-secondary dark:text-dark-text-secondary ml-11">{description}</p>
-  </div>
-);
+  );
+});
 
-const SettingRow: React.FC<{ label: string; description?: string; children: React.ReactNode }> = ({ label, description, children }) => (
-  <div className="flex flex-col sm:flex-row sm:items-start justify-between gap-4 py-4 border-b border-black/5 dark:border-white/5 last:border-0">
-    <div className="flex-1 max-w-md">
-      <label className="font-semibold text-sm text-light-text dark:text-dark-text block mb-1">{label}</label>
-      {description && <p className="text-xs text-light-text-secondary dark:text-dark-text-secondary leading-relaxed">{description}</p>}
+interface SettingRowProps { label: string; description?: string; children: React.ReactNode }
+const SettingRow = React.memo(function SettingRow({ label, description, children }: SettingRowProps) {
+  return (
+    <div className="flex flex-col sm:flex-row sm:items-start justify-between gap-4 py-4 border-b border-black/5 dark:border-white/5 last:border-0">
+      <div className="flex-1 max-w-md">
+        <label className="font-semibold text-sm text-light-text dark:text-dark-text block mb-1">{label}</label>
+        {description && <p className="text-xs text-light-text-secondary dark:text-dark-text-secondary leading-relaxed">{description}</p>}
+      </div>
+      <div className="w-full sm:w-64 shrink-0">
+        {children}
+      </div>
     </div>
-    <div className="w-full sm:w-64 shrink-0">
-      {children}
-    </div>
-  </div>
-);
+  );
+});
 
-const ThemeCard: React.FC<{
+interface ThemeCardProps {
   label: string;
   theme: Theme;
   currentTheme: Theme;
   setTheme: (theme: Theme) => void;
   icon: string;
-}> = ({ label, theme, currentTheme, setTheme, icon }) => {
+}
+const ThemeCard = React.memo(function ThemeCard({ label, theme, currentTheme, setTheme, icon }: ThemeCardProps) {
   const isSelected = currentTheme === theme;
-  
+
   return (
     <button
       onClick={() => setTheme(theme)}
@@ -60,7 +67,7 @@ const ThemeCard: React.FC<{
       <span className={`text-sm font-semibold ${isSelected ? 'text-primary-700 dark:text-primary-300' : 'text-light-text dark:text-dark-text'}`}>{label}</span>
     </button>
   );
-};
+});
 
 
 const Preferences: React.FC<PreferencesProps> = ({ preferences, setPreferences, theme, setTheme, setCurrentPage }) => {

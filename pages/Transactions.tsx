@@ -1,5 +1,5 @@
 
-import React, { useState, useMemo, useRef, useEffect } from 'react';
+import React, { useState, useMemo, useRef, useEffect, useCallback } from 'react';
 import { INPUT_BASE_STYLE, SELECT_WRAPPER_STYLE, SELECT_ARROW_STYLE, BTN_PRIMARY_STYLE, BTN_SECONDARY_STYLE, SELECT_STYLE, CHECKBOX_STYLE } from '../constants';
 import { Transaction, Account, DisplayTransaction, RecurringTransaction, Category } from '../types';
 import Card from '../components/Card';
@@ -21,20 +21,31 @@ interface TransactionsProps {
   setTagFilter: (tagId: string | null) => void;
 }
 
-const MetricCard: React.FC<{ label: string; value: string; colorClass?: string; icon: string }> = ({ label, value, colorClass = "text-light-text dark:text-dark-text", icon }) => (
-    <div className="bg-white dark:bg-dark-card p-4 rounded-xl shadow-sm border border-black/5 dark:border-white/5 flex items-center gap-4 transition-transform hover:scale-[1.02] duration-200 h-full">
-        <div className={`w-12 h-12 rounded-full flex items-center justify-center bg-light-bg dark:bg-white/5 text-light-text-secondary dark:text-dark-text-secondary flex-shrink-0`}>
-            <span className="material-symbols-outlined text-2xl">{icon}</span>
+const MetricCard = React.memo(function MetricCard({ label, value, colorClass = "text-light-text dark:text-dark-text", icon }: { label: string; value: string; colorClass?: string; icon: string }) {
+    return (
+        <div className="bg-white dark:bg-dark-card p-4 rounded-xl shadow-sm border border-black/5 dark:border-white/5 flex items-center gap-4 transition-transform hover:scale-[1.02] duration-200 h-full">
+            <div className={`w-12 h-12 rounded-full flex items-center justify-center bg-light-bg dark:bg-white/5 text-light-text-secondary dark:text-dark-text-secondary flex-shrink-0`}>
+                <span className="material-symbols-outlined text-2xl">{icon}</span>
+            </div>
+            <div>
+                <p className="text-xs font-bold uppercase tracking-wider text-light-text-secondary dark:text-dark-text-secondary mb-0.5">{label}</p>
+                <p className={`text-xl font-bold ${colorClass}`}>{value}</p>
+            </div>
         </div>
-        <div>
-            <p className="text-xs font-bold uppercase tracking-wider text-light-text-secondary dark:text-dark-text-secondary mb-0.5">{label}</p>
-            <p className={`text-xl font-bold ${colorClass}`}>{value}</p>
-        </div>
-    </div>
-);
+    );
+});
 
 // Helper Component for Column Header
-const ColumnHeader: React.FC<{
+const ColumnHeader = React.memo(function ColumnHeader({
+    label,
+    sortKey,
+    currentSort,
+    onSort,
+    isFilterActive,
+    filterContent,
+    className = "",
+    alignRight = false
+}: {
     label: string;
     sortKey?: string;
     currentSort: string;
@@ -43,7 +54,7 @@ const ColumnHeader: React.FC<{
     filterContent?: React.ReactNode;
     className?: string;
     alignRight?: boolean;
-}> = ({ label, sortKey, currentSort, onSort, isFilterActive, filterContent, className = "", alignRight = false }) => {
+}) {
     const [isFilterOpen, setIsFilterOpen] = useState(false);
     const filterRef = useRef<HTMLDivElement>(null);
 
@@ -104,7 +115,7 @@ const ColumnHeader: React.FC<{
             )}
         </div>
     );
-};
+});
 
 const Transactions: React.FC<TransactionsProps> = ({ accountFilter, setAccountFilter, tagFilter, setTagFilter }) => {
   const { transactions, saveTransaction, deleteTransactions } = useTransactionsContext();
@@ -642,23 +653,121 @@ const Transactions: React.FC<TransactionsProps> = ({ accountFilter, setAccountFi
     { label: 'Transfers', value: 'transfer' },
   ];
 
-  const handleAccountToggle = (id: string) => {
-      setSelectedAccountIds(prev => 
+  const handleAccountToggle = useCallback((id: string) => {
+      setSelectedAccountIds(prev =>
           prev.includes(id) ? prev.filter(x => x !== id) : [...prev, id]
       );
-  };
+  }, []);
 
-  const handleCategoryToggle = (name: string) => {
+  const handleCategoryToggle = useCallback((name: string) => {
       setSelectedCategoryNames(prev =>
           prev.includes(name) ? prev.filter(x => x !== name) : [...prev, name]
       );
-  };
-  
-  const handleTagToggle = (id: string) => {
+  }, []);
+
+  const handleTagToggle = useCallback((id: string) => {
       setSelectedTagIds(prev =>
         prev.includes(id) ? prev.filter(x => x !== id) : [...prev, id]
       );
-  };
+  }, []);
+
+  const dateFilterContent = useMemo(() => (
+      <div className="space-y-3 p-1">
+          <div className="grid gap-2">
+              <label className="text-xs font-semibold text-light-text-secondary dark:text-dark-text-secondary">From</label>
+              <input type="date" value={startDate} onChange={e => setStartDate(e.target.value)} className={INPUT_BASE_STYLE} />
+          </div>
+          <div className="grid gap-2">
+              <label className="text-xs font-semibold text-light-text-secondary dark:text-dark-text-secondary">To</label>
+              <input type="date" value={endDate} onChange={e => setEndDate(e.target.value)} className={INPUT_BASE_STYLE} />
+          </div>
+          {(startDate || endDate) && (
+              <button onClick={() => {setStartDate(''); setEndDate('');}} className="text-xs text-red-500 w-full text-center hover:underline">Clear Date Filter</button>
+          )}
+      </div>
+  ), [endDate, startDate]);
+
+  const accountFilterContent = useMemo(() => (
+      <div className="space-y-2">
+           <div className="max-h-48 overflow-y-auto space-y-1 pr-1">
+              {accounts.map(acc => (
+                   <label key={acc.id} className="flex items-center gap-2 text-sm p-1.5 rounded hover:bg-black/5 dark:hover:bg-white/5 cursor-pointer">
+                       <input type="checkbox" checked={selectedAccountIds.includes(acc.id)} onChange={() => handleAccountToggle(acc.id)} className={CHECKBOX_STYLE} />
+                       <span className="truncate">{acc.name}</span>
+                   </label>
+              ))}
+          </div>
+          {selectedAccountIds.length > 0 && (
+              <button onClick={() => setSelectedAccountIds([])} className="text-xs text-red-500 w-full text-center hover:underline pt-1 border-t border-black/5 dark:border-white/5">Clear Selection</button>
+          )}
+      </div>
+  ), [accounts, handleAccountToggle, selectedAccountIds]);
+
+  const merchantFilterContent = useMemo(() => (
+      <div className="space-y-2 p-1">
+          <input
+              type="text"
+              placeholder="Filter merchant..."
+              value={merchantFilter}
+              onChange={(e) => setMerchantFilter(e.target.value)}
+              className={INPUT_BASE_STYLE}
+              autoFocus
+          />
+          {merchantFilter && <button onClick={() => setMerchantFilter('')} className="text-xs text-red-500 w-full text-center hover:underline">Clear</button>}
+      </div>
+  ), [merchantFilter]);
+
+  const categoryFilterContent = useMemo(() => (
+      <div className="space-y-2">
+           <div className="max-h-48 overflow-y-auto space-y-1 pr-1">
+              {categoryOptions.map(cat => (
+                   <label key={cat.value} className="flex items-center gap-2 text-sm p-1.5 rounded hover:bg-black/5 dark:hover:bg-white/5 cursor-pointer">
+                       <input type="checkbox" checked={selectedCategoryNames.includes(cat.value)} onChange={() => handleCategoryToggle(cat.value)} className={CHECKBOX_STYLE} />
+                       <span className="truncate" style={{ paddingLeft: cat.level * 12 }}>{cat.label}</span>
+                   </label>
+              ))}
+          </div>
+          {selectedCategoryNames.length > 0 && (
+              <button onClick={() => setSelectedCategoryNames([])} className="text-xs text-red-500 w-full text-center hover:underline pt-1 border-t border-black/5 dark:border-white/5">Clear Selection</button>
+          )}
+      </div>
+  ), [categoryOptions, handleCategoryToggle, selectedCategoryNames]);
+
+  const tagFilterContent = useMemo(() => (
+      <div className="space-y-2">
+          {tagOptions.length > 0 ? (
+              <div className="max-h-48 overflow-y-auto space-y-1 pr-1">
+                  {tagOptions.map(tag => (
+                      <label key={tag.value} className="flex items-center gap-2 text-sm p-1.5 rounded hover:bg-black/5 dark:hover:bg-white/5 cursor-pointer">
+                          <input type="checkbox" checked={selectedTagIds.includes(tag.value)} onChange={() => handleTagToggle(tag.value)} className={CHECKBOX_STYLE} />
+                          <span className="truncate">{tag.label}</span>
+                      </label>
+                  ))}
+              </div>
+          ) : (
+              <p className="text-xs text-light-text-secondary dark:text-dark-text-secondary p-2 text-center">No tags found.</p>
+          )}
+          {selectedTagIds.length > 0 && (
+              <button onClick={() => setSelectedTagIds([])} className="text-xs text-red-500 w-full text-center hover:underline pt-1 border-t border-black/5 dark:border-white/5">Clear Selection</button>
+          )}
+      </div>
+  ), [handleTagToggle, selectedTagIds, setSelectedTagIds, tagOptions]);
+
+  const amountFilterContent = useMemo(() => (
+      <div className="space-y-3 p-1">
+          <div className="grid gap-2">
+              <label className="text-xs font-semibold text-light-text-secondary dark:text-dark-text-secondary">Min</label>
+              <input type="number" placeholder="0.00" value={minAmount} onChange={e => setMinAmount(e.target.value)} className={INPUT_BASE_STYLE} />
+          </div>
+          <div className="grid gap-2">
+              <label className="text-xs font-semibold text-light-text-secondary dark:text-dark-text-secondary">Max</label>
+              <input type="number" placeholder="1000.00" value={maxAmount} onChange={e => setMaxAmount(e.target.value)} className={INPUT_BASE_STYLE} />
+          </div>
+          {(minAmount || maxAmount) && (
+              <button onClick={() => {setMinAmount(''); setMaxAmount('');}} className="text-xs text-red-500 w-full text-center hover:underline">Clear Amount Filter</button>
+          )}
+      </div>
+  ), [maxAmount, minAmount]);
 
 
   return (
@@ -907,148 +1016,62 @@ const Transactions: React.FC<TransactionsProps> = ({ accountFilter, setAccountFi
                     </div>
                     <div className="flex-1 grid grid-cols-12 gap-4 ml-2 items-center">
                         <div className="col-span-8 md:col-span-6 lg:col-span-3">
-                            <ColumnHeader 
-                                label="Transaction" 
-                                sortKey="date" 
-                                currentSort={sortBy} 
+                            <ColumnHeader
+                                label="Transaction"
+                                sortKey="date"
+                                currentSort={sortBy}
                                 onSort={setSortBy}
                                 isFilterActive={!!startDate || !!endDate}
-                                filterContent={
-                                    <div className="space-y-3 p-1">
-                                        <div className="grid gap-2">
-                                            <label className="text-xs font-semibold text-light-text-secondary dark:text-dark-text-secondary">From</label>
-                                            <input type="date" value={startDate} onChange={e => setStartDate(e.target.value)} className={INPUT_BASE_STYLE} />
-                                        </div>
-                                        <div className="grid gap-2">
-                                            <label className="text-xs font-semibold text-light-text-secondary dark:text-dark-text-secondary">To</label>
-                                            <input type="date" value={endDate} onChange={e => setEndDate(e.target.value)} className={INPUT_BASE_STYLE} />
-                                        </div>
-                                        {(startDate || endDate) && (
-                                            <button onClick={() => {setStartDate(''); setEndDate('')}} className="text-xs text-red-500 w-full text-center hover:underline">Clear Date Filter</button>
-                                        )}
-                                    </div>
-                                }
+                                filterContent={dateFilterContent}
                             />
                         </div>
                         <div className="hidden md:block col-span-2">
-                             <ColumnHeader 
-                                label="Account" 
+                             <ColumnHeader
+                                label="Account"
                                 isFilterActive={selectedAccountIds.length > 0}
                                 currentSort={sortBy}
                                 onSort={setSortBy} // No sort key for account, just label
-                                filterContent={
-                                    <div className="space-y-2">
-                                         <div className="max-h-48 overflow-y-auto space-y-1 pr-1">
-                                            {accounts.map(acc => (
-                                                 <label key={acc.id} className="flex items-center gap-2 text-sm p-1.5 rounded hover:bg-black/5 dark:hover:bg-white/5 cursor-pointer">
-                                                     <input type="checkbox" checked={selectedAccountIds.includes(acc.id)} onChange={() => handleAccountToggle(acc.id)} className={CHECKBOX_STYLE} />
-                                                     <span className="truncate">{acc.name}</span>
-                                                 </label>
-                                            ))}
-                                        </div>
-                                        {selectedAccountIds.length > 0 && (
-                                            <button onClick={() => setSelectedAccountIds([])} className="text-xs text-red-500 w-full text-center hover:underline pt-1 border-t border-black/5 dark:border-white/5">Clear Selection</button>
-                                        )}
-                                    </div>
-                                }
+                                filterContent={accountFilterContent}
                              />
                         </div>
                         <div className="hidden lg:block col-span-2">
-                            <ColumnHeader 
+                            <ColumnHeader
                                 label="Merchant"
                                 sortKey="merchant"
                                 currentSort={sortBy}
                                 onSort={setSortBy}
                                 isFilterActive={!!merchantFilter}
-                                filterContent={
-                                    <div className="space-y-2 p-1">
-                                        <input 
-                                            type="text" 
-                                            placeholder="Filter merchant..." 
-                                            value={merchantFilter}
-                                            onChange={(e) => setMerchantFilter(e.target.value)} 
-                                            className={INPUT_BASE_STYLE} 
-                                            autoFocus
-                                        />
-                                        {merchantFilter && <button onClick={() => setMerchantFilter('')} className="text-xs text-red-500 w-full text-center hover:underline">Clear</button>}
-                                    </div>
-                                }
+                                filterContent={merchantFilterContent}
                             />
                         </div>
                         <div className="hidden md:block col-span-2">
-                            <ColumnHeader 
+                            <ColumnHeader
                                 label="Category"
                                 sortKey="category"
                                 currentSort={sortBy}
                                 onSort={setSortBy}
                                 isFilterActive={selectedCategoryNames.length > 0}
-                                filterContent={
-                                    <div className="space-y-2">
-                                         <div className="max-h-48 overflow-y-auto space-y-1 pr-1">
-                                            {categoryOptions.map(cat => (
-                                                 <label key={cat.value} className="flex items-center gap-2 text-sm p-1.5 rounded hover:bg-black/5 dark:hover:bg-white/5 cursor-pointer">
-                                                     <input type="checkbox" checked={selectedCategoryNames.includes(cat.value)} onChange={() => handleCategoryToggle(cat.value)} className={CHECKBOX_STYLE} />
-                                                     <span className="truncate" style={{ paddingLeft: cat.level * 12 }}>{cat.label}</span>
-                                                 </label>
-                                            ))}
-                                        </div>
-                                        {selectedCategoryNames.length > 0 && (
-                                            <button onClick={() => setSelectedCategoryNames([])} className="text-xs text-red-500 w-full text-center hover:underline pt-1 border-t border-black/5 dark:border-white/5">Clear Selection</button>
-                                        )}
-                                    </div>
-                                }
+                                filterContent={categoryFilterContent}
                             />
                         </div>
                         <div className="hidden lg:block col-span-1">
-                            <ColumnHeader 
+                            <ColumnHeader
                                 label="Tags"
                                 currentSort={sortBy}
                                 onSort={setSortBy}
                                 isFilterActive={selectedTagIds.length > 0}
-                                filterContent={
-                                    <div className="space-y-2">
-                                        {tagOptions.length > 0 ? (
-                                            <div className="max-h-48 overflow-y-auto space-y-1 pr-1">
-                                                {tagOptions.map(tag => (
-                                                    <label key={tag.value} className="flex items-center gap-2 text-sm p-1.5 rounded hover:bg-black/5 dark:hover:bg-white/5 cursor-pointer">
-                                                        <input type="checkbox" checked={selectedTagIds.includes(tag.value)} onChange={() => handleTagToggle(tag.value)} className={CHECKBOX_STYLE} />
-                                                        <span className="truncate">{tag.label}</span>
-                                                    </label>
-                                                ))}
-                                            </div>
-                                        ) : (
-                                            <p className="text-xs text-light-text-secondary dark:text-dark-text-secondary p-2 text-center">No tags found.</p>
-                                        )}
-                                        {selectedTagIds.length > 0 && (
-                                            <button onClick={() => setSelectedTagIds([])} className="text-xs text-red-500 w-full text-center hover:underline pt-1 border-t border-black/5 dark:border-white/5">Clear Selection</button>
-                                        )}
-                                    </div>
-                                }
+                                filterContent={tagFilterContent}
                             />
                         </div>
                         <div className="col-span-4 md:col-span-2 text-right flex justify-end">
-                             <ColumnHeader 
+                             <ColumnHeader
                                 label="Amount"
                                 sortKey="amount"
                                 currentSort={sortBy}
                                 onSort={setSortBy}
                                 alignRight
                                 isFilterActive={!!minAmount || !!maxAmount}
-                                filterContent={
-                                    <div className="space-y-3 p-1">
-                                        <div className="grid gap-2">
-                                            <label className="text-xs font-semibold text-light-text-secondary dark:text-dark-text-secondary">Min</label>
-                                            <input type="number" placeholder="0.00" value={minAmount} onChange={e => setMinAmount(e.target.value)} className={INPUT_BASE_STYLE} />
-                                        </div>
-                                        <div className="grid gap-2">
-                                            <label className="text-xs font-semibold text-light-text-secondary dark:text-dark-text-secondary">Max</label>
-                                            <input type="number" placeholder="1000.00" value={maxAmount} onChange={e => setMaxAmount(e.target.value)} className={INPUT_BASE_STYLE} />
-                                        </div>
-                                        {(minAmount || maxAmount) && (
-                                            <button onClick={() => {setMinAmount(''); setMaxAmount('')}} className="text-xs text-red-500 w-full text-center hover:underline">Clear Amount Filter</button>
-                                        )}
-                                    </div>
-                                }
+                                filterContent={amountFilterContent}
                             />
                         </div>
                     </div>
