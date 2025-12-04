@@ -696,7 +696,7 @@ const EditAccountModal: React.FC<EditAccountModalProps> = ({ onClose, onSave, on
                       <div className="relative group cursor-pointer" onClick={() => fileInputRef.current?.click()}>
                           <div className="w-24 h-24 rounded-full bg-light-fill dark:bg-dark-fill flex items-center justify-center overflow-hidden border border-black/10 dark:border-white/10">
                               {vehicleImage ? (
-                                  <img src={vehicleImage} alt="Vehicle" className="w-full h-full object-cover" />
+                                  <img src={vehicleImage} alt="Vehicle" className="w-full h-full object-cover" loading="lazy" decoding="async" />
                               ) : (
                                   <span className="material-symbols-outlined text-4xl text-gray-400">directions_car</span>
                               )}

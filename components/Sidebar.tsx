@@ -189,7 +189,7 @@ const Sidebar: React.FC<SidebarProps> = ({ currentPage, setCurrentPage, isSideba
                     className={`w-full flex items-center p-2 rounded-xl transition-all duration-200 hover:bg-white dark:hover:bg-white/5 hover:shadow-sm border border-transparent hover:border-black/5 dark:hover:border-white/5 ${isSidebarCollapsed ? 'justify-center' : 'gap-3'}`}
                 >
                     <div className="relative">
-                         <img className="h-10 w-10 rounded-full object-cover ring-2 ring-white dark:ring-gray-700 shadow-sm" src={user.profilePictureUrl} alt="User" />
+                         <img className="h-10 w-10 rounded-full object-cover ring-2 ring-white dark:ring-gray-700 shadow-sm" src={user.profilePictureUrl} alt="User" loading="lazy" decoding="async" />
                          <div className="absolute bottom-0 right-0 w-3 h-3 bg-green-500 border-2 border-white dark:border-gray-800 rounded-full"></div>
                     </div>
                     

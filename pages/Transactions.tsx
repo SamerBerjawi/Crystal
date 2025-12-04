@@ -14,6 +14,8 @@ import MultiAccountFilter from '../components/MultiAccountFilter';
 import { useAccountsContext, useTransactionsContext } from '../contexts/DomainProviders';
 import { useCategoryContext, useScheduleContext, useTagsContext } from '../contexts/FinancialDataContext';
 import VirtualizedList from '../components/VirtualizedList';
+import { useDebounce } from '../hooks/useDebounce';
+import { useThrottledCallback } from '../hooks/useThrottledCallback';
 
 interface TransactionsProps {
   accountFilter: string | null;
@@ -124,8 +126,9 @@ const Transactions: React.FC<TransactionsProps> = ({ accountFilter, setAccountFi
   const { incomeCategories, expenseCategories } = useCategoryContext();
   const { tags } = useTagsContext();
   const { saveRecurringTransaction } = useScheduleContext();
-  
+
   const [searchTerm, setSearchTerm] = useState('');
+  const debouncedSearchTerm = useDebounce(searchTerm, 300);
   const [sortBy, setSortBy] = useState('date-desc');
   const [typeFilter, setTypeFilter] = useState<'all' | 'income' | 'expense' | 'transfer'>('all');
   const [startDate, setStartDate] = useState('');
@@ -155,6 +158,11 @@ const Transactions: React.FC<TransactionsProps> = ({ accountFilter, setAccountFi
   // Virtualized list sizing
   const [listHeight, setListHeight] = useState(600);
   const listContainerRef = useRef<HTMLDivElement>(null);
+  const throttledUpdateHeight = useThrottledCallback(() => {
+    if (!listContainerRef.current) return;
+    const measuredHeight = listContainerRef.current.clientHeight;
+    setListHeight(measuredHeight > 0 ? measuredHeight : 600);
+  }, 150);
 
   // Sync with global filters from props
   useEffect(() => {
@@ -196,29 +204,23 @@ const Transactions: React.FC<TransactionsProps> = ({ accountFilter, setAccountFi
   }, []);
 
   useEffect(() => {
-    const updateHeight = () => {
-      if (!listContainerRef.current) return;
-      const measuredHeight = listContainerRef.current.clientHeight;
-      setListHeight(measuredHeight > 0 ? measuredHeight : 600);
-    };
+    throttledUpdateHeight();
 
-    updateHeight();
-
-    const resizeObserver = new ResizeObserver(updateHeight);
+    const resizeObserver = new ResizeObserver(throttledUpdateHeight);
     if (listContainerRef.current) {
       resizeObserver.observe(listContainerRef.current);
     }
 
-    window.addEventListener('resize', updateHeight);
+    window.addEventListener('resize', throttledUpdateHeight);
 
     return () => {
       if (listContainerRef.current) {
         resizeObserver.unobserve(listContainerRef.current);
       }
       resizeObserver.disconnect();
-      window.removeEventListener('resize', updateHeight);
+      window.removeEventListener('resize', throttledUpdateHeight);
     };
-  }, []);
+  }, [throttledUpdateHeight]);
 
   const allCategories = useMemo(() => [...incomeCategories, ...expenseCategories], [incomeCategories, expenseCategories]);
   const accountMap = useMemo(() => accounts.reduce((map, acc) => { map[acc.id] = acc; return map; }, {} as { [key: string]: Account }), [accounts]);
@@ -313,19 +315,21 @@ const Transactions: React.FC<TransactionsProps> = ({ accountFilter, setAccountFi
         return findParent(allCategories);
     };
 
+    const normalizedSearchTerm = debouncedSearchTerm.trim();
+
     const transactionList = displayTransactions.filter(tx => {
-        const matchAccount = selectedAccountIds.length === 0 || 
-            (tx.isTransfer 
-                ? selectedAccountIds.includes(accountMapByName[tx.fromAccountName!]?.id) || selectedAccountIds.includes(accountMapByName[tx.toAccountName!]?.id) 
+        const matchAccount = selectedAccountIds.length === 0 ||
+            (tx.isTransfer
+                ? selectedAccountIds.includes(accountMapByName[tx.fromAccountName!]?.id) || selectedAccountIds.includes(accountMapByName[tx.toAccountName!]?.id)
                 : selectedAccountIds.includes(tx.accountId));
-        
+
         const matchSearch = (
-            !searchTerm ||
-            fuzzySearch(searchTerm, tx.description) ||
-            fuzzySearch(searchTerm, tx.category) ||
-            fuzzySearch(searchTerm, tx.accountName || '') ||
-            fuzzySearch(searchTerm, tx.fromAccountName || '') ||
-            fuzzySearch(searchTerm, tx.toAccountName || '')
+            !normalizedSearchTerm ||
+            fuzzySearch(normalizedSearchTerm, tx.description) ||
+            fuzzySearch(normalizedSearchTerm, tx.category) ||
+            fuzzySearch(normalizedSearchTerm, tx.accountName || '') ||
+            fuzzySearch(normalizedSearchTerm, tx.fromAccountName || '') ||
+            fuzzySearch(normalizedSearchTerm, tx.toAccountName || '')
         );
         
         const matchMerchant = !merchantFilter || fuzzySearch(merchantFilter, tx.merchant || '');
@@ -365,7 +369,7 @@ const Transactions: React.FC<TransactionsProps> = ({ accountFilter, setAccountFi
       }
     });
 
-  }, [searchTerm, sortBy, typeFilter, startDate, endDate, displayTransactions, selectedAccountIds, selectedCategoryNames, selectedTagIds, minAmount, maxAmount, allCategories, accountMapByName, merchantFilter]);
+  }, [debouncedSearchTerm, sortBy, typeFilter, startDate, endDate, displayTransactions, selectedAccountIds, selectedCategoryNames, selectedTagIds, minAmount, maxAmount, allCategories, accountMapByName, merchantFilter]);
   
   type VirtualRow = { type: 'header'; date: string; total: number } | { type: 'transaction'; transaction: DisplayTransaction };
 
