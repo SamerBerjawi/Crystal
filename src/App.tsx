@@ -470,11 +470,16 @@ const App: React.FC = () => {
   // Check auth status and load data on initial load
   useEffect(() => {
     const authAndLoad = async () => {
-        const data = await checkAuthStatus();
-        if (data) {
-          loadAllFinancialData(data, { skipNextSave: true });
+        try {
+          const data = await checkAuthStatus();
+          if (data) {
+            loadAllFinancialData(data, { skipNextSave: true });
+          }
+        } catch (error) {
+          console.error('Failed to initialize session', error);
+        } finally {
+          setIsDataLoaded(true);
         }
-        setIsDataLoaded(true);
     };
     if (!isDemoMode) { // Only run if not in demo mode
       authAndLoad();
