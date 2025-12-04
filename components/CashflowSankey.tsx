@@ -134,6 +134,20 @@ const CashflowSankey: React.FC<CashflowSankeyProps> = ({ transactions, incomeCat
         const catInfo = getCategoryInfo(name, incomeCategories);
         const catIdx = addNode(name, catInfo.color, 1);
         
+        // Subtract subcategory values to find "direct" transactions to parent
+        let directValue = val;
+        incSub.forEach((data) => {
+             if (data.parent === name) directValue -= data.value;
+        });
+        
+        // If there is direct value (transactions assigned to parent category), create a node for it at level 0?
+        // For visual simplicity, we just treat the Cat node as the aggregator.
+        // The Sankey logic handles sum of inputs vs outputs. 
+        // If we have inputs from Subs, great. If we have direct value, it 'appears' at the Cat node level.
+        // However, for Sankey, Input must = Output. 
+        // Recharts handles imbalance by just showing the width, but flow might look weird.
+        // Let's forward the FULL value to center.
+        
         // Gradient: Cat Color -> Green (Income entering pool)
         addLink(catIdx, centerNodeIdx, val, catInfo.color, '#10B981'); 
     });

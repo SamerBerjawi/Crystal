@@ -505,12 +505,14 @@ const Dashboard: React.FC<DashboardProps> = ({ user, activeGoalIds, selectedAcco
   }, [accounts, transactions, loanPaymentOverrides]);
 
   const assetAllocationData: { name: string; value: number; color: string }[] = useMemo(() => {
+      // FIX: Assert type for assetGroups to avoid 'unknown' property access errors.
+      const groups = assetGroups as Record<string, { value: number, color: string }>;
       const data = [
-      { name: 'Liquid Cash', value: assetGroups['Liquid Cash']?.value || 0, color: assetGroups['Liquid Cash']?.color || '#A0AEC0' },
-      { name: 'Investments', value: assetGroups['Investments']?.value || 0, color: assetGroups['Investments']?.color || '#A0AEC0' },
-      { name: 'Properties', value: assetGroups['Properties']?.value || 0, color: assetGroups['Properties']?.color || '#A0AEC0' },
-      { name: 'Vehicles', value: assetGroups['Vehicles']?.value || 0, color: assetGroups['Vehicles']?.color || '#A0AEC0' },
-      { name: 'Other Assets', value: assetGroups['Other Assets']?.value || 0, color: assetGroups['Other Assets']?.color || '#A0AEC0' }
+      { name: 'Liquid Cash', value: groups['Liquid Cash']?.value || 0, color: groups['Liquid Cash']?.color || '#A0AEC0' },
+      { name: 'Investments', value: groups['Investments']?.value || 0, color: groups['Investments']?.color || '#A0AEC0' },
+      { name: 'Properties', value: groups['Properties']?.value || 0, color: groups['Properties']?.color || '#A0AEC0' },
+      { name: 'Vehicles', value: groups['Vehicles']?.value || 0, color: groups['Vehicles']?.color || '#A0AEC0' },
+      { name: 'Other Assets', value: groups['Other Assets']?.value || 0, color: groups['Other Assets']?.color || '#A0AEC0' }
     ];
       return data.filter(d => d.value > 0).sort((a, b) => b.value - a.value);
   }, [assetGroups]);
@@ -1239,39 +1241,6 @@ const Dashboard: React.FC<DashboardProps> = ({ user, activeGoalIds, selectedAcco
 
       {/* Customizable Widget Grid (Only for relevant tabs) */}
       {(activeTab === 'overview' || activeTab === 'activity') && (
-        <div className="grid grid-cols-1 md:grid-cols-4 gap-6" style={{ gridAutoRows: 'minmax(200px, auto)' }}>
-            {widgets
-                .filter(widget => WIDGET_TABS[activeTab].includes(widget.id))
-                .map(widget => {
-                    const widgetDetails = allWidgets.find(w => w.id === widget.id);
-                    if (!widgetDetails) return null;
-                    const WidgetComponent = widgetDetails.component;
-
-                    return (
-                        <WidgetWrapper
-                            key={widget.id}
-                            title={widget.title}
-                            w={widget.w}
-                            h={widget.h}
-                            onRemove={() => removeWidget(widget.id)}
-                            onResize={(dim, change) => handleResize(widget.id, dim, change)}
-                            isEditMode={isEditMode}
-                            isBeingDragged={draggedWidgetId === widget.id}
-                            isDragOver={dragOverWidgetId === widget.id}
-                            onDragStart={e => handleDragStart(e, widget.id)}
-                            onDragEnter={e => handleDragEnter(e, widget.id)}
-                            onDragLeave={handleDragLeave}
-                            onDrop={e => handleDrop(e, widget.id)}
-                            onDragEnd={handleDragEnd}
-                        >
-                            <WidgetComponent {...widgetDetails.props as any} />
-                        </WidgetWrapper>
-                    );
-            })}
-        </div>
-      )}
-      {/* Analysis Tab Dynamic Widgets */}
-      {activeTab === 'analysis' && (
         <div className="grid grid-cols-1 md:grid-cols-4 gap-6" style={{ gridAutoRows: 'minmax(200px, auto)' }}>
             {widgets
                 .filter(widget => WIDGET_TABS[activeTab].includes(widget.id))

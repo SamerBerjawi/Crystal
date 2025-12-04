@@ -366,7 +366,7 @@ const Accounts: React.FC<AccountsProps> = ({ accounts, transactions, saveAccount
         <div
             ref={contextMenuRef}
             style={{ top: contextMenu.y, left: contextMenu.x }}
-            className="absolute z-30 w-56 bg-light-card dark:bg-dark-card rounded-lg shadow-lg border border-black/10 dark:border-white/10 py-2 animate-fade-in-up"
+            className="fixed z-50 w-56 bg-light-card dark:bg-dark-card rounded-lg shadow-lg border border-black/10 dark:border-white/10 py-2 animate-fade-in-up"
         >
             <ul className="text-sm">
                 <li>
