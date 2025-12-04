@@ -128,8 +128,8 @@ const PropertyAccountView: React.FC<PropertyAccountViewProps> = ({
             <h3 className="text-base font-semibold text-light-text dark:text-dark-text mb-4">Features & Amenities</h3>
             {features.length > 0 ? (
               <div className="flex flex-wrap gap-3">
-                {features.map((feature, idx) => (
-                  <div key={idx} className="flex items-center gap-2 px-3 py-2 rounded-lg bg-light-fill dark:bg-dark-fill border border-black/5 dark:border-white/10">
+                {features.map(feature => (
+                  <div key={`${feature.label}-${feature.icon}`} className="flex items-center gap-2 px-3 py-2 rounded-lg bg-light-fill dark:bg-dark-fill border border-black/5 dark:border-white/10">
                     <span className="material-symbols-outlined text-primary-500">{feature.icon}</span>
                     <span className="text-sm font-medium text-light-text dark:text-dark-text">{feature.label}</span>
                   </div>

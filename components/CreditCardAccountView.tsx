@@ -386,11 +386,11 @@ const CreditCardAccountView: React.FC<CreditCardAccountViewProps> = ({
                                 />
                                 <ReferenceLine y={averageMonthlySpend} stroke="#F59E0B" strokeDasharray="3 3" strokeOpacity={0.8} strokeWidth={1.5} />
                                 <Bar dataKey="value" radius={[6, 6, 0, 0]}>
-                                    {monthlySpendingData.map((entry, index) => (
-                                        <Cell 
-                                            key={`cell-${index}`} 
-                                            fill={entry.value > averageMonthlySpend * 1.1 ? '#F43F5E' : (index === monthlySpendingData.length - 1 ? '#3B82F6' : '#CBD5E1')} 
-                                            fillOpacity={index === monthlySpendingData.length - 1 ? 1 : 0.8}
+                                    {monthlySpendingData.map(entry => (
+                                        <Cell
+                                            key={entry.name}
+                                            fill={entry.value > averageMonthlySpend * 1.1 ? '#F43F5E' : (entry.name === monthlySpendingData[monthlySpendingData.length - 1].name ? '#3B82F6' : '#CBD5E1')}
+                                            fillOpacity={entry.name === monthlySpendingData[monthlySpendingData.length - 1].name ? 1 : 0.8}
                                         />
                                     ))}
                                 </Bar>

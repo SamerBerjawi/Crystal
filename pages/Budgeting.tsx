@@ -501,8 +501,8 @@ const Budgeting: React.FC<BudgetingProps> = ({ budgets, transactions, expenseCat
                                 paddingAngle={5}
                                 dataKey="value"
                             >
-                                {allocationData.map((entry, index) => (
-                                    <Cell key={`cell-${index}`} fill={entry.color} stroke="none" />
+                                {allocationData.map(entry => (
+                                    <Cell key={entry.name} fill={entry.color} stroke="none" />
                                 ))}
                             </Pie>
                             <RechartsTooltip 

@@ -1258,8 +1258,8 @@ const Dashboard: React.FC<DashboardProps> = ({ user, tasks, saveTask }) => {
                                           paddingAngle={5}
                                           dataKey="value"
                                       >
-                                          {assetAllocationData.map((entry: any, index: number) => (
-                                              <Cell key={`cell-${index}`} fill={entry.color} stroke="none" />
+                                          {assetAllocationData.map((entry: any) => (
+                                              <Cell key={entry.name} fill={entry.color} stroke="none" />
                                           ))}
                                       </Pie>
                                   </PieChart>
