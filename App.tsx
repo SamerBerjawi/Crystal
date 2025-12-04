@@ -75,7 +75,7 @@ import { v4 as uuidv4 } from 'uuid';
 import ChatFab from './components/ChatFab';
 const Chatbot = lazy(() => import('./components/Chatbot'));
 import { convertToEur, CONVERSION_RATES, arrayToCSV, downloadCSV, parseDateAsUTC } from './utils';
-// fetchYahooPrices removed
+import { fetchYahooPrices } from './utils/investmentPrices';
 import { useDebounce } from './hooks/useDebounce';
 import { useAuth } from './hooks/useAuth';
 import useLocalStorage from './hooks/useLocalStorage';
@@ -259,13 +259,10 @@ const App: React.FC = () => {
   // State for Warrant prices
   const [manualWarrantPrices, setManualWarrantPrices] = useState<Record<string, number | undefined>>(initialFinancialData.manualWarrantPrices || {});
   const [lastUpdated, setLastUpdated] = useState<Date | null>(null);
-  
-  // Unified price map for Warrants and other Investment Accounts (Stocks, Crypto, etc.)
-  // We use `manualWarrantPrices` as the source of truth for all manual prices.
-  const assetPrices = useMemo(() => {
+  const [investmentPrices, setInvestmentPrices] = useState<Record<string, number | null>>({});
+
+  const warrantPrices = useMemo(() => {
     const resolved: Record<string, number | null> = {};
-    
-    // Populate from warrants
     warrants.forEach(warrant => {
       if (manualWarrantPrices[warrant.isin] !== undefined) {
         resolved[warrant.isin] = manualWarrantPrices[warrant.isin];
@@ -273,21 +270,9 @@ const App: React.FC = () => {
         resolved[warrant.isin] = null;
       }
     });
-    
-    // Populate from Investment Accounts (Stocks, Crypto, etc)
-    accounts.forEach(acc => {
-        if (acc.type === 'Investment' && acc.symbol) {
-             if (manualWarrantPrices[acc.symbol] !== undefined) {
-                resolved[acc.symbol] = manualWarrantPrices[acc.symbol];
-             } else {
-                 // If no price set, check if it's already null (don't overwrite warrant logic if symbol collision)
-                 if (resolved[acc.symbol] === undefined) resolved[acc.symbol] = null;
-             }
-        }
-    });
 
     return resolved;
-  }, [manualWarrantPrices, warrants, accounts]);
+  }, [manualWarrantPrices, warrants]);
 
   // States lifted up for persistence & preference linking
   const [dashboardAccountIds, setDashboardAccountIds] = useState<string[]>([]);
@@ -347,6 +332,39 @@ const App: React.FC = () => {
     accountsRef.current = accounts;
   }, [accounts]);
 
+  // Create a stable signature for investment accounts to only trigger refetch when symbols change
+  const investmentSymbolsSignature = useMemo(() => {
+    return accounts
+      .filter(a => a.type === 'Investment' && a.symbol)
+      .map(a => `${a.symbol}:${a.subType}`)
+      .sort()
+      .join('|');
+  }, [accounts]);
+
+  const refreshInvestmentPrices = useCallback(async () => {
+    if (typeof window === 'undefined') return;
+    
+    // Use ref to get current accounts without adding 'accounts' to dependency array
+    const currentAccounts = accountsRef.current;
+
+    const investmentAccountsWithSymbols = currentAccounts
+      .filter(acc => acc.type === 'Investment' && acc.symbol)
+      .filter(acc => !warrants.some(w => w.isin === acc.symbol));
+
+    if (investmentAccountsWithSymbols.length === 0) {
+      setInvestmentPrices({});
+      return;
+    }
+
+    const targets = investmentAccountsWithSymbols.map(acc => ({
+      symbol: acc.symbol as string,
+      subType: acc.subType,
+    }));
+
+    const prices = await fetchYahooPrices(targets);
+    setInvestmentPrices(prices);
+  }, [warrants]); // warrants is stable enough or relevant
+
   const warrantHoldingsBySymbol = useMemo(() => {
     const holdings: Record<string, number> = {};
 
@@ -361,6 +379,48 @@ const App: React.FC = () => {
 
     return holdings;
   }, [investmentTransactions, warrants]);
+
+  useEffect(() => {
+    let hasChanges = false;
+    const updatedAccounts = accounts.map(account => {
+      // FIX: The type 'Crypto' is not a valid AccountType. 'Crypto' is a subtype of 'Investment'.
+      // The check is simplified to only verify if the account type is 'Investment'.
+      if (account.symbol && account.type === 'Investment' && warrantPrices[account.symbol] !== undefined) {
+        const price = warrantPrices[account.symbol];
+        const quantity = warrantHoldingsBySymbol[account.symbol] || 0;
+        const calculatedBalance = price !== null ? quantity * price : 0;
+
+        if (Math.abs((account.balance || 0) - calculatedBalance) > 0.0001) {
+            hasChanges = true;
+            return { ...account, balance: calculatedBalance };
+        }
+      }
+      if (account.symbol && account.type === 'Investment' && investmentPrices[account.symbol] !== undefined) {
+        const price = investmentPrices[account.symbol];
+        const quantity = warrantHoldingsBySymbol[account.symbol] || 0;
+        const calculatedBalance = price !== null ? quantity * price : 0;
+
+        if (Math.abs((account.balance || 0) - calculatedBalance) > 0.0001) {
+            hasChanges = true;
+            return { ...account, balance: calculatedBalance };
+        }
+      }
+      return account;
+    });
+
+    if (hasChanges) {
+        setAccounts(updatedAccounts);
+    }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [warrantPrices, investmentPrices, warrantHoldingsBySymbol]);
+
+  useEffect(() => {
+    refreshInvestmentPrices();
+    if (typeof window === 'undefined') return;
+    const intervalId = window.setInterval(refreshInvestmentPrices, 5 * 60 * 1000);
+    return () => window.clearInterval(intervalId);
+  // Include investmentSymbolsSignature to trigger update only when symbols actually change
+  }, [refreshInvestmentPrices, investmentSymbolsSignature]);
 
   const loadAllFinancialData = useCallback((data: FinancialData | null, options?: { skipNextSave?: boolean }) => {
     const dataToLoad = data || initialFinancialData;
@@ -1135,30 +1195,6 @@ const App: React.FC = () => {
       return updated;
     });
     setLastUpdated(new Date());
-
-    if (price !== null) {
-        setAccounts(prevAccounts => prevAccounts.map(acc => {
-            if (acc.type === 'Investment' && acc.symbol === isin) {
-                // Re-calculate balance based on quantity * price
-                // We need to access warrantHoldingsBySymbol here, but since we are in a closure inside App, 
-                // we can just replicate the logic or use the existing memo if accessible.
-                // Simpler: Recalculate holding quantity for THIS symbol on the fly.
-                let quantity = 0;
-                investmentTransactions.forEach(tx => {
-                    if (tx.symbol === isin) {
-                        quantity += (tx.type === 'buy' ? tx.quantity : -tx.quantity);
-                    }
-                });
-                warrants.forEach(w => {
-                    if (w.isin === isin) {
-                        quantity += w.quantity;
-                    }
-                });
-                return { ...acc, balance: quantity * price };
-            }
-            return acc;
-        }));
-    }
   };
   
   // FIX: Add handlers for saving and deleting tags.
@@ -1402,6 +1438,8 @@ const App: React.FC = () => {
             duration={dashboardDuration}
             setDuration={setDashboardDuration}
             setActiveGoalIds={setActiveGoalIds}
+            tasks={tasks}
+            saveTask={handleSaveTask}
         />;
       case 'Accounts':
         return <Accounts accounts={accounts} transactions={transactions} saveAccount={handleSaveAccount} deleteAccount={handleDeleteAccount} setCurrentPage={setCurrentPage} setAccountFilter={setAccountFilter} setViewingAccountId={setViewingAccountId} saveTransaction={handleSaveTransaction} accountOrder={accountOrder} setAccountOrder={setAccountOrder} sortBy={accountsSortBy} setSortBy={setAccountsSortBy} warrants={warrants} onToggleAccountStatus={handleToggleAccountStatus} />;
@@ -1435,9 +1473,9 @@ const App: React.FC = () => {
       case 'Preferences':
         return <PreferencesPage preferences={preferences} setPreferences={setPreferences} theme={theme} setTheme={setTheme} setCurrentPage={setCurrentPage} />;
       case 'Investments':
-        return <InvestmentsPage accounts={accounts} cashAccounts={accounts.filter(a => a.type === 'Checking' || a.type === 'Savings')} investmentTransactions={investmentTransactions} saveInvestmentTransaction={handleSaveInvestmentTransaction} deleteInvestmentTransaction={handleDeleteInvestmentTransaction} saveTransaction={handleSaveTransaction} warrants={warrants} saveWarrant={handleSaveWarrant} deleteWarrant={handleDeleteWarrant} manualPrices={manualWarrantPrices} onManualPriceChange={handleManualWarrantPrice} warrantPrices={assetPrices} />;
+        return <InvestmentsPage accounts={accounts} cashAccounts={accounts.filter(a => a.type === 'Checking' || a.type === 'Savings')} investmentTransactions={investmentTransactions} saveInvestmentTransaction={handleSaveInvestmentTransaction} deleteInvestmentTransaction={handleDeleteInvestmentTransaction} saveTransaction={handleSaveTransaction} warrants={warrants} saveWarrant={handleSaveWarrant} deleteWarrant={handleDeleteWarrant} manualPrices={manualWarrantPrices} onManualPriceChange={handleManualWarrantPrice} warrantPrices={warrantPrices} />;
       case 'Warrants':
-        return <WarrantsPage warrants={warrants} saveWarrant={handleSaveWarrant} deleteWarrant={handleDeleteWarrant} prices={assetPrices} manualPrices={manualWarrantPrices} lastUpdated={lastUpdated} onManualPriceChange={handleManualWarrantPrice} />;
+        return <WarrantsPage warrants={warrants} saveWarrant={handleSaveWarrant} deleteWarrant={handleDeleteWarrant} prices={warrantPrices} manualPrices={manualWarrantPrices} lastUpdated={lastUpdated} onManualPriceChange={handleManualWarrantPrice} />;
       case 'Tasks':
         return <TasksPage tasks={tasks} saveTask={handleSaveTask} deleteTask={handleDeleteTask} taskOrder={taskOrder} setTaskOrder={setTaskOrder} />;
       case 'Documentation':
@@ -1461,8 +1499,8 @@ const App: React.FC = () => {
     [transactions, handleDeleteTransactions, handleSaveTransaction]
   );
   const warrantsContextValue = useMemo(
-    () => ({ warrants, prices: assetPrices }),
-    [assetPrices, warrants]
+    () => ({ warrants, prices: warrantPrices }),
+    [warrantPrices, warrants]
   );
   const categoryContextValue = useMemo(
     () => ({ incomeCategories, expenseCategories, setIncomeCategories, setExpenseCategories }),

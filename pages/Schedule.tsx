@@ -29,7 +29,10 @@ const ScheduledItemRow: React.FC<{
     
     const isIncome = item.type === 'income' || item.type === 'deposit';
     const isTransfer = item.type === 'transfer';
-    const isOverdue = !item.isRecurring && item.date < new Date().toISOString().split('T')[0];
+    
+    // Check overdue based on local ISO string comparison
+    const todayStr = toLocalISOString(new Date());
+    const isOverdue = !item.isRecurring && item.date < todayStr;
     
     const dueDate = parseDateAsUTC(item.date);
     const day = dueDate.getDate();
@@ -144,8 +147,8 @@ const ScheduleSummaryCard: React.FC<{ title: string; value: number; type: 'incom
                     <p className="text-xs font-bold uppercase tracking-wider opacity-70 mb-1">{title}</p>
                     <h3 className={`text-2xl font-extrabold tracking-tight ${colorClass}`}>{formatCurrency(value, 'EUR')}</h3>
                 </div>
-                <div className={`w-10 h-10 rounded-full flex items-center justify-center bg-white/50 dark:bg-black/20 ${colorClass}`}>
-                    <span className="material-symbols-outlined">{icon}</span>
+                <div className={`w-10 h-10 rounded-full flex items-center justify-center bg-white/50 dark:bg-black/20 ${colorClass} flex-shrink-0`}>
+                    <span className="material-symbols-outlined text-2xl leading-none">{icon}</span>
                 </div>
             </div>
             {count !== undefined && (
@@ -257,8 +260,11 @@ const SchedulePage: React.FC<ScheduleProps> = () => {
         recurringList
     } = useMemo(() => {
         const today = new Date();
-        const todayMidnight = new Date(today.getFullYear(), today.getMonth(), today.getDate());
-        const forecastEndDate = new Date(todayMidnight); forecastEndDate.setMonth(todayMidnight.getMonth() + 12);
+        const todayStr = toLocalISOString(today);
+        const todayMidnight = parseDateAsUTC(todayStr);
+        
+        const forecastEndDate = new Date(todayMidnight); 
+        forecastEndDate.setMonth(todayMidnight.getMonth() + 12);
 
         // Used for "Next 30 Days" metrics
         const next30DaysEnd = new Date(todayMidnight);
@@ -324,15 +330,20 @@ const SchedulePage: React.FC<ScheduleProps> = () => {
             while (nextDate < startRecurringScanDate && (!endDateUTC || nextDate < endDateUTC)) {
                 const interval = rt.frequencyInterval || 1;
                 const d = new Date(nextDate);
-                if (rt.frequency === 'monthly') d.setMonth(d.getMonth() + interval);
-                else if (rt.frequency === 'weekly') d.setDate(d.getDate() + (7 * interval));
-                else if (rt.frequency === 'daily') d.setDate(d.getDate() + interval);
-                else if (rt.frequency === 'yearly') d.setFullYear(d.getFullYear() + interval);
+                if (rt.frequency === 'monthly') {
+                    // Use UTC methods to avoid timezone shifting when advancing
+                    d.setUTCMonth(d.getUTCMonth() + interval);
+                    // Keep original day or adjust
+                }
+                else if (rt.frequency === 'weekly') d.setUTCDate(d.getUTCDate() + (7 * interval));
+                else if (rt.frequency === 'daily') d.setUTCDate(d.getUTCDate() + interval);
+                else if (rt.frequency === 'yearly') d.setUTCFullYear(d.getUTCFullYear() + interval);
                 nextDate = d;
             }
             
             while (nextDate <= forecastEndDate && (!endDateUTC || nextDate <= endDateUTC)) {
-                const originalDateStr = toLocalISOString(nextDate);
+                // Use ISO String splitting to get date string without local timezone offset
+                const originalDateStr = nextDate.toISOString().split('T')[0];
                 const override = recurringTransactionOverrides.find(o => o.recurringTransactionId === rt.id && o.originalDate === originalDateStr);
 
                 if (!override?.isSkipped) {
@@ -356,19 +367,21 @@ const SchedulePage: React.FC<ScheduleProps> = () => {
                     });
                 }
                 
-                // Advance Date
+                // Advance Date using UTC methods to ensure consistent date string generation
                 const interval = rt.frequencyInterval || 1;
                 const d = new Date(nextDate);
                 if (rt.frequency === 'monthly') {
-                    const targetDay = rt.dueDateOfMonth || startDateUTC.getDate();
-                    d.setMonth(d.getMonth() + interval);
-                    // Handle month length logic basic
-                    const lastDayOfMonth = new Date(d.getFullYear(), d.getMonth() + 1, 0).getDate();
-                    d.setDate(Math.min(targetDay, lastDayOfMonth));
+                    const targetDay = rt.dueDateOfMonth || startDateUTC.getUTCDate();
+                    d.setUTCMonth(d.getUTCMonth() + interval);
+                    // Handle month length logic using UTC date
+                    const year = d.getUTCFullYear();
+                    const month = d.getUTCMonth();
+                    const lastDayOfMonth = new Date(Date.UTC(year, month + 1, 0)).getUTCDate();
+                    d.setUTCDate(Math.min(targetDay, lastDayOfMonth));
                 }
-                else if (rt.frequency === 'weekly') d.setDate(d.getDate() + (7 * interval));
-                else if (rt.frequency === 'daily') d.setDate(d.getDate() + interval);
-                else if (rt.frequency === 'yearly') d.setFullYear(d.getFullYear() + interval);
+                else if (rt.frequency === 'weekly') d.setUTCDate(d.getUTCDate() + (7 * interval));
+                else if (rt.frequency === 'daily') d.setUTCDate(d.getUTCDate() + interval);
+                else if (rt.frequency === 'yearly') d.setUTCFullYear(d.getUTCFullYear() + interval);
                 nextDate = d;
             }
         });
@@ -444,10 +457,11 @@ const SchedulePage: React.FC<ScheduleProps> = () => {
             }
 
             // Grouping Logic
-            if (itemDate < todayMidnight) {
+            // Use string comparison for consistency with TodayWidget
+            if (item.date < todayStr) {
                 if (!groups['Overdue']) groups['Overdue'] = [];
                 groups['Overdue'].push(item);
-            } else if (itemDate.getTime() === todayMidnight.getTime()) {
+            } else if (item.date === todayStr) {
                 if (!groups['Today']) groups['Today'] = [];
                 groups['Today'].push(item);
             } else if (itemDate <= next7DaysEnd) {

@@ -18,6 +18,7 @@ const VehicleAccountView = React.lazy(() => import('../components/VehicleAccount
 const CreditCardAccountView = React.lazy(() => import('../components/CreditCardAccountView'));
 const GeneralAccountView = React.lazy(() => import('../components/GeneralAccountView'));
 const CashAccountView = React.lazy(() => import('../components/CashAccountView'));
+const SavingsAccountView = React.lazy(() => import('../components/SavingsAccountView'));
 
 const AccountDetail: React.FC<{
     account: Account;
@@ -234,6 +235,16 @@ const AccountDetail: React.FC<{
             case 'Credit Card':
                 return (
                     <CreditCardAccountView
+                        {...commonProps}
+                        displayTransactionsList={displayTransactionsList}
+                        transactions={accountTransactions}
+                        allCategories={allCategories}
+                        onTransactionClick={handleTransactionClick}
+                    />
+                );
+            case 'Savings':
+                return (
+                    <SavingsAccountView
                         {...commonProps}
                         displayTransactionsList={displayTransactionsList}
                         transactions={accountTransactions}

@@ -1,9 +1,9 @@
 
 import React, { useMemo, useState, useCallback, useEffect, useRef } from 'react';
-import { User, Transaction, Account, Category, Duration, CategorySpending, Widget, WidgetConfig, DisplayTransaction, FinancialGoal, RecurringTransaction, BillPayment, Tag, Budget, RecurringTransactionOverride, LoanPaymentOverrides, AccountType } from '../types';
-import { formatCurrency, getDateRange, calculateAccountTotals, convertToEur, calculateStatementPeriods, generateBalanceForecast, parseDateAsUTC, getCreditCardStatementDetails, generateSyntheticLoanPayments, generateSyntheticCreditCardPayments, getPreferredTimeZone, formatDateKey, generateSyntheticPropertyTransactions } from '../utils';
+import { User, Transaction, Account, Category, Duration, CategorySpending, Widget, WidgetConfig, DisplayTransaction, FinancialGoal, RecurringTransaction, BillPayment, Tag, Budget, RecurringTransactionOverride, LoanPaymentOverrides, AccountType, Task, ForecastDuration } from '../types';
+import { formatCurrency, getDateRange, calculateAccountTotals, convertToEur, calculateStatementPeriods, generateBalanceForecast, parseDateAsUTC, getCreditCardStatementDetails, generateSyntheticLoanPayments, generateSyntheticCreditCardPayments, getPreferredTimeZone, formatDateKey, generateSyntheticPropertyTransactions, toLocalISOString } from '../utils';
 import AddTransactionModal from '../components/AddTransactionModal';
-import { BTN_PRIMARY_STYLE, BTN_SECONDARY_STYLE, LIQUID_ACCOUNT_TYPES, ASSET_TYPES, DEBT_TYPES, ACCOUNT_TYPE_STYLES, INVESTMENT_SUB_TYPE_STYLES } from '../constants';
+import { BTN_PRIMARY_STYLE, BTN_SECONDARY_STYLE, LIQUID_ACCOUNT_TYPES, ASSET_TYPES, DEBT_TYPES, ACCOUNT_TYPE_STYLES, INVESTMENT_SUB_TYPE_STYLES, FORECAST_DURATION_OPTIONS, QUICK_CREATE_BUDGET_OPTIONS, CHECKBOX_STYLE } from '../constants';
 import TransactionDetailModal from '../components/TransactionDetailModal';
 import WidgetWrapper from '../components/WidgetWrapper';
 import OutflowsChart from '../components/OutflowsChart';
@@ -24,9 +24,26 @@ import BudgetOverviewWidget from '../components/BudgetOverviewWidget';
 import AccountBreakdownCard from '../components/AccountBreakdownCard';
 import TransactionMapWidget from '../components/TransactionMapWidget';
 import CashflowSankey from '../components/CashflowSankey';
-import { useAccountsContext, useTransactionsContext } from '../contexts/DomainProviders';
+import TodayWidget from '../components/TodayWidget';
+import { useAccountsContext, usePreferencesContext, useTransactionsContext } from '../contexts/DomainProviders';
 import { useBudgetsContext, useCategoryContext, useGoalsContext, useScheduleContext, useTagsContext } from '../contexts/FinancialDataContext';
 import { AreaChart, Area, LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, ReferenceLine, Label, Legend, BarChart, Bar, PieChart, Pie, Cell } from 'recharts';
+import ForecastDayModal from '../components/ForecastDayModal';
+import RecurringTransactionModal from '../components/RecurringTransactionModal';
+import BillPaymentModal from '../components/BillPaymentModal';
+import GoalScenarioModal from '../components/GoalScenarioModal';
+import FinancialGoalCard from '../components/FinancialGoalCard';
+import ConfirmationModal from '../components/ConfirmationModal';
+import ForecastChart from '../components/ForecastChart';
+import GoalContributionPlan from '../components/GoalContributionPlan';
+import BulkCategorizeModal from '../components/BulkCategorizeModal';
+import BulkEditTransactionsModal from '../components/BulkEditTransactionsModal';
+import { loadGenAiModule } from '../genAiLoader';
+import AIBudgetSuggestionsModal from '../components/AIBudgetSuggestionsModal';
+import QuickBudgetModal from '../components/QuickBudgetModal';
+import BudgetProgressCard from '../components/BudgetProgressCard';
+import BudgetModal from '../components/BudgetModal';
+import MultiSelectFilter from '../components/MultiSelectFilter';
 
 interface DashboardProps {
   user: User;
@@ -41,6 +58,8 @@ interface DashboardProps {
   setSelectedAccountIds: (ids: string[]) => void;
   duration: Duration;
   setDuration: (duration: Duration) => void;
+  tasks: Task[];
+  saveTask: (task: Omit<Task, 'id'> & { id?: string }) => void;
 }
 
 const findCategoryDetails = (name: string, categories: Category[]): Category | undefined => {
@@ -69,8 +88,8 @@ type EnrichedTransaction = Transaction & { convertedAmount: number; parsedDate: 
 type DashboardTab = 'overview' | 'analysis' | 'activity';
 
 const WIDGET_TABS: Record<DashboardTab, string[]> = {
-    overview: ['netWorthOverTime'],
-    analysis: ['cashflowSankey'], // Added here
+    overview: ['netWorthOverTime'], // Removed 'todayWidget' as it's now hardcoded in the layout
+    analysis: ['cashflowSankey'], 
     activity: ['transactionMap', 'outflowsByCategory', 'recentActivity']
 };
 
@@ -87,18 +106,19 @@ const AnalysisStatCard: React.FC<{ title: string; value: string; subtext: string
     </div>
 );
 
-const Dashboard: React.FC<DashboardProps> = ({ user, activeGoalIds, selectedAccountIds, setSelectedAccountIds, duration, setDuration }) => {
+const Dashboard: React.FC<DashboardProps> = ({ user, activeGoalIds, selectedAccountIds, setSelectedAccountIds, duration, setDuration, tasks, saveTask }) => {
   const { accounts } = useAccountsContext();
   const { transactions, saveTransaction, digest: transactionsDigest } = useTransactionsContext();
   const { incomeCategories, expenseCategories } = useCategoryContext();
   const { financialGoals } = useGoalsContext();
-  const { recurringTransactions, recurringTransactionOverrides, loanPaymentOverrides, billsAndPayments } = useScheduleContext();
+  const { recurringTransactions, recurringTransactionOverrides, loanPaymentOverrides, billsAndPayments, saveRecurringTransaction, saveBillPayment } = useScheduleContext();
   const { tags } = useTagsContext();
   const { budgets } = useBudgetsContext();
   const transactionsKey = transactionsDigest;
   const aggregateCacheRef = useRef<Map<string, { filteredTransactions: Transaction[]; income: number; expenses: number }>>(new Map());
   const [isTransactionModalOpen, setTransactionModalOpen] = useState(false);
   const [editingTransaction, setEditingTransaction] = useState<Transaction | null>(null);
+  const [itemToPost, setItemToPost] = useState<{ item: RecurringTransaction | BillPayment } | null>(null);
   
   const [isDetailModalOpen, setDetailModalOpen] = useState(false);
   const [modalTransactions, setModalTransactions] = useState<Transaction[]>([]);
@@ -117,15 +137,123 @@ const Dashboard: React.FC<DashboardProps> = ({ user, activeGoalIds, selectedAcco
       accounts.filter(a => selectedAccountIds.includes(a.id)),
   [accounts, selectedAccountIds]);
 
+  // Combine all recurring items (user-defined + synthetic)
+  const { allRecurringItems } = useMemo(() => {
+        const syntheticLoanPayments = generateSyntheticLoanPayments(accounts, transactions, loanPaymentOverrides);
+        const syntheticCreditCardPayments = generateSyntheticCreditCardPayments(accounts, transactions);
+        const syntheticPropertyTransactions = generateSyntheticPropertyTransactions(accounts);
+        
+        const all = [...recurringTransactions, ...syntheticLoanPayments, ...syntheticCreditCardPayments, ...syntheticPropertyTransactions];
+        return { allRecurringItems: all };
+  }, [accounts, transactions, loanPaymentOverrides, recurringTransactions]);
+
   const handleOpenTransactionModal = (tx?: Transaction) => {
     setEditingTransaction(tx || null);
+    setItemToPost(null);
     setTransactionModalOpen(true);
   };
   
   const handleCloseTransactionModal = () => {
     setEditingTransaction(null);
+    setItemToPost(null);
     setTransactionModalOpen(false);
   };
+
+  const handleProcessItem = (item: RecurringTransaction | BillPayment) => {
+      setItemToPost({ item });
+      setTransactionModalOpen(true);
+  };
+
+  const handleSavePostedTransaction = (transactionsToSave: (Omit<Transaction, 'id'> & { id?: string })[], idsToDelete: string[]) => {
+      saveTransaction(transactionsToSave, idsToDelete);
+
+      if (itemToPost) {
+          const original = itemToPost.item;
+          if ('frequency' in original) {
+             // Recurring
+             const rt = original as RecurringTransaction;
+             
+             // Only advance the date if it is NOT a synthetic transaction.
+             // Synthetic transactions (like loan payments) are auto-generated based on the schedule.
+             // Once a real payment is made, the schedule logic will see it and stop generating that specific instance.
+             if (!rt.isSynthetic) {
+                 const postedDate = parseDateAsUTC(transactionsToSave[0].date);
+                 let nextDueDate = new Date(postedDate);
+                 const interval = rt.frequencyInterval || 1;
+                 const startDateUTC = parseDateAsUTC(rt.startDate);
+     
+                 // Simple advance logic
+                 switch (rt.frequency) {
+                     case 'daily': nextDueDate.setDate(nextDueDate.getDate() + interval); break;
+                     case 'weekly': nextDueDate.setDate(nextDueDate.getDate() + 7 * interval); break;
+                     case 'monthly': {
+                         const d = rt.dueDateOfMonth || startDateUTC.getDate();
+                         nextDueDate.setMonth(nextDueDate.getMonth() + interval, 1);
+                         const lastDayOfNextMonth = new Date(nextDueDate.getFullYear(), nextDueDate.getMonth() + 1, 0).getDate();
+                         nextDueDate.setDate(Math.min(d, lastDayOfNextMonth));
+                         break;
+                     }
+                     case 'yearly': {
+                         nextDueDate.setFullYear(nextDueDate.getFullYear() + interval);
+                         break;
+                     }
+                 }
+                 saveRecurringTransaction({ ...rt, nextDueDate: toLocalISOString(nextDueDate) });
+             }
+          } else {
+              // Bill
+              const bill = original as BillPayment;
+              const postedTransaction = transactionsToSave[0];
+              saveBillPayment({ ...bill, status: 'paid', accountId: postedTransaction.accountId, dueDate: postedTransaction.date });
+          }
+      }
+      
+      handleCloseTransactionModal();
+  };
+  
+  const initialModalData = useMemo(() => {
+      if (!itemToPost) return {};
+      
+      const item = itemToPost.item;
+      let type: 'income' | 'expense' | 'transfer';
+      let from, to;
+      let category: string | undefined;
+
+      if ('frequency' in item) {
+          const rt = item as RecurringTransaction;
+          type = rt.type;
+          category = rt.category;
+          if (type === 'transfer') {
+              from = rt.accountId;
+              to = rt.toAccountId;
+          } else if (type === 'income') {
+              to = rt.accountId;
+          } else {
+              from = rt.accountId;
+          }
+      } else { // Bill
+          const bill = item as BillPayment;
+          type = bill.type === 'deposit' ? 'income' : 'expense';
+          category = type === 'income' ? 'Income' : 'Bills & Utilities';
+          if (bill.accountId) {
+               if (type === 'income') to = bill.accountId;
+               else from = bill.accountId;
+          }
+      }
+
+      return {
+          initialType: type,
+          initialFromAccountId: from,
+          initialToAccountId: to,
+          initialCategory: category,
+          initialDetails: {
+              date: 'dueDate' in item ? item.dueDate : (item as RecurringTransaction).nextDueDate,
+              amount: String(Math.abs(item.amount)),
+              description: item.description,
+          },
+      };
+  }, [itemToPost]);
+
 
   const handleTransactionClick = useCallback((clickedTx: DisplayTransaction) => {
     if (clickedTx.isTransfer && clickedTx.transferId) {
@@ -473,11 +601,6 @@ const Dashboard: React.FC<DashboardProps> = ({ user, activeGoalIds, selectedAcco
         'Other Liabilities': { types: ['Other Liabilities'], value: 0, color: '#94A3B8', icon: 'receipt' }, // Gray
     };
 
-    // Recalculate group totals using the new payoff logic for loans where applicable
-    // This is slightly duplicative of calculateAccountTotals logic but necessary for breakdown granularity
-    // We can't easily reuse calculateAccountTotals for individual account groups as it returns aggregated asset/debt.
-    // So we will use the calculateAccountTotals function on filtered lists of accounts for each group to be safe and consistent.
-
     // Helper to sum a group
     const calculateGroupTotal = (types: AccountType[]) => {
         const groupAccounts = openAccounts.filter(acc => types.includes(acc.type));
@@ -506,13 +629,14 @@ const Dashboard: React.FC<DashboardProps> = ({ user, activeGoalIds, selectedAcco
   }, [accounts, transactions, loanPaymentOverrides]);
 
   const assetAllocationData: { name: string; value: number; color: string }[] = useMemo(() => {
+      const groups = assetGroups as any;
       const data = [
-      { name: 'Liquid Cash', value: assetGroups['Liquid Cash']?.value || 0, color: assetGroups['Liquid Cash']?.color || '#A0AEC0' },
-      { name: 'Investments', value: assetGroups['Investments']?.value || 0, color: assetGroups['Investments']?.color || '#A0AEC0' },
-      { name: 'Properties', value: assetGroups['Properties']?.value || 0, color: assetGroups['Properties']?.color || '#A0AEC0' },
-      { name: 'Vehicles', value: assetGroups['Vehicles']?.value || 0, color: assetGroups['Vehicles']?.color || '#A0AEC0' },
-      { name: 'Other Assets', value: assetGroups['Other Assets']?.value || 0, color: assetGroups['Other Assets']?.color || '#A0AEC0' }
-    ];
+        { name: 'Liquid Cash', value: groups?.['Liquid Cash']?.value || 0, color: groups?.['Liquid Cash']?.color || '#A0AEC0' },
+        { name: 'Investments', value: groups?.['Investments']?.value || 0, color: groups?.['Investments']?.color || '#A0AEC0' },
+        { name: 'Properties', value: groups?.['Properties']?.value || 0, color: groups?.['Properties']?.color || '#A0AEC0' },
+        { name: 'Vehicles', value: groups?.['Vehicles']?.value || 0, color: groups?.['Vehicles']?.color || '#A0AEC0' },
+        { name: 'Other Assets', value: groups?.['Other Assets']?.value || 0, color: groups?.['Other Assets']?.color || '#A0AEC0' }
+      ];
       return data.filter(d => d.value > 0).sort((a, b) => b.value - a.value);
   }, [assetGroups]);
 
@@ -536,7 +660,6 @@ const Dashboard: React.FC<DashboardProps> = ({ user, activeGoalIds, selectedAcco
 
     const { start, end } = getDateRange(duration, transactions);
     
-    // Performance optimization: cap 'ALL' time range to a few years to prevent massive loops
     if (duration === 'ALL') {
         const fiveYearsAgo = new Date(end);
         fiveYearsAgo.setUTCFullYear(end.getUTCFullYear() - 5);
@@ -548,7 +671,6 @@ const Dashboard: React.FC<DashboardProps> = ({ user, activeGoalIds, selectedAcco
     const currentNetWorth = netWorth;
     const today = parseDateAsUTC(new Date().toISOString().split('T')[0]);
 
-    // Reverse transactions from start date up to now to find starting balance
     const transactionsToReverse = transactions.filter(tx => {
         if (!selectedAccountIds.includes(tx.accountId)) return false;
         if (tx.transferId && internalTransferIds.has(tx.transferId)) return false;
@@ -566,7 +688,6 @@ const Dashboard: React.FC<DashboardProps> = ({ user, activeGoalIds, selectedAcco
 
     const startingNetWorth = currentNetWorth - totalChangeSinceStart;
 
-    // Now, get all transactions within the chart's display period (start to end)
     const transactionsInPeriod = transactions.filter(tx => {
         if (!selectedAccountIds.includes(tx.accountId)) return false;
         if (tx.transferId && internalTransferIds.has(tx.transferId)) return false;
@@ -596,8 +717,6 @@ const Dashboard: React.FC<DashboardProps> = ({ user, activeGoalIds, selectedAcco
         currentDate.setUTCDate(currentDate.getUTCDate() + 1);
     }
     
-    // After the loop, the last value should be very close to currentNetWorth.
-    // Let's ensure it is exactly currentNetWorth to avoid floating point inaccuracies if today is in range.
     const todayStr = formatDateKey(today);
     const todayDataPoint = data.find(d => d.name === todayStr);
     if (todayDataPoint) {
@@ -620,10 +739,8 @@ const Dashboard: React.FC<DashboardProps> = ({ user, activeGoalIds, selectedAcco
       const isConfiguredCC = acc.type === 'Credit Card' && acc.statementStartDate && acc.paymentDate;
       if (!isConfiguredCC) return false;
       
-      // Show if the credit card itself is selected
       if (selectedAccountIds.includes(acc.id)) return true;
       
-      // Show if the linked settlement account is selected
       if (acc.settlementAccountId && selectedAccountIds.includes(acc.settlementAccountId)) return true;
       
       return false;
@@ -670,19 +787,15 @@ const Dashboard: React.FC<DashboardProps> = ({ user, activeGoalIds, selectedAcco
         const forecastEndDate = new Date();
         forecastEndDate.setFullYear(forecastEndDate.getFullYear() + 1, forecastEndDate.getMonth() + 1, 0);
 
-        // Filter selected accounts to include only liquid accounts for cash flow forecast
         const liquidSelectedAccounts = selectedAccounts.filter(a => LIQUID_ACCOUNT_TYPES.includes(a.type));
         
-        // Generate synthetic transactions
         const syntheticLoanPayments = generateSyntheticLoanPayments(accounts, transactions, loanPaymentOverrides);
         const syntheticCreditCardPayments = generateSyntheticCreditCardPayments(accounts, transactions);
         const syntheticPropertyTransactions = generateSyntheticPropertyTransactions(accounts);
         const allRecurringTransactions = [...recurringTransactions, ...syntheticLoanPayments, ...syntheticCreditCardPayments, ...syntheticPropertyTransactions];
 
-        // Filter active goals
         const activeGoals = financialGoals.filter(g => activeGoalIds.includes(g.id));
 
-        // FIX: Access the .chartData property from the returned object of generateBalanceForecast.
         const forecastData = generateBalanceForecast(
             liquidSelectedAccounts, 
             allRecurringTransactions, 
@@ -762,7 +875,6 @@ const Dashboard: React.FC<DashboardProps> = ({ user, activeGoalIds, selectedAcco
         const displayedValues: number[] = [];
     
         for (const period of periods) {
-            // FIX: Access the .chartData property from the returned object of generateBalanceForecast.
             const dataForPeriod = forecastData.filter(d => {
                 const dDate = parseDateAsUTC(d.date);
                 return dDate >= period.startDate && dDate <= period.endDate;
@@ -775,7 +887,6 @@ const Dashboard: React.FC<DashboardProps> = ({ user, activeGoalIds, selectedAcco
                 const point = findNthLowestUniquePoint(dataForPeriod, n, displayedValues);
                 
                 if (!point) {
-                    // FIX: Access the .chartData property from the returned object of generateBalanceForecast.
                     const lastKnownBalancePoint = forecastData
                         .filter(d => parseDateAsUTC(d.date) < period.startDate)
                         .pop();
@@ -794,7 +905,7 @@ const Dashboard: React.FC<DashboardProps> = ({ user, activeGoalIds, selectedAcco
                 
                 n++;
     
-                if (n > 20) { // Safety break
+                if (n > 20) {
                      displayedPoint = point;
                      break;
                 }
@@ -813,12 +924,27 @@ const Dashboard: React.FC<DashboardProps> = ({ user, activeGoalIds, selectedAcco
     }, [selectedAccounts, recurringTransactions, financialGoals, billsAndPayments, accounts, transactions, recurringTransactionOverrides, loanPaymentOverrides, activeGoalIds]);
 
   const handleBudgetClick = useCallback(() => {
-    // A real implementation might navigate to the budget page and filter by category
     alert("Navigate to budget page.");
   }, []);
 
   // --- Widget Management ---
   const allWidgets: Widget[] = useMemo(() => [
+    { 
+        id: 'todayWidget', 
+        name: 'Today\'s Agenda', 
+        defaultW: 2, 
+        defaultH: 2, 
+        component: TodayWidget, 
+        props: { 
+            tasks: tasks, 
+            recurringTransactions: allRecurringItems, 
+            bills: billsAndPayments, 
+            goals: financialGoals,
+            overrides: recurringTransactionOverrides,
+            onTaskUpdate: saveTask, 
+            onProcessItem: handleProcessItem 
+        } 
+    },
     { id: 'netWorthOverTime', name: 'Net Worth Over Time', defaultW: 4, defaultH: 2, component: NetWorthChart, props: { data: netWorthData, lineColor: netWorthTrendColor } },
     { id: 'outflowsByCategory', name: 'Outflows by Category', defaultW: 2, defaultH: 2, component: OutflowsChart, props: { data: outflowsByCategory, onCategoryClick: handleCategoryClick } },
     { id: 'netWorthBreakdown', name: 'Net Worth Breakdown', defaultW: 2, defaultH: 2, component: AssetDebtDonutChart, props: { assets: totalAssets, debt: totalDebt } },
@@ -828,7 +954,7 @@ const Dashboard: React.FC<DashboardProps> = ({ user, activeGoalIds, selectedAcco
     { id: 'budgetOverview', name: 'Budget Overview', defaultW: 2, defaultH: 2, component: BudgetOverviewWidget, props: { budgets: budgets, transactions: transactions, expenseCategories: expenseCategories, accounts: accounts, duration: duration, onBudgetClick: handleBudgetClick } },
     { id: 'transactionMap', name: 'Transaction Map', defaultW: 2, defaultH: 2, component: TransactionMapWidget, props: { transactions: filteredTransactions } },
     { id: 'cashflowSankey', name: 'Cash Flow Sankey', defaultW: 4, defaultH: 2, component: CashflowSankey, props: { transactions: filteredTransactions, incomeCategories, expenseCategories } }
-  ], [netWorthData, netWorthTrendColor, outflowsByCategory, handleCategoryClick, totalAssets, totalDebt, recentTransactions, allCategories, handleTransactionClick, globalTotalAssets, globalAssetBreakdown, globalTotalDebt, globalDebtBreakdown, budgets, transactions, expenseCategories, accounts, duration, handleBudgetClick, filteredTransactions, incomeCategories]);
+  ], [tasks, recurringTransactions, allRecurringItems, recurringTransactionOverrides, billsAndPayments, financialGoals, saveTask, netWorthData, netWorthTrendColor, outflowsByCategory, handleCategoryClick, totalAssets, totalDebt, recentTransactions, allCategories, handleTransactionClick, globalTotalAssets, globalAssetBreakdown, globalTotalDebt, globalDebtBreakdown, budgets, transactions, expenseCategories, accounts, duration, handleBudgetClick, filteredTransactions, incomeCategories]);
 
   const [widgets, setWidgets] = useLocalStorage<WidgetConfig[]>('dashboard-layout', allWidgets.map(w => ({ id: w.id, title: w.name, w: w.defaultW, h: w.defaultH })));
 
@@ -867,7 +993,6 @@ const Dashboard: React.FC<DashboardProps> = ({ user, activeGoalIds, selectedAcco
 
   const handleDragStart = (e: React.DragEvent, widgetId: string) => { setDraggedWidgetId(widgetId); e.dataTransfer.effectAllowed = 'move'; };
   const handleDragEnter = (e: React.DragEvent, widgetId: string) => { e.preventDefault(); if (widgetId !== draggedWidgetId) setDragOverWidgetId(widgetId); };
-  // FIX: Corrected handleDragLeave signature to match usage in onDragLeave prop
   const handleDragLeave = (e: React.DragEvent) => { e.preventDefault(); setDragOverWidgetId(null); };
   const handleDrop = (e: React.DragEvent, targetWidgetId: string) => {
     e.preventDefault();
@@ -886,14 +1011,11 @@ const Dashboard: React.FC<DashboardProps> = ({ user, activeGoalIds, selectedAcco
   };
   const handleDragEnd = () => { setDraggedWidgetId(null); setDragOverWidgetId(null); };
 
-  // Metrics for Analysis Tab
   const { liquidityRatio, savingsRate } = useMemo(() => {
       const openAccounts = accounts.filter(acc => acc.status !== 'closed');
       const liquidCash = openAccounts.filter(acc => LIQUID_ACCOUNT_TYPES.includes(acc.type))
                            .reduce((sum, acc) => sum + convertToEur(acc.balance, acc.currency), 0);
       
-      // avgMonthlySpend was calculated in GeneralAccountView logic but not available here easily.
-      // Let's recalculate simplified avg monthly spend for this global view.
       const threeMonthsAgo = new Date(); threeMonthsAgo.setMonth(threeMonthsAgo.getMonth() - 3);
       const expenseTxs = transactions.filter(t => {
           const d = parseDateAsUTC(t.date);
@@ -904,7 +1026,6 @@ const Dashboard: React.FC<DashboardProps> = ({ user, activeGoalIds, selectedAcco
 
       const liquidityRatio = avgMonthlySpend > 0 ? (liquidCash / avgMonthlySpend) : 0;
 
-      // Calculate savings rate based on selected period (duration)
       let totalIncomePeriod = 0;
       let totalExpensePeriod = 0;
       const { start, end } = getDateRange(duration, transactions);
@@ -924,7 +1045,6 @@ const Dashboard: React.FC<DashboardProps> = ({ user, activeGoalIds, selectedAcco
 
   }, [accounts, transactions, duration]);
 
-  // Styles for tab navigation
   const tabBaseClass = "px-4 py-2 font-semibold text-sm rounded-lg transition-all duration-200 focus:outline-none whitespace-nowrap";
   const tabActiveClass = "bg-white dark:bg-dark-card text-primary-600 dark:text-primary-400 shadow-sm";
   const tabInactiveClass = "text-light-text-secondary dark:text-dark-text-secondary hover:text-light-text dark:hover:text-dark-text hover:bg-black/5 dark:hover:bg-white/5";
@@ -935,8 +1055,7 @@ const Dashboard: React.FC<DashboardProps> = ({ user, activeGoalIds, selectedAcco
         <AddTransactionModal 
           onClose={handleCloseTransactionModal}
           onSave={(data, toDelete) => {
-            saveTransaction(data, toDelete);
-            handleCloseTransactionModal();
+            handleSavePostedTransaction(data, toDelete);
           }}
           accounts={accounts}
           incomeCategories={incomeCategories}
@@ -944,6 +1063,11 @@ const Dashboard: React.FC<DashboardProps> = ({ user, activeGoalIds, selectedAcco
           transactionToEdit={editingTransaction}
           transactions={transactions}
           tags={tags}
+          initialType={initialModalData.initialType}
+          initialFromAccountId={initialModalData.initialFromAccountId}
+          initialToAccountId={initialModalData.initialToAccountId}
+          initialCategory={initialModalData.initialCategory}
+          initialDetails={initialModalData.initialDetails}
         />
       )}
       <TransactionDetailModal
@@ -967,21 +1091,18 @@ const Dashboard: React.FC<DashboardProps> = ({ user, activeGoalIds, selectedAcco
           />
       )}
       
-      {/* Header */}
       <div className="flex flex-col xl:flex-row justify-between items-start xl:items-center gap-4">
         <div className="mb-1 xl:mb-0">
           <p className="text-light-text-secondary dark:text-dark-text-secondary">Welcome back, {user.firstName}!</p>
         </div>
         
         <div className="flex flex-col sm:flex-row gap-3 w-full xl:w-auto">
-             {/* Tab Navigation */}
              <div className="flex bg-light-fill dark:bg-dark-fill p-1 rounded-lg w-full sm:w-auto overflow-x-auto no-scrollbar">
                 <button onClick={() => setActiveTab('overview')} className={`${tabBaseClass} ${activeTab === 'overview' ? tabActiveClass : tabInactiveClass}`}>Overview</button>
                 <button onClick={() => setActiveTab('analysis')} className={`${tabBaseClass} ${activeTab === 'analysis' ? tabActiveClass : tabInactiveClass}`}>Analysis</button>
                 <button onClick={() => setActiveTab('activity')} className={`${tabBaseClass} ${activeTab === 'activity' ? tabActiveClass : tabInactiveClass}`}>Activity</button>
             </div>
 
-            {/* Filters */}
             <div className="flex gap-3 w-full sm:w-auto">
                 <div className="flex-1 sm:flex-none">
                     <MultiAccountFilter accounts={accounts} selectedAccountIds={selectedAccountIds} setSelectedAccountIds={setSelectedAccountIds} />
@@ -991,7 +1112,6 @@ const Dashboard: React.FC<DashboardProps> = ({ user, activeGoalIds, selectedAcco
                 </div>
             </div>
 
-            {/* Actions */}
             <div className="flex gap-3 w-full sm:w-auto sm:ml-auto xl:ml-0">
                  {isEditMode ? (
                     <>
@@ -1017,7 +1137,6 @@ const Dashboard: React.FC<DashboardProps> = ({ user, activeGoalIds, selectedAcco
         </div>
       </div>
       
-      {/* New Suggestion Summary Card */}
       {suggestions.length > 0 && (
           <Card>
               <div className="flex flex-wrap justify-between items-center gap-4">
@@ -1040,24 +1159,38 @@ const Dashboard: React.FC<DashboardProps> = ({ user, activeGoalIds, selectedAcco
 
       {activeTab === 'overview' && (
         <>
-            {/* Replaced Separate Net Worth and Cash Flow Cards with Unified Financial Overview */}
-            <FinancialOverview
-                netWorth={netWorth}
-                income={income}
-                expenses={expenses}
-                incomeChange={incomeChange}
-                expenseChange={expenseChange}
-                currency="EUR"
-            />
+             <div className="grid grid-cols-1 xl:grid-cols-3 gap-6">
+                <div className="xl:col-span-2">
+                    <FinancialOverview
+                        netWorth={netWorth}
+                        income={income}
+                        expenses={expenses}
+                        incomeChange={incomeChange}
+                        expenseChange={expenseChange}
+                        currency="EUR"
+                    />
+                </div>
+                <div className="xl:col-span-1 h-full">
+                     <Card className="h-full p-0 overflow-hidden border border-black/5 dark:border-white/5 shadow-sm">
+                        <TodayWidget 
+                            tasks={tasks} 
+                            recurringTransactions={allRecurringItems} 
+                            bills={billsAndPayments} 
+                            goals={financialGoals}
+                            overrides={recurringTransactionOverrides}
+                            onTaskUpdate={saveTask} 
+                            onProcessItem={handleProcessItem} 
+                        />
+                     </Card>
+                </div>
+            </div>
             
-            {/* Lowest Balance Forecast Horizon */}
             {lowestBalanceForecasts && lowestBalanceForecasts.length > 0 && (
                 <div>
                     <ForecastOverview forecasts={lowestBalanceForecasts} currency="EUR" />
                 </div>
             )}
 
-            {/* Credit Card Statements Section */}
             {creditCardStatements.length > 0 && (
                 <div className="space-y-6">
                     {creditCardStatements.map(statement => (
@@ -1088,7 +1221,6 @@ const Dashboard: React.FC<DashboardProps> = ({ user, activeGoalIds, selectedAcco
 
       {activeTab === 'analysis' && (
           <div className="space-y-8 animate-fade-in-up">
-              {/* Financial Health Scorecard */}
               <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
                   <AnalysisStatCard 
                     title="Liquidity Ratio" 
@@ -1113,10 +1245,8 @@ const Dashboard: React.FC<DashboardProps> = ({ user, activeGoalIds, selectedAcco
                   />
               </div>
 
-              {/* Combined Net Worth Composition Widget */}
               <Card className="overflow-hidden">
                   <div className="flex flex-col lg:flex-row gap-8">
-                      {/* Left: Chart & High Level */}
                       <div className="lg:w-1/3 flex flex-col justify-center border-b lg:border-b-0 lg:border-r border-black/5 dark:border-white/5 pb-8 lg:pb-0 lg:pr-8">
                           <h3 className="text-lg font-bold text-light-text dark:text-dark-text mb-6 self-start">Asset Allocation</h3>
                           <div className="h-64 w-full relative">
@@ -1131,7 +1261,6 @@ const Dashboard: React.FC<DashboardProps> = ({ user, activeGoalIds, selectedAcco
                                           paddingAngle={5}
                                           dataKey="value"
                                       >
-                                          {/* Cells generated from data color property */}
                                           {assetAllocationData.map((entry: any, index: number) => (
                                               <Cell key={`cell-${index}`} fill={entry.color} stroke="none" />
                                           ))}
@@ -1155,13 +1284,11 @@ const Dashboard: React.FC<DashboardProps> = ({ user, activeGoalIds, selectedAcco
                           </div>
                       </div>
 
-                      {/* Right: Detailed Breakdown */}
                       <div className="lg:w-2/3 grid grid-cols-1 sm:grid-cols-2 gap-8">
-                          {/* Assets Column */}
                           <div>
                               <h4 className="text-sm font-bold text-light-text-secondary dark:text-dark-text-secondary uppercase tracking-wider mb-4">Assets Breakdown</h4>
                               <div className="space-y-4">
-                                  {Object.entries(assetGroups).map(([name, grp]) => {
+                                  {Object.entries(assetGroups).map(([name, grp]: [string, any]) => {
                                       const group = grp as { value: number; color: string; icon: string };
                                       if (group.value === 0) return null;
                                       return (
@@ -1188,11 +1315,10 @@ const Dashboard: React.FC<DashboardProps> = ({ user, activeGoalIds, selectedAcco
                               </div>
                           </div>
 
-                          {/* Liabilities Column */}
                           <div>
                               <h4 className="text-sm font-bold text-light-text-secondary dark:text-dark-text-secondary uppercase tracking-wider mb-4">Liabilities Breakdown</h4>
                               <div className="space-y-4">
-                                  {Object.entries(liabilityGroups).map(([name, grp]) => {
+                                  {Object.entries(liabilityGroups).map(([name, grp]: [string, any]) => {
                                       const group = grp as { value: number; color: string; icon: string };
                                       if (group.value === 0) return null;
                                       return (
@@ -1226,7 +1352,6 @@ const Dashboard: React.FC<DashboardProps> = ({ user, activeGoalIds, selectedAcco
                   </div>
               </Card>
               
-              {/* Budget Overview */}
               <Card className="min-h-[400px] flex flex-col">
                     <div className="flex justify-between items-center mb-4">
                         <h3 className="text-xl font-bold text-light-text dark:text-dark-text">Budget Performance</h3>
@@ -1239,7 +1364,6 @@ const Dashboard: React.FC<DashboardProps> = ({ user, activeGoalIds, selectedAcco
           </div>
       )}
 
-      {/* Customizable Widget Grid (Only for relevant tabs) */}
       {(activeTab === 'overview' || activeTab === 'activity') && (
         <div className="grid grid-cols-1 md:grid-cols-4 gap-6" style={{ gridAutoRows: 'minmax(200px, auto)' }}>
             {widgets
