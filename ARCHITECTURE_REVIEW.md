@@ -30,3 +30,41 @@ The application is a single-page React app built with Vite. Almost all stateful 
 5. **Audit render-heavy components** (charts, lists) for unnecessary prop changes; wrap in `React.memo` with stable props and derive view models outside render where possible.
 
 Applying these changes will keep all current features but significantly reduce main-thread work and unnecessary re-renders, making the app feel snappier.
+
+## 2. React rendering & state management best practices
+
+### 2.1. Colocate state (don’t keep everything at the top)
+
+Too much high-level state causes unnecessary rerenders across the tree.
+
+**Bad:** keep every piece of UI state in `App`.
+
+```tsx
+// App holds everything
+const [filter, setFilter] = useState("");
+const [selectedId, setSelectedId] = useState<number | null>(null);
+const [uiFlags, setUiFlags] = useState({ isModalOpen: false /* ... */ });
+
+return <HugeTree filter={filter} selectedId={selectedId} uiFlags={uiFlags} />;
+```
+
+**Better:** keep only truly global data in the root (auth, theme, user). Move modal, dropdown, and input state into the closest component so updates stay localized.
+
+Result: fewer renders propagate across the tree and less wasted work on unrelated components.
+
+### 2.2. Apply this to Crystal’s current state shape
+
+`App.tsx` still centralizes many UI-only flags that should live closer to where they are rendered. Examples include:
+
+* Navigation/UI chrome: auth page switcher, sidebar open/collapsed flags, and current path tracking all sit in the root even though only the header/sidebar care about them.【F:App.tsx†L266-L279】
+* View filters: account and tag filters, dashboard account selection, active goal IDs, dashboard duration, and account sort mode are all page-specific but currently global.【F:App.tsx†L276-L309】【F:App.tsx†L381-L385】
+* Ephemeral UI controls: chat toggle, onboarding completion flag, and other modal/dropdown toggles do not need to be global or persisted; keeping them at the top forces unrelated components to re-render on every toggle.【F:App.tsx†L311-L317】【F:App.tsx†L387-L389】
+
+Recommended changes:
+
+* Keep only truly global cross-cutting data at the root: authentication state, theme, and the user object.
+* Move navigation chrome state (sidebar open/collapsed, auth page toggle) into the `Header`/`Sidebar` components or a small UI context scoped to navigation.
+* Move per-page filters and sort state into their respective pages (`Dashboard`, `Accounts`, `Tags`) or page-level contexts so only those views re-render when filters change.
+* Keep ephemeral UI state (modals, dropdowns, chat open state, onboarding) in the owning component and avoid persisting it unless absolutely necessary.
+
+This keeps updates localized, reduces prop drilling, and aligns the live code with the colocated-state guidance above.

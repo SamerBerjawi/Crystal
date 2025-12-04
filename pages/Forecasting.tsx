@@ -28,11 +28,7 @@ import ForecastOverview from '../components/ForecastOverview';
 import { loadGenAiModule } from '../genAiLoader';
 import { useAccountsContext, usePreferencesContext, useTransactionsContext } from '../contexts/DomainProviders';
 import { useCategoryContext, useGoalsContext, useScheduleContext } from '../contexts/FinancialDataContext';
-
-interface ForecastingProps {
-  activeGoalIds: string[];
-  setActiveGoalIds: React.Dispatch<React.SetStateAction<string[]>>;
-}
+import { useInsightsView } from '../contexts/InsightsViewContext';
 
 // --- AI Planner Hook ---
 const useSmartGoalPlanner = (
@@ -154,7 +150,8 @@ const MetricCard: React.FC<{ title: string; value: string; subValue?: string; ic
     </div>
 );
 
-const Forecasting: React.FC<ForecastingProps> = ({ activeGoalIds, setActiveGoalIds }) => {
+const Forecasting: React.FC = () => {
+  const { activeGoalIds, setActiveGoalIds } = useInsightsView();
   const { accounts } = useAccountsContext();
   const { transactions } = useTransactionsContext();
   const { financialGoals, saveFinancialGoal, deleteFinancialGoal } = useGoalsContext();
