@@ -3,8 +3,8 @@
 import React, { useState, useEffect, useMemo, useCallback, Suspense, lazy, useRef, Component, ErrorInfo } from 'react';
 import Sidebar from './components/Sidebar';
 import Header from './components/Header';
-import SignIn from './pages/SignIn';
-import SignUp from './pages/SignUp';
+const SignIn = lazy(() => import('./pages/SignIn'));
+const SignUp = lazy(() => import('./pages/SignUp'));
 const loadDashboard = () => import('./pages/Dashboard');
 const Dashboard = lazy(loadDashboard);
 const loadAccounts = () => import('./pages/Accounts');
@@ -1594,10 +1594,26 @@ const App: React.FC = () => {
 
   // Auth pages
   if (!isAuthenticated && !isDemoMode) {
-    if (authPage === 'signIn') {
-      return <SignIn onSignIn={handleSignIn} onNavigateToSignUp={() => setAuthPage('signUp')} onEnterDemoMode={handleEnterDemoMode} isLoading={isAuthLoading} error={authError} />;
-    }
-    return <SignUp onSignUp={handleSignUp} onNavigateToSignIn={() => setAuthPage('signIn')} isLoading={isAuthLoading} error={authError} />;
+    return (
+      <Suspense fallback={<PageLoader label="Preparing sign-in experience..." />}>
+        {authPage === 'signIn' ? (
+          <SignIn
+            onSignIn={handleSignIn}
+            onNavigateToSignUp={() => setAuthPage('signUp')}
+            onEnterDemoMode={handleEnterDemoMode}
+            isLoading={isAuthLoading}
+            error={authError}
+          />
+        ) : (
+          <SignUp
+            onSignUp={handleSignUp}
+            onNavigateToSignIn={() => setAuthPage('signIn')}
+            isLoading={isAuthLoading}
+            error={authError}
+          />
+        )}
+      </Suspense>
+    );
   }
 
   // Main app
