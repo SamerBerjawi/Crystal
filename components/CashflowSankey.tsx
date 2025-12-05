@@ -10,6 +10,16 @@ interface CashflowSankeyProps {
   expenseCategories: Category[];
 }
 
+const FLOW_DEPTH = {
+    subIn: 0,
+    catIn: 1,
+    net: 2,
+    catOut: 3,
+    subOut: 4
+};
+
+const OTHER_SUBCATEGORY = 'Other';
+
 // Helper to find color safely
 const getCategoryColor = (name: string, parentName: string | null, categories: Category[]) => {
     if (parentName) {
@@ -52,7 +62,7 @@ const CashflowSankey: React.FC<CashflowSankeyProps> = ({ transactions, incomeCat
     // Aggregation Structures
     const incCatTotals = new Map<string, number>();
     const incSubTotals = new Map<string, number>(); // Key: "Sub::Parent"
-    
+
     const expCatTotals = new Map<string, number>();
     const expSubTotals = new Map<string, number>();
 
@@ -68,21 +78,18 @@ const CashflowSankey: React.FC<CashflowSankeyProps> = ({ transactions, incomeCat
       let categoryName = tx.category;
       let parentName = '';
 
-      // Identify Parent and Sub
-      // Check if it's a subcategory
+      // Identify Parent and Sub to enforce 5-stage flow
       const parentMatch = categories.find(c => c.subCategories.some(s => s.name === categoryName));
       if (parentMatch) {
         parentName = parentMatch.name;
       } else {
-        // Check if it's a parent category directly
         const directMatch = categories.find(c => c.name === categoryName);
         if (directMatch) {
             parentName = directMatch.name;
-            categoryName = 'Other'; // Treat direct assignment as "Other" sub
+            categoryName = OTHER_SUBCATEGORY; // Directly assigned parents terminate in the implicit sub-category
         } else {
-            // Uncategorized
             parentName = 'Uncategorized';
-            categoryName = 'Other'; 
+            categoryName = OTHER_SUBCATEGORY;
         }
       }
 
@@ -100,7 +107,7 @@ const CashflowSankey: React.FC<CashflowSankeyProps> = ({ transactions, incomeCat
     // --- Build Graph ---
 
     // Center Node (Depth 2)
-    const centerNodeIdx = addNode('Net Cash Flow', 'Net Cash Flow', '#0EA5E9', 2);
+    const centerNodeIdx = addNode('Net Cash Flow', 'Net Cash Flow', '#0EA5E9', FLOW_DEPTH.net);
 
     // INCOME SIDE (Left)
     // Depth 1: Parent Categories
@@ -109,7 +116,7 @@ const CashflowSankey: React.FC<CashflowSankeyProps> = ({ transactions, incomeCat
         if (totalVal < 0.01) return;
         
         const color = getCategoryColor(parentName, null, incomeCategories);
-        const catNodeIdx = addNode(`inc_cat_${parentName}`, parentName, color, 1);
+        const catNodeIdx = addNode(`inc_cat_${parentName}`, parentName, color, FLOW_DEPTH.catIn);
 
         // Link Category -> Net Cash Flow
         addLink(catNodeIdx, centerNodeIdx, totalVal, color, '#0EA5E9');
@@ -119,8 +126,8 @@ const CashflowSankey: React.FC<CashflowSankeyProps> = ({ transactions, incomeCat
             const [subName, pName] = key.split('::');
             if (pName === parentName) {
                 // If 'Other', use lighter/faded color
-                const subColor = subName === 'Other' ? color : getCategoryColor(subName, parentName, incomeCategories);
-                const subNodeIdx = addNode(`inc_sub_${parentName}_${subName}`, subName, subColor, 0);
+                const subColor = subName === OTHER_SUBCATEGORY ? color : getCategoryColor(subName, parentName, incomeCategories);
+                const subNodeIdx = addNode(`inc_sub_${parentName}_${subName}`, subName, subColor, FLOW_DEPTH.subIn);
                 addLink(subNodeIdx, catNodeIdx, val, subColor, color);
             }
         });
@@ -133,7 +140,7 @@ const CashflowSankey: React.FC<CashflowSankeyProps> = ({ transactions, incomeCat
         if (totalVal < 0.01) return;
 
         const color = getCategoryColor(parentName, null, expenseCategories);
-        const catNodeIdx = addNode(`exp_cat_${parentName}`, parentName, color, 3);
+        const catNodeIdx = addNode(`exp_cat_${parentName}`, parentName, color, FLOW_DEPTH.catOut);
 
         // Link Net Cash Flow -> Category
         addLink(centerNodeIdx, catNodeIdx, totalVal, '#0EA5E9', color);
@@ -142,8 +149,8 @@ const CashflowSankey: React.FC<CashflowSankeyProps> = ({ transactions, incomeCat
         expSubTotals.forEach((val, key) => {
             const [subName, pName] = key.split('::');
             if (pName === parentName) {
-                const subColor = subName === 'Other' ? color : getCategoryColor(subName, parentName, expenseCategories);
-                const subNodeIdx = addNode(`exp_sub_${parentName}_${subName}`, subName, subColor, 4);
+                const subColor = subName === OTHER_SUBCATEGORY ? color : getCategoryColor(subName, parentName, expenseCategories);
+                const subNodeIdx = addNode(`exp_sub_${parentName}_${subName}`, subName, subColor, FLOW_DEPTH.subOut);
                 addLink(catNodeIdx, subNodeIdx, val, color, subColor);
             }
         });

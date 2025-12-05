@@ -87,8 +87,8 @@ type DashboardTab = 'overview' | 'analysis' | 'activity';
 
 const WIDGET_TABS: Record<DashboardTab, string[]> = {
     overview: ['netWorthOverTime'], // Removed 'todayWidget' as it's now hardcoded in the layout
-    analysis: ['cashflowSankey'], 
-    activity: ['transactionMap', 'outflowsByCategory', 'recentActivity']
+    analysis: ['cashflowSankey'],
+    activity: ['transactionMap', 'outflowsByCategory', 'recentActivity', 'cashflowSankey']
 };
 
 const AnalysisStatCard: React.FC<{ title: string; value: string; subtext: string; icon: string; colorClass: string }> = ({ title, value, subtext, icon, colorClass }) => (
