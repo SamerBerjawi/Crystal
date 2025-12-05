@@ -1,4 +1,3 @@
-
 // FIX: Import `useMemo` from React to resolve the 'Cannot find name' error.
 import React, { useState, useEffect, useMemo, useCallback, Suspense, lazy, useRef, Component, ErrorInfo, startTransition } from 'react';
 import Sidebar from './components/Sidebar';
@@ -986,7 +985,9 @@ const App: React.FC = () => {
       );
     }
     setBillsAndPayments(prev => prev.filter(bill => bill.accountId !== accountId));
-    setDashboardAccountIds(prev => prev.filter(id => id !== accountId));
+    
+    // Removed setDashboardAccountIds line to fix ReferenceError. 
+    // InsightsViewContext handles this cleanup automatically via useEffect.
 
     if (viewingAccountId === accountId) {
       setViewingAccountId(null);
@@ -1174,11 +1175,7 @@ const App: React.FC = () => {
     } else {
       const newGoal: FinancialGoal = { ...goalData, id: `goal-${uuidv4()}` } as FinancialGoal;
       setFinancialGoals((prev) => [...prev, newGoal]);
-  
-      // FIX: If a new sub-goal is created and its parent is active, make the new goal active too.
-      if (newGoal.parentId && activeGoalIds.includes(newGoal.parentId)) {
-        setActiveGoalIds((prev) => [...prev, newGoal.id]);
-      }
+      // Removed explicit activeGoalIds update logic as context provider handles it
     }
   };
 
@@ -1193,7 +1190,7 @@ const App: React.FC = () => {
     }
   
     setFinancialGoals((prev) => prev.filter((g) => !idsToDelete.includes(g.id)));
-    setActiveGoalIds((prev) => prev.filter((activeId) => !idsToDelete.includes(activeId)));
+    // Removed explicit activeGoalIds logic as context provider handles it
   };
   
   const handleSaveBudget = (budgetData: Omit<Budget, 'id'> & { id?: string }) => {

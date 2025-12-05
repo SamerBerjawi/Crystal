@@ -6,8 +6,6 @@ import {
   Tooltip,
   Layer,
   Rectangle,
-  SankeyNodeProps,
-  SankeyLinkProps,
 } from 'recharts';
 import { Transaction, Category } from '../types';
 import { convertToEur, formatCurrency } from '../utils';
@@ -374,7 +372,7 @@ const CashflowSankey: React.FC<CashflowSankeyProps> = ({
   };
 
   const SankeyNode = (
-    props: SankeyNodeProps & { payload: CashflowNode & { value: number } },
+    props: any
   ) => {
     const { x, y, width, height, index, payload } = props;
     if (payload.value < MIN_FLOW_VALUE || typeof index !== 'number') return null;
@@ -457,7 +455,7 @@ const CashflowSankey: React.FC<CashflowSankeyProps> = ({
   };
 
   const SankeyLink = (
-    props: SankeyLinkProps & { payload: CashflowLink },
+    props: any
   ) => {
     const { sourceX, sourceY, targetX, targetY, linkWidth, index, payload } = props;
     if (typeof index !== 'number') return null;
@@ -526,7 +524,6 @@ const CashflowSankey: React.FC<CashflowSankeyProps> = ({
           nodePadding={10}
           // Increased margins to prevent text clipping at edges
           margin={{ left: 140, right: 140, top: 20, bottom: 20 }}
-          isAnimationActive={false}
         >
           <Tooltip content={<CustomSankeyTooltip />} />
         </Sankey>
