@@ -539,8 +539,8 @@ const CashflowSankey: React.FC<CashflowSankeyProps> = ({
       <ResponsiveContainer width="100%" height="100%">
         <Sankey
           data={{ nodes, links }}
-          node={<SankeyNode /> as any}
-          link={<SankeyLink /> as any}
+          node={<SankeyNode {...({} as any)} />}
+          link={<SankeyLink {...({} as any)} />}
           nodePadding={10}
           margin={{ left: 20, right: 20, top: 20, bottom: 20 }}
         >
