@@ -1,6 +1,6 @@
 
 // FIX: Import `useMemo` from React to resolve the 'Cannot find name' error.
-import React, { useState, useEffect, useMemo, useCallback, Suspense, lazy, useRef, Component, ErrorInfo } from 'react';
+import React, { useState, useEffect, useMemo, useCallback, Suspense, lazy, useRef, Component, ErrorInfo, startTransition } from 'react';
 import Sidebar from './components/Sidebar';
 import Header from './components/Header';
 const SignIn = lazy(() => import('./pages/SignIn'));
@@ -82,6 +82,57 @@ const OnboardingModal = lazy(() => import('./components/OnboardingModal'));
 import { FinancialDataProvider } from './contexts/FinancialDataContext';
 import { AccountsProvider, PreferencesProvider, TransactionsProvider, WarrantsProvider } from './contexts/DomainProviders';
 import { InsightsViewProvider } from './contexts/InsightsViewContext';
+
+const routePathMap: Record<Page, string> = {
+  Dashboard: '/',
+  Accounts: '/accounts',
+  Transactions: '/transactions',
+  Budget: '/budget',
+  Forecasting: '/forecasting',
+  Settings: '/settings',
+  'Schedule & Bills': '/schedule',
+  Tasks: '/tasks',
+  Categories: '/categories',
+  Tags: '/tags',
+  'Personal Info': '/personal-info',
+  'Data Management': '/data-management',
+  Preferences: '/preferences',
+  AccountDetail: '/accounts',
+  Investments: '/investments',
+  Warrants: '/warrants',
+  Documentation: '/documentation',
+  'AI Assistant': '/ai-assistant',
+  Subscriptions: '/subscriptions',
+};
+
+type RouteInfo = { page: Page; matched: boolean; accountId?: string | null };
+
+const parseRoute = (pathname: string): RouteInfo => {
+  const rawPath = pathname.split('?')[0] || '/';
+  const normalizedPath = rawPath !== '/' && rawPath.endsWith('/') ? rawPath.slice(0, -1) : rawPath;
+  const accountMatch = normalizedPath.match(/^\/accounts\/([^/]+)$/);
+
+  if (accountMatch?.[1]) {
+    return { page: 'AccountDetail', matched: true, accountId: decodeURIComponent(accountMatch[1]) };
+  }
+
+  const matchedPage = (Object.entries(routePathMap) as [Page, string][])
+    .find(([, path]) => path === normalizedPath)?.[0];
+
+  if (matchedPage) {
+    return { page: matchedPage, matched: true, accountId: null };
+  }
+
+  return { page: 'Dashboard', matched: false, accountId: null };
+};
+
+const pageToPath = (page: Page, accountId?: string | null) => {
+  if (page === 'AccountDetail' && accountId) {
+    return `/accounts/${encodeURIComponent(accountId)}`;
+  }
+
+  return routePathMap[page] || '/';
+};
 
 const initialFinancialData: FinancialData = {
     accounts: [],
@@ -209,16 +260,20 @@ class ErrorBoundary extends Component<ErrorBoundaryProps, ErrorBoundaryState> {
 
 // FIX: Changed to a default export to align with the import in index.tsx and fix the module resolution error.
 const App: React.FC = () => {
+  const initialPath = typeof window !== 'undefined' ? window.location.pathname : '/';
+  const initialRoute = parseRoute(initialPath);
+
   const { user, setUser, token, isAuthenticated, isLoading: isAuthLoading, error: authError, signIn, signUp, signOut, checkAuthStatus, setError: setAuthError, changePassword } = useAuth();
   const [authPage, setAuthPage] = useState<'signIn' | 'signUp'>('signIn');
   const [isDemoMode, setIsDemoMode] = useState(false);
   const [demoUser, setDemoUser] = useState<User | null>(null);
   const [isDataLoaded, setIsDataLoaded] = useState(false);
 
-  const [currentPage, setCurrentPage] = useState<Page>('Dashboard');
+  const [currentPath, setCurrentPath] = useState(initialPath);
+  const [currentPage, setCurrentPageState] = useState<Page>(initialRoute.page);
   const [isSidebarOpen, setSidebarOpen] = useState(false);
   const [isSidebarCollapsed, setSidebarCollapsed] = useState(false);
-  const [viewingAccountId, setViewingAccountId] = useState<string | null>(null);
+  const [viewingAccountId, setViewingAccountId] = useState<string | null>(initialRoute.accountId ?? null);
   const [theme, setTheme] = useState<Theme>(() => {
     const storedTheme = safeLocalStorage.getItem('theme');
     return storedTheme === 'light' || storedTheme === 'dark' || storedTheme === 'system' ? storedTheme : 'system';
@@ -258,7 +313,7 @@ const App: React.FC = () => {
   // State for Warrant prices
   const [manualWarrantPrices, setManualWarrantPrices] = useState<Record<string, number | undefined>>(initialFinancialData.manualWarrantPrices || {});
   const [lastUpdated, setLastUpdated] = useState<Date | null>(null);
-
+  
   const assetPrices = useMemo(() => {
     const resolved: Record<string, number | null> = {};
 
@@ -295,6 +350,59 @@ const App: React.FC = () => {
     return resolved;
   }, [assetPrices, warrants]);
 
+  const navigateToPath = useCallback((path: string, replace = false) => {
+    if (typeof window === 'undefined') return;
+
+    const nextPath = path || '/';
+    try {
+      if (replace) {
+        window.history.replaceState(null, '', nextPath);
+      } else {
+        window.history.pushState(null, '', nextPath);
+      }
+    } catch (e) {
+      console.warn('Navigation state update failed, falling back to in-memory navigation:', e);
+    }
+    setCurrentPath(nextPath);
+  }, []);
+
+  useEffect(() => {
+    if (typeof window === 'undefined') return;
+
+    const handlePopState = () => {
+      setCurrentPath(window.location.pathname || '/');
+    };
+
+    window.addEventListener('popstate', handlePopState);
+    return () => window.removeEventListener('popstate', handlePopState);
+  }, []);
+
+  useEffect(() => {
+    const route = parseRoute(currentPath);
+    setCurrentPageState(route.page);
+    setViewingAccountId(route.accountId ?? null);
+
+    if (!route.matched && currentPath !== '/') {
+      navigateToPath('/', true);
+    }
+  }, [currentPath, navigateToPath]);
+
+  const setCurrentPage = useCallback((page: Page) => {
+    const targetPath = pageToPath(page, page === 'AccountDetail' ? viewingAccountId : null);
+    navigateToPath(targetPath);
+    setCurrentPageState(page);
+
+    if (page !== 'AccountDetail') {
+      setViewingAccountId(null);
+    }
+  }, [navigateToPath, viewingAccountId]);
+
+  const handleOpenAccountDetail = useCallback((accountId: string) => {
+    setViewingAccountId(accountId);
+    setCurrentPageState('AccountDetail');
+    navigateToPath(pageToPath('AccountDetail', accountId));
+  }, [navigateToPath]);
+
   // Onboarding flow state
   const [hasCompletedOnboarding, setHasCompletedOnboarding] = useLocalStorage('crystal-onboarding-complete', false);
   const [isOnboardingOpen, setIsOnboardingOpen] = useState(false);
@@ -314,7 +422,7 @@ const App: React.FC = () => {
       tagId: filters?.tagId ?? null,
     };
     setCurrentPage('Transactions');
-  }, []);
+  }, [setCurrentPage]);
 
   const clearPendingTransactionFilters = useCallback(() => {
     transactionsViewFilters.current = {};
@@ -369,40 +477,42 @@ const App: React.FC = () => {
 
   const loadAllFinancialData = useCallback((data: FinancialData | null, options?: { skipNextSave?: boolean }) => {
     const dataToLoad = data || initialFinancialData;
-    setAccounts(dataToLoad.accounts || []);
-    setTransactions(dataToLoad.transactions || []);
-    setInvestmentTransactions(dataToLoad.investmentTransactions || []);
-    setRecurringTransactions(dataToLoad.recurringTransactions || []);
-    setRecurringTransactionOverrides(dataToLoad.recurringTransactionOverrides || []);
-    setLoanPaymentOverrides(dataToLoad.loanPaymentOverrides || {});
-    setFinancialGoals(dataToLoad.financialGoals || []);
-    setBudgets(dataToLoad.budgets || []);
-    setTasks(dataToLoad.tasks || []);
-    setWarrants(dataToLoad.warrants || []);
-    setImportExportHistory(dataToLoad.importExportHistory || []);
-    setBillsAndPayments(dataToLoad.billsAndPayments || []);
-    setManualWarrantPrices(dataToLoad.manualWarrantPrices || {});
-    // FIX: Add `tags` to the data loading logic.
-    setTags(dataToLoad.tags || []);
-    setIncomeCategories(dataToLoad.incomeCategories && dataToLoad.incomeCategories.length > 0 ? dataToLoad.incomeCategories : MOCK_INCOME_CATEGORIES);
-    setExpenseCategories(dataToLoad.expenseCategories && dataToLoad.expenseCategories.length > 0 ? dataToLoad.expenseCategories : MOCK_EXPENSE_CATEGORIES);
-    
     const loadedPrefs = dataToLoad.preferences || initialFinancialData.preferences;
-    setPreferences(loadedPrefs);
-    setDashboardDuration(loadedPrefs.defaultPeriod as Duration);
-    setAccountsSortBy(loadedPrefs.defaultAccountOrder);
+    const dataSignature = JSON.stringify(dataToLoad);
 
-    setAccountOrder(dataToLoad.accountOrder || []);
-    setTaskOrder(dataToLoad.taskOrder || []);
+    startTransition(() => {
+      setAccounts(dataToLoad.accounts || []);
+      setTransactions(dataToLoad.transactions || []);
+      setInvestmentTransactions(dataToLoad.investmentTransactions || []);
+      setRecurringTransactions(dataToLoad.recurringTransactions || []);
+      setRecurringTransactionOverrides(dataToLoad.recurringTransactionOverrides || []);
+      setLoanPaymentOverrides(dataToLoad.loanPaymentOverrides || {});
+      setFinancialGoals(dataToLoad.financialGoals || []);
+      setBudgets(dataToLoad.budgets || []);
+      setTasks(dataToLoad.tasks || []);
+      setWarrants(dataToLoad.warrants || []);
+      setImportExportHistory(dataToLoad.importExportHistory || []);
+      setBillsAndPayments(dataToLoad.billsAndPayments || []);
+      setManualWarrantPrices(dataToLoad.manualWarrantPrices || {});
+      // FIX: Add `tags` to the data loading logic.
+      setTags(dataToLoad.tags || []);
+      setIncomeCategories(dataToLoad.incomeCategories && dataToLoad.incomeCategories.length > 0 ? dataToLoad.incomeCategories : MOCK_INCOME_CATEGORIES);
+      setExpenseCategories(dataToLoad.expenseCategories && dataToLoad.expenseCategories.length > 0 ? dataToLoad.expenseCategories : MOCK_EXPENSE_CATEGORIES);
+
+      setPreferences(loadedPrefs);
+      
+      setAccountOrder(dataToLoad.accountOrder || []);
+      setTaskOrder(dataToLoad.taskOrder || []);
+
+      dirtySlicesRef.current.clear();
+      setDirtySignal(0);
+      lastSavedSignatureRef.current = dataSignature;
+    });
 
     if (options?.skipNextSave) {
       skipNextSaveRef.current = true;
     }
-    const dataSignature = JSON.stringify(dataToLoad);
     latestDataRef.current = dataToLoad;
-    dirtySlicesRef.current.clear();
-    setDirtySignal(0);
-    lastSavedSignatureRef.current = dataSignature;
   }, [setAccountOrder, setTaskOrder]);
   
   const handleEnterDemoMode = () => {
@@ -684,9 +794,18 @@ const App: React.FC = () => {
 
     const dirtySlices = new Set(dirtySlicesRef.current);
     const persistDirtySlices = async () => {
-      const succeeded = await saveData(buildDirtyPayload(dirtySlices));
+      const payload = buildDirtyPayload(dirtySlices);
+      const payloadSignature = JSON.stringify(payload);
+
+      if (payloadSignature === lastSavedSignatureRef.current) {
+        dirtySlicesRef.current.clear();
+        return;
+      }
+
+      const succeeded = await saveData(payload);
       if (succeeded) {
         dirtySlices.forEach(slice => dirtySlicesRef.current.delete(slice));
+        lastSavedSignatureRef.current = payloadSignature;
       }
     };
 
@@ -699,17 +818,34 @@ const App: React.FC = () => {
     }
 
     const handleBeforeUnload = () => {
-      if (!isDataLoaded) {
+      if (!isDataLoaded || dirtySlicesRef.current.size === 0) {
         return;
       }
-      saveData(latestDataRef.current, { keepalive: true, suppressErrors: true });
+
+      const dirtySlices = new Set(dirtySlicesRef.current);
+      const payload = buildDirtyPayload(dirtySlices);
+      const payloadSignature = JSON.stringify(payload);
+
+      if (payloadSignature === lastSavedSignatureRef.current) {
+        return;
+      }
+
+      saveData(payload, { keepalive: true, suppressErrors: true })
+        .then(succeeded => {
+          if (succeeded) {
+            lastSavedSignatureRef.current = payloadSignature;
+          }
+        })
+        .catch(() => {
+          // Avoid blocking the unload flow on errors
+        });
     };
 
     window.addEventListener('beforeunload', handleBeforeUnload);
     return () => {
       window.removeEventListener('beforeunload', handleBeforeUnload);
     };
-  }, [isAuthenticated, isDataLoaded, isDemoMode, saveData]);
+  }, [buildDirtyPayload, isAuthenticated, isDataLoaded, isDemoMode, saveData]);
   
   // Keep accountOrder in sync with accounts list
   useEffect(() => {
@@ -850,6 +986,7 @@ const App: React.FC = () => {
       );
     }
     setBillsAndPayments(prev => prev.filter(bill => bill.accountId !== accountId));
+    setDashboardAccountIds(prev => prev.filter(id => id !== accountId));
 
     if (viewingAccountId === accountId) {
       setViewingAccountId(null);
@@ -1037,6 +1174,11 @@ const App: React.FC = () => {
     } else {
       const newGoal: FinancialGoal = { ...goalData, id: `goal-${uuidv4()}` } as FinancialGoal;
       setFinancialGoals((prev) => [...prev, newGoal]);
+  
+      // FIX: If a new sub-goal is created and its parent is active, make the new goal active too.
+      if (newGoal.parentId && activeGoalIds.includes(newGoal.parentId)) {
+        setActiveGoalIds((prev) => [...prev, newGoal.id]);
+      }
     }
   };
 
@@ -1049,8 +1191,9 @@ const App: React.FC = () => {
       const childIds = financialGoals.filter((g) => g.parentId === id).map((g) => g.id);
       idsToDelete.push(...childIds);
     }
-
+  
     setFinancialGoals((prev) => prev.filter((g) => !idsToDelete.includes(g.id)));
+    setActiveGoalIds((prev) => prev.filter((activeId) => !idsToDelete.includes(activeId)));
   };
   
   const handleSaveBudget = (budgetData: Omit<Budget, 'id'> & { id?: string }) => {
@@ -1151,6 +1294,10 @@ const App: React.FC = () => {
               return tx;
           })
       );
+      // Fix: Check ref instead of unknown state
+      if (transactionsViewFilters.current.tagId === tagId) {
+          transactionsViewFilters.current.tagId = null;
+      }
   };
   
   const handleSaveBillPayment = (billData: Omit<BillPayment, 'id'> & { id?: string }) => {
@@ -1359,14 +1506,14 @@ const App: React.FC = () => {
             incomeCategories={incomeCategories}
             expenseCategories={expenseCategories}
             financialGoals={financialGoals}
-            recurringTransactions={recurringTransactions}
+            recurringTransactions={recurringTransactions} 
             recurringTransactionOverrides={recurringTransactionOverrides}
             loanPaymentOverrides={loanPaymentOverrides}
             tasks={tasks}
             saveTask={handleSaveTask}
         />;
       case 'Accounts':
-        return <Accounts accounts={accounts} transactions={transactions} saveAccount={handleSaveAccount} deleteAccount={handleDeleteAccount} setCurrentPage={setCurrentPage} setViewingAccountId={setViewingAccountId} saveTransaction={handleSaveTransaction} accountOrder={accountOrder} setAccountOrder={setAccountOrder} initialSortBy={preferences.defaultAccountOrder as 'name' | 'balance' | 'manual'} warrants={warrants} onToggleAccountStatus={handleToggleAccountStatus} onNavigateToTransactions={navigateToTransactions} />;
+        return <Accounts accounts={accounts} transactions={transactions} saveAccount={handleSaveAccount} deleteAccount={handleDeleteAccount} setCurrentPage={setCurrentPage} setViewingAccountId={setViewingAccountId} onViewAccount={handleOpenAccountDetail} saveTransaction={handleSaveTransaction} accountOrder={accountOrder} setAccountOrder={setAccountOrder} initialSortBy={preferences.defaultAccountOrder} warrants={warrants} onToggleAccountStatus={handleToggleAccountStatus} onNavigateToTransactions={navigateToTransactions} />;
       case 'Transactions':
         return <Transactions initialAccountFilter={transactionsViewFilters.current.accountName ?? null} initialTagFilter={transactionsViewFilters.current.tagId ?? null} onClearInitialFilters={clearPendingTransactionFilters} />;
       case 'Budget':
@@ -1380,8 +1527,8 @@ const App: React.FC = () => {
         return <SchedulePage />;
       case 'Categories':
         return <CategoriesPage incomeCategories={incomeCategories} setIncomeCategories={setIncomeCategories} expenseCategories={expenseCategories} setExpenseCategories={setExpenseCategories} setCurrentPage={setCurrentPage} />;
-        case 'Tags':
-          return <TagsPage tags={tags} transactions={transactions} saveTag={handleSaveTag} deleteTag={handleDeleteTag} setCurrentPage={setCurrentPage} onNavigateToTransactions={navigateToTransactions} />;
+      case 'Tags':
+        return <TagsPage tags={tags} transactions={transactions} saveTag={handleSaveTag} deleteTag={handleDeleteTag} setCurrentPage={setCurrentPage} onNavigateToTransactions={navigateToTransactions} />;
       case 'Personal Info':
         return <PersonalInfoPage user={currentUser!} setUser={handleSetUser} onChangePassword={changePassword} setCurrentPage={setCurrentPage} />;
       case 'Data Management':
@@ -1394,7 +1541,7 @@ const App: React.FC = () => {
       case 'Preferences':
         return <PreferencesPage preferences={preferences} setPreferences={setPreferences} theme={theme} setTheme={setTheme} setCurrentPage={setCurrentPage} />;
       case 'Investments':
-        return <InvestmentsPage accounts={accounts} cashAccounts={accounts.filter(a => a.type === 'Checking' || a.type === 'Savings')} investmentTransactions={investmentTransactions} saveInvestmentTransaction={handleSaveInvestmentTransaction} deleteInvestmentTransaction={handleDeleteInvestmentTransaction} saveTransaction={handleSaveTransaction} warrants={warrants} manualPrices={manualWarrantPrices} onManualPriceChange={handleManualWarrantPrice} prices={assetPrices} />;
+        return <InvestmentsPage accounts={accounts} cashAccounts={accounts.filter(a => a.type === 'Checking' || a.type === 'Savings')} investmentTransactions={investmentTransactions} saveInvestmentTransaction={handleSaveInvestmentTransaction} deleteInvestmentTransaction={handleDeleteInvestmentTransaction} saveTransaction={handleSaveTransaction} warrants={warrants} saveWarrant={handleSaveWarrant} deleteWarrant={handleDeleteWarrant} manualPrices={manualWarrantPrices} onManualPriceChange={handleManualWarrantPrice} prices={assetPrices} />;
       case 'Warrants':
         return <WarrantsPage warrants={warrants} saveWarrant={handleSaveWarrant} deleteWarrant={handleDeleteWarrant} prices={warrantPrices} manualPrices={manualWarrantPrices} lastUpdated={lastUpdated} onManualPriceChange={handleManualWarrantPrice} />;
       case 'Tasks':
@@ -1525,7 +1672,6 @@ const App: React.FC = () => {
         transactions={transactionsContextValue}
         warrants={warrantsContextValue}
       >
-      <InsightsViewProvider accounts={accounts} financialGoals={financialGoals} defaultDuration={preferences.defaultPeriod as Duration}>
         <div className={`flex h-screen bg-light-card dark:bg-dark-card text-light-text dark:text-dark-text font-sans`}>
           <Sidebar
             currentPage={currentPage}
@@ -1547,11 +1693,17 @@ const App: React.FC = () => {
               currentPage={currentPage}
               titleOverride={viewingAccount?.name}
             />
-            <main className="flex-1 overflow-x-hidden overflow-y-auto p-4 md:p-8 bg-light-bg dark:bg-dark-bg md:rounded-tl-3xl border-l border-t border-black/5 dark:border-white/5 shadow-2xl">
-              <Suspense fallback={<PageLoader />}>
-                {renderPage()}
-              </Suspense>
-            </main>
+            <InsightsViewProvider
+              accounts={accounts}
+              financialGoals={financialGoals}
+              defaultDuration={preferences.defaultPeriod as Duration}
+            >
+              <main className="flex-1 overflow-x-hidden overflow-y-auto p-4 md:p-8 bg-light-bg dark:bg-dark-bg md:rounded-tl-3xl border-l border-t border-black/5 dark:border-white/5 shadow-2xl">
+                <Suspense fallback={<PageLoader />}>
+                  {renderPage()}
+                </Suspense>
+              </main>
+            </InsightsViewProvider>
           </div>
 
           {/* AI Chat */}
@@ -1590,7 +1742,6 @@ const App: React.FC = () => {
             )}
           </Suspense>
         </div>
-      </InsightsViewProvider>
       </FinancialDataProvider>
     </ErrorBoundary>
   );

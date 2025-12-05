@@ -25,6 +25,7 @@ import AccountBreakdownCard from '../components/AccountBreakdownCard';
 import TodayWidget from '../components/TodayWidget';
 import { useAccountsContext, usePreferencesContext, useTransactionsContext } from '../contexts/DomainProviders';
 import { useBudgetsContext, useCategoryContext, useGoalsContext, useScheduleContext, useTagsContext } from '../contexts/FinancialDataContext';
+import { useInsightsView } from '../contexts/InsightsViewContext';
 import { AreaChart, Area, LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, ReferenceLine, Label, Legend, BarChart, Bar, PieChart, Pie, Cell } from 'recharts';
 import ForecastDayModal from '../components/ForecastDayModal';
 import RecurringTransactionModal from '../components/RecurringTransactionModal';
@@ -54,11 +55,7 @@ interface DashboardProps {
   recurringTransactions: RecurringTransaction[];
   recurringTransactionOverrides: RecurringTransactionOverride[];
   loanPaymentOverrides: LoanPaymentOverrides;
-  activeGoalIds: string[];
-  selectedAccountIds: string[];
-  setSelectedAccountIds: (ids: string[]) => void;
-  duration: Duration;
-  setDuration: (duration: Duration) => void;
+  // Removed activeGoalIds, selectedAccountIds, setSelectedAccountIds, duration, setDuration as they are now from context
   tasks: Task[];
   saveTask: (task: Omit<Task, 'id'> & { id?: string }) => void;
 }
@@ -107,7 +104,8 @@ const AnalysisStatCard: React.FC<{ title: string; value: string; subtext: string
     </div>
 );
 
-const Dashboard: React.FC<DashboardProps> = ({ user, activeGoalIds, selectedAccountIds, setSelectedAccountIds, duration, setDuration, tasks, saveTask }) => {
+const Dashboard: React.FC<DashboardProps> = ({ user, tasks, saveTask }) => {
+  const { activeGoalIds, setActiveGoalIds, dashboardAccountIds: selectedAccountIds, setDashboardAccountIds: setSelectedAccountIds, dashboardDuration: duration, setDashboardDuration: setDuration } = useInsightsView();
   const { accounts } = useAccountsContext();
   const { transactions, saveTransaction, digest: transactionsDigest } = useTransactionsContext();
   const { incomeCategories, expenseCategories } = useCategoryContext();
@@ -1289,8 +1287,7 @@ const Dashboard: React.FC<DashboardProps> = ({ user, activeGoalIds, selectedAcco
                           <div>
                               <h4 className="text-sm font-bold text-light-text-secondary dark:text-dark-text-secondary uppercase tracking-wider mb-4">Assets Breakdown</h4>
                               <div className="space-y-4">
-                                  {Object.entries(assetGroups).map(([name, grp]: [string, any]) => {
-                                      const group = grp as { value: number; color: string; icon: string };
+                                  {Object.entries(assetGroups as Record<string, { value: number; color: string; icon: string }>).map(([name, group]) => {
                                       if (group.value === 0) return null;
                                       return (
                                         <div key={name} className="group">
@@ -1319,8 +1316,7 @@ const Dashboard: React.FC<DashboardProps> = ({ user, activeGoalIds, selectedAcco
                           <div>
                               <h4 className="text-sm font-bold text-light-text-secondary dark:text-dark-text-secondary uppercase tracking-wider mb-4">Liabilities Breakdown</h4>
                               <div className="space-y-4">
-                                  {Object.entries(liabilityGroups).map(([name, grp]: [string, any]) => {
-                                      const group = grp as { value: number; color: string; icon: string };
+                                  {Object.entries(liabilityGroups as Record<string, { value: number; color: string; icon: string }>).map(([name, group]) => {
                                       if (group.value === 0) return null;
                                       return (
                                           <div key={name} className="group">

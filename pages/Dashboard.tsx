@@ -1,5 +1,5 @@
 
-import React, { useMemo, useState, useCallback, useEffect, useRef } from 'react';
+import React, { useMemo, useState, useCallback, useEffect, useRef, Suspense, lazy } from 'react';
 import { User, Transaction, Account, Category, Duration, CategorySpending, Widget, WidgetConfig, DisplayTransaction, FinancialGoal, RecurringTransaction, BillPayment, Tag, Budget, RecurringTransactionOverride, LoanPaymentOverrides, AccountType, Task, ForecastDuration } from '../types';
 import { formatCurrency, getDateRange, calculateAccountTotals, convertToEur, calculateStatementPeriods, generateBalanceForecast, parseDateAsUTC, getCreditCardStatementDetails, generateSyntheticLoanPayments, generateSyntheticCreditCardPayments, getPreferredTimeZone, formatDateKey, generateSyntheticPropertyTransactions, toLocalISOString } from '../utils';
 import AddTransactionModal from '../components/AddTransactionModal';
@@ -22,8 +22,6 @@ import Card from '../components/Card';
 import CreditCardStatementCard from '../components/CreditCardStatementCard';
 import BudgetOverviewWidget from '../components/BudgetOverviewWidget';
 import AccountBreakdownCard from '../components/AccountBreakdownCard';
-import TransactionMapWidget from '../components/TransactionMapWidget';
-import CashflowSankey from '../components/CashflowSankey';
 import TodayWidget from '../components/TodayWidget';
 import { useAccountsContext, usePreferencesContext, useTransactionsContext } from '../contexts/DomainProviders';
 import { useBudgetsContext, useCategoryContext, useGoalsContext, useScheduleContext, useTagsContext } from '../contexts/FinancialDataContext';
@@ -46,6 +44,9 @@ import BudgetProgressCard from '../components/BudgetProgressCard';
 import BudgetModal from '../components/BudgetModal';
 import MultiSelectFilter from '../components/MultiSelectFilter';
 
+const TransactionMapWidget = lazy(() => import('../components/TransactionMapWidget'));
+const CashflowSankey = lazy(() => import('../components/CashflowSankey'));
+
 interface DashboardProps {
   user: User;
   incomeCategories: Category[];
@@ -54,6 +55,7 @@ interface DashboardProps {
   recurringTransactions: RecurringTransaction[];
   recurringTransactionOverrides: RecurringTransactionOverride[];
   loanPaymentOverrides: LoanPaymentOverrides;
+  // Removed activeGoalIds, selectedAccountIds, setSelectedAccountIds, duration, setDuration as they are now from context
   tasks: Task[];
   saveTask: (task: Omit<Task, 'id'> & { id?: string }) => void;
 }
@@ -1258,8 +1260,8 @@ const Dashboard: React.FC<DashboardProps> = ({ user, tasks, saveTask }) => {
                                           paddingAngle={5}
                                           dataKey="value"
                                       >
-                                          {assetAllocationData.map((entry: any) => (
-                                              <Cell key={entry.name} fill={entry.color} stroke="none" />
+                                          {assetAllocationData.map((entry: any, index: number) => (
+                                              <Cell key={`cell-${index}`} fill={entry.color} stroke="none" />
                                           ))}
                                       </Pie>
                                   </PieChart>
@@ -1361,36 +1363,44 @@ const Dashboard: React.FC<DashboardProps> = ({ user, tasks, saveTask }) => {
           </div>
       )}
 
-      <div className="grid grid-cols-1 md:grid-cols-4 gap-6" style={{ gridAutoRows: 'minmax(200px, auto)' }}>
-          {widgets
-              .filter(widget => WIDGET_TABS[activeTab].includes(widget.id))
-              .map(widget => {
-                  const widgetDetails = allWidgets.find(w => w.id === widget.id);
-                  if (!widgetDetails) return null;
-                  const WidgetComponent = widgetDetails.component;
+      {(activeTab === 'overview' || activeTab === 'activity') && (
+        <div className="grid grid-cols-1 md:grid-cols-4 gap-6" style={{ gridAutoRows: 'minmax(200px, auto)' }}>
+            {widgets
+                .filter(widget => WIDGET_TABS[activeTab].includes(widget.id))
+                .map(widget => {
+                    const widgetDetails = allWidgets.find(w => w.id === widget.id);
+                    if (!widgetDetails) return null;
+                    const WidgetComponent = widgetDetails.component;
 
-                  return (
-                      <WidgetWrapper
-                          key={widget.id}
-                          title={widget.title}
-                          w={widget.w}
-                          h={widget.h}
-                          onRemove={() => removeWidget(widget.id)}
-                          onResize={(dim, change) => handleResize(widget.id, dim, change)}
-                          isEditMode={isEditMode}
-                          isBeingDragged={draggedWidgetId === widget.id}
-                          isDragOver={dragOverWidgetId === widget.id}
-                          onDragStart={e => handleDragStart(e, widget.id)}
-                          onDragEnter={e => handleDragEnter(e, widget.id)}
-                          onDragLeave={handleDragLeave}
-                          onDrop={e => handleDrop(e, widget.id)}
-                          onDragEnd={handleDragEnd}
-                      >
-                          <WidgetComponent {...widgetDetails.props as any} />
-                      </WidgetWrapper>
-                  );
-          })}
-      </div>
+                    return (
+                        <WidgetWrapper
+                            key={widget.id}
+                            title={widget.title}
+                            w={widget.w}
+                            h={widget.h}
+                            onRemove={() => removeWidget(widget.id)}
+                            onResize={(dim, change) => handleResize(widget.id, dim, change)}
+                            isEditMode={isEditMode}
+                            isBeingDragged={draggedWidgetId === widget.id}
+                            isDragOver={dragOverWidgetId === widget.id}
+                            onDragStart={e => handleDragStart(e, widget.id)}
+                            onDragEnter={e => handleDragEnter(e, widget.id)}
+                            onDragLeave={handleDragLeave}
+                            onDrop={e => handleDrop(e, widget.id)}
+                            onDragEnd={handleDragEnd}
+                        >
+                            <Suspense fallback={(
+                              <div className="p-4 text-sm text-light-text-secondary dark:text-dark-text-secondary text-center">
+                                Loading widget...
+                              </div>
+                            )}>
+                              <WidgetComponent {...widgetDetails.props as any} />
+                            </Suspense>
+                        </WidgetWrapper>
+                    );
+            })}
+        </div>
+      )}
     </div>
   );
 };

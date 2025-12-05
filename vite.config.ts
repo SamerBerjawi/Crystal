@@ -5,10 +5,10 @@ import process from 'process';
 
 const createBundleAnalyzerPlugin = (): PluginOption => ({
   name: 'bundle-size-analyzer',
-  generateBundle(_, bundle) {
+  generateBundle(_, bundle: any) {
     const textEncoder = new TextEncoder();
     const summary = Object.entries(bundle)
-      .map(([fileName, output]) => {
+      .map(([fileName, output]: [string, any]) => {
         const size = textEncoder.encode('code' in output ? output.code : String(output.source)).length;
         return {
           fileName,

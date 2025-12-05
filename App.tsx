@@ -273,7 +273,6 @@ const App: React.FC = () => {
   const [currentPage, setCurrentPageState] = useState<Page>(initialRoute.page);
   const [isSidebarOpen, setSidebarOpen] = useState(false);
   const [isSidebarCollapsed, setSidebarCollapsed] = useState(false);
-  const [accountFilter, setAccountFilter] = useState<string | null>(null);
   const [viewingAccountId, setViewingAccountId] = useState<string | null>(initialRoute.accountId ?? null);
   const [theme, setTheme] = useState<Theme>(() => {
     const storedTheme = safeLocalStorage.getItem('theme');
@@ -304,9 +303,9 @@ const App: React.FC = () => {
   const restoreInProgressRef = useRef(false);
   const dirtySlicesRef = useRef<Set<keyof FinancialData>>(new Set());
   const [dirtySignal, setDirtySignal] = useState(0);
-  const [tagFilter, setTagFilter] = useState<string | null>(null);
   const [accountOrder, setAccountOrder] = useLocalStorage<string[]>('crystal-account-order', []);
   const [taskOrder, setTaskOrder] = useLocalStorage<string[]>('crystal-task-order', []);
+  const transactionsViewFilters = useRef<{ accountName?: string | null; tagId?: string | null }>({});
   
   // State for AI Chat
   const [isChatOpen, setIsChatOpen] = useState(false);
@@ -341,14 +340,28 @@ const App: React.FC = () => {
     return resolved;
   }, [accounts, manualWarrantPrices, warrants]);
 
+  const warrantPrices = useMemo(() => {
+    const resolved: Record<string, number | null> = {};
+    warrants.forEach(warrant => {
+      const symbol = warrant.isin;
+      resolved[symbol] = assetPrices[symbol] ?? null;
+    });
+
+    return resolved;
+  }, [assetPrices, warrants]);
+
   const navigateToPath = useCallback((path: string, replace = false) => {
     if (typeof window === 'undefined') return;
 
     const nextPath = path || '/';
-    if (replace) {
-      window.history.replaceState(null, '', nextPath);
-    } else {
-      window.history.pushState(null, '', nextPath);
+    try {
+      if (replace) {
+        window.history.replaceState(null, '', nextPath);
+      } else {
+        window.history.pushState(null, '', nextPath);
+      }
+    } catch (e) {
+      console.warn('Navigation state update failed, falling back to in-memory navigation:', e);
     }
     setCurrentPath(nextPath);
   }, []);
@@ -373,16 +386,6 @@ const App: React.FC = () => {
       navigateToPath('/', true);
     }
   }, [currentPath, navigateToPath]);
-
-  const warrantPrices = useMemo(() => {
-    const resolved: Record<string, number | null> = {};
-    warrants.forEach(warrant => {
-      const symbol = warrant.isin;
-      resolved[symbol] = assetPrices[symbol] ?? null;
-    });
-
-    return resolved;
-  }, [assetPrices, warrants]);
 
   const setCurrentPage = useCallback((page: Page) => {
     const targetPath = pageToPath(page, page === 'AccountDetail' ? viewingAccountId : null);
@@ -417,6 +420,18 @@ const App: React.FC = () => {
       dirtySlicesRef.current = pending;
       setDirtySignal(signal => signal + 1);
     }
+  }, []);
+
+  const navigateToTransactions = useCallback((filters?: { accountName?: string | null; tagId?: string | null }) => {
+    transactionsViewFilters.current = {
+      accountName: filters?.accountName ?? null,
+      tagId: filters?.tagId ?? null,
+    };
+    setCurrentPage('Transactions');
+  }, [setCurrentPage]);
+
+  const clearPendingTransactionFilters = useCallback(() => {
+    transactionsViewFilters.current = {};
   }, []);
   
   useEffect(() => {
@@ -1010,14 +1025,9 @@ const App: React.FC = () => {
       setViewingAccountId(null);
       setCurrentPage('Accounts');
     }
-
-    if (accountToDelete && accountFilter === accountToDelete.name) {
-      setAccountFilter(null);
-    }
   }, [
     accounts,
     recurringTransactions,
-    accountFilter,
     viewingAccountId,
     setCurrentPage,
   ]);
@@ -1531,27 +1541,18 @@ const App: React.FC = () => {
             recurringTransactions={recurringTransactions} 
             recurringTransactionOverrides={recurringTransactionOverrides}
             loanPaymentOverrides={loanPaymentOverrides}
-            activeGoalIds={activeGoalIds}
-            selectedAccountIds={dashboardAccountIds}
-            setSelectedAccountIds={setDashboardAccountIds}
-            duration={dashboardDuration}
-            setDuration={setDashboardDuration}
-            setActiveGoalIds={setActiveGoalIds}
             tasks={tasks}
             saveTask={handleSaveTask}
         />;
       case 'Accounts':
-        return <Accounts accounts={accounts} transactions={transactions} saveAccount={handleSaveAccount} deleteAccount={handleDeleteAccount} setCurrentPage={setCurrentPage} setAccountFilter={setAccountFilter} setViewingAccountId={setViewingAccountId} onViewAccount={handleOpenAccountDetail} saveTransaction={handleSaveTransaction} accountOrder={accountOrder} setAccountOrder={setAccountOrder} sortBy={accountsSortBy} setSortBy={setAccountsSortBy} warrants={warrants} onToggleAccountStatus={handleToggleAccountStatus} />;
+        return <Accounts accounts={accounts} transactions={transactions} saveAccount={handleSaveAccount} deleteAccount={handleDeleteAccount} setCurrentPage={setCurrentPage} setViewingAccountId={setViewingAccountId} onViewAccount={handleOpenAccountDetail} saveTransaction={handleSaveTransaction} accountOrder={accountOrder} setAccountOrder={setAccountOrder} initialSortBy={accountsSortBy} warrants={warrants} onToggleAccountStatus={handleToggleAccountStatus} onNavigateToTransactions={navigateToTransactions} />;
       case 'Transactions':
-        return <Transactions accountFilter={accountFilter} setAccountFilter={setAccountFilter} tagFilter={tagFilter} setTagFilter={setTagFilter} />;
+        return <Transactions initialAccountFilter={transactionsViewFilters.current.accountName ?? null} initialTagFilter={transactionsViewFilters.current.tagId ?? null} onClearInitialFilters={clearPendingTransactionFilters} />;
       case 'Budget':
         // FIX: Add `preferences` to the `Budgeting` component to resolve the missing prop error.
         return <Budgeting budgets={budgets} transactions={transactions} expenseCategories={expenseCategories} saveBudget={handleSaveBudget} deleteBudget={handleDeleteBudget} accounts={accounts} preferences={preferences} />;
       case 'Forecasting':
-        return <Forecasting
-          activeGoalIds={activeGoalIds}
-          setActiveGoalIds={setActiveGoalIds}
-        />;
+        return <Forecasting />;
       case 'Settings':
         return <SettingsPage setCurrentPage={setCurrentPage} user={currentUser!} />;
       case 'Schedule & Bills':
@@ -1559,7 +1560,7 @@ const App: React.FC = () => {
       case 'Categories':
         return <CategoriesPage incomeCategories={incomeCategories} setIncomeCategories={setIncomeCategories} expenseCategories={expenseCategories} setExpenseCategories={setExpenseCategories} setCurrentPage={setCurrentPage} />;
       case 'Tags':
-        return <TagsPage tags={tags} transactions={transactions} saveTag={handleSaveTag} deleteTag={handleDeleteTag} setCurrentPage={setCurrentPage} setTagFilter={setTagFilter} />;
+        return <TagsPage tags={tags} transactions={transactions} saveTag={handleSaveTag} deleteTag={handleDeleteTag} setCurrentPage={setCurrentPage} onNavigateToTransactions={navigateToTransactions} />;
       case 'Personal Info':
         return <PersonalInfoPage user={currentUser!} setUser={handleSetUser} onChangePassword={changePassword} setCurrentPage={setCurrentPage} />;
       case 'Data Management':
