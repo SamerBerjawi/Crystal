@@ -956,6 +956,27 @@ const Dashboard: React.FC<DashboardProps> = ({ user, tasks, saveTask }) => {
 
   const [widgets, setWidgets] = useLocalStorage<WidgetConfig[]>('dashboard-layout', allWidgets.map(w => ({ id: w.id, title: w.name, w: w.defaultW, h: w.defaultH })));
 
+  // Ensure activity dashboard always includes its required widgets (including Cash Flow Sankey)
+  useEffect(() => {
+    const requiredActivityWidgets = WIDGET_TABS.activity;
+
+    setWidgets(prev => {
+        const currentIds = new Set(prev.map(w => w.id));
+        const missing = requiredActivityWidgets.filter(id => !currentIds.has(id));
+
+        if (!missing.length) return prev;
+
+        const additions = missing
+            .map(id => {
+                const widgetDef = allWidgets.find(w => w.id === id);
+                return widgetDef ? { id: widgetDef.id, title: widgetDef.name, w: widgetDef.defaultW, h: widgetDef.defaultH } : null;
+            })
+            .filter(Boolean) as WidgetConfig[];
+
+        return additions.length ? [...prev, ...additions] : prev;
+    });
+  }, [allWidgets, setWidgets]);
+
   const removeWidget = (widgetId: string) => {
     setWidgets(prev => prev.filter(w => w.id !== widgetId));
   };
