@@ -1,15 +1,7 @@
 
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useEffect, useMemo, useRef, useState } from 'react';
 import { INPUT_BASE_STYLE } from '../constants';
-import { useDebounce } from '../hooks/useDebounce';
-
-interface LocationData {
-  city: string;
-  country: string;
-  lat: number;
-  lon: number;
-  display_name: string;
-}
+import { useLocationSearch, LocationData } from '../hooks/useLocationSearch';
 
 interface LocationAutocompleteProps {
   value: string;
@@ -19,52 +11,30 @@ interface LocationAutocompleteProps {
 
 const LocationAutocomplete: React.FC<LocationAutocompleteProps> = ({ value, onChange, placeholder = "City, Country" }) => {
   const [inputValue, setInputValue] = useState(value);
-  const [suggestions, setSuggestions] = useState<LocationData[]>([]);
   const [isOpen, setIsOpen] = useState(false);
-  const [isLoading, setIsLoading] = useState(false);
   const wrapperRef = useRef<HTMLDivElement>(null);
 
-  const debouncedInputValue = useDebounce(inputValue, 500);
+  const { normalized, isFetching } = useLocationSearch(inputValue);
+
+  const suggestions = useMemo(() => {
+    return normalized.ids.map((id) => normalized.entities[id]);
+  }, [normalized]);
 
   useEffect(() => {
     setInputValue(value);
   }, [value]);
 
   useEffect(() => {
-    const fetchSuggestions = async () => {
-      const query = debouncedInputValue.trim();
-      if (query.length < 3) {
-        setSuggestions([]);
-        setIsOpen(false);
-        return;
-      }
+    const query = inputValue.trim();
+    if (query.length < 3) {
+      setIsOpen(false);
+      return;
+    }
 
-      setIsLoading(true);
-      try {
-        const response = await fetch(
-          `https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(query)}&addressdetails=1&limit=5`
-        );
-        if (response.ok) {
-          const data = await response.json();
-          const mapped: LocationData[] = data.map((item: any) => ({
-            city: item.address.city || item.address.town || item.address.village || item.address.hamlet || '',
-            country: item.address.country || '',
-            lat: parseFloat(item.lat),
-            lon: parseFloat(item.lon),
-            display_name: item.display_name,
-          })).filter((item: LocationData) => item.city && item.country); // Ensure valid data
-          setSuggestions(mapped);
-          setIsOpen(true);
-        }
-      } catch (error) {
-        console.error("Failed to fetch locations", error);
-      } finally {
-        setIsLoading(false);
-      }
-    };
-
-    fetchSuggestions();
-  }, [debouncedInputValue]);
+    if (suggestions.length > 0) {
+      setIsOpen(true);
+    }
+  }, [inputValue, suggestions.length]);
 
   useEffect(() => {
     function handleClickOutside(event: MouseEvent) {
@@ -87,7 +57,6 @@ const LocationAutocomplete: React.FC<LocationAutocompleteProps> = ({ value, onCh
     setInputValue(display);
     onChange(display, item);
     setIsOpen(false);
-    setSuggestions([]);
   };
 
   return (
@@ -103,7 +72,7 @@ const LocationAutocomplete: React.FC<LocationAutocompleteProps> = ({ value, onCh
          <span className="material-symbols-outlined absolute left-3 top-1/2 -translate-y-1/2 text-light-text-secondary dark:text-dark-text-secondary pointer-events-none">
             location_on
          </span>
-         {isLoading && (
+         {isFetching && (
              <div className="absolute right-3 top-1/2 -translate-y-1/2">
                  <svg className="animate-spin h-4 w-4 text-primary-500" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
                     <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
