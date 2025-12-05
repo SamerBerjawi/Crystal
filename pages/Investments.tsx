@@ -22,7 +22,7 @@ interface InvestmentsProps {
     deleteWarrant: (id: string) => void;
     manualPrices: Record<string, number | undefined>;
     onManualPriceChange: (isin: string, price: number | null) => void;
-    warrantPrices: Record<string, number | null>; // New Prop for consolidated prices
+    prices: Record<string, number | null>;
 }
 
 // Helper components for the redesign
@@ -58,7 +58,7 @@ const Investments: React.FC<InvestmentsProps> = ({
     deleteWarrant,
     manualPrices,
     onManualPriceChange,
-    warrantPrices
+    prices
 }) => {
     const [isModalOpen, setIsModalOpen] = useState(false);
     const [isWarrantModalOpen, setWarrantModalOpen] = useState(false);
@@ -142,7 +142,7 @@ const Investments: React.FC<InvestmentsProps> = ({
         // Final pass to ensure warrant values are correct (Qty * Price)
         Object.values(holdingsMap).forEach(h => {
             // For both Warrants and Standard Investments, rely on the manually set price map passed from App
-            const price = warrantPrices[h.symbol] ?? 0;
+            const price = prices[h.symbol] ?? 0;
             h.currentPrice = price;
             h.currentValue = h.quantity * price;
         });
@@ -192,7 +192,7 @@ const Investments: React.FC<InvestmentsProps> = ({
             distributionData: distData, 
             typeBreakdown 
         };
-    }, [investmentAccounts, investmentTransactions, warrants, manualPrices, warrantPrices]);
+    }, [investmentAccounts, investmentTransactions, warrants, manualPrices, prices]);
 
     const handleOpenModal = (tx?: InvestmentTransaction) => {
         setEditingTransaction(tx || null);
@@ -262,7 +262,6 @@ const Investments: React.FC<InvestmentsProps> = ({
                     onSave={onManualPriceChange}
                     isin={editingPriceItem.symbol}
                     name={editingPriceItem.name}
-                    scrapedPrice={null} 
                     manualPrice={manualPrices[editingPriceItem.symbol]}
                 />
             )}
