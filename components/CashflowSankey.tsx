@@ -506,7 +506,7 @@ const CashflowSankey: React.FC<CashflowSankeyProps> = ({
   }
 
   return (
-    <div className="h-full w-full" style={{ minHeight: '500px' }} onMouseLeave={resetHover}>
+    <div className="w-full max-w-5xl mx-auto h-full" style={{ minHeight: '500px' }} onMouseLeave={resetHover}>
       <svg width="0" height="0" style={{ position: 'absolute' }}>
         <defs>
           {gradients.map((g) => (
@@ -524,9 +524,9 @@ const CashflowSankey: React.FC<CashflowSankeyProps> = ({
           node={<SankeyNode />}
           link={<SankeyLink />}
           nodePadding={10}
-          // Increased margins to prevent text clipping at edges
-          margin={{ left: 140, right: 140, top: 20, bottom: 20 }}
-          isAnimationActive={false}
+          nodeWidth={32}        // ↑ make nodes wider (tweak 24–48 to taste)
+          align="justify"       // ↑ push start/end columns to chart edges
+          margin={{ left: 40, right: 40, top: 20, bottom: 20 }}
         >
           <Tooltip content={<CustomSankeyTooltip />} />
         </Sankey>
