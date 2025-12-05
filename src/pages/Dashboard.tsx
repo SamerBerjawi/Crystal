@@ -1,5 +1,5 @@
 
-import React, { useMemo, useState, useCallback, useEffect, useRef } from 'react';
+import React, { useMemo, useState, useCallback, useEffect, useRef, Suspense, lazy } from 'react';
 import { User, Transaction, Account, Category, Duration, CategorySpending, Widget, WidgetConfig, DisplayTransaction, FinancialGoal, RecurringTransaction, BillPayment, Tag, Budget, RecurringTransactionOverride, LoanPaymentOverrides, AccountType, Task, ForecastDuration } from '../types';
 import { formatCurrency, getDateRange, calculateAccountTotals, convertToEur, calculateStatementPeriods, generateBalanceForecast, parseDateAsUTC, getCreditCardStatementDetails, generateSyntheticLoanPayments, generateSyntheticCreditCardPayments, getPreferredTimeZone, formatDateKey, generateSyntheticPropertyTransactions, toLocalISOString } from '../utils';
 import AddTransactionModal from '../components/AddTransactionModal';
@@ -22,8 +22,6 @@ import Card from '../components/Card';
 import CreditCardStatementCard from '../components/CreditCardStatementCard';
 import BudgetOverviewWidget from '../components/BudgetOverviewWidget';
 import AccountBreakdownCard from '../components/AccountBreakdownCard';
-import TransactionMapWidget from '../components/TransactionMapWidget';
-import CashflowSankey from '../components/CashflowSankey';
 import TodayWidget from '../components/TodayWidget';
 import { useAccountsContext, usePreferencesContext, useTransactionsContext } from '../contexts/DomainProviders';
 import { useBudgetsContext, useCategoryContext, useGoalsContext, useScheduleContext, useTagsContext } from '../contexts/FinancialDataContext';
@@ -44,6 +42,9 @@ import QuickBudgetModal from '../components/QuickBudgetModal';
 import BudgetProgressCard from '../components/BudgetProgressCard';
 import BudgetModal from '../components/BudgetModal';
 import MultiSelectFilter from '../components/MultiSelectFilter';
+
+const TransactionMapWidget = lazy(() => import('../components/TransactionMapWidget'));
+const CashflowSankey = lazy(() => import('../components/CashflowSankey'));
 
 interface DashboardProps {
   user: User;
@@ -1390,7 +1391,13 @@ const Dashboard: React.FC<DashboardProps> = ({ user, activeGoalIds, selectedAcco
                             onDrop={e => handleDrop(e, widget.id)}
                             onDragEnd={handleDragEnd}
                         >
-                            <WidgetComponent {...widgetDetails.props as any} />
+                            <Suspense fallback={(
+                              <div className="p-4 text-sm text-light-text-secondary dark:text-dark-text-secondary text-center">
+                                Loading widget...
+                              </div>
+                            )}>
+                              <WidgetComponent {...widgetDetails.props as any} />
+                            </Suspense>
                         </WidgetWrapper>
                     );
             })}

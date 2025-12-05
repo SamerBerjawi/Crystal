@@ -262,7 +262,7 @@ export interface User {
 export interface Widget {
     id: string;
     name: string;
-    component: React.FC<any>;
+    component: React.ComponentType<any>;
     defaultW: number;
     defaultH: number;
     // FIX: Add props property to the Widget interface to fix type errors in Dashboard.tsx and AccountDetail.tsx
