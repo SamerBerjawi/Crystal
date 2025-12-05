@@ -1,4 +1,6 @@
 import { useState, useCallback } from 'react';
+import { fetchFinancialData, getStoredToken, persistToken } from '../api/client';
+import { cacheFinancialData } from '../db';
 import { User, FinancialData } from '../types';
 
 interface AuthResponse {
@@ -7,7 +9,7 @@ interface AuthResponse {
   financialData?: FinancialData;
 }
 
-const TOKEN_STORAGE_KEY = 'crystal_auth_token';
+const USER_STORAGE_KEY = 'crystal_user';
 
 const safeLocalStorage = {
   getItem: (key: string): string | null => {
@@ -50,13 +52,11 @@ const mapApiUserToUser = (apiUser: any): User => ({
   lastLogin: apiUser.lastLogin ?? new Date().toISOString(),
 });
 
-const getStoredToken = () => safeLocalStorage.getItem(TOKEN_STORAGE_KEY);
-
-const persistToken = (newToken: string | null) => {
-  if (newToken) {
-    safeLocalStorage.setItem(TOKEN_STORAGE_KEY, newToken);
+const persistUser = (newUser: User | null) => {
+  if (newUser) {
+    safeLocalStorage.setItem(USER_STORAGE_KEY, JSON.stringify(newUser));
   } else {
-    safeLocalStorage.removeItem(TOKEN_STORAGE_KEY);
+    safeLocalStorage.removeItem(USER_STORAGE_KEY);
   }
 };
 
@@ -74,8 +74,13 @@ export const useAuth = () => {
     setUserState(mappedUser);
     setToken(payload.token);
     persistToken(payload.token);
+    persistUser(mappedUser);
     setIsAuthenticated(true);
     setError(null);
+
+    if (payload.financialData) {
+      cacheFinancialData(payload.financialData).catch(() => undefined);
+    }
 
     return payload.financialData ?? null;
   }, []);
@@ -84,6 +89,7 @@ export const useAuth = () => {
     setUserState(null);
     setToken(null);
     persistToken(null);
+    persistUser(null);
     setIsAuthenticated(false);
     setError(null);
     setIsLoading(false);
@@ -169,6 +175,8 @@ export const useAuth = () => {
 
   const checkAuthStatus = useCallback(async (): Promise<FinancialData | null> => {
     const storedToken = getStoredToken();
+    const cachedUser = safeLocalStorage.getItem(USER_STORAGE_KEY);
+    const parsedCachedUser = cachedUser ? (JSON.parse(cachedUser) as User) : null;
     if (!storedToken) {
       signOut();
       setIsLoading(false);
@@ -179,35 +187,39 @@ export const useAuth = () => {
     setError(null);
 
     try {
-      const [userRes, dataRes] = await Promise.all([
-        fetch('/api/auth/me', {
+      let resolvedUser: User | null = parsedCachedUser;
+      if (typeof navigator === 'undefined' || navigator.onLine) {
+        const userRes = await fetch('/api/auth/me', {
           headers: { Authorization: `Bearer ${storedToken}` },
-        }),
-        fetch('/api/data', {
-          headers: { Authorization: `Bearer ${storedToken}` },
-        }),
-      ]);
+        });
 
-      if (!userRes.ok) {
-        const errorBody = await userRes.json().catch(() => ({}));
-        throw new Error(errorBody.message || 'Failed to fetch user profile.');
+        if (!userRes.ok) {
+          const errorBody = await userRes.json().catch(() => ({}));
+          throw new Error(errorBody.message || 'Failed to fetch user profile.');
+        }
+
+        const userPayload = await userRes.json();
+        resolvedUser = mapApiUserToUser(userPayload);
+        persistUser(resolvedUser);
       }
 
-      const userPayload = await userRes.json();
-      setUserState(mapApiUserToUser(userPayload));
+      if (resolvedUser) {
+        setUserState(resolvedUser);
+      }
       setToken(storedToken);
       persistToken(storedToken);
       setIsAuthenticated(true);
 
-      if (!dataRes.ok) {
-        const errorBody = await dataRes.json().catch(() => ({}));
-        throw new Error(errorBody.message || 'Failed to fetch financial data.');
-      }
-
-      const data = await dataRes.json();
-      return data as FinancialData;
+      const data = await fetchFinancialData(storedToken);
+      return data;
     } catch (err) {
       console.error('Auth status check failed:', err);
+      if (parsedCachedUser) {
+        setUserState(parsedCachedUser);
+        setToken(storedToken);
+        setIsAuthenticated(true);
+        return fetchFinancialData(storedToken);
+      }
       signOut();
       setError(err instanceof Error ? err.message : 'Failed to authenticate.');
       return null;
@@ -219,6 +231,10 @@ export const useAuth = () => {
   const setUser = useCallback(
     (updates: Partial<User>) => {
       setUserState(prev => (prev ? { ...prev, ...updates } : prev));
+      if (updates && typeof updates === 'object') {
+        const nextUser = { ...(user ?? {}), ...updates } as User;
+        persistUser(nextUser);
+      }
 
       (async () => {
         const activeToken = token ?? getStoredToken();
@@ -243,7 +259,7 @@ export const useAuth = () => {
         }
       })();
     },
-    [authorizedFetch, token]
+    [authorizedFetch, token, user]
   );
 
   const changePassword = useCallback(
