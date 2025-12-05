@@ -2,7 +2,7 @@
 import React, { useMemo } from 'react';
 import { ResponsiveContainer, Sankey, Tooltip, Layer, Rectangle } from 'recharts';
 import { Transaction, Category } from '../types';
-import { convertToEur, formatCurrency, parseDateAsUTC } from '../utils';
+import { convertToEur, formatCurrency } from '../utils';
 
 interface CashflowSankeyProps {
   transactions: Transaction[];
@@ -27,160 +27,130 @@ const CashflowSankey: React.FC<CashflowSankeyProps> = ({ transactions, incomeCat
     const links: { source: number; target: number; value: number; gradientId: string }[] = [];
     const gradients: { id: string; start: string; end: string }[] = [];
 
-    // 1. Aggregation Maps
     const incSub = new Map<string, { value: number; parent: string }>();
     const incCat = new Map<string, number>();
     const expCat = new Map<string, number>();
     const expSub = new Map<string, { value: number; parent: string }>();
 
-    let totalIncome = 0;
-    let totalExpense = 0;
-
     transactions.forEach(tx => {
-      if (tx.transferId) return; // Skip transfers
-      
+      if (tx.transferId) return;
+
       const amount = Math.abs(convertToEur(tx.amount, tx.currency));
-      
-      // Determine if Income or Expense based on Transaction Type
+
       if (tx.type === 'income') {
-        totalIncome += amount;
-        
-        // Check if it's a subcategory
         let categoryName = tx.category;
         let parentName = '';
-        
-        // Find if category is a subcategory
+
         const parentMatch = incomeCategories.find(c => c.subCategories.some(s => s.name === categoryName));
         if (parentMatch) {
-            parentName = parentMatch.name;
+          parentName = parentMatch.name;
         } else {
-            parentName = categoryName;
-            categoryName = ''; // It is a parent itself
+          parentName = categoryName;
+          categoryName = '';
         }
 
-        // Aggregate Parent
         incCat.set(parentName, (incCat.get(parentName) || 0) + amount);
-        
-        // Aggregate Sub if exists
+
         if (categoryName) {
-            const key = `${categoryName}::${parentName}`; // Unique key
-            incSub.set(key, { value: (incSub.get(key)?.value || 0) + amount, parent: parentName });
+          const key = `${categoryName}::${parentName}`;
+          incSub.set(key, { value: (incSub.get(key)?.value || 0) + amount, parent: parentName });
         }
-
       } else {
-        totalExpense += amount;
-
-        // Check if it's a subcategory
         let categoryName = tx.category;
         let parentName = '';
-        
-        // Find if category is a subcategory
+
         const parentMatch = expenseCategories.find(c => c.subCategories.some(s => s.name === categoryName));
         if (parentMatch) {
-            parentName = parentMatch.name;
+          parentName = parentMatch.name;
         } else {
-            parentName = categoryName;
-            categoryName = ''; // It is a parent itself
+          parentName = categoryName;
+          categoryName = '';
         }
 
-        // Aggregate Parent
         expCat.set(parentName, (expCat.get(parentName) || 0) + amount);
-        
-        // Aggregate Sub if exists
+
         if (categoryName) {
-             const key = `${categoryName}::${parentName}`;
-             expSub.set(key, { value: (expSub.get(key)?.value || 0) + amount, parent: parentName });
+          const key = `${categoryName}::${parentName}`;
+          expSub.set(key, { value: (expSub.get(key)?.value || 0) + amount, parent: parentName });
         }
       }
     });
 
-    // Net Savings
-    const netSavings = Math.max(0, totalIncome - totalExpense);
-    
-    // --- Build Nodes ---
     const addNode = (name: string, color: string, depth: number) => {
-        const existingIndex = nodes.findIndex(n => n.name === name && n.depth === depth);
-        if (existingIndex !== -1) return existingIndex;
-        nodes.push({ name, color, depth });
-        return nodes.length - 1;
+      const existingIndex = nodes.findIndex(n => n.name === name && n.depth === depth);
+      if (existingIndex !== -1) return existingIndex;
+      nodes.push({ name, color, depth });
+      return nodes.length - 1;
     };
 
     const addLink = (source: number, target: number, value: number, colorStart: string, colorEnd: string) => {
-        if (value < 1) return; // Skip insignificant values
-        const gradientId = `grad-${source}-${target}-${Math.floor(value)}`;
-        gradients.push({ id: gradientId, start: colorStart, end: colorEnd });
-        links.push({ source, target, value, gradientId });
+      if (value < 1) return;
+      const gradientId = `grad-${source}-${target}-${Math.floor(value)}`;
+      gradients.push({ id: gradientId, start: colorStart, end: colorEnd });
+      links.push({ source, target, value, gradientId });
     };
 
-    // Center Node
-    const centerNodeIdx = addNode("Net Cash Flow", "#3B82F6", 2); // Blue center
+    const incomeRootIdx = addNode('Income', '#22C55E', 0);
+    const centerNodeIdx = addNode('Net Cash Flow', '#0EA5E9', 3);
+    const expenseRootIdx = addNode('Expenses', '#EF4444', 6);
 
-    // --- Build Income Side (Left) ---
-    // 1. Income Subs -> Income Cats
-    incSub.forEach((data, key) => {
-        const subName = key.split('::')[0];
-        const parentName = data.parent;
-        const catInfo = getCategoryInfo(parentName, incomeCategories);
-        const subInfo = getCategoryInfo(subName, incomeCategories);
-        
-        const subIdx = addNode(subName, subInfo.color, 0);
-        const catIdx = addNode(parentName, catInfo.color, 1);
-        
-        addLink(subIdx, catIdx, data.value, subInfo.color, catInfo.color);
-    });
-
-    // 2. Income Cats -> Center
     incCat.forEach((val, name) => {
-        const catInfo = getCategoryInfo(name, incomeCategories);
-        const catIdx = addNode(name, catInfo.color, 1);
-        
-        // Subtract subcategory values to find "direct" transactions to parent
-        let directValue = val;
-        incSub.forEach((data) => {
-             if (data.parent === name) directValue -= data.value;
-        });
-        
-        // If there is direct value (transactions assigned to parent category), create a node for it at level 0?
-        // For visual simplicity, we just treat the Cat node as the aggregator.
-        // The Sankey logic handles sum of inputs vs outputs. 
-        // If we have inputs from Subs, great. If we have direct value, it 'appears' at the Cat node level.
-        // However, for Sankey, Input must = Output. 
-        // Recharts handles imbalance by just showing the width, but flow might look weird.
-        // Let's forward the FULL value to center.
-        
-        // Gradient: Cat Color -> Green (Income entering pool)
-        addLink(catIdx, centerNodeIdx, val, catInfo.color, '#10B981'); 
+      const catInfo = getCategoryInfo(name, incomeCategories);
+      const catIdx = addNode(name, catInfo.color, 2);
+
+      let directValue = val;
+      incSub.forEach(data => {
+        if (data.parent === name) directValue -= data.value;
+      });
+
+      if (directValue > 0) {
+        addLink(incomeRootIdx, catIdx, directValue, catInfo.color, catInfo.color);
+      }
+
+      addLink(catIdx, centerNodeIdx, val, catInfo.color, '#22C55E');
     });
 
+    incSub.forEach((data, key) => {
+      const subName = key.split('::')[0];
+      const parentName = data.parent;
+      const catInfo = getCategoryInfo(parentName, incomeCategories);
+      const subInfo = getCategoryInfo(subName, incomeCategories);
 
-    // --- Build Expense Side (Right) ---
-    // 1. Center -> Expense Cats
+      const subIdx = addNode(subName, subInfo.color, 1);
+      const catIdx = addNode(parentName, catInfo.color, 2);
+
+      addLink(incomeRootIdx, subIdx, data.value, subInfo.color, subInfo.color);
+      addLink(subIdx, catIdx, data.value, subInfo.color, catInfo.color);
+    });
+
     expCat.forEach((val, name) => {
-        const catInfo = getCategoryInfo(name, expenseCategories);
-        const catIdx = addNode(name, catInfo.color, 3);
-        
-        // Gradient: Red (Expense leaving pool) -> Cat Color
-        addLink(centerNodeIdx, catIdx, val, '#EF4444', catInfo.color);
+      const catInfo = getCategoryInfo(name, expenseCategories);
+      const catIdx = addNode(name, catInfo.color, 4);
+
+      addLink(centerNodeIdx, catIdx, val, '#EF4444', catInfo.color);
+
+      let directValue = val;
+      expSub.forEach(data => {
+        if (data.parent === name) directValue -= data.value;
+      });
+
+      if (directValue > 0) {
+        addLink(catIdx, expenseRootIdx, directValue, catInfo.color, '#EF4444');
+      }
     });
 
-    // 2. Expense Cats -> Expense Subs
     expSub.forEach((data, key) => {
-        const subName = key.split('::')[0];
-        const parentName = data.parent;
-        const catInfo = getCategoryInfo(parentName, expenseCategories);
-        const subInfo = getCategoryInfo(subName, expenseCategories);
-        
-        const catIdx = addNode(parentName, catInfo.color, 3);
-        const subIdx = addNode(subName, subInfo.color, 4);
-        
-        addLink(catIdx, subIdx, data.value, catInfo.color, subInfo.color);
-    });
+      const subName = key.split('::')[0];
+      const parentName = data.parent;
+      const catInfo = getCategoryInfo(parentName, expenseCategories);
+      const subInfo = getCategoryInfo(subName, expenseCategories);
 
-    // --- Savings (Right) ---
-    if (netSavings > 0) {
-        const savingsIdx = addNode("Net Savings", "#10B981", 3);
-        addLink(centerNodeIdx, savingsIdx, netSavings, '#10B981', '#059669');
-    }
+      const catIdx = addNode(parentName, catInfo.color, 4);
+      const subIdx = addNode(subName, subInfo.color, 5);
+
+      addLink(catIdx, subIdx, data.value, catInfo.color, subInfo.color);
+      addLink(subIdx, expenseRootIdx, data.value, subInfo.color, '#EF4444');
+    });
 
     return { nodes, links, gradients };
   }, [transactions, incomeCategories, expenseCategories]);
@@ -188,8 +158,8 @@ const CashflowSankey: React.FC<CashflowSankeyProps> = ({ transactions, incomeCat
   // --- Custom Renderers ---
 
   const SankeyNode = ({ x, y, width, height, index, payload }: any) => {
-      const isOut = payload.depth > 2; // Right side labels
-      const isCenter = payload.depth === 2;
+      const isCenter = payload.name === 'Net Cash Flow';
+      const isOut = payload.depth > 3;
 
       if (payload.value < 1) return null;
 
