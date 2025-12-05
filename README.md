@@ -1,86 +1,122 @@
 # Crystal
 
-Crystal provides clarity and foresight for your financial future. It centralizes accounts, transactions, budgets, investments, and forecasts while layering in AI-assisted insights to help you plan with confidence.
+**Your comprehensive financial command center.**
 
-## Features
-- **Unified finance workspace:** Dashboard, accounts, transactions, and tags keep balances, cash flow, and categorization in one place.
-- **Planning tools:** Budgeting, forecasting, and goal tracking pages help you model scenarios and monitor progress.
-- **Investments & warrants:** Track holdings, warrants, and investment transactions with price updates and performance metrics.
-- **Cash flow automation:** Schedule recurring payments, bills, and tasks so upcoming obligations stay visible.
-- **Data import/export:** Import historical data and export current state for backups or analysis.
-- **AI assistance:** Gemini-powered chat and planning helpers surface insights through natural-language prompts (requires API key).
-- **Customizable experience:** Preferences for currency, language, themes, and layout, plus category/tag management.
+Crystal is designed to give you clarity on your past, control over your present, and foresight into your future. Built on a **local-first** philosophy, it prioritizes data sovereignty and privacy while leveraging modern AI to provide actionable insights.
 
-## Tech stack
-- **Frontend:** React + TypeScript, Vite bundler, Recharts for data viz, Leaflet for maps.
-- **Backend (optional):** Express + PostgreSQL for authentication, persistence, and API routes (`/server`).
-- **Containerization:** Dockerfiles for the frontend and backend with a `docker-compose.yml` that wires a PostgreSQL database.
+## Core Features
 
-## Getting started (frontend)
-1. **Prerequisites:** Node.js 18+ and npm.
-2. **Install dependencies:**
-   ```bash
-   npm install
-   ```
-3. **Configure AI access:** Create `.env.local` in the repo root with your Gemini key:
-   ```bash
-   GEMINI_API_KEY=your_key_here
-   ```
-4. **Run the app:**
-   ```bash
-   npm run dev
-   ```
-   The Vite dev server prints a local URL (default: `http://localhost:5173`).
+### 📊 Dashboard
+A modular, customizable view of your financial health.
+- **Net Worth:** Real-time aggregation of assets vs. liabilities.
+- **Cash Flow:** Income vs. Expense trends with sparklines.
+- **Transaction Map:** Geospatial heatmap of your spending activity.
+- **Sankey Diagram:** Visual flow of money from income sources to expense categories.
 
-## Running the backend (optional)
-The Express API powers authentication and persistent storage. Set the required environment before starting:
+### 🏦 Advanced Accounts
+Track every aspect of your portfolio with specialized logic for different asset types.
+- **Loans:** Built-in amortization schedules that automatically split principal vs. interest.
+- **Properties:** Track equity, appreciation, and link directly to mortgages for real-time LTV ratios.
+- **Vehicles:** Log mileage, track depreciation, and manage lease agreements (mileage allowances, penalties).
+- **Credit Cards:** Statement cycle tracking, utilization alerts, and payment due dates.
 
-```
-DATABASE_HOST=<postgres_host>
-DATABASE_PORT=5432
-DATABASE_USER=<postgres_user>
-DATABASE_PASSWORD=<postgres_password>
-DATABASE_NAME=<postgres_db>
-JWT_SECRET=<secure_random_string>
-API_BODY_LIMIT=50mb              # optional override
-```
+### 💳 Transactions
+The ledger for all your financial activity.
+- **Transfer Matching:** Automatically detects transfers between accounts to prevent double-counting.
+- **Bulk Actions:** Select multiple transactions to categorize, tag, or delete in batches.
+- **Location Tagging:** Add city/country data to transactions to populate the Map Widget.
 
-Then install and start:
-```bash
-cd server
-npm install
-npm run build
-npm start
-```
-Use `npm run dev` for rebuild-on-change development. The API listens on `http://localhost:3001` by default.
+### 💎 Subscriptions & Loyalty
+Manage your recurring life and rewards.
+- **Recurring Payments:** Automatically detects subscriptions based on patterns to forecast future spend.
+- **Loyalty Wallet:** A digital wallet for rewards programs. Track membership IDs, point balances, and tier status (Silver, Gold) alongside your finances.
 
-## Docker Compose
-A full stack (PostgreSQL + backend + frontend) is defined in `docker-compose.yml`.
+### 🔮 Forecasting
+The "Crystal Ball" engine projects your daily balance up to 2 years into the future.
+- Combines **Recurring Transactions**, **Scheduled Bills**, and **Financial Goals**.
+- Answers questions like *"Will I go into overdraft in November if I buy this car today?"*
+
+### 📈 Investments & Warrants
+- **Standard Assets:** Stocks, ETFs, and Crypto tracking.
+- **Employee Warrants:** Specialized tracking for unvested/vested equity grants. Track grant price vs. current price to see "in-the-money" value.
+- **Price Scrapers:** Configure visual DOM scrapers to fetch prices for assets without public APIs (e.g., private equity).
+
+### ✅ Tasks
+A Kanban-style board to track financial chores.
+- Track tax filings, bill payments, or cancellations.
+- Set priorities and due dates.
+- Visual consistency heatmap to track productivity.
+
+### 🤖 AI Assistant
+Integrated with Google's **Gemini** models.
+- **Chat:** Ask questions like *"How much did I spend on dining out last month?"*
+- **Budgeting:** Analyze spending habits to generate realistic budget recommendations.
+- **Planning:** Create step-by-step contribution plans to reach financial goals.
+
+### 💾 Data Management
+- **Import Wizard:** Powerful CSV importer with column mapping and cleaning tools.
+- **Export:** Download data as CSVs.
+- **Backup & Restore:** Full JSON snapshots of your workspace state.
+
+---
+
+## Tech Stack
+
+- **Frontend:** React 19, TypeScript, Vite, Tailwind CSS.
+- **Visualization:** Recharts, Leaflet (Maps).
+- **State/Data:** React Query, Context API.
+- **Backend (Optional):** Express, PostgreSQL (for auth/persistence).
+- **AI:** Google GenAI SDK.
+
+## Getting Started
+
+### Prerequisites
+- Node.js 18+
+- npm
+
+### Installation
+
+1.  **Install dependencies:**
+    ```bash
+    npm install
+    ```
+
+2.  **Configure AI (Optional):**
+    To enable the AI Assistant, create a `.env.local` file in the root:
+    ```bash
+    GEMINI_API_KEY=your_key_here
+    ```
+
+3.  **Run the frontend:**
+    ```bash
+    npm run dev
+    ```
+    Access the app at `http://localhost:5173`.
+
+### Running the Backend (Optional)
+The backend provides user authentication and cloud persistence.
+
+1.  **Set environment variables:**
+    ```bash
+    DATABASE_HOST=localhost
+    DATABASE_PORT=5432
+    DATABASE_USER=postgres
+    DATABASE_PASSWORD=password
+    DATABASE_NAME=crystal
+    JWT_SECRET=your_secret
+    ```
+
+2.  **Start the server:**
+    ```bash
+    cd server
+    npm install
+    npm run build
+    npm start
+    ```
+
+### Docker
+Run the full stack (Frontend + Backend + DB) with Docker Compose.
 
 ```bash
 docker compose up --build
 ```
-
-Key overrides:
-- `POSTGRES_DB`, `POSTGRES_USER`, `POSTGRES_PASSWORD`: database credentials.
-- `JWT_SECRET`: backend token signing secret.
-- `FRONTEND_PORT`: host port exposing the frontend (defaults to `7157`).
-- `DATA_ROOT`: host path for persistent Postgres storage.
-
-## Project layout
-- `App.tsx`, `pages/`, `components/`: React views and UI building blocks.
-- `contexts/`, `hooks/`: shared state providers and reusable logic.
-- `utils/`, `utils.ts`, `constants.tsx`, `types.ts`: utilities, shared types, and app-wide constants.
-- `server/`: Express API, Postgres migrations/initialization, and backend Dockerfile.
-- `docker-compose.yml`, `Dockerfile`, `frontend.Dockerfile`: containerization assets for local or deployment use.
-
-## Useful scripts
-- `npm run dev` – start the Vite dev server.
-- `npm run build` – create a production build of the frontend.
-- `npm run preview` – preview the production build locally.
-- `npm run build && npm start` (in `server/`) – compile and serve the backend API.
-- `npm run dev` (in `server/`) – watch mode for backend development.
-
-## Notes
-- AI features remain disabled until `GEMINI_API_KEY` is present at runtime.
-- When the backend is offline, mock/demo data can still be explored in the frontend, but authentication and persistence require the server and PostgreSQL.

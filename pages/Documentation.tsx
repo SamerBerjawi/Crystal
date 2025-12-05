@@ -22,32 +22,28 @@ const sections: Section[] = [
         icon: 'rocket_launch',
         iconColor: 'text-blue-500',
         content: (
-            <div className="space-y-4">
+            <div className="space-y-6">
                 <p className="text-lg leading-relaxed">
-                    Welcome to Crystal! This guide will help you set up your financial workspace quickly and efficiently.
+                    Welcome to <strong>Crystal</strong>, your comprehensive financial command center. Crystal is designed to give you clarity on your past, control over your present, and foresight into your future.
                 </p>
                 
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mt-6">
-                    <div className="bg-blue-50 dark:bg-blue-900/20 p-4 rounded-lg border border-blue-100 dark:border-blue-800">
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mt-4">
+                    <div className="bg-blue-50 dark:bg-blue-900/20 p-5 rounded-xl border border-blue-100 dark:border-blue-800">
                         <h4 className="font-bold text-blue-700 dark:text-blue-300 mb-2 flex items-center gap-2">
-                            <span className="material-symbols-outlined text-sm">login</span> Authentication
+                            <span className="material-symbols-outlined text-lg">shield</span> Privacy First
                         </h4>
-                        <p className="text-sm">Sign up for a secure account or use the <strong>Demo Mode</strong> to explore features with sample data without any commitment.</p>
+                        <p className="text-sm leading-relaxed">
+                            Crystal is built on a <strong>local-first</strong> philosophy. While we provide a secure backend for synchronization, your financial calculations happen right in your browser. We prioritize data sovereignty—you can export your entire workspace at any time.
+                        </p>
                     </div>
-                    <div className="bg-green-50 dark:bg-green-900/20 p-4 rounded-lg border border-green-100 dark:border-green-800">
-                        <h4 className="font-bold text-green-700 dark:text-green-300 mb-2 flex items-center gap-2">
-                            <span className="material-symbols-outlined text-sm">check_circle</span> Onboarding
+                    <div className="bg-purple-50 dark:bg-purple-900/20 p-5 rounded-xl border border-purple-100 dark:border-purple-800">
+                        <h4 className="font-bold text-purple-700 dark:text-purple-300 mb-2 flex items-center gap-2">
+                            <span className="material-symbols-outlined text-lg">science</span> Demo Mode
                         </h4>
-                        <p className="text-sm">Our wizard guides you through setting your base currency, adding your first account, and creating a budget goal.</p>
+                        <p className="text-sm leading-relaxed">
+                            Want to look around safely? Use <strong>Demo Mode</strong> on the login screen. It populates the app with realistic sample data so you can test features like Forecasting and AI without entering your own info.
+                        </p>
                     </div>
-                </div>
-
-                <div className="mt-6">
-                    <h4 className="font-semibold text-light-text dark:text-dark-text mb-2">Data Privacy</h4>
-                    <p>
-                        Your data is persisted locally in your browser for performance. You can also perform a full 
-                        <strong> JSON Backup</strong> at any time from the Data Management page to secure your records or migrate devices.
-                    </p>
                 </div>
             </div>
         )
@@ -56,20 +52,24 @@ const sections: Section[] = [
         id: 'dashboard',
         title: 'Dashboard',
         icon: 'space_dashboard',
-        iconColor: 'text-purple-500',
+        iconColor: 'text-indigo-500',
         content: (
             <div className="space-y-4">
                 <p>
-                    Your financial command center. The dashboard is designed to be modular and customizable, giving you an instant overview of your net worth, cash flow, and recent activity.
+                    The Dashboard is your customizable landing page. It provides a modular view of your financial health.
                 </p>
-                <ul className="list-disc list-inside space-y-2 ml-2 text-light-text-secondary dark:text-dark-text-secondary">
-                    <li><strong>Edit Layout:</strong> Click the "Edit Layout" button to enter customization mode. You can drag, drop, and resize widgets to build your perfect view.</li>
-                    <li><strong>Global Filtering:</strong> Use the filters at the top to slice your data by specific accounts or time ranges (e.g., "Last 30 Days", "Year to Date").</li>
-                    <li><strong>Smart Insights:</strong> Widgets like "Cash Flow" and "Net Worth" automatically update based on your selected filters.</li>
-                </ul>
-                <div className="bg-yellow-50 dark:bg-yellow-900/20 p-3 rounded-md border-l-4 border-yellow-400 text-sm mt-4">
-                    <strong>Pro Tip:</strong> Try adding the "Transaction Map" widget to visualize your spending locations!
+                <div className="p-4 bg-gray-50 dark:bg-white/5 rounded-lg border border-black/5 dark:border-white/5 space-y-3">
+                    <h5 className="font-semibold text-sm uppercase tracking-wider text-light-text-secondary dark:text-dark-text-secondary">Key Widgets</h5>
+                    <ul className="grid grid-cols-1 md:grid-cols-2 gap-2 text-sm">
+                        <li className="flex items-center gap-2"><span className="material-symbols-outlined text-primary-500 text-sm">account_balance</span> <strong>Net Worth:</strong> Real-time aggregation of assets vs. debts.</li>
+                        <li className="flex items-center gap-2"><span className="material-symbols-outlined text-primary-500 text-sm">timeline</span> <strong>Cash Flow:</strong> Income vs. Expense trends.</li>
+                        <li className="flex items-center gap-2"><span className="material-symbols-outlined text-primary-500 text-sm">public</span> <strong>Transaction Map:</strong> Heatmap of spending locations.</li>
+                        <li className="flex items-center gap-2"><span className="material-symbols-outlined text-primary-500 text-sm">sync_alt</span> <strong>Sankey Diagram:</strong> Visual flow of money source to destination.</li>
+                    </ul>
                 </div>
+                <p className="text-sm">
+                    <strong>Customization:</strong> Click the "Edit Layout" button to drag, drop, resize, or remove widgets to fit your workflow.
+                </p>
             </div>
         )
     },
@@ -81,27 +81,84 @@ const sections: Section[] = [
         content: (
             <div className="space-y-4">
                 <p>
-                    Crystal supports a wide variety of account types to mirror your real-world portfolio.
+                    Track every aspect of your portfolio, from cash in your pocket to complex mortgages.
                 </p>
-                <div className="overflow-x-auto">
+                <div className="overflow-x-auto border border-black/5 dark:border-white/5 rounded-lg">
                     <table className="min-w-full text-sm text-left">
                         <thead className="bg-gray-50 dark:bg-white/5 font-semibold">
                             <tr>
-                                <th className="p-2 rounded-tl-md">Type</th>
-                                <th className="p-2 rounded-tr-md">Description</th>
+                                <th className="p-3">Account Type</th>
+                                <th className="p-3">Advanced Features</th>
                             </tr>
                         </thead>
                         <tbody className="divide-y divide-gray-100 dark:divide-white/5">
-                            <tr><td className="p-2 font-medium">Liquid</td><td className="p-2 text-gray-500">Checking, Savings, Cash. Used for day-to-day spending.</td></tr>
-                            <tr><td className="p-2 font-medium">Credit</td><td className="p-2 text-gray-500">Credit Cards with limit tracking and billing cycle management.</td></tr>
-                            <tr><td className="p-2 font-medium">Assets</td><td className="p-2 text-gray-500">Property, Vehicles, and other high-value items with depreciation/appreciation tracking.</td></tr>
-                            <tr><td className="p-2 font-medium">Investments</td><td className="p-2 text-gray-500">Stocks, ETFs, Crypto, and Warrants.</td></tr>
+                            <tr><td className="p-3 font-medium">Loans</td><td className="p-3 text-gray-500">Built-in <strong>amortization schedules</strong>. Calculates principal vs. interest splits automatically.</td></tr>
+                            <tr><td className="p-3 font-medium">Properties</td><td className="p-3 text-gray-500">Tracks equity, appreciation, and links directly to mortgages for <strong>LTV (Loan-to-Value)</strong> ratios.</td></tr>
+                            <tr><td className="p-3 font-medium">Vehicles</td><td className="p-3 text-gray-500">Mileage logging, depreciation tracking, and lease management (mileage allowances, penalties).</td></tr>
+                            <tr><td className="p-3 font-medium">Credit Cards</td><td className="p-3 text-gray-500">Statement cycle tracking, utilization alerts, and payment due dates.</td></tr>
                         </tbody>
                     </table>
                 </div>
-                <p className="mt-2">
-                    <strong>Transaction Matching:</strong> The system automatically detects potential transfers between accounts (e.g., a debit in Checking matching a credit in Savings) and suggests linking them to keep your records clean.
+            </div>
+        )
+    },
+    {
+        id: 'transactions',
+        title: 'Transactions',
+        icon: 'receipt_long',
+        iconColor: 'text-blue-500',
+        content: (
+            <div className="space-y-4">
+                <p>
+                    The ledger for all your financial activity. Crystal offers powerful tools to keep this organized.
                 </p>
+                <ul className="space-y-2 text-sm">
+                     <li className="flex gap-2">
+                        <span className="material-symbols-outlined text-primary-500 text-lg">autorenew</span>
+                        <span>
+                            <strong>Transfer Matching:</strong> The system automatically detects transfers between accounts (e.g., a debit in Checking matching a credit in Savings) and suggests linking them to prevent double-counting.
+                        </span>
+                    </li>
+                    <li className="flex gap-2">
+                        <span className="material-symbols-outlined text-primary-500 text-lg">edit_note</span>
+                        <span>
+                            <strong>Bulk Actions:</strong> Select multiple transactions to categorize, tag, or delete them in one go.
+                        </span>
+                    </li>
+                    <li className="flex gap-2">
+                        <span className="material-symbols-outlined text-primary-500 text-lg">location_on</span>
+                        <span>
+                            <strong>Location Tagging:</strong> Add city/country data to transactions to populate the Map Widget.
+                        </span>
+                    </li>
+                </ul>
+            </div>
+        )
+    },
+    {
+        id: 'subscriptions',
+        title: 'Subscriptions & Loyalty',
+        icon: 'loyalty',
+        iconColor: 'text-pink-500',
+        content: (
+            <div className="space-y-4">
+                <p>
+                    Manage your recurring life and rewards in one place.
+                </p>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div className="p-4 bg-pink-50 dark:bg-pink-900/10 rounded-xl border border-pink-100 dark:border-pink-900/30">
+                        <h5 className="font-bold text-pink-700 dark:text-pink-300 mb-2">Recurring Payments</h5>
+                        <p className="text-sm">
+                            Crystal scans your transaction history to <strong>automatically detect</strong> subscriptions (Netflix, Gym, Spotify) based on amount and frequency patterns. You can convert these into tracked items for forecasting.
+                        </p>
+                    </div>
+                     <div className="p-4 bg-orange-50 dark:bg-orange-900/10 rounded-xl border border-orange-100 dark:border-orange-900/30">
+                        <h5 className="font-bold text-orange-700 dark:text-orange-300 mb-2">Loyalty Wallet</h5>
+                        <p className="text-sm">
+                            A digital wallet for your rewards programs. Store membership IDs, track point balances, monitor tier status (Silver, Gold), and keep support numbers handy.
+                        </p>
+                    </div>
+                </div>
             </div>
         )
     },
@@ -113,21 +170,12 @@ const sections: Section[] = [
         content: (
             <div className="space-y-4">
                 <p>
-                    Move away from rigid spreadsheets. Crystal's budgeting is flexible and intelligent.
+                    Set limits and track spending by category.
                 </p>
-                <ul className="space-y-3">
-                    <li className="flex gap-3">
-                        <span className="material-symbols-outlined text-primary-500">auto_awesome</span>
-                        <div>
-                            <strong>AI Suggestions:</strong> Tap the "AI Advice" button to analyze your last 3 months of spending and auto-generate realistic budget limits for each category.
-                        </div>
-                    </li>
-                    <li className="flex gap-3">
-                        <span className="material-symbols-outlined text-primary-500">notifications_active</span>
-                        <div>
-                            <strong>Visual Alerts:</strong> Progress bars turn yellow (warning) or red (over budget) as you spend, giving you instant feedback on your financial health.
-                        </div>
-                    </li>
+                <ul className="list-disc list-inside space-y-1 text-sm text-light-text-secondary dark:text-dark-text-secondary">
+                    <li><strong>AI Advice:</strong> Use the "AI Advice" button to analyze your last 3 months of spending and generate realistic budget recommendations.</li>
+                    <li><strong>Quick Create:</strong> Instantly generate budgets based on historical averages (Last Month, 3-Month Avg, etc.).</li>
+                    <li><strong>Visual Alerts:</strong> Progress bars change color (Green → Yellow → Red) as you approach your limits.</li>
                 </ul>
             </div>
         )
@@ -136,40 +184,76 @@ const sections: Section[] = [
         id: 'forecasting',
         title: 'Forecasting',
         icon: 'show_chart',
-        iconColor: 'text-indigo-500',
+        iconColor: 'text-cyan-500',
         content: (
             <div className="space-y-4">
                 <p>
-                    Predict your future balance based on your scheduled income, bills, and savings goals.
+                    The "Crystal Ball" feature. We project your daily balance up to 2 years into the future.
                 </p>
-                <div className="p-4 bg-gray-50 dark:bg-white/5 rounded-lg">
-                    <h5 className="font-semibold mb-2">How it works:</h5>
-                    <ol className="list-decimal list-inside space-y-1 text-sm text-light-text-secondary dark:text-dark-text-secondary">
-                        <li>Define your <strong>Recurring Transactions</strong> (Salary, Rent, Netflix).</li>
-                        <li>Set <strong>Financial Goals</strong> (Vacation, Emergency Fund).</li>
-                        <li>Crystal projects your daily balance up to 2 years into the future.</li>
+                <div className="p-4 bg-cyan-50 dark:bg-cyan-900/10 rounded-xl border border-cyan-100 dark:border-cyan-900/30">
+                    <h5 className="font-semibold mb-2 text-cyan-800 dark:text-cyan-200">How Projection Works</h5>
+                    <p className="text-sm mb-2">The engine combines:</p>
+                    <ol className="list-decimal list-inside text-sm space-y-1 ml-2">
+                        <li><strong>Recurring Transactions:</strong> Salary, Rent, Subscriptions.</li>
+                        <li><strong>Bills:</strong> One-off scheduled payments.</li>
+                        <li><strong>Financial Goals:</strong> Target savings dates are treated as "expense events" to ensure you have liquidity.</li>
+                        <li><strong>Smart Logic:</strong> Auto-adjusts for weekends and bank holidays.</li>
                     </ol>
                 </div>
-                <p>
-                    This allows you to spot potential cash flow issues ("Will I go overdraft next month?") or opportunities to invest more.
+                <p className="text-sm">
+                    This helps you answer questions like <em>"Will I go into overdraft in November if I buy this car today?"</em>
                 </p>
             </div>
         )
     },
     {
         id: 'investments',
-        title: 'Investments',
+        title: 'Investments & Warrants',
         icon: 'candlestick_chart',
-        iconColor: 'text-cyan-500',
+        iconColor: 'text-purple-500',
         content: (
             <div className="space-y-4">
                 <p>
-                    Track your portfolio performance with automated price updates.
+                    Track your portfolio performance with support for complex asset types.
                 </p>
-                <ul className="list-disc list-inside space-y-2 ml-2">
-                    <li><strong>Standard Assets:</strong> Stocks and Crypto prices are fetched automatically where available.</li>
-                    <li><strong>Warrants:</strong> Specialized tracking for employee equity grants. You can even configure a custom web scraper to fetch live prices for private or obscure assets.</li>
-                    <li><strong>Analysis:</strong> View asset allocation pie charts and track your total gains/losses over time.</li>
+                <div className="flex flex-col gap-3">
+                    <div className="flex gap-3 items-start">
+                         <span className="material-symbols-outlined text-purple-500 mt-0.5">query_stats</span>
+                         <div>
+                             <strong>Standard Assets:</strong> Stocks, ETFs, and Crypto. Track cost basis, current value, and unrealized gains.
+                         </div>
+                    </div>
+                     <div className="flex gap-3 items-start">
+                         <span className="material-symbols-outlined text-purple-500 mt-0.5">card_membership</span>
+                         <div>
+                             <strong>Employee Warrants:</strong> A specialized feature for tracking unvested or vested equity grants. Track grant price vs. current price to see the "in-the-money" value.
+                         </div>
+                    </div>
+                     <div className="flex gap-3 items-start">
+                         <span className="material-symbols-outlined text-purple-500 mt-0.5">web</span>
+                         <div>
+                             <strong>Price Scrapers:</strong> For assets without public APIs (like private equity or niche funds), you can configure a visual scraper to fetch prices from a specific URL automatically.
+                         </div>
+                    </div>
+                </div>
+            </div>
+        )
+    },
+    {
+        id: 'tasks',
+        title: 'Tasks',
+        icon: 'task_alt',
+        iconColor: 'text-red-500',
+        content: (
+            <div className="space-y-4">
+                <p>
+                    Financial management involves chores. The Tasks module is a Kanban-style board to track these to-dos.
+                </p>
+                <ul className="list-disc list-inside text-sm text-light-text-secondary dark:text-dark-text-secondary">
+                    <li><strong>Status Tracking:</strong> To Do, In Progress, Done.</li>
+                    <li><strong>Priorities:</strong> High, Medium, Low priority tagging.</li>
+                    <li><strong>Deadlines:</strong> Set due dates and reminders for tax filings, bill payments, or cancellations.</li>
+                    <li><strong>Consistency:</strong> A "Consistency Heatmap" visualizes your productivity over the year.</li>
                 </ul>
             </div>
         )
@@ -178,23 +262,42 @@ const sections: Section[] = [
         id: 'ai-assistant',
         title: 'AI Assistant',
         icon: 'smart_toy',
-        iconColor: 'text-pink-500',
+        iconColor: 'text-fuchsia-500',
         content: (
             <div className="space-y-4">
                 <p>
-                    Crystal integrates with Google's Gemini AI to provide a conversational interface for your finances.
+                    Crystal integrates with Google's <strong>Gemini</strong> models to provide a conversational financial analyst.
                 </p>
-                <div className="flex items-start gap-4 p-4 border border-pink-200 dark:border-pink-900/50 bg-pink-50 dark:bg-pink-900/10 rounded-xl">
-                    <span className="material-symbols-outlined text-pink-500 text-2xl">forum</span>
-                    <div>
-                        <p className="font-semibold text-pink-900 dark:text-pink-100">Ask anything:</p>
-                        <p className="text-sm text-pink-800 dark:text-pink-300 italic mt-1">"How much did I spend on coffee last month?"</p>
-                        <p className="text-sm text-pink-800 dark:text-pink-300 italic">"Can I afford a vacation in July?"</p>
-                    </div>
+                <div className="bg-gradient-to-r from-fuchsia-50 to-purple-50 dark:from-fuchsia-900/20 dark:to-purple-900/20 p-4 rounded-xl border border-fuchsia-100 dark:border-fuchsia-800/30">
+                    <p className="font-semibold text-fuchsia-900 dark:text-fuchsia-100 mb-2">Capabilities:</p>
+                    <ul className="space-y-2 text-sm">
+                        <li>💬 <strong>Chat:</strong> "How much did I spend on dining out last month vs. this month?"</li>
+                        <li>📉 <strong>Budgeting:</strong> "Analyze my spending and suggest a realistic budget for groceries."</li>
+                        <li>📅 <strong>Planning:</strong> "Create a step-by-step contribution plan to reach my Emergency Fund goal by December."</li>
+                    </ul>
                 </div>
-                <p className="text-xs text-gray-500">
-                    Note: You must configure your own API Key in the Settings &gt; AI Assistant page to enable this feature.
+                <p className="text-xs text-light-text-secondary dark:text-dark-text-secondary mt-2">
+                    * Requires a valid Google Gemini API Key configured in Settings.
                 </p>
+            </div>
+        )
+    },
+    {
+        id: 'data-management',
+        title: 'Data Management',
+        icon: 'database',
+        iconColor: 'text-gray-500',
+        content: (
+            <div className="space-y-4">
+                <p>
+                    You are in control of your data.
+                </p>
+                <ul className="list-disc list-inside text-sm">
+                    <li><strong>Import Wizard:</strong> A powerful CSV importer that maps columns, cleans data, and detects duplicates.</li>
+                    <li><strong>Export:</strong> Download all your transactions, accounts, or budgets as CSV files for use in Excel/Numbers.</li>
+                    <li><strong>Backup & Restore:</strong> Create a full JSON snapshot of your entire workspace state. Perfect for migrating to a new device.</li>
+                    <li><strong>Reset:</strong> A "nuclear option" to wipe all data and start fresh is available in the Danger Zone.</li>
+                </ul>
             </div>
         )
     }
@@ -256,8 +359,7 @@ const Documentation: React.FC<DocumentationProps> = ({ setCurrentPage }) => {
                         Documentation
                     </h1>
                     <p className="text-lg text-light-text-secondary dark:text-dark-text-secondary max-w-2xl">
-                        Everything you need to know to master your finances with Crystal. 
-                        Explore features, learn workflows, and unlock the full potential of your dashboard.
+                        Master your finances with Crystal. Explore features, learn workflows, and unlock the full potential of your dashboard.
                     </p>
                 </div>
             </header>
@@ -279,7 +381,7 @@ const Documentation: React.FC<DocumentationProps> = ({ setCurrentPage }) => {
                                         : 'text-light-text-secondary dark:text-dark-text-secondary hover:bg-black/5 dark:hover:bg-white/5 hover:text-light-text dark:hover:text-dark-text'
                                 }`}
                             >
-                                <span className={`material-symbols-outlined text-[18px] ${activeSection === section.id ? 'opacity-100' : 'opacity-0'}`}>
+                                <span className={`material-symbols-outlined text-[18px] ${activeSection === section.id ? 'opacity-100' : 'opacity-0 transition-opacity'}`}>
                                     chevron_right
                                 </span>
                                 {section.title}
@@ -288,7 +390,7 @@ const Documentation: React.FC<DocumentationProps> = ({ setCurrentPage }) => {
                     </div>
                 </aside>
 
-                {/* Mobile Navigation (Dropdown style or Horizontal Scroll) */}
+                {/* Mobile Navigation (Horizontal Scroll) */}
                 <div className="lg:hidden overflow-x-auto pb-4 -mx-4 px-4 flex gap-2 snap-x no-scrollbar">
                      {sections.map(section => (
                         <button
@@ -311,7 +413,6 @@ const Documentation: React.FC<DocumentationProps> = ({ setCurrentPage }) => {
                         <section 
                             key={section.id} 
                             id={section.id} 
-                            // FIX: Changed the ref callback to a block body to avoid returning a value, which is not allowed for callback refs.
                             ref={(el) => { sectionRefs.current[section.id] = el; }}
                             className="scroll-mt-24"
                         >
