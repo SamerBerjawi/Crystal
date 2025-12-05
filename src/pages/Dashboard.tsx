@@ -87,7 +87,7 @@ type DashboardTab = 'overview' | 'analysis' | 'activity';
 
 const WIDGET_TABS: Record<DashboardTab, string[]> = {
     overview: ['netWorthOverTime'], // Removed 'todayWidget' as it's now hardcoded in the layout
-    analysis: ['cashflowSankey'],
+    analysis: [],
     activity: ['transactionMap', 'outflowsByCategory', 'recentActivity', 'cashflowSankey']
 };
 
