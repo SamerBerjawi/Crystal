@@ -1,4 +1,3 @@
-
 import React, { useMemo, useState, useCallback, useEffect, useRef, Suspense, lazy } from 'react';
 import { User, Transaction, Account, Category, Duration, CategorySpending, Widget, WidgetConfig, DisplayTransaction, FinancialGoal, RecurringTransaction, BillPayment, Tag, Budget, RecurringTransactionOverride, LoanPaymentOverrides, AccountType, Task, ForecastDuration } from '../types';
 import { formatCurrency, getDateRange, calculateAccountTotals, convertToEur, calculateStatementPeriods, generateBalanceForecast, parseDateAsUTC, getCreditCardStatementDetails, generateSyntheticLoanPayments, generateSyntheticCreditCardPayments, getPreferredTimeZone, formatDateKey, generateSyntheticPropertyTransactions, toLocalISOString } from '../utils';
@@ -1012,7 +1011,7 @@ const Dashboard: React.FC<DashboardProps> = ({ user, tasks, saveTask }) => {
 
   const handleDragStart = (e: React.DragEvent, widgetId: string) => { setDraggedWidgetId(widgetId); e.dataTransfer.effectAllowed = 'move'; };
   const handleDragEnter = (e: React.DragEvent, widgetId: string) => { e.preventDefault(); if (widgetId !== draggedWidgetId) setDragOverWidgetId(widgetId); };
-  const handleDragLeave = (e: React.DragEvent) => { e.preventDefault(); setDragOverWidgetId(null); };
+  const handleDragLeave = (e: React.DragEvent, widgetId: string) => { e.preventDefault(); setDragOverWidgetId(null); };
   const handleDrop = (e: React.DragEvent, targetWidgetId: string) => {
     e.preventDefault();
     if (!draggedWidgetId || draggedWidgetId === targetWidgetId) return;
@@ -1319,23 +1318,24 @@ const Dashboard: React.FC<DashboardProps> = ({ user, tasks, saveTask }) => {
                               <h4 className="text-sm font-bold text-light-text-secondary dark:text-dark-text-secondary uppercase tracking-wider mb-4">Assets Breakdown</h4>
                               <div className="space-y-4">
                                   {Object.entries(assetGroups as Record<string, { value: number; color: string; icon: string }>).map(([name, group]) => {
-                                      if (group.value === 0) return null;
+                                      const g = group as { value: number; color: string; icon: string };
+                                      if (g.value === 0) return null;
                                       return (
                                         <div key={name} className="group">
                                             <div className="flex justify-between text-sm mb-1.5">
                                                 <div className="flex items-center gap-2">
-                                                    <div className="w-6 h-6 rounded-md flex items-center justify-center text-white shadow-sm" style={{ backgroundColor: group.color }}>
-                                                        <span className="material-symbols-outlined text-[14px]">{group.icon}</span>
+                                                    <div className="w-6 h-6 rounded-md flex items-center justify-center text-white shadow-sm" style={{ backgroundColor: g.color }}>
+                                                        <span className="material-symbols-outlined text-[14px]">{g.icon}</span>
                                                     </div>
                                                     <span className="font-medium text-gray-700 dark:text-gray-200">{name}</span>
                                                 </div>
-                                                <span className="font-mono font-medium text-gray-900 dark:text-white">{formatCurrency(group.value, 'EUR')}</span>
+                                                <span className="font-mono font-medium text-gray-900 dark:text-white">{formatCurrency(g.value, 'EUR')}</span>
                                             </div>
                                             <div className="w-full bg-gray-100 dark:bg-white/10 rounded-full h-2 overflow-hidden">
-                                                <div className="h-full rounded-full" style={{ width: `${(group.value / globalTotalAssets) * 100}%`, backgroundColor: group.color }}></div>
+                                                <div className="h-full rounded-full" style={{ width: `${(g.value / globalTotalAssets) * 100}%`, backgroundColor: g.color }}></div>
                                             </div>
                                             <p className="text-[10px] text-right text-gray-400 mt-1 opacity-0 group-hover:opacity-100 transition-opacity">
-                                                {((group.value / globalTotalAssets) * 100).toFixed(1)}%
+                                                {((g.value / globalTotalAssets) * 100).toFixed(1)}%
                                             </p>
                                         </div>
                                       );
@@ -1348,23 +1348,24 @@ const Dashboard: React.FC<DashboardProps> = ({ user, tasks, saveTask }) => {
                               <h4 className="text-sm font-bold text-light-text-secondary dark:text-dark-text-secondary uppercase tracking-wider mb-4">Liabilities Breakdown</h4>
                               <div className="space-y-4">
                                   {Object.entries(liabilityGroups as Record<string, { value: number; color: string; icon: string }>).map(([name, group]) => {
-                                      if (group.value === 0) return null;
+                                      const g = group as { value: number; color: string; icon: string };
+                                      if (g.value === 0) return null;
                                       return (
                                           <div key={name} className="group">
                                               <div className="flex justify-between text-sm mb-1.5">
                                                    <div className="flex items-center gap-2">
-                                                        <div className="w-6 h-6 rounded-md flex items-center justify-center text-white shadow-sm" style={{ backgroundColor: group.color }}>
-                                                            <span className="material-symbols-outlined text-[14px]">{group.icon}</span>
+                                                        <div className="w-6 h-6 rounded-md flex items-center justify-center text-white shadow-sm" style={{ backgroundColor: g.color }}>
+                                                            <span className="material-symbols-outlined text-[14px]">{g.icon}</span>
                                                         </div>
                                                         <span className="font-medium text-gray-700 dark:text-gray-200">{name}</span>
                                                     </div>
-                                                  <span className="font-mono font-medium text-gray-900 dark:text-white">{formatCurrency(group.value, 'EUR')}</span>
+                                                  <span className="font-mono font-medium text-gray-900 dark:text-white">{formatCurrency(g.value, 'EUR')}</span>
                                               </div>
                                               <div className="w-full bg-gray-100 dark:bg-white/10 rounded-full h-2 overflow-hidden">
-                                                  <div className="h-full rounded-full" style={{ width: `${(group.value / Math.abs(globalTotalDebt)) * 100}%`, backgroundColor: group.color }}></div>
+                                                  <div className="h-full rounded-full" style={{ width: `${(g.value / Math.abs(globalTotalDebt)) * 100}%`, backgroundColor: g.color }}></div>
                                               </div>
                                               <p className="text-[10px] text-right text-gray-400 mt-1 opacity-0 group-hover:opacity-100 transition-opacity">
-                                                  {((group.value / Math.abs(globalTotalDebt)) * 100).toFixed(1)}%
+                                                  {((g.value / Math.abs(globalTotalDebt)) * 100).toFixed(1)}%
                                               </p>
                                           </div>
                                       );

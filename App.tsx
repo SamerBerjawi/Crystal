@@ -79,9 +79,6 @@ const Chatbot = lazy(() => import('./components/Chatbot'));
 import { convertToEur, CONVERSION_RATES, arrayToCSV, downloadCSV, parseDateAsUTC } from './utils';
 import { useDebounce } from './hooks/useDebounce';
 import { useAuth } from './hooks/useAuth';
-import { useOnlineSync } from './hooks/useOnlineSync';
-import { saveFinancialData } from './api/client';
-import { cacheFinancialData } from './db';
 import useLocalStorage from './hooks/useLocalStorage';
 const OnboardingModal = lazy(() => import('./components/OnboardingModal'));
 import { FinancialDataProvider } from './contexts/FinancialDataContext';
@@ -314,15 +311,13 @@ const App: React.FC = () => {
   const [accountOrder, setAccountOrder] = useLocalStorage<string[]>('crystal-account-order', []);
   const [taskOrder, setTaskOrder] = useLocalStorage<string[]>('crystal-task-order', []);
   const transactionsViewFilters = useRef<{ accountName?: string | null; tagId?: string | null }>({});
-
+  
   // State for AI Chat
   const [isChatOpen, setIsChatOpen] = useState(false);
   
   // State for Warrant prices
   const [manualWarrantPrices, setManualWarrantPrices] = useState<Record<string, number | undefined>>(initialFinancialData.manualWarrantPrices || {});
   const [lastUpdated, setLastUpdated] = useState<Date | null>(null);
-
-  useOnlineSync(token);
   
   const assetPrices = useMemo(() => {
     const resolved: Record<string, number | null> = {};
@@ -524,8 +519,7 @@ const App: React.FC = () => {
       skipNextSaveRef.current = true;
     }
     latestDataRef.current = dataToLoad;
-    cacheFinancialData(dataToLoad).catch(() => undefined);
-  }, [setAccountOrder, setTaskOrder, cacheFinancialData]);
+  }, [setAccountOrder, setTaskOrder]);
   
   const handleEnterDemoMode = () => {
     loadAllFinancialData(null); // This will load initialFinancialData
@@ -746,12 +740,33 @@ const App: React.FC = () => {
       data: FinancialData,
       options?: { keepalive?: boolean; suppressErrors?: boolean }
     ): Promise<boolean> => {
-      if (isDemoMode) {
-        cacheFinancialData(data).catch(() => undefined);
+      if (!token || isDemoMode) return false;
+      try {
+        const response = await fetch('/api/data', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'Authorization': `Bearer ${token}`,
+          },
+          body: JSON.stringify(data),
+          keepalive: options?.keepalive,
+        });
+
+        if (!response.ok) {
+          if (!options?.suppressErrors) {
+            const errorText = await response.text().catch(() => '');
+            console.error('Failed to save data:', errorText || response.statusText);
+          }
+          return false;
+        }
+
+        return true;
+      } catch (error) {
+        if (!options?.suppressErrors) {
+          console.error('Failed to save data:', error);
+        }
         return false;
       }
-
-      return saveFinancialData(data, token, options);
     },
     [token, isDemoMode]
   );

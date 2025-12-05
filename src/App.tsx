@@ -68,7 +68,7 @@ const pagePreloaders = [
 // UserManagement is removed
 // FIX: Import FinancialData from types.ts
 // FIX: Add `Tag` to the import from `types.ts`.
-import { Page, Theme, Category, User, Transaction, Account, RecurringTransaction, RecurringTransactionOverride, WeekendAdjustment, FinancialGoal, Budget, ImportExportHistoryItem, AppPreferences, AccountType, InvestmentTransaction, Task, Warrant, ImportDataType, FinancialData, Currency, BillPayment, BillPaymentStatus, Duration, InvestmentSubType, Tag, LoanPaymentOverrides, ScheduledPayment } from './types';
+import { Page, Theme, Category, User, Transaction, Account, RecurringTransaction, RecurringTransactionOverride, WeekendAdjustment, FinancialGoal, Budget, ImportExportHistoryItem, AppPreferences, AccountType, InvestmentTransaction, Task, Warrant, ImportDataType, FinancialData, Currency, BillPayment, BillPaymentStatus, Duration, InvestmentSubType, Tag, LoanPaymentOverrides, ScheduledPayment, LoyaltyProgram } from './types';
 import { MOCK_INCOME_CATEGORIES, MOCK_EXPENSE_CATEGORIES, LIQUID_ACCOUNT_TYPES } from './constants';
 import { v4 as uuidv4 } from 'uuid';
 import ChatFab from './components/ChatFab';
@@ -150,6 +150,7 @@ const initialFinancialData: FinancialData = {
     incomeCategories: MOCK_INCOME_CATEGORIES, // Keep default categories
     expenseCategories: MOCK_EXPENSE_CATEGORIES,
     billsAndPayments: [],
+    loyaltyPrograms: [],
     accountOrder: [],
     taskOrder: [],
     manualWarrantPrices: {},
@@ -296,6 +297,8 @@ const App: React.FC = () => {
   const [billsAndPayments, setBillsAndPayments] = useState<BillPayment[]>(initialFinancialData.billsAndPayments);
   // FIX: Add state for tags and tag filtering to support the Tags feature.
   const [tags, setTags] = useState<Tag[]>(initialFinancialData.tags || []);
+  const [loyaltyPrograms, setLoyaltyPrograms] = useState<LoyaltyProgram[]>(initialFinancialData.loyaltyPrograms || []);
+
   const latestDataRef = useRef<FinancialData>(initialFinancialData);
   const lastSavedSignatureRef = useRef<string | null>(null);
   const skipNextSaveRef = useRef(false);
@@ -331,7 +334,7 @@ const App: React.FC = () => {
     });
 
     Object.entries(manualWarrantPrices).forEach(([symbol, price]) => {
-      if (price !== undefined) {
+      if (typeof price === 'number') {
         resolved[symbol] = price;
       }
     });
@@ -495,6 +498,7 @@ const App: React.FC = () => {
       setManualWarrantPrices(dataToLoad.manualWarrantPrices || {});
       // FIX: Add `tags` to the data loading logic.
       setTags(dataToLoad.tags || []);
+      setLoyaltyPrograms(dataToLoad.loyaltyPrograms || []);
       setIncomeCategories(dataToLoad.incomeCategories && dataToLoad.incomeCategories.length > 0 ? dataToLoad.incomeCategories : MOCK_INCOME_CATEGORIES);
       setExpenseCategories(dataToLoad.expenseCategories && dataToLoad.expenseCategories.length > 0 ? dataToLoad.expenseCategories : MOCK_EXPENSE_CATEGORIES);
 
@@ -567,11 +571,11 @@ const App: React.FC = () => {
   const dataToSave: FinancialData = useMemo(() => ({
     accounts, transactions, investmentTransactions, recurringTransactions,
     recurringTransactionOverrides, loanPaymentOverrides, financialGoals, budgets, tasks, warrants, importExportHistory, incomeCategories,
-    expenseCategories, preferences, billsAndPayments, accountOrder, taskOrder, tags, manualWarrantPrices
+    expenseCategories, preferences, billsAndPayments, accountOrder, taskOrder, tags, manualWarrantPrices, loyaltyPrograms
   }), [
     accounts, transactions, investmentTransactions,
     recurringTransactions, recurringTransactionOverrides, loanPaymentOverrides, financialGoals, budgets, tasks, warrants, importExportHistory,
-    incomeCategories, expenseCategories, preferences, billsAndPayments, accountOrder, taskOrder, tags, manualWarrantPrices
+    incomeCategories, expenseCategories, preferences, billsAndPayments, accountOrder, taskOrder, tags, manualWarrantPrices, loyaltyPrograms
   ]);
 
   const debouncedDirtySignal = useDebounce(dirtySignal, 900);
@@ -597,6 +601,7 @@ const App: React.FC = () => {
     if (dirtySlices.has('taskOrder')) payload.taskOrder = taskOrder;
     if (dirtySlices.has('tags')) payload.tags = tags;
     if (dirtySlices.has('manualWarrantPrices')) payload.manualWarrantPrices = manualWarrantPrices;
+    if (dirtySlices.has('loyaltyPrograms')) payload.loyaltyPrograms = loyaltyPrograms;
 
     return { ...latestDataRef.current, ...payload } as FinancialData;
   }, [
@@ -619,6 +624,7 @@ const App: React.FC = () => {
     transactions,
     warrants,
     manualWarrantPrices,
+    loyaltyPrograms,
   ]);
 
   useEffect(() => {
@@ -719,6 +725,11 @@ const App: React.FC = () => {
     if (!isDataLoaded || restoreInProgressRef.current) return;
     markSliceDirty('tags');
   }, [tags, isDataLoaded, markSliceDirty]);
+  
+  useEffect(() => {
+    if (!isDataLoaded || restoreInProgressRef.current) return;
+    markSliceDirty('loyaltyPrograms');
+  }, [loyaltyPrograms, isDataLoaded, markSliceDirty]);
 
   // Persist data to backend on change
   const saveData = useCallback(
@@ -985,9 +996,6 @@ const App: React.FC = () => {
       );
     }
     setBillsAndPayments(prev => prev.filter(bill => bill.accountId !== accountId));
-    
-    // Removed setDashboardAccountIds line to fix ReferenceError. 
-    // InsightsViewContext handles this cleanup automatically via useEffect.
 
     if (viewingAccountId === accountId) {
       setViewingAccountId(null);
@@ -1175,7 +1183,6 @@ const App: React.FC = () => {
     } else {
       const newGoal: FinancialGoal = { ...goalData, id: `goal-${uuidv4()}` } as FinancialGoal;
       setFinancialGoals((prev) => [...prev, newGoal]);
-      // Removed explicit activeGoalIds update logic as context provider handles it
     }
   };
 
@@ -1190,7 +1197,6 @@ const App: React.FC = () => {
     }
   
     setFinancialGoals((prev) => prev.filter((g) => !idsToDelete.includes(g.id)));
-    // Removed explicit activeGoalIds logic as context provider handles it
   };
   
   const handleSaveBudget = (budgetData: Omit<Budget, 'id'> & { id?: string }) => {
@@ -1255,6 +1261,19 @@ const App: React.FC = () => {
         return updated;
       });
     }
+  };
+  
+  const handleSaveLoyaltyProgram = (programData: Omit<LoyaltyProgram, 'id'> & { id?: string }) => {
+      if (programData.id) {
+          setLoyaltyPrograms(prev => prev.map(p => p.id === programData.id ? { ...p, ...programData } as LoyaltyProgram : p));
+      } else {
+          const newProgram: LoyaltyProgram = { ...programData, id: `lp-${uuidv4()}` } as LoyaltyProgram;
+          setLoyaltyPrograms(prev => [...prev, newProgram]);
+      }
+  };
+
+  const handleDeleteLoyaltyProgram = (id: string) => {
+      setLoyaltyPrograms(prev => prev.filter(p => p.id !== id));
   };
 
   const handleManualWarrantPrice = (isin: string, price: number | null) => {
@@ -1589,18 +1608,21 @@ const App: React.FC = () => {
       recurringTransactionOverrides,
       loanPaymentOverrides,
       billsAndPayments,
+      loyaltyPrograms,
       saveRecurringTransaction: handleSaveRecurringTransaction,
       deleteRecurringTransaction: handleDeleteRecurringTransaction,
       saveRecurringOverride: handleSaveRecurringOverride,
-// FIX: In the schedule context value, adjusted the signature of 'deleteRecurringOverride' to accept both 'recurringTransactionId' and 'originalDate' as parameters, aligning it with its implementation in 'handleDeleteRecurringOverride'.
       deleteRecurringOverride: handleDeleteRecurringOverride,
       saveLoanPaymentOverrides: handleSaveLoanPaymentOverrides,
       saveBillPayment: handleSaveBillPayment,
       deleteBillPayment: handleDeleteBillPayment,
       markBillAsPaid: handleMarkBillAsPaid,
+      saveLoyaltyProgram: handleSaveLoyaltyProgram,
+      deleteLoyaltyProgram: handleDeleteLoyaltyProgram
     }),
     [
       billsAndPayments,
+      loyaltyPrograms,
       handleDeleteBillPayment,
       handleDeleteRecurringOverride,
       handleDeleteRecurringTransaction,
