@@ -524,7 +524,7 @@ const CashflowSankey: React.FC<CashflowSankeyProps> = ({
           node={<SankeyNode />}
           link={<SankeyLink />}
           nodePadding={10}
-          margin={{ left: 40, right: 40, top: 20, bottom: 20 }}
+          margin={{ left: 20, right: 20, top: 20, bottom: 20 }}
         >
           <Tooltip content={<CustomSankeyTooltip />} />
         </Sankey>
