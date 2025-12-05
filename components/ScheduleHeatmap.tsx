@@ -3,7 +3,7 @@ import React, { useMemo } from 'react';
 // FIX: Import 'ScheduledItem' from '../types' as it is no longer exported from '../pages/Schedule'.
 import { ScheduledItem } from '../types';
 import Card from './Card';
-import { parseDateAsUTC } from '../utils';
+import { parseDateAsUTC, toLocalISOString } from '../utils';
 
 // Define new color constants
 const INCOME_COLOR = 'bg-green-500';
@@ -96,7 +96,7 @@ const ScheduleHeatmap: React.FC<ScheduleHeatmapProps> = ({ items }) => {
 
     }, [items]);
 
-    const todayStr = new Date().toISOString().split('T')[0];
+    const todayStr = toLocalISOString(new Date());
 
     const getActivityColor = (dayData?: { incomeCount: number, expenseCount: number, transferCount: number }): string => {
         if (!dayData || (dayData.incomeCount === 0 && dayData.expenseCount === 0 && dayData.transferCount === 0)) {
@@ -161,7 +161,7 @@ const ScheduleHeatmap: React.FC<ScheduleHeatmapProps> = ({ items }) => {
                                 if (!day) {
                                     return <div key={`pad-${index}`} className="w-[14px] h-[14px]" />;
                                 }
-                                const dateStr = day.toISOString().split('T')[0];
+                                const dateStr = toLocalISOString(day);
                                 const isToday = dateStr === todayStr;
                                 const dayData = itemsByDate.get(dateStr);
                                 const color = getActivityColor(dayData);

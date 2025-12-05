@@ -343,7 +343,7 @@ const SchedulePage: React.FC<ScheduleProps> = () => {
             
             while (nextDate <= forecastEndDate && (!endDateUTC || nextDate <= endDateUTC)) {
                 // Use ISO String splitting to get date string without local timezone offset
-                const originalDateStr = nextDate.toISOString().split('T')[0];
+                const originalDateStr = toLocalISOString(nextDate);
                 const override = recurringTransactionOverrides.find(o => o.recurringTransactionId === rt.id && o.originalDate === originalDateStr);
 
                 if (!override?.isSkipped) {
