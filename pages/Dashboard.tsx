@@ -55,7 +55,6 @@ interface DashboardProps {
   recurringTransactions: RecurringTransaction[];
   recurringTransactionOverrides: RecurringTransactionOverride[];
   loanPaymentOverrides: LoanPaymentOverrides;
-  // Removed activeGoalIds, selectedAccountIds, setSelectedAccountIds, duration, setDuration as they are now from context
   tasks: Task[];
   saveTask: (task: Omit<Task, 'id'> & { id?: string }) => void;
 }
@@ -1048,6 +1047,17 @@ const Dashboard: React.FC<DashboardProps> = ({ user, tasks, saveTask }) => {
   const tabActiveClass = "bg-white dark:bg-dark-card text-primary-600 dark:text-primary-400 shadow-sm";
   const tabInactiveClass = "text-light-text-secondary dark:text-dark-text-secondary hover:text-light-text dark:hover:text-dark-text hover:bg-black/5 dark:hover:bg-white/5";
 
+  const allocationData: { name: string; value: number; color: string }[] = useMemo(() => {
+      return budgets.map(b => {
+          const cat = expenseCategories.find(c => c.name === b.categoryName);
+          return {
+              name: b.categoryName,
+              value: b.amount,
+              color: cat?.color || '#cbd5e1'
+          };
+      }).sort((a, b) => b.value - a.value);
+  }, [budgets, expenseCategories]);
+
   return (
     <div className="space-y-6">
       {isTransactionModalOpen && (
@@ -1287,8 +1297,7 @@ const Dashboard: React.FC<DashboardProps> = ({ user, tasks, saveTask }) => {
                           <div>
                               <h4 className="text-sm font-bold text-light-text-secondary dark:text-dark-text-secondary uppercase tracking-wider mb-4">Assets Breakdown</h4>
                               <div className="space-y-4">
-                                  {Object.entries(assetGroups).map(([name, grp]: [string, any]) => {
-                                      const group = grp as { value: number; color: string; icon: string };
+                                  {Object.entries(assetGroups as Record<string, { value: number; color: string; icon: string }>).map(([name, group]) => {
                                       if (group.value === 0) return null;
                                       return (
                                         <div key={name} className="group">
@@ -1317,8 +1326,7 @@ const Dashboard: React.FC<DashboardProps> = ({ user, tasks, saveTask }) => {
                           <div>
                               <h4 className="text-sm font-bold text-light-text-secondary dark:text-dark-text-secondary uppercase tracking-wider mb-4">Liabilities Breakdown</h4>
                               <div className="space-y-4">
-                                  {Object.entries(liabilityGroups).map(([name, grp]: [string, any]) => {
-                                      const group = grp as { value: number; color: string; icon: string };
+                                  {Object.entries(liabilityGroups as Record<string, { value: number; color: string; icon: string }>).map(([name, group]) => {
                                       if (group.value === 0) return null;
                                       return (
                                           <div key={name} className="group">

@@ -44,7 +44,7 @@ const CashflowSankey: React.FC<CashflowSankeyProps> = ({ transactions, incomeCat
 
     const addLink = (source: number, target: number, value: number, colorStart: string, colorEnd: string) => {
       if (value < 0.01) return;
-      const gradientId = `grad-${source}-${target}-${Math.floor(value * 100)}`; // More unique ID
+      const gradientId = `grad-${source}-${target}-${Math.floor(value * 100)}-${Math.random().toString(36).substr(2, 5)}`; 
       gradients.push({ id: gradientId, start: colorStart, end: colorEnd });
       links.push({ source, target, value, gradientId });
     };
@@ -52,11 +52,9 @@ const CashflowSankey: React.FC<CashflowSankeyProps> = ({ transactions, incomeCat
     // Aggregation Structures
     const incCatTotals = new Map<string, number>();
     const incSubTotals = new Map<string, number>(); // Key: "Sub::Parent"
-    const incCatSubSums = new Map<string, number>(); // Sum of subs for a parent
-
+    
     const expCatTotals = new Map<string, number>();
     const expSubTotals = new Map<string, number>();
-    const expCatSubSums = new Map<string, number>();
 
     transactions.forEach(tx => {
       if (tx.transferId) return;
@@ -71,36 +69,31 @@ const CashflowSankey: React.FC<CashflowSankeyProps> = ({ transactions, incomeCat
       let parentName = '';
 
       // Identify Parent and Sub
+      // Check if it's a subcategory
       const parentMatch = categories.find(c => c.subCategories.some(s => s.name === categoryName));
       if (parentMatch) {
         parentName = parentMatch.name;
       } else {
-        // It might be a parent category itself
+        // Check if it's a parent category directly
         const directMatch = categories.find(c => c.name === categoryName);
         if (directMatch) {
             parentName = directMatch.name;
-            categoryName = ''; // It is the parent, so no sub-category effectively (or treat as direct)
+            categoryName = 'Other'; // Treat direct assignment as "Other" sub
         } else {
-            // Uncategorized or unknown
+            // Uncategorized
             parentName = 'Uncategorized';
-            categoryName = ''; 
+            categoryName = 'Other'; 
         }
       }
 
       if (isIncome) {
           incCatTotals.set(parentName, (incCatTotals.get(parentName) || 0) + amount);
-          if (categoryName && categoryName !== parentName) {
-              const key = `${categoryName}::${parentName}`;
-              incSubTotals.set(key, (incSubTotals.get(key) || 0) + amount);
-              incCatSubSums.set(parentName, (incCatSubSums.get(parentName) || 0) + amount);
-          }
+          const key = `${categoryName}::${parentName}`;
+          incSubTotals.set(key, (incSubTotals.get(key) || 0) + amount);
       } else {
           expCatTotals.set(parentName, (expCatTotals.get(parentName) || 0) + amount);
-          if (categoryName && categoryName !== parentName) {
-              const key = `${categoryName}::${parentName}`;
-              expSubTotals.set(key, (expSubTotals.get(key) || 0) + amount);
-              expCatSubSums.set(parentName, (expCatSubSums.get(parentName) || 0) + amount);
-          }
+          const key = `${categoryName}::${parentName}`;
+          expSubTotals.set(key, (expSubTotals.get(key) || 0) + amount);
       }
     });
 
@@ -111,8 +104,10 @@ const CashflowSankey: React.FC<CashflowSankeyProps> = ({ transactions, incomeCat
 
     // INCOME SIDE (Left)
     // Depth 1: Parent Categories
-    // Depth 0: Sub Categories & Direct
+    // Depth 0: Sub Categories (Terminals)
     incCatTotals.forEach((totalVal, parentName) => {
+        if (totalVal < 0.01) return;
+        
         const color = getCategoryColor(parentName, null, incomeCategories);
         const catNodeIdx = addNode(`inc_cat_${parentName}`, parentName, color, 1);
 
@@ -120,29 +115,23 @@ const CashflowSankey: React.FC<CashflowSankeyProps> = ({ transactions, incomeCat
         addLink(catNodeIdx, centerNodeIdx, totalVal, color, '#0EA5E9');
 
         // Link Subs -> Category
-        let subSum = 0;
         incSubTotals.forEach((val, key) => {
             const [subName, pName] = key.split('::');
             if (pName === parentName) {
-                const subColor = getCategoryColor(subName, parentName, incomeCategories);
+                // If 'Other', use lighter/faded color
+                const subColor = subName === 'Other' ? color : getCategoryColor(subName, parentName, incomeCategories);
                 const subNodeIdx = addNode(`inc_sub_${parentName}_${subName}`, subName, subColor, 0);
                 addLink(subNodeIdx, catNodeIdx, val, subColor, color);
-                subSum += val;
             }
         });
-
-        // Link Direct/Other -> Category
-        const directVal = totalVal - subSum;
-        if (directVal > 0.01) {
-            const directNodeIdx = addNode(`inc_direct_${parentName}`, 'Other', color, 0);
-            addLink(directNodeIdx, catNodeIdx, directVal, color, color);
-        }
     });
 
     // EXPENSE SIDE (Right)
     // Depth 3: Parent Categories
-    // Depth 4: Sub Categories & Direct
+    // Depth 4: Sub Categories (Terminals)
     expCatTotals.forEach((totalVal, parentName) => {
+        if (totalVal < 0.01) return;
+
         const color = getCategoryColor(parentName, null, expenseCategories);
         const catNodeIdx = addNode(`exp_cat_${parentName}`, parentName, color, 3);
 
@@ -150,23 +139,14 @@ const CashflowSankey: React.FC<CashflowSankeyProps> = ({ transactions, incomeCat
         addLink(centerNodeIdx, catNodeIdx, totalVal, '#0EA5E9', color);
 
         // Link Category -> Subs
-        let subSum = 0;
         expSubTotals.forEach((val, key) => {
             const [subName, pName] = key.split('::');
             if (pName === parentName) {
-                const subColor = getCategoryColor(subName, parentName, expenseCategories);
+                const subColor = subName === 'Other' ? color : getCategoryColor(subName, parentName, expenseCategories);
                 const subNodeIdx = addNode(`exp_sub_${parentName}_${subName}`, subName, subColor, 4);
                 addLink(catNodeIdx, subNodeIdx, val, color, subColor);
-                subSum += val;
             }
         });
-
-        // Link Category -> Direct/Other
-        const directVal = totalVal - subSum;
-        if (directVal > 0.01) {
-            const directNodeIdx = addNode(`exp_direct_${parentName}`, 'Other', color, 4);
-            addLink(catNodeIdx, directNodeIdx, directVal, color, color);
-        }
     });
 
     return { nodes, links, gradients };

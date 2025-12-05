@@ -403,12 +403,6 @@ const App: React.FC = () => {
     navigateToPath(pageToPath('AccountDetail', accountId));
   }, [navigateToPath]);
 
-  // States lifted up for persistence & preference linking
-  const [dashboardAccountIds, setDashboardAccountIds] = useState<string[]>([]);
-  const [activeGoalIds, setActiveGoalIds] = useState<string[]>([]);
-  const [dashboardDuration, setDashboardDuration] = useState<Duration>(preferences.defaultPeriod as Duration);
-  const [accountsSortBy, setAccountsSortBy] = useState<'name' | 'balance' | 'manual'>(preferences.defaultAccountOrder);
-
   // Onboarding flow state
   const [hasCompletedOnboarding, setHasCompletedOnboarding] = useLocalStorage('crystal-onboarding-complete', false);
   const [isOnboardingOpen, setIsOnboardingOpen] = useState(false);
@@ -441,31 +435,6 @@ const App: React.FC = () => {
           setPreferences(prev => ({ ...prev, timezone: deviceTimezone }));
       }
   }, [preferences.timezone]);
-
-  useEffect(() => {
-    // Set default dashboard account filter only on initial load
-    if (accounts.length > 0 && dashboardAccountIds.length === 0) {
-        // Select all primary accounts
-        const primaryAccounts = accounts.filter(a => a.isPrimary);
-        if (primaryAccounts.length > 0) {
-            setDashboardAccountIds(primaryAccounts.map(a => a.id));
-        } else {
-            // Fallback: Select the first open account if no primary accounts exist
-            const openAccounts = accounts.filter(a => a.status !== 'closed');
-            const fallbackAccount = (openAccounts.length > 0 ? openAccounts : accounts)[0];
-            if (fallbackAccount) {
-                setDashboardAccountIds([fallbackAccount.id]);
-            }
-        }
-    }
-  }, [accounts, dashboardAccountIds.length]);
-  
-  useEffect(() => {
-    // Set default active goals only on initial load
-    if (financialGoals.length > 0 && activeGoalIds.length === 0) {
-        setActiveGoalIds(financialGoals.map(g => g.id));
-    }
-  }, [financialGoals, activeGoalIds.length]);
 
   const warrantHoldingsBySymbol = useMemo(() => {
     const holdings: Record<string, number> = {};
@@ -531,9 +500,7 @@ const App: React.FC = () => {
       setExpenseCategories(dataToLoad.expenseCategories && dataToLoad.expenseCategories.length > 0 ? dataToLoad.expenseCategories : MOCK_EXPENSE_CATEGORIES);
 
       setPreferences(loadedPrefs);
-      setDashboardDuration(loadedPrefs.defaultPeriod as Duration);
-      setAccountsSortBy(loadedPrefs.defaultAccountOrder);
-
+      
       setAccountOrder(dataToLoad.accountOrder || []);
       setTaskOrder(dataToLoad.taskOrder || []);
 
@@ -1019,7 +986,6 @@ const App: React.FC = () => {
       );
     }
     setBillsAndPayments(prev => prev.filter(bill => bill.accountId !== accountId));
-    setDashboardAccountIds(prev => prev.filter(id => id !== accountId));
 
     if (viewingAccountId === accountId) {
       setViewingAccountId(null);
@@ -1207,11 +1173,6 @@ const App: React.FC = () => {
     } else {
       const newGoal: FinancialGoal = { ...goalData, id: `goal-${uuidv4()}` } as FinancialGoal;
       setFinancialGoals((prev) => [...prev, newGoal]);
-  
-      // FIX: If a new sub-goal is created and its parent is active, make the new goal active too.
-      if (newGoal.parentId && activeGoalIds.includes(newGoal.parentId)) {
-        setActiveGoalIds((prev) => [...prev, newGoal.id]);
-      }
     }
   };
 
@@ -1226,7 +1187,6 @@ const App: React.FC = () => {
     }
   
     setFinancialGoals((prev) => prev.filter((g) => !idsToDelete.includes(g.id)));
-    setActiveGoalIds((prev) => prev.filter((activeId) => !idsToDelete.includes(activeId)));
   };
   
   const handleSaveBudget = (budgetData: Omit<Budget, 'id'> & { id?: string }) => {
@@ -1327,8 +1287,9 @@ const App: React.FC = () => {
               return tx;
           })
       );
-      if (tagFilter === tagId) {
-          setTagFilter(null);
+      // Fix: Check ref instead of unknown state
+      if (transactionsViewFilters.current.tagId === tagId) {
+          transactionsViewFilters.current.tagId = null;
       }
   };
   
@@ -1545,7 +1506,7 @@ const App: React.FC = () => {
             saveTask={handleSaveTask}
         />;
       case 'Accounts':
-        return <Accounts accounts={accounts} transactions={transactions} saveAccount={handleSaveAccount} deleteAccount={handleDeleteAccount} setCurrentPage={setCurrentPage} setViewingAccountId={setViewingAccountId} onViewAccount={handleOpenAccountDetail} saveTransaction={handleSaveTransaction} accountOrder={accountOrder} setAccountOrder={setAccountOrder} initialSortBy={accountsSortBy} warrants={warrants} onToggleAccountStatus={handleToggleAccountStatus} onNavigateToTransactions={navigateToTransactions} />;
+        return <Accounts accounts={accounts} transactions={transactions} saveAccount={handleSaveAccount} deleteAccount={handleDeleteAccount} setCurrentPage={setCurrentPage} setViewingAccountId={setViewingAccountId} onViewAccount={handleOpenAccountDetail} saveTransaction={handleSaveTransaction} accountOrder={accountOrder} setAccountOrder={setAccountOrder} initialSortBy={preferences.defaultAccountOrder} warrants={warrants} onToggleAccountStatus={handleToggleAccountStatus} onNavigateToTransactions={navigateToTransactions} />;
       case 'Transactions':
         return <Transactions initialAccountFilter={transactionsViewFilters.current.accountName ?? null} initialTagFilter={transactionsViewFilters.current.tagId ?? null} onClearInitialFilters={clearPendingTransactionFilters} />;
       case 'Budget':
