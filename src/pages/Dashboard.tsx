@@ -87,8 +87,8 @@ type DashboardTab = 'overview' | 'analysis' | 'activity';
 
 const WIDGET_TABS: Record<DashboardTab, string[]> = {
     overview: ['netWorthOverTime'], // Removed 'todayWidget' as it's now hardcoded in the layout
-    analysis: ['cashflowSankey'], 
-    activity: ['transactionMap', 'outflowsByCategory', 'recentActivity']
+    analysis: ['cashflowSankey'],
+    activity: ['transactionMap', 'outflowsByCategory', 'recentActivity', 'cashflowSankey']
 };
 
 const AnalysisStatCard: React.FC<{ title: string; value: string; subtext: string; icon: string; colorClass: string }> = ({ title, value, subtext, icon, colorClass }) => (
@@ -956,6 +956,27 @@ const Dashboard: React.FC<DashboardProps> = ({ user, tasks, saveTask }) => {
   ], [tasks, recurringTransactions, allRecurringItems, recurringTransactionOverrides, billsAndPayments, financialGoals, saveTask, netWorthData, netWorthTrendColor, outflowsByCategory, handleCategoryClick, totalAssets, totalDebt, recentTransactions, allCategories, handleTransactionClick, globalTotalAssets, globalAssetBreakdown, globalTotalDebt, globalDebtBreakdown, budgets, transactions, expenseCategories, accounts, duration, handleBudgetClick, filteredTransactions, incomeCategories]);
 
   const [widgets, setWidgets] = useLocalStorage<WidgetConfig[]>('dashboard-layout', allWidgets.map(w => ({ id: w.id, title: w.name, w: w.defaultW, h: w.defaultH })));
+
+  // Ensure activity dashboard always has its core widgets available (including Cash Flow Sankey)
+  useEffect(() => {
+    const requiredActivityWidgets = WIDGET_TABS.activity;
+
+    setWidgets(prev => {
+        const currentIds = new Set(prev.map(w => w.id));
+        const missing = requiredActivityWidgets.filter(id => !currentIds.has(id));
+
+        if (!missing.length) return prev;
+
+        const additions = missing
+            .map(id => {
+                const widgetDef = allWidgets.find(w => w.id === id);
+                return widgetDef ? { id: widgetDef.id, title: widgetDef.name, w: widgetDef.defaultW, h: widgetDef.defaultH } : null;
+            })
+            .filter(Boolean) as WidgetConfig[];
+
+        return additions.length ? [...prev, ...additions] : prev;
+    });
+  }, [allWidgets, setWidgets]);
 
   const removeWidget = (widgetId: string) => {
     setWidgets(prev => prev.filter(w => w.id !== widgetId));
