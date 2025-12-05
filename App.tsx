@@ -1,6 +1,8 @@
 
 // FIX: Import `useMemo` from React to resolve the 'Cannot find name' error.
-import React, { useState, useEffect, useMemo, useCallback, Suspense, lazy, useRef, Component, ErrorInfo } from 'react';
+import React, { useState, useEffect, useMemo, useCallback, Suspense, lazy, useRef, Component, ErrorInfo, startTransition } from 'react';
+import { QueryClientProvider } from '@tanstack/react-query';
+import { queryClient } from './queryClient';
 import Sidebar from './components/Sidebar';
 import Header from './components/Header';
 const SignIn = lazy(() => import('./pages/SignIn'));
@@ -529,40 +531,44 @@ const App: React.FC = () => {
 
   const loadAllFinancialData = useCallback((data: FinancialData | null, options?: { skipNextSave?: boolean }) => {
     const dataToLoad = data || initialFinancialData;
-    setAccounts(dataToLoad.accounts || []);
-    setTransactions(dataToLoad.transactions || []);
-    setInvestmentTransactions(dataToLoad.investmentTransactions || []);
-    setRecurringTransactions(dataToLoad.recurringTransactions || []);
-    setRecurringTransactionOverrides(dataToLoad.recurringTransactionOverrides || []);
-    setLoanPaymentOverrides(dataToLoad.loanPaymentOverrides || {});
-    setFinancialGoals(dataToLoad.financialGoals || []);
-    setBudgets(dataToLoad.budgets || []);
-    setTasks(dataToLoad.tasks || []);
-    setWarrants(dataToLoad.warrants || []);
-    setImportExportHistory(dataToLoad.importExportHistory || []);
-    setBillsAndPayments(dataToLoad.billsAndPayments || []);
-    setManualWarrantPrices(dataToLoad.manualWarrantPrices || {});
-    // FIX: Add `tags` to the data loading logic.
-    setTags(dataToLoad.tags || []);
-    setIncomeCategories(dataToLoad.incomeCategories && dataToLoad.incomeCategories.length > 0 ? dataToLoad.incomeCategories : MOCK_INCOME_CATEGORIES);
-    setExpenseCategories(dataToLoad.expenseCategories && dataToLoad.expenseCategories.length > 0 ? dataToLoad.expenseCategories : MOCK_EXPENSE_CATEGORIES);
-    
     const loadedPrefs = dataToLoad.preferences || initialFinancialData.preferences;
-    setPreferences(loadedPrefs);
-    setDashboardDuration(loadedPrefs.defaultPeriod as Duration);
-    setAccountsSortBy(loadedPrefs.defaultAccountOrder);
+    const dataSignature = JSON.stringify(dataToLoad);
 
-    setAccountOrder(dataToLoad.accountOrder || []);
-    setTaskOrder(dataToLoad.taskOrder || []);
+    startTransition(() => {
+      setAccounts(dataToLoad.accounts || []);
+      setTransactions(dataToLoad.transactions || []);
+      setInvestmentTransactions(dataToLoad.investmentTransactions || []);
+      setRecurringTransactions(dataToLoad.recurringTransactions || []);
+      setRecurringTransactionOverrides(dataToLoad.recurringTransactionOverrides || []);
+      setLoanPaymentOverrides(dataToLoad.loanPaymentOverrides || {});
+      setFinancialGoals(dataToLoad.financialGoals || []);
+      setBudgets(dataToLoad.budgets || []);
+      setTasks(dataToLoad.tasks || []);
+      setWarrants(dataToLoad.warrants || []);
+      setImportExportHistory(dataToLoad.importExportHistory || []);
+      setBillsAndPayments(dataToLoad.billsAndPayments || []);
+      setManualWarrantPrices(dataToLoad.manualWarrantPrices || {});
+      // FIX: Add `tags` to the data loading logic.
+      setTags(dataToLoad.tags || []);
+      setIncomeCategories(dataToLoad.incomeCategories && dataToLoad.incomeCategories.length > 0 ? dataToLoad.incomeCategories : MOCK_INCOME_CATEGORIES);
+      setExpenseCategories(dataToLoad.expenseCategories && dataToLoad.expenseCategories.length > 0 ? dataToLoad.expenseCategories : MOCK_EXPENSE_CATEGORIES);
+
+      setPreferences(loadedPrefs);
+      setDashboardDuration(loadedPrefs.defaultPeriod as Duration);
+      setAccountsSortBy(loadedPrefs.defaultAccountOrder);
+
+      setAccountOrder(dataToLoad.accountOrder || []);
+      setTaskOrder(dataToLoad.taskOrder || []);
+
+      dirtySlicesRef.current.clear();
+      setDirtySignal(0);
+      lastSavedSignatureRef.current = dataSignature;
+    });
 
     if (options?.skipNextSave) {
       skipNextSaveRef.current = true;
     }
-    const dataSignature = JSON.stringify(dataToLoad);
     latestDataRef.current = dataToLoad;
-    dirtySlicesRef.current.clear();
-    setDirtySignal(0);
-    lastSavedSignatureRef.current = dataSignature;
   }, [setAccountOrder, setTaskOrder]);
   
   const handleEnterDemoMode = () => {
@@ -1681,9 +1687,11 @@ const App: React.FC = () => {
     ]
   );
 
+  let content: React.ReactNode;
+
   // Loading state
   if (isAuthLoading || !isDataLoaded) {
-    return (
+    content = (
       <div className="flex items-center justify-center min-h-screen bg-light-bg dark:bg-dark-bg">
           <svg className="animate-spin h-10 w-10 text-primary-500" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
             <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
@@ -1695,11 +1703,8 @@ const App: React.FC = () => {
           </svg>
       </div>
     );
-  }
-
-  // Auth pages
-  if (!isAuthenticated && !isDemoMode) {
-    return (
+  } else if (!isAuthenticated && !isDemoMode) {
+    content = (
       <Suspense fallback={<PageLoader label="Preparing sign-in experience..." />}>
         {authPage === 'signIn' ? (
           <SignIn
@@ -1719,94 +1724,99 @@ const App: React.FC = () => {
         )}
       </Suspense>
     );
-  }
-
-  // Main app
-  return (
-    <ErrorBoundary>
-      <FinancialDataProvider
-        categories={categoryContextValue}
-        tags={tagsContextValue}
-        budgets={budgetsContextValue}
-        goals={goalsContextValue}
-        schedule={scheduleContextValue}
-        preferences={preferencesContextValue}
-        accounts={accountsContextValue}
-        transactions={transactionsContextValue}
-        warrants={warrantsContextValue}
-      >
-        <div className={`flex h-screen bg-light-card dark:bg-dark-card text-light-text dark:text-dark-text font-sans`}>
-          <Sidebar
-            currentPage={currentPage}
-            setCurrentPage={(page) => { setViewingAccountId(null); setCurrentPage(page); }}
-            isSidebarOpen={isSidebarOpen}
-            setSidebarOpen={setSidebarOpen}
-            theme={theme}
-            isSidebarCollapsed={isSidebarCollapsed}
-            setSidebarCollapsed={setSidebarCollapsed}
-            onLogout={handleLogout}
-            user={currentUser!}
-          />
-          <div className="flex-1 flex flex-col overflow-hidden relative z-0">
-            <Header
-              user={currentUser!}
+  } else {
+    content = (
+      <ErrorBoundary>
+        <FinancialDataProvider
+          categories={categoryContextValue}
+          tags={tagsContextValue}
+          budgets={budgetsContextValue}
+          goals={goalsContextValue}
+          schedule={scheduleContextValue}
+          preferences={preferencesContextValue}
+          accounts={accountsContextValue}
+          transactions={transactionsContextValue}
+          warrants={warrantsContextValue}
+        >
+          <div className={`flex h-screen bg-light-card dark:bg-dark-card text-light-text dark:text-dark-text font-sans`}>
+            <Sidebar
+              currentPage={currentPage}
+              setCurrentPage={(page) => { setViewingAccountId(null); setCurrentPage(page); }}
+              isSidebarOpen={isSidebarOpen}
               setSidebarOpen={setSidebarOpen}
               theme={theme}
-              setTheme={setTheme}
-              currentPage={currentPage}
-              titleOverride={viewingAccount?.name}
+              isSidebarCollapsed={isSidebarCollapsed}
+              setSidebarCollapsed={setSidebarCollapsed}
+              onLogout={handleLogout}
+              user={currentUser!}
             />
-            <InsightsViewProvider
-              accounts={accounts}
-              financialGoals={financialGoals}
-              defaultDuration={preferences.defaultPeriod as Duration}
-            >
-              <main className="flex-1 overflow-x-hidden overflow-y-auto p-4 md:p-8 bg-light-bg dark:bg-dark-bg md:rounded-tl-3xl border-l border-t border-black/5 dark:border-white/5 shadow-2xl">
-                <Suspense fallback={<PageLoader />}>
-                  {renderPage()}
-                </Suspense>
-              </main>
-            </InsightsViewProvider>
-          </div>
-
-          {/* AI Chat */}
-          <ChatFab onClick={() => setIsChatOpen(prev => !prev)} />
-          <Suspense fallback={null}>
-            {isChatOpen && (
-              <Chatbot
-                isOpen={isChatOpen}
-                onClose={() => setIsChatOpen(false)}
-                financialData={{
-                  accounts,
-                  transactions,
-                  budgets,
-                  financialGoals,
-                  recurringTransactions,
-                  investmentTransactions,
-                }}
-              />
-            )}
-          </Suspense>
-          <Suspense fallback={null}>
-            {isOnboardingOpen && (
-              <OnboardingModal
-                isOpen={isOnboardingOpen}
-                onClose={handleOnboardingFinish}
+            <div className="flex-1 flex flex-col overflow-hidden relative z-0">
+              <Header
                 user={currentUser!}
-                saveAccount={handleSaveAccount}
-                saveFinancialGoal={handleSaveFinancialGoal}
-                saveRecurringTransaction={handleSaveRecurringTransaction}
-                preferences={preferences}
-                setPreferences={setPreferences}
-                accounts={accounts}
-                incomeCategories={incomeCategories}
-                expenseCategories={expenseCategories}
+                setSidebarOpen={setSidebarOpen}
+                theme={theme}
+                setTheme={setTheme}
+                currentPage={currentPage}
+                titleOverride={viewingAccount?.name}
               />
-            )}
-          </Suspense>
-        </div>
-      </FinancialDataProvider>
-    </ErrorBoundary>
+              <InsightsViewProvider
+                accounts={accounts}
+                financialGoals={financialGoals}
+                defaultDuration={preferences.defaultPeriod as Duration}
+              >
+                <main className="flex-1 overflow-x-hidden overflow-y-auto p-4 md:p-8 bg-light-bg dark:bg-dark-bg md:rounded-tl-3xl border-l border-t border-black/5 dark:border-white/5 shadow-2xl">
+                  <Suspense fallback={<PageLoader />}>
+                    {renderPage()}
+                  </Suspense>
+                </main>
+              </InsightsViewProvider>
+            </div>
+
+            {/* AI Chat */}
+            <ChatFab onClick={() => setIsChatOpen(prev => !prev)} />
+            <Suspense fallback={null}>
+              {isChatOpen && (
+                <Chatbot
+                  isOpen={isChatOpen}
+                  onClose={() => setIsChatOpen(false)}
+                  financialData={{
+                    accounts,
+                    transactions,
+                    budgets,
+                    financialGoals,
+                    recurringTransactions,
+                    investmentTransactions,
+                  }}
+                />
+              )}
+            </Suspense>
+            <Suspense fallback={null}>
+              {isOnboardingOpen && (
+                <OnboardingModal
+                  isOpen={isOnboardingOpen}
+                  onClose={handleOnboardingFinish}
+                  user={currentUser!}
+                  saveAccount={handleSaveAccount}
+                  saveFinancialGoal={handleSaveFinancialGoal}
+                  saveRecurringTransaction={handleSaveRecurringTransaction}
+                  preferences={preferences}
+                  setPreferences={setPreferences}
+                  accounts={accounts}
+                  incomeCategories={incomeCategories}
+                  expenseCategories={expenseCategories}
+                />
+              )}
+            </Suspense>
+          </div>
+        </FinancialDataProvider>
+      </ErrorBoundary>
+    );
+  }
+
+  return (
+    <QueryClientProvider client={queryClient}>
+      {content}
+    </QueryClientProvider>
   );
 };
 
