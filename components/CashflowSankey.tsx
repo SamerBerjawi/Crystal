@@ -6,8 +6,6 @@ import {
   Tooltip,
   Layer,
   Rectangle,
-  SankeyNodeProps,
-  SankeyLinkProps,
 } from 'recharts';
 import { Transaction, Category } from '../types';
 import { convertToEur, formatCurrency } from '../utils';
@@ -50,6 +48,26 @@ interface GradientDef {
   id: string;
   start: string;
   end: string;
+}
+
+// Local interface definitions for Recharts Sankey props
+interface SankeyNodeProps {
+  x: number;
+  y: number;
+  width: number;
+  height: number;
+  index: number;
+  payload: CashflowNode & { value: number };
+}
+
+interface SankeyLinkProps {
+  sourceX: number;
+  sourceY: number;
+  targetX: number;
+  targetY: number;
+  linkWidth: number;
+  index: number;
+  payload: CashflowLink & { gradientId: string };
 }
 
 const getCategoryColor = (
@@ -374,7 +392,7 @@ const CashflowSankey: React.FC<CashflowSankeyProps> = ({
   };
 
   const SankeyNode = (
-    props: SankeyNodeProps & { payload: CashflowNode & { value: number } },
+    props: SankeyNodeProps,
   ) => {
     const { x, y, width, height, index, payload } = props;
     if (payload.value < MIN_FLOW_VALUE || typeof index !== 'number') return null;
@@ -457,7 +475,7 @@ const CashflowSankey: React.FC<CashflowSankeyProps> = ({
   };
 
   const SankeyLink = (
-    props: SankeyLinkProps & { payload: CashflowLink },
+    props: SankeyLinkProps,
   ) => {
     const { sourceX, sourceY, targetX, targetY, linkWidth, index, payload } = props;
     if (typeof index !== 'number') return null;
@@ -521,8 +539,8 @@ const CashflowSankey: React.FC<CashflowSankeyProps> = ({
       <ResponsiveContainer width="100%" height="100%">
         <Sankey
           data={{ nodes, links }}
-          node={<SankeyNode />}
-          link={<SankeyLink />}
+          node={<SankeyNode /> as any}
+          link={<SankeyLink /> as any}
           nodePadding={10}
           margin={{ left: 20, right: 20, top: 20, bottom: 20 }}
         >

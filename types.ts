@@ -381,6 +381,21 @@ export interface AccountDetailProps {
   saveAccount: (account: Omit<Account, 'id'> & { id?: string }) => void;
 }
 
+export interface LoyaltyProgram {
+    id: string;
+    name: string; // e.g., "British Airways"
+    programName: string; // e.g., "Executive Club"
+    membershipId: string;
+    pointsBalance: number;
+    pointsUnit: string; // e.g., "Avios", "Points"
+    tier?: string; // e.g., "Gold"
+    expiryDate?: string;
+    color: string;
+    icon: string;
+    notes?: string;
+    websiteUrl?: string;
+}
+
 // FIX: Move FinancialData interface from App.tsx to types.ts to resolve import error in mockData.ts
 export interface FinancialData {
     accounts: Account[];
@@ -399,6 +414,7 @@ export interface FinancialData {
     expenseCategories: Category[];
     preferences: AppPreferences;
     billsAndPayments: BillPayment[];
+    loyaltyPrograms?: LoyaltyProgram[];
     accountOrder?: string[];
     tags?: Tag[];
     manualWarrantPrices?: Record<string, number | undefined>;

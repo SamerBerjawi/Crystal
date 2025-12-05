@@ -1,4 +1,5 @@
 
+
 import React, { useMemo, useState, useCallback, useEffect, useRef, Suspense, lazy } from 'react';
 import { User, Transaction, Account, Category, Duration, CategorySpending, Widget, WidgetConfig, DisplayTransaction, FinancialGoal, RecurringTransaction, BillPayment, Tag, Budget, RecurringTransactionOverride, LoanPaymentOverrides, AccountType, Task, ForecastDuration } from '../types';
 import { formatCurrency, getDateRange, calculateAccountTotals, convertToEur, calculateStatementPeriods, generateBalanceForecast, parseDateAsUTC, getCreditCardStatementDetails, generateSyntheticLoanPayments, generateSyntheticCreditCardPayments, getPreferredTimeZone, formatDateKey, generateSyntheticPropertyTransactions, toLocalISOString } from '../utils';
@@ -627,7 +628,7 @@ const Dashboard: React.FC<DashboardProps> = ({ user, tasks, saveTask }) => {
   }, [accounts, transactions, loanPaymentOverrides]);
 
   const assetAllocationData: { name: string; value: number; color: string }[] = useMemo(() => {
-      const groups = assetGroups as Record<string, { value: number; color: string }>;
+      const groups = assetGroups as any;
       const data = [
         { name: 'Liquid Cash', value: groups?.['Liquid Cash']?.value || 0, color: groups?.['Liquid Cash']?.color || '#A0AEC0' },
         { name: 'Investments', value: groups?.['Investments']?.value || 0, color: groups?.['Investments']?.color || '#A0AEC0' },
@@ -1318,7 +1319,7 @@ const Dashboard: React.FC<DashboardProps> = ({ user, tasks, saveTask }) => {
                           <div>
                               <h4 className="text-sm font-bold text-light-text-secondary dark:text-dark-text-secondary uppercase tracking-wider mb-4">Assets Breakdown</h4>
                               <div className="space-y-4">
-                                  {Object.entries(assetGroups as Record<string, { value: number; color: string; icon: string }>).map(([name, group]: [string, { value: number; color: string; icon: string }]) => {
+                                  {Object.entries(assetGroups as any).map(([name, group]: [string, any]) => {
                                       if (group.value === 0) return null;
                                       return (
                                         <div key={name} className="group">
@@ -1347,7 +1348,7 @@ const Dashboard: React.FC<DashboardProps> = ({ user, tasks, saveTask }) => {
                           <div>
                               <h4 className="text-sm font-bold text-light-text-secondary dark:text-dark-text-secondary uppercase tracking-wider mb-4">Liabilities Breakdown</h4>
                               <div className="space-y-4">
-                                  {Object.entries(liabilityGroups as Record<string, { value: number; color: string; icon: string }>).map(([name, group]: [string, { value: number; color: string; icon: string }]) => {
+                                  {Object.entries(liabilityGroups as any).map(([name, group]: [string, any]) => {
                                       if (group.value === 0) return null;
                                       return (
                                           <div key={name} className="group">

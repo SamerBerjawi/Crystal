@@ -539,12 +539,10 @@ const CashflowSankey: React.FC<CashflowSankeyProps> = ({
       <ResponsiveContainer width="100%" height="100%">
         <Sankey
           data={{ nodes, links }}
-          node={<SankeyNode />}
-          link={<SankeyLink />}
+          node={<SankeyNode /> as any}
+          link={<SankeyLink /> as any}
           nodePadding={10}
-          nodeWidth={32}        // ↑ make nodes wider (tweak 24–48 to taste)
-          align="justify"       // ↑ push start/end columns to chart edges
-          margin={{ left: 0, right: 0, top: 20, bottom: 20 }}
+          margin={{ left: 20, right: 20, top: 20, bottom: 20 }}
         >
           <Tooltip content={<CustomSankeyTooltip />} />
         </Sankey>
