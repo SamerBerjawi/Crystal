@@ -1,8 +1,6 @@
 
 // FIX: Import `useMemo` from React to resolve the 'Cannot find name' error.
 import React, { useState, useEffect, useMemo, useCallback, Suspense, lazy, useRef, Component, ErrorInfo, startTransition } from 'react';
-import { QueryClientProvider } from '@tanstack/react-query';
-import { queryClient } from './queryClient';
 import Sidebar from './components/Sidebar';
 import Header from './components/Header';
 const SignIn = lazy(() => import('./pages/SignIn'));
