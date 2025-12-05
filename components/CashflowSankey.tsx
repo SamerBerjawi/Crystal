@@ -90,11 +90,13 @@ const CashflowSankey: React.FC<CashflowSankeyProps> = ({ transactions, incomeCat
       links.push({ source, target, value, gradientId });
     };
 
-    const centerNodeIdx = addNode('Net Cash Flow', '#0EA5E9', 2);
+    const incomeRootIdx = addNode('Income', '#22C55E', 0);
+    const centerNodeIdx = addNode('Net Cash Flow', '#0EA5E9', 3);
+    const expenseRootIdx = addNode('Expenses', '#EF4444', 6);
 
     incCat.forEach((val, name) => {
       const catInfo = getCategoryInfo(name, incomeCategories);
-      const catIdx = addNode(name, catInfo.color, 1);
+      const catIdx = addNode(name, catInfo.color, 2);
 
       let directValue = val;
       incSub.forEach(data => {
@@ -102,8 +104,7 @@ const CashflowSankey: React.FC<CashflowSankeyProps> = ({ transactions, incomeCat
       });
 
       if (directValue > 0) {
-        const fallbackSubIdx = addNode(`${name} (direct)`, catInfo.color, 0);
-        addLink(fallbackSubIdx, catIdx, directValue, catInfo.color, catInfo.color);
+        addLink(incomeRootIdx, catIdx, directValue, catInfo.color, catInfo.color);
       }
 
       addLink(catIdx, centerNodeIdx, val, catInfo.color, '#22C55E');
@@ -115,15 +116,16 @@ const CashflowSankey: React.FC<CashflowSankeyProps> = ({ transactions, incomeCat
       const catInfo = getCategoryInfo(parentName, incomeCategories);
       const subInfo = getCategoryInfo(subName, incomeCategories);
 
-      const subIdx = addNode(subName, subInfo.color, 0);
-      const catIdx = addNode(parentName, catInfo.color, 1);
+      const subIdx = addNode(subName, subInfo.color, 1);
+      const catIdx = addNode(parentName, catInfo.color, 2);
 
+      addLink(incomeRootIdx, subIdx, data.value, subInfo.color, subInfo.color);
       addLink(subIdx, catIdx, data.value, subInfo.color, catInfo.color);
     });
 
     expCat.forEach((val, name) => {
       const catInfo = getCategoryInfo(name, expenseCategories);
-      const catIdx = addNode(name, catInfo.color, 3);
+      const catIdx = addNode(name, catInfo.color, 4);
 
       addLink(centerNodeIdx, catIdx, val, '#EF4444', catInfo.color);
 
@@ -133,8 +135,7 @@ const CashflowSankey: React.FC<CashflowSankeyProps> = ({ transactions, incomeCat
       });
 
       if (directValue > 0) {
-        const fallbackSubIdx = addNode(`${name} (direct)`, catInfo.color, 4);
-        addLink(catIdx, fallbackSubIdx, directValue, catInfo.color, '#EF4444');
+        addLink(catIdx, expenseRootIdx, directValue, catInfo.color, '#EF4444');
       }
     });
 
@@ -144,10 +145,11 @@ const CashflowSankey: React.FC<CashflowSankeyProps> = ({ transactions, incomeCat
       const catInfo = getCategoryInfo(parentName, expenseCategories);
       const subInfo = getCategoryInfo(subName, expenseCategories);
 
-      const catIdx = addNode(parentName, catInfo.color, 3);
-      const subIdx = addNode(subName, subInfo.color, 4);
+      const catIdx = addNode(parentName, catInfo.color, 4);
+      const subIdx = addNode(subName, subInfo.color, 5);
 
       addLink(catIdx, subIdx, data.value, catInfo.color, subInfo.color);
+      addLink(subIdx, expenseRootIdx, data.value, subInfo.color, '#EF4444');
     });
 
     return { nodes, links, gradients };
@@ -157,7 +159,7 @@ const CashflowSankey: React.FC<CashflowSankeyProps> = ({ transactions, incomeCat
 
   const SankeyNode = ({ x, y, width, height, index, payload }: any) => {
       const isCenter = payload.name === 'Net Cash Flow';
-      const isOut = payload.depth >= 3;
+      const isOut = payload.depth > 3;
 
       if (payload.value < 1) return null;
 
