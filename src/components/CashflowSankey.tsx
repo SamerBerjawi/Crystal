@@ -28,7 +28,7 @@ const OTHER_SUBCATEGORY = 'Other';
 const UNCATEGORIZED = 'Uncategorized';
 const MIN_FLOW_VALUE = 0.01;
 // Subcategories smaller than this fraction of the parent will be merged into "Other"
-const SUBCATEGORY_MIN_RATIO = 0.03; // 3%
+const SUBCATEGORY_MIN_RATIO = 0.05; // 3%
 
 interface CashflowNode {
   name: string;
@@ -543,7 +543,7 @@ const CashflowSankey: React.FC<CashflowSankeyProps> = ({
           link={<SankeyLink />}
           nodePadding={10}
           // Increased margins to prevent text clipping at edges
-          margin={{ left: 140, right: 140, top: 20, bottom: 20 }}
+          margin={{ left: 20, right: 20, top: 20, bottom: 20 }}
         >
           <Tooltip content={<CustomSankeyTooltip />} />
         </Sankey>
