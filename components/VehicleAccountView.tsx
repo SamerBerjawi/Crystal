@@ -261,11 +261,11 @@ const VehicleAccountView: React.FC<VehicleAccountViewProps> = ({
                              return (
                                 <div key={log.id} className="group flex justify-between items-center p-3 rounded-lg bg-light-bg dark:bg-dark-bg/50 hover:bg-gray-100 dark:hover:bg-white/10 transition-colors border border-transparent hover:border-black/5 dark:hover:border-white/10">
                                     <div>
-                                        <p className="font-bold text-sm text-light-text dark:text-dark-text">{parseDateAsUTC(log.date).toLocaleDateString()}</p>
-                                        {diff > 0 && <p className="text-[10px] text-green-600 dark:text-green-400 font-medium">+{diff.toLocaleString()} km</p>}
+                                        <p className="font-bold text-base text-light-text dark:text-dark-text">{parseDateAsUTC(log.date).toLocaleDateString()}</p>
+                                        {diff > 0 && <p className="text-xs text-green-600 dark:text-green-400 font-medium">+{diff.toLocaleString()} km</p>}
                                     </div>
                                     <div className="text-right">
-                                        <p className="font-mono font-medium text-sm">{log.reading.toLocaleString()} km</p>
+                                        <p className="font-mono font-medium text-base">{log.reading.toLocaleString()} km</p>
                                         <div className="flex justify-end gap-2 mt-1 opacity-0 group-hover:opacity-100 transition-opacity">
                                             <button onClick={() => onEditLog(log)} className="text-xs text-primary-500 hover:underline">Edit</button>
                                             <button onClick={() => onDeleteLog(log.id)} className="text-xs text-red-500 hover:underline">Delete</button>
