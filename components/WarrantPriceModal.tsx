@@ -9,11 +9,10 @@ interface WarrantPriceModalProps {
   onSave: (isin: string, price: number | null) => void;
   isin: string;
   name: string;
-  scrapedPrice: number | null;
   manualPrice: number | undefined;
 }
 
-const WarrantPriceModal: React.FC<WarrantPriceModalProps> = ({ onClose, onSave, isin, name, scrapedPrice, manualPrice }) => {
+const WarrantPriceModal: React.FC<WarrantPriceModalProps> = ({ onClose, onSave, isin, name, manualPrice }) => {
     const [newPrice, setNewPrice] = useState(manualPrice !== undefined ? String(manualPrice) : '');
 
     const handleSubmit = (e: React.FormEvent) => {
