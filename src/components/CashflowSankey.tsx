@@ -50,6 +50,26 @@ interface GradientDef {
   end: string;
 }
 
+// Local interface definitions for Recharts Sankey props
+interface SankeyNodeProps {
+  x: number;
+  y: number;
+  width: number;
+  height: number;
+  index: number;
+  payload: CashflowNode & { value: number };
+}
+
+interface SankeyLinkProps {
+  sourceX: number;
+  sourceY: number;
+  targetX: number;
+  targetY: number;
+  linkWidth: number;
+  index: number;
+  payload: CashflowLink & { gradientId: string };
+}
+
 const getCategoryColor = (
   name: string,
   parentName: string | null,
@@ -372,7 +392,7 @@ const CashflowSankey: React.FC<CashflowSankeyProps> = ({
   };
 
   const SankeyNode = (
-    props: any
+    props: SankeyNodeProps,
   ) => {
     const { x, y, width, height, index, payload } = props;
     if (payload.value < MIN_FLOW_VALUE || typeof index !== 'number') return null;
@@ -455,7 +475,7 @@ const CashflowSankey: React.FC<CashflowSankeyProps> = ({
   };
 
   const SankeyLink = (
-    props: any
+    props: SankeyLinkProps,
   ) => {
     const { sourceX, sourceY, targetX, targetY, linkWidth, index, payload } = props;
     if (typeof index !== 'number') return null;

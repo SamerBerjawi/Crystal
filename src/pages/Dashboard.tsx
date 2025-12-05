@@ -627,7 +627,7 @@ const Dashboard: React.FC<DashboardProps> = ({ user, tasks, saveTask }) => {
   }, [accounts, transactions, loanPaymentOverrides]);
 
   const assetAllocationData: { name: string; value: number; color: string }[] = useMemo(() => {
-      const groups = assetGroups as any;
+      const groups = assetGroups as Record<string, { value: number; color: string }>;
       const data = [
         { name: 'Liquid Cash', value: groups?.['Liquid Cash']?.value || 0, color: groups?.['Liquid Cash']?.color || '#A0AEC0' },
         { name: 'Investments', value: groups?.['Investments']?.value || 0, color: groups?.['Investments']?.color || '#A0AEC0' },
