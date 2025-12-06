@@ -6,6 +6,7 @@ import Card from './Card';
 import TransactionList from './TransactionList';
 import { BTN_PRIMARY_STYLE, ACCOUNT_TYPE_STYLES } from '../constants';
 import { ResponsiveContainer, BarChart, CartesianGrid, XAxis, YAxis, Tooltip, Bar, Cell, ReferenceLine } from 'recharts';
+import { useGoalsContext } from '../contexts/FinancialDataContext';
 
 interface CreditCardAccountViewProps {
   account: Account;
@@ -47,6 +48,12 @@ const CreditCardAccountView: React.FC<CreditCardAccountViewProps> = ({
   onTransactionClick,
   onBack
 }) => {
+  const { financialGoals } = useGoalsContext();
+  // --- Linked Goals ---
+  const linkedGoals = useMemo(() => {
+      return financialGoals.filter(g => g.paymentAccountId === account.id);
+  }, [financialGoals, account.id]);
+
   // --- 1. Metrics & Utilization ---
   const creditLimit = account.creditLimit || 0;
   const currentBalance = account.balance; 
@@ -401,8 +408,36 @@ const CreditCardAccountView: React.FC<CreditCardAccountViewProps> = ({
           </div>
 
           <div className="space-y-8">
+              {linkedGoals.length > 0 && (
+                  <Card className="flex-shrink-0">
+                      <h3 className="text-lg font-bold text-light-text dark:text-dark-text mb-4 flex items-center gap-2">
+                          <span className="material-symbols-outlined text-amber-500">flag</span>
+                          Linked Goals
+                      </h3>
+                      <div className="space-y-4">
+                          {linkedGoals.map(goal => {
+                              const progress = Math.min(100, Math.max(0, (goal.currentAmount / goal.amount) * 100));
+                              return (
+                                  <div key={goal.id} className="p-3 bg-gray-50 dark:bg-white/5 rounded-xl border border-black/5 dark:border-white/5">
+                                      <div className="flex justify-between items-center mb-2">
+                                          <span className="font-semibold text-sm text-light-text dark:text-dark-text">{goal.name}</span>
+                                          <span className="text-xs font-bold text-light-text-secondary dark:text-dark-text-secondary">{progress.toFixed(0)}%</span>
+                                      </div>
+                                      <div className="w-full bg-gray-200 dark:bg-gray-700 rounded-full h-1.5 overflow-hidden mb-2">
+                                          <div className="h-full bg-amber-500 rounded-full" style={{ width: `${progress}%` }}></div>
+                                      </div>
+                                      <div className="flex justify-between text-xs text-light-text-secondary dark:text-dark-text-secondary">
+                                          <span>{formatCurrency(goal.currentAmount, 'EUR')}</span>
+                                          <span>Target: {formatCurrency(goal.amount, 'EUR')}</span>
+                                      </div>
+                                  </div>
+                              );
+                          })}
+                      </div>
+                  </Card>
+              )}
               {/* Recent Transactions */}
-              <Card className="flex flex-col h-full max-h-[500px]">
+              <Card className="flex flex-col max-h-[500px]">
                   <div className="flex justify-between items-center mb-4">
                       <h3 className="text-lg font-semibold text-light-text dark:text-dark-text">Recent Activity</h3>
                   </div>

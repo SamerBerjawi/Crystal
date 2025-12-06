@@ -6,6 +6,7 @@ import Card from './Card';
 import TransactionList from './TransactionList';
 import { BTN_PRIMARY_STYLE, BTN_SECONDARY_STYLE } from '../constants';
 import { ResponsiveContainer, BarChart, CartesianGrid, XAxis, YAxis, Tooltip, Bar, Cell, ReferenceLine } from 'recharts';
+import { useGoalsContext } from '../contexts/FinancialDataContext';
 
 interface CashAccountViewProps {
   account: Account;
@@ -28,7 +29,13 @@ const CashAccountView: React.FC<CashAccountViewProps> = ({
   onBack,
   onAdjustBalance
 }) => {
+  const { financialGoals } = useGoalsContext();
   const timeZone = getPreferredTimeZone();
+
+  // --- Linked Goals ---
+  const linkedGoals = useMemo(() => {
+      return financialGoals.filter(g => g.paymentAccountId === account.id);
+  }, [financialGoals, account.id]);
 
   // --- Metrics ---
   const { totalInflow, totalOutflow, netChange, lastReplenishment } = useMemo(() => {
@@ -136,9 +143,9 @@ const CashAccountView: React.FC<CashAccountViewProps> = ({
       </header>
 
       <div className="grid grid-cols-1 lg:grid-cols-12 gap-8">
-          {/* Hero Section - The "Safe" */}
-          <div className="lg:col-span-5 xl:col-span-4">
-              <div className="relative h-full min-h-[280px] rounded-3xl bg-gradient-to-br from-emerald-600 to-teal-800 text-white p-8 shadow-2xl overflow-hidden flex flex-col justify-between border border-white/10 group">
+          {/* Hero Section - The "Safe" + Linked Goals */}
+          <div className="lg:col-span-5 xl:col-span-4 flex flex-col gap-6">
+              <div className="relative min-h-[280px] rounded-3xl bg-gradient-to-br from-emerald-600 to-teal-800 text-white p-8 shadow-2xl overflow-hidden flex flex-col justify-between border border-white/10 group">
                   {/* Background Texture */}
                   <div className="absolute inset-0 bg-[url('https://www.transparenttextures.com/patterns/cubes.png')] opacity-20 pointer-events-none"></div>
                   <div className="absolute -right-10 -bottom-10 opacity-10 pointer-events-none">
@@ -173,6 +180,35 @@ const CashAccountView: React.FC<CashAccountViewProps> = ({
                        </div>
                   </div>
               </div>
+
+              {linkedGoals.length > 0 && (
+                  <Card className="flex-shrink-0">
+                      <h3 className="text-lg font-bold text-light-text dark:text-dark-text mb-4 flex items-center gap-2">
+                          <span className="material-symbols-outlined text-amber-500">flag</span>
+                          Linked Goals
+                      </h3>
+                      <div className="space-y-4">
+                          {linkedGoals.map(goal => {
+                              const progress = Math.min(100, Math.max(0, (goal.currentAmount / goal.amount) * 100));
+                              return (
+                                  <div key={goal.id} className="p-3 bg-gray-50 dark:bg-white/5 rounded-xl border border-black/5 dark:border-white/5">
+                                      <div className="flex justify-between items-center mb-2">
+                                          <span className="font-semibold text-sm text-light-text dark:text-dark-text">{goal.name}</span>
+                                          <span className="text-xs font-bold text-light-text-secondary dark:text-dark-text-secondary">{progress.toFixed(0)}%</span>
+                                      </div>
+                                      <div className="w-full bg-gray-200 dark:bg-gray-700 rounded-full h-1.5 overflow-hidden mb-2">
+                                          <div className="h-full bg-amber-500 rounded-full" style={{ width: `${progress}%` }}></div>
+                                      </div>
+                                      <div className="flex justify-between text-xs text-light-text-secondary dark:text-dark-text-secondary">
+                                          <span>{formatCurrency(goal.currentAmount, 'EUR')}</span>
+                                          <span>Target: {formatCurrency(goal.amount, 'EUR')}</span>
+                                      </div>
+                                  </div>
+                              );
+                          })}
+                      </div>
+                  </Card>
+              )}
           </div>
 
           {/* Analytics & History */}

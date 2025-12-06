@@ -1,7 +1,7 @@
 
 import React, { useMemo } from 'react';
 import { Account, DisplayTransaction, Category, Transaction, RecurringTransaction } from '../types';
-import { formatCurrency, parseDateAsUTC, generateSyntheticLoanPayments, generateSyntheticCreditCardPayments, generateBalanceForecast, convertToEur, generateSyntheticPropertyTransactions, calculateStatementPeriods, getCreditCardStatementDetails, getPreferredTimeZone } from '../utils';
+import { formatCurrency, parseDateAsUTC, generateSyntheticLoanPayments, generateSyntheticCreditCardPayments, generateBalanceForecast, convertToEur, generateSyntheticPropertyTransactions, calculateStatementPeriods, getCreditCardStatementDetails, getPreferredTimeZone, getDateRange } from '../utils';
 import Card from './Card';
 import TransactionList from './TransactionList';
 import { BTN_PRIMARY_STYLE, ACCOUNT_TYPE_STYLES } from '../constants';
@@ -57,6 +57,11 @@ const GeneralAccountView: React.FC<GeneralAccountViewProps> = ({
   const { financialGoals } = useGoalsContext();
   const { accounts } = useAccountsContext();
   const { transactions: allTransactions } = useTransactionsContext();
+
+  // --- Linked Goals ---
+  const linkedGoals = useMemo(() => {
+      return financialGoals.filter(g => g.paymentAccountId === account.id);
+  }, [financialGoals, account.id]);
 
   // --- 1. Key Metrics Calculations ---
 
@@ -699,15 +704,43 @@ const GeneralAccountView: React.FC<GeneralAccountViewProps> = ({
                                 formatter={(val: number) => formatCurrency(val, account.currency)}
                             />
                             <Legend wrapperStyle={{ paddingTop: '10px' }}/>
-                            <Bar dataKey="income" name="Money In" fill="#22c55e" radius={[4, 4, 0, 0]} barSize={20} />
-                            <Bar dataKey="expense" name="Money Out" fill="#ef4444" radius={[4, 4, 0, 0]} barSize={20} />
+                            <Bar dataKey="income" name="Money In" stackId="a" fill="#22c55e" radius={[0, 0, 4, 4]} barSize={20} />
+                            <Bar dataKey="expense" name="Money Out" stackId="a" fill="#ef4444" radius={[4, 4, 0, 0]} barSize={20} />
                         </BarChart>
                     </ResponsiveContainer>
                   </div>
               </Card>
           </div>
-          <div className="lg:col-span-1 h-full">
-              <Card className="h-full flex flex-col">
+          <div className="lg:col-span-1 flex flex-col gap-6">
+              {linkedGoals.length > 0 && (
+                  <Card className="flex-shrink-0">
+                      <h3 className="text-lg font-bold text-light-text dark:text-dark-text mb-4 flex items-center gap-2">
+                          <span className="material-symbols-outlined text-amber-500">flag</span>
+                          Linked Goals
+                      </h3>
+                      <div className="space-y-4">
+                          {linkedGoals.map(goal => {
+                              const progress = Math.min(100, Math.max(0, (goal.currentAmount / goal.amount) * 100));
+                              return (
+                                  <div key={goal.id} className="p-3 bg-gray-50 dark:bg-white/5 rounded-xl border border-black/5 dark:border-white/5">
+                                      <div className="flex justify-between items-center mb-2">
+                                          <span className="font-semibold text-sm text-light-text dark:text-dark-text">{goal.name}</span>
+                                          <span className="text-xs font-bold text-light-text-secondary dark:text-dark-text-secondary">{progress.toFixed(0)}%</span>
+                                      </div>
+                                      <div className="w-full bg-gray-200 dark:bg-gray-700 rounded-full h-1.5 overflow-hidden mb-2">
+                                          <div className="h-full bg-amber-500 rounded-full" style={{ width: `${progress}%` }}></div>
+                                      </div>
+                                      <div className="flex justify-between text-xs text-light-text-secondary dark:text-dark-text-secondary">
+                                          <span>{formatCurrency(goal.currentAmount, 'EUR')}</span>
+                                          <span>Target: {formatCurrency(goal.amount, 'EUR')}</span>
+                                      </div>
+                                  </div>
+                              );
+                          })}
+                      </div>
+                  </Card>
+              )}
+              <Card className="flex-grow flex flex-col">
                   <h3 className="text-lg font-semibold text-light-text dark:text-dark-text mb-4">Upcoming Payments</h3>
                   <div className="flex-grow overflow-y-auto max-h-[250px] space-y-3 pr-1">
                       {upcomingPayments.length > 0 ? upcomingPayments.map((item, idx) => (

@@ -1,6 +1,3 @@
-
-
-
 // FIX: Import `useMemo` from React to resolve the 'Cannot find name' error.
 import React, { useState, useEffect, useMemo, useCallback, Suspense, lazy, useRef, Component, ErrorInfo, startTransition } from 'react';
 import Sidebar from './components/Sidebar';
@@ -326,13 +323,15 @@ const App: React.FC = () => {
       .filter(acc => acc.type === 'Investment' && acc.symbol)
       .forEach(acc => {
         const symbol = acc.symbol as string;
-        resolved[symbol] = manualWarrantPrices[symbol] ?? null;
+        // FIX: Explicitly cast to number | undefined to fix 'unknown' type error
+        resolved[symbol] = (manualWarrantPrices[symbol] as number | undefined) ?? null;
       });
 
     warrants.forEach(warrant => {
       const symbol = warrant.isin;
       if (resolved[symbol] === undefined) {
-        resolved[symbol] = manualWarrantPrices[symbol] ?? null;
+        // FIX: Explicitly cast to number | undefined to fix 'unknown' type error
+        resolved[symbol] = (manualWarrantPrices[symbol] as number | undefined) ?? null;
       }
     });
 
