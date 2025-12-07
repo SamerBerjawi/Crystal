@@ -409,7 +409,7 @@ const CreditCardAccountView: React.FC<CreditCardAccountViewProps> = ({
 
           <div className="space-y-8">
               {linkedGoals.length > 0 && (
-                  <Card className="flex-shrink-0">
+                  <Card>
                       <h3 className="text-lg font-bold text-light-text dark:text-dark-text mb-4 flex items-center gap-2">
                           <span className="material-symbols-outlined text-amber-500">flag</span>
                           Linked Goals
@@ -437,7 +437,7 @@ const CreditCardAccountView: React.FC<CreditCardAccountViewProps> = ({
                   </Card>
               )}
               {/* Recent Transactions */}
-              <Card className="flex flex-col max-h-[500px]">
+              <Card className="flex flex-col h-full max-h-[500px]">
                   <div className="flex justify-between items-center mb-4">
                       <h3 className="text-lg font-semibold text-light-text dark:text-dark-text">Recent Activity</h3>
                   </div>

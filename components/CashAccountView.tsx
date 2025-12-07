@@ -145,7 +145,7 @@ const CashAccountView: React.FC<CashAccountViewProps> = ({
       <div className="grid grid-cols-1 lg:grid-cols-12 gap-8">
           {/* Hero Section - The "Safe" + Linked Goals */}
           <div className="lg:col-span-5 xl:col-span-4 flex flex-col gap-6">
-              <div className="relative min-h-[280px] rounded-3xl bg-gradient-to-br from-emerald-600 to-teal-800 text-white p-8 shadow-2xl overflow-hidden flex flex-col justify-between border border-white/10 group">
+              <div className="relative h-full min-h-[280px] rounded-3xl bg-gradient-to-br from-emerald-600 to-teal-800 text-white p-8 shadow-2xl overflow-hidden flex flex-col justify-between border border-white/10 group">
                   {/* Background Texture */}
                   <div className="absolute inset-0 bg-[url('https://www.transparenttextures.com/patterns/cubes.png')] opacity-20 pointer-events-none"></div>
                   <div className="absolute -right-10 -bottom-10 opacity-10 pointer-events-none">
@@ -182,7 +182,7 @@ const CashAccountView: React.FC<CashAccountViewProps> = ({
               </div>
 
               {linkedGoals.length > 0 && (
-                  <Card className="flex-shrink-0">
+                  <Card>
                       <h3 className="text-lg font-bold text-light-text dark:text-dark-text mb-4 flex items-center gap-2">
                           <span className="material-symbols-outlined text-amber-500">flag</span>
                           Linked Goals

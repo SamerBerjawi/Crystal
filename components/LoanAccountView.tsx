@@ -6,7 +6,6 @@ import Card from './Card';
 import MortgageAmortizationChart from './MortgageAmortizationChart';
 import PaymentPlanTable from './PaymentPlanTable';
 import { BTN_PRIMARY_STYLE } from '../constants';
-import { useGoalsContext } from '../contexts/FinancialDataContext';
 
 interface LoanAccountViewProps {
   account: Account;
@@ -31,13 +30,7 @@ const LoanAccountView: React.FC<LoanAccountViewProps> = ({
   setViewingAccountId,
   onBack
 }) => {
-  const { financialGoals } = useGoalsContext();
   const isLending = account.type === 'Lending';
-
-  // --- Linked Goals ---
-  const linkedGoals = useMemo(() => {
-    return financialGoals.filter(g => g.paymentAccountId === account.id);
-  }, [financialGoals, account.id]);
 
   const loanDetails = useMemo(() => {
     const schedule = generateAmortizationSchedule(account, transactions, loanPaymentOverrides);
@@ -162,35 +155,6 @@ const LoanAccountView: React.FC<LoanAccountViewProps> = ({
         </div>
         
         <div className="space-y-6 flex flex-col">
-          {linkedGoals.length > 0 && (
-            <Card className="flex-shrink-0">
-                <h3 className="text-lg font-bold text-light-text dark:text-dark-text mb-4 flex items-center gap-2">
-                    <span className="material-symbols-outlined text-amber-500">flag</span>
-                    Linked Goals
-                </h3>
-                <div className="space-y-4">
-                    {linkedGoals.map(goal => {
-                        const progress = Math.min(100, Math.max(0, (goal.currentAmount / goal.amount) * 100));
-                        return (
-                            <div key={goal.id} className="p-3 bg-gray-50 dark:bg-white/5 rounded-xl border border-black/5 dark:border-white/5">
-                                <div className="flex justify-between items-center mb-2">
-                                    <span className="font-semibold text-sm text-light-text dark:text-dark-text">{goal.name}</span>
-                                    <span className="text-xs font-bold text-light-text-secondary dark:text-dark-text-secondary">{progress.toFixed(0)}%</span>
-                                </div>
-                                <div className="w-full bg-gray-200 dark:bg-gray-700 rounded-full h-1.5 overflow-hidden mb-2">
-                                    <div className="h-full bg-amber-500 rounded-full" style={{ width: `${progress}%` }}></div>
-                                </div>
-                                <div className="flex justify-between text-xs text-light-text-secondary dark:text-dark-text-secondary">
-                                    <span>{formatCurrency(goal.currentAmount, 'EUR')}</span>
-                                    <span>Target: {formatCurrency(goal.amount, 'EUR')}</span>
-                                </div>
-                            </div>
-                        );
-                    })}
-                </div>
-            </Card>
-          )}
-
           <Card>
             <h3 className="text-base font-semibold text-light-text dark:text-dark-text mb-4">Loan Details</h3>
             <div className="space-y-3 text-sm">

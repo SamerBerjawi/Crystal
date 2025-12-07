@@ -711,9 +711,9 @@ const GeneralAccountView: React.FC<GeneralAccountViewProps> = ({
                   </div>
               </Card>
           </div>
-          <div className="lg:col-span-1 flex flex-col gap-6">
+          <div className="lg:col-span-1 h-full flex flex-col gap-6">
               {linkedGoals.length > 0 && (
-                  <Card className="flex-shrink-0">
+                  <Card>
                       <h3 className="text-lg font-bold text-light-text dark:text-dark-text mb-4 flex items-center gap-2">
                           <span className="material-symbols-outlined text-amber-500">flag</span>
                           Linked Goals
@@ -740,7 +740,7 @@ const GeneralAccountView: React.FC<GeneralAccountViewProps> = ({
                       </div>
                   </Card>
               )}
-              <Card className="flex-grow flex flex-col">
+              <Card className="h-full flex flex-col">
                   <h3 className="text-lg font-semibold text-light-text dark:text-dark-text mb-4">Upcoming Payments</h3>
                   <div className="flex-grow overflow-y-auto max-h-[250px] space-y-3 pr-1">
                       {upcomingPayments.length > 0 ? upcomingPayments.map((item, idx) => (
