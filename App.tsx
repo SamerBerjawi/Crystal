@@ -1,4 +1,5 @@
 
+
 // FIX: Import `useMemo` from React to resolve the 'Cannot find name' error.
 import React, { useState, useEffect, useMemo, useCallback, Suspense, lazy, useRef, Component, ErrorInfo, startTransition } from 'react';
 import Sidebar from './components/Sidebar';
@@ -168,7 +169,7 @@ const initialFinancialData: FinancialData = {
     taskOrder: [],
     manualWarrantPrices: {},
     preferences: {
-        currency: 'EUR (€)',
+        currency: 'EUR', // FIX: Set correct currency code 'EUR' instead of 'EUR (€)' to match Currency type.
         language: 'English (en)',
         timezone: typeof Intl !== 'undefined' ? Intl.DateTimeFormat().resolvedOptions().timeZone : 'UTC',
         dateFormat: 'DD/MM/YYYY',
@@ -483,10 +484,10 @@ const App: React.FC = () => {
       // FIX: The type 'Crypto' is not a valid AccountType. 'Crypto' is a subtype of 'Investment'.
       // The check is simplified to only verify if the account type is 'Investment'.
       if (account.symbol && account.type === 'Investment' && assetPrices[account.symbol] !== undefined) {
-        const price = assetPrices[account.symbol] as number | null;
+        const price = assetPrices[account.symbol];
         const quantity = (warrantHoldingsBySymbol[account.symbol] || 0);
-        // FIX: Cast price to number to fix 'unknown' type error. price is known to be non-null in this branch because of the check
-        const calculatedBalance = price !== null ? quantity * (price as number) : 0;
+        // FIX: Use type narrowing to ensure price is a number, resolving 'unknown' type error.
+        const calculatedBalance = typeof price === 'number' ? quantity * price : 0;
 
         if (Math.abs((account.balance || 0) - calculatedBalance) > 0.0001) {
             hasChanges = true;
