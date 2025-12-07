@@ -3,7 +3,9 @@ FROM node:20-alpine AS builder
 WORKDIR /app
 
 COPY package*.json ./
-RUN npm install
+# Always install dev dependencies so build tooling like Vite is available even if
+# NODE_ENV is set to "production" during the build.
+RUN npm install --include=dev
 
 COPY . .
 RUN npm run build
