@@ -2,11 +2,11 @@
 FROM node:20-alpine AS builder
 WORKDIR /app
 
-# Ensure dev dependencies like Vite are installed even if NODE_ENV is set to production
-ENV NODE_ENV=development
+# Always install dev dependencies regardless of NODE_ENV to ensure Vite is available
+ENV NPM_CONFIG_PRODUCTION=false
 
 COPY package*.json ./
-RUN npm ci --include=dev
+RUN npm ci --include=dev --legacy-peer-deps --omit=optional
 
 COPY . .
 RUN npm run build
