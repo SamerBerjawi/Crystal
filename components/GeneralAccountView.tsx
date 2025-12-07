@@ -5,7 +5,7 @@ import { formatCurrency, parseDateAsUTC, generateSyntheticLoanPayments, generate
 import Card from './Card';
 import TransactionList from './TransactionList';
 import { BTN_PRIMARY_STYLE, ACCOUNT_TYPE_STYLES } from '../constants';
-import { AreaChart, Area, XAxis, YAxis, Tooltip, ResponsiveContainer, CartesianGrid, BarChart, Bar, Cell, Legend } from 'recharts';
+import { ResponsiveContainer, BarChart, CartesianGrid, XAxis, YAxis, Tooltip, Bar, Cell, ReferenceLine, AreaChart, Area, Legend } from 'recharts';
 import { useGoalsContext, useScheduleContext } from '../contexts/FinancialDataContext';
 import { useAccountsContext, useTransactionsContext } from '../contexts/DomainProviders';
 
@@ -713,7 +713,7 @@ const GeneralAccountView: React.FC<GeneralAccountViewProps> = ({
           </div>
           <div className="lg:col-span-1 h-full flex flex-col gap-6">
               {linkedGoals.length > 0 && (
-                  <Card>
+                  <Card className="flex-shrink-0">
                       <h3 className="text-lg font-bold text-light-text dark:text-dark-text mb-4 flex items-center gap-2">
                           <span className="material-symbols-outlined text-amber-500">flag</span>
                           Linked Goals
@@ -740,7 +740,7 @@ const GeneralAccountView: React.FC<GeneralAccountViewProps> = ({
                       </div>
                   </Card>
               )}
-              <Card className="h-full flex flex-col">
+              <Card className="flex-1 min-h-[300px] flex flex-col">
                   <h3 className="text-lg font-semibold text-light-text dark:text-dark-text mb-4">Upcoming Payments</h3>
                   <div className="flex-grow overflow-y-auto max-h-[250px] space-y-3 pr-1">
                       {upcomingPayments.length > 0 ? upcomingPayments.map((item, idx) => (
