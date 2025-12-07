@@ -331,13 +331,13 @@ const SchedulePage: React.FC<ScheduleProps> = () => {
                 const interval = rt.frequencyInterval || 1;
                 const d = new Date(nextDate);
                 if (rt.frequency === 'monthly') {
-                    // Use UTC methods to avoid timezone shifting when advancing
-                    d.setUTCMonth(d.getUTCMonth() + interval);
+                    // Use local date methods for consistent month advancement
+                    d.setMonth(d.getMonth() + interval);
                     // Keep original day or adjust
                 }
-                else if (rt.frequency === 'weekly') d.setUTCDate(d.getUTCDate() + (7 * interval));
-                else if (rt.frequency === 'daily') d.setUTCDate(d.getUTCDate() + interval);
-                else if (rt.frequency === 'yearly') d.setUTCFullYear(d.getUTCFullYear() + interval);
+                else if (rt.frequency === 'weekly') d.setDate(d.getDate() + (7 * interval));
+                else if (rt.frequency === 'daily') d.setDate(d.getDate() + interval);
+                else if (rt.frequency === 'yearly') d.setFullYear(d.getFullYear() + interval);
                 nextDate = d;
             }
             
@@ -367,21 +367,21 @@ const SchedulePage: React.FC<ScheduleProps> = () => {
                     });
                 }
                 
-                // Advance Date using UTC methods to ensure consistent date string generation
+                // Advance Date using local methods to ensure consistent date string generation
                 const interval = rt.frequencyInterval || 1;
                 const d = new Date(nextDate);
                 if (rt.frequency === 'monthly') {
-                    const targetDay = rt.dueDateOfMonth || startDateUTC.getUTCDate();
-                    d.setUTCMonth(d.getUTCMonth() + interval);
-                    // Handle month length logic using UTC date
-                    const year = d.getUTCFullYear();
-                    const month = d.getUTCMonth();
-                    const lastDayOfMonth = new Date(Date.UTC(year, month + 1, 0)).getUTCDate();
-                    d.setUTCDate(Math.min(targetDay, lastDayOfMonth));
+                    const targetDay = rt.dueDateOfMonth || startDateUTC.getDate();
+                    d.setMonth(d.getMonth() + interval);
+                    // Handle month length logic using local date
+                    const year = d.getFullYear();
+                    const month = d.getMonth();
+                    const lastDayOfMonth = new Date(year, month + 1, 0).getDate();
+                    d.setDate(Math.min(targetDay, lastDayOfMonth));
                 }
-                else if (rt.frequency === 'weekly') d.setUTCDate(d.getUTCDate() + (7 * interval));
-                else if (rt.frequency === 'daily') d.setUTCDate(d.getUTCDate() + interval);
-                else if (rt.frequency === 'yearly') d.setUTCFullYear(d.getUTCFullYear() + interval);
+                else if (rt.frequency === 'weekly') d.setDate(d.getDate() + (7 * interval));
+                else if (rt.frequency === 'daily') d.setDate(d.getDate() + interval);
+                else if (rt.frequency === 'yearly') d.setFullYear(d.getFullYear() + interval);
                 nextDate = d;
             }
         });

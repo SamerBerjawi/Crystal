@@ -46,7 +46,6 @@ export const convertToEur = (balance: number, currency: Currency): number => {
 
 export const getPreferredTimeZone = (fallback?: string): string => {
     // Always prefer the device's local timezone to avoid date shift confusion
-    // Fallback logic is kept minimal as resolvedOptions().timeZone is widely supported
     try {
         return Intl.DateTimeFormat().resolvedOptions().timeZone;
     } catch (e) {
@@ -370,7 +369,8 @@ export function generateSyntheticLoanPayments(accounts: Account[], transactions:
     const syntheticPayments: RecurringTransaction[] = [];
 
     const today = new Date();
-    const todayUTC = new Date(today.getFullYear(), today.getMonth(), today.getDate());
+    // Local date for today
+    const todayLocal = new Date(today.getFullYear(), today.getMonth(), today.getDate());
 
     const loanAccounts = accounts.filter(
         (acc) =>
@@ -386,7 +386,7 @@ export function generateSyntheticLoanPayments(accounts: Account[], transactions:
 
         schedule.forEach(payment => {
             const paymentDate = parseLocalDate(payment.date);
-            if (payment.status === 'Paid' || paymentDate < todayUTC) {
+            if (payment.status === 'Paid' || paymentDate < todayLocal) {
                 return;
             }
 
@@ -422,7 +422,7 @@ export function generateSyntheticCreditCardPayments(accounts: Account[], allTran
     );
 
     const today = new Date();
-    const todayUTC = new Date(today.getFullYear(), today.getMonth(), today.getDate());
+    const todayLocal = new Date(today.getFullYear(), today.getMonth(), today.getDate());
 
     for (const account of configuredCreditCards) {
         const periods = calculateStatementPeriods(account.statementStartDate!, account.paymentDate!);
@@ -465,7 +465,7 @@ export function generateSyntheticCreditCardPayments(accounts: Account[], allTran
 
         for (const detail of statementDetails) {
             // Only create synthetic payments for FUTURE due dates
-            if (detail.period.paymentDue >= todayUTC) {
+            if (detail.period.paymentDue >= todayLocal) {
                 const { statementBalance } = getCreditCardStatementDetails(
                     account,
                     detail.period.start,

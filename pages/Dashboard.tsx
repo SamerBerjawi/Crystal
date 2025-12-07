@@ -660,7 +660,7 @@ const Dashboard: React.FC<DashboardProps> = ({ user, tasks, saveTask }) => {
     
     if (duration === 'ALL') {
         const fiveYearsAgo = new Date(end);
-        fiveYearsAgo.setUTCFullYear(end.getUTCFullYear() - 5);
+        fiveYearsAgo.setFullYear(end.getFullYear() - 5);
         if (start < fiveYearsAgo) {
             start.setTime(fiveYearsAgo.getTime());
         }
@@ -712,7 +712,7 @@ const Dashboard: React.FC<DashboardProps> = ({ user, tasks, saveTask }) => {
         const dateStr = formatDateKey(currentDate);
         runningBalance += dailyChanges.get(dateStr) || 0;
         data.push({ name: dateStr, value: parseFloat(runningBalance.toFixed(2)) });
-        currentDate.setUTCDate(currentDate.getUTCDate() + 1);
+        currentDate.setDate(currentDate.getDate() + 1);
     }
     
     const todayStr = formatDateKey(today);
@@ -804,7 +804,7 @@ const Dashboard: React.FC<DashboardProps> = ({ user, tasks, saveTask }) => {
         ).chartData;
 
         const today = new Date();
-        today.setUTCHours(0, 0, 0, 0);
+        today.setHours(0, 0, 0, 0);
 
         const getInitialBalance = () => {
             return liquidSelectedAccounts
@@ -849,23 +849,23 @@ const Dashboard: React.FC<DashboardProps> = ({ user, tasks, saveTask }) => {
         const periods = [
             { 
                 label: 'This Month', 
-                startDate: new Date(Date.UTC(today.getUTCFullYear(), today.getUTCMonth(), 1)),
-                endDate: new Date(Date.UTC(today.getUTCFullYear(), today.getUTCMonth() + 1, 0))
+                startDate: new Date(today.getFullYear(), today.getMonth(), 1),
+                endDate: new Date(today.getFullYear(), today.getMonth() + 1, 0)
             },
             { 
                 label: 'Next 3 Months', 
-                startDate: new Date(Date.UTC(today.getUTCFullYear(), today.getUTCMonth() + 1, 1)),
-                endDate: new Date(Date.UTC(today.getUTCFullYear(), today.getUTCMonth() + 3, 0))
+                startDate: new Date(today.getFullYear(), today.getMonth() + 1, 1),
+                endDate: new Date(today.getFullYear(), today.getMonth() + 3, 0)
             },
             { 
                 label: 'Next 6 Months', 
-                startDate: new Date(Date.UTC(today.getUTCFullYear(), today.getUTCMonth() + 3, 1)),
-                endDate: new Date(Date.UTC(today.getUTCFullYear(), today.getUTCMonth() + 6, 0))
+                startDate: new Date(today.getFullYear(), today.getMonth() + 3, 1),
+                endDate: new Date(today.getFullYear(), today.getMonth() + 6, 0)
             },
             { 
                 label: 'Next Year', 
-                startDate: new Date(Date.UTC(today.getUTCFullYear(), today.getUTCMonth() + 6, 1)),
-                endDate: new Date(Date.UTC(today.getUTCFullYear(), today.getUTCMonth() + 12, 0))
+                startDate: new Date(today.getFullYear(), today.getMonth() + 6, 1),
+                endDate: new Date(today.getFullYear(), today.getMonth() + 12, 0)
             },
         ];
         

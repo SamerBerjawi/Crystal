@@ -40,7 +40,8 @@ const CashAccountView: React.FC<CashAccountViewProps> = ({
   // --- Metrics ---
   const { totalInflow, totalOutflow, netChange, lastReplenishment } = useMemo(() => {
       const today = new Date();
-      const startOfMonth = new Date(Date.UTC(today.getFullYear(), today.getMonth(), 1));
+      // Use local date constructor for start of month
+      const startOfMonth = new Date(today.getFullYear(), today.getMonth(), 1);
       
       let inflow = 0;
       let outflow = 0;
@@ -75,8 +76,9 @@ const CashAccountView: React.FC<CashAccountViewProps> = ({
         const d = new Date(today.getFullYear(), today.getMonth() - i, 1);
         const monthKey = d.toLocaleString('default', { month: 'short' });
         
-        const startOfMonth = new Date(Date.UTC(d.getFullYear(), d.getMonth(), 1));
-        const endOfMonth = new Date(Date.UTC(d.getFullYear(), d.getMonth() + 1, 0));
+        // Use local date constructors for month boundaries
+        const startOfMonth = new Date(d.getFullYear(), d.getMonth(), 1);
+        const endOfMonth = new Date(d.getFullYear(), d.getMonth() + 1, 0, 23, 59, 59, 999);
         
         let inc = 0;
         let exp = 0;
