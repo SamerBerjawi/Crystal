@@ -9,6 +9,7 @@ import PortfolioDistributionChart from '../components/PortfolioDistributionChart
 import WarrantModal from '../components/WarrantModal';
 import WarrantPriceModal from '../components/WarrantPriceModal';
 import { PieChart, Pie, Cell, ResponsiveContainer, Tooltip } from 'recharts';
+import { useNavigate } from 'react-router-dom'; // Note: App uses a custom router, so we use callbacks instead of hooks
 
 interface InvestmentsProps {
     accounts: Account[];
@@ -208,6 +209,14 @@ const Investments: React.FC<InvestmentsProps> = ({
         setEditingPriceItem({ symbol, name, currentPrice });
         setIsPriceModalOpen(true);
     }, []);
+    
+    // Navigation logic handled by URL manipulation which triggers App.tsx router
+    const handleViewHolding = (symbol: string) => {
+        // App.tsx's `navigateToPath` listens for popstate, but we need to trigger it manually or use history API
+        window.history.pushState(null, '', `/investments/${encodeURIComponent(symbol)}`);
+        // Dispatch popstate event so App.tsx can react
+        window.dispatchEvent(new PopStateEvent('popstate'));
+    };
 
     const totalGainLoss = totalValue - totalCostBasis;
     const totalGainLossPercent = totalCostBasis > 0 ? (totalGainLoss / totalCostBasis) * 100 : 0;
@@ -380,7 +389,11 @@ const Investments: React.FC<InvestmentsProps> = ({
                                         const hasPrice = currentPrice !== 0;
 
                                         return (
-                                            <tr key={holding.symbol} className="group hover:bg-black/5 dark:hover:bg-white/5 transition-colors">
+                                            <tr 
+                                                key={holding.symbol} 
+                                                onClick={() => handleViewHolding(holding.symbol)}
+                                                className="group hover:bg-black/5 dark:hover:bg-white/5 transition-colors cursor-pointer"
+                                            >
                                                 <td className="py-4 pl-2">
                                                     <div className="flex items-center gap-3">
                                                         <div className={`w-10 h-10 rounded-lg flex items-center justify-center ${typeStyle.bg} ${typeStyle.text} bg-opacity-20`}>
@@ -412,7 +425,7 @@ const Investments: React.FC<InvestmentsProps> = ({
                                                 <td className="py-4 text-right">
                                                     <div className="flex justify-end gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
                                                         <button 
-                                                            onClick={() => handleOpenPriceModal(holding.symbol, holding.name, holding.currentPrice)} 
+                                                            onClick={(e) => { e.stopPropagation(); handleOpenPriceModal(holding.symbol, holding.name, holding.currentPrice); }} 
                                                             className="p-1.5 rounded-md text-light-text-secondary dark:text-dark-text-secondary hover:bg-black/10 dark:hover:bg-white/10"
                                                             title="Update Price"
                                                         >
@@ -420,7 +433,8 @@ const Investments: React.FC<InvestmentsProps> = ({
                                                         </button>
                                                         {holding.type === 'Warrant' && (
                                                             <button 
-                                                                onClick={() => {
+                                                                onClick={(e) => {
+                                                                    e.stopPropagation();
                                                                     const warrant = warrants.find(w => w.id === holding.warrantId);
                                                                     if(warrant) handleOpenWarrantModal(warrant);
                                                                 }} 
