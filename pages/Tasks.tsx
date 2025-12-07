@@ -136,7 +136,7 @@ const MetricCard: React.FC<{ label: string; value: string | number; subtext?: st
 const Tasks: React.FC<TasksProps> = ({ tasks, saveTask, deleteTask, taskOrder, setTaskOrder }) => {
     const [isModalOpen, setIsModalOpen] = useState(false);
     const [editingTask, setEditingTask] = useState<Task | null>(null);
-    const [sortBy, setSortBy] = useState<'priority-desc' | 'dueDate-asc' | 'manual'>('priority-desc');
+    const [sortBy, setSortBy] = useState<'priority-desc' | 'dueDate-asc' | 'manual'>('manual');
     const [justCompletedTaskId, setJustCompletedTaskId] = useState<string | null>(null);
     const [draggedItem, setDraggedItem] = useState<Task | null>(null);
     const [dragOverItem, setDragOverItem] = useState<Task | null>(null);
@@ -330,23 +330,14 @@ const Tasks: React.FC<TasksProps> = ({ tasks, saveTask, deleteTask, taskOrder, s
                     icon="list_alt"
                 />
             </div>
-            
-            {/* Consistency Tracker (Heatmap) - Moved Up */}
-            <div className="mt-6">
-                 <h3 className="text-lg font-bold text-light-text dark:text-dark-text mb-4 flex items-center gap-2">
-                    <span className="material-symbols-outlined text-primary-500">history</span>
-                    Consistency Tracker
-                 </h3>
-                 <TasksHeatmap tasks={tasks} />
-            </div>
 
             {/* Controls */}
-            <div className="flex justify-end pt-4 border-t border-black/5 dark:border-white/5">
+            <div className="flex justify-end">
                  <div className={SELECT_WRAPPER_STYLE}>
                     <select value={sortBy} onChange={e => setSortBy(e.target.value as any)} className={`${SELECT_STYLE} !py-2 !text-sm`}>
+                        <option value="manual">Manual Sort (Drag & Drop)</option>
                         <option value="priority-desc">Sort by Priority</option>
                         <option value="dueDate-asc">Sort by Due Date</option>
-                        <option value="manual">Manual Sort (Drag & Drop)</option>
                     </select>
                     <div className={SELECT_ARROW_STYLE}><span className="material-symbols-outlined">expand_more</span></div>
                 </div>
@@ -414,6 +405,15 @@ const Tasks: React.FC<TasksProps> = ({ tasks, saveTask, deleteTask, taskOrder, s
                         </div>
                     );
                 })}
+            </div>
+
+            {/* Consistency Tracker */}
+            <div className="mt-12">
+                 <h3 className="text-lg font-bold text-light-text dark:text-dark-text mb-4 flex items-center gap-2">
+                    <span className="material-symbols-outlined text-primary-500">history</span>
+                    Consistency Tracker
+                 </h3>
+                 <TasksHeatmap tasks={tasks} />
             </div>
         </div>
     );

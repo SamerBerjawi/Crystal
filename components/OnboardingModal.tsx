@@ -166,9 +166,8 @@ const OnboardingModal: React.FC<OnboardingModalProps> = ({
               This will be the default currency for your reports and summaries.
             </p>
             <div className={SELECT_WRAPPER_STYLE}>
-              <select name="currency" value={currencyPref} onChange={e => setCurrencyPref(e.target.value as Currency)} className={INPUT_BASE_STYLE}>
-                {/* FIX: Use CURRENCIES to ensure valid Currency type values */}
-                {CURRENCIES.map(c => <option key={c} value={c}>{c}</option>)}
+              <select name="currency" value={currencyPref} onChange={e => setCurrencyPref(e.target.value)} className={INPUT_BASE_STYLE}>
+                {CURRENCY_OPTIONS.map(c => <option key={c} value={c}>{c}</option>)}
               </select>
               <div className={SELECT_ARROW_STYLE}><span className="material-symbols-outlined">expand_more</span></div>
             </div>

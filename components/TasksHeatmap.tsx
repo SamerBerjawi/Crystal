@@ -97,21 +97,18 @@ const TasksHeatmap: React.FC<TasksHeatmapProps> = ({ tasks }) => {
     const todayStr = new Date().toISOString().split('T')[0];
 
     return (
-        <Card className="flex flex-col items-center justify-center">
-            <div className="flex gap-2 items-end">
-                {/* Day Labels (Monday Start) - Aligned to grid rows */}
-                <div className="grid grid-rows-7 gap-[4px] pb-1 text-xs text-light-text-secondary dark:text-dark-text-secondary font-medium mr-2">
-                    <div className="h-[14px] flex items-center leading-none">Mon</div>
-                    <div className="h-[14px]" />
-                    <div className="h-[14px] flex items-center leading-none">Wed</div>
-                    <div className="h-[14px]" />
-                    <div className="h-[14px] flex items-center leading-none">Fri</div>
-                    <div className="h-[14px]" />
-                    <div className="h-[14px]" />
+        <Card>
+            <h3 className="text-xl font-semibold mb-4">Task Priority Forecast (Upcoming Year)</h3>
+            <div className="flex gap-2">
+                {/* Day Labels (Monday Start) */}
+                <div className="flex flex-col justify-between pt-5 pb-1 text-xs text-light-text-secondary dark:text-dark-text-secondary pr-1 h-[116px]">
+                    <div className="h-3 leading-3">Mon</div>
+                    <div className="h-3 leading-3">Wed</div>
+                    <div className="h-3 leading-3">Fri</div>
                 </div>
                 
-                <div className="overflow-x-auto pb-1 flex-1 max-w-full scrollbar-thin scrollbar-thumb-gray-200 dark:scrollbar-thumb-gray-700">
-                    <div className="inline-block">
+                <div className="overflow-x-auto pb-2 flex-1">
+                    <div className="inline-block min-w-full">
                         {/* Month Labels */}
                         <div 
                             className="grid mb-1 h-4" 
@@ -164,8 +161,7 @@ const TasksHeatmap: React.FC<TasksHeatmapProps> = ({ tasks }) => {
                     </div>
                 </div>
             </div>
-            
-            <div className="flex justify-center items-center gap-4 mt-6 text-xs text-light-text-secondary dark:text-dark-text-secondary w-full">
+            <div className="flex justify-end items-center gap-4 mt-4 text-xs text-light-text-secondary dark:text-dark-text-secondary">
                 <span>Priority:</span>
                 <div className="flex items-center gap-1"><div className="w-3 h-3 rounded-sm bg-blue-400"></div><span>Low</span></div>
                 <div className="flex items-center gap-1"><div className="w-3 h-3 rounded-sm bg-yellow-400"></div><span>Medium</span></div>
