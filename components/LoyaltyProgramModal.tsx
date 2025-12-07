@@ -1,7 +1,8 @@
+
 import React, { useState } from 'react';
 import Modal from './Modal';
 import { LoyaltyProgram } from '../types';
-import { INPUT_BASE_STYLE, BTN_PRIMARY_STYLE, BTN_SECONDARY_STYLE, BTN_DANGER_STYLE } from '../constants';
+import { INPUT_BASE_STYLE, BTN_PRIMARY_STYLE, BTN_SECONDARY_STYLE, BTN_DANGER_STYLE, SELECT_WRAPPER_STYLE, SELECT_ARROW_STYLE, LOYALTY_CATEGORIES } from '../constants';
 import IconPicker from './IconPicker';
 
 interface LoyaltyProgramModalProps {
@@ -39,6 +40,7 @@ const LoyaltyProgramModal: React.FC<LoyaltyProgramModalProps> = ({ onClose, onSa
   const [icon, setIcon] = useState(programToEdit?.icon || 'card_membership');
   const [websiteUrl, setWebsiteUrl] = useState(programToEdit?.websiteUrl || '');
   const [notes, setNotes] = useState(programToEdit?.notes || '');
+  const [category, setCategory] = useState(programToEdit?.category || 'Other');
   
   const [isIconPickerOpen, setIsIconPickerOpen] = useState(false);
 
@@ -55,7 +57,8 @@ const LoyaltyProgramModal: React.FC<LoyaltyProgramModalProps> = ({ onClose, onSa
       color,
       icon,
       websiteUrl,
-      notes
+      notes,
+      category
     });
   };
 
@@ -85,9 +88,22 @@ const LoyaltyProgramModal: React.FC<LoyaltyProgramModalProps> = ({ onClose, onSa
                 </div>
             </div>
 
-            <div>
-                <label htmlFor="programName" className={labelStyle}>Program Name</label>
-                <input id="programName" type="text" value={programName} onChange={e => setProgramName(e.target.value)} className={INPUT_BASE_STYLE} placeholder="e.g. Executive Club" required />
+            <div className="grid grid-cols-2 gap-4">
+                <div>
+                    <label htmlFor="programName" className={labelStyle}>Program Name</label>
+                    <input id="programName" type="text" value={programName} onChange={e => setProgramName(e.target.value)} className={INPUT_BASE_STYLE} placeholder="e.g. Executive Club" required />
+                </div>
+                <div>
+                    <label htmlFor="category" className={labelStyle}>Category</label>
+                    <div className={SELECT_WRAPPER_STYLE}>
+                        <select id="category" value={category} onChange={e => setCategory(e.target.value)} className={INPUT_BASE_STYLE}>
+                            {LOYALTY_CATEGORIES.map(cat => (
+                                <option key={cat} value={cat}>{cat}</option>
+                            ))}
+                        </select>
+                        <div className={SELECT_ARROW_STYLE}><span className="material-symbols-outlined">expand_more</span></div>
+                    </div>
+                </div>
             </div>
 
             <div className="grid grid-cols-2 gap-4">

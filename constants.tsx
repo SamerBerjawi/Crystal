@@ -122,6 +122,7 @@ export const FUEL_TYPES: FuelType[] = ['Gasoline', 'Diesel', 'Electric', 'Hybrid
 export const VEHICLE_OWNERSHIP_TYPES: VehicleOwnership[] = ['Owned', 'Leased'];
 export const OTHER_ASSET_SUB_TYPES: OtherAssetSubType[] = ['Cash', 'Precious Metals', 'Collectibles', 'Art', 'Business Equity', 'Private Loan', 'Electronics', 'Furniture', 'Other'];
 export const OTHER_LIABILITY_SUB_TYPES: OtherLiabilitySubType[] = ['Tax', 'Private Debt', 'Legal Settlement', 'Business Debt', 'Other'];
+export const LOYALTY_CATEGORIES = ['Airlines', 'Hotels', 'Retail', 'Dining', 'Grocery', 'Services', 'Gaming', 'Other'];
 
 export const CARD_NETWORKS = ['Visa', 'Mastercard', 'American Express', 'Discover', 'UnionPay', 'JCB', 'Other'];
 

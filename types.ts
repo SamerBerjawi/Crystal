@@ -394,6 +394,7 @@ export interface LoyaltyProgram {
     icon: string;
     notes?: string;
     websiteUrl?: string;
+    category?: string; // e.g., "Airlines", "Hotels"
 }
 
 // FIX: Move FinancialData interface from App.tsx to types.ts to resolve import error in mockData.ts

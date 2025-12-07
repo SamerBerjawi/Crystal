@@ -1,6 +1,4 @@
 
-
-
 import React, { useState, useMemo, useEffect } from 'react';
 import { RecurringTransaction, Transaction, RecurrenceFrequency, Currency, LoyaltyProgram } from '../types';
 import { formatCurrency, convertToEur, parseDateAsUTC } from '../utils';
@@ -45,40 +43,100 @@ const calculateFrequency = (intervals: number[]): RecurrenceFrequency | null => 
     return null;
 };
 
+const copyToClipboard = (text: string) => {
+    if (navigator.clipboard) {
+        navigator.clipboard.writeText(text);
+    }
+};
+
 const LoyaltyCard: React.FC<{ program: LoyaltyProgram; onClick: () => void }> = ({ program, onClick }) => {
+    const handleCopy = (e: React.MouseEvent) => {
+        e.stopPropagation();
+        copyToClipboard(program.membershipId);
+    };
+
+    const handleVisit = (e: React.MouseEvent) => {
+        e.stopPropagation();
+        if (program.websiteUrl) window.open(program.websiteUrl, '_blank');
+    };
+
+    // Calculate expiry status
+    const isExpiring = useMemo(() => {
+        if (!program.expiryDate) return false;
+        const expiry = new Date(program.expiryDate);
+        const today = new Date();
+        const diffTime = expiry.getTime() - today.getTime();
+        const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+        return diffDays > 0 && diffDays <= 90; // Expiring in next 90 days
+    }, [program.expiryDate]);
+
     return (
         <div 
             onClick={onClick}
-            className="group relative aspect-[1.58/1] rounded-xl shadow-md overflow-hidden cursor-pointer transform hover:scale-[1.02] transition-all duration-300"
+            className="group relative h-56 rounded-2xl shadow-lg overflow-hidden cursor-pointer transform hover:scale-[1.02] transition-all duration-300 flex flex-col justify-between text-white"
             style={{ backgroundColor: program.color }}
         >
-            {/* Texture/Shine */}
-            <div className="absolute inset-0 bg-gradient-to-br from-white/20 to-transparent pointer-events-none"></div>
-            <div className="absolute -top-10 -right-10 w-32 h-32 bg-white/10 rounded-full blur-2xl pointer-events-none"></div>
-            
-            <div className="relative z-10 h-full flex flex-col justify-between p-5 text-white">
-                <div className="flex justify-between items-start">
-                    <div>
-                         <h3 className="font-bold text-lg drop-shadow-sm">{program.name}</h3>
-                         <p className="text-xs font-medium opacity-90">{program.programName}</p>
+            {/* Background Texture */}
+            <div className="absolute inset-0 bg-gradient-to-br from-white/20 to-transparent pointer-events-none mix-blend-overlay"></div>
+            <div className="absolute -top-12 -right-12 w-48 h-48 bg-white/10 rounded-full blur-3xl pointer-events-none"></div>
+            <div className="absolute bottom-0 left-0 w-full h-1/2 bg-gradient-to-t from-black/20 to-transparent pointer-events-none"></div>
+
+            {/* Header */}
+            <div className="relative z-10 p-5 flex justify-between items-start">
+                <div className="flex items-center gap-3">
+                    <div className="w-10 h-10 rounded-full bg-white/20 backdrop-blur-md flex items-center justify-center border border-white/20 shadow-sm">
+                        <span className="material-symbols-outlined text-xl">{program.icon || 'loyalty'}</span>
                     </div>
-                    {program.icon && <span className="material-symbols-outlined text-2xl opacity-80">{program.icon}</span>}
+                    <div>
+                        <h3 className="font-bold text-lg leading-tight drop-shadow-sm">{program.name}</h3>
+                        <p className="text-xs font-medium opacity-90">{program.programName}</p>
+                    </div>
+                </div>
+                {program.tier && (
+                    <span className="px-2 py-1 rounded-md bg-white/20 backdrop-blur-md border border-white/20 text-xs font-bold uppercase tracking-wider shadow-sm">
+                        {program.tier}
+                    </span>
+                )}
+            </div>
+
+            {/* Body */}
+            <div className="relative z-10 px-5 flex-grow flex flex-col justify-center">
+                 <div className="flex items-center gap-2 group/id">
+                    <p className="font-mono text-xl tracking-widest opacity-95 drop-shadow-sm">{program.membershipId}</p>
+                    <button 
+                        onClick={handleCopy}
+                        className="opacity-0 group-hover/id:opacity-100 transition-opacity p-1.5 hover:bg-white/20 rounded-lg active:scale-95"
+                        title="Copy ID"
+                    >
+                        <span className="material-symbols-outlined text-sm">content_copy</span>
+                    </button>
+                 </div>
+                 <p className="text-[10px] uppercase opacity-60 mt-1 font-medium tracking-wide">Membership ID</p>
+            </div>
+
+            {/* Footer */}
+            <div className="relative z-10 p-5 pt-0 flex justify-between items-end">
+                <div>
+                    <p className="text-3xl font-bold leading-none">{program.pointsBalance.toLocaleString()}</p>
+                    <p className="text-xs font-medium opacity-80 mt-1 uppercase tracking-wider">{program.pointsUnit}</p>
                 </div>
                 
-                <div className="space-y-4">
-                     <p className="font-mono text-sm sm:text-base tracking-widest opacity-90 drop-shadow-sm">{program.membershipId || '•••• ••••'}</p>
-                     <div className="flex justify-between items-end">
-                         <div>
-                             <p className="text-[10px] uppercase font-bold opacity-70">Balance</p>
-                             <p className="font-bold text-xl">{program.pointsBalance.toLocaleString()} <span className="text-xs font-normal">{program.pointsUnit}</span></p>
-                         </div>
-                         {program.tier && (
-                             <div className="text-right">
-                                 <p className="text-[10px] uppercase font-bold opacity-70">Status</p>
-                                 <p className="font-semibold text-sm">{program.tier}</p>
-                             </div>
-                         )}
-                     </div>
+                <div className="flex flex-col items-end gap-2">
+                     {program.expiryDate && (
+                        <div className={`text-xs font-bold px-2 py-0.5 rounded-md flex items-center gap-1 ${isExpiring ? 'bg-red-500 text-white' : 'bg-black/20 text-white/90'}`}>
+                            {isExpiring && <span className="material-symbols-outlined text-[10px]">warning</span>}
+                            Exp: {new Date(program.expiryDate).toLocaleDateString(undefined, {month: 'short', year: '2-digit'})}
+                        </div>
+                    )}
+                    {program.websiteUrl && (
+                        <button 
+                            onClick={handleVisit}
+                            className="p-2 rounded-full bg-white/20 hover:bg-white/30 backdrop-blur-md transition-colors border border-white/10 shadow-sm active:scale-95"
+                            title="Visit Website"
+                        >
+                            <span className="material-symbols-outlined text-lg">open_in_new</span>
+                        </button>
+                    )}
                 </div>
             </div>
         </div>
@@ -191,6 +249,45 @@ const Subscriptions: React.FC = () => {
         });
         return { monthlySpend: monthly, yearlySpend: monthly * 12, subscriptionCount: activeSubscriptions.length };
     }, [activeSubscriptions]);
+    
+    // --- 3. Loyalty Stats ---
+    const loyaltyStats = useMemo(() => {
+        const total = loyaltyPrograms.length;
+        const expiringSoon = loyaltyPrograms.filter(p => {
+             if (!p.expiryDate) return false;
+             const expiry = new Date(p.expiryDate);
+             const today = new Date();
+             const diffTime = expiry.getTime() - today.getTime();
+             const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+             return diffDays > 0 && diffDays <= 90;
+        }).length;
+        const eliteCount = loyaltyPrograms.filter(p => {
+             const t = (p.tier || '').toLowerCase();
+             return t.includes('gold') || t.includes('platinum') || t.includes('diamond') || t.includes('elite') || t.includes('vip') || t.includes('silver');
+        }).length;
+        
+        return { total, expiringSoon, eliteCount };
+    }, [loyaltyPrograms]);
+
+    // --- 4. Group Loyalty Programs ---
+    const groupedLoyaltyPrograms = useMemo(() => {
+        const grouped: Record<string, LoyaltyProgram[]> = {};
+        
+        loyaltyPrograms.forEach(program => {
+            const category = program.category || 'Other';
+            if (!grouped[category]) grouped[category] = [];
+            grouped[category].push(program);
+        });
+        
+        // Sort keys alphabetically but keep 'Other' at the end
+        const sortedKeys = Object.keys(grouped).sort((a, b) => {
+            if (a === 'Other') return 1;
+            if (b === 'Other') return -1;
+            return a.localeCompare(b);
+        });
+
+        return { grouped, sortedKeys };
+    }, [loyaltyPrograms]);
 
 
     // --- Handlers ---
@@ -250,6 +347,38 @@ const Subscriptions: React.FC = () => {
     const handleOpenLoyaltyModal = (program?: LoyaltyProgram) => {
         setLoyaltyProgramToEdit(program || null);
         setIsLoyaltyModalOpen(true);
+    };
+
+    // --- Collapsible Section Component ---
+    const LoyaltySection: React.FC<{ title: string; programs: LoyaltyProgram[] }> = ({ title, programs }) => {
+        const [isOpen, setIsOpen] = useState(true);
+        return (
+            <div className="space-y-4">
+                <div 
+                    className="flex items-center gap-2 cursor-pointer select-none group"
+                    onClick={() => setIsOpen(!isOpen)}
+                >
+                     <div className={`p-1 rounded-md transition-transform duration-200 ${isOpen ? 'rotate-0' : '-rotate-90'}`}>
+                         <span className="material-symbols-outlined text-light-text-secondary dark:text-dark-text-secondary">expand_more</span>
+                     </div>
+                    <h3 className="font-bold text-lg text-light-text dark:text-dark-text">{title}</h3>
+                    <span className="text-xs font-medium text-light-text-secondary dark:text-dark-text-secondary bg-black/5 dark:bg-white/10 px-2 py-0.5 rounded-full">{programs.length}</span>
+                    <div className="h-px flex-grow bg-black/5 dark:bg-white/5 ml-2 group-hover:bg-black/10 dark:group-hover:bg-white/10 transition-colors"></div>
+                </div>
+                
+                {isOpen && (
+                    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6 animate-fade-in-up">
+                        {programs.map(program => (
+                            <LoyaltyCard 
+                                key={program.id} 
+                                program={program} 
+                                onClick={() => handleOpenLoyaltyModal(program)} 
+                            />
+                        ))}
+                    </div>
+                )}
+            </div>
+        );
     };
 
     return (
@@ -434,20 +563,57 @@ const Subscriptions: React.FC = () => {
                 </>
             ) : (
                 <>
-                    <div className="flex justify-between items-center">
-                        <h2 className="text-lg font-bold text-light-text dark:text-dark-text">Loyalty Programs & Rewards</h2>
+                    {/* Loyalty Stats */}
+                    <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+                        <Card className="flex flex-col justify-center p-6 border-l-4 border-l-blue-500">
+                            <div className="flex justify-between items-center">
+                                <div>
+                                    <p className="text-xs font-bold uppercase text-light-text-secondary dark:text-dark-text-secondary tracking-wider mb-1">Total Programs</p>
+                                    <p className="text-3xl font-extrabold text-light-text dark:text-dark-text">{loyaltyStats.total}</p>
+                                </div>
+                                <div className="w-12 h-12 rounded-full bg-blue-100 dark:bg-blue-900/30 text-blue-600 dark:text-blue-400 flex items-center justify-center">
+                                    <span className="material-symbols-outlined text-2xl">wallet</span>
+                                </div>
+                            </div>
+                        </Card>
+                        <Card className="flex flex-col justify-center p-6 border-l-4 border-l-purple-500">
+                            <div className="flex justify-between items-center">
+                                <div>
+                                    <p className="text-xs font-bold uppercase text-light-text-secondary dark:text-dark-text-secondary tracking-wider mb-1">Elite Statuses</p>
+                                    <p className="text-3xl font-extrabold text-light-text dark:text-dark-text">{loyaltyStats.eliteCount}</p>
+                                </div>
+                                <div className="w-12 h-12 rounded-full bg-purple-100 dark:bg-purple-900/30 text-purple-600 dark:text-purple-400 flex items-center justify-center">
+                                    <span className="material-symbols-outlined text-2xl">star</span>
+                                </div>
+                            </div>
+                        </Card>
+                         <Card className="flex flex-col justify-center p-6 border-l-4 border-l-orange-500">
+                            <div className="flex justify-between items-center">
+                                <div>
+                                    <p className="text-xs font-bold uppercase text-light-text-secondary dark:text-dark-text-secondary tracking-wider mb-1">Expiring Soon</p>
+                                    <p className="text-3xl font-extrabold text-light-text dark:text-dark-text">{loyaltyStats.expiringSoon}</p>
+                                </div>
+                                <div className="w-12 h-12 rounded-full bg-orange-100 dark:bg-orange-900/30 text-orange-600 dark:text-orange-400 flex items-center justify-center">
+                                    <span className="material-symbols-outlined text-2xl">hourglass_bottom</span>
+                                </div>
+                            </div>
+                        </Card>
+                    </div>
+
+                    <div className="flex justify-between items-center mt-4 mb-4">
+                        <h2 className="text-lg font-bold text-light-text dark:text-dark-text">Your Cards</h2>
                         <button onClick={() => handleOpenLoyaltyModal()} className={BTN_PRIMARY_STYLE}>
                             <span className="material-symbols-outlined text-lg mr-2">add</span> Add Program
                         </button>
                     </div>
                     
                     {loyaltyPrograms.length > 0 ? (
-                        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
-                            {loyaltyPrograms.map(program => (
-                                <LoyaltyCard 
-                                    key={program.id} 
-                                    program={program} 
-                                    onClick={() => handleOpenLoyaltyModal(program)} 
+                        <div className="space-y-8">
+                            {groupedLoyaltyPrograms.sortedKeys.map(category => (
+                                <LoyaltySection 
+                                    key={category} 
+                                    title={category} 
+                                    programs={groupedLoyaltyPrograms.grouped[category]} 
                                 />
                             ))}
                         </div>
