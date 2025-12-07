@@ -1,3 +1,4 @@
+
 // FIX: Import `useMemo` from React to resolve the 'Cannot find name' error.
 import React, { useState, useEffect, useMemo, useCallback, Suspense, lazy, useRef, Component, ErrorInfo, startTransition } from 'react';
 import Sidebar from './components/Sidebar';
@@ -33,6 +34,8 @@ const loadAccountDetail = () => import('./pages/AccountDetail');
 const AccountDetail = lazy(() => import('./pages/AccountDetail'));
 const loadInvestmentsPage = () => import('./pages/Investments');
 const InvestmentsPage = lazy(loadInvestmentsPage);
+const loadInvestmentDetail = () => import('./pages/InvestmentDetail');
+const InvestmentDetail = lazy(loadInvestmentDetail);
 const loadTasksPage = () => import('./pages/Tasks');
 const TasksPage = lazy(loadTasksPage);
 const loadWarrantsPage = () => import('./pages/Warrants');
@@ -59,6 +62,7 @@ const pagePreloaders = [
   loadPreferencesPage,
   loadAccountDetail,
   loadInvestmentsPage,
+  loadInvestmentDetail,
   loadTasksPage,
   loadWarrantsPage,
   loadAIAssistantSettingsPage,
@@ -98,36 +102,45 @@ const routePathMap: Record<Page, string> = {
   Preferences: '/preferences',
   AccountDetail: '/accounts',
   Investments: '/investments',
+  InvestmentDetail: '/investments',
   Warrants: '/warrants',
   Documentation: '/documentation',
   'AI Assistant': '/ai-assistant',
   Subscriptions: '/subscriptions',
 };
 
-type RouteInfo = { page: Page; matched: boolean; accountId?: string | null };
+type RouteInfo = { page: Page; matched: boolean; accountId?: string | null; investmentSymbol?: string | null };
 
 const parseRoute = (pathname: string): RouteInfo => {
   const rawPath = pathname.split('?')[0] || '/';
   const normalizedPath = rawPath !== '/' && rawPath.endsWith('/') ? rawPath.slice(0, -1) : rawPath;
+  
   const accountMatch = normalizedPath.match(/^\/accounts\/([^/]+)$/);
-
   if (accountMatch?.[1]) {
-    return { page: 'AccountDetail', matched: true, accountId: decodeURIComponent(accountMatch[1]) };
+    return { page: 'AccountDetail', matched: true, accountId: decodeURIComponent(accountMatch[1]), investmentSymbol: null };
+  }
+
+  const investmentMatch = normalizedPath.match(/^\/investments\/([^/]+)$/);
+  if (investmentMatch?.[1]) {
+    return { page: 'InvestmentDetail', matched: true, accountId: null, investmentSymbol: decodeURIComponent(investmentMatch[1]) };
   }
 
   const matchedPage = (Object.entries(routePathMap) as [Page, string][])
     .find(([, path]) => path === normalizedPath)?.[0];
 
   if (matchedPage) {
-    return { page: matchedPage, matched: true, accountId: null };
+    return { page: matchedPage, matched: true, accountId: null, investmentSymbol: null };
   }
 
-  return { page: 'Dashboard', matched: false, accountId: null };
+  return { page: 'Dashboard', matched: false, accountId: null, investmentSymbol: null };
 };
 
-const pageToPath = (page: Page, accountId?: string | null) => {
-  if (page === 'AccountDetail' && accountId) {
-    return `/accounts/${encodeURIComponent(accountId)}`;
+const pageToPath = (page: Page, id?: string | null) => {
+  if (page === 'AccountDetail' && id) {
+    return `/accounts/${encodeURIComponent(id)}`;
+  }
+  if (page === 'InvestmentDetail' && id) {
+    return `/investments/${encodeURIComponent(id)}`;
   }
 
   return routePathMap[page] || '/';
@@ -274,6 +287,7 @@ const App: React.FC = () => {
   const [isSidebarOpen, setSidebarOpen] = useState(false);
   const [isSidebarCollapsed, setSidebarCollapsed] = useState(false);
   const [viewingAccountId, setViewingAccountId] = useState<string | null>(initialRoute.accountId ?? null);
+  const [viewingInvestmentSymbol, setViewingInvestmentSymbol] = useState<string | null>(initialRoute.investmentSymbol ?? null);
   const [theme, setTheme] = useState<Theme>(() => {
     const storedTheme = safeLocalStorage.getItem('theme');
     return storedTheme === 'light' || storedTheme === 'dark' || storedTheme === 'system' ? storedTheme : 'system';
@@ -383,6 +397,7 @@ const App: React.FC = () => {
     const route = parseRoute(currentPath);
     setCurrentPageState(route.page);
     setViewingAccountId(route.accountId ?? null);
+    setViewingInvestmentSymbol(route.investmentSymbol ?? null);
 
     if (!route.matched && currentPath !== '/') {
       navigateToPath('/', true);
@@ -390,19 +405,28 @@ const App: React.FC = () => {
   }, [currentPath, navigateToPath]);
 
   const setCurrentPage = useCallback((page: Page) => {
-    const targetPath = pageToPath(page, page === 'AccountDetail' ? viewingAccountId : null);
+    const targetPath = pageToPath(page, page === 'AccountDetail' ? viewingAccountId : (page === 'InvestmentDetail' ? viewingInvestmentSymbol : null));
     navigateToPath(targetPath);
     setCurrentPageState(page);
 
     if (page !== 'AccountDetail') {
       setViewingAccountId(null);
     }
-  }, [navigateToPath, viewingAccountId]);
+    if (page !== 'InvestmentDetail') {
+      setViewingInvestmentSymbol(null);
+    }
+  }, [navigateToPath, viewingAccountId, viewingInvestmentSymbol]);
 
   const handleOpenAccountDetail = useCallback((accountId: string) => {
     setViewingAccountId(accountId);
     setCurrentPageState('AccountDetail');
     navigateToPath(pageToPath('AccountDetail', accountId));
+  }, [navigateToPath]);
+  
+  const handleOpenInvestmentDetail = useCallback((symbol: string) => {
+    setViewingInvestmentSymbol(symbol);
+    setCurrentPageState('InvestmentDetail');
+    navigateToPath(pageToPath('InvestmentDetail', symbol));
   }, [navigateToPath]);
 
   // Onboarding flow state
@@ -461,7 +485,8 @@ const App: React.FC = () => {
       if (account.symbol && account.type === 'Investment' && assetPrices[account.symbol] !== undefined) {
         const price = assetPrices[account.symbol] as number | null;
         const quantity = (warrantHoldingsBySymbol[account.symbol] || 0);
-        const calculatedBalance = price !== null ? quantity * price : 0;
+        // FIX: Cast price to number to fix 'unknown' type error. price is known to be non-null in this branch because of the check
+        const calculatedBalance = price !== null ? quantity * (price as number) : 0;
 
         if (Math.abs((account.balance || 0) - calculatedBalance) > 0.0001) {
             hasChanges = true;
@@ -1514,6 +1539,20 @@ const App: React.FC = () => {
       }
       return <PageLoader label="Loading account..." />;
     }
+    
+    if (viewingInvestmentSymbol) {
+       return <InvestmentDetail
+         symbol={viewingInvestmentSymbol}
+         transactions={investmentTransactions.filter(t => t.symbol === viewingInvestmentSymbol)}
+         warrants={warrants.filter(w => w.isin === viewingInvestmentSymbol)}
+         currentPrice={assetPrices[viewingInvestmentSymbol] ?? null}
+         onManualPriceChange={handleManualWarrantPrice}
+         onAddTransaction={(invTx, cashTx, newAcc) => handleSaveInvestmentTransaction(invTx, cashTx, newAcc)}
+         onEditTransaction={(invTx, cashTx, newAcc) => handleSaveInvestmentTransaction(invTx, cashTx, newAcc)}
+         onDeleteTransaction={handleDeleteInvestmentTransaction}
+         onBack={() => { setViewingInvestmentSymbol(null); setCurrentPage('Investments'); }}
+       />;
+    }
 
     switch (currentPage) {
       case 'Dashboard':
@@ -1557,7 +1596,22 @@ const App: React.FC = () => {
       case 'Preferences':
         return <PreferencesPage preferences={preferences} setPreferences={setPreferences} theme={theme} setTheme={setTheme} setCurrentPage={setCurrentPage} />;
       case 'Investments':
-        return <InvestmentsPage accounts={accounts} cashAccounts={accounts.filter(a => a.type === 'Checking' || a.type === 'Savings')} investmentTransactions={investmentTransactions} saveInvestmentTransaction={handleSaveInvestmentTransaction} deleteInvestmentTransaction={handleDeleteInvestmentTransaction} saveTransaction={handleSaveTransaction} warrants={warrants} saveWarrant={handleSaveWarrant} deleteWarrant={handleDeleteWarrant} manualPrices={manualWarrantPrices} onManualPriceChange={handleManualWarrantPrice} prices={assetPrices} />;
+        return <InvestmentsPage 
+            accounts={accounts} 
+            cashAccounts={accounts.filter(a => a.type === 'Checking' || a.type === 'Savings')} 
+            investmentTransactions={investmentTransactions} 
+            saveInvestmentTransaction={handleSaveInvestmentTransaction} 
+            deleteInvestmentTransaction={handleDeleteInvestmentTransaction} 
+            saveTransaction={handleSaveTransaction} 
+            warrants={warrants} 
+            saveWarrant={handleSaveWarrant} 
+            deleteWarrant={handleDeleteWarrant} 
+            manualPrices={manualWarrantPrices} 
+            onManualPriceChange={handleManualWarrantPrice} 
+            prices={assetPrices} 
+        />;
+      case 'InvestmentDetail':
+        return null; // Should be handled above
       case 'Warrants':
         return <WarrantsPage warrants={warrants} saveWarrant={handleSaveWarrant} deleteWarrant={handleDeleteWarrant} prices={warrantPrices} manualPrices={manualWarrantPrices} lastUpdated={lastUpdated} onManualPriceChange={handleManualWarrantPrice} />;
       case 'Tasks':
@@ -1694,7 +1748,7 @@ const App: React.FC = () => {
         <div className={`flex h-screen bg-light-card dark:bg-dark-card text-light-text dark:text-dark-text font-sans`}>
           <Sidebar
             currentPage={currentPage}
-            setCurrentPage={(page) => { setViewingAccountId(null); setCurrentPage(page); }}
+            setCurrentPage={(page) => { setViewingAccountId(null); setViewingInvestmentSymbol(null); setCurrentPage(page); }}
             isSidebarOpen={isSidebarOpen}
             setSidebarOpen={setSidebarOpen}
             theme={theme}
@@ -1710,7 +1764,7 @@ const App: React.FC = () => {
               theme={theme}
               setTheme={setTheme}
               currentPage={currentPage}
-              titleOverride={viewingAccount?.name}
+              titleOverride={viewingAccount ? viewingAccount.name : (viewingInvestmentSymbol ? viewingInvestmentSymbol : undefined)}
             />
             <InsightsViewProvider
               accounts={accounts}
