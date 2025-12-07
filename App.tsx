@@ -1,8 +1,3 @@
-
-
-
-
-
 // FIX: Import `useMemo` from React to resolve the 'Cannot find name' error.
 import React, { useState, useEffect, useMemo, useCallback, Suspense, lazy, useRef, Component, ErrorInfo, startTransition } from 'react';
 import Sidebar from './components/Sidebar';
@@ -321,7 +316,7 @@ const App: React.FC = () => {
   const [manualWarrantPrices, setManualWarrantPrices] = useState<Record<string, number | undefined>>(initialFinancialData.manualWarrantPrices || {});
   const [lastUpdated, setLastUpdated] = useState<Date | null>(null);
   
-  const assetPrices = useMemo(() => {
+  const assetPrices = useMemo<Record<string, number | null>>(() => {
     const resolved: Record<string, number | null> = {};
 
     accounts
@@ -443,7 +438,7 @@ const App: React.FC = () => {
       }
   }, [preferences.timezone]);
 
-  const warrantHoldingsBySymbol = useMemo(() => {
+  const warrantHoldingsBySymbol = useMemo<Record<string, number>>(() => {
     const holdings: Record<string, number> = {};
 
     investmentTransactions.forEach(tx => {
@@ -465,7 +460,7 @@ const App: React.FC = () => {
       // The check is simplified to only verify if the account type is 'Investment'.
       if (account.symbol && account.type === 'Investment' && assetPrices[account.symbol] !== undefined) {
         const price = assetPrices[account.symbol] as number | null;
-        const quantity = (warrantHoldingsBySymbol[account.symbol] || 0) as number;
+        const quantity = (warrantHoldingsBySymbol[account.symbol] || 0);
         const calculatedBalance = price !== null ? quantity * price : 0;
 
         if (Math.abs((account.balance || 0) - calculatedBalance) > 0.0001) {

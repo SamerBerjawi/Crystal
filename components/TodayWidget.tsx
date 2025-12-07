@@ -59,7 +59,7 @@ const TodayWidget: React.FC<TodayWidgetProps> = ({
         // Recurring Transactions
         recurringTransactions.forEach(rt => {
             let nextDue = parseDateAsUTC(rt.nextDueDate);
-            const startDateUTC = parseDateAsUTC(rt.startDate);
+            const startDate = parseDateAsUTC(rt.startDate);
             const endDateUTC = rt.endDate ? parseDateAsUTC(rt.endDate) : null;
             
             // Safety limit to prevent infinite loops if data is corrupted
@@ -74,7 +74,7 @@ const TodayWidget: React.FC<TodayWidgetProps> = ({
 
             // Loop to catch up overdue items or find if any occurrence is today
             while (iterations < maxIterations) {
-                const dateStr = nextDue.toISOString().split('T')[0]; // Safe UTC string extraction
+                const dateStr = toLocalISOString(nextDue);
                 
                 // If we've passed today, stop checking this transaction
                 if (dateStr > todayStr) break;
@@ -104,24 +104,21 @@ const TodayWidget: React.FC<TodayWidgetProps> = ({
                     }
                 }
                 
-                // Advance Date using UTC-safe methods to prevent timezone shifts
+                // Advance Date using local methods to ensure consistent date string generation
                 const interval = rt.frequencyInterval || 1;
                 const d = new Date(nextDue);
                 if (rt.frequency === 'monthly') {
-                    const targetDay = rt.dueDateOfMonth || startDateUTC.getUTCDate();
-                    d.setUTCMonth(d.getUTCMonth() + interval);
-                    // Handle month end logic (e.g. Jan 31 -> Feb 28)
-                    const year = d.getUTCFullYear();
-                    const month = d.getUTCMonth();
-                    const daysInMonth = new Date(Date.UTC(year, month + 1, 0)).getUTCDate();
-                    d.setUTCDate(Math.min(targetDay, daysInMonth));
-                } else if (rt.frequency === 'weekly') {
-                    d.setUTCDate(d.getUTCDate() + (7 * interval));
-                } else if (rt.frequency === 'daily') {
-                    d.setUTCDate(d.getUTCDate() + interval);
-                } else if (rt.frequency === 'yearly') {
-                    d.setUTCFullYear(d.getUTCFullYear() + interval);
+                    const targetDay = rt.dueDateOfMonth || startDate.getDate();
+                    d.setMonth(d.getMonth() + interval);
+                    // Handle month length logic using local date
+                    const year = d.getFullYear();
+                    const month = d.getMonth();
+                    const daysInMonth = new Date(year, month + 1, 0).getDate();
+                    d.setDate(Math.min(targetDay, daysInMonth));
                 }
+                else if (rt.frequency === 'weekly') d.setDate(d.getDate() + (7 * interval));
+                else if (rt.frequency === 'daily') d.setDate(d.getDate() + interval);
+                else if (rt.frequency === 'yearly') d.setFullYear(d.getFullYear() + interval);
                 nextDue = d;
                 iterations++;
             }
