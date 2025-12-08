@@ -473,12 +473,12 @@ const Transactions: React.FC<TransactionsProps> = ({ initialAccountFilter, initi
   const getRowSize = useCallback(
     (index: number) => {
       const row = virtualRows[index];
-      if (!row) return 72;
-      if (row.type === 'header') return 48;
+      if (!row) return 68;
+      if (row.type === 'header') return 44;
 
       const tagCount = row.transaction.tagIds?.length || 0;
       const extraTagRows = tagCount > 0 ? Math.ceil(tagCount / 3) : 0;
-      return 88 + extraTagRows * 18;
+      return 78 + extraTagRows * 16;
     },
     [virtualRows]
   );
@@ -1108,8 +1108,8 @@ const Transactions: React.FC<TransactionsProps> = ({ initialAccountFilter, initi
                     <div className="flex items-center justify-center w-5">
                          <input type="checkbox" onChange={handleSelectAll} checked={isAllSelected} className={CHECKBOX_STYLE} aria-label="Select all transactions"/>
                     </div>
-                    <div className="flex-1 grid grid-cols-12 gap-4 ml-2 items-center">
-                        <div className="col-span-8 md:col-span-5 lg:col-span-3">
+                    <div className="flex-1 grid grid-cols-1 md:[grid-template-columns:1.8fr_1.15fr_1.15fr_0.9fr_0.85fr_0.95fr] gap-3 ml-2 items-center">
+                        <div className="md:text-left">
                             <ColumnHeader
                                 label="Transaction"
                                 sortKey="date"
@@ -1119,7 +1119,7 @@ const Transactions: React.FC<TransactionsProps> = ({ initialAccountFilter, initi
                                 filterContent={dateFilterContent}
                             />
                         </div>
-                        <div className="hidden md:block col-span-2">
+                        <div className="hidden md:block text-left">
                              <ColumnHeader
                                 label="Account"
                                 isFilterActive={selectedAccountIds.length > 0}
@@ -1128,7 +1128,7 @@ const Transactions: React.FC<TransactionsProps> = ({ initialAccountFilter, initi
                                 filterContent={accountFilterContent}
                              />
                         </div>
-                        <div className="hidden lg:block col-span-2">
+                        <div className="hidden lg:block text-left">
                             <ColumnHeader
                                 label="Merchant"
                                 sortKey="merchant"
@@ -1138,7 +1138,7 @@ const Transactions: React.FC<TransactionsProps> = ({ initialAccountFilter, initi
                                 filterContent={merchantFilterContent}
                             />
                         </div>
-                        <div className="hidden md:block col-span-1">
+                        <div className="hidden md:block text-center">
                             <ColumnHeader
                                 label="Category"
                                 sortKey="category"
@@ -1148,7 +1148,7 @@ const Transactions: React.FC<TransactionsProps> = ({ initialAccountFilter, initi
                                 filterContent={categoryFilterContent}
                             />
                         </div>
-                        <div className="hidden lg:block col-span-1">
+                        <div className="hidden lg:block text-center">
                             <ColumnHeader
                                 label="Tags"
                                 currentSort={sortBy}
@@ -1157,14 +1157,14 @@ const Transactions: React.FC<TransactionsProps> = ({ initialAccountFilter, initi
                                 filterContent={tagFilterContent}
                             />
                         </div>
-                        <div className="hidden md:block col-span-1 text-right">
+                        <div className="hidden md:block text-center">
                              <ColumnHeader
                                 label="Spare"
                                 currentSort={sortBy}
                                 onSort={setSortBy}
                              />
                         </div>
-                        <div className="col-span-4 md:col-span-3 lg:col-span-2 text-right flex justify-end">
+                        <div className="md:text-center flex justify-end md:justify-center">
                              <ColumnHeader
                                 label="Amount"
                                 sortKey="amount"
@@ -1190,7 +1190,7 @@ const Transactions: React.FC<TransactionsProps> = ({ initialAccountFilter, initi
                 <VirtualizedList
                   height={listHeight}
                   itemCount={virtualRows.length}
-                  estimatedItemSize={96}
+                  estimatedItemSize={82}
                   getItemSize={getRowSize}
                   itemKey={getRowKey}
                 >
@@ -1234,22 +1234,22 @@ const Transactions: React.FC<TransactionsProps> = ({ initialAccountFilter, initi
                       <div
                         key={tx.id}
                         style={style}
-                        className="flex items-center group hover:bg-gray-50 dark:hover:bg-white/5 transition-colors px-6 py-3 cursor-default relative border-b border-black/5 dark:border-white/5"
+                        className={`flex items-center group hover:bg-gray-50 dark:hover:bg-white/5 transition-colors px-6 py-2.5 cursor-default relative border-b border-black/5 dark:border-white/5 ${index % 2 === 0 ? 'bg-gray-50/40 dark:bg-white/[0.02]' : ''}`}
                         onClick={() => { /* handle row click if needed */ }}
                         onContextMenu={(e) => openContextMenu(e, tx)}
                       >
-                        <div className="flex items-center gap-4">
+                        <div className="flex items-center gap-3">
                           <input type="checkbox" className={CHECKBOX_STYLE} checked={selectedIds.has(tx.id)} onChange={(e) => { e.stopPropagation(); handleSelectOne(tx.id); }} onClick={e => e.stopPropagation()} aria-label={`Select transaction ${tx.description}`} />
-                          <div className={`w-10 h-10 rounded-full flex items-center justify-center text-white shadow-sm shrink-0`} style={{ backgroundColor: categoryColor }}>
-                            <span className="material-symbols-outlined text-[20px]">{categoryIcon}</span>
+                          <div className={`w-9 h-9 rounded-full flex items-center justify-center text-white shadow-sm shrink-0`} style={{ backgroundColor: categoryColor }}>
+                            <span className="material-symbols-outlined text-[18px]">{categoryIcon}</span>
                           </div>
                         </div>
 
-                        <div className="flex-1 grid grid-cols-12 gap-4 items-center ml-4 min-w-0">
+                        <div className="flex-1 grid grid-cols-1 md:[grid-template-columns:1.8fr_1.15fr_1.15fr_0.9fr_0.85fr_0.95fr] gap-3 items-center ml-4 min-w-0">
                           {/* Description & Date (Mobile/Desktop) */}
-                          <div className="col-span-8 md:col-span-5 lg:col-span-3 min-w-0">
-                            <p className="font-bold text-light-text dark:text-dark-text truncate text-sm">{tx.description}</p>
-                            <div className="flex flex-wrap gap-2 text-xs text-light-text-secondary dark:text-dark-text-secondary mt-0.5">
+                          <div className="min-w-0">
+                            <p className="font-bold text-light-text dark:text-dark-text truncate text-sm leading-tight">{tx.description}</p>
+                            <div className="flex flex-wrap gap-1.5 text-xs text-light-text-secondary dark:text-dark-text-secondary mt-0.5 leading-snug">
                               <span className="md:hidden truncate bg-gray-100 dark:bg-white/10 px-1.5 rounded">{tx.isTransfer ? `${tx.fromAccountName} → ${tx.toAccountName}` : tx.accountName}</span>
                               {tx.tagIds && tx.tagIds.length > 0 && (
                                 <div className="lg:hidden flex flex-wrap gap-1">
@@ -1264,7 +1264,7 @@ const Transactions: React.FC<TransactionsProps> = ({ initialAccountFilter, initi
                           </div>
 
                           {/* Account */}
-                          <div className="hidden md:flex col-span-2 text-sm text-light-text-secondary dark:text-dark-text-secondary items-center truncate">
+                          <div className="hidden md:flex text-sm text-light-text-secondary dark:text-dark-text-secondary items-center truncate">
                             {tx.isTransfer ? (
                               <div className="flex items-center gap-1 truncate bg-gray-100 dark:bg-white/5 px-2 py-1 rounded-md">
                                 <span className="truncate max-w-[80px]">{tx.fromAccountName}</span>
@@ -1277,15 +1277,15 @@ const Transactions: React.FC<TransactionsProps> = ({ initialAccountFilter, initi
                           </div>
 
                           {/* Merchant */}
-                          <div className="hidden lg:block col-span-2 text-sm text-light-text-secondary dark:text-dark-text-secondary truncate">{tx.merchant || '—'}</div>
+                          <div className="hidden lg:block text-sm text-light-text-secondary dark:text-dark-text-secondary truncate text-left">{tx.merchant || '—'}</div>
 
                           {/* Category */}
-                          <div className="hidden md:block col-span-1 text-sm font-medium text-light-text-secondary dark:text-dark-text-secondary truncate">
-                            <span className="px-2 py-0.5 rounded-full border border-black/5 dark:border-white/10 bg-white dark:bg-black/20">{tx.category}</span>
+                          <div className="hidden md:block text-sm font-medium text-light-text-secondary dark:text-dark-text-secondary truncate text-center">
+                            <span className="px-2 py-0.5 rounded-full border border-black/5 dark:border-white/10 bg-white dark:bg-black/20 inline-block">{tx.category}</span>
                           </div>
 
                           {/* Tags */}
-                          <div className="hidden lg:flex col-span-1 flex-wrap gap-1">
+                          <div className="hidden lg:flex flex-wrap gap-1 justify-center">
                             {tx.tagIds?.map(tagId => {
                               const tag = tags.find(t => t.id === tagId);
                               if (!tag) return null;
@@ -1298,7 +1298,7 @@ const Transactions: React.FC<TransactionsProps> = ({ initialAccountFilter, initi
                           </div>
 
                           {/* Spare Change */}
-                          <div className="hidden md:block col-span-1 text-sm font-mono text-right text-light-text-secondary dark:text-dark-text-secondary">
+                          <div className="hidden md:block text-sm font-mono text-center text-light-text-secondary dark:text-dark-text-secondary">
                             {tx.spareChangeAmount ? (
                               <span className="text-semantic-red">{formatCurrency(convertToEur(-Math.abs(tx.spareChangeAmount), tx.currency), 'EUR', { showPlusSign: true })}</span>
                             ) : (
@@ -1307,7 +1307,7 @@ const Transactions: React.FC<TransactionsProps> = ({ initialAccountFilter, initi
                           </div>
 
                           {/* Amount */}
-                          <div className={`col-span-4 md:col-span-3 lg:col-span-2 font-mono font-bold text-right text-sm whitespace-nowrap ${amountColor}`}>
+                          <div className={`font-mono font-bold text-sm whitespace-nowrap md:text-center text-right ${amountColor}`}>
                             {tx.isTransfer && selectedAccountIds.length === 0
                               ? '-/+ ' + formatCurrency(convertToEur(Math.abs(amount), tx.currency), 'EUR')
                               : formatCurrency(convertToEur(amount, tx.currency), 'EUR', { showPlusSign: true })}
