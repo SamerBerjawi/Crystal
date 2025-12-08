@@ -1,3 +1,4 @@
+
 import React, { useMemo, useState, useCallback, useEffect, useRef, Suspense, lazy } from 'react';
 import { User, Transaction, Account, Category, Duration, CategorySpending, Widget, WidgetConfig, DisplayTransaction, FinancialGoal, RecurringTransaction, BillPayment, Tag, Budget, RecurringTransactionOverride, LoanPaymentOverrides, AccountType, Task, ForecastDuration } from '../types';
 import { formatCurrency, getDateRange, calculateAccountTotals, convertToEur, calculateStatementPeriods, generateBalanceForecast, parseDateAsUTC, getCreditCardStatementDetails, generateSyntheticLoanPayments, generateSyntheticCreditCardPayments, getPreferredTimeZone, formatDateKey, generateSyntheticPropertyTransactions, toLocalISOString } from '../utils';
@@ -57,6 +58,14 @@ interface DashboardProps {
   tasks: Task[];
   saveTask: (task: Omit<Task, 'id'> & { id?: string }) => void;
 }
+
+// Define the AssetGroup type to fix type errors
+type AssetGroup = { 
+  types: AccountType[]; 
+  value: number; 
+  color: string; 
+  icon: string 
+};
 
 const findCategoryDetails = (name: string, categories: Category[]): Category | undefined => {
   for (const cat of categories) {
@@ -626,7 +635,8 @@ const Dashboard: React.FC<DashboardProps> = ({ user, tasks, saveTask }) => {
   }, [accounts, transactions, loanPaymentOverrides]);
 
   const assetAllocationData: { name: string; value: number; color: string }[] = useMemo(() => {
-      const groups = assetGroups as any;
+      // Explicitly type the groups to avoid implicit any errors
+      const groups = assetGroups as Record<string, AssetGroup>;
       const data = [
         { name: 'Liquid Cash', value: groups?.['Liquid Cash']?.value || 0, color: groups?.['Liquid Cash']?.color || '#A0AEC0' },
         { name: 'Investments', value: groups?.['Investments']?.value || 0, color: groups?.['Investments']?.color || '#A0AEC0' },

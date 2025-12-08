@@ -214,6 +214,7 @@ const AccountDetail: React.FC<{
                         {...commonProps}
                         accounts={accounts}
                         transactions={transactions}
+                        loanPaymentOverrides={loanPaymentOverrides}
                     />
                 );
             case 'Loan':
