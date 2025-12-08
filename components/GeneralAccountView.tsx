@@ -1,11 +1,11 @@
 
 import React, { useMemo } from 'react';
 import { Account, DisplayTransaction, Category, Transaction, RecurringTransaction } from '../types';
-import { formatCurrency, parseDateAsUTC, generateSyntheticLoanPayments, generateSyntheticCreditCardPayments, generateBalanceForecast, convertToEur, generateSyntheticPropertyTransactions, calculateStatementPeriods, getCreditCardStatementDetails, getPreferredTimeZone } from '../utils';
+import { formatCurrency, parseDateAsUTC, generateSyntheticLoanPayments, generateSyntheticCreditCardPayments, generateBalanceForecast, convertToEur, generateSyntheticPropertyTransactions, calculateStatementPeriods, getCreditCardStatementDetails, getPreferredTimeZone, formatDateKey, toLocalISOString } from '../utils';
 import Card from './Card';
 import TransactionList from './TransactionList';
 import { BTN_PRIMARY_STYLE, ACCOUNT_TYPE_STYLES } from '../constants';
-import { AreaChart, Area, XAxis, YAxis, Tooltip, ResponsiveContainer, CartesianGrid, BarChart, Bar, Cell, Legend } from 'recharts';
+import { AreaChart, Area, XAxis, YAxis, Tooltip, ResponsiveContainer, CartesianGrid, BarChart, Bar, Cell, Legend, ReferenceLine } from 'recharts';
 import { useGoalsContext, useScheduleContext } from '../contexts/FinancialDataContext';
 import { useAccountsContext, useTransactionsContext } from '../contexts/DomainProviders';
 
@@ -343,6 +343,11 @@ const GeneralAccountView: React.FC<GeneralAccountViewProps> = ({
       acc.settlementAccountId === account.id
     );
   }, [accounts, account.id]);
+  
+  // Find Linked Goals
+  const linkedGoals = useMemo(() => {
+      return financialGoals.filter(g => g.paymentAccountId === account.id);
+  }, [financialGoals, account.id]);
 
   const hasCardDetails = account.cardNetwork || account.last4 || account.expirationDate || account.cardholderName;
   const showVirtualCard = (account.type === 'Checking' || account.type === 'Savings') || hasCardDetails;
@@ -811,6 +816,38 @@ const GeneralAccountView: React.FC<GeneralAccountViewProps> = ({
                 </Card>
            </div>
       </div>
+
+      {/* Linked Goals Section */}
+      {linkedGoals.length > 0 && (
+           <Card>
+                <div className="flex items-center gap-2 mb-4">
+                    <span className="material-symbols-outlined text-amber-500">flag</span>
+                    <h3 className="text-lg font-bold text-light-text dark:text-dark-text">Linked Goals</h3>
+                </div>
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                    {linkedGoals.map(goal => {
+                        const progress = Math.min(100, Math.max(0, (goal.currentAmount / goal.amount) * 100));
+                        return (
+                            <div key={goal.id} className="p-4 bg-gray-50 dark:bg-white/5 rounded-xl border border-black/5 dark:border-white/5 shadow-sm">
+                                <div className="flex justify-between items-center mb-2">
+                                    <span className="font-bold text-sm text-light-text dark:text-dark-text truncate">{goal.name}</span>
+                                    <span className={`text-xs font-bold px-2 py-0.5 rounded-full ${progress >= 100 ? 'bg-green-100 text-green-700' : 'bg-amber-100 text-amber-700'}`}>
+                                        {progress.toFixed(0)}%
+                                    </span>
+                                </div>
+                                <div className="w-full bg-gray-200 dark:bg-gray-700 rounded-full h-2 overflow-hidden mb-2">
+                                    <div className="h-full bg-gradient-to-r from-amber-400 to-orange-500 rounded-full" style={{ width: `${progress}%` }}></div>
+                                </div>
+                                <div className="flex justify-between text-xs text-light-text-secondary dark:text-dark-text-secondary">
+                                    <span className="font-semibold text-light-text dark:text-dark-text">{formatCurrency(goal.currentAmount, 'EUR')}</span>
+                                    <span>Target: {formatCurrency(goal.amount, 'EUR')}</span>
+                                </div>
+                            </div>
+                        );
+                    })}
+                </div>
+           </Card>
+      )}
 
       {/* Grid 4: Recent Transactions */}
       <Card className="h-full flex flex-col">
