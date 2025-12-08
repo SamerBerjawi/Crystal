@@ -330,7 +330,7 @@ const SchedulePage: React.FC<ScheduleProps> = () => {
 
             // Fast forward past dates before "recently"
             const startRecurringScanDate = new Date(todayMidnight);
-            startRecurringScanDate.setDate(startRecurringScanDate.getDate() - 30); // Look back a month for overdue
+            startRecurringScanDate.setDate(startRecurringScanDate.getDate() - 7); // Look back a week for overdue
 
             while (nextDate < startRecurringScanDate && (!endDateUTC || nextDate < endDateUTC)) {
                 const interval = rt.frequencyInterval || 1;
@@ -841,7 +841,7 @@ const SchedulePage: React.FC<ScheduleProps> = () => {
                                     onDelete={handleDeleteItem} 
                                     onPost={handleOpenPostModal}
                                     totalAmount={groupTotal}
-                                    defaultOpen={['Overdue', 'Today', 'Next 7 Days'].includes(groupKey)}
+                                    defaultOpen={['Today', 'Next 7 Days'].includes(groupKey)}
                                 />
                             );
                         })}
