@@ -473,12 +473,12 @@ const Transactions: React.FC<TransactionsProps> = ({ initialAccountFilter, initi
   const getRowSize = useCallback(
     (index: number) => {
       const row = virtualRows[index];
-      if (!row) return 72;
+      if (!row) return 48;
       if (row.type === 'header') return 48;
 
       const tagCount = row.transaction.tagIds?.length || 0;
       const extraTagRows = tagCount > 0 ? Math.ceil(tagCount / 3) : 0;
-      return 88 + extraTagRows * 18;
+      return 48 + extraTagRows * 18;
     },
     [virtualRows]
   );
