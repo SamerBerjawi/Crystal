@@ -1,86 +1,75 @@
 # Crystal
 
-Crystal provides clarity and foresight for your financial future. It centralizes accounts, transactions, budgets, investments, and forecasts while layering in AI-assisted insights to help you plan with confidence.
+Crystal provides clarity and foresight for your financial future. It is a comprehensive, privacy-first personal finance dashboard that centralizes accounts, transactions, budgets, investments, and forecasts. Beyond standard tracking, Crystal layers in intelligent forecasting, asset-specific management tools, and AI-assisted insights to help you plan with confidence.
 
-## Features
-- **Unified finance workspace:** Dashboard, accounts, transactions, and tags keep balances, cash flow, and categorization in one place.
-- **Planning tools:** Budgeting, forecasting, and goal tracking pages help you model scenarios and monitor progress.
-- **Investments & warrants:** Track holdings, warrants, and investment transactions with price updates and performance metrics.
-- **Cash flow automation:** Schedule recurring payments, bills, and tasks so upcoming obligations stay visible.
-- **Data import/export:** Import historical data and export current state for backups or analysis.
-- **AI assistance:** Gemini-powered chat and planning helpers surface insights through natural-language prompts (requires API key).
-- **Customizable experience:** Preferences for currency, language, themes, and layout, plus category/tag management.
+## Core Features
 
-## Tech stack
-- **Frontend:** React + TypeScript, Vite bundler, Recharts for data viz, Leaflet for maps.
-- **Backend (optional):** Express + PostgreSQL for authentication, persistence, and API routes (`/server`).
-- **Containerization:** Dockerfiles for the frontend and backend with a `docker-compose.yml` that wires a PostgreSQL database.
+### 📊 Dynamic Dashboard
+*   **Modular Widget System:** Customizable grid layout with drag-and-drop widgets (Net Worth, Recent Activity, Cash Flow, Spending breakdown, etc.).
+*   **Privacy / "Coffee Shop" Mode:** One-click toggle in the header to blur all monetary values for secure viewing in public spaces.
+*   **Multi-Tab Views:** Switch between `Overview` (snapshot), `Analysis` (ratios & health metrics), and `Activity` (maps & flows) layouts.
+*   **Transaction Map:** Visual heat map of spending locations based on transaction geolocation data.
+*   **Cash Flow Sankey Diagram:** Visualize money flow from income sources to expenses and savings.
 
-## Getting started (frontend)
-1. **Prerequisites:** Node.js 18+ and npm.
-2. **Install dependencies:**
-   ```bash
-   npm install
-   ```
-3. **Configure AI access:** Create `.env.local` in the repo root with your Gemini key:
-   ```bash
-   GEMINI_API_KEY=your_key_here
-   ```
-4. **Run the app:**
-   ```bash
-   npm run dev
-   ```
-   The Vite dev server prints a local URL (default: `http://localhost:5173`).
+### 💼 Comprehensive Account Management
+Crystal supports a wide array of account types with specialized views and logic for each:
+*   **Liquid Assets:** Checking, Savings, and Cash wallets with burn-rate calculation and "Safe-to-Spend" metrics.
+*   **Credit Cards:** Smart statement tracking that visualizes billing cycles, due dates, and credit utilization limits.
+*   **Properties:** Dedicated property ledger tracking estimated market value, equity (calculated against linked mortgages), amortization, and property specifics (lot size, year built, amenities).
+*   **Vehicles:** Detailed vehicle profiles supporting both **Owned** and **Leased** models. Tracks VIN, fuel type, purchase details, and includes a **Mileage Log** with usage charts to forecast lease overages.
+*   **Loans & Lending:** Amortization schedule generation, principal/interest split tracking, and payment planning.
+*   **Investments:** Support for Stocks, ETFs, Crypto, and Pension funds.
+*   **Warrants & Equity:** Specialized tracking for employee stock warrants/options with grant dates and strike prices. Includes a **Custom Web Scraper** tool to fetch prices for obscure or private assets.
 
-## Running the backend (optional)
-The Express API powers authentication and persistent storage. Set the required environment before starting:
+### 💳 Intelligent Transaction Handling
+*   **Smart Categorization:** Bulk editing and categorization tools.
+*   **Transfer Detection:** Heuristic-based matching engine that identifies potential transfers between accounts (e.g., a debit in Checking matching a credit in Savings) to keep cash flow reporting accurate.
+*   **Spare Change Tracking:** Virtual "Round-up" calculator that estimates savings if purchases were rounded to the nearest dollar.
+*   **Rich Metadata:** Support for merchant names, notes, tags, and geolocation.
+*   **Global Search:** Fuzzy search across amounts, descriptions, categories, and accounts.
 
-```
-DATABASE_HOST=<postgres_host>
-DATABASE_PORT=5432
-DATABASE_USER=<postgres_user>
-DATABASE_PASSWORD=<postgres_password>
-DATABASE_NAME=<postgres_db>
-JWT_SECRET=<secure_random_string>
-API_BODY_LIMIT=50mb              # optional override
-```
+### 📅 Forecasting & Planning
+*   **Projected Cash Flow:** Generates a daily balance forecast up to 2 years into the future based on recurring patterns and scheduled bills.
+*   **Synthetic Events:** The forecasting engine automatically generates future "Synthetic" transactions for loan payments, credit card payoffs, and property taxes without cluttering your actual transaction ledger.
+*   **Financial Goals:** Create One-time or Recurring savings goals.
+*   **AI Smart Planner:** Generates step-by-step contribution plans to achieve your goals based on your projected free cash flow (requires Gemini API).
+*   **Scenario Modeling:** Toggle goals and large expenses on/off to see their impact on your future liquidity.
 
-Then install and start:
-```bash
-cd server
-npm install
-npm run build
-npm start
-```
-Use `npm run dev` for rebuild-on-change development. The API listens on `http://localhost:3001` by default.
+### 🔄 Schedule & Recurring Engine
+*   **Subscription Manager:** Detects potential recurring subscriptions from transaction history.
+*   **Calendar Heatmap:** Visual density map of upcoming financial obligations.
+*   **Flexible Recurrence:** Support for complex schedules (e.g., "Last Friday of the month", "Every 2 weeks").
+*   **Bill Tracking:** Mark bills as paid/unpaid and track due dates.
 
-## Docker Compose
-A full stack (PostgreSQL + backend + frontend) is defined in `docker-compose.yml`.
+### 🤖 AI Integration (Gemini)
+*   **Conversational Assistant:** Chat with your financial data using natural language (e.g., "How much did I spend on coffee last month?", "Can I afford a vacation in July?").
+*   **Budget Advisor:** AI analysis of historical spending to suggest realistic monthly budgets for each category.
 
-```bash
-docker compose up --build
-```
+### 🛠️ Data Sovereignty & Management
+*   **Local-First / Private:** Data is stored locally or on your self-hosted backend. No external bank connections required.
+*   **Import Wizard:** Robust CSV importer with column mapping, data cleaning (date formats, currency normalization), and preview capabilities.
+*   **Export:** Full JSON backup and CSV export options for portability.
+*   **Currencies:** Multi-currency support with automatic conversion to your base currency for reporting.
 
-Key overrides:
-- `POSTGRES_DB`, `POSTGRES_USER`, `POSTGRES_PASSWORD`: database credentials.
-- `JWT_SECRET`: backend token signing secret.
-- `FRONTEND_PORT`: host port exposing the frontend (defaults to `7157`).
-- `DATA_ROOT`: host path for persistent Postgres storage.
+## Tech Stack
+- **Frontend:** React 19, TypeScript, Vite, Tailwind CSS, Recharts, Leaflet (Maps).
+- **State Management:** Context API + React Query.
+- **Backend (Optional):** Node.js/Express + PostgreSQL (for persistence and multi-device sync).
+- **Containerization:** Docker & Docker Compose.
 
-## Project layout
-- `App.tsx`, `pages/`, `components/`: React views and UI building blocks.
-- `contexts/`, `hooks/`: shared state providers and reusable logic.
-- `utils/`, `utils.ts`, `constants.tsx`, `types.ts`: utilities, shared types, and app-wide constants.
-- `server/`: Express API, Postgres migrations/initialization, and backend Dockerfile.
-- `docker-compose.yml`, `Dockerfile`, `frontend.Dockerfile`: containerization assets for local or deployment use.
+## Getting Started
 
-## Useful scripts
-- `npm run dev` – start the Vite dev server.
-- `npm run build` – create a production build of the frontend.
-- `npm run preview` – preview the production build locally.
-- `npm run build && npm start` (in `server/`) – compile and serve the backend API.
-- `npm run dev` (in `server/`) – watch mode for backend development.
-
-## Notes
-- AI features remain disabled until `GEMINI_API_KEY` is present at runtime.
-- When the backend is offline, mock/demo data can still be explored in the frontend, but authentication and persistence require the server and PostgreSQL.
+1.  **Install Dependencies:**
+    ```bash
+    npm install
+    ```
+2.  **Configure AI (Optional):**
+    Create `.env.local` and add `GEMINI_API_KEY=your_key_here`.
+3.  **Run Development Server:**
+    ```bash
+    npm run dev
+    ```
+4.  **Run with Backend (Docker):**
+    ```bash
+    docker compose up --build
+    ```
