@@ -267,16 +267,19 @@ const SchedulePage: React.FC<ScheduleProps> = () => {
         const today = new Date();
         const todayStr = toLocalISOString(today);
         const todayMidnight = parseDateAsUTC(todayStr);
-        
-        const forecastEndDate = new Date(todayMidnight); 
+
+        const forecastEndDate = new Date(todayMidnight);
         forecastEndDate.setMonth(todayMidnight.getMonth() + 12);
 
         // Used for "Next 30 Days" metrics
         const next30DaysEnd = new Date(todayMidnight);
         next30DaysEnd.setDate(todayMidnight.getDate() + 30);
-        
+
         const next7DaysEnd = new Date(todayMidnight);
         next7DaysEnd.setDate(todayMidnight.getDate() + 7);
+
+        const overdueWindowStart = new Date(todayMidnight);
+        overdueWindowStart.setDate(todayMidnight.getDate() - 7);
 
         const allUpcomingItems: ScheduledItem[] = [];
 
@@ -328,9 +331,9 @@ const SchedulePage: React.FC<ScheduleProps> = () => {
             const endDateUTC = rt.endDate ? parseDateAsUTC(rt.endDate) : null;
             const startDateUTC = parseDateAsUTC(rt.startDate);
 
-            // Fast forward past dates before "recently"
+            // Fast forward past dates before the recent overdue window
             const startRecurringScanDate = new Date(todayMidnight);
-            startRecurringScanDate.setDate(startRecurringScanDate.getDate() - 30); // Look back a month for overdue
+            startRecurringScanDate.setDate(startRecurringScanDate.getDate() - 7);
 
             while (nextDate < startRecurringScanDate && (!endDateUTC || nextDate < endDateUTC)) {
                 const interval = rt.frequencyInterval || 1;
@@ -430,6 +433,12 @@ const SchedulePage: React.FC<ScheduleProps> = () => {
             const itemDate = parseDateAsUTC(item.date);
             const isWithin30Days = itemDate >= todayMidnight && itemDate <= next30DaysEnd;
 
+            if (itemDate < overdueWindowStart) return;
+
+            const isOverdue = item.date < todayStr && itemDate >= overdueWindowStart;
+            const isToday = item.date === todayStr;
+            const isNext7Days = itemDate > todayMidnight && itemDate <= next7DaysEnd;
+
             // Metrics Calculation (only if within 30 days)
             if (isWithin30Days) {
                 const amountEur = convertToEur(item.amount, (item.originalItem as any).currency);
@@ -463,13 +472,13 @@ const SchedulePage: React.FC<ScheduleProps> = () => {
 
             // Grouping Logic
             // Use string comparison for consistency with TodayWidget
-            if (item.date < todayStr) {
+            if (isOverdue) {
                 if (!groups['Overdue']) groups['Overdue'] = [];
                 groups['Overdue'].push(item);
-            } else if (item.date === todayStr) {
+            } else if (isToday) {
                 if (!groups['Today']) groups['Today'] = [];
                 groups['Today'].push(item);
-            } else if (itemDate <= next7DaysEnd) {
+            } else if (isNext7Days) {
                 if (!groups['Next 7 Days']) groups['Next 7 Days'] = [];
                 groups['Next 7 Days'].push(item);
             } else {
@@ -836,12 +845,12 @@ const SchedulePage: React.FC<ScheduleProps> = () => {
                                     key={groupKey} 
                                     title={groupKey} 
                                     items={items} 
-                                    accounts={accounts} 
-                                    onEdit={handleEditItem} 
-                                    onDelete={handleDeleteItem} 
+                                    accounts={accounts}
+                                    onEdit={handleEditItem}
+                                    onDelete={handleDeleteItem}
                                     onPost={handleOpenPostModal}
                                     totalAmount={groupTotal}
-                                    defaultOpen={['Overdue', 'Today', 'Next 7 Days'].includes(groupKey)}
+                                    defaultOpen={['Today', 'Next 7 Days'].includes(groupKey)}
                                 />
                             );
                         })}
