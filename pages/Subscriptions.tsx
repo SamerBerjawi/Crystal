@@ -1,7 +1,7 @@
 
 import React, { useState, useMemo, useEffect } from 'react';
 import { RecurringTransaction, Transaction, RecurrenceFrequency, Currency } from '../types';
-import { formatCurrency, convertToEur, parseDateAsUTC } from '../utils';
+import { formatCurrency, convertToEur, parseLocalDate } from '../utils';
 import Card from '../components/Card';
 import { BTN_PRIMARY_STYLE, BTN_SECONDARY_STYLE, BTN_DANGER_STYLE } from '../constants';
 import RecurringTransactionModal from '../components/RecurringTransactionModal';
@@ -78,14 +78,14 @@ const Subscriptions: React.FC = () => {
                 if (isTracked || ignoredSubscriptions.includes(key)) return;
 
                 // Sort by date
-                groupTxs.sort((a, b) => parseDateAsUTC(a.date).getTime() - parseDateAsUTC(b.date).getTime());
+                groupTxs.sort((a, b) => parseLocalDate(a.date).getTime() - parseLocalDate(b.date).getTime());
 
                 // Calculate intervals
                 const intervals: number[] = [];
-                let lastDate = parseDateAsUTC(groupTxs[0].date);
+                let lastDate = parseLocalDate(groupTxs[0].date);
                 
                 for (let i = 1; i < groupTxs.length; i++) {
-                    const currentDate = parseDateAsUTC(groupTxs[i].date);
+                    const currentDate = parseLocalDate(groupTxs[i].date);
                     const diffTime = Math.abs(currentDate.getTime() - lastDate.getTime());
                     const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
                     intervals.push(diffDays);
@@ -154,7 +154,7 @@ const Subscriptions: React.FC = () => {
     const handleTrack = (candidate: DetectedSubscription) => {
         const account = accounts.find(a => a.id === candidate.accountId);
         // Find next due date
-        const last = parseDateAsUTC(candidate.lastDate);
+        const last = parseLocalDate(candidate.lastDate);
         const next = new Date(last);
         if (candidate.frequency === 'monthly') next.setMonth(next.getMonth() + 1);
         else if (candidate.frequency === 'yearly') next.setFullYear(next.getFullYear() + 1);
@@ -308,7 +308,7 @@ const Subscriptions: React.FC = () => {
                         </thead>
                         <tbody className="divide-y divide-black/5 dark:divide-white/5 text-sm">
                             {activeSubscriptions.map(sub => {
-                                const nextDueDate = parseDateAsUTC(sub.nextDueDate);
+                                const nextDueDate = parseLocalDate(sub.nextDueDate);
                                 const daysUntil = Math.ceil((nextDueDate.getTime() - new Date().getTime()) / (1000 * 60 * 60 * 24));
                                 const isDueSoon = daysUntil >= 0 && daysUntil <= 3;
 

@@ -1,7 +1,7 @@
 
 import React, { useMemo } from 'react';
 import { Account, MileageLog } from '../types';
-import { formatCurrency, parseDateAsUTC } from '../utils';
+import { formatCurrency, parseLocalDate } from '../utils';
 import Card from './Card';
 import VehicleMileageChart from './VehicleMileageChart';
 import { BTN_PRIMARY_STYLE, BTN_SECONDARY_STYLE, ACCOUNT_TYPE_STYLES } from '../constants';
@@ -40,8 +40,8 @@ const VehicleAccountView: React.FC<VehicleAccountViewProps> = ({
 
   const leaseStats = useMemo(() => {
     if (account.ownership !== 'Leased' || !account.leaseStartDate || !account.leaseEndDate) return null;
-    const start = parseDateAsUTC(account.leaseStartDate);
-    const end = parseDateAsUTC(account.leaseEndDate);
+    const start = parseLocalDate(account.leaseStartDate);
+    const end = parseLocalDate(account.leaseEndDate);
     const now = new Date();
     const totalDays = (end.getTime() - start.getTime()) / (1000 * 60 * 60 * 24);
     const elapsedDays = (now.getTime() - start.getTime()) / (1000 * 60 * 60 * 24);
@@ -235,12 +235,12 @@ const VehicleAccountView: React.FC<VehicleAccountViewProps> = ({
                      </div>
                       <div className="flex justify-between">
                          <span className="text-light-text-secondary dark:text-dark-text-secondary">Purchase/Start Date</span>
-                         <span className="font-medium">{(isLeased ? account.leaseStartDate : account.purchaseDate) ? parseDateAsUTC((isLeased ? account.leaseStartDate : account.purchaseDate)!).toLocaleDateString() : '—'}</span>
+                         <span className="font-medium">{(isLeased ? account.leaseStartDate : account.purchaseDate) ? parseLocalDate((isLeased ? account.leaseStartDate : account.purchaseDate)!).toLocaleDateString() : '—'}</span>
                      </div>
                      {isLeased && (
                          <div className="flex justify-between">
                              <span className="text-light-text-secondary dark:text-dark-text-secondary">End Date</span>
-                             <span className="font-medium">{account.leaseEndDate ? parseDateAsUTC(account.leaseEndDate).toLocaleDateString() : '—'}</span>
+                             <span className="font-medium">{account.leaseEndDate ? parseLocalDate(account.leaseEndDate).toLocaleDateString() : '—'}</span>
                          </div>
                      )}
                  </div>
@@ -261,7 +261,7 @@ const VehicleAccountView: React.FC<VehicleAccountViewProps> = ({
                              return (
                                 <div key={log.id} className="group flex justify-between items-center p-3 rounded-lg bg-light-bg dark:bg-dark-bg/50 hover:bg-gray-100 dark:hover:bg-white/10 transition-colors border border-transparent hover:border-black/5 dark:hover:border-white/10">
                                     <div>
-                                        <p className="font-bold text-sm text-light-text dark:text-dark-text">{parseDateAsUTC(log.date).toLocaleDateString()}</p>
+                                        <p className="font-bold text-sm text-light-text dark:text-dark-text">{parseLocalDate(log.date).toLocaleDateString()}</p>
                                         {diff > 0 && <p className="text-[10px] text-green-600 dark:text-green-400 font-medium">+{diff.toLocaleString()} km</p>}
                                     </div>
                                     <div className="text-right">

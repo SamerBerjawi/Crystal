@@ -1,7 +1,7 @@
 
 import React from 'react';
 import { Task, TaskPriority } from '../types';
-import { parseDateAsUTC } from '../utils';
+import { parseLocalDate } from '../utils';
 
 interface TaskItemProps {
   task: Task;
@@ -18,7 +18,7 @@ const PRIORITY_STYLES: Record<TaskPriority, { text: string; bg: string; dot: str
 const getRelativeDate = (dateString: string): { text: string; color: string } => {
     const today = new Date();
     today.setHours(0, 0, 0, 0);
-    const date = parseDateAsUTC(dateString);
+    const date = parseLocalDate(dateString);
     const diffTime = date.getTime() - today.getTime();
     const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
 

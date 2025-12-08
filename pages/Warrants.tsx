@@ -3,7 +3,7 @@ import React, { useState, useMemo, useCallback } from 'react';
 import { Warrant } from '../types';
 import { BTN_PRIMARY_STYLE } from '../constants';
 import Card from '../components/Card';
-import { formatCurrency, parseDateAsUTC } from '../utils';
+import { formatCurrency, parseLocalDate } from '../utils';
 import WarrantModal from '../components/WarrantModal';
 import WarrantPriceModal from '../components/WarrantPriceModal';
 import PortfolioDistributionChart from '../components/PortfolioDistributionChart';
@@ -53,7 +53,7 @@ const Warrants: React.FC<WarrantsProps> = ({ warrants, saveWarrant, deleteWarran
             holding.quantity += grant.quantity;
             holding.totalGrantValue += grant.quantity * grant.grantPrice;
             holding.grants.push(grant);
-            if (parseDateAsUTC(grant.grantDate) > parseDateAsUTC(holding.grants[0].grantDate)) {
+            if (parseLocalDate(grant.grantDate) > parseLocalDate(holding.grants[0].grantDate)) {
                 holding.name = grant.name;
             }
         });
@@ -86,7 +86,7 @@ const Warrants: React.FC<WarrantsProps> = ({ warrants, saveWarrant, deleteWarran
     const totalGainLoss = totalCurrentValue - totalGrantValue;
     const totalGainLossPercent = totalGrantValue > 0 ? (totalGainLoss / totalGrantValue) * 100 : 0;
     
-    const sortedGrants = [...warrants].sort((a,b) => parseDateAsUTC(b.grantDate).getTime() - parseDateAsUTC(a.grantDate).getTime());
+    const sortedGrants = [...warrants].sort((a,b) => parseLocalDate(b.grantDate).getTime() - parseLocalDate(a.grantDate).getTime());
 
     return (
         <div className="space-y-8">
@@ -184,7 +184,7 @@ const Warrants: React.FC<WarrantsProps> = ({ warrants, saveWarrant, deleteWarran
                 <div className="overflow-x-auto">
                     <table className="w-full text-left">
                         <thead><tr className="border-b border-black/10 dark:border-white/10"><th className="p-2 font-semibold">Grant Date</th><th className="p-2 font-semibold">ISIN</th><th className="p-2 font-semibold">Name</th><th className="p-2 font-semibold text-right">Quantity</th><th className="p-2 font-semibold text-right">Grant Price</th><th className="p-2 font-semibold text-right">Grant Value</th><th className="p-2"></th></tr></thead>
-                        <tbody>{sortedGrants.map(grant => (<tr key={grant.id} className="border-b border-black/5 dark:divide-white/5 last:border-b-0 hover:bg-black/5 dark:hover:bg-white/5 group"><td className="p-2">{parseDateAsUTC(grant.grantDate).toLocaleDateString()}</td><td className="p-2 font-semibold">{grant.isin}</td><td className="p-2">{grant.name}</td><td className="p-2 text-right">{grant.quantity}</td><td className="p-2 text-right">{formatCurrency(grant.grantPrice, 'EUR')}</td><td className="p-2 font-semibold text-right">{formatCurrency(grant.quantity * grant.grantPrice, 'EUR')}</td><td className="p-2 text-right opacity-0 group-hover:opacity-100 transition-opacity"><button onClick={() => handleOpenWarrantModal(grant)} className="p-1 rounded-full text-light-text-secondary dark:text-dark-text-secondary hover:bg-black/10 dark:hover:bg-white/10"><span className="material-symbols-outlined text-base">edit</span></button><button onClick={() => deleteWarrant(grant.id)} className="p-1 rounded-full text-red-500/80 hover:bg-red-500/10"><span className="material-symbols-outlined text-base">delete</span></button></td></tr>))}</tbody>
+                        <tbody>{sortedGrants.map(grant => (<tr key={grant.id} className="border-b border-black/5 dark:divide-white/5 last:border-b-0 hover:bg-black/5 dark:hover:bg-white/5 group"><td className="p-2">{parseLocalDate(grant.grantDate).toLocaleDateString()}</td><td className="p-2 font-semibold">{grant.isin}</td><td className="p-2">{grant.name}</td><td className="p-2 text-right">{grant.quantity}</td><td className="p-2 text-right">{formatCurrency(grant.grantPrice, 'EUR')}</td><td className="p-2 font-semibold text-right">{formatCurrency(grant.quantity * grant.grantPrice, 'EUR')}</td><td className="p-2 text-right opacity-0 group-hover:opacity-100 transition-opacity"><button onClick={() => handleOpenWarrantModal(grant)} className="p-1 rounded-full text-light-text-secondary dark:text-dark-text-secondary hover:bg-black/10 dark:hover:bg-white/10"><span className="material-symbols-outlined text-base">edit</span></button><button onClick={() => deleteWarrant(grant.id)} className="p-1 rounded-full text-red-500/80 hover:bg-red-500/10"><span className="material-symbols-outlined text-base">delete</span></button></td></tr>))}</tbody>
                     </table>
                 </div>
             </Card>

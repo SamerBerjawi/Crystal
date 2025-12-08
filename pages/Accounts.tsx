@@ -4,7 +4,7 @@ import { Account, Page, AccountType, Transaction, Warrant } from '../types';
 import AddAccountModal from '../components/AddAccountModal';
 import EditAccountModal from '../components/EditAccountModal';
 import { ASSET_TYPES, DEBT_TYPES, BTN_PRIMARY_STYLE, ACCOUNT_TYPE_STYLES, BTN_SECONDARY_STYLE, SELECT_WRAPPER_STYLE, SELECT_ARROW_STYLE, SELECT_STYLE, LIQUID_ACCOUNT_TYPES } from '../constants';
-import { calculateAccountTotals, convertToEur, formatCurrency, parseDateAsUTC } from '../utils';
+import { calculateAccountTotals, convertToEur, formatCurrency, parseLocalDate } from '../utils';
 import AccountRow from '../components/AccountRow';
 import BalanceAdjustmentModal from '../components/BalanceAdjustmentModal';
 import FinalConfirmationModal from '../components/FinalConfirmationModal';
@@ -247,7 +247,7 @@ const Accounts: React.FC<AccountsProps> = ({ accounts, transactions, saveAccount
     const thirtyDaysAgo = new Date();
     thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
     const netChange30d = transactions.reduce((sum, tx) => {
-        const txDate = parseDateAsUTC(tx.date);
+        const txDate = parseLocalDate(tx.date);
         if (txDate >= thirtyDaysAgo && open.some(a => a.id === tx.accountId)) {
             return sum + convertToEur(tx.amount, tx.currency);
         }
