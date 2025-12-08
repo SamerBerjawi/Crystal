@@ -232,7 +232,31 @@ const Transactions: React.FC<TransactionsProps> = ({ initialAccountFilter, initi
   const allCategories = useMemo(() => [...incomeCategories, ...expenseCategories], [incomeCategories, expenseCategories]);
   const accountMap = useMemo(() => accounts.reduce((map, acc) => { map[acc.id] = acc; return map; }, {} as { [key: string]: Account }), [accounts]);
   const accountMapByName = useMemo(() => accounts.reduce((map, acc) => { map[acc.name] = acc; return map; }, {} as Record<string, Account>), [accounts]);
-  
+
+  const openContextMenu = useCallback((clientX: number, clientY: number, transaction: DisplayTransaction) => {
+    const MENU_WIDTH = 240;
+    const MENU_HEIGHT = 200;
+    const padding = 12;
+    const x = Math.min(clientX, window.innerWidth - MENU_WIDTH - padding);
+    const y = Math.min(clientY, window.innerHeight - MENU_HEIGHT - padding);
+    setContextMenu({
+        x: Math.max(padding, x),
+        y: Math.max(padding, y),
+        transaction
+    });
+  }, []);
+
+  useEffect(() => {
+    if (!contextMenu) return;
+
+    const handleResize = () => {
+      openContextMenu(contextMenu.x, contextMenu.y, contextMenu.transaction);
+    };
+
+    window.addEventListener('resize', handleResize);
+    return () => window.removeEventListener('resize', handleResize);
+  }, [contextMenu, openContextMenu]);
+
   const getCategoryDetails = (name: string, categories: Category[]): { icon?: string; color?: string } => {
     for (const cat of categories) {
         if (cat.name === name) return { icon: cat.icon, color: cat.color };
@@ -461,12 +485,12 @@ const Transactions: React.FC<TransactionsProps> = ({ initialAccountFilter, initi
   const getRowSize = useCallback(
     (index: number) => {
       const row = virtualRows[index];
-      if (!row) return 72;
-      if (row.type === 'header') return 48;
+      if (!row) return 64;
+      if (row.type === 'header') return 42;
 
       const tagCount = row.transaction.tagIds?.length || 0;
       const extraTagRows = tagCount > 0 ? Math.ceil(tagCount / 3) : 0;
-      return 88 + extraTagRows * 18;
+      return 74 + extraTagRows * 16;
     },
     [virtualRows]
   );
@@ -999,7 +1023,7 @@ const Transactions: React.FC<TransactionsProps> = ({ initialAccountFilter, initi
                       <div>
                           <label htmlFor="type-filter" className={labelStyle}>Type</label>
                           <div className={SELECT_WRAPPER_STYLE}>
-                              <select id="type-filter" value={typeFilter} onChange={(e) => setTypeFilter(e.target.value as any)} className={`${INPUT_BASE_STYLE} py-2`}>
+                              <select id="type-filter" value={typeFilter} onChange={(e) => setTypeFilter(e.target.value as any)} className={`${INPUT_BASE_STYLE} py-2 pr-10`}>
                                   {typeFilterOptions.map(opt => <option key={opt.value} value={opt.value}>{opt.label}</option>)}
                               </select>
                               <div className={SELECT_ARROW_STYLE}><span className="material-symbols-outlined">expand_more</span></div>
@@ -1008,7 +1032,7 @@ const Transactions: React.FC<TransactionsProps> = ({ initialAccountFilter, initi
                       <div>
                           <label htmlFor="sort-by" className={labelStyle}>Sort By</label>
                           <div className={SELECT_WRAPPER_STYLE}>
-                              <select id="sort-by" value={sortBy} onChange={(e) => setSortBy(e.target.value)} className={`${INPUT_BASE_STYLE} py-2`}>
+                              <select id="sort-by" value={sortBy} onChange={(e) => setSortBy(e.target.value)} className={`${INPUT_BASE_STYLE} py-2 pr-10`}>
                                 <option value="date-desc">Date (Newest)</option>
                                 <option value="date-asc">Date (Oldest)</option>
                                 <option value="amount-desc">Amount (High)</option>
@@ -1073,7 +1097,7 @@ const Transactions: React.FC<TransactionsProps> = ({ initialAccountFilter, initi
       <div className="flex-1 min-w-0 relative">
         <Card className="p-0 h-full flex flex-col relative overflow-hidden border border-black/5 dark:border-white/5 shadow-sm">
             {selectedIds.size > 0 ? (
-                <div className="bg-primary-600 dark:bg-primary-800 text-white px-6 flex justify-between items-center h-[60px] z-20 relative">
+                <div className="bg-primary-600 dark:bg-primary-800 text-white px-6 flex justify-between items-center h-[56px] z-30 relative shadow-md">
                      <div className="flex items-center gap-4">
                          <button 
                             onClick={() => setSelectedIds(new Set())} 
@@ -1092,12 +1116,12 @@ const Transactions: React.FC<TransactionsProps> = ({ initialAccountFilter, initi
                     </div>
                 </div>
             ) : (
-                <div className="px-6 py-3 border-b border-black/5 dark:border-white/5 flex items-center gap-4 text-light-text dark:text-dark-text bg-gray-50/50 dark:bg-white/[0.02]">
+                <div className="px-6 py-2.5 border-b border-black/5 dark:border-white/5 flex items-center gap-4 text-light-text dark:text-dark-text bg-gray-50/50 dark:bg-white/[0.02]">
                     <div className="flex items-center justify-center w-5">
                          <input type="checkbox" onChange={handleSelectAll} checked={isAllSelected} className={CHECKBOX_STYLE} aria-label="Select all transactions"/>
                     </div>
-                    <div className="flex-1 grid grid-cols-12 gap-4 ml-2 items-center">
-                        <div className="col-span-8 md:col-span-5 lg:col-span-3">
+                    <div className="flex-1 grid grid-cols-12 gap-3 ml-2 items-center">
+                        <div className="col-span-7 md:col-span-4 lg:col-span-3">
                             <ColumnHeader
                                 label="Transaction"
                                 sortKey="date"
@@ -1126,7 +1150,7 @@ const Transactions: React.FC<TransactionsProps> = ({ initialAccountFilter, initi
                                 filterContent={merchantFilterContent}
                             />
                         </div>
-                        <div className="hidden md:block col-span-1">
+                        <div className="hidden md:block col-span-1 text-center">
                             <ColumnHeader
                                 label="Category"
                                 sortKey="category"
@@ -1134,33 +1158,36 @@ const Transactions: React.FC<TransactionsProps> = ({ initialAccountFilter, initi
                                 onSort={setSortBy}
                                 isFilterActive={selectedCategoryNames.length > 0}
                                 filterContent={categoryFilterContent}
+                                className="justify-center"
                             />
                         </div>
-                        <div className="hidden lg:block col-span-1">
+                        <div className="hidden lg:block col-span-1 text-center">
                             <ColumnHeader
                                 label="Tags"
                                 currentSort={sortBy}
                                 onSort={setSortBy}
                                 isFilterActive={selectedTagIds.length > 0}
                                 filterContent={tagFilterContent}
+                                className="justify-center"
                             />
                         </div>
-                        <div className="hidden md:block col-span-1 text-right">
+                        <div className="hidden md:block col-span-1 text-center">
                              <ColumnHeader
                                 label="Spare"
                                 currentSort={sortBy}
                                 onSort={setSortBy}
+                                className="justify-center"
                              />
                         </div>
-                        <div className="col-span-4 md:col-span-3 lg:col-span-2 text-right flex justify-end">
+                        <div className="col-span-4 md:col-span-3 lg:col-span-2 flex justify-center text-center">
                              <ColumnHeader
                                 label="Amount"
                                 sortKey="amount"
                                 currentSort={sortBy}
                                 onSort={setSortBy}
-                                alignRight
                                 isFilterActive={!!minAmount || !!maxAmount}
                                 filterContent={amountFilterContent}
+                                className="justify-center"
                             />
                         </div>
                     </div>
@@ -1178,7 +1205,7 @@ const Transactions: React.FC<TransactionsProps> = ({ initialAccountFilter, initi
                 <VirtualizedList
                   height={listHeight}
                   itemCount={virtualRows.length}
-                  estimatedItemSize={96}
+                  estimatedItemSize={80}
                   getItemSize={getRowSize}
                   itemKey={getRowKey}
                 >
@@ -1201,6 +1228,7 @@ const Transactions: React.FC<TransactionsProps> = ({ initialAccountFilter, initi
                     }
 
                     const tx = row.transaction;
+                    const isStriped = index % 2 === 1;
                     let amount = tx.amount;
                     let amountColor = tx.type === 'income' ? 'text-green-600 dark:text-green-400' : 'text-red-600 dark:text-red-400';
 
@@ -1222,20 +1250,20 @@ const Transactions: React.FC<TransactionsProps> = ({ initialAccountFilter, initi
                       <div
                         key={tx.id}
                         style={style}
-                        className="flex items-center group hover:bg-gray-50 dark:hover:bg-white/5 transition-colors px-6 py-3 cursor-default relative border-b border-black/5 dark:border-white/5"
+                        className={`flex items-center group hover:bg-gray-50 dark:hover:bg-white/5 transition-colors px-5 py-2.5 cursor-default relative border-b border-black/5 dark:border-white/5 ${isStriped ? 'bg-gray-50/60 dark:bg-white/[0.02]' : ''}`}
                         onClick={() => { /* handle row click if needed */ }}
-                        onContextMenu={(e) => { e.preventDefault(); setContextMenu({ x: e.clientX, y: e.clientY, transaction: tx }); }}
+                        onContextMenu={(e) => { e.preventDefault(); openContextMenu(e.clientX, e.clientY, tx); }}
                       >
                         <div className="flex items-center gap-4">
                           <input type="checkbox" className={CHECKBOX_STYLE} checked={selectedIds.has(tx.id)} onChange={(e) => { e.stopPropagation(); handleSelectOne(tx.id); }} onClick={e => e.stopPropagation()} aria-label={`Select transaction ${tx.description}`} />
-                          <div className={`w-10 h-10 rounded-full flex items-center justify-center text-white shadow-sm shrink-0`} style={{ backgroundColor: categoryColor }}>
-                            <span className="material-symbols-outlined text-[20px]">{categoryIcon}</span>
+                          <div className={`w-9 h-9 rounded-full flex items-center justify-center text-white shadow-sm shrink-0`} style={{ backgroundColor: categoryColor }}>
+                            <span className="material-symbols-outlined text-[18px]">{categoryIcon}</span>
                           </div>
                         </div>
 
-                        <div className="flex-1 grid grid-cols-12 gap-4 items-center ml-4 min-w-0">
+                        <div className="flex-1 grid grid-cols-12 gap-3 items-center ml-3 min-w-0">
                           {/* Description & Date (Mobile/Desktop) */}
-                          <div className="col-span-8 md:col-span-5 lg:col-span-3 min-w-0">
+                          <div className="col-span-7 md:col-span-4 lg:col-span-3 min-w-0">
                             <p className="font-bold text-light-text dark:text-dark-text truncate text-sm">{tx.description}</p>
                             <div className="flex flex-wrap gap-2 text-xs text-light-text-secondary dark:text-dark-text-secondary mt-0.5">
                               <span className="md:hidden truncate bg-gray-100 dark:bg-white/10 px-1.5 rounded">{tx.isTransfer ? `${tx.fromAccountName} → ${tx.toAccountName}` : tx.accountName}</span>
@@ -1268,12 +1296,12 @@ const Transactions: React.FC<TransactionsProps> = ({ initialAccountFilter, initi
                           <div className="hidden lg:block col-span-2 text-sm text-light-text-secondary dark:text-dark-text-secondary truncate">{tx.merchant || '—'}</div>
 
                           {/* Category */}
-                          <div className="hidden md:block col-span-1 text-sm font-medium text-light-text-secondary dark:text-dark-text-secondary truncate">
-                            <span className="px-2 py-0.5 rounded-full border border-black/5 dark:border-white/10 bg-white dark:bg-black/20">{tx.category}</span>
+                          <div className="hidden md:flex col-span-1 text-sm font-medium text-light-text-secondary dark:text-dark-text-secondary truncate justify-center">
+                            <span className="px-2 py-0.5 rounded-full border border-black/5 dark:border-white/10 bg-white dark:bg-black/20 text-center">{tx.category}</span>
                           </div>
 
                           {/* Tags */}
-                          <div className="hidden lg:flex col-span-1 flex-wrap gap-1">
+                          <div className="hidden lg:flex col-span-1 flex-wrap gap-1 justify-center text-center">
                             {tx.tagIds?.map(tagId => {
                               const tag = tags.find(t => t.id === tagId);
                               if (!tag) return null;
@@ -1286,7 +1314,7 @@ const Transactions: React.FC<TransactionsProps> = ({ initialAccountFilter, initi
                           </div>
 
                           {/* Spare Change */}
-                          <div className="hidden md:block col-span-1 text-sm font-mono text-right text-light-text-secondary dark:text-dark-text-secondary">
+                          <div className="hidden md:block col-span-1 text-sm font-mono text-center text-light-text-secondary dark:text-dark-text-secondary">
                             {tx.spareChangeAmount ? (
                               <span className="text-semantic-red">{formatCurrency(convertToEur(-Math.abs(tx.spareChangeAmount), tx.currency), 'EUR', { showPlusSign: true })}</span>
                             ) : (
@@ -1295,7 +1323,7 @@ const Transactions: React.FC<TransactionsProps> = ({ initialAccountFilter, initi
                           </div>
 
                           {/* Amount */}
-                          <div className={`col-span-4 md:col-span-3 lg:col-span-2 font-mono font-bold text-right text-sm whitespace-nowrap ${amountColor}`}>
+                          <div className={`col-span-4 md:col-span-3 lg:col-span-2 font-mono font-bold text-center text-sm whitespace-nowrap ${amountColor}`}>
                             {tx.isTransfer && selectedAccountIds.length === 0
                               ? '-/+ ' + formatCurrency(convertToEur(Math.abs(amount), tx.currency), 'EUR')
                               : formatCurrency(convertToEur(amount, tx.currency), 'EUR', { showPlusSign: true })}
@@ -1309,7 +1337,7 @@ const Transactions: React.FC<TransactionsProps> = ({ initialAccountFilter, initi
                             onClick={(e) => {
                               e.preventDefault();
                               e.stopPropagation();
-                              setContextMenu({ x: e.clientX, y: e.clientY, transaction: tx });
+                              openContextMenu(e.clientX, e.clientY, tx);
                             }}
                             aria-label="Actions"
                           >
