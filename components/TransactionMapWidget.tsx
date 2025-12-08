@@ -2,7 +2,7 @@
 import React, { useMemo, useEffect, useState } from 'react';
 import { MapContainer, TileLayer, CircleMarker, Tooltip, useMap } from 'react-leaflet';
 import { Transaction } from '../types';
-import { formatCurrency, parseLocalDate } from '../utils';
+import { formatCurrency, parseDateAsUTC } from '../utils';
 import L from 'leaflet';
 
 interface TransactionMapWidgetProps {

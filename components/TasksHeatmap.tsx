@@ -1,7 +1,7 @@
 
 import React, { useMemo } from 'react';
 import { Task, TaskPriority } from '../types';
-import { parseLocalDate } from '../utils';
+import { parseDateAsUTC } from '../utils';
 
 interface TasksHeatmapProps {
     tasks: Task[];
@@ -30,7 +30,7 @@ const TasksHeatmap: React.FC<TasksHeatmapProps> = ({ tasks }) => {
         const tasksByDate = new Map<string, { priority: TaskPriority, count: number }>();
         tasks.forEach(task => {
             if (task.dueDate) {
-                const taskDate = parseLocalDate(task.dueDate);
+                const taskDate = parseDateAsUTC(task.dueDate);
 
                 if (taskDate >= startDate && taskDate <= endDate) {
                     const dateStr = task.dueDate;

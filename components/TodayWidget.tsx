@@ -1,7 +1,7 @@
 
 import React, { useMemo } from 'react';
 import { Task, RecurringTransaction, BillPayment, FinancialGoal, RecurringTransactionOverride } from '../types';
-import { parseLocalDate, formatCurrency, toLocalISOString } from '../utils';
+import { parseDateAsUTC, formatCurrency, toLocalISOString } from '../utils';
 
 interface TodayWidgetProps {
     tasks: Task[];
@@ -32,7 +32,7 @@ const TodayWidget: React.FC<TodayWidgetProps> = ({
         const items: AgendaItem[] = [];
         // Get today's date as a local YYYY-MM-DD string for strict comparison
         const todayStr = toLocalISOString(new Date());
-        const todayDate = parseLocalDate(todayStr); // UTC Midnight representation of Today
+        const todayDate = parseDateAsUTC(todayStr); // UTC Midnight representation of Today
 
         const isToday = (dateStr: string) => dateStr === todayStr;
 
@@ -40,7 +40,7 @@ const TodayWidget: React.FC<TodayWidgetProps> = ({
         tasks.forEach(task => {
             if (task.status !== 'Done' && task.dueDate) {
                 if (isToday(task.dueDate)) {
-                    const date = parseLocalDate(task.dueDate);
+                    const date = parseDateAsUTC(task.dueDate);
                     items.push({ type: 'task', data: task, date, sortDate: date.getTime() });
                 }
             }
@@ -50,7 +50,7 @@ const TodayWidget: React.FC<TodayWidgetProps> = ({
         bills.forEach(bill => {
             if (bill.status === 'unpaid') {
                 if (isToday(bill.dueDate)) {
-                    const date = parseLocalDate(bill.dueDate);
+                    const date = parseDateAsUTC(bill.dueDate);
                     items.push({ type: 'bill', data: bill, date, sortDate: date.getTime() });
                 }
             }
@@ -58,9 +58,9 @@ const TodayWidget: React.FC<TodayWidgetProps> = ({
 
         // Recurring Transactions
         recurringTransactions.forEach(rt => {
-            let nextDue = parseLocalDate(rt.nextDueDate);
-            const startDateUTC = parseLocalDate(rt.startDate);
-            const endDateUTC = rt.endDate ? parseLocalDate(rt.endDate) : null;
+            let nextDue = parseDateAsUTC(rt.nextDueDate);
+            const startDateUTC = parseDateAsUTC(rt.startDate);
+            const endDateUTC = rt.endDate ? parseDateAsUTC(rt.endDate) : null;
             
             // Safety limit to prevent infinite loops if data is corrupted
             let iterations = 0;
@@ -131,7 +131,7 @@ const TodayWidget: React.FC<TodayWidgetProps> = ({
         goals.forEach(goal => {
             if (goal.type === 'one-time' && goal.date && goal.currentAmount < goal.amount) {
                 if (isToday(goal.date)) {
-                    const date = parseLocalDate(goal.date);
+                    const date = parseDateAsUTC(goal.date);
                     items.push({ type: 'goal', data: goal, date, sortDate: date.getTime() });
                 }
             }

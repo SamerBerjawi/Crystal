@@ -1,6 +1,6 @@
 import React, { useMemo } from 'react';
 import { Budget, Transaction, Category, Duration, Account } from '../types';
-import { formatCurrency, getDateRange, convertToEur, parseLocalDate } from '../utils';
+import { formatCurrency, getDateRange, convertToEur, parseDateAsUTC } from '../utils';
 import { LIQUID_ACCOUNT_TYPES } from '../constants';
 
 const findParentCategory = (categoryName: string, categories: Category[]): Category | undefined => {
@@ -29,7 +29,7 @@ const BudgetOverviewWidget: React.FC<BudgetOverviewWidgetProps> = ({ budgets, tr
         );
 
         const relevantTransactions = transactions.filter(t => {
-            const txDate = parseLocalDate(t.date);
+            const txDate = parseDateAsUTC(t.date);
             return txDate >= start && txDate <= end && t.type === 'expense' && !t.transferId && liquidAccountIds.has(t.accountId);
         });
 

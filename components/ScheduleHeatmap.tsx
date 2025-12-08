@@ -2,7 +2,7 @@
 import React, { useMemo } from 'react';
 // FIX: Import 'ScheduledItem' from '../types' as it is no longer exported from '../pages/Schedule'.
 import { ScheduledItem } from '../types';
-import { parseLocalDate, toLocalISOString } from '../utils';
+import { parseDateAsUTC, toLocalISOString } from '../utils';
 
 // Define new color constants
 const INCOME_COLOR = 'bg-green-500';
@@ -32,7 +32,7 @@ const ScheduleHeatmap: React.FC<ScheduleHeatmapProps> = ({ items }) => {
         const itemsByDate = new Map<string, { incomeCount: number, expenseCount: number, transferCount: number }>();
 
         items.forEach(item => {
-            const itemDate = parseLocalDate(item.date);
+            const itemDate = parseDateAsUTC(item.date);
             if (itemDate >= startDate && itemDate <= endDate) {
                 // Re-format date to ensure consistency with grid date strings (YYYY-MM-DD)
                 const dateStr = item.date; // Assuming item.date is already YYYY-MM-DD

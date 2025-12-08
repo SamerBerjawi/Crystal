@@ -1,7 +1,7 @@
 
 import React, { useState, useMemo } from 'react';
 import { FinancialGoal, Account } from '../types';
-import { formatCurrency, getPreferredTimeZone, parseLocalDate } from '../utils';
+import { formatCurrency, getPreferredTimeZone, parseDateAsUTC } from '../utils';
 import Card from './Card';
 
 interface FinancialGoalCardProps {
@@ -25,7 +25,7 @@ const FinancialGoalCard: React.FC<FinancialGoalCardProps> = ({ goal, subGoals, i
   
   const bucketProjectedDate = isBucket ? subGoals.reduce((latest, sg) => {
     if (!sg.projection?.projectedDate || sg.projection.projectedDate === 'Beyond forecast') return latest;
-    if (!latest || parseLocalDate(sg.projection.projectedDate) > parseLocalDate(latest)) return sg.projection.projectedDate;
+    if (!latest || parseDateAsUTC(sg.projection.projectedDate) > parseDateAsUTC(latest)) return sg.projection.projectedDate;
     return latest;
   }, '' as string | null) || 'Beyond forecast' : null;
 
@@ -41,7 +41,7 @@ const FinancialGoalCard: React.FC<FinancialGoalCardProps> = ({ goal, subGoals, i
     ...goal,
     amount: totalAmount,
     currentAmount: currentAmount,
-    date: subGoals.length > 0 ? subGoals.sort((a,b) => parseLocalDate(b.date!).getTime() - parseLocalDate(a.date!).getTime())[0].date : undefined,
+    date: subGoals.length > 0 ? subGoals.sort((a,b) => parseDateAsUTC(b.date!).getTime() - parseDateAsUTC(a.date!).getTime())[0].date : undefined,
     projection: {
         projectedDate: bucketProjectedDate!,
         status: bucketStatus!,
@@ -52,7 +52,7 @@ const FinancialGoalCard: React.FC<FinancialGoalCardProps> = ({ goal, subGoals, i
 
   const formatDate = (dateString?: string) => {
     if (!dateString || dateString === 'Beyond forecast') return 'Beyond forecast';
-    const date = parseLocalDate(dateString);
+    const date = parseDateAsUTC(dateString);
     return date.toLocaleDateString('en-US', { year: 'numeric', month: 'short', day: 'numeric', timeZone });
   };
   

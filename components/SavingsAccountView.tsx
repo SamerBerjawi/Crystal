@@ -1,7 +1,7 @@
 
 import React, { useMemo } from 'react';
 import { Account, Transaction, DisplayTransaction, Category } from '../types';
-import { formatCurrency, parseLocalDate, convertToEur, getPreferredTimeZone } from '../utils';
+import { formatCurrency, parseDateAsUTC, convertToEur, getPreferredTimeZone } from '../utils';
 import Card from './Card';
 import TransactionList from './TransactionList';
 import { BTN_PRIMARY_STYLE } from '../constants';
@@ -317,7 +317,7 @@ const SavingsAccountView: React.FC<SavingsAccountViewProps> = ({
                         {account.openingDate && (
                             <div className="flex justify-between">
                                 <span className="text-light-text-secondary dark:text-dark-text-secondary">Opened</span>
-                                <span className="font-medium text-light-text dark:text-dark-text">{parseLocalDate(account.openingDate).toLocaleDateString()}</span>
+                                <span className="font-medium text-light-text dark:text-dark-text">{parseDateAsUTC(account.openingDate).toLocaleDateString()}</span>
                             </div>
                         )}
                          {account.accountNumber && (

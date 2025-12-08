@@ -1,7 +1,7 @@
 
 import React, { useMemo, useState, Suspense } from 'react';
 import { Account, Transaction, DisplayTransaction, ScheduledPayment, MileageLog } from '../types';
-import { convertToEur, parseLocalDate } from '../utils';
+import { convertToEur, parseDateAsUTC } from '../utils';
 import AddTransactionModal from '../components/AddTransactionModal';
 import TransactionDetailModal from '../components/TransactionDetailModal';
 import AddMileageLogModal from '../components/AddMileageLogModal';
@@ -162,7 +162,7 @@ const AccountDetail: React.FC<{
             .filter(tx => tx.accountId === account.id)
             .map(tx => ({
                 tx,
-                parsedDate: parseLocalDate(tx.date),
+                parsedDate: parseDateAsUTC(tx.date),
                 convertedAmount: convertToEur(tx.amount, tx.currency)
             }));
     }, [transactions, account.id]);

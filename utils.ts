@@ -90,6 +90,9 @@ export const parseLocalDate = (dateString: string): Date => {
     }
 };
 
+// Deprecated alias for backward compatibility
+export const parseDateAsUTC = parseLocalDate;
+
 export const formatDateKey = (date: Date, timeZone?: string): string => {
     if (!date || isNaN(date.getTime())) return '';
     return toLocalISOString(date);

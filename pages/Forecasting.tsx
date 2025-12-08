@@ -13,7 +13,7 @@ import {
   ForecastDuration,
 } from '../types';
 import { BTN_PRIMARY_STYLE, BTN_SECONDARY_STYLE, LIQUID_ACCOUNT_TYPES, CHECKBOX_STYLE, FORECAST_DURATION_OPTIONS } from '../constants';
-import { formatCurrency, convertToEur, generateBalanceForecast, generateSyntheticLoanPayments, generateSyntheticCreditCardPayments, parseLocalDate, getPreferredTimeZone, generateSyntheticPropertyTransactions } from '../utils';
+import { formatCurrency, convertToEur, generateBalanceForecast, generateSyntheticLoanPayments, generateSyntheticCreditCardPayments, parseDateAsUTC, getPreferredTimeZone, generateSyntheticPropertyTransactions } from '../utils';
 import Card from '../components/Card';
 import MultiAccountFilter from '../components/MultiAccountFilter';
 import FinancialGoalCard from '../components/FinancialGoalCard';
@@ -295,7 +295,7 @@ const Forecasting: React.FC = () => {
     
         for (const period of periods) {
             const dataForPeriod = chartData.filter(d => {
-                const dDate = parseLocalDate(d.date);
+                const dDate = parseDateAsUTC(d.date);
                 return dDate >= period.startDate && dDate <= period.endDate;
             });
             
@@ -306,7 +306,7 @@ const Forecasting: React.FC = () => {
                 const point = findNthLowestUniquePoint(dataForPeriod, n, displayedValues);
                 if (!point) {
                      // Fallback to last known if no data in future period (e.g., nothing scheduled)
-                     const lastKnown = chartData.find(d => parseLocalDate(d.date) < period.startDate);
+                     const lastKnown = chartData.find(d => parseDateAsUTC(d.date) < period.startDate);
                      const val = lastKnown ? lastKnown.value : startBalance;
                      displayedPoint = { value: val, date: todayStr };
                      break;
@@ -337,7 +337,7 @@ const Forecasting: React.FC = () => {
         const goalsWithProjections = financialGoals.map(goal => {
             if (goal.isBucket) return { ...goal, projection: undefined };
             
-            const goalDate = goal.date ? parseLocalDate(goal.date) : null;
+            const goalDate = goal.date ? parseDateAsUTC(goal.date) : null;
             let projectedDate = 'Beyond forecast';
             let status: 'on-track' | 'at-risk' | 'off-track' = 'off-track';
 
@@ -345,7 +345,7 @@ const Forecasting: React.FC = () => {
                 if (point.value >= goal.amount) {
                     projectedDate = point.date;
                     if (goalDate) {
-                        const projDate = parseLocalDate(projectedDate);
+                        const projDate = parseDateAsUTC(projectedDate);
                         if (projDate <= goalDate) {
                             status = 'on-track';
                         } else {
@@ -367,8 +367,8 @@ const Forecasting: React.FC = () => {
             case '1Y': endDate.setFullYear(endDate.getFullYear() + 1); break;
         }
 
-        const forecastDataForPeriod = chartData.filter(d => parseLocalDate(d.date) <= endDate);
-        const tableDataForPeriod = tableData.filter(d => parseLocalDate(d.date) <= endDate);
+        const forecastDataForPeriod = chartData.filter(d => parseDateAsUTC(d.date) <= endDate);
+        const tableDataForPeriod = tableData.filter(d => parseDateAsUTC(d.date) <= endDate);
 
         let lowestPointInPeriod = { value: Infinity, date: '' };
         if (forecastDataForPeriod.length > 0) {
@@ -405,7 +405,7 @@ const Forecasting: React.FC = () => {
             if (rt.type !== 'expense' && rt.type !== 'transfer') return;
             if (selectedAccountIds.length > 0 && !selectedAccountIds.includes(rt.accountId)) return;
             
-            const nextDue = parseLocalDate(rt.nextDueDate);
+            const nextDue = parseDateAsUTC(rt.nextDueDate);
             if (nextDue >= today && nextDue <= endDate) {
                 outflows.push({
                     name: rt.description,
@@ -422,7 +422,7 @@ const Forecasting: React.FC = () => {
             if (bill.type !== 'payment') return;
             if (selectedAccountIds.length > 0 && bill.accountId && !selectedAccountIds.includes(bill.accountId)) return;
 
-            const due = parseLocalDate(bill.dueDate);
+            const due = parseDateAsUTC(bill.dueDate);
             if (due >= today && due <= endDate) {
                  outflows.push({
                     name: bill.description,
@@ -648,7 +648,7 @@ const Forecasting: React.FC = () => {
                     </div>
                     <div className="relative z-10">
                         <p className={`text-2xl font-extrabold tracking-tight ${lowestPoint.value < 0 ? 'text-red-600' : 'text-light-text dark:text-dark-text'}`}>{formatCurrency(lowestPoint.value, 'EUR')}</p>
-                        <p className="text-xs font-medium mt-1 opacity-80">Lowest on {parseLocalDate(lowestPoint.date).toLocaleDateString()}</p>
+                        <p className="text-xs font-medium mt-1 opacity-80">Lowest on {parseDateAsUTC(lowestPoint.date).toLocaleDateString()}</p>
                     </div>
                 </div>
             </div>
@@ -740,7 +740,7 @@ const Forecasting: React.FC = () => {
                                         <p className="font-bold text-sm text-light-text dark:text-dark-text truncate">{item.name}</p>
                                         <p className="text-xs text-light-text-secondary dark:text-dark-text-secondary flex items-center gap-1 mt-0.5">
                                             <span className="material-symbols-outlined text-[10px]">{item.isRecurring ? 'repeat' : 'receipt'}</span>
-                                            {parseLocalDate(item.date).toLocaleDateString()}
+                                            {parseDateAsUTC(item.date).toLocaleDateString()}
                                         </p>
                                     </div>
                                     <p className="font-mono font-bold text-sm text-red-600 dark:text-red-400 bg-red-50 dark:bg-red-900/20 px-2 py-1 rounded-md group-hover:bg-red-100 dark:group-hover:bg-red-900/40 transition-colors">{formatCurrency(item.amount, 'EUR')}</p>
@@ -829,7 +829,7 @@ const Forecasting: React.FC = () => {
                                         onClick={() => handleEditForecastItem(row)}
                                     >
                                         <td className="px-6 py-4 whitespace-nowrap font-mono text-xs text-light-text-secondary dark:text-dark-text-secondary group-hover:text-light-text dark:group-hover:text-dark-text transition-colors">
-                                            {parseLocalDate(row.date).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric', timeZone })}
+                                            {parseDateAsUTC(row.date).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric', timeZone })}
                                         </td>
                                         <td className="px-6 py-4">
                                             <span className="font-medium text-light-text dark:text-dark-text truncate block max-w-[140px]">{row.accountName}</span>

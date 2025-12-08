@@ -1,7 +1,7 @@
 
 import React from 'react';
 import Modal from './Modal';
-import { formatCurrency, getPreferredTimeZone, parseLocalDate } from '../utils';
+import { formatCurrency, getPreferredTimeZone, parseDateAsUTC } from '../utils';
 import { BTN_PRIMARY_STYLE, BTN_SECONDARY_STYLE } from '../constants';
 
 interface ForecastItem {
@@ -28,7 +28,7 @@ const ForecastDayModal: React.FC<ForecastDayModalProps> = ({ isOpen, onClose, da
     if (!isOpen) return null;
 
     const timeZone = getPreferredTimeZone();
-    const formattedDate = parseLocalDate(date).toLocaleDateString('en-US', {
+    const formattedDate = parseDateAsUTC(date).toLocaleDateString('en-US', {
         weekday: 'long',
         year: 'numeric',
         month: 'long',

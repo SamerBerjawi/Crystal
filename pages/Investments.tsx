@@ -3,7 +3,7 @@ import React, { useState, useMemo, useCallback } from 'react';
 import { Account, InvestmentTransaction, Transaction, Warrant, InvestmentSubType } from '../types';
 import { BTN_PRIMARY_STYLE, BRAND_COLORS, BTN_SECONDARY_STYLE, INVESTMENT_SUB_TYPE_STYLES } from '../constants';
 import Card from '../components/Card';
-import { formatCurrency, parseLocalDate } from '../utils';
+import { formatCurrency, parseDateAsUTC } from '../utils';
 import AddInvestmentTransactionModal from '../components/AddInvestmentTransactionModal';
 import PortfolioDistributionChart from '../components/PortfolioDistributionChart';
 import WarrantModal from '../components/WarrantModal';
@@ -100,7 +100,7 @@ const Investments: React.FC<InvestmentsProps> = ({
             }
         });
         
-        [...investmentTransactions].sort((a,b) => parseLocalDate(a.date).getTime() - parseLocalDate(b.date).getTime()).forEach(tx => {
+        [...investmentTransactions].sort((a,b) => parseDateAsUTC(a.date).getTime() - parseDateAsUTC(b.date).getTime()).forEach(tx => {
             if (!holdingsMap[tx.symbol]) return;
             
             const holding = holdingsMap[tx.symbol];
@@ -235,7 +235,7 @@ const Investments: React.FC<InvestmentsProps> = ({
             data: w
         }));
 
-        return [...txs, ...grants].sort((a, b) => parseLocalDate(b.date).getTime() - parseLocalDate(a.date).getTime());
+        return [...txs, ...grants].sort((a, b) => parseDateAsUTC(b.date).getTime() - parseDateAsUTC(a.date).getTime());
     }, [investmentTransactions, warrants]);
 
     return (
@@ -471,7 +471,7 @@ const Investments: React.FC<InvestmentsProps> = ({
                                             </div>
                                             <div>
                                                 <p className="font-bold text-light-text dark:text-dark-text">{item.symbol}</p>
-                                                <p className="text-xs text-light-text-secondary dark:text-dark-text-secondary">{parseLocalDate(item.date).toLocaleDateString()}</p>
+                                                <p className="text-xs text-light-text-secondary dark:text-dark-text-secondary">{parseDateAsUTC(item.date).toLocaleDateString()}</p>
                                             </div>
                                         </div>
                                         <div className="text-right">

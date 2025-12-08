@@ -1,7 +1,7 @@
 
 import React, { useState, useMemo, useEffect } from 'react';
 import { Account, Transaction, ScheduledPayment } from '../types';
-import { generateAmortizationSchedule, formatCurrency, parseLocalDate } from '../utils';
+import { generateAmortizationSchedule, formatCurrency, parseDateAsUTC } from '../utils';
 import { INPUT_BASE_STYLE, BTN_PRIMARY_STYLE, BTN_SECONDARY_STYLE } from '../constants';
 
 interface PaymentPlanTableProps {
@@ -107,7 +107,7 @@ const PaymentPlanTable: React.FC<PaymentPlanTableProps> = ({ account, transactio
                             return (
                             <tr key={payment.paymentNumber} className={`group hover:bg-black/5 dark:hover:bg-white/5 transition-colors ${isEditing ? 'bg-primary-500/10' : ''}`}>
                                 <td className="p-3 font-mono text-xs opacity-70">{payment.paymentNumber}</td>
-                                <td className="p-3">{parseLocalDate(payment.date).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}</td>
+                                <td className="p-3">{parseDateAsUTC(payment.date).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}</td>
                                 
                                 {isEditing ? (
                                     <>

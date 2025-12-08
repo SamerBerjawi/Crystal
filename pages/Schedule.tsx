@@ -4,7 +4,7 @@ import React, { useState, useMemo } from 'react';
 import { RecurringTransaction, Account, Category, BillPayment, Currency, AccountType, RecurringTransactionOverride, ScheduledItem, Transaction, Tag, LoanPaymentOverrides } from '../types';
 import Card from '../components/Card';
 import { BTN_PRIMARY_STYLE, BTN_SECONDARY_STYLE, INPUT_BASE_STYLE, SELECT_WRAPPER_STYLE, SELECT_ARROW_STYLE, LIQUID_ACCOUNT_TYPES, ACCOUNT_TYPE_STYLES, ALL_ACCOUNT_TYPES, BTN_DANGER_STYLE } from '../constants';
-import { formatCurrency, convertToEur, generateSyntheticLoanPayments, generateSyntheticCreditCardPayments, generateSyntheticPropertyTransactions, parseLocalDate, fuzzySearch, toLocalISOString } from '../utils';
+import { formatCurrency, convertToEur, generateSyntheticLoanPayments, generateSyntheticCreditCardPayments, generateSyntheticPropertyTransactions, parseDateAsUTC, fuzzySearch, toLocalISOString } from '../utils';
 import RecurringTransactionModal from '../components/RecurringTransactionModal';
 import Modal from '../components/Modal';
 import ScheduleHeatmap from '../components/ScheduleHeatmap';
@@ -34,7 +34,7 @@ const ScheduledItemRow: React.FC<{
     const todayStr = toLocalISOString(new Date());
     const isOverdue = !item.isRecurring && item.date < todayStr;
     
-    const dueDate = parseLocalDate(item.date);
+    const dueDate = parseDateAsUTC(item.date);
     const day = dueDate.getDate();
     const month = dueDate.toLocaleString('default', { month: 'short' }).toUpperCase();
     const weekday = dueDate.toLocaleString('default', { weekday: 'long' });
@@ -266,7 +266,7 @@ const SchedulePage: React.FC<ScheduleProps> = () => {
     } = useMemo(() => {
         const today = new Date();
         const todayStr = toLocalISOString(today);
-        const todayMidnight = parseLocalDate(todayStr);
+        const todayMidnight = parseDateAsUTC(todayStr);
         
         const forecastEndDate = new Date(todayMidnight); 
         forecastEndDate.setMonth(todayMidnight.getMonth() + 12);
@@ -324,9 +324,9 @@ const SchedulePage: React.FC<ScheduleProps> = () => {
 
         // Generate occurrences for timeline
         allRecurringTransactions.forEach(rt => {
-            let nextDate = parseLocalDate(rt.nextDueDate);
-            const endDateUTC = rt.endDate ? parseLocalDate(rt.endDate) : null;
-            const startDateUTC = parseLocalDate(rt.startDate);
+            let nextDate = parseDateAsUTC(rt.nextDueDate);
+            const endDateUTC = rt.endDate ? parseDateAsUTC(rt.endDate) : null;
+            const startDateUTC = parseDateAsUTC(rt.startDate);
 
             // Fast forward past dates before "recently"
             const startRecurringScanDate = new Date(todayMidnight);
@@ -404,7 +404,7 @@ const SchedulePage: React.FC<ScheduleProps> = () => {
             });
         });
 
-        allUpcomingItems.sort((a, b) => parseLocalDate(a.date).getTime() - parseLocalDate(b.date).getTime());
+        allUpcomingItems.sort((a, b) => parseDateAsUTC(a.date).getTime() - parseDateAsUTC(b.date).getTime());
 
         // --- Metrics & Grouping ---
         let totalIncome30d = 0;
@@ -427,7 +427,7 @@ const SchedulePage: React.FC<ScheduleProps> = () => {
         );
 
         filteredItems.forEach(item => {
-            const itemDate = parseLocalDate(item.date);
+            const itemDate = parseDateAsUTC(item.date);
             const isWithin30Days = itemDate >= todayMidnight && itemDate <= next30DaysEnd;
 
             // Metrics Calculation (only if within 30 days)
@@ -483,8 +483,8 @@ const SchedulePage: React.FC<ScheduleProps> = () => {
         const monthKeys = Object.keys(groups).filter(k => k !== 'Overdue' && k !== 'Today' && k !== 'Next 7 Days');
         // Sort month keys chronologically based on the date of the first item in each group
         monthKeys.sort((a, b) => {
-             const dateA = parseLocalDate(groups[a][0].date);
-             const dateB = parseLocalDate(groups[b][0].date);
+             const dateA = parseDateAsUTC(groups[a][0].date);
+             const dateB = parseDateAsUTC(groups[b][0].date);
              return dateA.getTime() - dateB.getTime();
         });
         
@@ -577,10 +577,10 @@ const SchedulePage: React.FC<ScheduleProps> = () => {
 
         if (itemToPost.isRecurring) {
             const rt = itemToPost.originalItem as RecurringTransaction;
-            const postedDate = parseLocalDate(itemToPost.date);
+            const postedDate = parseDateAsUTC(itemToPost.date);
             let nextDueDate = new Date(postedDate);
             const interval = rt.frequencyInterval || 1;
-            const startDateUTC = parseLocalDate(rt.startDate);
+            const startDateUTC = parseDateAsUTC(rt.startDate);
 
             // Simple advance logic
             switch (rt.frequency) {
@@ -743,7 +743,7 @@ const SchedulePage: React.FC<ScheduleProps> = () => {
                                     <>
                                         <h3 className="text-2xl font-extrabold text-emerald-800 dark:text-emerald-300">{formatCurrency(majorInflow.amount, (majorInflow.originalItem as any).currency)}</h3>
                                         <p className="font-bold text-sm text-emerald-900/80 dark:text-emerald-200/80 mt-1 truncate">{majorInflow.description}</p>
-                                        <p className="text-xs text-emerald-700/70 dark:text-emerald-400/70 mt-0.5">Due {parseLocalDate(majorInflow.date).toLocaleDateString()}</p>
+                                        <p className="text-xs text-emerald-700/70 dark:text-emerald-400/70 mt-0.5">Due {parseDateAsUTC(majorInflow.date).toLocaleDateString()}</p>
                                     </>
                                 ) : (
                                     <p className="text-sm text-emerald-700/60 dark:text-emerald-400/60 mt-2">No upcoming income found.</p>
@@ -769,7 +769,7 @@ const SchedulePage: React.FC<ScheduleProps> = () => {
                                     <>
                                         <h3 className="text-2xl font-extrabold text-rose-800 dark:text-rose-300">{formatCurrency(Math.abs(majorOutflow.amount), (majorOutflow.originalItem as any).currency)}</h3>
                                         <p className="font-bold text-sm text-rose-900/80 dark:text-rose-200/80 mt-1 truncate">{majorOutflow.description}</p>
-                                        <p className="text-xs text-rose-700/70 dark:text-rose-400/70 mt-0.5">Due {parseLocalDate(majorOutflow.date).toLocaleDateString()}</p>
+                                        <p className="text-xs text-rose-700/70 dark:text-rose-400/70 mt-0.5">Due {parseDateAsUTC(majorOutflow.date).toLocaleDateString()}</p>
                                     </>
                                 ) : (
                                     <p className="text-sm text-rose-700/60 dark:text-rose-400/60 mt-2">No upcoming large expenses.</p>

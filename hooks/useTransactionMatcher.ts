@@ -1,6 +1,6 @@
 import { useState, useMemo } from 'react';
 import { Transaction, Account } from '../types';
-import { convertToEur, parseLocalDate } from '../utils';
+import { convertToEur, parseDateAsUTC } from '../utils';
 import { v4 as uuidv4 } from 'uuid';
 
 export type Suggestion = {
@@ -41,7 +41,7 @@ export const useTransactionMatcher = (
     // 3. Iterate through expenses and check for matches in the map.
     for (const expense of expenses) {
         const expenseAmountKey = Math.abs(convertToEur(expense.amount, expense.currency)).toFixed(2);
-        const expenseDate = parseLocalDate(expense.date);
+        const expenseDate = parseDateAsUTC(expense.date);
 
         const datesToCheck = [
             expenseDate,

@@ -1,7 +1,7 @@
 
 import React from 'react';
 import Card from './Card';
-import { formatCurrency, getPreferredTimeZone, parseLocalDate } from '../utils';
+import { formatCurrency, getPreferredTimeZone, parseDateAsUTC } from '../utils';
 import { Currency } from '../types';
 
 interface ForecastItem {
@@ -58,7 +58,7 @@ const ForecastOverview: React.FC<ForecastOverviewProps> = ({ forecasts, currency
                          icon = 'check_circle';
                     }
 
-                    const formattedDate = parseLocalDate(item.date).toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
+                    const formattedDate = parseDateAsUTC(item.date).toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
 
                     return (
                         <div 

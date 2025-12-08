@@ -74,7 +74,7 @@ import { MOCK_INCOME_CATEGORIES, MOCK_EXPENSE_CATEGORIES, LIQUID_ACCOUNT_TYPES }
 import { v4 as uuidv4 } from 'uuid';
 import ChatFab from './components/ChatFab';
 const Chatbot = lazy(() => import('./components/Chatbot'));
-import { convertToEur, CONVERSION_RATES, arrayToCSV, downloadCSV, parseLocalDate } from './utils';
+import { convertToEur, CONVERSION_RATES, arrayToCSV, downloadCSV, parseDateAsUTC } from './utils';
 import { useDebounce } from './hooks/useDebounce';
 import { useAuth } from './hooks/useAuth';
 import useLocalStorage from './hooks/useLocalStorage';
@@ -986,7 +986,6 @@ const App: React.FC = () => {
       );
     }
     setBillsAndPayments(prev => prev.filter(bill => bill.accountId !== accountId));
-    setDashboardAccountIds(prev => prev.filter(id => id !== accountId));
 
     if (viewingAccountId === accountId) {
       setViewingAccountId(null);
@@ -1174,11 +1173,6 @@ const App: React.FC = () => {
     } else {
       const newGoal: FinancialGoal = { ...goalData, id: `goal-${uuidv4()}` } as FinancialGoal;
       setFinancialGoals((prev) => [...prev, newGoal]);
-  
-      // FIX: If a new sub-goal is created and its parent is active, make the new goal active too.
-      if (newGoal.parentId && activeGoalIds.includes(newGoal.parentId)) {
-        setActiveGoalIds((prev) => [...prev, newGoal.id]);
-      }
     }
   };
 
@@ -1193,7 +1187,6 @@ const App: React.FC = () => {
     }
   
     setFinancialGoals((prev) => prev.filter((g) => !idsToDelete.includes(g.id)));
-    setActiveGoalIds((prev) => prev.filter((activeId) => !idsToDelete.includes(activeId)));
   };
   
   const handleSaveBudget = (budgetData: Omit<Budget, 'id'> & { id?: string }) => {
