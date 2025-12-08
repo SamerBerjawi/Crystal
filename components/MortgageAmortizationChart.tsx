@@ -2,7 +2,7 @@
 import React from 'react';
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Legend } from 'recharts';
 import { ScheduledPayment, Currency } from '../types';
-import { formatCurrency, parseDateAsUTC } from '../utils';
+import { formatCurrency, parseLocalDate } from '../utils';
 import Card from './Card';
 
 interface MortgageAmortizationChartProps {
@@ -21,7 +21,7 @@ const MortgageAmortizationChart: React.FC<MortgageAmortizationChartProps> = ({ s
     const grouped: Record<string, { year: string; principal: number; interest: number; balance: number }> = {};
     
     schedule.forEach(payment => {
-        const date = parseDateAsUTC(payment.date);
+        const date = parseLocalDate(payment.date);
         const year = date.getFullYear().toString();
         
         if (!grouped[year]) {

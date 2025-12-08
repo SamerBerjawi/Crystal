@@ -4,7 +4,7 @@ import Modal from './Modal';
 import { BTN_PRIMARY_STYLE, BTN_SECONDARY_STYLE } from '../constants';
 import { Suggestion } from '../hooks/useTransactionMatcher';
 import { Account } from '../types';
-import { formatCurrency, parseDateAsUTC } from '../utils';
+import { formatCurrency, parseLocalDate } from '../utils';
 
 interface TransactionMatcherModalProps {
     isOpen: boolean;
@@ -27,7 +27,7 @@ const SuggestionItem: React.FC<{
     const incomeAccount = accounts.find(a => a.id === suggestion.incomeTx.accountId);
 
     const formatDate = (dateString: string) => {
-        const date = parseDateAsUTC(dateString);
+        const date = parseLocalDate(dateString);
         return date.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
     };
 

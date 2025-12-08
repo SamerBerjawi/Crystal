@@ -4,7 +4,7 @@ import { Page, Tag, Transaction } from '../types';
 import { BTN_PRIMARY_STYLE, INPUT_BASE_STYLE, SELECT_WRAPPER_STYLE, SELECT_ARROW_STYLE, SELECT_STYLE } from '../constants';
 import Card from '../components/Card';
 import TagModal from '../components/TagModal';
-import { convertToEur, formatCurrency, parseDateAsUTC } from '../utils';
+import { convertToEur, formatCurrency, parseLocalDate } from '../utils';
 import ConfirmationModal from '../components/ConfirmationModal';
 import { AreaChart, Area, ResponsiveContainer } from 'recharts';
 
@@ -56,7 +56,7 @@ const Tags: React.FC<TagsProps> = ({ tags, transactions, saveTag, deleteTag, set
     transactions.forEach(tx => {
         if (tx.tagIds && tx.tagIds.length > 0) {
             const amount = convertToEur(tx.amount, tx.currency);
-            const date = parseDateAsUTC(tx.date);
+            const date = parseLocalDate(tx.date);
             const monthKey = getMonthKey(date);
             
             totalTaggedTransactions++;

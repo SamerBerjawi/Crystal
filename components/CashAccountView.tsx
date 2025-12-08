@@ -1,7 +1,7 @@
 
 import React, { useMemo } from 'react';
 import { Account, Transaction, DisplayTransaction, Category } from '../types';
-import { formatCurrency, parseDateAsUTC, convertToEur, getPreferredTimeZone } from '../utils';
+import { formatCurrency, parseLocalDate, convertToEur, getPreferredTimeZone } from '../utils';
 import Card from './Card';
 import TransactionList from './TransactionList';
 import { BTN_PRIMARY_STYLE, BTN_SECONDARY_STYLE } from '../constants';

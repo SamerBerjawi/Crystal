@@ -7,7 +7,7 @@ import TasksHeatmap from '../components/TasksHeatmap';
 import TaskItem from '../components/TaskItem';
 import ConfirmationModal from '../components/ConfirmationModal';
 import Card from '../components/Card';
-import { parseDateAsUTC } from '../utils';
+import { parseLocalDate } from '../utils';
 
 interface TasksProps {
   tasks: Task[];
@@ -159,7 +159,7 @@ const Tasks: React.FC<TasksProps> = ({ tasks, saveTask, deleteTask, taskOrder, s
 
         const dueSoon = tasks.filter(t => {
             if (t.status === 'Done' || !t.dueDate) return false;
-            const d = parseDateAsUTC(t.dueDate);
+            const d = parseLocalDate(t.dueDate);
             return d >= today && d <= next7Days;
         }).length;
 

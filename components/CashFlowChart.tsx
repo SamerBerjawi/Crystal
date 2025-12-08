@@ -1,6 +1,6 @@
 
 import React from 'react';
-import { formatCurrency, parseDateAsUTC } from '../utils';
+import { formatCurrency, parseLocalDate } from '../utils';
 import Card from './Card';
 import { AreaChart, Area, ResponsiveContainer, LineChart, Line } from 'recharts';
 import { Currency } from '../types';

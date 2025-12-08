@@ -3,7 +3,7 @@ import React, { useState, useMemo, useRef, useEffect, useCallback } from 'react'
 import { INPUT_BASE_STYLE, SELECT_WRAPPER_STYLE, SELECT_ARROW_STYLE, BTN_PRIMARY_STYLE, BTN_SECONDARY_STYLE, SELECT_STYLE, CHECKBOX_STYLE } from '../constants';
 import { Transaction, Account, DisplayTransaction, RecurringTransaction, Category } from '../types';
 import Card from '../components/Card';
-import { formatCurrency, fuzzySearch, convertToEur, arrayToCSV, downloadCSV, parseDateAsUTC } from '../utils';
+import { formatCurrency, fuzzySearch, convertToEur, arrayToCSV, downloadCSV, parseLocalDate } from '../utils';
 import AddTransactionModal from '../components/AddTransactionModal';
 import BulkCategorizeModal from '../components/BulkCategorizeModal';
 import BulkEditTransactionsModal from '../components/BulkEditTransactionsModal';
@@ -272,7 +272,7 @@ const Transactions: React.FC<TransactionsProps> = ({ initialAccountFilter, initi
     const processedTransferIds = new Set<string>();
     const result: DisplayTransaction[] = [];
 
-    const sortedTransactions = [...transactions].sort((a, b) => parseDateAsUTC(b.date).getTime() - parseDateAsUTC(a.date).getTime());
+    const sortedTransactions = [...transactions].sort((a, b) => parseLocalDate(b.date).getTime() - parseLocalDate(a.date).getTime());
 
     const normalizeDescription = (description?: string, isTransfer?: boolean) =>
       (description?.trim() || (isTransfer ? 'transfer' : 'transaction')).toLowerCase();
@@ -382,7 +382,7 @@ const Transactions: React.FC<TransactionsProps> = ({ initialAccountFilter, initi
         else if (typeFilter === 'income') matchType = !tx.isTransfer && tx.type === 'income';
         else if (typeFilter === 'transfer') matchType = !!tx.isTransfer;
         
-        const txDateTime = parseDateAsUTC(tx.date).getTime();
+        const txDateTime = parseLocalDate(tx.date).getTime();
         const matchStartDate = !startDateTime || txDateTime >= startDateTime.getTime();
         const matchEndDate = !endDateTime || txDateTime <= endDateTime.getTime();
 
@@ -401,14 +401,14 @@ const Transactions: React.FC<TransactionsProps> = ({ initialAccountFilter, initi
     
     return transactionList.sort((a, b) => {
       switch (sortBy) {
-        case 'date-asc': return parseDateAsUTC(a.date).getTime() - parseDateAsUTC(b.date).getTime();
+        case 'date-asc': return parseLocalDate(a.date).getTime() - parseLocalDate(b.date).getTime();
         case 'amount-desc': return Math.abs(b.amount) - Math.abs(a.amount);
         case 'amount-asc': return Math.abs(a.amount) - Math.abs(b.amount);
         case 'merchant-asc': return (a.merchant || '').localeCompare(b.merchant || '');
         case 'merchant-desc': return (b.merchant || '').localeCompare(a.merchant || '');
         case 'category-asc': return a.category.localeCompare(b.category);
         case 'category-desc': return b.category.localeCompare(a.category);
-        case 'date-desc': default: return parseDateAsUTC(b.date).getTime() - parseDateAsUTC(a.date).getTime();
+        case 'date-desc': default: return parseLocalDate(b.date).getTime() - parseLocalDate(a.date).getTime();
       }
     });
 
@@ -716,7 +716,7 @@ const Transactions: React.FC<TransactionsProps> = ({ initialAccountFilter, initi
   };
 
   const formatGroupDate = (dateString: string) => {
-    const date = parseDateAsUTC(dateString);
+    const date = parseLocalDate(dateString);
     return date.toLocaleDateString('en-US', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric', timeZone: 'UTC' });
   }
 

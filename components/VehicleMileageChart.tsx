@@ -2,7 +2,7 @@
 import React, { useMemo } from 'react';
 import { LineChart, Line, XAxis, YAxis, Tooltip, ResponsiveContainer, CartesianGrid, Label } from 'recharts';
 import { MileageLog } from '../types';
-import { parseDateAsUTC } from '../utils';
+import { parseLocalDate } from '../utils';
 
 interface VehicleMileageChartProps {
   logs: MileageLog[];
@@ -10,7 +10,7 @@ interface VehicleMileageChartProps {
 
 const CustomTooltip = ({ active, payload, label }: any) => {
     if (active && payload && payload.length) {
-      const date = parseDateAsUTC(label);
+      const date = parseLocalDate(label);
       return (
         <div className="bg-light-card dark:bg-dark-card p-3 rounded-lg shadow-lg border border-black/5 dark:border-white/5">
           <p className="label font-semibold text-light-text dark:text-dark-text mb-1">{date.toLocaleDateString('en-US', { day: 'numeric', month: 'long', year: 'numeric' })}</p>
@@ -35,7 +35,7 @@ const VehicleMileageChart: React.FC<VehicleMileageChartProps> = ({ logs }) => {
   }
 
   const tickFormatter = (dateStr: string) => {
-    const date = parseDateAsUTC(dateStr);
+    const date = parseLocalDate(dateStr);
     return date.toLocaleDateString('en-US', { month: 'short', year: '2-digit' });
   };
 
