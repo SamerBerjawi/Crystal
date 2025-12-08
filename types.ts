@@ -218,6 +218,8 @@ export interface Transaction {
   country?: string;
   latitude?: number;
   longitude?: number;
+  // Investment helpers
+  isMarketAdjustment?: boolean;
 }
 
 export interface DisplayTransaction extends Transaction {

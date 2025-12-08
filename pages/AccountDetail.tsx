@@ -19,6 +19,8 @@ const CreditCardAccountView = React.lazy(() => import('../components/CreditCardA
 const GeneralAccountView = React.lazy(() => import('../components/GeneralAccountView'));
 const CashAccountView = React.lazy(() => import('../components/CashAccountView'));
 const SavingsAccountView = React.lazy(() => import('../components/SavingsAccountView'));
+const PensionAccountView = React.lazy(() => import('../components/PensionAccountView'));
+const SpareChangeAccountView = React.lazy(() => import('../components/SpareChangeAccountView'));
 
 const AccountDetail: React.FC<{
     account: Account;
@@ -81,16 +83,19 @@ const AccountDetail: React.FC<{
         setAdjustModalOpen(true);
     };
 
-    const handleSaveAdjustment = (adjustmentAmount: number, date: string, notes: string) => {
+    const handleSaveAdjustment = (adjustmentAmount: number, date: string, notes: string, isMarketAdjustment?: boolean) => {
         const txData: Omit<Transaction, 'id'> = {
             accountId: account.id,
             date,
-            description: 'Cash Reconciliation',
-            merchant: notes || 'Manual count adjustment',
+            description: isMarketAdjustment ? 'Market Value Adjustment' : 'Cash Reconciliation',
+            merchant: notes || (isMarketAdjustment ? 'Market Update' : 'Manual count adjustment'),
             amount: adjustmentAmount,
-            category: adjustmentAmount >= 0 ? 'Income' : 'Miscellaneous',
+            category: isMarketAdjustment 
+                ? (adjustmentAmount >= 0 ? 'Investment Income' : 'Investments') 
+                : (adjustmentAmount >= 0 ? 'Income' : 'Miscellaneous'),
             type: adjustmentAmount >= 0 ? 'income' : 'expense',
             currency: account.currency,
+            isMarketAdjustment,
         };
         
         saveTransaction([txData], []);
@@ -245,6 +250,41 @@ const AccountDetail: React.FC<{
             case 'Savings':
                 return (
                     <SavingsAccountView
+                        {...commonProps}
+                        displayTransactionsList={displayTransactionsList}
+                        transactions={accountTransactions}
+                        allCategories={allCategories}
+                        onTransactionClick={handleTransactionClick}
+                    />
+                );
+            case 'Investment':
+                if (account.subType === 'Pension Fund') {
+                    return (
+                        <PensionAccountView 
+                            {...commonProps}
+                            displayTransactionsList={displayTransactionsList}
+                            transactions={accountTransactions}
+                            allCategories={allCategories}
+                            onTransactionClick={handleTransactionClick}
+                            onAdjustBalance={handleOpenAdjustModal}
+                        />
+                    );
+                }
+                if (account.subType === 'Spare Change') {
+                     return (
+                        <SpareChangeAccountView 
+                            {...commonProps}
+                            displayTransactionsList={displayTransactionsList}
+                            transactions={accountTransactions}
+                            allCategories={allCategories}
+                            onTransactionClick={handleTransactionClick}
+                            onAdjustBalance={handleOpenAdjustModal}
+                        />
+                    );
+                }
+                // Fallthrough to General for other investments for now, or you can add more specific ones later
+                return (
+                    <GeneralAccountView 
                         {...commonProps}
                         displayTransactionsList={displayTransactionsList}
                         transactions={accountTransactions}

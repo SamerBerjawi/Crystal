@@ -98,7 +98,10 @@ const TransactionList: React.FC<TransactionListProps> = ({ transactions, allCate
                     </span>
                   </div>
                   <div className="ml-4">
-                    <p className="text-base font-medium text-light-text dark:text-dark-text">{description}</p>
+                    <p className="text-base font-medium text-light-text dark:text-dark-text flex items-center gap-2">
+                        {description}
+                        {tx.isMarketAdjustment && <span className="text-[10px] uppercase font-bold bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-300 px-1.5 py-0.5 rounded">Market</span>}
+                    </p>
                     <p className="text-xs text-light-text-secondary dark:text-dark-text-secondary">{formattedDate}</p>
                   </div>
                 </div>
