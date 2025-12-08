@@ -1,5 +1,6 @@
+
 import React, { createContext, useContext, useMemo, ReactNode } from 'react';
-import { Category, Tag, Budget, FinancialGoal, RecurringTransaction, RecurringTransactionOverride, LoanPaymentOverrides, BillPayment, ScheduledPayment } from '../types';
+import { Category, Tag, Budget, FinancialGoal, RecurringTransaction, RecurringTransactionOverride, LoanPaymentOverrides, BillPayment, ScheduledPayment, Membership } from '../types';
 import { AccountsContextValue, AccountsProvider, PreferencesContextValue, PreferencesProvider, TransactionsContextValue, TransactionsProvider, WarrantsContextValue, WarrantsProvider } from './DomainProviders';
 
 interface CategoryContextValue {
@@ -33,6 +34,7 @@ interface ScheduleContextValue {
   recurringTransactionOverrides: RecurringTransactionOverride[];
   loanPaymentOverrides: LoanPaymentOverrides;
   billsAndPayments: BillPayment[];
+  memberships: Membership[];
   // FIX: Updated the type to allow an optional 'id', aligning it with the data structure for new transactions.
   saveRecurringTransaction: (recurringData: Omit<RecurringTransaction, 'id'> & { id?: string }) => void;
   deleteRecurringTransaction: (recurringId: string) => void;
@@ -44,6 +46,8 @@ interface ScheduleContextValue {
   saveBillPayment: (bill: Omit<BillPayment, 'id'> & { id?: string }) => void;
   deleteBillPayment: (billId: string) => void;
   markBillAsPaid: (billId: string, paymentAccountId: string, paymentDate: string) => void;
+  saveMembership: (membership: Omit<Membership, 'id'> & { id?: string }) => void;
+  deleteMembership: (membershipId: string) => void;
 }
 
 const CategoryContext = createContext<CategoryContextValue | undefined>(undefined);

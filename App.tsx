@@ -1,3 +1,4 @@
+
 // FIX: Import `useMemo` from React to resolve the 'Cannot find name' error.
 import React, { useState, useEffect, useMemo, useCallback, Suspense, lazy, useRef, Component, ErrorInfo, startTransition } from 'react';
 import Sidebar from './components/Sidebar';
@@ -68,7 +69,7 @@ const pagePreloaders = [
 // UserManagement is removed
 // FIX: Import FinancialData from types.ts
 // FIX: Add `Tag` to the import from `types.ts`.
-import { Page, Theme, Category, User, Transaction, Account, RecurringTransaction, RecurringTransactionOverride, WeekendAdjustment, FinancialGoal, Budget, ImportExportHistoryItem, AppPreferences, AccountType, InvestmentTransaction, Task, Warrant, ImportDataType, FinancialData, Currency, BillPayment, BillPaymentStatus, Duration, InvestmentSubType, Tag, LoanPaymentOverrides, ScheduledPayment } from './types';
+import { Page, Theme, Category, User, Transaction, Account, RecurringTransaction, RecurringTransactionOverride, WeekendAdjustment, FinancialGoal, Budget, ImportExportHistoryItem, AppPreferences, AccountType, InvestmentTransaction, Task, Warrant, ImportDataType, FinancialData, Currency, BillPayment, BillPaymentStatus, Duration, InvestmentSubType, Tag, LoanPaymentOverrides, ScheduledPayment, Membership } from './types';
 import { MOCK_INCOME_CATEGORIES, MOCK_EXPENSE_CATEGORIES, LIQUID_ACCOUNT_TYPES } from './constants';
 import { v4 as uuidv4 } from 'uuid';
 import ChatFab from './components/ChatFab';
@@ -144,6 +145,7 @@ const initialFinancialData: FinancialData = {
     budgets: [],
     tasks: [],
     warrants: [],
+    memberships: [],
     importExportHistory: [],
     // FIX: Add `tags` to the initial financial data structure.
     tags: [],
@@ -293,6 +295,7 @@ const App: React.FC = () => {
   const [budgets, setBudgets] = useState<Budget[]>(initialFinancialData.budgets);
   const [tasks, setTasks] = useState<Task[]>(initialFinancialData.tasks);
   const [warrants, setWarrants] = useState<Warrant[]>(initialFinancialData.warrants);
+  const [memberships, setMemberships] = useState<Membership[]>(initialFinancialData.memberships || []);
   const [importExportHistory, setImportExportHistory] = useState<ImportExportHistoryItem[]>(initialFinancialData.importExportHistory);
   const [billsAndPayments, setBillsAndPayments] = useState<BillPayment[]>(initialFinancialData.billsAndPayments);
   // FIX: Add state for tags and tag filtering to support the Tags feature.
@@ -499,6 +502,7 @@ const App: React.FC = () => {
       setBudgets(dataToLoad.budgets || []);
       setTasks(dataToLoad.tasks || []);
       setWarrants(dataToLoad.warrants || []);
+      setMemberships(dataToLoad.memberships || []);
       setImportExportHistory(dataToLoad.importExportHistory || []);
       setBillsAndPayments(dataToLoad.billsAndPayments || []);
       setManualWarrantPrices(dataToLoad.manualWarrantPrices || {});
@@ -575,11 +579,11 @@ const App: React.FC = () => {
 
   const dataToSave: FinancialData = useMemo(() => ({
     accounts, transactions, investmentTransactions, recurringTransactions,
-    recurringTransactionOverrides, loanPaymentOverrides, financialGoals, budgets, tasks, warrants, importExportHistory, incomeCategories,
+    recurringTransactionOverrides, loanPaymentOverrides, financialGoals, budgets, tasks, warrants, memberships, importExportHistory, incomeCategories,
     expenseCategories, preferences, billsAndPayments, accountOrder, taskOrder, tags, manualWarrantPrices
   }), [
     accounts, transactions, investmentTransactions,
-    recurringTransactions, recurringTransactionOverrides, loanPaymentOverrides, financialGoals, budgets, tasks, warrants, importExportHistory,
+    recurringTransactions, recurringTransactionOverrides, loanPaymentOverrides, financialGoals, budgets, tasks, warrants, memberships, importExportHistory,
     incomeCategories, expenseCategories, preferences, billsAndPayments, accountOrder, taskOrder, tags, manualWarrantPrices
   ]);
 
@@ -597,6 +601,7 @@ const App: React.FC = () => {
     if (dirtySlices.has('budgets')) payload.budgets = budgets;
     if (dirtySlices.has('tasks')) payload.tasks = tasks;
     if (dirtySlices.has('warrants')) payload.warrants = warrants;
+    if (dirtySlices.has('memberships')) payload.memberships = memberships;
     if (dirtySlices.has('importExportHistory')) payload.importExportHistory = importExportHistory;
     if (dirtySlices.has('incomeCategories')) payload.incomeCategories = incomeCategories;
     if (dirtySlices.has('expenseCategories')) payload.expenseCategories = expenseCategories;
@@ -627,6 +632,7 @@ const App: React.FC = () => {
     tasks,
     transactions,
     warrants,
+    memberships,
     manualWarrantPrices,
   ]);
 
@@ -683,6 +689,11 @@ const App: React.FC = () => {
     if (!isDataLoaded || restoreInProgressRef.current) return;
     markSliceDirty('warrants');
   }, [warrants, isDataLoaded, markSliceDirty]);
+
+  useEffect(() => {
+    if (!isDataLoaded || restoreInProgressRef.current) return;
+    markSliceDirty('memberships');
+  }, [memberships, isDataLoaded, markSliceDirty]);
 
   useEffect(() => {
     if (!isDataLoaded || restoreInProgressRef.current) return;
@@ -1336,7 +1347,19 @@ const App: React.FC = () => {
         handleSaveTransaction([transactionData]);
     }
   };
+  
+  const handleSaveMembership = (membershipData: Omit<Membership, 'id'> & { id?: string }) => {
+    if (membershipData.id) {
+      setMemberships(prev => prev.map(m => m.id === membershipData.id ? { ...m, ...membershipData } as Membership : m));
+    } else {
+      const newMembership: Membership = { ...membershipData, id: `mem-${uuidv4()}` } as Membership;
+      setMemberships(prev => [...prev, newMembership]);
+    }
+  };
 
+  const handleDeleteMembership = (membershipId: string) => {
+    setMemberships(prev => prev.filter(m => m.id !== membershipId));
+  };
 
   // --- Data Import / Export ---
   const handlePublishImport = (
@@ -1593,6 +1616,7 @@ const App: React.FC = () => {
       recurringTransactionOverrides,
       loanPaymentOverrides,
       billsAndPayments,
+      memberships,
       saveRecurringTransaction: handleSaveRecurringTransaction,
       deleteRecurringTransaction: handleDeleteRecurringTransaction,
       saveRecurringOverride: handleSaveRecurringOverride,
@@ -1602,9 +1626,12 @@ const App: React.FC = () => {
       saveBillPayment: handleSaveBillPayment,
       deleteBillPayment: handleDeleteBillPayment,
       markBillAsPaid: handleMarkBillAsPaid,
+      saveMembership: handleSaveMembership,
+      deleteMembership: handleDeleteMembership,
     }),
     [
       billsAndPayments,
+      memberships,
       handleDeleteBillPayment,
       handleDeleteRecurringOverride,
       handleDeleteRecurringTransaction,

@@ -315,18 +315,19 @@ const App: React.FC = () => {
   
   const assetPrices = useMemo(() => {
     const resolved: Record<string, number | null> = {};
+    const prices = manualWarrantPrices as Record<string, number | undefined>;
 
     accounts
       .filter(acc => acc.type === 'Investment' && acc.symbol)
       .forEach(acc => {
         const symbol = acc.symbol as string;
-        resolved[symbol] = manualWarrantPrices[symbol] ?? null;
+        resolved[symbol] = prices[symbol] ?? null;
       });
 
     warrants.forEach(warrant => {
       const symbol = warrant.isin;
       if (resolved[symbol] === undefined) {
-        resolved[symbol] = manualWarrantPrices[symbol] ?? null;
+        resolved[symbol] = prices[symbol] ?? null;
       }
     });
 

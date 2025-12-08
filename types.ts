@@ -384,6 +384,18 @@ export interface AccountDetailProps {
   saveAccount: (account: Omit<Account, 'id'> & { id?: string }) => void;
 }
 
+export interface Membership {
+  id: string;
+  provider: string; // e.g. "British Airways", "Starbucks"
+  memberId: string;
+  tier?: string; // e.g. "Gold"
+  expiryDate?: string; // ISO date
+  color: string;
+  icon: string;
+  notes?: string;
+  website?: string;
+}
+
 // FIX: Move FinancialData interface from App.tsx to types.ts to resolve import error in mockData.ts
 export interface FinancialData {
     accounts: Account[];
@@ -397,6 +409,7 @@ export interface FinancialData {
     tasks: Task[];
     taskOrder?: string[];
     warrants: Warrant[];
+    memberships?: Membership[];
     importExportHistory: ImportExportHistoryItem[];
     incomeCategories: Category[];
     expenseCategories: Category[];
