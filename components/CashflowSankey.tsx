@@ -18,7 +18,8 @@ const FLOW_DEPTH = {
     subOut: 4
 };
 
-const OTHER_SUBCATEGORY = 'Other';
+const OTHER_SUBCATEGORY = 'Others';
+const MAX_VISIBLE_SUBCATEGORIES = 10;
 
 // Helper to find color safely
 const getCategoryColor = (name: string, parentName: string | null, categories: Category[]) => {
@@ -41,14 +42,14 @@ const getCategoryColor = (name: string, parentName: string | null, categories: C
 const CashflowSankey: React.FC<CashflowSankeyProps> = ({ transactions, incomeCategories, expenseCategories }) => {
   
   const { nodes, links, gradients } = useMemo(() => {
-    const nodes: { name: string; displayName: string; color: string; depth: number }[] = [];
+    const nodes: { id: string; name: string; color: string; depth: number }[] = [];
     const links: { source: number; target: number; value: number; gradientId: string }[] = [];
     const gradients: { id: string; start: string; end: string }[] = [];
 
-    const addNode = (key: string, displayName: string, color: string, depth: number) => {
-      const existingIndex = nodes.findIndex(n => n.name === key);
+    const addNode = (id: string, displayName: string, color: string, depth: number) => {
+      const existingIndex = nodes.findIndex(n => n.id === id);
       if (existingIndex !== -1) return existingIndex;
-      nodes.push({ name: key, displayName, color, depth });
+      nodes.push({ id, name: displayName, color, depth });
       return nodes.length - 1;
     };
 
@@ -104,10 +105,49 @@ const CashflowSankey: React.FC<CashflowSankeyProps> = ({ transactions, incomeCat
       }
     });
 
+    const limitSubcategories = (subTotals: Map<string, number>) => {
+        const limited = new Map<string, number>();
+
+        const groupedByParent = new Map<string, { subName: string; value: number }[]>();
+        subTotals.forEach((value, key) => {
+            const [subName, parentName] = key.split('::');
+            if (!groupedByParent.has(parentName)) {
+                groupedByParent.set(parentName, []);
+            }
+            groupedByParent.get(parentName)!.push({ subName, value });
+        });
+
+        groupedByParent.forEach((entries, parentName) => {
+            const sorted = entries.sort((a, b) => b.value - a.value);
+            if (sorted.length <= MAX_VISIBLE_SUBCATEGORIES) {
+                sorted.forEach(({ subName, value }) => {
+                    limited.set(`${subName}::${parentName}`, value);
+                });
+            } else {
+                const visible = sorted.slice(0, MAX_VISIBLE_SUBCATEGORIES - 1);
+                const remaining = sorted.slice(MAX_VISIBLE_SUBCATEGORIES - 1);
+                const otherTotal = remaining.reduce((sum, entry) => sum + entry.value, 0);
+
+                visible.forEach(({ subName, value }) => {
+                    limited.set(`${subName}::${parentName}`, value);
+                });
+
+                if (otherTotal > 0.01) {
+                    limited.set(`${OTHER_SUBCATEGORY}::${parentName}`, (limited.get(`${OTHER_SUBCATEGORY}::${parentName}`) || 0) + otherTotal);
+                }
+            }
+        });
+
+        return limited;
+    };
+
+    const limitedIncSubTotals = limitSubcategories(incSubTotals);
+    const limitedExpSubTotals = limitSubcategories(expSubTotals);
+
     // --- Build Graph ---
 
     // Center Node (Depth 2)
-    const centerNodeIdx = addNode('Net Cash Flow', 'Net Cash Flow', '#0EA5E9', FLOW_DEPTH.net);
+    const centerNodeIdx = addNode('net_cash_flow', 'Net Cash Flow', '#0EA5E9', FLOW_DEPTH.net);
 
     // INCOME SIDE (Left)
     // Depth 1: Parent Categories
@@ -122,7 +162,7 @@ const CashflowSankey: React.FC<CashflowSankeyProps> = ({ transactions, incomeCat
         addLink(catNodeIdx, centerNodeIdx, totalVal, color, '#0EA5E9');
 
         // Link Subs -> Category
-        incSubTotals.forEach((val, key) => {
+        limitedIncSubTotals.forEach((val, key) => {
             const [subName, pName] = key.split('::');
             if (pName === parentName) {
                 // If 'Other', use lighter/faded color
@@ -146,7 +186,7 @@ const CashflowSankey: React.FC<CashflowSankeyProps> = ({ transactions, incomeCat
         addLink(centerNodeIdx, catNodeIdx, totalVal, '#0EA5E9', color);
 
         // Link Category -> Subs
-        expSubTotals.forEach((val, key) => {
+        limitedExpSubTotals.forEach((val, key) => {
             const [subName, pName] = key.split('::');
             if (pName === parentName) {
                 const subColor = subName === OTHER_SUBCATEGORY ? color : getCategoryColor(subName, parentName, expenseCategories);
@@ -167,6 +207,9 @@ const CashflowSankey: React.FC<CashflowSankeyProps> = ({ transactions, incomeCat
       const isCenter = payload.depth === 2;
       const isRight = payload.depth > 2;
 
+      const labelX = isCenter ? x + width / 2 : (isRight ? x + width - 6 : x + 6);
+      const textAnchor = isCenter ? 'middle' : (isRight ? 'end' : 'start');
+
       return (
         <Layer key={`node-${index}`}>
           <Rectangle
@@ -176,25 +219,24 @@ const CashflowSankey: React.FC<CashflowSankeyProps> = ({ transactions, incomeCat
             rx={2} ry={2}
           />
           <text
-            x={isCenter ? x + width / 2 : (isRight ? x + width + 6 : x - 6)}
+            x={labelX}
             y={y + height / 2}
-            textAnchor={isCenter ? 'middle' : (isRight ? 'start' : 'end')}
+            textAnchor={textAnchor}
             alignmentBaseline="middle"
             fontSize={11}
             fontWeight={isCenter ? 700 : 500}
             fill="currentColor"
             className="dark:fill-gray-300 fill-gray-600"
           >
-            {payload.displayName}
+            {payload.name}
           </text>
-           <text
-            x={isCenter ? x + width / 2 : (isRight ? x + width + 6 : x - 6)}
+          <text
+            x={labelX}
             y={y + height / 2 + 12}
-            textAnchor={isCenter ? 'middle' : (isRight ? 'start' : 'end')}
+            textAnchor={textAnchor}
             alignmentBaseline="middle"
             fontSize={9}
-            fill="currentColor"
-            className="dark:fill-gray-500 fill-gray-400 font-mono"
+            className="font-mono fill-[hsl(0,0%,90%)] dark:fill-[hsl(0,0%,10%)]"
           >
             {formatCurrency(payload.value, 'EUR')}
           </text>
@@ -264,9 +306,9 @@ const CashflowSankey: React.FC<CashflowSankeyProps> = ({ transactions, incomeCat
                     contentStyle={{ backgroundColor: 'var(--light-card)', borderColor: 'rgba(0,0,0,0.1)', borderRadius: '8px', fontSize: '12px' }}
                     itemStyle={{ color: 'var(--light-text)' }}
                     formatter={(value: number, name: string, props: any) => {
-                         const sourceName = props.payload.source?.displayName || props.payload.source?.name;
-                         const targetName = props.payload.target?.displayName || props.payload.target?.name;
-                         const nodeName = props.payload.displayName || name;
+                         const sourceName = props.payload.source?.name;
+                         const targetName = props.payload.target?.name;
+                         const nodeName = props.payload.name;
 
                          if (sourceName && targetName) {
                              return [formatCurrency(value, 'EUR'), `${sourceName} → ${targetName}`];
