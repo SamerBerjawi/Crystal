@@ -1,3 +1,4 @@
+
 // FIX: Import `useMemo` from React to resolve the 'Cannot find name' error.
 import React, { useState, useEffect, useMemo, useCallback, Suspense, lazy, useRef, Component, ErrorInfo, startTransition } from 'react';
 import Sidebar from './components/Sidebar';
@@ -311,7 +312,8 @@ const App: React.FC = () => {
   const [isChatOpen, setIsChatOpen] = useState(false);
   
   // State for Warrant prices
-  const [manualWarrantPrices, setManualWarrantPrices] = useState<Record<string, number | undefined>>(initialFinancialData.manualWarrantPrices || {});
+  // FIX: Explicitly cast initial value to Record<string, number | undefined> to resolve type error
+  const [manualWarrantPrices, setManualWarrantPrices] = useState<Record<string, number | undefined>>((initialFinancialData.manualWarrantPrices as Record<string, number | undefined>) || {});
   const [lastUpdated, setLastUpdated] = useState<Date | null>(null);
   
   const assetPrices = useMemo(() => {
