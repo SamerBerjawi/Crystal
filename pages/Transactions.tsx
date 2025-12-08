@@ -211,6 +211,17 @@ const Transactions: React.FC<TransactionsProps> = ({ initialAccountFilter, initi
   }, []);
 
   useEffect(() => {
+    if (!contextMenu) return;
+
+    const handleResize = () => {
+      openContextMenu(contextMenu.x, contextMenu.y, contextMenu.transaction);
+    };
+
+    window.addEventListener('resize', handleResize);
+    return () => window.removeEventListener('resize', handleResize);
+  }, [contextMenu, openContextMenu]);
+
+  useEffect(() => {
     throttledUpdateHeight();
 
     const resizeObserver = new ResizeObserver(throttledUpdateHeight);
