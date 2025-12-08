@@ -136,7 +136,7 @@ const MetricCard: React.FC<{ label: string; value: string | number; subtext?: st
 const Tasks: React.FC<TasksProps> = ({ tasks, saveTask, deleteTask, taskOrder, setTaskOrder }) => {
     const [isModalOpen, setIsModalOpen] = useState(false);
     const [editingTask, setEditingTask] = useState<Task | null>(null);
-    const [sortBy, setSortBy] = useState<'priority-desc' | 'dueDate-asc' | 'manual'>('manual');
+    const [sortBy, setSortBy] = useState<'priority-desc' | 'dueDate-asc' | 'manual'>('priority-desc');
     const [justCompletedTaskId, setJustCompletedTaskId] = useState<string | null>(null);
     const [draggedItem, setDraggedItem] = useState<Task | null>(null);
     const [dragOverItem, setDragOverItem] = useState<Task | null>(null);
@@ -323,12 +323,17 @@ const Tasks: React.FC<TasksProps> = ({ tasks, saveTask, deleteTask, taskOrder, s
                     color="text-amber-600 dark:text-amber-400"
                     icon="event_upcoming"
                 />
-                <MetricCard 
-                    label="Total Active" 
-                    value={stats.total - stats.completed} 
-                    subtext="Current workload" 
+                <MetricCard
+                    label="Total Active"
+                    value={stats.total - stats.completed}
+                    subtext="Current workload"
                     icon="list_alt"
                 />
+            </div>
+
+            {/* Heatmap */}
+            <div className="flex justify-center">
+                <TasksHeatmap tasks={tasks} />
             </div>
 
             {/* Controls */}
@@ -407,14 +412,6 @@ const Tasks: React.FC<TasksProps> = ({ tasks, saveTask, deleteTask, taskOrder, s
                 })}
             </div>
 
-            {/* Consistency Tracker */}
-            <div className="mt-12">
-                 <h3 className="text-lg font-bold text-light-text dark:text-dark-text mb-4 flex items-center gap-2">
-                    <span className="material-symbols-outlined text-primary-500">history</span>
-                    Consistency Tracker
-                 </h3>
-                 <TasksHeatmap tasks={tasks} />
-            </div>
         </div>
     );
 };
