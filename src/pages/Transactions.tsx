@@ -1,4 +1,3 @@
-
 import React, { useState, useMemo, useRef, useEffect, useCallback } from 'react';
 import { INPUT_BASE_STYLE, SELECT_WRAPPER_STYLE, SELECT_ARROW_STYLE, BTN_PRIMARY_STYLE, BTN_SECONDARY_STYLE, SELECT_STYLE, CHECKBOX_STYLE } from '../constants';
 import { Transaction, Account, DisplayTransaction, RecurringTransaction, Category } from '../types';
@@ -31,7 +30,7 @@ const MetricCard = React.memo(function MetricCard({ label, value, colorClass = "
             </div>
             <div>
                 <p className="text-xs font-bold uppercase tracking-wider text-light-text-secondary dark:text-dark-text-secondary mb-0.5">{label}</p>
-                <p className={`text-xl font-bold ${colorClass}`}>{value}</p>
+                <p className={`text-xl font-bold privacy-blur ${colorClass}`}>{value}</p>
             </div>
         </div>
     );
@@ -1205,7 +1204,7 @@ const Transactions: React.FC<TransactionsProps> = ({ initialAccountFilter, initi
                           className="px-6 py-2 border-b border-black/5 dark:border-white/5 bg-gray-50 dark:bg-black/20 flex justify-start gap-4 items-center"
                         >
                           <span className="font-bold text-sm text-light-text dark:text-dark-text">{formatGroupDate(row.date)}</span>
-                          <span className={`font-bold text-sm ${row.total > 0 ? 'text-green-600 dark:text-green-400' : row.total < 0 ? 'text-red-600 dark:text-red-400' : 'text-light-text-secondary dark:text-dark-text-secondary'}`}>
+                          <span className={`font-bold text-sm privacy-blur ${row.total > 0 ? 'text-green-600 dark:text-green-400' : row.total < 0 ? 'text-red-600 dark:text-red-400' : 'text-light-text-secondary dark:text-dark-text-secondary'}`}>
                             {formatCurrency(row.total, 'EUR', { showPlusSign: true })}
                           </span>
                         </div>
@@ -1300,14 +1299,14 @@ const Transactions: React.FC<TransactionsProps> = ({ initialAccountFilter, initi
                           {/* Spare Change */}
                           <div className="hidden md:block col-span-1 text-sm font-mono text-left text-light-text-secondary dark:text-dark-text-secondary">
                             {tx.spareChangeAmount ? (
-                              <span className="text-semantic-red">{formatCurrency(convertToEur(-Math.abs(tx.spareChangeAmount), tx.currency), 'EUR', { showPlusSign: true })}</span>
+                              <span className="text-semantic-red privacy-blur">{formatCurrency(convertToEur(-Math.abs(tx.spareChangeAmount), tx.currency), 'EUR', { showPlusSign: true })}</span>
                             ) : (
                               '—'
                             )}
                           </div>
 
                           {/* Amount */}
-                          <div className={`col-span-4 md:col-span-3 lg:col-span-2 font-mono font-bold text-left text-sm whitespace-nowrap ${amountColor}`}>
+                          <div className={`col-span-4 md:col-span-3 lg:col-span-2 font-mono font-bold text-left text-sm whitespace-nowrap privacy-blur ${amountColor}`}>
                             {tx.isTransfer && selectedAccountIds.length === 0
                               ? '-/+ ' + formatCurrency(convertToEur(Math.abs(amount), tx.currency), 'EUR')
                               : formatCurrency(convertToEur(amount, tx.currency), 'EUR', { showPlusSign: true })}

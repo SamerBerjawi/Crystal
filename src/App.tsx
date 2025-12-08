@@ -267,6 +267,7 @@ const App: React.FC = () => {
   const [isDemoMode, setIsDemoMode] = useState(false);
   const [demoUser, setDemoUser] = useState<User | null>(null);
   const [isDataLoaded, setIsDataLoaded] = useState(false);
+  const [isPrivacyMode, setIsPrivacyMode] = useState(false);
 
   const [currentPath, setCurrentPath] = useState(initialPath);
   const [currentPage, setCurrentPageState] = useState<Page>(initialRoute.page);
@@ -313,7 +314,7 @@ const App: React.FC = () => {
   const [manualWarrantPrices, setManualWarrantPrices] = useState<Record<string, number | undefined>>(initialFinancialData.manualWarrantPrices || {});
   const [lastUpdated, setLastUpdated] = useState<Date | null>(null);
   
-  const assetPrices = useMemo(() => {
+  const assetPrices = useMemo<Record<string, number | null>>(() => {
     const resolved: Record<string, number | null> = {};
 
     accounts
@@ -386,6 +387,14 @@ const App: React.FC = () => {
     }
   }, [currentPath, navigateToPath]);
 
+  useEffect(() => {
+    if (isPrivacyMode) {
+      document.body.classList.add('privacy-mode');
+    } else {
+      document.body.classList.remove('privacy-mode');
+    }
+  }, [isPrivacyMode]);
+
   const setCurrentPage = useCallback((page: Page) => {
     const targetPath = pageToPath(page, page === 'AccountDetail' ? viewingAccountId : null);
     navigateToPath(targetPath);
@@ -435,7 +444,7 @@ const App: React.FC = () => {
       }
   }, [preferences.timezone]);
 
-  const warrantHoldingsBySymbol = useMemo(() => {
+  const warrantHoldingsBySymbol = useMemo<Record<string, number>>(() => {
     const holdings: Record<string, number> = {};
 
     investmentTransactions.forEach(tx => {
@@ -1684,6 +1693,8 @@ const App: React.FC = () => {
               setTheme={setTheme}
               currentPage={currentPage}
               titleOverride={viewingAccount?.name}
+              isPrivacyMode={isPrivacyMode}
+              togglePrivacyMode={() => setIsPrivacyMode(!isPrivacyMode)}
             />
             <InsightsViewProvider
               accounts={accounts}
