@@ -107,6 +107,7 @@ const CashflowSankey: React.FC<CashflowSankeyProps> = ({ transactions, incomeCat
 
     const limitSubcategories = (subTotals: Map<string, number>) => {
         const limited = new Map<string, number>();
+        const overflowTotals = new Map<string, number>();
 
         const groupedByParent = new Map<string, { subName: string; value: number }[]>();
         subTotals.forEach((value, key) => {
@@ -133,16 +134,16 @@ const CashflowSankey: React.FC<CashflowSankeyProps> = ({ transactions, incomeCat
                 });
 
                 if (otherTotal > 0.01) {
-                    limited.set(`${OTHER_SUBCATEGORY}::${parentName}`, (limited.get(`${OTHER_SUBCATEGORY}::${parentName}`) || 0) + otherTotal);
+                    overflowTotals.set(parentName, (overflowTotals.get(parentName) || 0) + otherTotal);
                 }
             }
         });
 
-        return limited;
+        return { limited, overflowTotals };
     };
 
-    const limitedIncSubTotals = limitSubcategories(incSubTotals);
-    const limitedExpSubTotals = limitSubcategories(expSubTotals);
+    const { limited: limitedIncSubTotals, overflowTotals: incOverflowTotals } = limitSubcategories(incSubTotals);
+    const { limited: limitedExpSubTotals, overflowTotals: expOverflowTotals } = limitSubcategories(expSubTotals);
 
     // --- Build Graph ---
 
@@ -154,12 +155,18 @@ const CashflowSankey: React.FC<CashflowSankeyProps> = ({ transactions, incomeCat
     // Depth 0: Sub Categories (Terminals)
     incCatTotals.forEach((totalVal, parentName) => {
         if (totalVal < 0.01) return;
-        
+
         const color = getCategoryColor(parentName, null, incomeCategories);
         const catNodeIdx = addNode(`inc_cat_${parentName}`, parentName, color, FLOW_DEPTH.catIn);
 
-        // Link Category -> Net Cash Flow
-        addLink(catNodeIdx, centerNodeIdx, totalVal, color, '#0EA5E9');
+        const visibleTotal = Array.from(limitedIncSubTotals.entries())
+            .filter(([key]) => key.endsWith(`::${parentName}`))
+            .reduce((sum, [, val]) => sum + val, 0);
+
+        // Link Category -> Net Cash Flow using visible portion only (overflow will be grouped under Others)
+        if (visibleTotal >= 0.01) {
+            addLink(catNodeIdx, centerNodeIdx, visibleTotal, color, '#0EA5E9');
+        }
 
         // Link Subs -> Category
         limitedIncSubTotals.forEach((val, key) => {
@@ -173,6 +180,16 @@ const CashflowSankey: React.FC<CashflowSankeyProps> = ({ transactions, incomeCat
         });
     });
 
+    const incOverflowTotal = Array.from(incOverflowTotals.values()).reduce((sum, val) => sum + val, 0);
+    if (incOverflowTotal >= 0.01) {
+        const otherColor = '#9CA3AF';
+        const catNodeIdx = addNode(`inc_cat_${OTHER_SUBCATEGORY}`, OTHER_SUBCATEGORY, otherColor, FLOW_DEPTH.catIn);
+        const subNodeIdx = addNode(`inc_sub_${OTHER_SUBCATEGORY}`, OTHER_SUBCATEGORY, otherColor, FLOW_DEPTH.subIn);
+
+        addLink(subNodeIdx, catNodeIdx, incOverflowTotal, otherColor, otherColor);
+        addLink(catNodeIdx, centerNodeIdx, incOverflowTotal, otherColor, '#0EA5E9');
+    }
+
     // EXPENSE SIDE (Right)
     // Depth 3: Parent Categories
     // Depth 4: Sub Categories (Terminals)
@@ -182,8 +199,14 @@ const CashflowSankey: React.FC<CashflowSankeyProps> = ({ transactions, incomeCat
         const color = getCategoryColor(parentName, null, expenseCategories);
         const catNodeIdx = addNode(`exp_cat_${parentName}`, parentName, color, FLOW_DEPTH.catOut);
 
-        // Link Net Cash Flow -> Category
-        addLink(centerNodeIdx, catNodeIdx, totalVal, '#0EA5E9', color);
+        const visibleTotal = Array.from(limitedExpSubTotals.entries())
+            .filter(([key]) => key.endsWith(`::${parentName}`))
+            .reduce((sum, [, val]) => sum + val, 0);
+
+        // Link Net Cash Flow -> Category using visible portion only (overflow will be grouped under Others)
+        if (visibleTotal >= 0.01) {
+            addLink(centerNodeIdx, catNodeIdx, visibleTotal, '#0EA5E9', color);
+        }
 
         // Link Category -> Subs
         limitedExpSubTotals.forEach((val, key) => {
@@ -195,6 +218,16 @@ const CashflowSankey: React.FC<CashflowSankeyProps> = ({ transactions, incomeCat
             }
         });
     });
+
+    const expOverflowTotal = Array.from(expOverflowTotals.values()).reduce((sum, val) => sum + val, 0);
+    if (expOverflowTotal >= 0.01) {
+        const otherColor = '#9CA3AF';
+        const catNodeIdx = addNode(`exp_cat_${OTHER_SUBCATEGORY}`, OTHER_SUBCATEGORY, otherColor, FLOW_DEPTH.catOut);
+        const subNodeIdx = addNode(`exp_sub_${OTHER_SUBCATEGORY}`, OTHER_SUBCATEGORY, otherColor, FLOW_DEPTH.subOut);
+
+        addLink(centerNodeIdx, catNodeIdx, expOverflowTotal, '#0EA5E9', otherColor);
+        addLink(catNodeIdx, subNodeIdx, expOverflowTotal, otherColor, otherColor);
+    }
 
     return { nodes, links, gradients };
   }, [transactions, incomeCategories, expenseCategories]);
@@ -236,7 +269,7 @@ const CashflowSankey: React.FC<CashflowSankeyProps> = ({ transactions, incomeCat
             textAnchor={textAnchor}
             alignmentBaseline="middle"
             fontSize={9}
-            className="font-mono fill-[hsl(0,0%,90%)] dark:fill-[hsl(0,0%,10%)]"
+            className="font-mono fill-black dark:fill-white"
           >
             {formatCurrency(payload.value, 'EUR')}
           </text>
