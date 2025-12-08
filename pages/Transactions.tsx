@@ -262,8 +262,24 @@ const Transactions: React.FC<TransactionsProps> = ({ initialAccountFilter, initi
 
     const sortedTransactions = [...transactions].sort((a, b) => parseDateAsUTC(b.date).getTime() - parseDateAsUTC(a.date).getTime());
 
+    const normalizeDescription = (description?: string, isTransfer?: boolean) =>
+      (description?.trim() || (isTransfer ? 'transfer' : 'transaction')).toLowerCase();
+
+    const getSpareChangeKey = (accountId: string, date: string, description?: string, isTransfer?: boolean) =>
+      `${accountId}|${date}|${normalizeDescription(description, isTransfer)}`;
+
+    const spareChangeLookup = sortedTransactions.reduce((map, tx) => {
+        if (!tx.transferId?.startsWith('spare-') || tx.amount >= 0) return map;
+
+        const baseDescription = tx.description?.replace(/^Spare change (for|from)\s*/i, '').trim();
+        const key = getSpareChangeKey(tx.accountId, tx.date, baseDescription, tx.category === 'Transfer');
+        const currentAmount = map.get(key) || 0;
+        map.set(key, currentAmount + Math.abs(tx.amount));
+        return map;
+    }, new Map<string, number>());
+
     const transferLookup = sortedTransactions.reduce((map, tx) => {
-        if (!tx.transferId) return map;
+        if (!tx.transferId || tx.transferId.startsWith('spare-')) return map;
         const current = map.get(tx.transferId) || { income: undefined as Transaction | undefined, expense: undefined as Transaction | undefined };
         if (tx.amount >= 0) {
             current.income = tx;
@@ -275,6 +291,8 @@ const Transactions: React.FC<TransactionsProps> = ({ initialAccountFilter, initi
     }, new Map<string, { income?: Transaction; expense?: Transaction }>());
 
     for (const tx of sortedTransactions) {
+        if (tx.transferId?.startsWith('spare-')) continue; // Spare change handled separately
+
         if (tx.transferId) {
             if (processedTransferIds.has(tx.transferId)) continue;
 
@@ -282,6 +300,9 @@ const Transactions: React.FC<TransactionsProps> = ({ initialAccountFilter, initi
             processedTransferIds.add(tx.transferId);
 
             if (pair?.expense && pair?.income) {
+                const spareKey = getSpareChangeKey(pair.expense.accountId, pair.expense.date, pair.expense.description, true);
+                const spareChangeAmount = spareChangeLookup.get(spareKey);
+
                 result.push({
                     ...pair.expense,
                     id: `transfer-${pair.expense.transferId}`,
@@ -292,13 +313,16 @@ const Transactions: React.FC<TransactionsProps> = ({ initialAccountFilter, initi
                     fromAccountName: accountMap[pair.expense.accountId]?.name,
                     toAccountName: accountMap[pair.income.accountId]?.name,
                     category: 'Transfer',
-                    description: 'Account Transfer'
+                    description: 'Account Transfer',
+                    spareChangeAmount,
                 });
             } else {
-                result.push({ ...tx, accountName: accountMap[tx.accountId]?.name });
+                const spareKey = getSpareChangeKey(tx.accountId, tx.date, tx.description, true);
+                result.push({ ...tx, accountName: accountMap[tx.accountId]?.name, spareChangeAmount: spareChangeLookup.get(spareKey) });
             }
         } else {
-            result.push({ ...tx, accountName: accountMap[tx.accountId]?.name });
+            const spareKey = getSpareChangeKey(tx.accountId, tx.date, tx.description, false);
+            result.push({ ...tx, accountName: accountMap[tx.accountId]?.name, spareChangeAmount: spareChangeLookup.get(spareKey) });
         }
     }
     return result;
@@ -1073,7 +1097,7 @@ const Transactions: React.FC<TransactionsProps> = ({ initialAccountFilter, initi
                          <input type="checkbox" onChange={handleSelectAll} checked={isAllSelected} className={CHECKBOX_STYLE} aria-label="Select all transactions"/>
                     </div>
                     <div className="flex-1 grid grid-cols-12 gap-4 ml-2 items-center">
-                        <div className="col-span-8 md:col-span-6 lg:col-span-3">
+                        <div className="col-span-8 md:col-span-5 lg:col-span-3">
                             <ColumnHeader
                                 label="Transaction"
                                 sortKey="date"
@@ -1102,7 +1126,7 @@ const Transactions: React.FC<TransactionsProps> = ({ initialAccountFilter, initi
                                 filterContent={merchantFilterContent}
                             />
                         </div>
-                        <div className="hidden md:block col-span-2">
+                        <div className="hidden md:block col-span-1">
                             <ColumnHeader
                                 label="Category"
                                 sortKey="category"
@@ -1121,7 +1145,14 @@ const Transactions: React.FC<TransactionsProps> = ({ initialAccountFilter, initi
                                 filterContent={tagFilterContent}
                             />
                         </div>
-                        <div className="col-span-4 md:col-span-2 text-right flex justify-end">
+                        <div className="hidden md:block col-span-1 text-right">
+                             <ColumnHeader
+                                label="Spare"
+                                currentSort={sortBy}
+                                onSort={setSortBy}
+                             />
+                        </div>
+                        <div className="col-span-4 md:col-span-3 lg:col-span-2 text-right flex justify-end">
                              <ColumnHeader
                                 label="Amount"
                                 sortKey="amount"
@@ -1204,7 +1235,7 @@ const Transactions: React.FC<TransactionsProps> = ({ initialAccountFilter, initi
 
                         <div className="flex-1 grid grid-cols-12 gap-4 items-center ml-4 min-w-0">
                           {/* Description & Date (Mobile/Desktop) */}
-                          <div className="col-span-8 md:col-span-6 lg:col-span-3 min-w-0">
+                          <div className="col-span-8 md:col-span-5 lg:col-span-3 min-w-0">
                             <p className="font-bold text-light-text dark:text-dark-text truncate text-sm">{tx.description}</p>
                             <div className="flex flex-wrap gap-2 text-xs text-light-text-secondary dark:text-dark-text-secondary mt-0.5">
                               <span className="md:hidden truncate bg-gray-100 dark:bg-white/10 px-1.5 rounded">{tx.isTransfer ? `${tx.fromAccountName} → ${tx.toAccountName}` : tx.accountName}</span>
@@ -1237,7 +1268,7 @@ const Transactions: React.FC<TransactionsProps> = ({ initialAccountFilter, initi
                           <div className="hidden lg:block col-span-2 text-sm text-light-text-secondary dark:text-dark-text-secondary truncate">{tx.merchant || '—'}</div>
 
                           {/* Category */}
-                          <div className="hidden md:block col-span-2 text-sm font-medium text-light-text-secondary dark:text-dark-text-secondary truncate">
+                          <div className="hidden md:block col-span-1 text-sm font-medium text-light-text-secondary dark:text-dark-text-secondary truncate">
                             <span className="px-2 py-0.5 rounded-full border border-black/5 dark:border-white/10 bg-white dark:bg-black/20">{tx.category}</span>
                           </div>
 
@@ -1254,8 +1285,17 @@ const Transactions: React.FC<TransactionsProps> = ({ initialAccountFilter, initi
                             })}
                           </div>
 
+                          {/* Spare Change */}
+                          <div className="hidden md:block col-span-1 text-sm font-mono text-right text-light-text-secondary dark:text-dark-text-secondary">
+                            {tx.spareChangeAmount ? (
+                              <span className="text-semantic-red">{formatCurrency(convertToEur(-Math.abs(tx.spareChangeAmount), tx.currency), 'EUR', { showPlusSign: true })}</span>
+                            ) : (
+                              '—'
+                            )}
+                          </div>
+
                           {/* Amount */}
-                          <div className={`col-span-4 md:col-span-2 font-mono font-bold text-right text-sm whitespace-nowrap ${amountColor}`}>
+                          <div className={`col-span-4 md:col-span-3 lg:col-span-2 font-mono font-bold text-right text-sm whitespace-nowrap ${amountColor}`}>
                             {tx.isTransfer && selectedAccountIds.length === 0
                               ? '-/+ ' + formatCurrency(convertToEur(Math.abs(amount), tx.currency), 'EUR')
                               : formatCurrency(convertToEur(amount, tx.currency), 'EUR', { showPlusSign: true })}

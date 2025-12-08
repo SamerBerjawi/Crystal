@@ -226,6 +226,7 @@ export interface DisplayTransaction extends Transaction {
     fromAccountName?: string;
     toAccountName?: string;
     originalId?: string; // To keep track of the real ID for editing transfers
+    spareChangeAmount?: number;
 }
 
 export interface InvestmentTransaction {
