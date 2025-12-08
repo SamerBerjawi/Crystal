@@ -47,7 +47,7 @@ const FinancialOverview: React.FC<FinancialOverviewProps> = ({
                                 <span className="text-xs font-bold uppercase tracking-widest text-light-text-secondary dark:text-dark-text-secondary">Net Worth</span>
                             </div>
                             
-                            <h2 className="text-3xl font-extrabold tracking-tight text-light-text dark:text-dark-text mb-1">
+                            <h2 className="text-3xl font-extrabold tracking-tight text-light-text dark:text-dark-text mb-1 privacy-blur">
                                 {formatCurrency(netWorth, currency as Currency)}
                             </h2>
                             <p className="text-xs text-light-text-secondary dark:text-dark-text-secondary font-medium">Total Assets - Liabilities</p>
@@ -70,13 +70,13 @@ const FinancialOverview: React.FC<FinancialOverviewProps> = ({
                         <div>
                             <p className="text-xs font-bold uppercase text-light-text-secondary dark:text-dark-text-secondary tracking-wider mb-1">Net Cash Flow</p>
                             <div className="flex items-baseline gap-2">
-                                <span className={`text-2xl font-extrabold ${isPositiveNet ? 'text-light-text dark:text-dark-text' : 'text-red-500'}`}>
+                                <span className={`text-2xl font-extrabold privacy-blur ${isPositiveNet ? 'text-light-text dark:text-dark-text' : 'text-red-500'}`}>
                                     {formatCurrency(netCashFlow, currency as Currency, { showPlusSign: true })}
                                 </span>
                             </div>
                         </div>
                         <div className={`flex flex-col items-end px-3 py-1.5 rounded-xl ${isPositiveNet ? 'bg-emerald-50 dark:bg-emerald-900/20' : 'bg-red-50 dark:bg-red-900/20'}`}>
-                            <span className={`text-sm font-bold ${isPositiveNet ? 'text-emerald-600 dark:text-emerald-400' : 'text-red-600 dark:text-red-400'}`}>
+                            <span className={`text-sm font-bold privacy-blur ${isPositiveNet ? 'text-emerald-600 dark:text-emerald-400' : 'text-red-600 dark:text-red-400'}`}>
                                 {savingsRate.toFixed(0)}%
                             </span>
                             <span className={`text-[10px] font-bold uppercase ${isPositiveNet ? 'text-emerald-600/70 dark:text-emerald-400/70' : 'text-red-600/70 dark:text-red-400/70'}`}>Savings Rate</span>
@@ -109,7 +109,7 @@ const FinancialOverview: React.FC<FinancialOverviewProps> = ({
                                 </div>
                                 <span className="text-xs font-bold text-light-text-secondary dark:text-dark-text-secondary uppercase tracking-wide">Income</span>
                             </div>
-                            <p className="text-xl font-bold text-light-text dark:text-dark-text">{formatCurrency(income, currency as Currency)}</p>
+                            <p className="text-xl font-bold text-light-text dark:text-dark-text privacy-blur">{formatCurrency(income, currency as Currency)}</p>
                             {incomeChange && (
                                 <p className={`text-[10px] font-medium mt-1 ${incomeChange.startsWith('+') ? 'text-emerald-600' : 'text-red-500'}`}>
                                     {incomeChange} vs prev.
@@ -124,7 +124,7 @@ const FinancialOverview: React.FC<FinancialOverviewProps> = ({
                                 </div>
                                 <span className="text-xs font-bold text-light-text-secondary dark:text-dark-text-secondary uppercase tracking-wide">Expenses</span>
                             </div>
-                            <p className="text-xl font-bold text-light-text dark:text-dark-text">{formatCurrency(expenses, currency as Currency)}</p>
+                            <p className="text-xl font-bold text-light-text dark:text-dark-text privacy-blur">{formatCurrency(expenses, currency as Currency)}</p>
                             {expenseChange && (
                                 <p className={`text-[10px] font-medium mt-1 ${expenseChange.startsWith('+') ? 'text-red-500' : 'text-emerald-600'}`}>
                                     {expenseChange} vs prev.

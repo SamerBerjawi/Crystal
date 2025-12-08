@@ -105,7 +105,7 @@ const AnalysisStatCard: React.FC<{ title: string; value: string; subtext: string
         </div>
         <div>
             <p className="text-xs font-bold uppercase text-light-text-secondary dark:text-dark-text-secondary tracking-wider mb-1">{title}</p>
-            <p className="text-2xl font-extrabold text-light-text dark:text-dark-text">{value}</p>
+            <p className="text-2xl font-extrabold text-light-text dark:text-dark-text privacy-blur">{value}</p>
             <p className="text-xs text-light-text-secondary dark:text-dark-text-secondary mt-1 font-medium">{subtext}</p>
         </div>
     </div>
@@ -1308,17 +1308,17 @@ const Dashboard: React.FC<DashboardProps> = ({ user, tasks, saveTask }) => {
                               </ResponsiveContainer>
                               <div className="absolute inset-0 flex flex-col items-center justify-center pointer-events-none">
                                   <span className="text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">Net Worth</span>
-                                  <span className="text-2xl font-bold text-gray-900 dark:text-white">{formatCurrency(globalTotalAssets - Math.abs(globalTotalDebt), 'EUR')}</span>
+                                  <span className="text-2xl font-bold text-gray-900 dark:text-white privacy-blur">{formatCurrency(globalTotalAssets - Math.abs(globalTotalDebt), 'EUR')}</span>
                               </div>
                           </div>
                           <div className="w-full mt-8 grid grid-cols-2 gap-4">
                               <div className="p-3 rounded-xl bg-green-50 dark:bg-green-900/20 border border-green-100 dark:border-green-900/30 text-center">
                                   <p className="text-xs text-green-600 dark:text-green-400 font-semibold uppercase mb-1">Assets</p>
-                                  <p className="text-lg font-bold text-green-700 dark:text-green-300">{formatCurrency(globalTotalAssets, 'EUR')}</p>
+                                  <p className="text-lg font-bold text-green-700 dark:text-green-300 privacy-blur">{formatCurrency(globalTotalAssets, 'EUR')}</p>
                               </div>
                               <div className="p-3 rounded-xl bg-red-50 dark:bg-red-900/20 border border-red-100 dark:border-red-900/30 text-center">
                                   <p className="text-xs text-red-600 dark:text-red-400 font-semibold uppercase mb-1">Liabilities</p>
-                                  <p className="text-lg font-bold text-red-700 dark:text-red-300">{formatCurrency(Math.abs(globalTotalDebt), 'EUR')}</p>
+                                  <p className="text-lg font-bold text-red-700 dark:text-red-300 privacy-blur">{formatCurrency(Math.abs(globalTotalDebt), 'EUR')}</p>
                               </div>
                           </div>
                       </div>
@@ -1338,7 +1338,7 @@ const Dashboard: React.FC<DashboardProps> = ({ user, tasks, saveTask }) => {
                                                     </div>
                                                     <span className="font-medium text-gray-700 dark:text-gray-200">{name}</span>
                                                 </div>
-                                                <span className="font-mono font-medium text-gray-900 dark:text-white">{formatCurrency(group.value, 'EUR')}</span>
+                                                <span className="font-mono font-medium text-gray-900 dark:text-white privacy-blur">{formatCurrency(group.value, 'EUR')}</span>
                                             </div>
                                             <div className="w-full bg-gray-100 dark:bg-white/10 rounded-full h-2 overflow-hidden">
                                                 <div className="h-full rounded-full" style={{ width: `${(group.value / globalTotalAssets) * 100}%`, backgroundColor: group.color }}></div>
@@ -1367,7 +1367,7 @@ const Dashboard: React.FC<DashboardProps> = ({ user, tasks, saveTask }) => {
                                                         </div>
                                                         <span className="font-medium text-gray-700 dark:text-gray-200">{name}</span>
                                                     </div>
-                                                  <span className="font-mono font-medium text-gray-900 dark:text-white">{formatCurrency(group.value, 'EUR')}</span>
+                                                  <span className="font-mono font-medium text-gray-900 dark:text-white privacy-blur">{formatCurrency(group.value, 'EUR')}</span>
                                               </div>
                                               <div className="w-full bg-gray-100 dark:bg-white/10 rounded-full h-2 overflow-hidden">
                                                   <div className="h-full rounded-full" style={{ width: `${(group.value / Math.abs(globalTotalDebt)) * 100}%`, backgroundColor: group.color }}></div>

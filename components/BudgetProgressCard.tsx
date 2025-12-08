@@ -1,5 +1,4 @@
 
-
 import React from 'react';
 import { Category } from '../types';
 import { formatCurrency } from '../utils';
@@ -66,16 +65,16 @@ const BudgetProgressCard: React.FC<BudgetProgressCardProps> = ({ category, budge
             </div>
             <div className="flex justify-between text-sm mt-2">
                 <div>
-                    <span className="font-semibold text-light-text dark:text-dark-text">{formatCurrency(spent, 'EUR')}</span>
-                    <span className="text-light-text-secondary dark:text-dark-text-secondary"> of {formatCurrency(budgeted, 'EUR')}</span>
+                    <span className="font-semibold text-light-text dark:text-dark-text privacy-blur">{formatCurrency(spent, 'EUR')}</span>
+                    <span className="text-light-text-secondary dark:text-dark-text-secondary privacy-blur"> of {formatCurrency(budgeted, 'EUR')}</span>
                 </div>
-                <span className={`font-semibold ${remainingColor}`}>{formatCurrency(remaining, 'EUR')} {remaining >= 0 ? 'left' : 'over'}</span>
+                <span className={`font-semibold privacy-blur ${remainingColor}`}>{formatCurrency(remaining, 'EUR')} {remaining >= 0 ? 'left' : 'over'}</span>
             </div>
           </>
         ) : (
           <div className="text-center bg-light-bg dark:bg-dark-bg p-4 rounded-lg">
             <p className="text-sm text-light-text-secondary dark:text-dark-text-secondary">Spent this month</p>
-            <p className="font-semibold text-2xl text-light-text dark:text-dark-text mt-1">{formatCurrency(spent, 'EUR')}</p>
+            <p className="font-semibold text-2xl text-light-text dark:text-dark-text mt-1 privacy-blur">{formatCurrency(spent, 'EUR')}</p>
           </div>
         )}
       </div>

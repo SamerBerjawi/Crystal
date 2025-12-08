@@ -211,11 +211,11 @@ const AccountRow: React.FC<AccountRowProps> = ({ account, transactions, warrants
 
                 {/* Middle: Balance & Trend */}
                 <div className="mt-3 flex items-center gap-3">
-                    <p className={`text-2xl font-extrabold tracking-tight ${displayBalance < 0 ? 'text-light-text dark:text-dark-text' : 'text-light-text dark:text-dark-text'}`}>
+                    <p className={`text-2xl font-extrabold tracking-tight privacy-blur ${displayBalance < 0 ? 'text-light-text dark:text-dark-text' : 'text-light-text dark:text-dark-text'}`}>
                         {formatCurrency(convertToEur(displayBalance, account.currency), 'EUR')}
                     </p>
                     {transactions.length > 0 && (
-                        <div className={`inline-flex items-center gap-0.5 px-1.5 py-0.5 rounded-md text-[10px] font-bold uppercase ${isPositiveTrend ? 'bg-green-100 dark:bg-green-900/30 text-green-700 dark:text-green-400' : 'bg-red-100 dark:bg-red-900/30 text-red-700 dark:text-red-400'}`}>
+                        <div className={`inline-flex items-center gap-0.5 px-1.5 py-0.5 rounded-md text-[10px] font-bold uppercase privacy-blur ${isPositiveTrend ? 'bg-green-100 dark:bg-green-900/30 text-green-700 dark:text-green-400' : 'bg-red-100 dark:bg-red-900/30 text-red-700 dark:text-red-400'}`}>
                             <span>{isPositiveTrend ? '+' : ''}{formatCurrency(trend, 'EUR', { showPlusSign: false })}</span>
                         </div>
                     )}
@@ -231,7 +231,7 @@ const AccountRow: React.FC<AccountRowProps> = ({ account, transactions, warrants
                      <div className="absolute right-0 top-0 bottom-0 w-4 bg-gradient-to-l from-light-card dark:from-dark-card to-transparent z-10"></div>
                      
                      <ResponsiveContainer width="100%" height="100%" minWidth={0} minHeight={0}>
-                        <AreaChart data={sparklineData}>
+                        <AreaChart data={sparklineData} className="privacy-blur">
                             <defs>
                                 <linearGradient id={`gradient-${account.id}`} x1="0" y1="0" x2="0" y2="1">
                                     <stop offset="5%" stopColor={chartColor} stopOpacity={0.2}/>

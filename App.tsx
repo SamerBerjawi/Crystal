@@ -268,6 +268,7 @@ const App: React.FC = () => {
   const [isDemoMode, setIsDemoMode] = useState(false);
   const [demoUser, setDemoUser] = useState<User | null>(null);
   const [isDataLoaded, setIsDataLoaded] = useState(false);
+  const [isPrivacyMode, setIsPrivacyMode] = useState(false);
 
   const [currentPath, setCurrentPath] = useState(initialPath);
   const [currentPage, setCurrentPageState] = useState<Page>(initialRoute.page);
@@ -386,6 +387,14 @@ const App: React.FC = () => {
       navigateToPath('/', true);
     }
   }, [currentPath, navigateToPath]);
+
+  useEffect(() => {
+    if (isPrivacyMode) {
+      document.body.classList.add('privacy-mode');
+    } else {
+      document.body.classList.remove('privacy-mode');
+    }
+  }, [isPrivacyMode]);
 
   const setCurrentPage = useCallback((page: Page) => {
     const targetPath = pageToPath(page, page === 'AccountDetail' ? viewingAccountId : null);
@@ -1685,6 +1694,8 @@ const App: React.FC = () => {
               setTheme={setTheme}
               currentPage={currentPage}
               titleOverride={viewingAccount?.name}
+              isPrivacyMode={isPrivacyMode}
+              togglePrivacyMode={() => setIsPrivacyMode(!isPrivacyMode)}
             />
             <InsightsViewProvider
               accounts={accounts}

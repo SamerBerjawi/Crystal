@@ -17,6 +17,17 @@
       .material-symbols-filled {
         font-variation-settings: 'FILL' 1;
       }
+      /* Privacy Mode Styles */
+      body.privacy-mode .privacy-blur {
+        filter: blur(6px);
+        transition: filter 0.2s ease-in-out;
+        cursor: default;
+        user-select: none;
+      }
+      body.privacy-mode .privacy-blur:hover {
+        filter: none;
+        user-select: auto;
+      }
     </style>
     <script>
       tailwind.config = {

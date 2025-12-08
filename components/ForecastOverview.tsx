@@ -70,7 +70,7 @@ const ForecastOverview: React.FC<ForecastOverviewProps> = ({ forecasts, currency
                                 <span className={`material-symbols-outlined text-lg ${isLow ? 'text-red-500' : 'opacity-30'}`}>{icon}</span>
                             </div>
 
-                            <p className={`text-xl font-extrabold tracking-tight ${amountColor}`}>
+                            <p className={`text-xl font-extrabold tracking-tight privacy-blur ${amountColor}`}>
                                 {formatCurrency(item.lowestBalance, currency as Currency)}
                             </p>
                             

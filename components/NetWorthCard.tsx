@@ -24,7 +24,7 @@ const NetWorthCard: React.FC<NetWorthCardProps> = ({ amount, currency }) => {
                 <span className="text-xs font-bold uppercase tracking-widest text-primary-700 dark:text-primary-300">Total Net Worth</span>
             </div>
             
-            <h2 className="text-4xl lg:text-5xl font-extrabold tracking-tight text-light-text dark:text-dark-text drop-shadow-sm">
+            <h2 className="text-4xl lg:text-5xl font-extrabold tracking-tight text-light-text dark:text-dark-text drop-shadow-sm privacy-blur">
                 {formatCurrency(amount, currency)}
             </h2>
             

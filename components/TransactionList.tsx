@@ -107,7 +107,7 @@ const TransactionList: React.FC<TransactionListProps> = ({ transactions, allCate
                 </div>
                 <div className="flex items-center gap-2">
                   <p
-                    className={`text-base font-semibold ${
+                    className={`text-base font-semibold privacy-blur ${
                       isTransfer ? 'text-light-text dark:text-dark-text' : (tx.type === 'income' ? 'text-semantic-green' : 'text-semantic-red')
                     }`}
                   >
