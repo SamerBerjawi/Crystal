@@ -229,6 +229,18 @@ const Transactions: React.FC<TransactionsProps> = ({ initialAccountFilter, initi
     };
   }, [throttledUpdateHeight]);
 
+  const openContextMenu = useCallback((event: React.MouseEvent, transaction: DisplayTransaction) => {
+    event.preventDefault();
+    const menuWidth = 224; // w-56
+    const padding = 12;
+    const viewportWidth = window.innerWidth;
+    const viewportHeight = window.innerHeight;
+    const desiredX = event.clientX - menuWidth - padding;
+    const x = Math.max(padding, Math.min(desiredX, viewportWidth - menuWidth - padding));
+    const y = Math.min(event.clientY, viewportHeight - 200);
+    setContextMenu({ x, y, transaction });
+  }, []);
+
   const allCategories = useMemo(() => [...incomeCategories, ...expenseCategories], [incomeCategories, expenseCategories]);
   const accountMap = useMemo(() => accounts.reduce((map, acc) => { map[acc.id] = acc; return map; }, {} as { [key: string]: Account }), [accounts]);
   const accountMapByName = useMemo(() => accounts.reduce((map, acc) => { map[acc.name] = acc; return map; }, {} as Record<string, Account>), [accounts]);
@@ -999,7 +1011,7 @@ const Transactions: React.FC<TransactionsProps> = ({ initialAccountFilter, initi
                       <div>
                           <label htmlFor="type-filter" className={labelStyle}>Type</label>
                           <div className={SELECT_WRAPPER_STYLE}>
-                              <select id="type-filter" value={typeFilter} onChange={(e) => setTypeFilter(e.target.value as any)} className={`${INPUT_BASE_STYLE} py-2`}>
+                              <select id="type-filter" value={typeFilter} onChange={(e) => setTypeFilter(e.target.value as any)} className={`${INPUT_BASE_STYLE} py-2 pr-10`}>
                                   {typeFilterOptions.map(opt => <option key={opt.value} value={opt.value}>{opt.label}</option>)}
                               </select>
                               <div className={SELECT_ARROW_STYLE}><span className="material-symbols-outlined">expand_more</span></div>
@@ -1008,7 +1020,7 @@ const Transactions: React.FC<TransactionsProps> = ({ initialAccountFilter, initi
                       <div>
                           <label htmlFor="sort-by" className={labelStyle}>Sort By</label>
                           <div className={SELECT_WRAPPER_STYLE}>
-                              <select id="sort-by" value={sortBy} onChange={(e) => setSortBy(e.target.value)} className={`${INPUT_BASE_STYLE} py-2`}>
+                              <select id="sort-by" value={sortBy} onChange={(e) => setSortBy(e.target.value)} className={`${INPUT_BASE_STYLE} py-2 pr-10`}>
                                 <option value="date-desc">Date (Newest)</option>
                                 <option value="date-asc">Date (Oldest)</option>
                                 <option value="amount-desc">Amount (High)</option>
@@ -1073,7 +1085,7 @@ const Transactions: React.FC<TransactionsProps> = ({ initialAccountFilter, initi
       <div className="flex-1 min-w-0 relative">
         <Card className="p-0 h-full flex flex-col relative overflow-hidden border border-black/5 dark:border-white/5 shadow-sm">
             {selectedIds.size > 0 ? (
-                <div className="bg-primary-600 dark:bg-primary-800 text-white px-6 flex justify-between items-center h-[60px] z-20 relative">
+                <div className="bg-primary-600 dark:bg-primary-800 text-white px-6 flex justify-between items-center h-[60px] z-30 relative shadow-md pointer-events-auto">
                      <div className="flex items-center gap-4">
                          <button 
                             onClick={() => setSelectedIds(new Set())} 
@@ -1224,7 +1236,7 @@ const Transactions: React.FC<TransactionsProps> = ({ initialAccountFilter, initi
                         style={style}
                         className="flex items-center group hover:bg-gray-50 dark:hover:bg-white/5 transition-colors px-6 py-3 cursor-default relative border-b border-black/5 dark:border-white/5"
                         onClick={() => { /* handle row click if needed */ }}
-                        onContextMenu={(e) => { e.preventDefault(); setContextMenu({ x: e.clientX, y: e.clientY, transaction: tx }); }}
+                        onContextMenu={(e) => openContextMenu(e, tx)}
                       >
                         <div className="flex items-center gap-4">
                           <input type="checkbox" className={CHECKBOX_STYLE} checked={selectedIds.has(tx.id)} onChange={(e) => { e.stopPropagation(); handleSelectOne(tx.id); }} onClick={e => e.stopPropagation()} aria-label={`Select transaction ${tx.description}`} />
@@ -1309,7 +1321,7 @@ const Transactions: React.FC<TransactionsProps> = ({ initialAccountFilter, initi
                             onClick={(e) => {
                               e.preventDefault();
                               e.stopPropagation();
-                              setContextMenu({ x: e.clientX, y: e.clientY, transaction: tx });
+                              openContextMenu(e, tx);
                             }}
                             aria-label="Actions"
                           >
