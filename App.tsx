@@ -278,6 +278,7 @@ const App: React.FC = () => {
     const storedTheme = safeLocalStorage.getItem('theme');
     return storedTheme === 'light' || storedTheme === 'dark' || storedTheme === 'system' ? storedTheme : 'system';
   });
+  const [isPrivacyMode, setIsPrivacyMode] = useLocalStorage<boolean>('privacy-mode', false);
   
   // All financial data states
   const [preferences, setPreferences] = useState<AppPreferences>(initialFinancialData.preferences);
@@ -309,10 +310,12 @@ const App: React.FC = () => {
   
   // State for AI Chat
   const [isChatOpen, setIsChatOpen] = useState(false);
-  
+
   // State for Warrant prices
   const [manualWarrantPrices, setManualWarrantPrices] = useState<Record<string, number | undefined>>(initialFinancialData.manualWarrantPrices || {});
   const [lastUpdated, setLastUpdated] = useState<Date | null>(null);
+
+  const togglePrivacyMode = useCallback(() => setIsPrivacyMode((prev) => !prev), [setIsPrivacyMode]);
   
   const assetPrices = useMemo(() => {
     const resolved: Record<string, number | null> = {};
@@ -1467,6 +1470,62 @@ const App: React.FC = () => {
     }
     safeLocalStorage.setItem('theme', theme);
   }, [theme]);
+
+  useEffect(() => {
+    if (typeof document === 'undefined') return;
+
+    document.body.classList.toggle('privacy-mode', isPrivacyMode);
+
+    if (!isPrivacyMode) return;
+
+    const amountRegex = /(€|\$|£|lei|BTC)\s*[+\-]?\s*[\d.,]+/;
+
+    const markAmountElement = (element: Element) => {
+      if (!(element instanceof HTMLElement)) return;
+      if (element.dataset.privacyAmount === 'true') return;
+
+      const text = element.textContent;
+      if (text && amountRegex.test(text)) {
+        element.dataset.privacyAmount = 'true';
+      }
+    };
+
+    const scanTree = (root: Element) => {
+      const walker = document.createTreeWalker(root, NodeFilter.SHOW_ELEMENT);
+      let currentNode = walker.currentNode as Element | null;
+
+      while (currentNode) {
+        markAmountElement(currentNode);
+        currentNode = walker.nextNode() as Element | null;
+      }
+    };
+
+    scanTree(document.body);
+
+    const observer = new MutationObserver((mutations) => {
+      mutations.forEach((mutation) => {
+        mutation.addedNodes.forEach((node) => {
+          if (node.nodeType === Node.ELEMENT_NODE) {
+            scanTree(node as Element);
+          } else if (node.nodeType === Node.TEXT_NODE && mutation.target instanceof HTMLElement) {
+            markAmountElement(mutation.target);
+          }
+        });
+
+        if (mutation.type === 'characterData' && mutation.target instanceof HTMLElement) {
+          markAmountElement(mutation.target);
+        }
+      });
+    });
+
+    observer.observe(document.body, {
+      childList: true,
+      subtree: true,
+      characterData: true,
+    });
+
+    return () => observer.disconnect();
+  }, [isPrivacyMode]);
   
   const viewingAccount = useMemo(() => accounts.find(a => a.id === viewingAccountId), [accounts, viewingAccountId]);
   const currentUser = useMemo(() => isDemoMode ? demoUser : user, [isDemoMode, demoUser, user]);
@@ -1683,6 +1742,8 @@ const App: React.FC = () => {
               setSidebarOpen={setSidebarOpen}
               theme={theme}
               setTheme={setTheme}
+              isPrivacyMode={isPrivacyMode}
+              onTogglePrivacyMode={togglePrivacyMode}
               currentPage={currentPage}
               titleOverride={viewingAccount?.name}
             />

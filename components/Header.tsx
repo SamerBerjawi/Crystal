@@ -3,6 +3,7 @@ import React from 'react';
 // FIX: Add User to imports
 import { Page, Theme, User } from '../types';
 import ThemeToggle from './ThemeToggle';
+import PrivacyToggle from './PrivacyToggle';
 
 interface HeaderProps {
   // FIX: Add user prop to fix type error in App.tsx
@@ -10,11 +11,13 @@ interface HeaderProps {
   setSidebarOpen: (isOpen: boolean) => void;
   theme: Theme;
   setTheme: (theme: Theme) => void;
+  isPrivacyMode: boolean;
+  onTogglePrivacyMode: () => void;
   currentPage: Page;
   titleOverride?: string;
 }
 
-const Header: React.FC<HeaderProps> = ({ user, setSidebarOpen, theme, setTheme, currentPage, titleOverride }) => {
+const Header: React.FC<HeaderProps> = ({ user, setSidebarOpen, theme, setTheme, isPrivacyMode, onTogglePrivacyMode, currentPage, titleOverride }) => {
   return (
     <header className="flex-shrink-0 bg-light-card/80 dark:bg-dark-card/80 backdrop-blur-xl h-20 flex items-center sticky top-0 z-20 transition-all duration-300">
         <div className="flex items-center justify-between w-full px-6 md:px-8">
@@ -35,6 +38,7 @@ const Header: React.FC<HeaderProps> = ({ user, setSidebarOpen, theme, setTheme, 
             <div className="flex items-center gap-4">
                 {/* Could add global search or notifications here later */}
                 <div className="h-6 w-px bg-black/10 dark:bg-white/10 mx-1 hidden sm:block"></div>
+                <PrivacyToggle enabled={isPrivacyMode} onToggle={onTogglePrivacyMode} />
                 <ThemeToggle theme={theme} setTheme={setTheme} />
             </div>
         </div>
