@@ -2,7 +2,6 @@
 import React, { useMemo } from 'react';
 // FIX: Import 'ScheduledItem' from '../types' as it is no longer exported from '../pages/Schedule'.
 import { ScheduledItem } from '../types';
-import Card from './Card';
 import { parseDateAsUTC, toLocalISOString } from '../utils';
 
 // Define new color constants
@@ -117,79 +116,92 @@ const ScheduleHeatmap: React.FC<ScheduleHeatmapProps> = ({ items }) => {
         return NO_ACTIVITY_COLOR;
     };
     
+    const dayLabels = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'];
+
     return (
-        <Card>
-            <h3 className="text-xl font-semibold mb-4">Schedule Activity (Upcoming Year)</h3>
-            <div className="flex gap-2">
-                {/* Day Labels (Monday Start) */}
-                <div className="flex flex-col justify-between pt-5 pb-1 text-xs text-light-text-secondary dark:text-dark-text-secondary pr-1 h-[116px]">
-                    <div className="h-3 leading-3">Mon</div>
-                    <div className="h-3 leading-3">Wed</div>
-                    <div className="h-3 leading-3">Fri</div>
-                </div>
-
-                <div className="overflow-x-auto pb-2 flex-1">
-                    <div className="inline-block min-w-full">
-                        {/* Month Labels */}
-                        <div 
-                            className="grid mb-1 h-4" 
-                            style={{ 
-                                gridTemplateColumns: `repeat(${totalColumns}, 14px)`,
-                                gap: '4px'
-                            }}
+        <div className="w-full flex flex-col items-center gap-3">
+            <div className="overflow-x-auto w-full flex justify-center">
+                <div
+                    className="inline-grid"
+                    style={{
+                        gridTemplateColumns: `28px repeat(${totalColumns}, 14px)`,
+                        gridTemplateRows: `16px repeat(7, 14px)`,
+                        columnGap: '4px',
+                        rowGap: '4px'
+                    }}
+                >
+                    {/* Month Labels */}
+                    {monthLabels.map(({ label, colStart }) => (
+                        <div
+                            key={`${label}-${colStart}`}
+                            className="text-xs text-left text-light-text-secondary dark:text-dark-text-secondary whitespace-nowrap"
+                            style={{ gridColumnStart: colStart + 1, gridRowStart: 1 }}
                         >
-                           {monthLabels.map(({ label, colStart }) => (
-                                <div 
-                                    key={`${label}-${colStart}`} 
-                                    className="text-xs text-left text-light-text-secondary dark:text-dark-text-secondary whitespace-nowrap" 
-                                    style={{ gridColumnStart: colStart }}
-                                >
-                                    {label}
-                                </div>
-                           ))}
+                            {label}
                         </div>
+                    ))}
 
-                        {/* Heatmap Grid */}
-                        <div 
-                            className="grid grid-rows-7 grid-flow-col" 
-                            style={{ 
-                                gridTemplateColumns: `repeat(${totalColumns}, 14px)`,
-                                gap: '4px' 
-                            }}
+                    {/* Day Labels */}
+                    {dayLabels.map((day, index) => (
+                        <div
+                            key={day}
+                            className="text-xs text-right pr-1 text-light-text-secondary dark:text-dark-text-secondary"
+                            style={{ gridColumnStart: 1, gridRowStart: index + 2 }}
                         >
-                            {gridDays.map((day, index) => {
-                                if (!day) {
-                                    return <div key={`pad-${index}`} className="w-[14px] h-[14px]" />;
-                                }
-                                const dateStr = toLocalISOString(day);
-                                const isToday = dateStr === todayStr;
-                                const dayData = itemsByDate.get(dateStr);
-                                const color = getActivityColor(dayData);
-                                
-                                let tooltip = day.toLocaleDateString();
-                                if (dayData) {
-                                    const parts = [];
-                                    if (dayData.transferCount > 0) parts.push(`${dayData.transferCount} transfer(s)`);
-                                    if (dayData.incomeCount > 0) parts.push(`${dayData.incomeCount} income`);
-                                    if (dayData.expenseCount > 0) parts.push(`${dayData.expenseCount} expense(s)`);
-                                    tooltip = `${day.toLocaleDateString()}: ${parts.join(', ')}`;
-                                }
-
-                                return <div key={dateStr} className={`w-[14px] h-[14px] rounded-sm ${color} hover:opacity-80 transition-opacity ${isToday ? 'ring-2 ring-primary-500 dark:ring-primary-400 z-10' : ''}`} title={isToday ? `Today - ${tooltip}` : tooltip} />;
-                            })}
+                            {day}
                         </div>
-                    </div>
+                    ))}
+
+                    {/* Heatmap Grid */}
+                    {gridDays.map((day, index) => {
+                        const colIndex = Math.floor(index / 7);
+                        const rowIndex = index % 7;
+
+                        if (!day) {
+                            return (
+                                <div
+                                    key={`pad-${index}`}
+                                    className="w-[14px] h-[14px]"
+                                    style={{ gridColumnStart: colIndex + 2, gridRowStart: rowIndex + 2 }}
+                                />
+                            );
+                        }
+
+                        const dateStr = toLocalISOString(day);
+                        const isToday = dateStr === todayStr;
+                        const dayData = itemsByDate.get(dateStr);
+                        const color = getActivityColor(dayData);
+
+                        let tooltip = day.toLocaleDateString();
+                        if (dayData) {
+                            const parts = [];
+                            if (dayData.transferCount > 0) parts.push(`${dayData.transferCount} transfer(s)`);
+                            if (dayData.incomeCount > 0) parts.push(`${dayData.incomeCount} income`);
+                            if (dayData.expenseCount > 0) parts.push(`${dayData.expenseCount} expense(s)`);
+                            tooltip = `${day.toLocaleDateString()}: ${parts.join(', ')}`;
+                        }
+
+                        return (
+                            <div
+                                key={dateStr}
+                                className={`w-[14px] h-[14px] rounded-sm ${color} hover:opacity-80 transition-opacity ${isToday ? 'ring-2 ring-primary-500 dark:ring-primary-400 z-10' : ''}`}
+                                style={{ gridColumnStart: colIndex + 2, gridRowStart: rowIndex + 2 }}
+                                title={isToday ? `Today - ${tooltip}` : tooltip}
+                            />
+                        );
+                    })}
                 </div>
             </div>
+
             {/* Legend */}
-            <div className="flex justify-end items-center gap-4 mt-4 text-xs text-light-text-secondary dark:text-dark-text-secondary">
+            <div className="flex flex-wrap justify-center items-center gap-4 text-xs text-light-text-secondary dark:text-dark-text-secondary">
                 <div className="flex items-center gap-1"><div className={`w-3 h-3 rounded-sm ${NO_ACTIVITY_COLOR}`}></div><span>No Activity</span></div>
                 <div className="flex items-center gap-1"><div className={`w-3 h-3 rounded-sm ${TRANSFER_COLOR}`}></div><span>Transfer</span></div>
                 <div className="flex items-center gap-1"><div className={`w-3 h-3 rounded-sm ${INCOME_COLOR}`}></div><span>Income</span></div>
                 <div className="flex items-center gap-1"><div className={`w-3 h-3 rounded-sm ${EXPENSE_COLOR}`}></div><span>Expense</span></div>
                 <div className="flex items-center gap-1"><div className={`w-3 h-3 rounded-sm ${MIXED_COLOR}`}></div><span>Mixed</span></div>
             </div>
-        </Card>
+        </div>
     );
 };
 
