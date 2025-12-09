@@ -1,4 +1,5 @@
 
+
 // FIX: Import `useMemo` from React to resolve the 'Cannot find name' error.
 import React, { useState, useEffect, useMemo, useCallback, Suspense, lazy, useRef, Component, ErrorInfo, startTransition } from 'react';
 import Sidebar from './components/Sidebar';
@@ -318,7 +319,8 @@ const App: React.FC = () => {
   const [manualWarrantPrices, setManualWarrantPrices] = useState<Record<string, number | undefined>>(initialFinancialData.manualWarrantPrices || {});
   const [lastUpdated, setLastUpdated] = useState<Date | null>(null);
   
-  const assetPrices = useMemo(() => {
+  // Explicitly type assetPrices to avoid 'unknown' inference
+  const assetPrices = useMemo<Record<string, number | null>>(() => {
     const resolved: Record<string, number | null> = {};
 
     accounts
@@ -448,7 +450,8 @@ const App: React.FC = () => {
       }
   }, [preferences.timezone]);
 
-  const warrantHoldingsBySymbol = useMemo(() => {
+  // Explicitly type warrantHoldingsBySymbol
+  const warrantHoldingsBySymbol = useMemo<Record<string, number>>(() => {
     const holdings: Record<string, number> = {};
 
     investmentTransactions.forEach(tx => {
@@ -466,10 +469,10 @@ const App: React.FC = () => {
   useEffect(() => {
     let hasChanges = false;
     const updatedAccounts = accounts.map(account => {
-      // FIX: The type 'Crypto' is not a valid AccountType. 'Crypto' is a subtype of 'Investment'.
-      // The check is simplified to only verify if the account type is 'Investment'.
-      if (account.symbol && account.type === 'Investment' && assetPrices[account.symbol] !== undefined) {
-        const price = assetPrices[account.symbol as string] as number | null;
+      const prices = assetPrices as Record<string, number | null>;
+      if (account.symbol && account.type === 'Investment' && prices[account.symbol] !== undefined) {
+        const price = prices[account.symbol] as number | null;
+        // Cast quantity to number to ensure type safety
         const quantity = warrantHoldingsBySymbol[account.symbol] || 0;
         const calculatedBalance = (price !== null && typeof price === 'number') ? quantity * price : 0;
 
