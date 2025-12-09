@@ -43,6 +43,8 @@ const loadDocumentation = () => import('./pages/Documentation');
 const Documentation = lazy(loadDocumentation);
 const loadSubscriptionsPage = () => import('./pages/Subscriptions');
 const SubscriptionsPage = lazy(loadSubscriptionsPage);
+const loadInvoicesPage = () => import('./pages/Invoices');
+const InvoicesPage = lazy(loadInvoicesPage);
 
 const pagePreloaders = [
   // FIX: removed unused loadDashboard
@@ -63,12 +65,13 @@ const pagePreloaders = [
   loadWarrantsPage,
   loadAIAssistantSettingsPage,
   loadDocumentation,
-  loadSubscriptionsPage
+  loadSubscriptionsPage,
+  loadInvoicesPage
 ];
 // UserManagement is removed
 // FIX: Import FinancialData from types.ts
 // FIX: Add `Tag` to the import from `types.ts`.
-import { Page, Theme, Category, User, Transaction, Account, RecurringTransaction, RecurringTransactionOverride, WeekendAdjustment, FinancialGoal, Budget, ImportExportHistoryItem, AppPreferences, AccountType, InvestmentTransaction, Task, Warrant, ImportDataType, FinancialData, Currency, BillPayment, BillPaymentStatus, Duration, InvestmentSubType, Tag, LoanPaymentOverrides, ScheduledPayment, Membership } from './types';
+import { Page, Theme, Category, User, Transaction, Account, RecurringTransaction, RecurringTransactionOverride, WeekendAdjustment, FinancialGoal, Budget, ImportExportHistoryItem, AppPreferences, AccountType, InvestmentTransaction, Task, Warrant, ImportDataType, FinancialData, Currency, BillPayment, BillPaymentStatus, Duration, InvestmentSubType, Tag, LoanPaymentOverrides, ScheduledPayment, Membership, Invoice } from './types';
 import { MOCK_INCOME_CATEGORIES, MOCK_EXPENSE_CATEGORIES, LIQUID_ACCOUNT_TYPES } from './constants';
 import { v4 as uuidv4 } from 'uuid';
 import ChatFab from './components/ChatFab';
@@ -79,7 +82,7 @@ import { useAuth } from './hooks/useAuth';
 import useLocalStorage from './hooks/useLocalStorage';
 const OnboardingModal = lazy(() => import('./components/OnboardingModal'));
 import { FinancialDataProvider } from './contexts/FinancialDataContext';
-import { AccountsProvider, PreferencesProvider, TransactionsProvider, WarrantsProvider } from './contexts/DomainProviders';
+import { AccountsProvider, PreferencesProvider, TransactionsProvider, WarrantsProvider, InvoicesProvider } from './contexts/DomainProviders';
 import { InsightsViewProvider } from './contexts/InsightsViewContext';
 
 const routePathMap: Record<Page, string> = {
@@ -102,6 +105,7 @@ const routePathMap: Record<Page, string> = {
   Documentation: '/documentation',
   'AI Assistant': '/ai-assistant',
   Subscriptions: '/subscriptions',
+  'Quotes & Invoices': '/invoices',
 };
 
 type RouteInfo = { page: Page; matched: boolean; accountId?: string | null };
@@ -154,6 +158,7 @@ const initialFinancialData: FinancialData = {
     accountOrder: [],
     taskOrder: [],
     manualWarrantPrices: {},
+    invoices: [],
     preferences: {
         currency: 'EUR (€)',
         language: 'English (en)',
@@ -298,6 +303,7 @@ const App: React.FC = () => {
   const [memberships, setMemberships] = useState<Membership[]>(initialFinancialData.memberships || []);
   const [importExportHistory, setImportExportHistory] = useState<ImportExportHistoryItem[]>(initialFinancialData.importExportHistory);
   const [billsAndPayments, setBillsAndPayments] = useState<BillPayment[]>(initialFinancialData.billsAndPayments);
+  const [invoices, setInvoices] = useState<Invoice[]>(initialFinancialData.invoices || []);
   // FIX: Add state for tags and tag filtering to support the Tags feature.
   const [tags, setTags] = useState<Tag[]>(initialFinancialData.tags || []);
   const latestDataRef = useRef<FinancialData>(initialFinancialData);
@@ -467,12 +473,13 @@ const App: React.FC = () => {
   useEffect(() => {
     let hasChanges = false;
     const updatedAccounts = accounts.map(account => {
-      const prices = assetPrices as Record<string, number | null>;
-      if (account.symbol && account.type === 'Investment' && prices[account.symbol] !== undefined) {
-        const price = prices[account.symbol] as number | null;
+      // FIX: The type 'Crypto' is not a valid AccountType. 'Crypto' is a subtype of 'Investment'.
+      // The check is simplified to only verify if the account type is 'Investment'.
+      if (account.symbol && account.type === 'Investment' && (assetPrices as Record<string, number | null>)[account.symbol] !== undefined) {
+        const price = (assetPrices as Record<string, number | null>)[account.symbol as string];
         // Cast quantity to number to ensure type safety
         const quantity = warrantHoldingsBySymbol[account.symbol] || 0;
-        const calculatedBalance = (price !== null && typeof price === 'number') ? quantity * price : 0;
+        const calculatedBalance = (typeof price === 'number') ? quantity * price : 0;
 
         if (Math.abs((account.balance || 0) - calculatedBalance) > 0.0001) {
             hasChanges = true;
@@ -508,6 +515,7 @@ const App: React.FC = () => {
       setImportExportHistory(dataToLoad.importExportHistory || []);
       setBillsAndPayments(dataToLoad.billsAndPayments || []);
       setManualWarrantPrices(dataToLoad.manualWarrantPrices || {});
+      setInvoices(dataToLoad.invoices || []);
       // FIX: Add `tags` to the data loading logic.
       setTags(dataToLoad.tags || []);
       setIncomeCategories(dataToLoad.incomeCategories && dataToLoad.incomeCategories.length > 0 ? dataToLoad.incomeCategories : MOCK_INCOME_CATEGORIES);
@@ -582,11 +590,11 @@ const App: React.FC = () => {
   const dataToSave: FinancialData = useMemo(() => ({
     accounts, transactions, investmentTransactions, recurringTransactions,
     recurringTransactionOverrides, loanPaymentOverrides, financialGoals, budgets, tasks, warrants, memberships, importExportHistory, incomeCategories,
-    expenseCategories, preferences, billsAndPayments, accountOrder, taskOrder, tags, manualWarrantPrices
+    expenseCategories, preferences, billsAndPayments, accountOrder, taskOrder, tags, manualWarrantPrices, invoices
   }), [
     accounts, transactions, investmentTransactions,
     recurringTransactions, recurringTransactionOverrides, loanPaymentOverrides, financialGoals, budgets, tasks, warrants, memberships, importExportHistory,
-    incomeCategories, expenseCategories, preferences, billsAndPayments, accountOrder, taskOrder, tags, manualWarrantPrices
+    incomeCategories, expenseCategories, preferences, billsAndPayments, accountOrder, taskOrder, tags, manualWarrantPrices, invoices
   ]);
 
   const debouncedDirtySignal = useDebounce(dirtySignal, 900);
@@ -613,6 +621,7 @@ const App: React.FC = () => {
     if (dirtySlices.has('taskOrder')) payload.taskOrder = taskOrder;
     if (dirtySlices.has('tags')) payload.tags = tags;
     if (dirtySlices.has('manualWarrantPrices')) payload.manualWarrantPrices = manualWarrantPrices;
+    if (dirtySlices.has('invoices')) payload.invoices = invoices;
 
     return { ...latestDataRef.current, ...payload } as FinancialData;
   }, [
@@ -636,6 +645,7 @@ const App: React.FC = () => {
     warrants,
     memberships,
     manualWarrantPrices,
+    invoices
   ]);
 
   useEffect(() => {
@@ -741,6 +751,11 @@ const App: React.FC = () => {
     if (!isDataLoaded || restoreInProgressRef.current) return;
     markSliceDirty('tags');
   }, [tags, isDataLoaded, markSliceDirty]);
+
+  useEffect(() => {
+    if (!isDataLoaded || restoreInProgressRef.current) return;
+    markSliceDirty('invoices');
+  }, [invoices, isDataLoaded, markSliceDirty]);
 
   // Persist data to backend on change
   const saveData = useCallback(

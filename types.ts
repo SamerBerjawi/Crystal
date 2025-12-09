@@ -412,6 +412,15 @@ export interface InvoiceItem {
   total: number;
 }
 
+export interface PaymentTerm {
+  id: string;
+  label: string; // e.g. "Deposit", "Completion"
+  percentage: number; // % of total
+  amount: number;
+  dueDate: string;
+  status: 'pending' | 'paid';
+}
+
 export interface Invoice {
   id: string;
   type: InvoiceType;
@@ -434,6 +443,9 @@ export interface Invoice {
   taxAmount: number;
   total: number;
   
+  // Payment Terms
+  paymentTerms?: PaymentTerm[];
+
   status: InvoiceStatus;
   notes?: string;
 }

@@ -1,6 +1,6 @@
 
 import React, { useState, useMemo, useEffect } from 'react';
-import { Invoice, InvoiceItem, InvoiceType, InvoiceStatus, InvoiceDirection, Currency } from '../types';
+import { Invoice, InvoiceItem, InvoiceType, InvoiceStatus, InvoiceDirection, Currency, PaymentTerm } from '../types';
 import { BTN_PRIMARY_STYLE, BTN_SECONDARY_STYLE, INPUT_BASE_STYLE, SELECT_STYLE, SELECT_WRAPPER_STYLE, SELECT_ARROW_STYLE } from '../constants';
 import { formatCurrency, toLocalISOString, parseDateAsUTC } from '../utils';
 import Card from '../components/Card';
@@ -48,6 +48,9 @@ const InvoiceEditor: React.FC<{
     const [globalDiscount, setGlobalDiscount] = useState(invoice?.globalDiscountValue?.toString() || '0');
     const [currency, setCurrency] = useState<Currency>(invoice?.currency || (preferences.currency.split(' ')[0] as Currency) || 'EUR');
     const [notes, setNotes] = useState(invoice?.notes || '');
+    
+    // Payment Terms
+    const [paymentTerms, setPaymentTerms] = useState<PaymentTerm[]>(invoice?.paymentTerms || []);
 
     // Initialize with one empty item if new
     useEffect(() => {
@@ -94,6 +97,59 @@ const InvoiceEditor: React.FC<{
         const total = Math.max(0, subtotal - discountVal + taxVal);
         return { subtotal, taxVal, total };
     }, [items, globalDiscount, taxRate]);
+    
+    // Payment Terms Logic
+    const addPaymentTerm = () => {
+        const remainingPercentage = Math.max(0, 100 - paymentTerms.reduce((sum, t) => sum + t.percentage, 0));
+        setPaymentTerms(prev => [
+            ...prev,
+            { 
+                id: uuidv4(), 
+                label: `Installment ${prev.length + 1}`, 
+                percentage: remainingPercentage, 
+                amount: totals.total * (remainingPercentage / 100), 
+                dueDate: dueDate || date,
+                status: 'pending'
+            }
+        ]);
+    };
+
+    const removePaymentTerm = (id: string) => {
+        setPaymentTerms(prev => prev.filter(t => t.id !== id));
+    };
+
+    const updatePaymentTerm = (id: string, field: keyof PaymentTerm, value: string | number) => {
+        setPaymentTerms(prev => prev.map(term => {
+            if (term.id === id) {
+                const updated = { ...term, [field]: value };
+                
+                if (field === 'percentage') {
+                    // Update amount based on new percentage
+                    updated.amount = totals.total * (Number(value) / 100);
+                } else if (field === 'amount') {
+                    // Update percentage based on new amount
+                    updated.percentage = totals.total > 0 ? (Number(value) / totals.total) * 100 : 0;
+                }
+                
+                return updated;
+            }
+            return term;
+        }));
+    };
+    
+    // Sync payment terms amounts when Total changes
+    useEffect(() => {
+        if (paymentTerms.length > 0) {
+            setPaymentTerms(prev => prev.map(term => ({
+                ...term,
+                amount: totals.total * (term.percentage / 100)
+            })));
+        }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, [totals.total]);
+    
+    const termsTotalPercent = paymentTerms.reduce((sum, t) => sum + t.percentage, 0);
+    const termsRemainingAmount = totals.total - paymentTerms.reduce((sum, t) => sum + t.amount, 0);
 
     const handleSubmit = (e: React.FormEvent) => {
         e.preventDefault();
@@ -114,6 +170,7 @@ const InvoiceEditor: React.FC<{
             taxRate: parseFloat(taxRate) || 0,
             taxAmount: totals.taxVal,
             total: totals.total,
+            paymentTerms,
             status,
             notes: notes || undefined
         });
@@ -224,6 +281,72 @@ const InvoiceEditor: React.FC<{
                     </div>
                 </div>
                 
+                {/* Payment Terms Section */}
+                <div className="bg-gray-50 dark:bg-white/5 p-4 rounded-lg border border-black/5 dark:border-white/5">
+                    <div className="flex justify-between items-center mb-3">
+                        <h4 className="font-bold text-sm text-light-text dark:text-dark-text">Payment Terms & Schedule</h4>
+                        <button type="button" onClick={addPaymentTerm} className={`${BTN_SECONDARY_STYLE} !py-1 !px-2 !text-xs`}>+ Add Term</button>
+                    </div>
+                    
+                    {paymentTerms.length > 0 ? (
+                        <div className="space-y-2">
+                            {paymentTerms.map((term) => (
+                                <div key={term.id} className="grid grid-cols-12 gap-2 items-center text-sm">
+                                    <div className="col-span-4 sm:col-span-5">
+                                        <input 
+                                            type="text" 
+                                            value={term.label} 
+                                            onChange={e => updatePaymentTerm(term.id, 'label', e.target.value)} 
+                                            className={`${INPUT_BASE_STYLE} !h-8`} 
+                                            placeholder="Description (e.g. Deposit)" 
+                                        />
+                                    </div>
+                                    <div className="col-span-2">
+                                        <div className="relative">
+                                            <input 
+                                                type="number" 
+                                                value={Number(term.percentage).toFixed(2)} 
+                                                onChange={e => updatePaymentTerm(term.id, 'percentage', e.target.value)} 
+                                                className={`${INPUT_BASE_STYLE} !h-8 pr-6 text-right`} 
+                                            />
+                                            <span className="absolute right-2 top-1/2 -translate-y-1/2 text-xs text-light-text-secondary">%</span>
+                                        </div>
+                                    </div>
+                                    <div className="col-span-3 sm:col-span-2">
+                                         <input 
+                                            type="number" 
+                                            value={Number(term.amount).toFixed(2)} 
+                                            onChange={e => updatePaymentTerm(term.id, 'amount', e.target.value)} 
+                                            className={`${INPUT_BASE_STYLE} !h-8 text-right`} 
+                                        />
+                                    </div>
+                                    <div className="col-span-2">
+                                         <input 
+                                            type="date" 
+                                            value={term.dueDate} 
+                                            onChange={e => updatePaymentTerm(term.id, 'dueDate', e.target.value)} 
+                                            className={`${INPUT_BASE_STYLE} !h-8`} 
+                                        />
+                                    </div>
+                                    <div className="col-span-1 text-center">
+                                         <button type="button" onClick={() => removePaymentTerm(term.id)} className="text-light-text-secondary hover:text-red-500 transition-colors"><span className="material-symbols-outlined text-lg">delete</span></button>
+                                    </div>
+                                </div>
+                            ))}
+                            <div className="flex justify-end pt-2 text-xs font-bold border-t border-black/5 dark:border-white/5 mt-2">
+                                <span className={`mr-4 ${Math.abs(termsTotalPercent - 100) < 0.1 ? 'text-green-600 dark:text-green-400' : 'text-amber-600 dark:text-amber-400'}`}>
+                                    Total: {termsTotalPercent.toFixed(1)}%
+                                </span>
+                                <span className={`${Math.abs(termsRemainingAmount) < 0.05 ? 'text-green-600 dark:text-green-400' : 'text-amber-600 dark:text-amber-400'}`}>
+                                    Remaining: {formatCurrency(termsRemainingAmount, currency)}
+                                </span>
+                            </div>
+                        </div>
+                    ) : (
+                        <p className="text-xs text-light-text-secondary dark:text-dark-text-secondary italic">No specific terms added. Full amount due on Due Date.</p>
+                    )}
+                </div>
+
                 {/* Footer Totals */}
                 <div className="flex flex-col sm:flex-row justify-between gap-8 border-t border-black/10 dark:border-white/10 pt-6">
                     <div className="flex-1 space-y-4">

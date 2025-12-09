@@ -474,11 +474,11 @@ const App: React.FC = () => {
     const updatedAccounts = accounts.map(account => {
       // FIX: The type 'Crypto' is not a valid AccountType. 'Crypto' is a subtype of 'Investment'.
       // The check is simplified to only verify if the account type is 'Investment'.
-      if (account.symbol && account.type === 'Investment' && assetPrices[account.symbol] !== undefined) {
-        const price = assetPrices[account.symbol as string] as number | null;
+      if (account.symbol && account.type === 'Investment' && (assetPrices as Record<string, number | null>)[account.symbol] !== undefined) {
+        const price = (assetPrices as Record<string, number | null>)[account.symbol as string];
         const quantity = warrantHoldingsBySymbol[account.symbol] || 0;
         // Fix: Explicitly checking type to silence "unknown not assignable to number" error
-        const calculatedBalance = (price !== null && typeof price === 'number') ? quantity * price : 0;
+        const calculatedBalance = (typeof price === 'number') ? quantity * price : 0;
 
         if (Math.abs((account.balance || 0) - calculatedBalance) > 0.0001) {
             hasChanges = true;
