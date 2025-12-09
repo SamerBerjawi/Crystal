@@ -118,14 +118,14 @@ const Dashboard: React.FC<DashboardProps> = ({ user, tasks, saveTask }) => {
   const { transactions, saveTransaction, digest: transactionsDigest } = useTransactionsContext();
   const { incomeCategories, expenseCategories } = useCategoryContext();
   const { financialGoals } = useGoalsContext();
-  const { recurringTransactions, recurringTransactionOverrides, loanPaymentOverrides, billsAndPayments, saveRecurringTransaction, saveBillPayment, saveRecurringOverride } = useScheduleContext();
+  const { recurringTransactions, recurringTransactionOverrides, loanPaymentOverrides, billsAndPayments, saveRecurringTransaction, saveBillPayment } = useScheduleContext();
   const { tags } = useTagsContext();
   const { budgets } = useBudgetsContext();
   const transactionsKey = transactionsDigest;
   const aggregateCacheRef = useRef<Map<string, { filteredTransactions: Transaction[]; income: number; expenses: number }>>(new Map());
   const [isTransactionModalOpen, setTransactionModalOpen] = useState(false);
   const [editingTransaction, setEditingTransaction] = useState<Transaction | null>(null);
-  const [itemToPost, setItemToPost] = useState<{ item: RecurringTransaction | BillPayment, date?: string } | null>(null);
+  const [itemToPost, setItemToPost] = useState<{ item: RecurringTransaction | BillPayment } | null>(null);
   
   const [isDetailModalOpen, setDetailModalOpen] = useState(false);
   const [modalTransactions, setModalTransactions] = useState<Transaction[]>([]);
@@ -166,8 +166,8 @@ const Dashboard: React.FC<DashboardProps> = ({ user, tasks, saveTask }) => {
     setTransactionModalOpen(false);
   };
 
-  const handleProcessItem = (item: RecurringTransaction | BillPayment, date?: string) => {
-      setItemToPost({ item, date });
+  const handleProcessItem = (item: RecurringTransaction | BillPayment) => {
+      setItemToPost({ item });
       setTransactionModalOpen(true);
   };
 
@@ -180,13 +180,32 @@ const Dashboard: React.FC<DashboardProps> = ({ user, tasks, saveTask }) => {
              // Recurring
              const rt = original as RecurringTransaction;
              
-             // If we have a specific occurrence date, mark it as skipped (handled by the real transaction)
-             if (itemToPost.date && !rt.isSynthetic) {
-                 saveRecurringOverride({
-                     recurringTransactionId: rt.id,
-                     originalDate: itemToPost.date,
-                     isSkipped: true
-                 });
+             // Only advance the date if it is NOT a synthetic transaction.
+             // Synthetic transactions (like loan payments) are auto-generated based on the schedule.
+             // Once a real payment is made, the schedule logic will see it and stop generating that specific instance.
+             if (!rt.isSynthetic) {
+                 const postedDate = parseDateAsUTC(transactionsToSave[0].date);
+                 let nextDueDate = new Date(postedDate);
+                 const interval = rt.frequencyInterval || 1;
+                 const startDateUTC = parseDateAsUTC(rt.startDate);
+     
+                 // Simple advance logic
+                 switch (rt.frequency) {
+                     case 'daily': nextDueDate.setDate(nextDueDate.getDate() + interval); break;
+                     case 'weekly': nextDueDate.setDate(nextDueDate.getDate() + 7 * interval); break;
+                     case 'monthly': {
+                         const d = rt.dueDateOfMonth || startDateUTC.getDate();
+                         nextDueDate.setMonth(nextDueDate.getMonth() + interval, 1);
+                         const lastDayOfNextMonth = new Date(nextDueDate.getFullYear(), nextDueDate.getMonth() + 1, 0).getDate();
+                         nextDueDate.setDate(Math.min(d, lastDayOfNextMonth));
+                         break;
+                     }
+                     case 'yearly': {
+                         nextDueDate.setFullYear(nextDueDate.getFullYear() + interval);
+                         break;
+                     }
+                 }
+                 saveRecurringTransaction({ ...rt, nextDueDate: toLocalISOString(nextDueDate) });
              }
           } else {
               // Bill
@@ -229,18 +248,13 @@ const Dashboard: React.FC<DashboardProps> = ({ user, tasks, saveTask }) => {
           }
       }
 
-      // Use the specific recurrence date if available, otherwise the rule's next due date
-      const dateToUse = itemToPost.date 
-        ? itemToPost.date 
-        : ('dueDate' in item ? item.dueDate : (item as RecurringTransaction).nextDueDate);
-
       return {
           initialType: type,
           initialFromAccountId: from,
           initialToAccountId: to,
           initialCategory: category,
           initialDetails: {
-              date: dateToUse,
+              date: 'dueDate' in item ? item.dueDate : (item as RecurringTransaction).nextDueDate,
               amount: String(Math.abs(item.amount)),
               description: item.description,
           },
@@ -623,10 +637,9 @@ const Dashboard: React.FC<DashboardProps> = ({ user, tasks, saveTask }) => {
 
   const assetAllocationData: { name: string; value: number; color: string }[] = useMemo(() => {
       // Explicitly type the groups to avoid implicit any errors
-      const groups = assetGroups as unknown as Record<string, AssetGroup>;
-      
-      const getValue = (key: string) => (groups[key] as AssetGroup)?.value || 0;
-      const getColor = (key: string) => (groups[key] as AssetGroup)?.color || '#A0AEC0';
+      const groups = assetGroups as Record<string, AssetGroup>;
+      const getValue = (key: string) => groups[key]?.value || 0;
+      const getColor = (key: string) => groups[key]?.color || '#A0AEC0';
 
       const data = [
         { name: 'Liquid Cash', value: getValue('Liquid Cash'), color: getColor('Liquid Cash') },
@@ -1318,7 +1331,7 @@ const Dashboard: React.FC<DashboardProps> = ({ user, tasks, saveTask }) => {
                           <div>
                               <h4 className="text-sm font-bold text-light-text-secondary dark:text-dark-text-secondary uppercase tracking-wider mb-4">Assets Breakdown</h4>
                               <div className="space-y-4">
-                                  {Object.entries(assetGroups as unknown as Record<string, AssetGroup>).map(([name, group]) => {
+                                  {Object.entries(assetGroups as Record<string, AssetGroup>).map(([name, group]) => {
                                       if (group.value === 0) return null;
                                       return (
                                         <div key={name} className="group">
