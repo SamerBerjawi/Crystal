@@ -1,4 +1,3 @@
-
 // FIX: Import `useMemo` from React to resolve the 'Cannot find name' error.
 import React, { useState, useEffect, useMemo, useCallback, Suspense, lazy, useRef, Component, ErrorInfo, startTransition } from 'react';
 import Sidebar from './components/Sidebar';
@@ -44,6 +43,8 @@ const loadDocumentation = () => import('./pages/Documentation');
 const Documentation = lazy(loadDocumentation);
 const loadSubscriptionsPage = () => import('./pages/Subscriptions');
 const SubscriptionsPage = lazy(loadSubscriptionsPage);
+const loadInvoicesPage = () => import('./pages/Invoices');
+const InvoicesPage = lazy(loadInvoicesPage);
 
 const pagePreloaders = [
   loadDashboard,
@@ -64,12 +65,13 @@ const pagePreloaders = [
   loadWarrantsPage,
   loadAIAssistantSettingsPage,
   loadDocumentation,
-  loadSubscriptionsPage
+  loadSubscriptionsPage,
+  loadInvoicesPage
 ];
 // UserManagement is removed
 // FIX: Import FinancialData from types.ts
 // FIX: Add `Tag` to the import from `types.ts`.
-import { Page, Theme, Category, User, Transaction, Account, RecurringTransaction, RecurringTransactionOverride, WeekendAdjustment, FinancialGoal, Budget, ImportExportHistoryItem, AppPreferences, AccountType, InvestmentTransaction, Task, Warrant, ImportDataType, FinancialData, Currency, BillPayment, BillPaymentStatus, Duration, InvestmentSubType, Tag, LoanPaymentOverrides, ScheduledPayment, Membership } from './types';
+import { Page, Theme, Category, User, Transaction, Account, RecurringTransaction, RecurringTransactionOverride, WeekendAdjustment, FinancialGoal, Budget, ImportExportHistoryItem, AppPreferences, AccountType, InvestmentTransaction, Task, Warrant, ImportDataType, FinancialData, Currency, BillPayment, BillPaymentStatus, Duration, InvestmentSubType, Tag, LoanPaymentOverrides, ScheduledPayment, Membership, Invoice } from './types';
 import { MOCK_INCOME_CATEGORIES, MOCK_EXPENSE_CATEGORIES, LIQUID_ACCOUNT_TYPES } from './constants';
 import { v4 as uuidv4 } from 'uuid';
 import ChatFab from './components/ChatFab';
@@ -80,7 +82,7 @@ import { useAuth } from './hooks/useAuth';
 import useLocalStorage from './hooks/useLocalStorage';
 const OnboardingModal = lazy(() => import('./components/OnboardingModal'));
 import { FinancialDataProvider } from './contexts/FinancialDataContext';
-import { AccountsProvider, PreferencesProvider, TransactionsProvider, WarrantsProvider } from './contexts/DomainProviders';
+import { AccountsProvider, PreferencesProvider, TransactionsProvider, WarrantsProvider, InvoicesProvider } from './contexts/DomainProviders';
 import { InsightsViewProvider } from './contexts/InsightsViewContext';
 
 const routePathMap: Record<Page, string> = {
@@ -103,6 +105,7 @@ const routePathMap: Record<Page, string> = {
   Documentation: '/documentation',
   'AI Assistant': '/ai-assistant',
   Subscriptions: '/subscriptions',
+  'Quotes & Invoices': '/invoices',
 };
 
 type RouteInfo = { page: Page; matched: boolean; accountId?: string | null };
@@ -155,6 +158,7 @@ const initialFinancialData: FinancialData = {
     accountOrder: [],
     taskOrder: [],
     manualWarrantPrices: {},
+    invoices: [],
     preferences: {
         currency: 'EUR (€)',
         language: 'English (en)',
@@ -298,6 +302,7 @@ const App: React.FC = () => {
   const [memberships, setMemberships] = useState<Membership[]>(initialFinancialData.memberships || []);
   const [importExportHistory, setImportExportHistory] = useState<ImportExportHistoryItem[]>(initialFinancialData.importExportHistory);
   const [billsAndPayments, setBillsAndPayments] = useState<BillPayment[]>(initialFinancialData.billsAndPayments);
+  const [invoices, setInvoices] = useState<Invoice[]>(initialFinancialData.invoices || []);
   // FIX: Add state for tags and tag filtering to support the Tags feature.
   const [tags, setTags] = useState<Tag[]>(initialFinancialData.tags || []);
   const latestDataRef = useRef<FinancialData>(initialFinancialData);
@@ -317,7 +322,8 @@ const App: React.FC = () => {
   const [manualWarrantPrices, setManualWarrantPrices] = useState<Record<string, number | undefined>>(initialFinancialData.manualWarrantPrices || {});
   const [lastUpdated, setLastUpdated] = useState<Date | null>(null);
   
-  const assetPrices = useMemo(() => {
+  // FIX: Explicitly type assetPrices to avoid 'unknown' inference and ensure type safety
+  const assetPrices = useMemo<Record<string, number | null>>(() => {
     const resolved: Record<string, number | null> = {};
 
     accounts
@@ -343,7 +349,8 @@ const App: React.FC = () => {
     return resolved;
   }, [accounts, manualWarrantPrices, warrants]);
 
-  const warrantPrices = useMemo(() => {
+  // FIX: Explicitly type warrantPrices to avoid 'unknown' inference
+  const warrantPrices = useMemo<Record<string, number | null>>(() => {
     const resolved: Record<string, number | null> = {};
     warrants.forEach(warrant => {
       const symbol = warrant.isin;
@@ -447,7 +454,7 @@ const App: React.FC = () => {
       }
   }, [preferences.timezone]);
 
-  const warrantHoldingsBySymbol = useMemo(() => {
+  const warrantHoldingsBySymbol = useMemo<Record<string, number>>(() => {
     const holdings: Record<string, number> = {};
 
     investmentTransactions.forEach(tx => {
@@ -470,6 +477,7 @@ const App: React.FC = () => {
       if (account.symbol && account.type === 'Investment' && assetPrices[account.symbol] !== undefined) {
         const price = assetPrices[account.symbol as string] as number | null;
         const quantity = warrantHoldingsBySymbol[account.symbol] || 0;
+        // Fix: Explicitly checking type to silence "unknown not assignable to number" error
         const calculatedBalance = (price !== null && typeof price === 'number') ? quantity * price : 0;
 
         if (Math.abs((account.balance || 0) - calculatedBalance) > 0.0001) {
@@ -506,6 +514,7 @@ const App: React.FC = () => {
       setImportExportHistory(dataToLoad.importExportHistory || []);
       setBillsAndPayments(dataToLoad.billsAndPayments || []);
       setManualWarrantPrices(dataToLoad.manualWarrantPrices || {});
+      setInvoices(dataToLoad.invoices || []);
       // FIX: Add `tags` to the data loading logic.
       setTags(dataToLoad.tags || []);
       setIncomeCategories(dataToLoad.incomeCategories && dataToLoad.incomeCategories.length > 0 ? dataToLoad.incomeCategories : MOCK_INCOME_CATEGORIES);
@@ -580,11 +589,11 @@ const App: React.FC = () => {
   const dataToSave: FinancialData = useMemo(() => ({
     accounts, transactions, investmentTransactions, recurringTransactions,
     recurringTransactionOverrides, loanPaymentOverrides, financialGoals, budgets, tasks, warrants, memberships, importExportHistory, incomeCategories,
-    expenseCategories, preferences, billsAndPayments, accountOrder, taskOrder, tags, manualWarrantPrices
+    expenseCategories, preferences, billsAndPayments, accountOrder, taskOrder, tags, manualWarrantPrices, invoices
   }), [
     accounts, transactions, investmentTransactions,
     recurringTransactions, recurringTransactionOverrides, loanPaymentOverrides, financialGoals, budgets, tasks, warrants, memberships, importExportHistory,
-    incomeCategories, expenseCategories, preferences, billsAndPayments, accountOrder, taskOrder, tags, manualWarrantPrices
+    incomeCategories, expenseCategories, preferences, billsAndPayments, accountOrder, taskOrder, tags, manualWarrantPrices, invoices
   ]);
 
   const debouncedDirtySignal = useDebounce(dirtySignal, 900);
@@ -611,6 +620,7 @@ const App: React.FC = () => {
     if (dirtySlices.has('taskOrder')) payload.taskOrder = taskOrder;
     if (dirtySlices.has('tags')) payload.tags = tags;
     if (dirtySlices.has('manualWarrantPrices')) payload.manualWarrantPrices = manualWarrantPrices;
+    if (dirtySlices.has('invoices')) payload.invoices = invoices;
 
     return { ...latestDataRef.current, ...payload } as FinancialData;
   }, [
@@ -634,6 +644,7 @@ const App: React.FC = () => {
     warrants,
     memberships,
     manualWarrantPrices,
+    invoices
   ]);
 
   useEffect(() => {
@@ -739,6 +750,11 @@ const App: React.FC = () => {
     if (!isDataLoaded || restoreInProgressRef.current) return;
     markSliceDirty('tags');
   }, [tags, isDataLoaded, markSliceDirty]);
+
+  useEffect(() => {
+    if (!isDataLoaded || restoreInProgressRef.current) return;
+    markSliceDirty('invoices');
+  }, [invoices, isDataLoaded, markSliceDirty]);
 
   // Persist data to backend on change
   const saveData = useCallback(
@@ -1361,6 +1377,19 @@ const App: React.FC = () => {
     setMemberships(prev => prev.filter(m => m.id !== membershipId));
   };
 
+  const handleSaveInvoice = (invoiceData: Omit<Invoice, 'id'> & { id?: string }) => {
+      if (invoiceData.id) {
+          setInvoices(prev => prev.map(inv => inv.id === invoiceData.id ? { ...inv, ...invoiceData } as Invoice : inv));
+      } else {
+          const newInvoice: Invoice = { ...invoiceData, id: `inv-${uuidv4()}` } as Invoice;
+          setInvoices(prev => [...prev, newInvoice]);
+      }
+  };
+
+  const handleDeleteInvoice = (id: string) => {
+      setInvoices(prev => prev.filter(inv => inv.id !== id));
+  };
+
   // --- Data Import / Export ---
   const handlePublishImport = (
     items: (Omit<Account, 'id'> | Omit<Transaction, 'id'>)[],
@@ -1576,6 +1605,8 @@ const App: React.FC = () => {
         return <AIAssistantSettingsPage setCurrentPage={setCurrentPage} />;
       case 'Subscriptions':
         return <SubscriptionsPage />;
+      case 'Quotes & Invoices':
+        return <InvoicesPage />;
       default:
         return <div>Page not found</div>;
     }
@@ -1593,6 +1624,10 @@ const App: React.FC = () => {
   const warrantsContextValue = useMemo(
     () => ({ warrants, prices: warrantPrices }),
     [warrantPrices, warrants]
+  );
+  const invoicesContextValue = useMemo(
+    () => ({ invoices, saveInvoice: handleSaveInvoice, deleteInvoice: handleDeleteInvoice }),
+    [invoices]
   );
   const categoryContextValue = useMemo(
     () => ({ incomeCategories, expenseCategories, setIncomeCategories, setExpenseCategories }),
@@ -1699,6 +1734,7 @@ const App: React.FC = () => {
         accounts={accountsContextValue}
         transactions={transactionsContextValue}
         warrants={warrantsContextValue}
+        invoices={invoicesContextValue}
       >
         <div className={`flex h-screen bg-light-card dark:bg-dark-card text-light-text dark:text-dark-text font-sans`}>
           <Sidebar

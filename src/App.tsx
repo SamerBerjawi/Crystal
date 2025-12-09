@@ -1,5 +1,3 @@
-
-
 // FIX: Import `useMemo` from React to resolve the 'Cannot find name' error.
 import React, { useState, useEffect, useMemo, useCallback, Suspense, lazy, useRef, Component, ErrorInfo, startTransition } from 'react';
 import Sidebar from './components/Sidebar';
@@ -346,7 +344,7 @@ const App: React.FC = () => {
     return resolved;
   }, [accounts, manualWarrantPrices, warrants]);
 
-  const warrantPrices = useMemo(() => {
+  const warrantPrices = useMemo<Record<string, number | null>>(() => {
     const resolved: Record<string, number | null> = {};
     warrants.forEach(warrant => {
       const symbol = warrant.isin;
@@ -1365,6 +1363,19 @@ const App: React.FC = () => {
     setMemberships(prev => prev.filter(m => m.id !== membershipId));
   };
 
+  const handleSaveInvoice = (invoiceData: Omit<Invoice, 'id'> & { id?: string }) => {
+      if (invoiceData.id) {
+          setInvoices(prev => prev.map(inv => inv.id === invoiceData.id ? { ...inv, ...invoiceData } as Invoice : inv));
+      } else {
+          const newInvoice: Invoice = { ...invoiceData, id: `inv-${uuidv4()}` } as Invoice;
+          setInvoices(prev => [...prev, newInvoice]);
+      }
+  };
+
+  const handleDeleteInvoice = (id: string) => {
+      setInvoices(prev => prev.filter(inv => inv.id !== id));
+  };
+
   // --- Data Import / Export ---
   const handlePublishImport = (
     items: (Omit<Account, 'id'> | Omit<Transaction, 'id'>)[],
@@ -1580,6 +1591,8 @@ const App: React.FC = () => {
         return <AIAssistantSettingsPage setCurrentPage={setCurrentPage} />;
       case 'Subscriptions':
         return <SubscriptionsPage />;
+      case 'Quotes & Invoices':
+        return <InvoicesPage />;
       default:
         return <div>Page not found</div>;
     }
@@ -1597,6 +1610,10 @@ const App: React.FC = () => {
   const warrantsContextValue = useMemo(
     () => ({ warrants, prices: warrantPrices }),
     [warrantPrices, warrants]
+  );
+  const invoicesContextValue = useMemo(
+    () => ({ invoices, saveInvoice: handleSaveInvoice, deleteInvoice: handleDeleteInvoice }),
+    [invoices]
   );
   const categoryContextValue = useMemo(
     () => ({ incomeCategories, expenseCategories, setIncomeCategories, setExpenseCategories }),
@@ -1703,6 +1720,7 @@ const App: React.FC = () => {
         accounts={accountsContextValue}
         transactions={transactionsContextValue}
         warrants={warrantsContextValue}
+        invoices={invoicesContextValue}
       >
         <div className={`flex h-screen bg-light-card dark:bg-dark-card text-light-text dark:text-dark-text font-sans`}>
           <Sidebar

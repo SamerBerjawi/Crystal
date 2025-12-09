@@ -2,7 +2,7 @@
 import React, { Dispatch, SetStateAction } from 'react';
 
 // FIX: Add 'AI Assistant' to Page type
-export type Page = 'Dashboard' | 'Accounts' | 'Transactions' | 'Budget' | 'Forecasting' | 'Settings' | 'Schedule & Bills' | 'Tasks' | 'Categories' | 'Tags' | 'Personal Info' | 'Data Management' | 'Preferences' | 'AccountDetail' | 'Investments' | 'Warrants' | 'Documentation' | 'AI Assistant' | 'Subscriptions';
+export type Page = 'Dashboard' | 'Accounts' | 'Transactions' | 'Budget' | 'Forecasting' | 'Settings' | 'Schedule & Bills' | 'Tasks' | 'Categories' | 'Tags' | 'Personal Info' | 'Data Management' | 'Preferences' | 'AccountDetail' | 'Investments' | 'Warrants' | 'Documentation' | 'AI Assistant' | 'Subscriptions' | 'Quotes & Invoices';
 
 export type AccountType = 'Checking' | 'Savings' | 'Credit Card' | 'Investment' | 'Loan' | 'Property' | 'Vehicle' | 'Other Assets' | 'Other Liabilities' | 'Lending';
 
@@ -397,6 +397,47 @@ export interface Membership {
   category?: string;
 }
 
+// Invoice & Quote Types
+export type InvoiceType = 'quote' | 'invoice';
+export type InvoiceDirection = 'sent' | 'received';
+export type InvoiceStatus = 'draft' | 'sent' | 'paid' | 'overdue' | 'accepted' | 'rejected';
+
+export interface InvoiceItem {
+  id: string;
+  sku?: string;
+  description: string;
+  quantity: number;
+  unitPrice: number;
+  discountPercent?: number;
+  total: number;
+}
+
+export interface Invoice {
+  id: string;
+  type: InvoiceType;
+  direction: InvoiceDirection;
+  number: string;
+  date: string; // ISO Date
+  dueDate?: string; // ISO Date
+  
+  // Entity Info (Client if sent, Merchant if received)
+  entityName: string;
+  entityEmail?: string;
+  entityAddress?: string;
+
+  // Financials
+  currency: Currency;
+  items: InvoiceItem[];
+  subtotal: number;
+  globalDiscountValue?: number; // Flat discount on total
+  taxRate?: number; // %
+  taxAmount: number;
+  total: number;
+  
+  status: InvoiceStatus;
+  notes?: string;
+}
+
 // FIX: Move FinancialData interface from App.tsx to types.ts to resolve import error in mockData.ts
 export interface FinancialData {
     accounts: Account[];
@@ -419,6 +460,7 @@ export interface FinancialData {
     accountOrder?: string[];
     tags?: Tag[];
     manualWarrantPrices?: Record<string, number | undefined>;
+    invoices?: Invoice[];
 }
 
 // New types for Tasks feature

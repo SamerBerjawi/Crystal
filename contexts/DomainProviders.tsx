@@ -1,6 +1,6 @@
 
 import React, { createContext, useContext, useMemo, ReactNode } from 'react';
-import { Account, AppPreferences, Transaction, Warrant } from '../types';
+import { Account, AppPreferences, Transaction, Warrant, Invoice } from '../types';
 
 export interface TransactionsContextValue {
   transactions: Transaction[];
@@ -26,10 +26,17 @@ export interface WarrantsContextValue {
   prices: Record<string, number | null>;
 }
 
+export interface InvoicesContextValue {
+  invoices: Invoice[];
+  saveInvoice: (invoice: Omit<Invoice, 'id'> & { id?: string }) => void;
+  deleteInvoice: (id: string) => void;
+}
+
 const TransactionsContext = createContext<TransactionsContextValue | undefined>(undefined);
 const AccountsContext = createContext<AccountsContextValue | undefined>(undefined);
 const PreferencesContext = createContext<PreferencesContextValue | undefined>(undefined);
 const WarrantsContext = createContext<WarrantsContextValue | undefined>(undefined);
+const InvoicesContext = createContext<InvoicesContextValue | undefined>(undefined);
 
 export const TransactionsProvider: React.FC<{
   children: ReactNode;
@@ -58,6 +65,11 @@ export const WarrantsProvider: React.FC<{ children: ReactNode; value: WarrantsCo
   return <WarrantsContext.Provider value={memoValue}>{children}</WarrantsContext.Provider>;
 };
 
+export const InvoicesProvider: React.FC<{ children: ReactNode; value: InvoicesContextValue }> = ({ children, value }) => {
+  const memoValue = useMemo(() => value, [value]);
+  return <InvoicesContext.Provider value={memoValue}>{children}</InvoicesContext.Provider>;
+};
+
 export const useTransactionsContext = () => {
   const context = useContext(TransactionsContext);
   if (!context) throw new Error('useTransactionsContext must be used within a TransactionsProvider');
@@ -79,6 +91,12 @@ export const usePreferencesContext = () => {
 export const useWarrantsContext = () => {
   const context = useContext(WarrantsContext);
   if (!context) throw new Error('useWarrantsContext must be used within a WarrantsProvider');
+  return context;
+};
+
+export const useInvoicesContext = () => {
+  const context = useContext(InvoicesContext);
+  if (!context) throw new Error('useInvoicesContext must be used within an InvoicesProvider');
   return context;
 };
 

@@ -1,7 +1,7 @@
 
 import React, { createContext, useContext, useMemo, ReactNode } from 'react';
 import { Category, Tag, Budget, FinancialGoal, RecurringTransaction, RecurringTransactionOverride, LoanPaymentOverrides, BillPayment, ScheduledPayment, Membership } from '../types';
-import { AccountsContextValue, AccountsProvider, PreferencesContextValue, PreferencesProvider, TransactionsContextValue, TransactionsProvider, WarrantsContextValue, WarrantsProvider } from './DomainProviders';
+import { AccountsContextValue, AccountsProvider, PreferencesContextValue, PreferencesProvider, TransactionsContextValue, TransactionsProvider, WarrantsContextValue, WarrantsProvider, InvoicesContextValue, InvoicesProvider } from './DomainProviders';
 
 interface CategoryContextValue {
   incomeCategories: Category[];
@@ -67,6 +67,7 @@ interface FinancialDataProviderProps {
   accounts: AccountsContextValue;
   transactions: Omit<TransactionsContextValue, 'digest'>;
   warrants: WarrantsContextValue;
+  invoices: InvoicesContextValue;
 }
 
 export const FinancialDataProvider: React.FC<FinancialDataProviderProps> = ({
@@ -80,6 +81,7 @@ export const FinancialDataProvider: React.FC<FinancialDataProviderProps> = ({
   accounts,
   transactions,
   warrants,
+  invoices,
 }) => {
   const memoCategories = useMemo(() => categories, [categories]);
   const memoTags = useMemo(() => tags, [tags]);
@@ -92,17 +94,19 @@ export const FinancialDataProvider: React.FC<FinancialDataProviderProps> = ({
       <AccountsProvider value={accounts}>
         <TransactionsProvider value={transactions}>
           <WarrantsProvider value={warrants}>
-            <CategoryContext.Provider value={memoCategories}>
-              <TagsContext.Provider value={memoTags}>
-                <BudgetsContext.Provider value={memoBudgets}>
-                  <GoalsContext.Provider value={memoGoals}>
-                    <ScheduleContext.Provider value={memoSchedule}>
-                      {children}
-                    </ScheduleContext.Provider>
-                  </GoalsContext.Provider>
-                </BudgetsContext.Provider>
-              </TagsContext.Provider>
-            </CategoryContext.Provider>
+            <InvoicesProvider value={invoices}>
+              <CategoryContext.Provider value={memoCategories}>
+                <TagsContext.Provider value={memoTags}>
+                  <BudgetsContext.Provider value={memoBudgets}>
+                    <GoalsContext.Provider value={memoGoals}>
+                      <ScheduleContext.Provider value={memoSchedule}>
+                        {children}
+                      </ScheduleContext.Provider>
+                    </GoalsContext.Provider>
+                  </BudgetsContext.Provider>
+                </TagsContext.Provider>
+              </CategoryContext.Provider>
+            </InvoicesProvider>
           </WarrantsProvider>
         </TransactionsProvider>
       </AccountsProvider>
