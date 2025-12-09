@@ -394,6 +394,7 @@ export interface Membership {
   icon: string;
   notes?: string;
   website?: string;
+  category?: string;
 }
 
 // FIX: Move FinancialData interface from App.tsx to types.ts to resolve import error in mockData.ts

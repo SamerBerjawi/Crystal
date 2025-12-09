@@ -2,15 +2,16 @@
 import React, { useState, useEffect } from 'react';
 import Modal from './Modal';
 import { Membership } from '../types';
-import { INPUT_BASE_STYLE, BTN_PRIMARY_STYLE, BTN_SECONDARY_STYLE, CATEGORY_ICON_LIST } from '../constants';
+import { INPUT_BASE_STYLE, BTN_PRIMARY_STYLE, BTN_SECONDARY_STYLE, CATEGORY_ICON_LIST, SELECT_WRAPPER_STYLE, SELECT_ARROW_STYLE } from '../constants';
 import IconPicker from './IconPicker';
-import { toLocalISOString } from '../utils';
 
 interface MembershipModalProps {
   onClose: () => void;
   onSave: (membership: Omit<Membership, 'id'> & { id?: string }) => void;
   membershipToEdit?: Membership | null;
 }
+
+const MEMBERSHIP_CATEGORIES = ['Retail', 'Airline', 'Hotel', 'Grocery', 'Dining', 'Health', 'Services', 'Other'];
 
 const MembershipModal: React.FC<MembershipModalProps> = ({ onClose, onSave, membershipToEdit }) => {
   const isEditing = !!membershipToEdit;
@@ -23,6 +24,7 @@ const MembershipModal: React.FC<MembershipModalProps> = ({ onClose, onSave, memb
   const [icon, setIcon] = useState('loyalty');
   const [notes, setNotes] = useState('');
   const [website, setWebsite] = useState('');
+  const [category, setCategory] = useState('Other');
   const [isIconPickerOpen, setIconPickerOpen] = useState(false);
 
   useEffect(() => {
@@ -35,6 +37,7 @@ const MembershipModal: React.FC<MembershipModalProps> = ({ onClose, onSave, memb
       setIcon(membershipToEdit.icon);
       setNotes(membershipToEdit.notes || '');
       setWebsite(membershipToEdit.website || '');
+      setCategory(membershipToEdit.category || 'Other');
     } else {
       // Defaults
       setProvider('');
@@ -45,8 +48,15 @@ const MembershipModal: React.FC<MembershipModalProps> = ({ onClose, onSave, memb
       setIcon('loyalty');
       setNotes('');
       setWebsite('');
+      setCategory('Other');
     }
   }, [membershipToEdit]);
+
+  const handleWebsiteBlur = () => {
+      if (website && !/^https?:\/\//i.test(website)) {
+          setWebsite('https://' + website);
+      }
+  };
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
@@ -60,6 +70,7 @@ const MembershipModal: React.FC<MembershipModalProps> = ({ onClose, onSave, memb
         icon,
         notes: notes || undefined,
         website: website || undefined,
+        category: category || 'Other',
     });
     onClose();
   };
@@ -104,6 +115,18 @@ const MembershipModal: React.FC<MembershipModalProps> = ({ onClose, onSave, memb
           </div>
 
           <div>
+            <label htmlFor="category" className={labelStyle}>Category</label>
+            <div className={SELECT_WRAPPER_STYLE}>
+                <select id="category" value={category} onChange={e => setCategory(e.target.value)} className={INPUT_BASE_STYLE}>
+                    {MEMBERSHIP_CATEGORIES.map(cat => (
+                        <option key={cat} value={cat}>{cat}</option>
+                    ))}
+                </select>
+                <div className={SELECT_ARROW_STYLE}><span className="material-symbols-outlined">expand_more</span></div>
+            </div>
+          </div>
+
+          <div>
             <label htmlFor="memberId" className={labelStyle}>Member ID / Card Number</label>
             <input id="memberId" type="text" value={memberId} onChange={e => setMemberId(e.target.value)} className={INPUT_BASE_STYLE} required />
           </div>
@@ -121,7 +144,15 @@ const MembershipModal: React.FC<MembershipModalProps> = ({ onClose, onSave, memb
 
            <div>
             <label htmlFor="website" className={labelStyle}>Website (Optional)</label>
-            <input id="website" type="url" value={website} onChange={e => setWebsite(e.target.value)} className={INPUT_BASE_STYLE} placeholder="https://..." />
+            <input 
+                id="website" 
+                type="text" 
+                value={website} 
+                onChange={e => setWebsite(e.target.value)} 
+                onBlur={handleWebsiteBlur}
+                className={INPUT_BASE_STYLE} 
+                placeholder="www.example.com" 
+            />
           </div>
 
           <div>

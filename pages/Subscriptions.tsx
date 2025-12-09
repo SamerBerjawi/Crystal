@@ -171,6 +171,19 @@ const Subscriptions: React.FC = () => {
             return exp > now && exp <= nextMonth;
         }).length;
     }, [memberships]);
+    
+    // Group memberships by category
+    const groupedMemberships = useMemo(() => {
+        const groups: Record<string, Membership[]> = {};
+        memberships.forEach(m => {
+            const cat = m.category || 'Other';
+            if (!groups[cat]) groups[cat] = [];
+            groups[cat].push(m);
+        });
+        return groups;
+    }, [memberships]);
+
+    const sortedMembershipCategories = useMemo(() => Object.keys(groupedMemberships).sort(), [groupedMemberships]);
 
 
     // --- Handlers ---
@@ -439,15 +452,27 @@ const Subscriptions: React.FC = () => {
                     </div>
 
                     {memberships.length > 0 ? (
-                        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
-                            {memberships.map(m => (
-                                <LoyaltyCard 
-                                    key={m.id}
-                                    membership={m}
-                                    onEdit={handleEditMembership}
-                                    onDelete={handleDeleteMembershipRequest}
-                                />
-                            ))}
+                        <div className="space-y-8">
+                            {sortedMembershipCategories.map(category => {
+                                const cards = groupedMemberships[category];
+                                return (
+                                    <div key={category}>
+                                        <h3 className="text-lg font-bold text-light-text dark:text-dark-text mb-4 border-b border-black/5 dark:border-white/5 pb-2">
+                                            {category} <span className="text-xs font-normal text-light-text-secondary dark:text-dark-text-secondary ml-2">({cards.length})</span>
+                                        </h3>
+                                        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
+                                            {cards.map(m => (
+                                                <LoyaltyCard 
+                                                    key={m.id}
+                                                    membership={m}
+                                                    onEdit={handleEditMembership}
+                                                    onDelete={handleDeleteMembershipRequest}
+                                                />
+                                            ))}
+                                        </div>
+                                    </div>
+                                );
+                            })}
                         </div>
                     ) : (
                         <div className="flex flex-col items-center justify-center py-16 text-center">

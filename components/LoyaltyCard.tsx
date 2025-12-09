@@ -18,6 +18,13 @@ const LoyaltyCard: React.FC<LoyaltyCardProps> = ({ membership, onEdit, onDelete 
 
   const isExpired = membership.expiryDate && new Date(membership.expiryDate) < new Date();
 
+  // Create a richer background gradient based on the selected color
+  const bgStyle = {
+      background: `linear-gradient(135deg, ${membership.color} 0%, ${membership.color} 50%, #000000 150%)`,
+      // Ensure the background is solid
+      backgroundColor: membership.color,
+  };
+
   return (
     <div 
       className="group relative w-full aspect-[1.586/1] perspective-1000 cursor-pointer"
@@ -28,21 +35,24 @@ const LoyaltyCard: React.FC<LoyaltyCardProps> = ({ membership, onEdit, onDelete 
         {/* Front Face */}
         <div 
           className="absolute inset-0 w-full h-full backface-hidden rounded-2xl p-6 shadow-xl flex flex-col justify-between overflow-hidden border border-white/20"
-          style={{ backgroundColor: membership.color }}
+          style={bgStyle}
         >
-            {/* Gloss Effect */}
-            <div className="absolute inset-0 bg-gradient-to-tr from-white/10 to-transparent pointer-events-none"></div>
-            <div className="absolute -top-10 -right-10 w-32 h-32 bg-white/20 rounded-full blur-2xl pointer-events-none"></div>
+            {/* Texture/Pattern */}
+            <div className="absolute inset-0 bg-white opacity-10 pointer-events-none" style={{ backgroundImage: 'radial-gradient(circle, transparent 20%, #000 120%)' }}></div>
+            <div className="absolute -top-12 -right-12 w-48 h-48 bg-white/20 rounded-full blur-3xl pointer-events-none"></div>
 
             <div className="relative z-10 flex justify-between items-start">
-                <div className="flex items-center gap-2">
-                    <div className="w-10 h-10 rounded-lg bg-white/20 backdrop-blur-md flex items-center justify-center text-white shadow-inner">
+                <div className="flex items-center gap-3">
+                    <div className="w-10 h-10 rounded-lg bg-white/20 backdrop-blur-md flex items-center justify-center text-white shadow-inner border border-white/20">
                          <span className="material-symbols-outlined text-2xl">{membership.icon || 'loyalty'}</span>
                     </div>
-                    <span className="font-bold text-lg text-white drop-shadow-md truncate max-w-[120px]">{membership.provider}</span>
+                    <div className="min-w-0">
+                        <span className="font-bold text-lg text-white drop-shadow-md truncate block leading-tight">{membership.provider}</span>
+                        {membership.category && <span className="text-[10px] text-white/80 uppercase font-semibold tracking-wider block">{membership.category}</span>}
+                    </div>
                 </div>
                 {membership.tier && (
-                    <span className="px-2 py-0.5 rounded text-[10px] font-bold uppercase tracking-wider bg-white/20 text-white backdrop-blur-md border border-white/10 shadow-sm">
+                    <span className="px-2 py-0.5 rounded text-[10px] font-bold uppercase tracking-wider bg-white/25 text-white backdrop-blur-md border border-white/20 shadow-sm">
                         {membership.tier}
                     </span>
                 )}
@@ -50,12 +60,12 @@ const LoyaltyCard: React.FC<LoyaltyCardProps> = ({ membership, onEdit, onDelete 
 
             <div className="relative z-10">
                  <div className="flex justify-between items-end">
-                     <div>
-                         <p className="text-[10px] text-white/70 uppercase tracking-widest font-semibold mb-0.5">Member ID</p>
-                         <p className="font-mono text-lg text-white font-medium tracking-wide drop-shadow-sm truncate w-full max-w-[200px]">{membership.memberId}</p>
+                     <div className="flex-1 mr-4">
+                         <p className="text-[9px] text-white/70 uppercase tracking-widest font-semibold mb-0.5">Member ID</p>
+                         <p className="font-mono text-lg text-white font-medium tracking-wide drop-shadow-sm truncate w-full">{membership.memberId}</p>
                      </div>
-                     <div className="text-right">
-                         <p className="text-[8px] text-white/60 uppercase font-semibold mb-0.5">Valid Thru</p>
+                     <div className="text-right flex-shrink-0">
+                         <p className="text-[9px] text-white/70 uppercase font-semibold mb-0.5">Valid Thru</p>
                          <p className={`font-mono text-sm font-bold ${isExpired ? 'text-red-200' : 'text-white'}`}>{formattedExpiry}</p>
                      </div>
                  </div>
@@ -74,7 +84,7 @@ const LoyaltyCard: React.FC<LoyaltyCardProps> = ({ membership, onEdit, onDelete 
                     <span className="text-[10px] text-gray-400 font-bold uppercase">Authorized Signature</span>
                     <span className="text-[10px] text-gray-400 font-bold uppercase">Security Code</span>
                 </div>
-                <div className="flex gap-2 h-8 mb-4">
+                <div className="flex gap-2 h-8 mb-3">
                      <div className="flex-grow bg-gray-100 dark:bg-white/10 flex items-center px-2">
                          <span className="font-handwriting text-gray-600 dark:text-gray-400 text-xs italic">Sign Here</span>
                      </div>
@@ -84,15 +94,15 @@ const LoyaltyCard: React.FC<LoyaltyCardProps> = ({ membership, onEdit, onDelete 
                 </div>
 
                 {/* Simulated Barcode */}
-                <div className="w-full h-10 bg-[repeating-linear-gradient(90deg,black,black_1px,transparent_1px,transparent_3px)] opacity-80 mb-2"></div>
-                <p className="text-center font-mono text-[10px] tracking-[0.2em] text-gray-500 mb-2">{membership.memberId}</p>
+                <div className="w-full h-8 bg-[repeating-linear-gradient(90deg,black,black_1px,transparent_1px,transparent_3px)] opacity-60 mb-1"></div>
+                <p className="text-center font-mono text-[9px] tracking-[0.2em] text-gray-500 mb-2 truncate">{membership.memberId}</p>
 
                 {membership.notes && (
-                    <p className="text-xs text-gray-500 italic line-clamp-2 text-center px-2">{membership.notes}</p>
+                    <p className="text-[10px] text-gray-500 italic line-clamp-2 text-center px-2 border-t border-gray-100 dark:border-white/5 pt-1">{membership.notes}</p>
                 )}
             </div>
 
-            <div className="p-2 flex justify-between bg-gray-50 dark:bg-white/5 border-t border-gray-100 dark:border-white/5">
+            <div className="p-2 flex justify-between bg-gray-50 dark:bg-white/5 border-t border-gray-100 dark:border-white/5 mt-auto">
                  <button 
                     onClick={(e) => { e.stopPropagation(); onDelete(membership.id); }}
                     className="p-1.5 rounded-lg text-red-500 hover:bg-red-50 dark:hover:bg-red-900/20 transition-colors"
@@ -100,6 +110,18 @@ const LoyaltyCard: React.FC<LoyaltyCardProps> = ({ membership, onEdit, onDelete 
                  >
                      <span className="material-symbols-outlined text-lg">delete</span>
                  </button>
+                 {membership.website && (
+                     <a
+                        href={membership.website}
+                        target="_blank"
+                        rel="noreferrer"
+                        onClick={(e) => e.stopPropagation()}
+                        className="p-1.5 rounded-lg text-gray-500 hover:bg-gray-200 dark:hover:bg-white/10 transition-colors"
+                        title="Visit Website"
+                     >
+                         <span className="material-symbols-outlined text-lg">public</span>
+                     </a>
+                 )}
                  <button 
                     onClick={(e) => { e.stopPropagation(); onEdit(membership); }}
                     className="p-1.5 rounded-lg text-blue-500 hover:bg-blue-50 dark:hover:bg-blue-900/20 transition-colors"
