@@ -1,3 +1,4 @@
+
 // FIX: Import `useMemo` from React to resolve the 'Cannot find name' error.
 import React, { useState, useEffect, useMemo, useCallback, Suspense, lazy, useRef, Component, ErrorInfo, startTransition } from 'react';
 import Sidebar from './components/Sidebar';
@@ -457,7 +458,7 @@ const App: React.FC = () => {
       // FIX: The type 'Crypto' is not a valid AccountType. 'Crypto' is a subtype of 'Investment'.
       // The check is simplified to only verify if the account type is 'Investment'.
       if (account.symbol && account.type === 'Investment' && assetPrices[account.symbol] !== undefined) {
-        const price = assetPrices[account.symbol] as number | null;
+        const price = assetPrices[account.symbol as string] as number | null;
         const quantity = warrantHoldingsBySymbol[account.symbol] || 0;
         const calculatedBalance = (price !== null && typeof price === 'number') ? quantity * price : 0;
 
