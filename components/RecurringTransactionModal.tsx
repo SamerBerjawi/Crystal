@@ -11,7 +11,6 @@ interface RecurringTransactionModalProps {
     accounts: Account[];
     incomeCategories: Category[];
     expenseCategories: Category[];
-    // FIX: Updated the type to allow an optional 'id' property, aligning it with how new recurring transactions are initialized and passed from the parent component.
     recurringTransactionToEdit?: (Omit<RecurringTransaction, 'id'> & { id?: string }) | null;
 }
 
@@ -73,7 +72,6 @@ const RecurringTransactionModal: React.FC<RecurringTransactionModalProps> = ({ o
     const [frequencyInterval, setFrequencyInterval] = useState('1');
     const [startDate, setStartDate] = useState(toLocalISOString(new Date()));
     const [endDate, setEndDate] = useState('');
-    const [nextDueDate, setNextDueDate] = useState('');
     const [weekendAdjustment, setWeekendAdjustment] = useState<WeekendAdjustment>('on');
     const [dueDateOfMonth, setDueDateOfMonth] = useState('');
 
@@ -91,7 +89,6 @@ const RecurringTransactionModal: React.FC<RecurringTransactionModalProps> = ({ o
             setFrequency(recurringTransactionToEdit.frequency);
             setFrequencyInterval(String(recurringTransactionToEdit.frequencyInterval || '1'));
             setStartDate(recurringTransactionToEdit.startDate);
-            setNextDueDate(recurringTransactionToEdit.nextDueDate);
             setEndDate(recurringTransactionToEdit.endDate || '');
             setWeekendAdjustment(recurringTransactionToEdit.weekendAdjustment || 'on');
             setDueDateOfMonth(String(recurringTransactionToEdit.dueDateOfMonth || ''));
@@ -108,7 +105,6 @@ const RecurringTransactionModal: React.FC<RecurringTransactionModalProps> = ({ o
             setStartDate(toLocalISOString(new Date()));
             setEndDate('');
             setWeekendAdjustment('on');
-            setNextDueDate('');
             setDueDateOfMonth('');
         }
     }, [recurringTransactionToEdit, isEditing, accounts]);
@@ -187,44 +183,73 @@ const RecurringTransactionModal: React.FC<RecurringTransactionModalProps> = ({ o
         onSave(dataToSave);
     };
 
-    const labelStyle = "block text-sm font-medium text-light-text-secondary dark:text-dark-text-secondary mb-1";
-    const typeFilterOptions: { label: string; value: 'expense' | 'income' | 'transfer' }[] = [
-        { label: 'Expense', value: 'expense' },
-        { label: 'Income', value: 'income' },
-        { label: 'Transfer', value: 'transfer' },
-    ];
-
-    const modalTitle = isEditing ? 'Edit Recurring Transaction' : 'Add Recurring Transaction';
-    const saveButtonText = isEditing ? 'Save Changes' : 'Add Recurring';
-
+    const labelStyle = "block text-xs font-bold text-light-text-secondary dark:text-dark-text-secondary uppercase tracking-wider mb-1.5";
+    
     return (
-        <Modal onClose={onClose} title={modalTitle}>
-            <form onSubmit={handleSubmit} className="space-y-4">
+        <Modal onClose={onClose} title={isEditing ? 'Edit Recurring Rule' : 'New Recurring Rule'} size="lg">
+            <form onSubmit={handleSubmit} className="space-y-6">
 
-                <div>
-                    <label className={labelStyle}>Type</label>
-                    <div className="flex bg-light-bg dark:bg-dark-bg p-1 rounded-lg shadow-neu-inset-light dark:shadow-neu-inset-dark h-10 items-center">
-                        {typeFilterOptions.map(opt => (
-                            <button
-                                key={opt.value}
-                                type="button"
-                                onClick={() => setType(opt.value)}
-                                className={`w-full text-center text-sm font-semibold py-1.5 px-3 rounded-md transition-all duration-200 ${
-                                    type === opt.value
-                                        ? 'bg-light-card dark:bg-dark-card shadow-neu-raised-light dark:shadow-neu-raised-dark'
-                                        : 'text-light-text-secondary dark:text-dark-text-secondary'
-                                }`}
-                                aria-pressed={type === opt.value}
-                            >
-                                {opt.label}
-                            </button>
-                        ))}
-                    </div>
+                {/* Type Segmented Control */}
+                <div className="flex bg-gray-100 dark:bg-white/10 p-1 rounded-xl">
+                    <button
+                        type="button"
+                        onClick={() => setType('expense')}
+                        className={`flex-1 py-2 text-sm font-bold rounded-lg transition-all ${type === 'expense' ? 'bg-white dark:bg-dark-card text-red-600 dark:text-red-400 shadow-sm' : 'text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200'}`}
+                    >
+                        Expense
+                    </button>
+                    <button
+                        type="button"
+                        onClick={() => setType('income')}
+                        className={`flex-1 py-2 text-sm font-bold rounded-lg transition-all ${type === 'income' ? 'bg-white dark:bg-dark-card text-green-600 dark:text-green-400 shadow-sm' : 'text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200'}`}
+                    >
+                        Income
+                    </button>
+                    <button
+                        type="button"
+                        onClick={() => setType('transfer')}
+                        className={`flex-1 py-2 text-sm font-bold rounded-lg transition-all ${type === 'transfer' ? 'bg-white dark:bg-dark-card text-blue-600 dark:text-blue-400 shadow-sm' : 'text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200'}`}
+                    >
+                        Transfer
+                    </button>
                 </div>
 
-                {type === 'transfer' ? (
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                {/* Main Inputs */}
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div>
+                        <label htmlFor="rec-amount" className={labelStyle}>Amount</label>
+                        <input id="rec-amount" type="number" step="0.01" value={amount} onChange={e => setAmount(e.target.value)} className={INPUT_BASE_STYLE} placeholder="0.00" required />
+                    </div>
+                    {type !== 'transfer' ? (
                         <div>
+                            <label htmlFor="rec-category" className={labelStyle}>Category</label>
+                            <div className={SELECT_WRAPPER_STYLE}>
+                                <select id="rec-category" value={category} onChange={e => setCategory(e.target.value)} className={INPUT_BASE_STYLE} required>
+                                    <CategoryOptions categories={activeCategories} />
+                                </select>
+                                <div className={SELECT_ARROW_STYLE}><span className="material-symbols-outlined">expand_more</span></div>
+                            </div>
+                        </div>
+                    ) : (
+                         <div>
+                            <label htmlFor="rec-description" className={labelStyle}>Description</label>
+                            <input id="rec-description" type="text" value={description} onChange={e => setDescription(e.target.value)} className={INPUT_BASE_STYLE} placeholder="e.g., Savings" required />
+                        </div>
+                    )}
+                </div>
+                
+                {/* Description for non-transfers */}
+                {type !== 'transfer' && (
+                    <div>
+                        <label htmlFor="rec-description" className={labelStyle}>Description</label>
+                        <input id="rec-description" type="text" value={description} onChange={e => setDescription(e.target.value)} className={INPUT_BASE_STYLE} placeholder="e.g., Netflix Subscription" required />
+                    </div>
+                )}
+                
+                {/* Account Selection */}
+                {type === 'transfer' ? (
+                    <div className="flex items-center gap-2">
+                        <div className="flex-1">
                             <label htmlFor="rec-from-account" className={labelStyle}>From</label>
                             <div className={SELECT_WRAPPER_STYLE}>
                                 <select id="rec-from-account" value={accountId} onChange={e => setAccountId(e.target.value)} className={INPUT_BASE_STYLE} required>
@@ -234,7 +259,10 @@ const RecurringTransactionModal: React.FC<RecurringTransactionModalProps> = ({ o
                                 <div className={SELECT_ARROW_STYLE}><span className="material-symbols-outlined">expand_more</span></div>
                             </div>
                         </div>
-                        <div>
+                        <div className="pt-5 text-gray-400">
+                             <span className="material-symbols-outlined">arrow_forward</span>
+                        </div>
+                        <div className="flex-1">
                             <label htmlFor="rec-to-account" className={labelStyle}>To</label>
                             <div className={SELECT_WRAPPER_STYLE}>
                                 <select id="rec-to-account" value={toAccountId} onChange={e => setToAccountId(e.target.value)} className={INPUT_BASE_STYLE} required>
@@ -258,37 +286,20 @@ const RecurringTransactionModal: React.FC<RecurringTransactionModalProps> = ({ o
                     </div>
                 )}
                 
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                    <div>
-                        <label htmlFor="rec-amount" className={labelStyle}>Amount</label>
-                        <input id="rec-amount" type="number" step="0.01" value={amount} onChange={e => setAmount(e.target.value)} className={INPUT_BASE_STYLE} placeholder="0.00" required />
-                    </div>
-                    {type !== 'transfer' && (
-                        <div>
-                            <label htmlFor="rec-category" className={labelStyle}>Category</label>
-                            <div className={SELECT_WRAPPER_STYLE}>
-                                <select id="rec-category" value={category} onChange={e => setCategory(e.target.value)} className={INPUT_BASE_STYLE} required>
-                                    <CategoryOptions categories={activeCategories} />
-                                </select>
-                                <div className={SELECT_ARROW_STYLE}><span className="material-symbols-outlined">expand_more</span></div>
-                            </div>
-                        </div>
-                    )}
-                </div>
-
-                <div>
-                    <label htmlFor="rec-description" className={labelStyle}>Description</label>
-                    <input id="rec-description" type="text" value={description} onChange={e => setDescription(e.target.value)} className={INPUT_BASE_STYLE} placeholder={type === 'transfer' ? 'e.g., Monthly savings' : 'e.g., Netflix Subscription'} required />
-                </div>
-                
-                <div className="p-4 bg-black/5 dark:bg-white/5 rounded-lg space-y-4">
+                {/* Schedule Rules Card */}
+                <div className="p-5 bg-gray-50 dark:bg-white/5 rounded-xl border border-black/5 dark:border-white/5 space-y-4">
+                    <h4 className="text-sm font-bold text-light-text dark:text-dark-text flex items-center gap-2 mb-2">
+                        <span className="material-symbols-outlined text-primary-500">calendar_month</span>
+                        Schedule Rules
+                    </h4>
+                    
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                          <div>
-                            <label htmlFor="rec-frequency" className={labelStyle}>Frequency</label>
+                            <label htmlFor="rec-frequency" className={labelStyle}>Repeats Every</label>
                             <div className="flex items-center gap-2">
-                                {frequency !== 'daily' && <input type="number" value={frequencyInterval} onChange={e => setFrequencyInterval(e.target.value)} className={`${INPUT_BASE_STYLE} w-20`} min="1" />}
+                                {frequency !== 'daily' && <input type="number" value={frequencyInterval} onChange={e => setFrequencyInterval(e.target.value)} className={`${INPUT_BASE_STYLE} w-20 text-center font-bold`} min="1" />}
                                 <div className={`${SELECT_WRAPPER_STYLE} flex-1`}>
-                                    <select id="rec-frequency" value={frequency} onChange={e => setFrequency(e.target.value as RecurrenceFrequency)} className={INPUT_BASE_STYLE}>
+                                    <select id="rec-frequency" value={frequency} onChange={e => setFrequency(e.target.value as RecurrenceFrequency)} className={`${INPUT_BASE_STYLE} font-medium`}>
                                         {FREQUENCIES.map(f => <option key={f.value} value={f.value}>{f.label}</option>)}
                                     </select>
                                     <div className={SELECT_ARROW_STYLE}><span className="material-symbols-outlined">expand_more</span></div>
@@ -296,7 +307,7 @@ const RecurringTransactionModal: React.FC<RecurringTransactionModalProps> = ({ o
                             </div>
                         </div>
                          <div>
-                            <label htmlFor="rec-weekend-adjustment" className={labelStyle}>If on a weekend</label>
+                            <label htmlFor="rec-weekend-adjustment" className={labelStyle}>Weekend Behavior</label>
                              <div className={SELECT_WRAPPER_STYLE}>
                                 <select id="rec-weekend-adjustment" value={weekendAdjustment} onChange={e => setWeekendAdjustment(e.target.value as WeekendAdjustment)} className={INPUT_BASE_STYLE}>
                                     {WEEKEND_ADJUSTMENTS.map(o => <option key={o.value} value={o.value}>{o.label}</option>)}
@@ -305,18 +316,10 @@ const RecurringTransactionModal: React.FC<RecurringTransactionModalProps> = ({ o
                             </div>
                         </div>
                     </div>
-                    {(frequency === 'monthly' || frequency === 'yearly') && (
-                        <div>
-                            <label htmlFor="rec-due-date" className={labelStyle}>Day of Month (Optional)</label>
-                            <input id="rec-due-date" type="number" min="1" max="31" value={dueDateOfMonth} onChange={e => setDueDateOfMonth(e.target.value)} className={INPUT_BASE_STYLE} placeholder="e.g., 15 (uses start date's day if empty)" />
-                            <p className="text-xs text-light-text-secondary dark:text-dark-text-secondary mt-1">
-                                Specify the day of the month for this transaction to occur.
-                            </p>
-                        </div>
-                    )}
+                    
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                         <div>
-                            <label htmlFor="rec-start-date" className={labelStyle}>Start Date</label>
+                            <label htmlFor="rec-start-date" className={labelStyle}>First Occurrence</label>
                             <input id="rec-start-date" type="date" value={startDate} onChange={e => setStartDate(e.target.value)} className={INPUT_BASE_STYLE} required />
                         </div>
                         <div>
@@ -324,11 +327,23 @@ const RecurringTransactionModal: React.FC<RecurringTransactionModalProps> = ({ o
                             <input id="rec-end-date" type="date" value={endDate} onChange={e => setEndDate(e.target.value)} className={INPUT_BASE_STYLE} />
                         </div>
                     </div>
+
+                    {(frequency === 'monthly' || frequency === 'yearly') && (
+                        <div className="bg-white dark:bg-black/20 p-3 rounded-lg border border-black/5 dark:border-white/5">
+                            <label htmlFor="rec-due-date" className={labelStyle}>Specific Day of Month</label>
+                            <div className="flex items-center gap-3">
+                                <input id="rec-due-date" type="number" min="1" max="31" value={dueDateOfMonth} onChange={e => setDueDateOfMonth(e.target.value)} className={`${INPUT_BASE_STYLE} w-20 text-center`} placeholder="Day" />
+                                <p className="text-xs text-light-text-secondary dark:text-dark-text-secondary flex-1">
+                                    Leave empty to use the same day as the "First Occurrence".
+                                </p>
+                            </div>
+                        </div>
+                    )}
                 </div>
 
-                <div className="flex justify-end gap-4 pt-4">
+                <div className="flex justify-end gap-4 pt-4 border-t border-black/10 dark:border-white/10">
                     <button type="button" onClick={onClose} className={BTN_SECONDARY_STYLE}>Cancel</button>
-                    <button type="submit" className={BTN_PRIMARY_STYLE}>{saveButtonText}</button>
+                    <button type="submit" className={BTN_PRIMARY_STYLE}>{isEditing ? 'Save Changes' : 'Create Rule'}</button>
                 </div>
             </form>
         </Modal>

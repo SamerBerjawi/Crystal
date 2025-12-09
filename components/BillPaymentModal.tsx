@@ -36,7 +36,7 @@ const BillPaymentModal: React.FC<BillPaymentModalProps> = ({ bill, onSave, onClo
         onClose();
     };
 
-    const labelStyle = "block text-sm font-medium text-light-text-secondary dark:text-dark-text-secondary mb-1";
+    const labelStyle = "block text-xs font-bold text-light-text-secondary dark:text-dark-text-secondary uppercase tracking-wider mb-1.5";
     
     const groupedPaymentAccounts = useMemo(() => {
         const paymentAccounts = accounts.filter(a => LIQUID_ACCOUNT_TYPES.includes(a.type));
@@ -50,37 +50,83 @@ const BillPaymentModal: React.FC<BillPaymentModalProps> = ({ bill, onSave, onClo
 
     return (
         <Modal onClose={onClose} title={isEditing ? 'Edit Bill/Payment' : 'Add Bill/Payment'}>
-            <form onSubmit={handleSubmit} className="space-y-4">
-                <div className="flex bg-light-bg dark:bg-dark-bg p-1 rounded-lg">
-                    <button type="button" onClick={() => setType('payment')} className={`w-full py-2 rounded text-sm font-semibold ${type === 'payment' ? 'bg-red-500 text-white' : ''}`}>Payment (Out)</button>
-                    <button type="button" onClick={() => setType('deposit')} className={`w-full py-2 rounded text-sm font-semibold ${type === 'deposit' ? 'bg-green-500 text-white' : ''}`}>Deposit (In)</button>
-                </div>
-                <div><label htmlFor="desc" className={labelStyle}>Description</label><input id="desc" type="text" value={description} onChange={e => setDescription(e.target.value)} className={INPUT_BASE_STYLE} required /></div>
+            <form onSubmit={handleSubmit} className="space-y-6">
                 
-                <div>
-                    <label htmlFor="bill-account" className={labelStyle}>Payment Account (Optional)</label>
-                    <div className={SELECT_WRAPPER_STYLE}>
-                        <select id="bill-account" value={accountId} onChange={e => setAccountId(e.target.value)} className={INPUT_BASE_STYLE}>
-                            <option value="">Default (Primary Account)</option>
-                            {ALL_ACCOUNT_TYPES.map(type => {
-                                const group = groupedPaymentAccounts[type];
-                                if (!group || group.length === 0) return null;
-                                return (
-                                    <optgroup key={type} label={type}>
-                                        {group.map(acc => <option key={acc.id} value={acc.id}>{acc.name}</option>)}
-                                    </optgroup>
-                                );
-                            })}
-                        </select>
-                        <div className={SELECT_ARROW_STYLE}><span className="material-symbols-outlined">expand_more</span></div>
+                {/* Type Segmented Control */}
+                <div className="flex bg-gray-100 dark:bg-white/10 p-1 rounded-xl">
+                    <button 
+                        type="button" 
+                        onClick={() => setType('payment')} 
+                        className={`flex-1 py-2 text-sm font-bold rounded-lg transition-all ${type === 'payment' ? 'bg-white dark:bg-dark-card text-red-600 dark:text-red-400 shadow-sm' : 'text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200'}`}
+                    >
+                        Payment (Out)
+                    </button>
+                    <button 
+                        type="button" 
+                        onClick={() => setType('deposit')} 
+                        className={`flex-1 py-2 text-sm font-bold rounded-lg transition-all ${type === 'deposit' ? 'bg-white dark:bg-dark-card text-green-600 dark:text-green-400 shadow-sm' : 'text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200'}`}
+                    >
+                        Deposit (In)
+                    </button>
+                </div>
+
+                {/* Hero Amount Input */}
+                <div className="flex flex-col items-center justify-center py-2">
+                    <div className="relative w-full max-w-[200px]">
+                        <span className={`absolute left-0 top-1/2 -translate-y-1/2 text-3xl font-medium text-light-text-secondary dark:text-dark-text-secondary pointer-events-none transition-opacity duration-200 ${amount ? 'opacity-100' : 'opacity-50'}`}>
+                            €
+                        </span>
+                        <input 
+                            id="bill-amount"
+                            type="number" 
+                            step="0.01" 
+                            value={amount} 
+                            onChange={e => setAmount(e.target.value)} 
+                            className="w-full bg-transparent border-b-2 border-gray-200 dark:border-gray-700 focus:border-primary-500 text-center text-5xl font-bold text-light-text dark:text-dark-text placeholder-gray-300 dark:placeholder-gray-700 focus:outline-none py-2 transition-colors pl-6" 
+                            placeholder="0.00" 
+                            autoFocus
+                            required 
+                        />
                     </div>
                 </div>
 
-                <div className="grid grid-cols-2 gap-4">
-                    <div><label htmlFor="amount" className={labelStyle}>Amount (€)</label><input id="amount" type="number" step="0.01" value={amount} onChange={e => setAmount(e.target.value)} className={INPUT_BASE_STYLE} required /></div>
-                    <div><label htmlFor="dueDate" className={labelStyle}>Due Date</label><input id="dueDate" type="date" value={dueDate} onChange={e => setDueDate(e.target.value)} className={INPUT_BASE_STYLE} required /></div>
+                {/* Details Grid */}
+                <div className="grid grid-cols-1 gap-4">
+                    <div>
+                        <label htmlFor="desc" className={labelStyle}>Description</label>
+                        <input id="desc" type="text" value={description} onChange={e => setDescription(e.target.value)} className={`${INPUT_BASE_STYLE} !text-lg font-semibold`} placeholder="e.g. Electric Bill" required />
+                    </div>
+                
+                    <div className="grid grid-cols-2 gap-4">
+                         <div>
+                            <label htmlFor="dueDate" className={labelStyle}>Due Date</label>
+                            <input id="dueDate" type="date" value={dueDate} onChange={e => setDueDate(e.target.value)} className={INPUT_BASE_STYLE} required />
+                        </div>
+                        <div>
+                            <label htmlFor="bill-account" className={labelStyle}>Account (Optional)</label>
+                            <div className={SELECT_WRAPPER_STYLE}>
+                                <select id="bill-account" value={accountId} onChange={e => setAccountId(e.target.value)} className={INPUT_BASE_STYLE}>
+                                    <option value="">Default (Primary)</option>
+                                    {ALL_ACCOUNT_TYPES.map(type => {
+                                        const group = groupedPaymentAccounts[type];
+                                        if (!group || group.length === 0) return null;
+                                        return (
+                                            <optgroup key={type} label={type}>
+                                                {group.map(acc => <option key={acc.id} value={acc.id}>{acc.name}</option>)}
+                                            </optgroup>
+                                        );
+                                    })}
+                                </select>
+                                <div className={SELECT_ARROW_STYLE}><span className="material-symbols-outlined">expand_more</span></div>
+                            </div>
+                        </div>
+                    </div>
                 </div>
-                <div className="flex justify-end gap-4 pt-4"><button type="button" onClick={onClose} className={BTN_SECONDARY_STYLE}>Cancel</button><button type="submit" className={BTN_PRIMARY_STYLE}>{isEditing ? 'Save Changes' : 'Add Item'}</button></div>
+
+                <div className="flex justify-end gap-4 pt-4 border-t border-black/10 dark:border-white/10">
+                    <button type="button" onClick={onClose} className={BTN_SECONDARY_STYLE}>Cancel</button>
+                    <button type="submit" className={BTN_PRIMARY_STYLE}>{isEditing ? 'Save Changes' : 'Add Bill'}</button>
+                </div>
             </form>
         </Modal>
     );

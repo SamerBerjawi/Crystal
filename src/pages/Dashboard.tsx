@@ -589,7 +589,14 @@ const Dashboard: React.FC<DashboardProps> = ({ user, tasks, saveTask }) => {
     };
   }, [selectedAccounts, transactions, loanPaymentOverrides]);
 
-  const { globalTotalAssets, globalTotalDebt, globalAssetBreakdown, globalDebtBreakdown, assetGroups, liabilityGroups } = useMemo(() => {
+  const { globalTotalAssets, globalTotalDebt, globalAssetBreakdown, globalDebtBreakdown, assetGroups, liabilityGroups } = useMemo<{
+      globalTotalAssets: number;
+      globalTotalDebt: number;
+      globalAssetBreakdown: { name: string; value: number; color: string }[];
+      globalDebtBreakdown: { name: string; value: number; color: string }[];
+      assetGroups: Record<string, AssetGroup>;
+      liabilityGroups: Record<string, AssetGroup>;
+  }>(() => {
      const openAccounts = accounts.filter(acc => acc.status !== 'closed');
      const { totalAssets, totalDebt } = calculateAccountTotals(openAccounts, transactions, loanPaymentOverrides);
 
@@ -638,15 +645,12 @@ const Dashboard: React.FC<DashboardProps> = ({ user, tasks, saveTask }) => {
   const assetAllocationData: { name: string; value: number; color: string }[] = useMemo(() => {
       // Explicitly type the groups to avoid implicit any errors
       const groups = assetGroups as Record<string, AssetGroup>;
-      const getValue = (key: string) => groups[key]?.value || 0;
-      const getColor = (key: string) => groups[key]?.color || '#A0AEC0';
-
       const data = [
-        { name: 'Liquid Cash', value: getValue('Liquid Cash'), color: getColor('Liquid Cash') },
-        { name: 'Investments', value: getValue('Investments'), color: getColor('Investments') },
-        { name: 'Properties', value: getValue('Properties'), color: getColor('Properties') },
-        { name: 'Vehicles', value: getValue('Vehicles'), color: getColor('Vehicles') },
-        { name: 'Other Assets', value: getValue('Other Assets'), color: getColor('Other Assets') }
+        { name: 'Liquid Cash', value: groups?.['Liquid Cash']?.value || 0, color: groups?.['Liquid Cash']?.color || '#A0AEC0' },
+        { name: 'Investments', value: groups?.['Investments']?.value || 0, color: groups?.['Investments']?.color || '#A0AEC0' },
+        { name: 'Properties', value: groups?.['Properties']?.value || 0, color: groups?.['Properties']?.color || '#A0AEC0' },
+        { name: 'Vehicles', value: groups?.['Vehicles']?.value || 0, color: groups?.['Vehicles']?.color || '#A0AEC0' },
+        { name: 'Other Assets', value: groups?.['Other Assets']?.value || 0, color: groups?.['Other Assets']?.color || '#A0AEC0' }
       ];
       return data.filter(d => d.value > 0).sort((a, b) => b.value - a.value);
   }, [assetGroups]);
@@ -1331,7 +1335,7 @@ const Dashboard: React.FC<DashboardProps> = ({ user, tasks, saveTask }) => {
                           <div>
                               <h4 className="text-sm font-bold text-light-text-secondary dark:text-dark-text-secondary uppercase tracking-wider mb-4">Assets Breakdown</h4>
                               <div className="space-y-4">
-                                  {Object.entries(assetGroups as Record<string, AssetGroup>).map(([name, group]) => {
+                                  {Object.entries(assetGroups as Record<string, { value: number; color: string; icon: string }>).map(([name, group]) => {
                                       if (group.value === 0) return null;
                                       return (
                                         <div key={name} className="group">
