@@ -1,10 +1,9 @@
 
 import React, { useState, useEffect, useMemo } from 'react';
 import Modal from './Modal';
-import { Account, InvestmentTransaction, Transaction, AccountType, InvestmentSubType } from '../types';
+import { Account, InvestmentTransaction, Transaction, InvestmentSubType } from '../types';
 import { INPUT_BASE_STYLE, BTN_PRIMARY_STYLE, BTN_SECONDARY_STYLE, SELECT_WRAPPER_STYLE, SELECT_ARROW_STYLE, INVESTMENT_SUB_TYPES, ALL_ACCOUNT_TYPES } from '../constants';
 import { formatCurrency, toLocalISOString } from '../utils';
-import { v4 as uuidv4 } from 'uuid';
 
 interface AddInvestmentTransactionModalProps {
   onClose: () => void;
@@ -88,7 +87,7 @@ const AddInvestmentTransactionModal: React.FC<AddInvestmentTransactionModalProps
                 type: 'Investment',
                 subType: newAccountSubType,
                 symbol: symbol.toUpperCase(),
-                balance: 0, // Will be dynamically calculated
+                balance: 0, 
                 currency: 'EUR',
             };
         }
@@ -97,33 +96,62 @@ const AddInvestmentTransactionModal: React.FC<AddInvestmentTransactionModalProps
         onClose();
     };
 
-    const labelStyle = "block text-sm font-medium text-light-text-secondary dark:text-dark-text-secondary mb-1";
-    const modalTitle = isEditing ? 'Edit Investment Transaction' : 'Add Investment Transaction';
+    const labelStyle = "block text-xs font-bold text-light-text-secondary dark:text-dark-text-secondary uppercase tracking-wider mb-1.5";
+    const modalTitle = isEditing ? 'Edit Transaction' : 'Add Transaction';
     const totalValue = (parseFloat(quantity) || 0) * (parseFloat(price) || 0);
 
     return (
         <Modal onClose={onClose} title={modalTitle}>
-            <form onSubmit={handleSubmit} className="space-y-4">
-                <div className="flex bg-light-bg dark:bg-dark-bg p-1 rounded-lg">
-                    <button type="button" onClick={() => setType('buy')} className={`w-full py-2 rounded text-sm font-semibold ${type === 'buy' ? 'bg-green-500 text-white' : ''}`}>Buy</button>
-                    <button type="button" onClick={() => setType('sell')} className={`w-full py-2 rounded text-sm font-semibold ${type === 'sell' ? 'bg-red-500 text-white' : ''}`}>Sell</button>
+            <form onSubmit={handleSubmit} className="space-y-6">
+                {/* Transaction Type Toggle */}
+                <div className="flex bg-gray-100 dark:bg-white/10 p-1 rounded-xl">
+                    <button 
+                        type="button" 
+                        onClick={() => setType('buy')} 
+                        className={`flex-1 py-2 text-sm font-bold rounded-lg transition-all ${type === 'buy' ? 'bg-green-500 text-white shadow-md' : 'text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200'}`}
+                    >
+                        Buy
+                    </button>
+                    <button 
+                        type="button" 
+                        onClick={() => setType('sell')} 
+                        className={`flex-1 py-2 text-sm font-bold rounded-lg transition-all ${type === 'sell' ? 'bg-red-500 text-white shadow-md' : 'text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200'}`}
+                    >
+                        Sell
+                    </button>
                 </div>
                 
+                {/* Asset Identifier */}
                 <div>
                     <label htmlFor="inv-symbol" className={labelStyle}>Symbol / Ticker</label>
-                    <input id="inv-symbol" type="text" value={symbol} onChange={e => setSymbol(e.target.value)} className={INPUT_BASE_STYLE} placeholder="e.g., AAPL" required />
+                    <div className="relative">
+                        <input 
+                            id="inv-symbol" 
+                            type="text" 
+                            value={symbol} 
+                            onChange={e => setSymbol(e.target.value)} 
+                            className={`${INPUT_BASE_STYLE} uppercase pl-10 font-mono`} 
+                            placeholder="AAPL" 
+                            required 
+                            autoFocus 
+                        />
+                         <span className="material-symbols-outlined absolute left-3 top-1/2 -translate-y-1/2 text-light-text-secondary dark:text-dark-text-secondary pointer-events-none">search</span>
+                    </div>
                 </div>
 
                 {isNewSymbol && (
-                    <div className="p-4 bg-primary-500/10 rounded-lg space-y-4">
-                        <h4 className="font-semibold text-primary-700 dark:text-primary-200">New Asset Detected</h4>
+                    <div className="p-4 bg-primary-50 dark:bg-primary-900/20 border border-primary-100 dark:border-primary-900/50 rounded-xl space-y-4 animate-fade-in-up">
+                        <h4 className="font-bold text-primary-700 dark:text-primary-200 text-sm flex items-center gap-2">
+                             <span className="material-symbols-outlined text-lg">new_label</span>
+                            New Asset Detected
+                        </h4>
                         <div className="grid grid-cols-2 gap-4">
                             <div>
                                 <label htmlFor="inv-name" className={labelStyle}>Asset Name</label>
                                 <input id="inv-name" type="text" value={name} onChange={e => setName(e.target.value)} className={INPUT_BASE_STYLE} placeholder="e.g., Apple Inc." required />
                             </div>
                             <div>
-                                <label htmlFor="inv-subtype" className={labelStyle}>Investment Type</label>
+                                <label htmlFor="inv-subtype" className={labelStyle}>Asset Type</label>
                                 <div className={SELECT_WRAPPER_STYLE}>
                                     <select id="inv-subtype" value={newAccountSubType} onChange={e => setNewAccountSubType(e.target.value as InvestmentSubType)} className={INPUT_BASE_STYLE} required>
                                         {INVESTMENT_SUB_TYPES.map(subType => (
@@ -137,36 +165,40 @@ const AddInvestmentTransactionModal: React.FC<AddInvestmentTransactionModalProps
                     </div>
                 )}
 
+                {/* Amount Inputs */}
                  <div className="grid grid-cols-2 gap-4">
                     <div>
                         <label htmlFor="inv-quantity" className={labelStyle}>Quantity</label>
-                        <input id="inv-quantity" type="number" step="any" value={quantity} onChange={e => setQuantity(e.target.value)} className={INPUT_BASE_STYLE} placeholder="0.00" required />
+                        <input id="inv-quantity" type="number" step="any" value={quantity} onChange={e => setQuantity(e.target.value)} className={`${INPUT_BASE_STYLE} font-mono`} placeholder="0" required />
                     </div>
                     <div>
                         <label htmlFor="inv-price" className={labelStyle}>Price per Unit</label>
-                        <input id="inv-price" type="number" step="any" value={price} onChange={e => setPrice(e.target.value)} className={INPUT_BASE_STYLE} placeholder="0.00" required />
+                        <input id="inv-price" type="number" step="any" value={price} onChange={e => setPrice(e.target.value)} className={`${INPUT_BASE_STYLE} font-mono`} placeholder="0.00" required />
                     </div>
                 </div>
 
-                 <div className="p-4 rounded-lg bg-light-bg dark:bg-dark-bg text-center">
-                    <p className={labelStyle}>Total Value</p>
-                    <p className="text-2xl font-bold">{formatCurrency(totalValue, 'EUR')}</p>
+                {/* Total Preview */}
+                 <div className="flex items-center justify-between p-4 rounded-xl bg-gray-50 dark:bg-white/5 border border-black/5 dark:border-white/5">
+                    <p className="text-sm font-medium text-light-text-secondary dark:text-dark-text-secondary">Estimated Total</p>
+                    <p className="text-2xl font-bold font-mono tracking-tight">{formatCurrency(totalValue, 'EUR')}</p>
                 </div>
 
-                <div>
-                    <label htmlFor="inv-date" className={labelStyle}>Transaction Date</label>
-                    <input id="inv-date" type="date" value={date} onChange={e => setDate(e.target.value)} className={INPUT_BASE_STYLE} required />
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                    <div>
+                        <label htmlFor="inv-date" className={labelStyle}>Date</label>
+                        <input id="inv-date" type="date" value={date} onChange={e => setDate(e.target.value)} className={INPUT_BASE_STYLE} required />
+                    </div>
                 </div>
                 
                 {!isEditing && (
-                    <div className="p-4 bg-black/5 dark:bg-white/5 rounded-lg space-y-3">
+                    <div className="p-4 bg-white dark:bg-black/20 rounded-xl border border-black/10 dark:border-white/10 space-y-3">
                         <label className="flex items-center gap-3 cursor-pointer">
-                            <input type="checkbox" checked={createCashTx} onChange={e => setCreateCashTx(e.target.checked)} className="w-4 h-4 rounded text-primary-500 focus:ring-primary-500" />
-                            <span className="font-medium">Create linked cash transaction</span>
+                            <input type="checkbox" checked={createCashTx} onChange={e => setCreateCashTx(e.target.checked)} className="w-5 h-5 rounded text-primary-500 focus:ring-primary-500 border-gray-300" />
+                            <span className="font-bold text-sm text-light-text dark:text-dark-text">Deduct from Cash Account</span>
                         </label>
                         {createCashTx && (
-                             <div>
-                                <label htmlFor="cash-account" className={labelStyle}>Cash Account</label>
+                             <div className="animate-fade-in-up">
+                                <label htmlFor="cash-account" className={labelStyle}>Funding Account</label>
                                 <div className={SELECT_WRAPPER_STYLE}>
                                     <select id="cash-account" value={cashAccountId} onChange={e => setCashAccountId(e.target.value)} className={INPUT_BASE_STYLE} required>
                                         <option value="">Select cash account</option>
@@ -187,9 +219,9 @@ const AddInvestmentTransactionModal: React.FC<AddInvestmentTransactionModalProps
                     </div>
                 )}
                 
-                <div className="flex justify-end gap-4 pt-4">
+                <div className="flex justify-end gap-3 pt-4 border-t border-black/5 dark:border-white/5">
                     <button type="button" onClick={onClose} className={BTN_SECONDARY_STYLE}>Cancel</button>
-                    <button type="submit" className={BTN_PRIMARY_STYLE}>{isEditing ? 'Save Changes' : 'Add Transaction'}</button>
+                    <button type="submit" className={BTN_PRIMARY_STYLE}>{isEditing ? 'Save Changes' : 'Confirm Transaction'}</button>
                 </div>
             </form>
         </Modal>

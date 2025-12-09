@@ -1,7 +1,7 @@
 
 import React, { useState, useEffect, useMemo } from 'react';
 import Modal from './Modal';
-import { FinancialGoal, GoalType, RecurrenceFrequency, Currency, Account } from '../types';
+import { FinancialGoal, GoalType, RecurrenceFrequency, Account } from '../types';
 import { INPUT_BASE_STYLE, BTN_PRIMARY_STYLE, BTN_SECONDARY_STYLE, SELECT_WRAPPER_STYLE, SELECT_ARROW_STYLE, FREQUENCIES, ALL_ACCOUNT_TYPES } from '../constants';
 import { toLocalISOString } from '../utils';
 
@@ -100,74 +100,114 @@ const GoalScenarioModal: React.FC<GoalScenarioModalProps> = ({ onClose, onSave, 
     };
 
     const isSubGoal = !!parentId;
-    const labelStyle = "block text-sm font-medium text-light-text-secondary dark:text-dark-text-secondary mb-1";
-    const modalTitle = isEditing ? 'Edit Goal / Scenario' : (isSubGoal ? 'Add Item to Goal' : 'Add Goal / Scenario');
-    const saveButtonText = isEditing ? 'Save Changes' : (isSubGoal ? 'Add Item' : 'Add Goal');
+    const labelStyle = "block text-xs font-bold text-light-text-secondary dark:text-dark-text-secondary uppercase tracking-wider mb-1.5";
+    const modalTitle = isEditing ? 'Edit Goal' : (isSubGoal ? 'Add Item to Goal' : 'New Goal');
 
     return (
-        <Modal onClose={onClose} title={modalTitle} size="2xl">
-            <form onSubmit={handleSubmit} className="space-y-4">
+        <Modal onClose={onClose} title={modalTitle} size="xl">
+            <form onSubmit={handleSubmit} className="space-y-6">
+                
+                {/* Header Toggle Section */}
                 {!isEditing && !isSubGoal && (
-                     <div className="p-4 bg-black/5 dark:bg-white/5 rounded-lg flex justify-between items-center">
-                        <div>
-                            <p className="font-medium text-light-text dark:text-dark-text">Is this a goal bucket?</p>
-                            <p className="text-sm text-light-text-secondary dark:text-dark-text-secondary">e.g., "Vacation" to hold items like "Flights" and "Hotel".</p>
-                        </div>
-                        <div 
-                        onClick={() => setIsBucket(!isBucket)}
-                        className={`w-12 h-6 rounded-full p-1 flex items-center cursor-pointer transition-colors ${isBucket ? 'bg-primary-500' : 'bg-gray-300 dark:bg-gray-700'}`}
+                   <div className="flex bg-gray-100 dark:bg-white/10 p-1 rounded-xl mb-6">
+                        <button
+                            type="button"
+                            onClick={() => { setIsBucket(false); setType('one-time'); }}
+                            className={`flex-1 py-2 text-sm font-bold rounded-lg transition-all ${!isBucket && type === 'one-time' ? 'bg-white dark:bg-dark-card shadow-sm text-primary-600 dark:text-primary-400' : 'text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200'}`}
                         >
-                        <div className={`w-4 h-4 rounded-full bg-white shadow-md transform transition-transform ${isBucket ? 'translate-x-6' : 'translate-x-0'}`}></div>
-                        </div>
-                    </div>
+                            Target Date
+                        </button>
+                        <button
+                            type="button"
+                            onClick={() => { setIsBucket(false); setType('recurring'); }}
+                            className={`flex-1 py-2 text-sm font-bold rounded-lg transition-all ${!isBucket && type === 'recurring' ? 'bg-white dark:bg-dark-card shadow-sm text-primary-600 dark:text-primary-400' : 'text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200'}`}
+                        >
+                            Recurring
+                        </button>
+                         <button
+                            type="button"
+                            onClick={() => setIsBucket(true)}
+                            className={`flex-1 py-2 text-sm font-bold rounded-lg transition-all ${isBucket ? 'bg-white dark:bg-dark-card shadow-sm text-primary-600 dark:text-primary-400' : 'text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200'}`}
+                        >
+                            Goal Bucket
+                        </button>
+                   </div>
                 )}
 
+                {/* Name Input */}
                 <div>
                     <label htmlFor="goal-name" className={labelStyle}>{isBucket ? 'Bucket Name' : (isSubGoal ? 'Item Name' : 'Goal Name')}</label>
-                    <input id="goal-name" type="text" value={name} onChange={e => setName(e.target.value)} className={INPUT_BASE_STYLE} required autoFocus/>
+                    <input 
+                        id="goal-name" 
+                        type="text" 
+                        value={name} 
+                        onChange={e => setName(e.target.value)} 
+                        className={`${INPUT_BASE_STYLE} !text-lg font-semibold`} 
+                        placeholder={isBucket ? "e.g. Summer Vacation" : "e.g. New Laptop"}
+                        required 
+                        autoFocus
+                    />
                 </div>
                 
                 {!isBucket && (
                 <>
-                    {!isSubGoal && (
-                        <div className="grid grid-cols-2 gap-4">
-                            <div>
-                                <label className={labelStyle}>Goal Type</label>
-                                <div className="flex bg-light-bg dark:bg-dark-bg p-1 rounded-lg shadow-neu-inset-light dark:shadow-neu-inset-dark h-10 items-center">
-                                    <button type="button" onClick={() => setType('one-time')} className={`w-full text-center text-sm font-semibold py-1.5 px-3 rounded-md transition-all ${type === 'one-time' ? 'bg-light-card dark:bg-dark-card shadow-neu-raised-light dark:shadow-neu-raised-dark' : 'text-light-text-secondary'}`}>One-time</button>
-                                    <button type="button" onClick={() => setType('recurring')} className={`w-full text-center text-sm font-semibold py-1.5 px-3 rounded-md transition-all ${type === 'recurring' ? 'bg-light-card dark:bg-dark-card shadow-neu-raised-light dark:shadow-neu-raised-dark' : 'text-light-text-secondary'}`}>Recurring</button>
-                                </div>
-                            </div>
-                            <div>
-                                <label className={labelStyle}>Transaction Type</label>
-                                <div className="flex bg-light-bg dark:bg-dark-bg p-1 rounded-lg shadow-neu-inset-light dark:shadow-neu-inset-dark h-10 items-center">
-                                    <button type="button" onClick={() => setTransactionType('expense')} className={`w-full text-center text-sm font-semibold py-1.5 px-3 rounded-md transition-all ${transactionType === 'expense' ? 'bg-light-card dark:bg-dark-card shadow-neu-raised-light dark:shadow-neu-raised-dark' : 'text-light-text-secondary'}`}>Expense</button>
-                                    <button type="button" onClick={() => setTransactionType('income')} className={`w-full text-center text-sm font-semibold py-1.5 px-3 rounded-md transition-all ${transactionType === 'income' ? 'bg-light-card dark:bg-dark-card shadow-neu-raised-light dark:shadow-neu-raised-dark' : 'text-light-text-secondary'}`}>Income</button>
-                                </div>
-                            </div>
-                        </div>
-                    )}
-
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                        <div>
-                            <label htmlFor="goal-amount" className={labelStyle}>Target Amount (EUR)</label>
-                            <input id="goal-amount" type="number" step="0.01" value={amount} onChange={e => setAmount(e.target.value)} className={INPUT_BASE_STYLE} placeholder="0.00" required />
-                        </div>
-                        <div>
-                            <label htmlFor="goal-current-amount" className={labelStyle}>Current Amount Saved (EUR)</label>
-                            <input id="goal-current-amount" type="number" step="0.01" value={currentAmount} onChange={e => setCurrentAmount(e.target.value)} className={INPUT_BASE_STYLE} placeholder="0.00" required />
+                    {/* Hero Amount Input */}
+                    <div className="flex flex-col items-center justify-center py-4 bg-gray-50 dark:bg-white/5 rounded-2xl border border-black/5 dark:border-white/5">
+                        <label htmlFor="goal-amount" className="text-sm font-semibold text-light-text-secondary dark:text-dark-text-secondary mb-1">Target Amount</label>
+                        <div className="relative w-full max-w-[200px]">
+                            <span className={`absolute left-0 top-1/2 -translate-y-1/2 text-3xl font-medium text-light-text-secondary dark:text-dark-text-secondary pointer-events-none transition-opacity duration-200 ${amount ? 'opacity-100' : 'opacity-50'}`}>
+                                €
+                            </span>
+                            <input 
+                                id="goal-amount"
+                                type="number" 
+                                step="0.01" 
+                                value={amount} 
+                                onChange={e => setAmount(e.target.value)} 
+                                className="w-full bg-transparent border-b-2 border-gray-200 dark:border-gray-700 focus:border-primary-500 text-center text-5xl font-bold text-light-text dark:text-dark-text placeholder-gray-300 dark:placeholder-gray-700 focus:outline-none py-2 transition-colors pl-6" 
+                                placeholder="0" 
+                                required 
+                            />
                         </div>
                     </div>
 
+                    <div className="grid grid-cols-2 gap-6">
+                        <div>
+                             <label htmlFor="goal-current-amount" className={labelStyle}>Saved So Far</label>
+                             <div className="relative">
+                                 <span className="absolute left-3 top-1/2 -translate-y-1/2 text-light-text-secondary dark:text-dark-text-secondary">€</span>
+                                 <input 
+                                     id="goal-current-amount" 
+                                     type="number" 
+                                     step="0.01" 
+                                     value={currentAmount} 
+                                     onChange={e => setCurrentAmount(e.target.value)} 
+                                     className={`${INPUT_BASE_STYLE} pl-8`} 
+                                     placeholder="0.00" 
+                                 />
+                             </div>
+                        </div>
+                         <div>
+                             <label className={labelStyle}>Goal Type</label>
+                             <div className={SELECT_WRAPPER_STYLE}>
+                                 <select value={transactionType} onChange={e => setTransactionType(e.target.value as 'income' | 'expense')} className={INPUT_BASE_STYLE}>
+                                     <option value="expense">Saving up (Expense)</option>
+                                     <option value="income">Earning goal (Income)</option>
+                                 </select>
+                                 <div className={SELECT_ARROW_STYLE}><span className="material-symbols-outlined">expand_more</span></div>
+                             </div>
+                        </div>
+                    </div>
 
+                    {/* Schedule Section */}
                     {type === 'one-time' ? (
                         <div>
                             <label htmlFor="goal-date" className={labelStyle}>Target Date</label>
                             <input id="goal-date" type="date" value={date} onChange={e => setDate(e.target.value)} className={INPUT_BASE_STYLE} required />
                         </div>
                     ) : (
-                        <div className="space-y-4">
-                            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                        <div className="bg-gray-50 dark:bg-white/5 p-4 rounded-xl border border-black/5 dark:border-white/5 space-y-4">
+                            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                                 <div>
                                     <label htmlFor="goal-frequency" className={labelStyle}>Frequency</label>
                                     <div className={SELECT_WRAPPER_STYLE}>
@@ -182,58 +222,77 @@ const GoalScenarioModal: React.FC<GoalScenarioModalProps> = ({ onClose, onSave, 
                                     <input id="goal-start-date" type="date" value={startDate} onChange={e => setStartDate(e.target.value)} className={INPUT_BASE_STYLE} required />
                                 </div>
                             </div>
-                            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                            
+                            {type === 'recurring' && (
                                 <div>
                                     <label htmlFor="monthly-contribution" className={labelStyle}>Contribution Amount</label>
-                                    <input id="monthly-contribution" type="number" step="0.01" value={monthlyContribution} onChange={e => setMonthlyContribution(e.target.value)} className={INPUT_BASE_STYLE} placeholder="e.g., 250" />
-                                </div>
-                                {(frequency === 'monthly' || frequency === 'yearly') && (
-                                    <div>
-                                        <label htmlFor="goal-due-date" className={labelStyle}>Day of Month (Optional)</label>
-                                        <input id="goal-due-date" type="number" min="1" max="31" value={dueDateOfMonth} onChange={e => setDueDateOfMonth(e.target.value)} className={INPUT_BASE_STYLE} placeholder="Uses start date's day" />
+                                    <div className="relative">
+                                        <span className="absolute left-3 top-1/2 -translate-y-1/2 text-light-text-secondary dark:text-dark-text-secondary">€</span>
+                                        <input 
+                                            id="monthly-contribution" 
+                                            type="number" 
+                                            step="0.01" 
+                                            value={monthlyContribution} 
+                                            onChange={e => setMonthlyContribution(e.target.value)} 
+                                            className={`${INPUT_BASE_STYLE} pl-8`} 
+                                            placeholder="e.g., 250" 
+                                        />
                                     </div>
-                                )}
-                            </div>
+                                </div>
+                            )}
+
+                            {(frequency === 'monthly' || frequency === 'yearly') && (
+                                <div>
+                                    <label htmlFor="goal-due-date" className={labelStyle}>Day of Month (Optional)</label>
+                                    <input id="goal-due-date" type="number" min="1" max="31" value={dueDateOfMonth} onChange={e => setDueDateOfMonth(e.target.value)} className={INPUT_BASE_STYLE} placeholder="Uses start date's day" />
+                                </div>
+                            )}
                         </div>
                     )}
                     
-                    <div>
-                        <label htmlFor="goal-payment-account" className={labelStyle}>Payment Account (Optional)</label>
-                        <div className={SELECT_WRAPPER_STYLE}>
-                            <select id="goal-payment-account" value={paymentAccountId || ''} onChange={e => setPaymentAccountId(e.target.value || undefined)} className={INPUT_BASE_STYLE}>
-                                <option value="">None</option>
-                                {ALL_ACCOUNT_TYPES.map(type => {
-                                    const group = groupedAccounts[type];
-                                    if (!group || group.length === 0) return null;
-                                    return (
-                                        <optgroup key={type} label={type}>
-                                            {group.map(acc => <option key={acc.id} value={acc.id}>{acc.name}</option>)}
-                                        </optgroup>
-                                    );
-                                })}
-                            </select>
-                            <div className={SELECT_ARROW_STYLE}><span className="material-symbols-outlined">expand_more</span></div>
+                    {/* Linking */}
+                    <div className="pt-2 border-t border-black/10 dark:border-white/10 space-y-4">
+                        <div>
+                            <label htmlFor="goal-payment-account" className={labelStyle}>Linked Account (Optional)</label>
+                            <div className={SELECT_WRAPPER_STYLE}>
+                                <select id="goal-payment-account" value={paymentAccountId || ''} onChange={e => setPaymentAccountId(e.target.value || undefined)} className={INPUT_BASE_STYLE}>
+                                    <option value="">None</option>
+                                    {ALL_ACCOUNT_TYPES.map(type => {
+                                        const group = groupedAccounts[type];
+                                        if (!group || group.length === 0) return null;
+                                        return (
+                                            <optgroup key={type} label={type}>
+                                                {group.map(acc => <option key={acc.id} value={acc.id}>{acc.name}</option>)}
+                                            </optgroup>
+                                        );
+                                    })}
+                                </select>
+                                <div className={SELECT_ARROW_STYLE}><span className="material-symbols-outlined">expand_more</span></div>
+                            </div>
+                            <p className="text-xs text-light-text-secondary dark:text-dark-text-secondary mt-1">If selected, the goal will only be active when this account is selected.</p>
                         </div>
-                    </div>
 
-                    <div>
-                        <label htmlFor="goal-parent" className={labelStyle}>Parent Goal (Optional)</label>
-                        <div className={SELECT_WRAPPER_STYLE}>
-                            <select id="goal-parent" value={parentId || ''} onChange={e => setParentId(e.target.value || undefined)} className={INPUT_BASE_STYLE} disabled={!!preselectedParentId}>
-                                <option value="">None (Top-level goal)</option>
-                                {parentGoalOptions.map(goal => (
-                                    <option key={goal.id} value={goal.id}>{goal.name}</option>
-                                ))}
-                            </select>
-                            <div className={SELECT_ARROW_STYLE}><span className="material-symbols-outlined">expand_more</span></div>
-                        </div>
+                        {!preselectedParentId && (
+                            <div>
+                                <label htmlFor="goal-parent" className={labelStyle}>Parent Goal (Optional)</label>
+                                <div className={SELECT_WRAPPER_STYLE}>
+                                    <select id="goal-parent" value={parentId || ''} onChange={e => setParentId(e.target.value || undefined)} className={INPUT_BASE_STYLE} disabled={!!preselectedParentId}>
+                                        <option value="">None (Top-level goal)</option>
+                                        {parentGoalOptions.map(goal => (
+                                            <option key={goal.id} value={goal.id}>{goal.name}</option>
+                                        ))}
+                                    </select>
+                                    <div className={SELECT_ARROW_STYLE}><span className="material-symbols-outlined">expand_more</span></div>
+                                </div>
+                            </div>
+                        )}
                     </div>
                 </>
                 )}
                 
-                <div className="flex justify-end gap-4 pt-4">
+                <div className="flex justify-end gap-3 pt-6 border-t border-black/5 dark:border-white/5">
                     <button type="button" onClick={onClose} className={BTN_SECONDARY_STYLE}>Cancel</button>
-                    <button type="submit" className={BTN_PRIMARY_STYLE}>{saveButtonText}</button>
+                    <button type="submit" className={BTN_PRIMARY_STYLE}>{isEditing ? 'Save Changes' : 'Create Goal'}</button>
                 </div>
             </form>
         </Modal>

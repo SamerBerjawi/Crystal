@@ -1,13 +1,13 @@
 
 import React, { useState, useMemo } from 'react';
 import { Task, TaskStatus, TaskPriority } from '../types';
-import { BTN_PRIMARY_STYLE, INPUT_BASE_STYLE, SELECT_ARROW_STYLE, SELECT_WRAPPER_STYLE, BTN_SECONDARY_STYLE, BTN_DANGER_STYLE, SELECT_STYLE } from '../constants';
-import Modal from '../components/Modal';
+import { BTN_PRIMARY_STYLE, SELECT_ARROW_STYLE, SELECT_WRAPPER_STYLE, SELECT_STYLE } from '../constants';
 import TasksHeatmap from '../components/TasksHeatmap';
 import TaskItem from '../components/TaskItem';
 import ConfirmationModal from '../components/ConfirmationModal';
 import Card from '../components/Card';
 import { parseDateAsUTC } from '../utils';
+import TaskModal from '../components/TaskModal';
 
 interface TasksProps {
   tasks: Task[];
@@ -19,102 +19,6 @@ interface TasksProps {
 
 const PRIORITY_ORDER: Record<TaskPriority, number> = { 'High': 3, 'Medium': 2, 'Low': 1 };
 const STATUS_ORDER: TaskStatus[] = ['To Do', 'In Progress', 'Done'];
-
-const TaskForm: React.FC<{ task?: Task | null, onSave: (task: Omit<Task, 'id'> & { id?: string }) => void, onClose: () => void, onDelete: (id: string) => void }> = ({ task, onSave, onClose, onDelete }) => {
-    const [title, setTitle] = useState(task?.title || '');
-    const [description, setDescription] = useState(task?.description || '');
-    const [dueDate, setDueDate] = useState(task?.dueDate || '');
-    const [reminderDate, setReminderDate] = useState(task?.reminderDate || '');
-    const [status, setStatus] = useState<TaskStatus>(task?.status || 'To Do');
-    const [priority, setPriority] = useState<TaskPriority>(task?.priority || 'Medium');
-
-    const handleSubmit = (e: React.FormEvent) => {
-        e.preventDefault();
-        onSave({ id: task?.id, title, description, dueDate, status, priority, reminderDate: dueDate ? reminderDate : '' });
-    };
-
-    const handleDeleteClick = (e: React.MouseEvent) => {
-        e.preventDefault();
-        e.stopPropagation();
-        if (task?.id) {
-            onDelete(task.id);
-        }
-    };
-
-    return (
-        <Modal onClose={onClose} title={task ? 'Edit Task' : 'Add New Task'}>
-            <form onSubmit={handleSubmit} className="space-y-4">
-                <div>
-                    <label htmlFor="title" className="block text-sm font-medium text-light-text-secondary dark:text-dark-text-secondary mb-1">Title</label>
-                    <input id="title" type="text" value={title} onChange={e => setTitle(e.target.value)} className={INPUT_BASE_STYLE} required autoFocus />
-                </div>
-                <div>
-                    <label htmlFor="description" className="block text-sm font-medium text-light-text-secondary dark:text-dark-text-secondary mb-1">Description (Optional)</label>
-                    <textarea id="description" value={description} onChange={e => setDescription(e.target.value)} className={INPUT_BASE_STYLE} rows={3}></textarea>
-                </div>
-                <div className="grid grid-cols-2 gap-4">
-                    <div>
-                        <label htmlFor="dueDate" className="block text-sm font-medium text-light-text-secondary dark:text-dark-text-secondary mb-1">Due Date (Optional)</label>
-                        <input id="dueDate" type="date" value={dueDate} onChange={e => {
-                            setDueDate(e.target.value);
-                            if (!e.target.value) {
-                                setReminderDate('');
-                            }
-                        }} className={INPUT_BASE_STYLE} />
-                    </div>
-                     <div>
-                        <label htmlFor="reminderDate" className="block text-sm font-medium text-light-text-secondary dark:text-dark-text-secondary mb-1">Reminder (Optional)</label>
-                        <input 
-                            id="reminderDate" 
-                            type="date" 
-                            value={reminderDate} 
-                            onChange={e => setReminderDate(e.target.value)} 
-                            className={`${INPUT_BASE_STYLE} disabled:opacity-50 disabled:cursor-not-allowed`} 
-                            disabled={!dueDate}
-                            max={dueDate}
-                            title={!dueDate ? "Set a due date to enable reminders" : ""}
-                        />
-                    </div>
-                </div>
-                <div className="grid grid-cols-2 gap-4">
-                    <div>
-                        <label htmlFor="priority" className="block text-sm font-medium text-light-text-secondary dark:text-dark-text-secondary mb-1">Priority</label>
-                        <div className={SELECT_WRAPPER_STYLE}>
-                            <select id="priority" value={priority} onChange={e => setPriority(e.target.value as TaskPriority)} className={INPUT_BASE_STYLE}>
-                                <option value="Low">Low</option>
-                                <option value="Medium">Medium</option>
-                                <option value="High">High</option>
-                            </select>
-                            <div className={SELECT_ARROW_STYLE}><span className="material-symbols-outlined">expand_more</span></div>
-                        </div>
-                    </div>
-                     <div>
-                        <label htmlFor="status" className="block text-sm font-medium text-light-text-secondary dark:text-dark-text-secondary mb-1">Status</label>
-                        <div className={SELECT_WRAPPER_STYLE}>
-                            <select id="status" value={status} onChange={e => setStatus(e.target.value as TaskStatus)} className={INPUT_BASE_STYLE}>
-                                <option value="To Do">To Do</option>
-                                <option value="In Progress">In Progress</option>
-                                <option value="Done">Done</option>
-                            </select>
-                            <div className={SELECT_ARROW_STYLE}><span className="material-symbols-outlined">expand_more</span></div>
-                        </div>
-                    </div>
-                </div>
-                <div className="flex justify-between items-center pt-4 border-t border-black/10 dark:border-white/10 mt-4">
-                    <div>
-                        {task?.id && (
-                            <button type="button" onClick={handleDeleteClick} className={BTN_DANGER_STYLE}>Delete Task</button>
-                        )}
-                    </div>
-                    <div className="flex gap-4">
-                        <button type="button" onClick={onClose} className={BTN_SECONDARY_STYLE}>Cancel</button>
-                        <button type="submit" className={BTN_PRIMARY_STYLE}>{task ? 'Save Changes' : 'Add Task'}</button>
-                    </div>
-                </div>
-            </form>
-        </Modal>
-    );
-};
 
 const MetricCard: React.FC<{ label: string; value: string | number; subtext?: string; color?: string; icon?: string }> = ({ label, value, subtext, color = 'text-light-text dark:text-dark-text', icon }) => (
     <Card className="flex flex-col justify-between h-full p-5">
@@ -270,7 +174,14 @@ const Tasks: React.FC<TasksProps> = ({ tasks, saveTask, deleteTask, taskOrder, s
 
     return (
         <div className="space-y-8 pb-10 animate-fade-in-up">
-            {isModalOpen && <TaskForm task={editingTask} onSave={handleSave} onClose={() => setIsModalOpen(false)} onDelete={handleDeleteRequest} />}
+            {isModalOpen && (
+                <TaskModal 
+                    task={editingTask} 
+                    onSave={handleSave} 
+                    onClose={() => setIsModalOpen(false)} 
+                    onDelete={handleDeleteRequest} 
+                />
+            )}
             
             <ConfirmationModal 
                 isOpen={isDeleteConfirmOpen}
@@ -284,7 +195,6 @@ const Tasks: React.FC<TasksProps> = ({ tasks, saveTask, deleteTask, taskOrder, s
 
             <header className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
                 <div>
-                    {/* <h2 className="text-3xl font-bold text-light-text dark:text-dark-text">Tasks</h2> */}
                     <p className="text-light-text-secondary dark:text-dark-text-secondary mt-1">Manage your financial to-dos and track productivity.</p>
                 </div>
                 <button onClick={() => handleOpenModal()} className={BTN_PRIMARY_STYLE}>

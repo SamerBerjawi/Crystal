@@ -476,7 +476,7 @@ const App: React.FC = () => {
       // The check is simplified to only verify if the account type is 'Investment'.
       if (account.symbol && account.type === 'Investment' && (assetPrices as Record<string, number | null>)[account.symbol] !== undefined) {
         const price = (assetPrices as Record<string, number | null>)[account.symbol as string];
-        const quantity = (warrantHoldingsBySymbol as Record<string, number>)[account.symbol as string] || 0;
+        const quantity = ((warrantHoldingsBySymbol as Record<string, number>)[account.symbol as string] as number) || 0;
         // Fix: Explicitly checking type to silence "unknown not assignable to number" error
         const calculatedBalance = (typeof price === 'number') ? quantity * price : 0;
 
