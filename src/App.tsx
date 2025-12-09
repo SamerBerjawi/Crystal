@@ -5,8 +5,6 @@ import Sidebar from './components/Sidebar';
 import Header from './components/Header';
 const SignIn = lazy(() => import('./pages/SignIn'));
 const SignUp = lazy(() => import('./pages/SignUp'));
-const LandingPage = lazy(() => import('./pages/LandingPage')); // New Landing Page Import
-const loadDashboard = () => import('./pages/Dashboard');
 // FIX: Use inline function for lazy import to avoid TypeScript error regarding 'default' property missing
 const Dashboard = lazy(() => import('./pages/Dashboard'));
 const loadAccounts = () => import('./pages/Accounts');
@@ -48,7 +46,7 @@ const loadSubscriptionsPage = () => import('./pages/Subscriptions');
 const SubscriptionsPage = lazy(loadSubscriptionsPage);
 
 const pagePreloaders = [
-  loadDashboard,
+  // FIX: removed unused loadDashboard
   loadAccounts,
   loadTransactions,
   loadBudgeting,
@@ -219,7 +217,8 @@ interface ErrorBoundaryState {
 
 class ErrorBoundary extends Component<ErrorBoundaryProps, ErrorBoundaryState> {
   // FIX: Explicitly declare state property to fix TS error "Property 'state' does not exist on type 'ErrorBoundary'"
-  public state: ErrorBoundaryState = { hasError: false, message: undefined };
+  // FIX: Removed 'public' keyword to conform to standard class property declarations in some configs
+  state: ErrorBoundaryState = { hasError: false, message: undefined };
   
   // FIX: Explicitly declare props property to fix TS error "Property 'props' does not exist on type 'ErrorBoundary'"
   declare props: Readonly<ErrorBoundaryProps>;
@@ -267,8 +266,7 @@ const App: React.FC = () => {
   const initialRoute = parseRoute(initialPath);
 
   const { user, setUser, token, isAuthenticated, isLoading: isAuthLoading, error: authError, signIn, signUp, signOut, checkAuthStatus, setError: setAuthError, changePassword } = useAuth();
-  // Changed authPage state to support landing page
-  const [authPage, setAuthPage] = useState<'landing' | 'signIn' | 'signUp'>('landing');
+  const [authPage, setAuthPage] = useState<'signIn' | 'signUp'>('signIn');
   const [isDemoMode, setIsDemoMode] = useState(false);
   const [demoUser, setDemoUser] = useState<User | null>(null);
   const [isDataLoaded, setIsDataLoaded] = useState(false);
@@ -916,7 +914,7 @@ const App: React.FC = () => {
     signOut();
     loadAllFinancialData(null); // Reset all states
     setHasCompletedOnboarding(false); // Also reset onboarding status
-    setAuthPage('landing'); // Updated default to landing
+    setAuthPage('signIn');
     setIsDemoMode(false);
     setDemoUser(null);
   }, [
@@ -1668,14 +1666,8 @@ const App: React.FC = () => {
   // Auth pages
   if (!isAuthenticated && !isDemoMode) {
     return (
-      <Suspense fallback={<PageLoader label="Preparing experience..." />}>
-        {authPage === 'landing' ? (
-             <LandingPage
-                onNavigateToSignIn={() => setAuthPage('signIn')}
-                onNavigateToSignUp={() => setAuthPage('signUp')}
-                onEnterDemoMode={handleEnterDemoMode}
-             />
-        ) : authPage === 'signIn' ? (
+      <Suspense fallback={<PageLoader label="Preparing sign-in experience..." />}>
+        {authPage === 'signIn' ? (
           <SignIn
             onSignIn={handleSignIn}
             onNavigateToSignUp={() => setAuthPage('signUp')}
@@ -1728,7 +1720,7 @@ const App: React.FC = () => {
               theme={theme}
               setTheme={setTheme}
               currentPage={currentPage}
-              titleOverride={viewingAccountId ? viewingAccount?.name : undefined}
+              titleOverride={viewingAccount?.name}
               isPrivacyMode={isPrivacyMode}
               togglePrivacyMode={() => setIsPrivacyMode(!isPrivacyMode)}
             />
