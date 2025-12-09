@@ -17,22 +17,36 @@ const LoyaltyCard: React.FC<LoyaltyCardProps> = ({ membership, onEdit, onDelete 
     : 'N/A';
 
   // Generate a gradient based on the user's selected color
-  // We'll mix the selected color with a darker shade for a premium gradient effect
-  const cardStyle = {
-    background: `linear-gradient(135deg, ${membership.color}, #111827)`, // Mixing with dark gray (gray-900)
-    boxShadow: `0 10px 15px -3px ${membership.color}40, 0 4px 6px -2px ${membership.color}20` // Colored shadow
+  const cardStyle: React.CSSProperties = {
+    background: `linear-gradient(135deg, ${membership.color}, #111827)`,
+    boxShadow: `0 10px 15px -3px ${membership.color}40, 0 4px 6px -2px ${membership.color}20`,
+    backfaceVisibility: 'hidden',
+    WebkitBackfaceVisibility: 'hidden', // Safari support
+  };
+
+  const backFaceStyle: React.CSSProperties = {
+    transform: 'rotateY(180deg)',
+    backfaceVisibility: 'hidden',
+    WebkitBackfaceVisibility: 'hidden', // Safari support
   };
 
   return (
     <div 
-      className="group relative w-full aspect-[1.586/1] perspective-1000 cursor-pointer select-none"
+      className="group relative w-full aspect-[1.586/1] cursor-pointer select-none"
       onClick={() => setIsFlipped(!isFlipped)}
+      style={{ perspective: '1000px' }}
     >
-      <div className={`relative w-full h-full transition-transform duration-500 transform-style-3d ${isFlipped ? '[transform:rotateY(180deg)]' : ''}`}>
+      <div 
+        className="relative w-full h-full transition-transform duration-500"
+        style={{ 
+            transformStyle: 'preserve-3d', 
+            transform: isFlipped ? 'rotateY(180deg)' : 'rotateY(0deg)' 
+        }}
+      >
         
         {/* Front Face */}
         <div 
-          className="absolute inset-0 w-full h-full backface-hidden rounded-2xl overflow-hidden text-white flex flex-col justify-between p-6 shadow-xl border border-white/10"
+          className="absolute inset-0 w-full h-full rounded-2xl overflow-hidden text-white flex flex-col justify-between p-6 shadow-xl border border-white/10"
           style={cardStyle}
         >
             {/* Texture Overlay */}
@@ -48,20 +62,20 @@ const LoyaltyCard: React.FC<LoyaltyCardProps> = ({ membership, onEdit, onDelete 
                      <span className="material-symbols-outlined text-xl">{membership.icon || 'loyalty'}</span>
                 </div>
                 <div className="text-right">
-                    <h3 className="font-bold text-lg tracking-wide drop-shadow-md leading-tight">{membership.provider}</h3>
-                    {membership.category && <p className="text-[10px] uppercase font-bold opacity-70 tracking-widest">{membership.category}</p>}
+                    <h3 className="font-bold text-lg tracking-wide drop-shadow-md leading-tight text-white">{membership.provider}</h3>
+                    {membership.category && <p className="text-[10px] uppercase font-bold opacity-70 tracking-widest text-white">{membership.category}</p>}
                 </div>
             </div>
 
             {/* Member ID */}
             <div className="z-10 mt-auto mb-auto">
-                 <p className="font-mono text-xl sm:text-2xl tracking-widest drop-shadow-sm truncate opacity-95">
+                 <p className="font-mono text-xl sm:text-2xl tracking-widest drop-shadow-sm truncate opacity-95 text-white">
                     {membership.memberId}
                  </p>
             </div>
 
             {/* Footer */}
-            <div className="flex justify-between items-end z-10">
+            <div className="flex justify-between items-end z-10 text-white">
                  <div>
                      <p className="text-[8px] uppercase tracking-widest opacity-70 mb-0.5">Tier</p>
                      <p className="font-medium text-sm tracking-wide">{membership.tier || 'Standard'}</p>
@@ -75,9 +89,10 @@ const LoyaltyCard: React.FC<LoyaltyCardProps> = ({ membership, onEdit, onDelete 
 
         {/* Back Face */}
         <div 
-            className="absolute inset-0 w-full h-full backface-hidden [transform:rotateY(180deg)] bg-gray-900 text-white rounded-2xl shadow-xl overflow-hidden border border-gray-700 flex flex-col"
+            className="absolute inset-0 w-full h-full bg-gray-900 text-white rounded-2xl shadow-xl overflow-hidden border border-gray-700 flex flex-col"
+            style={backFaceStyle}
         >
-            <div className="p-6 flex flex-col h-full relative z-10">
+            <div className="p-6 flex flex-col h-full relative z-10 bg-gray-900">
                 {/* Texture Overlay for Back */}
                 <div className="absolute inset-0 bg-[url('https://www.transparenttextures.com/patterns/cubes.png')] opacity-5 pointer-events-none"></div>
 
