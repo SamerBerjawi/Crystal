@@ -10,6 +10,7 @@ import LoyaltyCard from '../components/LoyaltyCard';
 import useLocalStorage from '../hooks/useLocalStorage';
 import { useAccountsContext, useTransactionsContext } from '../contexts/DomainProviders';
 import { useScheduleContext, useCategoryContext } from '../contexts/FinancialDataContext';
+import PageHeader from '../components/PageHeader';
 
 // --- Helper Types for Detection ---
 interface DetectedSubscription {
@@ -281,17 +282,28 @@ const Subscriptions: React.FC = () => {
                 />
             )}
             
-            <header className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
-                 <div>
-                    <h1 className="text-3xl font-bold text-light-text dark:text-dark-text">Subscriptions & Memberships</h1>
-                    <p className="text-light-text-secondary dark:text-dark-text-secondary mt-1">Track recurring costs and manage your loyalty cards.</p>
-                 </div>
-                 
-                 <div className="flex bg-light-fill dark:bg-dark-fill p-1 rounded-lg w-full md:w-auto">
-                    <button onClick={() => setViewMode('recurring')} className={`${tabBaseClass} ${viewMode === 'recurring' ? tabActiveClass : tabInactiveClass}`}>Recurring Payments</button>
-                    <button onClick={() => setViewMode('loyalty')} className={`${tabBaseClass} ${viewMode === 'loyalty' ? tabActiveClass : tabInactiveClass}`}>Loyalty Wallet</button>
-                </div>
-            </header>
+            <PageHeader
+                markerIcon="autorenew"
+                markerLabel="Recurring Center"
+                title="Subscriptions & Memberships"
+                subtitle="Monitor renewals, renegotiate dates, and spot overlapping services."
+                actions={(
+                    <div className="flex bg-light-fill dark:bg-dark-fill p-1 rounded-lg w-full md:w-auto">
+                        <button
+                            onClick={() => setViewMode('recurring')}
+                            className={`${tabBaseClass} ${viewMode === 'recurring' ? tabActiveClass : tabInactiveClass}`}
+                        >
+                            Recurring Payments
+                        </button>
+                        <button
+                            onClick={() => setViewMode('loyalty')}
+                            className={`${tabBaseClass} ${viewMode === 'loyalty' ? tabActiveClass : tabInactiveClass}`}
+                        >
+                            Loyalty Wallet
+                        </button>
+                    </div>
+                )}
+            />
 
             {viewMode === 'recurring' && (
                 <div className="space-y-8 animate-fade-in-up">

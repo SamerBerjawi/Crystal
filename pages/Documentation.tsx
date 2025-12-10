@@ -2,6 +2,7 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { Page } from '../types';
 import Card from '../components/Card';
+import PageHeader from '../components/PageHeader';
 
 interface DocumentationProps {
   setCurrentPage: (page: Page) => void;
@@ -243,23 +244,20 @@ const Documentation: React.FC<DocumentationProps> = ({ setCurrentPage }) => {
     return (
         <div className="max-w-7xl mx-auto animate-fade-in-up pb-24 relative">
             {/* Header */}
-            <header className="mb-12 pt-4">
-                <div className="flex items-center gap-3 mb-6 text-sm text-light-text-secondary dark:text-dark-text-secondary">
+            <header className="mb-12 pt-4 space-y-6">
+                <div className="flex items-center gap-3 text-sm text-light-text-secondary dark:text-dark-text-secondary">
                     <button onClick={() => setCurrentPage('Settings')} className="hover:text-primary-500 flex items-center gap-1 transition-colors">
                          <span className="material-symbols-outlined text-base">arrow_back</span> Settings
                     </button>
                     <span>/</span>
                     <span className="text-light-text dark:text-dark-text font-medium">Documentation</span>
                 </div>
-                <div className="text-center md:text-left">
-                    <h1 className="text-4xl md:text-5xl font-extrabold text-transparent bg-clip-text bg-gradient-to-r from-primary-600 to-purple-600 dark:from-primary-400 dark:to-purple-400 mb-4">
-                        Documentation
-                    </h1>
-                    <p className="text-lg text-light-text-secondary dark:text-dark-text-secondary max-w-2xl">
-                        Everything you need to know to master your finances with Crystal. 
-                        Explore features, learn workflows, and unlock the full potential of your dashboard.
-                    </p>
-                </div>
+                <PageHeader
+                  markerIcon="menu_book"
+                  markerLabel="Help Library"
+                  title="Documentation"
+                  subtitle="How-to guides, release notes, and implementation tips at your fingertips."
+                />
             </header>
 
             <div className="flex flex-col lg:flex-row gap-12">

@@ -12,6 +12,7 @@ import FinalConfirmationModal from '../components/FinalConfirmationModal';
 import SmartRestoreModal from '../components/SmartRestoreModal';
 import { v4 as uuidv4 } from 'uuid';
 import { arrayToCSV, downloadCSV, parseDateAsUTC } from '../utils';
+import PageHeader from '../components/PageHeader';
 
 interface DataManagementProps {
   accounts: Account[];
@@ -370,7 +371,7 @@ const DataManagement: React.FC<DataManagementProps> = (props) => {
       )}
 
 
-      <header>
+      <header className="space-y-4">
         <div className="flex items-center gap-4">
             <button onClick={() => props.setCurrentPage('Settings')} className="text-light-text-secondary dark:text-dark-text-secondary p-2 rounded-full hover:bg-black/5 dark:hover:bg-white/5 transition-colors">
                 <span className="material-symbols-outlined">arrow_back</span>
@@ -378,13 +379,15 @@ const DataManagement: React.FC<DataManagementProps> = (props) => {
             <div className="text-sm text-light-text-secondary dark:text-dark-text-secondary">
                 <span onClick={() => props.setCurrentPage('Settings')} className="hover:underline cursor-pointer">Settings</span>
                 <span> / </span>
-                <span className="text-light-text dark:text-dark-text font-medium">Data Management</span>
+                <span className="text-light-text dark:text-dark-text font-medium">Import & Export</span>
             </div>
         </div>
-         <div className="mt-4">
-            <h1 className="text-3xl font-bold text-light-text dark:text-dark-text">Data Management</h1>
-            <p className="text-light-text-secondary dark:text-dark-text-secondary mt-2">Control your data flow with precision.</p>
-        </div>
+         <PageHeader
+            markerIcon="file_upload"
+            markerLabel="Data Desk"
+            title="Import & Export"
+            subtitle="Bring data in from banks or CSVs and take clean snapshots out for auditing or migration."
+         />
       </header>
       
       {/* Stats Overview */}

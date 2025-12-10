@@ -3,6 +3,7 @@ import React from 'react';
 import { Page } from '../types';
 import Card from '../components/Card';
 import { BTN_SECONDARY_STYLE } from '../constants';
+import PageHeader from '../components/PageHeader';
 
 interface AIAssistantSettingsProps {
   setCurrentPage: (page: Page) => void;
@@ -21,22 +22,23 @@ const AIAssistantSettings: React.FC<AIAssistantSettingsProps> = ({ setCurrentPag
           <span className="font-medium text-light-text dark:text-dark-text">AI Assistant</span>
       </nav>
 
-      {/* Header */}
-      <header className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
-        <div>
-           <h1 className="text-3xl font-bold text-light-text dark:text-dark-text">AI Assistant</h1>
-           <p className="text-light-text-secondary dark:text-dark-text-secondary mt-1">Power up your finance dashboard with Google Gemini.</p>
-        </div>
-        <a
+      <PageHeader
+        markerIcon="robot"
+        markerLabel="Crystal Copilot"
+        title="AI Assistant"
+        subtitle="Ask, summarize, and generate workflows with safeguards tuned to your data."
+        actions={
+          <a
             href="https://aistudio.google.com/app/apikey"
             target="_blank"
             rel="noopener noreferrer"
             className={`${BTN_SECONDARY_STYLE} flex items-center gap-2 no-underline`}
-        >
+          >
             <span className="material-symbols-outlined text-lg">key</span>
             Get API Key
-        </a>
-      </header>
+          </a>
+        }
+      />
 
       {/* Content */}
       <div className="grid gap-6">

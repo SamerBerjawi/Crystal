@@ -8,6 +8,7 @@ import Modal from '../components/Modal';
 import ConfirmationModal from '../components/ConfirmationModal';
 import { v4 as uuidv4 } from 'uuid';
 import { useInvoicesContext, usePreferencesContext } from '../contexts/DomainProviders';
+import PageHeader from '../components/PageHeader';
 
 interface InvoicesProps {}
 
@@ -546,23 +547,24 @@ const InvoicesPage: React.FC<InvoicesProps> = () => {
                 confirmButtonText="Delete"
             />
 
-            <header className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
-                 <div>
-                    <h1 className="text-3xl font-bold text-light-text dark:text-dark-text">Quotes & Invoices</h1>
-                    <p className="text-light-text-secondary dark:text-dark-text-secondary mt-1">Manage your business documents and billing.</p>
-                 </div>
-                 
-                 <div className="flex gap-3">
-                    <button onClick={() => handleOpenEditor('quote')} className={BTN_SECONDARY_STYLE}>
-                        <span className="material-symbols-outlined text-lg mr-2">add</span>
-                        New Quote
-                    </button>
-                    <button onClick={() => handleOpenEditor('invoice')} className={BTN_PRIMARY_STYLE}>
-                        <span className="material-symbols-outlined text-lg mr-2">add</span>
-                        New Invoice
-                    </button>
-                </div>
-            </header>
+            <PageHeader
+                markerIcon="request_quote"
+                markerLabel="Billing Desk"
+                title="Quotes & Invoices"
+                subtitle="Draft, send, and track receivables with status, due dates, and follow-up nudges."
+                actions={(
+                    <div className="flex gap-3">
+                        <button onClick={() => handleOpenEditor('quote')} className={BTN_SECONDARY_STYLE}>
+                            <span className="material-symbols-outlined text-lg mr-2">add</span>
+                            New Quote
+                        </button>
+                        <button onClick={() => handleOpenEditor('invoice')} className={BTN_PRIMARY_STYLE}>
+                            <span className="material-symbols-outlined text-lg mr-2">add</span>
+                            New Invoice
+                        </button>
+                    </div>
+                )}
+            />
             
             {/* Stats */}
             <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
