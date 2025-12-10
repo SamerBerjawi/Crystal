@@ -1,6 +1,6 @@
 
 import React, { useState, useRef, useMemo, useCallback } from 'react';
-import { Account, Transaction, Budget, RecurringTransaction, ImportExportHistoryItem, HistoryStatus, ImportDataType, Category, Page, FinancialData, Task, FinancialGoal, Membership, Tag, Invoice, BillPayment } from '../types';
+import { Account, Transaction, Budget, RecurringTransaction, ImportExportHistoryItem, HistoryStatus, ImportDataType, Category, Page, FinancialData } from '../types';
 import Card from '../components/Card';
 import { BTN_PRIMARY_STYLE, BTN_SECONDARY_STYLE } from '../constants';
 import Modal from '../components/Modal';
@@ -12,10 +12,6 @@ import FinalConfirmationModal from '../components/FinalConfirmationModal';
 import SmartRestoreModal from '../components/SmartRestoreModal';
 import { v4 as uuidv4 } from 'uuid';
 import { arrayToCSV, downloadCSV, parseDateAsUTC } from '../utils';
-import JSZip from 'jszip';
-import { useBudgetsContext, useCategoryContext, useGoalsContext, useScheduleContext, useTagsContext } from '../contexts/FinancialDataContext';
-import { useInvoicesContext, useTransactionsContext, useWarrantsContext, useAccountsContext } from '../contexts/DomainProviders';
-
 
 interface DataManagementProps {
   accounts: Account[];
@@ -24,13 +20,17 @@ interface DataManagementProps {
   recurringTransactions: RecurringTransaction[];
   allCategories: Category[];
   history: ImportExportHistoryItem[];
-  onPublishImport: (items: any[], dataType: ImportDataType, fileName: string, originalData: Record<string, any>[], errors: Record<number, Record<string, string>>, newAccounts?: Account[]) => void;
+  onPublishImport: (items: any[], dataType: 'accounts' | 'transactions', fileName: string, originalData: Record<string, any>[], errors: Record<number, Record<string, string>>, newAccounts?: Account[]) => void;
   onDeleteHistoryItem: (id: string) => void;
   onDeleteImportedTransactions: (importId: string) => void;
   onResetAccount: () => void;
+  onExportAllData?: () => void;
+  // REMOVED onImportAllData: (file: File) => void;
+  // REMOVED onExportCSV: (types: ImportDataType[]) => void;
   setCurrentPage: (page: Page) => void;
-  onRestoreData: (data: FinancialData) => void;
-  fullFinancialData: FinancialData; 
+  
+  onRestoreData: (data: FinancialData) => void; // New prop we will add to App.tsx
+  fullFinancialData: FinancialData; // To facilitate granular export logic
 }
 
 const StatusBadge: React.FC<{ status: HistoryStatus }> = ({ status }) => {
@@ -59,39 +59,36 @@ const TypeBadge: React.FC<{ type: 'import' | 'export' }> = ({ type }) => {
 };
 
 const NewImportModal: React.FC<{ onClose: () => void, onSelect: (type: ImportDataType) => void }> = ({ onClose, onSelect }) => {
-    const sources: { name: string; icon: string; type: ImportDataType, description: string }[] = [
-        { name: 'Transactions', icon: 'receipt_long', type: 'transactions', description: 'Bank statements or history.' },
-        { name: 'Accounts', icon: 'wallet', type: 'accounts', description: 'List of account balances.' },
-        { name: 'Quotes & Invoices', icon: 'description', type: 'invoices', description: 'Business documents.' },
-        { name: 'Subscriptions', icon: 'calendar_month', type: 'schedule', description: 'Recurring payments.' },
-        { name: 'Memberships', icon: 'loyalty', type: 'memberships', description: 'Loyalty cards and IDs.' },
-        { name: 'Tasks', icon: 'task_alt', type: 'tasks', description: 'To-do items.' },
-        { name: 'Goals', icon: 'flag', type: 'goals', description: 'Financial goals.' },
-        { name: 'Categories', icon: 'category', type: 'categories', description: 'Custom categories.' },
-        { name: 'Tags', icon: 'label', type: 'tags', description: 'Custom tags.' },
-        { name: 'Budgets', icon: 'pie_chart', type: 'budgets', description: 'Monthly budget limits.' },
+    const sources: { name: string; icon: string; type: ImportDataType, enabled: boolean, description: string }[] = [
+        { name: 'Transactions (CSV)', icon: 'receipt_long', type: 'transactions', enabled: true, description: 'Import transactions from a CSV file.' },
+        { name: 'Accounts (CSV)', icon: 'wallet', type: 'accounts', enabled: true, description: 'Import accounts from a CSV file.' },
+        // { name: 'OFX / QIF file', icon: 'file_upload', type: 'mint', enabled: false, description: 'Import from financial software formats. (Coming soon)' },
     ];
     
     return (
-        <Modal onClose={onClose} title="Import CSV">
+        <Modal onClose={onClose} title="New External Import">
             <div className="space-y-4">
                 <p className="text-sm text-light-text-secondary dark:text-dark-text-secondary">
-                    Select the type of data you want to import.
+                    Import data from external sources like bank statements.
                 </p>
-                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                <div className="space-y-2">
                     {sources.map(source => (
                         <button 
                             key={source.type}
                             onClick={() => onSelect(source.type)}
-                            className="flex items-center gap-3 p-3 rounded-lg hover:bg-black/5 dark:hover:bg-white/5 transition-colors text-left border border-transparent hover:border-black/5 dark:hover:border-white/10"
+                            disabled={!source.enabled}
+                            className="w-full flex justify-between items-center p-3 rounded-lg hover:bg-black/5 dark:hover:bg-white/5 disabled:opacity-50 disabled:cursor-not-allowed transition-colors text-left border border-transparent hover:border-black/5 dark:hover:border-white/10"
                         >
-                            <div className="w-10 h-10 rounded-full bg-primary-100 dark:bg-primary-900/20 flex items-center justify-center text-primary-600 dark:text-primary-400 shrink-0">
-                                <span className="material-symbols-outlined">{source.icon}</span>
+                            <div className="flex items-center gap-3">
+                                <div className="w-10 h-10 rounded-full bg-primary-100 dark:bg-primary-900/20 flex items-center justify-center text-primary-600 dark:text-primary-400">
+                                    <span className="material-symbols-outlined">{source.icon}</span>
+                                </div>
+                                <div>
+                                    <span className="font-semibold text-light-text dark:text-dark-text block">{source.name}</span>
+                                    <p className="text-xs text-light-text-secondary dark:text-dark-text-secondary">{source.description}</p>
+                                </div>
                             </div>
-                            <div>
-                                <span className="font-semibold text-light-text dark:text-dark-text block">{source.name}</span>
-                                <p className="text-xs text-light-text-secondary dark:text-dark-text-secondary">{source.description}</p>
-                            </div>
+                            <span className="material-symbols-outlined text-light-text-secondary dark:text-dark-text-secondary">chevron_right</span>
                         </button>
                     ))}
                 </div>
@@ -113,31 +110,15 @@ const StatCard: React.FC<{ title: string; value: string | number; icon: string; 
 );
 
 const DataManagement: React.FC<DataManagementProps> = (props) => {
-    // Contexts for saving specific data types
-    const { saveBudget } = useBudgetsContext();
-    const { setIncomeCategories, setExpenseCategories } = useCategoryContext();
-    const { saveFinancialGoal } = useGoalsContext();
-    const { saveRecurringTransaction, saveMembership } = useScheduleContext();
-    const { saveTag } = useTagsContext();
-    const { saveInvoice } = useInvoicesContext();
-    const { saveTransaction } = useTransactionsContext(); 
-    const { saveAccount } = useAccountsContext();
-    
-    // We handle Task saving via generic prop from App.tsx usually, but here we can try to use a saveTask if we had context.
-    // Since App.tsx passes `tasks` and `saveTask` to Dashboard, it's not globally available via context yet.
-    // However, App.tsx's `handlePublishImport` already handles basic saving for many types based on previous implementation. 
-    // We will rely on `props.onPublishImport` which calls `handlePublishImport` in App.tsx. 
-    // I will ensure App.tsx's `handlePublishImport` is updated to handle all types.
-
     const [isNewImportModalOpen, setNewImportModalOpen] = useState(false);
-    const [exportConfig, setExportConfig] = useState<{ isOpen: boolean; format: 'json' | 'csv' }>({ isOpen: false, format: 'csv' });
+    const [isExportModalOpen, setExportModalOpen] = useState(false);
     const [isRestoreModalOpen, setRestoreModalOpen] = useState(false);
+    
     const [isWizardOpen, setWizardOpen] = useState(false);
-    const [importType, setImportType] = useState<ImportDataType | null>(null);
+    const [importType, setImportType] = useState<'transactions' | 'accounts' | null>(null);
     const [viewingDetails, setViewingDetails] = useState<ImportExportHistoryItem | null>(null);
     const [confirmingAction, setConfirmingAction] = useState<{ type: 'reset' } | null>(null);
     const [isFinalConfirmOpen, setFinalConfirmOpen] = useState(false);
-    const [isProcessing, setIsProcessing] = useState(false);
 
     // Sort history descending by date
     const sortedHistory = useMemo(() => {
@@ -154,147 +135,97 @@ const DataManagement: React.FC<DataManagementProps> = (props) => {
     }, [sortedHistory]);
 
     const handleSelectImportType = (type: ImportDataType) => {
-        setImportType(type);
-        setNewImportModalOpen(false);
-        setWizardOpen(true);
+        if (type === 'transactions' || type === 'accounts') {
+            setImportType(type);
+            setNewImportModalOpen(false);
+            setWizardOpen(true);
+        }
     };
     
     // Process the granular export request
-    const processExport = async (config: ExportConfig) => {
-        setIsProcessing(true);
+    const processExport = (config: ExportConfig) => {
         const { format, dataTypes, dateRange, accountIds } = config;
         
-        try {
-            // Filter Transactions
-            let filteredTransactions = props.transactions;
-            if (dateRange) {
-                const start = parseDateAsUTC(dateRange.start);
-                const end = parseDateAsUTC(dateRange.end);
-                end.setHours(23, 59, 59, 999);
-                filteredTransactions = filteredTransactions.filter(t => {
-                    const d = parseDateAsUTC(t.date);
-                    return d >= start && d <= end;
-                });
-            }
-            if (accountIds && accountIds.length > 0) {
-                filteredTransactions = filteredTransactions.filter(t => accountIds.includes(t.accountId));
-            }
+        // Filter Transactions
+        let filteredTransactions = props.transactions;
+        if (dateRange) {
+            const start = parseDateAsUTC(dateRange.start);
+            const end = parseDateAsUTC(dateRange.end);
+            end.setHours(23, 59, 59, 999);
+            filteredTransactions = filteredTransactions.filter(t => {
+                const d = parseDateAsUTC(t.date);
+                return d >= start && d <= end;
+            });
+        }
+        if (accountIds && accountIds.length > 0) {
+            filteredTransactions = filteredTransactions.filter(t => accountIds.includes(t.accountId));
+        }
 
-            // Filter Accounts
-            let filteredAccounts = props.accounts;
-            if (accountIds && accountIds.length > 0) {
-                filteredAccounts = filteredAccounts.filter(a => accountIds.includes(a.id));
-            }
+        // Filter Accounts
+        let filteredAccounts = props.accounts;
+        if (accountIds && accountIds.length > 0) {
+            filteredAccounts = filteredAccounts.filter(a => accountIds.includes(a.id));
+        }
 
-            if (format === 'json') {
-                // Build granular JSON
-                const exportData: any = {};
-                if (dataTypes.includes('accounts')) exportData.accounts = filteredAccounts;
-                if (dataTypes.includes('transactions')) exportData.transactions = filteredTransactions;
-                if (dataTypes.includes('budgets')) exportData.budgets = props.budgets;
-                if (dataTypes.includes('schedule')) exportData.recurringTransactions = props.recurringTransactions;
-                if (dataTypes.includes('categories')) {
-                    exportData.incomeCategories = props.allCategories.filter(c => c.classification === 'income');
-                    exportData.expenseCategories = props.allCategories.filter(c => c.classification === 'expense');
+        if (format === 'json') {
+            // Build granular JSON
+            const exportData: any = {};
+            if (dataTypes.includes('accounts')) exportData.accounts = filteredAccounts;
+            if (dataTypes.includes('transactions')) exportData.transactions = filteredTransactions;
+            if (dataTypes.includes('budgets')) exportData.budgets = props.budgets;
+            if (dataTypes.includes('schedule')) exportData.recurringTransactions = props.recurringTransactions;
+            if (dataTypes.includes('categories')) {
+                exportData.incomeCategories = props.allCategories.filter(c => c.classification === 'income');
+                exportData.expenseCategories = props.allCategories.filter(c => c.classification === 'expense');
+            }
+            // Add other types as needed directly from fullFinancialData if available, 
+            // or we might need to drill them down via props if not passed. 
+            // Assuming fullFinancialData is passed to this component for ease.
+            if (props.fullFinancialData) {
+                 if (dataTypes.includes('investments')) {
+                     exportData.investmentTransactions = props.fullFinancialData.investmentTransactions;
+                     exportData.warrants = props.fullFinancialData.warrants;
+                 }
+                 if (dataTypes.includes('schedule')) {
+                      exportData.billsAndPayments = props.fullFinancialData.billsAndPayments;
+                 }
+            }
+            
+            const blob = new Blob([JSON.stringify(exportData, null, 2)], { type: 'application/json' });
+            const url = URL.createObjectURL(blob);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = `crystal-export-${new Date().toISOString().split('T')[0]}.json`;
+            document.body.appendChild(a);
+            a.click();
+            document.body.removeChild(a);
+            URL.revokeObjectURL(url);
+            
+        } else {
+            // CSV Export logic
+            dataTypes.forEach(type => {
+                let data: any[] = [];
+                let filename = `crystal-${type}.csv`;
+
+                if (type === 'transactions') {
+                    data = filteredTransactions;
+                } else if (type === 'accounts') {
+                    data = filteredAccounts;
+                } else if (type === 'categories') {
+                    data = props.allCategories;
+                } else if (type === 'budgets') {
+                    data = props.budgets;
+                } else if (type === 'schedule') {
+                    data = props.recurringTransactions;
+                } else if (type === 'investments' && props.fullFinancialData) {
+                    data = props.fullFinancialData.investmentTransactions;
                 }
-                if (props.fullFinancialData) {
-                    if (dataTypes.includes('investments')) {
-                        exportData.investmentTransactions = props.fullFinancialData.investmentTransactions;
-                        exportData.warrants = props.fullFinancialData.warrants;
-                    }
-                    if (dataTypes.includes('schedule')) {
-                        exportData.billsAndPayments = props.fullFinancialData.billsAndPayments;
-                    }
-                    if (dataTypes.includes('invoices')) {
-                        exportData.invoices = props.fullFinancialData.invoices;
-                    }
-                    if (dataTypes.includes('memberships')) {
-                        exportData.memberships = props.fullFinancialData.memberships;
-                    }
-                    if (dataTypes.includes('goals')) {
-                        exportData.financialGoals = props.fullFinancialData.financialGoals;
-                    }
-                    if (dataTypes.includes('tasks')) {
-                        exportData.tasks = props.fullFinancialData.tasks;
-                    }
-                    if (dataTypes.includes('tags')) {
-                        exportData.tags = props.fullFinancialData.tags;
-                    }
+
+                if (data.length > 0) {
+                     const csv = arrayToCSV(data);
+                     downloadCSV(csv, filename);
                 }
-                
-                const blob = new Blob([JSON.stringify(exportData, null, 2)], { type: 'application/json' });
-                const url = URL.createObjectURL(blob);
-                const a = document.createElement('a');
-                a.href = url;
-                a.download = `crystal-export-${new Date().toISOString().split('T')[0]}.json`;
-                document.body.appendChild(a);
-                a.click();
-                document.body.removeChild(a);
-                URL.revokeObjectURL(url);
-                
-            } else {
-                // CSV Export logic
-                const filesToExport: { name: string, content: string }[] = [];
-
-                dataTypes.forEach(type => {
-                    let data: any[] = [];
-                    let filename = `crystal-${type}.csv`;
-
-                    if (type === 'transactions') {
-                        data = filteredTransactions;
-                    } else if (type === 'accounts') {
-                        data = filteredAccounts;
-                    } else if (type === 'categories') {
-                        data = props.allCategories;
-                    } else if (type === 'budgets') {
-                        data = props.budgets;
-                    } else if (type === 'schedule') {
-                        data = [...props.recurringTransactions, ...props.fullFinancialData.billsAndPayments];
-                    } else if (type === 'investments' && props.fullFinancialData) {
-                        data = props.fullFinancialData.investmentTransactions;
-                    } else if (type === 'invoices' && props.fullFinancialData) {
-                        data = props.fullFinancialData.invoices || [];
-                    } else if (type === 'memberships' && props.fullFinancialData) {
-                        data = props.fullFinancialData.memberships || [];
-                    } else if (type === 'goals' && props.fullFinancialData) {
-                        data = props.fullFinancialData.financialGoals || [];
-                    } else if (type === 'tasks' && props.fullFinancialData) {
-                        data = props.fullFinancialData.tasks || [];
-                    } else if (type === 'tags' && props.fullFinancialData) {
-                        data = props.fullFinancialData.tags || [];
-                    }
-
-                    if (data.length > 0) {
-                        filesToExport.push({ name: filename, content: arrayToCSV(data) });
-                    }
-                });
-
-                if (filesToExport.length === 1) {
-                    // Single file download
-                    downloadCSV(filesToExport[0].content, filesToExport[0].name);
-                } else if (filesToExport.length > 1) {
-                    // Multiple files: Zip them
-                    const zip = new JSZip();
-                    filesToExport.forEach(file => {
-                        zip.file(file.name, file.content);
-                    });
-                    
-                    const blob = await zip.generateAsync({ type: 'blob' });
-                    const url = URL.createObjectURL(blob);
-                    const a = document.createElement('a');
-                    a.href = url;
-                    a.download = `crystal-export-${new Date().toISOString().split('T')[0]}.zip`;
-                    document.body.appendChild(a);
-                    a.click();
-                    document.body.removeChild(a);
-                    URL.revokeObjectURL(url);
-                }
-            }
-        } catch (error) {
-            console.error("Export failed:", error);
-            alert("Export failed. Please check console for details.");
-        } finally {
-            setIsProcessing(false);
+            });
         }
     };
 
@@ -314,12 +245,16 @@ const DataManagement: React.FC<DataManagementProps> = (props) => {
                     // @ts-ignore
                     mergedData[k] = incoming;
                 } else {
+                    // Merge - Naive concat. In a real app we might check IDs to avoid duplicates.
+                    // But for now, we assume user knows what they are doing or we generate new IDs during import (hard here).
+                    // We'll filter out exact ID matches to prevent hard errors, but logic issues might remain.
                     const existingIds = new Set(existing.map((i: any) => i.id).filter(Boolean));
                     const newItems = incoming.filter((i: any) => !existingIds.has(i.id));
                     // @ts-ignore
                     mergedData[k] = [...existing, ...newItems];
                 }
             } else if (typeof incoming === 'object' && incoming !== null) {
+                // Objects like preferences or manual prices
                 if (strat === 'replace') {
                     // @ts-ignore
                     mergedData[k] = incoming;
@@ -364,19 +299,13 @@ const DataManagement: React.FC<DataManagementProps> = (props) => {
         }
     };
 
+    // REMOVED broken functions: handleExportAllData, handleImportAllData, handleExportCSV
+    // They are handled by processExport and handleGranularRestore (via modals) now.
+
   return (
     <div className="space-y-8 max-w-6xl mx-auto pb-12 animate-fade-in-up">
       {isNewImportModalOpen && <NewImportModal onClose={() => setNewImportModalOpen(false)} onSelect={handleSelectImportType} />}
-      
-      {exportConfig.isOpen && (
-        <ExportModal 
-            onClose={() => setExportConfig({ ...exportConfig, isOpen: false })} 
-            onExport={processExport} 
-            accounts={props.accounts} 
-            initialFormat={exportConfig.format}
-        />
-      )}
-
+      {isExportModalOpen && <ExportModal onClose={() => setExportModalOpen(false)} onExport={processExport} accounts={props.accounts} />}
       {isRestoreModalOpen && <SmartRestoreModal onClose={() => setRestoreModalOpen(false)} onRestore={handleGranularRestore} currentData={props.fullFinancialData} />}
       
       {viewingDetails && <ImportDetailsModal item={viewingDetails} onClose={() => setViewingDetails(null)} onDeleteImport={props.onDeleteImportedTransactions} />}
@@ -413,18 +342,6 @@ const DataManagement: React.FC<DataManagementProps> = (props) => {
           confirmButtonText={'Reset account'}
         />
       )}
-      
-      {isProcessing && (
-         <div className="fixed inset-0 bg-black/50 z-[100] flex items-center justify-center">
-            <div className="bg-white dark:bg-dark-card p-6 rounded-xl flex flex-col items-center shadow-2xl">
-                <svg className="animate-spin h-8 w-8 text-primary-500 mb-4" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
-                  <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
-                  <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
-                </svg>
-                <p className="text-light-text dark:text-dark-text font-medium">Preparing export...</p>
-            </div>
-         </div>
-      )}
 
 
       <header>
@@ -460,7 +377,7 @@ const DataManagement: React.FC<DataManagementProps> = (props) => {
                     </div>
                     <div>
                         <h3 className="text-xl font-bold text-light-text dark:text-dark-text">External Data</h3>
-                        <p className="text-sm text-light-text-secondary dark:text-dark-text-secondary mt-1">Import new data or export for spreadsheets.</p>
+                        <p className="text-sm text-light-text-secondary dark:text-dark-text-secondary mt-1">Import new transactions or export for spreadsheets.</p>
                     </div>
                 </div>
                 <div className="mt-auto pt-6 grid grid-cols-2 gap-4">
@@ -468,7 +385,7 @@ const DataManagement: React.FC<DataManagementProps> = (props) => {
                         <span className="material-symbols-outlined">add</span>
                         Import CSV
                     </button>
-                    <button onClick={() => setExportConfig({ isOpen: true, format: 'csv' })} className={`${BTN_SECONDARY_STYLE} w-full flex justify-center items-center gap-2 !py-3`}>
+                    <button onClick={() => setExportModalOpen(true)} className={`${BTN_SECONDARY_STYLE} w-full flex justify-center items-center gap-2 !py-3`}>
                         <span className="material-symbols-outlined">download</span>
                         Export Data
                     </button>
@@ -487,7 +404,8 @@ const DataManagement: React.FC<DataManagementProps> = (props) => {
                     </div>
                 </div>
                 <div className="mt-auto pt-6 grid grid-cols-2 gap-4">
-                    <button onClick={() => setExportConfig({ isOpen: true, format: 'json' })} className={`${BTN_SECONDARY_STYLE} w-full flex justify-center items-center gap-2 !py-3`}>
+                    <button onClick={() => setExportModalOpen(true)} className={`${BTN_SECONDARY_STYLE} w-full flex justify-center items-center gap-2 !py-3`}>
+                         {/* We reuse export modal but user chooses JSON format there */}
                         <span className="material-symbols-outlined">cloud_download</span>
                         Backup
                     </button>

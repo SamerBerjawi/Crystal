@@ -5,8 +5,8 @@ import Sidebar from './components/Sidebar';
 import Header from './components/Header';
 const SignIn = lazy(() => import('./pages/SignIn'));
 const SignUp = lazy(() => import('./pages/SignUp'));
-const loadDashboard = () => import('./pages/Dashboard');
-const Dashboard = lazy(loadDashboard);
+// FIX: Use inline function for lazy import to avoid TypeScript error regarding 'default' property missing
+const Dashboard = lazy(() => import('./pages/Dashboard'));
 const loadAccounts = () => import('./pages/Accounts');
 const Accounts = lazy(loadAccounts);
 const loadTransactions = () => import('./pages/Transactions');
@@ -48,7 +48,7 @@ const loadInvoicesPage = () => import('./pages/Invoices');
 const InvoicesPage = lazy(loadInvoicesPage);
 
 const pagePreloaders = [
-  loadDashboard,
+  // FIX: removed unused loadDashboard
   loadAccounts,
   loadTransactions,
   loadBudgeting,
@@ -222,7 +222,8 @@ interface ErrorBoundaryState {
 
 class ErrorBoundary extends Component<ErrorBoundaryProps, ErrorBoundaryState> {
   // FIX: Explicitly declare state property to fix TS error "Property 'state' does not exist on type 'ErrorBoundary'"
-  public state: ErrorBoundaryState = { hasError: false, message: undefined };
+  // FIX: Removed 'public' keyword to conform to standard class property declarations in some configs
+  state: ErrorBoundaryState = { hasError: false, message: undefined };
   
   // FIX: Explicitly declare props property to fix TS error "Property 'props' does not exist on type 'ErrorBoundary'"
   declare props: Readonly<ErrorBoundaryProps>;
@@ -323,7 +324,7 @@ const App: React.FC = () => {
   const [manualWarrantPrices, setManualWarrantPrices] = useState<Record<string, number | undefined>>(initialFinancialData.manualWarrantPrices || {});
   const [lastUpdated, setLastUpdated] = useState<Date | null>(null);
   
-  // FIX: Explicitly type assetPrices to avoid 'unknown' inference and ensure type safety
+  // Explicitly type assetPrices to avoid 'unknown' inference
   const assetPrices = useMemo<Record<string, number | null>>(() => {
     const resolved: Record<string, number | null> = {};
 
@@ -342,17 +343,14 @@ const App: React.FC = () => {
     });
 
     Object.entries(manualWarrantPrices).forEach(([symbol, price]) => {
-      const numericPrice = typeof price === 'number' ? price : undefined;
-
-      if (numericPrice !== undefined) {
-        resolved[symbol] = numericPrice;
+      if (price !== undefined) {
+        resolved[symbol] = price;
       }
     });
 
     return resolved;
   }, [accounts, manualWarrantPrices, warrants]);
 
-  // FIX: Explicitly type warrantPrices to avoid 'unknown' inference
   const warrantPrices = useMemo<Record<string, number | null>>(() => {
     const resolved: Record<string, number | null> = {};
     warrants.forEach(warrant => {
@@ -457,6 +455,7 @@ const App: React.FC = () => {
       }
   }, [preferences.timezone]);
 
+  // Explicitly type warrantHoldingsBySymbol
   const warrantHoldingsBySymbol = useMemo<Record<string, number>>(() => {
     const holdings: Record<string, number> = {};
 
@@ -479,7 +478,7 @@ const App: React.FC = () => {
       // The check is simplified to only verify if the account type is 'Investment'.
       if (account.symbol && account.type === 'Investment' && (assetPrices as Record<string, number | null>)[account.symbol] !== undefined) {
         const price = (assetPrices as Record<string, number | null>)[account.symbol as string];
-        const quantity = ((warrantHoldingsBySymbol as Record<string, number>)[account.symbol as string] as number) || 0;
+        const quantity = (warrantHoldingsBySymbol as Record<string, number>)[account.symbol as string] || 0;
         // Fix: Explicitly checking type to silence "unknown not assignable to number" error
         const calculatedBalance = (typeof price === 'number') ? quantity * price : 0;
 
@@ -503,11 +502,6 @@ const App: React.FC = () => {
     const dataSignature = JSON.stringify(dataToLoad);
 
     startTransition(() => {
-      // Only set properties if they exist in the incoming payload, otherwise default to empty or initial
-      // When merging, we need to be careful not to overwrite with empty arrays if not intended,
-      // but `loadAllFinancialData` typically implies a full state replacement or hydration.
-      // For partial updates (merge), see `handleRestoreData`.
-      
       setAccounts(dataToLoad.accounts || []);
       setTransactions(dataToLoad.transactions || []);
       setInvestmentTransactions(dataToLoad.investmentTransactions || []);
@@ -1429,7 +1423,7 @@ const App: React.FC = () => {
 
   // --- Data Import / Export ---
   const handlePublishImport = (
-    items: any[],
+    items: (Omit<Account, 'id'> | Omit<Transaction, 'id'>)[],
     dataType: ImportDataType,
     fileName: string,
     originalData: Record<string, any>[],
@@ -1438,12 +1432,11 @@ const App: React.FC = () => {
   ) => {
       const importId = `imp-${uuidv4()}`;
       
-      // First save any new accounts created during import mapping (usually for transactions)
+      // First save any new accounts created during import mapping
       if (newAccounts && newAccounts.length > 0) {
           newAccounts.forEach(acc => handleSaveAccount(acc));
       }
 
-      // Handle specific data type logic
       if (dataType === 'accounts') {
           const newAccounts = items as Omit<Account, 'id'>[];
           newAccounts.forEach(acc => handleSaveAccount(acc));
@@ -1453,50 +1446,6 @@ const App: React.FC = () => {
           const transactionsWithImportId = newTransactions.map(t => ({ ...t, importId }));
           handleSaveTransaction(transactionsWithImportId);
       }
-      else if (dataType === 'categories') {
-          const newCategories = items as Category[];
-          // Distribute to income/expense based on classification
-          const incomeCats = newCategories.filter(c => c.classification === 'income');
-          const expenseCats = newCategories.filter(c => c.classification === 'expense');
-          
-          if (incomeCats.length > 0) setIncomeCategories([...incomeCategories, ...incomeCats]);
-          if (expenseCats.length > 0) setExpenseCategories([...expenseCategories, ...expenseCats]);
-      }
-      else if (dataType === 'budgets') {
-           const newBudgets = items as Omit<Budget, 'id'>[];
-           newBudgets.forEach(b => handleSaveBudget(b));
-      }
-      else if (dataType === 'tasks') {
-           const newTasks = items as Omit<Task, 'id'>[];
-           newTasks.forEach(t => handleSaveTask(t));
-      }
-      else if (dataType === 'goals') {
-          const newGoals = items as Omit<FinancialGoal, 'id'>[];
-          newGoals.forEach(g => handleSaveFinancialGoal(g));
-      }
-      else if (dataType === 'tags') {
-          const newTags = items as Omit<Tag, 'id'>[];
-          newTags.forEach(t => handleSaveTag(t));
-      }
-      else if (dataType === 'invoices') {
-           const newInvoices = items as Omit<Invoice, 'id'>[];
-           newInvoices.forEach(i => handleSaveInvoice(i));
-      }
-      else if (dataType === 'memberships') {
-           const newMemberships = items as Omit<Membership, 'id'>[];
-           newMemberships.forEach(m => handleSaveMembership(m));
-      }
-      else if (dataType === 'schedule') {
-           // Basic recurring transactions import
-           const newRecurring = items as Omit<RecurringTransaction, 'id'>[];
-           newRecurring.forEach(rt => handleSaveRecurringTransaction(rt));
-      }
-      else if (dataType === 'investments') {
-           // Basic investment transaction import
-           const newInv = items as Omit<InvestmentTransaction, 'id'>[];
-           newInv.forEach(inv => handleSaveInvestmentTransaction(inv));
-      }
-      
       setImportExportHistory(prev => [...prev, {
           id: importId, type: 'import', dataType, fileName, date: new Date().toISOString(),
           status: Object.keys(errors).length > 0 ? 'Failed' : 'Complete',
@@ -1520,6 +1469,23 @@ const App: React.FC = () => {
     }
   };
   
+  const handleExportAllData = () => {
+      const blob = new Blob([JSON.stringify(dataToSave)], { type: 'application/json' });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = `crystal-backup-${new Date().toISOString().split('T')[0]}.json`;
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      URL.revokeObjectURL(url);
+  };
+
+  // Replaced with granular logic via onImportAllData logic passed to DataManagement
+  // REMOVED handleImportAllData to clean up and avoid confusion as DataManagement handles it internally via SmartRestoreModal
+
+  // REMOVED handleExportCSV to clean up and avoid confusion as ExportModal handles it internally
+
   useEffect(() => {
     if (theme === 'system') {
       const systemPrefersDark = window.matchMedia('(prefers-color-scheme: dark)').matches;
@@ -1590,6 +1556,11 @@ const App: React.FC = () => {
             accounts={accounts} transactions={transactions} budgets={budgets} recurringTransactions={recurringTransactions} allCategories={[...incomeCategories, ...expenseCategories]} history={importExportHistory} 
             onPublishImport={handlePublishImport} onDeleteHistoryItem={handleDeleteHistoryItem} onDeleteImportedTransactions={handleDeleteImportedTransactions}
             onResetAccount={handleResetAccount} 
+            // REMOVE THESE
+            // onExportAllData={handleExportAllData} 
+            // onImportAllData={handleImportAllData}
+            // onExportCSV={handleExportCSV}
+            // KEEP THESE
             setCurrentPage={setCurrentPage}
             onRestoreData={handleRestoreData}
             fullFinancialData={dataToSave} // Pass full current state for granular export
