@@ -1699,10 +1699,13 @@ const App: React.FC = () => {
             isSidebarOpen={isSidebarOpen}
             setSidebarOpen={setSidebarOpen}
             theme={theme}
+            setTheme={setTheme}
             isSidebarCollapsed={isSidebarCollapsed}
             setSidebarCollapsed={setSidebarCollapsed}
             onLogout={handleLogout}
             user={currentUser!}
+            isPrivacyMode={isPrivacyMode}
+            togglePrivacyMode={() => setIsPrivacyMode(!isPrivacyMode)}
           />
           <div className="flex-1 flex flex-col overflow-hidden relative z-0">
             <Header

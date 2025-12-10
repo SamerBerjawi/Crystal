@@ -1,8 +1,10 @@
 
 
+
 import React, { useState, useRef, useEffect } from 'react';
 import { Page, Theme, User } from '../types';
 import { NAV_ITEMS, CrystalLogo, NavItem } from '../constants';
+import ThemeToggle from './ThemeToggle';
 
 interface SidebarProps {
   currentPage: Page;
@@ -10,13 +12,16 @@ interface SidebarProps {
   isSidebarOpen: boolean;
   setSidebarOpen: (isOpen: boolean) => void;
   theme: Theme;
+  setTheme: (theme: Theme) => void;
   isSidebarCollapsed: boolean;
   setSidebarCollapsed: (isCollapsed: boolean) => void;
   onLogout: () => void;
   user: User;
+  isPrivacyMode: boolean;
+  togglePrivacyMode: () => void;
 }
 
-const Sidebar: React.FC<SidebarProps> = ({ currentPage, setCurrentPage, isSidebarOpen, setSidebarOpen, theme, isSidebarCollapsed, setSidebarCollapsed, onLogout, user }) => {
+const Sidebar: React.FC<SidebarProps> = ({ currentPage, setCurrentPage, isSidebarOpen, setSidebarOpen, theme, setTheme, isSidebarCollapsed, setSidebarCollapsed, onLogout, user, isPrivacyMode, togglePrivacyMode }) => {
   const [openSubMenu, setOpenSubMenu] = useState<string | null>(() => {
     const activeParent = NAV_ITEMS.find(item => item.subItems?.some(sub => sub.name === currentPage));
     return activeParent ? activeParent.name : null;
@@ -148,21 +153,41 @@ const Sidebar: React.FC<SidebarProps> = ({ currentPage, setCurrentPage, isSideba
         </nav>
 
         {/* Footer / User Profile */}
-        <div className="p-4 mt-auto relative">
-            {/* Collapse Toggle Button - Absolute positioned on the border */}
-            <button
-                onClick={() => setSidebarCollapsed(!isSidebarCollapsed)}
-                className="hidden md:flex absolute -top-4 right-4 w-8 h-8 items-center justify-center rounded-full bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 shadow-sm text-gray-500 hover:text-primary-500 transition-all hover:scale-110 z-10"
-                title={isSidebarCollapsed ? 'Expand' : 'Collapse'}
-            >
-                <span className="material-symbols-outlined text-lg transform transition-transform duration-300" style={{ transform: isSidebarCollapsed ? 'rotate(180deg)' : 'rotate(0deg)' }}>
-                    chevron_left
-                </span>
-            </button>
+        <div className="p-4 mt-auto border-t border-black/5 dark:border-white/5 flex flex-col gap-4">
+            
+            {/* Controls Row */}
+            <div className={`flex items-center ${isSidebarCollapsed ? 'flex-col justify-center gap-4' : 'justify-between'}`}>
+                 <div className={`flex items-center gap-2 ${isSidebarCollapsed ? 'flex-col' : ''}`}>
+                    {/* Privacy Toggle */}
+                    <button
+                        onClick={togglePrivacyMode}
+                        className={`w-8 h-8 rounded-lg flex items-center justify-center transition-colors duration-200 ${isPrivacyMode ? 'bg-primary-100 dark:bg-primary-900/30 text-primary-600 dark:text-primary-400' : 'bg-transparent text-light-text-secondary dark:text-dark-text-secondary hover:bg-black/5 dark:hover:bg-white/5'}`}
+                        title={isPrivacyMode ? "Disable Privacy Mode" : "Enable Privacy Mode"}
+                    >
+                        <span className="material-symbols-outlined text-[20px]">local_cafe</span>
+                    </button>
+                    
+                    {/* Theme Toggle */}
+                    <div className={isSidebarCollapsed ? 'scale-75 origin-center' : ''}>
+                         <ThemeToggle theme={theme} setTheme={setTheme} />
+                    </div>
+                </div>
+
+                {/* Collapse Button (Hidden on Mobile) */}
+                <button
+                    onClick={() => setSidebarCollapsed(!isSidebarCollapsed)}
+                    className="hidden md:flex w-8 h-8 items-center justify-center rounded-lg text-light-text-secondary dark:text-dark-text-secondary hover:bg-black/5 dark:hover:bg-white/5 transition-colors"
+                    title={isSidebarCollapsed ? 'Expand Sidebar' : 'Collapse Sidebar'}
+                >
+                     <span className="material-symbols-outlined text-[20px]">
+                        {isSidebarCollapsed ? 'keyboard_double_arrow_right' : 'keyboard_double_arrow_left'}
+                    </span>
+                </button>
+            </div>
 
             <div ref={profileMenuRef} className="relative">
                 {isProfileMenuOpen && (
-                    <div className="animate-fade-in-up absolute bottom-full left-0 right-0 mb-3 bg-white dark:bg-gray-800 rounded-xl shadow-xl border border-black/5 dark:border-white/5 overflow-hidden p-1 ring-1 ring-black/5">
+                    <div className="animate-fade-in-up absolute bottom-full left-0 right-0 mb-3 bg-light-card/95 dark:bg-dark-card/95 backdrop-blur-xl rounded-xl shadow-xl border border-black/5 dark:border-white/5 overflow-hidden p-1 ring-1 ring-black/5">
                         <button
                             onClick={() => { setCurrentPage('Personal Info'); setProfileMenuOpen(false); }}
                             className="w-full text-left px-3 py-2.5 text-sm flex items-center gap-3 text-gray-700 dark:text-gray-200 hover:bg-black/5 dark:hover:bg-white/5 rounded-lg transition-colors"
