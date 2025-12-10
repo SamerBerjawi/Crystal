@@ -1516,11 +1516,22 @@ const App: React.FC = () => {
 
   // Reset the account detail view if the referenced account no longer exists to avoid state updates during render
   useEffect(() => {
+    if (!isDataLoaded) return;
+
     if (viewingAccountId && !viewingAccount) {
       setViewingAccountId(null);
       setCurrentPage('Dashboard');
     }
-  }, [viewingAccount, viewingAccountId]);
+  }, [isDataLoaded, viewingAccount, viewingAccountId]);
+
+  useEffect(() => {
+    if (!isDataLoaded) return;
+
+    if (viewingHoldingSymbol && !viewingHolding) {
+      setViewingHoldingSymbol(null);
+      setCurrentPage('Investments');
+    }
+  }, [isDataLoaded, viewingHolding, viewingHoldingSymbol]);
 
   useEffect(() => {
     if (viewingHoldingSymbol && !viewingHolding) {
