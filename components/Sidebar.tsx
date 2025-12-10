@@ -61,7 +61,7 @@ const Sidebar: React.FC<SidebarProps> = ({ currentPage, setCurrentPage, isSideba
 
     const baseClasses = `group flex items-center justify-between p-3 rounded-xl transition-all duration-200 cursor-pointer mb-1`;
     const activeClasses = `bg-gradient-to-r from-primary-600 to-primary-500 text-white shadow-lg shadow-primary-500/30`;
-    const inactiveClasses = `text-light-text-secondary dark:text-dark-text-secondary hover:bg-light-fill dark:hover:bg-white/5 hover:text-primary-600 dark:hover:text-primary-400`;
+    const inactiveClasses = `text-light-text-secondary dark:text-dark-text-secondary hover:bg-white/10 hover:text-primary-600 dark:hover:text-primary-400`;
     const parentActiveClasses = `bg-primary-50 dark:bg-primary-900/20 text-primary-700 dark:text-primary-300 font-semibold`;
 
     let className = baseClasses;
@@ -125,7 +125,7 @@ const Sidebar: React.FC<SidebarProps> = ({ currentPage, setCurrentPage, isSideba
       ></div>
       
       <aside
-        className={`fixed top-0 left-0 bottom-0 z-40 bg-light-card/95 dark:bg-dark-card/95 backdrop-blur-xl flex flex-col transition-all duration-300 ease-[cubic-bezier(0.4,0,0.2,1)] md:relative md:h-screen ${isSidebarOpen ? 'translate-x-0 shadow-2xl' : '-translate-x-full md:translate-x-0'} ${isSidebarCollapsed ? 'md:w-20' : 'md:w-72'}`}
+        className={`fixed top-0 left-0 bottom-0 z-40 bg-white/60 dark:bg-black/60 backdrop-blur-xl border-r border-white/20 dark:border-white/5 flex flex-col transition-all duration-300 ease-[cubic-bezier(0.4,0,0.2,1)] md:relative md:h-screen ${isSidebarOpen ? 'translate-x-0 shadow-2xl' : '-translate-x-full md:translate-x-0'} ${isSidebarCollapsed ? 'md:w-20' : 'md:w-72'}`}
       >
         {/* Header / Logo */}
         <div className={`flex items-center h-24 flex-shrink-0 transition-all duration-300 ${isSidebarCollapsed ? 'justify-center px-0' : 'justify-between px-6'}`}>
@@ -162,10 +162,10 @@ const Sidebar: React.FC<SidebarProps> = ({ currentPage, setCurrentPage, isSideba
 
             <div ref={profileMenuRef} className="relative">
                 {isProfileMenuOpen && (
-                    <div className="animate-fade-in-up absolute bottom-full left-0 right-0 mb-3 bg-white dark:bg-gray-800 rounded-xl shadow-xl border border-black/5 dark:border-white/5 overflow-hidden p-1 ring-1 ring-black/5">
+                    <div className="animate-fade-in-up absolute bottom-full left-0 right-0 mb-3 bg-white/90 dark:bg-gray-800/90 backdrop-blur-md rounded-xl shadow-xl border border-white/20 dark:border-white/5 overflow-hidden p-1 ring-1 ring-black/5">
                         <button
                             onClick={() => { setCurrentPage('Personal Info'); setProfileMenuOpen(false); }}
-                            className="w-full text-left px-3 py-2.5 text-sm flex items-center gap-3 text-gray-700 dark:text-gray-200 hover:bg-black/5 dark:hover:bg-white/5 rounded-lg transition-colors"
+                            className="w-full text-left px-3 py-2.5 text-sm flex items-center gap-3 text-gray-700 dark:text-gray-200 hover:bg-black/5 dark:hover:bg-white/10 rounded-lg transition-colors"
                         >
                             <div className="p-1.5 bg-black/5 dark:bg-white/10 rounded-md text-gray-600 dark:text-gray-300">
                                 <span className="material-symbols-outlined text-lg">person</span>
@@ -187,7 +187,7 @@ const Sidebar: React.FC<SidebarProps> = ({ currentPage, setCurrentPage, isSideba
                 
                 <button
                     onClick={() => setProfileMenuOpen(prev => !prev)}
-                    className={`w-full flex items-center p-2 rounded-xl transition-all duration-200 hover:bg-white dark:hover:bg-white/5 hover:shadow-sm border border-transparent hover:border-black/5 dark:hover:border-white/5 ${isSidebarCollapsed ? 'justify-center' : 'gap-3'}`}
+                    className={`w-full flex items-center p-2 rounded-xl transition-all duration-200 hover:bg-white/40 dark:hover:bg-white/5 hover:shadow-sm border border-transparent hover:border-white/20 ${isSidebarCollapsed ? 'justify-center' : 'gap-3'}`}
                 >
                     <div className="relative">
                          <img className="h-10 w-10 rounded-full object-cover ring-2 ring-white dark:ring-gray-700 shadow-sm" src={user.profilePictureUrl} alt="User" loading="lazy" decoding="async" />

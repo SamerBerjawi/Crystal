@@ -1640,7 +1640,7 @@ const App: React.FC = () => {
   // Loading state
   if (isAuthLoading || !isDataLoaded) {
     return (
-      <div className="flex items-center justify-center min-h-screen bg-light-bg dark:bg-dark-bg">
+      <div className="flex items-center justify-center min-h-screen bg-gradient-to-br from-light-bg to-white dark:from-dark-bg dark:to-black">
           <svg className="animate-spin h-10 w-10 text-primary-500" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
             <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
             <path
@@ -1692,7 +1692,14 @@ const App: React.FC = () => {
         warrants={warrantsContextValue}
         invoices={invoicesContextValue}
       >
-        <div className={`flex h-screen bg-light-card dark:bg-dark-card text-light-text dark:text-dark-text font-sans`}>
+        <div className={`flex h-screen bg-gradient-to-br from-light-bg to-white dark:from-dark-bg dark:to-black text-light-text dark:text-dark-text font-sans relative overflow-hidden`}>
+            {/* Ambient Background Blobs */}
+            <div className="fixed inset-0 z-0 pointer-events-none overflow-hidden">
+                <div className="absolute top-[-10%] left-[-10%] w-[50%] h-[50%] rounded-full bg-purple-400/20 dark:bg-purple-900/20 blur-[120px]" />
+                <div className="absolute bottom-[-10%] right-[-10%] w-[50%] h-[50%] rounded-full bg-blue-400/20 dark:bg-blue-900/20 blur-[120px]" />
+                <div className="absolute top-[40%] left-[40%] w-[30%] h-[30%] rounded-full bg-emerald-400/10 dark:bg-emerald-900/10 blur-[100px]" />
+            </div>
+
           <Sidebar
             currentPage={currentPage}
             setCurrentPage={(page) => { setViewingAccountId(null); setCurrentPage(page); }}
@@ -1704,7 +1711,7 @@ const App: React.FC = () => {
             onLogout={handleLogout}
             user={currentUser!}
           />
-          <div className="flex-1 flex flex-col overflow-hidden relative z-0">
+          <div className="flex-1 flex flex-col overflow-hidden relative z-10">
             <Header
               user={currentUser!}
               setSidebarOpen={setSidebarOpen}
@@ -1720,7 +1727,7 @@ const App: React.FC = () => {
               financialGoals={financialGoals}
               defaultDuration={preferences.defaultPeriod as Duration}
             >
-              <main className="flex-1 overflow-x-hidden overflow-y-auto p-4 md:p-8 bg-light-bg dark:bg-dark-bg md:rounded-tl-3xl border-l border-t border-black/5 dark:border-white/5 shadow-2xl">
+              <main className="flex-1 overflow-x-hidden overflow-y-auto p-4 md:p-8 bg-white/40 dark:bg-black/40 backdrop-blur-xl md:rounded-tl-3xl border-l border-t border-white/20 dark:border-white/5 shadow-2xl">
                 <Suspense fallback={<PageLoader />}>
                   {renderPage()}
                 </Suspense>

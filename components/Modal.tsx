@@ -37,12 +37,12 @@ const Modal: React.FC<ModalProps> = ({ children, onClose, title, zIndexClass = '
       onClick={handleClose}
     >
       <div 
-        className={`bg-light-card dark:bg-dark-card rounded-xl shadow-modal w-full ${sizeClasses[size]} transition-all duration-300 ease-in-out ${isVisible ? 'scale-100 opacity-100' : 'scale-95 opacity-0'}`}
+        className={`bg-white/90 dark:bg-gray-900/90 backdrop-blur-2xl border border-white/20 dark:border-white/10 rounded-xl shadow-modal w-full ${sizeClasses[size]} transition-all duration-300 ease-in-out ${isVisible ? 'scale-100 opacity-100' : 'scale-95 opacity-0'}`}
         onClick={handleContentClick}
       >
         <header className="flex items-center justify-between p-4 border-b border-light-separator dark:border-dark-separator">
           <h2 className="text-lg font-semibold text-light-text dark:text-dark-text">{title}</h2>
-          <button onClick={handleClose} className="text-light-text-secondary dark:text-dark-text-secondary p-1 rounded-full bg-light-fill dark:bg-dark-fill hover:bg-black/10 dark:hover:bg-white/10 transition-colors">
+          <button onClick={handleClose} className="text-light-text-secondary dark:text-dark-text-secondary p-1 rounded-full bg-light-fill dark:bg-white/10 hover:bg-black/10 dark:hover:bg-white/20 transition-colors">
             <span className="material-symbols-outlined">close</span>
           </button>
         </header>
