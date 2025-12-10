@@ -335,7 +335,8 @@ export interface BudgetSuggestion {
 
 export type HistoryType = 'import' | 'export';
 export type HistoryStatus = 'Complete' | 'Failed' | 'In Progress';
-export type ImportDataType = 'transactions' | 'accounts' | 'categories' | 'tags' | 'budgets' | 'schedule' | 'investments' | 'mint' | 'all';
+// Updated to include all new types
+export type ImportDataType = 'transactions' | 'accounts' | 'categories' | 'tags' | 'budgets' | 'schedule' | 'investments' | 'mint' | 'all' | 'invoices' | 'memberships' | 'goals' | 'tasks';
 
 export interface ImportExportHistoryItem {
   id: string;

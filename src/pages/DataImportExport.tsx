@@ -20,17 +20,13 @@ interface DataManagementProps {
   recurringTransactions: RecurringTransaction[];
   allCategories: Category[];
   history: ImportExportHistoryItem[];
-  onPublishImport: (items: any[], dataType: 'accounts' | 'transactions', fileName: string, originalData: Record<string, any>[], errors: Record<number, Record<string, string>>, newAccounts?: Account[]) => void;
+  onPublishImport: (items: any[], dataType: ImportDataType, fileName: string, originalData: Record<string, any>[], errors: Record<number, Record<string, string>>, newAccounts?: Account[]) => void;
   onDeleteHistoryItem: (id: string) => void;
   onDeleteImportedTransactions: (importId: string) => void;
   onResetAccount: () => void;
-  onExportAllData?: () => void;
-  // REMOVED onImportAllData: (file: File) => void;
-  // REMOVED onExportCSV: (types: ImportDataType[]) => void;
   setCurrentPage: (page: Page) => void;
-  
-  onRestoreData: (data: FinancialData) => void; // New prop we will add to App.tsx
-  fullFinancialData: FinancialData; // To facilitate granular export logic
+  onRestoreData: (data: FinancialData) => void;
+  fullFinancialData: FinancialData; 
 }
 
 const StatusBadge: React.FC<{ status: HistoryStatus }> = ({ status }) => {
@@ -59,36 +55,39 @@ const TypeBadge: React.FC<{ type: 'import' | 'export' }> = ({ type }) => {
 };
 
 const NewImportModal: React.FC<{ onClose: () => void, onSelect: (type: ImportDataType) => void }> = ({ onClose, onSelect }) => {
-    const sources: { name: string; icon: string; type: ImportDataType, enabled: boolean, description: string }[] = [
-        { name: 'Transactions (CSV)', icon: 'receipt_long', type: 'transactions', enabled: true, description: 'Import transactions from a CSV file.' },
-        { name: 'Accounts (CSV)', icon: 'wallet', type: 'accounts', enabled: true, description: 'Import accounts from a CSV file.' },
-        // { name: 'OFX / QIF file', icon: 'file_upload', type: 'mint', enabled: false, description: 'Import from financial software formats. (Coming soon)' },
+    const sources: { name: string; icon: string; type: ImportDataType, description: string }[] = [
+        { name: 'Transactions', icon: 'receipt_long', type: 'transactions', description: 'Bank statements or history.' },
+        { name: 'Accounts', icon: 'wallet', type: 'accounts', description: 'List of account balances.' },
+        { name: 'Quotes & Invoices', icon: 'description', type: 'invoices', description: 'Business documents.' },
+        { name: 'Subscriptions', icon: 'calendar_month', type: 'schedule', description: 'Recurring payments.' },
+        { name: 'Memberships', icon: 'loyalty', type: 'memberships', description: 'Loyalty cards and IDs.' },
+        { name: 'Tasks', icon: 'task_alt', type: 'tasks', description: 'To-do items.' },
+        { name: 'Goals', icon: 'flag', type: 'goals', description: 'Financial goals.' },
+        { name: 'Categories', icon: 'category', type: 'categories', description: 'Custom categories.' },
+        { name: 'Tags', icon: 'label', type: 'tags', description: 'Custom tags.' },
+        { name: 'Budgets', icon: 'pie_chart', type: 'budgets', description: 'Monthly budget limits.' },
     ];
     
     return (
-        <Modal onClose={onClose} title="New External Import">
+        <Modal onClose={onClose} title="Import CSV">
             <div className="space-y-4">
                 <p className="text-sm text-light-text-secondary dark:text-dark-text-secondary">
-                    Import data from external sources like bank statements.
+                    Select the type of data you want to import.
                 </p>
-                <div className="space-y-2">
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
                     {sources.map(source => (
                         <button 
                             key={source.type}
                             onClick={() => onSelect(source.type)}
-                            disabled={!source.enabled}
-                            className="w-full flex justify-between items-center p-3 rounded-lg hover:bg-black/5 dark:hover:bg-white/5 disabled:opacity-50 disabled:cursor-not-allowed transition-colors text-left border border-transparent hover:border-black/5 dark:hover:border-white/10"
+                            className="flex items-center gap-3 p-3 rounded-lg hover:bg-black/5 dark:hover:bg-white/5 transition-colors text-left border border-transparent hover:border-black/5 dark:hover:border-white/10"
                         >
-                            <div className="flex items-center gap-3">
-                                <div className="w-10 h-10 rounded-full bg-primary-100 dark:bg-primary-900/20 flex items-center justify-center text-primary-600 dark:text-primary-400">
-                                    <span className="material-symbols-outlined">{source.icon}</span>
-                                </div>
-                                <div>
-                                    <span className="font-semibold text-light-text dark:text-dark-text block">{source.name}</span>
-                                    <p className="text-xs text-light-text-secondary dark:text-dark-text-secondary">{source.description}</p>
-                                </div>
+                            <div className="w-10 h-10 rounded-full bg-primary-100 dark:bg-primary-900/20 flex items-center justify-center text-primary-600 dark:text-primary-400 shrink-0">
+                                <span className="material-symbols-outlined">{source.icon}</span>
                             </div>
-                            <span className="material-symbols-outlined text-light-text-secondary dark:text-dark-text-secondary">chevron_right</span>
+                            <div>
+                                <span className="font-semibold text-light-text dark:text-dark-text block">{source.name}</span>
+                                <p className="text-xs text-light-text-secondary dark:text-dark-text-secondary">{source.description}</p>
+                            </div>
                         </button>
                     ))}
                 </div>
@@ -111,11 +110,10 @@ const StatCard: React.FC<{ title: string; value: string | number; icon: string; 
 
 const DataManagement: React.FC<DataManagementProps> = (props) => {
     const [isNewImportModalOpen, setNewImportModalOpen] = useState(false);
-    const [isExportModalOpen, setExportModalOpen] = useState(false);
+    const [exportConfig, setExportConfig] = useState<{ isOpen: boolean; format: 'json' | 'csv' }>({ isOpen: false, format: 'csv' });
     const [isRestoreModalOpen, setRestoreModalOpen] = useState(false);
-    
     const [isWizardOpen, setWizardOpen] = useState(false);
-    const [importType, setImportType] = useState<'transactions' | 'accounts' | null>(null);
+    const [importType, setImportType] = useState<ImportDataType | null>(null);
     const [viewingDetails, setViewingDetails] = useState<ImportExportHistoryItem | null>(null);
     const [confirmingAction, setConfirmingAction] = useState<{ type: 'reset' } | null>(null);
     const [isFinalConfirmOpen, setFinalConfirmOpen] = useState(false);
@@ -135,11 +133,9 @@ const DataManagement: React.FC<DataManagementProps> = (props) => {
     }, [sortedHistory]);
 
     const handleSelectImportType = (type: ImportDataType) => {
-        if (type === 'transactions' || type === 'accounts') {
-            setImportType(type);
-            setNewImportModalOpen(false);
-            setWizardOpen(true);
-        }
+        setImportType(type);
+        setNewImportModalOpen(false);
+        setWizardOpen(true);
     };
     
     // Process the granular export request
@@ -178,9 +174,6 @@ const DataManagement: React.FC<DataManagementProps> = (props) => {
                 exportData.incomeCategories = props.allCategories.filter(c => c.classification === 'income');
                 exportData.expenseCategories = props.allCategories.filter(c => c.classification === 'expense');
             }
-            // Add other types as needed directly from fullFinancialData if available, 
-            // or we might need to drill them down via props if not passed. 
-            // Assuming fullFinancialData is passed to this component for ease.
             if (props.fullFinancialData) {
                  if (dataTypes.includes('investments')) {
                      exportData.investmentTransactions = props.fullFinancialData.investmentTransactions;
@@ -188,6 +181,21 @@ const DataManagement: React.FC<DataManagementProps> = (props) => {
                  }
                  if (dataTypes.includes('schedule')) {
                       exportData.billsAndPayments = props.fullFinancialData.billsAndPayments;
+                 }
+                 if (dataTypes.includes('invoices')) {
+                     exportData.invoices = props.fullFinancialData.invoices;
+                 }
+                 if (dataTypes.includes('memberships')) {
+                     exportData.memberships = props.fullFinancialData.memberships;
+                 }
+                 if (dataTypes.includes('goals')) {
+                     exportData.financialGoals = props.fullFinancialData.financialGoals;
+                 }
+                 if (dataTypes.includes('tasks')) {
+                     exportData.tasks = props.fullFinancialData.tasks;
+                 }
+                 if (dataTypes.includes('tags')) {
+                     exportData.tags = props.fullFinancialData.tags;
                  }
             }
             
@@ -216,9 +224,19 @@ const DataManagement: React.FC<DataManagementProps> = (props) => {
                 } else if (type === 'budgets') {
                     data = props.budgets;
                 } else if (type === 'schedule') {
-                    data = props.recurringTransactions;
+                    data = [...props.recurringTransactions, ...props.fullFinancialData.billsAndPayments];
                 } else if (type === 'investments' && props.fullFinancialData) {
                     data = props.fullFinancialData.investmentTransactions;
+                } else if (type === 'invoices' && props.fullFinancialData) {
+                    data = props.fullFinancialData.invoices || [];
+                } else if (type === 'memberships' && props.fullFinancialData) {
+                    data = props.fullFinancialData.memberships || [];
+                } else if (type === 'goals' && props.fullFinancialData) {
+                    data = props.fullFinancialData.financialGoals || [];
+                } else if (type === 'tasks' && props.fullFinancialData) {
+                    data = props.fullFinancialData.tasks || [];
+                } else if (type === 'tags' && props.fullFinancialData) {
+                    data = props.fullFinancialData.tags || [];
                 }
 
                 if (data.length > 0) {
@@ -245,16 +263,12 @@ const DataManagement: React.FC<DataManagementProps> = (props) => {
                     // @ts-ignore
                     mergedData[k] = incoming;
                 } else {
-                    // Merge - Naive concat. In a real app we might check IDs to avoid duplicates.
-                    // But for now, we assume user knows what they are doing or we generate new IDs during import (hard here).
-                    // We'll filter out exact ID matches to prevent hard errors, but logic issues might remain.
                     const existingIds = new Set(existing.map((i: any) => i.id).filter(Boolean));
                     const newItems = incoming.filter((i: any) => !existingIds.has(i.id));
                     // @ts-ignore
                     mergedData[k] = [...existing, ...newItems];
                 }
             } else if (typeof incoming === 'object' && incoming !== null) {
-                // Objects like preferences or manual prices
                 if (strat === 'replace') {
                     // @ts-ignore
                     mergedData[k] = incoming;
@@ -299,13 +313,19 @@ const DataManagement: React.FC<DataManagementProps> = (props) => {
         }
     };
 
-    // REMOVED broken functions: handleExportAllData, handleImportAllData, handleExportCSV
-    // They are handled by processExport and handleGranularRestore (via modals) now.
-
   return (
     <div className="space-y-8 max-w-6xl mx-auto pb-12 animate-fade-in-up">
       {isNewImportModalOpen && <NewImportModal onClose={() => setNewImportModalOpen(false)} onSelect={handleSelectImportType} />}
-      {isExportModalOpen && <ExportModal onClose={() => setExportModalOpen(false)} onExport={processExport} accounts={props.accounts} />}
+      
+      {exportConfig.isOpen && (
+        <ExportModal 
+            onClose={() => setExportConfig({ ...exportConfig, isOpen: false })} 
+            onExport={processExport} 
+            accounts={props.accounts} 
+            initialFormat={exportConfig.format}
+        />
+      )}
+
       {isRestoreModalOpen && <SmartRestoreModal onClose={() => setRestoreModalOpen(false)} onRestore={handleGranularRestore} currentData={props.fullFinancialData} />}
       
       {viewingDetails && <ImportDetailsModal item={viewingDetails} onClose={() => setViewingDetails(null)} onDeleteImport={props.onDeleteImportedTransactions} />}
@@ -377,7 +397,7 @@ const DataManagement: React.FC<DataManagementProps> = (props) => {
                     </div>
                     <div>
                         <h3 className="text-xl font-bold text-light-text dark:text-dark-text">External Data</h3>
-                        <p className="text-sm text-light-text-secondary dark:text-dark-text-secondary mt-1">Import new transactions or export for spreadsheets.</p>
+                        <p className="text-sm text-light-text-secondary dark:text-dark-text-secondary mt-1">Import new data or export for spreadsheets.</p>
                     </div>
                 </div>
                 <div className="mt-auto pt-6 grid grid-cols-2 gap-4">
@@ -385,7 +405,7 @@ const DataManagement: React.FC<DataManagementProps> = (props) => {
                         <span className="material-symbols-outlined">add</span>
                         Import CSV
                     </button>
-                    <button onClick={() => setExportModalOpen(true)} className={`${BTN_SECONDARY_STYLE} w-full flex justify-center items-center gap-2 !py-3`}>
+                    <button onClick={() => setExportConfig({ isOpen: true, format: 'csv' })} className={`${BTN_SECONDARY_STYLE} w-full flex justify-center items-center gap-2 !py-3`}>
                         <span className="material-symbols-outlined">download</span>
                         Export Data
                     </button>
@@ -404,8 +424,7 @@ const DataManagement: React.FC<DataManagementProps> = (props) => {
                     </div>
                 </div>
                 <div className="mt-auto pt-6 grid grid-cols-2 gap-4">
-                    <button onClick={() => setExportModalOpen(true)} className={`${BTN_SECONDARY_STYLE} w-full flex justify-center items-center gap-2 !py-3`}>
-                         {/* We reuse export modal but user chooses JSON format there */}
+                    <button onClick={() => setExportConfig({ isOpen: true, format: 'json' })} className={`${BTN_SECONDARY_STYLE} w-full flex justify-center items-center gap-2 !py-3`}>
                         <span className="material-symbols-outlined">cloud_download</span>
                         Backup
                     </button>
