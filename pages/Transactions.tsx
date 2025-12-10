@@ -16,6 +16,7 @@ import { useCategoryContext, useScheduleContext, useTagsContext } from '../conte
 import VirtualizedList from '../components/VirtualizedList';
 import { useDebounce } from '../hooks/useDebounce';
 import { useThrottledCallback } from '../hooks/useThrottledCallback';
+import PageHeader from '../components/PageHeader';
 
 interface TransactionsProps {
   initialAccountFilter?: string | null;
@@ -962,22 +963,24 @@ const Transactions: React.FC<TransactionsProps> = ({ initialAccountFilter, initi
             </div>
         )}
 
-      <header className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
-        <div>
-           <h1 className="text-3xl font-bold text-light-text dark:text-dark-text">Transactions</h1>
-           <p className="text-light-text-secondary dark:text-dark-text-secondary mt-1">View and manage your financial activity.</p>
-        </div>
-        <div className="flex items-center gap-3">
+      <PageHeader
+        markerIcon="receipt_long"
+        markerLabel="Activity Feed"
+        title="Transactions"
+        subtitle="Every inflow and outflow with filters, splits, and tagging to keep your history audit-ready."
+        actions={
+          <>
             <button onClick={handleExport} className={`${BTN_SECONDARY_STYLE} flex items-center gap-2`}>
-                <span className="material-symbols-outlined text-lg">download</span>
-                Export
+              <span className="material-symbols-outlined text-lg">download</span>
+              Export
             </button>
             <button onClick={handleOpenAddModal} className={`${BTN_PRIMARY_STYLE} flex items-center gap-2`}>
-                <span className="material-symbols-outlined text-lg">add</span>
-                Add Transaction
+              <span className="material-symbols-outlined text-lg">add</span>
+              Add Transaction
             </button>
-        </div>
-      </header>
+          </>
+        }
+      />
 
       {/* Metrics Summary */}
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">

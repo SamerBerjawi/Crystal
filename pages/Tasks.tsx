@@ -8,6 +8,7 @@ import ConfirmationModal from '../components/ConfirmationModal';
 import Card from '../components/Card';
 import { parseDateAsUTC } from '../utils';
 import TaskModal from '../components/TaskModal';
+import PageHeader from '../components/PageHeader';
 
 interface TasksProps {
   tasks: Task[];
@@ -194,16 +195,18 @@ const Tasks: React.FC<TasksProps> = ({ tasks, saveTask, deleteTask, taskOrder, s
             />
 
             {/* Header */}
-            <header className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
-                <div>
-                     <h1 className="text-3xl font-bold text-light-text dark:text-dark-text">Tasks</h1>
-                    <p className="text-light-text-secondary dark:text-dark-text-secondary mt-1">Manage your financial to-dos and track productivity.</p>
-                </div>
-                <button onClick={() => handleOpenModal()} className={BTN_PRIMARY_STYLE}>
-                    <span className="material-symbols-outlined text-xl mr-2">add</span>
-                    Add Task
-                </button>
-            </header>
+            <PageHeader
+                markerIcon="checklist"
+                markerLabel="Action Board"
+                title="Tasks"
+                subtitle="Track follow-ups, approvals, and chores tied to accounts, invoices, or goals."
+                actions={
+                    <button onClick={() => handleOpenModal()} className={BTN_PRIMARY_STYLE}>
+                        <span className="material-symbols-outlined text-xl mr-2">add</span>
+                        Add Task
+                    </button>
+                }
+            />
             
             {/* Controls Bar */}
             <div className="flex flex-col md:flex-row justify-between items-center gap-4 bg-white dark:bg-dark-card p-1.5 rounded-2xl border border-black/5 dark:border-white/5 shadow-sm">
