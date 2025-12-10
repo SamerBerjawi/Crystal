@@ -2,7 +2,7 @@
 import React, { Dispatch, SetStateAction } from 'react';
 
 // FIX: Add 'AI Assistant' to Page type
-export type Page = 'Dashboard' | 'Accounts' | 'Transactions' | 'Budget' | 'Forecasting' | 'Settings' | 'Schedule & Bills' | 'Tasks' | 'Categories' | 'Tags' | 'Personal Info' | 'Data Management' | 'Preferences' | 'AccountDetail' | 'Investments' | 'HoldingDetail' | 'Warrants' | 'Documentation' | 'AI Assistant' | 'Subscriptions' | 'Quotes & Invoices';
+export type Page = 'Dashboard' | 'Accounts' | 'Transactions' | 'Budget' | 'Forecasting' | 'Reports' | 'Settings' | 'Schedule & Bills' | 'Tasks' | 'Categories' | 'Tags' | 'Personal Info' | 'Data Management' | 'Preferences' | 'AccountDetail' | 'Investments' | 'HoldingDetail' | 'Warrants' | 'Documentation' | 'AI Assistant' | 'Subscriptions' | 'Quotes & Invoices';
 
 export type AccountType = 'Checking' | 'Savings' | 'Credit Card' | 'Investment' | 'Loan' | 'Property' | 'Vehicle' | 'Other Assets' | 'Other Liabilities' | 'Lending';
 

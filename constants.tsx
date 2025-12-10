@@ -105,6 +105,7 @@ export const NAV_ITEMS: NavItem[] = [
   { name: 'Subscriptions', icon: 'loyalty' },
   { name: 'Schedule & Bills', icon: 'calendar_month' },
   { name: 'Forecasting', icon: 'show_chart' },
+  { name: 'Reports', icon: 'insights' },
   { name: 'Budget', icon: 'pie_chart' },
   { name: 'Investments', icon: 'candlestick_chart' },
   { name: 'Tasks', icon: 'task_alt' },

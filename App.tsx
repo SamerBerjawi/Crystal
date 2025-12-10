@@ -13,6 +13,8 @@ const loadBudgeting = () => import('./pages/Budgeting');
 const Budgeting = lazy(loadBudgeting);
 const loadForecasting = () => import('./pages/Forecasting');
 const Forecasting = lazy(loadForecasting);
+const loadReports = () => import('./pages/Reports');
+const ReportsPage = lazy(loadReports);
 const loadSettingsPage = () => import('./pages/Settings');
 const SettingsPage = lazy(loadSettingsPage);
 const loadSchedulePage = () => import('./pages/Schedule');
@@ -52,6 +54,7 @@ const pagePreloaders = [
   loadTransactions,
   loadBudgeting,
   loadForecasting,
+  loadReports,
   loadSettingsPage,
   loadSchedulePage,
   loadCategoriesPage,
@@ -92,6 +95,7 @@ const routePathMap: Record<Page, string> = {
   Transactions: '/transactions',
   Budget: '/budget',
   Forecasting: '/forecasting',
+  Reports: '/reports',
   Settings: '/settings',
   'Schedule & Bills': '/schedule',
   Tasks: '/tasks',
@@ -1590,6 +1594,8 @@ const App: React.FC = () => {
         return <Budgeting budgets={budgets} transactions={transactions} expenseCategories={expenseCategories} saveBudget={handleSaveBudget} deleteBudget={handleDeleteBudget} accounts={accounts} preferences={preferences} />;
       case 'Forecasting':
         return <Forecasting />;
+      case 'Reports':
+        return <ReportsPage />;
       case 'Settings':
         return <SettingsPage setCurrentPage={setCurrentPage} user={currentUser!} />;
       case 'Schedule & Bills':
