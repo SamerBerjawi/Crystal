@@ -1,5 +1,4 @@
 
-
 import React, { useState, useRef, useEffect } from 'react';
 import { Page, Theme, User } from '../types';
 import { NAV_ITEMS, CrystalLogo, NavItem } from '../constants';
@@ -20,7 +19,20 @@ interface SidebarProps {
   togglePrivacyMode: () => void;
 }
 
-const Sidebar: React.FC<SidebarProps> = ({ currentPage, setCurrentPage, isSidebarOpen, setSidebarOpen, theme, setTheme, isSidebarCollapsed, setSidebarCollapsed, onLogout, user, isPrivacyMode, togglePrivacyMode }) => {
+const Sidebar: React.FC<SidebarProps> = ({ 
+  currentPage, 
+  setCurrentPage, 
+  isSidebarOpen, 
+  setSidebarOpen, 
+  theme, 
+  setTheme, 
+  isSidebarCollapsed, 
+  setSidebarCollapsed, 
+  onLogout, 
+  user, 
+  isPrivacyMode, 
+  togglePrivacyMode 
+}) => {
   const [openSubMenu, setOpenSubMenu] = useState<string | null>(() => {
     const activeParent = NAV_ITEMS.find(item => item.subItems?.some(sub => sub.name === currentPage));
     return activeParent ? activeParent.name : null;
@@ -40,11 +52,12 @@ const Sidebar: React.FC<SidebarProps> = ({ currentPage, setCurrentPage, isSideba
     };
   }, []);
 
-
   const handleNavClick = (page: Page, hasSubItems?: boolean) => {
-    if (isSidebarCollapsed && hasSubItems) {
+    if (isSidebarCollapsed) {
         setSidebarCollapsed(false);
-        setOpenSubMenu(openSubMenu === page ? null : page);
+        if (hasSubItems) {
+            setOpenSubMenu(page); // Expand the clicked menu immediately
+        }
         return;
     }
 
@@ -63,61 +76,67 @@ const Sidebar: React.FC<SidebarProps> = ({ currentPage, setCurrentPage, isSideba
     const isParentActive = !isSubItem && item.subItems?.some(sub => sub.name === currentPage);
     const isSubMenuOpen = openSubMenu === item.name;
 
-    const baseClasses = `group flex items-center rounded-xl transition-all duration-200 cursor-pointer mb-1`;
-    const activeClasses = `bg-gradient-to-r from-primary-600 to-primary-500 text-white shadow-lg shadow-primary-500/30`;
-    const inactiveClasses = `text-light-text-secondary dark:text-dark-text-secondary hover:bg-light-fill dark:hover:bg-white/5 hover:text-primary-600 dark:hover:text-primary-400`;
-    const parentActiveClasses = `bg-primary-50 dark:bg-primary-900/20 text-primary-700 dark:text-primary-300 font-semibold`;
+    // Styles
+    const baseClasses = `group flex items-center rounded-xl transition-all duration-200 cursor-pointer select-none mx-3 my-0.5`;
+    const layoutClasses = isSidebarCollapsed ? 'justify-center px-0 py-3' : 'justify-between px-4 py-3';
+    const subItemLayoutClasses = isSidebarCollapsed ? 'justify-center px-0 py-2' : 'pl-11 pr-4 py-2.5 text-sm';
+    
+    // Color states
+    let colorClass = `text-gray-500 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-white/5 hover:text-gray-900 dark:hover:text-gray-100`; // Default
+    
+    if (isActive) {
+        colorClass = `bg-primary-500 text-white shadow-lg shadow-primary-500/25 font-medium`;
+    } else if (isParentActive) {
+        colorClass = `bg-primary-50 dark:bg-primary-900/10 text-primary-700 dark:text-primary-300 font-medium`;
+    }
 
-    let colorClass = inactiveClasses;
-    if (isActive) colorClass = activeClasses;
-    else if (isParentActive) colorClass = parentActiveClasses;
-
-    // Dynamic layout classes to prevent conflicts:
-    // Collapsed: Center content, smaller horizontal padding to match footer buttons
-    // Expanded: Space between content, larger padding
-    const layoutClasses = isSidebarCollapsed ? 'justify-center px-2 py-3' : 'justify-between p-3';
-
-    const className = `${baseClasses} ${layoutClasses} ${colorClass}`;
-
-    const iconEl = (
-        <span className={`material-symbols-outlined ${isActive || isParentActive ? 'material-symbols-filled' : ''} text-[22px] transition-transform duration-200 group-hover:scale-110`}>
-            {item.icon}
-        </span>
-    );
+    // Icon Styles
+    const iconClass = `material-symbols-outlined text-[22px] flex-shrink-0 transition-transform duration-200 ${!isActive && 'group-hover:scale-110'}`;
 
     if (item.subItems) {
       return (
-        <li key={item.name} title={isSidebarCollapsed ? item.name : undefined}>
+        <li key={item.name} className="mb-1">
           <div
             onClick={() => handleNavClick(item.name, true)}
-            className={className}
+            className={`${baseClasses} ${layoutClasses} ${colorClass}`}
+            title={isSidebarCollapsed ? item.name : undefined}
           >
-            <div className={`flex items-center ${isSidebarCollapsed ? 'w-full justify-center' : 'gap-3'}`}>
-              {iconEl}
-              <span className={`font-medium whitespace-nowrap transition-all duration-300 ${isSidebarCollapsed ? 'w-0 opacity-0 overflow-hidden' : 'w-auto opacity-100'}`}>{item.name}</span>
+            <div className={`flex items-center ${isSidebarCollapsed ? 'justify-center w-full' : 'gap-3 min-w-0'}`}>
+              <span className={iconClass}>{item.icon}</span>
+              <span className={`whitespace-nowrap truncate transition-all duration-300 ${isSidebarCollapsed ? 'w-0 opacity-0 overflow-hidden' : 'w-auto opacity-100'}`}>
+                  {item.name}
+              </span>
             </div>
             {!isSidebarCollapsed && (
-                 <span className={`material-symbols-outlined text-sm transition-transform duration-300 ${isSubMenuOpen ? 'rotate-180' : ''}`}>expand_more</span>
+                 <span className={`material-symbols-outlined text-[18px] opacity-70 transition-transform duration-300 ${isSubMenuOpen ? 'rotate-180' : ''}`}>expand_more</span>
             )}
           </div>
-          <div className={`overflow-hidden transition-all duration-300 ease-in-out ${isSubMenuOpen && !isSidebarCollapsed ? 'max-h-48 opacity-100' : 'max-h-0 opacity-0'}`}>
-             <ul className="pl-3 py-1 space-y-1 border-l-2 border-primary-100 dark:border-primary-900/50 ml-6 mb-2">
-              {item.subItems.map(sub => renderNavItem(sub, true))}
-            </ul>
+          <div 
+            className={`grid transition-all duration-300 ease-in-out ${isSubMenuOpen && !isSidebarCollapsed ? 'grid-rows-[1fr] opacity-100' : 'grid-rows-[0fr] opacity-0'}`}
+          >
+             <ul className="overflow-hidden">
+                {item.subItems.map(sub => renderNavItem(sub, true))}
+             </ul>
           </div>
         </li>
       );
     }
 
     return (
-      <li key={item.name} title={isSidebarCollapsed ? item.name : undefined}>
+      <li key={item.name} className="mb-1">
         <div
           onClick={() => handleNavClick(item.name)}
-          className={`${className} ${isSubItem ? 'py-2 pl-4 text-sm' : ''}`}
+          className={`${baseClasses} ${isSubItem ? subItemLayoutClasses : layoutClasses} ${colorClass}`}
+          title={isSidebarCollapsed ? item.name : undefined}
         >
-            <div className={`flex items-center ${isSidebarCollapsed ? 'w-full justify-center' : 'gap-3'}`}>
-              {iconEl}
-              <span className={`font-medium whitespace-nowrap transition-all duration-300 ${isSidebarCollapsed ? 'w-0 opacity-0 overflow-hidden' : 'w-auto opacity-100'}`}>{item.name}</span>
+            <div className={`flex items-center ${isSidebarCollapsed ? 'justify-center w-full' : 'gap-3 min-w-0'}`}>
+              {/* Only show icon for top-level items if collapsed, or always if not sub-item */}
+              {(!isSubItem || !isSidebarCollapsed) && (
+                  <span className={`${iconClass} ${isSubItem ? 'text-[20px] opacity-80' : ''}`}>{item.icon}</span>
+              )}
+              <span className={`whitespace-nowrap truncate transition-all duration-300 ${isSidebarCollapsed ? 'w-0 opacity-0 overflow-hidden' : 'w-auto opacity-100'}`}>
+                  {item.name}
+              </span>
             </div>
         </div>
       </li>
@@ -128,84 +147,98 @@ const Sidebar: React.FC<SidebarProps> = ({ currentPage, setCurrentPage, isSideba
     <>
       {/* Mobile Backdrop */}
       <div 
-        className={`fixed inset-0 z-30 bg-black/40 backdrop-blur-sm transition-opacity md:hidden ${isSidebarOpen ? 'opacity-100' : 'opacity-0 pointer-events-none'}`} 
+        className={`fixed inset-0 z-30 bg-black/40 backdrop-blur-sm transition-opacity duration-300 md:hidden ${isSidebarOpen ? 'opacity-100' : 'opacity-0 pointer-events-none'}`} 
         onClick={() => setSidebarOpen(false)}
       ></div>
       
       <aside
-        className={`fixed top-0 left-0 bottom-0 z-40 bg-light-card/95 dark:bg-dark-card/95 backdrop-blur-xl flex flex-col transition-all duration-300 ease-[cubic-bezier(0.4,0,0.2,1)] md:relative md:h-screen ${isSidebarOpen ? 'translate-x-0 shadow-2xl' : '-translate-x-full md:translate-x-0'} ${isSidebarCollapsed ? 'md:w-20' : 'md:w-72'}`}
+        className={`
+            fixed top-0 left-0 bottom-0 z-40 
+            bg-white dark:bg-[#121214] 
+            border-r border-gray-200 dark:border-white/5
+            flex flex-col transition-all duration-300 ease-[cubic-bezier(0.2,0,0,1)] 
+            md:relative md:h-screen 
+            ${isSidebarOpen ? 'translate-x-0 shadow-2xl' : '-translate-x-full md:translate-x-0'} 
+            ${isSidebarCollapsed ? 'md:w-20' : 'md:w-[280px]'}
+        `}
       >
         {/* Header / Logo */}
-        <div className={`flex items-center h-24 flex-shrink-0 transition-all duration-300 ${isSidebarCollapsed ? 'justify-center px-0' : 'justify-between px-6'}`}>
-            <div className={`flex items-center gap-3 overflow-hidden transition-all duration-300 ${isSidebarCollapsed ? 'w-10' : 'w-full'}`}>
-                <div className="flex-shrink-0 transition-transform duration-300 hover:scale-105">
+        <div className={`h-20 flex items-center flex-shrink-0 transition-all duration-300 ${isSidebarCollapsed ? 'justify-center px-0' : 'justify-start px-6'}`}>
+            <div className="flex items-center gap-3 overflow-hidden">
+                <div className={`flex-shrink-0 transition-all duration-300 ${isSidebarCollapsed ? 'scale-90' : 'scale-100'}`}>
                      <CrystalLogo showText={false} />
                 </div>
-                <div className={`flex flex-col transition-opacity duration-300 ${isSidebarCollapsed ? 'opacity-0 w-0 overflow-hidden' : 'opacity-100'}`}>
-                    <span className="font-extrabold text-xl tracking-tight text-light-text dark:text-dark-text">Crystal</span>
-                    <span className="text-[10px] font-bold text-primary-500 tracking-widest uppercase">Finance</span>
+                <div className={`flex flex-col transition-all duration-300 ${isSidebarCollapsed ? 'opacity-0 w-0 overflow-hidden absolute' : 'opacity-100 w-auto static'}`}>
+                    <span className="font-bold text-xl tracking-tight text-gray-900 dark:text-white">Crystal</span>
+                    <span className="text-[10px] font-bold text-primary-500 tracking-[0.2em] uppercase">Finance</span>
                 </div>
             </div>
         </div>
 
         {/* Navigation */}
-        <nav className="flex-1 min-h-0 py-2 overflow-y-auto overflow-x-hidden scrollbar-thin scrollbar-thumb-gray-200 dark:scrollbar-thumb-gray-800 px-4">
-          <ul className="space-y-1">
+        <nav className="flex-1 min-h-0 py-4 overflow-y-auto overflow-x-hidden scrollbar-thin scrollbar-thumb-gray-200 dark:scrollbar-thumb-gray-800 hover:scrollbar-thumb-gray-300 dark:hover:scrollbar-thumb-gray-700">
+          <ul className="space-y-0.5">
             {NAV_ITEMS.map((item) => renderNavItem(item))}
           </ul>
         </nav>
 
-        {/* Footer / User Profile */}
-        <div className="p-4 mt-auto border-t border-black/5 dark:border-white/5 flex flex-col gap-4">
+        {/* Footer Area */}
+        <div className="flex-shrink-0 p-4 border-t border-gray-100 dark:border-white/5 bg-gray-50/50 dark:bg-white/[0.02]">
             
-            {/* Controls Row */}
-            <div className={`flex items-center ${isSidebarCollapsed ? 'flex-col justify-center gap-4' : 'justify-between'}`}>
-                 <div className={`flex items-center gap-2 ${isSidebarCollapsed ? 'flex-col' : ''}`}>
+            {/* System Controls */}
+            <div className={`flex items-center ${isSidebarCollapsed ? 'flex-col gap-3' : 'justify-between mb-4 px-2'}`}>
+                 <div className={`flex items-center gap-1 ${isSidebarCollapsed ? 'flex-col' : ''}`}>
                     {/* Privacy Toggle */}
                     <button
                         onClick={togglePrivacyMode}
-                        className={`w-8 h-8 rounded-lg flex items-center justify-center transition-colors duration-200 ${isPrivacyMode ? 'bg-primary-100 dark:bg-primary-900/30 text-primary-600 dark:text-primary-400' : 'bg-transparent text-light-text-secondary dark:text-dark-text-secondary hover:bg-black/5 dark:hover:bg-white/5'}`}
+                        className={`w-9 h-9 rounded-lg flex items-center justify-center transition-all duration-200 ${isPrivacyMode ? 'bg-primary-100 text-primary-600 dark:bg-primary-900/30 dark:text-primary-400' : 'text-gray-500 dark:text-gray-400 hover:bg-gray-200 dark:hover:bg-white/10'}`}
                         title={isPrivacyMode ? "Disable Privacy Mode" : "Enable Privacy Mode"}
                     >
-                        <span className="material-symbols-outlined text-[20px]">local_cafe</span>
+                        <span className="material-symbols-outlined text-[20px]">{isPrivacyMode ? 'visibility_off' : 'visibility'}</span>
                     </button>
                     
                     {/* Theme Toggle */}
-                    <ThemeToggle theme={theme} setTheme={setTheme} />
+                    <div className="scale-110">
+                        <ThemeToggle theme={theme} setTheme={setTheme} />
+                    </div>
                 </div>
 
-                {/* Collapse Button (Hidden on Mobile) */}
+                {/* Collapse Button (Desktop Only) */}
                 <button
                     onClick={() => setSidebarCollapsed(!isSidebarCollapsed)}
-                    className="hidden md:flex w-8 h-8 items-center justify-center rounded-lg text-light-text-secondary dark:text-dark-text-secondary hover:bg-black/5 dark:hover:bg-white/5 transition-colors"
+                    className="hidden md:flex w-9 h-9 items-center justify-center rounded-lg text-gray-400 hover:text-gray-600 dark:hover:text-gray-200 hover:bg-gray-200 dark:hover:bg-white/10 transition-colors"
                     title={isSidebarCollapsed ? 'Expand Sidebar' : 'Collapse Sidebar'}
                 >
                      <span className="material-symbols-outlined text-[20px]">
-                        {isSidebarCollapsed ? 'keyboard_double_arrow_right' : 'keyboard_double_arrow_left'}
+                        {isSidebarCollapsed ? 'last_page' : 'first_page'}
                     </span>
                 </button>
             </div>
 
+            {/* Profile Card */}
             <div ref={profileMenuRef} className="relative">
                 {isProfileMenuOpen && (
-                    <div className="animate-fade-in-up absolute bottom-full left-0 right-0 mb-3 bg-light-card/95 dark:bg-dark-card/95 backdrop-blur-xl rounded-xl shadow-xl border border-black/5 dark:border-white/5 overflow-hidden p-1 ring-1 ring-black/5">
+                    <div className="animate-fade-in-up absolute bottom-[calc(100%+8px)] left-0 right-0 z-50 bg-white dark:bg-[#1E1E20] rounded-2xl shadow-xl border border-gray-100 dark:border-white/10 overflow-hidden ring-1 ring-black/5 p-1 w-56">
                         <button
                             onClick={() => { setCurrentPage('Personal Info'); setProfileMenuOpen(false); }}
-                            className="w-full text-left px-3 py-2.5 text-sm flex items-center gap-3 text-gray-700 dark:text-gray-200 hover:bg-black/5 dark:hover:bg-white/5 rounded-lg transition-colors"
+                            className="w-full text-left px-3 py-2.5 text-sm flex items-center gap-3 text-gray-700 dark:text-gray-200 hover:bg-gray-100 dark:hover:bg-white/5 rounded-xl transition-colors group"
                         >
-                            <div className="p-1.5 bg-black/5 dark:bg-white/10 rounded-md text-gray-600 dark:text-gray-300">
-                                <span className="material-symbols-outlined text-lg">person</span>
-                            </div>
-                            <span className="font-medium">Account</span>
+                            <span className="material-symbols-outlined text-[20px] text-gray-400 group-hover:text-primary-500 transition-colors">person</span>
+                            <span className="font-medium">My Account</span>
+                        </button>
+                         <button
+                            onClick={() => { setCurrentPage('Preferences'); setProfileMenuOpen(false); }}
+                            className="w-full text-left px-3 py-2.5 text-sm flex items-center gap-3 text-gray-700 dark:text-gray-200 hover:bg-gray-100 dark:hover:bg-white/5 rounded-xl transition-colors group"
+                        >
+                            <span className="material-symbols-outlined text-[20px] text-gray-400 group-hover:text-primary-500 transition-colors">settings</span>
+                            <span className="font-medium">Preferences</span>
                         </button>
                         <div className="h-px bg-gray-100 dark:bg-white/5 my-1 mx-2"></div>
                         <button
                             onClick={onLogout}
-                            className="w-full text-left px-3 py-2.5 text-sm flex items-center gap-3 text-red-600 hover:bg-black/5 dark:hover:bg-red-900/20 rounded-lg transition-colors"
+                            className="w-full text-left px-3 py-2.5 text-sm flex items-center gap-3 text-red-600 dark:text-red-400 hover:bg-red-50 dark:hover:bg-red-900/20 rounded-xl transition-colors"
                         >
-                            <div className="p-1.5 bg-black/5 dark:bg-white/10 rounded-md text-red-500">
-                                <span className="material-symbols-outlined text-lg">logout</span>
-                            </div>
+                            <span className="material-symbols-outlined text-[20px]">logout</span>
                             <span className="font-medium">Sign Out</span>
                         </button>
                     </div>
@@ -213,19 +246,25 @@ const Sidebar: React.FC<SidebarProps> = ({ currentPage, setCurrentPage, isSideba
                 
                 <button
                     onClick={() => setProfileMenuOpen(prev => !prev)}
-                    className={`w-full flex items-center p-2 rounded-xl transition-all duration-200 hover:bg-white dark:hover:bg-white/5 hover:shadow-sm border border-transparent hover:border-black/5 dark:hover:border-white/5 ${isSidebarCollapsed ? 'justify-center' : 'gap-3'}`}
+                    className={`
+                        w-full flex items-center p-2 rounded-xl transition-all duration-200 
+                        bg-white dark:bg-white/5 border border-gray-200 dark:border-white/5 shadow-sm 
+                        hover:border-primary-300 dark:hover:border-primary-700 hover:shadow-md
+                        ${isSidebarCollapsed ? 'justify-center aspect-square p-0' : 'gap-3'}
+                    `}
                 >
-                    <div className="relative">
-                         <img className="h-10 w-10 rounded-full object-cover ring-2 ring-white dark:ring-gray-700 shadow-sm" src={user.profilePictureUrl} alt="User" loading="lazy" decoding="async" />
-                         <div className="absolute bottom-0 right-0 w-3 h-3 bg-green-500 border-2 border-white dark:border-gray-800 rounded-full"></div>
+                    <div className="relative flex-shrink-0">
+                         <img className="h-9 w-9 rounded-lg object-cover bg-gray-200" src={user.profilePictureUrl} alt="User" loading="lazy" decoding="async" />
+                         <div className="absolute -bottom-1 -right-1 w-3.5 h-3.5 bg-green-500 border-[3px] border-white dark:border-[#1E1E20] rounded-full"></div>
                     </div>
                     
-                    <div className={`flex-grow text-left overflow-hidden transition-all duration-300 ${isSidebarCollapsed ? 'w-0 opacity-0' : 'w-auto opacity-100'}`}>
-                        <p className="font-bold text-sm truncate text-light-text dark:text-dark-text">{user.firstName} {user.lastName}</p>
-                        <p className="text-xs text-light-text-secondary dark:text-dark-text-secondary truncate">{user.role}</p>
+                    <div className={`flex-grow text-left overflow-hidden transition-all duration-300 ${isSidebarCollapsed ? 'w-0 opacity-0 hidden' : 'w-auto opacity-100 block'}`}>
+                        <p className="font-bold text-sm text-gray-900 dark:text-white truncate">{user.firstName} {user.lastName}</p>
+                        <p className="text-[11px] text-gray-500 dark:text-gray-400 truncate font-medium">{user.role}</p>
                     </div>
+                    
                     {!isSidebarCollapsed && (
-                        <span className="material-symbols-outlined text-light-text-secondary dark:text-dark-text-secondary text-lg">more_vert</span>
+                        <span className="material-symbols-outlined text-gray-400 text-lg">more_vert</span>
                     )}
                 </button>
             </div>
