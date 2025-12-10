@@ -11,6 +11,8 @@ interface LoyaltyCardProps {
 const LoyaltyCard: React.FC<LoyaltyCardProps> = ({ membership, onEdit, onDelete }) => {
   const normalizeColor = (hexColor: string) => hexColor.replace('#', '');
 
+  const normalizeColor = (hexColor: string) => hexColor.replace('#', '');
+
   const toRgba = (hexColor: string, alpha = 1) => {
     const sanitized = normalizeColor(hexColor);
     const normalized = sanitized.length === 3
