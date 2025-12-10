@@ -117,8 +117,9 @@ const LoyaltyCard: React.FC<LoyaltyCardProps> = ({ membership, onEdit, onDelete 
           className="absolute inset-0 w-full h-full backface-hidden [transform:rotateY(180deg)] rounded-3xl shadow-2xl overflow-hidden border border-white/10"
           style={gradientBackground}
         >
-          <div className="absolute inset-0 opacity-15 bg-[linear-gradient(120deg,rgba(255,255,255,0.4)_1px,transparent_1px)] bg-[length:18px_18px]"></div>
-          <div className="absolute inset-0 bg-gradient-to-tr from-black/30 via-transparent to-white/10"></div>
+          <div className="absolute inset-0 bg-slate-900/80"></div>
+          <div className="absolute inset-0 opacity-20 bg-[linear-gradient(120deg,rgba(255,255,255,0.35)_1px,transparent_1px)] bg-[length:18px_18px]"></div>
+          <div className="absolute inset-0 bg-gradient-to-tr from-black/40 via-transparent to-white/10"></div>
 
           <div className="relative z-10 h-full flex flex-col">
             <div className="flex items-center justify-between p-5">
@@ -135,7 +136,7 @@ const LoyaltyCard: React.FC<LoyaltyCardProps> = ({ membership, onEdit, onDelete 
             </div>
 
             <div className="px-6 flex-1 flex flex-col gap-4">
-              <div className="bg-white/10 backdrop-blur-sm rounded-2xl border border-white/15 p-4 shadow-inner">
+              <div className="bg-white/15 backdrop-blur rounded-2xl border border-white/20 p-4 shadow-inner">
                 <dl className="grid grid-cols-2 gap-3 text-white text-sm">
                   <div>
                     <dt className="text-[10px] uppercase text-white/60 tracking-[0.2em] font-semibold">Member ID</dt>
@@ -156,7 +157,7 @@ const LoyaltyCard: React.FC<LoyaltyCardProps> = ({ membership, onEdit, onDelete 
                 </dl>
               </div>
 
-              <div className="flex-1 bg-black/20 border border-white/10 rounded-2xl backdrop-blur-sm p-4 text-white/80 text-sm leading-relaxed">
+              <div className="flex-1 bg-black/45 border border-white/15 rounded-2xl backdrop-blur p-4 text-white/90 text-sm leading-relaxed overflow-auto">
                 {membership.notes ? (
                   <p className="whitespace-pre-wrap break-words">{membership.notes}</p>
                 ) : (
