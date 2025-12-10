@@ -4,8 +4,8 @@ import Sidebar from './components/Sidebar';
 import Header from './components/Header';
 const SignIn = lazy(() => import('./pages/SignIn'));
 const SignUp = lazy(() => import('./pages/SignUp'));
-const loadDashboard = () => import('./pages/Dashboard');
-const Dashboard = lazy(loadDashboard);
+// FIX: Use inline function for lazy import to avoid TypeScript error regarding 'default' property missing
+const Dashboard = lazy(() => import('./pages/Dashboard'));
 const loadAccounts = () => import('./pages/Accounts');
 const Accounts = lazy(loadAccounts);
 const loadTransactions = () => import('./pages/Transactions');
@@ -47,7 +47,7 @@ const loadInvoicesPage = () => import('./pages/Invoices');
 const InvoicesPage = lazy(loadInvoicesPage);
 
 const pagePreloaders = [
-  loadDashboard,
+  () => import('./pages/Dashboard'),
   loadAccounts,
   loadTransactions,
   loadBudgeting,
