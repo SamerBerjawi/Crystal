@@ -1089,7 +1089,7 @@ const Dashboard: React.FC<DashboardProps> = ({ user, tasks, saveTask }) => {
   }, [budgets, expenseCategories]);
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-6 pb-12 animate-fade-in-up">
       {isTransactionModalOpen && (
         <AddTransactionModal 
           onClose={handleCloseTransactionModal}
@@ -1130,50 +1130,56 @@ const Dashboard: React.FC<DashboardProps> = ({ user, tasks, saveTask }) => {
           />
       )}
       
-      <div className="flex flex-col xl:flex-row justify-between items-start xl:items-center gap-4">
-        <div className="mb-1 xl:mb-0">
-          <p className="text-light-text-secondary dark:text-dark-text-secondary">Welcome back, {user.firstName}!</p>
+      {/* Header Section */}
+      <header className="flex flex-col lg:flex-row justify-between items-start lg:items-center gap-4">
+        <div>
+           <h1 className="text-3xl font-bold text-light-text dark:text-dark-text">Dashboard</h1>
+           <p className="text-light-text-secondary dark:text-dark-text-secondary mt-1">Welcome back, {user.firstName}!</p>
         </div>
         
-        <div className="flex flex-col sm:flex-row gap-3 w-full xl:w-auto">
-             <div className="flex bg-light-fill dark:bg-dark-fill p-1 rounded-lg w-full sm:w-auto overflow-x-auto no-scrollbar">
-                <button onClick={() => setActiveTab('overview')} className={`${tabBaseClass} ${activeTab === 'overview' ? tabActiveClass : tabInactiveClass}`}>Overview</button>
-                <button onClick={() => setActiveTab('analysis')} className={`${tabBaseClass} ${activeTab === 'analysis' ? tabActiveClass : tabInactiveClass}`}>Analysis</button>
-                <button onClick={() => setActiveTab('activity')} className={`${tabBaseClass} ${activeTab === 'activity' ? tabActiveClass : tabInactiveClass}`}>Activity</button>
-            </div>
-
-            <div className="flex gap-3 w-full sm:w-auto">
-                <div className="flex-1 sm:flex-none">
-                    <MultiAccountFilter accounts={accounts} selectedAccountIds={selectedAccountIds} setSelectedAccountIds={setSelectedAccountIds} />
-                </div>
-                <div className="flex-1 sm:flex-none">
-                     <DurationFilter selectedDuration={duration} onDurationChange={setDuration} />
-                </div>
-            </div>
-
-            <div className="flex gap-3 w-full sm:w-auto sm:ml-auto xl:ml-0">
-                 {isEditMode ? (
-                    <>
-                        <button onClick={() => setIsAddWidgetModalOpen(true)} className={`${BTN_SECONDARY_STYLE} flex-1 sm:flex-none flex items-center gap-2 justify-center`}>
-                            <span className="material-symbols-outlined text-base">add</span>
-                            <span className="whitespace-nowrap">Add Widget</span>
-                        </button>
-                        <button onClick={() => setIsEditMode(false)} className={`${BTN_PRIMARY_STYLE} flex-1 sm:flex-none justify-center px-6`}>
-                            Done
-                        </button>
-                    </>
-                  ) : (
-                    <button onClick={() => setIsEditMode(true)} className={`${BTN_SECONDARY_STYLE} flex-1 sm:flex-none flex items-center gap-2 justify-center`}>
-                        <span className="material-symbols-outlined text-base">edit</span>
-                        <span className="whitespace-nowrap">Edit Layout</span>
+        <div className="flex gap-3 w-full lg:w-auto">
+             {isEditMode ? (
+                <>
+                    <button onClick={() => setIsAddWidgetModalOpen(true)} className={`${BTN_SECONDARY_STYLE} flex-1 lg:flex-none justify-center`}>
+                        <span className="material-symbols-outlined text-lg mr-2">add_circle</span>
+                        <span className="whitespace-nowrap">Add Widget</span>
                     </button>
-                  )}
+                    <button onClick={() => setIsEditMode(false)} className={`${BTN_PRIMARY_STYLE} flex-1 lg:flex-none justify-center px-6`}>
+                        Done
+                    </button>
+                </>
+              ) : (
+                <button onClick={() => setIsEditMode(true)} className={`${BTN_SECONDARY_STYLE} flex-1 lg:flex-none justify-center`}>
+                    <span className="material-symbols-outlined text-lg mr-2">dashboard_customize</span>
+                    <span className="whitespace-nowrap">Edit Layout</span>
+                </button>
+              )}
 
-                  <button onClick={() => handleOpenTransactionModal()} className={`${BTN_PRIMARY_STYLE} flex-1 sm:flex-none justify-center whitespace-nowrap`}>
-                    Add Transaction
-                  </button>
-            </div>
+              <button onClick={() => handleOpenTransactionModal()} className={`${BTN_PRIMARY_STYLE} flex-1 lg:flex-none justify-center whitespace-nowrap`}>
+                <span className="material-symbols-outlined text-lg mr-2">add</span>
+                Add Transaction
+              </button>
         </div>
+      </header>
+
+      {/* Controls Bar: Tabs & Filters */}
+      <div className="flex flex-col md:flex-row justify-between items-center gap-4 bg-white dark:bg-dark-card p-1.5 rounded-2xl border border-black/5 dark:border-white/5 shadow-sm">
+           {/* Tabs */}
+           <div className="flex bg-light-fill dark:bg-dark-fill p-1 rounded-xl w-full md:w-auto overflow-x-auto no-scrollbar">
+              <button onClick={() => setActiveTab('overview')} className={`${tabBaseClass} ${activeTab === 'overview' ? tabActiveClass : tabInactiveClass}`}>Overview</button>
+              <button onClick={() => setActiveTab('analysis')} className={`${tabBaseClass} ${activeTab === 'analysis' ? tabActiveClass : tabInactiveClass}`}>Analysis</button>
+              <button onClick={() => setActiveTab('activity')} className={`${tabBaseClass} ${activeTab === 'activity' ? tabActiveClass : tabInactiveClass}`}>Activity</button>
+          </div>
+
+          {/* Filters */}
+          <div className="flex gap-3 w-full md:w-auto px-1 md:px-0">
+              <div className="flex-1 md:flex-none">
+                  <MultiAccountFilter accounts={accounts} selectedAccountIds={selectedAccountIds} setSelectedAccountIds={setSelectedAccountIds} />
+              </div>
+              <div className="flex-1 md:flex-none">
+                   <DurationFilter selectedDuration={duration} onDurationChange={setDuration} />
+              </div>
+          </div>
       </div>
       
       {suggestions.length > 0 && (
