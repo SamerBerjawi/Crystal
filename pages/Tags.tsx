@@ -7,6 +7,7 @@ import TagModal from '../components/TagModal';
 import { convertToEur, formatCurrency, parseDateAsUTC } from '../utils';
 import ConfirmationModal from '../components/ConfirmationModal';
 import { AreaChart, Area, ResponsiveContainer } from 'recharts';
+import PageHeader from '../components/PageHeader';
 
 interface TagsProps {
   tags: Tag[];
@@ -157,25 +158,31 @@ const Tags: React.FC<TagsProps> = ({ tags, transactions, saveTag, deleteTag, set
       )}
       
       {/* Header Section */}
-      <header className="flex flex-col md:flex-row md:items-center justify-between gap-4">
-        <div className="flex items-center gap-4">
-            <button onClick={() => setCurrentPage('Settings')} className="text-light-text-secondary dark:text-dark-text-secondary p-2 rounded-full hover:bg-black/5 dark:hover:bg-white/5 transition-colors">
-                <span className="material-symbols-outlined">arrow_back</span>
+      <div className="text-sm text-light-text-secondary dark:text-dark-text-secondary flex items-center gap-2">
+          <span onClick={() => setCurrentPage('Settings')} className="hover:underline cursor-pointer">Settings</span>
+          <span>/</span>
+          <span>Tags</span>
+      </div>
+      <PageHeader
+        markerIcon="label"
+        markerLabel="Context Chips"
+        title="Tags"
+        subtitle="Lightweight labels to cluster transactions, projects, or trips without changing categories."
+        actions={
+          <div className="flex gap-3 items-center">
+            <button
+              onClick={() => setCurrentPage('Settings')}
+              className="px-4 py-2 rounded-lg border border-black/5 dark:border-white/10 text-sm font-semibold text-light-text-secondary dark:text-dark-text-secondary hover:text-light-text hover:dark:text-dark-text"
+            >
+              Back to Settings
             </button>
-            <div>
-                <div className="text-sm text-light-text-secondary dark:text-dark-text-secondary flex items-center gap-2">
-                    <span onClick={() => setCurrentPage('Settings')} className="hover:underline cursor-pointer">Settings</span>
-                    <span>/</span>
-                    <span>Tags</span>
-                </div>
-                <h1 className="text-3xl font-bold text-light-text dark:text-dark-text">Tags</h1>
-            </div>
-        </div>
-        <button onClick={() => handleOpenModal()} className={BTN_PRIMARY_STYLE}>
-            <span className="material-symbols-outlined text-xl mr-2">add</span>
-            Create Tag
-        </button>
-      </header>
+            <button onClick={() => handleOpenModal()} className={BTN_PRIMARY_STYLE}>
+                <span className="material-symbols-outlined text-xl mr-2">add</span>
+                Create Tag
+            </button>
+          </div>
+        }
+      />
 
       {/* Metrics Overview */}
       <div className="grid grid-cols-1 md:grid-cols-3 gap-4">

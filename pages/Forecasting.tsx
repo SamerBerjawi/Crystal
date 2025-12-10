@@ -29,6 +29,7 @@ import { loadGenAiModule } from '../genAiLoader';
 import { useAccountsContext, usePreferencesContext, useTransactionsContext } from '../contexts/DomainProviders';
 import { useCategoryContext, useGoalsContext, useScheduleContext } from '../contexts/FinancialDataContext';
 import { useInsightsView } from '../contexts/InsightsViewContext';
+import PageHeader from '../components/PageHeader';
 
 // --- AI Planner Hook ---
 const useSmartGoalPlanner = (
@@ -587,33 +588,34 @@ const Forecasting: React.FC = () => {
             )}
 
             {/* Header */}
-            <header className="flex flex-col xl:flex-row justify-between items-start xl:items-center gap-4">
-                <div>
-                     <h1 className="text-3xl font-bold text-light-text dark:text-dark-text">Financial Forecast</h1>
-                    <p className="text-light-text-secondary dark:text-dark-text-secondary mt-1">Project your future balance and plan for goals.</p>
-                </div>
-                
-                <div className="flex flex-col sm:flex-row items-start sm:items-center gap-3 w-full xl:w-auto flex-wrap">
-                    <div className="w-full sm:w-auto">
-                         <MultiAccountFilter accounts={accounts} selectedAccountIds={selectedAccountIds} setSelectedAccountIds={setSelectedAccountIds} />
-                    </div>
-                    <div className="flex bg-light-fill dark:bg-dark-fill p-1 rounded-lg h-10 flex-shrink-0 w-full sm:w-auto overflow-x-auto no-scrollbar">
-                        {durationOptions.map(opt => (
-                            <button key={opt.value} onClick={() => setForecastDuration(opt.value)} className={`${segmentItemBase} ${forecastDuration === opt.value ? segmentItemActive : segmentItemInactive}`}>
-                                {opt.label}
-                            </button>
-                        ))}
-                    </div>
-                     <div className="flex bg-light-fill dark:bg-dark-fill p-1 rounded-lg h-10 flex-shrink-0 w-full sm:w-auto">
+            <PageHeader
+                markerIcon="trending_up"
+                markerLabel="Forward View"
+                title="Financial Forecast"
+                subtitle="Projected cash, income, and obligations so you can plan moves weeks and months ahead."
+                actions={
+                    <div className="flex flex-col sm:flex-row items-start sm:items-center gap-3 w-full xl:w-auto flex-wrap">
+                        <div className="w-full sm:w-auto">
+                             <MultiAccountFilter accounts={accounts} selectedAccountIds={selectedAccountIds} setSelectedAccountIds={setSelectedAccountIds} />
+                        </div>
+                        <div className="flex bg-light-fill dark:bg-dark-fill p-1 rounded-lg h-10 flex-shrink-0 w-full sm:w-auto overflow-x-auto no-scrollbar">
+                            {durationOptions.map(opt => (
+                                <button key={opt.value} onClick={() => setForecastDuration(opt.value)} className={`${segmentItemBase} ${forecastDuration === opt.value ? segmentItemActive : segmentItemInactive}`}>
+                                    {opt.label}
+                                </button>
+                            ))}
+                        </div>
+                         <div className="flex bg-light-fill dark:bg-dark-fill p-1 rounded-lg h-10 flex-shrink-0 w-full sm:w-auto">
                              <button onClick={() => setShowIndividualLines(false)} className={`${segmentItemBase} ${!showIndividualLines ? segmentItemActive : segmentItemInactive}`}>Consolidated</button>
                              <button onClick={() => setShowIndividualLines(true)} className={`${segmentItemBase} ${showIndividualLines ? segmentItemActive : segmentItemInactive}`}>Individual</button>
+                        </div>
+                        <button onClick={() => handleOpenModal()} className={`${BTN_PRIMARY_STYLE} flex-shrink-0 whitespace-nowrap w-full sm:w-auto h-10`}>
+                            <span className="material-symbols-outlined text-xl mr-2">add</span>
+                            Add Goal
+                        </button>
                     </div>
-                    <button onClick={() => handleOpenModal()} className={`${BTN_PRIMARY_STYLE} flex-shrink-0 whitespace-nowrap w-full sm:w-auto h-10`}>
-                        <span className="material-symbols-outlined text-xl mr-2">add</span>
-                        Add Goal
-                    </button>
-                </div>
-            </header>
+                }
+            />
 
             {/* Summary Metrics */}
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">

@@ -15,6 +15,7 @@ import BillPaymentModal from '../components/BillPaymentModal';
 import { useAccountsContext, useTransactionsContext } from '../contexts/DomainProviders';
 import { useCategoryContext, useScheduleContext, useTagsContext } from '../contexts/FinancialDataContext';
 import { Cell, Pie, PieChart, ResponsiveContainer, Tooltip as RechartsTooltip } from 'recharts';
+import PageHeader from '../components/PageHeader';
 
 // --- Item Row Component ---
 const ScheduledItemRow: React.FC<{
@@ -678,20 +679,22 @@ const SchedulePage: React.FC<ScheduleProps> = () => {
                 />
             )}
             
-            <header className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
-                <div>
-                     <h1 className="text-3xl font-bold text-light-text dark:text-dark-text">Schedule & Bills</h1>
-                    <p className="text-light-text-secondary dark:text-dark-text-secondary mt-1">Manage your recurring payments and forecast obligations.</p>
-                </div>
-                <div className="flex gap-3">
-                    <button onClick={() => handleOpenBillModal()} className={BTN_SECONDARY_STYLE}>
-                        <span className="material-symbols-outlined mr-2">receipt</span> Add Bill
-                    </button>
-                    <button onClick={() => handleOpenRecurringModal()} className={BTN_PRIMARY_STYLE}>
-                        <span className="material-symbols-outlined mr-2">update</span> Add Recurring
-                    </button>
-                </div>
-            </header>
+            <PageHeader
+                markerIcon="calendar_month"
+                markerLabel="Cash Calendar"
+                title="Schedule & Bills"
+                subtitle="Upcoming payments, autopay windows, and reminders to keep your runway safe."
+                actions={
+                    <div className="flex gap-3">
+                        <button onClick={() => handleOpenBillModal()} className={BTN_SECONDARY_STYLE}>
+                            <span className="material-symbols-outlined mr-2">receipt</span> Add Bill
+                        </button>
+                        <button onClick={() => handleOpenRecurringModal()} className={BTN_PRIMARY_STYLE}>
+                            <span className="material-symbols-outlined mr-2">update</span> Add Recurring
+                        </button>
+                    </div>
+                }
+            />
 
             {/* TOP SECTION: Visual Activity & Highlights */}
             <div className="space-y-6">

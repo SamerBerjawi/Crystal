@@ -11,6 +11,7 @@ import FinalConfirmationModal from '../components/FinalConfirmationModal';
 import Card from '../components/Card';
 import useLocalStorage from '../hooks/useLocalStorage';
 import { useScheduleContext } from '../contexts/FinancialDataContext';
+import PageHeader from '../components/PageHeader';
 
 interface AccountsProps {
     accounts: Account[];
@@ -411,20 +412,18 @@ const Accounts: React.FC<AccountsProps> = ({ accounts, transactions, saveAccount
       )}
 
       {/* Header */}
-      <header className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
-        <div>
-           <h1 className="text-3xl font-bold text-light-text dark:text-dark-text">Accounts</h1>
-           <p className="text-light-text-secondary dark:text-dark-text-secondary mt-1">Manage your assets and liabilities.</p>
-        </div>
-        
-        <button 
-            onClick={() => setAddModalOpen(true)} 
-            className={`${BTN_PRIMARY_STYLE} flex items-center gap-2`}
-        >
+      <PageHeader
+        markerIcon="account_balance"
+        markerLabel="Money Map"
+        title="Accounts"
+        subtitle="Bank, card, and lending balances with tools to rebalance, reorder, and reconcile on the fly."
+        actions={
+          <button onClick={() => setAddModalOpen(true)} className={`${BTN_PRIMARY_STYLE} flex items-center gap-2`}>
             <span className="material-symbols-outlined text-xl">add</span>
             Add Account
-        </button>
-      </header>
+          </button>
+        }
+      />
 
       {/* Controls Bar */}
       <div className="flex flex-col md:flex-row justify-between items-center gap-4 bg-white dark:bg-dark-card p-1.5 rounded-2xl border border-black/5 dark:border-white/5 shadow-sm">

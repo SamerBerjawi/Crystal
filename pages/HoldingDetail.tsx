@@ -11,6 +11,7 @@ import { formatCurrency, parseDateAsUTC } from '../utils';
 import { BTN_PRIMARY_STYLE, BTN_SECONDARY_STYLE, INVESTMENT_SUB_TYPE_STYLES } from '../constants';
 import WarrantPriceModal from '../components/WarrantPriceModal';
 import { formatHoldingType } from '../utils/investments';
+import PageHeader from '../components/PageHeader';
 
 interface HoldingDetailProps {
     holdingSymbol: string;
@@ -114,27 +115,31 @@ const HoldingDetail: React.FC<HoldingDetailProps> = ({
                 />
             )}
 
-            <div className="flex items-center justify-between flex-wrap gap-4">
-                <div className="flex items-center gap-3">
-                    <button onClick={onBack} className={`${BTN_SECONDARY_STYLE} flex items-center gap-2`}>
-                        <span className="material-symbols-outlined">arrow_back</span>
-                        Back
-                    </button>
-                    <div className="flex items-center gap-3">
-                        <div className={`w-12 h-12 rounded-xl bg-black/5 dark:bg-white/5 flex items-center justify-center ${typeStyle.color}`}>
-                            <span className="material-symbols-outlined text-2xl">{typeStyle.icon}</span>
-                        </div>
-                        <div>
-                            <p className="text-sm text-light-text-secondary dark:text-dark-text-secondary uppercase font-bold tracking-wider">{holdingTypeLabel}</p>
-                            <h1 className="text-3xl font-bold text-light-text dark:text-dark-text">{holding.name} ({holding.symbol})</h1>
-                        </div>
+            <PageHeader
+                markerIcon="info"
+                markerLabel="Position Card"
+                title="Holding Overview"
+                subtitle="Quotes, lots, and allocation context for this specific holding."
+                actions={
+                    <div className="flex gap-2">
+                        <button onClick={onBack} className={`${BTN_SECONDARY_STYLE} flex items-center gap-2`}>
+                            <span className="material-symbols-outlined">arrow_back</span>
+                            Back
+                        </button>
+                        <button onClick={() => setIsPriceModalOpen(true)} className={`${BTN_PRIMARY_STYLE} flex items-center gap-2`}>
+                            <span className="material-symbols-outlined">edit_note</span>
+                            Update Price
+                        </button>
                     </div>
+                }
+            />
+            <div className="flex items-center gap-3 mt-2">
+                <div className={`w-12 h-12 rounded-xl bg-black/5 dark:bg-white/5 flex items-center justify-center ${typeStyle.color}`}>
+                    <span className="material-symbols-outlined text-2xl">{typeStyle.icon}</span>
                 </div>
-                <div className="flex gap-2">
-                    <button onClick={() => setIsPriceModalOpen(true)} className={`${BTN_PRIMARY_STYLE} flex items-center gap-2`}>
-                        <span className="material-symbols-outlined">edit_note</span>
-                        Update Price
-                    </button>
+                <div>
+                    <p className="text-sm text-light-text-secondary dark:text-dark-text-secondary uppercase font-bold tracking-wider">{holdingTypeLabel}</p>
+                    <p className="text-lg font-semibold text-light-text dark:text-dark-text">{holding.name} ({holding.symbol})</p>
                 </div>
             </div>
 
