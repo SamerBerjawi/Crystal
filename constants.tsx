@@ -101,6 +101,7 @@ export const NAV_ITEMS: NavItem[] = [
   { name: 'Dashboard', icon: 'space_dashboard' },
   { name: 'Accounts', icon: 'wallet' },
   { name: 'Transactions', icon: 'receipt_long' },
+  { name: 'Challenges', icon: 'emoji_events' },
   { name: 'Quotes & Invoices', icon: 'description' },
   { name: 'Subscriptions', icon: 'loyalty' },
   { name: 'Schedule & Bills', icon: 'calendar_month' },
