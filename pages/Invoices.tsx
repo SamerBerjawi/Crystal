@@ -208,7 +208,7 @@ const InvoiceEditor: React.FC<{
                 {/* Header Info */}
                 <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
                     <div>
-                        <label className={labelStyle}>Document Number</label>
+                        <label className={labelStyle}>Document No.</label>
                         <input type="text" value={number} onChange={e => setNumber(e.target.value)} className={INPUT_BASE_STYLE} required />
                     </div>
                     <div>
@@ -297,7 +297,7 @@ const InvoiceEditor: React.FC<{
                                             type="text" 
                                             value={term.label} 
                                             onChange={e => updatePaymentTerm(term.id, 'label', e.target.value)} 
-                                            className={`${INPUT_BASE_STYLE} !h-8`} 
+                                            className={`${INPUT_BASE_STYLE} !h-8 text-xs`} 
                                             placeholder="Description (e.g. Deposit)" 
                                         />
                                     </div>
@@ -432,28 +432,41 @@ const InvoiceEditor: React.FC<{
 const InvoicesPage: React.FC<InvoicesProps> = () => {
     const { invoices, saveInvoice, deleteInvoice } = useInvoicesContext();
     const { preferences } = usePreferencesContext();
-    const [activeTab, setActiveTab] = useState<'invoices' | 'quotes'>('invoices');
     const [isEditorOpen, setIsEditorOpen] = useState(false);
     const [editingInvoice, setEditingInvoice] = useState<Invoice | null>(null);
+    const [editorInitialType, setEditorInitialType] = useState<InvoiceType>('invoice');
     const [deletingId, setDeletingId] = useState<string | null>(null);
 
-    const filteredList = useMemo(() => {
-        return invoices.filter(inv => 
-            activeTab === 'invoices' ? inv.type === 'invoice' : inv.type === 'quote'
-        ).sort((a,b) => parseDateAsUTC(b.date).getTime() - parseDateAsUTC(a.date).getTime());
-    }, [invoices, activeTab]);
+    const invoicesList = useMemo(() => {
+        return invoices
+            .filter(inv => inv.type === 'invoice')
+            .sort((a,b) => parseDateAsUTC(b.date).getTime() - parseDateAsUTC(a.date).getTime());
+    }, [invoices]);
+
+    const quotesList = useMemo(() => {
+        return invoices
+            .filter(inv => inv.type === 'quote')
+            .sort((a,b) => parseDateAsUTC(b.date).getTime() - parseDateAsUTC(a.date).getTime());
+    }, [invoices]);
 
     const stats = useMemo(() => {
-        const totalAmount = filteredList.reduce((sum, item) => sum + item.total, 0);
-        const pendingStatus = activeTab === 'invoices' ? ['sent', 'overdue'] : ['sent'];
-        const pendingAmount = filteredList
-            .filter(item => pendingStatus.includes(item.status))
-            .reduce((sum, item) => sum + item.total, 0);
+        const outstandingInvoices = invoicesList
+            .filter(i => i.status === 'sent' || i.status === 'overdue')
+            .reduce((sum, i) => sum + i.total, 0);
             
-        return { totalAmount, pendingAmount, count: filteredList.length };
-    }, [filteredList, activeTab]);
+        const potentialQuotes = quotesList
+            .filter(q => q.status === 'sent')
+            .reduce((sum, q) => sum + q.total, 0);
+            
+        const overdueAmount = invoicesList
+            .filter(i => i.status === 'overdue')
+            .reduce((sum, i) => sum + i.total, 0);
+            
+        return { outstandingInvoices, potentialQuotes, overdueAmount };
+    }, [invoicesList, quotesList]);
 
-    const handleOpenEditor = (invoice?: Invoice) => {
+    const handleOpenEditor = (type: InvoiceType, invoice?: Invoice) => {
+        setEditorInitialType(type);
         setEditingInvoice(invoice || null);
         setIsEditorOpen(true);
     };
@@ -476,15 +489,48 @@ const InvoicesPage: React.FC<InvoicesProps> = () => {
         saveInvoice(newInvoice);
         // Optionally update quote status to accepted
         saveInvoice({ ...quote, status: 'accepted' });
-        setActiveTab('invoices');
     };
+
+    // Reusable Table Row for both lists
+    const renderRow = (item: Invoice) => (
+        <tr key={item.id} className="hover:bg-black/5 dark:hover:bg-white/5 transition-colors group cursor-pointer" onClick={() => handleOpenEditor(item.type, item)}>
+            <td className="px-4 py-3 font-mono font-medium text-xs truncate max-w-[100px]">{item.number}</td>
+            <td className="px-4 py-3 font-semibold text-xs truncate max-w-[150px]">{item.entityName}</td>
+            <td className="px-4 py-3 text-right font-bold font-mono text-xs">{formatCurrency(item.total, item.currency)}</td>
+            <td className="px-4 py-3 text-center">
+                <span className={`px-2 py-0.5 rounded-full text-[10px] font-bold uppercase tracking-wide ${STATUS_COLORS[item.status]}`}>
+                    {item.status}
+                </span>
+            </td>
+            <td className="px-4 py-3 text-right">
+                <div className="flex justify-end gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+                    {item.type === 'quote' && (
+                        <button 
+                            onClick={(e) => { e.stopPropagation(); handleConvertToInvoice(item); }}
+                            className="p-1 rounded-md text-light-text-secondary hover:text-green-600 hover:bg-green-50 dark:hover:bg-green-900/20"
+                            title="Convert to Invoice"
+                        >
+                            <span className="material-symbols-outlined text-base">transform</span>
+                        </button>
+                    )}
+                    <button 
+                        onClick={(e) => { e.stopPropagation(); setDeletingId(item.id); }}
+                        className="p-1 rounded-md text-light-text-secondary hover:text-red-600 hover:bg-red-50 dark:hover:bg-red-900/20"
+                        title="Delete"
+                    >
+                        <span className="material-symbols-outlined text-base">delete</span>
+                    </button>
+                </div>
+            </td>
+        </tr>
+    );
 
     return (
         <div className="space-y-8 pb-12 animate-fade-in-up">
             {isEditorOpen && (
                 <InvoiceEditor 
                     invoice={editingInvoice} 
-                    initialType={activeTab === 'quotes' ? 'quote' : 'invoice'}
+                    initialType={editorInitialType}
                     onSave={saveInvoice} 
                     onClose={() => setIsEditorOpen(false)}
                     preferences={preferences}
@@ -507,23 +553,13 @@ const InvoicesPage: React.FC<InvoicesProps> = () => {
                  </div>
                  
                  <div className="flex gap-3">
-                    <div className="flex bg-light-fill dark:bg-dark-fill p-1 rounded-lg">
-                        <button 
-                            onClick={() => setActiveTab('invoices')} 
-                            className={`px-4 py-2 rounded-md text-sm font-semibold transition-all ${activeTab === 'invoices' ? 'bg-white dark:bg-dark-card text-primary-600 shadow-sm' : 'text-light-text-secondary hover:text-light-text'}`}
-                        >
-                            Invoices
-                        </button>
-                        <button 
-                            onClick={() => setActiveTab('quotes')} 
-                            className={`px-4 py-2 rounded-md text-sm font-semibold transition-all ${activeTab === 'quotes' ? 'bg-white dark:bg-dark-card text-primary-600 shadow-sm' : 'text-light-text-secondary hover:text-light-text'}`}
-                        >
-                            Quotes
-                        </button>
-                    </div>
-                    <button onClick={() => handleOpenEditor()} className={BTN_PRIMARY_STYLE}>
+                    <button onClick={() => handleOpenEditor('quote')} className={BTN_SECONDARY_STYLE}>
                         <span className="material-symbols-outlined text-lg mr-2">add</span>
-                        New {activeTab === 'quotes' ? 'Quote' : 'Invoice'}
+                        New Quote
+                    </button>
+                    <button onClick={() => handleOpenEditor('invoice')} className={BTN_PRIMARY_STYLE}>
+                        <span className="material-symbols-outlined text-lg mr-2">add</span>
+                        New Invoice
                     </button>
                 </div>
             </header>
@@ -532,100 +568,103 @@ const InvoicesPage: React.FC<InvoicesProps> = () => {
             <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
                  <Card className="flex items-center gap-4 p-5">
                     <div className="w-12 h-12 rounded-full bg-blue-100 dark:bg-blue-900/30 text-blue-600 flex items-center justify-center">
-                        <span className="material-symbols-outlined text-2xl">description</span>
-                    </div>
-                    <div>
-                        <p className="text-xs font-bold uppercase text-light-text-secondary dark:text-dark-text-secondary tracking-wider">Total Documents</p>
-                        <p className="text-2xl font-bold">{stats.count}</p>
-                    </div>
-                 </Card>
-                 <Card className="flex items-center gap-4 p-5">
-                    <div className="w-12 h-12 rounded-full bg-green-100 dark:bg-green-900/30 text-green-600 flex items-center justify-center">
-                        <span className="material-symbols-outlined text-2xl">payments</span>
-                    </div>
-                    <div>
-                        <p className="text-xs font-bold uppercase text-light-text-secondary dark:text-dark-text-secondary tracking-wider">Total Value</p>
-                        <p className="text-2xl font-bold">{formatCurrency(stats.totalAmount, preferences.currency.split(' ')[0] as Currency)}</p>
-                    </div>
-                 </Card>
-                 <Card className="flex items-center gap-4 p-5">
-                    <div className="w-12 h-12 rounded-full bg-orange-100 dark:bg-orange-900/30 text-orange-600 flex items-center justify-center">
                         <span className="material-symbols-outlined text-2xl">pending</span>
                     </div>
                     <div>
-                        <p className="text-xs font-bold uppercase text-light-text-secondary dark:text-dark-text-secondary tracking-wider">Pending / Outstanding</p>
-                        <p className="text-2xl font-bold">{formatCurrency(stats.pendingAmount, preferences.currency.split(' ')[0] as Currency)}</p>
+                        <p className="text-xs font-bold uppercase text-light-text-secondary dark:text-dark-text-secondary tracking-wider">Outstanding Invoices</p>
+                        <p className="text-2xl font-bold">{formatCurrency(stats.outstandingInvoices, preferences.currency.split(' ')[0] as Currency)}</p>
+                    </div>
+                 </Card>
+                 <Card className="flex items-center gap-4 p-5">
+                    <div className="w-12 h-12 rounded-full bg-purple-100 dark:bg-purple-900/30 text-purple-600 flex items-center justify-center">
+                        <span className="material-symbols-outlined text-2xl">request_quote</span>
+                    </div>
+                    <div>
+                        <p className="text-xs font-bold uppercase text-light-text-secondary dark:text-dark-text-secondary tracking-wider">Pending Quotes</p>
+                        <p className="text-2xl font-bold">{formatCurrency(stats.potentialQuotes, preferences.currency.split(' ')[0] as Currency)}</p>
+                    </div>
+                 </Card>
+                 <Card className="flex items-center gap-4 p-5">
+                    <div className="w-12 h-12 rounded-full bg-red-100 dark:bg-red-900/30 text-red-600 flex items-center justify-center">
+                        <span className="material-symbols-outlined text-2xl">warning</span>
+                    </div>
+                    <div>
+                        <p className="text-xs font-bold uppercase text-light-text-secondary dark:text-dark-text-secondary tracking-wider">Total Overdue</p>
+                        <p className="text-2xl font-bold">{formatCurrency(stats.overdueAmount, preferences.currency.split(' ')[0] as Currency)}</p>
                     </div>
                  </Card>
             </div>
 
-            {/* List */}
-            <Card className="p-0 overflow-hidden min-h-[400px]">
-                <div className="overflow-x-auto">
-                    <table className="w-full text-left text-sm">
-                        <thead className="bg-light-bg dark:bg-white/5 border-b border-black/5 dark:border-white/5 text-xs uppercase font-bold text-light-text-secondary dark:text-dark-text-secondary">
-                            <tr>
-                                <th className="px-6 py-4">Number</th>
-                                <th className="px-6 py-4 w-8">Dir.</th>
-                                <th className="px-6 py-4">{activeTab === 'invoices' ? 'Entity' : 'Entity'}</th>
-                                <th className="px-6 py-4">Date</th>
-                                <th className="px-6 py-4">Due Date</th>
-                                <th className="px-6 py-4 text-right">Amount</th>
-                                <th className="px-6 py-4 text-center">Status</th>
-                                <th className="px-6 py-4 text-right">Actions</th>
-                            </tr>
-                        </thead>
-                        <tbody className="divide-y divide-black/5 dark:divide-white/5">
-                            {filteredList.map(item => (
-                                <tr key={item.id} className="hover:bg-black/5 dark:hover:bg-white/5 transition-colors group cursor-pointer" onClick={() => handleOpenEditor(item)}>
-                                    <td className="px-6 py-4 font-mono font-medium">{item.number}</td>
-                                    <td className="px-6 py-4">
-                                        <div className={`w-6 h-6 rounded-full flex items-center justify-center ${item.direction === 'sent' ? 'bg-green-100 text-green-600 dark:bg-green-900/30 dark:text-green-400' : 'bg-red-100 text-red-600 dark:bg-red-900/30 dark:text-red-400'}`}>
-                                            <span className="material-symbols-outlined text-sm">{item.direction === 'sent' ? 'arrow_upward' : 'arrow_downward'}</span>
-                                        </div>
-                                    </td>
-                                    <td className="px-6 py-4 font-semibold">{item.entityName}</td>
-                                    <td className="px-6 py-4 text-light-text-secondary dark:text-dark-text-secondary">{parseDateAsUTC(item.date).toLocaleDateString()}</td>
-                                    <td className="px-6 py-4 text-light-text-secondary dark:text-dark-text-secondary">{item.dueDate ? parseDateAsUTC(item.dueDate).toLocaleDateString() : '—'}</td>
-                                    <td className="px-6 py-4 text-right font-bold font-mono">{formatCurrency(item.total, item.currency)}</td>
-                                    <td className="px-6 py-4 text-center">
-                                        <span className={`px-2.5 py-1 rounded-full text-xs font-bold uppercase tracking-wide ${STATUS_COLORS[item.status]}`}>
-                                            {item.status}
-                                        </span>
-                                    </td>
-                                    <td className="px-6 py-4 text-right">
-                                        <div className="flex justify-end gap-2 opacity-0 group-hover:opacity-100 transition-opacity">
-                                            {item.type === 'quote' && (
-                                                <button 
-                                                    onClick={(e) => { e.stopPropagation(); handleConvertToInvoice(item); }}
-                                                    className="p-1.5 rounded-md text-light-text-secondary hover:text-green-600 hover:bg-green-50 dark:hover:bg-green-900/20"
-                                                    title="Convert to Invoice"
-                                                >
-                                                    <span className="material-symbols-outlined text-lg">transform</span>
-                                                </button>
-                                            )}
-                                            <button 
-                                                onClick={(e) => { e.stopPropagation(); setDeletingId(item.id); }}
-                                                className="p-1.5 rounded-md text-light-text-secondary hover:text-red-600 hover:bg-red-50 dark:hover:bg-red-900/20"
-                                                title="Delete"
-                                            >
-                                                <span className="material-symbols-outlined text-lg">delete</span>
-                                            </button>
-                                        </div>
-                                    </td>
-                                </tr>
-                            ))}
-                            {filteredList.length === 0 && (
+            {/* Split View */}
+            <div className="grid grid-cols-1 xl:grid-cols-2 gap-8">
+                {/* Invoices Column */}
+                <Card className="p-0 overflow-hidden flex flex-col h-full min-h-[400px]">
+                    <div className="p-4 border-b border-black/5 dark:border-white/5 bg-gray-50/50 dark:bg-white/[0.02] flex justify-between items-center">
+                         <div className="flex items-center gap-2">
+                             <span className="material-symbols-outlined text-primary-500">description</span>
+                             <h3 className="font-bold text-lg text-light-text dark:text-dark-text">Invoices</h3>
+                         </div>
+                         <span className="text-xs bg-black/5 dark:bg-white/10 px-2 py-1 rounded-full font-bold text-light-text-secondary dark:text-dark-text-secondary">{invoicesList.length}</span>
+                    </div>
+                    <div className="overflow-x-auto flex-1">
+                        <table className="w-full text-left text-sm">
+                            <thead className="bg-light-bg dark:bg-white/5 border-b border-black/5 dark:border-white/5 text-xs uppercase font-bold text-light-text-secondary dark:text-dark-text-secondary">
                                 <tr>
-                                    <td colSpan={8} className="px-6 py-12 text-center text-light-text-secondary dark:text-dark-text-secondary">
-                                        No {activeTab} found. Create one to get started.
-                                    </td>
+                                    <th className="px-4 py-3">No.</th>
+                                    <th className="px-4 py-3">Entity</th>
+                                    <th className="px-4 py-3 text-right">Total</th>
+                                    <th className="px-4 py-3 text-center">Status</th>
+                                    <th className="px-4 py-3 text-right w-20"></th>
                                 </tr>
-                            )}
-                        </tbody>
-                    </table>
-                </div>
-            </Card>
+                            </thead>
+                            <tbody className="divide-y divide-black/5 dark:divide-white/5">
+                                {invoicesList.map(renderRow)}
+                                {invoicesList.length === 0 && (
+                                    <tr>
+                                        <td colSpan={5} className="px-6 py-12 text-center text-light-text-secondary dark:text-dark-text-secondary italic">
+                                            No invoices created yet.
+                                        </td>
+                                    </tr>
+                                )}
+                            </tbody>
+                        </table>
+                    </div>
+                </Card>
+
+                {/* Quotes Column */}
+                <Card className="p-0 overflow-hidden flex flex-col h-full min-h-[400px]">
+                    <div className="p-4 border-b border-black/5 dark:border-white/5 bg-gray-50/50 dark:bg-white/[0.02] flex justify-between items-center">
+                         <div className="flex items-center gap-2">
+                             <span className="material-symbols-outlined text-purple-500">request_quote</span>
+                             <h3 className="font-bold text-lg text-light-text dark:text-dark-text">Quotes</h3>
+                         </div>
+                         <span className="text-xs bg-black/5 dark:bg-white/10 px-2 py-1 rounded-full font-bold text-light-text-secondary dark:text-dark-text-secondary">{quotesList.length}</span>
+                    </div>
+                    <div className="overflow-x-auto flex-1">
+                        <table className="w-full text-left text-sm">
+                            <thead className="bg-light-bg dark:bg-white/5 border-b border-black/5 dark:border-white/5 text-xs uppercase font-bold text-light-text-secondary dark:text-dark-text-secondary">
+                                <tr>
+                                    <th className="px-4 py-3">No.</th>
+                                    <th className="px-4 py-3">Entity</th>
+                                    <th className="px-4 py-3 text-right">Total</th>
+                                    <th className="px-4 py-3 text-center">Status</th>
+                                    <th className="px-4 py-3 text-right w-20"></th>
+                                </tr>
+                            </thead>
+                            <tbody className="divide-y divide-black/5 dark:divide-white/5">
+                                {quotesList.map(renderRow)}
+                                {quotesList.length === 0 && (
+                                    <tr>
+                                        <td colSpan={5} className="px-6 py-12 text-center text-light-text-secondary dark:text-dark-text-secondary italic">
+                                            No quotes created yet.
+                                        </td>
+                                    </tr>
+                                )}
+                            </tbody>
+                        </table>
+                    </div>
+                </Card>
+            </div>
         </div>
     );
 };

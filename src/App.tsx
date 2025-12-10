@@ -455,7 +455,7 @@ const App: React.FC = () => {
       }
   }, [preferences.timezone]);
 
-  // Explicitly type warrantHoldingsBySymbol
+  // FIX: Explicitly type warrantHoldingsBySymbol to avoid 'unknown' inference
   const warrantHoldingsBySymbol = useMemo<Record<string, number>>(() => {
     const holdings: Record<string, number> = {};
 
@@ -464,8 +464,10 @@ const App: React.FC = () => {
       holdings[tx.symbol] = (holdings[tx.symbol] || 0) + (tx.type === 'buy' ? tx.quantity : -tx.quantity);
     });
 
-    warrants.forEach(warrant => {
-      holdings[warrant.isin] = (holdings[warrant.isin] || 0) + warrant.quantity;
+    warrants.forEach((warrant: Warrant) => {
+      // FIX: Explicitly cast quantity to number to resolve 'unknown' type error
+      const qty = warrant.quantity as number;
+      holdings[warrant.isin] = (holdings[warrant.isin] || 0) + qty;
     });
 
     return holdings;
@@ -478,7 +480,7 @@ const App: React.FC = () => {
       // The check is simplified to only verify if the account type is 'Investment'.
       if (account.symbol && account.type === 'Investment' && (assetPrices as Record<string, number | null>)[account.symbol] !== undefined) {
         const price = (assetPrices as Record<string, number | null>)[account.symbol as string];
-        const quantity = (warrantHoldingsBySymbol as Record<string, number>)[account.symbol as string] || 0;
+        const quantity = ((warrantHoldingsBySymbol as Record<string, number>)[account.symbol as string] as number) || 0;
         // Fix: Explicitly checking type to silence "unknown not assignable to number" error
         const calculatedBalance = (typeof price === 'number') ? quantity * price : 0;
 
@@ -1469,23 +1471,6 @@ const App: React.FC = () => {
     }
   };
   
-  const handleExportAllData = () => {
-      const blob = new Blob([JSON.stringify(dataToSave)], { type: 'application/json' });
-      const url = URL.createObjectURL(blob);
-      const a = document.createElement('a');
-      a.href = url;
-      a.download = `crystal-backup-${new Date().toISOString().split('T')[0]}.json`;
-      document.body.appendChild(a);
-      a.click();
-      document.body.removeChild(a);
-      URL.revokeObjectURL(url);
-  };
-
-  // Replaced with granular logic via onImportAllData logic passed to DataManagement
-  // REMOVED handleImportAllData to clean up and avoid confusion as DataManagement handles it internally via SmartRestoreModal
-
-  // REMOVED handleExportCSV to clean up and avoid confusion as ExportModal handles it internally
-
   useEffect(() => {
     if (theme === 'system') {
       const systemPrefersDark = window.matchMedia('(prefers-color-scheme: dark)').matches;
@@ -1556,11 +1541,6 @@ const App: React.FC = () => {
             accounts={accounts} transactions={transactions} budgets={budgets} recurringTransactions={recurringTransactions} allCategories={[...incomeCategories, ...expenseCategories]} history={importExportHistory} 
             onPublishImport={handlePublishImport} onDeleteHistoryItem={handleDeleteHistoryItem} onDeleteImportedTransactions={handleDeleteImportedTransactions}
             onResetAccount={handleResetAccount} 
-            // REMOVE THESE
-            // onExportAllData={handleExportAllData} 
-            // onImportAllData={handleImportAllData}
-            // onExportCSV={handleExportCSV}
-            // KEEP THESE
             setCurrentPage={setCurrentPage}
             onRestoreData={handleRestoreData}
             fullFinancialData={dataToSave} // Pass full current state for granular export
