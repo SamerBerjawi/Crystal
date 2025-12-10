@@ -1706,7 +1706,7 @@ const App: React.FC = () => {
             isPrivacyMode={isPrivacyMode}
             togglePrivacyMode={() => setIsPrivacyMode(!isPrivacyMode)}
           />
-          <div className="flex-1 flex flex-col overflow-hidden relative z-0">
+          <div className="flex-1 flex flex-col overflow-hidden relative z-0 bg-light-bg dark:bg-dark-bg">
              {/* Header removed here */}
              
              {/* Add Mobile Toggle */}
@@ -1724,7 +1724,7 @@ const App: React.FC = () => {
               financialGoals={financialGoals}
               defaultDuration={preferences.defaultPeriod as Duration}
             >
-              <main className="flex-1 overflow-x-hidden overflow-y-auto p-4 md:p-8 bg-light-bg dark:bg-dark-bg md:rounded-tl-3xl border-l border-t border-black/5 dark:border-white/5 shadow-2xl">
+              <main className="flex-1 overflow-x-hidden overflow-y-auto p-4 md:p-8">
                 <Suspense fallback={<PageLoader />}>
                   {renderPage()}
                 </Suspense>
