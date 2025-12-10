@@ -12,7 +12,24 @@ interface LoyaltyCardProps {
 const LoyaltyCard: React.FC<LoyaltyCardProps> = ({ membership, onEdit, onDelete }) => {
   const [isFlipped, setIsFlipped] = useState(false);
 
-  const formattedExpiry = membership.expiryDate 
+  const toRgba = (hexColor: string, alpha = 1) => {
+    const sanitized = hexColor.replace('#', '');
+    const normalized = sanitized.length === 3
+      ? sanitized.split('').map(char => char + char).join('')
+      : sanitized;
+
+    if (normalized.length !== 6) return `rgba(59, 130, 246, ${alpha})`;
+
+    const r = parseInt(normalized.substring(0, 2), 16);
+    const g = parseInt(normalized.substring(2, 4), 16);
+    const b = parseInt(normalized.substring(4, 6), 16);
+
+    return `rgba(${r}, ${g}, ${b}, ${alpha})`;
+  };
+
+  const cardColor = membership.color || '#3b82f6';
+
+  const formattedExpiry = membership.expiryDate
     ? parseDateAsUTC(membership.expiryDate).toLocaleDateString('en-US', { month: 'short', year: '2-digit' })
     : 'No Expiry';
 
@@ -20,7 +37,7 @@ const LoyaltyCard: React.FC<LoyaltyCardProps> = ({ membership, onEdit, onDelete 
 
   // Create a richer background gradient based on the selected color
   const bgStyle = {
-      background: `linear-gradient(135deg, ${membership.color} 0%, ${membership.color} 40%, #1a1a1a 150%)`,
+      background: `linear-gradient(135deg, ${toRgba(cardColor, 0.85)} 0%, ${toRgba(cardColor, 0.65)} 40%, rgba(26,26,26,0.75) 150%)`,
   };
 
   return (
