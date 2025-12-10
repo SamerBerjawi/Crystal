@@ -2,12 +2,13 @@
 import React, { useState } from 'react';
 import Modal from './Modal';
 import { BTN_PRIMARY_STYLE, BTN_SECONDARY_STYLE, CHECKBOX_STYLE, INPUT_BASE_STYLE } from '../constants';
-import { Account, FinancialData } from '../types';
+import { Account } from '../types';
 
 interface ExportModalProps {
   onClose: () => void;
   onExport: (config: ExportConfig) => void;
   accounts: Account[];
+  initialFormat?: 'json' | 'csv';
 }
 
 export interface ExportConfig {
@@ -31,9 +32,10 @@ const DATA_TYPES: { id: string; label: string; icon: string }[] = [
     { id: 'tags', label: 'Tags', icon: 'label' },
 ];
 
-const ExportModal: React.FC<ExportModalProps> = ({ onClose, onExport, accounts }) => {
-    const [format, setFormat] = useState<'json' | 'csv'>('csv');
-    const [selectedTypes, setSelectedTypes] = useState<string[]>(['transactions']);
+const ExportModal: React.FC<ExportModalProps> = ({ onClose, onExport, accounts, initialFormat = 'csv' }) => {
+    const [format, setFormat] = useState<'json' | 'csv'>(initialFormat);
+    // Default to ALL types selected
+    const [selectedTypes, setSelectedTypes] = useState<string[]>(DATA_TYPES.map(d => d.id));
     const [accountIds, setAccountIds] = useState<string[]>([]); // Empty = All
     const [startDate, setStartDate] = useState('');
     const [endDate, setEndDate] = useState('');
@@ -42,6 +44,14 @@ const ExportModal: React.FC<ExportModalProps> = ({ onClose, onExport, accounts }
         setSelectedTypes(prev => 
             prev.includes(id) ? prev.filter(t => t !== id) : [...prev, id]
         );
+    };
+
+    const toggleSelectAll = () => {
+        if (selectedTypes.length === DATA_TYPES.length) {
+            setSelectedTypes([]);
+        } else {
+            setSelectedTypes(DATA_TYPES.map(d => d.id));
+        }
     };
 
     const toggleAccount = (id: string) => {
@@ -61,6 +71,8 @@ const ExportModal: React.FC<ExportModalProps> = ({ onClose, onExport, accounts }
         });
         onClose();
     };
+
+    const isAllSelected = selectedTypes.length === DATA_TYPES.length;
 
     return (
         <Modal onClose={onClose} title="Export Data">
@@ -84,8 +96,19 @@ const ExportModal: React.FC<ExportModalProps> = ({ onClose, onExport, accounts }
 
                 {/* Data Types */}
                 <div>
-                    <h4 className="text-xs font-bold uppercase text-light-text-secondary dark:text-dark-text-secondary tracking-wider mb-3">Include Data</h4>
-                    <div className="grid grid-cols-2 gap-2">
+                    <div className="flex justify-between items-center mb-3">
+                        <h4 className="text-xs font-bold uppercase text-light-text-secondary dark:text-dark-text-secondary tracking-wider">Include Data</h4>
+                        <label className="flex items-center gap-2 cursor-pointer hover:bg-black/5 dark:hover:bg-white/5 px-2 py-1 rounded transition-colors">
+                             <input 
+                                type="checkbox" 
+                                checked={isAllSelected} 
+                                onChange={toggleSelectAll} 
+                                className={CHECKBOX_STYLE} 
+                             />
+                             <span className="text-xs font-medium text-light-text dark:text-dark-text">Select All</span>
+                        </label>
+                    </div>
+                    <div className="grid grid-cols-2 gap-2 max-h-60 overflow-y-auto pr-1">
                         {DATA_TYPES.map(type => (
                             <label key={type.id} className={`flex items-center gap-3 p-3 rounded-lg border cursor-pointer transition-all ${selectedTypes.includes(type.id) ? 'bg-primary-50 dark:bg-primary-900/20 border-primary-200 dark:border-primary-800' : 'bg-light-bg dark:bg-dark-bg border-transparent hover:bg-black/5 dark:hover:bg-white/5'}`}>
                                 <input type="checkbox" checked={selectedTypes.includes(type.id)} onChange={() => toggleType(type.id)} className={CHECKBOX_STYLE} />

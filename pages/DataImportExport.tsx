@@ -24,10 +24,9 @@ interface DataManagementProps {
   onDeleteHistoryItem: (id: string) => void;
   onDeleteImportedTransactions: (importId: string) => void;
   onResetAccount: () => void;
-  onExportAllData?: () => void;
   setCurrentPage: (page: Page) => void;
   onRestoreData: (data: FinancialData) => void;
-  fullFinancialData: FinancialData;
+  fullFinancialData: FinancialData; 
 }
 
 const StatusBadge: React.FC<{ status: HistoryStatus }> = ({ status }) => {
@@ -59,7 +58,6 @@ const NewImportModal: React.FC<{ onClose: () => void, onSelect: (type: ImportDat
     const sources: { name: string; icon: string; type: ImportDataType, enabled: boolean, description: string }[] = [
         { name: 'Transactions (CSV)', icon: 'receipt_long', type: 'transactions', enabled: true, description: 'Import transactions from a CSV file.' },
         { name: 'Accounts (CSV)', icon: 'wallet', type: 'accounts', enabled: true, description: 'Import accounts from a CSV file.' },
-        // { name: 'OFX / QIF file', icon: 'file_upload', type: 'mint', enabled: false, description: 'Import from financial software formats. (Coming soon)' },
     ];
     
     return (
@@ -108,7 +106,10 @@ const StatCard: React.FC<{ title: string; value: string | number; icon: string; 
 
 const DataManagement: React.FC<DataManagementProps> = (props) => {
     const [isNewImportModalOpen, setNewImportModalOpen] = useState(false);
-    const [isExportModalOpen, setExportModalOpen] = useState(false);
+    
+    // Updated state to handle export format
+    const [exportConfig, setExportConfig] = useState<{ isOpen: boolean; format: 'json' | 'csv' }>({ isOpen: false, format: 'csv' });
+    
     const [isRestoreModalOpen, setRestoreModalOpen] = useState(false);
     
     const [isWizardOpen, setWizardOpen] = useState(false);
@@ -321,7 +322,16 @@ const DataManagement: React.FC<DataManagementProps> = (props) => {
   return (
     <div className="space-y-8 max-w-6xl mx-auto pb-12 animate-fade-in-up">
       {isNewImportModalOpen && <NewImportModal onClose={() => setNewImportModalOpen(false)} onSelect={handleSelectImportType} />}
-      {isExportModalOpen && <ExportModal onClose={() => setExportModalOpen(false)} onExport={processExport} accounts={props.accounts} />}
+      
+      {exportConfig.isOpen && (
+        <ExportModal 
+            onClose={() => setExportConfig({ ...exportConfig, isOpen: false })} 
+            onExport={processExport} 
+            accounts={props.accounts} 
+            initialFormat={exportConfig.format}
+        />
+      )}
+
       {isRestoreModalOpen && <SmartRestoreModal onClose={() => setRestoreModalOpen(false)} onRestore={handleGranularRestore} currentData={props.fullFinancialData} />}
       
       {viewingDetails && <ImportDetailsModal item={viewingDetails} onClose={() => setViewingDetails(null)} onDeleteImport={props.onDeleteImportedTransactions} />}
@@ -401,7 +411,7 @@ const DataManagement: React.FC<DataManagementProps> = (props) => {
                         <span className="material-symbols-outlined">add</span>
                         Import CSV
                     </button>
-                    <button onClick={() => setExportModalOpen(true)} className={`${BTN_SECONDARY_STYLE} w-full flex justify-center items-center gap-2 !py-3`}>
+                    <button onClick={() => setExportConfig({ isOpen: true, format: 'csv' })} className={`${BTN_SECONDARY_STYLE} w-full flex justify-center items-center gap-2 !py-3`}>
                         <span className="material-symbols-outlined">download</span>
                         Export Data
                     </button>
@@ -420,7 +430,7 @@ const DataManagement: React.FC<DataManagementProps> = (props) => {
                     </div>
                 </div>
                 <div className="mt-auto pt-6 grid grid-cols-2 gap-4">
-                    <button onClick={() => setExportModalOpen(true)} className={`${BTN_SECONDARY_STYLE} w-full flex justify-center items-center gap-2 !py-3`}>
+                    <button onClick={() => setExportConfig({ isOpen: true, format: 'json' })} className={`${BTN_SECONDARY_STYLE} w-full flex justify-center items-center gap-2 !py-3`}>
                          {/* We reuse export modal but user chooses JSON format there */}
                         <span className="material-symbols-outlined">cloud_download</span>
                         Backup
