@@ -2,7 +2,7 @@
 import React, { Dispatch, SetStateAction } from 'react';
 
 // FIX: Add 'AI Assistant' to Page type
-export type Page = 'Dashboard' | 'Accounts' | 'Transactions' | 'Budget' | 'Forecasting' | 'Settings' | 'Schedule & Bills' | 'Tasks' | 'Categories' | 'Tags' | 'Personal Info' | 'Data Management' | 'Preferences' | 'AccountDetail' | 'Investments' | 'Warrants' | 'Documentation' | 'AI Assistant' | 'Subscriptions' | 'Quotes & Invoices';
+export type Page = 'Dashboard' | 'Accounts' | 'Transactions' | 'Budget' | 'Forecasting' | 'Settings' | 'Schedule & Bills' | 'Tasks' | 'Categories' | 'Tags' | 'Personal Info' | 'Data Management' | 'Preferences' | 'AccountDetail' | 'Investments' | 'HoldingDetail' | 'Warrants' | 'Documentation' | 'AI Assistant' | 'Subscriptions' | 'Quotes & Invoices';
 
 export type AccountType = 'Checking' | 'Savings' | 'Credit Card' | 'Investment' | 'Loan' | 'Property' | 'Vehicle' | 'Other Assets' | 'Other Liabilities' | 'Lending';
 
@@ -239,6 +239,35 @@ export interface InvestmentTransaction {
   price: number; // Price per unit
   date: string;
   type: 'buy' | 'sell';
+}
+
+export interface HoldingSummary {
+  symbol: string;
+  name: string;
+  quantity: number;
+  totalCost: number;
+  currentValue: number;
+  currentPrice: number;
+  type: 'Standard' | 'Warrant';
+  subType?: InvestmentSubType;
+  warrantId?: string;
+  color?: string;
+}
+
+export interface HoldingDistribution {
+  name: string;
+  value: number;
+  color: string;
+}
+
+export interface HoldingsOverview {
+  holdings: HoldingSummary[];
+  totalValue: number;
+  totalCostBasis: number;
+  investedCapital: number;
+  grantedCapital: number;
+  distributionData: HoldingDistribution[];
+  typeBreakdown: HoldingDistribution[];
 }
 
 export interface CategorySpending {

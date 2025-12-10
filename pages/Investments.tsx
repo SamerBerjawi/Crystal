@@ -1,6 +1,6 @@
 
 import React, { useState, useMemo, useCallback } from 'react';
-import { Account, InvestmentTransaction, Transaction, Warrant, InvestmentSubType } from '../types';
+import { Account, InvestmentTransaction, Transaction, Warrant, InvestmentSubType, HoldingsOverview } from '../types';
 import { BTN_PRIMARY_STYLE, BRAND_COLORS, BTN_SECONDARY_STYLE, INVESTMENT_SUB_TYPE_STYLES } from '../constants';
 import Card from '../components/Card';
 import { formatCurrency, parseDateAsUTC } from '../utils';
@@ -9,6 +9,7 @@ import PortfolioDistributionChart from '../components/PortfolioDistributionChart
 import WarrantModal from '../components/WarrantModal';
 import WarrantPriceModal from '../components/WarrantPriceModal';
 import { PieChart, Pie, Cell, ResponsiveContainer, Tooltip } from 'recharts';
+import { buildHoldingsOverview } from '../utils/investments';
 
 interface InvestmentsProps {
     accounts: Account[];
@@ -23,6 +24,8 @@ interface InvestmentsProps {
     manualPrices: Record<string, number | undefined>;
     onManualPriceChange: (isin: string, price: number | null) => void;
     prices: Record<string, number | null>;
+    onOpenHoldingDetail: (symbol: string) => void;
+    holdingsOverview?: HoldingsOverview;
 }
 
 // Helper components for the redesign
@@ -46,19 +49,21 @@ const MetricCard: React.FC<{ label: string; value: string; subValue?: string; su
     </div>
 );
 
-const Investments: React.FC<InvestmentsProps> = ({ 
-    accounts, 
-    cashAccounts, 
-    investmentTransactions, 
-    saveInvestmentTransaction, 
-    deleteInvestmentTransaction, 
-    saveTransaction, 
+const Investments: React.FC<InvestmentsProps> = ({
+    accounts,
+    cashAccounts,
+    investmentTransactions,
+    saveInvestmentTransaction,
+    deleteInvestmentTransaction,
+    saveTransaction,
     warrants,
     saveWarrant,
     deleteWarrant,
     manualPrices,
     onManualPriceChange,
-    prices
+    prices,
+    onOpenHoldingDetail,
+    holdingsOverview
 }) => {
     const [isModalOpen, setIsModalOpen] = useState(false);
     const [isWarrantModalOpen, setWarrantModalOpen] = useState(false);
@@ -70,129 +75,9 @@ const Investments: React.FC<InvestmentsProps> = ({
     // Include only Stocks, ETFs, Crypto for the Investments page
     const investmentAccounts = useMemo(() => (accounts || []).filter(a => a.type === 'Investment' && ['Stock', 'ETF', 'Crypto'].includes(a.subType || '')), [accounts]);
 
-    const { holdings, totalValue, totalCostBasis, investedCapital, grantedCapital, distributionData, typeBreakdown } = useMemo(() => {
-        const holdingsMap: Record<string, {
-            symbol: string;
-            name: string;
-            quantity: number;
-            totalCost: number;
-            currentValue: number;
-            currentPrice: number;
-            type: 'Standard' | 'Warrant';
-            subType?: InvestmentSubType;
-            warrantId?: string;
-            color?: string;
-        }> = {};
+    const overview = useMemo(() => holdingsOverview || buildHoldingsOverview(investmentAccounts, investmentTransactions, warrants, prices), [holdingsOverview, investmentAccounts, investmentTransactions, warrants, prices]);
 
-        // 1. Process Standard Investments
-        investmentAccounts.forEach(acc => {
-            if (acc.symbol) {
-                holdingsMap[acc.symbol] = {
-                    symbol: acc.symbol,
-                    name: acc.name,
-                    quantity: 0,
-                    totalCost: 0,
-                    currentValue: acc.balance, 
-                    currentPrice: 0, 
-                    type: 'Standard',
-                    subType: acc.subType
-                };
-            }
-        });
-        
-        [...investmentTransactions].sort((a,b) => parseDateAsUTC(a.date).getTime() - parseDateAsUTC(b.date).getTime()).forEach(tx => {
-            if (!holdingsMap[tx.symbol]) return;
-            
-            const holding = holdingsMap[tx.symbol];
-            if (tx.type === 'buy') {
-                holding.quantity += tx.quantity;
-                holding.totalCost += tx.quantity * tx.price;
-            } else { // sell
-                const avgCost = holding.quantity > 0 ? holding.totalCost / holding.quantity : 0;
-                holding.totalCost -= tx.quantity * avgCost;
-                holding.quantity -= tx.quantity;
-            }
-        });
-        
-
-        // 2. Process Warrants
-        warrants.forEach(w => {
-             if (!holdingsMap[w.isin]) {
-                 holdingsMap[w.isin] = {
-                     symbol: w.isin,
-                     name: w.name,
-                     quantity: 0,
-                     totalCost: 0,
-                     currentValue: 0, 
-                     currentPrice: 0,
-                     type: 'Warrant',
-                     subType: 'Other',
-                     warrantId: w.id
-                 };
-             }
-             
-             const holding = holdingsMap[w.isin];
-             // If the holding was initialized from an account, it's a warrant
-             holding.type = 'Warrant';
-             holding.quantity += w.quantity;
-             // Accumulate cost basis: Initial grant price * Quantity
-             holding.totalCost += w.quantity * w.grantPrice; 
-        });
-
-        // Final pass to ensure warrant values are correct (Qty * Price)
-        Object.values(holdingsMap).forEach(h => {
-            // For both Warrants and Standard Investments, rely on the manually set price map passed from App
-            const price = prices[h.symbol] ?? 0;
-            h.currentPrice = price;
-            h.currentValue = h.quantity * price;
-        });
-
-        const filteredHoldings = Object.values(holdingsMap).filter(h => h.quantity > 0.000001);
-        const totalVal = filteredHoldings.reduce((sum, h) => sum + h.currentValue, 0);
-        
-        let investedCap = 0;
-        let grantedCap = 0;
-        
-        filteredHoldings.forEach(h => {
-             if (h.type === 'Warrant') {
-                 grantedCap += h.totalCost;
-             } else {
-                 investedCap += h.totalCost;
-             }
-        });
-        
-        const totalCost = investedCap + grantedCap;
-
-        const distData = filteredHoldings.map((holding, index) => {
-            const color = BRAND_COLORS[index % BRAND_COLORS.length];
-            holding.color = color; // Assign color for UI consistency
-            return {
-                name: holding.symbol,
-                value: holding.currentValue,
-                color: color
-            };
-        }).filter(d => d.value > 0).sort((a,b) => b.value - a.value);
-
-        // Breakdown by Asset Type (Stock, Crypto, ETF, Warrant)
-        const typeDataRaw: Record<string, number> = {};
-        filteredHoldings.forEach(h => {
-            const typeLabel = h.type === 'Warrant' ? 'Warrants' : (h.subType || 'Other');
-            typeDataRaw[typeLabel] = (typeDataRaw[typeLabel] || 0) + h.currentValue;
-        });
-        const typeBreakdown = Object.entries(typeDataRaw).map(([name, value], idx) => ({
-            name, value, color: ['#6366F1', '#10B981', '#F59E0B', '#EF4444', '#8B5CF6'][idx % 5]
-        })).sort((a,b) => b.value - a.value);
-
-        return { 
-            holdings: filteredHoldings, 
-            totalValue: totalVal, 
-            totalCostBasis: totalCost, 
-            investedCapital: investedCap, 
-            grantedCapital: grantedCap, 
-            distributionData: distData, 
-            typeBreakdown 
-        };
-    }, [investmentAccounts, investmentTransactions, warrants, manualPrices, prices]);
+    const { holdings, totalValue, totalCostBasis, investedCapital, grantedCapital, distributionData, typeBreakdown } = overview;
 
     const handleOpenModal = (tx?: InvestmentTransaction) => {
         setEditingTransaction(tx || null);
@@ -380,7 +265,11 @@ const Investments: React.FC<InvestmentsProps> = ({
                                         const hasPrice = currentPrice !== 0;
 
                                         return (
-                                            <tr key={holding.symbol} className="group hover:bg-black/5 dark:hover:bg-white/5 transition-colors">
+                                            <tr
+                                                key={holding.symbol}
+                                                className="group hover:bg-black/5 dark:hover:bg-white/5 transition-colors cursor-pointer"
+                                                onClick={() => onOpenHoldingDetail(holding.symbol)}
+                                            >
                                                 <td className="py-4 pl-2">
                                                     <div className="flex items-center gap-3">
                                                         <div className={`w-10 h-10 rounded-lg flex items-center justify-center ${typeStyle.bg} ${typeStyle.text} bg-opacity-20`}>
@@ -411,19 +300,20 @@ const Investments: React.FC<InvestmentsProps> = ({
                                                 </td>
                                                 <td className="py-4 text-right">
                                                     <div className="flex justify-end gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
-                                                        <button 
-                                                            onClick={() => handleOpenPriceModal(holding.symbol, holding.name, holding.currentPrice)} 
+                                                        <button
+                                                            onClick={(e) => { e.stopPropagation(); handleOpenPriceModal(holding.symbol, holding.name, holding.currentPrice); }}
                                                             className="p-1.5 rounded-md text-light-text-secondary dark:text-dark-text-secondary hover:bg-black/10 dark:hover:bg-white/10"
                                                             title="Update Price"
                                                         >
                                                             <span className="material-symbols-outlined text-lg">edit_note</span>
                                                         </button>
                                                         {holding.type === 'Warrant' && (
-                                                            <button 
-                                                                onClick={() => {
+                                                            <button
+                                                                onClick={(e) => {
+                                                                    e.stopPropagation();
                                                                     const warrant = warrants.find(w => w.id === holding.warrantId);
                                                                     if(warrant) handleOpenWarrantModal(warrant);
-                                                                }} 
+                                                                }}
                                                                 className="p-1.5 rounded-md text-light-text-secondary dark:text-dark-text-secondary hover:bg-black/10 dark:hover:bg-white/10"
                                                                 title="Edit Grant"
                                                             >
