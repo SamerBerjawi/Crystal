@@ -12,6 +12,7 @@ import FinalConfirmationModal from '../components/FinalConfirmationModal';
 import SmartRestoreModal from '../components/SmartRestoreModal';
 import { v4 as uuidv4 } from 'uuid';
 import { arrayToCSV, downloadCSV, parseDateAsUTC } from '../utils';
+import JSZip from 'jszip';
 
 interface DataManagementProps {
   accounts: Account[];
@@ -117,6 +118,7 @@ const DataManagement: React.FC<DataManagementProps> = (props) => {
     const [viewingDetails, setViewingDetails] = useState<ImportExportHistoryItem | null>(null);
     const [confirmingAction, setConfirmingAction] = useState<{ type: 'reset' } | null>(null);
     const [isFinalConfirmOpen, setFinalConfirmOpen] = useState(false);
+    const [isProcessing, setIsProcessing] = useState(false);
 
     // Sort history descending by date
     const sortedHistory = useMemo(() => {
@@ -139,111 +141,141 @@ const DataManagement: React.FC<DataManagementProps> = (props) => {
     };
     
     // Process the granular export request
-    const processExport = (config: ExportConfig) => {
+    const processExport = async (config: ExportConfig) => {
+        setIsProcessing(true);
         const { format, dataTypes, dateRange, accountIds } = config;
         
-        // Filter Transactions
-        let filteredTransactions = props.transactions;
-        if (dateRange) {
-            const start = parseDateAsUTC(dateRange.start);
-            const end = parseDateAsUTC(dateRange.end);
-            end.setHours(23, 59, 59, 999);
-            filteredTransactions = filteredTransactions.filter(t => {
-                const d = parseDateAsUTC(t.date);
-                return d >= start && d <= end;
-            });
-        }
-        if (accountIds && accountIds.length > 0) {
-            filteredTransactions = filteredTransactions.filter(t => accountIds.includes(t.accountId));
-        }
-
-        // Filter Accounts
-        let filteredAccounts = props.accounts;
-        if (accountIds && accountIds.length > 0) {
-            filteredAccounts = filteredAccounts.filter(a => accountIds.includes(a.id));
-        }
-
-        if (format === 'json') {
-            // Build granular JSON
-            const exportData: any = {};
-            if (dataTypes.includes('accounts')) exportData.accounts = filteredAccounts;
-            if (dataTypes.includes('transactions')) exportData.transactions = filteredTransactions;
-            if (dataTypes.includes('budgets')) exportData.budgets = props.budgets;
-            if (dataTypes.includes('schedule')) exportData.recurringTransactions = props.recurringTransactions;
-            if (dataTypes.includes('categories')) {
-                exportData.incomeCategories = props.allCategories.filter(c => c.classification === 'income');
-                exportData.expenseCategories = props.allCategories.filter(c => c.classification === 'expense');
+        try {
+            // Filter Transactions
+            let filteredTransactions = props.transactions;
+            if (dateRange) {
+                const start = parseDateAsUTC(dateRange.start);
+                const end = parseDateAsUTC(dateRange.end);
+                end.setHours(23, 59, 59, 999);
+                filteredTransactions = filteredTransactions.filter(t => {
+                    const d = parseDateAsUTC(t.date);
+                    return d >= start && d <= end;
+                });
             }
-            if (props.fullFinancialData) {
-                 if (dataTypes.includes('investments')) {
-                     exportData.investmentTransactions = props.fullFinancialData.investmentTransactions;
-                     exportData.warrants = props.fullFinancialData.warrants;
-                 }
-                 if (dataTypes.includes('schedule')) {
-                      exportData.billsAndPayments = props.fullFinancialData.billsAndPayments;
-                 }
-                 if (dataTypes.includes('invoices')) {
-                     exportData.invoices = props.fullFinancialData.invoices;
-                 }
-                 if (dataTypes.includes('memberships')) {
-                     exportData.memberships = props.fullFinancialData.memberships;
-                 }
-                 if (dataTypes.includes('goals')) {
-                     exportData.financialGoals = props.fullFinancialData.financialGoals;
-                 }
-                 if (dataTypes.includes('tasks')) {
-                     exportData.tasks = props.fullFinancialData.tasks;
-                 }
-                 if (dataTypes.includes('tags')) {
-                     exportData.tags = props.fullFinancialData.tags;
-                 }
+            if (accountIds && accountIds.length > 0) {
+                filteredTransactions = filteredTransactions.filter(t => accountIds.includes(t.accountId));
             }
-            
-            const blob = new Blob([JSON.stringify(exportData, null, 2)], { type: 'application/json' });
-            const url = URL.createObjectURL(blob);
-            const a = document.createElement('a');
-            a.href = url;
-            a.download = `crystal-export-${new Date().toISOString().split('T')[0]}.json`;
-            document.body.appendChild(a);
-            a.click();
-            document.body.removeChild(a);
-            URL.revokeObjectURL(url);
-            
-        } else {
-            // CSV Export logic
-            dataTypes.forEach(type => {
-                let data: any[] = [];
-                let filename = `crystal-${type}.csv`;
 
-                if (type === 'transactions') {
-                    data = filteredTransactions;
-                } else if (type === 'accounts') {
-                    data = filteredAccounts;
-                } else if (type === 'categories') {
-                    data = props.allCategories;
-                } else if (type === 'budgets') {
-                    data = props.budgets;
-                } else if (type === 'schedule') {
-                    data = [...props.recurringTransactions, ...props.fullFinancialData.billsAndPayments];
-                } else if (type === 'investments' && props.fullFinancialData) {
-                    data = props.fullFinancialData.investmentTransactions;
-                } else if (type === 'invoices' && props.fullFinancialData) {
-                    data = props.fullFinancialData.invoices || [];
-                } else if (type === 'memberships' && props.fullFinancialData) {
-                    data = props.fullFinancialData.memberships || [];
-                } else if (type === 'goals' && props.fullFinancialData) {
-                    data = props.fullFinancialData.financialGoals || [];
-                } else if (type === 'tasks' && props.fullFinancialData) {
-                    data = props.fullFinancialData.tasks || [];
-                } else if (type === 'tags' && props.fullFinancialData) {
-                    data = props.fullFinancialData.tags || [];
-                }
+            // Filter Accounts
+            let filteredAccounts = props.accounts;
+            if (accountIds && accountIds.length > 0) {
+                filteredAccounts = filteredAccounts.filter(a => accountIds.includes(a.id));
+            }
 
-                if (data.length > 0) {
-                     const csv = arrayToCSV(data);
-                     downloadCSV(csv, filename);
+            if (format === 'json') {
+                // Build granular JSON
+                const exportData: any = {};
+                if (dataTypes.includes('accounts')) exportData.accounts = filteredAccounts;
+                if (dataTypes.includes('transactions')) exportData.transactions = filteredTransactions;
+                if (dataTypes.includes('budgets')) exportData.budgets = props.budgets;
+                if (dataTypes.includes('schedule')) exportData.recurringTransactions = props.recurringTransactions;
+                if (dataTypes.includes('categories')) {
+                    exportData.incomeCategories = props.allCategories.filter(c => c.classification === 'income');
+                    exportData.expenseCategories = props.allCategories.filter(c => c.classification === 'expense');
                 }
-            });
+                if (props.fullFinancialData) {
+                    if (dataTypes.includes('investments')) {
+                        exportData.investmentTransactions = props.fullFinancialData.investmentTransactions;
+                        exportData.warrants = props.fullFinancialData.warrants;
+                    }
+                    if (dataTypes.includes('schedule')) {
+                        exportData.billsAndPayments = props.fullFinancialData.billsAndPayments;
+                    }
+                    if (dataTypes.includes('invoices')) {
+                        exportData.invoices = props.fullFinancialData.invoices;
+                    }
+                    if (dataTypes.includes('memberships')) {
+                        exportData.memberships = props.fullFinancialData.memberships;
+                    }
+                    if (dataTypes.includes('goals')) {
+                        exportData.financialGoals = props.fullFinancialData.financialGoals;
+                    }
+                    if (dataTypes.includes('tasks')) {
+                        exportData.tasks = props.fullFinancialData.tasks;
+                    }
+                    if (dataTypes.includes('tags')) {
+                        exportData.tags = props.fullFinancialData.tags;
+                    }
+                }
+                
+                const blob = new Blob([JSON.stringify(exportData, null, 2)], { type: 'application/json' });
+                const url = URL.createObjectURL(blob);
+                const a = document.createElement('a');
+                a.href = url;
+                a.download = `crystal-export-${new Date().toISOString().split('T')[0]}.json`;
+                document.body.appendChild(a);
+                a.click();
+                document.body.removeChild(a);
+                URL.revokeObjectURL(url);
+                
+            } else {
+                // CSV Export logic
+                const filesToExport: { name: string, content: string }[] = [];
+
+                dataTypes.forEach(type => {
+                    let data: any[] = [];
+                    let filename = `crystal-${type}.csv`;
+
+                    if (type === 'transactions') {
+                        data = filteredTransactions;
+                    } else if (type === 'accounts') {
+                        data = filteredAccounts;
+                    } else if (type === 'categories') {
+                        data = props.allCategories;
+                    } else if (type === 'budgets') {
+                        data = props.budgets;
+                    } else if (type === 'schedule') {
+                        data = [...props.recurringTransactions, ...props.fullFinancialData.billsAndPayments];
+                    } else if (type === 'investments' && props.fullFinancialData) {
+                        data = props.fullFinancialData.investmentTransactions;
+                    } else if (type === 'invoices' && props.fullFinancialData) {
+                        data = props.fullFinancialData.invoices || [];
+                    } else if (type === 'memberships' && props.fullFinancialData) {
+                        data = props.fullFinancialData.memberships || [];
+                    } else if (type === 'goals' && props.fullFinancialData) {
+                        data = props.fullFinancialData.financialGoals || [];
+                    } else if (type === 'tasks' && props.fullFinancialData) {
+                        data = props.fullFinancialData.tasks || [];
+                    } else if (type === 'tags' && props.fullFinancialData) {
+                        data = props.fullFinancialData.tags || [];
+                    }
+
+                    if (data.length > 0) {
+                        filesToExport.push({ name: filename, content: arrayToCSV(data) });
+                    }
+                });
+
+                if (filesToExport.length === 1) {
+                    // Single file download
+                    downloadCSV(filesToExport[0].content, filesToExport[0].name);
+                } else if (filesToExport.length > 1) {
+                    // Multiple files: Zip them
+                    const zip = new JSZip();
+                    filesToExport.forEach(file => {
+                        zip.file(file.name, file.content);
+                    });
+                    
+                    const blob = await zip.generateAsync({ type: 'blob' });
+                    const url = URL.createObjectURL(blob);
+                    const a = document.createElement('a');
+                    a.href = url;
+                    a.download = `crystal-export-${new Date().toISOString().split('T')[0]}.zip`;
+                    document.body.appendChild(a);
+                    a.click();
+                    document.body.removeChild(a);
+                    URL.revokeObjectURL(url);
+                }
+            }
+        } catch (error) {
+            console.error("Export failed:", error);
+            alert("Export failed. Please check console for details.");
+        } finally {
+            setIsProcessing(false);
         }
     };
 
@@ -361,6 +393,18 @@ const DataManagement: React.FC<DataManagementProps> = (props) => {
           requiredText="RESET"
           confirmButtonText={'Reset account'}
         />
+      )}
+      
+      {isProcessing && (
+         <div className="fixed inset-0 bg-black/50 z-[100] flex items-center justify-center">
+            <div className="bg-white dark:bg-dark-card p-6 rounded-xl flex flex-col items-center shadow-2xl">
+                <svg className="animate-spin h-8 w-8 text-primary-500 mb-4" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                  <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
+                  <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                </svg>
+                <p className="text-light-text dark:text-dark-text font-medium">Preparing export...</p>
+            </div>
+         </div>
       )}
 
 
