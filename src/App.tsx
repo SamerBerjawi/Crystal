@@ -342,7 +342,8 @@ const App: React.FC = () => {
       }
     });
 
-    Object.entries(manualWarrantPrices).forEach(([symbol, price]) => {
+    const manualPriceEntries = Object.entries(manualWarrantPrices) as [string, number | undefined][];
+    manualPriceEntries.forEach(([symbol, price]) => {
       if (price !== undefined) {
         resolved[symbol] = price;
       }

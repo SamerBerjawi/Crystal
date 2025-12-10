@@ -161,14 +161,14 @@ const sections: Section[] = [
         title: 'Investments',
         icon: 'candlestick_chart',
         iconColor: 'text-cyan-500',
-        content: (
+            content: (
             <div className="space-y-4">
                 <p>
-                    Track your portfolio performance with automated price updates.
+                    Track your portfolio performance with manually maintained prices.
                 </p>
                 <ul className="list-disc list-inside space-y-2 ml-2">
-                    <li><strong>Standard Assets:</strong> Stocks and Crypto prices are fetched automatically where available.</li>
-                    <li><strong>Warrants:</strong> Specialized tracking for employee equity grants. You can even configure a custom web scraper to fetch live prices for private or obscure assets.</li>
+                    <li><strong>Standard Assets:</strong> Enter and update stock and crypto prices yourself to keep valuations current.</li>
+                    <li><strong>Warrants:</strong> Specialized tracking for employee equity grants with manual price inputs for each grant.</li>
                     <li><strong>Analysis:</strong> View asset allocation pie charts and track your total gains/losses over time.</li>
                 </ul>
             </div>
