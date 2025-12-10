@@ -1,6 +1,5 @@
 
-import React, { useState, useEffect } from 'react';
-import { Category, Page, AccountType, Currency, Theme, RecurrenceFrequency, WeekendAdjustment, DefaultAccountOrder, Duration, InvestmentSubType, PropertyType, FuelType, VehicleOwnership, ForecastDuration, OtherAssetSubType, OtherLiabilitySubType } from './types';
+import { Category, Page, AccountType, Currency, RecurrenceFrequency, WeekendAdjustment, DefaultAccountOrder, Duration, InvestmentSubType, PropertyType, FuelType, VehicleOwnership, ForecastDuration, OtherAssetSubType, OtherLiabilitySubType } from './types';
 
 
 // FIX: Renamed AuraFinanceLogo to CrystalLogo to finalize rebranding.
