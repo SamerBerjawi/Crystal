@@ -1,6 +1,6 @@
 
 import React, { useState, useRef, useMemo, useCallback } from 'react';
-import { Account, Transaction, Budget, RecurringTransaction, ImportExportHistoryItem, HistoryStatus, ImportDataType, Category, Page, FinancialData } from '../types';
+import { Account, Transaction, Budget, RecurringTransaction, ImportExportHistoryItem, HistoryStatus, ImportDataType, Category, Page, FinancialData, Task, FinancialGoal, Membership, Tag, Invoice, BillPayment } from '../types';
 import Card from '../components/Card';
 import { BTN_PRIMARY_STYLE, BTN_SECONDARY_STYLE } from '../constants';
 import Modal from '../components/Modal';
@@ -13,6 +13,9 @@ import SmartRestoreModal from '../components/SmartRestoreModal';
 import { v4 as uuidv4 } from 'uuid';
 import { arrayToCSV, downloadCSV, parseDateAsUTC } from '../utils';
 import JSZip from 'jszip';
+import { useBudgetsContext, useCategoryContext, useGoalsContext, useScheduleContext, useTagsContext } from '../contexts/FinancialDataContext';
+import { useInvoicesContext, useTransactionsContext, useWarrantsContext, useAccountsContext } from '../contexts/DomainProviders';
+
 
 interface DataManagementProps {
   accounts: Account[];
@@ -110,6 +113,22 @@ const StatCard: React.FC<{ title: string; value: string | number; icon: string; 
 );
 
 const DataManagement: React.FC<DataManagementProps> = (props) => {
+    // Contexts for saving specific data types
+    const { saveBudget } = useBudgetsContext();
+    const { setIncomeCategories, setExpenseCategories } = useCategoryContext();
+    const { saveFinancialGoal } = useGoalsContext();
+    const { saveRecurringTransaction, saveMembership } = useScheduleContext();
+    const { saveTag } = useTagsContext();
+    const { saveInvoice } = useInvoicesContext();
+    const { saveTransaction } = useTransactionsContext(); 
+    const { saveAccount } = useAccountsContext();
+    
+    // We handle Task saving via generic prop from App.tsx usually, but here we can try to use a saveTask if we had context.
+    // Since App.tsx passes `tasks` and `saveTask` to Dashboard, it's not globally available via context yet.
+    // However, App.tsx's `handlePublishImport` already handles basic saving for many types based on previous implementation. 
+    // We will rely on `props.onPublishImport` which calls `handlePublishImport` in App.tsx. 
+    // I will ensure App.tsx's `handlePublishImport` is updated to handle all types.
+
     const [isNewImportModalOpen, setNewImportModalOpen] = useState(false);
     const [exportConfig, setExportConfig] = useState<{ isOpen: boolean; format: 'json' | 'csv' }>({ isOpen: false, format: 'csv' });
     const [isRestoreModalOpen, setRestoreModalOpen] = useState(false);

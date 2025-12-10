@@ -943,23 +943,24 @@ const App: React.FC = () => {
     }
   }, [tasks, taskOrder, setTaskOrder]);
 
-  const handleSignIn = useCallback(async (email: string, password: string) => {
+  // Auth handlers
+  const handleSignIn = async (email: string, password: string) => {
     setIsDataLoaded(false);
     const financialData = await signIn(email, password);
     if (financialData) {
       loadAllFinancialData(financialData, { skipNextSave: true });
     }
     setIsDataLoaded(true);
-  }, [signIn, loadAllFinancialData]);
+  };
 
-  const handleSignUp = useCallback(async (newUserData: { firstName: string, lastName: string, email: string, password: string }) => {
+  const handleSignUp = async (newUserData: { firstName: string, lastName: string, email: string, password: string }) => {
     setIsDataLoaded(false);
     const financialData = await signUp(newUserData);
     if (financialData) {
       loadAllFinancialData(financialData, { skipNextSave: true });
     }
     setIsDataLoaded(true);
-  }, [signUp, loadAllFinancialData]);
+  };
 
   const finalizeLogout = useCallback(() => {
     signOut();
@@ -977,7 +978,7 @@ const App: React.FC = () => {
     setDemoUser,
   ]);
 
-  const handleLogoutWithSave = useCallback(() => {
+  const handleLogout = useCallback(() => {
     if (!isDemoMode && isAuthenticated && isDataLoaded) {
       saveData(latestDataRef.current)
         .catch(err => console.error('Failed to save data before logout:', err))
@@ -1039,6 +1040,7 @@ const App: React.FC = () => {
   };
 
   const handleDeleteAccount = useCallback((accountId: string) => {
+    const accountToDelete = accounts.find(acc => acc.id === accountId);
     const impactedRecurringIds = new Set(
       recurringTransactions
         .filter(rt => rt.accountId === accountId || rt.toAccountId === accountId)
@@ -1062,6 +1064,7 @@ const App: React.FC = () => {
       setCurrentPage('Accounts');
     }
   }, [
+    accounts,
     recurringTransactions,
     viewingAccountId,
     setCurrentPage,
@@ -1426,7 +1429,7 @@ const App: React.FC = () => {
 
   // --- Data Import / Export ---
   const handlePublishImport = (
-    items: (Omit<Account, 'id'> | Omit<Transaction, 'id'>)[],
+    items: any[],
     dataType: ImportDataType,
     fileName: string,
     originalData: Record<string, any>[],
@@ -1435,11 +1438,12 @@ const App: React.FC = () => {
   ) => {
       const importId = `imp-${uuidv4()}`;
       
-      // First save any new accounts created during import mapping
+      // First save any new accounts created during import mapping (usually for transactions)
       if (newAccounts && newAccounts.length > 0) {
           newAccounts.forEach(acc => handleSaveAccount(acc));
       }
 
+      // Handle specific data type logic
       if (dataType === 'accounts') {
           const newAccounts = items as Omit<Account, 'id'>[];
           newAccounts.forEach(acc => handleSaveAccount(acc));
@@ -1449,6 +1453,50 @@ const App: React.FC = () => {
           const transactionsWithImportId = newTransactions.map(t => ({ ...t, importId }));
           handleSaveTransaction(transactionsWithImportId);
       }
+      else if (dataType === 'categories') {
+          const newCategories = items as Category[];
+          // Distribute to income/expense based on classification
+          const incomeCats = newCategories.filter(c => c.classification === 'income');
+          const expenseCats = newCategories.filter(c => c.classification === 'expense');
+          
+          if (incomeCats.length > 0) setIncomeCategories([...incomeCategories, ...incomeCats]);
+          if (expenseCats.length > 0) setExpenseCategories([...expenseCategories, ...expenseCats]);
+      }
+      else if (dataType === 'budgets') {
+           const newBudgets = items as Omit<Budget, 'id'>[];
+           newBudgets.forEach(b => handleSaveBudget(b));
+      }
+      else if (dataType === 'tasks') {
+           const newTasks = items as Omit<Task, 'id'>[];
+           newTasks.forEach(t => handleSaveTask(t));
+      }
+      else if (dataType === 'goals') {
+          const newGoals = items as Omit<FinancialGoal, 'id'>[];
+          newGoals.forEach(g => handleSaveFinancialGoal(g));
+      }
+      else if (dataType === 'tags') {
+          const newTags = items as Omit<Tag, 'id'>[];
+          newTags.forEach(t => handleSaveTag(t));
+      }
+      else if (dataType === 'invoices') {
+           const newInvoices = items as Omit<Invoice, 'id'>[];
+           newInvoices.forEach(i => handleSaveInvoice(i));
+      }
+      else if (dataType === 'memberships') {
+           const newMemberships = items as Omit<Membership, 'id'>[];
+           newMemberships.forEach(m => handleSaveMembership(m));
+      }
+      else if (dataType === 'schedule') {
+           // Basic recurring transactions import
+           const newRecurring = items as Omit<RecurringTransaction, 'id'>[];
+           newRecurring.forEach(rt => handleSaveRecurringTransaction(rt));
+      }
+      else if (dataType === 'investments') {
+           // Basic investment transaction import
+           const newInv = items as Omit<InvestmentTransaction, 'id'>[];
+           newInv.forEach(inv => handleSaveInvestmentTransaction(inv));
+      }
+      
       setImportExportHistory(prev => [...prev, {
           id: importId, type: 'import', dataType, fileName, date: new Date().toISOString(),
           status: Object.keys(errors).length > 0 ? 'Failed' : 'Complete',
@@ -1699,7 +1747,7 @@ const App: React.FC = () => {
             theme={theme}
             isSidebarCollapsed={isSidebarCollapsed}
             setSidebarCollapsed={setSidebarCollapsed}
-            onLogout={handleLogoutWithSave}
+            onLogout={handleLogout}
             user={currentUser!}
           />
           <div className="flex-1 flex flex-col overflow-hidden relative z-0">
