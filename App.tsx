@@ -32,6 +32,7 @@ const loadAccountDetail = () => import('./pages/AccountDetail');
 const AccountDetail = lazy(() => import('./pages/AccountDetail'));
 const loadInvestmentsPage = () => import('./pages/Investments');
 const InvestmentsPage = lazy(loadInvestmentsPage);
+const HoldingDetail = lazy(() => import('./pages/HoldingDetail'));
 const loadTasksPage = () => import('./pages/Tasks');
 const TasksPage = lazy(loadTasksPage);
 const loadWarrantsPage = () => import('./pages/Warrants');
@@ -76,6 +77,7 @@ import { v4 as uuidv4 } from 'uuid';
 import ChatFab from './components/ChatFab';
 const Chatbot = lazy(() => import('./components/Chatbot'));
 import { convertToEur, CONVERSION_RATES, arrayToCSV, downloadCSV, parseDateAsUTC } from './utils';
+import { buildHoldingsOverview } from './utils/investments';
 import { useDebounce } from './hooks/useDebounce';
 import { useAuth } from './hooks/useAuth';
 import useLocalStorage from './hooks/useLocalStorage';
@@ -100,6 +102,7 @@ const routePathMap: Record<Page, string> = {
   Preferences: '/preferences',
   AccountDetail: '/accounts',
   Investments: '/investments',
+  HoldingDetail: '/investments',
   Warrants: '/warrants',
   Documentation: '/documentation',
   'AI Assistant': '/ai-assistant',
@@ -107,15 +110,20 @@ const routePathMap: Record<Page, string> = {
   'Quotes & Invoices': '/invoices',
 };
 
-type RouteInfo = { page: Page; matched: boolean; accountId?: string | null };
+type RouteInfo = { page: Page; matched: boolean; accountId?: string | null; holdingSymbol?: string | null };
 
 const parseRoute = (pathname: string): RouteInfo => {
   const rawPath = pathname.split('?')[0] || '/';
   const normalizedPath = rawPath !== '/' && rawPath.endsWith('/') ? rawPath.slice(0, -1) : rawPath;
   const accountMatch = normalizedPath.match(/^\/accounts\/([^/]+)$/);
+  const holdingMatch = normalizedPath.match(/^\/investments\/([^/]+)$/);
 
   if (accountMatch?.[1]) {
     return { page: 'AccountDetail', matched: true, accountId: decodeURIComponent(accountMatch[1]) };
+  }
+
+  if (holdingMatch?.[1]) {
+    return { page: 'HoldingDetail', matched: true, holdingSymbol: decodeURIComponent(holdingMatch[1]) };
   }
 
   const matchedPage = (Object.entries(routePathMap) as [Page, string][])
@@ -131,6 +139,10 @@ const parseRoute = (pathname: string): RouteInfo => {
 const pageToPath = (page: Page, accountId?: string | null) => {
   if (page === 'AccountDetail' && accountId) {
     return `/accounts/${encodeURIComponent(accountId)}`;
+  }
+
+  if (page === 'HoldingDetail' && accountId) {
+    return `/investments/${encodeURIComponent(accountId)}`;
   }
 
   return routePathMap[page] || '/';
@@ -279,6 +291,7 @@ const App: React.FC = () => {
   const [isSidebarOpen, setSidebarOpen] = useState(false);
   const [isSidebarCollapsed, setSidebarCollapsed] = useState(false);
   const [viewingAccountId, setViewingAccountId] = useState<string | null>(initialRoute.accountId ?? null);
+  const [viewingHoldingSymbol, setViewingHoldingSymbol] = useState<string | null>(initialRoute.holdingSymbol ?? null);
   const [theme, setTheme] = useState<Theme>(() => {
     const storedTheme = safeLocalStorage.getItem('theme');
     return storedTheme === 'light' || storedTheme === 'dark' || storedTheme === 'system' ? storedTheme : 'system';
@@ -350,6 +363,10 @@ const App: React.FC = () => {
     return resolved;
   }, [accounts, manualWarrantPrices, warrants]);
 
+  const investmentAccounts = useMemo(() => (accounts || []).filter(a => a.type === 'Investment' && ['Stock', 'ETF', 'Crypto'].includes(a.subType || '')), [accounts]);
+
+  const holdingsOverview = useMemo(() => buildHoldingsOverview(investmentAccounts, investmentTransactions, warrants, assetPrices), [investmentAccounts, investmentTransactions, warrants, assetPrices]);
+
   // FIX: Explicitly type warrantPrices to avoid 'unknown' inference
   const warrantPrices = useMemo<Record<string, number | null>>(() => {
     const resolved: Record<string, number | null> = {};
@@ -392,6 +409,7 @@ const App: React.FC = () => {
     const route = parseRoute(currentPath);
     setCurrentPageState(route.page);
     setViewingAccountId(route.accountId ?? null);
+    setViewingHoldingSymbol(route.holdingSymbol ?? null);
 
     if (!route.matched && currentPath !== '/') {
       navigateToPath('/', true);
@@ -407,19 +425,28 @@ const App: React.FC = () => {
   }, [isPrivacyMode]);
 
   const setCurrentPage = useCallback((page: Page) => {
-    const targetPath = pageToPath(page, page === 'AccountDetail' ? viewingAccountId : null);
+    const targetPath = pageToPath(page, page === 'AccountDetail' ? viewingAccountId : page === 'HoldingDetail' ? viewingHoldingSymbol : null);
     navigateToPath(targetPath);
     setCurrentPageState(page);
 
     if (page !== 'AccountDetail') {
       setViewingAccountId(null);
     }
-  }, [navigateToPath, viewingAccountId]);
+    if (page !== 'HoldingDetail') {
+      setViewingHoldingSymbol(null);
+    }
+  }, [navigateToPath, viewingAccountId, viewingHoldingSymbol]);
 
   const handleOpenAccountDetail = useCallback((accountId: string) => {
     setViewingAccountId(accountId);
     setCurrentPageState('AccountDetail');
     navigateToPath(pageToPath('AccountDetail', accountId));
+  }, [navigateToPath]);
+
+  const handleOpenHoldingDetail = useCallback((symbol: string) => {
+    setViewingHoldingSymbol(symbol);
+    setCurrentPageState('HoldingDetail');
+    navigateToPath(pageToPath('HoldingDetail', symbol));
   }, [navigateToPath]);
 
   // Onboarding flow state
@@ -1484,6 +1511,7 @@ const App: React.FC = () => {
   }, [theme]);
   
   const viewingAccount = useMemo(() => accounts.find(a => a.id === viewingAccountId), [accounts, viewingAccountId]);
+  const viewingHolding = useMemo(() => holdingsOverview.holdings.find(h => h.symbol === viewingHoldingSymbol), [holdingsOverview, viewingHoldingSymbol]);
   const currentUser = useMemo(() => isDemoMode ? demoUser : user, [isDemoMode, demoUser, user]);
 
   // Reset the account detail view if the referenced account no longer exists to avoid state updates during render
@@ -1494,7 +1522,30 @@ const App: React.FC = () => {
     }
   }, [viewingAccount, viewingAccountId]);
 
+  useEffect(() => {
+    if (viewingHoldingSymbol && !viewingHolding) {
+      setViewingHoldingSymbol(null);
+      setCurrentPage('Investments');
+    }
+  }, [viewingHolding, viewingHoldingSymbol]);
+
   const renderPage = () => {
+    if (viewingHoldingSymbol) {
+      if (viewingHolding) {
+        return <HoldingDetail
+          holdingSymbol={viewingHoldingSymbol}
+          holdingsOverview={holdingsOverview}
+          accounts={accounts}
+          investmentTransactions={investmentTransactions}
+          warrants={warrants}
+          manualPrices={manualWarrantPrices}
+          onManualPriceChange={handleManualWarrantPrice}
+          onBack={() => setCurrentPage('Investments')}
+        />
+      }
+      return <PageLoader label="Loading holding..." />;
+    }
+
     if (viewingAccountId) {
       if (viewingAccount) {
         return <AccountDetail
@@ -1550,7 +1601,7 @@ const App: React.FC = () => {
       case 'Preferences':
         return <PreferencesPage preferences={preferences} setPreferences={setPreferences} theme={theme} setTheme={setTheme} setCurrentPage={setCurrentPage} />;
       case 'Investments':
-        return <InvestmentsPage accounts={accounts} cashAccounts={accounts.filter(a => a.type === 'Checking' || a.type === 'Savings')} investmentTransactions={investmentTransactions} saveInvestmentTransaction={handleSaveInvestmentTransaction} deleteInvestmentTransaction={handleDeleteInvestmentTransaction} saveTransaction={handleSaveTransaction} warrants={warrants} saveWarrant={handleSaveWarrant} deleteWarrant={handleDeleteWarrant} manualPrices={manualWarrantPrices} onManualPriceChange={handleManualWarrantPrice} prices={assetPrices} />;
+        return <InvestmentsPage accounts={accounts} cashAccounts={accounts.filter(a => a.type === 'Checking' || a.type === 'Savings')} investmentTransactions={investmentTransactions} saveInvestmentTransaction={handleSaveInvestmentTransaction} deleteInvestmentTransaction={handleDeleteInvestmentTransaction} saveTransaction={handleSaveTransaction} warrants={warrants} saveWarrant={handleSaveWarrant} deleteWarrant={handleDeleteWarrant} manualPrices={manualWarrantPrices} onManualPriceChange={handleManualWarrantPrice} prices={assetPrices} onOpenHoldingDetail={handleOpenHoldingDetail} holdingsOverview={holdingsOverview} />;
       case 'Warrants':
         return <WarrantsPage warrants={warrants} saveWarrant={handleSaveWarrant} deleteWarrant={handleDeleteWarrant} prices={warrantPrices} manualPrices={manualWarrantPrices} lastUpdated={lastUpdated} onManualPriceChange={handleManualWarrantPrice} />;
       case 'Tasks':
