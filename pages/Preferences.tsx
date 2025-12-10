@@ -3,6 +3,7 @@ import React from 'react';
 import { AppPreferences, Theme, Page } from '../types';
 import Card from '../components/Card';
 import { SELECT_WRAPPER_STYLE, INPUT_BASE_STYLE, SELECT_ARROW_STYLE, CURRENCY_OPTIONS, TIMEZONE_OPTIONS, COUNTRY_OPTIONS, DURATION_OPTIONS, DEFAULT_ACCOUNT_ORDER_OPTIONS, QUICK_CREATE_BUDGET_OPTIONS, FORECAST_DURATION_OPTIONS } from '../constants';
+import PageHeader from '../components/PageHeader';
 
 interface PreferencesProps {
   preferences: AppPreferences;
@@ -82,7 +83,7 @@ const Preferences: React.FC<PreferencesProps> = ({ preferences, setPreferences, 
 
   return (
     <div className="space-y-8 max-w-5xl mx-auto pb-12 animate-fade-in-up">
-      <header>
+      <header className="space-y-4">
         <div className="flex items-center gap-4">
             <button onClick={() => setCurrentPage('Settings')} className="text-light-text-secondary dark:text-dark-text-secondary p-2 rounded-full hover:bg-black/5 dark:hover:bg-white/5 transition-colors">
                 <span className="material-symbols-outlined">arrow_back</span>
@@ -93,10 +94,12 @@ const Preferences: React.FC<PreferencesProps> = ({ preferences, setPreferences, 
                 <span className="text-light-text dark:text-dark-text font-medium">Preferences</span>
             </div>
         </div>
-        <div className="mt-4">
-            <h1 className="text-3xl font-bold text-light-text dark:text-dark-text">Preferences</h1>
-            <p className="text-light-text-secondary dark:text-dark-text-secondary mt-2">Customize how Crystal looks and behaves to match your personal workflow.</p>
-        </div>
+        <PageHeader
+          markerIcon="tune"
+          markerLabel="Personalization"
+          title="Preferences"
+          subtitle="Control defaults, chart density, notifications, and experiment toggles."
+        />
       </header>
       
       <div className="grid grid-cols-1 xl:grid-cols-2 gap-8">

@@ -72,9 +72,13 @@ const SignUp: React.FC<SignUpProps> = ({ onSignUp, onNavigateToSignIn, isLoading
       {/* Right Side - Form */}
       <div className="w-full lg:w-1/2 flex flex-col justify-center px-8 sm:px-12 lg:px-24 xl:px-32 relative z-10 bg-light-card dark:bg-dark-card lg:bg-transparent lg:dark:bg-transparent">
         <div className="mb-8">
-          <h1 className="text-3xl font-bold text-light-text dark:text-dark-text mb-2">Create your account</h1>
+          <div className="flex items-center gap-2 text-sm font-semibold text-primary-600 dark:text-primary-300 mb-2">
+            <span className="material-symbols-outlined text-xl">person_add</span>
+            <span>Get Started</span>
+          </div>
+          <h1 className="text-3xl font-bold text-light-text dark:text-dark-text mb-2">Create Your Account</h1>
           <p className="text-light-text-secondary dark:text-dark-text-secondary">
-            Start your journey to financial clarity today.
+            A quick walkthrough to set currency, goals, and your first funding source.
           </p>
         </div>
 

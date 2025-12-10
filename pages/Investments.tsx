@@ -10,6 +10,7 @@ import WarrantModal from '../components/WarrantModal';
 import WarrantPriceModal from '../components/WarrantPriceModal';
 import { PieChart, Pie, Cell, ResponsiveContainer, Tooltip } from 'recharts';
 import { buildHoldingsOverview } from '../utils/investments';
+import PageHeader from '../components/PageHeader';
 
 interface InvestmentsProps {
     accounts: Account[];
@@ -151,23 +152,24 @@ const Investments: React.FC<InvestmentsProps> = ({
                 />
             )}
             
-            {/* Header Section */}
-            <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
-                <div>
-                     <h1 className="text-3xl font-bold text-light-text dark:text-dark-text">Investments</h1>
-                    <p className="text-light-text-secondary dark:text-dark-text-secondary mt-1">Track and manage your portfolio assets.</p>
-                </div>
-                <div className="flex gap-3">
-                    <button onClick={() => handleOpenWarrantModal()} className={`${BTN_SECONDARY_STYLE} flex items-center gap-2`}>
-                         <span className="material-symbols-outlined text-lg">card_membership</span>
-                         Add Grant
-                    </button>
-                    <button onClick={() => handleOpenModal()} className={`${BTN_PRIMARY_STYLE} flex items-center gap-2`}>
-                        <span className="material-symbols-outlined text-lg">add</span>
-                        Add Transaction
-                    </button>
-                </div>
-            </div>
+            <PageHeader
+                markerIcon="finance_chip"
+                markerLabel="Portfolio Lab"
+                title="Investments"
+                subtitle="Performance, risk, and allocation snapshots with drill-downs into holdings and transactions."
+                actions={
+                    <div className="flex gap-3">
+                        <button onClick={() => handleOpenWarrantModal()} className={`${BTN_SECONDARY_STYLE} flex items-center gap-2`}>
+                             <span className="material-symbols-outlined text-lg">card_membership</span>
+                             Add Grant
+                        </button>
+                        <button onClick={() => handleOpenModal()} className={`${BTN_PRIMARY_STYLE} flex items-center gap-2`}>
+                            <span className="material-symbols-outlined text-lg">add</span>
+                            Add Transaction
+                        </button>
+                    </div>
+                }
+            />
 
             {/* Hero Metrics Section */}
             <div className="grid grid-cols-1 md:grid-cols-3 gap-6">

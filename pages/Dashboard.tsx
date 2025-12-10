@@ -43,6 +43,7 @@ import QuickBudgetModal from '../components/QuickBudgetModal';
 import BudgetProgressCard from '../components/BudgetProgressCard';
 import BudgetModal from '../components/BudgetModal';
 import MultiSelectFilter from '../components/MultiSelectFilter';
+import PageHeader from '../components/PageHeader';
 
 const TransactionMapWidget = lazy(() => import('../components/TransactionMapWidget'));
 const CashflowSankey = lazy(() => import('../components/CashflowSankey'));
@@ -1131,36 +1132,37 @@ const Dashboard: React.FC<DashboardProps> = ({ user, tasks, saveTask }) => {
       )}
       
       {/* Header Section */}
-      <header className="flex flex-col lg:flex-row justify-between items-start lg:items-center gap-4">
-        <div>
-           <h1 className="text-3xl font-bold text-light-text dark:text-dark-text">Dashboard</h1>
-           <p className="text-light-text-secondary dark:text-dark-text-secondary mt-1">Welcome back, {user.firstName}!</p>
-        </div>
-        
-        <div className="flex gap-3 w-full lg:w-auto">
-             {isEditMode ? (
-                <>
-                    <button onClick={() => setIsAddWidgetModalOpen(true)} className={`${BTN_SECONDARY_STYLE} flex-1 lg:flex-none justify-center`}>
-                        <span className="material-symbols-outlined text-lg mr-2">add_circle</span>
-                        <span className="whitespace-nowrap">Add Widget</span>
-                    </button>
-                    <button onClick={() => setIsEditMode(false)} className={`${BTN_PRIMARY_STYLE} flex-1 lg:flex-none justify-center px-6`}>
-                        Done
-                    </button>
-                </>
-              ) : (
-                <button onClick={() => setIsEditMode(true)} className={`${BTN_SECONDARY_STYLE} flex-1 lg:flex-none justify-center`}>
-                    <span className="material-symbols-outlined text-lg mr-2">dashboard_customize</span>
-                    <span className="whitespace-nowrap">Edit Layout</span>
+      <PageHeader
+        markerIcon="analytics"
+        markerLabel="Command Center"
+        title="Dashboard"
+        subtitle="A pulse view of your cash, investments, and commitments with quick jumps to what matters today."
+        actions={
+          <div className="flex gap-3 w-full lg:w-auto">
+            {isEditMode ? (
+              <>
+                <button onClick={() => setIsAddWidgetModalOpen(true)} className={`${BTN_SECONDARY_STYLE} flex-1 lg:flex-none justify-center`}>
+                  <span className="material-symbols-outlined text-lg mr-2">add_circle</span>
+                  <span className="whitespace-nowrap">Add Widget</span>
                 </button>
-              )}
-
-              <button onClick={() => handleOpenTransactionModal()} className={`${BTN_PRIMARY_STYLE} flex-1 lg:flex-none justify-center whitespace-nowrap`}>
-                <span className="material-symbols-outlined text-lg mr-2">add</span>
-                Add Transaction
+                <button onClick={() => setIsEditMode(false)} className={`${BTN_PRIMARY_STYLE} flex-1 lg:flex-none justify-center px-6`}>
+                  Done
+                </button>
+              </>
+            ) : (
+              <button onClick={() => setIsEditMode(true)} className={`${BTN_SECONDARY_STYLE} flex-1 lg:flex-none justify-center`}>
+                <span className="material-symbols-outlined text-lg mr-2">dashboard_customize</span>
+                <span className="whitespace-nowrap">Edit Layout</span>
               </button>
-        </div>
-      </header>
+            )}
+
+            <button onClick={() => handleOpenTransactionModal()} className={`${BTN_PRIMARY_STYLE} flex-1 lg:flex-none justify-center whitespace-nowrap`}>
+              <span className="material-symbols-outlined text-lg mr-2">add</span>
+              Add Transaction
+            </button>
+          </div>
+        }
+      />
 
       {/* Controls Bar: Tabs & Filters */}
       <div className="flex flex-col md:flex-row justify-between items-center gap-4 bg-white dark:bg-dark-card p-1.5 rounded-2xl border border-black/5 dark:border-white/5 shadow-sm">

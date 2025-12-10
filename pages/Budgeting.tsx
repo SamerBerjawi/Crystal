@@ -8,6 +8,7 @@ import BudgetProgressCard from '../components/BudgetProgressCard';
 import BudgetModal from '../components/BudgetModal';
 import AIBudgetSuggestionsModal from '../components/AIBudgetSuggestionsModal';
 import QuickBudgetModal from '../components/QuickBudgetModal';
+import PageHeader from '../components/PageHeader';
 import { loadGenAiModule } from '../genAiLoader';
 import { PieChart, Pie, Cell, ResponsiveContainer, Tooltip as RechartsTooltip, Legend } from 'recharts';
 
@@ -344,18 +345,18 @@ const Budgeting: React.FC<BudgetingProps> = ({ budgets, transactions, expenseCat
       )}
 
       {/* Header */}
-      <header className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
-        <div>
-           <h1 className="text-3xl font-bold text-light-text dark:text-dark-text">Budget</h1>
-           <p className="text-light-text-secondary dark:text-dark-text-secondary mt-1">Plan and track your monthly spending.</p>
-        </div>
-        <div className="flex gap-3">
-             <button onClick={() => handleOpenModal()} className={`${BTN_PRIMARY_STYLE} whitespace-nowrap`}>
-                <span className="material-symbols-outlined text-lg mr-1">add</span>
-                Create Budget
-            </button>
-        </div>
-      </header>
+      <PageHeader
+        markerIcon="pie_chart"
+        markerLabel="Spending Plan"
+        title="Budgeting"
+        subtitle="Set envelopes, guardrails, and spending alerts that adapt as your cash flow evolves."
+        actions={
+          <button onClick={() => handleOpenModal()} className={`${BTN_PRIMARY_STYLE} whitespace-nowrap`}>
+            <span className="material-symbols-outlined text-lg mr-1">add</span>
+            Create Budget
+          </button>
+        }
+      />
 
       {/* Controls Bar */}
       <div className="flex flex-col md:flex-row justify-between items-center gap-4 bg-white dark:bg-dark-card p-1.5 rounded-2xl border border-black/5 dark:border-white/5 shadow-sm">

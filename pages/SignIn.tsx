@@ -30,9 +30,13 @@ const SignIn: React.FC<SignInProps> = ({ onSignIn, onNavigateToSignUp, onEnterDe
             <CrystalLogo showText={false} />
             <span className="text-2xl font-extrabold tracking-tight text-light-text dark:text-dark-text">Crystal</span>
           </div>
-          <h1 className="text-4xl font-bold text-light-text dark:text-dark-text mb-3 tracking-tight">Welcome back</h1>
+          <div className="flex items-center gap-2 text-sm font-semibold text-primary-600 dark:text-primary-300 mb-2">
+            <span className="material-symbols-outlined text-xl">login</span>
+            <span>Welcome Back</span>
+          </div>
+          <h1 className="text-4xl font-bold text-light-text dark:text-dark-text mb-3 tracking-tight">Sign In</h1>
           <p className="text-light-text-secondary dark:text-dark-text-secondary text-lg">
-            Enter your details to access your financial dashboard.
+            Secure entry with MFA and device trust so you can pick up where you left off.
           </p>
         </div>
 

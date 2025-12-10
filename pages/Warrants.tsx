@@ -7,6 +7,7 @@ import { formatCurrency, parseDateAsUTC } from '../utils';
 import WarrantModal from '../components/WarrantModal';
 import WarrantPriceModal from '../components/WarrantPriceModal';
 import PortfolioDistributionChart from '../components/PortfolioDistributionChart';
+import PageHeader from '../components/PageHeader';
 
 interface WarrantsProps {
   warrants: Warrant[];
@@ -101,19 +102,22 @@ const Warrants: React.FC<WarrantsProps> = ({ warrants, saveWarrant, deleteWarran
                 />
             )}
             
-            <header className="flex flex-wrap justify-between items-center gap-4">
-                <div>
-                    <p className="text-light-text-secondary dark:text-dark-text-secondary mt-1">Track your employee warrants portfolio.</p>
-                    {lastUpdated && (
-                        <p className="text-xs text-light-text-secondary dark:text-dark-text-secondary mt-1">
-                            Last updated: {lastUpdated.toLocaleString()}
-                        </p>
-                    )}
-                </div>
-                <div className="flex items-center gap-4">
-                    <button onClick={() => handleOpenWarrantModal()} className={BTN_PRIMARY_STYLE}>Add Warrant Grant</button>
-                </div>
-            </header>
+            <PageHeader
+                markerIcon="verified"
+                markerLabel="Equity Extras"
+                title="Warrants"
+                subtitle="Track coverage, strike prices, and vesting details alongside your broader equity picture."
+                actions={
+                    <div className="flex items-center gap-4">
+                        <button onClick={() => handleOpenWarrantModal()} className={BTN_PRIMARY_STYLE}>Add Warrant Grant</button>
+                    </div>
+                }
+            />
+            {lastUpdated && (
+                <p className="text-xs text-light-text-secondary dark:text-dark-text-secondary -mt-4">
+                    Last updated: {lastUpdated.toLocaleString()}
+                </p>
+            )}
 
             <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
                 <Card>

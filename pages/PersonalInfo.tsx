@@ -4,6 +4,7 @@ import { User, Page } from '../types';
 import Card from '../components/Card';
 import { BTN_PRIMARY_STYLE, INPUT_BASE_STYLE, BTN_SECONDARY_STYLE } from '../constants';
 import ChangePasswordModal from '../components/ChangePasswordModal';
+import PageHeader from '../components/PageHeader';
 
 interface PersonalInfoProps {
   user: User;
@@ -73,6 +74,14 @@ const PersonalInfo: React.FC<PersonalInfoProps> = ({ user, setUser, onChangePass
                 <span className="mx-2">/</span>
                 <span className="text-light-text dark:text-dark-text font-medium">Personal Info</span>
             </div>
+        </div>
+        <div className="mt-4">
+          <PageHeader
+            markerIcon="fingerprint"
+            markerLabel="Identity Vault"
+            title="Personal Info"
+            subtitle="Profile, addresses, and compliance details with privacy-first controls."
+          />
         </div>
       </header>
 

@@ -7,6 +7,7 @@ import CategoryModal from '../components/CategoryModal';
 import Modal from '../components/Modal';
 import { v4 as uuidv4 } from 'uuid';
 import CategoryItem from '../components/CategoryItem';
+import PageHeader from '../components/PageHeader';
 
 const generateId = () => `cat-${uuidv4()}`;
 
@@ -229,25 +230,26 @@ const Categories: React.FC<CategoriesProps> = ({ incomeCategories, setIncomeCate
           </Modal>
       )}
       
-      <header className="flex flex-col md:flex-row md:items-center justify-between gap-4">
-        <div className="flex items-center gap-4">
-            <button onClick={() => setCurrentPage('Settings')} className="text-light-text-secondary dark:text-dark-text-secondary p-2 rounded-full hover:bg-black/5 dark:hover:bg-white/5 transition-colors">
-                <span className="material-symbols-outlined">arrow_back</span>
+      <div className="text-sm text-light-text-secondary dark:text-dark-text-secondary flex items-center gap-2">
+          <span onClick={() => setCurrentPage('Settings')} className="hover:underline cursor-pointer">Settings</span>
+          <span>/</span>
+          <span>Organization</span>
+      </div>
+      <PageHeader
+        markerIcon="category"
+        markerLabel="Spending Lanes"
+        title="Categories"
+        subtitle="Organize expenses and income streams with icons, limits, and automation rules."
+        actions={
+          <div className="flex gap-3 items-center">
+            <button onClick={() => setCurrentPage('Settings')} className={`${BTN_PRIMARY_STYLE} !bg-transparent !text-light-text-secondary !border-none hover:!text-light-text dark:!text-dark-text-secondary`}>Back to Settings</button>
+            <button onClick={() => openModal('add', activeTab)} className={BTN_PRIMARY_STYLE}>
+                <span className="material-symbols-outlined text-xl mr-2">add</span>
+                New Category
             </button>
-            <div>
-                <div className="text-sm text-light-text-secondary dark:text-dark-text-secondary flex items-center gap-2">
-                    <span onClick={() => setCurrentPage('Settings')} className="hover:underline cursor-pointer">Settings</span>
-                    <span>/</span>
-                    <span>Organization</span>
-                </div>
-                <h1 className="text-3xl font-bold text-light-text dark:text-dark-text">Categories</h1>
-            </div>
-        </div>
-        <button onClick={() => openModal('add', activeTab)} className={BTN_PRIMARY_STYLE}>
-            <span className="material-symbols-outlined text-xl mr-2">add</span>
-            New Category
-        </button>
-      </header>
+          </div>
+        }
+      />
 
       {/* Stats Row */}
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
