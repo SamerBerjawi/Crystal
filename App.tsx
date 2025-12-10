@@ -1,7 +1,6 @@
 // FIX: Import `useMemo` from React to resolve the 'Cannot find name' error.
 import React, { useState, useEffect, useMemo, useCallback, Suspense, lazy, useRef, Component, ErrorInfo, startTransition } from 'react';
 import Sidebar from './components/Sidebar';
-import Header from './components/Header';
 const SignIn = lazy(() => import('./pages/SignIn'));
 const SignUp = lazy(() => import('./pages/SignUp'));
 const loadDashboard = () => import('./pages/Dashboard');
@@ -1708,16 +1707,18 @@ const App: React.FC = () => {
             togglePrivacyMode={() => setIsPrivacyMode(!isPrivacyMode)}
           />
           <div className="flex-1 flex flex-col overflow-hidden relative z-0">
-            <Header
-              user={currentUser!}
-              setSidebarOpen={setSidebarOpen}
-              theme={theme}
-              setTheme={setTheme}
-              currentPage={currentPage}
-              titleOverride={viewingAccount?.name}
-              isPrivacyMode={isPrivacyMode}
-              togglePrivacyMode={() => setIsPrivacyMode(!isPrivacyMode)}
-            />
+             {/* Header removed here */}
+             
+             {/* Add Mobile Toggle */}
+             <div className="md:hidden pt-4 px-4 flex-shrink-0">
+                <button 
+                  onClick={() => setSidebarOpen(true)}
+                  className="p-2 rounded-lg text-light-text dark:text-dark-text hover:bg-black/5 dark:hover:bg-white/5 transition-colors"
+                >
+                  <span className="material-symbols-outlined">menu</span>
+                </button>
+             </div>
+
             <InsightsViewProvider
               accounts={accounts}
               financialGoals={financialGoals}
