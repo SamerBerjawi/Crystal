@@ -1,3 +1,4 @@
+
 // FIX: Import `useMemo` from React to resolve the 'Cannot find name' error.
 import React, { useState, useEffect, useMemo, useCallback, Suspense, lazy, useRef, Component, ErrorInfo, startTransition } from 'react';
 import Sidebar from './components/Sidebar';
@@ -536,6 +537,35 @@ const App: React.FC = () => {
     }
     latestDataRef.current = dataToLoad;
   }, [setAccountOrder, setTaskOrder]);
+  
+  // Handler for granular restore that allows merging
+  const handleRestoreData = useCallback((data: FinancialData) => {
+      // This function triggers a save to the backend to persist the changes immediately,
+      // similar to how full import works but it assumes `data` is already the merged result.
+      restoreInProgressRef.current = true;
+      skipNextSaveRef.current = true;
+      
+      loadAllFinancialData(data); // Update local state
+      
+      // Persist to backend
+      if (!isDemoMode && token) {
+           fetch('/api/data', {
+              method: 'POST',
+              headers: {
+                'Content-Type': 'application/json',
+                'Authorization': `Bearer ${token}`,
+              },
+              body: JSON.stringify(data),
+            }).catch(console.error)
+            .finally(() => {
+                restoreInProgressRef.current = false;
+                skipNextSaveRef.current = false;
+            });
+      } else {
+          restoreInProgressRef.current = false;
+          skipNextSaveRef.current = false;
+      }
+  }, [isDemoMode, token, loadAllFinancialData]);
   
   const handleEnterDemoMode = () => {
     loadAllFinancialData(null); // This will load initialFinancialData
@@ -1451,73 +1481,10 @@ const App: React.FC = () => {
       URL.revokeObjectURL(url);
   };
 
-  const handleImportAllData = (file: File) => {
-    if (!isAuthenticated && !isDemoMode) {
-        // This case should not happen as the UI is not available, but as a safeguard.
-        alert("You must be logged in to restore data.");
-        return;
-    }
+  // Replaced with granular logic via onImportAllData logic passed to DataManagement
+  // REMOVED handleImportAllData to clean up and avoid confusion as DataManagement handles it internally via SmartRestoreModal
 
-    const reader = new FileReader();
-    reader.onload = async (event) => {
-        try {
-            const data = JSON.parse(event.target?.result as string);
-            // A more robust check for a valid backup file.
-            if (data && typeof data === 'object' && Array.isArray(data.accounts) && Array.isArray(data.transactions)) {
-                // Restores should immediately persist to the backend. Skip any pending
-                // autosave (which might still contain stale data) and temporarily pause
-                // the persistence effect while we write the imported payload.
-                restoreInProgressRef.current = true;
-                skipNextSaveRef.current = true;
-                loadAllFinancialData(data as FinancialData);
-                try {
-                    if (!isDemoMode) {
-                        const normalizedData = latestDataRef.current;
-                        const saveSucceeded = await saveDataWithRetry(normalizedData);
-                        if (!saveSucceeded) {
-                            alert('Data was loaded locally, but we could not reach the server after multiple attempts. Please try again in a moment.');
-                            return;
-                        }
-                    }
-                    if (isDemoMode) {
-                        alert('Data successfully restored for this demo session! Note: Changes will not be saved.');
-                    } else {
-                        alert('Data successfully restored!');
-                    }
-                } finally {
-                    restoreInProgressRef.current = false;
-                    skipNextSaveRef.current = false;
-                }
-            } else {
-                throw new Error('Invalid backup file format. The file must contain "accounts" and "transactions" arrays.');
-            }
-        } catch (e) {
-            const message = e instanceof Error ? e.message : 'It may be corrupted or in the wrong format.';
-            alert(`Error reading backup file. ${message}`);
-            console.error(e);
-        }
-    };
-    reader.readAsText(file);
-  };
-  
-  const handleExportCSV = (types: ImportDataType[]) => {
-      const dataMap = {
-          accounts,
-          transactions,
-          investments: investmentTransactions,
-          budgets,
-          schedule: recurringTransactions,
-          categories: [...incomeCategories, ...expenseCategories],
-      };
-
-      types.forEach(type => {
-          const key = type as keyof typeof dataMap;
-          if (dataMap[key] && Array.isArray(dataMap[key])) {
-              const csv = arrayToCSV(dataMap[key]);
-              downloadCSV(csv, `crystal_${type}_${new Date().toISOString().split('T')[0]}.csv`);
-          }
-      });
-  };
+  // REMOVED handleExportCSV to clean up and avoid confusion as ExportModal handles it internally
 
   useEffect(() => {
     if (theme === 'system') {
@@ -1571,7 +1538,6 @@ const App: React.FC = () => {
       case 'Transactions':
         return <Transactions initialAccountFilter={transactionsViewFilters.current.accountName ?? null} initialTagFilter={transactionsViewFilters.current.tagId ?? null} onClearInitialFilters={clearPendingTransactionFilters} />;
       case 'Budget':
-        // FIX: Add `preferences` to the `Budgeting` component to resolve the missing prop error.
         return <Budgeting budgets={budgets} transactions={transactions} expenseCategories={expenseCategories} saveBudget={handleSaveBudget} deleteBudget={handleDeleteBudget} accounts={accounts} preferences={preferences} />;
       case 'Forecasting':
         return <Forecasting />;
@@ -1589,8 +1555,15 @@ const App: React.FC = () => {
         return <DataManagement 
             accounts={accounts} transactions={transactions} budgets={budgets} recurringTransactions={recurringTransactions} allCategories={[...incomeCategories, ...expenseCategories]} history={importExportHistory} 
             onPublishImport={handlePublishImport} onDeleteHistoryItem={handleDeleteHistoryItem} onDeleteImportedTransactions={handleDeleteImportedTransactions}
-            onResetAccount={handleResetAccount} onExportAllData={handleExportAllData} onImportAllData={handleImportAllData} onExportCSV={handleExportCSV}
+            onResetAccount={handleResetAccount} 
+            // REMOVE THESE
+            // onExportAllData={handleExportAllData} 
+            // onImportAllData={handleImportAllData}
+            // onExportCSV={handleExportCSV}
+            // KEEP THESE
             setCurrentPage={setCurrentPage}
+            onRestoreData={handleRestoreData}
+            fullFinancialData={dataToSave} // Pass full current state for granular export
             />;
       case 'Preferences':
         return <PreferencesPage preferences={preferences} setPreferences={setPreferences} theme={theme} setTheme={setTheme} setCurrentPage={setCurrentPage} />;
@@ -1656,7 +1629,6 @@ const App: React.FC = () => {
       saveRecurringTransaction: handleSaveRecurringTransaction,
       deleteRecurringTransaction: handleDeleteRecurringTransaction,
       saveRecurringOverride: handleSaveRecurringOverride,
-// FIX: In the schedule context value, adjusted the signature of 'deleteRecurringOverride' to accept both 'recurringTransactionId' and 'originalDate' as parameters, aligning it with its implementation in 'handleDeleteRecurringOverride'.
       deleteRecurringOverride: handleDeleteRecurringOverride,
       saveLoanPaymentOverrides: handleSaveLoanPaymentOverrides,
       saveBillPayment: handleSaveBillPayment,

@@ -24,9 +24,13 @@ interface DataManagementProps {
   onDeleteHistoryItem: (id: string) => void;
   onDeleteImportedTransactions: (importId: string) => void;
   onResetAccount: () => void;
+  // REMOVED onExportAllData: () => void;
+  // REMOVED onImportAllData: (file: File) => void;
+  // REMOVED onExportCSV: (types: ImportDataType[]) => void;
   setCurrentPage: (page: Page) => void;
-  onRestoreData: (data: FinancialData) => void;
-  fullFinancialData: FinancialData; 
+  
+  onRestoreData: (data: FinancialData) => void; // New prop we will add to App.tsx
+  fullFinancialData: FinancialData; // To facilitate granular export logic
 }
 
 const StatusBadge: React.FC<{ status: HistoryStatus }> = ({ status }) => {
@@ -174,6 +178,9 @@ const DataManagement: React.FC<DataManagementProps> = (props) => {
                 exportData.incomeCategories = props.allCategories.filter(c => c.classification === 'income');
                 exportData.expenseCategories = props.allCategories.filter(c => c.classification === 'expense');
             }
+            // Add other types as needed directly from fullFinancialData if available, 
+            // or we might need to drill them down via props if not passed. 
+            // Assuming fullFinancialData is passed to this component for ease.
             if (props.fullFinancialData) {
                  if (dataTypes.includes('investments')) {
                      exportData.investmentTransactions = props.fullFinancialData.investmentTransactions;
@@ -181,21 +188,6 @@ const DataManagement: React.FC<DataManagementProps> = (props) => {
                  }
                  if (dataTypes.includes('schedule')) {
                       exportData.billsAndPayments = props.fullFinancialData.billsAndPayments;
-                 }
-                 if (dataTypes.includes('invoices')) {
-                     exportData.invoices = props.fullFinancialData.invoices;
-                 }
-                 if (dataTypes.includes('memberships')) {
-                     exportData.memberships = props.fullFinancialData.memberships;
-                 }
-                 if (dataTypes.includes('goals')) {
-                     exportData.financialGoals = props.fullFinancialData.financialGoals;
-                 }
-                 if (dataTypes.includes('tasks')) {
-                     exportData.tasks = props.fullFinancialData.tasks;
-                 }
-                 if (dataTypes.includes('tags')) {
-                     exportData.tags = props.fullFinancialData.tags;
                  }
             }
             
@@ -224,19 +216,9 @@ const DataManagement: React.FC<DataManagementProps> = (props) => {
                 } else if (type === 'budgets') {
                     data = props.budgets;
                 } else if (type === 'schedule') {
-                    data = [...props.recurringTransactions, ...props.fullFinancialData.billsAndPayments];
+                    data = props.recurringTransactions;
                 } else if (type === 'investments' && props.fullFinancialData) {
                     data = props.fullFinancialData.investmentTransactions;
-                } else if (type === 'invoices' && props.fullFinancialData) {
-                    data = props.fullFinancialData.invoices || [];
-                } else if (type === 'memberships' && props.fullFinancialData) {
-                    data = props.fullFinancialData.memberships || [];
-                } else if (type === 'goals' && props.fullFinancialData) {
-                    data = props.fullFinancialData.financialGoals || [];
-                } else if (type === 'tasks' && props.fullFinancialData) {
-                    data = props.fullFinancialData.tasks || [];
-                } else if (type === 'tags' && props.fullFinancialData) {
-                    data = props.fullFinancialData.tags || [];
                 }
 
                 if (data.length > 0) {
@@ -316,6 +298,9 @@ const DataManagement: React.FC<DataManagementProps> = (props) => {
             default: return null;
         }
     };
+
+    // REMOVED broken functions: handleExportAllData, handleImportAllData, handleExportCSV
+    // They are handled by processExport and handleGranularRestore (via modals) now.
 
   return (
     <div className="space-y-8 max-w-6xl mx-auto pb-12 animate-fade-in-up">
