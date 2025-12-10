@@ -341,8 +341,10 @@ const App: React.FC = () => {
     });
 
     Object.entries(manualWarrantPrices).forEach(([symbol, price]) => {
-      if (price !== undefined) {
-        resolved[symbol] = price;
+      const numericPrice = typeof price === 'number' ? price : undefined;
+
+      if (numericPrice !== undefined) {
+        resolved[symbol] = numericPrice;
       }
     });
 
