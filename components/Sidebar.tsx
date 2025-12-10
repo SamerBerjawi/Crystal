@@ -1,6 +1,5 @@
 
 
-
 import React, { useState, useRef, useEffect } from 'react';
 import { Page, Theme, User } from '../types';
 import { NAV_ITEMS, CrystalLogo, NavItem } from '../constants';
@@ -64,17 +63,21 @@ const Sidebar: React.FC<SidebarProps> = ({ currentPage, setCurrentPage, isSideba
     const isParentActive = !isSubItem && item.subItems?.some(sub => sub.name === currentPage);
     const isSubMenuOpen = openSubMenu === item.name;
 
-    const baseClasses = `group flex items-center justify-between p-3 rounded-xl transition-all duration-200 cursor-pointer mb-1`;
+    const baseClasses = `group flex items-center rounded-xl transition-all duration-200 cursor-pointer mb-1`;
     const activeClasses = `bg-gradient-to-r from-primary-600 to-primary-500 text-white shadow-lg shadow-primary-500/30`;
     const inactiveClasses = `text-light-text-secondary dark:text-dark-text-secondary hover:bg-light-fill dark:hover:bg-white/5 hover:text-primary-600 dark:hover:text-primary-400`;
     const parentActiveClasses = `bg-primary-50 dark:bg-primary-900/20 text-primary-700 dark:text-primary-300 font-semibold`;
 
-    let className = baseClasses;
-    if (isActive) className += ` ${activeClasses}`;
-    else if (isParentActive) className += ` ${parentActiveClasses}`;
-    else className += ` ${inactiveClasses}`;
+    let colorClass = inactiveClasses;
+    if (isActive) colorClass = activeClasses;
+    else if (isParentActive) colorClass = parentActiveClasses;
 
-    if (isSidebarCollapsed) className += ' justify-center px-2';
+    // Dynamic layout classes to prevent conflicts:
+    // Collapsed: Center content, smaller horizontal padding to match footer buttons
+    // Expanded: Space between content, larger padding
+    const layoutClasses = isSidebarCollapsed ? 'justify-center px-2 py-3' : 'justify-between p-3';
+
+    const className = `${baseClasses} ${layoutClasses} ${colorClass}`;
 
     const iconEl = (
         <span className={`material-symbols-outlined ${isActive || isParentActive ? 'material-symbols-filled' : ''} text-[22px] transition-transform duration-200 group-hover:scale-110`}>
@@ -168,9 +171,7 @@ const Sidebar: React.FC<SidebarProps> = ({ currentPage, setCurrentPage, isSideba
                     </button>
                     
                     {/* Theme Toggle */}
-                    <div className={isSidebarCollapsed ? 'scale-75 origin-center' : ''}>
-                         <ThemeToggle theme={theme} setTheme={setTheme} />
-                    </div>
+                    <ThemeToggle theme={theme} setTheme={setTheme} />
                 </div>
 
                 {/* Collapse Button (Hidden on Mobile) */}

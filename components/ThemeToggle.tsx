@@ -1,3 +1,4 @@
+
 import React from 'react';
 import { Theme } from '../types';
 
@@ -19,21 +20,17 @@ const ThemeToggle: React.FC<ThemeToggleProps> = ({ theme, setTheme }) => {
     setTheme(newTheme);
   };
 
+  const isDark = effectiveTheme === 'dark';
+
   return (
     <button
       onClick={toggleTheme}
-      className="w-14 h-8 rounded-full p-1 bg-light-fill dark:bg-dark-fill flex items-center transition-colors duration-300"
-      aria-label="Toggle theme"
+      className="w-8 h-8 rounded-lg flex items-center justify-center transition-colors duration-200 bg-transparent text-light-text-secondary dark:text-dark-text-secondary hover:bg-black/5 dark:hover:bg-white/5"
+      title={`Switch to ${isDark ? 'Light' : 'Dark'} Mode`}
     >
-      <div
-        className={`w-6 h-6 rounded-full bg-light-card dark:bg-dark-card shadow-lg transform transition-transform duration-300 flex items-center justify-center ${
-          effectiveTheme === 'dark' ? 'translate-x-6' : 'translate-x-0'
-        }`}
-      >
-        <span className="material-symbols-outlined text-sm text-primary-500">
-            {effectiveTheme === 'light' ? 'light_mode' : 'dark_mode'}
-        </span>
-      </div>
+      <span className="material-symbols-outlined text-[20px]">
+        {isDark ? 'light_mode' : 'dark_mode'}
+      </span>
     </button>
   );
 };
