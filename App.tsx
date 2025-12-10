@@ -77,14 +77,13 @@ import { v4 as uuidv4 } from 'uuid';
 import ChatFab from './components/ChatFab';
 const Chatbot = lazy(() => import('./components/Chatbot'));
 import { convertToEur, CONVERSION_RATES, arrayToCSV, downloadCSV, parseDateAsUTC } from './utils';
+import { useDebounce } from './hooks/useDebounce';
 import { useAuth } from './hooks/useAuth';
 import useLocalStorage from './hooks/useLocalStorage';
 const OnboardingModal = lazy(() => import('./components/OnboardingModal'));
 import { FinancialDataProvider } from './contexts/FinancialDataContext';
 import { AccountsProvider, PreferencesProvider, TransactionsProvider, WarrantsProvider, InvoicesProvider } from './contexts/DomainProviders';
 import { InsightsViewProvider } from './contexts/InsightsViewContext';
-import { SidebarStateProvider } from './contexts/SidebarStateContext';
-import { TransactionsViewProvider, useTransactionsNavigation } from './contexts/TransactionsViewContext';
 
 const routePathMap: Record<Page, string> = {
   Dashboard: '/',
@@ -210,62 +209,6 @@ const PageLoader: React.FC<{ label?: string }> = ({ label = 'Loading content...'
   </div>
 );
 
-type AuthViewProps = {
-  isAuthLoading: boolean;
-  authError: string | null;
-  onSignIn: (email: string, password: string) => void;
-  onSignUp: (newUser: Pick<User, 'firstName' | 'lastName' | 'email'> & { password: string }) => void;
-  onEnterDemoMode: () => void;
-};
-
-const AuthView: React.FC<AuthViewProps> = ({ isAuthLoading, authError, onSignIn, onSignUp, onEnterDemoMode }) => {
-  const [authPage, setAuthPage] = useState<'signIn' | 'signUp'>('signIn');
-
-  return (
-    <Suspense fallback={<PageLoader label="Preparing sign-in experience..." />}>
-      {authPage === 'signIn' ? (
-        <SignIn
-          onSignIn={onSignIn}
-          onNavigateToSignUp={() => setAuthPage('signUp')}
-          onEnterDemoMode={onEnterDemoMode}
-          isLoading={isAuthLoading}
-          error={authError}
-        />
-      ) : (
-        <SignUp
-          onSignUp={onSignUp}
-          onNavigateToSignIn={() => setAuthPage('signIn')}
-          isLoading={isAuthLoading}
-          error={authError}
-        />
-      )}
-    </Suspense>
-  );
-};
-
-type ChatExperienceProps = {
-  financialData: Pick<FinancialData, 'accounts' | 'transactions' | 'budgets' | 'financialGoals' | 'recurringTransactions' | 'investmentTransactions'>;
-};
-
-const ChatExperience: React.FC<ChatExperienceProps> = ({ financialData }) => {
-  const [isChatOpen, setIsChatOpen] = useState(false);
-
-  return (
-    <>
-      <ChatFab onClick={() => setIsChatOpen(prev => !prev)} />
-      <Suspense fallback={null}>
-        {isChatOpen && (
-          <Chatbot
-            isOpen={isChatOpen}
-            onClose={() => setIsChatOpen(false)}
-            financialData={financialData}
-          />
-        )}
-      </Suspense>
-    </>
-  );
-};
-
 // FIX: Explicitly define props and state interfaces for ErrorBoundary to allow correct type inference for `this.props`
 interface ErrorBoundaryProps {
   children?: React.ReactNode;
@@ -321,11 +264,12 @@ class ErrorBoundary extends Component<ErrorBoundaryProps, ErrorBoundaryState> {
 
 
 // FIX: Changed to a default export to align with the import in index.tsx and fix the module resolution error.
-const AppContent: React.FC = () => {
+const App: React.FC = () => {
   const initialPath = typeof window !== 'undefined' ? window.location.pathname : '/';
   const initialRoute = parseRoute(initialPath);
 
   const { user, setUser, token, isAuthenticated, isLoading: isAuthLoading, error: authError, signIn, signUp, signOut, checkAuthStatus, setError: setAuthError, changePassword } = useAuth();
+  const [authPage, setAuthPage] = useState<'signIn' | 'signUp'>('signIn');
   const [isDemoMode, setIsDemoMode] = useState(false);
   const [demoUser, setDemoUser] = useState<User | null>(null);
   const [isDataLoaded, setIsDataLoaded] = useState(false);
@@ -333,6 +277,8 @@ const AppContent: React.FC = () => {
 
   const [currentPath, setCurrentPath] = useState(initialPath);
   const [currentPage, setCurrentPageState] = useState<Page>(initialRoute.page);
+  const [isSidebarOpen, setSidebarOpen] = useState(false);
+  const [isSidebarCollapsed, setSidebarCollapsed] = useState(false);
   const [viewingAccountId, setViewingAccountId] = useState<string | null>(initialRoute.accountId ?? null);
   const [theme, setTheme] = useState<Theme>(() => {
     const storedTheme = safeLocalStorage.getItem('theme');
@@ -364,40 +310,13 @@ const AppContent: React.FC = () => {
   const skipNextSaveRef = useRef(false);
   const restoreInProgressRef = useRef(false);
   const dirtySlicesRef = useRef<Set<keyof FinancialData>>(new Set());
-  const persistenceGroups = useMemo(() => (
-    [
-      { name: 'accounts', slices: new Set<keyof FinancialData>(['accounts', 'accountOrder', 'manualWarrantPrices']), debounceMs: 800 },
-      { name: 'transactions', slices: new Set<keyof FinancialData>([
-        'transactions',
-        'investmentTransactions',
-        'recurringTransactions',
-        'recurringTransactionOverrides',
-        'loanPaymentOverrides',
-        'billsAndPayments',
-      ]), debounceMs: 700 },
-      { name: 'planning', slices: new Set<keyof FinancialData>(['financialGoals', 'budgets', 'tasks', 'taskOrder', 'warrants', 'memberships']) , debounceMs: 900 },
-      { name: 'metadata', slices: new Set<keyof FinancialData>([
-        'preferences',
-        'incomeCategories',
-        'expenseCategories',
-        'importExportHistory',
-        'tags',
-        'invoices',
-      ]), debounceMs: 650 },
-    ]
-  ), []);
-  const persistenceGroupsBySlice = useMemo(() => {
-    const map = new Map<keyof FinancialData, string>();
-    persistenceGroups.forEach(group => {
-      group.slices.forEach(slice => map.set(slice, group.name));
-    });
-    return map;
-  }, [persistenceGroups]);
-  const groupSaveTimersRef = useRef<Map<string, ReturnType<typeof setTimeout>>>(new Map());
-  const lastSavedGroupSignatureRef = useRef<Map<string, string>>(new Map());
+  const [dirtySignal, setDirtySignal] = useState(0);
   const [accountOrder, setAccountOrder] = useLocalStorage<string[]>('crystal-account-order', []);
   const [taskOrder, setTaskOrder] = useLocalStorage<string[]>('crystal-task-order', []);
-  const { setPendingFilters, consumePendingFilters, clearPendingFilters, getPendingFilters } = useTransactionsNavigation();
+  const transactionsViewFilters = useRef<{ accountName?: string | null; tagId?: string | null }>({});
+  
+  // State for AI Chat
+  const [isChatOpen, setIsChatOpen] = useState(false);
   
   // State for Warrant prices
   const [manualWarrantPrices, setManualWarrantPrices] = useState<Record<string, number | undefined>>(initialFinancialData.manualWarrantPrices || {});
@@ -508,14 +427,26 @@ const AppContent: React.FC = () => {
   const [hasCompletedOnboarding, setHasCompletedOnboarding] = useLocalStorage('crystal-onboarding-complete', false);
   const [isOnboardingOpen, setIsOnboardingOpen] = useState(false);
 
+  const markSliceDirty = useCallback((slice: keyof FinancialData) => {
+    const pending = new Set(dirtySlicesRef.current);
+    if (!pending.has(slice)) {
+      pending.add(slice);
+      dirtySlicesRef.current = pending;
+      setDirtySignal(signal => signal + 1);
+    }
+  }, []);
+
   const navigateToTransactions = useCallback((filters?: { accountName?: string | null; tagId?: string | null }) => {
-    setPendingFilters(filters);
+    transactionsViewFilters.current = {
+      accountName: filters?.accountName ?? null,
+      tagId: filters?.tagId ?? null,
+    };
     setCurrentPage('Transactions');
-  }, [setPendingFilters, setCurrentPage]);
+  }, [setCurrentPage]);
 
   const clearPendingTransactionFilters = useCallback(() => {
-    clearPendingFilters();
-  }, [clearPendingFilters]);
+    transactionsViewFilters.current = {};
+  }, []);
   
   useEffect(() => {
       // Always sync app preference to device timezone on load to prevent "tomorrow/yesterday" bugs
@@ -701,6 +632,8 @@ const AppContent: React.FC = () => {
     incomeCategories, expenseCategories, preferences, billsAndPayments, accountOrder, taskOrder, tags, manualWarrantPrices, invoices
   ]);
 
+  const debouncedDirtySignal = useDebounce(dirtySignal, 900);
+
   const buildDirtyPayload = useCallback((dirtySlices: Set<keyof FinancialData>): FinancialData => {
     const payload: Partial<FinancialData> = {};
     if (dirtySlices.has('accounts')) payload.accounts = accounts;
@@ -753,120 +686,6 @@ const AppContent: React.FC = () => {
   useEffect(() => {
     latestDataRef.current = dataToSave;
   }, [dataToSave]);
-
-  // Persist data to backend on change
-  const saveData = useCallback(
-    async (
-      data: FinancialData,
-      options?: { keepalive?: boolean; suppressErrors?: boolean }
-    ): Promise<boolean> => {
-      if (!token || isDemoMode) return false;
-      try {
-        const response = await fetch('/api/data', {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-            'Authorization': `Bearer ${token}`,
-          },
-          body: JSON.stringify(data),
-          keepalive: options?.keepalive,
-        });
-
-        if (!response.ok) {
-          if (!options?.suppressErrors) {
-            const errorText = await response.text().catch(() => '');
-            console.error('Failed to save data:', errorText || response.statusText);
-          }
-          return false;
-        }
-
-        return true;
-      } catch (error) {
-        if (!options?.suppressErrors) {
-          console.error('Failed to save data:', error);
-        }
-        return false;
-      }
-    },
-    [token, isDemoMode]
-  );
-
-  const saveDataWithRetry = useCallback(
-    async (
-      data: FinancialData,
-      options?: { attempts?: number }
-    ): Promise<boolean> => {
-      const maxAttempts = Math.max(1, options?.attempts ?? 3);
-      for (let attempt = 1; attempt <= maxAttempts; attempt++) {
-        const succeeded = await saveData(data);
-        if (succeeded) {
-          return true;
-        }
-
-        if (attempt < maxAttempts) {
-          await new Promise(resolve => setTimeout(resolve, attempt * 1000));
-        }
-      }
-      return false;
-    },
-    [saveData]
-  );
-
-  const scheduleGroupSave = useCallback((slice: keyof FinancialData) => {
-    if (!isDataLoaded || !isAuthenticated || isDemoMode || restoreInProgressRef.current) return;
-
-    if (skipNextSaveRef.current) {
-      skipNextSaveRef.current = false;
-      dirtySlicesRef.current.clear();
-      return;
-    }
-
-    const groupName = persistenceGroupsBySlice.get(slice);
-    if (!groupName) return;
-
-    const config = persistenceGroups.find(group => group.name === groupName);
-    if (!config) return;
-
-    const existing = groupSaveTimersRef.current.get(groupName);
-    if (existing) {
-      clearTimeout(existing);
-    }
-
-    const timer = setTimeout(() => {
-      const dirtyGroupSlices = new Set(
-        Array.from(dirtySlicesRef.current).filter(key => config.slices.has(key))
-      );
-      if (dirtyGroupSlices.size === 0) return;
-
-      const payload = buildDirtyPayload(dirtyGroupSlices);
-      const signature = JSON.stringify(payload);
-      if (signature === lastSavedGroupSignatureRef.current.get(groupName)) {
-        dirtyGroupSlices.forEach(sliceKey => dirtySlicesRef.current.delete(sliceKey));
-        return;
-      }
-
-      saveData(payload)
-        .then(succeeded => {
-          if (succeeded) {
-            dirtyGroupSlices.forEach(sliceKey => dirtySlicesRef.current.delete(sliceKey));
-            lastSavedSignatureRef.current = signature;
-            lastSavedGroupSignatureRef.current.set(groupName, signature);
-          }
-        })
-        .catch(() => {});
-    }, config.debounceMs);
-
-    groupSaveTimersRef.current.set(groupName, timer);
-  }, [buildDirtyPayload, isAuthenticated, isDataLoaded, isDemoMode, persistenceGroups, persistenceGroupsBySlice, saveData]);
-
-  const markSliceDirty = useCallback((slice: keyof FinancialData) => {
-    const pending = new Set(dirtySlicesRef.current);
-    if (!pending.has(slice)) {
-      pending.add(slice);
-      dirtySlicesRef.current = pending;
-    }
-    scheduleGroupSave(slice);
-  }, [scheduleGroupSave]);
 
   useEffect(() => {
     if (!isDataLoaded || restoreInProgressRef.current) return;
@@ -972,6 +791,97 @@ const AppContent: React.FC = () => {
     if (!isDataLoaded || restoreInProgressRef.current) return;
     markSliceDirty('invoices');
   }, [invoices, isDataLoaded, markSliceDirty]);
+
+  // Persist data to backend on change
+  const saveData = useCallback(
+    async (
+      data: FinancialData,
+      options?: { keepalive?: boolean; suppressErrors?: boolean }
+    ): Promise<boolean> => {
+      if (!token || isDemoMode) return false;
+      try {
+        const response = await fetch('/api/data', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'Authorization': `Bearer ${token}`,
+          },
+          body: JSON.stringify(data),
+          keepalive: options?.keepalive,
+        });
+
+        if (!response.ok) {
+          if (!options?.suppressErrors) {
+            const errorText = await response.text().catch(() => '');
+            console.error('Failed to save data:', errorText || response.statusText);
+          }
+          return false;
+        }
+
+        return true;
+      } catch (error) {
+        if (!options?.suppressErrors) {
+          console.error('Failed to save data:', error);
+        }
+        return false;
+      }
+    },
+    [token, isDemoMode]
+  );
+
+  const saveDataWithRetry = useCallback(
+    async (
+      data: FinancialData,
+      options?: { attempts?: number }
+    ): Promise<boolean> => {
+      const maxAttempts = Math.max(1, options?.attempts ?? 3);
+      for (let attempt = 1; attempt <= maxAttempts; attempt++) {
+        const succeeded = await saveData(data);
+        if (succeeded) {
+          return true;
+        }
+
+        if (attempt < maxAttempts) {
+          await new Promise(resolve => setTimeout(resolve, attempt * 1000));
+        }
+      }
+      return false;
+    },
+    [saveData]
+  );
+
+  useEffect(() => {
+    if (!isDataLoaded || !isAuthenticated || isDemoMode || restoreInProgressRef.current) {
+      return;
+    }
+
+    if (skipNextSaveRef.current) {
+      skipNextSaveRef.current = false;
+      dirtySlicesRef.current.clear();
+      return;
+    }
+
+    if (dirtySlicesRef.current.size === 0) return;
+
+    const dirtySlices = new Set(dirtySlicesRef.current);
+    const persistDirtySlices = async () => {
+      const payload = buildDirtyPayload(dirtySlices);
+      const payloadSignature = JSON.stringify(payload);
+
+      if (payloadSignature === lastSavedSignatureRef.current) {
+        dirtySlicesRef.current.clear();
+        return;
+      }
+
+      const succeeded = await saveData(payload);
+      if (succeeded) {
+        dirtySlices.forEach(slice => dirtySlicesRef.current.delete(slice));
+        lastSavedSignatureRef.current = payloadSignature;
+      }
+    };
+
+    persistDirtySlices();
+  }, [buildDirtyPayload, debouncedDirtySignal, isAuthenticated, isDataLoaded, isDemoMode, saveData]);
 
   useEffect(() => {
     if (!isAuthenticated || isDemoMode || typeof window === 'undefined') {
@@ -1448,9 +1358,9 @@ const AppContent: React.FC = () => {
               return tx;
           })
       );
-      const pendingFilters = getPendingFilters();
-      if (pendingFilters.tagId === tagId) {
-          setPendingFilters({ ...pendingFilters, tagId: null });
+      // Fix: Check ref instead of unknown state
+      if (transactionsViewFilters.current.tagId === tagId) {
+          transactionsViewFilters.current.tagId = null;
       }
   };
   
@@ -1613,16 +1523,8 @@ const AppContent: React.FC = () => {
         />;
       case 'Accounts':
         return <Accounts accounts={accounts} transactions={transactions} saveAccount={handleSaveAccount} deleteAccount={handleDeleteAccount} setCurrentPage={setCurrentPage} setViewingAccountId={setViewingAccountId} onViewAccount={handleOpenAccountDetail} saveTransaction={handleSaveTransaction} accountOrder={accountOrder} setAccountOrder={setAccountOrder} initialSortBy={preferences.defaultAccountOrder} warrants={warrants} onToggleAccountStatus={handleToggleAccountStatus} onNavigateToTransactions={navigateToTransactions} />;
-      case 'Transactions': {
-        const pendingFilters = consumePendingFilters();
-        return (
-          <Transactions
-            initialAccountFilter={pendingFilters.accountName ?? null}
-            initialTagFilter={pendingFilters.tagId ?? null}
-            onClearInitialFilters={clearPendingTransactionFilters}
-          />
-        );
-      }
+      case 'Transactions':
+        return <Transactions initialAccountFilter={transactionsViewFilters.current.accountName ?? null} initialTagFilter={transactionsViewFilters.current.tagId ?? null} onClearInitialFilters={clearPendingTransactionFilters} />;
       case 'Budget':
         return <Budgeting budgets={budgets} transactions={transactions} expenseCategories={expenseCategories} saveBudget={handleSaveBudget} deleteBudget={handleDeleteBudget} accounts={accounts} preferences={preferences} />;
       case 'Forecasting':
@@ -1754,13 +1656,24 @@ const AppContent: React.FC = () => {
   // Auth pages
   if (!isAuthenticated && !isDemoMode) {
     return (
-      <AuthView
-        onSignIn={handleSignIn}
-        onSignUp={handleSignUp}
-        onEnterDemoMode={handleEnterDemoMode}
-        isAuthLoading={isAuthLoading}
-        authError={authError}
-      />
+      <Suspense fallback={<PageLoader label="Preparing sign-in experience..." />}>
+        {authPage === 'signIn' ? (
+          <SignIn
+            onSignIn={handleSignIn}
+            onNavigateToSignUp={() => setAuthPage('signUp')}
+            onEnterDemoMode={handleEnterDemoMode}
+            isLoading={isAuthLoading}
+            error={authError}
+          />
+        ) : (
+          <SignUp
+            onSignUp={handleSignUp}
+            onNavigateToSignIn={() => setAuthPage('signIn')}
+            isLoading={isAuthLoading}
+            error={authError}
+          />
+        )}
+      </Suspense>
     );
   }
 
@@ -1779,76 +1692,81 @@ const AppContent: React.FC = () => {
         warrants={warrantsContextValue}
         invoices={invoicesContextValue}
       >
-        <SidebarStateProvider>
-          <div className={`flex h-screen bg-light-card dark:bg-dark-card text-light-text dark:text-dark-text font-sans`}>
-            <Sidebar
-              currentPage={currentPage}
-              setCurrentPage={(page) => { setViewingAccountId(null); setCurrentPage(page); }}
-              onLogout={handleLogout}
+        <div className={`flex h-screen bg-light-card dark:bg-dark-card text-light-text dark:text-dark-text font-sans`}>
+          <Sidebar
+            currentPage={currentPage}
+            setCurrentPage={(page) => { setViewingAccountId(null); setCurrentPage(page); }}
+            isSidebarOpen={isSidebarOpen}
+            setSidebarOpen={setSidebarOpen}
+            theme={theme}
+            isSidebarCollapsed={isSidebarCollapsed}
+            setSidebarCollapsed={setSidebarCollapsed}
+            onLogout={handleLogout}
+            user={currentUser!}
+          />
+          <div className="flex-1 flex flex-col overflow-hidden relative z-0">
+            <Header
               user={currentUser!}
+              setSidebarOpen={setSidebarOpen}
+              theme={theme}
+              setTheme={setTheme}
+              currentPage={currentPage}
+              titleOverride={viewingAccount?.name}
+              isPrivacyMode={isPrivacyMode}
+              togglePrivacyMode={() => setIsPrivacyMode(!isPrivacyMode)}
             />
-            <div className="flex-1 flex flex-col overflow-hidden relative z-0">
-              <Header
-                user={currentUser!}
-                theme={theme}
-                setTheme={setTheme}
-                currentPage={currentPage}
-                titleOverride={viewingAccount?.name}
-                isPrivacyMode={isPrivacyMode}
-                togglePrivacyMode={() => setIsPrivacyMode(!isPrivacyMode)}
-              />
-              <InsightsViewProvider
-                accounts={accounts}
-                financialGoals={financialGoals}
-                defaultDuration={preferences.defaultPeriod as Duration}
-              >
-                <main className="flex-1 overflow-x-hidden overflow-y-auto p-4 md:p-8 bg-light-bg dark:bg-dark-bg md:rounded-tl-3xl border-l border-t border-black/5 dark:border-white/5 shadow-2xl">
-                  <Suspense fallback={<PageLoader />}>
-                    {renderPage()}
-                  </Suspense>
-                </main>
-              </InsightsViewProvider>
-            </div>
-
-            {/* AI Chat */}
-            <ChatExperience
-              financialData={{
-                accounts,
-                transactions,
-                budgets,
-                financialGoals,
-                recurringTransactions,
-                investmentTransactions,
-              }}
-            />
-            <Suspense fallback={null}>
-              {isOnboardingOpen && (
-                <OnboardingModal
-                  isOpen={isOnboardingOpen}
-                  onClose={handleOnboardingFinish}
-                  user={currentUser!}
-                  saveAccount={handleSaveAccount}
-                  saveFinancialGoal={handleSaveFinancialGoal}
-                  saveRecurringTransaction={handleSaveRecurringTransaction}
-                  preferences={preferences}
-                  setPreferences={setPreferences}
-                  accounts={accounts}
-                  incomeCategories={incomeCategories}
-                  expenseCategories={expenseCategories}
-                />
-              )}
-            </Suspense>
+            <InsightsViewProvider
+              accounts={accounts}
+              financialGoals={financialGoals}
+              defaultDuration={preferences.defaultPeriod as Duration}
+            >
+              <main className="flex-1 overflow-x-hidden overflow-y-auto p-4 md:p-8 bg-light-bg dark:bg-dark-bg md:rounded-tl-3xl border-l border-t border-black/5 dark:border-white/5 shadow-2xl">
+                <Suspense fallback={<PageLoader />}>
+                  {renderPage()}
+                </Suspense>
+              </main>
+            </InsightsViewProvider>
           </div>
-        </SidebarStateProvider>
+
+          {/* AI Chat */}
+          <ChatFab onClick={() => setIsChatOpen(prev => !prev)} />
+          <Suspense fallback={null}>
+            {isChatOpen && (
+              <Chatbot
+                isOpen={isChatOpen}
+                onClose={() => setIsChatOpen(false)}
+                financialData={{
+                  accounts,
+                  transactions,
+                  budgets,
+                  financialGoals,
+                  recurringTransactions,
+                  investmentTransactions,
+                }}
+              />
+            )}
+          </Suspense>
+          <Suspense fallback={null}>
+            {isOnboardingOpen && (
+              <OnboardingModal
+                isOpen={isOnboardingOpen}
+                onClose={handleOnboardingFinish}
+                user={currentUser!}
+                saveAccount={handleSaveAccount}
+                saveFinancialGoal={handleSaveFinancialGoal}
+                saveRecurringTransaction={handleSaveRecurringTransaction}
+                preferences={preferences}
+                setPreferences={setPreferences}
+                accounts={accounts}
+                incomeCategories={incomeCategories}
+                expenseCategories={expenseCategories}
+              />
+            )}
+          </Suspense>
+        </div>
       </FinancialDataProvider>
     </ErrorBoundary>
   );
 };
-
-const App: React.FC = () => (
-  <TransactionsViewProvider>
-    <AppContent />
-  </TransactionsViewProvider>
-);
 
 export default App;

@@ -3,11 +3,11 @@ import React from 'react';
 // FIX: Add User to imports
 import { Page, Theme, User } from '../types';
 import ThemeToggle from './ThemeToggle';
-import { useSidebarState } from '../contexts/SidebarStateContext';
 
 interface HeaderProps {
   // FIX: Add user prop to fix type error in App.tsx
   user: User;
+  setSidebarOpen: (isOpen: boolean) => void;
   theme: Theme;
   setTheme: (theme: Theme) => void;
   currentPage: Page;
@@ -16,8 +16,7 @@ interface HeaderProps {
   togglePrivacyMode: () => void;
 }
 
-const Header: React.FC<HeaderProps> = ({ user, theme, setTheme, currentPage, titleOverride, isPrivacyMode, togglePrivacyMode }) => {
-  const { setSidebarOpen } = useSidebarState();
+const Header: React.FC<HeaderProps> = ({ user, setSidebarOpen, theme, setTheme, currentPage, titleOverride, isPrivacyMode, togglePrivacyMode }) => {
   return (
     <header className="flex-shrink-0 bg-light-card/80 dark:bg-dark-card/80 backdrop-blur-xl h-20 flex items-center sticky top-0 z-20 transition-all duration-300">
         <div className="flex items-center justify-between w-full px-6 md:px-8">

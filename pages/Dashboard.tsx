@@ -121,7 +121,7 @@ const Dashboard: React.FC<DashboardProps> = ({ user, tasks, saveTask }) => {
   const { tags } = useTagsContext();
   const { budgets } = useBudgetsContext();
   const transactionsKey = transactionsDigest;
-  const aggregateCacheRef = useRef<Map<string, { filteredTransactions: Transaction[]; income: number; expenses: number; digest: string }>>(new Map());
+  const aggregateCacheRef = useRef<Map<string, { filteredTransactions: Transaction[]; income: number; expenses: number }>>(new Map());
   const [isTransactionModalOpen, setTransactionModalOpen] = useState(false);
   const [editingTransaction, setEditingTransaction] = useState<Transaction | null>(null);
   const [itemToPost, setItemToPost] = useState<{ item: RecurringTransaction | BillPayment } | null>(null);
@@ -138,17 +138,6 @@ const Dashboard: React.FC<DashboardProps> = ({ user, tasks, saveTask }) => {
   const { suggestions, confirmMatch, dismissSuggestion, confirmAllMatches, dismissAllSuggestions } = useTransactionMatcher(transactions, accounts, saveTransaction);
 
   const allCategories = useMemo(() => [...incomeCategories, ...expenseCategories], [incomeCategories, expenseCategories]);
-
-  const transferLookup = useMemo(() => {
-      const byTransfer = new Map<string, Transaction[]>();
-      transactions.forEach(tx => {
-          if (!tx.transferId) return;
-          const current = byTransfer.get(tx.transferId) || [];
-          current.push(tx);
-          byTransfer.set(tx.transferId, current);
-      });
-      return byTransfer;
-  }, [transactions, transactionsKey]);
 
   const selectedAccounts = useMemo(() => 
       accounts.filter(a => selectedAccountIds.includes(a.id)),
@@ -288,66 +277,62 @@ const Dashboard: React.FC<DashboardProps> = ({ user, tasks, saveTask }) => {
   }, [transactions]);
 
   const { filteredTransactions, income, expenses } = useMemo(() => {
-    const filterKey = `${duration}|${selectedAccountIds.join(',')}`;
-    const cached = aggregateCacheRef.current.get(filterKey);
+    const cacheKey = `${transactionsKey}|${selectedAccountIds.join(',')}|${duration}`;
+    const cached = aggregateCacheRef.current.get(cacheKey);
+    if (cached) return cached;
 
     const { start, end } = getDateRange(duration, transactions);
+    const txsInPeriod = transactions.filter(tx => {
+        const txDate = parseDateAsUTC(tx.date);
+        return txDate >= start && txDate <= end;
+    });
 
-    const applyDelta = (
-        tx: Transaction,
-        direction: 1 | -1,
-        processedTransferIds: Set<string>,
-        totals: { income: number; expenses: number }
-    ) => {
-        if (!selectedAccountIds.includes(tx.accountId)) return;
-        if (tx.transferId && processedTransferIds.has(tx.transferId)) return;
+    const processedTransferIds = new Set<string>();
+    let calculatedIncome = 0;
+    let calculatedExpenses = 0;
+
+    txsInPeriod.forEach(tx => {
+        if (!selectedAccountIds.includes(tx.accountId)) {
+            return; // Skip transactions not in selected accounts for calculation.
+        }
 
         const convertedAmount = convertToEur(tx.amount, tx.currency);
 
         if (tx.transferId) {
+            if (processedTransferIds.has(tx.transferId)) return;
+
+            const counterpart = transactions.find(t => t.transferId === tx.transferId && t.id !== tx.id);
             processedTransferIds.add(tx.transferId);
-            const pair = transferLookup.get(tx.transferId) || [];
-            const counterpart = pair.find(t => t.id !== tx.id);
-            const counterpartSelected = counterpart && selectedAccountIds.includes(counterpart.accountId);
-            if (!counterpartSelected) {
-                if (tx.type === 'income') totals.income += direction * convertedAmount;
-                else totals.expenses += direction * Math.abs(convertedAmount);
+
+            if (counterpart) {
+                const counterpartSelected = selectedAccountIds.includes(counterpart.accountId);
+
+                // If counterpart is NOT selected, this is a real in/outflow for the selected group.
+                if (!counterpartSelected) {
+                    if (tx.type === 'income') {
+                        calculatedIncome += convertedAmount;
+                    } else {
+                        calculatedExpenses += Math.abs(convertedAmount);
+                    }
+                }
+            } else { // Orphaned transfer part, treat as regular transaction.
+                if (tx.type === 'income') calculatedIncome += convertedAmount;
+                else calculatedExpenses += Math.abs(convertedAmount);
             }
-        } else {
-            if (tx.type === 'income') totals.income += direction * convertedAmount;
-            else totals.expenses += direction * Math.abs(convertedAmount);
+        } else { // Regular transaction.
+            if (tx.type === 'income') calculatedIncome += convertedAmount;
+            else calculatedExpenses += Math.abs(convertedAmount);
         }
-    };
-
-    const matchesFilters = (tx: Transaction) => {
-        const txDate = parseDateAsUTC(tx.date);
-        return txDate >= start && txDate <= end && selectedAccountIds.includes(tx.accountId);
-    };
-
-    if (cached && cached.digest === transactionsKey) {
-        return cached;
-    }
-
-    const processedTransferIds = new Set<string>();
-    const totals = { income: 0, expenses: 0 };
-
-    const filteredTx = transactions.filter(tx => {
-        const inRange = matchesFilters(tx);
-        if (inRange) {
-            applyDelta(tx, 1, processedTransferIds, totals);
-        }
-        return inRange;
     });
 
     const result = {
-        filteredTransactions: filteredTx,
-        income: totals.income,
-        expenses: totals.expenses,
-        digest: transactionsKey,
+        filteredTransactions: txsInPeriod.filter(tx => selectedAccountIds.includes(tx.accountId)),
+        income: calculatedIncome,
+        expenses: calculatedExpenses,
     };
-    aggregateCacheRef.current.set(filterKey, result);
+    aggregateCacheRef.current.set(cacheKey, result);
     return result;
-  }, [duration, selectedAccountIds, transactions, transactionsKey, transferLookup]);
+  }, [aggregateCacheRef, duration, selectedAccountIds, transactions, transactionsKey]);
 
   const enrichedTransactions: EnrichedTransaction[] = useMemo(
     () =>

@@ -1,19 +1,22 @@
 
 
 import React, { useState, useRef, useEffect } from 'react';
-import { Page, User } from '../types';
+import { Page, Theme, User } from '../types';
 import { NAV_ITEMS, CrystalLogo, NavItem } from '../constants';
-import { useSidebarState } from '../contexts/SidebarStateContext';
 
 interface SidebarProps {
   currentPage: Page;
   setCurrentPage: (page: Page) => void;
+  isSidebarOpen: boolean;
+  setSidebarOpen: (isOpen: boolean) => void;
+  theme: Theme;
+  isSidebarCollapsed: boolean;
+  setSidebarCollapsed: (isCollapsed: boolean) => void;
   onLogout: () => void;
   user: User;
 }
 
-const Sidebar: React.FC<SidebarProps> = ({ currentPage, setCurrentPage, onLogout, user }) => {
-  const { isSidebarOpen, setSidebarOpen, isSidebarCollapsed, setSidebarCollapsed, toggleSidebarCollapsed } = useSidebarState();
+const Sidebar: React.FC<SidebarProps> = ({ currentPage, setCurrentPage, isSidebarOpen, setSidebarOpen, theme, isSidebarCollapsed, setSidebarCollapsed, onLogout, user }) => {
   const [openSubMenu, setOpenSubMenu] = useState<string | null>(() => {
     const activeParent = NAV_ITEMS.find(item => item.subItems?.some(sub => sub.name === currentPage));
     return activeParent ? activeParent.name : null;
@@ -148,7 +151,7 @@ const Sidebar: React.FC<SidebarProps> = ({ currentPage, setCurrentPage, onLogout
         <div className="p-4 mt-auto relative">
             {/* Collapse Toggle Button - Absolute positioned on the border */}
             <button
-                onClick={toggleSidebarCollapsed}
+                onClick={() => setSidebarCollapsed(!isSidebarCollapsed)}
                 className="hidden md:flex absolute -top-4 right-4 w-8 h-8 items-center justify-center rounded-full bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 shadow-sm text-gray-500 hover:text-primary-500 transition-all hover:scale-110 z-10"
                 title={isSidebarCollapsed ? 'Expand' : 'Collapse'}
             >
