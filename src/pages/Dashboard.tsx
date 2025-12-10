@@ -574,7 +574,20 @@ const Dashboard: React.FC<DashboardProps> = ({ user, tasks, saveTask }) => {
           return acc;
       }, {} as Record<string, { value: number, color: string }>);
       
-      return Object.entries(grouped).map(([name, data]) => ({ name, value: Math.abs(data.value), color: data.color })).filter(item => item.value > 0).sort((a, b) => b.value - a.value);
+        return Object.entries(grouped)
+            .map(([name, data]) => {
+                if (typeof data !== 'object' || data === null) return null;
+
+                const { value, color } = data as { value?: unknown; color?: unknown };
+                const numericValue = typeof value === 'number' ? Math.abs(value) : null;
+                const safeColor = typeof color === 'string' ? color : '#A0AEC0';
+
+                if (numericValue === null) return null;
+
+                return { name, value: numericValue, color: safeColor };
+            })
+            .filter((item): item is { name: string; value: number; color: string } => item !== null)
+            .sort((a, b) => b.value - a.value);
   };
 
   const { totalAssets, totalDebt, netWorth } = useMemo(() => {
