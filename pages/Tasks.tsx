@@ -193,8 +193,10 @@ const Tasks: React.FC<TasksProps> = ({ tasks, saveTask, deleteTask, taskOrder, s
                 confirmButtonVariant="danger"
             />
 
+            {/* Header */}
             <header className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
                 <div>
+                     <h1 className="text-3xl font-bold text-light-text dark:text-dark-text">Tasks</h1>
                     <p className="text-light-text-secondary dark:text-dark-text-secondary mt-1">Manage your financial to-dos and track productivity.</p>
                 </div>
                 <button onClick={() => handleOpenModal()} className={BTN_PRIMARY_STYLE}>
@@ -202,6 +204,27 @@ const Tasks: React.FC<TasksProps> = ({ tasks, saveTask, deleteTask, taskOrder, s
                     Add Task
                 </button>
             </header>
+            
+            {/* Controls Bar */}
+            <div className="flex flex-col md:flex-row justify-between items-center gap-4 bg-white dark:bg-dark-card p-1.5 rounded-2xl border border-black/5 dark:border-white/5 shadow-sm">
+                <div className="flex-1 w-full md:w-auto">
+                     <div className="px-4 text-sm font-medium text-light-text-secondary dark:text-dark-text-secondary">
+                         {stats.total} Total Tasks • {stats.completed} Completed
+                     </div>
+                </div>
+                
+                <div className="flex items-center gap-3 w-full md:w-auto px-1 md:px-0">
+                     <span className="text-sm font-medium text-light-text-secondary dark:text-dark-text-secondary whitespace-nowrap hidden sm:block">Sort by:</span>
+                     <div className={`${SELECT_WRAPPER_STYLE} !w-auto`}>
+                        <select value={sortBy} onChange={e => setSortBy(e.target.value as any)} className={`${SELECT_STYLE} !py-2 !text-sm pr-8 min-w-[140px]`}>
+                            <option value="manual">Manual (Drag)</option>
+                            <option value="priority-desc">Priority</option>
+                            <option value="dueDate-asc">Due Date</option>
+                        </select>
+                        <div className={SELECT_ARROW_STYLE}><span className="material-symbols-outlined text-sm">expand_more</span></div>
+                    </div>
+                </div>
+            </div>
 
             {/* Productivity Metrics */}
             <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 lg:gap-6">
@@ -244,18 +267,6 @@ const Tasks: React.FC<TasksProps> = ({ tasks, saveTask, deleteTask, taskOrder, s
             {/* Heatmap */}
             <div className="flex justify-center">
                 <TasksHeatmap tasks={tasks} />
-            </div>
-
-            {/* Controls */}
-            <div className="flex justify-end">
-                 <div className={SELECT_WRAPPER_STYLE}>
-                    <select value={sortBy} onChange={e => setSortBy(e.target.value as any)} className={`${SELECT_STYLE} !py-2 !text-sm`}>
-                        <option value="manual">Manual Sort (Drag & Drop)</option>
-                        <option value="priority-desc">Sort by Priority</option>
-                        <option value="dueDate-asc">Sort by Due Date</option>
-                    </select>
-                    <div className={SELECT_ARROW_STYLE}><span className="material-symbols-outlined">expand_more</span></div>
-                </div>
             </div>
 
             {/* Kanban Board */}

@@ -1,7 +1,7 @@
 
 import React, { useState, useMemo } from 'react';
 import { Budget, Category, Transaction, Account, BudgetSuggestion, AppPreferences } from '../types';
-import { BTN_PRIMARY_STYLE, BTN_SECONDARY_STYLE, LIQUID_ACCOUNT_TYPES, QUICK_CREATE_BUDGET_OPTIONS } from '../constants';
+import { BTN_PRIMARY_STYLE, BTN_SECONDARY_STYLE, LIQUID_ACCOUNT_TYPES, QUICK_CREATE_BUDGET_OPTIONS, SELECT_ARROW_STYLE, SELECT_STYLE, SELECT_WRAPPER_STYLE } from '../constants';
 import Card from '../components/Card';
 import { formatCurrency, convertToEur } from '../utils';
 import BudgetProgressCard from '../components/BudgetProgressCard';
@@ -343,47 +343,60 @@ const Budgeting: React.FC<BudgetingProps> = ({ budgets, transactions, expenseCat
         />
       )}
 
-      {/* Header & Month Navigation */}
-      <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
-        <div className="flex items-center gap-3 bg-light-fill dark:bg-dark-fill p-1.5 rounded-full">
-            <button onClick={() => handleMonthChange(-1)} className="p-1.5 rounded-full hover:bg-white dark:hover:bg-white/10 transition-colors shadow-sm">
-                <span className="material-symbols-outlined text-lg">chevron_left</span>
-            </button>
-            <span className="text-sm font-bold px-2 min-w-[100px] text-center">{monthName}</span>
-            <button onClick={() => handleMonthChange(1)} className="p-1.5 rounded-full hover:bg-white dark:hover:bg-white/10 transition-colors shadow-sm">
-                <span className="material-symbols-outlined text-lg">chevron_right</span>
-            </button>
+      {/* Header */}
+      <header className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
+        <div>
+           <h1 className="text-3xl font-bold text-light-text dark:text-dark-text">Budget</h1>
+           <p className="text-light-text-secondary dark:text-dark-text-secondary mt-1">Plan and track your monthly spending.</p>
         </div>
-
-        <div className="flex items-center gap-2 w-full md:w-auto overflow-x-auto no-scrollbar">
-            <div className="flex rounded-lg shadow-sm bg-light-card dark:bg-dark-card border border-black/5 dark:border-white/5">
-                <button
-                    onClick={handleQuickCreateDefault}
-                    className={`${BTN_SECONDARY_STYLE} flex items-center gap-2 rounded-r-none !bg-transparent border-none hover:bg-black/5 dark:hover:bg-white/5 !px-3`}
-                    title={`Create/update budgets based on the ${defaultQuickCreateOption.label}`}
-                >
-                    <span className="material-symbols-outlined text-lg text-primary-500">auto_awesome</span>
-                    <span className="whitespace-nowrap">Quick Budget</span>
-                </button>
-                <div className="w-px bg-black/5 dark:bg-white/10 my-2"></div>
-                <button
-                    onClick={() => setQuickBudgetModalOpen(true)}
-                    className={`${BTN_SECONDARY_STYLE} px-2 rounded-l-none !bg-transparent border-none hover:bg-black/5 dark:hover:bg-white/5`}
-                    title="More Quick Create Options"
-                >
-                    <span className="material-symbols-outlined text-lg">expand_more</span>
-                </button>
-            </div>
-            <button onClick={handleGenerateSuggestions} className={`${BTN_SECONDARY_STYLE} flex items-center gap-2 whitespace-nowrap`} disabled={isGeneratingSuggestions}>
-                <span className="material-symbols-outlined text-lg text-purple-500">smart_toy</span>
-                {isGeneratingSuggestions ? 'Thinking...' : 'AI Advice'}
-            </button>
-            <button onClick={() => handleOpenModal()} className={`${BTN_PRIMARY_STYLE} whitespace-nowrap`}>
+        <div className="flex gap-3">
+             <button onClick={() => handleOpenModal()} className={`${BTN_PRIMARY_STYLE} whitespace-nowrap`}>
                 <span className="material-symbols-outlined text-lg mr-1">add</span>
-                Create
+                Create Budget
             </button>
         </div>
+      </header>
+
+      {/* Controls Bar */}
+      <div className="flex flex-col md:flex-row justify-between items-center gap-4 bg-white dark:bg-dark-card p-1.5 rounded-2xl border border-black/5 dark:border-white/5 shadow-sm">
+           {/* Month Navigation */}
+           <div className="flex items-center gap-3 bg-light-fill dark:bg-dark-fill p-1.5 rounded-xl w-full md:w-auto justify-between md:justify-start">
+                <button onClick={() => handleMonthChange(-1)} className="p-1.5 rounded-lg hover:bg-white dark:hover:bg-white/10 transition-colors shadow-sm">
+                    <span className="material-symbols-outlined text-lg">chevron_left</span>
+                </button>
+                <span className="text-sm font-bold px-4 min-w-[120px] text-center">{monthName}</span>
+                <button onClick={() => handleMonthChange(1)} className="p-1.5 rounded-lg hover:bg-white dark:hover:bg-white/10 transition-colors shadow-sm">
+                    <span className="material-symbols-outlined text-lg">chevron_right</span>
+                </button>
+           </div>
+           
+           {/* Actions */}
+           <div className="flex items-center gap-2 w-full md:w-auto">
+                <div className="flex rounded-lg shadow-sm bg-light-card dark:bg-dark-card border border-black/5 dark:border-white/5">
+                    <button
+                        onClick={handleQuickCreateDefault}
+                        className={`${BTN_SECONDARY_STYLE} flex items-center gap-2 rounded-r-none !bg-transparent border-none hover:bg-black/5 dark:hover:bg-white/5 !px-3`}
+                        title={`Create/update budgets based on the ${defaultQuickCreateOption.label}`}
+                    >
+                        <span className="material-symbols-outlined text-lg text-primary-500">auto_awesome</span>
+                        <span className="whitespace-nowrap">Quick Budget</span>
+                    </button>
+                    <div className="w-px bg-black/5 dark:bg-white/10 my-2"></div>
+                    <button
+                        onClick={() => setQuickBudgetModalOpen(true)}
+                        className={`${BTN_SECONDARY_STYLE} px-2 rounded-l-none !bg-transparent border-none hover:bg-black/5 dark:hover:bg-white/5`}
+                        title="More Quick Create Options"
+                    >
+                        <span className="material-symbols-outlined text-lg">expand_more</span>
+                    </button>
+                </div>
+                <button onClick={handleGenerateSuggestions} className={`${BTN_SECONDARY_STYLE} flex items-center gap-2 whitespace-nowrap`} disabled={isGeneratingSuggestions}>
+                    <span className="material-symbols-outlined text-lg text-purple-500">smart_toy</span>
+                    {isGeneratingSuggestions ? 'Thinking...' : 'AI Advice'}
+                </button>
+           </div>
       </div>
+
 
       {/* Hero Metrics Section */}
       <div className="grid grid-cols-1 md:grid-cols-3 gap-6">

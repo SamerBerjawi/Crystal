@@ -336,7 +336,7 @@ const Accounts: React.FC<AccountsProps> = ({ accounts, transactions, saveAccount
   };
 
   return (
-    <div className="flex flex-col h-full">
+    <div className="space-y-8 pb-12 animate-fade-in-up">
       {isAddModalOpen && <AddAccountModal onClose={() => setAddModalOpen(false)} onAdd={handleAddAccount} accounts={accounts} />}
       {isEditModalOpen && editingAccount && <EditAccountModal onClose={() => setEditModalOpen(false)} onSave={handleUpdateAccount} onDelete={(accountId) => { setEditModalOpen(false); setDeletingAccount(editingAccount);}} account={editingAccount} accounts={accounts} warrants={warrants} onToggleStatus={onToggleAccountStatus} />}
       {isAdjustModalOpen && adjustingAccount && (
@@ -410,61 +410,67 @@ const Accounts: React.FC<AccountsProps> = ({ accounts, transactions, saveAccount
         </div>
       )}
 
-      {/* Controls Bar */}
-      <div className="flex-shrink-0 z-30 flex flex-wrap items-center justify-between gap-3 px-4 pt-4 pb-4 border-b shadow-sm bg-light-bg/90 dark:bg-dark-bg/90 backdrop-blur-xl md:px-8 md:pt-6 md:-mx-8 -mx-4 -mt-4 md:-mt-8 border-black/5 dark:border-white/5 transition-all">
-           
-           <div className="flex items-center gap-3">
-               {/* Layout Toggle */}
-               <div className="flex p-1 space-x-1 rounded-lg bg-black/5 dark:bg-white/5">
-                    <button 
-                        onClick={() => setLayoutMode('columns')} 
-                        className={`p-1.5 rounded-md transition-all duration-200 flex items-center ${layoutMode === 'columns' ? 'bg-white dark:bg-dark-card shadow-sm text-primary-600 dark:text-primary-400' : 'text-light-text-secondary dark:text-dark-text-secondary hover:text-light-text dark:hover:text-dark-text'}`}
-                        title="Grid View"
-                    >
-                        <span className="material-symbols-outlined text-[20px]">grid_view</span>
-                    </button>
-                    <button 
-                        onClick={() => setLayoutMode('stacked')} 
-                        className={`p-1.5 rounded-md transition-all duration-200 flex items-center ${layoutMode === 'stacked' ? 'bg-white dark:bg-dark-card shadow-sm text-primary-600 dark:text-primary-400' : 'text-light-text-secondary dark:text-dark-text-secondary hover:text-light-text dark:hover:text-dark-text'}`}
-                        title="List View"
-                    >
-                        <span className="material-symbols-outlined text-[20px]">view_list</span>
-                    </button>
-               </div>
-               
-               {/* Divider */}
-               <div className="w-px h-6 bg-black/10 dark:bg-white/10"></div>
+      {/* Header */}
+      <header className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
+        <div>
+           <h1 className="text-3xl font-bold text-light-text dark:text-dark-text">Accounts</h1>
+           <p className="text-light-text-secondary dark:text-dark-text-secondary mt-1">Manage your assets and liabilities.</p>
+        </div>
+        
+        <button 
+            onClick={() => setAddModalOpen(true)} 
+            className={`${BTN_PRIMARY_STYLE} flex items-center gap-2`}
+        >
+            <span className="material-symbols-outlined text-xl">add</span>
+            Add Account
+        </button>
+      </header>
 
-               {/* Sort Dropdown */}
-                <div className="relative">
+      {/* Controls Bar */}
+      <div className="flex flex-col md:flex-row justify-between items-center gap-4 bg-white dark:bg-dark-card p-1.5 rounded-2xl border border-black/5 dark:border-white/5 shadow-sm">
+           
+           {/* Sort Dropdown - Left aligned */}
+           <div className="flex items-center gap-3 px-4 py-2">
+                <span className="text-sm font-medium text-light-text-secondary dark:text-dark-text-secondary">Sort by:</span>
+                <div className="relative group">
                     <select
                         value={sortBy}
                         onChange={(e) => setSortBy(e.target.value as any)}
-                        className="h-9 pl-3 pr-8 text-sm font-medium transition-colors bg-transparent border rounded-lg appearance-none cursor-pointer border-black/10 dark:border-white/10 text-light-text dark:text-dark-text hover:bg-black/5 dark:hover:bg-white/5 focus:outline-none focus:ring-2 focus:ring-primary-500/50"
+                        className="bg-transparent text-sm font-bold text-light-text dark:text-dark-text focus:outline-none cursor-pointer pr-5 appearance-none"
                     >
-                        <option value="manual">Manual Sort</option>
+                        <option value="manual">Manual Order</option>
                         <option value="name">Name (A-Z)</option>
                         <option value="balance">Value (High-Low)</option>
                     </select>
-                    <div className="absolute inset-y-0 right-0 flex items-center px-2 pointer-events-none text-light-text-secondary dark:text-dark-text-secondary">
-                        <span className="material-symbols-outlined text-[18px]">expand_more</span>
+                    <div className="absolute inset-y-0 right-0 flex items-center pointer-events-none text-light-text dark:text-dark-text">
+                        <span className="material-symbols-outlined text-[16px]">expand_more</span>
                     </div>
                 </div>
            </div>
 
-           {/* Add Button */}
-           <button 
-                onClick={() => setAddModalOpen(true)} 
-                className="flex items-center justify-center h-9 gap-2 px-4 text-sm font-semibold text-white transition-all duration-200 rounded-lg shadow-sm bg-primary-600 hover:bg-primary-700 hover:shadow-md active:scale-95"
-            >
-                <span className="material-symbols-outlined text-[18px]">add</span>
-                <span>Add Account</span>
-            </button>
+           {/* Layout Toggle - Right aligned */}
+           <div className="flex bg-light-fill dark:bg-dark-fill p-1 rounded-xl w-full md:w-auto">
+                <button 
+                    onClick={() => setLayoutMode('columns')} 
+                    className={`flex-1 md:flex-none px-6 py-2 rounded-lg text-sm font-bold transition-all duration-200 flex items-center justify-center gap-2 ${layoutMode === 'columns' ? 'bg-white dark:bg-dark-card shadow-sm text-primary-600 dark:text-primary-400' : 'text-light-text-secondary dark:text-dark-text-secondary hover:text-light-text dark:hover:text-dark-text'}`}
+                >
+                    <span className="material-symbols-outlined text-[20px]">grid_view</span>
+                    <span>Grid</span>
+                </button>
+                <button 
+                    onClick={() => setLayoutMode('stacked')} 
+                    className={`flex-1 md:flex-none px-6 py-2 rounded-lg text-sm font-bold transition-all duration-200 flex items-center justify-center gap-2 ${layoutMode === 'stacked' ? 'bg-white dark:bg-dark-card shadow-sm text-primary-600 dark:text-primary-400' : 'text-light-text-secondary dark:text-dark-text-secondary hover:text-light-text dark:hover:text-dark-text'}`}
+                >
+                    <span className="material-symbols-outlined text-[20px]">view_list</span>
+                    <span>List</span>
+                </button>
+           </div>
       </div>
 
-      {/* Scrollable Content */}
-      <div className="flex-1 overflow-y-auto min-h-0 -mx-4 md:-mx-8 px-4 md:px-8 pt-6 space-y-8 pb-10">
-        {/* --- NEW PORTFOLIO DASHBOARD SECTION --- */}
+      {/* Content */}
+      <div className="space-y-8">
+        
+        {/* --- PORTFOLIO DASHBOARD SECTION --- */}
         <div className="grid grid-cols-1 xl:grid-cols-3 gap-6">
             {/* Hero Card: Net Worth */}
             <div className="bg-gradient-to-br from-primary-600 to-primary-900 text-white p-8 rounded-3xl shadow-xl relative overflow-hidden flex flex-col justify-between min-h-[240px] xl:min-h-auto">

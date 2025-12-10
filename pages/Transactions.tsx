@@ -964,15 +964,16 @@ const Transactions: React.FC<TransactionsProps> = ({ initialAccountFilter, initi
 
       <header className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
         <div>
-          <p className="text-light-text-secondary dark:text-dark-text-secondary mt-1">View and manage your financial activity.</p>
+           <h1 className="text-3xl font-bold text-light-text dark:text-dark-text">Transactions</h1>
+           <p className="text-light-text-secondary dark:text-dark-text-secondary mt-1">View and manage your financial activity.</p>
         </div>
         <div className="flex items-center gap-3">
             <button onClick={handleExport} className={`${BTN_SECONDARY_STYLE} flex items-center gap-2`}>
-                <span className="material-symbols-outlined text-base">download</span>
+                <span className="material-symbols-outlined text-lg">download</span>
                 Export
             </button>
             <button onClick={handleOpenAddModal} className={`${BTN_PRIMARY_STYLE} flex items-center gap-2`}>
-                <span className="material-symbols-outlined text-base">add</span>
+                <span className="material-symbols-outlined text-lg">add</span>
                 Add Transaction
             </button>
         </div>
