@@ -43,7 +43,6 @@ import QuickBudgetModal from '../components/QuickBudgetModal';
 import BudgetProgressCard from '../components/BudgetProgressCard';
 import BudgetModal from '../components/BudgetModal';
 import MultiSelectFilter from '../components/MultiSelectFilter';
-import PageHeader from '../components/PageHeader';
 
 const TransactionMapWidget = lazy(() => import('../components/TransactionMapWidget'));
 const CashflowSankey = lazy(() => import('../components/CashflowSankey'));
@@ -94,7 +93,7 @@ type EnrichedTransaction = Transaction & { convertedAmount: number; parsedDate: 
 type DashboardTab = 'overview' | 'analysis' | 'activity';
 
 const WIDGET_TABS: Record<DashboardTab, string[]> = {
-    overview: ['netWorthOverTime'], 
+    overview: ['netWorthOverTime'], // Removed 'todayWidget' as it's now hardcoded in the layout
     analysis: [],
     activity: ['transactionMap', 'outflowsByCategory', 'recentActivity', 'cashflowSankey']
 };
@@ -179,12 +178,17 @@ const Dashboard: React.FC<DashboardProps> = ({ user, tasks, saveTask }) => {
           if ('frequency' in original) {
              // Recurring
              const rt = original as RecurringTransaction;
+             
+             // Only advance the date if it is NOT a synthetic transaction.
+             // Synthetic transactions (like loan payments) are auto-generated based on the schedule.
+             // Once a real payment is made, the schedule logic will see it and stop generating that specific instance.
              if (!rt.isSynthetic) {
                  const postedDate = parseDateAsUTC(transactionsToSave[0].date);
                  let nextDueDate = new Date(postedDate);
                  const interval = rt.frequencyInterval || 1;
                  const startDateUTC = parseDateAsUTC(rt.startDate);
      
+                 // Simple advance logic
                  switch (rt.frequency) {
                      case 'daily': nextDueDate.setDate(nextDueDate.getDate() + interval); break;
                      case 'weekly': nextDueDate.setDate(nextDueDate.getDate() + 7 * interval); break;
@@ -203,6 +207,7 @@ const Dashboard: React.FC<DashboardProps> = ({ user, tasks, saveTask }) => {
                  saveRecurringTransaction({ ...rt, nextDueDate: toLocalISOString(nextDueDate) });
              }
           } else {
+              // Bill
               const bill = original as BillPayment;
               const postedTransaction = transactionsToSave[0];
               saveBillPayment({ ...bill, status: 'paid', accountId: postedTransaction.accountId, dueDate: postedTransaction.date });
@@ -287,7 +292,9 @@ const Dashboard: React.FC<DashboardProps> = ({ user, tasks, saveTask }) => {
     let calculatedExpenses = 0;
 
     txsInPeriod.forEach(tx => {
-        if (!selectedAccountIds.includes(tx.accountId)) return;
+        if (!selectedAccountIds.includes(tx.accountId)) {
+            return; // Skip transactions not in selected accounts for calculation.
+        }
 
         const convertedAmount = convertToEur(tx.amount, tx.currency);
 
@@ -299,6 +306,8 @@ const Dashboard: React.FC<DashboardProps> = ({ user, tasks, saveTask }) => {
 
             if (counterpart) {
                 const counterpartSelected = selectedAccountIds.includes(counterpart.accountId);
+
+                // If counterpart is NOT selected, this is a real in/outflow for the selected group.
                 if (!counterpartSelected) {
                     if (tx.type === 'income') {
                         calculatedIncome += convertedAmount;
@@ -306,11 +315,11 @@ const Dashboard: React.FC<DashboardProps> = ({ user, tasks, saveTask }) => {
                         calculatedExpenses += Math.abs(convertedAmount);
                     }
                 }
-            } else { 
+            } else { // Orphaned transfer part, treat as regular transaction.
                 if (tx.type === 'income') calculatedIncome += convertedAmount;
                 else calculatedExpenses += Math.abs(convertedAmount);
             }
-        } else {
+        } else { // Regular transaction.
             if (tx.type === 'income') calculatedIncome += convertedAmount;
             else calculatedExpenses += Math.abs(convertedAmount);
         }
@@ -375,9 +384,12 @@ const Dashboard: React.FC<DashboardProps> = ({ user, tasks, saveTask }) => {
     });
 
     const calculateChangeString = (current: number, previous: number) => {
-      if (previous === 0) return null;
+      if (previous === 0) {
+        return null;
+      }
       const change = ((current - previous) / previous) * 100;
       if (isNaN(change) || !isFinite(change)) return null;
+
       return `${change >= 0 ? '+' : ''}${change.toFixed(1)}%`;
     };
 
@@ -399,11 +411,16 @@ const Dashboard: React.FC<DashboardProps> = ({ user, tasks, saveTask }) => {
 
         if (tx.transferId) {
             if (processedTransferIds.has(tx.transferId)) return;
+            
             const counterpart = transactions.find(t => t.transferId === tx.transferId && t.id !== tx.id);
             processedTransferIds.add(tx.transferId);
+            
+            // This is an outflow only if its counterpart is NOT selected.
             if (counterpart && !selectedAccountIds.includes(counterpart.accountId)) {
                 const name = 'Transfers Out';
-                if (!spending[name]) spending[name] = { name, value: 0, color: '#A0AEC0', icon: 'arrow_upward' };
+                if (!spending[name]) {
+                    spending[name] = { name, value: 0, color: '#A0AEC0', icon: 'arrow_upward' };
+                }
                 spending[name].value += Math.abs(convertedAmount);
             }
         } else {
@@ -457,7 +474,7 @@ const Dashboard: React.FC<DashboardProps> = ({ user, tasks, saveTask }) => {
     const fullTransactionsList = [...transactions];
   
     for (const tx of sortedSourceTransactions) {
-      if (result.length >= 50) break; 
+      if (result.length >= 50) break; // Load more for activity view
   
       if (tx.transferId) {
         if (processedTransferIds.has(tx.transferId)) continue;
@@ -590,16 +607,18 @@ const Dashboard: React.FC<DashboardProps> = ({ user, tasks, saveTask }) => {
         'Other Liabilities': { types: ['Other Liabilities'], value: 0, color: '#94A3B8', icon: 'receipt' }, // Gray
     };
 
+    // Helper to sum a group
     const calculateGroupTotal = (types: AccountType[]) => {
         const groupAccounts = openAccounts.filter(acc => types.includes(acc.type));
         const { totalAssets, totalDebt } = calculateAccountTotals(groupAccounts, transactions, loanPaymentOverrides);
-        return totalAssets + totalDebt;
+        return totalAssets + totalDebt; // One will be 0 typically, except for mixed types which we don't have here
     };
 
     for (const groupName in assetGroups) {
         assetGroups[groupName].value = calculateGroupTotal(assetGroups[groupName].types);
     }
     for (const groupName in liabilityGroups) {
+         // Liabilities return positive totalDebt from calculateAccountTotals
          const groupAccounts = openAccounts.filter(acc => liabilityGroups[groupName].types.includes(acc.type));
          const { totalDebt } = calculateAccountTotals(groupAccounts, transactions, loanPaymentOverrides);
          liabilityGroups[groupName].value = totalDebt;
@@ -614,6 +633,19 @@ const Dashboard: React.FC<DashboardProps> = ({ user, tasks, saveTask }) => {
         liabilityGroups
      };
   }, [accounts, transactions, loanPaymentOverrides]);
+
+  const assetAllocationData: { name: string; value: number; color: string }[] = useMemo(() => {
+      // Explicitly type the groups to avoid implicit any errors
+      const groups = assetGroups as Record<string, AssetGroup>;
+      const data = [
+        { name: 'Liquid Cash', value: groups?.['Liquid Cash']?.value || 0, color: groups?.['Liquid Cash']?.color || '#A0AEC0' },
+        { name: 'Investments', value: groups?.['Investments']?.value || 0, color: groups?.['Investments']?.color || '#A0AEC0' },
+        { name: 'Properties', value: groups?.['Properties']?.value || 0, color: groups?.['Properties']?.color || '#A0AEC0' },
+        { name: 'Vehicles', value: groups?.['Vehicles']?.value || 0, color: groups?.['Vehicles']?.color || '#A0AEC0' },
+        { name: 'Other Assets', value: groups?.['Other Assets']?.value || 0, color: groups?.['Other Assets']?.color || '#A0AEC0' }
+      ];
+      return data.filter(d => d.value > 0).sort((a, b) => b.value - a.value);
+  }, [assetGroups]);
 
   const netWorthData = useMemo(() => {
     const transferGroups = new Map<string, Transaction[]>();
@@ -708,15 +740,361 @@ const Dashboard: React.FC<DashboardProps> = ({ user, tasks, saveTask }) => {
     const endValue = netWorthData[netWorthData.length - 1].value;
     return endValue >= startValue ? '#34C759' : '#FF3B30';
   }, [netWorthData]);
+  
+  const configuredCreditCards = useMemo(() => {
+    return accounts.filter(acc => {
+      const isConfiguredCC = acc.type === 'Credit Card' && acc.statementStartDate && acc.paymentDate;
+      if (!isConfiguredCC) return false;
+      
+      if (selectedAccountIds.includes(acc.id)) return true;
+      
+      if (acc.settlementAccountId && selectedAccountIds.includes(acc.settlementAccountId)) return true;
+      
+      return false;
+    });
+  }, [accounts, selectedAccountIds]);
+
+  const creditCardStatements = useMemo(() => {
+      if (configuredCreditCards.length === 0) return [];
+      
+      return configuredCreditCards.map(account => {
+          const periods = calculateStatementPeriods(account.statementStartDate!, account.paymentDate!);
+
+          const { statementBalance: prevBalance, amountPaid: prevAmountPaid } = getCreditCardStatementDetails(account, periods.previous.start, periods.previous.end, transactions);
+          const { statementBalance: currentBalance, amountPaid: currentAmountPaid } = getCreditCardStatementDetails(account, periods.current.start, periods.current.end, transactions);
+          const { statementBalance: futureBalance, amountPaid: futureAmountPaid } = getCreditCardStatementDetails(account, periods.future.start, periods.future.end, transactions);
+
+          const timeZone = getPreferredTimeZone();
+          const formatDate = (date: Date) => date.toLocaleDateString('en-US', { month: 'short', day: 'numeric', timeZone });
+          const formatFullDate = (date: Date) => date.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric', timeZone });
+
+          return {
+              accountName: account.name,
+              currency: account.currency,
+              accountBalance: account.balance,
+              creditLimit: account.creditLimit,
+              current: {
+                  balance: currentBalance,
+                  amountPaid: currentAmountPaid,
+                  previousStatementBalance: prevBalance,
+                  period: `${formatDate(periods.current.start)} - ${formatDate(periods.current.end)}`,
+                  paymentDue: formatFullDate(periods.current.paymentDue)
+              },
+              future: {
+                  balance: futureBalance,
+                  amountPaid: futureAmountPaid,
+                  period: `${formatDate(periods.future.start)} - ${formatDate(periods.future.end)}`,
+                  paymentDue: formatFullDate(periods.future.paymentDue)
+              }
+          };
+      });
+  }, [configuredCreditCards, transactions]);
+
+    const lowestBalanceForecasts = useMemo(() => {
+        const forecastEndDate = new Date();
+        forecastEndDate.setFullYear(forecastEndDate.getFullYear() + 1, forecastEndDate.getMonth() + 1, 0);
+
+        const liquidSelectedAccounts = selectedAccounts.filter(a => LIQUID_ACCOUNT_TYPES.includes(a.type));
+        
+        const syntheticLoanPayments = generateSyntheticLoanPayments(accounts, transactions, loanPaymentOverrides);
+        const syntheticCreditCardPayments = generateSyntheticCreditCardPayments(accounts, transactions);
+        const syntheticPropertyTransactions = generateSyntheticPropertyTransactions(accounts);
+        const allRecurringTransactions = [...recurringTransactions, ...syntheticLoanPayments, ...syntheticCreditCardPayments, ...syntheticPropertyTransactions];
+
+        const activeGoals = financialGoals.filter(g => activeGoalIds.includes(g.id));
+
+        const forecastData = generateBalanceForecast(
+            liquidSelectedAccounts, 
+            allRecurringTransactions, 
+            activeGoals, 
+            billsAndPayments, 
+            forecastEndDate,
+            recurringTransactionOverrides
+        ).chartData;
+
+        const today = new Date();
+        today.setUTCHours(0, 0, 0, 0);
+
+        const getInitialBalance = () => {
+            return liquidSelectedAccounts
+                .reduce((sum, acc) => sum + convertToEur(acc.balance, acc.currency), 0);
+        };
+
+        if (forecastData.length === 0) {
+            const initialBalance = getInitialBalance();
+            const todayStr = new Date().toISOString().split('T')[0];
+            const periods = ['This Month', 'Next 3 Months', 'Next 6 Months', 'Next Year'];
+            return periods.map(period => ({
+                period,
+                lowestBalance: initialBalance,
+                date: todayStr,
+            }));
+        }
+
+        const findNthLowestUniquePoint = (
+            data: { date: string; value: number }[],
+            n: number,
+            excludeValues: number[] = []
+        ): { value: number; date: string } | null => {
+            if (data.length === 0) return null;
+
+            const uniqueSortedValues = [...new Set(data.map(p => p.value))]
+                .filter(v => !excludeValues.includes(v))
+                .sort((a, b) => a - b);
+
+            const targetIndex = n - 1;
+
+            if (targetIndex >= uniqueSortedValues.length) {
+                const fallbackPoint = data.find(p => !excludeValues.includes(p.value)) 
+                                   || data.reduce((min, p) => (p.value < min.value ? p : min), data[0]);
+                return fallbackPoint;
+            }
+    
+            const nthLowestValue = uniqueSortedValues[targetIndex];
+            const point = data.find(p => p.value === nthLowestValue);
+            return point ? { value: point.value, date: point.date } : null;
+        };
+    
+        const periods = [
+            { 
+                label: 'This Month', 
+                startDate: new Date(Date.UTC(today.getUTCFullYear(), today.getUTCMonth(), 1)),
+                endDate: new Date(Date.UTC(today.getUTCFullYear(), today.getUTCMonth() + 1, 0))
+            },
+            { 
+                label: 'Next 3 Months', 
+                startDate: new Date(Date.UTC(today.getUTCFullYear(), today.getUTCMonth() + 1, 1)),
+                endDate: new Date(Date.UTC(today.getUTCFullYear(), today.getUTCMonth() + 3, 0))
+            },
+            { 
+                label: 'Next 6 Months', 
+                startDate: new Date(Date.UTC(today.getUTCFullYear(), today.getUTCMonth() + 3, 1)),
+                endDate: new Date(Date.UTC(today.getUTCFullYear(), today.getUTCMonth() + 6, 0))
+            },
+            { 
+                label: 'Next Year', 
+                startDate: new Date(Date.UTC(today.getUTCFullYear(), today.getUTCMonth() + 6, 1)),
+                endDate: new Date(Date.UTC(today.getUTCFullYear(), today.getUTCMonth() + 12, 0))
+            },
+        ];
+        
+        const results: { period: string; lowestBalance: number; date: string }[] = [];
+        const displayedValues: number[] = [];
+    
+        for (const period of periods) {
+            const dataForPeriod = forecastData.filter(d => {
+                const dDate = parseDateAsUTC(d.date);
+                return dDate >= period.startDate && dDate <= period.endDate;
+            });
+            
+            let displayedPoint: { value: number; date: string } | null = null;
+            let n = 1;
+    
+            while(true) {
+                const point = findNthLowestUniquePoint(dataForPeriod, n, displayedValues);
+                
+                if (!point) {
+                    const lastKnownBalancePoint = forecastData
+                        .filter(d => parseDateAsUTC(d.date) < period.startDate)
+                        .pop();
+                    
+                    const fallbackValue = lastKnownBalancePoint ? lastKnownBalancePoint.value : getInitialBalance();
+                    const fallbackDate = lastKnownBalancePoint ? lastKnownBalancePoint.date : new Date().toISOString().split('T')[0];
+
+                    displayedPoint = { value: fallbackValue, date: fallbackDate };
+                    break;
+                }
+
+                if (!displayedValues.includes(point.value)) {
+                    displayedPoint = point;
+                    break;
+                }
+                
+                n++;
+    
+                if (n > 20) {
+                     displayedPoint = point;
+                     break;
+                }
+            }
+            
+            results.push({
+                period: period.label,
+                lowestBalance: displayedPoint.value,
+                date: displayedPoint.date,
+            });
+            displayedValues.push(displayedPoint.value);
+        }
+        
+        return results;
+
+    }, [selectedAccounts, recurringTransactions, financialGoals, billsAndPayments, accounts, transactions, recurringTransactionOverrides, loanPaymentOverrides, activeGoalIds]);
+
+  const handleBudgetClick = useCallback(() => {
+    alert("Navigate to budget page.");
+  }, []);
+
+  // --- Widget Management ---
+  const allWidgets: Widget[] = useMemo(() => [
+    { 
+        id: 'todayWidget', 
+        name: 'Today\'s Agenda', 
+        defaultW: 2, 
+        defaultH: 2, 
+        component: TodayWidget, 
+        props: { 
+            tasks: tasks, 
+            recurringTransactions: allRecurringItems, 
+            bills: billsAndPayments, 
+            goals: financialGoals,
+            overrides: recurringTransactionOverrides,
+            onTaskUpdate: saveTask, 
+            onProcessItem: handleProcessItem 
+        } 
+    },
+    { id: 'netWorthOverTime', name: 'Net Worth Over Time', defaultW: 4, defaultH: 2, component: NetWorthChart, props: { data: netWorthData, lineColor: netWorthTrendColor } },
+    { id: 'outflowsByCategory', name: 'Outflows by Category', defaultW: 2, defaultH: 2, component: OutflowsChart, props: { data: outflowsByCategory, onCategoryClick: handleCategoryClick } },
+    { id: 'netWorthBreakdown', name: 'Net Worth Breakdown', defaultW: 2, defaultH: 2, component: AssetDebtDonutChart, props: { assets: totalAssets, debt: totalDebt } },
+    { id: 'recentActivity', name: 'Recent Activity', defaultW: 4, defaultH: 3, component: TransactionList, props: { transactions: recentTransactions, allCategories: allCategories, onTransactionClick: handleTransactionClick } },
+    { id: 'assetBreakdown', name: 'Asset Breakdown', defaultW: 2, defaultH: 2, component: AccountBreakdownCard, props: { title: 'Assets', totalValue: globalTotalAssets, breakdownData: globalAssetBreakdown } },
+    { id: 'liabilityBreakdown', name: 'Liability Breakdown', defaultW: 2, defaultH: 2, component: AccountBreakdownCard, props: { title: 'Liabilities', totalValue: Math.abs(globalTotalDebt), breakdownData: globalDebtBreakdown } },
+    { id: 'budgetOverview', name: 'Budget Overview', defaultW: 2, defaultH: 2, component: BudgetOverviewWidget, props: { budgets: budgets, transactions: transactions, expenseCategories: expenseCategories, accounts: accounts, duration: duration, onBudgetClick: handleBudgetClick } },
+    { id: 'transactionMap', name: 'Transaction Map', defaultW: 2, defaultH: 2, component: TransactionMapWidget, props: { transactions: filteredTransactions } },
+    { id: 'cashflowSankey', name: 'Cash Flow Sankey', defaultW: 4, defaultH: 2, component: CashflowSankey, props: { transactions: filteredTransactions, incomeCategories, expenseCategories } }
+  ], [tasks, recurringTransactions, allRecurringItems, recurringTransactionOverrides, billsAndPayments, financialGoals, saveTask, netWorthData, netWorthTrendColor, outflowsByCategory, handleCategoryClick, totalAssets, totalDebt, recentTransactions, allCategories, handleTransactionClick, globalTotalAssets, globalAssetBreakdown, globalTotalDebt, globalDebtBreakdown, budgets, transactions, expenseCategories, accounts, duration, handleBudgetClick, filteredTransactions, incomeCategories]);
+
+  const [widgets, setWidgets] = useLocalStorage<WidgetConfig[]>('dashboard-layout', allWidgets.map(w => ({ id: w.id, title: w.name, w: w.defaultW, h: w.defaultH })));
+
+  // Ensure activity dashboard always includes its required widgets (including Cash Flow Sankey)
+  useEffect(() => {
+    const requiredActivityWidgets = WIDGET_TABS.activity;
+
+    setWidgets(prev => {
+        const currentIds = new Set(prev.map(w => w.id));
+        const missing = requiredActivityWidgets.filter(id => !currentIds.has(id));
+
+        if (!missing.length) return prev;
+
+        const additions = missing
+            .map(id => {
+                const widgetDef = allWidgets.find(w => w.id === id);
+                return widgetDef ? { id: widgetDef.id, title: widgetDef.name, w: widgetDef.defaultW, h: widgetDef.defaultH } : null;
+            })
+            .filter(Boolean) as WidgetConfig[];
+
+        return additions.length ? [...prev, ...additions] : prev;
+    });
+  }, [allWidgets, setWidgets]);
+
+  const removeWidget = (widgetId: string) => {
+    setWidgets(prev => prev.filter(w => w.id !== widgetId));
+  };
+
+  const addWidget = (widgetId: string) => {
+    const widgetToAdd = allWidgets.find(w => w.id === widgetId);
+    if (widgetToAdd) {
+        setWidgets(prev => [...prev, { id: widgetToAdd.id, title: widgetToAdd.name, w: widgetToAdd.defaultW, h: widgetToAdd.defaultH }]);
+    }
+    setIsAddWidgetModalOpen(false);
+  };
+  
+  const handleResize = (widgetId: string, dimension: 'w' | 'h', change: 1 | -1) => {
+    setWidgets(prev => prev.map(w => {
+      if (w.id === widgetId) {
+        const newDim = w[dimension] + change;
+        if (dimension === 'w' && (newDim < 1 || newDim > 4)) return w;
+        if (dimension === 'h' && (newDim < 1 || newDim > 3)) return w;
+        return { ...w, [dimension]: newDim };
+      }
+      return w;
+    }));
+  };
+
+  const availableWidgetsToAdd = useMemo(() => {
+    const currentWidgetIds = widgets.map(w => w.id);
+    const allowedWidgets = WIDGET_TABS[activeTab];
+    return allWidgets.filter(w => !currentWidgetIds.includes(w.id) && allowedWidgets.includes(w.id));
+  }, [widgets, allWidgets, activeTab]);
+
+  const [draggedWidgetId, setDraggedWidgetId] = useState<string | null>(null);
+  const [dragOverWidgetId, setDragOverWidgetId] = useState<string | null>(null);
+
+  const handleDragStart = (e: React.DragEvent, widgetId: string) => { setDraggedWidgetId(widgetId); e.dataTransfer.effectAllowed = 'move'; };
+  const handleDragEnter = (e: React.DragEvent, widgetId: string) => { e.preventDefault(); if (widgetId !== draggedWidgetId) setDragOverWidgetId(widgetId); };
+  const handleDragLeave = (e: React.DragEvent) => { e.preventDefault(); setDragOverWidgetId(null); };
+  const handleDrop = (e: React.DragEvent, targetWidgetId: string) => {
+    e.preventDefault();
+    if (!draggedWidgetId || draggedWidgetId === targetWidgetId) return;
+
+    setWidgets(prevWidgets => {
+        const draggedIndex = prevWidgets.findIndex(w => w.id === draggedWidgetId);
+        const targetIndex = prevWidgets.findIndex(w => w.id === targetWidgetId);
+        if (draggedIndex === -1 || targetIndex === -1) return prevWidgets;
+
+        const newWidgets = [...prevWidgets];
+        const [draggedItem] = newWidgets.splice(draggedIndex, 1);
+        newWidgets.splice(targetIndex, 0, draggedItem);
+        return newWidgets;
+    });
+  };
+  const handleDragEnd = () => { setDraggedWidgetId(null); setDragOverWidgetId(null); };
+
+  const { liquidityRatio, savingsRate } = useMemo(() => {
+      const openAccounts = accounts.filter(acc => acc.status !== 'closed');
+      const liquidCash = openAccounts.filter(acc => LIQUID_ACCOUNT_TYPES.includes(acc.type))
+                           .reduce((sum, acc) => sum + convertToEur(acc.balance, acc.currency), 0);
+      
+      const threeMonthsAgo = new Date(); threeMonthsAgo.setMonth(threeMonthsAgo.getMonth() - 3);
+      const expenseTxs = transactions.filter(t => {
+          const d = parseDateAsUTC(t.date);
+          return d >= threeMonthsAgo && t.type === 'expense' && !t.transferId;
+      });
+      const totalSpend = expenseTxs.reduce((sum, tx) => sum + Math.abs(convertToEur(tx.amount, tx.currency)), 0);
+      const avgMonthlySpend = totalSpend / 3;
+
+      const liquidityRatio = avgMonthlySpend > 0 ? (liquidCash / avgMonthlySpend) : 0;
+
+      let totalIncomePeriod = 0;
+      let totalExpensePeriod = 0;
+      const { start, end } = getDateRange(duration, transactions);
+      const periodTxs = transactions.filter(t => {
+          const d = parseDateAsUTC(t.date);
+          return d >= start && d <= end && !t.transferId;
+      });
+      periodTxs.forEach(tx => {
+          const val = convertToEur(tx.amount, tx.currency);
+          if (tx.type === 'income') totalIncomePeriod += val;
+          else totalExpensePeriod += Math.abs(val);
+      });
+      const netFlowPeriod = totalIncomePeriod - totalExpensePeriod;
+      const savingsRate = totalIncomePeriod > 0 ? (netFlowPeriod / totalIncomePeriod) * 100 : 0;
+
+      return { liquidityRatio, savingsRate };
+
+  }, [accounts, transactions, duration]);
+
+  const tabBaseClass = "px-4 py-2 font-semibold text-sm rounded-lg transition-all duration-200 focus:outline-none whitespace-nowrap";
+  const tabActiveClass = "bg-white dark:bg-dark-card text-primary-600 dark:text-primary-400 shadow-sm";
+  const tabInactiveClass = "text-light-text-secondary dark:text-dark-text-secondary hover:text-light-text dark:hover:text-dark-text hover:bg-black/5 dark:hover:bg-white/5";
+
+  const allocationData: { name: string; value: number; color: string }[] = useMemo(() => {
+      return budgets.map(b => {
+          const cat = expenseCategories.find(c => c.name === b.categoryName);
+          return {
+              name: b.categoryName,
+              value: b.amount,
+              color: cat?.color || '#cbd5e1'
+          };
+      }).sort((a, b) => b.value - a.value);
+  }, [budgets, expenseCategories]);
 
   return (
-    <div className="space-y-8 pb-12 animate-fade-in-up">
-      {/* Transaction Modal */}
+    <div className="space-y-6">
       {isTransactionModalOpen && (
-        <AddTransactionModal
+        <AddTransactionModal 
           onClose={handleCloseTransactionModal}
-          onSave={(toSave, toDelete) => {
-            handleSavePostedTransaction(toSave, toDelete);
+          onSave={(data, toDelete) => {
+            handleSavePostedTransaction(data, toDelete);
           }}
           accounts={accounts}
           incomeCategories={incomeCategories}
@@ -727,10 +1105,10 @@ const Dashboard: React.FC<DashboardProps> = ({ user, tasks, saveTask }) => {
           initialType={initialModalData.initialType}
           initialFromAccountId={initialModalData.initialFromAccountId}
           initialToAccountId={initialModalData.initialToAccountId}
+          initialCategory={initialModalData.initialCategory}
           initialDetails={initialModalData.initialDetails}
         />
       )}
-      
       <TransactionDetailModal
         isOpen={isDetailModalOpen}
         onClose={() => setDetailModalOpen(false)}
@@ -738,16 +1116,7 @@ const Dashboard: React.FC<DashboardProps> = ({ user, tasks, saveTask }) => {
         transactions={modalTransactions}
         accounts={accounts}
       />
-      
-      {isAddWidgetModalOpen && (
-        <AddWidgetModal
-          isOpen={isAddWidgetModalOpen}
-          onClose={() => setIsAddWidgetModalOpen(false)}
-          availableWidgets={[]} // No additional widgets to add in this simplified view
-          onAddWidget={() => {}}
-        />
-      )}
-      
+      <AddWidgetModal isOpen={isAddWidgetModalOpen} onClose={() => setIsAddWidgetModalOpen(false)} availableWidgets={availableWidgetsToAdd} onAddWidget={addWidget} />
       {isMatcherModalOpen && (
           <TransactionMatcherModal
               isOpen={isMatcherModalOpen}
@@ -760,255 +1129,318 @@ const Dashboard: React.FC<DashboardProps> = ({ user, tasks, saveTask }) => {
               onDismissAll={dismissAllSuggestions}
           />
       )}
+      
+      <div className="flex flex-col xl:flex-row justify-between items-start xl:items-center gap-4">
+        <div className="mb-1 xl:mb-0">
+          <p className="text-light-text-secondary dark:text-dark-text-secondary">Welcome back, {user.firstName}!</p>
+        </div>
+        
+        <div className="flex flex-col sm:flex-row gap-3 w-full xl:w-auto">
+             <div className="flex bg-light-fill dark:bg-dark-fill p-1 rounded-lg w-full sm:w-auto overflow-x-auto no-scrollbar">
+                <button onClick={() => setActiveTab('overview')} className={`${tabBaseClass} ${activeTab === 'overview' ? tabActiveClass : tabInactiveClass}`}>Overview</button>
+                <button onClick={() => setActiveTab('analysis')} className={`${tabBaseClass} ${activeTab === 'analysis' ? tabActiveClass : tabInactiveClass}`}>Analysis</button>
+                <button onClick={() => setActiveTab('activity')} className={`${tabBaseClass} ${activeTab === 'activity' ? tabActiveClass : tabInactiveClass}`}>Activity</button>
+            </div>
 
-      {/* Header and Controls */}
-      <PageHeader 
-        title={`Good ${new Date().getHours() < 12 ? 'Morning' : new Date().getHours() < 18 ? 'Afternoon' : 'Evening'}, ${user.firstName}`}
-        subTitle="Here's what's happening with your money today."
-        actions={
-            <>
-                <button 
-                    onClick={() => setTransactionModalOpen(true)} 
-                    className={`${BTN_PRIMARY_STYLE} flex items-center gap-2`}
-                >
-                    <span className="material-symbols-outlined text-xl">add</span>
-                    <span>Add Transaction</span>
-                </button>
-            </>
-        }
-      />
+            <div className="flex gap-3 w-full sm:w-auto">
+                <div className="flex-1 sm:flex-none">
+                    <MultiAccountFilter accounts={accounts} selectedAccountIds={selectedAccountIds} setSelectedAccountIds={setSelectedAccountIds} />
+                </div>
+                <div className="flex-1 sm:flex-none">
+                     <DurationFilter selectedDuration={duration} onDurationChange={setDuration} />
+                </div>
+            </div>
 
-      {/* Navigation Tabs */}
-      <div className="flex justify-center mb-6">
-           <div className="flex bg-light-fill dark:bg-dark-fill p-1 rounded-full shadow-inner">
-                {Object.keys(WIDGET_TABS).map((tab) => (
-                    <button
-                        key={tab}
-                        onClick={() => setActiveTab(tab as DashboardTab)}
-                        className={`px-6 py-2 rounded-full text-sm font-semibold transition-all duration-300 ${activeTab === tab ? 'bg-white dark:bg-dark-card shadow-sm text-primary-600 dark:text-primary-400' : 'text-light-text-secondary dark:text-dark-text-secondary hover:text-light-text dark:hover:text-dark-text'}`}
-                    >
-                        {tab.charAt(0).toUpperCase() + tab.slice(1)}
+            <div className="flex gap-3 w-full sm:w-auto sm:ml-auto xl:ml-0">
+                 {isEditMode ? (
+                    <>
+                        <button onClick={() => setIsAddWidgetModalOpen(true)} className={`${BTN_SECONDARY_STYLE} flex-1 sm:flex-none flex items-center gap-2 justify-center`}>
+                            <span className="material-symbols-outlined text-base">add</span>
+                            <span className="whitespace-nowrap">Add Widget</span>
+                        </button>
+                        <button onClick={() => setIsEditMode(false)} className={`${BTN_PRIMARY_STYLE} flex-1 sm:flex-none justify-center px-6`}>
+                            Done
+                        </button>
+                    </>
+                  ) : (
+                    <button onClick={() => setIsEditMode(true)} className={`${BTN_SECONDARY_STYLE} flex-1 sm:flex-none flex items-center gap-2 justify-center`}>
+                        <span className="material-symbols-outlined text-base">edit</span>
+                        <span className="whitespace-nowrap">Edit Layout</span>
                     </button>
-                ))}
-           </div>
+                  )}
+
+                  <button onClick={() => handleOpenTransactionModal()} className={`${BTN_PRIMARY_STYLE} flex-1 sm:flex-none justify-center whitespace-nowrap`}>
+                    Add Transaction
+                  </button>
+            </div>
+        </div>
       </div>
       
       {suggestions.length > 0 && (
-            <div className="bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800 rounded-xl p-4 flex items-center justify-between animate-fade-in-up">
-                <div className="flex items-center gap-3">
-                    <span className="material-symbols-outlined text-blue-600 dark:text-blue-400">auto_fix_high</span>
-                    <div>
-                        <p className="font-semibold text-blue-800 dark:text-blue-200">Transaction Suggestions</p>
-                        <p className="text-xs text-blue-600 dark:text-blue-300">We found {suggestions.length} potential transfers to link.</p>
-                    </div>
-                </div>
-                <button onClick={() => setIsMatcherModalOpen(true)} className="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-lg text-sm font-semibold transition-colors">
-                    Review
-                </button>
-            </div>
+          <Card>
+              <div className="flex flex-wrap justify-between items-center gap-4">
+                  <div className="flex items-center gap-3">
+                      <span className="material-symbols-outlined text-2xl text-primary-500">autorenew</span>
+                      <div>
+                          <h3 className="font-semibold text-lg">Potential Transfers Detected</h3>
+                          <p className="text-sm text-light-text-secondary dark:text-dark-text-secondary">
+                              We found {suggestions.length} pair(s) of transactions that might be transfers.
+                          </p>
+                      </div>
+                  </div>
+                  <div className="flex items-center gap-4">
+                      <button onClick={dismissAllSuggestions} className={BTN_SECONDARY_STYLE}>Dismiss All</button>
+                      <button onClick={() => setIsMatcherModalOpen(true)} className={BTN_PRIMARY_STYLE}>Review All</button>
+                  </div>
+              </div>
+          </Card>
       )}
 
-      {/* Main Content Area */}
       {activeTab === 'overview' && (
-        <div className="space-y-6 animate-fade-in-up">
-            <div className="flex justify-end mb-4">
-                 <div className="flex items-center gap-3">
-                    <MultiAccountFilter accounts={accounts} selectedAccountIds={selectedAccountIds} setSelectedAccountIds={setSelectedAccountIds} />
-                    <DurationFilter selectedDuration={duration} onDurationChange={setDuration} />
-                 </div>
-            </div>
-
-            <FinancialOverview 
-                netWorth={netWorth}
-                income={income}
-                expenses={expenses}
-                incomeChange={incomeChange}
-                expenseChange={expenseChange}
-            />
-
-            <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-                <div className="lg:col-span-2 space-y-6">
-                    <Card className="h-[400px] flex flex-col">
-                        <div className="flex justify-between items-center mb-4">
-                             <h3 className="font-bold text-light-text dark:text-dark-text text-lg">Net Worth Trend</h3>
-                             <div className={`px-3 py-1 rounded-full text-xs font-bold ${netWorthTrendColor === '#34C759' ? 'bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400' : 'bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-400'}`}>
-                                 {netWorthData.length > 1 ? (
-                                     ((netWorthData[netWorthData.length-1].value - netWorthData[0].value) >= 0 ? '+' : '') + 
-                                     formatCurrency(netWorthData[netWorthData.length-1].value - netWorthData[0].value, 'EUR')
-                                 ) : '—'}
-                             </div>
-                        </div>
-                        <NetWorthChart data={netWorthData} lineColor={netWorthTrendColor} />
-                    </Card>
-                    
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                         <Card>
-                             <div className="flex justify-between items-center mb-4">
-                                <h3 className="font-bold text-light-text dark:text-dark-text">Assets</h3>
-                                <p className="text-sm font-semibold text-emerald-600 dark:text-emerald-400">{formatCurrency(globalTotalAssets, 'EUR')}</p>
-                             </div>
-                             <AccountBreakdownCard title="Assets" totalValue={globalTotalAssets} breakdownData={globalAssetBreakdown} />
-                         </Card>
-                         <Card>
-                             <div className="flex justify-between items-center mb-4">
-                                <h3 className="font-bold text-light-text dark:text-dark-text">Liabilities</h3>
-                                <p className="text-sm font-semibold text-rose-600 dark:text-rose-400">{formatCurrency(globalTotalDebt, 'EUR')}</p>
-                             </div>
-                             <AccountBreakdownCard title="Liabilities" totalValue={globalTotalDebt} breakdownData={globalDebtBreakdown} />
-                         </Card>
-                    </div>
+        <>
+             <div className="grid grid-cols-1 xl:grid-cols-3 gap-6">
+                <div className="xl:col-span-2">
+                    <FinancialOverview
+                        netWorth={netWorth}
+                        income={income}
+                        expenses={expenses}
+                        incomeChange={incomeChange}
+                        expenseChange={expenseChange}
+                        currency="EUR"
+                    />
                 </div>
+                <div className="xl:col-span-1 h-full">
+                     <Card className="h-full p-0 overflow-hidden border border-black/5 dark:border-white/5 shadow-sm">
+                        <TodayWidget 
+                            tasks={tasks} 
+                            recurringTransactions={allRecurringItems} 
+                            bills={billsAndPayments} 
+                            goals={financialGoals}
+                            overrides={recurringTransactionOverrides}
+                            onTaskUpdate={saveTask} 
+                            onProcessItem={handleProcessItem} 
+                        />
+                     </Card>
+                </div>
+            </div>
+            
+            {lowestBalanceForecasts && lowestBalanceForecasts.length > 0 && (
+                <div>
+                    <ForecastOverview forecasts={lowestBalanceForecasts} currency="EUR" />
+                </div>
+            )}
 
+            {creditCardStatements.length > 0 && (
                 <div className="space-y-6">
-                    <BudgetOverviewWidget 
-                        budgets={budgets}
-                        transactions={transactions}
-                        expenseCategories={expenseCategories}
-                        accounts={accounts}
-                        duration={duration}
-                        onBudgetClick={() => { /* Navigate to budget */ }}
-                    />
-                    
-                    <TodayWidget 
-                        tasks={tasks}
-                        recurringTransactions={recurringTransactions}
-                        bills={billsAndPayments}
-                        goals={financialGoals}
-                        overrides={recurringTransactionOverrides}
-                        onTaskUpdate={saveTask}
-                        onProcessItem={handleProcessItem}
-                    />
+                    {creditCardStatements.map(statement => (
+                        <CreditCardStatementCard
+                            key={statement.accountName}
+                            accountName={statement.accountName}
+                            accountBalance={statement.accountBalance}
+                            creditLimit={statement.creditLimit}
+                            currency={statement.currency}
+                            currentStatement={{
+                                period: statement.current.period,
+                                balance: statement.current.balance,
+                                dueDate: statement.current.paymentDue,
+                                amountPaid: statement.current.amountPaid,
+                                previousStatementBalance: statement.current.previousStatementBalance
+                            }}
+                            nextStatement={{
+                                period: statement.future.period,
+                                balance: statement.future.balance,
+                                dueDate: statement.future.paymentDue
+                            }}
+                        />
+                    ))}
                 </div>
-            </div>
-        </div>
+            )}
+        </>
       )}
-      
+
       {activeTab === 'analysis' && (
           <div className="space-y-8 animate-fade-in-up">
-               <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
-                   <AnalysisStatCard title="Total Assets" value={formatCurrency(globalTotalAssets, 'EUR')} subtext={`${Object.keys(assetGroups).length} categories`} icon="account_balance" colorClass="bg-blue-100 text-blue-600 dark:bg-blue-900/30 dark:text-blue-400" />
-                   <AnalysisStatCard title="Total Debt" value={formatCurrency(globalTotalDebt, 'EUR')} subtext={`${Object.keys(liabilityGroups).length} categories`} icon="credit_card" colorClass="bg-red-100 text-red-600 dark:bg-red-900/30 dark:text-red-400" />
-                   <AnalysisStatCard title="Liquid Cash" value={formatCurrency(assetGroups['Liquid Cash']?.value || 0, 'EUR')} subtext="Available now" icon="payments" colorClass="bg-green-100 text-green-600 dark:bg-green-900/30 dark:text-green-400" />
-                   <AnalysisStatCard title="Net Worth" value={formatCurrency(netWorth, 'EUR')} subtext="Assets - Liabilities" icon="savings" colorClass="bg-purple-100 text-purple-600 dark:bg-purple-900/30 dark:text-purple-400" />
-               </div>
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+                  <AnalysisStatCard 
+                    title="Liquidity Ratio" 
+                    value={`${liquidityRatio.toFixed(1)} months`} 
+                    subtext="Runway based on avg. spend" 
+                    icon="savings" 
+                    colorClass="bg-blue-100 dark:bg-blue-900/30 text-blue-600 dark:text-blue-400"
+                  />
+                  <AnalysisStatCard 
+                    title="Savings Rate" 
+                    value={`${savingsRate.toFixed(0)}%`} 
+                    subtext={`of total income (${duration})`}
+                    icon="trending_up" 
+                    colorClass="bg-green-100 dark:bg-green-900/30 text-green-600 dark:text-green-400"
+                  />
+                  <AnalysisStatCard 
+                    title="Debt Ratio" 
+                    value={`${(globalTotalAssets > 0 ? (Math.abs(globalTotalDebt) / globalTotalAssets) * 100 : 0).toFixed(1)}%`} 
+                    subtext="Liabilities / Assets"
+                    icon="pie_chart" 
+                    colorClass="bg-purple-100 dark:bg-purple-900/30 text-purple-600 dark:text-purple-400"
+                  />
+              </div>
 
-               <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
-                   <Card className="h-[400px]">
-                       <h3 className="font-bold text-lg mb-4">Debt Composition</h3>
-                       <div className="h-full pb-8">
-                            <ResponsiveContainer width="100%" height="100%">
-                                <PieChart>
-                                    <Pie
-                                        data={Object.values(liabilityGroups).filter(g => g.value > 0)}
-                                        cx="50%"
-                                        cy="50%"
-                                        innerRadius={60}
-                                        outerRadius={100}
-                                        paddingAngle={5}
-                                        dataKey="value"
-                                        nameKey="name" // Wait, assetGroups doesn't have name inside values
-                                    >
-                                        {Object.entries(liabilityGroups).map(([name, group], index) => (
-                                            <Cell key={name} fill={group.color} stroke="none" />
-                                        ))}
-                                    </Pie>
-                                    <Tooltip formatter={(value: number) => formatCurrency(value, 'EUR')} />
-                                    <Legend />
-                                </PieChart>
-                            </ResponsiveContainer>
-                       </div>
-                   </Card>
-                   
-                   <Card className="h-[400px]">
-                       <h3 className="font-bold text-lg mb-4">Asset Allocation</h3>
-                       <div className="h-full pb-8">
-                            <ResponsiveContainer width="100%" height="100%">
-                                <PieChart>
-                                    <Pie
-                                        data={Object.values(assetGroups).filter(g => g.value > 0)}
-                                        cx="50%"
-                                        cy="50%"
-                                        innerRadius={60}
-                                        outerRadius={100}
-                                        paddingAngle={5}
-                                        dataKey="value"
-                                    >
-                                        {Object.entries(assetGroups).map(([name, group], index) => (
-                                            <Cell key={name} fill={group.color} stroke="none" />
-                                        ))}
-                                    </Pie>
-                                    <Tooltip formatter={(value: number) => formatCurrency(value, 'EUR')} />
-                                    <Legend />
-                                </PieChart>
-                            </ResponsiveContainer>
-                       </div>
-                   </Card>
-               </div>
+              <Card className="overflow-hidden">
+                  <div className="flex flex-col lg:flex-row gap-8">
+                      <div className="lg:w-1/3 flex flex-col justify-center border-b lg:border-b-0 lg:border-r border-black/5 dark:border-white/5 pb-8 lg:pb-0 lg:pr-8">
+                          <h3 className="text-lg font-bold text-light-text dark:text-dark-text mb-6 self-start">Asset Allocation</h3>
+                          <div className="h-64 w-full relative">
+                              <ResponsiveContainer width="100%" height="100%">
+                                  <PieChart>
+                                      <Pie
+                                          data={assetAllocationData}
+                                          cx="50%"
+                                          cy="50%"
+                                          innerRadius={60}
+                                          outerRadius={80}
+                                          paddingAngle={5}
+                                          dataKey="value"
+                                      >
+                                          {assetAllocationData.map((entry: any, index: number) => (
+                                              <Cell key={`cell-${index}`} fill={entry.color} stroke="none" />
+                                          ))}
+                                      </Pie>
+                                  </PieChart>
+                              </ResponsiveContainer>
+                              <div className="absolute inset-0 flex flex-col items-center justify-center pointer-events-none">
+                                  <span className="text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">Net Worth</span>
+                                  <span className="text-2xl font-bold text-gray-900 dark:text-white privacy-blur">{formatCurrency(globalTotalAssets - Math.abs(globalTotalDebt), 'EUR')}</span>
+                              </div>
+                          </div>
+                          <div className="w-full mt-8 grid grid-cols-2 gap-4">
+                              <div className="p-3 rounded-xl bg-green-50 dark:bg-green-900/20 border border-green-100 dark:border-green-900/30 text-center">
+                                  <p className="text-xs text-green-600 dark:text-green-400 font-semibold uppercase mb-1">Assets</p>
+                                  <p className="text-lg font-bold text-green-700 dark:text-green-300 privacy-blur">{formatCurrency(globalTotalAssets, 'EUR')}</p>
+                              </div>
+                              <div className="p-3 rounded-xl bg-red-50 dark:bg-red-900/20 border border-red-100 dark:border-red-900/30 text-center">
+                                  <p className="text-xs text-red-600 dark:text-red-400 font-semibold uppercase mb-1">Liabilities</p>
+                                  <p className="text-lg font-bold text-red-700 dark:text-red-300 privacy-blur">{formatCurrency(Math.abs(globalTotalDebt), 'EUR')}</p>
+                              </div>
+                          </div>
+                      </div>
+
+                      <div className="lg:w-2/3 grid grid-cols-1 sm:grid-cols-2 gap-8">
+                          <div>
+                              <h4 className="text-sm font-bold text-light-text-secondary dark:text-dark-text-secondary uppercase tracking-wider mb-4">Assets Breakdown</h4>
+                              <div className="space-y-4">
+                                  {Object.entries(assetGroups as Record<string, { value: number; color: string; icon: string }>).map(([name, group]) => {
+                                      if (group.value === 0) return null;
+                                      return (
+                                        <div key={name} className="group">
+                                            <div className="flex justify-between text-sm mb-1.5">
+                                                <div className="flex items-center gap-2">
+                                                    <div className="w-6 h-6 rounded-md flex items-center justify-center text-white shadow-sm" style={{ backgroundColor: group.color }}>
+                                                        <span className="material-symbols-outlined text-[14px]">{group.icon}</span>
+                                                    </div>
+                                                    <span className="font-medium text-gray-700 dark:text-gray-200">{name}</span>
+                                                </div>
+                                                <span className="font-mono font-medium text-gray-900 dark:text-white privacy-blur">{formatCurrency(group.value, 'EUR')}</span>
+                                            </div>
+                                            <div className="w-full bg-gray-100 dark:bg-white/10 rounded-full h-2 overflow-hidden">
+                                                <div className="h-full rounded-full" style={{ width: `${(group.value / globalTotalAssets) * 100}%`, backgroundColor: group.color }}></div>
+                                            </div>
+                                            <p className="text-[10px] text-right text-gray-400 mt-1 opacity-0 group-hover:opacity-100 transition-opacity">
+                                                {((group.value / globalTotalAssets) * 100).toFixed(1)}%
+                                            </p>
+                                        </div>
+                                      );
+                                  })}
+                                  {globalTotalAssets === 0 && <p className="text-sm text-light-text-secondary dark:text-dark-text-secondary italic">No assets found.</p>}
+                              </div>
+                          </div>
+
+                          <div>
+                              <h4 className="text-sm font-bold text-light-text-secondary dark:text-dark-text-secondary uppercase tracking-wider mb-4">Liabilities Breakdown</h4>
+                              <div className="space-y-4">
+                                  {Object.entries(liabilityGroups as Record<string, { value: number; color: string; icon: string }>).map(([name, group]) => {
+                                      if (group.value === 0) return null;
+                                      return (
+                                          <div key={name} className="group">
+                                              <div className="flex justify-between text-sm mb-1.5">
+                                                   <div className="flex items-center gap-2">
+                                                        <div className="w-6 h-6 rounded-md flex items-center justify-center text-white shadow-sm" style={{ backgroundColor: group.color }}>
+                                                            <span className="material-symbols-outlined text-[14px]">{group.icon}</span>
+                                                        </div>
+                                                        <span className="font-medium text-gray-700 dark:text-gray-200">{name}</span>
+                                                    </div>
+                                                  <span className="font-mono font-medium text-gray-900 dark:text-white privacy-blur">{formatCurrency(group.value, 'EUR')}</span>
+                                              </div>
+                                              <div className="w-full bg-gray-100 dark:bg-white/10 rounded-full h-2 overflow-hidden">
+                                                  <div className="h-full rounded-full" style={{ width: `${(group.value / Math.abs(globalTotalDebt)) * 100}%`, backgroundColor: group.color }}></div>
+                                              </div>
+                                              <p className="text-[10px] text-right text-gray-400 mt-1 opacity-0 group-hover:opacity-100 transition-opacity">
+                                                  {((group.value / Math.abs(globalTotalDebt)) * 100).toFixed(1)}%
+                                              </p>
+                                          </div>
+                                      );
+                                  })}
+                                  {globalTotalDebt === 0 && (
+                                      <div className="p-4 text-center text-sm text-gray-400 italic bg-gray-50 dark:bg-gray-800/50 rounded-lg">
+                                          No liabilities recorded.
+                                      </div>
+                                  )}
+                              </div>
+                          </div>
+                      </div>
+                  </div>
+              </Card>
+              
+              <Card className="min-h-[400px] flex flex-col">
+                    <div className="flex justify-between items-center mb-4">
+                        <h3 className="text-xl font-bold text-light-text dark:text-dark-text">Budget Performance</h3>
+                        <button onClick={() => handleBudgetClick()} className="text-sm text-primary-500 hover:underline">View Details</button>
+                    </div>
+                    <div className="flex-grow">
+                         <BudgetOverviewWidget budgets={budgets} transactions={transactions} expenseCategories={expenseCategories} accounts={accounts} duration={duration} onBudgetClick={handleBudgetClick} />
+                    </div>
+              </Card>
           </div>
       )}
 
-      {activeTab === 'activity' && (
-        <div className="space-y-6 animate-fade-in-up">
-            <div className="flex justify-end mb-4">
-                 <div className="flex items-center gap-3">
-                    <MultiAccountFilter accounts={accounts} selectedAccountIds={selectedAccountIds} setSelectedAccountIds={setSelectedAccountIds} />
-                    <DurationFilter selectedDuration={duration} onDurationChange={setDuration} />
-                 </div>
-            </div>
+      {(activeTab === 'overview' || activeTab === 'activity') && (
+        <div className="grid grid-cols-1 md:grid-cols-4 gap-6" style={{ gridAutoRows: 'minmax(200px, auto)' }}>
+            {widgets
+                .filter(widget => WIDGET_TABS[activeTab].includes(widget.id))
+                .map(widget => {
+                    const widgetDetails = allWidgets.find(w => w.id === widget.id);
+                    if (!widgetDetails) return null;
+                    const WidgetComponent = widgetDetails.component;
 
-            <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-                 <Card className="h-[500px] flex flex-col p-0 overflow-hidden">
-                     <div className="p-4 border-b border-black/5 dark:border-white/5">
-                        <h3 className="font-bold text-lg text-light-text dark:text-dark-text">Spending Map</h3>
-                     </div>
-                     <div className="flex-grow relative">
-                         <Suspense fallback={<div className="flex items-center justify-center h-full"><div className="animate-spin h-8 w-8 border-2 border-primary-500 rounded-full border-t-transparent"></div></div>}>
-                             <TransactionMapWidget transactions={filteredTransactions} />
-                         </Suspense>
-                     </div>
-                 </Card>
-
-                 <div className="space-y-6">
-                     <Card className="h-[240px]">
-                         <div className="flex justify-between items-center mb-4">
-                             <h3 className="font-bold text-lg">Top Outflows</h3>
-                         </div>
-                         <OutflowsChart data={outflowsByCategory.slice(0, 5)} onCategoryClick={handleCategoryClick} />
-                     </Card>
-                     
-                     <Card className="h-[240px] flex flex-col p-0 overflow-hidden">
-                         <div className="p-4 border-b border-black/5 dark:border-white/5">
-                            <h3 className="font-bold text-lg text-light-text dark:text-dark-text">Recent Activity</h3>
-                         </div>
-                         <div className="flex-grow overflow-y-auto">
-                            <TransactionList 
-                                transactions={recentTransactions} 
-                                allCategories={allCategories} 
-                                onTransactionClick={handleTransactionClick}
-                            />
-                         </div>
-                     </Card>
-                 </div>
-            </div>
-            
-            <Card className="h-[600px] flex flex-col p-0 overflow-hidden">
-                <div className="p-4 border-b border-black/5 dark:border-white/5">
-                    <h3 className="font-bold text-lg text-light-text dark:text-dark-text">Cash Flow Diagram</h3>
-                </div>
-                <div className="flex-grow">
-                     <Suspense fallback={<div className="flex items-center justify-center h-full"><div className="animate-spin h-8 w-8 border-2 border-primary-500 rounded-full border-t-transparent"></div></div>}>
-                         <CashflowSankey 
-                            transactions={filteredTransactions}
-                            incomeCategories={incomeCategories}
-                            expenseCategories={expenseCategories}
-                        />
-                     </Suspense>
-                </div>
-            </Card>
+                    return (
+                        <WidgetWrapper
+                            key={widget.id}
+                            title={widget.title}
+                            w={widget.w}
+                            h={widget.h}
+                            onRemove={() => removeWidget(widget.id)}
+                            onResize={(dim, change) => handleResize(widget.id, dim, change)}
+                            isEditMode={isEditMode}
+                            isBeingDragged={draggedWidgetId === widget.id}
+                            isDragOver={dragOverWidgetId === widget.id}
+                            onDragStart={e => handleDragStart(e, widget.id)}
+                            onDragEnter={e => handleDragEnter(e, widget.id)}
+                            onDragLeave={handleDragLeave}
+                            onDrop={e => handleDrop(e, widget.id)}
+                            onDragEnd={handleDragEnd}
+                        >
+                            <Suspense fallback={(
+                              <div className="p-4 text-sm text-light-text-secondary dark:text-dark-text-secondary text-center">
+                                Loading widget...
+                              </div>
+                            )}>
+                              <WidgetComponent {...widgetDetails.props as any} />
+                            </Suspense>
+                        </WidgetWrapper>
+                    );
+            })}
         </div>
       )}
     </div>
   );
 };
 
-export default Dashboard;
+export default React.memo(Dashboard);
