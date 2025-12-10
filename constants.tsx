@@ -239,24 +239,93 @@ export const MOCK_CURRENT_PRICES: Record<string, number> = {
 
 export const MOCK_INCOME_CATEGORIES: Category[] = [
     { id: 'inc-1', name: 'Salary', color: '#10B981', icon: 'work', classification: 'income', subCategories: [{ id: 'inc-1a', name: 'Fixed Salary', color: '#10B981', icon: 'work', classification: 'income', subCategories: [], parentId: 'inc-1' }, { id: 'inc-1b', name: 'Bonus Salary', color: '#10B981', icon: 'work', classification: 'income', subCategories: [], parentId: 'inc-1' }] },
+    { id: 'inc-6', name: 'Side Hustle / Freelance', color: '#14B8A6', icon: 'engineering', classification: 'income', subCategories: [] },
+    { id: 'inc-7', name: 'Rental Income', color: '#8B5CF6', icon: 'real_estate_agent', classification: 'income', subCategories: [] },
+    { id: 'inc-5', name: 'Investments & Dividends', color: '#6366F1', icon: 'trending_up', classification: 'income', subCategories: [] },
     { id: 'inc-2', name: 'Refunds & Payback', color: '#F59E0B', icon: 'assignment_return', classification: 'income', subCategories: [] },
-    { id: 'inc-3', name: 'Meal Vouchers', color: '#3B82F6', icon: 'restaurant_menu', classification: 'income', subCategories: [] },
-    { id: 'inc-4', name: 'Income', color: '#84CC16', icon: 'attach_money', classification: 'income', subCategories: [] },
-    { id: 'inc-5', name: 'Investment Income', color: '#6366F1', icon: 'show_chart', classification: 'income', subCategories: [] }
+    { id: 'inc-3', name: 'Government & Benefits', color: '#3B82F6', icon: 'account_balance', classification: 'income', subCategories: [] },
+    { id: 'inc-8', name: 'Gifts Received', color: '#EC4899', icon: 'card_giftcard', classification: 'income', subCategories: [] },
+    { id: 'inc-4', name: 'Other Income', color: '#64748B', icon: 'attach_money', classification: 'income', subCategories: [] },
 ];
 
 export const MOCK_EXPENSE_CATEGORIES: Category[] = [
-    { id: 'exp-1', name: 'Housing', color: '#EF4444', icon: 'house', classification: 'expense', subCategories: [{ id: 'exp-1a', name: 'Mortgage', color: '#EF4444', icon: 'house', classification: 'expense', subCategories: [], parentId: 'exp-1' }, { id: 'exp-1b', name: 'Maintenance & Repairs', color: '#EF4444', icon: 'construction', classification: 'expense', subCategories: [], parentId: 'exp-1' }] },
-    { id: 'exp-2', name: 'Food & Groceries', color: '#F97316', icon: 'shopping_cart', classification: 'expense', subCategories: [{ id: 'exp-2a', name: 'Supermarket', color: '#F97316', icon: 'shopping_cart', classification: 'expense', subCategories: [], parentId: 'exp-2' }, { id: 'exp-2b', name: 'Dining Out', color: '#F97316', icon: 'restaurant', classification: 'expense', subCategories: [], parentId: 'exp-2' }, { id: 'exp-2c', name: 'Cafes & Snacks', color: '#F97316', icon: 'local_cafe', classification: 'expense', subCategories: [], parentId: 'exp-2' }, { id: 'exp-2d', name: 'Delivery & Takeaway', color: '#F97316', icon: 'delivery_dining', classification: 'expense', subCategories: [], parentId: 'exp-2' }] },
-    { id: 'exp-3', name: 'Transportation', color: '#3B82F6', icon: 'commute', classification: 'expense', subCategories: [{ id: 'exp-3a', name: 'Public Transport', color: '#3B82F6', icon: 'train', classification: 'expense', subCategories: [], parentId: 'exp-3' }, { id: 'exp-3b', name: 'Ride-Hailing', color: '#3B82F6', icon: 'local_taxi', classification: 'expense', subCategories: [], parentId: 'exp-3' }, { id: 'exp-3c', name: 'EV Charging / Fuel', color: '#3B82F6', icon: 'ev_station', classification: 'expense', subCategories: [], parentId: 'exp-3' }, { id: 'exp-3d', name: 'Parking & Tolls', color: '#3B82F6', icon: 'local_parking', classification: 'expense', subCategories: [], parentId: 'exp-3' }, { id: 'exp-3e', name: 'Transportation (Car Rental, Train)', color: '#3B82F6', icon: 'directions_car', classification: 'expense', subCategories: [], parentId: 'exp-3' }] },
-    { id: 'exp-4', name: 'Shopping', color: '#8B5CF6', icon: 'shopping_bag', classification: 'expense', subCategories: [] },
-    { id: 'exp-5', name: 'Bills & Utilities', color: '#0EA5E9', icon: 'receipt_long', classification: 'expense', subCategories: [{ id: 'exp-5a', name: 'Internet & TV', color: '#0EA5E9', icon: 'router', classification: 'expense', subCategories: [], parentId: 'exp-5' }, { id: 'exp-5b', name: 'Utilities (Gas, Water, Electricity)', color: '#0EA5E9', icon: 'bolt', classification: 'expense', subCategories: [], parentId: 'exp-5' }] },
-    { id: 'exp-6', name: 'Entertainment', color: '#EC4899', icon: 'movie', classification: 'expense', subCategories: [{ id: 'exp-6a', name: 'Streaming', color: '#EC4899', icon: 'subscriptions', classification: 'expense', subCategories: [], parentId: 'exp-6' }, { id: 'exp-6b', name: 'Concerts & Events', color: '#EC4899', icon: 'local_activity', classification: 'expense', subCategories: [], parentId: 'exp-6' }, { id: 'exp-6c', name: 'Hobbies & Sports', color: '#EC4899', icon: 'sports_soccer', classification: 'expense', subCategories: [], parentId: 'exp-6' }] },
-    { id: 'exp-7', name: 'Health & Wellness', color: '#10B981', icon: 'healing', classification: 'expense', subCategories: [{ id: 'exp-7a', name: 'Fitness', color: '#10B981', icon: 'fitness_center', classification: 'expense', subCategories: [], parentId: 'exp-7' }, { id: 'exp-7b', name: 'Health Insurance', color: '#10B981', icon: 'health_and_safety', classification: 'expense', subCategories: [], parentId: 'exp-7' }, { id: 'exp-7c', name: 'Medical (Doctor, Dentist, Pharmacy)', color: '#10B981', icon: 'medication', classification: 'expense', subCategories: [], parentId: 'exp-7' }] },
-    { id: 'exp-8', name: 'Travel', color: '#F59E0B', icon: 'flight_takeoff', classification: 'expense', subCategories: [{ id: 'exp-8a', name: 'Flights', color: '#F59E0B', icon: 'flight', classification: 'expense', subCategories: [], parentId: 'exp-8' }, { id: 'exp-8b', name: 'Accommodation', color: '#F59E0B', icon: 'hotel', classification: 'expense', subCategories: [], parentId: 'exp-8' }, { id: 'exp-8c', name: 'Activities & Tours', color: '#F59E0B', icon: 'tour', classification: 'expense', subCategories: [], parentId: 'exp-8' }] },
-    { id: 'exp-9', name: 'Personal', color: '#64748B', icon: 'person', classification: 'expense', subCategories: [{ id: 'exp-9a', name: 'Personal Care', color: '#64748B', icon: 'spa', classification: 'expense', subCategories: [], parentId: 'exp-9' }, { id: 'exp-9b', name: 'Gifts & Donations', color: '#64748B', icon: 'card_giftcard', classification: 'expense', subCategories: [], parentId: 'exp-9' }, { id: 'exp-9c', name: 'Pet Care', color: '#64748B', icon: 'pets', classification: 'expense', subCategories: [], parentId: 'exp-9' }] },
-    { id: 'exp-10', name: 'Finances', color: '#A855F7', icon: 'account_balance', classification: 'expense', subCategories: [{ id: 'exp-10a', name: 'Bank Fees', color: '#A855F7', icon: 'price_check', classification: 'expense', subCategories: [], parentId: 'exp-10' }, { id: 'exp-10b', name: 'Retirement Contribution', color: '#A855F7', icon: 'savings', classification: 'expense', subCategories: [], parentId: 'exp-10' }, { id: 'exp-10c', name: 'Investments', color: '#A855F7', icon: 'show_chart', classification: 'expense', subCategories: [], parentId: 'exp-10' }] },
-    { id: 'exp-11', name: 'Miscellaneous', color: '#78716C', icon: 'category', classification: 'expense', subCategories: [{ id: 'exp-11a', name: 'Services', color: '#78716C', icon: 'build', classification: 'expense', subCategories: [], parentId: 'exp-11' }, { id: 'exp-11b', name: 'Visa', color: '#78716C', icon: 'airplanemode_active', classification: 'expense', subCategories: [], parentId: 'exp-11' }, { id: 'exp-11c', name: 'Electronics & Gadgets', color: '#78716C', icon: 'devices', classification: 'expense', subCategories: [], parentId: 'exp-11' }, { id: 'exp-11d', name: 'Uncategorized', color: '#78716C', icon: 'help', classification: 'expense', subCategories: [], parentId: 'exp-11' }] }
+    { id: 'exp-1', name: 'Housing', color: '#EF4444', icon: 'house', classification: 'expense', subCategories: [
+        { id: 'exp-1a', name: 'Mortgage', color: '#EF4444', icon: 'account_balance', classification: 'expense', subCategories: [], parentId: 'exp-1' },
+        { id: 'exp-1d', name: 'Rent', color: '#EF4444', icon: 'apartment', classification: 'expense', subCategories: [], parentId: 'exp-1' },
+        { id: 'exp-1b', name: 'Maintenance & Repairs', color: '#EF4444', icon: 'home_repair_service', classification: 'expense', subCategories: [], parentId: 'exp-1' },
+        { id: 'exp-1e', name: 'Home Insurance', color: '#EF4444', icon: 'shield', classification: 'expense', subCategories: [], parentId: 'exp-1' },
+        { id: 'exp-1f', name: 'HOA / Body Corp', color: '#EF4444', icon: 'groups', classification: 'expense', subCategories: [], parentId: 'exp-1' }
+    ]},
+    { id: 'exp-2', name: 'Food & Groceries', color: '#F97316', icon: 'restaurant', classification: 'expense', subCategories: [
+        { id: 'exp-2a', name: 'Supermarket', color: '#F97316', icon: 'shopping_cart', classification: 'expense', subCategories: [], parentId: 'exp-2' },
+        { id: 'exp-2b', name: 'Dining Out', color: '#F97316', icon: 'restaurant_menu', classification: 'expense', subCategories: [], parentId: 'exp-2' },
+        { id: 'exp-2c', name: 'Cafes & Snacks', color: '#F97316', icon: 'local_cafe', classification: 'expense', subCategories: [], parentId: 'exp-2' },
+        { id: 'exp-2d', name: 'Delivery & Takeaway', color: '#F97316', icon: 'delivery_dining', classification: 'expense', subCategories: [], parentId: 'exp-2' }
+    ]},
+    { id: 'exp-3', name: 'Transportation', color: '#3B82F6', icon: 'commute', classification: 'expense', subCategories: [
+        { id: 'exp-3a', name: 'Public Transport', color: '#3B82F6', icon: 'train', classification: 'expense', subCategories: [], parentId: 'exp-3' },
+        { id: 'exp-3c', name: 'Fuel / Charging', color: '#3B82F6', icon: 'local_gas_station', classification: 'expense', subCategories: [], parentId: 'exp-3' },
+        { id: 'exp-3f', name: 'Vehicle Insurance', color: '#3B82F6', icon: 'car_crash', classification: 'expense', subCategories: [], parentId: 'exp-3' },
+        { id: 'exp-3g', name: 'Service & Maintenance', color: '#3B82F6', icon: 'car_repair', classification: 'expense', subCategories: [], parentId: 'exp-3' },
+        { id: 'exp-3b', name: 'Ride-Hailing', color: '#3B82F6', icon: 'local_taxi', classification: 'expense', subCategories: [], parentId: 'exp-3' },
+        { id: 'exp-3d', name: 'Parking & Tolls', color: '#3B82F6', icon: 'local_parking', classification: 'expense', subCategories: [], parentId: 'exp-3' }
+    ]},
+    { id: 'exp-4', name: 'Shopping & Lifestyle', color: '#8B5CF6', icon: 'shopping_bag', classification: 'expense', subCategories: [
+        { id: 'exp-4b', name: 'Clothing & Apparel', color: '#8B5CF6', icon: 'checkroom', classification: 'expense', subCategories: [], parentId: 'exp-4' },
+        { id: 'exp-4a', name: 'Electronics & Gadgets', color: '#8B5CF6', icon: 'devices', classification: 'expense', subCategories: [], parentId: 'exp-4' },
+        { id: 'exp-4c', name: 'Home & Garden', color: '#8B5CF6', icon: 'chair', classification: 'expense', subCategories: [], parentId: 'exp-4' },
+        { id: 'exp-4d', name: 'Beauty & Personal Care', color: '#8B5CF6', icon: 'face', classification: 'expense', subCategories: [], parentId: 'exp-4' }
+    ]},
+    { id: 'exp-5', name: 'Bills & Utilities', color: '#0EA5E9', icon: 'receipt_long', classification: 'expense', subCategories: [
+        { id: 'exp-5b', name: 'Utilities (Gas, Water, Elec)', color: '#0EA5E9', icon: 'bolt', classification: 'expense', subCategories: [], parentId: 'exp-5' },
+        { id: 'exp-5a', name: 'Internet & TV', color: '#0EA5E9', icon: 'router', classification: 'expense', subCategories: [], parentId: 'exp-5' },
+        { id: 'exp-5d', name: 'Mobile Phone', color: '#0EA5E9', icon: 'smartphone', classification: 'expense', subCategories: [], parentId: 'exp-5' },
+        { id: 'exp-5c', name: 'Services', color: '#0EA5E9', icon: 'cleaning_services', classification: 'expense', subCategories: [], parentId: 'exp-5' }
+    ]},
+    { id: 'exp-12', name: 'Software & Subscriptions', color: '#6366F1', icon: 'cloud_download', classification: 'expense', subCategories: [
+        { id: 'exp-12a', name: 'Streaming Services', color: '#6366F1', icon: 'movie', classification: 'expense', subCategories: [], parentId: 'exp-12' },
+        { id: 'exp-12b', name: 'Apps & Software', color: '#6366F1', icon: 'apps', classification: 'expense', subCategories: [], parentId: 'exp-12' },
+        { id: 'exp-12c', name: 'Cloud Storage', color: '#6366F1', icon: 'cloud', classification: 'expense', subCategories: [], parentId: 'exp-12' }
+    ]},
+    { id: 'exp-6', name: 'Entertainment', color: '#EC4899', icon: 'theaters', classification: 'expense', subCategories: [
+        { id: 'exp-6b', name: 'Concerts & Events', color: '#EC4899', icon: 'confirmation_number', classification: 'expense', subCategories: [], parentId: 'exp-6' },
+        { id: 'exp-6c', name: 'Hobbies', color: '#EC4899', icon: 'palette', classification: 'expense', subCategories: [], parentId: 'exp-6' },
+        { id: 'exp-6d', name: 'Sports & Recreation', color: '#EC4899', icon: 'sports_soccer', classification: 'expense', subCategories: [], parentId: 'exp-6' }
+    ]},
+    { id: 'exp-13', name: 'Family & Kids', color: '#F59E0B', icon: 'family_restroom', classification: 'expense', subCategories: [
+        { id: 'exp-13a', name: 'Childcare', color: '#F59E0B', icon: 'child_care', classification: 'expense', subCategories: [], parentId: 'exp-13' },
+        { id: 'exp-13b', name: 'School Fees', color: '#F59E0B', icon: 'school', classification: 'expense', subCategories: [], parentId: 'exp-13' },
+        { id: 'exp-13c', name: 'Toys & Activities', color: '#F59E0B', icon: 'toys', classification: 'expense', subCategories: [], parentId: 'exp-13' }
+    ]},
+    { id: 'exp-14', name: 'Education & Self-Improvement', color: '#14B8A6', icon: 'school', classification: 'expense', subCategories: [
+        { id: 'exp-14a', name: 'Tuition', color: '#14B8A6', icon: 'account_balance', classification: 'expense', subCategories: [], parentId: 'exp-14' },
+        { id: 'exp-14b', name: 'Courses & Training', color: '#14B8A6', icon: 'cast_for_education', classification: 'expense', subCategories: [], parentId: 'exp-14' },
+        { id: 'exp-14c', name: 'Books & Materials', color: '#14B8A6', icon: 'menu_book', classification: 'expense', subCategories: [], parentId: 'exp-14' }
+    ]},
+    { id: 'exp-7', name: 'Health & Wellness', color: '#10B981', icon: 'monitor_heart', classification: 'expense', subCategories: [
+        { id: 'exp-7a', name: 'Fitness / Gym', color: '#10B981', icon: 'fitness_center', classification: 'expense', subCategories: [], parentId: 'exp-7' },
+        { id: 'exp-7b', name: 'Medical & Dental', color: '#10B981', icon: 'medical_services', classification: 'expense', subCategories: [], parentId: 'exp-7' },
+        { id: 'exp-7c', name: 'Pharmacy', color: '#10B981', icon: 'medication', classification: 'expense', subCategories: [], parentId: 'exp-7' }
+    ]},
+    { id: 'exp-8', name: 'Travel', color: '#F59E0B', icon: 'flight', classification: 'expense', subCategories: [
+        { id: 'exp-8a', name: 'Flights', color: '#F59E0B', icon: 'flight_takeoff', classification: 'expense', subCategories: [], parentId: 'exp-8' },
+        { id: 'exp-8b', name: 'Accommodation', color: '#F59E0B', icon: 'hotel', classification: 'expense', subCategories: [], parentId: 'exp-8' },
+        { id: 'exp-8c', name: 'Activities & Tours', color: '#F59E0B', icon: 'tour', classification: 'expense', subCategories: [], parentId: 'exp-8' },
+        { id: 'exp-8d', name: 'Visa & Passport', color: '#F59E0B', icon: 'badge', classification: 'expense', subCategories: [], parentId: 'exp-8' }
+    ]},
+    { id: 'exp-9', name: 'Personal', color: '#64748B', icon: 'person', classification: 'expense', subCategories: [
+        { id: 'exp-9b', name: 'Gifts & Donations', color: '#64748B', icon: 'volunteer_activism', classification: 'expense', subCategories: [], parentId: 'exp-9' },
+        { id: 'exp-9c', name: 'Pet Care', color: '#64748B', icon: 'pets', classification: 'expense', subCategories: [], parentId: 'exp-9' }
+    ]},
+    { id: 'exp-10', name: 'Finances', color: '#A855F7', icon: 'account_balance', classification: 'expense', subCategories: [
+        { id: 'exp-10a', name: 'Bank Fees', color: '#A855F7', icon: 'price_check', classification: 'expense', subCategories: [], parentId: 'exp-10' },
+        { id: 'exp-10d', name: 'Taxes', color: '#A855F7', icon: 'gavel', classification: 'expense', subCategories: [], parentId: 'exp-10' },
+        { id: 'exp-10e', name: 'Life Insurance', color: '#A855F7', icon: 'security', classification: 'expense', subCategories: [], parentId: 'exp-10' },
+        { id: 'exp-10c', name: 'Investments', color: '#A855F7', icon: 'trending_up', classification: 'expense', subCategories: [], parentId: 'exp-10' }
+    ]},
+    { id: 'exp-11', name: 'Miscellaneous', color: '#78716C', icon: 'category', classification: 'expense', subCategories: [
+        { id: 'exp-11a', name: 'Uncategorized', color: '#78716C', icon: 'help_outline', classification: 'expense', subCategories: [], parentId: 'exp-11' }
+    ]}
 ];
 
 export const ACCOUNT_ICON_LIST: string[] = [
