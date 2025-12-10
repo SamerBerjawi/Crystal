@@ -24,7 +24,7 @@ interface DataManagementProps {
   onDeleteHistoryItem: (id: string) => void;
   onDeleteImportedTransactions: (importId: string) => void;
   onResetAccount: () => void;
-  // REMOVED onExportAllData: () => void;
+  onExportAllData?: () => void;
   // REMOVED onImportAllData: (file: File) => void;
   // REMOVED onExportCSV: (types: ImportDataType[]) => void;
   setCurrentPage: (page: Page) => void;

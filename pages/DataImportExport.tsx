@@ -24,9 +24,10 @@ interface DataManagementProps {
   onDeleteHistoryItem: (id: string) => void;
   onDeleteImportedTransactions: (importId: string) => void;
   onResetAccount: () => void;
+  onExportAllData?: () => void;
   setCurrentPage: (page: Page) => void;
   onRestoreData: (data: FinancialData) => void;
-  fullFinancialData: FinancialData; 
+  fullFinancialData: FinancialData;
 }
 
 const StatusBadge: React.FC<{ status: HistoryStatus }> = ({ status }) => {
