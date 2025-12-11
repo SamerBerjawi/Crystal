@@ -340,37 +340,81 @@ const MasteryCard: React.FC<{
     icon: string;
     categoryColor: string;
 }> = ({ categoryName, spent, budget, level, title, icon, categoryColor }) => {
-    
     const ratio = Math.min(100, (spent / budget) * 100);
     const isMaster = level === 4;
+    const isOverBudget = spent > budget;
+
+    // Define styles based on level
+    const levelStyles = [
+        { bg: 'bg-gray-100 dark:bg-gray-800', border: 'border-gray-200 dark:border-gray-700', text: 'text-gray-500', shadow: '' }, // Lvl 0
+        { bg: 'bg-blue-50 dark:bg-blue-900/20', border: 'border-blue-200 dark:border-blue-800', text: 'text-blue-600', shadow: 'shadow-blue-500/10' }, // Lvl 1
+        { bg: 'bg-indigo-50 dark:bg-indigo-900/20', border: 'border-indigo-200 dark:border-indigo-800', text: 'text-indigo-600', shadow: 'shadow-indigo-500/20' }, // Lvl 2
+        { bg: 'bg-amber-50 dark:bg-amber-900/20', border: 'border-amber-200 dark:border-amber-800', text: 'text-amber-600', shadow: 'shadow-amber-500/20' }, // Lvl 3
+        { bg: 'bg-purple-50 dark:bg-purple-900/20', border: 'border-purple-200 dark:border-purple-800', text: 'text-purple-600', shadow: 'shadow-purple-500/20' }, // Lvl 4
+    ];
+
+    const style = levelStyles[level] || levelStyles[0];
+    const ringColor = isOverBudget ? '#ef4444' : categoryColor;
 
     return (
-        <div className={`relative overflow-hidden rounded-2xl p-5 border transition-all duration-200 hover:shadow-md group ${isMaster ? 'bg-gradient-to-br from-amber-50 to-orange-50 dark:from-amber-900/10 dark:to-orange-900/10 border-amber-200 dark:border-amber-800' : 'bg-white dark:bg-dark-card border-black/5 dark:border-white/5'}`}>
-            <div className="flex justify-between items-start mb-4">
-                <div className="flex items-center gap-3">
-                    <div className="w-10 h-10 rounded-lg flex items-center justify-center shadow-sm" style={{ backgroundColor: `${categoryColor}20`, color: categoryColor }}>
-                         <span className="material-symbols-outlined text-xl">{icon}</span>
-                    </div>
-                    <div>
-                        <h4 className="font-bold text-sm text-light-text dark:text-dark-text truncate max-w-[120px]">{categoryName}</h4>
-                        <span className="text-[10px] font-bold uppercase tracking-wider text-light-text-secondary dark:text-dark-text-secondary block">
-                            Lvl {level}: {title}
-                        </span>
-                    </div>
-                </div>
-                {isMaster && <span className="material-symbols-outlined text-amber-500 text-2xl">workspace_premium</span>}
-            </div>
+        <div className={`relative overflow-hidden rounded-3xl p-6 border ${style.border} ${style.bg} ${style.shadow} transition-all duration-500 hover:scale-[1.02] hover:shadow-lg group flex flex-col items-center`}>
+            {/* Background Glow */}
+            <div className="absolute top-0 inset-x-0 h-32 bg-gradient-to-b from-white/40 to-transparent dark:from-white/5 pointer-events-none"></div>
             
-            <div className="space-y-1">
-                <div className="flex justify-between text-xs font-semibold text-light-text dark:text-dark-text">
-                    <span>{formatCurrency(spent, 'EUR')}</span>
-                    <span>{ratio.toFixed(0)}%</span>
+            {/* Level Badge */}
+            <div className={`absolute top-4 right-4 text-[10px] font-black uppercase tracking-widest px-2 py-1 rounded-full bg-white/50 dark:bg-black/20 border border-black/5 dark:border-white/10 backdrop-blur-md ${style.text}`}>
+                Lvl {level}
+            </div>
+
+            {/* Icon Circle with Progress Ring */}
+            <div className="relative w-24 h-24 mb-4 flex items-center justify-center">
+                 {/* SVG Progress Ring */}
+                 <svg className="absolute inset-0 w-full h-full -rotate-90" viewBox="0 0 36 36">
+                    {/* Background Circle */}
+                    <path
+                        className="text-gray-200 dark:text-gray-700"
+                        d="M18 2.0845 a 15.9155 15.9155 0 0 1 0 31.831 a 15.9155 15.9155 0 0 1 0 -31.831"
+                        fill="none"
+                        stroke="currentColor"
+                        strokeWidth="3"
+                    />
+                    {/* Foreground Circle */}
+                    <path
+                        stroke={ringColor}
+                        d="M18 2.0845 a 15.9155 15.9155 0 0 1 0 31.831 a 15.9155 15.9155 0 0 1 0 -31.831"
+                        fill="none"
+                        strokeDasharray={`${ratio}, 100`}
+                        strokeWidth="3"
+                        strokeLinecap="round"
+                        className="transition-all duration-1000 ease-out"
+                    />
+                </svg>
+                
+                {/* Icon */}
+                <div className="w-16 h-16 rounded-full bg-white dark:bg-gray-800 shadow-sm flex items-center justify-center relative z-10">
+                    <span className="material-symbols-outlined text-3xl" style={{ color: categoryColor }}>{icon}</span>
                 </div>
-                <div className="w-full h-1.5 bg-gray-100 dark:bg-white/10 rounded-full overflow-hidden">
-                    <div 
-                        className="h-full rounded-full transition-all duration-500" 
-                        style={{ width: `${ratio}%`, backgroundColor: categoryColor }}
-                    ></div>
+
+                {isMaster && (
+                    <div className="absolute -bottom-2 bg-yellow-400 text-yellow-900 text-[10px] font-bold px-2 py-0.5 rounded-full shadow-sm z-20 flex items-center gap-1">
+                        <span className="material-symbols-outlined text-[10px]">stars</span> MAX
+                    </div>
+                )}
+            </div>
+
+            {/* Title & Stats */}
+            <h3 className="font-bold text-lg text-light-text dark:text-dark-text mb-1 text-center">{categoryName}</h3>
+            <p className={`text-xs font-bold uppercase tracking-wider mb-4 ${style.text}`}>{title}</p>
+            
+            <div className="w-full bg-white/50 dark:bg-black/20 rounded-xl p-3 flex justify-between items-center text-sm">
+                <div className="text-left">
+                    <span className="block text-[10px] text-light-text-secondary dark:text-dark-text-secondary uppercase">Spent</span>
+                    <span className={`font-mono font-bold ${isOverBudget ? 'text-red-500' : 'text-light-text dark:text-dark-text'}`}>{formatCurrency(spent, 'EUR')}</span>
+                </div>
+                <div className="h-8 w-px bg-black/5 dark:bg-white/10 mx-2"></div>
+                <div className="text-right">
+                     <span className="block text-[10px] text-light-text-secondary dark:text-dark-text-secondary uppercase">Limit</span>
+                    <span className="font-mono font-medium text-light-text-secondary dark:text-dark-text-secondary">{formatCurrency(budget, 'EUR')}</span>
                 </div>
             </div>
         </div>
