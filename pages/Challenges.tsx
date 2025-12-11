@@ -351,9 +351,14 @@ type SprintDefinition = {
 const SAVINGS_SPRINTS: SprintDefinition[] = [
     { id: 'zero_day', title: 'The Zero Day', description: 'Spend absolutely nothing for 24 hours.', durationDays: 1, targetType: 'global', limitAmount: 0, icon: 'block', color: 'slate' },
     { id: 'weekend_warrior', title: 'Weekend Warrior', description: 'No spending for 2 days.', durationDays: 2, targetType: 'global', limitAmount: 0, icon: 'weekend', color: 'indigo' },
-    { id: 'coffee_break', title: 'The Coffee Break', description: 'Spend < €15 on coffee for a week.', durationDays: 7, targetType: 'category', targetCategory: 'coffee', limitAmount: 15, icon: 'coffee', color: 'amber' },
-    { id: 'dining_detox', title: 'Dining Detox', description: 'Zero spending on Restaurants for 7 days.', durationDays: 7, targetType: 'category', targetCategory: 'restaurant', limitAmount: 0, icon: 'restaurant_menu', color: 'orange' },
+    { id: 'coffee_break', title: 'The Coffee Break', description: 'Spend < €15 on coffee for a week.', durationDays: 7, targetType: 'category', targetCategory: 'cafe', limitAmount: 15, icon: 'coffee', color: 'amber' },
+    { id: 'dining_detox', title: 'Dining Detox', description: 'Zero spending on Restaurants for 7 days.', durationDays: 7, targetType: 'category', targetCategory: 'dining', limitAmount: 0, icon: 'restaurant_menu', color: 'orange' },
+    { id: 'grocery_gauntlet', title: 'Grocery Gauntlet', description: 'Keep grocery spending under €50 for a week.', durationDays: 7, targetType: 'category', targetCategory: 'supermarket', limitAmount: 50, icon: 'shopping_cart', color: 'green' },
+    { id: 'transport_trim', title: 'Transport Trim', description: 'Spend < €20 on Fuel/Transit for a week.', durationDays: 7, targetType: 'category', targetCategory: 'transport', limitAmount: 20, icon: 'directions_bus', color: 'blue' },
+    { id: 'entertainment_fast', title: 'Entertainment Fast', description: 'No spending on movies/games for 2 weeks.', durationDays: 14, targetType: 'category', targetCategory: 'entertainment', limitAmount: 0, icon: 'theaters', color: 'purple' },
+    { id: 'shopping_ban', title: 'Shopping Ban', description: '30 days without buying clothes/gadgets.', durationDays: 30, targetType: 'category', targetCategory: 'shopping', limitAmount: 0, icon: 'shopping_bag', color: 'pink' },
     { id: 'low_cost_living', title: 'Low Cost Living', description: 'Total expenses < €200 for a week.', durationDays: 7, targetType: 'global', limitAmount: 200, icon: 'account_balance_wallet', color: 'teal' },
+    { id: 'ten_euro_challenge', title: 'The €10 Challenge', description: 'Survive 3 days spending less than €10 total.', durationDays: 3, targetType: 'global', limitAmount: 10, icon: 'euro', color: 'red' },
     { id: 'impulse_control', title: 'Impulse Control', description: 'No single transaction over €50 for a week.', durationDays: 7, targetType: 'transaction_limit', limitAmount: 50, icon: 'price_check', color: 'rose' },
 ];
 
@@ -540,6 +545,9 @@ const Challenges: React.FC<ChallengesProps> = ({ userStats, accounts, transactio
       });
       return activeBosses;
   }, [accounts, financialGoals, transactions, loanPaymentOverrides]);
+
+  const debtBosses = useMemo(() => bosses.filter(b => b.type === 'debt'), [bosses]);
+  const savingsBosses = useMemo(() => bosses.filter(b => b.type === 'savings'), [bosses]);
 
   // --- Category Mastery ---
   const categoryMastery = useMemo(() => {
@@ -737,16 +745,42 @@ const Challenges: React.FC<ChallengesProps> = ({ userStats, accounts, transactio
           {activeSection === 'score' && renderScoreSection()}
           
           {activeSection === 'battles' && (
-              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 animate-fade-in-up">
-                   {bosses.length > 0 ? bosses.map(boss => (
-                       <BossBattleCard key={boss.id} boss={boss} currency="EUR" />
-                   )) : (
+              <div className="space-y-12 animate-fade-in-up">
+                  {debtBosses.length > 0 && (
+                      <div>
+                          <h3 className="text-lg font-bold text-red-600 dark:text-red-400 mb-4 flex items-center gap-2">
+                              <span className="material-symbols-outlined">swords</span>
+                              Debt Nemeses
+                          </h3>
+                          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                              {debtBosses.map(boss => (
+                                  <BossBattleCard key={boss.id} boss={boss} currency="EUR" />
+                              ))}
+                          </div>
+                      </div>
+                  )}
+
+                  {savingsBosses.length > 0 && (
+                      <div>
+                           <h3 className="text-lg font-bold text-amber-600 dark:text-amber-400 mb-4 flex items-center gap-2">
+                              <span className="material-symbols-outlined">shield</span>
+                              Savings Guardians
+                          </h3>
+                          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                              {savingsBosses.map(boss => (
+                                  <BossBattleCard key={boss.id} boss={boss} currency="EUR" />
+                              ))}
+                          </div>
+                      </div>
+                  )}
+
+                  {debtBosses.length === 0 && savingsBosses.length === 0 && (
                        <div className="col-span-full text-center py-20 text-light-text-secondary dark:text-dark-text-secondary">
                            <span className="material-symbols-outlined text-6xl mb-4 opacity-50">check_circle</span>
                            <p className="text-lg font-medium">All quiet on the front.</p>
                            <p>No active debts or goals to battle right now.</p>
                        </div>
-                   )}
+                  )}
               </div>
           )}
 
