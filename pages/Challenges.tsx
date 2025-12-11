@@ -2,10 +2,11 @@
 import React, { useMemo, useState, useEffect } from 'react';
 import Card from '../components/Card';
 import { UserStats, Account, Transaction, FinancialGoal, Currency, Category } from '../types';
-import { calculateAccountTotals, convertToEur, parseDateAsUTC, formatCurrency, getDateRange, generateAmortizationSchedule } from '../utils';
-import { LIQUID_ACCOUNT_TYPES, ASSET_TYPES, DEBT_TYPES, ALL_ACCOUNT_TYPES, BTN_PRIMARY_STYLE, BTN_SECONDARY_STYLE } from '../constants';
+import { calculateAccountTotals, convertToEur, parseDateAsUTC, formatCurrency, getDateRange, generateAmortizationSchedule, toLocalISOString } from '../utils';
+import { LIQUID_ACCOUNT_TYPES, ASSET_TYPES, DEBT_TYPES, ALL_ACCOUNT_TYPES, BTN_PRIMARY_STYLE, BTN_SECONDARY_STYLE, INPUT_BASE_STYLE, SELECT_STYLE, SELECT_ARROW_STYLE, SELECT_WRAPPER_STYLE } from '../constants';
 import { useBudgetsContext, useGoalsContext, useScheduleContext, useCategoryContext } from '../contexts/FinancialDataContext';
 import useLocalStorage from '../hooks/useLocalStorage';
+import { v4 as uuidv4 } from 'uuid';
 
 interface ChallengesProps {
     userStats: UserStats;
@@ -319,6 +320,112 @@ const MasteryCard: React.FC<{
     );
 };
 
+// --- Prediction Market Types & Components ---
+interface Prediction {
+    id: string;
+    type: 'spending' | 'net_worth';
+    targetName: string; // Category Name or "Portfolio"
+    targetValue: number; // The wager amount
+    startDate: string; // ISO date
+    endDate: string; // ISO date
+    result?: 'won' | 'lost';
+    status: 'open' | 'closed'; // Status of the prediction
+}
+
+const PredictionMarketCard: React.FC<{ 
+    prediction: Prediction; 
+    currentValue: number; 
+    onClose: (id: string) => void 
+}> = ({ prediction, currentValue, onClose }) => {
+    const isSpending = prediction.type === 'spending';
+    const isFinished = new Date() > parseDateAsUTC(prediction.endDate);
+    
+    // Win logic: 
+    // Spending: Current < Target = Win
+    // Net Worth: Current > Target = Win
+    const isWinning = isSpending 
+        ? currentValue <= prediction.targetValue 
+        : currentValue >= prediction.targetValue;
+        
+    const progress = Math.min(100, Math.max(0, (currentValue / prediction.targetValue) * 100));
+    const result = isFinished ? (isWinning ? 'won' : 'lost') : undefined;
+
+    const theme = isSpending 
+        ? { 
+            border: 'border-red-200 dark:border-red-900', 
+            bg: 'bg-red-50 dark:bg-red-900/10', 
+            text: 'text-red-700 dark:text-red-300', 
+            icon: 'trending_down',
+            label: 'Bear Market (Short)'
+          }
+        : { 
+            border: 'border-emerald-200 dark:border-emerald-900', 
+            bg: 'bg-emerald-50 dark:bg-emerald-900/10', 
+            text: 'text-emerald-700 dark:text-emerald-300',
+            icon: 'trending_up',
+            label: 'Bull Market (Long)'
+          };
+
+    return (
+        <div className={`relative overflow-hidden rounded-xl border ${theme.border} ${theme.bg} p-4 shadow-sm group`}>
+            {/* Ticket Cutout Effect */}
+            <div className="absolute -left-2 top-1/2 -translate-y-1/2 w-4 h-4 bg-light-bg dark:bg-dark-bg rounded-full border-r border-inherit"></div>
+            <div className="absolute -right-2 top-1/2 -translate-y-1/2 w-4 h-4 bg-light-bg dark:bg-dark-bg rounded-full border-l border-inherit"></div>
+
+            <div className="flex justify-between items-start mb-2 pl-2">
+                <div className="flex items-center gap-2">
+                     <span className={`material-symbols-outlined text-lg ${theme.text}`}>{theme.icon}</span>
+                     <div>
+                         <p className="text-[10px] font-bold uppercase tracking-wider opacity-60">{theme.label}</p>
+                         <p className="font-bold text-sm text-light-text dark:text-dark-text">{prediction.targetName}</p>
+                     </div>
+                </div>
+                {result ? (
+                    <span className={`px-2 py-1 rounded text-xs font-bold uppercase ${result === 'won' ? 'bg-yellow-400 text-black' : 'bg-gray-200 text-gray-600'}`}>
+                        {result === 'won' ? 'Payout' : 'Expired'}
+                    </span>
+                ) : (
+                    <span className="text-xs font-mono font-medium opacity-70">
+                        {Math.ceil((parseDateAsUTC(prediction.endDate).getTime() - new Date().getTime()) / (1000 * 60 * 60 * 24))}d left
+                    </span>
+                )}
+            </div>
+            
+            <div className="pl-2 mt-3">
+                <div className="flex justify-between items-end mb-1">
+                    <p className={`text-2xl font-black ${theme.text}`}>
+                        {formatCurrency(currentValue, 'EUR')}
+                    </p>
+                    <p className="text-xs font-medium opacity-60 mb-1">
+                        Target: {formatCurrency(prediction.targetValue, 'EUR')}
+                    </p>
+                </div>
+                
+                {/* Progress Visual */}
+                <div className="h-1.5 w-full bg-black/10 dark:bg-white/10 rounded-full overflow-hidden flex">
+                    <div className={`h-full ${theme.text.replace('text-', 'bg-')}`} style={{ width: `${progress}%` }}></div>
+                </div>
+                
+                <p className="text-[10px] mt-2 text-center opacity-60 font-medium italic">
+                    {isWinning 
+                        ? (isSpending ? "Currently under budget (Winning)" : "Currently above target (Winning)") 
+                        : (isSpending ? "Over budget limit (Losing)" : "Below target value (Losing)")}
+                </p>
+            </div>
+            
+            {!result && (
+                <button 
+                    onClick={() => onClose(prediction.id)}
+                    className="absolute top-2 right-2 p-1 opacity-0 group-hover:opacity-50 hover:!opacity-100 transition-opacity"
+                >
+                    <span className="material-symbols-outlined text-sm">close</span>
+                </button>
+            )}
+        </div>
+    );
+}
+
+
 // --- Savings Sprints Configuration & Components ---
 
 type SprintDefinition = {
@@ -353,7 +460,7 @@ interface ActiveSprint {
 }
 
 // --- Main Page Component ---
-type ChallengeSection = 'score' | 'battles' | 'badges' | 'mastery' | 'sprints';
+type ChallengeSection = 'score' | 'battles' | 'badges' | 'mastery' | 'sprints' | 'market';
 
 const Challenges: React.FC<ChallengesProps> = ({ userStats, accounts, transactions }) => {
   const { currentStreak, longestStreak } = userStats;
@@ -364,6 +471,12 @@ const Challenges: React.FC<ChallengesProps> = ({ userStats, accounts, transactio
   
   const [activeSection, setActiveSection] = useState<ChallengeSection>('score');
   const [activeSprints, setActiveSprints] = useLocalStorage<ActiveSprint[]>('crystal_active_sprints', []);
+  const [predictions, setPredictions] = useLocalStorage<Prediction[]>('crystal_predictions', []);
+  
+  // Market Logic - Create Prediction State
+  const [predCategory, setPredCategory] = useState('');
+  const [predAmount, setPredAmount] = useState('');
+  const [predNetWorth, setPredNetWorth] = useState('');
   
   // Helper to map sub-categories to their parent budget bucket
   const findParentCategory = (categoryName: string, categories: Category[]): Category | undefined => {
@@ -439,6 +552,54 @@ const Challenges: React.FC<ChallengesProps> = ({ userStats, accounts, transactio
 
      return { totalDebt, netWorth, savingsRate, totalInvestments, uniqueAccountTypes, liquidityRatio, budgetAccuracy, spendingByCat };
   }, [accounts, transactions, budgets, expenseCategories]);
+  
+  // --- Prediction Handlers ---
+  const handlePlaceBet = (type: 'spending' | 'net_worth') => {
+      const today = new Date();
+      // Deadline is end of current month
+      const endOfMonth = new Date(today.getFullYear(), today.getMonth() + 1, 0).toISOString().split('T')[0];
+      
+      const newPrediction: Prediction = {
+          id: uuidv4(),
+          type,
+          targetName: type === 'spending' ? predCategory : 'Portfolio Net Worth',
+          targetValue: type === 'spending' ? parseFloat(predAmount) : parseFloat(predNetWorth),
+          startDate: toLocalISOString(today),
+          endDate: endOfMonth,
+          status: 'open'
+      };
+      
+      setPredictions(prev => [...prev, newPrediction]);
+      setPredAmount('');
+      setPredCategory('');
+      setPredNetWorth('');
+  };
+  
+  const handleClosePrediction = (id: string) => {
+      setPredictions(prev => prev.filter(p => p.id !== id));
+  };
+  
+  // Calculate current value for active predictions
+  const getPredictionCurrentValue = (pred: Prediction) => {
+      if (pred.type === 'net_worth') return netWorth;
+      
+      // For spending, sum transactions in that category since start date
+      const start = parseDateAsUTC(pred.startDate);
+      // If end date is past, clamp to end date
+      const end = new Date() > parseDateAsUTC(pred.endDate) ? parseDateAsUTC(pred.endDate) : new Date(); 
+      
+      return transactions.reduce((sum, tx) => {
+          const d = parseDateAsUTC(tx.date);
+          if (d >= start && d <= end && tx.type === 'expense' && !tx.transferId) {
+             // Simple category match
+             if (tx.category === pred.targetName) return sum + Math.abs(convertToEur(tx.amount, tx.currency));
+             // Parent match
+             const parent = findParentCategory(tx.category, expenseCategories);
+             if (parent && parent.name === pred.targetName) return sum + Math.abs(convertToEur(tx.amount, tx.currency));
+          }
+          return sum;
+      }, 0);
+  };
 
   // --- Boss Battle Generation ---
   const bosses = useMemo(() => {
@@ -856,22 +1017,22 @@ const Challenges: React.FC<ChallengesProps> = ({ userStats, accounts, transactio
               </p>
           </div>
           
-           {/* Card 2: Category Mastery (New) */}
+           {/* Card 2: Prediction Markets (New) */}
           <div 
-             onClick={() => setActiveSection('mastery')}
+             onClick={() => setActiveSection('market')}
              className={`cursor-pointer rounded-2xl p-6 flex flex-col items-center justify-center transition-all duration-300 group
-                 ${activeSection === 'mastery' 
-                    ? 'bg-gradient-to-br from-amber-50 to-yellow-50 dark:from-amber-900/10 dark:to-yellow-900/10 shadow-lg ring-2 ring-amber-500 ring-offset-2 dark:ring-offset-dark-bg' 
+                 ${activeSection === 'market' 
+                    ? 'bg-gradient-to-br from-violet-50 to-indigo-50 dark:from-violet-900/10 dark:to-indigo-900/10 shadow-lg ring-2 ring-violet-500 ring-offset-2 dark:ring-offset-dark-bg' 
                     : 'bg-white dark:bg-dark-card border border-black/5 dark:border-white/5 opacity-80 hover:opacity-100 hover:shadow-md'
                  }
              `}
           >
-              <div className="w-16 h-16 rounded-full bg-amber-100 dark:bg-amber-900/30 flex items-center justify-center text-amber-500 mb-3 transition-transform duration-300 group-hover:scale-110">
-                  <span className="material-symbols-outlined text-4xl">workspace_premium</span>
+              <div className="w-16 h-16 rounded-full bg-violet-100 dark:bg-violet-900/30 flex items-center justify-center text-violet-500 mb-3 transition-transform duration-300 group-hover:scale-110">
+                  <span className="material-symbols-outlined text-4xl">auto_fix_high</span>
               </div>
-              <h3 className="font-bold text-lg text-light-text dark:text-dark-text">Category Mastery</h3>
+              <h3 className="font-bold text-lg text-light-text dark:text-dark-text">Prediction Market</h3>
               <p className="text-xs text-light-text-secondary dark:text-dark-text-secondary mt-1">
-                  {masterCount} Categories Mastered
+                  Test Your Foresight
               </p>
           </div>
 
@@ -973,6 +1134,119 @@ const Challenges: React.FC<ChallengesProps> = ({ userStats, accounts, transactio
                       </Card>
                   </div>
               </div>
+          )}
+
+          {activeSection === 'market' && (
+               <div className="space-y-8 animate-fade-in-up">
+                   <div className="flex flex-col md:flex-row gap-6">
+                       {/* Bear Market (Spending) */}
+                       <Card className="flex-1 bg-gradient-to-br from-rose-50 to-red-50 dark:from-rose-900/10 dark:to-red-900/10 border border-red-100 dark:border-red-900/30">
+                           <div className="flex items-center gap-3 mb-4 text-red-600 dark:text-red-400">
+                               <div className="w-10 h-10 rounded-full bg-red-100 dark:bg-red-900/30 flex items-center justify-center">
+                                   <span className="material-symbols-outlined">trending_down</span>
+                               </div>
+                               <div>
+                                   <h3 className="font-bold text-lg">Bear Market (Short)</h3>
+                                   <p className="text-xs opacity-70 uppercase tracking-wide font-bold">Bet on Low Spending</p>
+                               </div>
+                           </div>
+                           
+                           <div className="space-y-4">
+                               <div>
+                                   <label className="text-xs font-bold uppercase text-red-700 dark:text-red-300 block mb-1">Target Category</label>
+                                   <div className={SELECT_WRAPPER_STYLE}>
+                                       <select 
+                                            value={predCategory} 
+                                            onChange={(e) => setPredCategory(e.target.value)} 
+                                            className={`${INPUT_BASE_STYLE} bg-white dark:bg-black/20 border-red-200 dark:border-red-800 focus:ring-red-500`}
+                                        >
+                                            <option value="">Select Category...</option>
+                                            {expenseCategories.filter(c => !c.parentId).map(c => (
+                                                <option key={c.id} value={c.name}>{c.name}</option>
+                                            ))}
+                                       </select>
+                                       <div className={SELECT_ARROW_STYLE}><span className="material-symbols-outlined">expand_more</span></div>
+                                   </div>
+                               </div>
+                               <div>
+                                   <label className="text-xs font-bold uppercase text-red-700 dark:text-red-300 block mb-1">Spending Limit</label>
+                                   <input 
+                                        type="number" 
+                                        value={predAmount} 
+                                        onChange={(e) => setPredAmount(e.target.value)} 
+                                        placeholder="e.g. 500" 
+                                        className={`${INPUT_BASE_STYLE} bg-white dark:bg-black/20 border-red-200 dark:border-red-800 focus:ring-red-500`} 
+                                    />
+                               </div>
+                               <button 
+                                    onClick={() => handlePlaceBet('spending')} 
+                                    disabled={!predCategory || !predAmount}
+                                    className="w-full py-2 rounded-lg bg-red-500 hover:bg-red-600 text-white font-bold shadow-md shadow-red-500/20 transition-all disabled:opacity-50 disabled:cursor-not-allowed"
+                                >
+                                   Short Category
+                               </button>
+                           </div>
+                       </Card>
+
+                       {/* Bull Market (Growth) */}
+                       <Card className="flex-1 bg-gradient-to-br from-emerald-50 to-teal-50 dark:from-emerald-900/10 dark:to-teal-900/10 border border-emerald-100 dark:border-emerald-900/30">
+                           <div className="flex items-center gap-3 mb-4 text-emerald-600 dark:text-emerald-400">
+                               <div className="w-10 h-10 rounded-full bg-emerald-100 dark:bg-emerald-900/30 flex items-center justify-center">
+                                   <span className="material-symbols-outlined">trending_up</span>
+                               </div>
+                               <div>
+                                   <h3 className="font-bold text-lg">Bull Market (Long)</h3>
+                                   <p className="text-xs opacity-70 uppercase tracking-wide font-bold">Bet on Growth</p>
+                               </div>
+                           </div>
+                           
+                           <div className="space-y-4">
+                               <div>
+                                   <label className="text-xs font-bold uppercase text-emerald-700 dark:text-emerald-300 block mb-1">Target Asset</label>
+                                   <div className="w-full p-2 bg-white/50 dark:bg-black/20 border border-emerald-200 dark:border-emerald-800 rounded-lg text-sm font-medium text-emerald-800 dark:text-emerald-200">
+                                       Total Portfolio (Net Worth)
+                                   </div>
+                               </div>
+                               <div>
+                                   <label className="text-xs font-bold uppercase text-emerald-700 dark:text-emerald-300 block mb-1">Target Value</label>
+                                   <input 
+                                        type="number" 
+                                        value={predNetWorth} 
+                                        onChange={(e) => setPredNetWorth(e.target.value)} 
+                                        placeholder="e.g. 50000" 
+                                        className={`${INPUT_BASE_STYLE} bg-white dark:bg-black/20 border-emerald-200 dark:border-emerald-800 focus:ring-emerald-500`} 
+                                    />
+                               </div>
+                               <button 
+                                    onClick={() => handlePlaceBet('net_worth')} 
+                                    disabled={!predNetWorth}
+                                    className="w-full py-2 rounded-lg bg-emerald-500 hover:bg-emerald-600 text-white font-bold shadow-md shadow-emerald-500/20 transition-all disabled:opacity-50 disabled:cursor-not-allowed"
+                                >
+                                   Long Position
+                               </button>
+                           </div>
+                       </Card>
+                   </div>
+                   
+                   {/* Active Bets List */}
+                   <div>
+                       <h3 className="text-lg font-bold text-light-text dark:text-dark-text mb-4 border-b border-black/5 dark:border-white/5 pb-2">Open Positions</h3>
+                       {predictions.length > 0 ? (
+                           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                               {predictions.map(pred => (
+                                   <PredictionMarketCard 
+                                       key={pred.id} 
+                                       prediction={pred} 
+                                       currentValue={getPredictionCurrentValue(pred)} 
+                                       onClose={handleClosePrediction} 
+                                   />
+                               ))}
+                           </div>
+                       ) : (
+                           <p className="text-center py-8 text-light-text-secondary dark:text-dark-text-secondary">No active market positions.</p>
+                       )}
+                   </div>
+               </div>
           )}
           
           {activeSection === 'sprints' && (
