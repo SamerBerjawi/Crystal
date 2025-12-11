@@ -1,16 +1,26 @@
 
+
 import React, { useMemo, useState, useEffect } from 'react';
 import Card from '../components/Card';
-import { UserStats, Account, Transaction, FinancialGoal, Currency, Category } from '../types';
+import { UserStats, Account, Transaction, FinancialGoal, Currency, Category, Prediction, PredictionStatus, PredictionType, InvestmentTransaction, Warrant } from '../types';
 import { calculateAccountTotals, convertToEur, parseDateAsUTC, formatCurrency, getDateRange, generateAmortizationSchedule } from '../utils';
 import { LIQUID_ACCOUNT_TYPES, ASSET_TYPES, DEBT_TYPES, ALL_ACCOUNT_TYPES, BTN_PRIMARY_STYLE, BTN_SECONDARY_STYLE } from '../constants';
 import { useBudgetsContext, useGoalsContext, useScheduleContext, useCategoryContext } from '../contexts/FinancialDataContext';
 import useLocalStorage from '../hooks/useLocalStorage';
+import PredictionCard from '../components/PredictionCard';
+import PredictionModal from '../components/PredictionModal';
 
 interface ChallengesProps {
     userStats: UserStats;
     accounts: Account[];
     transactions: Transaction[];
+    predictions: Prediction[];
+    savePrediction: (prediction: Omit<Prediction, 'id'> & { id?: string }) => void;
+    deletePrediction: (id: string) => void;
+    saveUserStats: (stats: UserStats) => void;
+    investmentTransactions: InvestmentTransaction[];
+    warrants: Warrant[];
+    assetPrices: Record<string, number | null>;
 }
 
 interface ProgressBarProps {
@@ -353,9 +363,9 @@ interface ActiveSprint {
 }
 
 // --- Main Page Component ---
-type ChallengeSection = 'score' | 'battles' | 'badges' | 'mastery' | 'sprints';
+type ChallengeSection = 'score' | 'battles' | 'badges' | 'mastery' | 'sprints' | 'prediction';
 
-const Challenges: React.FC<ChallengesProps> = ({ userStats, accounts, transactions }) => {
+const Challenges: React.FC<ChallengesProps> = ({ userStats, accounts, transactions, predictions, savePrediction, deletePrediction, saveUserStats, investmentTransactions, warrants, assetPrices }) => {
   const { currentStreak, longestStreak } = userStats;
   const { budgets } = useBudgetsContext();
   const { financialGoals } = useGoalsContext();
@@ -364,6 +374,121 @@ const Challenges: React.FC<ChallengesProps> = ({ userStats, accounts, transactio
   
   const [activeSection, setActiveSection] = useState<ChallengeSection>('score');
   const [activeSprints, setActiveSprints] = useLocalStorage<ActiveSprint[]>('crystal_active_sprints', []);
+  const [isPredictionModalOpen, setPredictionModalOpen] = useState(false);
+
+  // --- Prediction Resolver ---
+  useEffect(() => {
+    const today = new Date().toISOString().split('T')[0];
+    const todayDate = parseDateAsUTC(today);
+    
+    predictions.forEach(prediction => {
+        if (prediction.status === 'active') {
+            const endDate = parseDateAsUTC(prediction.endDate);
+            if (endDate < todayDate) {
+                // Resolution logic
+                let actualAmount = 0;
+                
+                if (prediction.type === 'spending_cap') {
+                    // Sum spending in category between start and end date
+                    const start = parseDateAsUTC(prediction.startDate);
+                    const end = parseDateAsUTC(prediction.endDate);
+                    end.setHours(23, 59, 59);
+
+                    actualAmount = transactions
+                        .filter(tx => {
+                            const d = parseDateAsUTC(tx.date);
+                            return d >= start && d <= end && tx.type === 'expense' && !tx.transferId && tx.category === prediction.targetName;
+                        })
+                        .reduce((sum, tx) => sum + Math.abs(convertToEur(tx.amount, tx.currency)), 0);
+                        
+                    const won = actualAmount <= prediction.targetAmount;
+                    savePrediction({ 
+                        ...prediction, 
+                        status: won ? 'won' : 'lost', 
+                        finalAmount: actualAmount 
+                    });
+                    
+                    if (won) {
+                        saveUserStats({ 
+                            ...userStats, 
+                            predictionWins: (userStats.predictionWins || 0) + 1,
+                            predictionTotal: (userStats.predictionTotal || 0) + 1
+                        });
+                    } else {
+                        saveUserStats({
+                            ...userStats,
+                            predictionTotal: (userStats.predictionTotal || 0) + 1
+                        });
+                    }
+                } else if (prediction.type === 'net_worth_goal') {
+                    // Check current balance
+                    if (prediction.targetId) {
+                         const account = accounts.find(a => a.id === prediction.targetId);
+                         actualAmount = account ? convertToEur(account.balance, account.currency) : 0;
+                    } else {
+                         // Total Net Worth
+                         const { netWorth } = calculateAccountTotals(accounts.filter(a => a.status !== 'closed'));
+                         actualAmount = netWorth;
+                    }
+                    
+                    const won = actualAmount >= prediction.targetAmount;
+                    savePrediction({ 
+                        ...prediction, 
+                        status: won ? 'won' : 'lost', 
+                        finalAmount: actualAmount 
+                    });
+
+                    if (won) {
+                        saveUserStats({ 
+                            ...userStats, 
+                            predictionWins: (userStats.predictionWins || 0) + 1,
+                            predictionTotal: (userStats.predictionTotal || 0) + 1
+                        });
+                    } else {
+                         saveUserStats({
+                            ...userStats,
+                            predictionTotal: (userStats.predictionTotal || 0) + 1
+                        });
+                    }
+                } else if (prediction.type === 'price_target') {
+                    // Resolve price target predictions
+                    // Use the targetId (symbol) to look up the current price
+                    const symbol = prediction.targetId;
+                    const currentPrice = symbol ? assetPrices[symbol] : null;
+
+                    if (currentPrice !== null && currentPrice !== undefined) {
+                        actualAmount = currentPrice;
+                        // Assuming target is "Price will be AT LEAST X"
+                        // Could add a direction field later (above/below)
+                        const won = actualAmount >= prediction.targetAmount;
+                        
+                        savePrediction({
+                            ...prediction,
+                            status: won ? 'won' : 'lost',
+                            finalAmount: actualAmount
+                        });
+
+                        if (won) {
+                            saveUserStats({ 
+                                ...userStats, 
+                                predictionWins: (userStats.predictionWins || 0) + 1,
+                                predictionTotal: (userStats.predictionTotal || 0) + 1
+                            });
+                        } else {
+                             saveUserStats({
+                                ...userStats,
+                                predictionTotal: (userStats.predictionTotal || 0) + 1
+                            });
+                        }
+                    }
+                    // If no price available, maybe keep active or resolve as void?
+                    // For now, only resolve if price is available.
+                }
+            }
+        }
+    });
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [predictions, transactions, accounts, assetPrices]); // Run when data changes to auto-resolve
   
   // Helper to map sub-categories to their parent budget bucket
   const findParentCategory = (categoryName: string, categories: Category[]): Category | undefined => {
@@ -828,6 +953,17 @@ const Challenges: React.FC<ChallengesProps> = ({ userStats, accounts, transactio
 
   return (
     <div className="space-y-8 animate-fade-in-up pb-12">
+      {isPredictionModalOpen && (
+          <PredictionModal 
+            onClose={() => setPredictionModalOpen(false)} 
+            onSave={savePrediction} 
+            accounts={accounts} 
+            expenseCategories={expenseCategories} 
+            investmentTransactions={investmentTransactions}
+            warrants={warrants}
+          />
+      )}
+      
       <div className="text-center space-y-2">
         <h1 className="text-4xl font-extrabold text-light-text dark:text-dark-text tracking-tight">Financial Health</h1>
         <p className="text-light-text-secondary dark:text-dark-text-secondary max-w-xl mx-auto">
@@ -836,7 +972,7 @@ const Challenges: React.FC<ChallengesProps> = ({ userStats, accounts, transactio
       </div>
 
       {/* Navigation Cards (Master View) */}
-      <div className="grid grid-cols-1 md:grid-cols-3 lg:grid-cols-5 gap-6">
+      <div className="grid grid-cols-1 md:grid-cols-3 lg:grid-cols-6 gap-6">
           {/* Card 1: Crystal Score */}
           <div 
              onClick={() => setActiveSection('score')}
@@ -913,7 +1049,26 @@ const Challenges: React.FC<ChallengesProps> = ({ userStats, accounts, transactio
               </p>
           </div>
 
-          {/* Card 5: Badges */}
+          {/* Card 5: Prediction Market (New) */}
+          <div 
+             onClick={() => setActiveSection('prediction')}
+             className={`cursor-pointer rounded-2xl p-6 flex flex-col items-center justify-center transition-all duration-300 group
+                 ${activeSection === 'prediction' 
+                    ? 'bg-gradient-to-br from-violet-50 to-purple-50 dark:from-violet-900/10 dark:to-purple-900/10 shadow-lg ring-2 ring-violet-500 ring-offset-2 dark:ring-offset-dark-bg' 
+                    : 'bg-white dark:bg-dark-card border border-black/5 dark:border-white/5 opacity-80 hover:opacity-100 hover:shadow-md'
+                 }
+             `}
+          >
+              <div className="w-16 h-16 rounded-full bg-violet-100 dark:bg-violet-900/30 flex items-center justify-center text-violet-500 mb-3 transition-transform duration-300 group-hover:-translate-y-1">
+                  <span className="material-symbols-outlined text-4xl">psychology</span>
+              </div>
+              <h3 className="font-bold text-lg text-light-text dark:text-dark-text">Prediction Market</h3>
+              <p className="text-xs text-light-text-secondary dark:text-dark-text-secondary mt-1">
+                  {predictions.filter(p => p.status === 'active').length} Active Contracts
+              </p>
+          </div>
+
+          {/* Card 6: Badges */}
           <div 
              onClick={() => setActiveSection('badges')}
              className={`cursor-pointer rounded-2xl p-6 flex flex-col items-center justify-center transition-all duration-300 group
@@ -971,6 +1126,70 @@ const Challenges: React.FC<ChallengesProps> = ({ userStats, accounts, transactio
                               Best Record: {longestStreak} days
                           </p>
                       </Card>
+                  </div>
+              </div>
+          )}
+          
+          {activeSection === 'prediction' && (
+              <div className="space-y-8 animate-fade-in-up">
+                  <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
+                      <div>
+                          <h2 className="text-xl font-bold text-light-text dark:text-dark-text">Prediction Contracts</h2>
+                          <p className="text-sm text-light-text-secondary dark:text-dark-text-secondary">Lock in a forecast. Beat the market (yourself) to win.</p>
+                      </div>
+                      <div className="flex items-center gap-4">
+                          <div className="flex items-center gap-2 bg-yellow-50 dark:bg-yellow-900/20 px-3 py-1.5 rounded-lg border border-yellow-100 dark:border-yellow-800">
+                              <span className="material-symbols-outlined text-yellow-600 dark:text-yellow-400 text-lg">emoji_events</span>
+                              <span className="text-sm font-bold text-yellow-700 dark:text-yellow-300">{userStats.predictionWins || 0} Wins</span>
+                          </div>
+                           <button onClick={() => setPredictionModalOpen(true)} className={BTN_PRIMARY_STYLE}>
+                              Create Contract
+                          </button>
+                      </div>
+                  </div>
+                  
+                  <div className="space-y-8">
+                       {/* Active Predictions */}
+                       <div>
+                           <h3 className="text-sm font-bold text-light-text-secondary dark:text-dark-text-secondary uppercase tracking-wider mb-4 border-b border-black/5 dark:border-white/5 pb-2">Active Contracts</h3>
+                           {predictions.filter(p => p.status === 'active').length > 0 ? (
+                               <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                                   {predictions.filter(p => p.status === 'active').map(prediction => (
+                                       <PredictionCard 
+                                           key={prediction.id} 
+                                           prediction={prediction} 
+                                           transactions={transactions}
+                                           accounts={accounts}
+                                           onDelete={deletePrediction}
+                                           manualPrice={prediction.type === 'price_target' ? assetPrices[prediction.targetId || ''] : undefined}
+                                       />
+                                   ))}
+                               </div>
+                           ) : (
+                               <div className="text-center py-12 bg-gray-50 dark:bg-white/5 rounded-xl border border-dashed border-black/10 dark:border-white/10">
+                                   <p className="text-light-text-secondary dark:text-dark-text-secondary">No active predictions. Start a new contract!</p>
+                               </div>
+                           )}
+                       </div>
+                       
+                       {/* Past Results */}
+                       {predictions.filter(p => p.status !== 'active').length > 0 && (
+                           <div>
+                               <h3 className="text-sm font-bold text-light-text-secondary dark:text-dark-text-secondary uppercase tracking-wider mb-4 border-b border-black/5 dark:border-white/5 pb-2">Contract History</h3>
+                               <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                                   {predictions.filter(p => p.status !== 'active').sort((a,b) => parseDateAsUTC(b.endDate).getTime() - parseDateAsUTC(a.endDate).getTime()).map(prediction => (
+                                       <PredictionCard 
+                                           key={prediction.id} 
+                                           prediction={prediction} 
+                                           transactions={transactions}
+                                           accounts={accounts}
+                                           onDelete={deletePrediction}
+                                           manualPrice={prediction.type === 'price_target' ? assetPrices[prediction.targetId || ''] : undefined}
+                                       />
+                                   ))}
+                               </div>
+                           </div>
+                       )}
                   </div>
               </div>
           )}
@@ -1160,7 +1379,7 @@ const Challenges: React.FC<ChallengesProps> = ({ userStats, accounts, transactio
                    </div>
                    
                     {unlockedCount < badges.length && (
-                       <Card className="bg-gradient-to-r from-indigo-500 to-purple-600 text-white border-none mt-8">
+                       <Card className="bg-gradient-to-r from-indigo-50 to-purple-600 text-white border-none mt-8">
                            <div className="flex items-start gap-4">
                                <div className="p-3 bg-white/20 rounded-xl backdrop-blur-sm">
                                    <span className="material-symbols-outlined text-3xl">lightbulb</span>

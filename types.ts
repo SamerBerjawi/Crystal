@@ -483,6 +483,23 @@ export interface UserStats {
     currentStreak: number;
     longestStreak: number;
     lastLogDate: string; // ISO Date YYYY-MM-DD
+    predictionWins?: number;
+    predictionTotal?: number;
+}
+
+export type PredictionType = 'spending_cap' | 'net_worth_goal' | 'price_target';
+export type PredictionStatus = 'active' | 'won' | 'lost';
+
+export interface Prediction {
+    id: string;
+    type: PredictionType;
+    targetId?: string; // Category Name for spending, Account ID for Net Worth (or null for total)
+    targetName: string;
+    targetAmount: number;
+    startDate: string;
+    endDate: string;
+    status: PredictionStatus;
+    finalAmount?: number; // Snapshot when resolved
 }
 
 // FIX: Move FinancialData interface from App.tsx to types.ts to resolve import error in mockData.ts
@@ -509,6 +526,7 @@ export interface FinancialData {
     manualWarrantPrices?: Record<string, number | undefined>;
     invoices?: Invoice[];
     userStats?: UserStats;
+    predictions?: Prediction[];
 }
 
 // New types for Tasks feature
