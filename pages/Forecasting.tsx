@@ -677,67 +677,156 @@ const Forecasting: React.FC = () => {
                 />
             </Card>
             
-            <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
-                {/* Goals Section (Redesigned Container) */}
-                <div className="lg:col-span-2 space-y-6">
-                     <div className="bg-light-fill dark:bg-dark-fill p-4 rounded-2xl flex flex-wrap justify-between items-center gap-4">
-                        <div className="flex items-center gap-2">
-                             <div className="p-2 rounded-lg bg-white dark:bg-white/10 shadow-sm text-amber-500">
-                                 <span className="material-symbols-outlined">flag</span>
-                             </div>
-                             <h3 className="text-xl font-bold text-light-text dark:text-dark-text">Financial Goals</h3>
+            {/* Goals Section (Full Width with 3 Cols) */}
+             <div className="space-y-6">
+                 <div className="bg-light-fill dark:bg-dark-fill p-4 rounded-2xl flex flex-wrap justify-between items-center gap-4">
+                    <div className="flex items-center gap-2">
+                         <div className="p-2 rounded-lg bg-white dark:bg-white/10 shadow-sm text-amber-500">
+                             <span className="material-symbols-outlined">flag</span>
+                         </div>
+                         <h3 className="text-xl font-bold text-light-text dark:text-dark-text">Financial Goals</h3>
+                    </div>
+                    <div className="flex items-center gap-4">
+                        <label className="flex items-center gap-2 text-sm cursor-pointer select-none hover:text-primary-500 transition-colors">
+                            <input type="checkbox" checked={filterGoalsByAccount} onChange={(e) => setFilterGoalsByAccount(e.target.checked)} className={CHECKBOX_STYLE} />
+                            <span className="text-light-text-secondary dark:text-dark-text-secondary font-medium">Filter by Account</span>
+                        </label>
+                        <div className="h-4 w-px bg-black/10 dark:bg-white/10"></div>
+                        <button onClick={handleToggleAllDisplayed} className="text-sm font-bold text-primary-600 dark:text-primary-400 hover:underline transition-colors uppercase tracking-wide">
+                            {areAllDisplayedSelected ? 'Deselect All' : 'Select All'}
+                        </button>
+                    </div>
+                </div>
+                
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                    {topLevelGoals.length > 0 ? topLevelGoals.map(goal => {
+                        const subGoals = goalsByParentId.get(goal.id) || [];
+                        const isEffectivelyActive = goal.isBucket
+                        ? activeGoalIds.includes(goal.id) || subGoals.some(sg => activeGoalIds.includes(sg.id))
+                        : activeGoalIds.includes(goal.id);
+
+                        return (
+                            <FinancialGoalCard 
+                                key={goal.id} 
+                                goal={goal}
+                                subGoals={subGoals}
+                                isActive={isEffectivelyActive}
+                                onToggle={handleToggleGoal}
+                                onEdit={handleOpenModal}
+                                onDelete={handleDeleteClick}
+                                onAddSubGoal={handleAddSubGoal}
+                                accounts={accounts}
+                            />
+                        );
+                    }) : (
+                        <div className="col-span-full py-16 flex flex-col items-center justify-center text-center bg-white dark:bg-dark-card rounded-3xl border border-dashed border-black/10 dark:border-white/10">
+                            <div className="w-20 h-20 bg-gray-50 dark:bg-white/5 rounded-full flex items-center justify-center mb-4">
+                                 <span className="material-symbols-outlined text-4xl text-gray-300 dark:text-gray-600">flag</span>
+                            </div>
+                            <h4 className="text-lg font-bold text-light-text dark:text-dark-text mb-1">No Goals Found</h4>
+                            <p className="text-sm text-light-text-secondary dark:text-dark-text-secondary max-w-xs mx-auto mb-6">
+                                {filterGoalsByAccount ? 'No goals match the selected accounts.' : 'Start planning for your future by adding a financial goal.'}
+                            </p>
+                            <button onClick={() => handleOpenModal()} className={BTN_SECONDARY_STYLE}>Create New Goal</button>
                         </div>
-                        <div className="flex items-center gap-4">
-                            <label className="flex items-center gap-2 text-sm cursor-pointer select-none hover:text-primary-500 transition-colors">
-                                <input type="checkbox" checked={filterGoalsByAccount} onChange={(e) => setFilterGoalsByAccount(e.target.checked)} className={CHECKBOX_STYLE} />
-                                <span className="text-light-text-secondary dark:text-dark-text-secondary font-medium">Filter by Account</span>
-                            </label>
-                            <div className="h-4 w-px bg-black/10 dark:bg-white/10"></div>
-                            <button onClick={handleToggleAllDisplayed} className="text-sm font-bold text-primary-600 dark:text-primary-400 hover:underline transition-colors uppercase tracking-wide">
-                                {areAllDisplayedSelected ? 'Deselect All' : 'Select All'}
-                            </button>
+                    )}
+                </div>
+            </div>
+
+            {/* Forecast Ledger (Redesigned) */}
+            <div className="space-y-4">
+                 <div className="flex flex-col sm:flex-row sm:justify-between sm:items-center gap-4">
+                    <div className="flex items-center gap-3">
+                        <div className="p-2 rounded-lg bg-indigo-100 dark:bg-indigo-900/30 text-indigo-600 dark:text-indigo-400 border border-indigo-200 dark:border-indigo-800">
+                             <span className="material-symbols-outlined text-xl">table_view</span>
+                        </div>
+                        <div>
+                            <h3 className="text-xl font-bold text-light-text dark:text-dark-text">Forecast Ledger</h3>
+                            <p className="text-xs font-medium text-light-text-secondary dark:text-dark-text-secondary uppercase tracking-wider">Daily Projections</p>
                         </div>
                     </div>
-                    
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                        {topLevelGoals.length > 0 ? topLevelGoals.map(goal => {
-                            const subGoals = goalsByParentId.get(goal.id) || [];
-                            const isEffectivelyActive = goal.isBucket
-                            ? activeGoalIds.includes(goal.id) || subGoals.some(sg => activeGoalIds.includes(sg.id))
-                            : activeGoalIds.includes(goal.id);
-
-                            return (
-                                <FinancialGoalCard 
-                                    key={goal.id} 
-                                    goal={goal}
-                                    subGoals={subGoals}
-                                    isActive={isEffectivelyActive}
-                                    onToggle={handleToggleGoal}
-                                    onEdit={handleOpenModal}
-                                    onDelete={handleDeleteClick}
-                                    onAddSubGoal={handleAddSubGoal}
-                                    accounts={accounts}
-                                />
-                            );
-                        }) : (
-                            <div className="col-span-full py-16 flex flex-col items-center justify-center text-center bg-white dark:bg-dark-card rounded-3xl border border-dashed border-black/10 dark:border-white/10">
-                                <div className="w-20 h-20 bg-gray-50 dark:bg-white/5 rounded-full flex items-center justify-center mb-4">
-                                     <span className="material-symbols-outlined text-4xl text-gray-300 dark:text-gray-600">flag</span>
-                                </div>
-                                <h4 className="text-lg font-bold text-light-text dark:text-dark-text mb-1">No Goals Found</h4>
-                                <p className="text-sm text-light-text-secondary dark:text-dark-text-secondary max-w-xs mx-auto mb-6">
-                                    {filterGoalsByAccount ? 'No goals match the selected accounts.' : 'Start planning for your future by adding a financial goal.'}
-                                </p>
-                                <button onClick={() => handleOpenModal()} className={BTN_SECONDARY_STYLE}>Create New Goal</button>
-                            </div>
-                        )}
+                     <div className="flex items-center gap-2 text-xs font-bold bg-red-50 dark:bg-red-900/20 text-red-600 dark:text-red-400 px-3 py-1.5 rounded-full border border-red-100 dark:border-red-900/30 self-start sm:self-auto">
+                        <span className="w-1.5 h-1.5 rounded-full bg-red-500 animate-pulse"></span>
+                        Lowest Balance Highlighted
                     </div>
                 </div>
 
-                {/* Sidebar: Major Expenses & AI Planner */}
-                <div className="space-y-6">
-                     {/* Major Expenses (Redesigned) */}
-                     <Card className="border-l-4 border-l-red-500">
+                <Card className="overflow-hidden border-0 shadow-lg bg-white dark:bg-dark-card p-0">
+                    <div className="overflow-x-auto max-h-[600px]">
+                        <table className="w-full text-sm text-left border-collapse">
+                             <thead className="sticky top-0 z-20 bg-white dark:bg-[#1E1E20] shadow-sm text-xs uppercase font-bold tracking-wider text-light-text-secondary dark:text-dark-text-secondary">
+                                <tr>
+                                    <th className="px-6 py-4 border-b border-black/5 dark:border-white/5">Date</th>
+                                    <th className="px-6 py-4 border-b border-black/5 dark:border-white/5">Account</th>
+                                    <th className="px-6 py-4 border-b border-black/5 dark:border-white/5">Description</th>
+                                    <th className="px-6 py-4 border-b border-black/5 dark:border-white/5 text-right">Amount</th>
+                                    <th className="px-6 py-4 border-b border-black/5 dark:border-white/5 text-right">Run. Bal.</th>
+                                    <th className="px-6 py-4 border-b border-black/5 dark:border-white/5 text-center">Type</th>
+                                </tr>
+                             </thead>
+                             <tbody className="divide-y divide-black/5 dark:divide-white/5 bg-white dark:bg-dark-card">
+                                {tableData.map(row => {
+                                    const isLowest = row.balance.toFixed(2) === lowestPoint.value.toFixed(2);
+                                    
+                                    let rowClass = 'hover:bg-gray-50 dark:hover:bg-white/5 transition-colors group cursor-pointer';
+                                    if (isLowest) rowClass += ' bg-red-50/50 dark:bg-red-900/10 hover:!bg-red-100/50 dark:hover:!bg-red-900/20 border-l-4 border-l-red-500';
+
+                                    const amountClass = row.amount >= 0 
+                                        ? 'text-emerald-600 dark:text-emerald-400 font-bold' 
+                                        : 'text-light-text dark:text-dark-text font-medium';
+
+                                    return (
+                                        <tr 
+                                            key={row.id} 
+                                            className={rowClass}
+                                            onClick={() => handleEditForecastItem(row)}
+                                        >
+                                            <td className="px-6 py-4 whitespace-nowrap font-mono text-xs text-light-text-secondary dark:text-dark-text-secondary group-hover:text-light-text dark:group-hover:text-dark-text">
+                                                {parseDateAsUTC(row.date).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric', timeZone })}
+                                            </td>
+                                            <td className="px-6 py-4">
+                                                <span className="font-semibold text-light-text dark:text-dark-text truncate block max-w-[140px]">{row.accountName}</span>
+                                            </td>
+                                            <td className="px-6 py-4">
+                                                <span className="truncate block max-w-[220px] text-light-text-secondary dark:text-dark-text-secondary group-hover:text-light-text dark:group-hover:text-dark-text">{row.description}</span>
+                                            </td>
+                                            <td className={`px-6 py-4 text-right font-mono ${amountClass}`}>
+                                                {formatCurrency(row.amount, 'EUR')}
+                                            </td>
+                                            <td className={`px-6 py-4 text-right font-mono font-bold ${isLowest ? 'text-red-600 dark:text-red-400' : 'text-light-text dark:text-dark-text'}`}>
+                                                {formatCurrency(row.balance, 'EUR')}
+                                            </td>
+                                            <td className="px-6 py-4 text-center">
+                                                 <span className={`inline-flex items-center px-2 py-0.5 rounded text-[10px] font-bold uppercase tracking-wide border ${
+                                                    row.type === 'Financial Goal' ? 'bg-amber-50 text-amber-700 border-amber-200 dark:bg-amber-900/20 dark:text-amber-400 dark:border-amber-800' :
+                                                    row.type === 'Bill/Payment' ? 'bg-orange-50 text-orange-700 border-orange-200 dark:bg-orange-900/20 dark:text-orange-400 dark:border-orange-800' :
+                                                    'bg-blue-50 text-blue-700 border-blue-200 dark:bg-blue-900/20 dark:text-blue-400 dark:border-blue-800'
+                                                }`}>
+                                                    {row.type === 'Financial Goal' ? 'Goal' : row.type === 'Bill/Payment' ? 'Bill' : 'Recurring'}
+                                                </span>
+                                            </td>
+                                        </tr>
+                                    );
+                                })}
+                                {tableData.length === 0 && (
+                                    <tr>
+                                        <td colSpan={6} className="px-6 py-16 text-center text-light-text-secondary dark:text-dark-text-secondary">
+                                            <span className="material-symbols-outlined text-4xl mb-2 opacity-30">event_busy</span>
+                                            <p className="text-sm">No forecast data available for the selected period.</p>
+                                        </td>
+                                    </tr>
+                                )}
+                             </tbody>
+                        </table>
+                    </div>
+                </Card>
+            </div>
+            
+            {/* Bottom Grid: Major Expenses & AI Planner */}
+            <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
+                 {/* Major Expenses (1/3) */}
+                 <div className="lg:col-span-1 space-y-6">
+                     <Card className="border-l-4 border-l-red-500 h-full flex flex-col">
                         <div className="flex items-center justify-between mb-4">
                             <h3 className="text-lg font-bold text-light-text dark:text-dark-text flex items-center gap-2">
                                 <span className="material-symbols-outlined text-red-500">payments</span>
@@ -745,7 +834,7 @@ const Forecasting: React.FC = () => {
                             </h3>
                             <span className="text-[10px] font-bold uppercase bg-red-50 dark:bg-red-900/20 text-red-600 dark:text-red-400 px-2 py-0.5 rounded-full">Next {forecastDuration}</span>
                         </div>
-                         <div className="relative">
+                         <div className="relative flex-grow">
                             {/* Timeline Line */}
                             <div className="absolute left-3.5 top-2 bottom-2 w-0.5 bg-gray-100 dark:bg-white/5"></div>
                             
@@ -775,15 +864,17 @@ const Forecasting: React.FC = () => {
                             </div>
                          </div>
                      </Card>
+                 </div>
 
-                     {/* AI Planner (Redesigned) */}
-                     <div className="rounded-3xl p-1 bg-gradient-to-br from-indigo-500 via-purple-500 to-pink-500">
-                         <div className="bg-white dark:bg-dark-card rounded-[20px] p-5 h-full relative overflow-hidden">
+                 {/* AI Planner (2/3) */}
+                 <div className="lg:col-span-2">
+                     <div className="rounded-3xl p-1 bg-gradient-to-br from-indigo-500 via-purple-500 to-pink-500 h-full">
+                         <div className="bg-white dark:bg-dark-card rounded-[20px] p-5 h-full relative overflow-hidden flex flex-col">
                              <div className="absolute top-0 right-0 p-4 opacity-5 pointer-events-none">
                                  <span className="material-symbols-outlined text-8xl">psychology</span>
                              </div>
                              
-                             <div className="relative z-10">
+                             <div className="relative z-10 flex-grow">
                                  <div className="flex items-center gap-3 mb-4">
                                       <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-indigo-500 to-purple-600 flex items-center justify-center text-white shadow-lg">
                                          <span className="material-symbols-outlined text-xl">auto_awesome</span>
@@ -825,91 +916,6 @@ const Forecasting: React.FC = () => {
                 </div>
             </div>
             
-            {/* Forecast Ledger (Redesigned) */}
-            <Card className="overflow-hidden border-0 shadow-lg bg-white dark:bg-dark-card p-0">
-                <div className="p-6 border-b border-black/5 dark:border-white/5 bg-gray-50/50 dark:bg-white/[0.02] flex flex-col sm:flex-row sm:justify-between sm:items-center gap-4">
-                    <div className="flex items-center gap-3">
-                        <div className="p-2 rounded-lg bg-white dark:bg-white/10 shadow-sm border border-black/5 dark:border-white/5">
-                             <span className="material-symbols-outlined text-light-text-secondary dark:text-dark-text-secondary">table_chart</span>
-                        </div>
-                        <div>
-                            <h3 className="text-lg font-bold text-light-text dark:text-dark-text">Forecast Ledger</h3>
-                            <p className="text-xs font-medium text-light-text-secondary dark:text-dark-text-secondary uppercase tracking-wider">Daily Projections</p>
-                        </div>
-                    </div>
-                     <div className="flex items-center gap-2 text-xs font-bold bg-red-50 dark:bg-red-900/20 text-red-600 dark:text-red-400 px-3 py-1.5 rounded-full border border-red-100 dark:border-red-900/30">
-                        <span className="w-1.5 h-1.5 rounded-full bg-red-500 animate-pulse"></span>
-                        Lowest Balance Highlighted
-                    </div>
-                </div>
-                <div className="overflow-x-auto max-h-[600px]">
-                    <table className="w-full text-sm text-left border-collapse">
-                         <thead className="sticky top-0 z-20 bg-white dark:bg-[#1E1E20] shadow-sm text-xs uppercase font-bold tracking-wider text-light-text-secondary dark:text-dark-text-secondary">
-                            <tr>
-                                <th className="px-6 py-4 border-b border-black/5 dark:border-white/5">Date</th>
-                                <th className="px-6 py-4 border-b border-black/5 dark:border-white/5">Account</th>
-                                <th className="px-6 py-4 border-b border-black/5 dark:border-white/5">Description</th>
-                                <th className="px-6 py-4 border-b border-black/5 dark:border-white/5 text-right">Amount</th>
-                                <th className="px-6 py-4 border-b border-black/5 dark:border-white/5 text-right">Run. Bal.</th>
-                                <th className="px-6 py-4 border-b border-black/5 dark:border-white/5 text-center">Type</th>
-                            </tr>
-                         </thead>
-                         <tbody className="divide-y divide-black/5 dark:divide-white/5 bg-white dark:bg-dark-card">
-                            {tableData.map(row => {
-                                const isLowest = row.balance.toFixed(2) === lowestPoint.value.toFixed(2);
-                                
-                                let rowClass = 'hover:bg-gray-50 dark:hover:bg-white/5 transition-colors group cursor-pointer';
-                                if (isLowest) rowClass += ' bg-red-50/50 dark:bg-red-900/10 hover:!bg-red-100/50 dark:hover:!bg-red-900/20 border-l-4 border-l-red-500';
-
-                                const amountClass = row.amount >= 0 
-                                    ? 'text-emerald-600 dark:text-emerald-400 font-bold' 
-                                    : 'text-light-text dark:text-dark-text font-medium';
-
-                                return (
-                                    <tr 
-                                        key={row.id} 
-                                        className={rowClass}
-                                        onClick={() => handleEditForecastItem(row)}
-                                    >
-                                        <td className="px-6 py-4 whitespace-nowrap font-mono text-xs text-light-text-secondary dark:text-dark-text-secondary group-hover:text-light-text dark:group-hover:text-dark-text">
-                                            {parseDateAsUTC(row.date).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric', timeZone })}
-                                        </td>
-                                        <td className="px-6 py-4">
-                                            <span className="font-semibold text-light-text dark:text-dark-text truncate block max-w-[140px]">{row.accountName}</span>
-                                        </td>
-                                        <td className="px-6 py-4">
-                                            <span className="truncate block max-w-[220px] text-light-text-secondary dark:text-dark-text-secondary group-hover:text-light-text dark:group-hover:text-dark-text">{row.description}</span>
-                                        </td>
-                                        <td className={`px-6 py-4 text-right font-mono ${amountClass}`}>
-                                            {formatCurrency(row.amount, 'EUR')}
-                                        </td>
-                                        <td className={`px-6 py-4 text-right font-mono font-bold ${isLowest ? 'text-red-600 dark:text-red-400' : 'text-light-text dark:text-dark-text'}`}>
-                                            {formatCurrency(row.balance, 'EUR')}
-                                        </td>
-                                        <td className="px-6 py-4 text-center">
-                                             <span className={`inline-flex items-center px-2 py-0.5 rounded text-[10px] font-bold uppercase tracking-wide border ${
-                                                row.type === 'Financial Goal' ? 'bg-amber-50 text-amber-700 border-amber-200 dark:bg-amber-900/20 dark:text-amber-400 dark:border-amber-800' :
-                                                row.type === 'Bill/Payment' ? 'bg-orange-50 text-orange-700 border-orange-200 dark:bg-orange-900/20 dark:text-orange-400 dark:border-orange-800' :
-                                                'bg-blue-50 text-blue-700 border-blue-200 dark:bg-blue-900/20 dark:text-blue-400 dark:border-blue-800'
-                                            }`}>
-                                                {row.type === 'Financial Goal' ? 'Goal' : row.type === 'Bill/Payment' ? 'Bill' : 'Recurring'}
-                                            </span>
-                                        </td>
-                                    </tr>
-                                );
-                            })}
-                            {tableData.length === 0 && (
-                                <tr>
-                                    <td colSpan={6} className="px-6 py-16 text-center text-light-text-secondary dark:text-dark-text-secondary">
-                                        <span className="material-symbols-outlined text-4xl mb-2 opacity-30">event_busy</span>
-                                        <p className="text-sm">No forecast data available for the selected period.</p>
-                                    </td>
-                                </tr>
-                            )}
-                         </tbody>
-                    </table>
-                </div>
-            </Card>
         </div>
     );
 };
