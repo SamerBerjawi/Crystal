@@ -479,6 +479,12 @@ export interface Invoice {
   notes?: string;
 }
 
+export interface UserStats {
+    currentStreak: number;
+    longestStreak: number;
+    lastLogDate: string; // ISO Date YYYY-MM-DD
+}
+
 // FIX: Move FinancialData interface from App.tsx to types.ts to resolve import error in mockData.ts
 export interface FinancialData {
     accounts: Account[];
@@ -502,6 +508,7 @@ export interface FinancialData {
     tags?: Tag[];
     manualWarrantPrices?: Record<string, number | undefined>;
     invoices?: Invoice[];
+    userStats?: UserStats;
 }
 
 // New types for Tasks feature

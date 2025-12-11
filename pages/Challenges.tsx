@@ -1,18 +1,30 @@
-import React from 'react';
+
+import React, { useMemo, useState } from 'react';
 import Card from '../components/Card';
+import { UserStats, Account, Transaction } from '../types';
+import { calculateAccountTotals, convertToEur, parseDateAsUTC, formatCurrency, getDateRange } from '../utils';
+import { LIQUID_ACCOUNT_TYPES, ASSET_TYPES, DEBT_TYPES, ALL_ACCOUNT_TYPES } from '../constants';
+import { useBudgetsContext, useGoalsContext, useScheduleContext } from '../contexts/FinancialDataContext';
+
+interface ChallengesProps {
+    userStats: UserStats;
+    accounts: Account[];
+    transactions: Transaction[];
+}
 
 interface ProgressBarProps {
   label: string;
   value: number;
   colorClass?: string;
   helper?: string;
+  showPercent?: boolean;
 }
 
-const ProgressBar: React.FC<ProgressBarProps> = ({ label, value, colorClass = 'bg-primary-500', helper }) => (
+const ProgressBar: React.FC<ProgressBarProps> = ({ label, value, colorClass = 'bg-primary-500', helper, showPercent = true }) => (
   <div className="space-y-2">
     <div className="flex justify-between items-center text-sm font-semibold text-light-text dark:text-dark-text">
       <span>{label}</span>
-      <span className="text-light-text-secondary dark:text-dark-text-secondary">{value}%</span>
+      {showPercent && <span className="text-light-text-secondary dark:text-dark-text-secondary">{value.toFixed(0)}%</span>}
     </div>
     <div className="h-2 rounded-full bg-light-fill dark:bg-dark-fill overflow-hidden">
       <div
@@ -28,315 +40,368 @@ const ProgressBar: React.FC<ProgressBarProps> = ({ label, value, colorClass = 'b
   </div>
 );
 
-const CircularGauge: React.FC<{ value: number; label: string; helper?: string }> = ({ value, label, helper }) => {
-  const clamped = Math.min(100, Math.max(0, value));
+const CircularGauge: React.FC<{ value: number; label: string; helper?: string; details?: { label: string, score: number, max: number, status: string }[] }> = ({ value, label, helper, details }) => {
+  const [showDetails, setShowDetails] = useState(false);
+  const clamped = Math.min(100, Math.max(0, Math.round(value)));
   const angle = (clamped / 100) * 360;
-  const gaugeGradient = `conic-gradient(#22c55e ${angle}deg, rgba(148,163,184,0.35) 0deg)`;
-  const tone = clamped < 50 ? 'text-red-500' : clamped < 80 ? 'text-amber-500' : 'text-green-500';
+  
+  let colorStart = '#ef4444'; // Red
+  let colorEnd = '#f87171';
+  let tone = 'text-red-500';
+  
+  if (clamped >= 75) {
+      colorStart = '#10b981'; // Emerald
+      colorEnd = '#34d399';
+      tone = 'text-emerald-500';
+  } else if (clamped >= 50) {
+      colorStart = '#f59e0b'; // Amber
+      colorEnd = '#fbbf24';
+      tone = 'text-amber-500';
+  }
+
+  const gaugeGradient = `conic-gradient(${colorStart} ${angle}deg, rgba(148,163,184,0.15) 0deg)`;
 
   return (
-    <div className="flex flex-col items-center gap-3">
+    <div className="flex flex-col items-center gap-3 w-full">
       <div
-        className="relative w-32 h-32 rounded-full flex items-center justify-center shadow-inner"
+        className="relative w-40 h-40 rounded-full flex items-center justify-center shadow-inner cursor-pointer transition-transform hover:scale-105"
         style={{ background: gaugeGradient }}
         role="img"
         aria-label={`${label} is ${clamped}`}
+        onClick={() => setShowDetails(!showDetails)}
       >
-        <div className="w-24 h-24 rounded-full bg-white dark:bg-dark-card flex flex-col items-center justify-center">
-          <p className={`text-3xl font-bold ${tone}`}>{clamped}</p>
-          <p className="text-xs font-semibold text-light-text-secondary dark:text-dark-text-secondary">/ 100</p>
+        <div className="w-32 h-32 rounded-full bg-white dark:bg-dark-card flex flex-col items-center justify-center shadow-sm">
+          <p className={`text-4xl font-black ${tone}`}>{clamped}</p>
+          <p className="text-[10px] font-bold uppercase tracking-widest text-light-text-secondary dark:text-dark-text-secondary opacity-60">Score</p>
         </div>
       </div>
       <div className="text-center space-y-1">
-        <p className="text-sm font-semibold text-light-text dark:text-dark-text">{label}</p>
+        <p className="text-sm font-bold uppercase tracking-wider text-light-text dark:text-dark-text">{label}</p>
         {helper && (
-          <p className="text-xs text-light-text-secondary dark:text-dark-text-secondary leading-snug max-w-xs">{helper}</p>
+          <p className="text-xs text-light-text-secondary dark:text-dark-text-secondary leading-snug max-w-xs mx-auto">{helper}</p>
         )}
+        <button 
+            onClick={() => setShowDetails(!showDetails)}
+            className="text-xs font-semibold text-primary-500 hover:underline mt-2"
+        >
+            {showDetails ? 'Hide Breakdown' : 'See Breakdown'}
+        </button>
       </div>
+      
+      {showDetails && details && (
+          <div className="w-full mt-4 bg-gray-50 dark:bg-white/5 rounded-xl p-4 text-xs animate-fade-in-up border border-black/5 dark:border-white/5">
+              <div className="space-y-3">
+                  {details.map((d, idx) => (
+                      <div key={idx} className="flex justify-between items-center">
+                          <span className="font-medium text-light-text dark:text-dark-text">{d.label}</span>
+                          <div className="text-right">
+                              <span className={`font-bold ${d.status === 'Good' ? 'text-green-600 dark:text-green-400' : d.status === 'Fair' ? 'text-amber-600 dark:text-amber-400' : 'text-red-600 dark:text-red-400'}`}>
+                                  {d.score.toFixed(0)}/{d.max}
+                              </span>
+                          </div>
+                      </div>
+                  ))}
+                  <div className="pt-2 mt-2 border-t border-black/10 dark:border-white/10 text-center opacity-60">
+                      Improve metrics to boost your score.
+                  </div>
+              </div>
+          </div>
+      )}
     </div>
   );
 };
 
-const Challenges: React.FC = () => {
-  const achievements = [
-    { title: 'Debt Destroyer', status: 'Unlocked', description: 'Closed out a loan with the final payment last month.' },
-    { title: 'Oracle', status: 'In Progress', description: 'Forecast accuracy is at 93% vs. the 95% goal.' },
-    { title: 'Safety Net', status: 'Locked', description: 'Build a 3-month liquidity runway to earn this badge.' },
-  ];
-
-  const bossBattles = [
-    { name: 'Credit Card Titan', progress: 62, helper: '€1,240 remaining on the €3,250 balance' },
-    { name: 'Dream Home Down Payment', progress: 35, helper: 'Saved €7,000 of €20,000 target' },
-  ];
-
-  const categoryMastery = [
-    { name: 'Groceries', level: 3, xp: 68 },
-    { name: 'Dining Out', level: 2, xp: 42 },
-    { name: 'Transportation', level: 4, xp: 81 },
-  ];
-
-  const savingsChallenges = [
-    { title: 'No Spend Weekend', duration: '2 days', progress: 100, status: 'Completed' },
-    { title: 'The Coffee Break', duration: '7 days', progress: 65, status: 'Active' },
-    { title: 'Subscription Audit', duration: '14 days', progress: 20, status: 'Queued' },
-  ];
-
-  const predictionMarkets = [
-    { category: 'Groceries', prediction: '€320', actual: '€305', result: 'Win' },
-    { category: 'Transport', prediction: '€110', actual: '€124', result: 'Tracking' },
-    { category: 'Dining Out', prediction: '€180', actual: '€220', result: 'Loss' },
-  ];
-
-  const questLog = { progress: 72, remaining: 3 };
-
-  const leaderboard = [
-    { label: 'This Month', value: '+€1,240', helper: 'Net worth momentum' },
-    { label: 'Best Month Ever', value: '+€1,640', helper: 'June 2023 personal record' },
-    { label: 'Last Year', value: '+€980', helper: 'Year-over-year benchmark' },
-  ];
-
-  return (
-    <div className="p-6 space-y-6 text-light-text dark:text-dark-text">
-      <div className="flex flex-col gap-4">
-        <div className="flex items-center gap-3 text-sm text-primary-600 dark:text-primary-300 font-semibold">
-          <span className="material-symbols-outlined text-xl">stadia_controller</span>
-          <span>Gamification Hub</span>
-        </div>
-        <div className="flex flex-col gap-2">
-          <h1 className="text-3xl font-bold">Challenges</h1>
-          <p className="text-light-text-secondary dark:text-dark-text-secondary max-w-3xl">
-            Track streaks, level up categories, and celebrate milestones that make building healthy financial habits feel like a
-            game.
-          </p>
-        </div>
-      </div>
-
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
-        <Card className="col-span-1 flex flex-col gap-4">
-          <div className="flex items-center justify-between">
-            <div>
-              <p className="text-xs font-semibold uppercase tracking-wide text-light-text-secondary dark:text-dark-text-secondary">
-                Daily Clarity Streak
-              </p>
-              <h2 className="text-3xl font-bold flex items-center gap-2">
-                <span className="material-symbols-outlined text-amber-500">local_fire_department</span>
-                12 days
-              </h2>
+// --- Badge Component ---
+const BadgeItem: React.FC<{ badge: any }> = ({ badge }) => {
+    return (
+        <div className={`
+            relative p-4 rounded-xl border flex flex-col items-center text-center transition-all duration-300 h-full
+            ${badge.unlocked 
+                ? 'bg-gradient-to-br from-white to-gray-50 dark:from-dark-card dark:to-white/5 border-primary-500/30 shadow-md transform hover:-translate-y-1' 
+                : 'bg-gray-100 dark:bg-white/5 border-transparent opacity-60 grayscale'
+            }
+        `}>
+            <div className={`
+                w-12 h-12 rounded-full flex items-center justify-center mb-3 text-2xl relative shadow-sm
+                ${badge.unlocked ? `bg-${badge.color}-100 dark:bg-${badge.color}-900/30 text-${badge.color}-600 dark:text-${badge.color}-400` : 'bg-gray-200 dark:bg-white/10 text-gray-400'}
+            `}>
+                <span className="material-symbols-outlined">{badge.icon}</span>
+                {!badge.unlocked && (
+                    <div className="absolute -bottom-1 -right-1 w-5 h-5 bg-gray-500 rounded-full flex items-center justify-center text-white border-2 border-white dark:border-dark-card">
+                        <span className="material-symbols-outlined text-[10px]">lock</span>
+                    </div>
+                )}
             </div>
-            <div className="px-3 py-1 rounded-full bg-amber-100 text-amber-700 text-xs font-semibold dark:bg-amber-500/10 dark:text-amber-200">
-              +2 ahead of goal
-            </div>
-          </div>
-          <ProgressBar label="Current week check-ins" value={86} helper="Log or review at least once a day to keep the flame alive." />
-          <div className="flex items-center gap-3 text-sm text-light-text-secondary dark:text-dark-text-secondary">
-            <span className="material-symbols-outlined text-base">task_alt</span>
-            <span>Next milestone: 21-day streak unlocks a limited-time badge.</span>
-          </div>
-        </Card>
-
-        <Card className="col-span-1 flex flex-col items-center justify-between gap-4">
-          <div className="w-full flex justify-between items-center">
-            <div>
-              <p className="text-xs font-semibold uppercase tracking-wide text-light-text-secondary dark:text-dark-text-secondary">
-                Financial Health
-              </p>
-              <h2 className="text-xl font-bold">Crystal Score</h2>
-            </div>
-            <span className="material-symbols-outlined text-primary-500">insights</span>
-          </div>
-          <CircularGauge value={78} label="Crystal Score" helper="Powered by savings rate, liquidity ratio, and debt-to-asset mix." />
-          <div className="grid grid-cols-3 gap-3 w-full text-sm">
-            <div>
-              <p className="text-light-text-secondary dark:text-dark-text-secondary">Savings Rate</p>
-              <p className="font-semibold">19%</p>
-            </div>
-            <div>
-              <p className="text-light-text-secondary dark:text-dark-text-secondary">Liquidity</p>
-              <p className="font-semibold">2.5 months</p>
-            </div>
-            <div>
-              <p className="text-light-text-secondary dark:text-dark-text-secondary">Debt / Assets</p>
-              <p className="font-semibold">23%</p>
-            </div>
-          </div>
-        </Card>
-
-        <Card className="col-span-1 flex flex-col gap-4">
-          <div className="flex items-center justify-between">
-            <div>
-              <p className="text-xs font-semibold uppercase tracking-wide text-light-text-secondary dark:text-dark-text-secondary">
-                Achievement Badges
-              </p>
-              <h2 className="text-xl font-bold">Trophy Case</h2>
-            </div>
-            <span className="material-symbols-outlined text-yellow-500">trophy</span>
-          </div>
-          <div className="space-y-3">
-            {achievements.map((badge) => (
-              <div key={badge.title} className="flex items-start gap-3">
-                <div className="p-2 rounded-lg bg-primary-50 dark:bg-primary-900/10 text-primary-600 dark:text-primary-300">
-                  <span className="material-symbols-outlined text-lg">workspace_premium</span>
-                </div>
-                <div className="flex-1">
-                  <div className="flex items-center justify-between">
-                    <p className="font-semibold">{badge.title}</p>
-                    <span className="text-xs px-2 py-1 rounded-full bg-light-fill dark:bg-dark-fill text-light-text-secondary dark:text-dark-text-secondary font-semibold">
-                      {badge.status}
-                    </span>
-                  </div>
-                  <p className="text-sm text-light-text-secondary dark:text-dark-text-secondary">{badge.description}</p>
-                </div>
-              </div>
-            ))}
-          </div>
-        </Card>
-      </div>
-
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
-        <Card className="space-y-4">
-          <div className="flex items-center justify-between">
-            <h3 className="text-lg font-bold">Budget Boss Battles</h3>
-            <span className="material-symbols-outlined text-rose-500">swords</span>
-          </div>
-          <div className="space-y-4">
-            {bossBattles.map((boss) => (
-              <div key={boss.name} className="space-y-2">
-                <div className="flex items-center justify-between">
-                  <p className="font-semibold flex items-center gap-2">
-                    <span className="material-symbols-outlined text-base">shield</span>
-                    {boss.name}
-                  </p>
-                  <span className="text-sm text-light-text-secondary dark:text-dark-text-secondary">{boss.helper}</span>
-                </div>
-                <ProgressBar label="" value={boss.progress} colorClass="bg-rose-500" />
-              </div>
-            ))}
-          </div>
-        </Card>
-
-        <Card className="space-y-4">
-          <div className="flex items-center justify-between">
-            <h3 className="text-lg font-bold">Category Mastery Levels</h3>
-            <span className="material-symbols-outlined text-indigo-500">auto_graph</span>
-          </div>
-          <div className="space-y-3">
-            {categoryMastery.map((category) => (
-              <div key={category.name} className="flex items-center gap-3">
-                <div className="p-2 rounded-lg bg-indigo-50 dark:bg-indigo-500/10 text-indigo-500">
-                  <span className="material-symbols-outlined text-base">military_tech</span>
-                </div>
-                <div className="flex-1 space-y-1">
-                  <div className="flex items-center justify-between">
-                    <p className="font-semibold">{category.name} • Lvl {category.level}</p>
-                    <span className="text-sm text-light-text-secondary dark:text-dark-text-secondary">{category.xp} XP</span>
-                  </div>
-                  <ProgressBar label="" value={category.xp} colorClass="bg-indigo-500" helper="Stay under budget to keep earning XP." />
-                </div>
-              </div>
-            ))}
-          </div>
-        </Card>
-      </div>
-
-      <div className="grid grid-cols-1 xl:grid-cols-3 gap-4">
-        <Card className="space-y-4">
-          <div className="flex items-center justify-between">
-            <h3 className="text-lg font-bold">Savings Challenges</h3>
-            <span className="material-symbols-outlined text-emerald-500">flag</span>
-          </div>
-          <div className="space-y-3">
-            {savingsChallenges.map((challenge) => (
-              <div key={challenge.title} className="flex items-center justify-between gap-3 p-3 rounded-lg bg-light-fill dark:bg-dark-fill">
-                <div>
-                  <p className="font-semibold">{challenge.title}</p>
-                  <p className="text-xs text-light-text-secondary dark:text-dark-text-secondary">{challenge.duration}</p>
-                </div>
-                <div className="flex items-center gap-3">
-                  <div className="text-right">
-                    <p className="text-sm font-semibold">{challenge.status}</p>
-                    <p className="text-xs text-light-text-secondary dark:text-dark-text-secondary">{challenge.progress}%</p>
-                  </div>
-                  <div className="w-20 h-2 rounded-full bg-white/50 dark:bg-white/10 overflow-hidden">
-                    <div className="h-full bg-emerald-500" style={{ width: `${challenge.progress}%` }}></div>
-                  </div>
-                </div>
-              </div>
-            ))}
-          </div>
-        </Card>
-
-        <Card className="space-y-4">
-          <div className="flex items-center justify-between">
-            <h3 className="text-lg font-bold">Prediction Markets</h3>
-            <span className="material-symbols-outlined text-blue-500">timeline</span>
-          </div>
-          <div className="space-y-3">
-            {predictionMarkets.map((prediction) => (
-              <div key={prediction.category} className="p-3 rounded-lg bg-light-fill dark:bg-dark-fill">
-                <div className="flex items-center justify-between">
-                  <p className="font-semibold">{prediction.category}</p>
-                  <span className="text-xs px-2 py-1 rounded-full bg-blue-50 dark:bg-blue-500/10 text-blue-600 dark:text-blue-300 font-semibold">
-                    {prediction.result}
-                  </span>
-                </div>
-                <div className="mt-2 flex items-center justify-between text-sm text-light-text-secondary dark:text-dark-text-secondary">
-                  <span>Prediction: {prediction.prediction}</span>
-                  <span>Actual: {prediction.actual}</span>
-                </div>
-              </div>
-            ))}
-          </div>
-        </Card>
-
-        <Card className="space-y-4">
-          <div className="flex items-center justify-between">
-            <h3 className="text-lg font-bold">Data Cleaning Quest Log</h3>
-            <span className="material-symbols-outlined text-purple-500">playlist_add_check</span>
-          </div>
-          <div className="space-y-3">
-            <ProgressBar
-              label="Uncategorized transactions cleared"
-              value={questLog.progress}
-              colorClass="bg-purple-500"
-              helper={`Only ${questLog.remaining} remaining to complete this month's quest.`}
-            />
-            <div className="p-3 rounded-lg bg-purple-50 dark:bg-purple-500/10 text-purple-900 dark:text-purple-100 flex items-center gap-3">
-              <span className="material-symbols-outlined text-base">diamond</span>
-              <div className="text-sm">
-                <p className="font-semibold">Quest Reward</p>
-                <p className="text-purple-800/80 dark:text-purple-100/80">Perfect month badge + bonus XP toward Crystal Score.</p>
-              </div>
-            </div>
-          </div>
-        </Card>
-      </div>
-
-      <Card className="space-y-4">
-        <div className="flex items-center justify-between">
-          <div>
-            <p className="text-xs font-semibold uppercase tracking-wide text-light-text-secondary dark:text-dark-text-secondary">
-              Personal Best Leaderboard
+            
+            <h4 className="font-bold text-sm text-light-text dark:text-dark-text mb-1">{badge.title}</h4>
+            <p className="text-[10px] text-light-text-secondary dark:text-dark-text-secondary leading-tight mb-2 min-h-[2.5em] flex items-center justify-center">
+                {badge.description}
             </p>
-            <h3 className="text-lg font-bold">Net Worth vs. Past You</h3>
-          </div>
-          <span className="material-symbols-outlined text-teal-500">leaderboard</span>
+            
+            {!badge.unlocked && badge.progress !== undefined && (
+                 <div className="w-full mt-auto">
+                     <div className="flex justify-between text-[9px] font-bold text-light-text-secondary dark:text-dark-text-secondary mb-1">
+                         <span>Progress</span>
+                         <span>{Math.min(100, badge.progress).toFixed(0)}%</span>
+                     </div>
+                     <div className="w-full h-1.5 bg-gray-300 dark:bg-gray-600 rounded-full overflow-hidden">
+                         <div className="h-full bg-gray-500 rounded-full transition-all duration-500" style={{ width: `${Math.min(100, badge.progress)}%` }}></div>
+                     </div>
+                 </div>
+            )}
+
+            {badge.unlocked && (
+                <div className="mt-auto pt-2">
+                     <span className="text-[9px] font-bold uppercase tracking-wider text-primary-600 dark:text-primary-400 bg-primary-50 dark:bg-primary-900/20 px-2 py-0.5 rounded-full">
+                        Unlocked
+                    </span>
+                </div>
+            )}
         </div>
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
-          {leaderboard.map((entry) => (
-            <div key={entry.label} className="p-4 rounded-lg bg-light-fill dark:bg-dark-fill">
-              <p className="text-sm text-light-text-secondary dark:text-dark-text-secondary">{entry.label}</p>
-              <p className="text-2xl font-bold">{entry.value}</p>
-              <p className="text-xs text-light-text-secondary dark:text-dark-text-secondary">{entry.helper}</p>
-            </div>
-          ))}
-        </div>
-        <div className="text-sm text-light-text-secondary dark:text-dark-text-secondary flex items-center gap-2">
-          <span className="material-symbols-outlined text-base">emoji_events</span>
-          <span>Beat last year and your personal best to unlock the Legendary Saver badge.</span>
-        </div>
-      </Card>
-    </div>
-  );
+    );
 };
 
-export default Challenges;
+
+const Challenges: React.FC<ChallengesProps> = ({ userStats, accounts, transactions }) => {
+  const { currentStreak, longestStreak } = userStats;
+  const { budgets } = useBudgetsContext();
+  const { financialGoals } = useGoalsContext();
+  const { recurringTransactions, memberships, billsAndPayments } = useScheduleContext();
+  
+  // --- Derived Metrics for Badges ---
+  const { totalDebt, netWorth, savingsRate, totalInvestments, uniqueAccountTypes, liquidityRatio, budgetAccuracy } = useMemo(() => {
+     // 1. Totals
+     const { totalDebt, netWorth } = calculateAccountTotals(accounts.filter(a => a.status !== 'closed'));
+     
+     // 2. Savings Rate & Budget Accuracy (Current Month)
+     const now = new Date();
+     const startOfMonth = new Date(Date.UTC(now.getFullYear(), now.getMonth(), 1));
+     let income = 0;
+     let expense = 0;
+     const spendingByCat: Record<string, number> = {};
+
+     transactions.forEach(tx => {
+        const d = parseDateAsUTC(tx.date);
+        if (d >= startOfMonth && !tx.transferId) {
+            const val = convertToEur(tx.amount, tx.currency);
+            if (tx.type === 'income') {
+                income += val;
+            } else {
+                expense += Math.abs(val);
+                // Simple category sum for Oracle badge
+                spendingByCat[tx.category] = (spendingByCat[tx.category] || 0) + Math.abs(val);
+            }
+        }
+     });
+     
+     const savingsRate = income > 0 ? ((income - expense) / income) : 0;
+     
+     // Budget Accuracy (Oracle)
+     // Calculate average variance between budget and actual spending
+     let totalBudgetVariance = 0;
+     let validBudgets = 0;
+     budgets.forEach(b => {
+         const spent = spendingByCat[b.categoryName] || 0;
+         const variance = Math.abs(b.amount - spent) / b.amount;
+         totalBudgetVariance += variance;
+         validBudgets++;
+     });
+     // Average variance across all budgets. If < 0.05 (5%), it's accurate.
+     const budgetAccuracy = validBudgets > 0 ? (totalBudgetVariance / validBudgets) : 1; // Default to 100% variance if no budgets
+     
+     // 3. Investments
+     const totalInvestments = accounts
+        .filter(a => a.type === 'Investment')
+        .reduce((sum, a) => sum + convertToEur(a.balance, a.currency), 0);
+        
+     // 4. Unique Types
+     const uniqueAccountTypes = new Set(accounts.map(a => a.type)).size;
+     
+     // 5. Liquidity Ratio (Liquid Assets / Avg Monthly Spend)
+     const threeMonthsAgo = new Date(); threeMonthsAgo.setMonth(threeMonthsAgo.getMonth() - 3);
+     const totalSpend3m = transactions
+        .filter(t => parseDateAsUTC(t.date) >= threeMonthsAgo && t.type === 'expense' && !t.transferId)
+        .reduce((sum, t) => sum + Math.abs(convertToEur(t.amount, t.currency)), 0);
+     
+     const avgMonthlySpend = totalSpend3m / 3;
+     const liquidAssets = accounts
+        .filter(a => LIQUID_ACCOUNT_TYPES.includes(a.type))
+        .reduce((sum, a) => sum + convertToEur(a.balance, a.currency), 0);
+    
+     const liquidityRatio = avgMonthlySpend > 0 ? liquidAssets / avgMonthlySpend : 0;
+
+     return { totalDebt, netWorth, savingsRate, totalInvestments, uniqueAccountTypes, liquidityRatio, budgetAccuracy };
+  }, [accounts, transactions, budgets]);
+
+  // --- Badge Definitions ---
+  const badges = useMemo(() => [
+      // 1. Milestones
+      {
+          id: 'novice_explorer',
+          title: 'Novice Explorer',
+          description: 'Create your first account to start your journey.',
+          icon: 'explore',
+          color: 'blue',
+          unlocked: accounts.length > 0,
+          progress: (accounts.length / 1) * 100
+      },
+      {
+          id: 'budget_architect',
+          title: 'Budget Architect',
+          description: 'Create at least 3 budgets to manage spending.',
+          icon: 'architecture',
+          color: 'purple',
+          unlocked: budgets.length >= 3,
+          progress: (budgets.length / 3) * 100
+      },
+      {
+          id: 'the_1_percent',
+          title: 'The 1%',
+          description: 'Achieve a Net Worth of over €1,000,000.',
+          icon: 'diamond',
+          color: 'cyan',
+          unlocked: netWorth >= 1000000,
+          progress: (netWorth / 1000000) * 100
+      },
+      {
+          id: 'high_roller',
+          title: 'High Roller',
+          description: 'Achieve a Net Worth of over €100,000.',
+          icon: 'flight_class',
+          color: 'indigo',
+          unlocked: netWorth >= 100000,
+          progress: (netWorth / 100000) * 100
+      },
+      
+      // 2. Behavior
+      {
+          id: 'crystal_clear',
+          title: 'Crystal Clear',
+          description: 'Achieve a monthly savings rate of > 20%.',
+          icon: 'water_drop',
+          color: 'blue',
+          unlocked: savingsRate >= 0.20,
+          progress: (savingsRate / 0.20) * 100
+      },
+      {
+          id: 'streak_master',
+          title: 'Streak Master',
+          description: 'Maintain a 7-day login streak.',
+          icon: 'local_fire_department',
+          color: 'orange',
+          unlocked: currentStreak >= 7,
+          progress: (currentStreak / 7) * 100
+      },
+       {
+          id: 'automator',
+          title: 'Automator',
+          description: 'Set up 5+ recurring transactions.',
+          icon: 'settings_suggest',
+          color: 'slate',
+          unlocked: recurringTransactions.length >= 5,
+          progress: (recurringTransactions.length / 5) * 100
+      },
+      {
+          id: 'oracle',
+          title: 'Oracle',
+          description: 'Spend within 5% of your total budget limits.',
+          icon: 'psychology',
+          color: 'violet',
+          unlocked: budgets.length > 0 && budgetAccuracy <= 0.05,
+          progress: budgets.length > 0 ? (1 - budgetAccuracy) * 100 : 0
+      },
+      
+      // 3. Assets & Debts
+      {
+          id: 'debt_destroyer',
+          title: 'Debt Destroyer',
+          description: 'Have €0 in total debt (Loans & Credit Cards).',
+          icon: 'no_crash',
+          color: 'green',
+          unlocked: totalDebt === 0 && accounts.some(a => DEBT_TYPES.includes(a.type)), // Must have/had debt capability
+          progress: totalDebt === 0 ? 100 : 50 // Rough progress
+      },
+      {
+          id: 'safety_net',
+          title: 'Safety Net',
+          description: 'Build a 3-month liquidity runway.',
+          icon: 'health_and_safety',
+          color: 'emerald',
+          unlocked: liquidityRatio >= 3,
+          progress: (liquidityRatio / 3) * 100
+      },
+      {
+          id: 'diversified',
+          title: 'Diversified',
+          description: 'Hold 4+ different types of accounts.',
+          icon: 'category',
+          color: 'teal',
+          unlocked: uniqueAccountTypes >= 4,
+          progress: (uniqueAccountTypes / 4) * 100
+      },
+      {
+          id: 'investor',
+          title: 'Investor',
+          description: 'Build an investment portfolio > €5,000.',
+          icon: 'trending_up',
+          color: 'green',
+          unlocked: totalInvestments >= 5000,
+          progress: (totalInvestments / 5000) * 100
+      },
+      {
+          id: 'real_estate_mogul',
+          title: 'Real Estate Mogul',
+          description: 'Add a Property asset to your portfolio.',
+          icon: 'apartment',
+          color: 'amber',
+          unlocked: accounts.some(a => a.type === 'Property'),
+          progress: accounts.some(a => a.type === 'Property') ? 100 : 0
+      },
+      
+      // 4. Features
+      {
+          id: 'goal_setter',
+          title: 'Goal Setter',
+          description: 'Create your first financial goal.',
+          icon: 'flag',
+          color: 'pink',
+          unlocked: financialGoals.length > 0,
+          progress: financialGoals.length > 0 ? 100 : 0
+      },
+      {
+          id: 'goal_getter',
+          title: 'Goal Getter',
+          description: 'Fully fund a financial goal (100%).',
+          icon: 'emoji_events',
+          color: 'yellow',
+          unlocked: financialGoals.some(g => g.currentAmount >= g.amount),
+          progress: financialGoals.length > 0 ? (Math.max(...financialGoals.map(g => g.currentAmount / g.amount)) * 100) : 0
+      },
+      {
+          id: 'penny_pincher',
+          title: 'Penny Pincher',
+          description: 'Activate a "Spare Change" investment account.',
+          icon: 'savings',
+          color: 'lime',
+          unlocked: accounts.some(a => a.subType === 'Spare Change'),
+          progress: accounts.some(a => a.subType === 'Spare Change') ? 100 : 0
+      },
+      {
+          id: 'loyalist',
+          title: 'Loyalist',
+          description: 'Add 3+ membership cards to your wallet.',
+          icon: 'loyalty',
+          color: 'rose',
+          unlocked: memberships.length >= 3,
+          progress: (memberships.length / 3) * 100
+      },
+      {
+          id: 'bill_crusher',
+          title: 'Bill Crusher',
+          description: 'Have zero unpaid bills that are overdue.',
+          icon: 'task_alt',
+          color: 'indigo',
+          unlocked: billsAndPayments.length > 0 && billsAndPayments.every(b => b.status === 'paid' || b.dueDate >= new Date().toISOString().split('T')[0]),
+          progress: billsAndPayments.length > 0 ? 100 : 0
+      }
+  ], [accounts,

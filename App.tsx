@@ -1,3 +1,4 @@
+
 // FIX: Import `useMemo` from React to resolve the 'Cannot find name' error.
 import React, { useState, useEffect, useMemo, useCallback, Suspense, lazy, useRef, Component, ErrorInfo, startTransition } from 'react';
 import Sidebar from './components/Sidebar';
@@ -74,12 +75,12 @@ const pagePreloaders = [
 // UserManagement is removed
 // FIX: Import FinancialData from types.ts
 // FIX: Add `Tag` to the import from `types.ts`.
-import { Page, Theme, Category, User, Transaction, Account, RecurringTransaction, RecurringTransactionOverride, WeekendAdjustment, FinancialGoal, Budget, ImportExportHistoryItem, AppPreferences, AccountType, InvestmentTransaction, Task, Warrant, ImportDataType, FinancialData, Currency, BillPayment, BillPaymentStatus, Duration, InvestmentSubType, Tag, LoanPaymentOverrides, ScheduledPayment, Membership, Invoice } from './types';
+import { Page, Theme, Category, User, Transaction, Account, RecurringTransaction, RecurringTransactionOverride, WeekendAdjustment, FinancialGoal, Budget, ImportExportHistoryItem, AppPreferences, AccountType, InvestmentTransaction, Task, Warrant, ImportDataType, FinancialData, Currency, BillPayment, BillPaymentStatus, Duration, InvestmentSubType, Tag, LoanPaymentOverrides, ScheduledPayment, Membership, Invoice, UserStats } from './types';
 import { MOCK_INCOME_CATEGORIES, MOCK_EXPENSE_CATEGORIES, LIQUID_ACCOUNT_TYPES } from './constants';
 import { v4 as uuidv4 } from 'uuid';
 import ChatFab from './components/ChatFab';
 const Chatbot = lazy(() => import('./components/Chatbot'));
-import { convertToEur, CONVERSION_RATES, arrayToCSV, downloadCSV, parseDateAsUTC } from './utils';
+import { convertToEur, CONVERSION_RATES, arrayToCSV, downloadCSV, parseDateAsUTC, toLocalISOString } from './utils';
 import { buildHoldingsOverview } from './utils/investments';
 import { useDebounce } from './hooks/useDebounce';
 import { useAuth } from './hooks/useAuth';
@@ -174,6 +175,7 @@ const initialFinancialData: FinancialData = {
     taskOrder: [],
     manualWarrantPrices: {},
     invoices: [],
+    userStats: { currentStreak: 0, longestStreak: 0, lastLogDate: '' },
     preferences: {
         currency: 'EUR (€)',
         language: 'English (en)',
@@ -321,6 +323,8 @@ const App: React.FC = () => {
   const [invoices, setInvoices] = useState<Invoice[]>(initialFinancialData.invoices || []);
   // FIX: Add state for tags and tag filtering to support the Tags feature.
   const [tags, setTags] = useState<Tag[]>(initialFinancialData.tags || []);
+  const [userStats, setUserStats] = useState<UserStats>(initialFinancialData.userStats || { currentStreak: 0, longestStreak: 0, lastLogDate: '' });
+
   const latestDataRef = useRef<FinancialData>(initialFinancialData);
   const lastSavedSignatureRef = useRef<string | null>(null);
   const skipNextSaveRef = useRef(false);
@@ -338,6 +342,37 @@ const App: React.FC = () => {
   const [manualWarrantPrices, setManualWarrantPrices] = useState<Record<string, number | undefined>>(initialFinancialData.manualWarrantPrices || {});
   const [lastUpdated, setLastUpdated] = useState<Date | null>(null);
   
+  // Update Streak Logic
+  useEffect(() => {
+    if (!isDataLoaded || !isAuthenticated) return;
+
+    const todayStr = toLocalISOString(new Date());
+    const yesterday = new Date();
+    yesterday.setDate(yesterday.getDate() - 1);
+    const yesterdayStr = toLocalISOString(yesterday);
+    
+    // Only update if not already logged today
+    if (userStats.lastLogDate !== todayStr) {
+       let newStreak = 1;
+       
+       if (userStats.lastLogDate === yesterdayStr) {
+           newStreak = (userStats.currentStreak || 0) + 1;
+       }
+       
+       const newStats = {
+           currentStreak: newStreak,
+           longestStreak: Math.max(newStreak, userStats.longestStreak || 0),
+           lastLogDate: todayStr
+       };
+       
+       setUserStats(newStats);
+       // Trigger save
+       markSliceDirty('userStats');
+    }
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [isDataLoaded, isAuthenticated]);
+
+
   // FIX: Explicitly type assetPrices to avoid 'unknown' inference and ensure type safety
   const assetPrices = useMemo<Record<string, number | null>>(() => {
     const resolved: Record<string, number | null> = {};
@@ -556,6 +591,10 @@ const App: React.FC = () => {
       setTags(dataToLoad.tags || []);
       setIncomeCategories(dataToLoad.incomeCategories && dataToLoad.incomeCategories.length > 0 ? dataToLoad.incomeCategories : MOCK_INCOME_CATEGORIES);
       setExpenseCategories(dataToLoad.expenseCategories && dataToLoad.expenseCategories.length > 0 ? dataToLoad.expenseCategories : MOCK_EXPENSE_CATEGORIES);
+      
+      if (dataToLoad.userStats) {
+          setUserStats(dataToLoad.userStats);
+      }
 
       setPreferences(loadedPrefs);
       
@@ -655,11 +694,11 @@ const App: React.FC = () => {
   const dataToSave: FinancialData = useMemo(() => ({
     accounts, transactions, investmentTransactions, recurringTransactions,
     recurringTransactionOverrides, loanPaymentOverrides, financialGoals, budgets, tasks, warrants, memberships, importExportHistory, incomeCategories,
-    expenseCategories, preferences, billsAndPayments, accountOrder, taskOrder, tags, manualWarrantPrices, invoices
+    expenseCategories, preferences, billsAndPayments, accountOrder, taskOrder, tags, manualWarrantPrices, invoices, userStats
   }), [
     accounts, transactions, investmentTransactions,
     recurringTransactions, recurringTransactionOverrides, loanPaymentOverrides, financialGoals, budgets, tasks, warrants, memberships, importExportHistory,
-    incomeCategories, expenseCategories, preferences, billsAndPayments, accountOrder, taskOrder, tags, manualWarrantPrices, invoices
+    incomeCategories, expenseCategories, preferences, billsAndPayments, accountOrder, taskOrder, tags, manualWarrantPrices, invoices, userStats
   ]);
 
   const debouncedDirtySignal = useDebounce(dirtySignal, 900);
@@ -687,6 +726,7 @@ const App: React.FC = () => {
     if (dirtySlices.has('tags')) payload.tags = tags;
     if (dirtySlices.has('manualWarrantPrices')) payload.manualWarrantPrices = manualWarrantPrices;
     if (dirtySlices.has('invoices')) payload.invoices = invoices;
+    if (dirtySlices.has('userStats')) payload.userStats = userStats;
 
     return { ...latestDataRef.current, ...payload } as FinancialData;
   }, [
@@ -710,7 +750,8 @@ const App: React.FC = () => {
     warrants,
     memberships,
     manualWarrantPrices,
-    invoices
+    invoices,
+    userStats
   ]);
 
   useEffect(() => {
@@ -821,6 +862,11 @@ const App: React.FC = () => {
     if (!isDataLoaded || restoreInProgressRef.current) return;
     markSliceDirty('invoices');
   }, [invoices, isDataLoaded, markSliceDirty]);
+  
+  useEffect(() => {
+      if (!isDataLoaded || restoreInProgressRef.current) return;
+      markSliceDirty('userStats');
+  }, [userStats, isDataLoaded, markSliceDirty]);
 
   // Persist data to backend on change
   const saveData = useCallback(
@@ -1595,7 +1641,7 @@ const App: React.FC = () => {
       case 'Forecasting':
         return <Forecasting />;
       case 'Challenges':
-        return <ChallengesPage />;
+        return <ChallengesPage userStats={userStats} accounts={accounts} transactions={transactions} />;
       case 'Settings':
         return <SettingsPage setCurrentPage={setCurrentPage} user={currentUser!} />;
       case 'Schedule & Bills':
