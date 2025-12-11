@@ -1,10 +1,10 @@
 
 import React, { useMemo, useState } from 'react';
 import Card from '../components/Card';
-import { UserStats, Account, Transaction, FinancialGoal, Currency } from '../types';
-import { calculateAccountTotals, convertToEur, parseDateAsUTC, formatCurrency, getDateRange } from '../utils';
+import { UserStats, Account, Transaction, FinancialGoal, Currency, Category } from '../types';
+import { calculateAccountTotals, convertToEur, parseDateAsUTC, formatCurrency, getDateRange, generateAmortizationSchedule } from '../utils';
 import { LIQUID_ACCOUNT_TYPES, ASSET_TYPES, DEBT_TYPES, ALL_ACCOUNT_TYPES } from '../constants';
-import { useBudgetsContext, useGoalsContext, useScheduleContext } from '../contexts/FinancialDataContext';
+import { useBudgetsContext, useGoalsContext, useScheduleContext, useCategoryContext } from '../contexts/FinancialDataContext';
 
 interface ChallengesProps {
     userStats: UserStats;
@@ -137,6 +137,9 @@ interface Boss {
     icon: string;
     colorClass: string;
     hits: { date: string; amount: number }[];
+    // Loan Specific Stats
+    paidPrincipal?: number;
+    paidInterest?: number;
 }
 
 const BossBattleCard: React.FC<{ boss: Boss; currency: Currency }> = ({ boss, currency }) => {
@@ -150,7 +153,7 @@ const BossBattleCard: React.FC<{ boss: Boss; currency: Currency }> = ({ boss, cu
             border: 'border-red-100 dark:border-red-900/30',
             iconBg: 'bg-gradient-to-br from-red-500 to-rose-600',
             barTrack: 'bg-red-200 dark:bg-red-900/30',
-            barFill: 'bg-red-500',
+            barGradient: 'bg-gradient-to-r from-red-500 to-rose-600',
             text: 'text-red-700 dark:text-red-400',
             subText: 'text-red-600/70 dark:text-red-400/70'
           }
@@ -159,7 +162,7 @@ const BossBattleCard: React.FC<{ boss: Boss; currency: Currency }> = ({ boss, cu
             border: 'border-amber-100 dark:border-amber-900/30',
             iconBg: 'bg-gradient-to-br from-amber-400 to-orange-500',
             barTrack: 'bg-amber-200 dark:bg-amber-900/30',
-            barFill: 'bg-amber-500',
+            barGradient: 'bg-gradient-to-r from-amber-400 to-orange-500',
             text: 'text-amber-700 dark:text-amber-400',
             subText: 'text-amber-600/70 dark:text-amber-400/70'
           };
@@ -199,7 +202,7 @@ const BossBattleCard: React.FC<{ boss: Boss; currency: Currency }> = ({ boss, cu
             <div className="relative z-10 mb-4">
                 <div className={`w-full h-2.5 rounded-full overflow-hidden ${theme.barTrack}`}>
                     <div 
-                        className={`h-full ${theme.barFill} transition-all duration-1000 ease-out relative`} 
+                        className={`h-full ${theme.barGradient} transition-all duration-1000 ease-out relative`} 
                         style={{ width: `${Math.min(100, healthPercent)}%` }}
                     >
                          <div className="absolute inset-0 bg-white/30 w-full h-full animate-[shimmer_2s_infinite]"></div>
@@ -210,6 +213,20 @@ const BossBattleCard: React.FC<{ boss: Boss; currency: Currency }> = ({ boss, cu
                     <span>{formatCurrency(boss.maxHp, currency)}</span>
                 </div>
             </div>
+            
+            {/* Loan Specific Breakdown */}
+            {(boss.paidPrincipal !== undefined || boss.paidInterest !== undefined) && (
+                <div className="grid grid-cols-2 gap-2 mb-3 bg-white/50 dark:bg-black/20 p-2 rounded-lg border border-black/5 dark:border-white/5 relative z-10">
+                    <div>
+                         <p className="text-[9px] uppercase font-bold text-light-text-secondary dark:text-dark-text-secondary">Principal Paid</p>
+                         <p className="text-xs font-bold text-emerald-600 dark:text-emerald-400">{formatCurrency(boss.paidPrincipal || 0, currency)}</p>
+                    </div>
+                     <div>
+                         <p className="text-[9px] uppercase font-bold text-light-text-secondary dark:text-dark-text-secondary">Interest Paid</p>
+                         <p className="text-xs font-bold text-orange-600 dark:text-orange-400">{formatCurrency(boss.paidInterest || 0, currency)}</p>
+                    </div>
+                </div>
+            )}
 
             {/* Recent Hits */}
             {boss.hits.length > 0 && (
@@ -232,23 +249,98 @@ const BossBattleCard: React.FC<{ boss: Boss; currency: Currency }> = ({ boss, cu
     );
 };
 
+// --- Mastery Card Component ---
+const MasteryCard: React.FC<{ 
+    categoryName: string; 
+    spent: number; 
+    budget: number; 
+    level: number; 
+    title: string; 
+    masteryTheme: string;
+    icon: string;
+    categoryColor: string;
+}> = ({ categoryName, spent, budget, level, title, masteryTheme, icon, categoryColor }) => {
+    
+    // Theme mapping for border and text emphasis based on Mastery Level
+    const themeStyles: Record<string, { border: string, bg: string, text: string }> = {
+        'amber': { border: 'border-amber-400', bg: 'bg-amber-50 dark:bg-amber-900/10', text: 'text-amber-700 dark:text-amber-400' },
+        'purple': { border: 'border-purple-400', bg: 'bg-purple-50 dark:bg-purple-900/10', text: 'text-purple-700 dark:text-purple-400' },
+        'blue': { border: 'border-blue-400', bg: 'bg-blue-50 dark:bg-blue-900/10', text: 'text-blue-700 dark:text-blue-400' },
+        'slate': { border: 'border-slate-300', bg: 'bg-slate-50 dark:bg-slate-800/30', text: 'text-slate-600 dark:text-slate-400' },
+        'red': { border: 'border-red-400', bg: 'bg-red-50 dark:bg-red-900/10', text: 'text-red-700 dark:text-red-400' },
+    };
+    
+    const theme = themeStyles[masteryTheme] || themeStyles['slate'];
+    const ratio = Math.min(100, (spent / budget) * 100);
+    const isMaster = level === 4;
+
+    return (
+        <Card className={`relative overflow-hidden border ${theme.border} ${theme.bg} transition-all hover:shadow-md group`}>
+            {isMaster && (
+                <div className="absolute top-0 right-0 p-2 opacity-10">
+                    <span className="material-symbols-outlined text-6xl">military_tech</span>
+                </div>
+            )}
+            
+            <div className="flex justify-between items-start mb-4 relative z-10">
+                <div className="flex items-center gap-3">
+                    <div className="w-12 h-12 rounded-xl flex items-center justify-center shadow-sm relative overflow-hidden flex-shrink-0">
+                         {/* Icon Background using Category Color with opacity */}
+                         <div className="absolute inset-0 opacity-20" style={{ backgroundColor: categoryColor }}></div>
+                         <span className="material-symbols-outlined text-2xl relative z-10" style={{ color: categoryColor }}>{icon}</span>
+                    </div>
+                    <div className="min-w-0">
+                        <h4 className="font-bold text-sm text-light-text dark:text-dark-text leading-tight truncate">{categoryName}</h4>
+                        <span className={`text-[10px] font-bold uppercase tracking-wider ${theme.text} block mt-0.5`}>
+                            {title} (Lvl {level})
+                        </span>
+                    </div>
+                </div>
+            </div>
+            
+            <div className="relative z-10">
+                <div className="flex justify-between text-xs font-semibold text-light-text-secondary dark:text-dark-text-secondary mb-1">
+                    <span>{formatCurrency(spent, 'EUR')} spent</span>
+                    <span>{ratio.toFixed(0)}%</span>
+                </div>
+                <div className="w-full h-2 bg-white dark:bg-black/20 rounded-full overflow-hidden border border-black/5 dark:border-white/5">
+                    <div 
+                        className="h-full rounded-full transition-all duration-500" 
+                        style={{ width: `${ratio}%`, backgroundColor: categoryColor }}
+                    ></div>
+                </div>
+                <div className="flex justify-between text-[9px] text-light-text-secondary dark:text-dark-text-secondary mt-1 opacity-70">
+                    <span>Budget: {formatCurrency(budget, 'EUR')}</span>
+                    <span>{level < 4 ? 'Next Lvl: Spend Less' : 'Max Level'}</span>
+                </div>
+            </div>
+        </Card>
+    );
+};
+
 // --- Main Page Component ---
-type ChallengeSection = 'score' | 'battles' | 'badges';
+type ChallengeSection = 'score' | 'battles' | 'badges' | 'mastery';
 
 const Challenges: React.FC<ChallengesProps> = ({ userStats, accounts, transactions }) => {
   const { currentStreak, longestStreak } = userStats;
   const { budgets } = useBudgetsContext();
   const { financialGoals } = useGoalsContext();
-  const { recurringTransactions, memberships, billsAndPayments } = useScheduleContext();
+  const { recurringTransactions, memberships, billsAndPayments, loanPaymentOverrides } = useScheduleContext();
+  const { expenseCategories } = useCategoryContext();
   
   const [activeSection, setActiveSection] = useState<ChallengeSection>('score');
   
-  // Pagination State for Badges
-  const [badgesPage, setBadgesPage] = useState(1);
-  const BADGES_PER_PAGE = 10;
+  // Helper to map sub-categories to their parent budget bucket
+  const findParentCategory = (categoryName: string, categories: Category[]): Category | undefined => {
+      for (const parent of categories) {
+        if (parent.name === categoryName) return parent;
+        if (parent.subCategories.some(sub => sub.name === categoryName)) return parent;
+      }
+      return undefined;
+  };
 
   // --- Derived Metrics for Badges ---
-  const { totalDebt, netWorth, savingsRate, totalInvestments, uniqueAccountTypes, liquidityRatio, budgetAccuracy } = useMemo(() => {
+  const { totalDebt, netWorth, savingsRate, totalInvestments, uniqueAccountTypes, liquidityRatio, budgetAccuracy, spendingByCat } = useMemo(() => {
      // 1. Totals
      const { totalDebt, netWorth } = calculateAccountTotals(accounts.filter(a => a.status !== 'closed'));
      
@@ -267,7 +359,11 @@ const Challenges: React.FC<ChallengesProps> = ({ userStats, accounts, transactio
                 income += val;
             } else {
                 expense += Math.abs(val);
-                spendingByCat[tx.category] = (spendingByCat[tx.category] || 0) + Math.abs(val);
+                
+                // Aggregate spending by Parent Category to match budgets
+                const parentCat = findParentCategory(tx.category, expenseCategories);
+                const catName = parentCat ? parentCat.name : tx.category;
+                spendingByCat[catName] = (spendingByCat[catName] || 0) + Math.abs(val);
             }
         }
      });
@@ -306,8 +402,8 @@ const Challenges: React.FC<ChallengesProps> = ({ userStats, accounts, transactio
     
      const liquidityRatio = avgMonthlySpend > 0 ? liquidAssets / avgMonthlySpend : 0;
 
-     return { totalDebt, netWorth, savingsRate, totalInvestments, uniqueAccountTypes, liquidityRatio, budgetAccuracy };
-  }, [accounts, transactions, budgets]);
+     return { totalDebt, netWorth, savingsRate, totalInvestments, uniqueAccountTypes, liquidityRatio, budgetAccuracy, spendingByCat };
+  }, [accounts, transactions, budgets, expenseCategories]);
 
   // --- Boss Battle Generation ---
   const bosses = useMemo(() => {
@@ -315,10 +411,28 @@ const Challenges: React.FC<ChallengesProps> = ({ userStats, accounts, transactio
 
       // 1. Debt Bosses
       accounts.filter(a => DEBT_TYPES.includes(a.type) && a.status !== 'closed').forEach(acc => {
-          const outstanding = Math.abs(acc.balance); 
-          if (outstanding < 1) return; 
+          let outstanding = Math.abs(acc.balance); 
+          let maxHp = acc.creditLimit || (acc.totalAmount || outstanding * 1.2);
+          
+          let paidPrincipal = 0;
+          let paidInterest = 0;
 
-          const maxHp = acc.creditLimit || (acc.totalAmount || outstanding * 1.2); 
+          // For Loans, perform deeper calculation if possible
+          if (acc.type === 'Loan' && acc.principalAmount && acc.duration && acc.loanStartDate && acc.interestRate !== undefined) {
+             const schedule = generateAmortizationSchedule(acc, transactions, loanPaymentOverrides[acc.id] || {});
+             const totalScheduledPrincipal = schedule.reduce((sum, p) => sum + p.principal, 0);
+             const totalScheduledInterest = schedule.reduce((sum, p) => sum + p.interest, 0);
+             const totalLoanCost = totalScheduledPrincipal + totalScheduledInterest;
+             
+             paidPrincipal = schedule.reduce((sum, p) => p.status === 'Paid' ? sum + p.principal : sum, 0);
+             paidInterest = schedule.reduce((sum, p) => p.status === 'Paid' ? sum + p.interest : sum, 0);
+             
+             outstanding = Math.max(0, totalLoanCost - (paidPrincipal + paidInterest));
+             maxHp = totalLoanCost;
+          } else if (outstanding < 1) {
+              return; 
+          }
+
           const recentPayments = transactions
             .filter(t => t.accountId === acc.id && t.type === 'income')
             .sort((a,b) => parseDateAsUTC(b.date).getTime() - parseDateAsUTC(a.date).getTime())
@@ -334,7 +448,9 @@ const Challenges: React.FC<ChallengesProps> = ({ userStats, accounts, transactio
               level: Math.floor(maxHp / 1000) + 1,
               icon: acc.type === 'Loan' ? 'gavel' : 'sentiment_very_dissatisfied',
               colorClass: 'bg-red-500 text-white',
-              hits: recentPayments
+              hits: recentPayments,
+              paidPrincipal: acc.type === 'Loan' ? paidPrincipal : undefined,
+              paidInterest: acc.type === 'Loan' ? paidInterest : undefined,
           });
       });
 
@@ -356,10 +472,51 @@ const Challenges: React.FC<ChallengesProps> = ({ userStats, accounts, transactio
       });
 
       return activeBosses;
-  }, [accounts, financialGoals, transactions]);
+  }, [accounts, financialGoals, transactions, loanPaymentOverrides]);
 
   const debtBosses = useMemo(() => bosses.filter(b => b.type === 'debt'), [bosses]);
   const savingsBosses = useMemo(() => bosses.filter(b => b.type === 'savings'), [bosses]);
+  
+  // --- Mastery Levels Calculation ---
+  const categoryMastery = useMemo(() => {
+      return budgets.map(budget => {
+          const spent = spendingByCat[budget.categoryName] || 0;
+          const ratio = budget.amount > 0 ? spent / budget.amount : 1;
+          let level = 0;
+          let title = 'Unranked';
+          let masteryTheme = 'slate';
+          
+          if (ratio > 1) {
+              level = 0; title = 'Overloaded'; masteryTheme = 'red';
+          } else if (ratio > 0.9) {
+              level = 1; title = 'Novice'; masteryTheme = 'slate';
+          } else if (ratio > 0.75) {
+              level = 2; title = 'Adept'; masteryTheme = 'blue';
+          } else if (ratio > 0.5) {
+              level = 3; title = 'Expert'; masteryTheme = 'purple';
+          } else {
+              level = 4; title = 'Master'; masteryTheme = 'amber';
+          }
+          
+          // Enrich with actual category visual data
+          const catObj = expenseCategories.find(c => c.name === budget.categoryName);
+          const icon = catObj?.icon || 'category';
+          const categoryColor = catObj?.color || '#9ca3af';
+
+          return { 
+              ...budget, 
+              spent, 
+              ratio, 
+              level, 
+              title, 
+              masteryTheme, // For rank styling (borders, text class)
+              icon,         // Actual Category Icon
+              categoryColor // Actual Category Color
+          };
+      }).sort((a, b) => b.level - a.level);
+  }, [budgets, spendingByCat, expenseCategories]);
+  
+  const masterCount = categoryMastery.filter(c => c.level === 4).length;
 
   // --- Badge Definitions ---
   const badges = useMemo(() => [
@@ -529,10 +686,6 @@ const Challenges: React.FC<ChallengesProps> = ({ userStats, accounts, transactio
 
   const unlockedCount = badges.filter(b => b.unlocked).length;
 
-  // Pagination Logic
-  const totalPages = Math.ceil(badges.length / BADGES_PER_PAGE);
-  const currentBadges = badges.slice((badgesPage - 1) * BADGES_PER_PAGE, badgesPage * BADGES_PER_PAGE);
-
   // --- Health Score Logic ---
   const healthScoreDetails = [
       { label: 'Savings Rate', score: Math.min(30, savingsRate * 100 * 1.5), max: 30, status: savingsRate > 0.2 ? 'Good' : 'Fair' },
@@ -552,7 +705,7 @@ const Challenges: React.FC<ChallengesProps> = ({ userStats, accounts, transactio
       </div>
 
       {/* Navigation Cards (Master View) */}
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
           {/* Card 1: Crystal Score */}
           <div 
              onClick={() => setActiveSection('score')}
@@ -571,8 +724,27 @@ const Challenges: React.FC<ChallengesProps> = ({ userStats, accounts, transactio
                   Health & Habits
               </p>
           </div>
+          
+           {/* Card 2: Category Mastery (New) */}
+          <div 
+             onClick={() => setActiveSection('mastery')}
+             className={`cursor-pointer rounded-2xl p-6 flex flex-col items-center justify-center transition-all duration-300 group
+                 ${activeSection === 'mastery' 
+                    ? 'bg-gradient-to-br from-amber-50 to-yellow-50 dark:from-amber-900/10 dark:to-yellow-900/10 shadow-lg ring-2 ring-amber-500 ring-offset-2 dark:ring-offset-dark-bg' 
+                    : 'bg-white dark:bg-dark-card border border-black/5 dark:border-white/5 opacity-80 hover:opacity-100 hover:shadow-md'
+                 }
+             `}
+          >
+              <div className="w-16 h-16 rounded-full bg-amber-100 dark:bg-amber-900/30 flex items-center justify-center text-amber-500 mb-3 transition-transform duration-300 group-hover:scale-110">
+                  <span className="material-symbols-outlined text-4xl">workspace_premium</span>
+              </div>
+              <h3 className="font-bold text-lg text-light-text dark:text-dark-text">Category Mastery</h3>
+              <p className="text-xs text-light-text-secondary dark:text-dark-text-secondary mt-1">
+                  {masterCount} Categories Mastered
+              </p>
+          </div>
 
-          {/* Card 2: Boss Battles */}
+          {/* Card 3: Boss Battles */}
           <div 
              onClick={() => setActiveSection('battles')}
              className={`cursor-pointer rounded-2xl p-6 flex flex-col items-center justify-center transition-all duration-300 group
@@ -591,7 +763,7 @@ const Challenges: React.FC<ChallengesProps> = ({ userStats, accounts, transactio
               </p>
           </div>
 
-          {/* Card 3: Badges */}
+          {/* Card 4: Badges */}
           <div 
              onClick={() => setActiveSection('badges')}
              className={`cursor-pointer rounded-2xl p-6 flex flex-col items-center justify-center transition-all duration-300 group
@@ -653,6 +825,48 @@ const Challenges: React.FC<ChallengesProps> = ({ userStats, accounts, transactio
               </div>
           )}
 
+           {activeSection === 'mastery' && (
+              <div className="space-y-6 animate-fade-in-up">
+                  <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+                      <div>
+                          <h2 className="text-xl font-bold text-light-text dark:text-dark-text flex items-center gap-2">
+                            <span className="material-symbols-outlined text-amber-500">workspace_premium</span>
+                            Category Mastery
+                          </h2>
+                          <p className="text-sm text-light-text-secondary dark:text-dark-text-secondary mt-1">
+                              Level up by staying under budget this month.
+                          </p>
+                      </div>
+                      <div className="text-xs font-medium bg-blue-50 dark:bg-blue-900/20 text-blue-700 dark:text-blue-300 px-3 py-1.5 rounded-lg border border-blue-100 dark:border-blue-800">
+                          Based on current month efficiency
+                      </div>
+                  </div>
+                  
+                  {categoryMastery.length > 0 ? (
+                      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
+                          {categoryMastery.map((cat, idx) => (
+                              <MasteryCard 
+                                  key={idx}
+                                  categoryName={cat.categoryName}
+                                  spent={cat.spent}
+                                  budget={cat.amount}
+                                  level={cat.level}
+                                  title={cat.title}
+                                  masteryTheme={cat.masteryTheme}
+                                  icon={cat.icon}
+                                  categoryColor={cat.categoryColor}
+                              />
+                          ))}
+                      </div>
+                  ) : (
+                      <div className="text-center py-12 bg-gray-50 dark:bg-white/5 rounded-xl border border-dashed border-black/10 dark:border-white/10">
+                          <span className="material-symbols-outlined text-4xl text-gray-300 dark:text-gray-600 mb-2">savings</span>
+                          <p className="text-light-text-secondary dark:text-dark-text-secondary">No active budgets found. Set up budgets to start earning mastery!</p>
+                      </div>
+                  )}
+              </div>
+          )}
+
           {activeSection === 'battles' && (
                <div className="space-y-8 animate-fade-in-up">
                    {(debtBosses.length === 0 && savingsBosses.length === 0) && (
@@ -680,7 +894,7 @@ const Challenges: React.FC<ChallengesProps> = ({ userStats, accounts, transactio
                    {/* Savings Bosses (Goals) */}
                    {savingsBosses.length > 0 && (
                        <div className="space-y-4">
-                            <h3 className="text-sm font-bold text-yellow-600 dark:text-yellow-400 uppercase tracking-wider border-b border-yellow-200 dark:border-yellow-900/50 pb-2">Fortunes</h3>
+                            <h3 className="text-sm font-bold text-yellow-600 dark:text-yellow-400 uppercase tracking-wider border-b border-yellow-200 dark:border-yellow-900/50 pb-2">Financial Goals</h3>
                             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
                                {savingsBosses.map(boss => (
                                    <BossBattleCard key={boss.id} boss={boss} currency="EUR" />
@@ -698,32 +912,10 @@ const Challenges: React.FC<ChallengesProps> = ({ userStats, accounts, transactio
                            <span className="material-symbols-outlined text-yellow-500">emoji_events</span>
                            Achievement Gallery
                        </h2>
-                       
-                       {totalPages > 1 && (
-                           <div className="flex items-center gap-2">
-                               <button 
-                                    onClick={() => setBadgesPage(p => Math.max(1, p - 1))}
-                                    disabled={badgesPage === 1}
-                                    className="p-1.5 rounded-full hover:bg-black/5 dark:hover:bg-white/10 disabled:opacity-30 disabled:cursor-not-allowed"
-                               >
-                                   <span className="material-symbols-outlined text-lg">chevron_left</span>
-                               </button>
-                               <span className="text-xs font-medium text-light-text-secondary dark:text-dark-text-secondary">
-                                   {badgesPage} / {totalPages}
-                               </span>
-                               <button 
-                                    onClick={() => setBadgesPage(p => Math.min(totalPages, p + 1))}
-                                    disabled={badgesPage === totalPages}
-                                    className="p-1.5 rounded-full hover:bg-black/5 dark:hover:bg-white/10 disabled:opacity-30 disabled:cursor-not-allowed"
-                               >
-                                   <span className="material-symbols-outlined text-lg">chevron_right</span>
-                               </button>
-                           </div>
-                       )}
                    </div>
                    
                    <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-4">
-                       {currentBadges.map(badge => (
+                       {badges.map(badge => (
                            <BadgeItem key={badge.id} badge={badge} />
                        ))}
                    </div>
