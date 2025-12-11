@@ -87,16 +87,19 @@ const ColumnHeader = React.memo(function ColumnHeader({
     };
 
     return (
-        <div className={`flex items-center gap-1 ${className} ${alignRight ? 'justify-end' : 'justify-start'}`} ref={filterRef}>
+        <div className={`flex items-center gap-2 ${className} ${alignRight ? 'justify-end' : 'justify-start'}`} ref={filterRef}>
             <div 
-                className={`flex items-center gap-1 select-none group/sort ${sortKey ? 'cursor-pointer hover:text-primary-500' : ''}`} 
+                className={`flex items-center gap-1.5 select-none cursor-pointer group/sort py-1 px-1.5 -ml-1.5 rounded-lg hover:bg-black/5 dark:hover:bg-white/5 transition-all duration-200`} 
                 onClick={handleSort}
             >
-                <span className="font-bold text-xs uppercase tracking-wider">{label}</span>
+                <span className={`text-[11px] font-bold uppercase tracking-wider transition-colors ${isSorted ? 'text-primary-600 dark:text-primary-400' : 'text-light-text-secondary dark:text-dark-text-secondary group-hover/sort:text-light-text dark:group-hover/sort:text-dark-text'}`}>
+                    {label}
+                </span>
+                
                 {sortKey && (
-                    <div className={`flex flex-col text-[8px] leading-[6px] ${isSorted ? 'opacity-100' : 'opacity-30 group-hover/sort:opacity-70'}`}>
-                        <span className={isSorted && isAsc ? 'text-primary-500' : ''}>▲</span>
-                        <span className={isSorted && !isAsc ? 'text-primary-500' : ''}>▼</span>
+                    <div className={`flex flex-col gap-[1px] ${isSorted ? 'opacity-100' : 'opacity-0 group-hover/sort:opacity-40'} transition-opacity duration-200`}>
+                        <span className={`material-symbols-outlined text-[10px] leading-none ${isSorted && isAsc ? 'text-primary-500' : 'text-gray-400'}`}>arrow_drop_up</span>
+                        <span className={`material-symbols-outlined text--[10px] leading-none -mt-1 ${isSorted && !isAsc ? 'text-primary-500' : 'text-gray-400'}`}>arrow_drop_down</span>
                     </div>
                 )}
             </div>
@@ -104,10 +107,10 @@ const ColumnHeader = React.memo(function ColumnHeader({
                 <div className="relative">
                     <button 
                         onClick={(e) => { e.stopPropagation(); setIsFilterOpen(!isFilterOpen); }}
-                        className={`p-1 rounded hover:bg-black/5 dark:hover:bg-white/10 transition-colors ${isFilterActive ? 'text-primary-500 bg-primary-50 dark:bg-primary-900/20' : 'text-light-text-secondary dark:text-dark-text-secondary opacity-50 hover:opacity-100'}`}
+                        className={`w-5 h-5 flex items-center justify-center rounded transition-all duration-200 ${isFilterActive || isFilterOpen ? 'bg-primary-100 text-primary-600 dark:bg-primary-900/30 dark:text-primary-400' : 'text-light-text-secondary dark:text-dark-text-secondary hover:text-primary-500 hover:bg-primary-50 dark:hover:bg-primary-900/10'}`}
                         title="Filter"
                     >
-                        <span className="material-symbols-outlined text-[16px] filled-icon">filter_alt</span>
+                        <span className={`material-symbols-outlined text-[14px] ${isFilterActive ? 'filled-icon' : ''}`}>filter_alt</span>
                     </button>
                     {isFilterOpen && (
                         <div className={`absolute top-full mt-2 ${alignRight ? 'right-0' : 'left-0'} z-50 w-64 bg-white dark:bg-dark-card rounded-xl shadow-xl border border-black/5 dark:border-white/10 p-3 animate-fade-in-up cursor-default text-left normal-case font-normal text-light-text dark:text-dark-text`} onClick={e => e.stopPropagation()}>
@@ -922,9 +925,6 @@ const Transactions: React.FC<TransactionsProps> = ({ initialAccountFilter, initi
                 style={{ top: contextMenu.y, left: contextMenu.x }}
                 className="fixed z-50 w-56 bg-light-card dark:bg-dark-card rounded-xl shadow-xl border border-black/10 dark:border-white/10 py-1.5 animate-fade-in-up overflow-hidden"
             >
-                <div className="px-3 py-2 text-xs font-semibold text-light-text-secondary dark:text-dark-text-secondary bg-black/5 dark:bg-white/5 border-b border-black/5 dark:border-white/5 mb-1">
-                    Actions
-                </div>
                 <button onClick={() => { setEditingTransaction(transactions.find(t => t.id === (contextMenu.transaction.isTransfer ? contextMenu.transaction.originalId : contextMenu.transaction.id)) || null); setIsTransactionModalOpen(true); setContextMenu(null); }} className="w-full text-left flex items-center gap-3 px-4 py-2.5 text-sm hover:bg-black/5 dark:hover:bg-white/10 transition-colors">
                     <span className="material-symbols-outlined text-lg text-blue-500">edit</span>
                     <span>Edit Transaction</span>
@@ -1098,7 +1098,7 @@ const Transactions: React.FC<TransactionsProps> = ({ initialAccountFilter, initi
                     </div>
                 </div>
             ) : (
-                <div className="px-4 py-3 border-b border-black/5 dark:border-white/5 flex items-center gap-3 text-light-text dark:text-dark-text bg-gray-50/50 dark:bg-white/[0.02]">
+                <div className="px-5 py-3 border-b border-black/5 dark:border-white/5 flex items-center gap-3 bg-white dark:bg-dark-card sticky top-0 z-10">
                     <div className="flex items-center justify-center w-5">
                          <input type="checkbox" onChange={handleSelectAll} checked={isAllSelected} className={CHECKBOX_STYLE} aria-label="Select all transactions"/>
                     </div>
