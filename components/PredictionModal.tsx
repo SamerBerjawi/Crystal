@@ -4,7 +4,6 @@ import Modal from './Modal';
 import { Account, Category, Prediction, PredictionType, InvestmentTransaction, Warrant } from '../types';
 import { BTN_PRIMARY_STYLE, BTN_SECONDARY_STYLE, INPUT_BASE_STYLE, SELECT_ARROW_STYLE, SELECT_WRAPPER_STYLE, ALL_ACCOUNT_TYPES } from '../constants';
 import { toLocalISOString } from '../utils';
-import { v4 as uuidv4 } from 'uuid';
 
 interface PredictionModalProps {
     onClose: () => void;
@@ -81,7 +80,6 @@ const PredictionModal: React.FC<PredictionModalProps> = ({ onClose, onSave, acco
         }
 
         onSave({
-            id: `pred-${uuidv4()}`,
             type,
             targetId: (targetId === 'all_net_worth' && type === 'net_worth_goal') ? undefined : targetId,
             targetName,
