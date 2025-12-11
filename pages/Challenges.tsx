@@ -645,55 +645,88 @@ const Challenges: React.FC<ChallengesProps> = ({ userStats, accounts, transactio
   // --- Render Sections ---
   const renderScoreSection = () => {
        const healthScoreDetails = [
-          { label: 'Savings', score: Math.min(30, savingsRate * 100 * 1.5), max: 30, status: savingsRate > 0.2 ? 'Good' : 'Fair' },
-          { label: 'Liquidity', score: Math.min(30, liquidityRatio * 10), max: 30, status: liquidityRatio > 3 ? 'Good' : 'Fair' },
-          { label: 'Debt', score: totalDebt === 0 ? 20 : Math.max(0, 20 - (Math.abs(totalDebt) / 1000)), max: 20, status: totalDebt === 0 ? 'Good' : 'Fair' },
-          { label: 'Diversity', score: Math.min(20, uniqueAccountTypes * 5), max: 20, status: uniqueAccountTypes >= 3 ? 'Good' : 'Fair' }
+          { id: 'savings', label: 'Savings Rate', score: Math.min(30, savingsRate * 100 * 1.5), max: 30, value: `${(savingsRate * 100).toFixed(1)}%`, icon: 'savings', color: 'emerald' },
+          { id: 'liquidity', label: 'Liquidity', score: Math.min(30, liquidityRatio * 10), max: 30, value: `${liquidityRatio.toFixed(1)}mo`, icon: 'water_drop', color: 'blue' },
+          { id: 'debt', label: 'Debt Mgmt', score: totalDebt === 0 ? 20 : Math.max(0, 20 - (Math.abs(totalDebt) / 1000)), max: 20, value: formatCurrency(totalDebt, 'EUR'), icon: 'credit_card', color: 'rose' },
+          { id: 'diversity', label: 'Asset Mix', score: Math.min(20, uniqueAccountTypes * 5), max: 20, value: `${uniqueAccountTypes} Types`, icon: 'category', color: 'purple' }
       ];
       const healthScore = healthScoreDetails.reduce((sum, d) => sum + d.score, 0);
+      
+      let rank = "Financial Novice";
+      let rankColor = "text-gray-500";
+      if (healthScore >= 90) { rank = "Wealth Tycoon"; rankColor = "text-purple-500"; }
+      else if (healthScore >= 75) { rank = "Money Master"; rankColor = "text-emerald-500"; }
+      else if (healthScore >= 50) { rank = "Wealth Builder"; rankColor = "text-blue-500"; }
+      else if (healthScore >= 30) { rank = "Budget Conscious"; rankColor = "text-amber-500"; }
 
       return (
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-6 animate-fade-in-up">
-              <Card className="flex items-center justify-center p-8 bg-gradient-to-br from-white to-gray-50 dark:from-dark-card dark:to-white/5 relative overflow-hidden">
-                  <div className="absolute top-0 right-0 p-10 opacity-5 pointer-events-none">
-                       <span className="material-symbols-outlined text-9xl">health_and_safety</span>
-                  </div>
-                  <div className="relative z-10 text-center">
-                      <CircularGauge value={healthScore} size="lg" />
-                      <h3 className="text-2xl font-bold mt-6 text-light-text dark:text-dark-text">Financial Health Score</h3>
-                      <p className="text-light-text-secondary dark:text-dark-text-secondary mt-1 max-w-xs mx-auto">Based on your savings rate, liquidity, debt levels, and asset diversity.</p>
-                  </div>
-              </Card>
-              <div className="space-y-6">
-                  <Card className="flex items-center justify-between p-6 bg-orange-50 dark:bg-orange-900/10 border-orange-100 dark:border-orange-800/30">
-                      <div>
-                          <p className="text-xs font-bold uppercase tracking-wider text-orange-700 dark:text-orange-400 mb-1">Current Streak</p>
-                          <h3 className="text-4xl font-black text-orange-600 dark:text-orange-400">{currentStreak} Days</h3>
-                          <p className="text-xs text-orange-700/70 dark:text-orange-300/70 mt-1">Best: {longestStreak} days</p>
+          <div className="space-y-6 animate-fade-in-up">
+              <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+                  {/* Main Score Card */}
+                  <Card className="md:col-span-2 relative overflow-hidden bg-white dark:bg-dark-card border border-black/5 dark:border-white/5 shadow-md flex flex-col sm:flex-row items-center sm:items-start gap-8 p-8">
+                      <div className="absolute top-0 right-0 p-8 opacity-5 pointer-events-none">
+                           <span className="material-symbols-outlined text-9xl">health_and_safety</span>
                       </div>
-                      <div className="w-16 h-16 rounded-full bg-orange-100 dark:bg-orange-900/30 flex items-center justify-center text-orange-500 animate-pulse">
-                          <span className="material-symbols-outlined text-4xl">local_fire_department</span>
+                      
+                      <div className="relative z-10 flex-shrink-0">
+                          <CircularGauge value={healthScore} size="lg" />
+                      </div>
+                      
+                      <div className="relative z-10 flex-grow text-center sm:text-left">
+                          <h3 className="text-lg font-bold text-light-text-secondary dark:text-dark-text-secondary uppercase tracking-wider mb-1">Financial Health Score</h3>
+                          <h2 className={`text-4xl font-black ${rankColor} mb-2`}>{rank}</h2>
+                          <p className="text-light-text dark:text-dark-text leading-relaxed max-w-md">
+                              Your score is based on key financial pillars including savings rate, liquidity runway, debt management, and portfolio diversity.
+                          </p>
                       </div>
                   </Card>
-                  <Card className="p-0 overflow-hidden">
-                      <div className="p-4 border-b border-black/5 dark:border-white/5 bg-gray-50/50 dark:bg-white/[0.02]">
-                          <h4 className="font-bold text-sm text-light-text dark:text-dark-text">Score Factors</h4>
+
+                  {/* Streak Card */}
+                  <Card className="bg-gradient-to-br from-orange-500 to-amber-600 text-white border-none shadow-lg relative overflow-hidden flex flex-col justify-between p-6">
+                      <div className="absolute -right-4 -top-4 opacity-20">
+                          <span className="material-symbols-outlined text-9xl">local_fire_department</span>
                       </div>
-                      <div className="divide-y divide-black/5 dark:divide-white/5">
-                          {healthScoreDetails.map((item, idx) => (
-                              <div key={idx} className="flex justify-between items-center p-4 hover:bg-black/5 dark:hover:bg-white/5 transition-colors">
-                                  <div>
-                                      <p className="font-semibold text-sm text-light-text dark:text-dark-text">{item.label}</p>
-                                      <p className="text-xs text-light-text-secondary dark:text-dark-text-secondary">Max {item.max} pts</p>
+                      <div className="relative z-10">
+                          <p className="font-bold text-orange-100 uppercase tracking-wider text-xs mb-1">Login Streak</p>
+                          <div className="flex items-baseline gap-2">
+                             <h3 className="text-5xl font-black">{currentStreak}</h3>
+                             <span className="text-xl font-bold opacity-80">Days</span>
+                          </div>
+                      </div>
+                      <div className="relative z-10 mt-4 pt-4 border-t border-white/20">
+                          <div className="flex justify-between items-center text-sm font-medium">
+                              <span>Best Streak</span>
+                              <span>{longestStreak} Days</span>
+                          </div>
+                      </div>
+                  </Card>
+              </div>
+
+              {/* Factors Grid */}
+              <div>
+                  <h3 className="text-lg font-bold text-light-text dark:text-dark-text mb-4 px-1">Score Factors</h3>
+                  <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+                      {healthScoreDetails.map(factor => (
+                          <div key={factor.id} className="bg-white dark:bg-dark-card p-5 rounded-2xl border border-black/5 dark:border-white/5 shadow-sm hover:shadow-md transition-shadow">
+                              <div className="flex justify-between items-start mb-3">
+                                  <div className={`w-10 h-10 rounded-xl flex items-center justify-center bg-${factor.color}-100 dark:bg-${factor.color}-900/30 text-${factor.color}-600 dark:text-${factor.color}-400`}>
+                                      <span className="material-symbols-outlined text-xl">{factor.icon}</span>
                                   </div>
-                                  <div className="text-right">
-                                      <p className="font-bold text-light-text dark:text-dark-text">{item.score.toFixed(0)}</p>
-                                      <span className={`text-[10px] font-bold uppercase ${item.status === 'Good' ? 'text-green-500' : 'text-amber-500'}`}>{item.status}</span>
-                                  </div>
+                                  <span className="text-lg font-bold text-light-text dark:text-dark-text">{factor.score.toFixed(0)}<span className="text-xs text-light-text-secondary dark:text-dark-text-secondary font-normal">/{factor.max}</span></span>
                               </div>
-                          ))}
-                      </div>
-                  </Card>
+                              
+                              <h4 className="font-bold text-light-text dark:text-dark-text mb-1">{factor.label}</h4>
+                              <p className="text-xs text-light-text-secondary dark:text-dark-text-secondary mb-3">Current: <span className="font-mono">{factor.value}</span></p>
+                              
+                              <div className="w-full h-2 bg-gray-100 dark:bg-white/10 rounded-full overflow-hidden">
+                                  <div 
+                                      className={`h-full rounded-full bg-${factor.color}-500 transition-all duration-1000`} 
+                                      style={{ width: `${(factor.score / factor.max) * 100}%` }}
+                                  ></div>
+                              </div>
+                          </div>
+                      ))}
+                  </div>
               </div>
           </div>
       );
