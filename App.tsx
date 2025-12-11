@@ -39,8 +39,6 @@ const InvestmentsPage = lazy(loadInvestmentsPage);
 const HoldingDetail = lazy(() => import('./pages/HoldingDetail'));
 const loadTasksPage = () => import('./pages/Tasks');
 const TasksPage = lazy(loadTasksPage);
-const loadWarrantsPage = () => import('./pages/Warrants');
-const WarrantsPage = lazy(loadWarrantsPage);
 const loadAIAssistantSettingsPage = () => import('./pages/AIAssistantSettings');
 const AIAssistantSettingsPage = lazy(loadAIAssistantSettingsPage);
 const loadDocumentation = () => import('./pages/Documentation');
@@ -67,7 +65,6 @@ const pagePreloaders = [
   loadAccountDetail,
   loadInvestmentsPage,
   loadTasksPage,
-  loadWarrantsPage,
   loadAIAssistantSettingsPage,
   loadDocumentation,
   loadSubscriptionsPage,
@@ -109,7 +106,6 @@ const routePathMap: Record<Page, string> = {
   AccountDetail: '/accounts',
   Investments: '/investments',
   HoldingDetail: '/investments',
-  Warrants: '/warrants',
   Documentation: '/documentation',
   'AI Assistant': '/ai-assistant',
   Subscriptions: '/subscriptions',
@@ -1701,8 +1697,6 @@ const App: React.FC = () => {
         return <PreferencesPage preferences={preferences} setPreferences={setPreferences} theme={theme} setTheme={setTheme} setCurrentPage={setCurrentPage} />;
       case 'Investments':
         return <InvestmentsPage accounts={accounts} cashAccounts={accounts.filter(a => a.type === 'Checking' || a.type === 'Savings')} investmentTransactions={investmentTransactions} saveInvestmentTransaction={handleSaveInvestmentTransaction} deleteInvestmentTransaction={handleDeleteInvestmentTransaction} saveTransaction={handleSaveTransaction} warrants={warrants} saveWarrant={handleSaveWarrant} deleteWarrant={handleDeleteWarrant} manualPrices={manualWarrantPrices} onManualPriceChange={handleManualWarrantPrice} prices={assetPrices} onOpenHoldingDetail={handleOpenHoldingDetail} holdingsOverview={holdingsOverview} />;
-      case 'Warrants':
-        return <WarrantsPage warrants={warrants} saveWarrant={handleSaveWarrant} deleteWarrant={handleDeleteWarrant} prices={warrantPrices} manualPrices={manualWarrantPrices} lastUpdated={lastUpdated} onManualPriceChange={handleManualWarrantPrice} />;
       case 'Tasks':
         return <TasksPage tasks={tasks} saveTask={handleSaveTask} deleteTask={handleDeleteTask} taskOrder={taskOrder} setTaskOrder={setTaskOrder} />;
       case 'Documentation':

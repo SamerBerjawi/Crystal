@@ -33,10 +33,6 @@ const Sidebar: React.FC<SidebarProps> = ({
   isPrivacyMode, 
   togglePrivacyMode 
 }) => {
-  const [openSubMenu, setOpenSubMenu] = useState<string | null>(() => {
-    const activeParent = NAV_ITEMS.find(item => item.subItems?.some(sub => sub.name === currentPage));
-    return activeParent ? activeParent.name : null;
-  });
   const [isProfileMenuOpen, setProfileMenuOpen] = useState(false);
   const profileMenuRef = useRef<HTMLDivElement>(null);
   
@@ -52,88 +48,42 @@ const Sidebar: React.FC<SidebarProps> = ({
     };
   }, []);
 
-  const handleNavClick = (page: Page, hasSubItems?: boolean) => {
+  const handleNavClick = (page: Page) => {
     if (isSidebarCollapsed) {
         setSidebarCollapsed(false);
-        if (hasSubItems) {
-            setOpenSubMenu(page); // Expand the clicked menu immediately
-        }
-        return;
     }
-
-    if (hasSubItems) {
-      setOpenSubMenu(openSubMenu === page ? null : page);
-    } else {
-      setCurrentPage(page);
-      if (window.innerWidth < 768) { // md breakpoint
-        setSidebarOpen(false);
-      }
+    setCurrentPage(page);
+    if (window.innerWidth < 768) { // md breakpoint
+      setSidebarOpen(false);
     }
   };
 
-  const renderNavItem = (item: NavItem, isSubItem = false) => {
+  const renderNavItem = (item: NavItem) => {
     const isActive = currentPage === item.name;
-    const isParentActive = !isSubItem && item.subItems?.some(sub => sub.name === currentPage);
-    const isSubMenuOpen = openSubMenu === item.name;
 
     // Styles
     const baseClasses = `group flex items-center rounded-xl transition-all duration-200 cursor-pointer select-none mx-3 my-0.5`;
     const layoutClasses = isSidebarCollapsed ? 'justify-center px-0 py-3' : 'justify-between px-4 py-3';
-    const subItemLayoutClasses = isSidebarCollapsed ? 'justify-center px-0 py-2' : 'pl-11 pr-4 py-2.5 text-sm';
     
     // Color states
     let colorClass = `text-gray-500 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-white/5 hover:text-gray-900 dark:hover:text-gray-100`; // Default
     
     if (isActive) {
         colorClass = `bg-primary-500 text-white shadow-lg shadow-primary-500/25 font-medium`;
-    } else if (isParentActive) {
-        colorClass = `bg-primary-50 dark:bg-primary-900/10 text-primary-700 dark:text-primary-300 font-medium`;
     }
 
     // Icon Styles
     const iconClass = `material-symbols-outlined text-[22px] flex-shrink-0 transition-transform duration-200 ${!isActive && 'group-hover:scale-110'}`;
 
-    if (item.subItems) {
-      return (
-        <li key={item.name} className="mb-1">
-          <div
-            onClick={() => handleNavClick(item.name, true)}
-            className={`${baseClasses} ${layoutClasses} ${colorClass}`}
-            title={isSidebarCollapsed ? item.name : undefined}
-          >
-            <div className={`flex items-center ${isSidebarCollapsed ? 'justify-center w-full' : 'gap-3 min-w-0'}`}>
-              <span className={iconClass}>{item.icon}</span>
-              <span className={`whitespace-nowrap truncate transition-all duration-300 ${isSidebarCollapsed ? 'w-0 opacity-0 overflow-hidden' : 'w-auto opacity-100'}`}>
-                  {item.name}
-              </span>
-            </div>
-            {!isSidebarCollapsed && (
-                 <span className={`material-symbols-outlined text-[18px] opacity-70 transition-transform duration-300 ${isSubMenuOpen ? 'rotate-180' : ''}`}>expand_more</span>
-            )}
-          </div>
-          <div 
-            className={`grid transition-all duration-300 ease-in-out ${isSubMenuOpen && !isSidebarCollapsed ? 'grid-rows-[1fr] opacity-100' : 'grid-rows-[0fr] opacity-0'}`}
-          >
-             <ul className="overflow-hidden">
-                {item.subItems.map(sub => renderNavItem(sub, true))}
-             </ul>
-          </div>
-        </li>
-      );
-    }
-
     return (
       <li key={item.name} className="mb-1">
         <div
           onClick={() => handleNavClick(item.name)}
-          className={`${baseClasses} ${isSubItem ? subItemLayoutClasses : layoutClasses} ${colorClass}`}
+          className={`${baseClasses} ${layoutClasses} ${colorClass}`}
           title={isSidebarCollapsed ? item.name : undefined}
         >
             <div className={`flex items-center ${isSidebarCollapsed ? 'justify-center w-full' : 'gap-3 min-w-0'}`}>
-              {/* Only show icon for top-level items if collapsed, or always if not sub-item */}
-              {(!isSubItem || !isSidebarCollapsed) && (
-                  <span className={`${iconClass} ${isSubItem ? 'text-[20px] opacity-80' : ''}`}>{item.icon}</span>
-              )}
+              <span className={iconClass}>{item.icon}</span>
               <span className={`whitespace-nowrap truncate transition-all duration-300 ${isSidebarCollapsed ? 'w-0 opacity-0 overflow-hidden' : 'w-auto opacity-100'}`}>
                   {item.name}
               </span>
