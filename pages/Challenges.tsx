@@ -1,7 +1,7 @@
 
 import React, { useMemo, useState } from 'react';
 import Card from '../components/Card';
-import { UserStats, Account, Transaction } from '../types';
+import { UserStats, Account, Transaction, FinancialGoal, Currency } from '../types';
 import { calculateAccountTotals, convertToEur, parseDateAsUTC, formatCurrency, getDateRange } from '../utils';
 import { LIQUID_ACCOUNT_TYPES, ASSET_TYPES, DEBT_TYPES, ALL_ACCOUNT_TYPES } from '../constants';
 import { useBudgetsContext, useGoalsContext, useScheduleContext } from '../contexts/FinancialDataContext';
@@ -40,8 +40,7 @@ const ProgressBar: React.FC<ProgressBarProps> = ({ label, value, colorClass = 'b
   </div>
 );
 
-const CircularGauge: React.FC<{ value: number; label: string; helper?: string; details?: { label: string, score: number, max: number, status: string }[] }> = ({ value, label, helper, details }) => {
-  const [showDetails, setShowDetails] = useState(false);
+const CircularGauge: React.FC<{ value: number; size?: 'sm' | 'md' }> = ({ value, size = 'md' }) => {
   const clamped = Math.min(100, Math.max(0, Math.round(value)));
   const angle = (clamped / 100) * 360;
   
@@ -60,54 +59,20 @@ const CircularGauge: React.FC<{ value: number; label: string; helper?: string; d
   }
 
   const gaugeGradient = `conic-gradient(${colorStart} ${angle}deg, rgba(148,163,184,0.15) 0deg)`;
+  
+  const dim = size === 'sm' ? 'w-24 h-24' : 'w-32 h-32';
+  const innerDim = size === 'sm' ? 'w-20 h-20' : 'w-24 h-24';
+  const textSize = size === 'sm' ? 'text-2xl' : 'text-4xl';
 
   return (
-    <div className="flex flex-col items-center gap-3 w-full">
       <div
-        className="relative w-40 h-40 rounded-full flex items-center justify-center shadow-inner cursor-pointer transition-transform hover:scale-105"
+        className={`relative ${dim} rounded-full flex items-center justify-center shadow-inner`}
         style={{ background: gaugeGradient }}
-        role="img"
-        aria-label={`${label} is ${clamped}`}
-        onClick={() => setShowDetails(!showDetails)}
       >
-        <div className="w-32 h-32 rounded-full bg-white dark:bg-dark-card flex flex-col items-center justify-center shadow-sm">
-          <p className={`text-4xl font-black ${tone}`}>{clamped}</p>
-          <p className="text-[10px] font-bold uppercase tracking-widest text-light-text-secondary dark:text-dark-text-secondary opacity-60">Score</p>
+        <div className={`${innerDim} rounded-full bg-white dark:bg-dark-card flex flex-col items-center justify-center shadow-sm`}>
+          <p className={`${textSize} font-black ${tone}`}>{clamped}</p>
         </div>
       </div>
-      <div className="text-center space-y-1">
-        <p className="text-sm font-bold uppercase tracking-wider text-light-text dark:text-dark-text">{label}</p>
-        {helper && (
-          <p className="text-xs text-light-text-secondary dark:text-dark-text-secondary leading-snug max-w-xs mx-auto">{helper}</p>
-        )}
-        <button 
-            onClick={() => setShowDetails(!showDetails)}
-            className="text-xs font-semibold text-primary-500 hover:underline mt-2"
-        >
-            {showDetails ? 'Hide Breakdown' : 'See Breakdown'}
-        </button>
-      </div>
-      
-      {showDetails && details && (
-          <div className="w-full mt-4 bg-gray-50 dark:bg-white/5 rounded-xl p-4 text-xs animate-fade-in-up border border-black/5 dark:border-white/5">
-              <div className="space-y-3">
-                  {details.map((d, idx) => (
-                      <div key={idx} className="flex justify-between items-center">
-                          <span className="font-medium text-light-text dark:text-dark-text">{d.label}</span>
-                          <div className="text-right">
-                              <span className={`font-bold ${d.status === 'Good' ? 'text-green-600 dark:text-green-400' : d.status === 'Fair' ? 'text-amber-600 dark:text-amber-400' : 'text-red-600 dark:text-red-400'}`}>
-                                  {d.score.toFixed(0)}/{d.max}
-                              </span>
-                          </div>
-                      </div>
-                  ))}
-                  <div className="pt-2 mt-2 border-t border-black/10 dark:border-white/10 text-center opacity-60">
-                      Improve metrics to boost your score.
-                  </div>
-              </div>
-          </div>
-      )}
-    </div>
   );
 };
 
@@ -161,6 +126,114 @@ const BadgeItem: React.FC<{ badge: any }> = ({ badge }) => {
     );
 };
 
+// --- Boss Battle Components ---
+interface Boss {
+    id: string;
+    name: string;
+    type: 'debt' | 'savings';
+    maxHp: number;
+    currentHp: number;
+    level: number;
+    icon: string;
+    colorClass: string;
+    hits: { date: string; amount: number }[];
+}
+
+const BossBattleCard: React.FC<{ boss: Boss; currency: Currency }> = ({ boss, currency }) => {
+    const healthPercent = (boss.currentHp / boss.maxHp) * 100;
+    const isDefeated = boss.currentHp <= 0;
+    
+    // Aesthetic configs based on type
+    const theme = boss.type === 'debt' 
+        ? { 
+            bg: 'bg-red-50 dark:bg-red-900/10', 
+            border: 'border-red-100 dark:border-red-900/30',
+            iconBg: 'bg-gradient-to-br from-red-500 to-rose-600',
+            barTrack: 'bg-red-200 dark:bg-red-900/30',
+            barFill: 'bg-red-500',
+            text: 'text-red-700 dark:text-red-400',
+            subText: 'text-red-600/70 dark:text-red-400/70'
+          }
+        : { 
+            bg: 'bg-amber-50 dark:bg-amber-900/10', 
+            border: 'border-amber-100 dark:border-amber-900/30',
+            iconBg: 'bg-gradient-to-br from-amber-400 to-orange-500',
+            barTrack: 'bg-amber-200 dark:bg-amber-900/30',
+            barFill: 'bg-amber-500',
+            text: 'text-amber-700 dark:text-amber-400',
+            subText: 'text-amber-600/70 dark:text-amber-400/70'
+          };
+
+    return (
+        <Card className={`relative overflow-hidden transition-all hover:-translate-y-1 hover:shadow-lg border ${theme.border} ${theme.bg} p-5`}>
+             {/* Defeated Overlay */}
+             {isDefeated && (
+                <div className="absolute inset-0 z-20 bg-white/80 dark:bg-black/80 backdrop-blur-sm flex items-center justify-center animate-fade-in-up">
+                    <div className="transform rotate-[-6deg] bg-yellow-400 text-black px-4 py-2 shadow-xl border-2 border-black font-black text-xl uppercase tracking-widest">
+                        Defeated!
+                    </div>
+                </div>
+            )}
+
+            {/* Header */}
+            <div className="flex justify-between items-start mb-4 relative z-10">
+                <div className="flex items-center gap-3">
+                    <div className={`w-10 h-10 rounded-xl flex items-center justify-center text-white shadow-md ${theme.iconBg}`}>
+                        <span className="material-symbols-outlined text-xl">{boss.icon}</span>
+                    </div>
+                    <div>
+                        <h3 className="font-bold text-base text-light-text dark:text-dark-text leading-none">{boss.name}</h3>
+                        <span className={`text-[10px] font-bold uppercase tracking-wider ${theme.subText} mt-1 block`}>
+                            Lvl {boss.level} {boss.type === 'debt' ? 'Nemesis' : 'Guardian'}
+                        </span>
+                    </div>
+                </div>
+                
+                <div className="text-right">
+                    <span className="block text-2xl font-black text-light-text dark:text-dark-text leading-none">{healthPercent.toFixed(0)}%</span>
+                    <span className="text-[9px] font-bold uppercase text-light-text-secondary dark:text-dark-text-secondary">HP Remaining</span>
+                </div>
+            </div>
+
+            {/* Health Bar */}
+            <div className="relative z-10 mb-4">
+                <div className={`w-full h-2.5 rounded-full overflow-hidden ${theme.barTrack}`}>
+                    <div 
+                        className={`h-full ${theme.barFill} transition-all duration-1000 ease-out relative`} 
+                        style={{ width: `${Math.min(100, healthPercent)}%` }}
+                    >
+                         <div className="absolute inset-0 bg-white/30 w-full h-full animate-[shimmer_2s_infinite]"></div>
+                    </div>
+                </div>
+                <div className="flex justify-between mt-1.5 text-[10px] font-semibold text-light-text-secondary dark:text-dark-text-secondary">
+                    <span>{formatCurrency(boss.currentHp, currency)}</span>
+                    <span>{formatCurrency(boss.maxHp, currency)}</span>
+                </div>
+            </div>
+
+            {/* Recent Hits */}
+            {boss.hits.length > 0 && (
+                <div className="pt-3 border-t border-black/5 dark:border-white/5 relative z-10">
+                    <div className="flex items-center gap-2">
+                        <span className="text-[9px] font-bold uppercase text-light-text-secondary dark:text-dark-text-secondary flex-shrink-0">
+                            Combo
+                        </span>
+                        <div className="flex gap-1 overflow-hidden">
+                            {boss.hits.slice(0, 3).map((hit, idx) => (
+                                <span key={idx} className="inline-flex items-center px-1.5 py-0.5 rounded-md bg-white dark:bg-black/20 border border-black/5 dark:border-white/5 text-[9px] font-mono font-medium text-light-text dark:text-dark-text whitespace-nowrap">
+                                    -{formatCurrency(hit.amount, currency)}
+                                </span>
+                            ))}
+                        </div>
+                    </div>
+                </div>
+            )}
+        </Card>
+    );
+};
+
+// --- Main Page Component ---
+type ChallengeSection = 'score' | 'battles' | 'badges';
 
 const Challenges: React.FC<ChallengesProps> = ({ userStats, accounts, transactions }) => {
   const { currentStreak, longestStreak } = userStats;
@@ -168,6 +241,12 @@ const Challenges: React.FC<ChallengesProps> = ({ userStats, accounts, transactio
   const { financialGoals } = useGoalsContext();
   const { recurringTransactions, memberships, billsAndPayments } = useScheduleContext();
   
+  const [activeSection, setActiveSection] = useState<ChallengeSection>('score');
+  
+  // Pagination State for Badges
+  const [badgesPage, setBadgesPage] = useState(1);
+  const BADGES_PER_PAGE = 10;
+
   // --- Derived Metrics for Badges ---
   const { totalDebt, netWorth, savingsRate, totalInvestments, uniqueAccountTypes, liquidityRatio, budgetAccuracy } = useMemo(() => {
      // 1. Totals
@@ -188,7 +267,6 @@ const Challenges: React.FC<ChallengesProps> = ({ userStats, accounts, transactio
                 income += val;
             } else {
                 expense += Math.abs(val);
-                // Simple category sum for Oracle badge
                 spendingByCat[tx.category] = (spendingByCat[tx.category] || 0) + Math.abs(val);
             }
         }
@@ -197,7 +275,6 @@ const Challenges: React.FC<ChallengesProps> = ({ userStats, accounts, transactio
      const savingsRate = income > 0 ? ((income - expense) / income) : 0;
      
      // Budget Accuracy (Oracle)
-     // Calculate average variance between budget and actual spending
      let totalBudgetVariance = 0;
      let validBudgets = 0;
      budgets.forEach(b => {
@@ -206,8 +283,7 @@ const Challenges: React.FC<ChallengesProps> = ({ userStats, accounts, transactio
          totalBudgetVariance += variance;
          validBudgets++;
      });
-     // Average variance across all budgets. If < 0.05 (5%), it's accurate.
-     const budgetAccuracy = validBudgets > 0 ? (totalBudgetVariance / validBudgets) : 1; // Default to 100% variance if no budgets
+     const budgetAccuracy = validBudgets > 0 ? (totalBudgetVariance / validBudgets) : 1;
      
      // 3. Investments
      const totalInvestments = accounts
@@ -217,7 +293,7 @@ const Challenges: React.FC<ChallengesProps> = ({ userStats, accounts, transactio
      // 4. Unique Types
      const uniqueAccountTypes = new Set(accounts.map(a => a.type)).size;
      
-     // 5. Liquidity Ratio (Liquid Assets / Avg Monthly Spend)
+     // 5. Liquidity Ratio
      const threeMonthsAgo = new Date(); threeMonthsAgo.setMonth(threeMonthsAgo.getMonth() - 3);
      const totalSpend3m = transactions
         .filter(t => parseDateAsUTC(t.date) >= threeMonthsAgo && t.type === 'expense' && !t.transferId)
@@ -233,9 +309,60 @@ const Challenges: React.FC<ChallengesProps> = ({ userStats, accounts, transactio
      return { totalDebt, netWorth, savingsRate, totalInvestments, uniqueAccountTypes, liquidityRatio, budgetAccuracy };
   }, [accounts, transactions, budgets]);
 
+  // --- Boss Battle Generation ---
+  const bosses = useMemo(() => {
+      const activeBosses: Boss[] = [];
+
+      // 1. Debt Bosses
+      accounts.filter(a => DEBT_TYPES.includes(a.type) && a.status !== 'closed').forEach(acc => {
+          const outstanding = Math.abs(acc.balance); 
+          if (outstanding < 1) return; 
+
+          const maxHp = acc.creditLimit || (acc.totalAmount || outstanding * 1.2); 
+          const recentPayments = transactions
+            .filter(t => t.accountId === acc.id && t.type === 'income')
+            .sort((a,b) => parseDateAsUTC(b.date).getTime() - parseDateAsUTC(a.date).getTime())
+            .slice(0, 5)
+            .map(t => ({ date: t.date, amount: t.amount }));
+
+          activeBosses.push({
+              id: acc.id,
+              name: acc.name,
+              type: 'debt',
+              maxHp: Math.max(maxHp, outstanding),
+              currentHp: outstanding,
+              level: Math.floor(maxHp / 1000) + 1,
+              icon: acc.type === 'Loan' ? 'gavel' : 'sentiment_very_dissatisfied',
+              colorClass: 'bg-red-500 text-white',
+              hits: recentPayments
+          });
+      });
+
+      // 2. Savings Bosses (Goals)
+      financialGoals.forEach(goal => {
+          if (goal.currentAmount >= goal.amount) return; 
+
+          activeBosses.push({
+              id: goal.id,
+              name: goal.name,
+              type: 'savings',
+              maxHp: goal.amount,
+              currentHp: goal.amount - goal.currentAmount, 
+              level: Math.floor(goal.amount / 500) + 1,
+              icon: 'shield',
+              colorClass: 'bg-yellow-500 text-white',
+              hits: [] 
+          });
+      });
+
+      return activeBosses;
+  }, [accounts, financialGoals, transactions]);
+
+  const debtBosses = useMemo(() => bosses.filter(b => b.type === 'debt'), [bosses]);
+  const savingsBosses = useMemo(() => bosses.filter(b => b.type === 'savings'), [bosses]);
+
   // --- Badge Definitions ---
   const badges = useMemo(() => [
-      // 1. Milestones
       {
           id: 'novice_explorer',
           title: 'Novice Explorer',
@@ -272,8 +399,6 @@ const Challenges: React.FC<ChallengesProps> = ({ userStats, accounts, transactio
           unlocked: netWorth >= 100000,
           progress: (netWorth / 100000) * 100
       },
-      
-      // 2. Behavior
       {
           id: 'crystal_clear',
           title: 'Crystal Clear',
@@ -310,16 +435,14 @@ const Challenges: React.FC<ChallengesProps> = ({ userStats, accounts, transactio
           unlocked: budgets.length > 0 && budgetAccuracy <= 0.05,
           progress: budgets.length > 0 ? (1 - budgetAccuracy) * 100 : 0
       },
-      
-      // 3. Assets & Debts
       {
           id: 'debt_destroyer',
           title: 'Debt Destroyer',
           description: 'Have €0 in total debt (Loans & Credit Cards).',
           icon: 'no_crash',
           color: 'green',
-          unlocked: totalDebt === 0 && accounts.some(a => DEBT_TYPES.includes(a.type)), // Must have/had debt capability
-          progress: totalDebt === 0 ? 100 : 50 // Rough progress
+          unlocked: totalDebt === 0 && accounts.some(a => DEBT_TYPES.includes(a.type)),
+          progress: totalDebt === 0 ? 100 : 50 
       },
       {
           id: 'safety_net',
@@ -357,8 +480,6 @@ const Challenges: React.FC<ChallengesProps> = ({ userStats, accounts, transactio
           unlocked: accounts.some(a => a.type === 'Property'),
           progress: accounts.some(a => a.type === 'Property') ? 100 : 0
       },
-      
-      // 4. Features
       {
           id: 'goal_setter',
           title: 'Goal Setter',
@@ -408,7 +529,11 @@ const Challenges: React.FC<ChallengesProps> = ({ userStats, accounts, transactio
 
   const unlockedCount = badges.filter(b => b.unlocked).length;
 
-  // --- Health Score Logic (Simplified for Demo) ---
+  // Pagination Logic
+  const totalPages = Math.ceil(badges.length / BADGES_PER_PAGE);
+  const currentBadges = badges.slice((badgesPage - 1) * BADGES_PER_PAGE, badgesPage * BADGES_PER_PAGE);
+
+  // --- Health Score Logic ---
   const healthScoreDetails = [
       { label: 'Savings Rate', score: Math.min(30, savingsRate * 100 * 1.5), max: 30, status: savingsRate > 0.2 ? 'Good' : 'Fair' },
       { label: 'Liquidity', score: Math.min(30, liquidityRatio * 10), max: 30, status: liquidityRatio > 3 ? 'Good' : 'Fair' },
@@ -426,74 +551,201 @@ const Challenges: React.FC<ChallengesProps> = ({ userStats, accounts, transactio
         </p>
       </div>
 
-      {/* Hero: Health Score & Streak */}
+      {/* Navigation Cards (Master View) */}
       <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-          <Card className="md:col-span-1 flex items-center justify-center p-8 bg-gradient-to-b from-white to-gray-50 dark:from-dark-card dark:to-black/20">
-             <CircularGauge 
-                value={healthScore} 
-                label="Crystal Score" 
-                helper="Based on savings, liquidity, debt, and diversity." 
-                details={healthScoreDetails}
-            />
-          </Card>
-          
-          <div className="md:col-span-2 grid grid-cols-1 sm:grid-cols-2 gap-6">
-              <Card className="flex flex-col justify-center items-center text-center p-6 border-l-4 border-l-orange-500">
-                  <div className="w-16 h-16 rounded-full bg-orange-100 dark:bg-orange-900/30 flex items-center justify-center text-orange-500 mb-4 animate-pulse">
-                      <span className="material-symbols-outlined text-4xl">local_fire_department</span>
-                  </div>
-                  <div>
-                      <h3 className="text-3xl font-black text-light-text dark:text-dark-text">{currentStreak} Days</h3>
-                      <p className="text-sm font-bold uppercase tracking-wider text-light-text-secondary dark:text-dark-text-secondary mt-1">Current Streak</p>
-                      <p className="text-xs text-light-text-secondary dark:text-dark-text-secondary mt-2">Best: {longestStreak} days</p>
-                  </div>
-              </Card>
+          {/* Card 1: Crystal Score */}
+          <div 
+             onClick={() => setActiveSection('score')}
+             className={`cursor-pointer rounded-2xl p-6 flex flex-col items-center justify-center transition-all duration-300 relative overflow-hidden group
+                 ${activeSection === 'score' 
+                    ? 'bg-gradient-to-br from-white to-gray-50 dark:from-dark-card dark:to-white/5 shadow-lg ring-2 ring-primary-500 ring-offset-2 dark:ring-offset-dark-bg' 
+                    : 'bg-white dark:bg-dark-card border border-black/5 dark:border-white/5 opacity-80 hover:opacity-100 hover:shadow-md'
+                 }
+             `}
+          >
+              <div className="mb-2 transition-transform duration-300 group-hover:scale-105">
+                 <CircularGauge value={healthScore} size="sm" />
+              </div>
+              <h3 className="font-bold text-lg text-light-text dark:text-dark-text">Crystal Score</h3>
+              <p className="text-xs text-light-text-secondary dark:text-dark-text-secondary mt-1">
+                  Health & Habits
+              </p>
+          </div>
 
-               <Card className="flex flex-col justify-center items-center text-center p-6 border-l-4 border-l-blue-500">
-                  <div className="w-16 h-16 rounded-full bg-blue-100 dark:bg-blue-900/30 flex items-center justify-center text-blue-500 mb-4">
-                      <span className="material-symbols-outlined text-4xl">emoji_events</span>
-                  </div>
-                  <div>
-                      <h3 className="text-3xl font-black text-light-text dark:text-dark-text">{unlockedCount} / {badges.length}</h3>
-                      <p className="text-sm font-bold uppercase tracking-wider text-light-text-secondary dark:text-dark-text-secondary mt-1">Badges Unlocked</p>
-                      <div className="w-32 h-2 bg-gray-200 dark:bg-gray-700 rounded-full mt-3 mx-auto overflow-hidden">
-                           <div className="h-full bg-blue-500" style={{ width: `${(unlockedCount / badges.length) * 100}%` }}></div>
-                      </div>
-                  </div>
-              </Card>
+          {/* Card 2: Boss Battles */}
+          <div 
+             onClick={() => setActiveSection('battles')}
+             className={`cursor-pointer rounded-2xl p-6 flex flex-col items-center justify-center transition-all duration-300 group
+                 ${activeSection === 'battles' 
+                    ? 'bg-gradient-to-br from-red-50 to-orange-50 dark:from-red-900/10 dark:to-orange-900/10 shadow-lg ring-2 ring-red-500 ring-offset-2 dark:ring-offset-dark-bg' 
+                    : 'bg-white dark:bg-dark-card border border-black/5 dark:border-white/5 opacity-80 hover:opacity-100 hover:shadow-md'
+                 }
+             `}
+          >
+              <div className="w-16 h-16 rounded-full bg-red-100 dark:bg-red-900/30 flex items-center justify-center text-red-500 mb-3 transition-transform duration-300 group-hover:rotate-6">
+                  <span className="material-symbols-outlined text-4xl">swords</span>
+              </div>
+              <h3 className="font-bold text-lg text-light-text dark:text-dark-text">Boss Battles</h3>
+              <p className="text-xs text-light-text-secondary dark:text-dark-text-secondary mt-1">
+                  {bosses.length} Active Challenges
+              </p>
+          </div>
+
+          {/* Card 3: Badges */}
+          <div 
+             onClick={() => setActiveSection('badges')}
+             className={`cursor-pointer rounded-2xl p-6 flex flex-col items-center justify-center transition-all duration-300 group
+                 ${activeSection === 'badges' 
+                    ? 'bg-gradient-to-br from-blue-50 to-indigo-50 dark:from-blue-900/10 dark:to-indigo-900/10 shadow-lg ring-2 ring-blue-500 ring-offset-2 dark:ring-offset-dark-bg' 
+                    : 'bg-white dark:bg-dark-card border border-black/5 dark:border-white/5 opacity-80 hover:opacity-100 hover:shadow-md'
+                 }
+             `}
+          >
+              <div className="w-16 h-16 rounded-full bg-blue-100 dark:bg-blue-900/30 flex items-center justify-center text-blue-500 mb-3 transition-transform duration-300 group-hover:-translate-y-1">
+                  <span className="material-symbols-outlined text-4xl">military_tech</span>
+              </div>
+              <h3 className="font-bold text-lg text-light-text dark:text-dark-text">Trophy Case</h3>
+              <p className="text-xs text-light-text-secondary dark:text-dark-text-secondary mt-1">
+                  {unlockedCount} / {badges.length} Unlocked
+              </p>
           </div>
       </div>
 
-      {/* Trophy Case */}
-      <div>
-           <div className="flex items-center gap-3 mb-6">
-               <span className="material-symbols-outlined text-2xl text-yellow-500">military_tech</span>
-               <h2 className="text-xl font-bold text-light-text dark:text-dark-text">Trophy Case</h2>
-           </div>
-           
-           <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-4">
-               {badges.map(badge => (
-                   <BadgeItem key={badge.id} badge={badge} />
-               ))}
-           </div>
-      </div>
+      {/* Main Content Area */}
+      <div className="min-h-[400px]">
+          {activeSection === 'score' && (
+              <div className="space-y-6 animate-fade-in-up">
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                      <Card className="flex flex-col justify-center">
+                          <h3 className="text-lg font-bold text-light-text dark:text-dark-text mb-4">Score Breakdown</h3>
+                          <div className="space-y-4">
+                              {healthScoreDetails.map((d, idx) => (
+                                  <div key={idx} className="flex justify-between items-center p-3 rounded-lg bg-gray-50 dark:bg-white/5 border border-black/5 dark:border-white/5">
+                                      <div>
+                                          <p className="font-medium text-light-text dark:text-dark-text">{d.label}</p>
+                                          <p className="text-xs text-light-text-secondary dark:text-dark-text-secondary">Max: {d.max} pts</p>
+                                      </div>
+                                      <div className="text-right">
+                                          <p className={`font-bold ${d.status === 'Good' ? 'text-green-600 dark:text-green-400' : d.status === 'Fair' ? 'text-amber-600 dark:text-amber-400' : 'text-red-600 dark:text-red-400'}`}>
+                                              {d.score.toFixed(0)}
+                                          </p>
+                                          <p className="text-[10px] uppercase font-bold tracking-wide opacity-70">{d.status}</p>
+                                      </div>
+                                  </div>
+                              ))}
+                          </div>
+                          <div className="mt-6 pt-4 border-t border-black/10 dark:border-white/10 text-center text-sm text-light-text-secondary dark:text-dark-text-secondary">
+                              Improve your financial habits to boost your Crystal Score.
+                          </div>
+                      </Card>
 
-      {/* Next Steps (Teaser for what to do next) */}
-      {unlockedCount < badges.length && (
-           <Card className="bg-gradient-to-r from-indigo-500 to-purple-600 text-white border-none">
-               <div className="flex items-start gap-4">
-                   <div className="p-3 bg-white/20 rounded-xl backdrop-blur-sm">
-                       <span className="material-symbols-outlined text-3xl">lightbulb</span>
+                      <Card className="flex flex-col justify-center items-center text-center p-6 border-l-4 border-l-orange-500">
+                          <div className="w-20 h-20 rounded-full bg-orange-100 dark:bg-orange-900/30 flex items-center justify-center text-orange-500 mb-4 animate-pulse">
+                              <span className="material-symbols-outlined text-5xl">local_fire_department</span>
+                          </div>
+                          <h3 className="text-4xl font-black text-light-text dark:text-dark-text">{currentStreak} Days</h3>
+                          <p className="text-sm font-bold uppercase tracking-wider text-light-text-secondary dark:text-dark-text-secondary mt-1">Current Streak</p>
+                          <p className="text-xs text-light-text-secondary dark:text-dark-text-secondary mt-4 bg-black/5 dark:bg-white/5 px-3 py-1 rounded-full">
+                              Best Record: {longestStreak} days
+                          </p>
+                      </Card>
+                  </div>
+              </div>
+          )}
+
+          {activeSection === 'battles' && (
+               <div className="space-y-8 animate-fade-in-up">
+                   {(debtBosses.length === 0 && savingsBosses.length === 0) && (
+                       <div className="text-center py-12">
+                           <div className="w-20 h-20 bg-gray-100 dark:bg-white/5 rounded-full flex items-center justify-center mx-auto mb-4 text-gray-400">
+                               <span className="material-symbols-outlined text-4xl">check_circle</span>
+                           </div>
+                           <h3 className="text-xl font-bold text-light-text dark:text-dark-text">No Active Battles</h3>
+                           <p className="text-light-text-secondary dark:text-dark-text-secondary">You are free of debts and active goals. Enjoy the peace!</p>
+                       </div>
+                   )}
+
+                   {/* Debt Bosses (Liabilities) */}
+                   {debtBosses.length > 0 && (
+                       <div className="space-y-4">
+                            <h3 className="text-sm font-bold text-red-600 dark:text-red-400 uppercase tracking-wider border-b border-red-200 dark:border-red-900/50 pb-2">Liabilities</h3>
+                            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                               {debtBosses.map(boss => (
+                                   <BossBattleCard key={boss.id} boss={boss} currency="EUR" />
+                               ))}
+                            </div>
+                       </div>
+                   )}
+    
+                   {/* Savings Bosses (Goals) */}
+                   {savingsBosses.length > 0 && (
+                       <div className="space-y-4">
+                            <h3 className="text-sm font-bold text-yellow-600 dark:text-yellow-400 uppercase tracking-wider border-b border-yellow-200 dark:border-yellow-900/50 pb-2">Fortunes</h3>
+                            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                               {savingsBosses.map(boss => (
+                                   <BossBattleCard key={boss.id} boss={boss} currency="EUR" />
+                               ))}
+                            </div>
+                       </div>
+                   )}
+              </div>
+          )}
+
+          {activeSection === 'badges' && (
+              <div className="animate-fade-in-up">
+                   <div className="flex items-center justify-between mb-6">
+                       <h2 className="text-xl font-bold text-light-text dark:text-dark-text flex items-center gap-2">
+                           <span className="material-symbols-outlined text-yellow-500">emoji_events</span>
+                           Achievement Gallery
+                       </h2>
+                       
+                       {totalPages > 1 && (
+                           <div className="flex items-center gap-2">
+                               <button 
+                                    onClick={() => setBadgesPage(p => Math.max(1, p - 1))}
+                                    disabled={badgesPage === 1}
+                                    className="p-1.5 rounded-full hover:bg-black/5 dark:hover:bg-white/10 disabled:opacity-30 disabled:cursor-not-allowed"
+                               >
+                                   <span className="material-symbols-outlined text-lg">chevron_left</span>
+                               </button>
+                               <span className="text-xs font-medium text-light-text-secondary dark:text-dark-text-secondary">
+                                   {badgesPage} / {totalPages}
+                               </span>
+                               <button 
+                                    onClick={() => setBadgesPage(p => Math.min(totalPages, p + 1))}
+                                    disabled={badgesPage === totalPages}
+                                    className="p-1.5 rounded-full hover:bg-black/5 dark:hover:bg-white/10 disabled:opacity-30 disabled:cursor-not-allowed"
+                               >
+                                   <span className="material-symbols-outlined text-lg">chevron_right</span>
+                               </button>
+                           </div>
+                       )}
                    </div>
-                   <div>
-                       <h3 className="text-lg font-bold">Level Up Your Finances</h3>
-                       <p className="text-white/80 text-sm mt-1 mb-3">
-                           Check the locked badges above to see what financial milestones you can target next!
-                       </p>
+                   
+                   <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-4">
+                       {currentBadges.map(badge => (
+                           <BadgeItem key={badge.id} badge={badge} />
+                       ))}
                    </div>
-               </div>
-           </Card>
-      )}
+                   
+                    {unlockedCount < badges.length && (
+                       <Card className="bg-gradient-to-r from-indigo-500 to-purple-600 text-white border-none mt-8">
+                           <div className="flex items-start gap-4">
+                               <div className="p-3 bg-white/20 rounded-xl backdrop-blur-sm">
+                                   <span className="material-symbols-outlined text-3xl">lightbulb</span>
+                               </div>
+                               <div>
+                                   <h3 className="text-lg font-bold">Level Up Your Finances</h3>
+                                   <p className="text-white/80 text-sm mt-1 mb-3">
+                                       Check the locked badges above to see what financial milestones you can target next!
+                                   </p>
+                               </div>
+                           </div>
+                       </Card>
+                    )}
+              </div>
+          )}
+      </div>
     </div>
   );
 };
