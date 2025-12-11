@@ -404,4 +404,98 @@ const Challenges: React.FC<ChallengesProps> = ({ userStats, accounts, transactio
           unlocked: billsAndPayments.length > 0 && billsAndPayments.every(b => b.status === 'paid' || b.dueDate >= new Date().toISOString().split('T')[0]),
           progress: billsAndPayments.length > 0 ? 100 : 0
       }
-  ], [accounts,
+  ], [accounts, budgets, netWorth, savingsRate, currentStreak, recurringTransactions, budgetAccuracy, totalDebt, liquidityRatio, uniqueAccountTypes, totalInvestments, financialGoals, memberships, billsAndPayments]);
+
+  const unlockedCount = badges.filter(b => b.unlocked).length;
+
+  // --- Health Score Logic (Simplified for Demo) ---
+  const healthScoreDetails = [
+      { label: 'Savings Rate', score: Math.min(30, savingsRate * 100 * 1.5), max: 30, status: savingsRate > 0.2 ? 'Good' : 'Fair' },
+      { label: 'Liquidity', score: Math.min(30, liquidityRatio * 10), max: 30, status: liquidityRatio > 3 ? 'Good' : 'Fair' },
+      { label: 'Debt Level', score: totalDebt === 0 ? 20 : Math.max(0, 20 - (Math.abs(totalDebt) / 1000)), max: 20, status: totalDebt === 0 ? 'Good' : 'Fair' },
+      { label: 'Diversification', score: Math.min(20, uniqueAccountTypes * 5), max: 20, status: uniqueAccountTypes >= 3 ? 'Good' : 'Fair' }
+  ];
+  const healthScore = healthScoreDetails.reduce((sum, d) => sum + d.score, 0);
+
+  return (
+    <div className="space-y-8 animate-fade-in-up pb-12">
+      <div className="text-center space-y-2">
+        <h1 className="text-4xl font-extrabold text-light-text dark:text-dark-text tracking-tight">Financial Health</h1>
+        <p className="text-light-text-secondary dark:text-dark-text-secondary max-w-xl mx-auto">
+            Track your progress, unlock achievements, and visualize your financial fitness.
+        </p>
+      </div>
+
+      {/* Hero: Health Score & Streak */}
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+          <Card className="md:col-span-1 flex items-center justify-center p-8 bg-gradient-to-b from-white to-gray-50 dark:from-dark-card dark:to-black/20">
+             <CircularGauge 
+                value={healthScore} 
+                label="Crystal Score" 
+                helper="Based on savings, liquidity, debt, and diversity." 
+                details={healthScoreDetails}
+            />
+          </Card>
+          
+          <div className="md:col-span-2 grid grid-cols-1 sm:grid-cols-2 gap-6">
+              <Card className="flex flex-col justify-center items-center text-center p-6 border-l-4 border-l-orange-500">
+                  <div className="w-16 h-16 rounded-full bg-orange-100 dark:bg-orange-900/30 flex items-center justify-center text-orange-500 mb-4 animate-pulse">
+                      <span className="material-symbols-outlined text-4xl">local_fire_department</span>
+                  </div>
+                  <div>
+                      <h3 className="text-3xl font-black text-light-text dark:text-dark-text">{currentStreak} Days</h3>
+                      <p className="text-sm font-bold uppercase tracking-wider text-light-text-secondary dark:text-dark-text-secondary mt-1">Current Streak</p>
+                      <p className="text-xs text-light-text-secondary dark:text-dark-text-secondary mt-2">Best: {longestStreak} days</p>
+                  </div>
+              </Card>
+
+               <Card className="flex flex-col justify-center items-center text-center p-6 border-l-4 border-l-blue-500">
+                  <div className="w-16 h-16 rounded-full bg-blue-100 dark:bg-blue-900/30 flex items-center justify-center text-blue-500 mb-4">
+                      <span className="material-symbols-outlined text-4xl">emoji_events</span>
+                  </div>
+                  <div>
+                      <h3 className="text-3xl font-black text-light-text dark:text-dark-text">{unlockedCount} / {badges.length}</h3>
+                      <p className="text-sm font-bold uppercase tracking-wider text-light-text-secondary dark:text-dark-text-secondary mt-1">Badges Unlocked</p>
+                      <div className="w-32 h-2 bg-gray-200 dark:bg-gray-700 rounded-full mt-3 mx-auto overflow-hidden">
+                           <div className="h-full bg-blue-500" style={{ width: `${(unlockedCount / badges.length) * 100}%` }}></div>
+                      </div>
+                  </div>
+              </Card>
+          </div>
+      </div>
+
+      {/* Trophy Case */}
+      <div>
+           <div className="flex items-center gap-3 mb-6">
+               <span className="material-symbols-outlined text-2xl text-yellow-500">military_tech</span>
+               <h2 className="text-xl font-bold text-light-text dark:text-dark-text">Trophy Case</h2>
+           </div>
+           
+           <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-4">
+               {badges.map(badge => (
+                   <BadgeItem key={badge.id} badge={badge} />
+               ))}
+           </div>
+      </div>
+
+      {/* Next Steps (Teaser for what to do next) */}
+      {unlockedCount < badges.length && (
+           <Card className="bg-gradient-to-r from-indigo-500 to-purple-600 text-white border-none">
+               <div className="flex items-start gap-4">
+                   <div className="p-3 bg-white/20 rounded-xl backdrop-blur-sm">
+                       <span className="material-symbols-outlined text-3xl">lightbulb</span>
+                   </div>
+                   <div>
+                       <h3 className="text-lg font-bold">Level Up Your Finances</h3>
+                       <p className="text-white/80 text-sm mt-1 mb-3">
+                           Check the locked badges above to see what financial milestones you can target next!
+                       </p>
+                   </div>
+               </div>
+           </Card>
+      )}
+    </div>
+  );
+};
+
+export default Challenges;
