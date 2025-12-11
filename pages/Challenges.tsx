@@ -1,10 +1,11 @@
 
-import React, { useMemo, useState } from 'react';
+import React, { useMemo, useState, useEffect } from 'react';
 import Card from '../components/Card';
 import { UserStats, Account, Transaction, FinancialGoal, Currency, Category } from '../types';
 import { calculateAccountTotals, convertToEur, parseDateAsUTC, formatCurrency, getDateRange, generateAmortizationSchedule } from '../utils';
-import { LIQUID_ACCOUNT_TYPES, ASSET_TYPES, DEBT_TYPES, ALL_ACCOUNT_TYPES } from '../constants';
+import { LIQUID_ACCOUNT_TYPES, ASSET_TYPES, DEBT_TYPES, ALL_ACCOUNT_TYPES, BTN_PRIMARY_STYLE, BTN_SECONDARY_STYLE } from '../constants';
 import { useBudgetsContext, useGoalsContext, useScheduleContext, useCategoryContext } from '../contexts/FinancialDataContext';
+import useLocalStorage from '../hooks/useLocalStorage';
 
 interface ChallengesProps {
     userStats: UserStats;
@@ -83,7 +84,7 @@ const BadgeItem: React.FC<{ badge: any }> = ({ badge }) => {
             relative p-4 rounded-xl border flex flex-col items-center text-center transition-all duration-300 h-full
             ${badge.unlocked 
                 ? 'bg-gradient-to-br from-white to-gray-50 dark:from-dark-card dark:to-white/5 border-primary-500/30 shadow-md transform hover:-translate-y-1' 
-                : 'bg-gray-100 dark:bg-white/5 border-transparent opacity-60 grayscale'
+                : 'bg-gray-100 dark:bg-white/10 border-transparent opacity-60 grayscale'
             }
         `}>
             <div className={`
@@ -318,8 +319,41 @@ const MasteryCard: React.FC<{
     );
 };
 
+// --- Savings Sprints Configuration & Components ---
+
+type SprintDefinition = {
+    id: string;
+    title: string;
+    description: string;
+    durationDays: number;
+    targetType: 'category' | 'global' | 'transaction_limit';
+    targetCategory?: string; // string match for category name
+    limitAmount: number; // The max allowed spend
+    icon: string;
+    color: string;
+};
+
+const SAVINGS_SPRINTS: SprintDefinition[] = [
+    { id: 'zero_day', title: 'The Zero Day', description: 'Spend absolutely nothing for 24 hours.', durationDays: 1, targetType: 'global', limitAmount: 0, icon: 'block', color: 'slate' },
+    { id: 'weekend_warrior', title: 'Weekend Warrior', description: 'No spending for 2 days. Perfect for a quiet weekend in.', durationDays: 2, targetType: 'global', limitAmount: 0, icon: 'weekend', color: 'indigo' },
+    { id: 'coffee_break', title: 'The Coffee Break', description: 'Spend less than €15 on coffee or cafes for a week.', durationDays: 7, targetType: 'category', targetCategory: 'coffee', limitAmount: 15, icon: 'coffee', color: 'amber' },
+    { id: 'dining_detox', title: 'Dining Detox', description: 'Zero spending on Restaurants or Takeaway for 7 days.', durationDays: 7, targetType: 'category', targetCategory: 'restaurant', limitAmount: 0, icon: 'restaurant_menu', color: 'orange' },
+    { id: 'grocery_gauntlet', title: 'Grocery Gauntlet', description: 'Keep grocery spending under €50 for a week. Eat the pantry!', durationDays: 7, targetType: 'category', targetCategory: 'groceries', limitAmount: 50, icon: 'shopping_basket', color: 'green' },
+    { id: 'transport_trim', title: 'Transport Trim', description: 'Spend less than €20 on Fuel, Uber, or Public Transit for a week.', durationDays: 7, targetType: 'category', targetCategory: 'transport', limitAmount: 20, icon: 'commute', color: 'blue' },
+    { id: 'entertainment_fast', title: 'Entertainment Fast', description: 'No spending on movies, games, or events for 2 weeks.', durationDays: 14, targetType: 'category', targetCategory: 'entertainment', limitAmount: 0, icon: 'theaters', color: 'purple' },
+    { id: 'shopping_ban', title: 'Shopping Ban', description: 'A full month without buying clothes, gadgets, or home goods.', durationDays: 30, targetType: 'category', targetCategory: 'shopping', limitAmount: 0, icon: 'shopping_bag', color: 'pink' },
+    { id: 'low_cost_living', title: 'Low Cost Living', description: 'Keep your total expenses under €200 for a week (excluding bills/rent).', durationDays: 7, targetType: 'global', limitAmount: 200, icon: 'account_balance_wallet', color: 'teal' },
+    { id: 'ten_euro_challenge', title: 'The €10 Challenge', description: 'Survive 3 days spending less than €10 total.', durationDays: 3, targetType: 'global', limitAmount: 10, icon: 'euro', color: 'cyan' },
+    { id: 'impulse_control', title: 'Impulse Control', description: 'No single transaction over €50 for a week.', durationDays: 7, targetType: 'transaction_limit', limitAmount: 50, icon: 'price_check', color: 'rose' },
+];
+
+interface ActiveSprint {
+    id: string; // matches SprintDefinition.id
+    startDate: string; // ISO date
+}
+
 // --- Main Page Component ---
-type ChallengeSection = 'score' | 'battles' | 'badges' | 'mastery';
+type ChallengeSection = 'score' | 'battles' | 'badges' | 'mastery' | 'sprints';
 
 const Challenges: React.FC<ChallengesProps> = ({ userStats, accounts, transactions }) => {
   const { currentStreak, longestStreak } = userStats;
@@ -329,6 +363,7 @@ const Challenges: React.FC<ChallengesProps> = ({ userStats, accounts, transactio
   const { expenseCategories } = useCategoryContext();
   
   const [activeSection, setActiveSection] = useState<ChallengeSection>('score');
+  const [activeSprints, setActiveSprints] = useLocalStorage<ActiveSprint[]>('crystal_active_sprints', []);
   
   // Helper to map sub-categories to their parent budget bucket
   const findParentCategory = (categoryName: string, categories: Category[]): Category | undefined => {
@@ -517,6 +552,102 @@ const Challenges: React.FC<ChallengesProps> = ({ userStats, accounts, transactio
   }, [budgets, spendingByCat, expenseCategories]);
   
   const masterCount = categoryMastery.filter(c => c.level === 4).length;
+  
+  // --- Sprints Logic ---
+  const handleStartSprint = (sprintId: string) => {
+      if (activeSprints.some(s => s.id === sprintId)) return;
+      const today = new Date().toISOString().split('T')[0];
+      setActiveSprints([...activeSprints, { id: sprintId, startDate: today }]);
+  };
+  
+  const handleAbandonSprint = (sprintId: string) => {
+      setActiveSprints(activeSprints.filter(s => s.id !== sprintId));
+  };
+
+  const processedSprints = useMemo(() => {
+      const now = new Date();
+      const todayStart = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+
+      return activeSprints.map(active => {
+          const def = SAVINGS_SPRINTS.find(s => s.id === active.id);
+          if (!def) return null;
+
+          const start = parseDateAsUTC(active.startDate);
+          const end = new Date(start);
+          end.setDate(end.getDate() + def.durationDays);
+          
+          // Time Progress
+          const totalDurationMs = def.durationDays * 24 * 60 * 60 * 1000;
+          const elapsedMs = now.getTime() - start.getTime();
+          const daysRemaining = Math.max(0, Math.ceil((end.getTime() - now.getTime()) / (1000 * 60 * 60 * 24)));
+          const timeProgress = Math.min(100, Math.max(0, (elapsedMs / totalDurationMs) * 100));
+          
+          // Spending Progress
+          let currentSpend = 0;
+          
+          transactions.forEach(tx => {
+              const txDate = parseDateAsUTC(tx.date);
+              // Transaction must be ON or AFTER start date
+              if (txDate >= start && txDate <= now && tx.type === 'expense' && !tx.transferId) {
+                  let include = false;
+                  
+                  if (def.targetType === 'global') {
+                      include = true;
+                  } else if (def.targetType === 'transaction_limit') {
+                      if (Math.abs(convertToEur(tx.amount, tx.currency)) > def.limitAmount) {
+                          // This challenge tracks COUNT of violations usually, but here we track spend over limit?
+                          // For "Impulse Control" (No tx > 50), let's say currentSpend is the number of violations
+                           currentSpend += 1;
+                           return; // Handle special accumulation
+                      }
+                  } else if (def.targetType === 'category' && def.targetCategory) {
+                       const catName = tx.category.toLowerCase();
+                       // Naive keyword match
+                       if (catName.includes(def.targetCategory.toLowerCase())) include = true;
+                       else {
+                           // Check parent categories
+                           const parent = findParentCategory(tx.category, expenseCategories);
+                           if (parent && parent.name.toLowerCase().includes(def.targetCategory.toLowerCase())) include = true;
+                       }
+                  }
+                  
+                  if (include) {
+                      currentSpend += Math.abs(convertToEur(tx.amount, tx.currency));
+                  }
+              }
+          });
+          
+          // Status Logic
+          let status: 'active' | 'failed' | 'completed' = 'active';
+          
+          if (def.targetType === 'transaction_limit') {
+               // Limit amount here is the max per transaction, currentSpend is violation count
+               // If violations > 0, failed
+               if (currentSpend > 0) status = 'failed';
+               else if (daysRemaining === 0) status = 'completed';
+          } else {
+              if (currentSpend > def.limitAmount) {
+                  status = 'failed';
+              } else if (daysRemaining === 0) {
+                  status = 'completed';
+              }
+          }
+          
+          return {
+              ...def,
+              active,
+              currentSpend,
+              daysRemaining,
+              timeProgress,
+              status
+          };
+      }).filter(Boolean) as (SprintDefinition & { active: ActiveSprint, currentSpend: number, daysRemaining: number, timeProgress: number, status: 'active' | 'failed' | 'completed' })[];
+  }, [activeSprints, transactions, expenseCategories]);
+  
+  const availableSprints = useMemo(() => {
+      const activeIds = activeSprints.map(s => s.id);
+      return SAVINGS_SPRINTS.filter(s => !activeIds.includes(s.id));
+  }, [activeSprints]);
 
   // --- Badge Definitions ---
   const badges = useMemo(() => [
@@ -705,7 +836,7 @@ const Challenges: React.FC<ChallengesProps> = ({ userStats, accounts, transactio
       </div>
 
       {/* Navigation Cards (Master View) */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+      <div className="grid grid-cols-1 md:grid-cols-3 lg:grid-cols-5 gap-6">
           {/* Card 1: Crystal Score */}
           <div 
              onClick={() => setActiveSection('score')}
@@ -762,8 +893,27 @@ const Challenges: React.FC<ChallengesProps> = ({ userStats, accounts, transactio
                   {bosses.length} Active Challenges
               </p>
           </div>
+          
+           {/* Card 4: Savings Sprints (New) */}
+           <div 
+             onClick={() => setActiveSection('sprints')}
+             className={`cursor-pointer rounded-2xl p-6 flex flex-col items-center justify-center transition-all duration-300 group
+                 ${activeSection === 'sprints' 
+                    ? 'bg-gradient-to-br from-cyan-50 to-teal-50 dark:from-cyan-900/10 dark:to-teal-900/10 shadow-lg ring-2 ring-cyan-500 ring-offset-2 dark:ring-offset-dark-bg' 
+                    : 'bg-white dark:bg-dark-card border border-black/5 dark:border-white/5 opacity-80 hover:opacity-100 hover:shadow-md'
+                 }
+             `}
+          >
+              <div className="w-16 h-16 rounded-full bg-cyan-100 dark:bg-cyan-900/30 flex items-center justify-center text-cyan-500 mb-3 transition-transform duration-300 group-hover:-translate-y-1">
+                  <span className="material-symbols-outlined text-4xl">timer</span>
+              </div>
+              <h3 className="font-bold text-lg text-light-text dark:text-dark-text">Savings Sprints</h3>
+              <p className="text-xs text-light-text-secondary dark:text-dark-text-secondary mt-1">
+                  {processedSprints.filter(s => s.status === 'active').length} Active
+              </p>
+          </div>
 
-          {/* Card 4: Badges */}
+          {/* Card 5: Badges */}
           <div 
              onClick={() => setActiveSection('badges')}
              className={`cursor-pointer rounded-2xl p-6 flex flex-col items-center justify-center transition-all duration-300 group
@@ -821,6 +971,95 @@ const Challenges: React.FC<ChallengesProps> = ({ userStats, accounts, transactio
                               Best Record: {longestStreak} days
                           </p>
                       </Card>
+                  </div>
+              </div>
+          )}
+          
+          {activeSection === 'sprints' && (
+              <div className="space-y-8 animate-fade-in-up">
+                  {/* Active Sprints */}
+                  {processedSprints.length > 0 && (
+                      <div className="space-y-4">
+                          <h3 className="text-sm font-bold text-cyan-600 dark:text-cyan-400 uppercase tracking-wider border-b border-cyan-200 dark:border-cyan-900/50 pb-2">Active Sprints</h3>
+                          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                              {processedSprints.map(sprint => (
+                                  <Card key={sprint.id} className={`flex flex-col h-full border ${sprint.status === 'failed' ? 'border-red-500/50 bg-red-50 dark:bg-red-900/10' : sprint.status === 'completed' ? 'border-green-500/50 bg-green-50 dark:bg-green-900/10' : 'border-cyan-200 dark:border-cyan-800 bg-cyan-50 dark:bg-cyan-900/10'}`}>
+                                      <div className="flex justify-between items-start mb-4">
+                                          <div className="flex items-center gap-3">
+                                              <div className={`w-10 h-10 rounded-full flex items-center justify-center text-white bg-${sprint.color}-500 shadow-sm`}>
+                                                  <span className="material-symbols-outlined text-xl">{sprint.icon}</span>
+                                              </div>
+                                              <div>
+                                                  <h4 className="font-bold text-light-text dark:text-dark-text">{sprint.title}</h4>
+                                                  <p className="text-xs text-light-text-secondary dark:text-dark-text-secondary">{sprint.targetType === 'transaction_limit' ? 'Limit violations:' : 'Spent so far:'} {sprint.targetType === 'transaction_limit' ? sprint.currentSpend : formatCurrency(sprint.currentSpend, 'EUR')}</p>
+                                              </div>
+                                          </div>
+                                          <span className={`text-[10px] font-bold uppercase px-2 py-1 rounded-full ${sprint.status === 'active' ? 'bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-300' : sprint.status === 'failed' ? 'bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-300' : 'bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-300'}`}>
+                                              {sprint.status}
+                                          </span>
+                                      </div>
+                                      
+                                      <div className="space-y-4 mb-4">
+                                          <div>
+                                              <div className="flex justify-between text-[10px] uppercase font-bold text-light-text-secondary dark:text-dark-text-secondary mb-1">
+                                                  <span>Time Remaining</span>
+                                                  <span>{sprint.daysRemaining} days</span>
+                                              </div>
+                                              <div className="w-full bg-white dark:bg-black/20 h-2 rounded-full overflow-hidden">
+                                                  <div className="bg-cyan-500 h-full transition-all duration-500" style={{ width: `${sprint.timeProgress}%` }}></div>
+                                              </div>
+                                          </div>
+                                          
+                                          {sprint.targetType !== 'transaction_limit' && (
+                                              <div>
+                                                <div className="flex justify-between text-[10px] uppercase font-bold text-light-text-secondary dark:text-dark-text-secondary mb-1">
+                                                    <span>Budget Used</span>
+                                                    <span>{((sprint.currentSpend / (sprint.limitAmount || 1)) * 100).toFixed(0)}%</span>
+                                                </div>
+                                                <div className="w-full bg-white dark:bg-black/20 h-2 rounded-full overflow-hidden">
+                                                    <div className={`h-full transition-all duration-500 ${sprint.currentSpend > sprint.limitAmount ? 'bg-red-500' : 'bg-green-500'}`} style={{ width: `${Math.min(100, (sprint.currentSpend / (sprint.limitAmount || 1)) * 100)}%` }}></div>
+                                                </div>
+                                              </div>
+                                          )}
+                                      </div>
+                                      
+                                      <div className="mt-auto pt-3 border-t border-black/5 dark:border-white/5 flex justify-end">
+                                          <button onClick={() => handleAbandonSprint(sprint.id)} className="text-xs text-red-500 hover:underline">
+                                              {sprint.status === 'active' ? 'Give Up' : 'Close'}
+                                          </button>
+                                      </div>
+                                  </Card>
+                              ))}
+                          </div>
+                      </div>
+                  )}
+                  
+                  {/* Available Sprints */}
+                  <div className="space-y-4">
+                       <h3 className="text-sm font-bold text-light-text dark:text-dark-text uppercase tracking-wider border-b border-black/5 dark:border-white/5 pb-2">Available Sprints</h3>
+                       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
+                           {availableSprints.map(sprint => (
+                               <Card key={sprint.id} className="flex flex-col h-full hover:shadow-md transition-shadow">
+                                   <div className="flex items-center gap-3 mb-3">
+                                       <div className={`w-10 h-10 rounded-full flex items-center justify-center text-white bg-${sprint.color}-500 shadow-sm shrink-0`}>
+                                           <span className="material-symbols-outlined text-lg">{sprint.icon}</span>
+                                       </div>
+                                       <h4 className="font-bold text-sm text-light-text dark:text-dark-text leading-tight">{sprint.title}</h4>
+                                   </div>
+                                   <p className="text-xs text-light-text-secondary dark:text-dark-text-secondary flex-grow mb-4">
+                                       {sprint.description}
+                                   </p>
+                                   <div className="flex items-center justify-between mt-auto">
+                                       <span className="text-[10px] font-bold uppercase bg-black/5 dark:bg-white/5 px-2 py-1 rounded text-light-text-secondary dark:text-dark-text-secondary">
+                                           {sprint.durationDays} Days
+                                       </span>
+                                       <button onClick={() => handleStartSprint(sprint.id)} className={`${BTN_PRIMARY_STYLE} !py-1 !px-3 !text-xs`}>
+                                           Start
+                                       </button>
+                                   </div>
+                               </Card>
+                           ))}
+                       </div>
                   </div>
               </div>
           )}
