@@ -168,84 +168,120 @@ const PersonalBestLeaderboard: React.FC<{
     history: { date: string; value: number }[];
 }> = ({ currentNetWorth, history }) => {
     
-    const leaderboardData = useMemo(() => {
-        const currentEntry = { label: 'Current Status', value: currentNetWorth, date: 'Now', isCurrent: true, isNewRecord: false };
-        let allTimeHighEntry = { label: 'All-Time Best', value: currentNetWorth, date: 'Now', isCurrent: false, isNewRecord: false };
-
+    const { ath, isNewRecord, data } = useMemo(() => {
+        let max = 0;
         if (history.length > 0) {
-            const max = history.reduce((prev, current) => (prev.value > current.value) ? prev : current);
-            if (max.value > currentNetWorth) {
-                allTimeHighEntry = { label: 'All-Time Best', value: max.value, date: max.date, isCurrent: false, isNewRecord: false };
-            }
+            max = history.reduce((prev, current) => (prev.value > current.value) ? prev : current).value;
         }
-
-        let lastYearEntry = { label: '1 Year Ago', value: 0, date: '12 Months Ago', isCurrent: false, isNewRecord: false };
+        
+        // If current is higher (or equal and significant), it's the ATH
+        const allTimeHigh = Math.max(max, currentNetWorth);
+        const isNewRecord = currentNetWorth >= allTimeHigh && currentNetWorth > 0;
+        
+        // Benchmarks
+        let lastYearValue = 0;
+        let lastYearDate = '12 Months Ago';
+        
         if (history.length >= 13) {
              const ly = history[12]; 
-             lastYearEntry = { label: '1 Year Ago', value: ly.value, date: ly.date, isCurrent: false, isNewRecord: false };
+             lastYearValue = ly.value;
+             lastYearDate = ly.date;
         } else if (history.length > 0) {
              const oldest = history[history.length - 1];
-             lastYearEntry = { label: 'Start', value: oldest.value, date: oldest.date, isCurrent: false, isNewRecord: false };
-        }
-        
-        const entries: any[] = [];
-        entries.push(currentEntry);
-        
-        if (Math.abs(allTimeHighEntry.value - currentEntry.value) > 1) {
-             entries.push(allTimeHighEntry);
-        } else {
-             entries[0].label = "Current (All-Time Best)";
-             entries[0].isNewRecord = true;
+             lastYearValue = oldest.value;
+             lastYearDate = oldest.date;
         }
 
-        if (Math.abs(lastYearEntry.value - currentEntry.value) > 1 && Math.abs(lastYearEntry.value - allTimeHighEntry.value) > 1) {
-             entries.push(lastYearEntry);
-        }
+        const entries = [
+            { label: 'All-Time High', value: allTimeHigh, date: isNewRecord ? 'Right Now!' : 'Previous Best', isAth: true },
+            { label: 'Current Status', value: currentNetWorth, date: 'Today', isCurrent: true },
+            { label: '1 Year Ago', value: lastYearValue, date: lastYearDate, isBenchmark: true }
+        ];
 
-        return entries.sort((a, b) => b.value - a.value).map((entry, index) => ({
-            ...entry,
-            rank: index + 1
-        }));
+        // Filter duplicates if ATH is Current
+        const uniqueEntries = isNewRecord 
+            ? [entries[0], entries[2]] 
+            : entries;
 
+        return { ath: allTimeHigh, isNewRecord, data: uniqueEntries };
     }, [currentNetWorth, history]);
 
     return (
-        <Card className="overflow-hidden p-0 border border-black/5 dark:border-white/5 shadow-sm">
-             <div className="p-6 bg-gradient-to-r from-slate-800 to-slate-900 text-white relative overflow-hidden">
-                  <div className="absolute top-0 right-0 p-4 opacity-10 pointer-events-none">
-                        <span className="material-symbols-outlined text-8xl">podium</span>
-                  </div>
-                  <div className="flex items-center gap-2 relative z-10">
-                      <div className="p-2 bg-white/10 rounded-lg">
-                        <span className="material-symbols-outlined text-yellow-400">emoji_events</span>
-                      </div>
-                      <div>
-                        <h3 className="text-lg font-bold">Personal Best</h3>
-                        <p className="text-slate-400 text-xs">Compete against your past self.</p>
-                      </div>
-                  </div>
+        <div className="relative overflow-hidden rounded-3xl bg-white dark:bg-dark-card border border-black/5 dark:border-white/5 shadow-xl">
+             {/* Header Background */}
+             <div className="absolute top-0 inset-x-0 h-32 bg-gradient-to-b from-blue-900 to-blue-950 dark:from-black dark:to-gray-900 z-0">
+                 <div className="absolute inset-0 bg-[url('https://www.transparenttextures.com/patterns/cubes.png')] opacity-20"></div>
              </div>
-             
-             <div className="divide-y divide-black/5 dark:divide-white/5 bg-white dark:bg-dark-card">
-                 {leaderboardData.map((entry) => (
-                     <div key={entry.label} className={`flex items-center justify-between p-4 ${entry.isCurrent ? 'bg-indigo-50/50 dark:bg-indigo-900/10' : ''}`}>
-                         <div className="flex items-center gap-4">
-                             <div className={`w-8 h-8 rounded-full flex items-center justify-center font-bold text-sm ${entry.rank === 1 ? 'bg-yellow-100 text-yellow-700 dark:bg-yellow-900/30 dark:text-yellow-400' : 'bg-gray-100 text-gray-500 dark:bg-white/10 dark:text-gray-400'}`}>
-                                 {entry.rank}
-                             </div>
-                             <div>
-                                 <div className="flex items-center gap-2">
-                                     <p className="font-bold text-sm text-light-text dark:text-dark-text">{entry.label}</p>
-                                     {entry.isNewRecord && <span className="text-[10px] font-bold bg-yellow-400 text-black px-1.5 py-0.5 rounded shadow-sm">NEW!</span>}
-                                 </div>
-                                 <p className="text-xs text-light-text-secondary dark:text-dark-text-secondary">{entry.date}</p>
-                             </div>
-                         </div>
-                         <p className="font-mono font-bold text-light-text dark:text-dark-text">{formatCurrency(entry.value, 'EUR')}</p>
+
+             <div className="relative z-10 p-6 sm:p-8">
+                 <div className="flex justify-between items-start mb-8 text-white">
+                     <div>
+                        <h2 className="text-2xl font-black uppercase tracking-tight flex items-center gap-2">
+                            <span className="material-symbols-outlined text-yellow-400 text-3xl">emoji_events</span>
+                            Hall of Fame
+                        </h2>
+                        <p className="text-blue-200 dark:text-gray-400 text-sm font-medium mt-1">Your personal wealth records</p>
                      </div>
-                 ))}
+                     {isNewRecord && (
+                         <div className="animate-bounce bg-yellow-400 text-black px-3 py-1 rounded-full text-xs font-bold uppercase tracking-wider shadow-lg transform rotate-3">
+                             New Record!
+                         </div>
+                     )}
+                 </div>
+
+                 {/* Main ATH Display */}
+                 <div className="bg-white dark:bg-[#1E1E20] rounded-2xl p-6 shadow-lg border border-black/5 dark:border-white/10 mb-2 relative overflow-hidden">
+                     <div className="absolute top-0 right-0 p-6 opacity-5 pointer-events-none">
+                         <span className="material-symbols-outlined text-8xl">military_tech</span>
+                     </div>
+                     
+                     <p className="text-xs font-bold uppercase tracking-widest text-gray-500 dark:text-gray-400 mb-1">All-Time High Net Worth</p>
+                     <h3 className="text-4xl sm:text-5xl font-black text-gray-900 dark:text-white tracking-tight">
+                         {formatCurrency(ath, 'EUR')}
+                     </h3>
+                     
+                     {/* Progress to ATH (if not there) */}
+                     {!isNewRecord && (
+                         <div className="mt-4">
+                             <div className="flex justify-between text-xs font-bold text-gray-500 dark:text-gray-400 mb-1">
+                                 <span>Current Progress</span>
+                                 <span>{((currentNetWorth / ath) * 100).toFixed(1)}%</span>
+                             </div>
+                             <div className="w-full h-3 bg-gray-100 dark:bg-black/40 rounded-full overflow-hidden">
+                                 <div className="h-full bg-blue-500 rounded-full" style={{ width: `${(currentNetWorth / ath) * 100}%` }}></div>
+                             </div>
+                             <p className="text-xs text-blue-600 dark:text-blue-400 mt-1 font-medium text-right">
+                                 {formatCurrency(ath - currentNetWorth, 'EUR')} to go
+                             </p>
+                         </div>
+                     )}
+                 </div>
+
+                 {/* Leaderboard List */}
+                 <div className="divide-y divide-gray-100 dark:divide-white/5">
+                     {data.map((entry, idx) => (
+                         <div key={idx} className="flex items-center justify-between py-4 px-2">
+                             <div className="flex items-center gap-4">
+                                 <div className={`w-10 h-10 rounded-full flex items-center justify-center font-bold text-sm border-2 ${
+                                     entry.isAth 
+                                        ? 'bg-yellow-100 border-yellow-400 text-yellow-700 dark:bg-yellow-900/30 dark:text-yellow-400' 
+                                        : entry.isCurrent 
+                                            ? 'bg-gray-100 border-gray-300 text-gray-600 dark:bg-gray-800 dark:border-gray-600 dark:text-gray-300'
+                                            : 'bg-orange-100 border-orange-300 text-orange-700 dark:bg-orange-900/30 dark:border-orange-700 dark:text-orange-400'
+                                 }`}>
+                                     {idx + 1}
+                                 </div>
+                                 <div>
+                                     <p className={`font-bold text-sm ${entry.isAth ? 'text-yellow-700 dark:text-yellow-400' : 'text-light-text dark:text-dark-text'}`}>{entry.label}</p>
+                                     <p className="text-xs text-light-text-secondary dark:text-dark-text-secondary">{entry.date}</p>
+                                 </div>
+                             </div>
+                             <p className="font-mono font-bold text-light-text dark:text-dark-text">{formatCurrency(entry.value, 'EUR')}</p>
+                         </div>
+                     ))}
+                 </div>
              </div>
-        </Card>
+        </div>
     );
 };
 
@@ -568,7 +604,13 @@ const Challenges: React.FC<ChallengesProps> = ({ userStats, accounts, transactio
             if (tx.type === 'income') income += val;
             else {
                 expense += Math.abs(val);
-                spendingByCat[tx.category] = (spendingByCat[tx.category] || 0) + Math.abs(val);
+                
+                let catName = tx.category;
+                const parentMatch = expenseCategories.find(p => p.subCategories.some(s => s.name === tx.category));
+                if (parentMatch) {
+                    catName = parentMatch.name;
+                }
+                spendingByCat[catName] = (spendingByCat[catName] || 0) + Math.abs(val);
             }
         }
      });
@@ -595,7 +637,7 @@ const Challenges: React.FC<ChallengesProps> = ({ userStats, accounts, transactio
      const liquidityRatio = avgMonthlySpend > 0 ? liquidAssets / avgMonthlySpend : 0;
 
      return { totalDebt, netWorth, savingsRate, totalInvestments, uniqueAccountTypes, liquidityRatio, budgetAccuracy, spendingByCat, creditUtilization };
-  }, [accounts, transactions, budgets]);
+  }, [accounts, transactions, budgets, expenseCategories]);
 
   // --- Bosses ---
   const bosses = useMemo(() => {
