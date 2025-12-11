@@ -1,5 +1,4 @@
 
-
 // FIX: Import `useMemo` from React to resolve the 'Cannot find name' error.
 import React, { useState, useEffect, useMemo, useCallback, Suspense, lazy, useRef, Component, ErrorInfo, startTransition } from 'react';
 import Sidebar from './components/Sidebar';
@@ -73,7 +72,7 @@ const pagePreloaders = [
 // UserManagement is removed
 // FIX: Import FinancialData from types.ts
 // FIX: Add `Tag` to the import from `types.ts`.
-import { Page, Theme, Category, User, Transaction, Account, RecurringTransaction, RecurringTransactionOverride, WeekendAdjustment, FinancialGoal, Budget, ImportExportHistoryItem, AppPreferences, AccountType, InvestmentTransaction, Task, Warrant, ImportDataType, FinancialData, Currency, BillPayment, BillPaymentStatus, Duration, InvestmentSubType, Tag, LoanPaymentOverrides, ScheduledPayment, Membership, Invoice, UserStats, Prediction } from './types';
+import { Page, Theme, Category, User, Transaction, Account, RecurringTransaction, RecurringTransactionOverride, WeekendAdjustment, FinancialGoal, Budget, ImportExportHistoryItem, AppPreferences, AccountType, InvestmentTransaction, Task, Warrant, ImportDataType, FinancialData, Currency, BillPayment, BillPaymentStatus, Duration, InvestmentSubType, Tag, LoanPaymentOverrides, ScheduledPayment, Membership, Invoice, UserStats, Prediction, PriceHistoryEntry } from './types';
 import { MOCK_INCOME_CATEGORIES, MOCK_EXPENSE_CATEGORIES, LIQUID_ACCOUNT_TYPES } from './constants';
 import { v4 as uuidv4 } from 'uuid';
 import ChatFab from './components/ChatFab';
@@ -171,6 +170,7 @@ const initialFinancialData: FinancialData = {
     accountOrder: [],
     taskOrder: [],
     manualWarrantPrices: {},
+    priceHistory: {}, // New field for manual price history
     invoices: [],
     userStats: { currentStreak: 0, longestStreak: 0, lastLogDate: '', predictionWins: 0, predictionTotal: 0 },
     predictions: [],
@@ -337,8 +337,9 @@ const App: React.FC = () => {
   // State for AI Chat
   const [isChatOpen, setIsChatOpen] = useState(false);
   
-  // State for Warrant prices
+  // State for Warrant prices and history
   const [manualWarrantPrices, setManualWarrantPrices] = useState<Record<string, number | undefined>>(initialFinancialData.manualWarrantPrices || {});
+  const [priceHistory, setPriceHistory] = useState<Record<string, PriceHistoryEntry[]>>(initialFinancialData.priceHistory || {});
   const [lastUpdated, setLastUpdated] = useState<Date | null>(null);
   
   // Update Streak Logic
@@ -586,6 +587,7 @@ const App: React.FC = () => {
       setImportExportHistory(dataToLoad.importExportHistory || []);
       setBillsAndPayments(dataToLoad.billsAndPayments || []);
       setManualWarrantPrices(dataToLoad.manualWarrantPrices || {});
+      setPriceHistory(dataToLoad.priceHistory || {});
       setInvoices(dataToLoad.invoices || []);
       // FIX: Add `tags` to the data loading logic.
       setTags(dataToLoad.tags || []);
@@ -695,11 +697,11 @@ const App: React.FC = () => {
   const dataToSave: FinancialData = useMemo(() => ({
     accounts, transactions, investmentTransactions, recurringTransactions,
     recurringTransactionOverrides, loanPaymentOverrides, financialGoals, budgets, tasks, warrants, memberships, importExportHistory, incomeCategories,
-    expenseCategories, preferences, billsAndPayments, accountOrder, taskOrder, tags, manualWarrantPrices, invoices, userStats, predictions
+    expenseCategories, preferences, billsAndPayments, accountOrder, taskOrder, tags, manualWarrantPrices, priceHistory, invoices, userStats, predictions
   }), [
     accounts, transactions, investmentTransactions,
     recurringTransactions, recurringTransactionOverrides, loanPaymentOverrides, financialGoals, budgets, tasks, warrants, memberships, importExportHistory,
-    incomeCategories, expenseCategories, preferences, billsAndPayments, accountOrder, taskOrder, tags, manualWarrantPrices, invoices, userStats, predictions
+    incomeCategories, expenseCategories, preferences, billsAndPayments, accountOrder, taskOrder, tags, manualWarrantPrices, priceHistory, invoices, userStats, predictions
   ]);
 
   const debouncedDirtySignal = useDebounce(dirtySignal, 900);
@@ -726,6 +728,7 @@ const App: React.FC = () => {
     if (dirtySlices.has('taskOrder')) payload.taskOrder = taskOrder;
     if (dirtySlices.has('tags')) payload.tags = tags;
     if (dirtySlices.has('manualWarrantPrices')) payload.manualWarrantPrices = manualWarrantPrices;
+    if (dirtySlices.has('priceHistory')) payload.priceHistory = priceHistory;
     if (dirtySlices.has('invoices')) payload.invoices = invoices;
     if (dirtySlices.has('userStats')) payload.userStats = userStats;
     if (dirtySlices.has('predictions')) payload.predictions = predictions;
@@ -752,6 +755,7 @@ const App: React.FC = () => {
     warrants,
     memberships,
     manualWarrantPrices,
+    priceHistory,
     invoices,
     userStats,
     predictions
@@ -820,6 +824,11 @@ const App: React.FC = () => {
     if (!isDataLoaded || restoreInProgressRef.current) return;
     markSliceDirty('manualWarrantPrices');
   }, [manualWarrantPrices, isDataLoaded, markSliceDirty]);
+  
+  useEffect(() => {
+    if (!isDataLoaded || restoreInProgressRef.current) return;
+    markSliceDirty('priceHistory');
+  }, [priceHistory, isDataLoaded, markSliceDirty]);
 
   useEffect(() => {
     if (!isDataLoaded || restoreInProgressRef.current) return;
@@ -1408,16 +1417,50 @@ const App: React.FC = () => {
     }
   };
 
-  const handleManualWarrantPrice = (isin: string, price: number | null) => {
-    setManualWarrantPrices(prev => {
-      const updated = { ...prev };
-      if (price === null) {
-        delete updated[isin];
-      } else {
-        updated[isin] = price;
-      }
-      return updated;
+  const handleManualWarrantPrice = (isin: string, price: number | null, date?: string) => {
+    const targetDate = date || toLocalISOString(new Date());
+    
+    setPriceHistory(prev => {
+        const currentList = prev[isin] ? [...prev[isin]] : [];
+        let newList = [...currentList];
+        
+        if (price === null) {
+            // Remove entry if price is null (clearing override)
+            newList = newList.filter(item => item.date !== targetDate);
+        } else {
+            const index = newList.findIndex(item => item.date === targetDate);
+            if (index > -1) {
+                newList[index] = { date: targetDate, price };
+            } else {
+                newList.push({ date: targetDate, price });
+            }
+        }
+        
+        newList.sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime());
+        
+        // Update the current price pointer if we changed something
+        const latest = newList.length > 0 ? newList[newList.length - 1] : null;
+        
+        setManualWarrantPrices(currentPrices => {
+            const newPrices = { ...currentPrices };
+            if (latest) {
+                newPrices[isin] = latest.price;
+            } else {
+                // If history is empty or cleared, we remove the current price override
+                // But only if we are the ones who cleared it via null. 
+                // If user just updated a past date, the current price remains the latest one.
+                if (price === null && newList.length === 0) {
+                     delete newPrices[isin];
+                } else if (latest) {
+                     newPrices[isin] = latest.price;
+                }
+            }
+            return newPrices;
+        });
+
+        return { ...prev, [isin]: newList };
     });
+    
     setLastUpdated(new Date());
   };
   
@@ -1623,6 +1666,7 @@ const App: React.FC = () => {
           manualPrices={manualWarrantPrices}
           onManualPriceChange={handleManualWarrantPrice}
           onBack={() => setCurrentPage('Investments')}
+          priceHistory={priceHistory} // Pass history down
         />
       }
       return <PageLoader label="Loading holding..." />;

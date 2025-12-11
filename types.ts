@@ -1,5 +1,4 @@
 
-
 import React, { Dispatch, SetStateAction } from 'react';
 
 // FIX: Add 'AI Assistant' to Page type
@@ -44,6 +43,11 @@ export interface MileageLog {
     id: string;
     date: string;
     reading: number;
+}
+
+export interface PriceHistoryEntry {
+    date: string; // ISO Date YYYY-MM-DD
+    price: number;
 }
 
 export interface Account {
@@ -525,6 +529,7 @@ export interface FinancialData {
     accountOrder?: string[];
     tags?: Tag[];
     manualWarrantPrices?: Record<string, number | undefined>;
+    priceHistory?: Record<string, PriceHistoryEntry[]>; // New field for price history
     invoices?: Invoice[];
     userStats?: UserStats;
     predictions?: Prediction[];

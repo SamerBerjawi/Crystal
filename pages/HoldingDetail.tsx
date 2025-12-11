@@ -1,10 +1,12 @@
+
 import React, { useMemo, useState } from 'react';
 import {
     Account,
     HoldingSummary,
     HoldingsOverview,
     InvestmentTransaction,
-    Warrant
+    Warrant,
+    PriceHistoryEntry
 } from '../types';
 import Card from '../components/Card';
 import { formatCurrency, parseDateAsUTC } from '../utils';
@@ -12,6 +14,7 @@ import { BTN_PRIMARY_STYLE, BTN_SECONDARY_STYLE, INVESTMENT_SUB_TYPE_STYLES } fr
 import WarrantPriceModal from '../components/WarrantPriceModal';
 import { formatHoldingType } from '../utils/investments';
 import PageHeader from '../components/PageHeader';
+import PriceHistoryChart from '../components/PriceHistoryChart';
 
 interface HoldingDetailProps {
     holdingSymbol: string;
@@ -20,15 +23,16 @@ interface HoldingDetailProps {
     investmentTransactions: InvestmentTransaction[];
     warrants: Warrant[];
     manualPrices: Record<string, number | undefined>;
-    onManualPriceChange: (isin: string, price: number | null) => void;
+    onManualPriceChange: (isin: string, price: number | null, date?: string) => void;
     onBack: () => void;
+    priceHistory?: Record<string, PriceHistoryEntry[]>;
 }
 
 const StatBlock: React.FC<{ label: string; value: string; helper?: string; positive?: boolean; negative?: boolean }> = ({ label, value, helper, positive, negative }) => (
-    <div className="flex flex-col gap-1">
-        <p className="text-xs font-bold uppercase tracking-wider text-light-text-secondary dark:text-dark-text-secondary">{label}</p>
+    <div className="flex flex-col">
+        <p className="text-xs font-bold uppercase tracking-wider text-light-text-secondary dark:text-dark-text-secondary mb-1">{label}</p>
         <p className={`text-xl font-bold ${positive ? 'text-green-600 dark:text-green-400' : negative ? 'text-red-600 dark:text-red-400' : 'text-light-text dark:text-dark-text'}`}>{value}</p>
-        {helper && <p className="text-xs text-light-text-secondary dark:text-dark-text-secondary">{helper}</p>}
+        {helper && <p className="text-xs text-light-text-secondary dark:text-dark-text-secondary mt-0.5">{helper}</p>}
     </div>
 );
 
@@ -40,7 +44,8 @@ const HoldingDetail: React.FC<HoldingDetailProps> = ({
     warrants,
     manualPrices,
     onManualPriceChange,
-    onBack
+    onBack,
+    priceHistory = {}
 }) => {
     const [isPriceModalOpen, setIsPriceModalOpen] = useState(false);
 
@@ -58,8 +63,10 @@ const HoldingDetail: React.FC<HoldingDetailProps> = ({
                 id: tx.id,
                 date: tx.date,
                 label: tx.type === 'buy' ? 'Buy' : 'Sell',
+                quantity: tx.quantity,
                 amount: tx.quantity * tx.price,
-                detail: `${tx.quantity} @ ${formatCurrency(tx.price, 'EUR')}`,
+                detail: `@ ${formatCurrency(tx.price, 'EUR')}`,
+                price: tx.price,
                 badgeClass: tx.type === 'buy'
                     ? 'bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400'
                     : 'bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-400'
@@ -71,8 +78,10 @@ const HoldingDetail: React.FC<HoldingDetailProps> = ({
                 id: w.id,
                 date: w.grantDate,
                 label: 'Grant',
+                quantity: w.quantity,
                 amount: w.quantity * w.grantPrice,
-                detail: `${w.quantity} @ ${formatCurrency(w.grantPrice, 'EUR')}`,
+                detail: `@ ${formatCurrency(w.grantPrice, 'EUR')}`,
+                price: w.grantPrice,
                 badgeClass: 'bg-purple-100 text-purple-700 dark:bg-purple-900/30 dark:text-purple-400'
             }));
 
@@ -97,14 +106,27 @@ const HoldingDetail: React.FC<HoldingDetailProps> = ({
     const gainLoss = holding.currentValue - holding.totalCost;
     const gainLossPercent = holding.totalCost > 0 ? (gainLoss / holding.totalCost) * 100 : 0;
     const isPositive = gainLoss >= 0;
-    const typeStyle = holding.type === 'Warrant'
-        ? { color: 'text-purple-600 dark:text-purple-300', icon: 'card_membership' }
-        : INVESTMENT_SUB_TYPE_STYLES[holding.subType || 'Stock'] || { color: 'text-gray-600', icon: 'category' };
+    
+    // Style logic
+    const isWarrant = holding.type === 'Warrant';
+    const subType = holding.subType || 'Stock';
+    const typeStyle = isWarrant
+        ? { color: 'text-purple-600 dark:text-purple-400', bg: 'bg-purple-100 dark:bg-purple-900/30', icon: 'card_membership' }
+        : INVESTMENT_SUB_TYPE_STYLES[subType] 
+            ? { 
+                color: INVESTMENT_SUB_TYPE_STYLES[subType].color, 
+                bg: INVESTMENT_SUB_TYPE_STYLES[subType].color.replace('text-', 'bg-').replace('500', '100') + ' dark:' + INVESTMENT_SUB_TYPE_STYLES[subType].color.replace('text-', 'bg-').replace('500', '900/20'),
+                icon: INVESTMENT_SUB_TYPE_STYLES[subType].icon 
+              }
+            : { color: 'text-gray-600', bg: 'bg-gray-100', icon: 'category' };
 
-    const holdingTypeLabel = holding.type === 'Warrant' ? 'Warrant' : formatHoldingType(relatedAccount?.subType || holding.subType);
+    const holdingTypeLabel = isWarrant ? 'Warrant' : formatHoldingType(relatedAccount?.subType || holding.subType);
+    
+    // Only show price history chart if there is data
+    const historyData = priceHistory[holding.symbol] || [];
 
     return (
-        <div className="space-y-8 pb-12 animate-fade-in-up">
+        <div className="space-y-6 pb-12 animate-fade-in-up">
             {isPriceModalOpen && (
                 <WarrantPriceModal
                     onClose={() => setIsPriceModalOpen(false)}
@@ -115,111 +137,128 @@ const HoldingDetail: React.FC<HoldingDetailProps> = ({
                 />
             )}
 
-            <PageHeader
-                markerIcon="info"
-                markerLabel="Position Card"
-                title="Holding Overview"
-                subtitle="Quotes, lots, and allocation context for this specific holding."
-                actions={
-                    <div className="flex gap-2">
-                        <button onClick={onBack} className={`${BTN_SECONDARY_STYLE} flex items-center gap-2`}>
-                            <span className="material-symbols-outlined">arrow_back</span>
-                            Back
-                        </button>
-                        <button onClick={() => setIsPriceModalOpen(true)} className={`${BTN_PRIMARY_STYLE} flex items-center gap-2`}>
-                            <span className="material-symbols-outlined">edit_note</span>
-                            Update Price
-                        </button>
-                    </div>
-                }
-            />
-            <div className="flex items-center gap-3 mt-2">
-                <div className={`w-12 h-12 rounded-xl bg-black/5 dark:bg-white/5 flex items-center justify-center ${typeStyle.color}`}>
-                    <span className="material-symbols-outlined text-2xl">{typeStyle.icon}</span>
-                </div>
-                <div>
-                    <p className="text-sm text-light-text-secondary dark:text-dark-text-secondary uppercase font-bold tracking-wider">{holdingTypeLabel}</p>
-                    <p className="text-lg font-semibold text-light-text dark:text-dark-text">{holding.name} ({holding.symbol})</p>
-                </div>
-            </div>
+            {/* Navigation & Header */}
+            <div className="flex flex-col gap-6">
+                <button onClick={onBack} className="text-light-text-secondary dark:text-dark-text-secondary hover:text-primary-500 flex items-center gap-1 transition-colors self-start">
+                     <span className="material-symbols-outlined text-lg">arrow_back</span>
+                     <span className="text-sm font-medium">Investments</span>
+                </button>
 
-            <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-                <Card className="lg:col-span-2">
-                    <div className="grid grid-cols-2 md:grid-cols-3 gap-6">
-                        <StatBlock label="Current Price" value={formatCurrency(holding.currentPrice, 'EUR')} helper="Latest tracked value" />
-                        <StatBlock label="Quantity" value={holding.quantity.toLocaleString(undefined, { maximumFractionDigits: 4 })} helper={holding.type === 'Warrant' ? 'Units granted' : 'Units held'} />
-                        <StatBlock label="Market Value" value={formatCurrency(holding.currentValue, 'EUR')} helper={holding.color ? 'Updated with manual or live price' : undefined} />
-                        <StatBlock label="Cost Basis" value={formatCurrency(holding.totalCost, 'EUR')} helper={holding.type === 'Warrant' ? 'Total grant value' : 'All purchases minus sells'} />
-                        <StatBlock label="Average Cost" value={formatCurrency(averageCost, 'EUR')} helper="Per unit" />
-                        <StatBlock label="Total Return" value={`${isPositive ? '+' : ''}${formatCurrency(gainLoss, 'EUR')}`} helper={`${isPositive ? '▲' : '▼'} ${Math.abs(gainLossPercent).toFixed(2)}%`} positive={isPositive} negative={!isPositive} />
-                    </div>
-                </Card>
-
-                <Card className="flex flex-col gap-4">
-                    <h3 className="text-lg font-bold text-light-text dark:text-dark-text">Position Details</h3>
-                    <div className="space-y-3">
-                        <div className="flex justify-between text-sm">
-                            <span className="text-light-text-secondary dark:text-dark-text-secondary">Asset type</span>
-                            <span className="font-medium text-light-text dark:text-dark-text">{holdingTypeLabel}</span>
+                <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
+                    <div className="flex items-center gap-4">
+                        <div className={`w-16 h-16 rounded-2xl flex items-center justify-center ${typeStyle.bg} ${typeStyle.color} border border-current/10 shadow-sm`}>
+                            <span className="material-symbols-outlined text-4xl">{typeStyle.icon}</span>
                         </div>
-                        {relatedAccount?.financialInstitution && (
-                            <div className="flex justify-between text-sm">
-                                <span className="text-light-text-secondary dark:text-dark-text-secondary">Institution</span>
-                                <span className="font-medium text-light-text dark:text-dark-text">{relatedAccount.financialInstitution}</span>
-                            </div>
-                        )}
-                        {holding.type === 'Warrant' ? (
-                            <>
-                                <div className="flex justify-between text-sm">
-                                    <span className="text-light-text-secondary dark:text-dark-text-secondary">Grant price</span>
-                                    <span className="font-medium text-light-text dark:text-dark-text">{formatCurrency(holding.totalCost / holding.quantity, 'EUR')}</span>
-                                </div>
-                                <div className="flex justify-between text-sm">
-                                    <span className="text-light-text-secondary dark:text-dark-text-secondary">Grant value</span>
-                                    <span className="font-medium text-light-text dark:text-dark-text">{formatCurrency(holding.totalCost, 'EUR')}</span>
-                                </div>
-                            </>
-                        ) : (
-                            <>
-                                <div className="flex justify-between text-sm">
-                                    <span className="text-light-text-secondary dark:text-dark-text-secondary">Invested capital</span>
-                                    <span className="font-medium text-light-text dark:text-dark-text">{formatCurrency(holding.totalCost, 'EUR')}</span>
-                                </div>
-                                <div className="flex justify-between text-sm">
-                                    <span className="text-light-text-secondary dark:text-dark-text-secondary">Unrealized {isPositive ? 'gain' : 'loss'}</span>
-                                    <span className={`font-medium ${isPositive ? 'text-green-600 dark:text-green-400' : 'text-red-600 dark:text-red-400'}`}>{`${isPositive ? '+' : ''}${formatCurrency(gainLoss, 'EUR')}`}</span>
-                                </div>
-                            </>
-                        )}
+                        <div>
+                             <div className="flex items-center gap-2 mb-1">
+                                <h1 className="text-3xl font-bold text-light-text dark:text-dark-text tracking-tight">{holding.name}</h1>
+                                <span className="text-xs font-bold text-light-text-secondary dark:text-dark-text-secondary bg-black/5 dark:bg-white/10 px-2 py-0.5 rounded font-mono">
+                                    {holding.symbol}
+                                </span>
+                             </div>
+                             <p className="text-sm text-light-text-secondary dark:text-dark-text-secondary font-medium">
+                                 {holdingTypeLabel} {relatedAccount?.financialInstitution ? `• ${relatedAccount.financialInstitution}` : ''}
+                             </p>
+                        </div>
                     </div>
-                </Card>
+                    <button onClick={() => setIsPriceModalOpen(true)} className={`${BTN_PRIMARY_STYLE} flex items-center gap-2`}>
+                        <span className="material-symbols-outlined text-lg">edit_note</span>
+                        Update Price
+                    </button>
+                </div>
             </div>
 
+            {/* Hero Cards */}
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                <Card className="bg-gradient-to-br from-white to-gray-50 dark:from-dark-card dark:to-black/20 border border-black/5 dark:border-white/5 relative overflow-hidden group">
+                     <div className="absolute top-0 right-0 p-6 opacity-5 dark:opacity-[0.02] pointer-events-none group-hover:scale-110 transition-transform duration-500">
+                         <span className="material-symbols-outlined text-8xl">account_balance_wallet</span>
+                     </div>
+                     <div className="relative z-10">
+                         <p className="text-xs font-bold uppercase tracking-wider text-light-text-secondary dark:text-dark-text-secondary mb-1">Current Value</p>
+                         <h2 className="text-4xl font-extrabold text-light-text dark:text-dark-text tracking-tight">{formatCurrency(holding.currentValue, 'EUR')}</h2>
+                         <p className="text-sm text-light-text-secondary dark:text-dark-text-secondary mt-2">
+                             {holding.quantity.toLocaleString()} units @ {formatCurrency(holding.currentPrice, 'EUR')}
+                         </p>
+                     </div>
+                </Card>
+
+                <Card className="bg-gradient-to-br from-white to-gray-50 dark:from-dark-card dark:to-black/20 border border-black/5 dark:border-white/5 relative overflow-hidden group">
+                     <div className="absolute top-0 right-0 p-6 opacity-5 dark:opacity-[0.02] pointer-events-none group-hover:scale-110 transition-transform duration-500">
+                         <span className="material-symbols-outlined text-8xl">trending_up</span>
+                     </div>
+                     <div className="relative z-10">
+                         <p className="text-xs font-bold uppercase tracking-wider text-light-text-secondary dark:text-dark-text-secondary mb-1">Total Return</p>
+                         <div className="flex items-baseline gap-3">
+                             <h2 className={`text-4xl font-extrabold tracking-tight ${isPositive ? 'text-green-600 dark:text-green-400' : 'text-red-600 dark:text-red-400'}`}>
+                                 {isPositive ? '+' : ''}{formatCurrency(gainLoss, 'EUR')}
+                             </h2>
+                             <span className={`text-sm font-bold px-2 py-0.5 rounded-full ${isPositive ? 'bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400' : 'bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-400'}`}>
+                                 {isPositive ? '▲' : '▼'} {Math.abs(gainLossPercent).toFixed(2)}%
+                             </span>
+                         </div>
+                         <p className="text-sm text-light-text-secondary dark:text-dark-text-secondary mt-2">
+                             Invested Capital: {formatCurrency(holding.totalCost, 'EUR')}
+                         </p>
+                     </div>
+                </Card>
+            </div>
+            
+            {/* Price History Chart */}
+            {historyData.length > 1 && (
+                <Card>
+                    <h3 className="text-sm font-bold uppercase tracking-wider text-light-text-secondary dark:text-dark-text-secondary mb-4 border-b border-black/5 dark:border-white/5 pb-2">Price History</h3>
+                    <PriceHistoryChart history={historyData} />
+                </Card>
+            )}
+
+            {/* Key Statistics */}
             <Card>
-                <div className="flex justify-between items-center mb-4">
+                <h3 className="text-sm font-bold uppercase tracking-wider text-light-text-secondary dark:text-dark-text-secondary mb-6 border-b border-black/5 dark:border-white/5 pb-2">Position Details</h3>
+                <div className="grid grid-cols-2 md:grid-cols-4 gap-8">
+                    <StatBlock label="Quantity" value={holding.quantity.toLocaleString(undefined, { maximumFractionDigits: 6 })} />
+                    <StatBlock label="Current Price" value={formatCurrency(holding.currentPrice, 'EUR')} />
+                    <StatBlock label="Average Cost" value={formatCurrency(averageCost, 'EUR')} helper="Per Unit" />
+                    <StatBlock label="Total Cost Basis" value={formatCurrency(holding.totalCost, 'EUR')} />
+                </div>
+            </Card>
+
+            {/* Activity History */}
+            <Card className="flex flex-col">
+                <div className="flex justify-between items-center mb-6">
                     <div>
-                        <h3 className="text-lg font-bold text-light-text dark:text-dark-text">Activity</h3>
-                        <p className="text-sm text-light-text-secondary dark:text-dark-text-secondary">All movements for this holding</p>
+                        <h3 className="text-lg font-bold text-light-text dark:text-dark-text">Activity History</h3>
+                        <p className="text-sm text-light-text-secondary dark:text-dark-text-secondary">Transactions & Grants</p>
                     </div>
                 </div>
-                <div className="space-y-3">
-                    {activity.length === 0 && (
-                        <p className="text-light-text-secondary dark:text-dark-text-secondary">No activity recorded yet.</p>
-                    )}
-                    {activity.map(item => (
-                        <div key={item.id} className="flex items-center justify-between p-3 rounded-lg hover:bg-black/5 dark:hover:bg-white/5 transition-colors">
-                            <div className="flex items-center gap-4">
-                                <span className={`text-xs font-bold px-3 py-1 rounded-full ${item.badgeClass}`}>{item.label}</span>
-                                <div>
-                                    <p className="font-bold text-light-text dark:text-dark-text">{formatCurrency(item.amount, 'EUR')}</p>
-                                    <p className="text-xs text-light-text-secondary dark:text-dark-text-secondary">{item.detail}</p>
-                                </div>
-                            </div>
-                            <div className="text-right text-sm text-light-text-secondary dark:text-dark-text-secondary">
-                                {parseDateAsUTC(item.date).toLocaleDateString()}
-                            </div>
+                
+                <div className="divide-y divide-black/5 dark:divide-white/5">
+                    {activity.length === 0 ? (
+                        <div className="py-8 text-center text-light-text-secondary dark:text-dark-text-secondary italic">
+                            No activity recorded for this asset.
                         </div>
-                    ))}
+                    ) : (
+                        activity.map(item => (
+                            <div key={item.id} className="flex items-center justify-between py-4 group hover:bg-black/5 dark:hover:bg-white/5 -mx-6 px-6 transition-colors">
+                                <div className="flex items-center gap-4">
+                                    <span className={`text-[10px] font-bold uppercase px-2 py-1 rounded-md min-w-[50px] text-center ${item.badgeClass}`}>
+                                        {item.label}
+                                    </span>
+                                    <div>
+                                        <p className="text-sm font-bold text-light-text dark:text-dark-text">
+                                            {item.quantity.toLocaleString()} units <span className="text-light-text-secondary dark:text-dark-text-secondary font-normal">{item.detail}</span>
+                                        </p>
+                                        <p className="text-xs text-light-text-secondary dark:text-dark-text-secondary">
+                                            {parseDateAsUTC(item.date).toLocaleDateString(undefined, { year: 'numeric', month: 'long', day: 'numeric' })}
+                                        </p>
+                                    </div>
+                                </div>
+                                <p className="font-mono font-medium text-light-text dark:text-dark-text">
+                                    {formatCurrency(item.amount, 'EUR')}
+                                </p>
+                            </div>
+                        ))
+                    )}
                 </div>
             </Card>
         </div>
