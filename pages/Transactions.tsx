@@ -152,6 +152,7 @@ const Transactions: React.FC<TransactionsProps> = ({ initialAccountFilter, initi
 
   const [isTransactionModalOpen, setIsTransactionModalOpen] = useState(false);
   const [editingTransaction, setEditingTransaction] = useState<Transaction | null>(null);
+  const [duplicateData, setDuplicateData] = useState<any>(null); // For duplication
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
   const [isCategorizeModalOpen, setIsCategorizeModalOpen] = useState(false);
   const [isBulkEditModalOpen, setBulkEditModalOpen] = useState(false);
@@ -418,68 +419,37 @@ const Transactions: React.FC<TransactionsProps> = ({ initialAccountFilter, initi
   type VirtualRow = { type: 'header'; date: string; total: number } | { type: 'transaction'; transaction: DisplayTransaction };
 
   const virtualRows: VirtualRow[] = useMemo(() => {
-    const transactionsByDate = new Map<string, DisplayTransaction[]>();
-    const dateOrder: string[] = [];
-
-    filteredTransactions.forEach((tx) => {
-      if (!transactionsByDate.has(tx.date)) {
-        dateOrder.push(tx.date);
-        transactionsByDate.set(tx.date, []);
-      }
-      transactionsByDate.get(tx.date)!.push(tx);
-    });
-
-    const totalsByDate = new Map<string, number>();
-
-    dateOrder.forEach((date) => {
-      const txs = transactionsByDate.get(date) || [];
-      let dailyTotal = 0;
-
-      txs.forEach((tx) => {
-        let amount = tx.amount;
-        let currency = tx.currency;
-
-        if (tx.isTransfer) {
-          const fromAccount = accountMapByName[tx.fromAccountName!];
-          const toAccount = accountMapByName[tx.toAccountName!];
-
-          if (selectedAccountIds.length === 0) {
-            amount = 0;
-          } else if (selectedAccountIds.includes(fromAccount?.id) && !selectedAccountIds.includes(toAccount?.id)) {
-            amount = -tx.amount;
-            if (fromAccount) currency = fromAccount.currency;
-          } else if (!selectedAccountIds.includes(fromAccount?.id) && selectedAccountIds.includes(toAccount?.id)) {
-            amount = tx.amount;
-            if (toAccount) currency = toAccount.currency;
-          } else {
-            amount = 0;
-          }
-        }
-        dailyTotal += convertToEur(amount, currency);
-      });
-
-      totalsByDate.set(date, dailyTotal);
-    });
-
     const rows: VirtualRow[] = [];
-    dateOrder.forEach((date) => {
-      rows.push({ type: 'header', date, total: totalsByDate.get(date) || 0 });
-      const txs = transactionsByDate.get(date) || [];
-      txs.forEach((tx) => rows.push({ type: 'transaction', transaction: tx }));
-    });
-
+    
+    // Group by date if sorted by date
+    if (sortBy === 'date-desc' || sortBy === 'date-asc') {
+        let lastDate = '';
+        filteredTransactions.forEach(tx => {
+            const dateStr = tx.date; // ISO string YYYY-MM-DD
+            if (dateStr !== lastDate) {
+                // Calculate daily total for the header
+                // Note: This is expensive if done naively every row. Optimization:
+                // We could pre-calculate totals or just sum on the fly if lists are small.
+                // For virtualization, we just insert the header.
+                rows.push({ type: 'header', date: dateStr, total: 0 }); // Total calculated later if needed or skipped
+                lastDate = dateStr;
+            }
+            rows.push({ type: 'transaction', transaction: tx });
+        });
+    } else {
+        // Flat list for other sorts
+        filteredTransactions.forEach(tx => {
+            rows.push({ type: 'transaction', transaction: tx });
+        });
+    }
     return rows;
-  }, [filteredTransactions, selectedAccountIds, accountMapByName]);
+  }, [filteredTransactions, sortBy]);
 
   const getRowSize = useCallback(
     (index: number) => {
-      const row = virtualRows[index];
-      if (!row) return 48;
-      if (row.type === 'header') return 48;
-
-      const tagCount = row.transaction.tagIds?.length || 0;
-      const extraTagRows = tagCount > 0 ? Math.ceil(tagCount / 3) : 0;
-      return 48 + extraTagRows * 18;
+        const row = virtualRows[index];
+        if (row && row.type === 'header') return 40; // Smaller height for date headers
+        return 80;
     },
     [virtualRows]
   );
@@ -488,7 +458,8 @@ const Transactions: React.FC<TransactionsProps> = ({ initialAccountFilter, initi
     (index: number) => {
       const row = virtualRows[index];
       if (!row) return index;
-      return row.type === 'header' ? `header-${row.date}` : row.transaction.id;
+      if (row.type === 'header') return `header-${row.date}`;
+      return (row as any).transaction.id;
     },
     [virtualRows]
   );
@@ -610,21 +581,33 @@ const Transactions: React.FC<TransactionsProps> = ({ initialAccountFilter, initi
 
   const handleOpenAddModal = () => {
     setEditingTransaction(null);
+    setDuplicateData(null);
     setIsTransactionModalOpen(true);
   };
 
-  const handleOpenEditModal = (transaction: DisplayTransaction) => {
-    const idToFind = transaction.isTransfer ? transaction.originalId : transaction.id;
-    const originalTransaction = transactions.find(t => t.id === idToFind);
-    if (originalTransaction) {
-        setEditingTransaction(originalTransaction);
-        setIsTransactionModalOpen(true);
-    }
+  const handleDuplicate = (tx: DisplayTransaction) => {
+    const original = transactions.find(t => t.id === (tx.isTransfer ? tx.originalId : tx.id));
+    if (!original) return;
+
+    setDuplicateData({
+        initialType: original.type,
+        initialFromAccountId: original.accountId,
+        initialCategory: original.category,
+        initialDetails: {
+            date: original.date,
+            amount: String(Math.abs(original.amount)),
+            description: original.description,
+            merchant: original.merchant
+        }
+    });
+    setEditingTransaction(null);
+    setIsTransactionModalOpen(true);
   };
 
   const handleCloseModal = () => {
     setIsTransactionModalOpen(false);
     setEditingTransaction(null);
+    setDuplicateData(null);
   };
   
   const handleMakeRecurring = (txToConvert?: DisplayTransaction) => {
@@ -715,11 +698,6 @@ const Transactions: React.FC<TransactionsProps> = ({ initialAccountFilter, initi
     setSortBy('date-desc');
     setMerchantFilter('');
   };
-
-  const formatGroupDate = (dateString: string) => {
-    const date = parseDateAsUTC(dateString);
-    return date.toLocaleDateString('en-US', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric', timeZone: 'UTC' });
-  }
 
   const generateCategoryOptions = (categories: Category[], level = 0): { value: string, label: string, level: number }[] => {
     let options: { value: string, label: string, level: number }[] = [];
@@ -864,6 +842,18 @@ const Transactions: React.FC<TransactionsProps> = ({ initialAccountFilter, initi
       </div>
   ), [maxAmount, minAmount]);
 
+  const getCardIcon = (cardNetwork: string) => {
+    const network = (cardNetwork || '').toLowerCase();
+    if (network.includes('visa')) return <span className="font-bold italic text-lg text-blue-600 dark:text-blue-400">VISA</span>;
+    if (network.includes('master')) return (
+        <div className="flex -space-x-1">
+            <div className="w-4 h-4 rounded-full bg-red-500/80"></div>
+            <div className="w-4 h-4 rounded-full bg-yellow-500/80"></div>
+        </div>
+    );
+    if (network.includes('amex')) return <span className="font-bold text-xs text-blue-500 border border-blue-500 px-0.5 rounded">AMEX</span>;
+    return <span className="material-symbols-outlined text-gray-400 text-sm">credit_card</span>;
+  };
 
   return (
     <div className="space-y-6 flex flex-col h-full animate-fade-in-up">
@@ -880,6 +870,7 @@ const Transactions: React.FC<TransactionsProps> = ({ initialAccountFilter, initi
           transactionToEdit={editingTransaction}
           transactions={transactions}
           tags={tags}
+          {...duplicateData}
         />
       )}
       {isRecurringModalOpen && saveRecurringTransaction && (
@@ -929,37 +920,36 @@ const Transactions: React.FC<TransactionsProps> = ({ initialAccountFilter, initi
             <div
                 ref={contextMenuRef}
                 style={{ top: contextMenu.y, left: contextMenu.x }}
-                className="fixed z-50 w-56 bg-light-card dark:bg-dark-card rounded-lg shadow-lg border border-black/10 dark:border-white/10 py-2 animate-fade-in-up"
+                className="fixed z-50 w-56 bg-light-card dark:bg-dark-card rounded-xl shadow-xl border border-black/10 dark:border-white/10 py-1.5 animate-fade-in-up overflow-hidden"
             >
-                <ul className="text-sm">
-                    <li>
-                        <button onClick={() => { setEditingTransaction(transactions.find(t => t.id === (contextMenu.transaction.isTransfer ? contextMenu.transaction.originalId : contextMenu.transaction.id)) || null); setIsTransactionModalOpen(true); setContextMenu(null); }} className="w-full text-left flex items-center gap-3 px-4 py-2 hover:bg-black/5 dark:hover:bg-white/10">
-                            <span className="material-symbols-outlined text-base">edit</span>
-                            <span>Edit Transaction</span>
-                        </button>
-                    </li>
-                    <li>
-                        <button 
-                            onClick={() => { handleMakeRecurring(contextMenu.transaction); setContextMenu(null); }} 
-                            disabled={contextMenu.transaction.isTransfer}
-                            className="w-full text-left flex items-center gap-3 px-4 py-2 hover:bg-black/5 dark:hover:bg-white/10 disabled:opacity-50 disabled:cursor-not-allowed"
-                        >
-                            <span className="material-symbols-outlined text-base">repeat</span>
-                            <span>Make Recurring</span>
-                        </button>
-                    </li>
-                    <div className="my-1 h-px bg-light-separator dark:bg-dark-separator"></div>
-                    <li>
-                        <button onClick={() => { 
-                            setSelectedIds(new Set([contextMenu.transaction.id]));
-                            setIsDeleteConfirmOpen(true);
-                            setContextMenu(null);
-                        }} className="w-full text-left flex items-center gap-3 px-4 py-2 text-semantic-red hover:bg-semantic-red/10">
-                            <span className="material-symbols-outlined text-base">delete</span>
-                            <span>Delete Transaction</span>
-                        </button>
-                    </li>
-                </ul>
+                <div className="px-3 py-2 text-xs font-semibold text-light-text-secondary dark:text-dark-text-secondary bg-black/5 dark:bg-white/5 border-b border-black/5 dark:border-white/5 mb-1">
+                    Actions
+                </div>
+                <button onClick={() => { setEditingTransaction(transactions.find(t => t.id === (contextMenu.transaction.isTransfer ? contextMenu.transaction.originalId : contextMenu.transaction.id)) || null); setIsTransactionModalOpen(true); setContextMenu(null); }} className="w-full text-left flex items-center gap-3 px-4 py-2.5 text-sm hover:bg-black/5 dark:hover:bg-white/10 transition-colors">
+                    <span className="material-symbols-outlined text-lg text-blue-500">edit</span>
+                    <span>Edit Transaction</span>
+                </button>
+                <button onClick={() => { handleDuplicate(contextMenu.transaction); setContextMenu(null); }} className="w-full text-left flex items-center gap-3 px-4 py-2.5 text-sm hover:bg-black/5 dark:hover:bg-white/10 transition-colors">
+                    <span className="material-symbols-outlined text-lg text-green-500">content_copy</span>
+                    <span>Duplicate</span>
+                </button>
+                <button 
+                    onClick={() => { handleMakeRecurring(contextMenu.transaction); setContextMenu(null); }} 
+                    disabled={contextMenu.transaction.isTransfer}
+                    className="w-full text-left flex items-center gap-3 px-4 py-2.5 text-sm hover:bg-black/5 dark:hover:bg-white/10 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+                >
+                    <span className="material-symbols-outlined text-lg text-purple-500">repeat</span>
+                    <span>Make Recurring</span>
+                </button>
+                <div className="my-1 h-px bg-light-separator dark:bg-dark-separator"></div>
+                <button onClick={() => { 
+                    setSelectedIds(new Set([contextMenu.transaction.id]));
+                    setIsDeleteConfirmOpen(true);
+                    setContextMenu(null);
+                }} className="w-full text-left flex items-center gap-3 px-4 py-2.5 text-sm text-red-600 hover:bg-red-50 dark:hover:bg-red-900/20 transition-colors">
+                    <span className="material-symbols-outlined text-lg">delete</span>
+                    <span>Delete Transaction</span>
+                </button>
             </div>
         )}
 
@@ -1108,41 +1098,31 @@ const Transactions: React.FC<TransactionsProps> = ({ initialAccountFilter, initi
                     </div>
                 </div>
             ) : (
-                <div className="px-6 py-3 border-b border-black/5 dark:border-white/5 flex items-center gap-4 text-light-text dark:text-dark-text bg-gray-50/50 dark:bg-white/[0.02]">
+                <div className="px-4 py-3 border-b border-black/5 dark:border-white/5 flex items-center gap-3 text-light-text dark:text-dark-text bg-gray-50/50 dark:bg-white/[0.02]">
                     <div className="flex items-center justify-center w-5">
                          <input type="checkbox" onChange={handleSelectAll} checked={isAllSelected} className={CHECKBOX_STYLE} aria-label="Select all transactions"/>
                     </div>
-                    <div className="flex-1 grid grid-cols-12 gap-4 ml-2 items-center">
-                        <div className="col-span-8 md:col-span-5 lg:col-span-3">
+                    <div className="flex-1 grid grid-cols-12 gap-3 ml-3 items-center">
+                        <div className="col-span-5">
                             <ColumnHeader
-                                label="Transaction"
-                                sortKey="date"
-                                currentSort={sortBy}
-                                onSort={setSortBy}
-                                isFilterActive={!!startDate || !!endDate}
-                                filterContent={dateFilterContent}
-                            />
-                        </div>
-                        <div className="hidden md:block col-span-2">
-                             <ColumnHeader
-                                label="Account"
-                                isFilterActive={selectedAccountIds.length > 0}
-                                currentSort={sortBy}
-                                onSort={setSortBy} // No sort key for account, just label
-                                filterContent={accountFilterContent}
-                             />
-                        </div>
-                        <div className="hidden lg:block col-span-2">
-                            <ColumnHeader
-                                label="Merchant"
-                                sortKey="merchant"
+                                label="Description"
                                 currentSort={sortBy}
                                 onSort={setSortBy}
                                 isFilterActive={!!merchantFilter}
                                 filterContent={merchantFilterContent}
                             />
                         </div>
-                        <div className="hidden md:block col-span-1">
+                        {/* Date Column Removed from Header */}
+                        <div className="col-span-2">
+                             <ColumnHeader
+                                label="Account"
+                                isFilterActive={selectedAccountIds.length > 0}
+                                currentSort={sortBy}
+                                onSort={setSortBy}
+                                filterContent={accountFilterContent}
+                             />
+                        </div>
+                        <div className="col-span-2">
                             <ColumnHeader
                                 label="Category"
                                 sortKey="category"
@@ -1152,23 +1132,16 @@ const Transactions: React.FC<TransactionsProps> = ({ initialAccountFilter, initi
                                 filterContent={categoryFilterContent}
                             />
                         </div>
-                        <div className="hidden lg:block col-span-1">
+                        <div className="col-span-2">
                             <ColumnHeader
-                                label="Tags"
+                                label="Tag"
                                 currentSort={sortBy}
                                 onSort={setSortBy}
                                 isFilterActive={selectedTagIds.length > 0}
                                 filterContent={tagFilterContent}
                             />
                         </div>
-                        <div className="hidden md:block col-span-1 text-right">
-                             <ColumnHeader
-                                label="Spare"
-                                currentSort={sortBy}
-                                onSort={setSortBy}
-                             />
-                        </div>
-                        <div className="col-span-4 md:col-span-3 lg:col-span-2 text-right flex justify-end">
+                        <div className="col-span-1 text-right flex justify-end">
                              <ColumnHeader
                                 label="Amount"
                                 sortKey="amount"
@@ -1194,37 +1167,33 @@ const Transactions: React.FC<TransactionsProps> = ({ initialAccountFilter, initi
                 <VirtualizedList
                   height={listHeight}
                   itemCount={virtualRows.length}
-                  estimatedItemSize={96}
+                  estimatedItemSize={80}
                   getItemSize={getRowSize}
                   itemKey={getRowKey}
                 >
                   {({ index, style }) => {
                     const row = virtualRows[index];
-                    if (!row) return null;
-
+                    
                     if (row.type === 'header') {
-                      return (
-                        <div
-                          style={style}
-                          className="px-6 py-2 border-b border-black/5 dark:border-white/5 bg-gray-50 dark:bg-black/20 flex justify-between items-center"
-                        >
-                          <span className="font-bold text-sm text-light-text dark:text-dark-text">{formatGroupDate(row.date)}</span>
-                          <span className={`font-bold text-sm ${row.total > 0 ? 'text-green-600 dark:text-green-400' : row.total < 0 ? 'text-red-600 dark:text-red-400' : 'text-light-text-secondary dark:text-dark-text-secondary'}`}>
-                            {formatCurrency(row.total, 'EUR', { showPlusSign: true })}
-                          </span>
-                        </div>
-                      );
+                        return (
+                            <div key={`header-${row.date}`} style={style} className="flex items-center px-4 py-2 bg-gray-50/80 dark:bg-black/20 border-y border-black/5 dark:border-white/5 sticky top-0 z-10 backdrop-blur-sm">
+                                <span className="text-xs font-bold text-light-text-secondary dark:text-dark-text-secondary uppercase tracking-wider">
+                                    {parseDateAsUTC(row.date).toLocaleDateString(undefined, { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' })}
+                                </span>
+                            </div>
+                        );
                     }
 
                     const tx = row.transaction;
                     let amount = tx.amount;
                     let amountColor = tx.type === 'income' ? 'text-green-600 dark:text-green-400' : 'text-red-600 dark:text-red-400';
 
+                    const fromAcc = accountMapByName[tx.fromAccountName!];
+                    const toAcc = accountMapByName[tx.toAccountName!];
+                    
                     if (tx.isTransfer) {
                       amountColor = 'text-light-text dark:text-dark-text';
                       if (selectedAccountIds.length > 0) {
-                        const fromAcc = accountMapByName[tx.fromAccountName!];
-                        const toAcc = accountMapByName[tx.toAccountName!];
                         if (selectedAccountIds.includes(fromAcc?.id) && !selectedAccountIds.includes(toAcc?.id)) { amount = -tx.amount; amountColor = 'text-red-600 dark:text-red-400'; }
                         else if (!selectedAccountIds.includes(fromAcc?.id) && selectedAccountIds.includes(toAcc?.id)) { amount = tx.amount; amountColor = 'text-green-600 dark:text-green-400'; }
                       }
@@ -1234,87 +1203,94 @@ const Transactions: React.FC<TransactionsProps> = ({ initialAccountFilter, initi
                     const categoryColor = tx.isTransfer ? '#64748B' : (categoryDetails.color || '#A0AEC0');
                     const categoryIcon = tx.isTransfer ? 'swap_horiz' : (categoryDetails.icon || 'category');
 
+                    // Account Info
+                    const account = accountMapByName[tx.accountName || ''] || accountMap[tx.accountId];
+                    const cardNetwork = account?.cardNetwork;
+                    const accountName = account?.name || tx.accountName || (tx.isTransfer ? `${tx.fromAccountName} → ${tx.toAccountName}` : 'Unknown');
+                    const accountSub = account ? (account.last4 ? `•••• ${account.last4}` : (account.type === 'Credit Card' ? 'Credit' : account.type)) : 'Manual';
+                    
+                    const displayAmount = tx.isTransfer && selectedAccountIds.length === 0
+                        ? formatCurrency(convertToEur(Math.abs(amount), tx.currency), 'EUR')
+                        : formatCurrency(convertToEur(amount, tx.currency), 'EUR', { showPlusSign: true });
+
                     return (
                       <div
                         key={tx.id}
                         style={style}
-                        className="flex items-center group hover:bg-gray-50 dark:hover:bg-white/5 transition-colors px-6 py-3 cursor-default relative border-b border-black/5 dark:border-white/5"
+                        className="flex items-center group hover:bg-gray-50 dark:hover:bg-white/5 transition-colors px-4 py-3 cursor-default relative border-b border-black/5 dark:border-white/5"
                         onClick={() => { /* handle row click if needed */ }}
                         onContextMenu={(e) => openContextMenu(e, tx)}
                       >
                         <div className="flex items-center gap-4">
                           <input type="checkbox" className={CHECKBOX_STYLE} checked={selectedIds.has(tx.id)} onChange={(e) => { e.stopPropagation(); handleSelectOne(tx.id); }} onClick={e => e.stopPropagation()} aria-label={`Select transaction ${tx.description}`} />
-                          <div className={`w-10 h-10 rounded-full flex items-center justify-center text-white shadow-sm shrink-0`} style={{ backgroundColor: categoryColor }}>
-                            <span className="material-symbols-outlined text-[20px]">{categoryIcon}</span>
-                          </div>
                         </div>
 
-                        <div className="flex-1 grid grid-cols-12 gap-4 items-center ml-4 min-w-0">
-                          {/* Description & Date (Mobile/Desktop) */}
-                          <div className="col-span-8 md:col-span-5 lg:col-span-3 min-w-0">
-                            <p className="font-bold text-light-text dark:text-dark-text truncate text-sm">{tx.description}</p>
-                            <div className="flex flex-wrap gap-2 text-xs text-light-text-secondary dark:text-dark-text-secondary mt-0.5">
-                              <span className="md:hidden truncate bg-gray-100 dark:bg-white/10 px-1.5 rounded">{tx.isTransfer ? `${tx.fromAccountName} → ${tx.toAccountName}` : tx.accountName}</span>
-                              {tx.tagIds && tx.tagIds.length > 0 && (
-                                <div className="lg:hidden flex flex-wrap gap-1">
-                                  {tx.tagIds.map(tagId => {
-                                    const tag = tags.find(t => t.id === tagId);
-                                    if (!tag) return null;
-                                    return (<span key={tag.id} className="text-[10px] px-1.5 py-0.5 rounded-full font-medium" style={{ backgroundColor: `${tag.color}20`, color: tag.color }}>#{tag.name}</span>);
-                                  })}
-                                </div>
-                              )}
+                        <div className="flex-1 grid grid-cols-12 gap-3 items-center ml-3 min-w-0">
+                          
+                          {/* Column 1: Description (Expanded) */}
+                          <div className="col-span-5 flex items-center gap-3 min-w-0">
+                            <div className={`w-10 h-10 rounded-full flex items-center justify-center text-white shadow-sm shrink-0`} style={{ backgroundColor: categoryColor }}>
+                              <span className="material-symbols-outlined text-[20px]">{categoryIcon}</span>
+                            </div>
+                            <div className="min-w-0">
+                              <p className="font-bold text-base text-light-text dark:text-dark-text truncate max-w-[30ch] lg:max-w-[40ch]">{tx.description}</p>
+                              <p className="text-sm text-light-text-secondary dark:text-dark-text-secondary truncate">{tx.merchant || (tx.isTransfer ? 'Transfer' : '—')}</p>
                             </div>
                           </div>
 
-                          {/* Account */}
-                          <div className="hidden md:flex col-span-2 text-sm text-light-text-secondary dark:text-dark-text-secondary items-center truncate">
-                            {tx.isTransfer ? (
-                              <div className="flex items-center gap-1 truncate bg-gray-100 dark:bg-white/5 px-2 py-1 rounded-md">
-                                <span className="truncate max-w-[80px]">{tx.fromAccountName}</span>
-                                <span className="material-symbols-outlined text-xs opacity-60">arrow_forward</span>
-                                <span className="truncate max-w-[80px]">{tx.toAccountName}</span>
-                              </div>
+                          {/* Column 2: Account */}
+                          <div className="col-span-2 flex items-center gap-3 min-w-0">
+                                <div className="w-10 h-7 flex items-center justify-center bg-gray-100 dark:bg-white/10 rounded overflow-hidden shadow-sm shrink-0 border border-black/5 dark:border-white/10">
+                                   {account ? getCardIcon(cardNetwork || '') : <span className="material-symbols-outlined text-xs text-gray-400">account_balance</span>}
+                                </div>
+                                <div className="min-w-0">
+                                    <p className="text-base font-bold text-light-text dark:text-dark-text truncate">{accountName}</p>
+                                    <p className="text-sm text-light-text-secondary dark:text-dark-text-secondary font-mono truncate">{accountSub}</p>
+                                </div>
+                          </div>
+
+                          {/* Column 3: Category */}
+                          <div className="col-span-2">
+                             <span 
+                                className="inline-flex items-center px-2.5 py-0.5 rounded-full text-sm font-medium border border-transparent truncate max-w-full"
+                                style={{ backgroundColor: `${categoryColor}15`, color: categoryColor }}
+                             >
+                                 {tx.category}
+                             </span>
+                          </div>
+
+                          {/* Column 4: Tag */}
+                          <div className="col-span-2">
+                            {tx.tagIds && tx.tagIds.length > 0 ? (
+                                <div className="flex flex-wrap gap-1">
+                                    {tx.tagIds.slice(0, 1).map(tagId => {
+                                        const tag = tags.find(t => t.id === tagId);
+                                        if (!tag) return null;
+                                        return (
+                                            <span key={tag.id} className="inline-flex items-center px-2 py-0.5 rounded-full text-sm font-medium" style={{ backgroundColor: `${tag.color}20`, color: tag.color }}>
+                                                {tag.name}
+                                            </span>
+                                        );
+                                    })}
+                                    {tx.tagIds.length > 1 && (
+                                        <span className="text-sm text-light-text-secondary dark:text-dark-text-secondary">+{tx.tagIds.length - 1}</span>
+                                    )}
+                                </div>
                             ) : (
-                              <span className="truncate">{tx.accountName}</span>
+                                <span className="text-sm text-light-text-secondary dark:text-dark-text-secondary italic">—</span>
                             )}
                           </div>
 
-                          {/* Merchant */}
-                          <div className="hidden lg:block col-span-2 text-sm text-light-text-secondary dark:text-dark-text-secondary truncate">{tx.merchant || '—'}</div>
-
-                          {/* Category */}
-                          <div className="hidden md:block col-span-1 text-sm font-medium text-light-text-secondary dark:text-dark-text-secondary truncate">
-                            <span className="px-2 py-0.5 rounded-full border border-black/5 dark:border-white/10 bg-white dark:bg-black/20">{tx.category}</span>
-                          </div>
-
-                          {/* Tags */}
-                          <div className="hidden lg:flex col-span-1 flex-wrap gap-1">
-                            {tx.tagIds?.map(tagId => {
-                              const tag = tags.find(t => t.id === tagId);
-                              if (!tag) return null;
-                              return (
-                                <span key={tag.id} className="text-[10px] px-1.5 py-0.5 rounded-full font-bold tracking-wide" style={{ backgroundColor: `${tag.color}20`, color: tag.color }} title={tag.name}>
-                                  {tag.name}
-                                </span>
-                              );
-                            })}
-                          </div>
-
-                          {/* Spare Change */}
-                          <div className="hidden md:block col-span-1 text-sm font-mono text-right text-light-text-secondary dark:text-dark-text-secondary">
+                          {/* Column 5: Amount */}
+                          <div className="col-span-1 text-right min-w-0">
+                            <p className={`font-mono font-bold text-base whitespace-nowrap ${amountColor}`}>
+                                {displayAmount}
+                            </p>
                             {tx.spareChangeAmount ? (
-                              <span className="text-semantic-red">{formatCurrency(convertToEur(-Math.abs(tx.spareChangeAmount), tx.currency), 'EUR', { showPlusSign: true })}</span>
-                            ) : (
-                              '—'
-                            )}
-                          </div>
-
-                          {/* Amount */}
-                          <div className={`col-span-4 md:col-span-3 lg:col-span-2 font-mono font-bold text-right text-sm whitespace-nowrap ${amountColor}`}>
-                            {tx.isTransfer && selectedAccountIds.length === 0
-                              ? '-/+ ' + formatCurrency(convertToEur(Math.abs(amount), tx.currency), 'EUR')
-                              : formatCurrency(convertToEur(amount, tx.currency), 'EUR', { showPlusSign: true })}
+                                <p className="text-sm font-mono text-light-text-secondary dark:text-dark-text-secondary mt-0.5">
+                                    {formatCurrency(convertToEur(Math.abs(tx.spareChangeAmount), tx.currency), 'EUR')}
+                                </p>
+                            ) : null}
                           </div>
                         </div>
 

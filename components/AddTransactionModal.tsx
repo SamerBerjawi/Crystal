@@ -73,19 +73,6 @@ const AccountOptions: React.FC<{ accounts: Account[] }> = ({ accounts }) => {
   );
 };
 
-const InputGroup = ({ label, icon, children, className = "" }: { label: string, icon?: string, children?: React.ReactNode, className?: string }) => (
-      <div className={`space-y-1 ${className}`}>
-          <label className="text-[10px] uppercase font-bold text-light-text-secondary dark:text-dark-text-secondary tracking-wider flex items-center gap-1.5 ml-1">
-              {icon && <span className="material-symbols-outlined text-sm">{icon}</span>}
-              {label}
-          </label>
-          <div className="relative">
-              {children}
-          </div>
-      </div>
-  );
-
-
 const AddTransactionModal: React.FC<AddTransactionModalProps> = ({ onClose, onSave, accounts, incomeCategories, expenseCategories, transactions, transactionToEdit, initialType, initialFromAccountId, initialToAccountId, initialCategory, tags, initialDetails }) => {
   const isEditing = !!transactionToEdit;
 
@@ -105,11 +92,11 @@ const AddTransactionModal: React.FC<AddTransactionModalProps> = ({ onClose, onSa
   const [tagIds, setTagIds] = useState<string[]>([]);
   const [isTagSelectorOpen, setIsTagSelectorOpen] = useState(false);
   const tagSelectorRef = useRef<HTMLDivElement>(null);
+  const [showDetails, setShowDetails] = useState(false);
   
   // Location fields
   const [locationString, setLocationString] = useState('');
   const [locationData, setLocationData] = useState<{city?: string, country?: string, lat?: number, lon?: number}>({});
-
 
   // Loan payment split state
   const [principalPayment, setPrincipalPayment] = useState('');
@@ -125,7 +112,7 @@ const AddTransactionModal: React.FC<AddTransactionModalProps> = ({ onClose, onSa
     return accounts.find(a => a.id === accId);
   }, [accounts, type, fromAccountId, toAccountId]);
 
-  const currencySymbol = activeAccount ? (activeAccount.currency === 'USD' ? '$' : activeAccount.currency === 'EUR' ? '€' : activeAccount.currency === 'GBP' ? '£' : '') : '';
+  const currencySymbol = activeAccount ? (activeAccount.currency === 'USD' ? '$' : activeAccount.currency === 'EUR' ? '€' : activeAccount.currency === 'GBP' ? '£' : '') : '€';
 
   const isLoanPayment = useMemo(() => {
     const targetAccountId = type === 'income' ? toAccountId : (type === 'transfer' ? toAccountId : null);
@@ -137,7 +124,6 @@ const AddTransactionModal: React.FC<AddTransactionModalProps> = ({ onClose, onSa
   // Detect linked spare change account
   const linkedSpareChangeAccount = useMemo(() => {
     if ((type !== 'expense' && type !== 'transfer') || !fromAccountId) return null;
-    // Find an account that is type Investment, subType Spare Change, and linked to the current From account
     return accounts.find(a =>
         a.type === 'Investment' &&
         a.subType === 'Spare Change' &&
@@ -185,23 +171,18 @@ const AddTransactionModal: React.FC<AddTransactionModalProps> = ({ onClose, onSa
     const targetAccount = accounts.find(a => a.id === toAccountId);
     const isPaymentToLoan = (type === 'income' || type === 'transfer') && targetAccount?.type === 'Loan';
 
-    // Only calculate if it's a loan payment, rate is defined, and amount is a positive number
     if (isPaymentToLoan && targetAccount.interestRate && parseFloat(amount) > 0) {
         const totalPayment = parseFloat(amount);
-        // Loan balance is negative, so we take its absolute value
         const outstandingPrincipal = Math.abs(targetAccount.balance); 
         const monthlyInterestRate = (targetAccount.interestRate / 100) / 12;
         
         const calculatedInterest = parseFloat((outstandingPrincipal * monthlyInterestRate).toFixed(2));
-        
-        // The interest portion cannot be more than the total payment itself.
         const interest = Math.min(totalPayment, calculatedInterest);
         const principal = totalPayment - interest;
 
         setPrincipalPayment(principal.toFixed(2));
         setInterestPayment(interest.toFixed(2));
     } else {
-        // If it's not a loan payment or there's not enough info, clear the fields.
         setPrincipalPayment('');
         setInterestPayment('');
     }
@@ -243,7 +224,6 @@ const AddTransactionModal: React.FC<AddTransactionModalProps> = ({ onClose, onSa
         let amountToSet = String(Math.abs(transactionToEdit.amount));
         setTagIds(transactionToEdit.tagIds || []);
         
-        // Load location
         if (transactionToEdit.city && transactionToEdit.country) {
             setLocationString(`${transactionToEdit.city}, ${transactionToEdit.country}`);
             setLocationData({
@@ -252,6 +232,11 @@ const AddTransactionModal: React.FC<AddTransactionModalProps> = ({ onClose, onSa
                 lat: transactionToEdit.latitude,
                 lon: transactionToEdit.longitude
             });
+            setShowDetails(true);
+        }
+        
+        if (transactionToEdit.tagIds && transactionToEdit.tagIds.length > 0) {
+            setShowDetails(true);
         }
 
         if (transactionToEdit.transferId && transactions) {
@@ -262,16 +247,14 @@ const AddTransactionModal: React.FC<AddTransactionModalProps> = ({ onClose, onSa
                 const incomePart = transactionToEdit.type === 'income' ? transactionToEdit : counterpart;
                 setFromAccountId(expensePart.accountId);
                 setToAccountId(incomePart.accountId);
-                // The income part of the transfer holds the principal/interest info for a loan payment
                 principal = String(incomePart.principalAmount || '');
                 interest = String(incomePart.interestAmount || '');
-                amountToSet = String(Math.abs(incomePart.amount)); // Use amount from income part for consistency
+                amountToSet = String(Math.abs(incomePart.amount));
             }
             const baseDescription = transactionToEdit.description.replace(/Transfer to .*|Transfer from .*/, 'Account Transfer');
             setDescription(baseDescription);
             setMerchant(transactionToEdit.merchant || 'Internal Transfer');
         } else {
-            // This is a regular income/expense transaction
             setType(transactionToEdit.type);
             if (transactionToEdit.type === 'income') {
                 setToAccountId(transactionToEdit.accountId);
@@ -293,7 +276,6 @@ const AddTransactionModal: React.FC<AddTransactionModalProps> = ({ onClose, onSa
         setInterestPayment(interest);
 
     } else {
-        // Reset for new transaction
         setType(initialType || 'expense');
         setDate(initialDetails?.date || toLocalISOString(new Date()));
         setFromAccountId(initialFromAccountId || defaultAccountId);
@@ -310,6 +292,7 @@ const AddTransactionModal: React.FC<AddTransactionModalProps> = ({ onClose, onSa
         setEnableRoundUp(false);
         setRoundUpBehavior('skip');
         setRoundUpMultiplier('1');
+        setShowDetails(false);
     }
   }, [transactionToEdit, isEditing, accounts, transactions, initialType, initialFromAccountId, initialToAccountId, initialDetails, defaultAccountId, initialCategory]);
   
@@ -331,10 +314,6 @@ const AddTransactionModal: React.FC<AddTransactionModalProps> = ({ onClose, onSa
     setTagIds(prev => prev.includes(tagId) ? prev.filter(id => id !== tagId) : [...prev, tagId]);
   };
   
-  const selectedTags = useMemo(() => {
-    return tagIds.map(id => tags.find(t => t.id === id)).filter(Boolean) as Tag[];
-  }, [tagIds, tags]);
-
   const activeCategories = useMemo(() => {
     return type === 'income' ? incomeCategories : expenseCategories;
   }, [type, incomeCategories, expenseCategories]);
@@ -360,18 +339,16 @@ const AddTransactionModal: React.FC<AddTransactionModalProps> = ({ onClose, onSa
     const wasTransfer = isEditing && !!transactionToEdit.transferId;
     const isNowTransfer = type === 'transfer';
 
-    // Determine what to delete if a conversion is happening
     if (isEditing) {
-        if (wasTransfer && !isNowTransfer) { // From Transfer -> Income/Expense
+        if (wasTransfer && !isNowTransfer) {
             const counterpart = transactions?.find(t => t.transferId === transactionToEdit.transferId && t.id !== transactionToEdit.id);
             toDelete.push(transactionToEdit.id);
             if (counterpart) toDelete.push(counterpart.id);
-        } else if (!wasTransfer && isNowTransfer) { // From Income/Expense -> Transfer
+        } else if (!wasTransfer && isNowTransfer) {
             toDelete.push(transactionToEdit.id);
         }
     }
 
-    // Construct location data to mix in
     const locationProps = {
         city: locationData.city,
         country: locationData.country,
@@ -379,8 +356,6 @@ const AddTransactionModal: React.FC<AddTransactionModalProps> = ({ onClose, onSa
         longitude: locationData.lon,
     };
 
-
-    // Determine what to save
     if (isNowTransfer) {
         if (!fromAccountId || !toAccountId || fromAccountId === toAccountId) {
             alert("Please select two different accounts for the transfer.");
@@ -420,13 +395,11 @@ const AddTransactionModal: React.FC<AddTransactionModalProps> = ({ onClose, onSa
             ...locationProps
         };
         
-        // If it's a loan payment transfer, add the split
         if (isLoanPayment) {
             incomeTx.principalAmount = parseFloat(principalPayment) || 0;
             incomeTx.interestAmount = parseFloat(interestPayment) || 0;
         }
 
-        // If not converting, we are updating, so keep original IDs
         if (isEditing && wasTransfer) {
             const originalExpense = transactions!.find(t => t.transferId === transferId && t.type === 'expense');
             const originalIncome = transactions!.find(t => t.transferId === transferId && t.type === 'income');
@@ -465,7 +438,7 @@ const AddTransactionModal: React.FC<AddTransactionModalProps> = ({ onClose, onSa
 
             toSave.push(spareExpenseTx, spareIncomeTx);
         }
-    } else { // Saving as Income or Expense
+    } else {
         const accountId = type === 'income' ? toAccountId : fromAccountId;
         if (!accountId || !category) {
             alert("Please fill out all required fields.");
@@ -492,14 +465,12 @@ const AddTransactionModal: React.FC<AddTransactionModalProps> = ({ onClose, onSa
             transactionData.interestAmount = parseFloat(interestPayment) || 0;
         }
 
-        // If regular edit (not converting), keep the ID for update
         if (isEditing && !wasTransfer) {
             transactionData.id = transactionToEdit.id;
         }
 
         toSave.push(transactionData);
         
-        // Handle Round Up Transfer if enabled
         if (type === 'expense' && linkedSpareChangeAccount && enableRoundUp && adjustedRoundUpAmount > 0) {
              const spareChangeTransferId = `spare-${uuidv4()}`;
              
@@ -536,48 +507,33 @@ const AddTransactionModal: React.FC<AddTransactionModalProps> = ({ onClose, onSa
 
   const modalTitle = isEditing ? 'Edit Transaction' : 'New Transaction';
   const saveButtonText = isEditing ? 'Save Changes' : 'Add Transaction';
-  
-  // Theme logic for type selector
-  const typeColors = {
-      expense: 'bg-red-500 text-white',
-      income: 'bg-green-500 text-white',
-      transfer: 'bg-blue-500 text-white',
-  };
+  const labelStyle = "block text-xs font-bold text-light-text-secondary dark:text-dark-text-secondary uppercase tracking-wider mb-1.5";
 
   return (
-    <Modal onClose={onClose} title={modalTitle}>
+    <Modal onClose={onClose} title={modalTitle} size="lg">
       <form onSubmit={handleSubmit} className="space-y-6 pb-4">
         
-        {/* Top: Type Segmented Control */}
-        <div className="flex bg-gray-100 dark:bg-white/10 p-1 rounded-xl">
-             <button
-                type="button"
-                onClick={() => setType('expense')}
-                className={`flex-1 py-2 text-sm font-semibold rounded-lg transition-all ${type === 'expense' ? 'bg-red-500 text-white shadow-md' : 'text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200'}`}
-             >
-                 Expense
-             </button>
-             <button
-                type="button"
-                onClick={() => setType('income')}
-                className={`flex-1 py-2 text-sm font-semibold rounded-lg transition-all ${type === 'income' ? 'bg-green-500 text-white shadow-md' : 'text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200'}`}
-             >
-                 Income
-             </button>
-             <button
-                type="button"
-                onClick={() => setType('transfer')}
-                className={`flex-1 py-2 text-sm font-semibold rounded-lg transition-all ${type === 'transfer' ? 'bg-blue-500 text-white shadow-md' : 'text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200'}`}
-             >
-                 Transfer
-             </button>
+        {/* 1. Type Selector */}
+        <div className="flex justify-center">
+            <div className="bg-gray-100 dark:bg-white/5 p-1 rounded-full inline-flex relative shadow-inner">
+                 {['expense', 'income', 'transfer'].map(t => (
+                     <button
+                        key={t}
+                        type="button"
+                        onClick={() => setType(t as any)}
+                        className={`px-6 py-2 rounded-full text-sm font-bold capitalize transition-all duration-200 ${type === t ? 'bg-white dark:bg-gray-700 shadow-sm text-primary-600 dark:text-primary-400 scale-105' : 'text-gray-500 hover:text-gray-700 dark:hover:text-gray-300'}`}
+                     >
+                         {t}
+                     </button>
+                 ))}
+            </div>
         </div>
         
-        {/* Hero Amount */}
-        <div className="flex flex-col items-center justify-center py-2">
+        {/* 2. Hero Amount */}
+        <div className="flex flex-col items-center justify-center py-4">
             <div className="relative w-full max-w-[280px]">
-                <span className={`absolute left-0 top-1/2 -translate-y-1/2 text-3xl font-medium text-light-text-secondary dark:text-dark-text-secondary pointer-events-none transition-opacity duration-200 ${amount ? 'opacity-100' : 'opacity-50'}`}>
-                    {currencySymbol || '€'}
+                <span className={`absolute left-0 top-1/2 -translate-y-1/2 text-4xl font-medium text-light-text-secondary dark:text-dark-text-secondary pointer-events-none transition-opacity duration-200 ${amount ? 'opacity-100' : 'opacity-50'}`}>
+                    {currencySymbol}
                 </span>
                 <input 
                     id="tx-amount"
@@ -585,69 +541,117 @@ const AddTransactionModal: React.FC<AddTransactionModalProps> = ({ onClose, onSa
                     step="0.01" 
                     value={amount} 
                     onChange={e => setAmount(e.target.value)} 
-                    className="w-full bg-transparent border-b-2 border-gray-200 dark:border-gray-700 focus:border-primary-500 text-center text-5xl font-bold text-light-text dark:text-dark-text placeholder-gray-300 dark:placeholder-gray-700 focus:outline-none py-2 transition-colors pl-8" 
+                    className="w-full bg-transparent border-none text-center text-6xl font-extrabold text-light-text dark:text-dark-text placeholder-gray-200 dark:placeholder-gray-700 focus:ring-0 py-2 pl-8 tracking-tight" 
                     placeholder="0.00" 
                     autoFocus
                     required 
                 />
             </div>
              {isLoanPayment && (
-                 <p className="text-xs text-light-text-secondary dark:text-dark-text-secondary mt-2 font-medium bg-black/5 dark:bg-white/10 px-2 py-0.5 rounded">
+                 <span className="text-[10px] font-bold uppercase tracking-wider bg-blue-100 dark:bg-blue-900/30 text-blue-700 dark:text-blue-300 px-2 py-0.5 rounded-full mt-2">
                      Loan Payment
-                 </p>
+                 </span>
              )}
         </div>
         
-        {/* Compact Grid Layout for Inputs */}
-        <div className="grid grid-cols-12 gap-4">
-             
-             {type === 'transfer' ? (
-                <>
-                     {/* Row 1: From & To Accounts with visual arrow */}
-                     <div className="col-span-12 md:col-span-5">
-                         <InputGroup label="From Account">
+        {/* 3. Main Form Grid */}
+        <div className="bg-gray-50 dark:bg-white/5 p-6 rounded-2xl border border-black/5 dark:border-white/5 space-y-6">
+             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                 {/* Date & Merchant */}
+                 <div className="md:col-span-2 grid grid-cols-1 sm:grid-cols-2 gap-6">
+                     <div>
+                        <label className={labelStyle}>Date</label>
+                        <div className="relative">
+                            <span className="material-symbols-outlined absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 text-lg">calendar_today</span>
+                            <input id="tx-date" type="date" value={date} onChange={e => setDate(e.target.value)} className={`${INPUT_BASE_STYLE} pl-10`} required />
+                        </div>
+                     </div>
+                     <div>
+                        <label className={labelStyle}>Merchant / Payee</label>
+                        <div className="relative">
+                            <span className="material-symbols-outlined absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 text-lg">store</span>
+                            <input id="tx-merchant" type="text" value={merchant} onChange={e => setMerchant(e.target.value)} className={`${INPUT_BASE_STYLE} pl-10`} placeholder="Optional" />
+                        </div>
+                     </div>
+                 </div>
+
+                 {/* Account Selection */}
+                 <div className="md:col-span-2">
+                     <div className="flex flex-col sm:flex-row items-center gap-4">
+                         <div className="flex-1 w-full">
+                            <label className={labelStyle}>{type === 'income' ? 'To Account' : 'From Account'}</label>
                             <div className={SELECT_WRAPPER_STYLE}>
-                                <select id="tx-from-account" value={fromAccountId} onChange={e => setFromAccountId(e.target.value)} className={INPUT_BASE_STYLE} required>
+                                <select id="tx-account-1" value={type === 'income' ? toAccountId : fromAccountId} onChange={e => type === 'income' ? setToAccountId(e.target.value) : setFromAccountId(e.target.value)} className={INPUT_BASE_STYLE} required>
                                     <option value="" disabled>Select account</option>
-                                    <AccountOptions accounts={availableAccounts.filter(a => a.id !== toAccountId)} />
+                                    <AccountOptions accounts={accounts} />
                                 </select>
                                 <div className={SELECT_ARROW_STYLE}><span className="material-symbols-outlined">expand_more</span></div>
                             </div>
-                        </InputGroup>
+                         </div>
+                         
+                         {type === 'transfer' && (
+                             <>
+                                <span className="material-symbols-outlined text-gray-400 mt-6 hidden sm:block">arrow_forward</span>
+                                <div className="flex-1 w-full">
+                                    <label className={labelStyle}>To Account</label>
+                                    <div className={SELECT_WRAPPER_STYLE}>
+                                        <select id="tx-account-2" value={toAccountId} onChange={e => setToAccountId(e.target.value)} className={INPUT_BASE_STYLE} required>
+                                            <option value="" disabled>Select account</option>
+                                            <AccountOptions accounts={accounts.filter(a => a.id !== fromAccountId)} />
+                                        </select>
+                                        <div className={SELECT_ARROW_STYLE}><span className="material-symbols-outlined">expand_more</span></div>
+                                    </div>
+                                </div>
+                             </>
+                         )}
                      </div>
-                     
-                     <div className="hidden md:flex col-span-2 items-center justify-center pt-4">
-                          <span className="material-symbols-outlined text-gray-400">arrow_forward</span>
-                     </div>
+                 </div>
 
-                     <div className="col-span-12 md:col-span-5">
-                         <InputGroup label="To Account">
-                            <div className={SELECT_WRAPPER_STYLE}>
-                                <select id="tx-to-account" value={toAccountId} onChange={e => setToAccountId(e.target.value)} className={INPUT_BASE_STYLE} required>
-                                    <option value="" disabled>Select account</option>
-                                    <AccountOptions accounts={availableAccounts.filter(a => a.id !== fromAccountId)} />
+                 {/* Category & Description */}
+                 {type !== 'transfer' ? (
+                     <div className="md:col-span-2 grid grid-cols-1 sm:grid-cols-2 gap-6">
+                         <div>
+                             <label className={labelStyle}>Category</label>
+                             <div className={SELECT_WRAPPER_STYLE}>
+                                <select id="tx-category" value={category} onChange={e => setCategory(e.target.value)} className={INPUT_BASE_STYLE} required>
+                                    <CategoryOptions categories={activeCategories} />
                                 </select>
                                 <div className={SELECT_ARROW_STYLE}><span className="material-symbols-outlined">expand_more</span></div>
                             </div>
-                        </InputGroup>
+                         </div>
+                         <div>
+                             <label className={labelStyle}>Description</label>
+                             <div className="relative">
+                                <span className="material-symbols-outlined absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 text-lg">description</span>
+                                <input id="tx-description" type="text" value={description} onChange={e => setDescription(e.target.value)} className={`${INPUT_BASE_STYLE} pl-10`} placeholder="What was this for?" required />
+                             </div>
+                         </div>
                      </div>
+                 ) : (
+                      <div className="md:col-span-2">
+                         <label className={labelStyle}>Description</label>
+                         <div className="relative">
+                            <span className="material-symbols-outlined absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 text-lg">description</span>
+                            <input id="tx-description" type="text" value={description} onChange={e => setDescription(e.target.value)} className={`${INPUT_BASE_STYLE} pl-10`} placeholder="Reason for transfer" required />
+                         </div>
+                     </div>
+                 )}
+             </div>
+        </div>
 
-                     {/* Row 2: Date & Description */}
-                     <div className="col-span-12 md:col-span-4">
-                        <InputGroup label="Date" icon="calendar_month">
-                             <input id="tx-date" type="date" value={date} onChange={e => setDate(e.target.value)} className={INPUT_BASE_STYLE} required />
-                        </InputGroup>
-                     </div>
-                     <div className="col-span-12 md:col-span-8">
-                         <InputGroup label="Description" icon="description">
-                             <input id="tx-description" type="text" value={description} onChange={e => setDescription(e.target.value)} className={INPUT_BASE_STYLE} placeholder="e.g., Monthly savings" required />
-                        </InputGroup>
-                     </div>
+        {/* 4. Details / Metadata Accordion */}
+        <div>
+             <button type="button" onClick={() => setShowDetails(!showDetails)} className="flex items-center gap-2 text-sm font-semibold text-primary-500 hover:text-primary-600 transition-colors">
+                <span>{showDetails ? 'Hide Details' : 'Add Details (Tags, Location)'}</span>
+                <span className={`material-symbols-outlined transition-transform duration-200 ${showDetails ? 'rotate-180' : ''}`}>expand_more</span>
+             </button>
 
-                     {/* Row 3: Tags (Full width) */}
-                     <div className="col-span-12">
-                        <InputGroup label="Tags" icon="label">
-                             <div className="relative" ref={tagSelectorRef}>
+             {showDetails && (
+                 <div className="mt-4 grid grid-cols-1 md:grid-cols-2 gap-6 p-4 rounded-xl border border-dashed border-gray-300 dark:border-gray-700 animate-fade-in-up">
+                      {/* Tags */}
+                      <div className="md:col-span-2">
+                          <label className={labelStyle}>Tags</label>
+                          <div className="relative" ref={tagSelectorRef}>
                                 <div
                                     onClick={() => setIsTagSelectorOpen(prev => !prev)}
                                     className={`${INPUT_BASE_STYLE} flex items-center flex-wrap gap-1 cursor-pointer min-h-[42px] py-1.5`}
@@ -693,122 +697,21 @@ const AddTransactionModal: React.FC<AddTransactionModalProps> = ({ onClose, onSa
                                     </div>
                                 )}
                             </div>
-                        </InputGroup>
-                     </div>
-                </>
-             ) : (
-                <>
-                    {/* Standard Mode Grid */}
-                    
-                    {/* Row 1: Account & Category */}
-                    <div className="col-span-12 md:col-span-6">
-                        <InputGroup label={type === 'income' ? 'To Account' : 'From Account'} icon="wallet">
-                            <div className={SELECT_WRAPPER_STYLE}>
-                                <select id="tx-account" value={type === 'income' ? toAccountId : fromAccountId} onChange={e => type === 'income' ? setToAccountId(e.target.value) : setFromAccountId(e.target.value)} className={INPUT_BASE_STYLE} required>
-                                    <option value="" disabled>Select account</option>
-                                    <AccountOptions accounts={availableAccounts} />
-                                </select>
-                                <div className={SELECT_ARROW_STYLE}><span className="material-symbols-outlined">expand_more</span></div>
-                            </div>
-                        </InputGroup>
-                    </div>
-
-                    <div className="col-span-12 md:col-span-6">
-                        <InputGroup label="Category" icon="category">
-                             <div className={SELECT_WRAPPER_STYLE}>
-                                <select id="tx-category" value={category} onChange={e => setCategory(e.target.value)} className={INPUT_BASE_STYLE} required>
-                                    <CategoryOptions categories={type === 'income' ? incomeCategories : expenseCategories} />
-                                </select>
-                                <div className={SELECT_ARROW_STYLE}><span className="material-symbols-outlined">expand_more</span></div>
-                            </div>
-                        </InputGroup>
-                    </div>
-
-                    {/* Row 2: Date & Merchant */}
-                    <div className="col-span-12 md:col-span-4">
-                        <InputGroup label="Date" icon="calendar_month">
-                             <input id="tx-date" type="date" value={date} onChange={e => setDate(e.target.value)} className={INPUT_BASE_STYLE} required />
-                        </InputGroup>
-                    </div>
-
-                    <div className="col-span-12 md:col-span-8">
-                         <InputGroup label="Merchant" icon="store">
-                             <input id="tx-merchant" type="text" value={merchant} onChange={e => setMerchant(e.target.value)} className={INPUT_BASE_STYLE} placeholder="Optional" />
-                         </InputGroup>
-                    </div>
-
-                    {/* Row 3: Description (Full) */}
-                    <div className="col-span-12">
-                         <InputGroup label="Description" icon="description">
-                             <input id="tx-description" type="text" value={description} onChange={e => setDescription(e.target.value)} className={INPUT_BASE_STYLE} placeholder="e.g., Groceries" required />
-                        </InputGroup>
-                    </div>
-
-                    {/* Row 4: Location & Tags */}
-                    <div className="col-span-12 md:col-span-6">
-                        <InputGroup label="Location" icon="location_on">
-                             <LocationAutocomplete
+                      </div>
+                      
+                      {/* Location */}
+                      <div className="md:col-span-2">
+                           <label className={labelStyle}>Location</label>
+                           <LocationAutocomplete
                                 value={locationString}
                                 onChange={(val, data) => {
                                     setLocationString(val);
                                     setLocationData(data || {});
                                 }}
-                                placeholder="Optional"
+                                placeholder="Start typing city..."
                             />
-                         </InputGroup>
-                    </div>
-                    
-                    <div className="col-span-12 md:col-span-6">
-                        <InputGroup label="Tags" icon="label">
-                             <div className="relative" ref={tagSelectorRef}>
-                                <div
-                                    onClick={() => setIsTagSelectorOpen(prev => !prev)}
-                                    className={`${INPUT_BASE_STYLE} flex items-center flex-wrap gap-1 cursor-pointer min-h-[42px] py-1.5`}
-                                >
-                                    {tagIds.length > 0 ? (
-                                        tagIds.map(id => {
-                                            const tag = tags.find(t => t.id === id);
-                                            if (!tag) return null;
-                                            return (
-                                                <span key={tag.id} className="flex items-center gap-1 text-xs px-2 py-1 rounded-md font-medium" style={{ backgroundColor: `${tag.color}20`, color: tag.color }}>
-                                                    {tag.name}
-                                                    <button
-                                                        type="button"
-                                                        onClick={(e) => { e.stopPropagation(); handleTagToggle(tag.id); }}
-                                                        className="hover:opacity-70"
-                                                    >
-                                                        &times;
-                                                    </button>
-                                                </span>
-                                            );
-                                        })
-                                    ) : (
-                                        <span className="text-light-text-secondary dark:text-dark-text-secondary text-sm">Select tags...</span>
-                                    )}
-                                </div>
-                                 {isTagSelectorOpen && (
-                                    <div className="absolute top-full left-0 mt-1 w-full bg-light-card dark:bg-dark-card rounded-lg shadow-xl border border-black/10 dark:border-white/10 z-20 max-h-48 overflow-y-auto p-1">
-                                        {tags.length > 0 ? tags.map(tag => (
-                                            <label key={tag.id} className="flex items-center gap-3 p-2 hover:bg-black/5 dark:hover:bg-white/5 cursor-pointer rounded-md">
-                                                <input
-                                                    type="checkbox"
-                                                    checked={tagIds.includes(tag.id)}
-                                                    onChange={() => handleTagToggle(tag.id)}
-                                                    className={CHECKBOX_STYLE}
-                                                />
-                                                <span className="text-sm font-medium">{tag.name}</span>
-                                            </label>
-                                        )) : (
-                                          <div className="p-3 text-center text-sm text-light-text-secondary dark:text-dark-text-secondary">
-                                            No tags created yet.
-                                          </div>
-                                        )}
-                                    </div>
-                                )}
-                            </div>
-                        </InputGroup>
-                    </div>
-                </>
+                      </div>
+                 </div>
              )}
         </div>
         
@@ -823,12 +726,14 @@ const AddTransactionModal: React.FC<AddTransactionModalProps> = ({ onClose, onSa
                              <p className="font-bold text-xs uppercase tracking-wider">Loan Payment Split</p>
                         </div>
                         <div className="grid grid-cols-2 gap-4">
-                            <InputGroup label="Principal">
+                            <div>
+                                <label className={labelStyle}>Principal</label>
                                 <input id="principal-payment" type="number" step="0.01" value={principalPayment} onChange={handlePrincipalChange} className={INPUT_BASE_STYLE} placeholder="0.00" />
-                            </InputGroup>
-                            <InputGroup label="Interest">
+                            </div>
+                            <div>
+                                <label className={labelStyle}>Interest</label>
                                 <input id="interest-payment" type="number" step="0.01" value={interestPayment} onChange={handleInterestChange} className={INPUT_BASE_STYLE} placeholder="0.00" />
-                            </InputGroup>
+                            </div>
                         </div>
                     </div>
                 )}
@@ -851,14 +756,15 @@ const AddTransactionModal: React.FC<AddTransactionModalProps> = ({ onClose, onSa
                                     type="checkbox"
                                     checked={enableRoundUp} 
                                     onChange={e => setEnableRoundUp(e.target.checked)} 
-                                    className="w-5 h-5 text-indigo-600 rounded focus:ring-indigo-500 border-gray-300"
+                                    className="w-5 h-5 text-indigo-600 rounded focus:ring-indigo-500 border-gray-300 cursor-pointer"
                                 />
                              </div>
                         </div>
                         {enableRoundUp && (
                              <div className="mt-4 pt-3 border-t border-indigo-200 dark:border-indigo-800/30 grid grid-cols-2 gap-4 text-xs">
                                 {isExactAmount && (
-                                    <InputGroup label="On Exact Amounts">
+                                    <div>
+                                        <label className={labelStyle}>On Exact Amounts</label>
                                         <div className={SELECT_WRAPPER_STYLE}>
                                             <select
                                                 value={roundUpBehavior}
@@ -870,9 +776,10 @@ const AddTransactionModal: React.FC<AddTransactionModalProps> = ({ onClose, onSa
                                             </select>
                                             <div className={SELECT_ARROW_STYLE}><span className="material-symbols-outlined text-sm">expand_more</span></div>
                                         </div>
-                                    </InputGroup>
+                                    </div>
                                 )}
-                                <InputGroup label="Multiplier">
+                                <div>
+                                    <label className={labelStyle}>Multiplier</label>
                                     <input
                                         type="number"
                                         step="0.1"
@@ -881,7 +788,7 @@ const AddTransactionModal: React.FC<AddTransactionModalProps> = ({ onClose, onSa
                                         onChange={e => setRoundUpMultiplier(e.target.value)}
                                         className={`${INPUT_BASE_STYLE} !py-1 !text-xs`}
                                     />
-                                </InputGroup>
+                                </div>
                              </div>
                         )}
                     </div>
@@ -891,7 +798,7 @@ const AddTransactionModal: React.FC<AddTransactionModalProps> = ({ onClose, onSa
 
         <div className="flex justify-end gap-3 pt-6 border-t border-black/5 dark:border-white/5">
           <button type="button" onClick={onClose} className={BTN_SECONDARY_STYLE}>Cancel</button>
-          <button type="submit" className={`${BTN_PRIMARY_STYLE} px-8`}>{saveButtonText}</button>
+          <button type="submit" className={`${BTN_PRIMARY_STYLE} px-8 shadow-lg shadow-primary-500/20`}>{saveButtonText}</button>
         </div>
       </form>
     </Modal>
