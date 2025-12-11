@@ -1,5 +1,4 @@
 
-
 import React, { useMemo, useState, useEffect } from 'react';
 import Card from '../components/Card';
 import { UserStats, Account, Transaction, FinancialGoal, Currency, Category, Prediction, PredictionStatus, PredictionType, InvestmentTransaction, Warrant } from '../types';
@@ -134,6 +133,137 @@ const BadgeItem: React.FC<{ badge: any }> = ({ badge }) => {
                 </div>
             )}
         </div>
+    );
+};
+
+// --- Personal Best Leaderboard Component ---
+interface LeaderboardEntry {
+    rank: number;
+    label: string;
+    value: number;
+    date: string;
+    isCurrent: boolean;
+}
+
+const PersonalBestLeaderboard: React.FC<{
+    currentNetWorth: number;
+    history: { date: string; value: number }[];
+}> = ({ currentNetWorth, history }) => {
+    
+    const leaderboardData = useMemo(() => {
+        // 1. Identify Key Players
+        const currentEntry = { label: 'Current Status', value: currentNetWorth, date: 'Now', isCurrent: true };
+        
+        let allTimeHighEntry = { label: 'All-Time Best', value: currentNetWorth, date: 'Now', isCurrent: false };
+        if (history.length > 0) {
+            const max = history.reduce((prev, current) => (prev.value > current.value) ? prev : current);
+            if (max.value > currentNetWorth) {
+                allTimeHighEntry = { label: 'All-Time Best', value: max.value, date: max.date, isCurrent: false };
+            }
+        }
+
+        // Use index 12 to get exact same month last year (0 is current, 1 is last month... 12 is 12 months ago)
+        let lastYearEntry = { label: '1 Year Ago', value: 0, date: '12 Months Ago', isCurrent: false };
+        if (history.length >= 13) {
+             const ly = history[12]; 
+             lastYearEntry = { label: '1 Year Ago', value: ly.value, date: ly.date, isCurrent: false };
+        } else if (history.length > 0) {
+             const oldest = history[history.length - 1];
+             lastYearEntry = { label: 'Start', value: oldest.value, date: oldest.date, isCurrent: false };
+        }
+        
+        // 2. Create list and sort
+        // We only want unique entries in the list to avoid duplicate rows if Current IS the All-Time High
+        const entries: any[] = [];
+        
+        // Always add current
+        entries.push(currentEntry);
+        
+        // Add ATH if it's significantly different from current (avoid floating point equality issues)
+        if (Math.abs(allTimeHighEntry.value - currentEntry.value) > 1) {
+             entries.push(allTimeHighEntry);
+        } else {
+             // If Current is ATH, upgrade the label of Current
+             entries[0].label = "Current (All-Time Best)";
+             entries[0].isNewRecord = true;
+        }
+
+        // Add Last Year if different
+        if (Math.abs(lastYearEntry.value - currentEntry.value) > 1 && Math.abs(lastYearEntry.value - allTimeHighEntry.value) > 1) {
+             entries.push(lastYearEntry);
+        }
+
+        // Sort descending by value
+        return entries.sort((a, b) => b.value - a.value).map((entry, index) => ({
+            ...entry,
+            rank: index + 1
+        })) as (LeaderboardEntry & { isNewRecord?: boolean })[];
+
+    }, [currentNetWorth, history]);
+
+    return (
+        <Card className="overflow-hidden border border-black/5 dark:border-white/5 p-0">
+             <div className="p-6 bg-gradient-to-r from-slate-800 to-slate-900 text-white relative overflow-hidden">
+                  <div className="absolute top-0 right-0 p-4 opacity-10 pointer-events-none">
+                        <span className="material-symbols-outlined text-8xl">podium</span>
+                  </div>
+                  <div className="flex items-center gap-2 relative z-10">
+                      <h3 className="text-xl font-bold flex items-center gap-2">
+                          <span className="material-symbols-outlined text-yellow-400">emoji_events</span>
+                          Personal Best Leaderboard
+                      </h3>
+                      <div className="group relative">
+                          <span className="material-symbols-outlined text-slate-400 text-sm cursor-help">info</span>
+                          <div className="absolute left-0 bottom-full mb-2 w-64 p-2 bg-slate-800 text-white text-xs rounded shadow-lg opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none z-20">
+                              Rankings are based on your calculated Net Worth (Total Assets - Total Liabilities) at the end of each month from your history.
+                          </div>
+                      </div>
+                  </div>
+                  <p className="text-slate-400 text-sm mt-1 relative z-10">You vs. Your Past Self. Compete for Net Worth growth.</p>
+             </div>
+             
+             <div className="divide-y divide-black/5 dark:divide-white/5">
+                 {leaderboardData.map((entry) => {
+                     const isFirst = entry.rank === 1;
+                     const rankColor = isFirst ? 'text-yellow-500' : entry.rank === 2 ? 'text-slate-400' : 'text-orange-700 dark:text-orange-400';
+                     const rankBg = isFirst ? 'bg-yellow-100 dark:bg-yellow-900/20' : entry.rank === 2 ? 'bg-slate-100 dark:bg-slate-800' : 'bg-orange-100 dark:bg-orange-900/20';
+                     
+                     return (
+                         <div key={entry.label} className={`flex items-center justify-between p-4 ${entry.isCurrent ? 'bg-primary-50/50 dark:bg-primary-900/10' : ''}`}>
+                             <div className="flex items-center gap-4">
+                                 <div className={`w-10 h-10 rounded-full flex items-center justify-center ${rankBg} ${rankColor} font-bold text-lg shadow-sm border border-white/10`}>
+                                     {entry.rank}
+                                 </div>
+                                 <div>
+                                     <div className="flex items-center gap-2">
+                                         <p className={`font-bold text-sm ${entry.isCurrent ? 'text-primary-700 dark:text-primary-300' : 'text-light-text dark:text-dark-text'}`}>
+                                             {entry.label}
+                                         </p>
+                                         {entry.isNewRecord && (
+                                             <span className="text-[10px] font-bold bg-yellow-400 text-black px-2 py-0.5 rounded-full animate-pulse">NEW RECORD!</span>
+                                         )}
+                                         {entry.isCurrent && !entry.isNewRecord && (
+                                              <span className="text-[10px] font-bold bg-primary-200 dark:bg-primary-800 text-primary-800 dark:text-primary-200 px-2 py-0.5 rounded-full">YOU</span>
+                                         )}
+                                     </div>
+                                     <p className="text-xs text-light-text-secondary dark:text-dark-text-secondary font-mono">{entry.date}</p>
+                                 </div>
+                             </div>
+                             <div className="text-right">
+                                 <p className={`font-bold text-lg ${entry.isCurrent ? 'text-primary-700 dark:text-primary-300' : 'text-light-text dark:text-dark-text'}`}>
+                                     {formatCurrency(entry.value, 'EUR')}
+                                 </p>
+                                 {entry.rank > 1 && (
+                                     <p className="text-xs text-red-500 font-medium">
+                                         {formatCurrency(entry.value - leaderboardData[0].value, 'EUR')}
+                                     </p>
+                                 )}
+                             </div>
+                         </div>
+                     );
+                 })}
+             </div>
+        </Card>
     );
 };
 
@@ -363,7 +493,7 @@ interface ActiveSprint {
 }
 
 // --- Main Page Component ---
-type ChallengeSection = 'score' | 'battles' | 'badges' | 'mastery' | 'sprints' | 'prediction';
+type ChallengeSection = 'score' | 'battles' | 'badges' | 'mastery' | 'sprints' | 'prediction' | 'personal-best';
 
 const Challenges: React.FC<ChallengesProps> = ({ userStats, accounts, transactions, predictions, savePrediction, deletePrediction, saveUserStats, investmentTransactions, warrants, assetPrices }) => {
   const { currentStreak, longestStreak } = userStats;
@@ -375,6 +505,73 @@ const Challenges: React.FC<ChallengesProps> = ({ userStats, accounts, transactio
   const [activeSection, setActiveSection] = useState<ChallengeSection>('score');
   const [activeSprints, setActiveSprints] = useLocalStorage<ActiveSprint[]>('crystal_active_sprints', []);
   const [isPredictionModalOpen, setPredictionModalOpen] = useState(false);
+
+  // --- Historical Net Worth Calculation for Leaderboard ---
+  const netWorthHistory = useMemo(() => {
+        // 1. Current Total Net Worth
+        const { netWorth: currentNetWorth } = calculateAccountTotals(accounts.filter(a => a.status !== 'closed'));
+        
+        // 2. Map transactions by Month
+        const monthlyChanges = new Map<string, number>();
+        const today = new Date();
+        const startOfCurrentMonth = new Date(Date.UTC(today.getFullYear(), today.getMonth(), 1));
+
+        transactions.forEach(tx => {
+            const date = parseDateAsUTC(tx.date);
+            // Ignore future transactions for history
+            if (date > today) return;
+
+            const monthKey = date.toISOString().slice(0, 7); // YYYY-MM
+            const val = convertToEur(tx.amount, tx.currency);
+            
+            // For Net Worth history reconstruction:
+            // We start at Current (End of Month) and subtract changes to go back.
+            // But wait, it's easier to group changes by month and subtract them from current to get previous month's end.
+            // Actually, `currentNetWorth` includes ALL transactions up to now.
+            // To get end of last month, we subtract all changes that happened THIS month.
+            
+            monthlyChanges.set(monthKey, (monthlyChanges.get(monthKey) || 0) + val);
+        });
+
+        // 3. Reconstruct History (Last 60 months)
+        const history: { date: string; value: number }[] = [];
+        let runningBalance = currentNetWorth;
+        
+        // We iterate backwards from current month
+        for (let i = 0; i < 60; i++) {
+            const d = new Date(today.getFullYear(), today.getMonth() - i, 1);
+            const monthKey = d.toISOString().slice(0, 7);
+            
+            // The balance at the END of this month 'i'
+            // For the current month (i=0), it's just the current balance.
+            // For previous months, we must subtract the net change of the *subsequent* month (i-1) we just processed.
+            // Wait, standard logic: End(PrevMonth) = End(CurrentMonth) - Change(CurrentMonth)
+            
+            if (i > 0) { // We are moving to previous month
+                const prevD = new Date(today.getFullYear(), today.getMonth() - (i - 1), 1);
+                const prevMonthKey = prevD.toISOString().slice(0, 7);
+                const changeInPrevMonth = monthlyChanges.get(prevMonthKey) || 0;
+                
+                // If Income > Expense, Net Worth went UP. To go back, we SUBTRACT the gain.
+                // If Income < Expense, Net Worth went DOWN. To go back, we ADD the loss.
+                // Net Change = Income - Expense (signed amounts sum directly if expense is negative)
+                // Wait, transactions are signed. Income (+), Expense (-).
+                // Change = Sum(Transactions).
+                // PrevBalance = CurrBalance - Change.
+                
+                runningBalance -= changeInPrevMonth;
+            }
+            
+            history.push({ 
+                date: d.toLocaleDateString('default', { month: 'long', year: 'numeric' }), 
+                value: runningBalance 
+            });
+        }
+        
+        return { currentNetWorth, history };
+
+  }, [accounts, transactions]);
+
 
   // --- Prediction Resolver ---
   useEffect(() => {
@@ -972,7 +1169,7 @@ const Challenges: React.FC<ChallengesProps> = ({ userStats, accounts, transactio
       </div>
 
       {/* Navigation Cards (Master View) */}
-      <div className="grid grid-cols-1 md:grid-cols-3 lg:grid-cols-6 gap-6">
+      <div className="grid grid-cols-1 md:grid-cols-3 lg:grid-cols-4 gap-6">
           {/* Card 1: Crystal Score */}
           <div 
              onClick={() => setActiveSection('score')}
@@ -992,7 +1189,45 @@ const Challenges: React.FC<ChallengesProps> = ({ userStats, accounts, transactio
               </p>
           </div>
           
-           {/* Card 2: Category Mastery (New) */}
+          {/* Card 2: Personal Best (New) */}
+          <div 
+             onClick={() => setActiveSection('personal-best')}
+             className={`cursor-pointer rounded-2xl p-6 flex flex-col items-center justify-center transition-all duration-300 group
+                 ${activeSection === 'personal-best' 
+                    ? 'bg-gradient-to-br from-slate-50 to-gray-100 dark:from-slate-900/10 dark:to-gray-900/10 shadow-lg ring-2 ring-slate-500 ring-offset-2 dark:ring-offset-dark-bg' 
+                    : 'bg-white dark:bg-dark-card border border-black/5 dark:border-white/5 opacity-80 hover:opacity-100 hover:shadow-md'
+                 }
+             `}
+          >
+              <div className="w-16 h-16 rounded-full bg-slate-100 dark:bg-slate-900/30 flex items-center justify-center text-slate-500 mb-3 transition-transform duration-300 group-hover:scale-110">
+                  <span className="material-symbols-outlined text-4xl">podium</span>
+              </div>
+              <h3 className="font-bold text-lg text-light-text dark:text-dark-text">Personal Best</h3>
+              <p className="text-xs text-light-text-secondary dark:text-dark-text-secondary mt-1">
+                  Net Worth Records
+              </p>
+          </div>
+          
+           {/* Card 3: Badges */}
+          <div 
+             onClick={() => setActiveSection('badges')}
+             className={`cursor-pointer rounded-2xl p-6 flex flex-col items-center justify-center transition-all duration-300 group
+                 ${activeSection === 'badges' 
+                    ? 'bg-gradient-to-br from-indigo-50 to-purple-50 dark:from-indigo-900/10 dark:to-purple-900/10 shadow-lg ring-2 ring-indigo-500 ring-offset-2 dark:ring-offset-dark-bg' 
+                    : 'bg-white dark:bg-dark-card border border-black/5 dark:border-white/5 opacity-80 hover:opacity-100 hover:shadow-md'
+                 }
+             `}
+          >
+              <div className="w-16 h-16 rounded-full bg-indigo-100 dark:bg-indigo-900/30 flex items-center justify-center text-indigo-500 mb-3 transition-transform duration-300 group-hover:scale-110">
+                  <span className="material-symbols-outlined text-4xl">stars</span>
+              </div>
+              <h3 className="font-bold text-lg text-light-text dark:text-dark-text">Achievements</h3>
+              <p className="text-xs text-light-text-secondary dark:text-dark-text-secondary mt-1">
+                  {unlockedCount}/{badges.length} Badges
+              </p>
+          </div>
+          
+           {/* Card 4: Category Mastery */}
           <div 
              onClick={() => setActiveSection('mastery')}
              className={`cursor-pointer rounded-2xl p-6 flex flex-col items-center justify-center transition-all duration-300 group
@@ -1011,7 +1246,7 @@ const Challenges: React.FC<ChallengesProps> = ({ userStats, accounts, transactio
               </p>
           </div>
 
-          {/* Card 3: Boss Battles */}
+          {/* Card 5: Boss Battles */}
           <div 
              onClick={() => setActiveSection('battles')}
              className={`cursor-pointer rounded-2xl p-6 flex flex-col items-center justify-center transition-all duration-300 group
@@ -1030,7 +1265,7 @@ const Challenges: React.FC<ChallengesProps> = ({ userStats, accounts, transactio
               </p>
           </div>
           
-           {/* Card 4: Savings Sprints (New) */}
+           {/* Card 6: Savings Sprints */}
            <div 
              onClick={() => setActiveSection('sprints')}
              className={`cursor-pointer rounded-2xl p-6 flex flex-col items-center justify-center transition-all duration-300 group
@@ -1049,7 +1284,7 @@ const Challenges: React.FC<ChallengesProps> = ({ userStats, accounts, transactio
               </p>
           </div>
 
-          {/* Card 5: Prediction Market (New) */}
+          {/* Card 7: Prediction Market */}
           <div 
              onClick={() => setActiveSection('prediction')}
              className={`cursor-pointer rounded-2xl p-6 flex flex-col items-center justify-center transition-all duration-300 group
@@ -1065,25 +1300,6 @@ const Challenges: React.FC<ChallengesProps> = ({ userStats, accounts, transactio
               <h3 className="font-bold text-lg text-light-text dark:text-dark-text">Prediction Market</h3>
               <p className="text-xs text-light-text-secondary dark:text-dark-text-secondary mt-1">
                   {predictions.filter(p => p.status === 'active').length} Active Contracts
-              </p>
-          </div>
-
-          {/* Card 6: Badges */}
-          <div 
-             onClick={() => setActiveSection('badges')}
-             className={`cursor-pointer rounded-2xl p-6 flex flex-col items-center justify-center transition-all duration-300 group
-                 ${activeSection === 'badges' 
-                    ? 'bg-gradient-to-br from-blue-50 to-indigo-50 dark:from-blue-900/10 dark:to-indigo-900/10 shadow-lg ring-2 ring-blue-500 ring-offset-2 dark:ring-offset-dark-bg' 
-                    : 'bg-white dark:bg-dark-card border border-black/5 dark:border-white/5 opacity-80 hover:opacity-100 hover:shadow-md'
-                 }
-             `}
-          >
-              <div className="w-16 h-16 rounded-full bg-blue-100 dark:bg-blue-900/30 flex items-center justify-center text-blue-500 mb-3 transition-transform duration-300 group-hover:-translate-y-1">
-                  <span className="material-symbols-outlined text-4xl">military_tech</span>
-              </div>
-              <h3 className="font-bold text-lg text-light-text dark:text-dark-text">Trophy Case</h3>
-              <p className="text-xs text-light-text-secondary dark:text-dark-text-secondary mt-1">
-                  {unlockedCount} / {badges.length} Unlocked
               </p>
           </div>
       </div>
@@ -1127,6 +1343,12 @@ const Challenges: React.FC<ChallengesProps> = ({ userStats, accounts, transactio
                           </p>
                       </Card>
                   </div>
+              </div>
+          )}
+
+          {activeSection === 'personal-best' && (
+              <div className="animate-fade-in-up max-w-2xl mx-auto">
+                   <PersonalBestLeaderboard currentNetWorth={netWorthHistory.currentNetWorth} history={netWorthHistory.history} />
               </div>
           )}
           
