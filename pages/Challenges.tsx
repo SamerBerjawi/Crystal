@@ -88,49 +88,89 @@ const CircularGauge: React.FC<{ value: number; size?: 'sm' | 'md' }> = ({ value,
 
 // --- Badge Component ---
 const BadgeItem: React.FC<{ badge: any }> = ({ badge }) => {
+    // Map basic color names to specific Tailwind classes for gradients and shadows
+    const colorConfig: Record<string, { bg: string, iconBg: string, text: string, shadow: string, border: string }> = {
+        blue: { bg: 'from-blue-50 to-white dark:from-blue-900/20 dark:to-dark-card', iconBg: 'bg-blue-500', text: 'text-blue-600 dark:text-blue-400', shadow: 'shadow-blue-500/20', border: 'border-blue-200 dark:border-blue-800' },
+        purple: { bg: 'from-purple-50 to-white dark:from-purple-900/20 dark:to-dark-card', iconBg: 'bg-purple-500', text: 'text-purple-600 dark:text-purple-400', shadow: 'shadow-purple-500/20', border: 'border-purple-200 dark:border-purple-800' },
+        cyan: { bg: 'from-cyan-50 to-white dark:from-cyan-900/20 dark:to-dark-card', iconBg: 'bg-cyan-500', text: 'text-cyan-600 dark:text-cyan-400', shadow: 'shadow-cyan-500/20', border: 'border-cyan-200 dark:border-cyan-800' },
+        indigo: { bg: 'from-indigo-50 to-white dark:from-indigo-900/20 dark:to-dark-card', iconBg: 'bg-indigo-500', text: 'text-indigo-600 dark:text-indigo-400', shadow: 'shadow-indigo-500/20', border: 'border-indigo-200 dark:border-indigo-800' },
+        orange: { bg: 'from-orange-50 to-white dark:from-orange-900/20 dark:to-dark-card', iconBg: 'bg-orange-500', text: 'text-orange-600 dark:text-orange-400', shadow: 'shadow-orange-500/20', border: 'border-orange-200 dark:border-orange-800' },
+        slate: { bg: 'from-gray-50 to-white dark:from-gray-900/20 dark:to-dark-card', iconBg: 'bg-slate-500', text: 'text-slate-600 dark:text-slate-400', shadow: 'shadow-slate-500/20', border: 'border-slate-200 dark:border-slate-800' },
+        violet: { bg: 'from-violet-50 to-white dark:from-violet-900/20 dark:to-dark-card', iconBg: 'bg-violet-500', text: 'text-violet-600 dark:text-violet-400', shadow: 'shadow-violet-500/20', border: 'border-violet-200 dark:border-violet-800' },
+        green: { bg: 'from-green-50 to-white dark:from-green-900/20 dark:to-dark-card', iconBg: 'bg-green-500', text: 'text-green-600 dark:text-green-400', shadow: 'shadow-green-500/20', border: 'border-green-200 dark:border-green-800' },
+        emerald: { bg: 'from-emerald-50 to-white dark:from-emerald-900/20 dark:to-dark-card', iconBg: 'bg-emerald-500', text: 'text-emerald-600 dark:text-emerald-400', shadow: 'shadow-emerald-500/20', border: 'border-emerald-200 dark:border-emerald-800' },
+        teal: { bg: 'from-teal-50 to-white dark:from-teal-900/20 dark:to-dark-card', iconBg: 'bg-teal-500', text: 'text-teal-600 dark:text-teal-400', shadow: 'shadow-teal-500/20', border: 'border-teal-200 dark:border-teal-800' },
+        amber: { bg: 'from-amber-50 to-white dark:from-amber-900/20 dark:to-dark-card', iconBg: 'bg-amber-500', text: 'text-amber-600 dark:text-amber-400', shadow: 'shadow-amber-500/20', border: 'border-amber-200 dark:border-amber-800' },
+        pink: { bg: 'from-pink-50 to-white dark:from-pink-900/20 dark:to-dark-card', iconBg: 'bg-pink-500', text: 'text-pink-600 dark:text-pink-400', shadow: 'shadow-pink-500/20', border: 'border-pink-200 dark:border-pink-800' },
+        yellow: { bg: 'from-yellow-50 to-white dark:from-yellow-900/20 dark:to-dark-card', iconBg: 'bg-yellow-500', text: 'text-yellow-600 dark:text-yellow-400', shadow: 'shadow-yellow-500/20', border: 'border-yellow-200 dark:border-yellow-800' },
+        lime: { bg: 'from-lime-50 to-white dark:from-lime-900/20 dark:to-dark-card', iconBg: 'bg-lime-500', text: 'text-lime-600 dark:text-lime-400', shadow: 'shadow-lime-500/20', border: 'border-lime-200 dark:border-lime-800' },
+        rose: { bg: 'from-rose-50 to-white dark:from-rose-900/20 dark:to-dark-card', iconBg: 'bg-rose-500', text: 'text-rose-600 dark:text-rose-400', shadow: 'shadow-rose-500/20', border: 'border-rose-200 dark:border-rose-800' },
+    };
+
+    const theme = colorConfig[badge.color] || colorConfig.slate;
+
     return (
         <div className={`
-            relative p-4 rounded-xl border flex flex-col items-center text-center transition-all duration-300 h-full
+            relative group flex flex-col items-center text-center p-6 rounded-2xl transition-all duration-300
             ${badge.unlocked 
-                ? 'bg-gradient-to-br from-white to-gray-50 dark:from-dark-card dark:to-white/5 border-primary-500/30 shadow-md transform hover:-translate-y-1' 
-                : 'bg-gray-100 dark:bg-white/10 border-transparent opacity-60 grayscale'
+                ? `bg-gradient-to-br ${theme.bg} border ${theme.border} shadow-lg hover:-translate-y-1` 
+                : 'bg-gray-50 dark:bg-white/5 border-2 border-dashed border-gray-200 dark:border-white/10 opacity-70 hover:opacity-100 hover:border-gray-300 dark:hover:border-white/20'
             }
         `}>
+            {/* Icon Container */}
             <div className={`
-                w-12 h-12 rounded-full flex items-center justify-center mb-3 text-2xl relative shadow-sm
-                ${badge.unlocked ? `bg-${badge.color}-100 dark:bg-${badge.color}-900/30 text-${badge.color}-600 dark:text-${badge.color}-400` : 'bg-gray-200 dark:bg-white/10 text-gray-400'}
+                relative w-16 h-16 rounded-full flex items-center justify-center mb-4 transition-all duration-500
+                ${badge.unlocked 
+                    ? `${theme.iconBg} text-white shadow-xl ${theme.shadow} ring-4 ring-white dark:ring-dark-card group-hover:scale-110` 
+                    : 'bg-gray-200 dark:bg-white/10 text-gray-400'
+                }
             `}>
-                <span className="material-symbols-outlined">{badge.icon}</span>
+                <span className="material-symbols-outlined text-3xl">{badge.icon}</span>
+                
+                {/* Lock Overlay */}
                 {!badge.unlocked && (
-                    <div className="absolute -bottom-1 -right-1 w-5 h-5 bg-gray-500 rounded-full flex items-center justify-center text-white border-2 border-white dark:border-dark-card">
-                        <span className="material-symbols-outlined text-[10px]">lock</span>
+                    <div className="absolute -bottom-1 -right-1 w-6 h-6 bg-gray-500 rounded-full flex items-center justify-center border-2 border-gray-50 dark:border-gray-800 text-white shadow-sm">
+                         <span className="material-symbols-outlined text-xs">lock</span>
+                    </div>
+                )}
+                
+                {/* Unlocked Check Overlay */}
+                {badge.unlocked && (
+                    <div className={`absolute -bottom-1 -right-1 w-6 h-6 rounded-full flex items-center justify-center border-2 border-white dark:border-dark-card text-white shadow-sm bg-green-500`}>
+                         <span className="material-symbols-outlined text-xs font-bold">check</span>
                     </div>
                 )}
             </div>
             
-            <h4 className="font-bold text-sm text-light-text dark:text-dark-text mb-1">{badge.title}</h4>
-            <p className="text-[10px] text-light-text-secondary dark:text-dark-text-secondary leading-tight mb-2 min-h-[2.5em] flex items-center justify-center">
+            {/* Content */}
+            <h4 className={`font-bold text-base mb-2 ${badge.unlocked ? 'text-light-text dark:text-dark-text' : 'text-gray-500 dark:text-gray-400'}`}>
+                {badge.title}
+            </h4>
+            
+            <p className="text-xs text-light-text-secondary dark:text-dark-text-secondary leading-relaxed mb-4 min-h-[2.5em]">
                 {badge.description}
             </p>
             
+            {/* Progress Bar (Only if not unlocked but has progress) */}
             {!badge.unlocked && badge.progress !== undefined && (
                  <div className="w-full mt-auto">
-                     <div className="flex justify-between text-[9px] font-bold text-light-text-secondary dark:text-dark-text-secondary mb-1">
+                     <div className="flex justify-between text-[10px] font-bold text-gray-400 mb-1 uppercase tracking-wide">
                          <span>Progress</span>
                          <span>{Math.min(100, badge.progress).toFixed(0)}%</span>
                      </div>
-                     <div className="w-full h-1.5 bg-gray-300 dark:bg-gray-600 rounded-full overflow-hidden">
-                         <div className="h-full bg-gray-500 rounded-full transition-all duration-500" style={{ width: `${Math.min(100, badge.progress)}%` }}></div>
+                     <div className="w-full h-1.5 bg-gray-200 dark:bg-white/10 rounded-full overflow-hidden">
+                         <div className="h-full bg-gray-400 rounded-full transition-all duration-500" style={{ width: `${Math.min(100, badge.progress)}%` }}></div>
                      </div>
                  </div>
             )}
-
+            
+            {/* Unlocked Footer */}
             {badge.unlocked && (
-                <div className="mt-auto pt-2">
-                     <span className="text-[9px] font-bold uppercase tracking-wider text-primary-600 dark:text-primary-400 bg-primary-50 dark:bg-primary-900/20 px-2 py-0.5 rounded-full">
-                        Unlocked
+                 <div className="mt-auto pt-2 opacity-0 group-hover:opacity-100 transition-opacity duration-300">
+                    <span className={`text-[10px] font-bold uppercase tracking-widest ${theme.text}`}>
+                        Achievement Unlocked
                     </span>
-                </div>
+                 </div>
             )}
         </div>
     );
@@ -1594,7 +1634,7 @@ const Challenges: React.FC<ChallengesProps> = ({ userStats, accounts, transactio
                        </h2>
                    </div>
                    
-                   <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-4">
+                   <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-6">
                        {badges.map(badge => (
                            <BadgeItem key={badge.id} badge={badge} />
                        ))}
