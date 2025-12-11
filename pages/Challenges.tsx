@@ -75,49 +75,85 @@ const CircularGauge: React.FC<{ value: number; size?: 'sm' | 'md' | 'lg' }> = ({
 
 // --- Badge Component ---
 const BadgeItem: React.FC<{ badge: any }> = ({ badge }) => {
-    const theme = badge.unlocked 
-        ? 'bg-gradient-to-br from-white to-indigo-50 dark:from-dark-card dark:to-indigo-900/10 border-indigo-200 dark:border-indigo-800' 
-        : 'bg-gray-50 dark:bg-white/5 border-transparent opacity-60 grayscale';
+    // Map abstract colors to concrete Tailwind classes for gradients and shadows
+    const colorStyles: Record<string, { bg: string; text: string; border: string; shadow: string; iconBg: string }> = {
+        blue: { bg: 'from-blue-500/10 to-blue-500/5', text: 'text-blue-600 dark:text-blue-400', border: 'border-blue-200 dark:border-blue-800', shadow: 'shadow-blue-500/20', iconBg: 'bg-gradient-to-br from-blue-400 to-blue-600' },
+        purple: { bg: 'from-purple-500/10 to-purple-500/5', text: 'text-purple-600 dark:text-purple-400', border: 'border-purple-200 dark:border-purple-800', shadow: 'shadow-purple-500/20', iconBg: 'bg-gradient-to-br from-purple-400 to-purple-600' },
+        amber: { bg: 'from-amber-500/10 to-amber-500/5', text: 'text-amber-600 dark:text-amber-400', border: 'border-amber-200 dark:border-amber-800', shadow: 'shadow-amber-500/20', iconBg: 'bg-gradient-to-br from-amber-400 to-amber-600' },
+        teal: { bg: 'from-teal-500/10 to-teal-500/5', text: 'text-teal-600 dark:text-teal-400', border: 'border-teal-200 dark:border-teal-800', shadow: 'shadow-teal-500/20', iconBg: 'bg-gradient-to-br from-teal-400 to-teal-600' },
+        pink: { bg: 'from-pink-500/10 to-pink-500/5', text: 'text-pink-600 dark:text-pink-400', border: 'border-pink-200 dark:border-pink-800', shadow: 'shadow-pink-500/20', iconBg: 'bg-gradient-to-br from-pink-400 to-pink-600' },
+        emerald: { bg: 'from-emerald-500/10 to-emerald-500/5', text: 'text-emerald-600 dark:text-emerald-400', border: 'border-emerald-200 dark:border-emerald-800', shadow: 'shadow-emerald-500/20', iconBg: 'bg-gradient-to-br from-emerald-400 to-emerald-600' },
+        cyan: { bg: 'from-cyan-500/10 to-cyan-500/5', text: 'text-cyan-600 dark:text-cyan-400', border: 'border-cyan-200 dark:border-cyan-800', shadow: 'shadow-cyan-500/20', iconBg: 'bg-gradient-to-br from-cyan-400 to-cyan-600' },
+        green: { bg: 'from-green-500/10 to-green-500/5', text: 'text-green-600 dark:text-green-400', border: 'border-green-200 dark:border-green-800', shadow: 'shadow-green-500/20', iconBg: 'bg-gradient-to-br from-green-400 to-green-600' },
+        orange: { bg: 'from-orange-500/10 to-orange-500/5', text: 'text-orange-600 dark:text-orange-400', border: 'border-orange-200 dark:border-orange-800', shadow: 'shadow-orange-500/20', iconBg: 'bg-gradient-to-br from-orange-400 to-orange-600' },
+        indigo: { bg: 'from-indigo-500/10 to-indigo-500/5', text: 'text-indigo-600 dark:text-indigo-400', border: 'border-indigo-200 dark:border-indigo-800', shadow: 'shadow-indigo-500/20', iconBg: 'bg-gradient-to-br from-indigo-400 to-indigo-600' },
+        slate: { bg: 'from-slate-500/10 to-slate-500/5', text: 'text-slate-600 dark:text-slate-400', border: 'border-slate-200 dark:border-slate-800', shadow: 'shadow-slate-500/20', iconBg: 'bg-gradient-to-br from-slate-400 to-slate-600' },
+        red: { bg: 'from-red-500/10 to-red-500/5', text: 'text-red-600 dark:text-red-400', border: 'border-red-200 dark:border-red-800', shadow: 'shadow-red-500/20', iconBg: 'bg-gradient-to-br from-red-400 to-red-600' },
+        yellow: { bg: 'from-yellow-500/10 to-yellow-500/5', text: 'text-yellow-600 dark:text-yellow-400', border: 'border-yellow-200 dark:border-yellow-800', shadow: 'shadow-yellow-500/20', iconBg: 'bg-gradient-to-br from-yellow-400 to-yellow-600' },
+        violet: { bg: 'from-violet-500/10 to-violet-500/5', text: 'text-violet-600 dark:text-violet-400', border: 'border-violet-200 dark:border-violet-800', shadow: 'shadow-violet-500/20', iconBg: 'bg-gradient-to-br from-violet-400 to-violet-600' },
+    };
 
-    const iconTheme = badge.unlocked
-        ? `bg-${badge.color}-100 dark:bg-${badge.color}-900/30 text-${badge.color}-600 dark:text-${badge.color}-400 ring-4 ring-${badge.color}-50 dark:ring-${badge.color}-900/10`
-        : 'bg-gray-200 dark:bg-gray-700 text-gray-400';
+    const styles = colorStyles[badge.color] || colorStyles.blue; // Fallback
 
-    return (
-        <div className={`group relative flex flex-col items-center text-center p-5 rounded-2xl border transition-all duration-300 ${theme} hover:shadow-lg hover:-translate-y-1`}>
-            {/* Icon Container */}
-            <div className={`relative w-14 h-14 rounded-full flex items-center justify-center mb-4 transition-all duration-300 ${iconTheme}`}>
-                <span className="material-symbols-outlined text-2xl">{badge.icon}</span>
-                
-                {badge.unlocked && (
-                    <div className="absolute -bottom-1 -right-1 w-5 h-5 rounded-full bg-green-500 border-2 border-white dark:border-dark-card flex items-center justify-center text-white shadow-sm">
-                        <span className="material-symbols-outlined text-[10px] font-bold">check</span>
+    if (badge.unlocked) {
+        return (
+            <div className={`group relative flex flex-col items-center p-5 rounded-3xl border ${styles.border} bg-white dark:bg-dark-card shadow-lg ${styles.shadow} transition-all duration-300 hover:-translate-y-1 overflow-hidden`}>
+                {/* Background Glow */}
+                <div className={`absolute inset-0 bg-gradient-to-b ${styles.bg} opacity-50`}></div>
+                <div className="absolute -top-10 -right-10 w-24 h-24 bg-white/20 dark:bg-white/5 rounded-full blur-2xl"></div>
+
+                {/* Icon Medal */}
+                <div className={`relative z-10 w-16 h-16 rounded-2xl flex items-center justify-center mb-4 ${styles.iconBg} text-white shadow-md transform transition-transform duration-300 group-hover:scale-110 group-hover:rotate-3`}>
+                    <span className="material-symbols-outlined text-3xl drop-shadow-md">{badge.icon}</span>
+                    <div className="absolute -bottom-2 -right-2 bg-white dark:bg-dark-card rounded-full p-1 shadow-sm">
+                         <div className="bg-green-500 rounded-full w-5 h-5 flex items-center justify-center">
+                            <span className="material-symbols-outlined text-[12px] font-bold text-white">check</span>
+                         </div>
                     </div>
-                )}
-                {!badge.unlocked && (
-                     <div className="absolute -bottom-1 -right-1 w-5 h-5 rounded-full bg-gray-400 border-2 border-gray-50 dark:border-gray-800 flex items-center justify-center text-white shadow-sm">
-                        <span className="material-symbols-outlined text-[10px]">lock</span>
-                    </div>
-                )}
-            </div>
-            
-            <h4 className="font-bold text-sm text-light-text dark:text-dark-text mb-1 line-clamp-1" title={badge.title}>
-                {badge.title}
-            </h4>
-            
-            <p className="text-xs text-light-text-secondary dark:text-dark-text-secondary leading-snug mb-3 min-h-[2.5em] line-clamp-2" title={badge.description}>
-                {badge.description}
-            </p>
-            
-            {/* Progress Bar */}
-            <div className="w-full mt-auto">
-                <div className="flex justify-between text-[9px] font-bold text-light-text-secondary dark:text-dark-text-secondary mb-1 uppercase tracking-wide">
-                    <span>Progress</span>
-                    <span>{Math.min(100, badge.progress).toFixed(0)}%</span>
                 </div>
-                <div className="w-full h-1.5 bg-gray-200 dark:bg-black/20 rounded-full overflow-hidden">
+
+                {/* Text */}
+                <div className="relative z-10 text-center flex-grow">
+                    <h4 className="font-bold text-sm text-gray-900 dark:text-white mb-1 leading-tight">{badge.title}</h4>
+                    <p className="text-xs text-gray-500 dark:text-gray-400 leading-snug line-clamp-2">{badge.description}</p>
+                </div>
+                
+                {/* Completed Bar */}
+                <div className="relative z-10 w-full mt-4">
+                    <div className="w-full h-1.5 bg-gray-100 dark:bg-black/20 rounded-full overflow-hidden">
+                        <div className={`h-full ${styles.iconBg} w-full`}></div>
+                    </div>
+                     <p className={`text-[9px] font-bold uppercase tracking-wider text-center mt-1.5 ${styles.text}`}>Completed</p>
+                </div>
+            </div>
+        );
+    }
+
+    // Locked State
+    return (
+        <div className="group relative flex flex-col items-center p-5 rounded-3xl border border-dashed border-gray-300 dark:border-gray-700 bg-gray-50/50 dark:bg-white/[0.02] transition-all duration-300 hover:bg-gray-100 dark:hover:bg-white/[0.05]">
+             {/* Locked Icon */}
+            <div className="relative w-16 h-16 rounded-2xl flex items-center justify-center mb-4 bg-gray-200 dark:bg-gray-800 text-gray-400 dark:text-gray-500 shadow-inner">
+                <span className="material-symbols-outlined text-3xl">{badge.icon}</span>
+                 <div className="absolute inset-0 flex items-center justify-center bg-black/5 dark:bg-black/20 rounded-2xl backdrop-blur-[1px]">
+                     <span className="material-symbols-outlined text-2xl text-gray-500 dark:text-gray-400 drop-shadow-sm">lock</span>
+                 </div>
+            </div>
+
+            <div className="text-center flex-grow opacity-60 group-hover:opacity-100 transition-opacity">
+                <h4 className="font-bold text-sm text-gray-600 dark:text-gray-400 mb-1">{badge.title}</h4>
+                <p className="text-xs text-gray-500 dark:text-gray-500 leading-snug line-clamp-2">{badge.description}</p>
+            </div>
+
+            {/* Progress Bar */}
+             <div className="w-full mt-4 opacity-50 group-hover:opacity-80 transition-opacity">
+                 <div className="flex justify-between text-[9px] font-bold text-gray-400 dark:text-gray-500 mb-1 uppercase tracking-wide">
+                    <span>Locked</span>
+                    <span>{Math.round(badge.progress)}%</span>
+                </div>
+                <div className="w-full h-1.5 bg-gray-200 dark:bg-gray-800 rounded-full overflow-hidden">
                     <div 
-                        className={`h-full rounded-full transition-all duration-500 ${badge.unlocked ? 'bg-green-500' : 'bg-gray-400'}`} 
+                        className="h-full rounded-full bg-gray-400 dark:bg-gray-600 transition-all duration-500" 
                         style={{ width: `${Math.min(100, badge.progress)}%` }}
                     ></div>
                 </div>
