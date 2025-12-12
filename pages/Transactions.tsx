@@ -1236,7 +1236,7 @@ const Transactions: React.FC<TransactionsProps> = ({ initialAccountFilter, initi
                         ? formatCurrency(convertToEur(Math.abs(amount), tx.currency), 'EUR')
                         : formatCurrency(convertToEur(amount, tx.currency), 'EUR', { showPlusSign: true });
 
-                    const institutionLogoUrl = account?.financialInstitution ? getMerchantLogoUrl(account.financialInstitution, brandfetchClientId, undefined, { fallback: 'lettermark', type: 'icon', width: 64, height: 64 }) : null;
+                    const institutionLogoUrl = account?.financialInstitution ? getMerchantLogoUrl(account.financialInstitution, brandfetchClientId, merchantLogoOverrides, { fallback: 'lettermark', type: 'icon', width: 64, height: 64 }) : null;
                     const showInstitutionLogo = Boolean(institutionLogoUrl && !logoLoadErrors[institutionLogoUrl]);
 
                     return (
