@@ -396,6 +396,7 @@ export interface AppPreferences {
   defaultQuickCreatePeriod?: number;
   defaultForecastPeriod?: ForecastDuration;
   brandfetchClientId?: string;
+  twelveDataApiKey?: string;
   merchantLogoOverrides?: Record<string, string>;
 }
 
