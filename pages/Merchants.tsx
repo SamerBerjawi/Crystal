@@ -206,22 +206,8 @@ const Merchants: React.FC<MerchantsProps> = ({ setCurrentPage }) => {
     });
   };
 
-  const clearOverride = (key: string) => {
-    setOverrideDrafts(prev => {
-        const next = { ...prev };
-        delete next[key];
-        return next;
-    });
-    setPreferences(prev => {
-        const nextOverrides = { ...(prev.merchantLogoOverrides || {}) };
-        delete nextOverrides[key];
-        return { ...prev, merchantLogoOverrides: nextOverrides };
-    });
-  };
-
-  // Use fallback: '404' to ensure local lettermark is shown on failure instead of transparent image
   const getPreviewUrl = (merchantName: string) =>
-    getMerchantLogoUrl(merchantName, brandfetchClientId, overrideDrafts, { fallback: '404', type: 'icon', width: 128, height: 128 });
+    getMerchantLogoUrl(merchantName, brandfetchClientId, overrideDrafts, { fallback: 'lettermark', type: 'icon', width: 128, height: 128 });
 
   const handleLogoError = (url: string) => setLogoLoadErrors(prev => ({ ...prev, [url]: true }));
 
@@ -356,6 +342,9 @@ const Merchants: React.FC<MerchantsProps> = ({ setCurrentPage }) => {
               const initialLetter = entity.name.charAt(0).toUpperCase();
               
               const isPositive = entity.totalValue >= 0;
+              const valueColor = isPositive 
+                ? 'text-light-text dark:text-dark-text'
+                : 'text-light-text dark:text-dark-text'; // Neutral for cards, specific color for value maybe?
               
               // Institutions usually show positive Balance (Green/Blue). Merchants usually show Expenses (Red/Gray).
               const accentColor = entity.type === 'Institution' 
@@ -423,28 +412,17 @@ const Merchants: React.FC<MerchantsProps> = ({ setCurrentPage }) => {
 
                     {/* Branding Override */}
                     <div className="pt-3 border-t border-black/5 dark:border-white/5 bg-gray-50/50 dark:bg-white/[0.02] -mx-6 -mb-6 px-6 py-3 rounded-b-xl">
-                        <div className="flex items-center gap-2 relative">
+                        <div className="flex items-center gap-2">
                             <label className="text-[10px] font-bold text-light-text-secondary dark:text-dark-text-secondary uppercase tracking-wider whitespace-nowrap">Brand Domain</label>
-                            <div className="relative w-full">
-                                <input
-                                  type="text"
-                                  value={draftValue}
-                                  placeholder="e.g. amazon.com"
-                                  onChange={e => handleOverrideChange(entity.id, e.target.value)}
-                                  onBlur={() => persistOverride(entity.id)}
-                                  className="w-full bg-transparent border-b border-dashed border-black/20 dark:border-white/20 text-xs py-0.5 focus:border-primary-500 outline-none text-right placeholder-gray-400 dark:placeholder-gray-600 pr-5"
-                                  disabled={!brandfetchClientId}
-                                />
-                                {draftValue && (
-                                    <button
-                                        onMouseDown={(e) => { e.preventDefault(); clearOverride(entity.id); }}
-                                        className="absolute right-0 top-1/2 -translate-y-1/2 text-gray-400 hover:text-red-500 transition-colors"
-                                        title="Clear Override"
-                                    >
-                                        <span className="material-symbols-outlined text-sm">close</span>
-                                    </button>
-                                )}
-                            </div>
+                            <input
+                              type="text"
+                              value={draftValue}
+                              placeholder="e.g. amazon.com"
+                              onChange={e => handleOverrideChange(entity.id, e.target.value)}
+                              onBlur={() => persistOverride(entity.id)}
+                              className="w-full bg-transparent border-b border-dashed border-black/20 dark:border-white/20 text-xs py-0.5 focus:border-primary-500 outline-none text-right placeholder-gray-400 dark:placeholder-gray-600"
+                              disabled={!brandfetchClientId}
+                            />
                         </div>
                     </div>
                 </Card>
