@@ -1,6 +1,6 @@
 
 import React, { useState, useMemo, useEffect, useRef } from 'react';
-import { Account, Page, AccountType, Transaction, Warrant } from '../types';
+import { Account, EnableBankingConnection, Page, AccountType, Transaction, Warrant } from '../types';
 import AddAccountModal from '../components/AddAccountModal';
 import EditAccountModal from '../components/EditAccountModal';
 import { ASSET_TYPES, DEBT_TYPES, BTN_PRIMARY_STYLE, ACCOUNT_TYPE_STYLES, BTN_SECONDARY_STYLE, SELECT_WRAPPER_STYLE, SELECT_ARROW_STYLE, SELECT_STYLE, LIQUID_ACCOUNT_TYPES } from '../constants';
@@ -12,6 +12,9 @@ import Card from '../components/Card';
 import useLocalStorage from '../hooks/useLocalStorage';
 import { useScheduleContext } from '../contexts/FinancialDataContext';
 import PageHeader from '../components/PageHeader';
+import EnableBankingLinkModal from '../components/EnableBankingLinkModal';
+import { buildEnableBankingSync, isEnableBankingConfigured } from '../utils/enableBanking';
+import { usePreferencesSelector } from '../contexts/DomainProviders';
 
 interface AccountsProps {
     accounts: Account[];
@@ -209,6 +212,10 @@ const Accounts: React.FC<AccountsProps> = ({ accounts, transactions, saveAccount
   const [layoutMode, setLayoutMode] = useLocalStorage<'stacked' | 'columns'>('crystal_accounts_section_layout', 'stacked');
   const [sortBy, setSortBy] = useState<'name' | 'balance' | 'manual'>(initialSortBy);
   const { loanPaymentOverrides } = useScheduleContext();
+  const enableBankingConfigured = usePreferencesSelector(isEnableBankingConfigured);
+  const enableBankingCountry = usePreferencesSelector(p => p.enableBankingCountryCode || '');
+  const [isLinkModalOpen, setLinkModalOpen] = useState(false);
+  const [linkTargetAccount, setLinkTargetAccount] = useState<Account | null>(null);
 
   useEffect(() => {
     const handleClickOutside = (event: MouseEvent) => {
@@ -297,6 +304,42 @@ const Accounts: React.FC<AccountsProps> = ({ accounts, transactions, saveAccount
     setAdjustModalOpen(true);
   };
 
+  const openLinkModal = (account?: Account) => {
+    setLinkTargetAccount(account || null);
+    setLinkModalOpen(true);
+  };
+
+  const handleSaveEnableBanking = (account: Account, connection: EnableBankingConnection) => {
+    const updatedAccount: Account = {
+      ...account,
+      enableBanking: {
+        ...connection,
+      },
+    };
+
+    saveAccount({ ...updatedAccount, id: account.id });
+    setLinkModalOpen(false);
+    setLinkTargetAccount(null);
+  };
+
+  const handleSyncFromEnableBanking = (account: Account) => {
+    const syncResult = buildEnableBankingSync(account);
+    const connection: EnableBankingConnection = {
+      aspspName: account.enableBanking?.aspspName || account.financialInstitution || account.name,
+      countryCode: account.enableBanking?.countryCode || enableBankingCountry || '',
+      accountUid: account.enableBanking?.accountUid,
+      sessionId: account.enableBanking?.sessionId,
+      authorizationId: account.enableBanking?.authorizationId,
+      status: 'connected',
+      lastSyncedAt: new Date().toISOString(),
+    };
+
+    saveAccount({ ...account, id: account.id, balance: syncResult.updatedBalance, enableBanking: connection });
+    if (syncResult.transactions.length > 0) {
+      saveTransaction(syncResult.transactions);
+    }
+  };
+
   const closeAdjustModal = () => {
     setAdjustingAccount(null);
     setAdjustModalOpen(false);
@@ -347,6 +390,16 @@ const Accounts: React.FC<AccountsProps> = ({ accounts, transactions, saveAccount
             account={adjustingAccount}
         />
       )}
+      {isLinkModalOpen && (
+        <EnableBankingLinkModal
+          accounts={accounts}
+          targetAccount={linkTargetAccount}
+          onClose={() => { setLinkModalOpen(false); setLinkTargetAccount(null); }}
+          onSave={handleSaveEnableBanking}
+          defaultCountry={enableBankingCountry || undefined}
+          configurationReady={enableBankingConfigured}
+        />
+      )}
       {deletingAccount && (
         <FinalConfirmationModal
             isOpen={!!deletingAccount}
@@ -395,6 +448,24 @@ const Accounts: React.FC<AccountsProps> = ({ accounts, transactions, saveAccount
                     </button>
                 </li>
                 <li>
+                    <button onClick={() => { openLinkModal(contextMenu.account); setContextMenu(null); }} className="w-full text-left flex items-center gap-3 px-4 py-2 hover:bg-black/5 dark:hover:bg-white/10">
+                        <span className="material-symbols-outlined text-base">link</span>
+                        <span>Link Enable Banking</span>
+                    </button>
+                </li>
+                {contextMenu.account.enableBanking && (
+                  <li>
+                    <button
+                      onClick={() => { handleSyncFromEnableBanking(contextMenu.account); setContextMenu(null); }}
+                      className={`w-full text-left flex items-center gap-3 px-4 py-2 hover:bg-black/5 dark:hover:bg-white/10 ${enableBankingConfigured ? '' : 'opacity-60 cursor-not-allowed'}`}
+                      disabled={!enableBankingConfigured}
+                    >
+                        <span className="material-symbols-outlined text-base">cloud_sync</span>
+                        <span>{enableBankingConfigured ? 'Sync from Enable Banking' : 'Sync (configure first)'}</span>
+                    </button>
+                  </li>
+                )}
+                <li>
                     <button onClick={() => { openAdjustModal(contextMenu.account); setContextMenu(null); }} className="w-full text-left flex items-center gap-3 px-4 py-2 hover:bg-black/5 dark:hover:bg-white/10">
                         <span className="material-symbols-outlined text-base">tune</span>
                         <span>Adjust Balance</span>
@@ -418,10 +489,16 @@ const Accounts: React.FC<AccountsProps> = ({ accounts, transactions, saveAccount
         title="Accounts"
         subtitle="Bank, card, and lending balances with tools to rebalance, reorder, and reconcile on the fly."
         actions={
-          <button onClick={() => setAddModalOpen(true)} className={`${BTN_PRIMARY_STYLE} flex items-center gap-2`}>
-            <span className="material-symbols-outlined text-xl">add</span>
-            Add Account
-          </button>
+          <div className="flex items-center gap-2">
+            <button onClick={() => openLinkModal()} className={`${BTN_SECONDARY_STYLE} flex items-center gap-2`}>
+              <span className="material-symbols-outlined text-xl">link</span>
+              Link Enable Banking
+            </button>
+            <button onClick={() => setAddModalOpen(true)} className={`${BTN_PRIMARY_STYLE} flex items-center gap-2`}>
+              <span className="material-symbols-outlined text-xl">add</span>
+              Add Account
+            </button>
+          </div>
         }
       />
 
@@ -465,6 +542,16 @@ const Accounts: React.FC<AccountsProps> = ({ accounts, transactions, saveAccount
                 </button>
            </div>
       </div>
+
+      {!enableBankingConfigured && (
+        <div className="bg-amber-50 dark:bg-amber-900/30 border border-amber-200 dark:border-amber-700 text-amber-800 dark:text-amber-200 px-4 py-3 rounded-xl flex items-start gap-3">
+          <span className="material-symbols-outlined text-xl mt-0.5">info</span>
+          <div className="text-sm leading-relaxed">
+            <p className="font-semibold">Enable Banking is not fully configured.</p>
+            <p className="text-amber-700 dark:text-amber-100/80">Add your country code, application ID, and client certificate in Preferences to unlock live bank syncs.</p>
+          </div>
+        </div>
+      )}
 
       {/* Content */}
       <div className="space-y-8">
