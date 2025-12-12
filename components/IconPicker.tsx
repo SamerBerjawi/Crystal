@@ -1,8 +1,9 @@
 
-import React, { useState, useMemo } from 'react';
+import React, { useEffect, useMemo, useState } from 'react';
 import Modal from './Modal';
 import { INPUT_BASE_STYLE } from '../constants';
 import { fuzzySearch } from '../utils';
+import { searchMaterialSymbols } from '../utils/materialSymbols';
 
 interface IconPickerProps {
   onClose: () => void;
@@ -12,18 +13,66 @@ interface IconPickerProps {
 
 const IconPicker: React.FC<IconPickerProps> = ({ onClose, onSelect, iconList }) => {
   const [searchTerm, setSearchTerm] = useState('');
+  const [remoteIcons, setRemoteIcons] = useState<string[]>([]);
+  const [isFetchingRemote, setIsFetchingRemote] = useState(false);
 
   const handleIconClick = (icon: string) => {
     onSelect(icon);
     onClose();
   };
 
-  const displayedIcons = useMemo(() => {
+  const localMatches = useMemo(() => {
     const term = searchTerm.trim();
     if (!term) return iconList;
     // Use fuzzy search for better matching, and ensure we ONLY return valid icons from the list.
     return iconList.filter(icon => fuzzySearch(term, icon));
   }, [searchTerm, iconList]);
+
+  useEffect(() => {
+    const term = searchTerm.trim();
+
+    if (!term || localMatches.length > 0) {
+      setRemoteIcons([]);
+      setIsFetchingRemote(false);
+      return;
+    }
+
+    let cancelled = false;
+    setIsFetchingRemote(true);
+
+    Promise.resolve().then(() => {
+      const matches = searchMaterialSymbols(term);
+      if (!cancelled) {
+        setRemoteIcons(matches);
+      }
+    }).catch((error) => {
+      if (!cancelled) {
+        console.error('Unable to search Material Symbols metadata', error);
+        setRemoteIcons([]);
+      }
+    }).finally(() => {
+      if (!cancelled) {
+        setIsFetchingRemote(false);
+      }
+    });
+
+    return () => {
+      cancelled = true;
+    };
+  }, [searchTerm, localMatches.length]);
+
+  const displayedIcons = useMemo(() => {
+    if (!searchTerm.trim()) return iconList;
+    const combinedIcons = [...localMatches];
+
+    for (const icon of remoteIcons) {
+      if (!combinedIcons.includes(icon)) {
+        combinedIcons.push(icon);
+      }
+    }
+
+    return combinedIcons;
+  }, [searchTerm, iconList, localMatches, remoteIcons]);
 
   return (
     <Modal onClose={onClose} title="Select Icon" zIndexClass="z-[60]" size="xl">
@@ -75,7 +124,7 @@ const IconPicker: React.FC<IconPickerProps> = ({ onClose, onSelect, iconList }) 
           ) : (
             <div className="flex flex-col items-center justify-center h-full text-light-text-secondary dark:text-dark-text-secondary opacity-60">
                 <span className="material-symbols-outlined text-4xl mb-3">sentiment_dissatisfied</span>
-                <p>No icons found for "{searchTerm}"</p>
+                <p>{isFetchingRemote ? 'Searching Material Symbols catalog…' : `No icons found for "${searchTerm}"`}</p>
             </div>
           )}
         </div>

@@ -1,5 +1,6 @@
 
 import { Category, Page, AccountType, Currency, RecurrenceFrequency, WeekendAdjustment, DefaultAccountOrder, Duration, InvestmentSubType, PropertyType, FuelType, VehicleOwnership, ForecastDuration, OtherAssetSubType, OtherLiabilitySubType } from './types';
+import { ICON_LIBRARY } from './utils/materialSymbols';
 
 
 // FIX: Renamed AuraFinanceLogo to CrystalLogo to finalize rebranding.
@@ -328,18 +329,6 @@ export const MOCK_EXPENSE_CATEGORIES: Category[] = [
     ]}
 ];
 
-export const ACCOUNT_ICON_LIST: string[] = [
-    'account_balance', 'savings', 'credit_card', 'show_chart', 'request_quote', 'home', 'currency_bitcoin', 'directions_car', 'palette', 'school', 'receipt', 'category', 'wallet', 'paid', 'account_balance_wallet', 'monetization_on', 'euro_symbol', 'payments', 'store', 'apartment', 'business_center', 'cottage', 'flight', 'local_gas_station', 'local_mall', 'restaurant', 'shopping_cart', 'work', 'build', 'real_estate_agent', 'diamond', 'handshake', 'devices', 'chair', 'gavel'
-];
+export const ACCOUNT_ICON_LIST: string[] = [...ICON_LIBRARY];
 
-export const CATEGORY_ICON_LIST: string[] = [
-    'restaurant', 'local_cafe', 'local_bar', 'shopping_cart', 'local_mall', 'store', 'house', 'apartment',
-    'home_work', 'paid', 'savings', 'show_chart', 'credit_card', 'receipt_long', 'request_quote',
-    'flight', 'directions_car', 'train', 'local_taxi', 'commute', 'local_gas_station', 'ev_station', 'local_shipping',
-    'healing', 'medication', 'local_hospital', 'health_and_safety', 'monitor_heart', 'volunteer_activism',
-    'subscriptions', 'movie', 'music_note', 'sports_esports', 'stadia_controller', 'fitness_center', 'sports_soccer',
-    'phone_iphone', 'computer', 'desktop_windows', 'devices', 'videogame_asset', 'checkroom', 'styler', 'diamond', 'wc',
-    'child_care', 'pets', 'school', 'card_giftcard', 'redeem', 'celebration', 'family_restroom', 'construction', 'build',
-    'attach_money', 'work', 'payments', 'account_balance', 'currency_exchange', 'sell',
-    'emergency', 'report'
-];
+export const CATEGORY_ICON_LIST: string[] = [...ICON_LIBRARY];
