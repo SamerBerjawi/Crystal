@@ -205,6 +205,35 @@ const Merchants: React.FC<MerchantsProps> = ({ setCurrentPage }) => {
       return { ...prev, merchantLogoOverrides: nextOverrides };
     });
   };
+  
+  const handleWipe = (entityId: string, currentName: string) => {
+    // 1. Strip known TLDs from the name to create a "clean" name
+    let cleanName = currentName.toLowerCase();
+    // Regex matches common TLDs at the end of the string
+    cleanName = cleanName.replace(/\.(com|net|org|co\.uk|be|de|fr)$/i, '');
+    // Fallback: If it still has dots, take the first part
+    if (cleanName.includes('.')) {
+        cleanName = cleanName.split('.')[0];
+    }
+    // Remove non-alphanumeric chars to be safe/clean
+    cleanName = cleanName.replace(/[^a-z0-9 ]/g, '').trim();
+
+    // 2. Set this clean name as the override
+    // Because it lacks a dot, buildMerchantIdentifier will return null, forcing a lettermark.
+    const key = normalizeMerchantKey(entityId) || entityId;
+    
+    setOverrideDrafts(prev => ({ ...prev, [key]: cleanName }));
+    
+    setPreferences(prev => {
+        const nextOverrides = { ...(prev.merchantLogoOverrides || {}) };
+        if (cleanName) {
+            nextOverrides[key] = cleanName;
+        } else {
+            delete nextOverrides[key];
+        }
+        return { ...prev, merchantLogoOverrides: nextOverrides };
+    });
+  };
 
   const getPreviewUrl = (merchantName: string) =>
     getMerchantLogoUrl(merchantName, brandfetchClientId, overrideDrafts, { fallback: 'lettermark', type: 'icon', width: 128, height: 128 });
@@ -342,9 +371,6 @@ const Merchants: React.FC<MerchantsProps> = ({ setCurrentPage }) => {
               const initialLetter = entity.name.charAt(0).toUpperCase();
               
               const isPositive = entity.totalValue >= 0;
-              const valueColor = isPositive 
-                ? 'text-light-text dark:text-dark-text'
-                : 'text-light-text dark:text-dark-text'; // Neutral for cards, specific color for value maybe?
               
               // Institutions usually show positive Balance (Green/Blue). Merchants usually show Expenses (Red/Gray).
               const accentColor = entity.type === 'Institution' 
@@ -423,6 +449,14 @@ const Merchants: React.FC<MerchantsProps> = ({ setCurrentPage }) => {
                               className="w-full bg-transparent border-b border-dashed border-black/20 dark:border-white/20 text-xs py-0.5 focus:border-primary-500 outline-none text-right placeholder-gray-400 dark:placeholder-gray-600"
                               disabled={!brandfetchClientId}
                             />
+                            {/* Wipe Button */}
+                            <button
+                                onClick={() => handleWipe(entity.id, entity.name)}
+                                className="text-light-text-secondary dark:text-dark-text-secondary hover:text-red-500 transition-colors p-1 -mr-2 rounded-full hover:bg-black/5 dark:hover:bg-white/10"
+                                title="Wipe branding (revert to icon)"
+                            >
+                                <span className="material-symbols-outlined text-sm">ink_eraser</span>
+                            </button>
                         </div>
                     </div>
                 </Card>
