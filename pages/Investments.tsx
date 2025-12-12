@@ -321,6 +321,18 @@ const Investments: React.FC<InvestmentsProps> = ({
                                                 </td>
                                                 <td className="py-4 text-right">
                                                     <div className="flex justify-end gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+                                                        {holdingAccount && (
+                                                            <button
+                                                                onClick={(e) => {
+                                                                    e.stopPropagation();
+                                                                    onToggleAccountStatus(holdingAccount.id);
+                                                                }}
+                                                                className="p-1.5 rounded-md text-light-text-secondary dark:text-dark-text-secondary hover:bg-black/10 dark:hover:bg-white/10"
+                                                                title={holdingAccount.status === 'closed' ? 'Mark Active' : 'Mark Inactive'}
+                                                            >
+                                                                <span className="material-symbols-outlined text-lg">do_not_disturb_on</span>
+                                                            </button>
+                                                        )}
                                                         <button
                                                             onClick={(e) => { e.stopPropagation(); handleOpenPriceModal(holding.symbol, holding.name, holding.currentPrice); }}
                                                             className="p-1.5 rounded-md text-light-text-secondary dark:text-dark-text-secondary hover:bg-black/10 dark:hover:bg-white/10"
@@ -339,18 +351,6 @@ const Investments: React.FC<InvestmentsProps> = ({
                                                                 title="Edit Grant"
                                                             >
                                                                 <span className="material-symbols-outlined text-lg">edit</span>
-                                                            </button>
-                                                        )}
-                                                        {holdingAccount && (
-                                                            <button
-                                                                onClick={(e) => {
-                                                                    e.stopPropagation();
-                                                                    onToggleAccountStatus(holdingAccount.id);
-                                                                }}
-                                                                className="p-1.5 rounded-md text-light-text-secondary dark:text-dark-text-secondary hover:bg-black/10 dark:hover:bg-white/10"
-                                                                title={holdingAccount.status === 'closed' ? 'Mark Active' : 'Mark Inactive'}
-                                                            >
-                                                                <span className="material-symbols-outlined text-lg">do_not_disturb_on</span>
                                                             </button>
                                                         )}
                                                         {holdingAccount && (
