@@ -188,6 +188,7 @@ const initialFinancialData: FinancialData = {
         country: 'Belgium',
         defaultForecastPeriod: '1Y',
         brandfetchClientId: '',
+        twelveDataApiKey: '',
         merchantLogoOverrides: {},
     },
 };

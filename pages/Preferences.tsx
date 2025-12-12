@@ -231,6 +231,19 @@ const Preferences: React.FC<PreferencesProps> = ({ preferences, setPreferences, 
             />
             <div className="space-y-2">
               <SettingRow
+                label="Twelve Data API Key"
+                description="Used to fetch live investment prices from Twelve Data. Your key is stored locally."
+              >
+                <input
+                  type="text"
+                  name="twelveDataApiKey"
+                  value={preferences.twelveDataApiKey || ''}
+                  onChange={handleInputChange}
+                  placeholder="Enter your Twelve Data API key"
+                  className={INPUT_BASE_STYLE}
+                />
+              </SettingRow>
+              <SettingRow
                 label="Brandfetch Client ID"
                 description="Used to fetch merchant logos for your transactions. Leave blank to use category icons instead."
               >
