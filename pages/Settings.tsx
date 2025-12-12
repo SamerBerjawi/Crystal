@@ -72,17 +72,24 @@ const Settings: React.FC<SettingsProps> = ({ setCurrentPage, user }) => {
       <div>
         <h3 className="text-sm font-bold text-light-text-secondary dark:text-dark-text-secondary uppercase tracking-wider mb-3 ml-2">App Settings</h3>
         <div className="bg-white dark:bg-dark-card rounded-xl shadow-sm border border-black/5 dark:border-white/5 divide-y divide-black/5 dark:divide-white/5">
-          <SettingItem 
-            page="Preferences" 
-            icon="tune" 
-            title="Preferences" 
+          <SettingItem
+            page="Preferences"
+            icon="tune"
+            title="Preferences"
             description="Theme, currency, language, and regional formats"
             colorClass="bg-blue-100 text-blue-600 dark:bg-blue-900/30 dark:text-blue-400"
           />
-           <SettingItem 
-            page="AI Assistant" 
-            icon="smart_toy" 
-            title="AI Assistant" 
+          <SettingItem
+            page="Merchants"
+            icon="store"
+            title="Merchant Logos"
+            description="Review detected merchants and customize their logos"
+            colorClass="bg-green-100 text-green-600 dark:bg-green-900/30 dark:text-green-400"
+          />
+           <SettingItem
+            page="AI Assistant"
+            icon="smart_toy"
+            title="AI Assistant"
             description="Configure API keys and AI behaviors"
             colorClass="bg-purple-100 text-purple-600 dark:bg-purple-900/30 dark:text-purple-400"
           />

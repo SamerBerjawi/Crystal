@@ -46,6 +46,8 @@ const loadSubscriptionsPage = () => import('./pages/Subscriptions');
 const SubscriptionsPage = lazy(loadSubscriptionsPage);
 const loadInvoicesPage = () => import('./pages/Invoices');
 const InvoicesPage = lazy(loadInvoicesPage);
+const loadMerchantsPage = () => import('./pages/Merchants');
+const MerchantsPage = lazy(loadMerchantsPage);
 
 const pagePreloaders = [
   loadDashboard,
@@ -67,7 +69,8 @@ const pagePreloaders = [
   loadAIAssistantSettingsPage,
   loadDocumentation,
   loadSubscriptionsPage,
-  loadInvoicesPage
+  loadInvoicesPage,
+  loadMerchantsPage
 ];
 // UserManagement is removed
 // FIX: Import FinancialData from types.ts
@@ -184,6 +187,7 @@ const initialFinancialData: FinancialData = {
         country: 'Belgium',
         defaultForecastPeriod: '1Y',
         brandfetchClientId: '',
+        merchantLogoOverrides: {},
     },
 };
 
@@ -1771,6 +1775,8 @@ const App: React.FC = () => {
         return <SubscriptionsPage />;
       case 'Quotes & Invoices':
         return <InvoicesPage />;
+      case 'Merchants':
+        return <MerchantsPage setCurrentPage={setCurrentPage} />;
       default:
         return <div>Page not found</div>;
     }
