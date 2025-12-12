@@ -116,12 +116,39 @@ const WarrantPriceModal: React.FC<WarrantPriceModalProps> = ({ onClose, onSave, 
         };
 
         try {
-            // Request price converted to EUR to match the UI currency. Fallback to the raw price if conversion is unsupported.
-            const baseUrl = `https://api.twelvedata.com/price?symbol=${encodeURIComponent(isin)}&apikey=${twelveDataApiKey}`;
-            const price = await fetchPrice(`${baseUrl}&currency=EUR`).catch(async () => fetchPrice(baseUrl));
+            const symbol = isin.toUpperCase();
+            const candidates = symbol.includes('/')
+                ? [symbol]
+                : [
+                    `${symbol}/EUR`, // direct EUR quote for crypto pairs
+                    `${symbol}/USD`, // USD quote with conversion to EUR
+                    symbol // fallback to raw symbol
+                ];
 
-            if (price) {
-                setNewPrice(String(price));
+            let fetchedPrice: number | null = null;
+
+            for (const candidate of candidates) {
+                const queryParams = new URLSearchParams({
+                    symbol: candidate,
+                    apikey: twelveDataApiKey,
+                });
+
+                // Only request conversion when the quote currency is not already EUR to avoid unusable crypto prices.
+                if (!candidate.toUpperCase().endsWith('/EUR')) {
+                    queryParams.set('currency', 'EUR');
+                }
+
+                try {
+                    fetchedPrice = await fetchPrice(`https://api.twelvedata.com/price?${queryParams.toString()}`);
+                    break;
+                } catch (err) {
+                    // try next candidate
+                    continue;
+                }
+            }
+
+            if (fetchedPrice) {
+                setNewPrice(String(fetchedPrice));
                 setDate(toLocalISOString(new Date()));
             } else {
                 setFetchError('Price not available for this symbol.');
