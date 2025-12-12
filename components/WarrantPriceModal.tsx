@@ -3,6 +3,7 @@ import React, { useState, useEffect } from 'react';
 import Modal from './Modal';
 import { BTN_PRIMARY_STYLE, BTN_SECONDARY_STYLE, BTN_DANGER_STYLE, INPUT_BASE_STYLE } from '../constants';
 import { toLocalISOString } from '../utils';
+import { usePreferencesSelector } from '../contexts/DomainProviders';
 
 interface WarrantPriceModalProps {
   onClose: () => void;
@@ -15,6 +16,7 @@ interface WarrantPriceModalProps {
 
 const WarrantPriceModal: React.FC<WarrantPriceModalProps> = ({ onClose, onSave, isin, name, initialEntry, manualPrice }) => {
     const [mode, setMode] = useState<'single' | 'bulk'>(initialEntry ? 'single' : 'single');
+    const twelveDataApiKey = usePreferencesSelector(p => p.twelveDataApiKey || '');
 
     // Single Entry State
     const [newPrice, setNewPrice] = useState('');
@@ -23,6 +25,8 @@ const WarrantPriceModal: React.FC<WarrantPriceModalProps> = ({ onClose, onSave, 
     // Bulk Entry State
     const [bulkData, setBulkData] = useState('');
     const [bulkPreview, setBulkPreview] = useState<{date: string, price: number}[]>([]);
+    const [fetchError, setFetchError] = useState<string | null>(null);
+    const [isFetching, setIsFetching] = useState(false);
 
     useEffect(() => {
         if (initialEntry) {
@@ -90,6 +94,38 @@ const WarrantPriceModal: React.FC<WarrantPriceModalProps> = ({ onClose, onSave, 
         }
         onClose();
     };
+
+    const handleFetchLatestPrice = async () => {
+        if (!twelveDataApiKey) {
+            setFetchError('Add your Twelve Data API key in Preferences to fetch prices automatically.');
+            return;
+        }
+
+        setIsFetching(true);
+        setFetchError(null);
+
+        try {
+            const response = await fetch(`https://api.twelvedata.com/price?symbol=${encodeURIComponent(isin)}&apikey=${twelveDataApiKey}`);
+            const data = await response.json();
+
+            if (data.status === 'error' || data.code) {
+                setFetchError(data.message || 'Unable to fetch price. Please try again.');
+                return;
+            }
+
+            if (data.price) {
+                setNewPrice(String(data.price));
+                setDate(toLocalISOString(new Date()));
+            } else {
+                setFetchError('Price not available for this symbol.');
+            }
+        } catch (error) {
+            console.error('Failed to fetch Twelve Data price', error);
+            setFetchError('Unable to connect to Twelve Data. Please try again.');
+        } finally {
+            setIsFetching(false);
+        }
+    };
     
     const handleClear = () => {
         if (mode === 'single') {
@@ -156,6 +192,26 @@ const WarrantPriceModal: React.FC<WarrantPriceModalProps> = ({ onClose, onSave, 
                                     autoFocus
                                 />
                             </div>
+                            <div className="flex items-center gap-2 mt-2">
+                                <button
+                                    type="button"
+                                    onClick={handleFetchLatestPrice}
+                                    className={`${BTN_SECONDARY_STYLE} !py-2 flex items-center gap-2`}
+                                    disabled={isFetching}
+                                >
+                                    <span className="material-symbols-outlined text-lg">cloud_download</span>
+                                    {isFetching ? 'Fetching…' : 'Fetch from Twelve Data'}
+                                </button>
+                                <p className="text-xs text-light-text-secondary dark:text-dark-text-secondary">
+                                    Uses your saved Twelve Data API key.
+                                </p>
+                            </div>
+                            {fetchError && (
+                                <p className="text-xs text-red-600 dark:text-red-400 mt-1 flex items-center gap-1">
+                                    <span className="material-symbols-outlined text-base">error</span>
+                                    {fetchError}
+                                </p>
+                            )}
                         </div>
                     </>
                 ) : (
