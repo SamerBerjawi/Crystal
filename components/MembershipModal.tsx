@@ -19,6 +19,9 @@ const MembershipModal: React.FC<MembershipModalProps> = ({ onClose, onSave, memb
   const [provider, setProvider] = useState('');
   const [memberId, setMemberId] = useState('');
   const [tier, setTier] = useState('');
+  const [holderName, setHolderName] = useState('');
+  const [memberSince, setMemberSince] = useState('');
+  const [points, setPoints] = useState('');
   const [expiryDate, setExpiryDate] = useState('');
   const [color, setColor] = useState('#3b82f6'); // Default blue
   const [icon, setIcon] = useState('loyalty');
@@ -32,6 +35,9 @@ const MembershipModal: React.FC<MembershipModalProps> = ({ onClose, onSave, memb
       setProvider(membershipToEdit.provider);
       setMemberId(membershipToEdit.memberId);
       setTier(membershipToEdit.tier || '');
+      setHolderName(membershipToEdit.holderName || '');
+      setMemberSince(membershipToEdit.memberSince || '');
+      setPoints(membershipToEdit.points || '');
       setExpiryDate(membershipToEdit.expiryDate || '');
       setColor(membershipToEdit.color);
       setIcon(membershipToEdit.icon);
@@ -43,6 +49,9 @@ const MembershipModal: React.FC<MembershipModalProps> = ({ onClose, onSave, memb
       setProvider('');
       setMemberId('');
       setTier('');
+      setHolderName('');
+      setMemberSince('');
+      setPoints('');
       setExpiryDate('');
       setColor('#3b82f6');
       setIcon('loyalty');
@@ -65,6 +74,9 @@ const MembershipModal: React.FC<MembershipModalProps> = ({ onClose, onSave, memb
         provider,
         memberId,
         tier: tier || undefined,
+        holderName: holderName || undefined,
+        memberSince: memberSince || undefined,
+        points: points || undefined,
         expiryDate: expiryDate || undefined,
         color,
         icon,
@@ -140,15 +152,31 @@ const MembershipModal: React.FC<MembershipModalProps> = ({ onClose, onSave, memb
               </div>
           </div>
 
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-             <div>
-                <label htmlFor="tier" className={labelStyle}>Tier / Status</label>
-                <input id="tier" type="text" value={tier} onChange={e => setTier(e.target.value)} className={INPUT_BASE_STYLE} placeholder="e.g. Gold" />
-             </div>
-             <div>
-                <label htmlFor="expiryDate" className={labelStyle}>Expiry Date</label>
-                <input id="expiryDate" type="date" value={expiryDate} onChange={e => setExpiryDate(e.target.value)} className={INPUT_BASE_STYLE} />
-             </div>
+          {/* Additional Details */}
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+               <div className="md:col-span-2">
+                  <label htmlFor="holderName" className={labelStyle}>Card Holder Name</label>
+                  <input id="holderName" type="text" value={holderName} onChange={e => setHolderName(e.target.value)} className={INPUT_BASE_STYLE} placeholder="Name on card" />
+               </div>
+               <div>
+                  <label htmlFor="tier" className={labelStyle}>Tier / Status</label>
+                  <input id="tier" type="text" value={tier} onChange={e => setTier(e.target.value)} className={INPUT_BASE_STYLE} placeholder="e.g. Gold" />
+               </div>
+          </div>
+          
+          <div className="grid grid-cols-3 gap-4">
+               <div>
+                  <label htmlFor="points" className={labelStyle}>Balance / Points</label>
+                  <input id="points" type="text" value={points} onChange={e => setPoints(e.target.value)} className={INPUT_BASE_STYLE} placeholder="500 pts" />
+               </div>
+               <div>
+                  <label htmlFor="memberSince" className={labelStyle}>Member Since</label>
+                  <input id="memberSince" type="text" value={memberSince} onChange={e => setMemberSince(e.target.value)} className={INPUT_BASE_STYLE} placeholder="Year or Date" />
+               </div>
+               <div>
+                  <label htmlFor="expiryDate" className={labelStyle}>Expiry Date</label>
+                  <input id="expiryDate" type="date" value={expiryDate} onChange={e => setExpiryDate(e.target.value)} className={INPUT_BASE_STYLE} />
+               </div>
           </div>
 
           {/* Additional Info Section */}

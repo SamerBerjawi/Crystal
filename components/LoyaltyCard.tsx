@@ -1,3 +1,4 @@
+
 import React, { useMemo, useState } from 'react';
 import { Membership } from '../types';
 import { parseDateAsUTC } from '../utils';
@@ -9,7 +10,7 @@ interface LoyaltyCardProps {
 }
 
 const LoyaltyCard: React.FC<LoyaltyCardProps> = ({ membership, onEdit, onDelete }) => {
-  const [isFlipped, setIsFlipped] = useState(false);
+  const [copied, setCopied] = useState(false);
 
   const normalizeColor = (hexColor: string) => hexColor.replace('#', '');
 
@@ -31,8 +32,8 @@ const LoyaltyCard: React.FC<LoyaltyCardProps> = ({ membership, onEdit, onDelete 
   const cardColor = membership.color || '#4f46e5';
 
   const formattedExpiry = membership.expiryDate
-    ? parseDateAsUTC(membership.expiryDate).toLocaleDateString('en-US', { month: 'short', year: '2-digit' })
-    : 'No Expiry';
+    ? parseDateAsUTC(membership.expiryDate).toLocaleDateString('en-US', { month: '2-digit', year: '2-digit' })
+    : 'Never';
 
   const isExpired = useMemo(() => {
     if (!membership.expiryDate) return false;
@@ -40,169 +41,135 @@ const LoyaltyCard: React.FC<LoyaltyCardProps> = ({ membership, onEdit, onDelete 
   }, [membership.expiryDate]);
 
   const gradientBackground = useMemo(() => ({
-    background: `radial-gradient(circle at 20% 20%, ${toRgba(cardColor, 0.32)} 0, transparent 35%),
-                 radial-gradient(circle at 80% 10%, ${toRgba(cardColor, 0.28)} 0, transparent 30%),
-                 radial-gradient(circle at 50% 100%, rgba(255,255,255,0.12) 0, transparent 40%),
-                 linear-gradient(135deg, ${toRgba(cardColor, 0.92)} 0%, ${toRgba(cardColor, 0.7)} 55%, #0f172a 120%)`,
+    background: `linear-gradient(135deg, ${toRgba(cardColor, 0.9)} 0%, ${toRgba(cardColor, 0.7)} 100%)`,
   }), [cardColor]);
 
-  const pillStyles = 'px-3 py-1 rounded-full text-[10px] font-semibold uppercase tracking-[0.2em]';
+  const handleCopyId = (e: React.MouseEvent) => {
+    e.stopPropagation();
+    navigator.clipboard.writeText(membership.memberId);
+    setCopied(true);
+    setTimeout(() => setCopied(false), 2000);
+  };
+  
+  const handleWebsiteClick = (e: React.MouseEvent) => {
+      e.stopPropagation();
+  };
 
   return (
-    <div
-      className="group relative w-full aspect-[1.65/1] perspective-1000 cursor-pointer select-none"
-      onClick={() => setIsFlipped(!isFlipped)}
-    >
-      <div className={`relative w-full h-full transition-transform duration-700 transform-style-3d ${isFlipped ? '[transform:rotateY(180deg)]' : ''}`}>
+    <div className="group relative w-full aspect-[1.586/1] rounded-2xl shadow-md hover:shadow-xl transition-all duration-300 hover:-translate-y-1 overflow-hidden border border-white/10 select-none bg-black">
+      
+      {/* Background Layer */}
+      <div className="absolute inset-0 z-0" style={gradientBackground}></div>
+      
+      {/* Texture & Watermark Icon */}
+      <div className="absolute inset-0 z-0 bg-[url('https://www.transparenttextures.com/patterns/cubes.png')] opacity-10 mix-blend-overlay"></div>
+      <div className="absolute -right-4 -bottom-8 text-white opacity-10 z-0 pointer-events-none transform rotate-12">
+           <span className="material-symbols-outlined text-[140px] leading-none">{membership.icon || 'loyalty'}</span>
+      </div>
+      
+      {/* Actions Overlay (Top Right) */}
+      <div className="absolute top-4 right-4 z-30 flex gap-2 opacity-0 group-hover:opacity-100 transition-opacity duration-200">
+          <button
+            onClick={(e) => { e.stopPropagation(); onEdit(membership); }}
+            className="w-8 h-8 rounded-full bg-black/20 hover:bg-black/40 text-white flex items-center justify-center backdrop-blur-md transition-colors"
+            title="Edit"
+          >
+             <span className="material-symbols-outlined text-sm">edit</span>
+          </button>
+          <button
+            onClick={(e) => { e.stopPropagation(); onDelete(membership.id); }}
+            className="w-8 h-8 rounded-full bg-black/20 hover:bg-red-500/80 text-white flex items-center justify-center backdrop-blur-md transition-colors"
+            title="Delete"
+          >
+             <span className="material-symbols-outlined text-sm">delete</span>
+          </button>
+      </div>
 
-        {/* Front Face */}
-        <div
-          className="absolute inset-0 w-full h-full backface-hidden rounded-3xl shadow-2xl overflow-hidden border border-white/10"
-          style={gradientBackground}
-        >
-          <div className="absolute inset-0 opacity-15 bg-[linear-gradient(120deg,rgba(255,255,255,0.4)_1px,transparent_1px)] bg-[length:18px_18px]"></div>
-          <div className="absolute inset-0 bg-gradient-to-br from-white/12 via-transparent to-black/30"></div>
-
-          <div className="relative z-10 h-full flex flex-col">
-            <div className="flex items-start justify-between p-5">
-              <div className="flex items-center gap-3 min-w-0">
-                <div className="w-12 h-12 rounded-2xl bg-white/20 backdrop-blur-sm flex items-center justify-center text-white shadow-inner border border-white/20">
-                  <span className="material-symbols-outlined text-2xl">{membership.icon || 'loyalty'}</span>
-                </div>
-                <div className="min-w-0">
-                  <h3 className="font-bold text-xl text-white leading-tight break-words drop-shadow">{membership.provider}</h3>
-                  <p className="text-[11px] text-white/70 uppercase tracking-[0.28em] font-semibold break-words">
-                    {membership.category || 'Loyalty Member'}
-                  </p>
-                </div>
-              </div>
-              {membership.tier && (
-                <span className={`${pillStyles} bg-white/20 text-white backdrop-blur-sm border border-white/20 shadow-sm`}>{membership.tier}</span>
-              )}
-            </div>
-
-            <div className="flex-1 px-6 pb-6 flex flex-col justify-between">
-              <div className="flex items-center gap-4">
-                <div className="w-14 h-10 rounded-lg bg-black/30 border border-white/15 shadow-inner flex items-center justify-center">
-                  <span className="material-symbols-outlined text-white/80">credit_card</span>
-                </div>
-                <div className="flex flex-col">
-                  <span className="text-xs uppercase text-white/70 tracking-[0.18em] font-semibold">Member ID</span>
-                  <p className="font-mono text-2xl text-white tracking-[0.18em] font-semibold break-all drop-shadow-sm">
-                    {membership.memberId}
-                  </p>
-                </div>
-              </div>
-
-              <div className="grid grid-cols-3 gap-3 mt-6">
-                <div className="flex flex-col gap-1">
-                  <span className="text-[10px] text-white/60 uppercase tracking-[0.18em] font-semibold">Status</span>
-                  <span className="text-sm text-white font-semibold">{isExpired ? 'Expired' : 'Active'}</span>
-                </div>
-                <div className="flex flex-col gap-1">
-                  <span className="text-[10px] text-white/60 uppercase tracking-[0.18em] font-semibold">Valid Thru</span>
-                  <span className={`text-sm font-semibold ${isExpired ? 'text-red-200' : 'text-white'}`}>{formattedExpiry}</span>
-                </div>
-                <div className="flex flex-col gap-1">
-                  <span className="text-[10px] text-white/60 uppercase tracking-[0.18em] font-semibold">Category</span>
-                  <span className="text-sm text-white font-semibold truncate">{membership.category || 'General'}</span>
-                </div>
-              </div>
-            </div>
-          </div>
-        </div>
-
-        {/* Back Face */}
-        <div
-          className="absolute inset-0 w-full h-full backface-hidden [transform:rotateY(180deg)] rounded-3xl shadow-2xl overflow-hidden border border-white/10"
-          style={gradientBackground}
-        >
-          <div className="absolute inset-0 bg-slate-900/80"></div>
-          <div className="absolute inset-0 opacity-20 bg-[linear-gradient(120deg,rgba(255,255,255,0.35)_1px,transparent_1px)] bg-[length:18px_18px]"></div>
-          <div className="absolute inset-0 bg-gradient-to-tr from-black/40 via-transparent to-white/10"></div>
-
-          <div className="relative z-10 h-full flex flex-col">
-            <div className="flex items-center justify-between p-5">
-              <div className="flex items-center gap-3 min-w-0">
-                <div className="w-12 h-12 rounded-2xl bg-white/20 backdrop-blur-sm flex items-center justify-center text-white shadow-inner border border-white/20">
-                  <span className="material-symbols-outlined text-2xl">{membership.icon || 'loyalty'}</span>
-                </div>
-                <div className="min-w-0">
-                  <h3 className="font-bold text-xl text-white leading-tight break-words drop-shadow">{membership.provider}</h3>
-                  <p className="text-[11px] text-white/70 uppercase tracking-[0.28em] font-semibold break-words">{membership.tier || 'Member'}</p>
-                </div>
-              </div>
-              <span className={`${pillStyles} bg-black/30 text-white border border-white/15 backdrop-blur-sm`}>Loyalty Wallet</span>
-            </div>
-
-            <div className="px-6 flex-1 flex flex-col gap-4">
-              <div className="bg-white/15 backdrop-blur rounded-2xl border border-white/20 p-4 shadow-inner">
-                <dl className="grid grid-cols-2 gap-3 text-white text-sm">
-                  <div>
-                    <dt className="text-[10px] uppercase text-white/60 tracking-[0.2em] font-semibold">Member ID</dt>
-                    <dd className="font-mono text-base break-all">{membership.memberId}</dd>
-                  </div>
-                  <div>
-                    <dt className="text-[10px] uppercase text-white/60 tracking-[0.2em] font-semibold">Valid Thru</dt>
-                    <dd className={`font-semibold ${isExpired ? 'text-red-200' : 'text-white'}`}>{formattedExpiry}</dd>
-                  </div>
-                  <div>
-                    <dt className="text-[10px] uppercase text-white/60 tracking-[0.2em] font-semibold">Category</dt>
-                    <dd className="font-semibold truncate">{membership.category || 'General'}</dd>
-                  </div>
-                  <div>
-                    <dt className="text-[10px] uppercase text-white/60 tracking-[0.2em] font-semibold">Tier</dt>
-                    <dd className="font-semibold">{membership.tier || 'Standard'}</dd>
-                  </div>
-                </dl>
-              </div>
-
-              <div className="flex-1 bg-black/45 border border-white/15 rounded-2xl backdrop-blur p-4 text-white/90 text-sm leading-relaxed overflow-auto">
-                {membership.notes ? (
-                  <p className="whitespace-pre-wrap break-words">{membership.notes}</p>
+      {/* Main Content Layout */}
+      <div className="relative z-10 flex flex-col justify-between h-full p-5 text-white">
+        
+        {/* Top Row: Provider & Tier */}
+        <div className="flex justify-between items-start pr-16"> {/* pr-16 to avoid overlap with actions */}
+             <div className="flex items-center gap-2">
+                <span className="material-symbols-outlined text-xl opacity-90">{membership.icon || 'loyalty'}</span>
+                {membership.website ? (
+                    <a 
+                        href={membership.website} 
+                        target="_blank" 
+                        rel="noreferrer" 
+                        onClick={handleWebsiteClick}
+                        className="font-bold text-lg leading-none drop-shadow-sm tracking-wide hover:underline decoration-white/50 underline-offset-4 cursor-pointer"
+                        title="Visit Website"
+                    >
+                        {membership.provider}
+                    </a>
                 ) : (
-                  <div className="h-full flex items-center justify-center text-white/50 text-xs">No additional notes saved.</div>
+                    <h3 className="font-bold text-lg leading-none drop-shadow-sm tracking-wide">{membership.provider}</h3>
                 )}
-              </div>
-            </div>
-
-            <div className="p-4 mt-auto flex items-center justify-between gap-3 bg-black/30 backdrop-blur-sm border-t border-white/10">
-              <div className="flex items-center gap-2 text-white/70 text-xs">
-                <span className="material-symbols-outlined text-base">loyalty</span>
-                <span className="uppercase tracking-[0.2em] font-semibold">Tap to flip</span>
-              </div>
-              <div className="flex items-center gap-2">
-                {membership.website && (
-                  <a
-                    href={membership.website}
-                    target="_blank"
-                    rel="noreferrer"
-                    onClick={(e) => e.stopPropagation()}
-                    className="flex items-center justify-center w-9 h-9 rounded-full bg-white text-gray-700 hover:text-primary-600 hover:scale-105 transition-all shadow-sm border border-black/10"
-                    title="Visit Website"
-                  >
-                    <span className="material-symbols-outlined text-base">public</span>
-                  </a>
-                )}
-                <button
-                  onClick={(e) => { e.stopPropagation(); onEdit(membership); }}
-                  className="flex items-center justify-center w-9 h-9 rounded-full bg-white/20 text-white hover:bg-white/30 hover:scale-105 transition-all shadow-sm border border-white/15"
-                  title="Edit"
-                >
-                  <span className="material-symbols-outlined text-base">edit</span>
-                </button>
-                <button
-                  onClick={(e) => { e.stopPropagation(); onDelete(membership.id); }}
-                  className="flex items-center justify-center w-9 h-9 rounded-full bg-red-500/80 text-white hover:bg-red-500 hover:scale-105 transition-all shadow-sm border border-white/15"
-                  title="Delete"
-                >
-                  <span className="material-symbols-outlined text-base">delete</span>
-                </button>
-              </div>
-            </div>
-          </div>
+             </div>
+             
+             {membership.tier && (
+                <span className="px-2 py-0.5 rounded text-[10px] font-bold uppercase tracking-wider bg-white/20 backdrop-blur-md border border-white/10 shadow-sm whitespace-nowrap">
+                    {membership.tier}
+                </span>
+             )}
         </div>
 
+        {/* Middle Row: ID (Click-to-Copy) & Details Grid */}
+        <div className="flex flex-col justify-center flex-grow px-1 mt-2">
+             <p className="text-[8px] uppercase tracking-[0.2em] opacity-70 font-semibold mb-0.5">Member ID</p>
+             <button 
+                onClick={handleCopyId}
+                className="group/id flex items-center gap-3 text-left w-full hover:bg-white/10 p-1 -ml-1 rounded-lg transition-colors duration-200 mb-3"
+                title="Click to Copy ID"
+             >
+                <span className="font-mono text-xl sm:text-2xl font-bold tracking-widest drop-shadow-md truncate">
+                    {membership.memberId}
+                </span>
+                <div className={`flex items-center justify-center w-5 h-5 rounded-full transition-all duration-300 ${copied ? 'bg-green-400 text-black scale-100' : 'bg-white/20 text-white scale-90 opacity-0 group-hover/id:opacity-100'}`}>
+                    <span className="material-symbols-outlined text-xs font-bold">
+                        {copied ? 'check' : 'content_copy'}
+                    </span>
+                </div>
+            </button>
+            
+            {/* New Fields Grid */}
+            <div className="grid grid-cols-2 gap-x-2 gap-y-1 text-[10px] opacity-90">
+                {membership.holderName && (
+                    <div className="truncate">
+                        <span className="opacity-60 block text-[8px] uppercase tracking-wider">Holder</span>
+                        <span className="font-medium">{membership.holderName}</span>
+                    </div>
+                )}
+                {membership.points && (
+                    <div className="truncate text-right">
+                        <span className="opacity-60 block text-[8px] uppercase tracking-wider">Balance</span>
+                        <span className="font-bold">{membership.points}</span>
+                    </div>
+                )}
+                 {/* Notes (Small) */}
+                {membership.notes && (
+                    <div className="col-span-2 mt-1 truncate opacity-70 italic text-[9px]">
+                        "{membership.notes}"
+                    </div>
+                )}
+            </div>
+        </div>
+
+        {/* Bottom Row: Since & Expiry */}
+        <div className="flex justify-between items-end mt-2 pt-2 border-t border-white/10">
+            <div className="flex flex-col gap-0.5">
+                 {membership.memberSince && (
+                     <p className="text-[9px] opacity-80">Since {membership.memberSince}</p>
+                 )}
+            </div>
+            <div className="text-right">
+                 <p className="text-[8px] uppercase tracking-wider opacity-60 mb-0.5">Valid Thru</p>
+                 <p className={`font-mono text-xs font-semibold ${isExpired ? 'text-red-300 bg-red-900/40 px-1 rounded' : 'opacity-90'}`}>
+                    {formattedExpiry}
+                 </p>
+            </div>
+        </div>
       </div>
     </div>
   );

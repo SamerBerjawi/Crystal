@@ -423,6 +423,9 @@ export interface Membership {
   provider: string; // e.g. "British Airways", "Starbucks"
   memberId: string;
   tier?: string; // e.g. "Gold"
+  holderName?: string; // New: e.g. "John Doe"
+  memberSince?: string; // New: e.g. "2019" or ISO date
+  points?: string; // New: e.g. "50,000 pts" or "€150.00"
   expiryDate?: string; // ISO date
   color: string;
   icon: string;
