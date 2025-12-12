@@ -1,6 +1,6 @@
 
 import React, { useState, useMemo, useCallback } from 'react';
-import { Account, InvestmentTransaction, Transaction, Warrant, InvestmentSubType, HoldingsOverview } from '../types';
+import { Account, InvestmentTransaction, Transaction, Warrant, InvestmentSubType } from '../types';
 import { BTN_PRIMARY_STYLE, BRAND_COLORS, BTN_SECONDARY_STYLE, INVESTMENT_SUB_TYPE_STYLES } from '../constants';
 import Card from '../components/Card';
 import { formatCurrency, parseDateAsUTC } from '../utils';
@@ -66,7 +66,6 @@ const Investments: React.FC<InvestmentsProps> = ({
     onManualPriceChange,
     prices,
     onOpenHoldingDetail,
-    holdingsOverview,
     onToggleAccountStatus,
     deleteAccount
 }) => {
@@ -80,11 +79,21 @@ const Investments: React.FC<InvestmentsProps> = ({
     // Include only Stocks, ETFs, Crypto for the Investments page
     const investmentAccounts = useMemo(() => (
         accounts || []
-    ).filter(a => a.type === 'Investment' && ['Stock', 'ETF', 'Crypto'].includes(a.subType || '') && a.status !== 'closed'), [accounts]);
+    ).filter(a => a.type === 'Investment' && ['Stock', 'ETF', 'Crypto'].includes(a.subType || '')), [accounts]);
 
-    const overview = useMemo(() => holdingsOverview || buildHoldingsOverview(investmentAccounts, investmentTransactions, warrants, prices), [holdingsOverview, investmentAccounts, investmentTransactions, warrants, prices]);
+    const activeInvestmentAccounts = useMemo(() => investmentAccounts.filter(a => a.status !== 'closed'), [investmentAccounts]);
 
-    const { holdings, totalValue, totalCostBasis, investedCapital, grantedCapital, distributionData, typeBreakdown } = overview;
+    const activeOverview = useMemo(
+        () => buildHoldingsOverview(activeInvestmentAccounts, investmentTransactions, warrants, prices),
+        [activeInvestmentAccounts, investmentTransactions, warrants, prices]
+    );
+
+    const { holdings: activeHoldings, totalValue, totalCostBasis, investedCapital, grantedCapital, distributionData, typeBreakdown } = activeOverview;
+
+    const displayHoldings = useMemo(
+        () => buildHoldingsOverview(investmentAccounts, investmentTransactions, warrants, prices).holdings,
+        [investmentAccounts, investmentTransactions, warrants, prices]
+    );
 
     const handleOpenModal = (tx?: InvestmentTransaction) => {
         setEditingTransaction(tx || null);
@@ -227,7 +236,7 @@ const Investments: React.FC<InvestmentsProps> = ({
                          <div className="flex items-center justify-between">
                             <div>
                                 <p className="text-light-text-secondary dark:text-dark-text-secondary font-bold text-xs uppercase tracking-wider mb-1">Total Holdings</p>
-                                <p className="text-2xl font-bold text-light-text dark:text-dark-text">{holdings.length}</p>
+                                <p className="text-2xl font-bold text-light-text dark:text-dark-text">{activeHoldings.length}</p>
                                 <p className="text-sm text-light-text-secondary dark:text-dark-text-secondary mt-1">Active positions</p>
                             </div>
                             <div className="w-12 h-12 rounded-full bg-purple-100 dark:bg-purple-900/30 text-purple-600 dark:text-purple-400 flex items-center justify-center">
@@ -259,24 +268,22 @@ const Investments: React.FC<InvestmentsProps> = ({
                                     </tr>
                                 </thead>
                                 <tbody className="divide-y divide-black/5 dark:divide-white/5">
-                                    {holdings.map(holding => {
+                                    {displayHoldings.map(holding => {
                                         const holdingAccount = accounts.find(acc => acc.symbol === holding.symbol);
                                         const gainLoss = holding.currentValue - holding.totalCost;
                                         const gainLossPercent = holding.totalCost > 0 ? (gainLoss / holding.totalCost) * 100 : 0;
                                         const isPositive = gainLoss >= 0;
+                                        const isClosed = holdingAccount?.status === 'closed';
                                         const typeStyle = holding.type === 'Warrant' 
                                             ? { bg: 'bg-purple-100 dark:bg-purple-900/40', text: 'text-purple-700 dark:text-purple-300', icon: 'card_membership' }
                                             : INVESTMENT_SUB_TYPE_STYLES[holding.subType || 'Stock'] 
                                                 ? { bg: INVESTMENT_SUB_TYPE_STYLES[holding.subType || 'Stock'].color.replace('text-', 'bg-').replace('500', '100'), text: INVESTMENT_SUB_TYPE_STYLES[holding.subType || 'Stock'].color, icon: INVESTMENT_SUB_TYPE_STYLES[holding.subType || 'Stock'].icon }
                                                 : { bg: 'bg-gray-100', text: 'text-gray-600', icon: 'category' };
                                         
-                                        const currentPrice = holding.currentPrice;
-                                        const hasPrice = currentPrice !== 0;
-
                                         return (
                                             <tr
                                                 key={holding.symbol}
-                                                className="group hover:bg-black/5 dark:hover:bg-white/5 transition-colors cursor-pointer"
+                                                className={`group hover:bg-black/5 dark:hover:bg-white/5 transition-colors cursor-pointer ${isClosed ? 'opacity-60' : ''}`}
                                                 onClick={() => onOpenHoldingDetail(holding.symbol)}
                                             >
                                                 <td className="py-4 pl-2">
@@ -286,7 +293,12 @@ const Investments: React.FC<InvestmentsProps> = ({
                                                         </div>
                                                         <div>
                                                             <div className="font-bold text-light-text dark:text-dark-text">{holding.symbol}</div>
-                                                            <div className="text-xs text-light-text-secondary dark:text-dark-text-secondary">{holding.name}</div>
+                                                            <div className="text-xs text-light-text-secondary dark:text-dark-text-secondary flex items-center gap-2">
+                                                                <span>{holding.name}</span>
+                                                                {isClosed && (
+                                                                    <span className="px-2 py-0.5 rounded-full bg-gray-200 text-gray-700 dark:bg-gray-800 dark:text-gray-200 text-[10px] font-semibold uppercase tracking-wide">Inactive</span>
+                                                                )}
+                                                            </div>
                                                         </div>
                                                     </div>
                                                 </td>
@@ -360,7 +372,7 @@ const Investments: React.FC<InvestmentsProps> = ({
                                             </tr>
                                         );
                                     })}
-                                    {holdings.length === 0 && (
+                                    {displayHoldings.length === 0 && (
                                         <tr>
                                             <td colSpan={6} className="py-8 text-center text-light-text-secondary dark:text-dark-text-secondary">
                                                 No investments found. Add a transaction to get started.

@@ -1135,6 +1135,8 @@ const App: React.FC = () => {
 
   const handleDeleteAccount = useCallback((accountId: string) => {
     const accountToDelete = accounts.find(acc => acc.id === accountId);
+    if (!accountToDelete) return;
+
     const impactedRecurringIds = new Set(
       recurringTransactions
         .filter(rt => rt.accountId === accountId || rt.toAccountId === accountId)
@@ -1143,6 +1145,12 @@ const App: React.FC = () => {
 
     setAccounts(prev => prev.filter(acc => acc.id !== accountId));
     setTransactions(prev => prev.filter(tx => tx.accountId !== accountId));
+    setInvestmentTransactions(prev => prev.filter(tx => tx.symbol !== accountToDelete.symbol));
+    setWarrants(prev => prev.filter(w => w.isin !== accountToDelete.symbol));
+    setManualWarrantPrices(prev => {
+      const { [accountToDelete.symbol]: _, ...rest } = prev;
+      return rest;
+    });
     setRecurringTransactions(prev =>
       prev.filter(rt => rt.accountId !== accountId && rt.toAccountId !== accountId)
     );
@@ -1157,10 +1165,16 @@ const App: React.FC = () => {
       setViewingAccountId(null);
       setCurrentPage('Accounts');
     }
+
+    if (viewingHoldingSymbol === accountToDelete.symbol) {
+      setViewingHoldingSymbol(null);
+      setCurrentPage('Investments');
+    }
   }, [
     accounts,
     recurringTransactions,
     viewingAccountId,
+    viewingHoldingSymbol,
     setCurrentPage,
   ]);
 
