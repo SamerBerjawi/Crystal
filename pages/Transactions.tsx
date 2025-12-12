@@ -11,7 +11,7 @@ import RecurringTransactionModal from '../components/RecurringTransactionModal';
 import ConfirmationModal from '../components/ConfirmationModal';
 import MultiSelectFilter from '../components/MultiSelectFilter';
 import MultiAccountFilter from '../components/MultiAccountFilter';
-import { useAccountsContext, useTransactionsContext } from '../contexts/DomainProviders';
+import { useAccountsContext, usePreferencesSelector, useTransactionsContext } from '../contexts/DomainProviders';
 import { useCategoryContext, useScheduleContext, useTagsContext } from '../contexts/FinancialDataContext';
 import VirtualizedList from '../components/VirtualizedList';
 import { useDebounce } from '../hooks/useDebounce';
@@ -129,6 +129,7 @@ const Transactions: React.FC<TransactionsProps> = ({ initialAccountFilter, initi
   const { incomeCategories, expenseCategories } = useCategoryContext();
   const { tags } = useTagsContext();
   const { saveRecurringTransaction } = useScheduleContext();
+  const brandfetchClientId = usePreferencesSelector(p => (p.brandfetchClientId || '').trim());
   const [accountFilter, setAccountFilter] = useState<string | null>(initialAccountFilter ?? null);
   const [tagFilter, setTagFilter] = useState<string | null>(initialTagFilter ?? null);
 
@@ -166,6 +167,7 @@ const Transactions: React.FC<TransactionsProps> = ({ initialAccountFilter, initi
   const [contextMenu, setContextMenu] = useState<{ x: number, y: number, transaction: DisplayTransaction } | null>(null);
   const contextMenuRef = useRef<HTMLDivElement>(null);
   const [isFiltersExpanded, setIsFiltersExpanded] = useState(false);
+  const [logoLoadErrors, setLogoLoadErrors] = useState<Record<string, boolean>>({});
 
   // Virtualized list sizing
   const [listHeight, setListHeight] = useState(600);
@@ -260,6 +262,24 @@ const Transactions: React.FC<TransactionsProps> = ({ initialAccountFilter, initi
     }
     return {};
   };
+
+  const buildMerchantIdentifier = useCallback((merchant?: string) => {
+    if (!merchant) return null;
+    const sanitized = merchant.trim().toLowerCase().replace(/[^a-z0-9.-]/g, '');
+    if (!sanitized) return null;
+    return sanitized.includes('.') ? sanitized : `${sanitized}.com`;
+  }, []);
+
+  const getMerchantLogoUrl = useCallback((merchant?: string) => {
+    if (!brandfetchClientId) return null;
+    const identifier = buildMerchantIdentifier(merchant);
+    if (!identifier) return null;
+    return `https://cdn.brandfetch.io/${encodeURIComponent(identifier)}?c=${encodeURIComponent(brandfetchClientId)}&fallback=lettermark&type=icon&h=80&w=80`;
+  }, [brandfetchClientId, buildMerchantIdentifier]);
+
+  const handleLogoError = useCallback((logoUrl: string) => {
+    setLogoLoadErrors(prev => (prev[logoUrl] ? prev : { ...prev, [logoUrl]: true }));
+  }, []);
 
   // Recursive function to find a category by name in a tree
   const findCategoryByName = (name: string, categories: Category[]): Category | undefined => {
@@ -1202,6 +1222,8 @@ const Transactions: React.FC<TransactionsProps> = ({ initialAccountFilter, initi
                     const categoryDetails = getCategoryDetails(tx.category, allCategories);
                     const categoryColor = tx.isTransfer ? '#64748B' : (categoryDetails.color || '#A0AEC0');
                     const categoryIcon = tx.isTransfer ? 'swap_horiz' : (categoryDetails.icon || 'category');
+                    const merchantLogoUrl = getMerchantLogoUrl(tx.merchant);
+                    const showMerchantLogo = Boolean(merchantLogoUrl && !logoLoadErrors[merchantLogoUrl]);
 
                     // Account Info
                     const account = accountMapByName[tx.accountName || ''] || accountMap[tx.accountId];
@@ -1229,8 +1251,20 @@ const Transactions: React.FC<TransactionsProps> = ({ initialAccountFilter, initi
                           
                           {/* Column 1: Description (Expanded) */}
                           <div className="col-span-5 flex items-center gap-3 min-w-0">
-                            <div className={`w-10 h-10 rounded-full flex items-center justify-center text-white shadow-sm shrink-0`} style={{ backgroundColor: categoryColor }}>
-                              <span className="material-symbols-outlined text-[20px]">{categoryIcon}</span>
+                            <div
+                              className={`w-10 h-10 rounded-full flex items-center justify-center text-white shadow-sm shrink-0 ${showMerchantLogo ? 'bg-white dark:bg-dark-card border border-black/5 dark:border-white/10' : ''}`}
+                              style={showMerchantLogo ? undefined : { backgroundColor: categoryColor }}
+                            >
+                              {showMerchantLogo && merchantLogoUrl ? (
+                                <img
+                                  src={merchantLogoUrl}
+                                  alt={tx.merchant ? `${tx.merchant} logo` : 'Merchant logo'}
+                                  className="w-8 h-8 object-contain"
+                                  onError={() => handleLogoError(merchantLogoUrl)}
+                                />
+                              ) : (
+                                <span className="material-symbols-outlined text-[20px]">{categoryIcon}</span>
+                              )}
                             </div>
                             <div className="min-w-0">
                               <p className="font-bold text-base text-light-text dark:text-dark-text truncate max-w-[30ch] lg:max-w-[40ch]">{tx.description}</p>

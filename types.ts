@@ -395,6 +395,7 @@ export interface AppPreferences {
   country: string;
   defaultQuickCreatePeriod?: number;
   defaultForecastPeriod?: ForecastDuration;
+  brandfetchClientId?: string;
 }
 
 // New types for Bills & Payments
