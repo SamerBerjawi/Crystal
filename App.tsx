@@ -1442,7 +1442,52 @@ const App: React.FC = () => {
     }
   };
 
-  const handleManualWarrantPrice = (isin: string, price: number | null, date?: string) => {
+  const handleManualWarrantPrice = (isin: string, priceOrEntries: number | null | {date: string, price: number}[], date?: string) => {
+    
+    // Check if it's a bulk update
+    if (Array.isArray(priceOrEntries)) {
+        const entries = priceOrEntries;
+        
+        setPriceHistory(prev => {
+            const currentList = prev[isin] ? [...prev[isin]] : [];
+            // Create a map for existing entries for easier update
+            const historyMap = new Map(currentList.map(item => [item.date, item]));
+            
+            // Upsert new entries
+            entries.forEach(entry => {
+                historyMap.set(entry.date, entry);
+            });
+            
+            // Convert back to array
+            const newList = Array.from(historyMap.values());
+            newList.sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime());
+            
+            // Update current price pointer if we changed something
+            const latest = newList.length > 0 ? newList[newList.length - 1] : null;
+            
+            setManualWarrantPrices(currentPrices => {
+                 const newPrices = { ...currentPrices };
+                 if (latest) {
+                     newPrices[isin] = latest.price;
+                 } else {
+                     // If bulk update cleared everything (unlikely but possible logic)
+                     // Or if history became empty
+                     if (newList.length === 0) {
+                         delete newPrices[isin];
+                     }
+                 }
+                 return newPrices;
+            });
+
+            return { ...prev, [isin]: newList };
+        });
+        
+        setLastUpdated(new Date());
+        return;
+    }
+
+    // Existing single entry logic
+    const price = priceOrEntries;
     const targetDate = date || toLocalISOString(new Date());
     
     setPriceHistory(prev => {

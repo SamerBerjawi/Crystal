@@ -22,7 +22,7 @@ interface HoldingDetailProps {
     investmentTransactions: InvestmentTransaction[];
     warrants: Warrant[];
     manualPrices: Record<string, number | undefined>;
-    onManualPriceChange: (isin: string, price: number | null, date?: string) => void;
+    onManualPriceChange: (isin: string, price: number | null | {date: string, price: number}[], date?: string) => void;
     onBack: () => void;
     priceHistory?: Record<string, PriceHistoryEntry[]>;
 }

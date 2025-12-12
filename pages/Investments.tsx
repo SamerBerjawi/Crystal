@@ -23,7 +23,7 @@ interface InvestmentsProps {
     saveWarrant: (warrant: Omit<Warrant, 'id'> & { id?: string }) => void;
     deleteWarrant: (id: string) => void;
     manualPrices: Record<string, number | undefined>;
-    onManualPriceChange: (isin: string, price: number | null, date?: string) => void;
+    onManualPriceChange: (isin: string, price: number | null | {date: string, price: number}[], date?: string) => void;
     prices: Record<string, number | null>;
     onOpenHoldingDetail: (symbol: string) => void;
     holdingsOverview?: HoldingsOverview;
