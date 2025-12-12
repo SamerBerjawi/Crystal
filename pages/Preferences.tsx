@@ -81,6 +81,11 @@ const Preferences: React.FC<PreferencesProps> = ({ preferences, setPreferences, 
     }
   };
 
+  const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const { name, value } = e.target;
+    setPreferences({ ...preferences, [name]: value });
+  };
+
   return (
     <div className="space-y-8 max-w-5xl mx-auto pb-12 animate-fade-in-up">
       <header className="space-y-4">
@@ -164,16 +169,16 @@ const Preferences: React.FC<PreferencesProps> = ({ preferences, setPreferences, 
         {/* Right Column */}
         <div className="space-y-8">
           <Card>
-            <SectionHeader title="Appearance" icon="palette" description="Choose a theme that suits your environment." />
-            <div className="flex gap-4">
-              <ThemeCard label="Light" theme="light" currentTheme={theme} setTheme={setTheme} icon="light_mode" />
-              <ThemeCard label="Dark" theme="dark" currentTheme={theme} setTheme={setTheme} icon="dark_mode" />
-              <ThemeCard label="System" theme="system" currentTheme={theme} setTheme={setTheme} icon="settings_brightness" />
-            </div>
-          </Card>
+           <SectionHeader title="Appearance" icon="palette" description="Choose a theme that suits your environment." />
+           <div className="flex gap-4">
+             <ThemeCard label="Light" theme="light" currentTheme={theme} setTheme={setTheme} icon="light_mode" />
+             <ThemeCard label="Dark" theme="dark" currentTheme={theme} setTheme={setTheme} icon="dark_mode" />
+             <ThemeCard label="System" theme="system" currentTheme={theme} setTheme={setTheme} icon="settings_brightness" />
+           </div>
+         </Card>
 
-           <Card>
-             <SectionHeader title="App Behavior" icon="tune" description="Configure default settings for efficiency." />
+          <Card>
+            <SectionHeader title="App Behavior" icon="tune" description="Configure default settings for efficiency." />
              <div className="space-y-2">
                 <SettingRow label="Default Dashboard Period" description="The time range initially selected on the dashboard.">
                   <div className={SELECT_WRAPPER_STYLE}>
@@ -215,8 +220,31 @@ const Preferences: React.FC<PreferencesProps> = ({ preferences, setPreferences, 
                       <div className={SELECT_ARROW_STYLE}><span className="material-symbols-outlined">expand_more</span></div>
                   </div>
                 </SettingRow>
-             </div>
-           </Card>
+            </div>
+          </Card>
+
+          <Card>
+            <SectionHeader
+              title="Integrations"
+              icon="image"
+              description="Connect external services to enhance your experience."
+            />
+            <div className="space-y-2">
+              <SettingRow
+                label="Brandfetch Client ID"
+                description="Used to fetch merchant logos for your transactions. Leave blank to use category icons instead."
+              >
+                <input
+                  type="text"
+                  name="brandfetchClientId"
+                  value={preferences.brandfetchClientId || ''}
+                  onChange={handleInputChange}
+                  placeholder="Enter your Brandfetch client ID"
+                  className={INPUT_BASE_STYLE}
+                />
+              </SettingRow>
+            </div>
+          </Card>
         </div>
       </div>
     </div>

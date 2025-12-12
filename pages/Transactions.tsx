@@ -11,11 +11,12 @@ import RecurringTransactionModal from '../components/RecurringTransactionModal';
 import ConfirmationModal from '../components/ConfirmationModal';
 import MultiSelectFilter from '../components/MultiSelectFilter';
 import MultiAccountFilter from '../components/MultiAccountFilter';
-import { useAccountsContext, useTransactionsContext } from '../contexts/DomainProviders';
+import { useAccountsContext, usePreferencesSelector, useTransactionsContext } from '../contexts/DomainProviders';
 import { useCategoryContext, useScheduleContext, useTagsContext } from '../contexts/FinancialDataContext';
 import VirtualizedList from '../components/VirtualizedList';
 import { useDebounce } from '../hooks/useDebounce';
 import { useThrottledCallback } from '../hooks/useThrottledCallback';
+import { getMerchantLogoUrl, normalizeMerchantKey } from '../utils/brandfetch';
 import PageHeader from '../components/PageHeader';
 
 interface TransactionsProps {
@@ -129,6 +130,8 @@ const Transactions: React.FC<TransactionsProps> = ({ initialAccountFilter, initi
   const { incomeCategories, expenseCategories } = useCategoryContext();
   const { tags } = useTagsContext();
   const { saveRecurringTransaction } = useScheduleContext();
+  const brandfetchClientId = usePreferencesSelector(p => (p.brandfetchClientId || '').trim());
+  const merchantLogoOverrides = usePreferencesSelector(p => p.merchantLogoOverrides || {});
   const [accountFilter, setAccountFilter] = useState<string | null>(initialAccountFilter ?? null);
   const [tagFilter, setTagFilter] = useState<string | null>(initialTagFilter ?? null);
 
@@ -166,6 +169,7 @@ const Transactions: React.FC<TransactionsProps> = ({ initialAccountFilter, initi
   const [contextMenu, setContextMenu] = useState<{ x: number, y: number, transaction: DisplayTransaction } | null>(null);
   const contextMenuRef = useRef<HTMLDivElement>(null);
   const [isFiltersExpanded, setIsFiltersExpanded] = useState(false);
+  const [logoLoadErrors, setLogoLoadErrors] = useState<Record<string, boolean>>({});
 
   // Virtualized list sizing
   const [listHeight, setListHeight] = useState(600);
@@ -260,6 +264,21 @@ const Transactions: React.FC<TransactionsProps> = ({ initialAccountFilter, initi
     }
     return {};
   };
+
+  const merchantLogoUrls = useMemo(() => {
+    if (!brandfetchClientId) return {} as Record<string, string>;
+    return transactions.reduce((acc, tx) => {
+      const key = normalizeMerchantKey(tx.merchant);
+      if (!key || acc[key]) return acc;
+      const url = getMerchantLogoUrl(tx.merchant, brandfetchClientId, merchantLogoOverrides, { fallback: '404', type: 'icon', width: 96, height: 96 });
+      if (url) acc[key] = url;
+      return acc;
+    }, {} as Record<string, string>);
+  }, [brandfetchClientId, merchantLogoOverrides, transactions]);
+
+  const handleLogoError = useCallback((logoUrl: string) => {
+    setLogoLoadErrors(prev => (prev[logoUrl] ? prev : { ...prev, [logoUrl]: true }));
+  }, []);
 
   // Recursive function to find a category by name in a tree
   const findCategoryByName = (name: string, categories: Category[]): Category | undefined => {
@@ -1202,6 +1221,10 @@ const Transactions: React.FC<TransactionsProps> = ({ initialAccountFilter, initi
                     const categoryDetails = getCategoryDetails(tx.category, allCategories);
                     const categoryColor = tx.isTransfer ? '#64748B' : (categoryDetails.color || '#A0AEC0');
                     const categoryIcon = tx.isTransfer ? 'swap_horiz' : (categoryDetails.icon || 'category');
+                    const merchantKey = normalizeMerchantKey(tx.merchant);
+                    const merchantLogoUrl = merchantKey ? merchantLogoUrls[merchantKey] : null;
+                    const showMerchantLogo = Boolean(merchantLogoUrl && !logoLoadErrors[merchantLogoUrl]);
+                    const merchantInitial = tx.merchant?.trim().charAt(0)?.toUpperCase();
 
                     // Account Info
                     const account = accountMapByName[tx.accountName || ''] || accountMap[tx.accountId];
@@ -1228,10 +1251,24 @@ const Transactions: React.FC<TransactionsProps> = ({ initialAccountFilter, initi
                         <div className="flex-1 grid grid-cols-12 gap-3 items-center ml-3 min-w-0">
                           
                           {/* Column 1: Description (Expanded) */}
-                          <div className="col-span-5 flex items-center gap-3 min-w-0">
-                            <div className={`w-10 h-10 rounded-full flex items-center justify-center text-white shadow-sm shrink-0`} style={{ backgroundColor: categoryColor }}>
-                              <span className="material-symbols-outlined text-[20px]">{categoryIcon}</span>
-                            </div>
+                            <div className="col-span-5 flex items-center gap-3 min-w-0">
+                              <div
+                                className={`w-10 h-10 rounded-full flex items-center justify-center text-white shadow-sm shrink-0 overflow-hidden border border-black/5 dark:border-white/10 ${showMerchantLogo ? 'bg-white dark:bg-dark-card' : ''}`}
+                                style={showMerchantLogo ? undefined : { backgroundColor: categoryColor }}
+                              >
+                                {showMerchantLogo && merchantLogoUrl ? (
+                                  <img
+                                    src={merchantLogoUrl}
+                                    alt={tx.merchant ? `${tx.merchant} logo` : 'Merchant logo'}
+                                    className="w-full h-full object-contain rounded-full p-1"
+                                    onError={() => handleLogoError(merchantLogoUrl)}
+                                  />
+                                ) : merchantInitial ? (
+                                  <span className="text-sm font-semibold tracking-wide">{merchantInitial}</span>
+                                ) : (
+                                  <span className="material-symbols-outlined text-[20px]">{categoryIcon}</span>
+                                )}
+                              </div>
                             <div className="min-w-0">
                               <p className="font-bold text-base text-light-text dark:text-dark-text truncate max-w-[30ch] lg:max-w-[40ch]">{tx.description}</p>
                               <p className="text-sm text-light-text-secondary dark:text-dark-text-secondary truncate">{tx.merchant || (tx.isTransfer ? 'Transfer' : '—')}</p>
