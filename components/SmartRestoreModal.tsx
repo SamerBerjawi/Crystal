@@ -18,16 +18,22 @@ const SECTIONS: { key: SectionKey; label: string; icon: string }[] = [
     { key: 'transactions', label: 'Transactions', icon: 'receipt_long' },
     { key: 'invoices', label: 'Quotes & Invoices', icon: 'description' },
     { key: 'budgets', label: 'Budgets', icon: 'pie_chart' },
-    { key: 'financialGoals', label: 'Goals & Forecast', icon: 'flag' },
+    { key: 'financialGoals', label: 'Goals', icon: 'flag' },
+    { key: 'predictions', label: 'Predictions', icon: 'psychology' },
     { key: 'recurringTransactions', label: 'Recurring Rules', icon: 'update' },
+    { key: 'recurringTransactionOverrides', label: 'Schedule Overrides', icon: 'edit_calendar' },
     { key: 'billsAndPayments', label: 'Bills', icon: 'receipt' },
     { key: 'memberships', label: 'Loyalty Wallet', icon: 'loyalty' },
     { key: 'tasks', label: 'Tasks', icon: 'task_alt' },
     { key: 'investmentTransactions', label: 'Investment Txns', icon: 'candlestick_chart' },
     { key: 'warrants', label: 'Warrants/Grants', icon: 'card_membership' },
+    { key: 'manualWarrantPrices', label: 'Manual Asset Prices', icon: 'price_change' },
+    { key: 'priceHistory', label: 'Price History Logs', icon: 'history' },
+    { key: 'loanPaymentOverrides', label: 'Loan Overrides', icon: 'edit_note' },
     { key: 'tags', label: 'Tags', icon: 'label' },
     { key: 'incomeCategories', label: 'Income Categories', icon: 'category' },
     { key: 'expenseCategories', label: 'Expense Categories', icon: 'category' },
+    { key: 'userStats', label: 'User Statistics', icon: 'analytics' },
     { key: 'preferences', label: 'Settings & Preferences', icon: 'settings' },
 ];
 
@@ -112,7 +118,7 @@ const SmartRestoreModal: React.FC<SmartRestoreModalProps> = ({ onClose, onRestor
         if (!parsedData) return 0;
         const data = parsedData[key];
         if (Array.isArray(data)) return data.length;
-        if (data && typeof data === 'object') return 1; // Preferences object
+        if (data && typeof data === 'object') return Object.keys(data).length || 1; 
         return 0;
     };
 
@@ -149,7 +155,9 @@ const SmartRestoreModal: React.FC<SmartRestoreModalProps> = ({ onClose, onRestor
                         <div className="space-y-2 max-h-[50vh] overflow-y-auto pr-2">
                             {SECTIONS.map(section => {
                                 const count = getCount(section.key);
-                                if (count === 0) return null; // Hide empty sections
+                                if (count === 0 && section.key !== 'preferences') return null; // Hide empty sections except prefs
+
+                                const isObjectData = ['preferences', 'manualWarrantPrices', 'priceHistory', 'loanPaymentOverrides', 'userStats'].includes(section.key);
 
                                 return (
                                     <div key={section.key} className="flex flex-col sm:flex-row sm:items-center justify-between p-3 rounded-lg bg-light-bg dark:bg-dark-bg border border-black/5 dark:border-white/5 gap-3">
@@ -165,11 +173,13 @@ const SmartRestoreModal: React.FC<SmartRestoreModalProps> = ({ onClose, onRestor
                                             </div>
                                             <div>
                                                 <p className="font-semibold text-sm text-light-text dark:text-dark-text">{section.label}</p>
-                                                <p className="text-xs text-light-text-secondary dark:text-dark-text-secondary">{count} items found</p>
+                                                <p className="text-xs text-light-text-secondary dark:text-dark-text-secondary">
+                                                    {count} {isObjectData ? 'records' : 'items'} found
+                                                </p>
                                             </div>
                                         </div>
 
-                                        {selectedSections[section.key] && section.key !== 'preferences' && (
+                                        {selectedSections[section.key] && !isObjectData && (
                                             <div className="flex bg-white dark:bg-black/20 p-1 rounded-lg">
                                                 <button 
                                                     onClick={() => setStrategies(prev => ({...prev, [section.key]: 'merge'}))}
@@ -187,8 +197,8 @@ const SmartRestoreModal: React.FC<SmartRestoreModalProps> = ({ onClose, onRestor
                                                 </button>
                                             </div>
                                         )}
-                                        {selectedSections[section.key] && section.key === 'preferences' && (
-                                             <span className="text-xs font-medium text-red-500 bg-red-50 dark:bg-red-900/20 px-2 py-1 rounded">Overwrites Settings</span>
+                                        {selectedSections[section.key] && isObjectData && (
+                                             <span className="text-xs font-medium text-red-500 bg-red-50 dark:bg-red-900/20 px-2 py-1 rounded">Overwrites Existing</span>
                                         )}
                                     </div>
                                 );

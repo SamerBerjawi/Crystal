@@ -172,18 +172,27 @@ const DataManagement: React.FC<DataManagementProps> = (props) => {
             if (dataTypes.includes('accounts')) exportData.accounts = filteredAccounts;
             if (dataTypes.includes('transactions')) exportData.transactions = filteredTransactions;
             if (dataTypes.includes('budgets')) exportData.budgets = props.budgets;
-            if (dataTypes.includes('schedule')) exportData.recurringTransactions = props.recurringTransactions;
+            
+            if (dataTypes.includes('schedule')) {
+                exportData.recurringTransactions = props.recurringTransactions;
+                // Include related schedule metadata
+                exportData.recurringTransactionOverrides = props.fullFinancialData.recurringTransactionOverrides;
+                exportData.loanPaymentOverrides = props.fullFinancialData.loanPaymentOverrides;
+                exportData.billsAndPayments = props.fullFinancialData.billsAndPayments;
+            }
+
             if (dataTypes.includes('categories')) {
                 exportData.incomeCategories = props.allCategories.filter(c => c.classification === 'income');
                 exportData.expenseCategories = props.allCategories.filter(c => c.classification === 'expense');
             }
+            
             if (props.fullFinancialData) {
                  if (dataTypes.includes('investments')) {
                      exportData.investmentTransactions = props.fullFinancialData.investmentTransactions;
                      exportData.warrants = props.fullFinancialData.warrants;
-                 }
-                 if (dataTypes.includes('schedule')) {
-                      exportData.billsAndPayments = props.fullFinancialData.billsAndPayments;
+                     // Include prices and history to ensure portfolio value is correct on restore
+                     exportData.manualWarrantPrices = props.fullFinancialData.manualWarrantPrices;
+                     exportData.priceHistory = props.fullFinancialData.priceHistory;
                  }
                  if (dataTypes.includes('invoices')) {
                      exportData.invoices = props.fullFinancialData.invoices;
@@ -193,12 +202,19 @@ const DataManagement: React.FC<DataManagementProps> = (props) => {
                  }
                  if (dataTypes.includes('goals')) {
                      exportData.financialGoals = props.fullFinancialData.financialGoals;
+                     exportData.predictions = props.fullFinancialData.predictions;
                  }
                  if (dataTypes.includes('tasks')) {
                      exportData.tasks = props.fullFinancialData.tasks;
                  }
                  if (dataTypes.includes('tags')) {
                      exportData.tags = props.fullFinancialData.tags;
+                 }
+                 if (dataTypes.includes('preferences')) {
+                     exportData.preferences = props.fullFinancialData.preferences;
+                 }
+                 if (dataTypes.includes('userStats')) {
+                     exportData.userStats = props.fullFinancialData.userStats;
                  }
             }
             
