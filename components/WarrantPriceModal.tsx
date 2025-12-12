@@ -10,9 +10,10 @@ interface WarrantPriceModalProps {
   isin: string;
   name: string;
   initialEntry?: { date: string; price: number }; // New prop for editing specific logs
+  manualPrice?: number | null | undefined;
 }
 
-const WarrantPriceModal: React.FC<WarrantPriceModalProps> = ({ onClose, onSave, isin, name, initialEntry }) => {
+const WarrantPriceModal: React.FC<WarrantPriceModalProps> = ({ onClose, onSave, isin, name, initialEntry, manualPrice }) => {
     const [newPrice, setNewPrice] = useState('');
     const [date, setDate] = useState(toLocalISOString(new Date()));
 
@@ -21,10 +22,10 @@ const WarrantPriceModal: React.FC<WarrantPriceModalProps> = ({ onClose, onSave, 
             setNewPrice(String(initialEntry.price));
             setDate(initialEntry.date);
         } else {
-            setNewPrice('');
+            setNewPrice(manualPrice !== undefined && manualPrice !== null ? String(manualPrice) : '');
             setDate(toLocalISOString(new Date()));
         }
-    }, [initialEntry]);
+    }, [initialEntry, manualPrice]);
 
     const handleSubmit = (e: React.FormEvent) => {
         e.preventDefault();

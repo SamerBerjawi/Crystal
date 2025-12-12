@@ -35,7 +35,7 @@ export const getMerchantLogoUrl = (
   const width = options?.width ?? 80;
   const height = options?.height ?? 80;
   const type = options?.type ?? 'icon';
-  const fallback = options?.fallback ?? '404';
+  const fallback = options?.fallback ?? 'lettermark';
 
   const params = new URLSearchParams({
     c: clientId,

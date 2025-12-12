@@ -25,6 +25,19 @@ interface TransactionsProps {
   onClearInitialFilters?: () => void;
 }
 
+const CARD_NETWORK_DOMAINS: Record<string, string> = {
+    'visa': 'visa.com',
+    'mastercard': 'mastercard.com',
+    'amex': 'americanexpress.com',
+    'american express': 'americanexpress.com',
+    'discover': 'discover.com',
+    'unionpay': 'unionpayintl.com',
+    'jcb': 'jcb.com',
+    'maestro': 'mastercard.com',
+    'diners': 'dinersclub.com',
+    'diners club': 'dinersclub.com',
+};
+
 const MetricCard = React.memo(function MetricCard({ label, value, colorClass = "text-light-text dark:text-dark-text", icon }: { label: string; value: string; colorClass?: string; icon: string }) {
     return (
         <div className="bg-white dark:bg-dark-card p-4 rounded-xl shadow-sm border border-black/5 dark:border-white/5 flex items-center gap-4 transition-transform hover:scale-[1.02] duration-200 h-full">
@@ -270,7 +283,7 @@ const Transactions: React.FC<TransactionsProps> = ({ initialAccountFilter, initi
     return transactions.reduce((acc, tx) => {
       const key = normalizeMerchantKey(tx.merchant);
       if (!key || acc[key]) return acc;
-      const url = getMerchantLogoUrl(tx.merchant, brandfetchClientId, merchantLogoOverrides, { fallback: '404', type: 'icon', width: 96, height: 96 });
+      const url = getMerchantLogoUrl(tx.merchant, brandfetchClientId, merchantLogoOverrides, { fallback: 'lettermark', type: 'icon', width: 96, height: 96 });
       if (url) acc[key] = url;
       return acc;
     }, {} as Record<string, string>);
@@ -877,6 +890,16 @@ const Transactions: React.FC<TransactionsProps> = ({ initialAccountFilter, initi
     return <span className="material-symbols-outlined text-gray-400 text-sm">credit_card</span>;
   };
 
+  const getCardLogoUrl = (network: string) => {
+    const key = network.toLowerCase();
+    const domainEntry = Object.entries(CARD_NETWORK_DOMAINS).find(([k]) => key.includes(k));
+    
+    if (domainEntry && brandfetchClientId) {
+        return `https://cdn.brandfetch.io/${domainEntry[1]}?c=${brandfetchClientId}&icon&theme=light&fallback=transparent`;
+    }
+    return null;
+  };
+
   return (
     <div className="space-y-6 flex flex-col h-full animate-fade-in-up">
       {isTransactionModalOpen && (
@@ -1236,6 +1259,8 @@ const Transactions: React.FC<TransactionsProps> = ({ initialAccountFilter, initi
                         ? formatCurrency(convertToEur(Math.abs(amount), tx.currency), 'EUR')
                         : formatCurrency(convertToEur(amount, tx.currency), 'EUR', { showPlusSign: true });
 
+                    const cardLogoUrl = account?.cardNetwork ? getCardLogoUrl(account.cardNetwork) : null;
+
                     return (
                       <div
                         key={tx.id}
@@ -1253,14 +1278,14 @@ const Transactions: React.FC<TransactionsProps> = ({ initialAccountFilter, initi
                           {/* Column 1: Description (Expanded) */}
                             <div className="col-span-5 flex items-center gap-3 min-w-0">
                               <div
-                                className={`w-10 h-10 rounded-full flex items-center justify-center text-white shadow-sm shrink-0 overflow-hidden border border-black/5 dark:border-white/10 ${showMerchantLogo ? 'bg-white dark:bg-dark-card' : ''}`}
+                                className={`w-10 h-10 rounded-full flex items-center justify-center text-white shadow-sm shrink-0 overflow-hidden ${showMerchantLogo ? 'bg-white dark:bg-dark-card' : 'border border-black/5 dark:border-white/10'}`}
                                 style={showMerchantLogo ? undefined : { backgroundColor: categoryColor }}
                               >
                                 {showMerchantLogo && merchantLogoUrl ? (
                                   <img
                                     src={merchantLogoUrl}
                                     alt={tx.merchant ? `${tx.merchant} logo` : 'Merchant logo'}
-                                    className="w-full h-full object-contain rounded-full p-1"
+                                    className="w-full h-full object-cover"
                                     onError={() => handleLogoError(merchantLogoUrl)}
                                   />
                                 ) : merchantInitial ? (
@@ -1277,8 +1302,12 @@ const Transactions: React.FC<TransactionsProps> = ({ initialAccountFilter, initi
 
                           {/* Column 2: Account */}
                           <div className="col-span-2 flex items-center gap-3 min-w-0">
-                                <div className="w-10 h-7 flex items-center justify-center bg-gray-100 dark:bg-white/10 rounded overflow-hidden shadow-sm shrink-0 border border-black/5 dark:border-white/10">
-                                   {account ? getCardIcon(cardNetwork || '') : <span className="material-symbols-outlined text-xs text-gray-400">account_balance</span>}
+                                <div className="w-10 h-7 flex items-center justify-center bg-white dark:bg-white/10 rounded overflow-hidden shadow-sm shrink-0 border border-black/5 dark:border-white/10">
+                                   {cardLogoUrl ? (
+                                        <img src={cardLogoUrl} alt={account?.cardNetwork || 'Card'} className="w-full h-full object-contain p-1" />
+                                   ) : (
+                                        account ? getCardIcon(cardNetwork || '') : <span className="material-symbols-outlined text-xs text-gray-400">account_balance</span>
+                                   )}
                                 </div>
                                 <div className="min-w-0">
                                     <p className="text-base font-bold text-light-text dark:text-dark-text truncate">{accountName}</p>
@@ -1289,10 +1318,11 @@ const Transactions: React.FC<TransactionsProps> = ({ initialAccountFilter, initi
                           {/* Column 3: Category */}
                           <div className="col-span-2">
                              <span 
-                                className="inline-flex items-center px-2.5 py-0.5 rounded-full text-sm font-medium border border-transparent truncate max-w-full"
+                                className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-sm font-medium border border-transparent truncate max-w-full"
                                 style={{ backgroundColor: `${categoryColor}15`, color: categoryColor }}
                              >
-                                 {tx.category}
+                                 <span className="material-symbols-outlined text-[16px] shrink-0">{categoryIcon}</span>
+                                 <span className="truncate">{tx.category}</span>
                              </span>
                           </div>
 

@@ -57,7 +57,7 @@ const Merchants: React.FC<MerchantsProps> = ({ setCurrentPage }) => {
   };
 
   const getPreviewUrl = (merchantName: string) =>
-    getMerchantLogoUrl(merchantName, brandfetchClientId, overrideDrafts, { fallback: '404', type: 'icon', width: 128, height: 128 });
+    getMerchantLogoUrl(merchantName, brandfetchClientId, overrideDrafts, { fallback: 'lettermark', type: 'icon', width: 128, height: 128 });
 
   const handleLogoError = (url: string) => setLogoLoadErrors(prev => ({ ...prev, [url]: true }));
 

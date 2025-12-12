@@ -18,7 +18,7 @@ export interface AccountsContextValue {
 
 export interface PreferencesContextValue {
   preferences: AppPreferences;
-  setPreferences: (prefs: AppPreferences) => void;
+  setPreferences: React.Dispatch<React.SetStateAction<AppPreferences>>;
 }
 
 export interface WarrantsContextValue {
