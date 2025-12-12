@@ -202,6 +202,22 @@ const AccountRow: React.FC<AccountRowProps> = ({ account, transactions, warrants
                                 {detailsText}
                                 {account.last4 && <span className="opacity-70 ml-1">•••• {account.last4}</span>}
                             </p>
+                            {account.enableBanking && (
+                                <div className="mt-1 flex items-center gap-2 text-[11px] font-semibold text-primary-700 dark:text-primary-300">
+                                    <span className="px-2 py-0.5 rounded-full bg-primary-100 dark:bg-primary-900/30 text-primary-700 dark:text-primary-200 inline-flex items-center gap-1">
+                                        <span className="material-symbols-outlined text-[14px]">cloud_sync</span>
+                                        Enable Banking
+                                    </span>
+                                    <span className="text-light-text-secondary dark:text-dark-text-secondary font-medium">
+                                        {account.enableBanking.status === 'connected' ? 'Connected' : account.enableBanking.status === 'pending' ? 'Pending auth' : 'Needs attention'}
+                                    </span>
+                                    {account.enableBanking.lastSyncedAt && (
+                                        <span className="text-light-text-secondary dark:text-dark-text-secondary font-medium">
+                                            • Last sync {new Date(account.enableBanking.lastSyncedAt).toLocaleDateString()}
+                                        </span>
+                                    )}
+                                </div>
+                            )}
                         </div>
                     </div>
                     {account.isPrimary && (
