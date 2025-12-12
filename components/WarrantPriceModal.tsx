@@ -104,24 +104,31 @@ const WarrantPriceModal: React.FC<WarrantPriceModalProps> = ({ onClose, onSave, 
         setIsFetching(true);
         setFetchError(null);
 
-        try {
-            const response = await fetch(`https://api.twelvedata.com/price?symbol=${encodeURIComponent(isin)}&apikey=${twelveDataApiKey}`);
+        const fetchPrice = async (query: string) => {
+            const response = await fetch(query);
             const data = await response.json();
 
             if (data.status === 'error' || data.code) {
-                setFetchError(data.message || 'Unable to fetch price. Please try again.');
-                return;
+                throw new Error(data.message || 'Unable to fetch price');
             }
 
-            if (data.price) {
-                setNewPrice(String(data.price));
+            return data.price;
+        };
+
+        try {
+            // Request price converted to EUR to match the UI currency. Fallback to the raw price if conversion is unsupported.
+            const baseUrl = `https://api.twelvedata.com/price?symbol=${encodeURIComponent(isin)}&apikey=${twelveDataApiKey}`;
+            const price = await fetchPrice(`${baseUrl}&currency=EUR`).catch(async () => fetchPrice(baseUrl));
+
+            if (price) {
+                setNewPrice(String(price));
                 setDate(toLocalISOString(new Date()));
             } else {
                 setFetchError('Price not available for this symbol.');
             }
         } catch (error) {
             console.error('Failed to fetch Twelve Data price', error);
-            setFetchError('Unable to connect to Twelve Data. Please try again.');
+            setFetchError(error instanceof Error ? error.message : 'Unable to connect to Twelve Data. Please try again.');
         } finally {
             setIsFetching(false);
         }
