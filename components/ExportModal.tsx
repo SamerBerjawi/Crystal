@@ -30,6 +30,7 @@ const DATA_TYPES: { id: string; label: string; icon: string }[] = [
     { id: 'tasks', label: 'Tasks', icon: 'task_alt' },
     { id: 'categories', label: 'Categories', icon: 'category' },
     { id: 'tags', label: 'Tags', icon: 'label' },
+    { id: 'preferences', label: 'Settings & Preferences', icon: 'settings' },
 ];
 
 const ExportModal: React.FC<ExportModalProps> = ({ onClose, onExport, accounts, initialFormat = 'csv' }) => {

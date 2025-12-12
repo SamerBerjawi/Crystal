@@ -270,7 +270,7 @@ const Transactions: React.FC<TransactionsProps> = ({ initialAccountFilter, initi
     return transactions.reduce((acc, tx) => {
       const key = normalizeMerchantKey(tx.merchant);
       if (!key || acc[key]) return acc;
-      const url = getMerchantLogoUrl(tx.merchant, brandfetchClientId, merchantLogoOverrides, { fallback: 'lettermark', type: 'icon', width: 96, height: 96 });
+      const url = getMerchantLogoUrl(tx.merchant, brandfetchClientId, merchantLogoOverrides, { fallback: '404', type: 'icon', width: 96, height: 96 });
       if (url) acc[key] = url;
       return acc;
     }, {} as Record<string, string>);
@@ -1236,7 +1236,7 @@ const Transactions: React.FC<TransactionsProps> = ({ initialAccountFilter, initi
                         ? formatCurrency(convertToEur(Math.abs(amount), tx.currency), 'EUR')
                         : formatCurrency(convertToEur(amount, tx.currency), 'EUR', { showPlusSign: true });
 
-                    const institutionLogoUrl = account?.financialInstitution ? getMerchantLogoUrl(account.financialInstitution, brandfetchClientId, merchantLogoOverrides, { fallback: 'lettermark', type: 'icon', width: 64, height: 64 }) : null;
+                    const institutionLogoUrl = account?.financialInstitution ? getMerchantLogoUrl(account.financialInstitution, brandfetchClientId, merchantLogoOverrides, { fallback: '404', type: 'icon', width: 64, height: 64 }) : null;
                     const showInstitutionLogo = Boolean(institutionLogoUrl && !logoLoadErrors[institutionLogoUrl]);
 
                     return (

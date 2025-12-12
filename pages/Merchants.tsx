@@ -1,13 +1,13 @@
 
 import React, { useEffect, useMemo, useState } from 'react';
-import { Page, Transaction, Account } from '../types';
+import { Page } from '../types';
 import Card from '../components/Card';
 import PageHeader from '../components/PageHeader';
 import Modal from '../components/Modal';
-import { BTN_PRIMARY_STYLE, BTN_SECONDARY_STYLE, INPUT_BASE_STYLE, SELECT_ARROW_STYLE, SELECT_WRAPPER_STYLE } from '../constants';
+import { BTN_PRIMARY_STYLE, BTN_SECONDARY_STYLE, INPUT_BASE_STYLE, SELECT_ARROW_STYLE, SELECT_WRAPPER_STYLE, SELECT_STYLE } from '../constants';
 import { useAccountsContext, usePreferencesContext, usePreferencesSelector, useTransactionsContext } from '../contexts/DomainProviders';
 import { getMerchantLogoUrl, normalizeMerchantKey } from '../utils/brandfetch';
-import { fuzzySearch } from '../utils';
+import { fuzzySearch, convertToEur, formatCurrency, parseDateAsUTC } from '../utils';
 
 interface MerchantsProps {
   setCurrentPage: (page: Page) => void;
@@ -19,8 +19,11 @@ interface EntityItem {
     id: string; // normalized key
     name: string;
     type: EntityType;
-    count: number;
+    count: number; // Transactions count or Accounts count
     originalName: string; // Case sensitive
+    totalValue: number; // EUR value (Balance for Inst, Sum for Merch)
+    lastActivity?: string; // ISO Date
+    currency?: string; // Dominant currency (optional/cosmetic)
 }
 
 const RenameModal = ({ 
@@ -85,7 +88,8 @@ const Merchants: React.FC<MerchantsProps> = ({ setCurrentPage }) => {
   const persistedOverrides = usePreferencesSelector(p => p.merchantLogoOverrides || {});
 
   const [searchTerm, setSearchTerm] = useState('');
-  const [sortBy, setSortBy] = useState<'name' | 'count'>('count');
+  const [sortBy, setSortBy] = useState<'name' | 'count' | 'value' | 'recent'>('count');
+  const [viewMode, setViewMode] = useState<'grid' | 'list'>('grid');
   const [overrideDrafts, setOverrideDrafts] = useState<Record<string, string>>(persistedOverrides);
   const [logoLoadErrors, setLogoLoadErrors] = useState<Record<string, boolean>>({});
   
@@ -106,11 +110,26 @@ const Merchants: React.FC<MerchantsProps> = ({ setCurrentPage }) => {
       const key = normalizeMerchantKey(tx.merchant);
       if (!key) return;
       
+      const val = convertToEur(tx.amount, tx.currency);
       const existing = map.get(key);
+
       if (existing) {
         existing.count += 1;
+        existing.totalValue += val;
+        if (tx.date > (existing.lastActivity || '')) {
+            existing.lastActivity = tx.date;
+        }
       } else {
-        map.set(key, { id: key, name: tx.merchant.trim(), type: 'Merchant', count: 1, originalName: tx.merchant });
+        map.set(key, { 
+            id: key, 
+            name: tx.merchant.trim(), 
+            type: 'Merchant', 
+            count: 1, 
+            originalName: tx.merchant,
+            totalValue: val,
+            lastActivity: tx.date,
+            currency: tx.currency
+        });
       }
     });
 
@@ -120,17 +139,29 @@ const Merchants: React.FC<MerchantsProps> = ({ setCurrentPage }) => {
         const key = normalizeMerchantKey(acc.financialInstitution);
         if (!key) return;
 
+        const val = convertToEur(acc.balance, acc.currency);
         const existing = map.get(key);
+
         if (existing) {
-            // If exists (rare collision between merchant and bank name), just count it or prioritize Institution labeling?
-            // Let's keep them separate by appending a suffix if needed, but for now assuming distinct namespaces mostly.
-            // Actually, let's treat them as distinct entities if possible, but map key collision merges them.
-            // If a collision happens (e.g. "Chase" merchant vs "Chase" bank), merging is visually cleaner.
+            // If collision, upgrade to Institution and prioritize Account Balance value
+            if (existing.type === 'Merchant') {
+                 existing.type = 'Institution';
+                 existing.totalValue = 0; // Reset to sum accounts instead of txs
+                 existing.count = 0; // Reset to count accounts
+            }
             existing.count += 1;
-            // Upgrade type to Institution if matched, or keep mixed. 
-            if (existing.type === 'Merchant') existing.type = 'Institution'; 
+            existing.totalValue += val;
         } else {
-            map.set(key, { id: key, name: acc.financialInstitution.trim(), type: 'Institution', count: 1, originalName: acc.financialInstitution });
+            map.set(key, { 
+                id: key, 
+                name: acc.financialInstitution.trim(), 
+                type: 'Institution', 
+                count: 1, 
+                originalName: acc.financialInstitution,
+                totalValue: val,
+                lastActivity: undefined, // Accounts don't easily track "last activity" without expensive lookups
+                currency: acc.currency
+            });
         }
     });
 
@@ -146,8 +177,12 @@ const Merchants: React.FC<MerchantsProps> = ({ setCurrentPage }) => {
       }
       
       return result.sort((a, b) => {
-          if (sortBy === 'count') {
-              return b.count - a.count;
+          if (sortBy === 'count') return b.count - a.count;
+          if (sortBy === 'value') return Math.abs(b.totalValue) - Math.abs(a.totalValue);
+          if (sortBy === 'recent') {
+              if (!a.lastActivity) return 1;
+              if (!b.lastActivity) return -1;
+              return new Date(b.lastActivity).getTime() - new Date(a.lastActivity).getTime();
           }
           return a.name.localeCompare(b.name);
       });
@@ -171,8 +206,22 @@ const Merchants: React.FC<MerchantsProps> = ({ setCurrentPage }) => {
     });
   };
 
+  const clearOverride = (key: string) => {
+    setOverrideDrafts(prev => {
+        const next = { ...prev };
+        delete next[key];
+        return next;
+    });
+    setPreferences(prev => {
+        const nextOverrides = { ...(prev.merchantLogoOverrides || {}) };
+        delete nextOverrides[key];
+        return { ...prev, merchantLogoOverrides: nextOverrides };
+    });
+  };
+
+  // Use fallback: '404' to ensure local lettermark is shown on failure instead of transparent image
   const getPreviewUrl = (merchantName: string) =>
-    getMerchantLogoUrl(merchantName, brandfetchClientId, overrideDrafts, { fallback: 'lettermark', type: 'icon', width: 128, height: 128 });
+    getMerchantLogoUrl(merchantName, brandfetchClientId, overrideDrafts, { fallback: '404', type: 'icon', width: 128, height: 128 });
 
   const handleLogoError = (url: string) => setLogoLoadErrors(prev => ({ ...prev, [url]: true }));
 
@@ -193,7 +242,6 @@ const Merchants: React.FC<MerchantsProps> = ({ setCurrentPage }) => {
           });
       }
       
-      // Also migrate branding override if it exists
       const oldKey = normalizeMerchantKey(oldName);
       const newKey = normalizeMerchantKey(normalizedNewName);
       
@@ -209,7 +257,7 @@ const Merchants: React.FC<MerchantsProps> = ({ setCurrentPage }) => {
   };
 
   return (
-    <div className="max-w-6xl mx-auto pb-12 space-y-8 animate-fade-in-up">
+    <div className="max-w-7xl mx-auto pb-12 space-y-8 animate-fade-in-up">
       {isRenameModalOpen && (
           <RenameModal 
             isOpen={isRenameModalOpen}
@@ -237,7 +285,7 @@ const Merchants: React.FC<MerchantsProps> = ({ setCurrentPage }) => {
           markerIcon="store"
           markerLabel="Entity Management"
           title="Merchants & Institutions"
-          subtitle="Manage branding, names, and view transaction counts for all entities in your ledger."
+          subtitle="Manage branding, names, and view aggregate volume for all entities."
         />
         {!brandfetchClientId && (
           <div className="bg-amber-50 text-amber-800 border border-amber-200 rounded-xl px-4 py-3 text-sm flex items-start gap-2 dark:bg-amber-900/20 dark:text-amber-100 dark:border-amber-900/40">
@@ -250,8 +298,8 @@ const Merchants: React.FC<MerchantsProps> = ({ setCurrentPage }) => {
       </header>
 
       {/* Controls */}
-      <div className="flex flex-col sm:flex-row gap-4 justify-between items-center bg-white dark:bg-dark-card p-2 rounded-2xl border border-black/5 dark:border-white/5 shadow-sm">
-           <div className="relative w-full sm:max-w-xs">
+      <div className="flex flex-col md:flex-row gap-4 justify-between items-center bg-white dark:bg-dark-card p-2 rounded-2xl border border-black/5 dark:border-white/5 shadow-sm">
+           <div className="relative w-full md:max-w-md">
                 <span className="material-symbols-outlined absolute left-3 top-1/2 -translate-y-1/2 text-light-text-secondary dark:text-dark-text-secondary">search</span>
                 <input 
                     type="text" 
@@ -262,15 +310,31 @@ const Merchants: React.FC<MerchantsProps> = ({ setCurrentPage }) => {
                 />
            </div>
            
-           <div className="flex items-center gap-2 w-full sm:w-auto">
-               <span className="text-sm font-medium text-light-text-secondary dark:text-dark-text-secondary whitespace-nowrap px-2">Sort by:</span>
+           <div className="flex items-center gap-3 w-full md:w-auto px-1 md:px-0">
+               <div className="flex bg-light-fill dark:bg-dark-fill p-1 rounded-lg">
+                   <button 
+                      onClick={() => setViewMode('grid')}
+                      className={`p-1.5 rounded-md transition-all ${viewMode === 'grid' ? 'bg-white dark:bg-dark-card shadow text-primary-500' : 'text-light-text-secondary dark:text-dark-text-secondary hover:text-light-text dark:hover:text-dark-text'}`}
+                   >
+                       <span className="material-symbols-outlined text-xl">grid_view</span>
+                   </button>
+                   <button 
+                      onClick={() => setViewMode('list')}
+                      className={`p-1.5 rounded-md transition-all ${viewMode === 'list' ? 'bg-white dark:bg-dark-card shadow text-primary-500' : 'text-light-text-secondary dark:text-dark-text-secondary hover:text-light-text dark:hover:text-dark-text'}`}
+                   >
+                       <span className="material-symbols-outlined text-xl">view_list</span>
+                   </button>
+               </div>
+               
                <div className={`${SELECT_WRAPPER_STYLE} !w-auto`}>
                    <select 
                         value={sortBy} 
-                        onChange={(e) => setSortBy(e.target.value as 'name' | 'count')} 
-                        className={`${INPUT_BASE_STYLE} pr-8 !py-1.5 h-9 text-sm`}
+                        onChange={(e) => setSortBy(e.target.value as any)} 
+                        className={`${SELECT_STYLE} pr-8 !py-2 h-10 text-sm font-medium`}
                    >
-                       <option value="count">Count (High-Low)</option>
+                       <option value="count">Most Frequent</option>
+                       <option value="value">Highest Value</option>
+                       <option value="recent">Recently Active</option>
                        <option value="name">Name (A-Z)</option>
                    </select>
                    <div className={SELECT_ARROW_STYLE}><span className="material-symbols-outlined text-sm">expand_more</span></div>
@@ -283,13 +347,20 @@ const Merchants: React.FC<MerchantsProps> = ({ setCurrentPage }) => {
               <span className="material-symbols-outlined text-5xl text-gray-300 dark:text-gray-600 mb-4">store_off</span>
               <p className="text-light-text-secondary dark:text-dark-text-secondary">No entities found.</p>
           </div>
-      ) : (
+      ) : viewMode === 'grid' ? (
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
             {filteredEntities.map(entity => {
               const previewUrl = getPreviewUrl(entity.name);
               const hasLogo = Boolean(previewUrl && !logoLoadErrors[previewUrl]);
               const draftValue = overrideDrafts[entity.id] || '';
               const initialLetter = entity.name.charAt(0).toUpperCase();
+              
+              const isPositive = entity.totalValue >= 0;
+              
+              // Institutions usually show positive Balance (Green/Blue). Merchants usually show Expenses (Red/Gray).
+              const accentColor = entity.type === 'Institution' 
+                  ? (entity.totalValue >= 0 ? 'text-blue-600 dark:text-blue-400' : 'text-red-500')
+                  : 'text-light-text dark:text-dark-text';
 
               return (
                 <Card key={entity.id} className="flex flex-col gap-4 group relative overflow-visible hover:border-primary-500/30 transition-colors">
@@ -316,7 +387,7 @@ const Merchants: React.FC<MerchantsProps> = ({ setCurrentPage }) => {
 
                     {/* Info */}
                     <div className="flex-1 min-w-0">
-                        <div className="flex items-center justify-between group/name">
+                        <div className="flex items-center justify-between group/name mb-1">
                             <h3 className="font-bold text-lg text-light-text dark:text-dark-text truncate" title={entity.name}>{entity.name}</h3>
                             <button 
                                 onClick={() => { setEditingEntity(entity); setIsRenameModalOpen(true); }}
@@ -326,30 +397,122 @@ const Merchants: React.FC<MerchantsProps> = ({ setCurrentPage }) => {
                                 <span className="material-symbols-outlined text-sm">edit</span>
                             </button>
                         </div>
-                        <p className="text-xs text-light-text-secondary dark:text-dark-text-secondary font-medium">
+                        <p className="text-xs text-light-text-secondary dark:text-dark-text-secondary font-medium mb-3">
                             {entity.count} {entity.type === 'Merchant' ? 'transactions' : 'accounts'}
                         </p>
+                        
+                        <div className="flex justify-between items-end border-t border-black/5 dark:border-white/5 pt-3">
+                            <div>
+                                <p className="text-[10px] uppercase font-bold text-light-text-secondary dark:text-dark-text-secondary tracking-wider mb-0.5">
+                                    {entity.type === 'Institution' ? 'Assets' : 'Volume'}
+                                </p>
+                                <p className={`font-mono font-bold text-base ${accentColor}`}>
+                                    {formatCurrency(entity.totalValue, 'EUR')}
+                                </p>
+                            </div>
+                            {entity.lastActivity && (
+                                <div className="text-right">
+                                     <p className="text-[10px] uppercase font-bold text-light-text-secondary dark:text-dark-text-secondary tracking-wider mb-0.5">Last Seen</p>
+                                     <p className="text-xs font-medium text-light-text dark:text-dark-text">
+                                         {parseDateAsUTC(entity.lastActivity).toLocaleDateString(undefined, { month: 'short', day: 'numeric', year: '2-digit' })}
+                                     </p>
+                                </div>
+                            )}
+                        </div>
                     </div>
 
                     {/* Branding Override */}
-                    <div className="pt-3 border-t border-black/5 dark:border-white/5">
-                        <div className="space-y-1">
-                            <label className="text-[10px] font-bold text-light-text-secondary dark:text-dark-text-secondary uppercase tracking-wider">Logo ID</label>
-                            <input
-                              type="text"
-                              value={draftValue}
-                              placeholder="Auto-detected"
-                              onChange={e => handleOverrideChange(entity.id, e.target.value)}
-                              onBlur={() => persistOverride(entity.id)}
-                              className={`${INPUT_BASE_STYLE} !py-1 !px-2 !text-xs !h-7 bg-gray-50 dark:bg-black/20 border-transparent focus:bg-white dark:focus:bg-black/40`}
-                              disabled={!brandfetchClientId}
-                            />
+                    <div className="pt-3 border-t border-black/5 dark:border-white/5 bg-gray-50/50 dark:bg-white/[0.02] -mx-6 -mb-6 px-6 py-3 rounded-b-xl">
+                        <div className="flex items-center gap-2 relative">
+                            <label className="text-[10px] font-bold text-light-text-secondary dark:text-dark-text-secondary uppercase tracking-wider whitespace-nowrap">Brand Domain</label>
+                            <div className="relative w-full">
+                                <input
+                                  type="text"
+                                  value={draftValue}
+                                  placeholder="e.g. amazon.com"
+                                  onChange={e => handleOverrideChange(entity.id, e.target.value)}
+                                  onBlur={() => persistOverride(entity.id)}
+                                  className="w-full bg-transparent border-b border-dashed border-black/20 dark:border-white/20 text-xs py-0.5 focus:border-primary-500 outline-none text-right placeholder-gray-400 dark:placeholder-gray-600 pr-5"
+                                  disabled={!brandfetchClientId}
+                                />
+                                {draftValue && (
+                                    <button
+                                        onMouseDown={(e) => { e.preventDefault(); clearOverride(entity.id); }}
+                                        className="absolute right-0 top-1/2 -translate-y-1/2 text-gray-400 hover:text-red-500 transition-colors"
+                                        title="Clear Override"
+                                    >
+                                        <span className="material-symbols-outlined text-sm">close</span>
+                                    </button>
+                                )}
+                            </div>
                         </div>
                     </div>
                 </Card>
               );
             })}
           </div>
+      ) : (
+          <Card className="p-0 overflow-hidden">
+              <table className="w-full text-left text-sm">
+                  <thead className="bg-light-bg dark:bg-white/5 border-b border-black/5 dark:border-white/5 text-xs uppercase font-bold text-light-text-secondary dark:text-dark-text-secondary tracking-wider">
+                      <tr>
+                          <th className="px-6 py-3">Entity</th>
+                          <th className="px-6 py-3">Type</th>
+                          <th className="px-6 py-3 text-right">Count</th>
+                          <th className="px-6 py-3 text-right">Last Activity</th>
+                          <th className="px-6 py-3 text-right">Total Value</th>
+                          <th className="px-6 py-3 w-20"></th>
+                      </tr>
+                  </thead>
+                  <tbody className="divide-y divide-black/5 dark:divide-white/5">
+                      {filteredEntities.map(entity => {
+                          const previewUrl = getPreviewUrl(entity.name);
+                          const hasLogo = Boolean(previewUrl && !logoLoadErrors[previewUrl]);
+                          const initialLetter = entity.name.charAt(0).toUpperCase();
+
+                          return (
+                              <tr key={entity.id} className="hover:bg-black/5 dark:hover:bg-white/5 transition-colors group">
+                                  <td className="px-6 py-3">
+                                      <div className="flex items-center gap-3">
+                                           <div className={`w-8 h-8 rounded-lg flex items-center justify-center overflow-hidden border border-black/5 dark:border-white/10 shadow-sm ${hasLogo ? 'bg-white dark:bg-dark-card' : 'bg-gray-100 dark:bg-gray-800 text-gray-500'}`}>
+                                                {hasLogo && previewUrl ? (
+                                                    <img src={previewUrl} alt="logo" className="w-full h-full object-cover" onError={() => handleLogoError(previewUrl)} />
+                                                ) : (
+                                                    <span className="font-bold text-xs">{initialLetter}</span>
+                                                )}
+                                           </div>
+                                           <span className="font-bold text-light-text dark:text-dark-text truncate max-w-[200px]">{entity.name}</span>
+                                      </div>
+                                  </td>
+                                  <td className="px-6 py-3">
+                                       <span className={`text-[10px] font-bold uppercase tracking-wider px-2 py-0.5 rounded-full ${entity.type === 'Institution' ? 'bg-purple-100 text-purple-700 dark:bg-purple-900/30 dark:text-purple-300' : 'bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-300'}`}>
+                                            {entity.type === 'Institution' ? 'Bank' : 'Merch'}
+                                        </span>
+                                  </td>
+                                  <td className="px-6 py-3 text-right font-medium text-light-text-secondary dark:text-dark-text-secondary">
+                                      {entity.count}
+                                  </td>
+                                  <td className="px-6 py-3 text-right text-light-text-secondary dark:text-dark-text-secondary text-xs">
+                                      {entity.lastActivity ? parseDateAsUTC(entity.lastActivity).toLocaleDateString() : '—'}
+                                  </td>
+                                  <td className={`px-6 py-3 text-right font-mono font-bold ${entity.totalValue >= 0 ? 'text-blue-600 dark:text-blue-400' : 'text-light-text dark:text-dark-text'}`}>
+                                      {formatCurrency(entity.totalValue, 'EUR')}
+                                  </td>
+                                  <td className="px-6 py-3 text-right">
+                                       <button 
+                                            onClick={() => { setEditingEntity(entity); setIsRenameModalOpen(true); }}
+                                            className="p-1.5 rounded-full text-light-text-secondary dark:text-dark-text-secondary hover:bg-black/10 dark:hover:bg-white/10 opacity-0 group-hover:opacity-100 transition-opacity"
+                                            title="Rename"
+                                        >
+                                            <span className="material-symbols-outlined text-lg">edit</span>
+                                        </button>
+                                  </td>
+                              </tr>
+                          );
+                      })}
+                  </tbody>
+              </table>
+          </Card>
       )}
     </div>
   );

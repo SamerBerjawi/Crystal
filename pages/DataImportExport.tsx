@@ -181,6 +181,8 @@ const DataManagement: React.FC<DataManagementProps> = (props) => {
                  if (dataTypes.includes('investments')) {
                      exportData.investmentTransactions = props.fullFinancialData.investmentTransactions;
                      exportData.warrants = props.fullFinancialData.warrants;
+                     exportData.manualWarrantPrices = props.fullFinancialData.manualWarrantPrices;
+                     exportData.priceHistory = props.fullFinancialData.priceHistory;
                  }
                  if (dataTypes.includes('schedule')) {
                       exportData.billsAndPayments = props.fullFinancialData.billsAndPayments;
@@ -199,6 +201,9 @@ const DataManagement: React.FC<DataManagementProps> = (props) => {
                  }
                  if (dataTypes.includes('tags')) {
                      exportData.tags = props.fullFinancialData.tags;
+                 }
+                 if (dataTypes.includes('preferences')) {
+                     exportData.preferences = props.fullFinancialData.preferences;
                  }
             }
             

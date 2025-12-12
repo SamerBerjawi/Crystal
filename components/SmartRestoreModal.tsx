@@ -25,6 +25,8 @@ const SECTIONS: { key: SectionKey; label: string; icon: string }[] = [
     { key: 'tasks', label: 'Tasks', icon: 'task_alt' },
     { key: 'investmentTransactions', label: 'Investment Txns', icon: 'candlestick_chart' },
     { key: 'warrants', label: 'Warrants/Grants', icon: 'card_membership' },
+    { key: 'manualWarrantPrices', label: 'Manual Asset Prices', icon: 'price_check' },
+    { key: 'priceHistory', label: 'Asset Price History', icon: 'history_edu' },
     { key: 'tags', label: 'Tags', icon: 'label' },
     { key: 'incomeCategories', label: 'Income Categories', icon: 'category' },
     { key: 'expenseCategories', label: 'Expense Categories', icon: 'category' },
