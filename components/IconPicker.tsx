@@ -3,6 +3,7 @@ import React, { useEffect, useMemo, useState } from 'react';
 import Modal from './Modal';
 import { INPUT_BASE_STYLE } from '../constants';
 import { fuzzySearch } from '../utils';
+import { searchMaterialSymbols } from '../utils/materialSymbols';
 
 interface IconPickerProps {
   onClose: () => void;
@@ -28,7 +29,7 @@ const IconPicker: React.FC<IconPickerProps> = ({ onClose, onSelect, iconList }) 
   }, [searchTerm, iconList]);
 
   useEffect(() => {
-    const term = searchTerm.trim().toLowerCase();
+    const term = searchTerm.trim();
 
     if (!term || localMatches.length > 0) {
       setRemoteIcons([]);
@@ -36,46 +37,28 @@ const IconPicker: React.FC<IconPickerProps> = ({ onClose, onSelect, iconList }) 
       return;
     }
 
-    const controller = new AbortController();
+    let cancelled = false;
+    setIsFetchingRemote(true);
 
-    const fetchMaterialSymbols = async () => {
-      setIsFetchingRemote(true);
-      try {
-        const response = await fetch('https://fonts.google.com/metadata/icons?key=material_symbols', {
-          signal: controller.signal,
-        });
-
-        if (!response.ok) {
-          throw new Error(`Failed to fetch Material Symbols (status ${response.status})`);
-        }
-
-        const rawText = await response.text();
-        // The metadata API prefixes the JSON with a )]}\' guard. Strip it before parsing.
-        const cleanedText = rawText.replace(/^\)\]\}'/, '');
-        const data = JSON.parse(cleanedText);
-        const icons = Array.isArray(data?.icons) ? data.icons : [];
-
-        const matches = icons.filter((icon: { name?: string; tags?: string[] }) => {
-          const name = icon?.name || '';
-          const tags = Array.isArray(icon?.tags) ? icon.tags : [];
-          return fuzzySearch(term, name) || tags.some(tag => fuzzySearch(term, tag));
-        }).map((icon: { name?: string }) => icon?.name).filter(Boolean) as string[];
-
-        const uniqueMatches = Array.from(new Set(matches));
-        setRemoteIcons(uniqueMatches);
-      } catch (error) {
-        if ((error as Error)?.name !== 'AbortError') {
-          console.error('Unable to fetch Material Symbols metadata', error);
-          setRemoteIcons([]);
-        }
-      } finally {
+    Promise.resolve().then(() => {
+      const matches = searchMaterialSymbols(term);
+      if (!cancelled) {
+        setRemoteIcons(matches);
+      }
+    }).catch((error) => {
+      if (!cancelled) {
+        console.error('Unable to search Material Symbols metadata', error);
+        setRemoteIcons([]);
+      }
+    }).finally(() => {
+      if (!cancelled) {
         setIsFetchingRemote(false);
       }
+    });
+
+    return () => {
+      cancelled = true;
     };
-
-    fetchMaterialSymbols();
-
-    return () => controller.abort();
   }, [searchTerm, localMatches.length]);
 
   const displayedIcons = useMemo(() => {
@@ -141,7 +124,7 @@ const IconPicker: React.FC<IconPickerProps> = ({ onClose, onSelect, iconList }) 
           ) : (
             <div className="flex flex-col items-center justify-center h-full text-light-text-secondary dark:text-dark-text-secondary opacity-60">
                 <span className="material-symbols-outlined text-4xl mb-3">sentiment_dissatisfied</span>
-                <p>{isFetchingRemote ? 'Searching Google Material Symbols…' : `No icons found for "${searchTerm}"`}</p>
+                <p>{isFetchingRemote ? 'Searching Material Symbols catalog…' : `No icons found for "${searchTerm}"`}</p>
             </div>
           )}
         </div>
