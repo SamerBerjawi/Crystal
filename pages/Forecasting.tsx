@@ -30,6 +30,7 @@ import { useAccountsContext, usePreferencesContext, useTransactionsContext } fro
 import { useCategoryContext, useGoalsContext, useScheduleContext } from '../contexts/FinancialDataContext';
 import { useInsightsView } from '../contexts/InsightsViewContext';
 import PageHeader from '../components/PageHeader';
+import { v4 as uuidv4 } from 'uuid';
 
 // --- AI Planner Hook ---
 const useSmartGoalPlanner = (
@@ -477,6 +478,23 @@ const Forecasting: React.FC = () => {
         setParentIdForNewGoal(parentId);
         setIsModalOpen(true);
     };
+
+    const handleDuplicateGoal = (goal: FinancialGoal) => {
+        // Create a copy without the ID, let the context handler generate a new one
+        const { id, ...rest } = goal;
+        
+        // If it's a bucket, do we duplicate children? 
+        // For simplicity, we just duplicate the top-level bucket/goal structure initially.
+        // A deep clone would require iterating children and recreating them with new IDs linked to new parent ID.
+        // Let's stick to shallow clone for now as per simple UI action.
+        
+        const duplicatedGoal: Omit<FinancialGoal, 'id'> = {
+            ...rest,
+            name: `${goal.name} (Copy)`
+        };
+
+        saveFinancialGoal(duplicatedGoal);
+    };
     
     const handleDeleteClick = (goalId: string) => {
         const goal = financialGoals.find(g => g.id === goalId);
@@ -713,6 +731,7 @@ const Forecasting: React.FC = () => {
                                 isActive={isEffectivelyActive}
                                 onToggle={handleToggleGoal}
                                 onEdit={handleOpenModal}
+                                onDuplicate={handleDuplicateGoal}
                                 onDelete={handleDeleteClick}
                                 onAddSubGoal={handleAddSubGoal}
                                 accounts={accounts}

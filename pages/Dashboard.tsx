@@ -1022,7 +1022,7 @@ const Dashboard: React.FC<DashboardProps> = ({ user, tasks, saveTask }) => {
 
   const handleDragStart = (e: React.DragEvent, widgetId: string) => { setDraggedWidgetId(widgetId); e.dataTransfer.effectAllowed = 'move'; };
   const handleDragEnter = (e: React.DragEvent, widgetId: string) => { e.preventDefault(); if (widgetId !== draggedWidgetId) setDragOverWidgetId(widgetId); };
-  const handleDragLeave = (e: React.DragEvent) => { e.preventDefault(); setDragOverWidgetId(null); };
+  const handleDragLeave = (e: React.DragEvent, widgetId: string) => { e.preventDefault(); setDragOverWidgetId(null); };
   const handleDrop = (e: React.DragEvent, targetWidgetId: string) => {
     e.preventDefault();
     if (!draggedWidgetId || draggedWidgetId === targetWidgetId) return;
@@ -1074,10 +1074,6 @@ const Dashboard: React.FC<DashboardProps> = ({ user, tasks, saveTask }) => {
 
   }, [accounts, transactions, duration]);
 
-  const tabBaseClass = "px-4 py-2 font-semibold text-sm rounded-lg transition-all duration-200 focus:outline-none whitespace-nowrap";
-  const tabActiveClass = "bg-white dark:bg-dark-card text-primary-600 dark:text-primary-400 shadow-sm";
-  const tabInactiveClass = "text-light-text-secondary dark:text-dark-text-secondary hover:text-light-text dark:hover:text-dark-text hover:bg-black/5 dark:hover:bg-white/5";
-
   const allocationData: { name: string; value: number; color: string }[] = useMemo(() => {
       return budgets.map(b => {
           const cat = expenseCategories.find(c => c.name === b.categoryName);
@@ -1088,6 +1084,8 @@ const Dashboard: React.FC<DashboardProps> = ({ user, tasks, saveTask }) => {
           };
       }).sort((a, b) => b.value - a.value);
   }, [budgets, expenseCategories]);
+
+  const tabs: DashboardTab[] = ['overview', 'analysis', 'activity'];
 
   return (
     <div className="space-y-6 pb-12 animate-fade-in-up">
@@ -1167,10 +1165,20 @@ const Dashboard: React.FC<DashboardProps> = ({ user, tasks, saveTask }) => {
       {/* Controls Bar: Tabs & Filters */}
       <div className="flex flex-col md:flex-row justify-between items-center gap-4 bg-white dark:bg-dark-card p-1.5 rounded-2xl border border-black/5 dark:border-white/5 shadow-sm">
            {/* Tabs */}
-           <div className="flex bg-light-fill dark:bg-dark-fill p-1 rounded-xl w-full md:w-auto overflow-x-auto no-scrollbar">
-              <button onClick={() => setActiveTab('overview')} className={`${tabBaseClass} ${activeTab === 'overview' ? tabActiveClass : tabInactiveClass}`}>Overview</button>
-              <button onClick={() => setActiveTab('analysis')} className={`${tabBaseClass} ${activeTab === 'analysis' ? tabActiveClass : tabInactiveClass}`}>Analysis</button>
-              <button onClick={() => setActiveTab('activity')} className={`${tabBaseClass} ${activeTab === 'activity' ? tabActiveClass : tabInactiveClass}`}>Activity</button>
+           <div className="bg-gray-100 dark:bg-white/5 p-1 rounded-full inline-flex shadow-inner overflow-x-auto no-scrollbar max-w-full">
+            {tabs.map((tab) => (
+                <button
+                    key={tab}
+                    onClick={() => setActiveTab(tab)}
+                    className={`px-6 py-2 rounded-full text-sm font-bold capitalize transition-all duration-200 whitespace-nowrap ${
+                        activeTab === tab
+                        ? 'bg-white dark:bg-gray-700 shadow-sm text-primary-600 dark:text-primary-400 scale-105'
+                        : 'text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200'
+                    }`}
+                >
+                    {tab}
+                </button>
+            ))}
           </div>
 
           {/* Filters */}
@@ -1431,7 +1439,7 @@ const Dashboard: React.FC<DashboardProps> = ({ user, tasks, saveTask }) => {
                             isDragOver={dragOverWidgetId === widget.id}
                             onDragStart={e => handleDragStart(e, widget.id)}
                             onDragEnter={e => handleDragEnter(e, widget.id)}
-                            onDragLeave={handleDragLeave}
+                            onDragLeave={e => handleDragLeave(e, widget.id)}
                             onDrop={e => handleDrop(e, widget.id)}
                             onDragEnd={handleDragEnd}
                         >

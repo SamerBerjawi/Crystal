@@ -1,5 +1,5 @@
 
-import React, { useState, useMemo } from 'react';
+import React, { useState, useMemo, useEffect, useRef } from 'react';
 import { FinancialGoal, Account } from '../types';
 import { formatCurrency, getPreferredTimeZone, parseDateAsUTC } from '../utils';
 
@@ -9,14 +9,17 @@ interface FinancialGoalCardProps {
   isActive: boolean;
   onToggle: (id: string) => void;
   onEdit: (goal: FinancialGoal) => void;
+  onDuplicate: (goal: FinancialGoal) => void;
   onDelete: (id: string) => void;
   onAddSubGoal: (parentId: string) => void;
   accounts: Account[];
 }
 
-const FinancialGoalCard: React.FC<FinancialGoalCardProps> = ({ goal, subGoals, isActive, onToggle, onEdit, onDelete, onAddSubGoal, accounts }) => {
+const FinancialGoalCard: React.FC<FinancialGoalCardProps> = ({ goal, subGoals, isActive, onToggle, onEdit, onDuplicate, onDelete, onAddSubGoal, accounts }) => {
   const isBucket = !!goal.isBucket;
   const [isExpanded, setIsExpanded] = useState(false);
+  const [isMenuOpen, setIsMenuOpen] = useState(false);
+  const menuRef = useRef<HTMLDivElement>(null);
   const timeZone = getPreferredTimeZone();
 
   const totalAmount = isBucket ? subGoals.reduce((sum, sg) => sum + sg.amount, 0) : goal.amount;
@@ -73,54 +76,100 @@ const FinancialGoalCard: React.FC<FinancialGoalCardProps> = ({ goal, subGoals, i
     onToggle(goal.id);
   };
 
+  // Close menu on click outside
+  useEffect(() => {
+    const handleClickOutside = (event: MouseEvent) => {
+      if (menuRef.current && !menuRef.current.contains(event.target as Node)) {
+        setIsMenuOpen(false);
+      }
+    };
+    if (isMenuOpen) {
+        document.addEventListener('mousedown', handleClickOutside);
+    }
+    return () => document.removeEventListener('mousedown', handleClickOutside);
+  }, [isMenuOpen]);
+
   return (
-    <div className={`relative group flex flex-col bg-white dark:bg-dark-card rounded-2xl shadow-sm border transition-all duration-300 ${isActive ? 'border-primary-500/50 dark:border-primary-500/50 shadow-md' : 'border-black/5 dark:border-white/5 opacity-80 hover:opacity-100'}`}>
-        <div className="p-5 flex flex-col h-full">
-            {/* Header */}
-            <div className="flex justify-between items-start mb-4">
-                <div className="flex-1 min-w-0 pr-3">
-                    <div className="flex items-center gap-2 mb-1">
-                        <div className={`w-8 h-8 rounded-lg flex items-center justify-center ${isBucket ? 'bg-indigo-100 text-indigo-600 dark:bg-indigo-900/30 dark:text-indigo-400' : 'bg-blue-100 text-blue-600 dark:bg-blue-900/30 dark:text-blue-400'}`}>
-                            <span className="material-symbols-outlined text-lg">{isBucket ? 'folder_open' : 'flag'}</span>
-                        </div>
-                        <h4 className="font-bold text-lg text-light-text dark:text-dark-text truncate">{goal.name}</h4>
+    <div className={`relative group flex flex-col bg-white dark:bg-dark-card rounded-2xl shadow-sm border transition-all duration-300 self-start w-full ${isActive ? 'border-primary-500/50 dark:border-primary-500/50 shadow-md' : 'border-black/5 dark:border-white/5 opacity-80 hover:opacity-100'}`}>
+        <div className="p-5 flex flex-col h-full relative z-0">
+            {/* Header - Aligned Row */}
+            <div className="flex justify-between items-center mb-3">
+                <div className="flex items-center gap-3 min-w-0 pr-2">
+                     <div className={`w-10 h-10 rounded-xl flex-shrink-0 flex items-center justify-center ${isBucket ? 'bg-indigo-100 text-indigo-600 dark:bg-indigo-900/30 dark:text-indigo-400' : 'bg-blue-100 text-blue-600 dark:bg-blue-900/30 dark:text-blue-400'}`}>
+                        <span className="material-symbols-outlined text-xl">{isBucket ? 'folder_open' : 'flag'}</span>
                     </div>
-                    <div className="flex flex-wrap gap-2 mt-2">
-                        {statusStyle && isActive && (
-                            <span className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-md text-[10px] font-bold uppercase tracking-wider border ${statusStyle.bg} ${statusStyle.textCol} ${statusStyle.border}`}>
-                                <span className="material-symbols-outlined text-[12px]">{statusStyle.icon}</span>
-                                {statusStyle.text}
-                            </span>
-                        )}
-                        {goalToDisplay.date && !isBucket && (
-                            <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-md text-[10px] font-medium bg-gray-100 text-gray-600 dark:bg-gray-800 dark:text-gray-400 border border-gray-200 dark:border-gray-700">
-                                <span className="material-symbols-outlined text-[12px]">event</span>
-                                {formatDate(goalToDisplay.date)}
-                            </span>
-                        )}
-                    </div>
+                    <h4 className="font-bold text-lg text-light-text dark:text-dark-text truncate" title={goal.name}>{goal.name}</h4>
                 </div>
 
-                <div className="flex items-start gap-2">
+                <div className="flex items-center gap-2 flex-shrink-0">
                      <button 
                         onClick={handleToggle}
-                        className={`relative inline-flex h-5 w-9 items-center rounded-full transition-colors focus:outline-none ${isActive ? 'bg-primary-500' : 'bg-gray-200 dark:bg-gray-700'}`}
+                        className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors focus:outline-none ${isActive ? 'bg-primary-500' : 'bg-gray-200 dark:bg-gray-700'}`}
                         title={isActive ? 'Active in forecast' : 'Ignored in forecast'}
                     >
-                        <span className={`inline-block h-3.5 w-3.5 transform rounded-full bg-white shadow-sm transition-transform duration-200 ease-in-out ${isActive ? 'translate-x-4.5' : 'translate-x-1'}`} />
+                        <span className={`inline-block h-4 w-4 transform rounded-full bg-white shadow-sm transition-transform duration-200 ease-in-out ${isActive ? 'translate-x-6' : 'translate-x-1'}`} />
                     </button>
                     
-                    <div className="relative group/actions">
-                        <button className="p-1 rounded-md hover:bg-gray-100 dark:hover:bg-white/10 text-gray-400">
+                    <div className="relative" ref={menuRef}>
+                        <button 
+                            onClick={(e) => { e.stopPropagation(); setIsMenuOpen(!isMenuOpen); }}
+                            className="p-1.5 rounded-lg hover:bg-gray-100 dark:hover:bg-white/10 text-light-text-secondary dark:text-dark-text-secondary transition-colors"
+                        >
                             <span className="material-symbols-outlined text-xl">more_vert</span>
                         </button>
-                        <div className="absolute right-0 top-full mt-1 w-32 bg-white dark:bg-dark-card rounded-xl shadow-lg border border-black/5 dark:border-white/10 p-1 hidden group-hover/actions:block z-10">
-                            {isBucket && <button onClick={() => onAddSubGoal(goal.id)} className="w-full text-left px-3 py-2 text-xs font-medium rounded-lg hover:bg-gray-50 dark:hover:bg-white/5 flex items-center gap-2 text-light-text dark:text-dark-text"><span className="material-symbols-outlined text-sm">add</span> Add Item</button>}
-                            <button onClick={() => onEdit(goal)} className="w-full text-left px-3 py-2 text-xs font-medium rounded-lg hover:bg-gray-50 dark:hover:bg-white/5 flex items-center gap-2 text-light-text dark:text-dark-text"><span className="material-symbols-outlined text-sm">edit</span> Edit</button>
-                            <button onClick={() => onDelete(goal.id)} className="w-full text-left px-3 py-2 text-xs font-medium rounded-lg hover:bg-red-50 dark:hover:bg-red-900/20 flex items-center gap-2 text-red-600 dark:text-red-400"><span className="material-symbols-outlined text-sm">delete</span> Delete</button>
-                        </div>
+                        {isMenuOpen && (
+                            <div className="absolute right-0 top-full mt-1 w-56 bg-white dark:bg-dark-card rounded-xl shadow-xl border border-black/5 dark:border-white/10 py-1.5 z-50 animate-fade-in-up origin-top-right">
+                                {isBucket && (
+                                    <button 
+                                        onClick={(e) => { e.stopPropagation(); onAddSubGoal(goal.id); setIsMenuOpen(false); }} 
+                                        className="w-full text-left px-4 py-2.5 text-sm font-medium hover:bg-black/5 dark:hover:bg-white/5 flex items-center gap-3 text-light-text dark:text-dark-text transition-colors"
+                                    >
+                                        <span className="material-symbols-outlined text-lg text-primary-500">add</span> 
+                                        Add Item
+                                    </button>
+                                )}
+                                <button 
+                                    onClick={(e) => { e.stopPropagation(); onEdit(goal); setIsMenuOpen(false); }} 
+                                    className="w-full text-left px-4 py-2.5 text-sm font-medium hover:bg-black/5 dark:hover:bg-white/5 flex items-center gap-3 text-light-text dark:text-dark-text transition-colors"
+                                >
+                                    <span className="material-symbols-outlined text-lg text-blue-500">edit</span> 
+                                    Edit
+                                </button>
+                                <button 
+                                    onClick={(e) => { e.stopPropagation(); onDuplicate(goal); setIsMenuOpen(false); }} 
+                                    className="w-full text-left px-4 py-2.5 text-sm font-medium hover:bg-black/5 dark:hover:bg-white/5 flex items-center gap-3 text-light-text dark:text-dark-text transition-colors"
+                                >
+                                    <span className="material-symbols-outlined text-lg text-teal-500">content_copy</span> 
+                                    Duplicate
+                                </button>
+                                <div className="h-px bg-black/5 dark:bg-white/5 my-1"></div>
+                                <button 
+                                    onClick={(e) => { e.stopPropagation(); onDelete(goal.id); setIsMenuOpen(false); }} 
+                                    className="w-full text-left px-4 py-2.5 text-sm font-medium hover:bg-red-50 dark:hover:bg-red-900/20 flex items-center gap-3 text-red-600 dark:text-red-400 transition-colors"
+                                >
+                                    <span className="material-symbols-outlined text-lg">delete</span> 
+                                    Delete
+                                </button>
+                            </div>
+                        )}
                     </div>
                 </div>
+            </div>
+
+            {/* Badges / Status */}
+            <div className="flex flex-wrap gap-2 mb-4">
+                {statusStyle && isActive && (
+                    <span className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-md text-[10px] font-bold uppercase tracking-wider border ${statusStyle.bg} ${statusStyle.textCol} ${statusStyle.border}`}>
+                        <span className="material-symbols-outlined text-[12px]">{statusStyle.icon}</span>
+                        {statusStyle.text}
+                    </span>
+                )}
+                {goalToDisplay.date && !isBucket && (
+                    <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-md text-[10px] font-medium bg-gray-100 text-gray-600 dark:bg-gray-800 dark:text-gray-400 border border-gray-200 dark:border-gray-700">
+                        <span className="material-symbols-outlined text-[12px]">event</span>
+                        {formatDate(goalToDisplay.date)}
+                    </span>
+                )}
             </div>
 
             {/* Amounts */}
@@ -144,7 +193,7 @@ const FinancialGoalCard: React.FC<FinancialGoalCardProps> = ({ goal, subGoals, i
                 </div>
                 <div className="flex justify-between mt-1.5 text-[10px] font-bold text-light-text-secondary dark:text-dark-text-secondary uppercase tracking-wide">
                     <span>{progress.toFixed(0)}% Complete</span>
-                    {paymentAccountName && <span>via {paymentAccountName}</span>}
+                    {paymentAccountName && <span className="truncate max-w-[150px]">via {paymentAccountName}</span>}
                 </div>
             </div>
             
@@ -172,12 +221,30 @@ const FinancialGoalCard: React.FC<FinancialGoalCardProps> = ({ goal, subGoals, i
                 {isExpanded && (
                     <div className="mt-3 space-y-2 animate-fade-in-up">
                          {subGoals.map(sg => (
-                             <div key={sg.id} className="flex justify-between items-center text-sm p-2 rounded-lg bg-white dark:bg-white/5 border border-black/5 dark:border-white/5 shadow-sm">
+                             <div key={sg.id} className="flex justify-between items-center text-sm p-2 rounded-lg bg-white dark:bg-white/5 border border-black/5 dark:border-white/5 shadow-sm group/subgoal">
                                  <div className="flex flex-col">
                                      <span className="font-medium text-light-text dark:text-dark-text">{sg.name}</span>
                                      <span className="text-[10px] text-light-text-secondary dark:text-dark-text-secondary">{formatDate(sg.date)}</span>
                                  </div>
-                                 <span className="font-mono font-semibold text-light-text dark:text-dark-text">{formatCurrency(sg.amount, 'EUR')}</span>
+                                 <div className="flex items-center gap-3">
+                                     <span className="font-mono font-semibold text-light-text dark:text-dark-text">{formatCurrency(sg.amount, 'EUR')}</span>
+                                     <div className="flex opacity-0 group-hover/subgoal:opacity-100 transition-opacity gap-1">
+                                        <button 
+                                            onClick={(e) => { e.stopPropagation(); onEdit(sg); }}
+                                            className="p-1 hover:bg-black/5 dark:hover:bg-white/10 rounded text-blue-500"
+                                            title="Edit Item"
+                                        >
+                                            <span className="material-symbols-outlined text-base">edit</span>
+                                        </button>
+                                         <button 
+                                            onClick={(e) => { e.stopPropagation(); onDuplicate(sg); }}
+                                            className="p-1 hover:bg-black/5 dark:hover:bg-white/10 rounded text-teal-500"
+                                            title="Duplicate Item"
+                                        >
+                                            <span className="material-symbols-outlined text-base">content_copy</span>
+                                        </button>
+                                     </div>
+                                 </div>
                              </div>
                          ))}
                     </div>
