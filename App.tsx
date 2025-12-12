@@ -112,6 +112,7 @@ const routePathMap: Record<Page, string> = {
   'AI Assistant': '/ai-assistant',
   Subscriptions: '/subscriptions',
   'Quotes & Invoices': '/invoices',
+  Merchants: '/merchants',
 };
 
 type RouteInfo = { page: Page; matched: boolean; accountId?: string | null; holdingSymbol?: string | null };
