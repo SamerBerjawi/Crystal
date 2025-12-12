@@ -25,19 +25,6 @@ interface TransactionsProps {
   onClearInitialFilters?: () => void;
 }
 
-const CARD_NETWORK_DOMAINS: Record<string, string> = {
-    'visa': 'visa.com',
-    'mastercard': 'mastercard.com',
-    'amex': 'americanexpress.com',
-    'american express': 'americanexpress.com',
-    'discover': 'discover.com',
-    'unionpay': 'unionpayintl.com',
-    'jcb': 'jcb.com',
-    'maestro': 'mastercard.com',
-    'diners': 'dinersclub.com',
-    'diners club': 'dinersclub.com',
-};
-
 const MetricCard = React.memo(function MetricCard({ label, value, colorClass = "text-light-text dark:text-dark-text", icon }: { label: string; value: string; colorClass?: string; icon: string }) {
     return (
         <div className="bg-white dark:bg-dark-card p-4 rounded-xl shadow-sm border border-black/5 dark:border-white/5 flex items-center gap-4 transition-transform hover:scale-[1.02] duration-200 h-full">
@@ -890,16 +877,6 @@ const Transactions: React.FC<TransactionsProps> = ({ initialAccountFilter, initi
     return <span className="material-symbols-outlined text-gray-400 text-sm">credit_card</span>;
   };
 
-  const getCardLogoUrl = (network: string) => {
-    const key = network.toLowerCase();
-    const domainEntry = Object.entries(CARD_NETWORK_DOMAINS).find(([k]) => key.includes(k));
-    
-    if (domainEntry && brandfetchClientId) {
-        return `https://cdn.brandfetch.io/${domainEntry[1]}?c=${brandfetchClientId}&icon&theme=light&fallback=transparent`;
-    }
-    return null;
-  };
-
   return (
     <div className="space-y-6 flex flex-col h-full animate-fade-in-up">
       {isTransactionModalOpen && (
@@ -1259,7 +1236,8 @@ const Transactions: React.FC<TransactionsProps> = ({ initialAccountFilter, initi
                         ? formatCurrency(convertToEur(Math.abs(amount), tx.currency), 'EUR')
                         : formatCurrency(convertToEur(amount, tx.currency), 'EUR', { showPlusSign: true });
 
-                    const cardLogoUrl = account?.cardNetwork ? getCardLogoUrl(account.cardNetwork) : null;
+                    const institutionLogoUrl = account?.financialInstitution ? getMerchantLogoUrl(account.financialInstitution, brandfetchClientId, undefined, { fallback: 'lettermark', type: 'icon', width: 64, height: 64 }) : null;
+                    const showInstitutionLogo = Boolean(institutionLogoUrl && !logoLoadErrors[institutionLogoUrl]);
 
                     return (
                       <div
@@ -1302,11 +1280,18 @@ const Transactions: React.FC<TransactionsProps> = ({ initialAccountFilter, initi
 
                           {/* Column 2: Account */}
                           <div className="col-span-2 flex items-center gap-3 min-w-0">
-                                <div className="w-10 h-7 flex items-center justify-center bg-white dark:bg-white/10 rounded overflow-hidden shadow-sm shrink-0 border border-black/5 dark:border-white/10">
-                                   {cardLogoUrl ? (
-                                        <img src={cardLogoUrl} alt={account?.cardNetwork || 'Card'} className="w-full h-full object-contain p-1" />
+                                <div className="shrink-0">
+                                   {showInstitutionLogo ? (
+                                        <img 
+                                            src={institutionLogoUrl!} 
+                                            alt={account?.financialInstitution || 'Bank'} 
+                                            className="w-10 h-10 object-contain rounded-full shadow-sm bg-white dark:bg-white/10" 
+                                            onError={() => handleLogoError(institutionLogoUrl!)}
+                                        />
                                    ) : (
-                                        account ? getCardIcon(cardNetwork || '') : <span className="material-symbols-outlined text-xs text-gray-400">account_balance</span>
+                                        <div className="w-10 h-7 flex items-center justify-center bg-gray-100 dark:bg-white/10 rounded overflow-hidden shadow-sm shrink-0 border border-black/5 dark:border-white/10">
+                                            {account ? getCardIcon(cardNetwork || '') : <span className="material-symbols-outlined text-xs text-gray-400">account_balance</span>}
+                                        </div>
                                    )}
                                 </div>
                                 <div className="min-w-0">
