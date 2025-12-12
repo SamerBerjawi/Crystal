@@ -27,6 +27,8 @@ interface InvestmentsProps {
     prices: Record<string, number | null>;
     onOpenHoldingDetail: (symbol: string) => void;
     holdingsOverview?: HoldingsOverview;
+    onToggleAccountStatus: (accountId: string) => void;
+    deleteAccount: (accountId: string) => void;
 }
 
 // Helper components for the redesign
@@ -64,7 +66,9 @@ const Investments: React.FC<InvestmentsProps> = ({
     onManualPriceChange,
     prices,
     onOpenHoldingDetail,
-    holdingsOverview
+    holdingsOverview,
+    onToggleAccountStatus,
+    deleteAccount
 }) => {
     const [isModalOpen, setIsModalOpen] = useState(false);
     const [isWarrantModalOpen, setWarrantModalOpen] = useState(false);
@@ -74,7 +78,9 @@ const Investments: React.FC<InvestmentsProps> = ({
     const [editingPriceItem, setEditingPriceItem] = useState<{ symbol: string; name: string; currentPrice: number | null } | null>(null);
 
     // Include only Stocks, ETFs, Crypto for the Investments page
-    const investmentAccounts = useMemo(() => (accounts || []).filter(a => a.type === 'Investment' && ['Stock', 'ETF', 'Crypto'].includes(a.subType || '')), [accounts]);
+    const investmentAccounts = useMemo(() => (
+        accounts || []
+    ).filter(a => a.type === 'Investment' && ['Stock', 'ETF', 'Crypto'].includes(a.subType || '') && a.status !== 'closed'), [accounts]);
 
     const overview = useMemo(() => holdingsOverview || buildHoldingsOverview(investmentAccounts, investmentTransactions, warrants, prices), [holdingsOverview, investmentAccounts, investmentTransactions, warrants, prices]);
 
@@ -254,6 +260,7 @@ const Investments: React.FC<InvestmentsProps> = ({
                                 </thead>
                                 <tbody className="divide-y divide-black/5 dark:divide-white/5">
                                     {holdings.map(holding => {
+                                        const holdingAccount = accounts.find(acc => acc.symbol === holding.symbol);
                                         const gainLoss = holding.currentValue - holding.totalCost;
                                         const gainLossPercent = holding.totalCost > 0 ? (gainLoss / holding.totalCost) * 100 : 0;
                                         const isPositive = gainLoss >= 0;
@@ -320,6 +327,32 @@ const Investments: React.FC<InvestmentsProps> = ({
                                                                 title="Edit Grant"
                                                             >
                                                                 <span className="material-symbols-outlined text-lg">edit</span>
+                                                            </button>
+                                                        )}
+                                                        {holdingAccount && (
+                                                            <button
+                                                                onClick={(e) => {
+                                                                    e.stopPropagation();
+                                                                    onToggleAccountStatus(holdingAccount.id);
+                                                                }}
+                                                                className="p-1.5 rounded-md text-light-text-secondary dark:text-dark-text-secondary hover:bg-black/10 dark:hover:bg-white/10"
+                                                                title={holdingAccount.status === 'closed' ? 'Mark Active' : 'Mark Inactive'}
+                                                            >
+                                                                <span className="material-symbols-outlined text-lg">do_not_disturb_on</span>
+                                                            </button>
+                                                        )}
+                                                        {holdingAccount && (
+                                                            <button
+                                                                onClick={(e) => {
+                                                                    e.stopPropagation();
+                                                                    if (window.confirm(`Are you sure you want to delete ${holdingAccount.name}? This will remove all associated data.`)) {
+                                                                        deleteAccount(holdingAccount.id);
+                                                                    }
+                                                                }}
+                                                                className="p-1.5 rounded-md text-red-500 dark:text-red-400 hover:bg-red-50 dark:hover:bg-red-900/20"
+                                                                title="Delete Holding"
+                                                            >
+                                                                <span className="material-symbols-outlined text-lg">delete</span>
                                                             </button>
                                                         )}
                                                     </div>
