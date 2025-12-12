@@ -26,6 +26,7 @@ interface InvestmentsProps {
     onManualPriceChange: (isin: string, price: number | null, date?: string) => void;
     prices: Record<string, number | null>;
     onOpenHoldingDetail: (symbol: string) => void;
+    holdingsOverview?: HoldingsOverview;
     onToggleAccountStatus: (accountId: string) => void;
     deleteAccount: (accountId: string) => void;
 }
