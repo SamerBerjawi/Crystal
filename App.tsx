@@ -183,6 +183,7 @@ const initialFinancialData: FinancialData = {
         defaultAccountOrder: 'name',
         country: 'Belgium',
         defaultForecastPeriod: '1Y',
+        brandfetchClientId: '',
     },
 };
 
@@ -566,7 +567,10 @@ const App: React.FC = () => {
 
   const loadAllFinancialData = useCallback((data: FinancialData | null, options?: { skipNextSave?: boolean }) => {
     const dataToLoad = data || initialFinancialData;
-    const loadedPrefs = dataToLoad.preferences || initialFinancialData.preferences;
+    const loadedPrefs = {
+      ...initialFinancialData.preferences,
+      ...(dataToLoad.preferences || {}),
+    };
     const dataSignature = JSON.stringify(dataToLoad);
 
     startTransition(() => {
