@@ -81,7 +81,7 @@ const Preferences: React.FC<PreferencesProps> = ({ preferences, setPreferences, 
     }
   };
 
-  const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+  const handleInputChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
     const { name, value } = e.target;
     setPreferences({ ...preferences, [name]: value });
   };
@@ -254,6 +254,55 @@ const Preferences: React.FC<PreferencesProps> = ({ preferences, setPreferences, 
                   onChange={handleInputChange}
                   placeholder="Enter your Brandfetch client ID"
                   className={INPUT_BASE_STYLE}
+                />
+              </SettingRow>
+            </div>
+          </Card>
+
+          <Card>
+            <SectionHeader
+              title="Enable Banking"
+              icon="account_balance"
+              description="Provide credentials to sync balances and transactions through Enable Banking."
+            />
+            <div className="space-y-2">
+              <SettingRow
+                label="Country Code"
+                description="Two-letter ISO code used when fetching ASPSPs."
+              >
+                <input
+                  name="enableBankingCountryCode"
+                  value={preferences.enableBankingCountryCode || ''}
+                  onChange={handleInputChange}
+                  placeholder="FI"
+                  className={INPUT_BASE_STYLE}
+                  maxLength={2}
+                />
+              </SettingRow>
+
+              <SettingRow
+                label="Application ID"
+                description="The application identifier (kid) returned when registering your certificate."
+              >
+                <input
+                  name="enableBankingApplicationId"
+                  value={preferences.enableBankingApplicationId || ''}
+                  onChange={handleInputChange}
+                  placeholder="cf589be3-3755-465b-a8df-a90a16a31403"
+                  className={INPUT_BASE_STYLE}
+                />
+              </SettingRow>
+
+              <SettingRow
+                label="Client Certificate + Private Key"
+                description="Paste the PEM contents used to sign JWTs for Enable Banking. Stored locally only."
+              >
+                <textarea
+                  name="enableBankingClientCertificate"
+                  value={preferences.enableBankingClientCertificate || ''}
+                  onChange={handleInputChange}
+                  placeholder={`-----BEGIN PRIVATE KEY-----\n...\n-----END PRIVATE KEY-----`}
+                  className={`${INPUT_BASE_STYLE} h-28 resize-none`}
                 />
               </SettingRow>
             </div>
