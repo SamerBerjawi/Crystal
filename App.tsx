@@ -30,6 +30,8 @@ const loadDataManagement = () => import('./pages/DataImportExport');
 const DataManagement = lazy(loadDataManagement);
 const loadPreferencesPage = () => import('./pages/Preferences');
 const PreferencesPage = lazy(loadPreferencesPage);
+const loadIntegrationsPage = () => import('./pages/Integrations');
+const IntegrationsPage = lazy(loadIntegrationsPage);
 const loadAccountDetail = () => import('./pages/AccountDetail');
 // FIX: Use inline function for lazy import to avoid TypeScript error regarding 'default' property missing
 const AccountDetail = lazy(() => import('./pages/AccountDetail'));
@@ -63,6 +65,7 @@ const pagePreloaders = [
   loadPersonalInfoPage,
   loadDataManagement,
   loadPreferencesPage,
+  loadIntegrationsPage,
   loadAccountDetail,
   loadInvestmentsPage,
   loadTasksPage,
@@ -105,6 +108,7 @@ const routePathMap: Record<Page, string> = {
   'Personal Info': '/personal-info',
   'Data Management': '/data-management',
   Preferences: '/preferences',
+  Integrations: '/integrations',
   AccountDetail: '/accounts',
   Investments: '/investments',
   HoldingDetail: '/investments',
@@ -1810,6 +1814,8 @@ const App: React.FC = () => {
             />;
       case 'Preferences':
         return <PreferencesPage preferences={preferences} setPreferences={setPreferences} theme={theme} setTheme={setTheme} setCurrentPage={setCurrentPage} />;
+      case 'Integrations':
+        return <IntegrationsPage preferences={preferences} setPreferences={setPreferences} setCurrentPage={setCurrentPage} />;
       case 'Investments':
         return <InvestmentsPage accounts={accounts} cashAccounts={accounts.filter(a => a.type === 'Checking' || a.type === 'Savings')} investmentTransactions={investmentTransactions} saveInvestmentTransaction={handleSaveInvestmentTransaction} deleteInvestmentTransaction={handleDeleteInvestmentTransaction} saveTransaction={handleSaveTransaction} warrants={warrants} saveWarrant={handleSaveWarrant} deleteWarrant={handleDeleteWarrant} manualPrices={manualWarrantPrices} onManualPriceChange={handleManualWarrantPrice} prices={assetPrices} onOpenHoldingDetail={handleOpenHoldingDetail} holdingsOverview={holdingsOverview} onToggleAccountStatus={handleToggleAccountStatus} deleteAccount={handleDeleteAccount} />;
       case 'Tasks':

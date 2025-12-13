@@ -80,6 +80,13 @@ const Settings: React.FC<SettingsProps> = ({ setCurrentPage, user }) => {
             colorClass="bg-blue-100 text-blue-600 dark:bg-blue-900/30 dark:text-blue-400"
           />
           <SettingItem
+            page="Integrations"
+            icon="extension"
+            title="Integrations"
+            description="Manage API keys and external service connections"
+            colorClass="bg-indigo-100 text-indigo-600 dark:bg-indigo-900/30 dark:text-indigo-400"
+          />
+          <SettingItem
             page="Merchants"
             icon="store"
             title="Merchant Logos"

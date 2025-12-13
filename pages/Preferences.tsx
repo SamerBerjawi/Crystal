@@ -81,11 +81,6 @@ const Preferences: React.FC<PreferencesProps> = ({ preferences, setPreferences, 
     }
   };
 
-  const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const { name, value } = e.target;
-    setPreferences({ ...preferences, [name]: value });
-  };
-
   return (
     <div className="space-y-8 max-w-5xl mx-auto pb-12 animate-fade-in-up">
       <header className="space-y-4">
@@ -223,41 +218,6 @@ const Preferences: React.FC<PreferencesProps> = ({ preferences, setPreferences, 
             </div>
           </Card>
 
-          <Card>
-            <SectionHeader
-              title="Integrations"
-              icon="image"
-              description="Connect external services to enhance your experience."
-            />
-            <div className="space-y-2">
-              <SettingRow
-                label="Twelve Data API Key"
-                description="Used to fetch live investment prices from Twelve Data. Your key is stored locally."
-              >
-                <input
-                  type="text"
-                  name="twelveDataApiKey"
-                  value={preferences.twelveDataApiKey || ''}
-                  onChange={handleInputChange}
-                  placeholder="Enter your Twelve Data API key"
-                  className={INPUT_BASE_STYLE}
-                />
-              </SettingRow>
-              <SettingRow
-                label="Brandfetch Client ID"
-                description="Used to fetch merchant logos for your transactions. Leave blank to use category icons instead."
-              >
-                <input
-                  type="text"
-                  name="brandfetchClientId"
-                  value={preferences.brandfetchClientId || ''}
-                  onChange={handleInputChange}
-                  placeholder="Enter your Brandfetch client ID"
-                  className={INPUT_BASE_STYLE}
-                />
-              </SettingRow>
-            </div>
-          </Card>
         </div>
       </div>
     </div>
