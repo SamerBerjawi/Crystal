@@ -1,4 +1,4 @@
-import React, { useMemo, useState } from 'react';
+import React, { useEffect, useMemo, useState } from 'react';
 import Card from './Card';
 import { INPUT_BASE_STYLE } from '../constants';
 import { Account, AccountType, EnableBankingConnection, EnableBankingLinkPayload } from '../types';
@@ -53,6 +53,7 @@ const EnableBankingIntegrationCard: React.FC<EnableBankingIntegrationCardProps> 
       }
     >
   >({});
+  const autoSyncedConnections = React.useRef<Set<string>>(new Set());
   const [bankOptions, setBankOptions] = useState<{ id: string; name: string; country?: string }[]>([]);
   const [banksLoading, setBanksLoading] = useState(false);
   const [banksError, setBanksError] = useState<string | null>(null);
@@ -163,6 +164,21 @@ const EnableBankingIntegrationCard: React.FC<EnableBankingIntegrationCardProps> 
     const entry = mapping[status];
     return <span className={`px-2.5 py-1 rounded-full text-xs font-semibold ${entry.color}`}>{entry.label}</span>;
   };
+
+  useEffect(() => {
+    connections.forEach(connection => {
+      const shouldAutoSync =
+        connection.status === 'ready' &&
+        connection.sessionId &&
+        (!connection.accounts || connection.accounts.length === 0) &&
+        !autoSyncedConnections.current.has(connection.id);
+
+      if (!shouldAutoSync) return;
+
+      autoSyncedConnections.current.add(connection.id);
+      onTriggerSync(connection.id);
+    });
+  }, [connections, onTriggerSync]);
 
   return (
     <Card>
@@ -275,6 +291,7 @@ const EnableBankingIntegrationCard: React.FC<EnableBankingIntegrationCardProps> 
             )}
 
           {connections.map(connection => {
+            const providerAccounts = connection.accounts || [];
             const keyPrefix = (accountId: string) => `${connection.id}:${accountId}`;
 
             return (
@@ -313,8 +330,8 @@ const EnableBankingIntegrationCard: React.FC<EnableBankingIntegrationCardProps> 
                   </div>
                 </div>
 
-                <div className="overflow-hidden rounded-lg border border-black/5 dark:border-white/10">
-                  <table className="w-full text-sm">
+                <div className="overflow-x-auto rounded-lg border border-black/5 dark:border-white/10">
+                  <table className="min-w-[720px] w-full text-sm">
                     <thead className="bg-light-surface-secondary dark:bg-dark-surface-secondary text-left">
                       <tr>
                         <th className="px-3 py-2">Provider account</th>
@@ -324,8 +341,23 @@ const EnableBankingIntegrationCard: React.FC<EnableBankingIntegrationCardProps> 
                         <th className="px-3 py-2">Actions</th>
                       </tr>
                     </thead>
-                    <tbody>
-                      {connection.accounts.map(account => {
+                      <tbody>
+                        {providerAccounts.length === 0 && (
+                          <tr className="border-t border-black/5 dark:border-white/5">
+                            <td className="px-3 py-3 text-sm text-light-text-secondary dark:text-dark-text-secondary" colSpan={5}>
+                              No accounts fetched yet. Trigger a sync after completing bank authorization to load provider accounts.
+                              <button
+                                onClick={() => onTriggerSync(connection.id)}
+                                className="ml-3 inline-flex items-center gap-1 px-3 py-2 rounded-lg bg-light-surface-secondary dark:bg-dark-surface-secondary text-light-text dark:text-dark-text text-xs font-semibold"
+                              >
+                                <span className="material-symbols-outlined text-sm">refresh</span>
+                                Sync now
+                              </button>
+                            </td>
+                          </tr>
+                        )}
+
+                        {providerAccounts.map(account => {
                         const rowKey = keyPrefix(account.id);
                         const savedState = linkingState[rowKey] || {};
                         const defaultSyncStart = clampSyncDate(savedState.syncStartDate || account.syncStartDate || ninetyDaysAgoStr);
