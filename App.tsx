@@ -80,7 +80,7 @@ const pagePreloaders = [
 // UserManagement is removed
 // FIX: Import FinancialData from types.ts
 // FIX: Add `Tag` to the import from `types.ts`.
-import { Page, Theme, Category, User, Transaction, Account, RecurringTransaction, RecurringTransactionOverride, WeekendAdjustment, FinancialGoal, Budget, ImportExportHistoryItem, AppPreferences, AccountType, InvestmentTransaction, Task, Warrant, ImportDataType, FinancialData, Currency, BillPayment, BillPaymentStatus, Duration, InvestmentSubType, Tag, LoanPaymentOverrides, ScheduledPayment, Membership, Invoice, UserStats, Prediction, PriceHistoryEntry, EnableBankingConnection, EnableBankingAccount } from './types';
+import { Page, Theme, Category, User, Transaction, Account, RecurringTransaction, RecurringTransactionOverride, WeekendAdjustment, FinancialGoal, Budget, ImportExportHistoryItem, AppPreferences, AccountType, InvestmentTransaction, Task, Warrant, ImportDataType, FinancialData, Currency, BillPayment, BillPaymentStatus, Duration, InvestmentSubType, Tag, LoanPaymentOverrides, ScheduledPayment, Membership, Invoice, UserStats, Prediction, PriceHistoryEntry, EnableBankingConnection, EnableBankingAccount, EnableBankingLinkPayload } from './types';
 import { MOCK_INCOME_CATEGORIES, MOCK_EXPENSE_CATEGORIES, LIQUID_ACCOUNT_TYPES } from './constants';
 import { v4 as uuidv4 } from 'uuid';
 import ChatFab from './components/ChatFab';
@@ -1916,19 +1916,43 @@ const App: React.FC = () => {
     setEnableBankingConnections(prev => prev.filter(conn => conn.id !== connectionId));
   }, []);
 
-  const handleLinkEnableBankingAccount = useCallback((connectionId: string, providerAccountId: string, linkedAccountId: string, syncStartDate: string) => {
-    setEnableBankingConnections(prev => prev.map(conn => {
-      if (conn.id !== connectionId) return conn;
+  const handleLinkEnableBankingAccount = useCallback(
+    (connectionId: string, providerAccountId: string, payload: EnableBankingLinkPayload) => {
+      let finalLinkedAccountId: string | undefined = 'linkedAccountId' in payload ? payload.linkedAccountId : undefined;
 
-      const updatedAccounts = conn.accounts.map(account => account.id === providerAccountId ? {
-        ...account,
-        linkedAccountId,
-        syncStartDate,
-      } : account);
+      if ('newAccount' in payload) {
+        const generatedId = payload.newAccount.id || `acc-${uuidv4()}`;
+        handleSaveAccount({ ...payload.newAccount, id: generatedId });
+        finalLinkedAccountId = generatedId;
+      }
 
-      return { ...conn, accounts: updatedAccounts };
-    }));
-  }, []);
+      if (!finalLinkedAccountId) return;
+
+      const minSyncDate = toLocalISOString(new Date(Date.now() - 90 * 24 * 60 * 60 * 1000));
+      const maxSyncDate = toLocalISOString(new Date());
+      const chosenDate = new Date(payload.syncStartDate);
+
+      const syncStartDate =
+        chosenDate < new Date(minSyncDate)
+          ? minSyncDate
+          : chosenDate > new Date(maxSyncDate)
+            ? maxSyncDate
+            : payload.syncStartDate;
+
+      setEnableBankingConnections(prev => prev.map(conn => {
+        if (conn.id !== connectionId) return conn;
+
+        const updatedAccounts = conn.accounts.map(account => account.id === providerAccountId ? {
+          ...account,
+          linkedAccountId: finalLinkedAccountId,
+          syncStartDate,
+        } : account);
+
+        return { ...conn, accounts: updatedAccounts };
+      }));
+    },
+    [handleSaveAccount]
+  );
 
   // --- Data Import / Export ---
   const handlePublishImport = (

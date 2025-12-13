@@ -200,6 +200,10 @@ export interface EnableBankingConnection {
   lastError?: string;
 }
 
+export type EnableBankingLinkPayload =
+  | { linkedAccountId: string; syncStartDate: string }
+  | { newAccount: Omit<Account, 'id'>; syncStartDate: string };
+
 export interface RecurringTransaction {
   id: string;
   accountId: string; // from account for transfers
