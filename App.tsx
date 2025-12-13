@@ -78,7 +78,7 @@ const pagePreloaders = [
 // UserManagement is removed
 // FIX: Import FinancialData from types.ts
 // FIX: Add `Tag` to the import from `types.ts`.
-import { Page, Theme, Category, User, Transaction, Account, RecurringTransaction, RecurringTransactionOverride, WeekendAdjustment, FinancialGoal, Budget, ImportExportHistoryItem, AppPreferences, AccountType, InvestmentTransaction, Task, Warrant, ImportDataType, FinancialData, Currency, BillPayment, BillPaymentStatus, Duration, InvestmentSubType, Tag, LoanPaymentOverrides, ScheduledPayment, Membership, Invoice, UserStats, Prediction, PriceHistoryEntry } from './types';
+import { Page, Theme, Category, User, Transaction, Account, RecurringTransaction, RecurringTransactionOverride, WeekendAdjustment, FinancialGoal, Budget, ImportExportHistoryItem, AppPreferences, AccountType, InvestmentTransaction, Task, Warrant, ImportDataType, FinancialData, Currency, BillPayment, BillPaymentStatus, Duration, InvestmentSubType, Tag, LoanPaymentOverrides, ScheduledPayment, Membership, Invoice, UserStats, Prediction, PriceHistoryEntry, EnableBankingConnection, EnableBankingAccount } from './types';
 import { MOCK_INCOME_CATEGORIES, MOCK_EXPENSE_CATEGORIES, LIQUID_ACCOUNT_TYPES } from './constants';
 import { v4 as uuidv4 } from 'uuid';
 import ChatFab from './components/ChatFab';
@@ -182,6 +182,7 @@ const initialFinancialData: FinancialData = {
     invoices: [],
     userStats: { currentStreak: 0, longestStreak: 0, lastLogDate: '', predictionWins: 0, predictionTotal: 0 },
     predictions: [],
+    enableBankingConnections: [],
     preferences: {
         currency: 'EUR (€)',
         language: 'English (en)',
@@ -334,6 +335,7 @@ const App: React.FC = () => {
   const [tags, setTags] = useState<Tag[]>(initialFinancialData.tags || []);
   const [userStats, setUserStats] = useState<UserStats>(initialFinancialData.userStats || { currentStreak: 0, longestStreak: 0, lastLogDate: '' });
   const [predictions, setPredictions] = useState<Prediction[]>(initialFinancialData.predictions || []);
+  const [enableBankingConnections, setEnableBankingConnections] = useState<EnableBankingConnection[]>(initialFinancialData.enableBankingConnections || []);
 
   const latestDataRef = useRef<FinancialData>(initialFinancialData);
   const lastSavedSignatureRef = useRef<string | null>(null);
@@ -610,10 +612,12 @@ const App: React.FC = () => {
       setPredictions(dataToLoad.predictions || []);
       setIncomeCategories(dataToLoad.incomeCategories && dataToLoad.incomeCategories.length > 0 ? dataToLoad.incomeCategories : MOCK_INCOME_CATEGORIES);
       setExpenseCategories(dataToLoad.expenseCategories && dataToLoad.expenseCategories.length > 0 ? dataToLoad.expenseCategories : MOCK_EXPENSE_CATEGORIES);
-      
+
       if (dataToLoad.userStats) {
           setUserStats(dataToLoad.userStats);
       }
+
+      setEnableBankingConnections(dataToLoad.enableBankingConnections || []);
 
       setPreferences(loadedPrefs);
       
@@ -713,7 +717,8 @@ const App: React.FC = () => {
   const dataToSave: FinancialData = useMemo(() => ({
     accounts, transactions, investmentTransactions, recurringTransactions,
     recurringTransactionOverrides, loanPaymentOverrides, financialGoals, budgets, tasks, warrants, memberships, importExportHistory, incomeCategories,
-    expenseCategories, preferences, billsAndPayments, accountOrder, taskOrder, tags, manualWarrantPrices, priceHistory, invoices, userStats, predictions
+    expenseCategories, preferences, billsAndPayments, accountOrder, taskOrder, tags, manualWarrantPrices, priceHistory, invoices, userStats, predictions,
+    enableBankingConnections,
   }), [
     accounts, transactions, investmentTransactions,
     recurringTransactions, recurringTransactionOverrides, loanPaymentOverrides, financialGoals, budgets, tasks, warrants, memberships, importExportHistory,
@@ -748,6 +753,7 @@ const App: React.FC = () => {
     if (dirtySlices.has('invoices')) payload.invoices = invoices;
     if (dirtySlices.has('userStats')) payload.userStats = userStats;
     if (dirtySlices.has('predictions')) payload.predictions = predictions;
+    if (dirtySlices.has('enableBankingConnections')) payload.enableBankingConnections = enableBankingConnections;
 
     return { ...latestDataRef.current, ...payload } as FinancialData;
   }, [
@@ -774,7 +780,8 @@ const App: React.FC = () => {
     priceHistory,
     invoices,
     userStats,
-    predictions
+    predictions,
+    enableBankingConnections
   ]);
 
   useEffect(() => {
@@ -900,6 +907,11 @@ const App: React.FC = () => {
       if (!isDataLoaded || restoreInProgressRef.current) return;
       markSliceDirty('predictions');
   }, [predictions, isDataLoaded, markSliceDirty]);
+
+  useEffect(() => {
+    if (!isDataLoaded || restoreInProgressRef.current) return;
+    markSliceDirty('enableBankingConnections');
+  }, [enableBankingConnections, isDataLoaded, markSliceDirty]);
 
   // Persist data to backend on change
   const saveData = useCallback(
@@ -1641,6 +1653,74 @@ const App: React.FC = () => {
       setPredictions(prev => prev.filter(p => p.id !== id));
   };
 
+  // --- Enable Banking integration ---
+  const buildDemoEnableBankingAccounts = useCallback((bankName: string, _countryCode: string): EnableBankingAccount[] => {
+    const defaults: Omit<EnableBankingAccount, 'id' | 'bankName'>[] = [
+      { name: 'Everyday Account', currency: 'EUR', balance: 1280.55, accountNumber: 'FI69 1234 5600 0007 85' },
+      { name: 'Savings Vault', currency: 'EUR', balance: 8400.12, accountNumber: 'FI21 9999 9900 0001 12' },
+      { name: 'Travel Card', currency: 'EUR', balance: 250.33, accountNumber: 'FI11 1010 0012 3456 70' },
+    ];
+
+    return defaults.map((account, idx) => ({
+      ...account,
+      id: `ebacc-${uuidv4()}-${idx}`,
+      bankName,
+      lastSyncedAt: new Date().toISOString(),
+      currency: account.currency,
+    }));
+  }, []);
+
+  const handleCreateEnableBankingConnection = useCallback((payload: {
+    applicationId: string;
+    countryCode: string;
+    clientCertificate: string;
+    selectedBank: string;
+  }) => {
+    const connection: EnableBankingConnection = {
+      id: `eb-${uuidv4()}`,
+      applicationId: payload.applicationId.trim(),
+      countryCode: payload.countryCode.trim().toUpperCase(),
+      clientCertificate: payload.clientCertificate.trim(),
+      status: 'ready',
+      selectedBank: payload.selectedBank,
+      sessionId: `sess-${uuidv4()}`,
+      sessionExpiresAt: new Date(Date.now() + 1000 * 60 * 60 * 24 * 90).toISOString(),
+      accounts: buildDemoEnableBankingAccounts(payload.selectedBank, payload.countryCode),
+      lastSyncedAt: new Date().toISOString(),
+    };
+
+    setEnableBankingConnections(prev => [...prev, connection]);
+  }, [buildDemoEnableBankingAccounts]);
+
+  const handleDeleteEnableBankingConnection = useCallback((connectionId: string) => {
+    setEnableBankingConnections(prev => prev.filter(conn => conn.id !== connectionId));
+  }, []);
+
+  const handleLinkEnableBankingAccount = useCallback((connectionId: string, providerAccountId: string, linkedAccountId: string, syncStartDate: string) => {
+    setEnableBankingConnections(prev => prev.map(conn => {
+      if (conn.id !== connectionId) return conn;
+
+      const updatedAccounts = conn.accounts.map(account => account.id === providerAccountId ? {
+        ...account,
+        linkedAccountId,
+        syncStartDate,
+      } : account);
+
+      return { ...conn, accounts: updatedAccounts };
+    }));
+  }, []);
+
+  const handleMarkEnableBankingSynced = useCallback((connectionId: string) => {
+    const now = new Date().toISOString();
+    setEnableBankingConnections(prev => prev.map(conn => conn.id === connectionId ? {
+      ...conn,
+      lastSyncedAt: now,
+      accounts: conn.accounts.map(account => ({ ...account, lastSyncedAt: now })),
+      status: 'ready',
+      lastError: undefined,
+    } : conn));
+  }, []);
+
   // --- Data Import / Export ---
   const handlePublishImport = (
     items: (Omit<Account, 'id'> | Omit<Transaction, 'id'>)[],
@@ -1815,7 +1895,17 @@ const App: React.FC = () => {
       case 'Preferences':
         return <PreferencesPage preferences={preferences} setPreferences={setPreferences} theme={theme} setTheme={setTheme} setCurrentPage={setCurrentPage} />;
       case 'Integrations':
-        return <IntegrationsPage preferences={preferences} setPreferences={setPreferences} setCurrentPage={setCurrentPage} />;
+        return <IntegrationsPage
+          preferences={preferences}
+          setPreferences={setPreferences}
+          setCurrentPage={setCurrentPage}
+          enableBankingConnections={enableBankingConnections}
+          accounts={accounts}
+          onCreateConnection={handleCreateEnableBankingConnection}
+          onDeleteConnection={handleDeleteEnableBankingConnection}
+          onLinkAccount={handleLinkEnableBankingAccount}
+          onTriggerSync={handleMarkEnableBankingSynced}
+        />;
       case 'Investments':
         return <InvestmentsPage accounts={accounts} cashAccounts={accounts.filter(a => a.type === 'Checking' || a.type === 'Savings')} investmentTransactions={investmentTransactions} saveInvestmentTransaction={handleSaveInvestmentTransaction} deleteInvestmentTransaction={handleDeleteInvestmentTransaction} saveTransaction={handleSaveTransaction} warrants={warrants} saveWarrant={handleSaveWarrant} deleteWarrant={handleDeleteWarrant} manualPrices={manualWarrantPrices} onManualPriceChange={handleManualWarrantPrice} prices={assetPrices} onOpenHoldingDetail={handleOpenHoldingDetail} holdingsOverview={holdingsOverview} onToggleAccountStatus={handleToggleAccountStatus} deleteAccount={handleDeleteAccount} />;
       case 'Tasks':

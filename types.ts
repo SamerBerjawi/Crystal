@@ -171,6 +171,35 @@ export interface Account {
 export type RecurrenceFrequency = 'daily' | 'weekly' | 'monthly' | 'yearly';
 export type WeekendAdjustment = 'before' | 'after' | 'on';
 
+export type EnableBankingConnectionStatus = 'disconnected' | 'pending' | 'ready' | 'requires_update';
+
+export interface EnableBankingAccount {
+  id: string;
+  name: string;
+  bankName: string;
+  currency: Currency;
+  balance: number;
+  accountNumber?: string;
+  linkedAccountId?: string;
+  syncStartDate?: string;
+  lastSyncedAt?: string;
+}
+
+export interface EnableBankingConnection {
+  id: string;
+  applicationId: string;
+  countryCode: string;
+  clientCertificate: string;
+  status: EnableBankingConnectionStatus;
+  selectedBank?: string;
+  sessionId?: string;
+  sessionExpiresAt?: string;
+  authorizationId?: string;
+  accounts: EnableBankingAccount[];
+  lastSyncedAt?: string;
+  lastError?: string;
+}
+
 export interface RecurringTransaction {
   id: string;
   accountId: string; // from account for transfers
@@ -539,6 +568,7 @@ export interface FinancialData {
     invoices?: Invoice[];
     userStats?: UserStats;
     predictions?: Prediction[];
+    enableBankingConnections?: EnableBankingConnection[];
 }
 
 // New types for Tasks feature
