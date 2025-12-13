@@ -1,61 +1,71 @@
 # Crystal
 
-Crystal provides clarity and foresight for your financial future. It is a comprehensive, privacy-first personal finance dashboard that centralizes accounts, transactions, budgets, investments, and forecasts. Beyond standard tracking, Crystal layers in intelligent forecasting, asset-specific management tools, and AI-assisted insights to help you plan with confidence.
+**Crystal** is the ultimate personal finance operating system. It provides clarity and foresight for your financial future by combining professional-grade accounting tools with behavioral gamification and AI-powered forecasting.
 
-## Core Features
+Designed as a **privacy-first, local-centric** application, Crystal ensures your financial data remains yours while offering features typically found only in enterprise software.
 
-### 📊 Dynamic Dashboard
-*   **Modular Widget System:** Customizable grid layout with drag-and-drop widgets (Net Worth, Recent Activity, Cash Flow, Spending breakdown, etc.).
-*   **Privacy / "Coffee Shop" Mode:** One-click toggle in the header to blur all monetary values for secure viewing in public spaces.
-*   **Multi-Tab Views:** Switch between `Overview` (snapshot), `Analysis` (ratios & health metrics), and `Activity` (maps & flows) layouts.
-*   **Transaction Map:** Visual heat map of spending locations based on transaction geolocation data.
-*   **Cash Flow Sankey Diagram:** Visualize money flow from income sources to expenses and savings.
+## 🌟 Key Features
 
-### 💼 Comprehensive Account Management
-Crystal supports a wide array of account types with specialized views and logic for each:
-*   **Liquid Assets:** Checking, Savings, and Cash wallets with burn-rate calculation and "Safe-to-Spend" metrics.
-*   **Credit Cards:** Smart statement tracking that visualizes billing cycles, due dates, and credit utilization limits.
-*   **Properties:** Dedicated property ledger tracking estimated market value, equity (calculated against linked mortgages), amortization, and property specifics (lot size, year built, amenities).
-*   **Vehicles:** Detailed vehicle profiles supporting both **Owned** and **Leased** models. Tracks VIN, fuel type, purchase details, and includes a **Mileage Log** with usage charts to forecast lease overages.
-*   **Loans & Lending:** Amortization schedule generation, principal/interest split tracking, and payment planning.
-*   **Investments:** Support for Stocks, ETFs, Crypto, and Pension funds.
-*   **Warrants & Equity:** Specialized tracking for employee stock warrants/options with grant dates and strike prices. Includes a **Custom Web Scraper** tool to fetch prices for obscure or private assets.
+### 📊 Interactive Dashboard
+*   **Modular Widgets:** Fully customizable grid (Drag & Drop) including Net Worth, Cash Flow, and Recent Activity.
+*   **Privacy Mode:** One-click blur for sensitive numbers when viewing in public spaces.
+*   **Advanced Visuals:**
+    *   **Cash Flow Sankey:** Visualize the flow of money from income sources to expenses and savings.
+    *   **Transaction Map:** Geospatial heatmaps of your spending based on merchant locations.
+    *   **Heatmaps:** Activity density views for tasks and recurring schedules.
 
-### 💳 Intelligent Transaction Handling
-*   **Smart Categorization:** Bulk editing and categorization tools.
-*   **Transfer Detection:** Heuristic-based matching engine that identifies potential transfers between accounts (e.g., a debit in Checking matching a credit in Savings) to keep cash flow reporting accurate.
-*   **Spare Change Tracking:** Virtual "Round-up" calculator that estimates savings if purchases were rounded to the nearest dollar.
-*   **Rich Metadata:** Support for merchant names, notes, tags, and geolocation.
-*   **Global Search:** Fuzzy search across amounts, descriptions, categories, and accounts.
+### 🎮 Gamification & Health
+Turn financial discipline into a game:
+*   **Financial Health Score:** A dynamic 0-100 score calculated from your Savings Rate, Liquidity Ratio, Debt Management, and Asset Diversity.
+*   **Boss Battles:** Visual RPG-style battles against your largest debts (The Nemesis) or for your savings goals (The Guardian).
+*   **Savings Sprints:** Short-term challenges (e.g., "The Zero Day", "Coffee Break", "Grocery Gauntlet") to curb impulse spending.
+*   **Predictions:** "Bet" on your future net worth or spending caps to track your discipline against your own expectations.
+*   **Badges & Mastery:** Earn achievements for streaks, debt reduction, and budget adherence.
+
+### 💼 Wealth & Asset Management
+Crystal handles complex portfolios beyond simple bank accounts:
+*   **Liquid Assets:** Checking, Savings, and physical Cash wallets.
+*   **Investments:**
+    *   **Manual Price Logging:** Track private equity or assets not on public exchanges with historical price charts.
+    *   **Warrants & Grants:** Specialized tracking for employee equity, including strike prices and vesting.
+    *   **Spare Change:** Virtual "Round-up" accounts that simulate micro-investing from your daily transactions.
+    *   **Pension Funds:** Retirement tracking with target year projections.
+*   **Property & Vehicles:**
+    *   **Real Estate:** Track equity, LTV, mortgages, and recurring costs (HOA, Tax).
+    *   **Vehicles:** Manage VINs, lease terms, and mileage logs with overage forecasting.
+*   **Liabilities:** Detailed loan amortization schedules and credit card statement cycle management.
 
 ### 📅 Forecasting & Planning
-*   **Projected Cash Flow:** Generates a daily balance forecast up to 2 years into the future based on recurring patterns and scheduled bills.
-*   **Synthetic Events:** The forecasting engine automatically generates future "Synthetic" transactions for loan payments, credit card payoffs, and property taxes without cluttering your actual transaction ledger.
-*   **Financial Goals:** Create One-time or Recurring savings goals.
-*   **AI Smart Planner:** Generates step-by-step contribution plans to achieve your goals based on your projected free cash flow (requires Gemini API).
-*   **Scenario Modeling:** Toggle goals and large expenses on/off to see their impact on your future liquidity.
+*   **2-Year Horizon:** Daily balance projections based on recurring income, bills, and goals.
+*   **Synthetic Events:** The engine automatically generates future transactions for loans, credit card payments, and annual property taxes to give a realistic "Safe-to-Spend" number.
+*   **AI Smart Planner:** Uses Google Gemini to generate step-by-step contribution plans to fund your goals based on your projected free cash flow.
+*   **Scenario Modeling:** Toggle goals and large expenses to simulate their impact on your runway.
 
-### 🔄 Schedule & Recurring Engine
-*   **Subscription Manager:** Detects potential recurring subscriptions from transaction history.
-*   **Calendar Heatmap:** Visual density map of upcoming financial obligations.
-*   **Flexible Recurrence:** Support for complex schedules (e.g., "Last Friday of the month", "Every 2 weeks").
-*   **Bill Tracking:** Mark bills as paid/unpaid and track due dates.
+### 🧾 Business & Invoicing
+*   **Invoicing System:** Create, track, and manage professional Quotes and Invoices.
+*   **Status Workflow:** Track documents from Draft → Sent → Paid/Accepted.
+*   **Entity Management:** Manage client details and payment terms.
 
-### 🤖 AI Integration (Gemini)
-*   **Conversational Assistant:** Chat with your financial data using natural language (e.g., "How much did I spend on coffee last month?", "Can I afford a vacation in July?").
-*   **Budget Advisor:** AI analysis of historical spending to suggest realistic monthly budgets for each category.
+### 🤖 AI Copilot
+*   **Conversational Insights:** Chat naturally with your data (e.g., "How much did I spend on Uber last year vs this year?").
+*   **Budget Advisor:** AI analysis of historical spending to suggest realistic monthly budgets.
+*   **Categorization:** Intelligent suggestions for transaction categories.
 
-### 🛠️ Data Sovereignty & Management
-*   **Local-First / Private:** Data is stored locally or on your self-hosted backend. No external bank connections required.
-*   **Import Wizard:** Robust CSV importer with column mapping, data cleaning (date formats, currency normalization), and preview capabilities.
-*   **Export:** Full JSON backup and CSV export options for portability.
-*   **Currencies:** Multi-currency support with automatic conversion to your base currency for reporting.
+### 🛠️ Data Sovereignty
+*   **Import Wizard:** A powerful CSV importer with:
+    *   Fuzzy column mapping.
+    *   Data cleaning and row exclusion.
+    *   Duplicate detection.
+*   **Granular Backup & Restore:** Export specific slices of data (e.g., just "Settings" or "Transactions") and merge them back in without overwriting your whole database.
+*   **Local-First:** Data is stored in your local instance/database. No third-party bank connections sharing your data.
 
 ## Tech Stack
-- **Frontend:** React 19, TypeScript, Vite, Tailwind CSS, Recharts, Leaflet (Maps).
-- **State Management:** Context API + React Query.
-- **Backend (Optional):** Node.js/Express + PostgreSQL (for persistence and multi-device sync).
-- **Containerization:** Docker & Docker Compose.
+*   **Frontend:** React 19, TypeScript, Vite, Tailwind CSS.
+*   **Visualization:** Recharts, Leaflet (Maps).
+*   **State Management:** Context API + React Query.
+*   **AI:** Google Gemini API (@google/genai).
+*   **Backend:** Node.js/Express + PostgreSQL.
+*   **Infrastructure:** Docker & Docker Compose.
 
 ## Getting Started
 
@@ -64,7 +74,10 @@ Crystal supports a wide array of account types with specialized views and logic 
     npm install
     ```
 2.  **Configure AI (Optional):**
-    Create `.env.local` and add `GEMINI_API_KEY=your_key_here`.
+    Create `.env.local` and add your Google Gemini API key:
+    ```
+    GEMINI_API_KEY=your_key_here
+    ```
 3.  **Run Development Server:**
     ```bash
     npm run dev
@@ -73,3 +86,6 @@ Crystal supports a wide array of account types with specialized views and logic 
     ```bash
     docker compose up --build
     ```
+
+## License
+MIT
