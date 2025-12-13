@@ -12,9 +12,10 @@ interface IntegrationsProps {
   enableBankingConnections: EnableBankingConnection[];
   accounts: Account[];
   onCreateConnection: (payload: { applicationId: string; countryCode: string; clientCertificate: string; selectedBank: string }) => void;
+  onFetchBanks: (payload: { applicationId: string; countryCode: string; clientCertificate: string }) => Promise<{ id: string; name: string; country?: string }[]>;
   onDeleteConnection: (connectionId: string) => void;
   onLinkAccount: (connectionId: string, providerAccountId: string, linkedAccountId: string, syncStartDate: string) => void;
-  onTriggerSync: (connectionId: string) => void;
+  onTriggerSync: (connectionId: string) => void | Promise<void>;
 }
 
 interface SectionHeaderProps { title: string; icon: string; description: string }
@@ -54,6 +55,7 @@ const Integrations: React.FC<IntegrationsProps> = ({
   enableBankingConnections,
   accounts,
   onCreateConnection,
+  onFetchBanks,
   onDeleteConnection,
   onLinkAccount,
   onTriggerSync,
@@ -88,6 +90,7 @@ const Integrations: React.FC<IntegrationsProps> = ({
         connections={enableBankingConnections}
         accounts={accounts}
         onCreateConnection={onCreateConnection}
+        onFetchBanks={onFetchBanks}
         onDeleteConnection={onDeleteConnection}
         onLinkAccount={onLinkAccount}
         onTriggerSync={onTriggerSync}

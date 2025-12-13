@@ -12,22 +12,19 @@ interface EnableBankingIntegrationCardProps {
     clientCertificate: string;
     selectedBank: string;
   }) => void;
+  onFetchBanks: (payload: { applicationId: string; countryCode: string; clientCertificate: string }) => Promise<
+    { id: string; name: string; country?: string }[]
+  >;
   onDeleteConnection: (connectionId: string) => void;
   onLinkAccount: (connectionId: string, providerAccountId: string, linkedAccountId: string, syncStartDate: string) => void;
-  onTriggerSync: (connectionId: string) => void;
+  onTriggerSync: (connectionId: string) => void | Promise<void>;
 }
-
-const BANK_OPTIONS = [
-  { id: 'nordea-fi', name: 'Nordea Finland', country: 'FI' },
-  { id: 'danske-dk', name: 'Danske Bank Denmark', country: 'DK' },
-  { id: 'seb-se', name: 'SEB Sweden', country: 'SE' },
-  { id: 'revolut-eu', name: 'Revolut Europe', country: 'LT' },
-];
 
 const EnableBankingIntegrationCard: React.FC<EnableBankingIntegrationCardProps> = ({
   connections,
   accounts,
   onCreateConnection,
+  onFetchBanks,
   onDeleteConnection,
   onLinkAccount,
   onTriggerSync,
@@ -36,10 +33,13 @@ const EnableBankingIntegrationCard: React.FC<EnableBankingIntegrationCardProps> 
     applicationId: '',
     countryCode: 'FI',
     clientCertificate: '',
-    selectedBank: BANK_OPTIONS[0]?.name || '',
+    selectedBank: '',
   });
 
   const [linkingState, setLinkingState] = useState<Record<string, { accountId?: string; syncStartDate?: string }>>({});
+  const [bankOptions, setBankOptions] = useState<{ id: string; name: string; country?: string }[]>([]);
+  const [banksLoading, setBanksLoading] = useState(false);
+  const [banksError, setBanksError] = useState<string | null>(null);
 
   const linkedAccounts = useMemo(() => new Set(connections.flatMap(conn => conn.accounts.map(acc => acc.linkedAccountId).filter(Boolean) as string[])), [connections]);
 
@@ -48,9 +48,40 @@ const EnableBankingIntegrationCard: React.FC<EnableBankingIntegrationCardProps> 
     setFormState(prev => ({ ...prev, [name]: value }));
   };
 
+  const loadBanks = async () => {
+    if (!formState.applicationId.trim() || !formState.clientCertificate.trim()) {
+      alert('Enter application ID and client certificate before loading banks.');
+      return;
+    }
+
+    setBanksLoading(true);
+    setBanksError(null);
+
+    try {
+      const options = await onFetchBanks({
+        applicationId: formState.applicationId.trim(),
+        countryCode: formState.countryCode.trim().toUpperCase(),
+        clientCertificate: formState.clientCertificate.trim(),
+      });
+      setBankOptions(options);
+      setFormState(prev => ({ ...prev, selectedBank: options[0]?.name || '' }));
+    } catch (error: any) {
+      console.error('Failed to load banks', error);
+      setBankOptions([]);
+      setBanksError(error?.message || 'Unable to load banks for the selected country');
+    } finally {
+      setBanksLoading(false);
+    }
+  };
+
   const handleCreate = () => {
     if (!formState.applicationId.trim() || !formState.clientCertificate.trim()) {
       alert('Application ID and client certificate are required to start the Enable Banking flow.');
+      return;
+    }
+
+    if (!formState.selectedBank) {
+      alert('Select a bank for the chosen country.');
       return;
     }
 
@@ -97,7 +128,7 @@ const EnableBankingIntegrationCard: React.FC<EnableBankingIntegrationCardProps> 
             <h3 className="text-lg font-bold text-light-text dark:text-dark-text">Enable Banking</h3>
           </div>
           <p className="text-sm text-light-text-secondary dark:text-dark-text-secondary">
-            Configure your Enable Banking credentials, simulate an authorization, and link imported accounts to your existing books with a sync start date.
+            Configure your Enable Banking credentials, start a real authorization, and link imported accounts to your existing books with a sync start date.
           </p>
         </div>
         <div className="hidden sm:block text-right text-xs text-light-text-secondary dark:text-dark-text-secondary">
@@ -109,19 +140,7 @@ const EnableBankingIntegrationCard: React.FC<EnableBankingIntegrationCardProps> 
 
       <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
         <div className="space-y-4">
-          <h4 className="text-sm font-semibold text-light-text dark:text-dark-text">Create sandbox connection</h4>
-          <label className="text-xs text-light-text-secondary dark:text-dark-text-secondary block">Bank</label>
-          <select
-            name="selectedBank"
-            value={formState.selectedBank}
-            onChange={handleFormChange}
-            className={`${INPUT_BASE_STYLE} w-full`}
-          >
-            {BANK_OPTIONS.map(option => (
-              <option key={option.id} value={option.name}>{option.name} ({option.country})</option>
-            ))}
-          </select>
-
+          <h4 className="text-sm font-semibold text-light-text dark:text-dark-text">Create connection</h4>
           <label className="text-xs text-light-text-secondary dark:text-dark-text-secondary block">Country code</label>
           <input
             type="text"
@@ -131,6 +150,42 @@ const EnableBankingIntegrationCard: React.FC<EnableBankingIntegrationCardProps> 
             placeholder="FI"
             className={INPUT_BASE_STYLE}
           />
+
+          <div className="flex items-end gap-3">
+            <div className="flex-1">
+              <label className="text-xs text-light-text-secondary dark:text-dark-text-secondary block">Bank (loaded per country)</label>
+              <select
+                name="selectedBank"
+                value={formState.selectedBank}
+                onChange={handleFormChange}
+                className={`${INPUT_BASE_STYLE} w-full`}
+                disabled={banksLoading || bankOptions.length === 0}
+              >
+                {bankOptions.length === 0 && <option value="">Select a country and load banks</option>}
+                {bankOptions.map(option => (
+                  <option key={option.id} value={option.name}>{option.name}{option.country ? ` (${option.country})` : ''}</option>
+                ))}
+              </select>
+            </div>
+            <button
+              type="button"
+              onClick={loadBanks}
+              className="inline-flex items-center gap-1 px-3 py-2 rounded-lg bg-light-surface-secondary dark:bg-dark-surface-secondary text-sm font-semibold text-light-text dark:text-dark-text h-[42px]"
+            >
+              {banksLoading ? (
+                <>
+                  <span className="material-symbols-outlined text-sm animate-spin">progress_activity</span>
+                  Loading
+                </>
+              ) : (
+                <>
+                  <span className="material-symbols-outlined text-sm">refresh</span>
+                  Load banks
+                </>
+              )}
+            </button>
+          </div>
+          {banksError && <p className="text-xs text-rose-600 dark:text-rose-300">{banksError}</p>}
 
           <label className="text-xs text-light-text-secondary dark:text-dark-text-secondary block">Application ID (kid)</label>
           <input
@@ -157,20 +212,20 @@ const EnableBankingIntegrationCard: React.FC<EnableBankingIntegrationCardProps> 
             className="w-full inline-flex items-center justify-center gap-2 px-4 py-3 rounded-lg bg-primary-600 text-white font-semibold hover:bg-primary-700 transition-colors"
           >
             <span className="material-symbols-outlined text-base">bolt</span>
-            Start authorization & create session
+            Start authorization
           </button>
           <p className="text-xs text-light-text-secondary dark:text-dark-text-secondary">
-            This sandbox flow mocks the Enable Banking redirect and session creation so you can test account linking before wiring a backend.
+            You will be redirected to your bank via Enable Banking. When you return, balances and transactions will sync for any linked accounts starting from your selected date.
           </p>
         </div>
 
         <div className="space-y-4">
           <h4 className="text-sm font-semibold text-light-text dark:text-dark-text">Connections</h4>
-          {connections.length === 0 && (
-            <div className="p-4 rounded-lg border border-dashed border-black/10 dark:border-white/10 text-sm text-light-text-secondary dark:text-dark-text-secondary">
-              No Enable Banking sessions yet. Create one to fetch demo accounts and practice linking.
-            </div>
-          )}
+            {connections.length === 0 && (
+              <div className="p-4 rounded-lg border border-dashed border-black/10 dark:border-white/10 text-sm text-light-text-secondary dark:text-dark-text-secondary">
+              No Enable Banking sessions yet. Create one to start syncing your real bank accounts and link them to existing ledgers.
+              </div>
+            )}
 
           {connections.map(connection => {
             const keyPrefix = (accountId: string) => `${connection.id}:${accountId}`;
