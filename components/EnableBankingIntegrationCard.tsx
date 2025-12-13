@@ -1,7 +1,8 @@
 import React, { useMemo, useState } from 'react';
 import Card from './Card';
 import { INPUT_BASE_STYLE } from '../constants';
-import { Account, EnableBankingConnection } from '../types';
+import { Account, AccountType, EnableBankingConnection, EnableBankingLinkPayload } from '../types';
+import { toLocalISOString } from '../utils';
 
 interface EnableBankingIntegrationCardProps {
   connections: EnableBankingConnection[];
@@ -16,7 +17,11 @@ interface EnableBankingIntegrationCardProps {
     { id: string; name: string; country?: string }[]
   >;
   onDeleteConnection: (connectionId: string) => void;
-  onLinkAccount: (connectionId: string, providerAccountId: string, linkedAccountId: string, syncStartDate: string) => void;
+  onLinkAccount: (
+    connectionId: string,
+    providerAccountId: string,
+    payload: EnableBankingLinkPayload
+  ) => void;
   onTriggerSync: (connectionId: string) => void | Promise<void>;
 }
 
@@ -36,16 +41,49 @@ const EnableBankingIntegrationCard: React.FC<EnableBankingIntegrationCardProps> 
     selectedBank: '',
   });
 
-  const [linkingState, setLinkingState] = useState<Record<string, { accountId?: string; syncStartDate?: string }>>({});
+  const [linkingState, setLinkingState] = useState<
+    Record<
+      string,
+      {
+        mode?: 'existing' | 'create';
+        accountId?: string;
+        syncStartDate?: string;
+        newAccountName?: string;
+        newAccountType?: AccountType;
+      }
+    >
+  >({});
   const [bankOptions, setBankOptions] = useState<{ id: string; name: string; country?: string }[]>([]);
   const [banksLoading, setBanksLoading] = useState(false);
   const [banksError, setBanksError] = useState<string | null>(null);
+
+  const todayStr = useMemo(() => toLocalISOString(new Date()), []);
+  const ninetyDaysAgoStr = useMemo(
+    () => toLocalISOString(new Date(Date.now() - 90 * 24 * 60 * 60 * 1000)),
+    []
+  );
+
+  const accountTypeOptions: AccountType[] = useMemo(
+    () => ['Checking', 'Savings', 'Credit Card', 'Investment', 'Loan', 'Property', 'Vehicle', 'Other Assets', 'Other Liabilities', 'Lending'],
+    []
+  );
 
   const linkedAccounts = useMemo(() => new Set(connections.flatMap(conn => conn.accounts.map(acc => acc.linkedAccountId).filter(Boolean) as string[])), [connections]);
 
   const handleFormChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement>) => {
     const { name, value } = e.target;
     setFormState(prev => ({ ...prev, [name]: value }));
+  };
+
+  const clampSyncDate = (value?: string) => {
+    if (!value) return value;
+    const parsed = new Date(value);
+    const min = new Date(ninetyDaysAgoStr);
+    const max = new Date(todayStr);
+
+    if (parsed < min) return ninetyDaysAgoStr;
+    if (parsed > max) return todayStr;
+    return value;
   };
 
   const loadBanks = async () => {
@@ -95,7 +133,16 @@ const EnableBankingIntegrationCard: React.FC<EnableBankingIntegrationCardProps> 
     setFormState(prev => ({ ...prev, applicationId: '', clientCertificate: '' }));
   };
 
-  const handleLinkChange = (key: string, updates: { accountId?: string; syncStartDate?: string }) => {
+  const handleLinkChange = (
+    key: string,
+    updates: {
+      mode?: 'existing' | 'create';
+      accountId?: string;
+      syncStartDate?: string;
+      newAccountName?: string;
+      newAccountType?: AccountType;
+    }
+  ) => {
     setLinkingState(prev => ({
       ...prev,
       [key]: {
@@ -280,7 +327,15 @@ const EnableBankingIntegrationCard: React.FC<EnableBankingIntegrationCardProps> 
                     <tbody>
                       {connection.accounts.map(account => {
                         const rowKey = keyPrefix(account.id);
-                        const rowState = linkingState[rowKey] || { accountId: account.linkedAccountId, syncStartDate: account.syncStartDate };
+                        const savedState = linkingState[rowKey] || {};
+                        const defaultSyncStart = clampSyncDate(savedState.syncStartDate || account.syncStartDate || ninetyDaysAgoStr);
+                        const rowState = {
+                          mode: savedState.mode || 'existing',
+                          accountId: savedState.accountId ?? account.linkedAccountId,
+                          syncStartDate: defaultSyncStart,
+                          newAccountName: savedState.newAccountName ?? account.name,
+                          newAccountType: savedState.newAccountType ?? ('Checking' as AccountType),
+                        };
                         const linkedAccount = accounts.find(a => a.id === account.linkedAccountId);
 
                         return (
@@ -293,41 +348,132 @@ const EnableBankingIntegrationCard: React.FC<EnableBankingIntegrationCardProps> 
                               {account.currency} {account.balance.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
                             </td>
                             <td className="px-3 py-2">
-                              <select
-                                className={`${INPUT_BASE_STYLE} text-sm`}
-                                value={rowState.accountId || ''}
-                                onChange={(e) => handleLinkChange(rowKey, { accountId: e.target.value })}
-                              >
-                                <option value="">Select account to link</option>
-                                {accounts.map(acc => (
-                                  <option key={acc.id} value={acc.id} disabled={linkedAccounts.has(acc.id) && acc.id !== account.linkedAccountId}>
-                                    {acc.name} ({acc.currency})
-                                  </option>
-                                ))}
-                              </select>
-                              {linkedAccount && (
-                                <p className="text-[11px] text-light-text-secondary dark:text-dark-text-secondary mt-1">
-                                  Linked to {linkedAccount.name}
-                                </p>
-                              )}
+                              <div className="space-y-2">
+                                <div className="flex flex-wrap items-center gap-3 text-xs font-semibold text-light-text dark:text-dark-text">
+                                  <label className="inline-flex items-center gap-1">
+                                    <input
+                                      type="radio"
+                                      name={`${rowKey}-mode`}
+                                      checked={(rowState.mode || 'existing') === 'existing'}
+                                      onChange={() => handleLinkChange(rowKey, { mode: 'existing' })}
+                                    />
+                                    Link to existing
+                                  </label>
+                                  <label className="inline-flex items-center gap-1">
+                                    <input
+                                      type="radio"
+                                      name={`${rowKey}-mode`}
+                                      checked={rowState.mode === 'create'}
+                                      onChange={() =>
+                                        handleLinkChange(rowKey, {
+                                          mode: 'create',
+                                          newAccountName: rowState.newAccountName || account.name,
+                                          newAccountType: rowState.newAccountType || 'Checking',
+                                        })
+                                      }
+                                    />
+                                    Create new
+                                  </label>
+                                </div>
+
+                                {(rowState.mode || 'existing') === 'existing' ? (
+                                  <div>
+                                    <select
+                                      className={`${INPUT_BASE_STYLE} text-sm`}
+                                      value={rowState.accountId || ''}
+                                      onChange={(e) => handleLinkChange(rowKey, { accountId: e.target.value })}
+                                    >
+                                      <option value="">Select account to link</option>
+                                      {accounts.map(acc => (
+                                        <option key={acc.id} value={acc.id} disabled={linkedAccounts.has(acc.id) && acc.id !== account.linkedAccountId}>
+                                          {acc.name} ({acc.currency})
+                                        </option>
+                                      ))}
+                                    </select>
+                                    {linkedAccount && (
+                                      <p className="text-[11px] text-light-text-secondary dark:text-dark-text-secondary mt-1">
+                                        Linked to {linkedAccount.name}
+                                      </p>
+                                    )}
+                                  </div>
+                                ) : (
+                                  <div className="space-y-2">
+                                    <input
+                                      type="text"
+                                      className={`${INPUT_BASE_STYLE} text-sm`}
+                                      value={rowState.newAccountName || ''}
+                                      onChange={(e) => handleLinkChange(rowKey, { newAccountName: e.target.value })}
+                                      placeholder="New account name"
+                                    />
+                                    <select
+                                      className={`${INPUT_BASE_STYLE} text-sm`}
+                                      value={rowState.newAccountType || 'Checking'}
+                                      onChange={(e) => handleLinkChange(rowKey, { newAccountType: e.target.value as AccountType })}
+                                    >
+                                      {accountTypeOptions.map(type => (
+                                        <option key={type} value={type}>{type}</option>
+                                      ))}
+                                    </select>
+                                    <p className="text-[11px] text-light-text-secondary dark:text-dark-text-secondary">
+                                      New account will use {account.currency} and start with the synced balance.
+                                    </p>
+                                  </div>
+                                )}
+                              </div>
                             </td>
                             <td className="px-3 py-2">
                               <input
                                 type="date"
                                 className={`${INPUT_BASE_STYLE} text-sm`}
-                                value={rowState.syncStartDate || ''}
-                                onChange={(e) => handleLinkChange(rowKey, { syncStartDate: e.target.value })}
+                                min={ninetyDaysAgoStr}
+                                max={todayStr}
+                                value={clampSyncDate(rowState.syncStartDate || defaultSyncStart) || ''}
+                                onChange={(e) => handleLinkChange(rowKey, { syncStartDate: clampSyncDate(e.target.value) })}
                               />
-                              <p className="text-[11px] text-light-text-secondary dark:text-dark-text-secondary mt-1">Choose how far back to import.</p>
+                              <p className="text-[11px] text-light-text-secondary dark:text-dark-text-secondary mt-1">Choose how far back to import (up to 90 days).</p>
                             </td>
                             <td className="px-3 py-2">
                               <button
                                 onClick={() => {
-                                  if (!rowState.accountId || !rowState.syncStartDate) {
-                                    alert('Select an account and sync start date before linking.');
+                                  const syncStartDate = clampSyncDate(rowState.syncStartDate || defaultSyncStart);
+                                  if (!syncStartDate) {
+                                    alert('Select a sync start date before linking.');
                                     return;
                                   }
-                                  onLinkAccount(connection.id, account.id, rowState.accountId, rowState.syncStartDate);
+
+                                  if ((rowState.mode || 'existing') === 'existing') {
+                                    if (!rowState.accountId) {
+                                      alert('Select an account before linking.');
+                                      return;
+                                    }
+
+                                    handleLinkChange(rowKey, { syncStartDate });
+                                    onLinkAccount(connection.id, account.id, {
+                                      linkedAccountId: rowState.accountId,
+                                      syncStartDate,
+                                    });
+                                  } else {
+                                    const newAccountName = (rowState.newAccountName || account.name || '').trim();
+                                    if (!newAccountName) {
+                                      alert('Enter a name for the new account.');
+                                      return;
+                                    }
+
+                                    const newAccountType = rowState.newAccountType || 'Checking';
+
+                                    handleLinkChange(rowKey, { syncStartDate });
+                                    onLinkAccount(connection.id, account.id, {
+                                      newAccount: {
+                                        name: newAccountName,
+                                        type: newAccountType,
+                                        balance: account.balance,
+                                        currency: account.currency,
+                                        accountNumber: account.accountNumber,
+                                        financialInstitution: connection.selectedBank || 'Enable Banking',
+                                      },
+                                      syncStartDate,
+                                    });
+                                  }
                                 }}
                                 className="inline-flex items-center gap-1 px-3 py-2 rounded-lg bg-primary-600 text-white text-xs font-semibold hover:bg-primary-700"
                               >
