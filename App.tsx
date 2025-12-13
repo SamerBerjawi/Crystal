@@ -94,6 +94,7 @@ const OnboardingModal = lazy(() => import('./components/OnboardingModal'));
 import { FinancialDataProvider } from './contexts/FinancialDataContext';
 import { AccountsProvider, PreferencesProvider, TransactionsProvider, WarrantsProvider, InvoicesProvider } from './contexts/DomainProviders';
 import { InsightsViewProvider } from './contexts/InsightsViewContext';
+import { persistPendingConnection, removePendingConnection } from './utils/enableBankingStorage';
 
 const routePathMap: Record<Page, string> = {
   Dashboard: '/',
@@ -1734,6 +1735,7 @@ const App: React.FC = () => {
     };
 
     setEnableBankingConnections(prev => [...prev, baseConnection]);
+    persistPendingConnection(baseConnection);
 
     try {
       const response = await fetchWithAuth('/api/enable-banking/authorize', {
@@ -1914,6 +1916,7 @@ const App: React.FC = () => {
 
   const handleDeleteEnableBankingConnection = useCallback((connectionId: string) => {
     setEnableBankingConnections(prev => prev.filter(conn => conn.id !== connectionId));
+    removePendingConnection(connectionId);
   }, []);
 
   const handleLinkEnableBankingAccount = useCallback(

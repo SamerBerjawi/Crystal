@@ -1,5 +1,6 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 import { EnableBankingConnection, Page } from '../types';
+import { loadPendingConnection, removePendingConnection } from '../utils/enableBankingStorage';
 
 interface EnableBankingCallbackProps {
   connections: EnableBankingConnection[];
@@ -19,6 +20,8 @@ const EnableBankingCallback: React.FC<EnableBankingCallbackProps> = ({
   const [message, setMessage] = useState('Finalising your Enable Banking connection...');
   const [error, setError] = useState<string | null>(null);
 
+  const hasProcessed = useRef(false);
+
   useEffect(() => {
     const params = new URLSearchParams(window.location.search);
     const code = params.get('code');
@@ -29,11 +32,23 @@ const EnableBankingCallback: React.FC<EnableBankingCallbackProps> = ({
       return;
     }
 
-    const connection = connections.find(c => c.id === state);
+    if (hasProcessed.current) return;
+
+    let connection: EnableBankingConnection | undefined = connections.find(c => c.id === state);
+    if (!connection) {
+      const pendingConnection = loadPendingConnection(state);
+      if (pendingConnection) {
+        connection = pendingConnection;
+        setConnections(prev => prev.some(conn => conn.id === pendingConnection.id) ? prev : [...prev, pendingConnection]);
+      }
+    }
+
     if (!connection) {
       setError('Could not find a matching connection for this callback.');
       return;
     }
+
+    hasProcessed.current = true;
 
     const exchangeSession = async () => {
       try {
@@ -51,19 +66,39 @@ const EnableBankingCallback: React.FC<EnableBankingCallbackProps> = ({
           }),
         });
 
+        let session: any = null;
         if (!response.ok) {
           const text = await response.text();
-          throw new Error(text || 'Unable to create session');
+          try {
+            const parsed = JSON.parse(text);
+            throw new Error(parsed?.message || 'Unable to create session');
+          } catch {
+            const fallback = text?.replace(/<[^>]+>/g, '').trim() || 'Unable to create session';
+            throw new Error(fallback);
+          }
+        } else {
+          try {
+            session = await response.json();
+          } catch (parseError) {
+            throw new Error('Received an invalid response while creating session');
+          }
         }
 
-        const session = await response.json();
+        const sessionId = session?.session_id || session?.sessionId || session?.id;
+        const sessionExpiresAt = session?.access?.valid_until || session?.access?.validUntil;
+
+        if (!sessionId) {
+          throw new Error('Session identifier missing from response');
+        }
+
         setConnections(prev => prev.map(conn => conn.id === connection.id ? {
           ...conn,
-          sessionId: session.session_id,
-          sessionExpiresAt: session?.access?.valid_until,
+          sessionId,
+          sessionExpiresAt,
           authorizationId: undefined,
           status: 'ready',
         } : conn));
+        removePendingConnection(connection.id);
 
         setMessage('Session created. Syncing accounts...');
         await onSync(connection.id);
@@ -72,12 +107,17 @@ const EnableBankingCallback: React.FC<EnableBankingCallbackProps> = ({
         setTimeout(() => setCurrentPage('Integrations'), 800);
       } catch (err: any) {
         console.error(err);
+        setConnections(prev => prev.map(conn => conn.id === connection?.id ? {
+          ...conn,
+          status: 'requires_update',
+          lastError: err?.message || 'Failed to complete Enable Banking connection',
+        } : conn));
         setError(err?.message || 'Failed to complete Enable Banking connection');
       }
     };
 
     exchangeSession();
-  }, [connections, setConnections, onSync, setCurrentPage]);
+  }, [authToken, connections, onSync, setConnections, setCurrentPage]);
 
   return (
     <div className="max-w-lg mx-auto mt-20 p-6 rounded-xl bg-white dark:bg-dark-surface shadow-lg text-center animate-fade-in-up">
