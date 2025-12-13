@@ -13,9 +13,13 @@ import { exit } from 'process';
 const startServer = async () => {
     try {
         await initializeDatabase();
-        
+
         const app = express();
         const port = 3001;
+
+        // Honor reverse proxy headers (e.g., x-forwarded-proto) so generated URLs
+        // use the correct external protocol/host when running behind HTTPS.
+        app.set('trust proxy', true);
 
         app.use(cors());
         const bodyLimit = process.env.API_BODY_LIMIT || '50mb';
