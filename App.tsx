@@ -1838,23 +1838,38 @@ const App: React.FC = () => {
         flattened.forEach(account => {
           const candidate = account?.account || account?.resource || account;
           const providerAccountId =
-            candidate?.account_id?.id ||
-            candidate?.account_id ||
-            candidate?.resource_id ||
-            candidate?.uid ||
-            candidate?.id;
+            typeof candidate === 'string'
+              ? candidate
+              : candidate?.account_id?.id ||
+                candidate?.account_id ||
+                candidate?.resource_id ||
+                candidate?.uid ||
+                candidate?.id;
 
           if (!providerAccountId) return;
 
           if (!uniqueById.has(providerAccountId)) {
-            uniqueById.set(providerAccountId, candidate);
+            const normalized =
+              typeof candidate === 'string'
+                ? { id: providerAccountId }
+                : { ...candidate, id: candidate.id || providerAccountId };
+
+            uniqueById.set(providerAccountId, normalized);
           }
         });
 
         return Array.from(uniqueById.values());
       };
 
-      const accountsFromSession: any[] = normalizeAccounts();
+      let accountsFromSession: any[] = normalizeAccounts();
+      if (!accountsFromSession.length && safeAccounts.length > 0) {
+        accountsFromSession = safeAccounts.map(account => ({
+          id: account.id,
+          name: account.name,
+          currency: account.currency,
+        }));
+      }
+
       if (!accountsFromSession.length) {
         throw new Error('No accounts returned for this session. Please re-authorize and ensure accounts are permitted.');
       }
