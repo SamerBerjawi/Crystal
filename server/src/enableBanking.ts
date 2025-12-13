@@ -83,6 +83,10 @@ class EnableBankingClient {
     return this.request(`/accounts/${encodeURIComponent(accountId)}/balances`);
   }
 
+  getAccountDetails(accountId: string) {
+    return this.request(`/accounts/${encodeURIComponent(accountId)}/details`);
+  }
+
   getAccountTransactions({
     accountId,
     dateFrom,
@@ -115,6 +119,24 @@ router.post('/aspsps', authenticateToken, async (req: AuthRequest, res) => {
   } catch (error: any) {
     console.error('Failed to fetch ASPSPs', error);
     res.status(502).json({ message: error?.message || 'Unable to fetch banks' });
+  }
+});
+
+router.post('/accounts/:accountId/details', authenticateToken, async (req: AuthRequest, res) => {
+  try {
+    const { applicationId, clientCertificate } = req.body as { applicationId?: string; clientCertificate?: string };
+    const { accountId } = req.params;
+
+    if (!applicationId || !clientCertificate) {
+      return res.status(400).json({ message: 'applicationId and clientCertificate are required' });
+    }
+
+    const client = new EnableBankingClient(applicationId, clientCertificate);
+    const details = await client.getAccountDetails(accountId);
+    res.json(details);
+  } catch (error: any) {
+    console.error('Failed to fetch account details', error);
+    res.status(502).json({ message: error?.message || 'Unable to fetch account details' });
   }
 });
 
