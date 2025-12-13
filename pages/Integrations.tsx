@@ -1,5 +1,5 @@
 import React from 'react';
-import { Account, AppPreferences, EnableBankingConnection, Page } from '../types';
+import { Account, AppPreferences, EnableBankingConnection, EnableBankingLinkPayload, Page } from '../types';
 import Card from '../components/Card';
 import PageHeader from '../components/PageHeader';
 import { INPUT_BASE_STYLE } from '../constants';
@@ -14,7 +14,11 @@ interface IntegrationsProps {
   onCreateConnection: (payload: { applicationId: string; countryCode: string; clientCertificate: string; selectedBank: string }) => void;
   onFetchBanks: (payload: { applicationId: string; countryCode: string; clientCertificate: string }) => Promise<{ id: string; name: string; country?: string }[]>;
   onDeleteConnection: (connectionId: string) => void;
-  onLinkAccount: (connectionId: string, providerAccountId: string, linkedAccountId: string, syncStartDate: string) => void;
+  onLinkAccount: (
+    connectionId: string,
+    providerAccountId: string,
+    payload: EnableBankingLinkPayload
+  ) => void;
   onTriggerSync: (connectionId: string) => void | Promise<void>;
 }
 
