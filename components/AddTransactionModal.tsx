@@ -1,5 +1,5 @@
 
-import React, { useState, useMemo, useEffect, useRef } from 'react';
+import React, { useState, useMemo, useEffect, useRef, useId } from 'react';
 import Modal from './Modal';
 import { Account, Category, Transaction, Tag, Currency } from '../types';
 import { INPUT_BASE_STYLE, BTN_PRIMARY_STYLE, BTN_SECONDARY_STYLE, SELECT_WRAPPER_STYLE, SELECT_ARROW_STYLE, CHECKBOX_STYLE, ALL_ACCOUNT_TYPES } from '../constants';
@@ -106,6 +106,23 @@ const AddTransactionModal: React.FC<AddTransactionModalProps> = ({ onClose, onSa
   const [enableRoundUp, setEnableRoundUp] = useState(false);
   const [roundUpBehavior, setRoundUpBehavior] = useState<'skip' | 'unit'>('skip');
   const [roundUpMultiplier, setRoundUpMultiplier] = useState('1');
+  const merchantListId = useId();
+
+  const merchantSuggestions = useMemo(() => {
+    if (!transactions) return [] as string[];
+
+    const counts = new Map<string, number>();
+    transactions.forEach(tx => {
+      if (!tx.merchant) return;
+      const name = tx.merchant.trim();
+      if (!name) return;
+      counts.set(name, (counts.get(name) || 0) + 1);
+    });
+
+    return Array.from(counts.entries())
+      .sort((a, b) => b[1] - a[1])
+      .map(([name]) => name);
+  }, [transactions]);
 
   const activeAccount = useMemo(() => {
     const accId = type === 'income' ? toAccountId : fromAccountId;
@@ -570,7 +587,22 @@ const AddTransactionModal: React.FC<AddTransactionModalProps> = ({ onClose, onSa
                         <label className={labelStyle}>Merchant / Payee</label>
                         <div className="relative">
                             <span className="material-symbols-outlined absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 text-lg">store</span>
-                            <input id="tx-merchant" type="text" value={merchant} onChange={e => setMerchant(e.target.value)} className={`${INPUT_BASE_STYLE} pl-10`} placeholder="Optional" />
+                            <input
+                                id="tx-merchant"
+                                type="text"
+                                value={merchant}
+                                onChange={e => setMerchant(e.target.value)}
+                                className={`${INPUT_BASE_STYLE} pl-10`}
+                                placeholder="Optional"
+                                list={merchantSuggestions.length > 0 ? merchantListId : undefined}
+                            />
+                            {merchantSuggestions.length > 0 && (
+                                <datalist id={merchantListId}>
+                                    {merchantSuggestions.map(name => (
+                                        <option key={name} value={name} />
+                                    ))}
+                                </datalist>
+                            )}
                         </div>
                      </div>
                  </div>
