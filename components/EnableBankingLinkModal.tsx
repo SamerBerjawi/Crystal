@@ -1,7 +1,19 @@
-import React, { useMemo, useState } from 'react';
+import React, { useEffect, useMemo, useState } from 'react';
 import Modal from './Modal';
-import { Account, EnableBankingConnection } from '../types';
-import { BTN_PRIMARY_STYLE, BTN_SECONDARY_STYLE, INPUT_BASE_STYLE, SELECT_ARROW_STYLE, SELECT_WRAPPER_STYLE } from '../constants';
+import { Account, AppPreferences, EnableBankingAspsp, EnableBankingConnection, EnableBankingSessionAccount } from '../types';
+import {
+  BTN_PRIMARY_STYLE,
+  BTN_SECONDARY_STYLE,
+  INPUT_BASE_STYLE,
+  SELECT_ARROW_STYLE,
+  SELECT_WRAPPER_STYLE,
+} from '../constants';
+import {
+  deriveSyncFromDate,
+  exchangeEnableBankingCode,
+  fetchEnableBankingAspsps,
+  startEnableBankingAuthorization,
+} from '../utils/enableBanking';
 
 interface EnableBankingLinkModalProps {
   accounts: Account[];
@@ -10,6 +22,7 @@ interface EnableBankingLinkModalProps {
   onSave: (account: Account, connection: EnableBankingConnection) => void;
   defaultCountry?: string;
   configurationReady: boolean;
+  preferences?: AppPreferences;
 }
 
 const EnableBankingLinkModal: React.FC<EnableBankingLinkModalProps> = ({
@@ -19,16 +32,101 @@ const EnableBankingLinkModal: React.FC<EnableBankingLinkModalProps> = ({
   onSave,
   defaultCountry,
   configurationReady,
+  preferences,
 }) => {
   const [selectedAccountId, setSelectedAccountId] = useState<string>(targetAccount?.id || accounts[0]?.id || '');
   const [aspspName, setAspspName] = useState(targetAccount?.financialInstitution || '');
   const [countryCode, setCountryCode] = useState(defaultCountry || '');
+  const [banks, setBanks] = useState<EnableBankingAspsp[]>([]);
+  const [banksLoading, setBanksLoading] = useState(false);
+  const [banksError, setBanksError] = useState<string | null>(null);
+  const [flowError, setFlowError] = useState<string | null>(null);
   const [accountUid, setAccountUid] = useState(targetAccount?.enableBanking?.accountUid || '');
   const [sessionId, setSessionId] = useState(targetAccount?.enableBanking?.sessionId || '');
   const [authorizationId, setAuthorizationId] = useState(targetAccount?.enableBanking?.authorizationId || '');
+  const [authorizationUrl, setAuthorizationUrl] = useState<string | null>(null);
+  const [authorizationCode, setAuthorizationCode] = useState('');
+  const [availableRemoteAccounts, setAvailableRemoteAccounts] = useState<EnableBankingSessionAccount[]>([]);
+  const [selectedRemoteAccountUid, setSelectedRemoteAccountUid] = useState('');
+  const [syncWindowDays, setSyncWindowDays] = useState(90);
   const [status, setStatus] = useState<EnableBankingConnection['status']>(targetAccount?.enableBanking?.status || 'pending');
 
   const selectedAccount = useMemo(() => accounts.find(acc => acc.id === selectedAccountId), [accounts, selectedAccountId]);
+
+  useEffect(() => {
+    if (!configurationReady || !preferences) return;
+    if (!countryCode && defaultCountry) {
+      setCountryCode(defaultCountry);
+    }
+
+    const loadBanks = async () => {
+      try {
+        setBanksLoading(true);
+        setBanksError(null);
+        const aspsps = await fetchEnableBankingAspsps(preferences, countryCode || defaultCountry);
+        setBanks(aspsps);
+        if (aspsps.length > 0 && !aspspName) {
+          setAspspName(aspsps[0].name);
+        }
+      } catch (err: any) {
+        setBanksError(err?.message || 'Unable to load banks for your country.');
+      } finally {
+        setBanksLoading(false);
+      }
+    };
+
+    loadBanks();
+  }, [configurationReady, preferences, countryCode, defaultCountry, aspspName]);
+
+  useEffect(() => {
+    if (availableRemoteAccounts.length > 0) {
+      const chosenUid = selectedRemoteAccountUid || availableRemoteAccounts[0].uid;
+      setSelectedRemoteAccountUid(chosenUid);
+      setAccountUid(chosenUid);
+    }
+  }, [availableRemoteAccounts, selectedRemoteAccountUid]);
+
+  useEffect(() => {
+    if (!configurationReady) {
+      setStatus('pending');
+      return;
+    }
+    if (sessionId) {
+      setStatus('connected');
+    }
+  }, [configurationReady, sessionId]);
+
+  const handleStartAuthorization = async () => {
+    if (!preferences || !aspspName || !countryCode) return;
+
+    try {
+      setFlowError(null);
+      setAuthorizationUrl(null);
+      const authResponse = await startEnableBankingAuthorization(preferences, aspspName, countryCode);
+      setAuthorizationUrl(authResponse.url);
+      if (authResponse.authorizationId) {
+        setAuthorizationId(authResponse.authorizationId);
+      }
+      setStatus('pending');
+    } catch (err: any) {
+      setFlowError(err?.message || 'Unable to start authorization.');
+      setStatus('error');
+    }
+  };
+
+  const handleExchangeCode = async () => {
+    if (!preferences || !authorizationCode) return;
+    try {
+      setFlowError(null);
+      const session = await exchangeEnableBankingCode(preferences, authorizationCode.trim());
+      setSessionId(session.sessionId);
+      setAvailableRemoteAccounts(session.accounts);
+      setStatus('connected');
+    } catch (err: any) {
+      setFlowError(err?.message || 'Unable to finalize session with this code.');
+      setStatus('error');
+    }
+  };
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
@@ -42,6 +140,7 @@ const EnableBankingLinkModal: React.FC<EnableBankingLinkModalProps> = ({
       authorizationId: authorizationId || undefined,
       status: configurationReady ? status : 'pending',
       lastSyncedAt: targetAccount?.enableBanking?.lastSyncedAt,
+      syncFromDate: deriveSyncFromDate(syncWindowDays),
     };
 
     onSave(selectedAccount, payload);
@@ -74,14 +173,34 @@ const EnableBankingLinkModal: React.FC<EnableBankingLinkModalProps> = ({
 
         <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
           <div className="space-y-1">
-            <label className="text-xs font-bold text-light-text-secondary dark:text-dark-text-secondary uppercase tracking-wider">Bank name</label>
-            <input
-              value={aspspName}
-              onChange={e => setAspspName(e.target.value)}
-              placeholder="Nordea, Revolut, ..."
-              className={INPUT_BASE_STYLE}
-              required
-            />
+            <label className="text-xs font-bold text-light-text-secondary dark:text-dark-text-secondary uppercase tracking-wider">Bank</label>
+            {banksLoading ? (
+              <div className="text-sm text-light-text-secondary dark:text-dark-text-secondary py-2">Loading banks…</div>
+            ) : banks.length > 0 ? (
+              <div className={SELECT_WRAPPER_STYLE}>
+                <select
+                  value={aspspName}
+                  onChange={e => setAspspName(e.target.value)}
+                  className={INPUT_BASE_STYLE}
+                >
+                  {banks.map(bank => (
+                    <option key={`${bank.country}-${bank.name}`} value={bank.name}>
+                      {bank.name} ({bank.country})
+                    </option>
+                  ))}
+                </select>
+                <div className={SELECT_ARROW_STYLE}><span className="material-symbols-outlined">expand_more</span></div>
+              </div>
+            ) : (
+              <input
+                value={aspspName}
+                onChange={e => setAspspName(e.target.value)}
+                placeholder="Nordea, Revolut, ..."
+                className={INPUT_BASE_STYLE}
+                required
+              />
+            )}
+            {banksError && <p className="text-xs text-red-600 dark:text-red-400">{banksError}</p>}
           </div>
           <div className="space-y-1">
             <label className="text-xs font-bold text-light-text-secondary dark:text-dark-text-secondary uppercase tracking-wider">Country code</label>
@@ -93,7 +212,94 @@ const EnableBankingLinkModal: React.FC<EnableBankingLinkModalProps> = ({
               maxLength={2}
               required
             />
+            <p className="text-[11px] text-light-text-secondary dark:text-dark-text-secondary">Used to pre-filter banks and authorise with Enable Banking.</p>
           </div>
+        </div>
+
+        <div className="flex items-center gap-3 text-sm text-light-text-secondary dark:text-dark-text-secondary">
+          <span className="text-xs font-semibold uppercase tracking-widest">Connection</span>
+          <span
+            className={`px-2 py-1 rounded-full text-xs font-semibold ${
+              status === 'connected'
+                ? 'bg-emerald-100 text-emerald-800 dark:bg-emerald-900/40 dark:text-emerald-200'
+                : status === 'pending'
+                  ? 'bg-amber-100 text-amber-800 dark:bg-amber-900/40 dark:text-amber-200'
+                  : 'bg-red-100 text-red-800 dark:bg-red-900/40 dark:text-red-200'
+            }`}
+          >
+            {status === 'connected' ? 'Connected' : status === 'pending' ? 'Pending auth' : 'Needs attention'}
+          </span>
+          {sessionId && <span className="text-xs">Session: {sessionId}</span>}
+        </div>
+
+        <div className="rounded-lg border border-black/10 dark:border-white/10 p-4 space-y-3 bg-light-card/40 dark:bg-dark-card/40">
+          <div className="flex items-center justify-between gap-2">
+            <div>
+              <p className="font-semibold text-light-text dark:text-dark-text">1. Fetch authorization URL</p>
+              <p className="text-sm text-light-text-secondary dark:text-dark-text-secondary">We call <code className="font-mono text-xs">/auth</code> for you.</p>
+            </div>
+            <button
+              type="button"
+              onClick={handleStartAuthorization}
+              className={`${BTN_SECONDARY_STYLE} px-3`}
+              disabled={!configurationReady}
+            >
+              Get link
+            </button>
+          </div>
+          {authorizationUrl && (
+            <div className="p-3 rounded-lg bg-light-surface/60 dark:bg-white/5 text-sm">
+              <p className="font-semibold text-light-text dark:text-dark-text">Redirect your user to:</p>
+              <a href={authorizationUrl} className="text-primary-600 dark:text-primary-300 break-all" target="_blank" rel="noreferrer">
+                {authorizationUrl}
+              </a>
+              {authorizationId && (
+                <p className="text-xs text-light-text-secondary dark:text-dark-text-secondary mt-1">Authorization ID: {authorizationId}</p>
+              )}
+            </div>
+          )}
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-3 items-end">
+            <div className="md:col-span-2 space-y-1">
+              <label className="text-xs font-bold text-light-text-secondary dark:text-dark-text-secondary uppercase tracking-wider">Authorization code</label>
+              <input
+                value={authorizationCode}
+                onChange={e => setAuthorizationCode(e.target.value)}
+                placeholder="Paste ?code= value after redirect"
+                className={INPUT_BASE_STYLE}
+                disabled={!configurationReady}
+              />
+              <p className="text-[11px] text-light-text-secondary dark:text-dark-text-secondary">We will exchange it with <code className="font-mono text-xs">/sessions</code> and pull your accounts automatically.</p>
+            </div>
+            <button
+              type="button"
+              onClick={handleExchangeCode}
+              className={`${BTN_PRIMARY_STYLE} px-4 h-11`}
+              disabled={!authorizationCode || !configurationReady}
+            >
+              Finalize session
+            </button>
+          </div>
+          {availableRemoteAccounts.length > 0 && (
+            <div className="space-y-2">
+              <label className="text-xs font-bold text-light-text-secondary dark:text-dark-text-secondary uppercase tracking-wider">Select bank account to link</label>
+              <div className={SELECT_WRAPPER_STYLE}>
+                <select
+                  value={selectedRemoteAccountUid}
+                  onChange={e => { setSelectedRemoteAccountUid(e.target.value); setAccountUid(e.target.value); }}
+                  className={INPUT_BASE_STYLE}
+                >
+                  {availableRemoteAccounts.map(acc => (
+                    <option key={acc.uid} value={acc.uid}>
+                      {acc.name || acc.account_id?.iban || 'Account'}
+                      {acc.currency ? ` • ${acc.currency}` : ''}
+                    </option>
+                  ))}
+                </select>
+                <div className={SELECT_ARROW_STYLE}><span className="material-symbols-outlined">expand_more</span></div>
+              </div>
+              <p className="text-[11px] text-light-text-secondary dark:text-dark-text-secondary">We pre-fill UID and session ID from the API response.</p>
+            </div>
+          )}
         </div>
 
         <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
@@ -104,6 +310,7 @@ const EnableBankingLinkModal: React.FC<EnableBankingLinkModalProps> = ({
               onChange={e => setAccountUid(e.target.value)}
               placeholder="07cc67f4-45d6-494b-adac-..."
               className={INPUT_BASE_STYLE}
+              readOnly={availableRemoteAccounts.length > 0}
             />
           </div>
           <div className="space-y-1">
@@ -113,6 +320,7 @@ const EnableBankingLinkModal: React.FC<EnableBankingLinkModalProps> = ({
               onChange={e => setSessionId(e.target.value)}
               placeholder="Returned from /sessions"
               className={INPUT_BASE_STYLE}
+              readOnly={availableRemoteAccounts.length > 0}
             />
           </div>
         </div>
@@ -125,29 +333,30 @@ const EnableBankingLinkModal: React.FC<EnableBankingLinkModalProps> = ({
               onChange={e => setAuthorizationId(e.target.value)}
               placeholder="Returned from /auth"
               className={INPUT_BASE_STYLE}
+              readOnly={Boolean(authorizationUrl)}
             />
           </div>
           <div className="space-y-1">
-            <label className="text-xs font-bold text-light-text-secondary dark:text-dark-text-secondary uppercase tracking-wider">Connection status</label>
+            <label className="text-xs font-bold text-light-text-secondary dark:text-dark-text-secondary uppercase tracking-wider">Sync past activity</label>
             <div className={SELECT_WRAPPER_STYLE}>
               <select
-                value={status}
-                onChange={e => setStatus(e.target.value as EnableBankingConnection['status'])}
+                value={syncWindowDays}
+                onChange={e => setSyncWindowDays(Number(e.target.value))}
                 className={INPUT_BASE_STYLE}
               >
-                <option value="pending">Pending</option>
-                <option value="connected">Connected</option>
-                <option value="error">Error</option>
+                <option value={30}>Last 30 days</option>
+                <option value={60}>Last 60 days</option>
+                <option value={90}>Last 90 days (max)</option>
               </select>
               <div className={SELECT_ARROW_STYLE}><span className="material-symbols-outlined">expand_more</span></div>
             </div>
+            <p className="text-[11px] text-light-text-secondary dark:text-dark-text-secondary">We cap imports to 3 months per your preference.</p>
           </div>
         </div>
 
-        <p className="text-sm text-light-text-secondary dark:text-dark-text-secondary leading-relaxed">
-          After initiating <code className="font-mono text-xs">POST /auth</code> with your bank choice, paste the returned authorization
-          and session values here. We will mark the account as connected and enable one-click sync for balances and transactions.
-        </p>
+        {flowError && (
+          <div className="p-3 rounded-lg bg-red-100 text-red-800 dark:bg-red-900/30 dark:text-red-200 text-sm">{flowError}</div>
+        )}
 
         <div className="flex justify-end gap-3 pt-2">
           <button type="button" onClick={onClose} className={`${BTN_SECONDARY_STYLE} px-4`}>Cancel</button>

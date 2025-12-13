@@ -13,7 +13,7 @@ import useLocalStorage from '../hooks/useLocalStorage';
 import { useScheduleContext } from '../contexts/FinancialDataContext';
 import PageHeader from '../components/PageHeader';
 import EnableBankingLinkModal from '../components/EnableBankingLinkModal';
-import { buildEnableBankingSync, isEnableBankingConfigured } from '../utils/enableBanking';
+import { buildEnableBankingSync, deriveSyncFromDate, isEnableBankingConfigured } from '../utils/enableBanking';
 import { usePreferencesSelector } from '../contexts/DomainProviders';
 
 interface AccountsProps {
@@ -214,6 +214,7 @@ const Accounts: React.FC<AccountsProps> = ({ accounts, transactions, saveAccount
   const { loanPaymentOverrides } = useScheduleContext();
   const enableBankingConfigured = usePreferencesSelector(isEnableBankingConfigured);
   const enableBankingCountry = usePreferencesSelector(p => p.enableBankingCountryCode || '');
+  const preferences = usePreferencesSelector(p => p);
   const [isLinkModalOpen, setLinkModalOpen] = useState(false);
   const [linkTargetAccount, setLinkTargetAccount] = useState<Account | null>(null);
 
@@ -331,6 +332,7 @@ const Accounts: React.FC<AccountsProps> = ({ accounts, transactions, saveAccount
       sessionId: account.enableBanking?.sessionId,
       authorizationId: account.enableBanking?.authorizationId,
       status: 'connected',
+      syncFromDate: account.enableBanking?.syncFromDate || deriveSyncFromDate(90),
       lastSyncedAt: new Date().toISOString(),
     };
 
@@ -398,6 +400,7 @@ const Accounts: React.FC<AccountsProps> = ({ accounts, transactions, saveAccount
           onSave={handleSaveEnableBanking}
           defaultCountry={enableBankingCountry || undefined}
           configurationReady={enableBankingConfigured}
+          preferences={preferences}
         />
       )}
       {deletingAccount && (

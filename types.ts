@@ -22,6 +22,22 @@ export interface EnableBankingConnection {
   status: 'pending' | 'connected' | 'error';
   lastSyncedAt?: string;
   lastSyncError?: string;
+  syncFromDate?: string;
+}
+
+export interface EnableBankingAspsp {
+  name: string;
+  country: string;
+  logo?: string;
+  psu_types?: string[];
+  required_psu_headers?: string[];
+}
+
+export interface EnableBankingSessionAccount {
+  uid: string;
+  name?: string;
+  account_id?: { iban?: string };
+  currency?: Currency;
 }
 
 export interface Category {
