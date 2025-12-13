@@ -10,6 +10,7 @@ import {
 } from '../constants';
 import {
   deriveSyncFromDate,
+  ENABLE_BANKING_REDIRECT_PATH,
   exchangeEnableBankingCode,
   fetchEnableBankingAspsps,
   startEnableBankingAuthorization,
@@ -126,7 +127,9 @@ const EnableBankingLinkModal: React.FC<EnableBankingLinkModalProps> = ({
     try {
       setFlowError(null);
       setAuthorizationUrl(null);
-      const authResponse = await startEnableBankingAuthorization(preferences, aspspName, countryCode, typeof window !== 'undefined' ? window.location.href : undefined);
+      const defaultRedirectUrl =
+        typeof window !== 'undefined' ? `${window.location.origin}${ENABLE_BANKING_REDIRECT_PATH}` : undefined;
+      const authResponse = await startEnableBankingAuthorization(preferences, aspspName, countryCode, defaultRedirectUrl);
       setAuthorizationUrl(authResponse.url);
       setAuthorizationState(authResponse.state);
       if (onAuthorizationStarted) {

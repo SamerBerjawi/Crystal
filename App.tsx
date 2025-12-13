@@ -89,6 +89,7 @@ const OnboardingModal = lazy(() => import('./components/OnboardingModal'));
 import { FinancialDataProvider } from './contexts/FinancialDataContext';
 import { AccountsProvider, PreferencesProvider, TransactionsProvider, WarrantsProvider, InvoicesProvider } from './contexts/DomainProviders';
 import { InsightsViewProvider } from './contexts/InsightsViewContext';
+import { ENABLE_BANKING_REDIRECT_PATH } from './utils/enableBanking';
 
 const routePathMap: Record<Page, string> = {
   Dashboard: '/',
@@ -122,6 +123,10 @@ const parseRoute = (pathname: string): RouteInfo => {
   const normalizedPath = rawPath !== '/' && rawPath.endsWith('/') ? rawPath.slice(0, -1) : rawPath;
   const accountMatch = normalizedPath.match(/^\/accounts\/([^/]+)$/);
   const holdingMatch = normalizedPath.match(/^\/investments\/([^/]+)$/);
+
+  if (normalizedPath === ENABLE_BANKING_REDIRECT_PATH) {
+    return { page: 'Accounts', matched: true, accountId: null };
+  }
 
   if (accountMatch?.[1]) {
     return { page: 'AccountDetail', matched: true, accountId: decodeURIComponent(accountMatch[1]) };

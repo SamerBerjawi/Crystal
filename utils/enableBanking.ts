@@ -7,8 +7,30 @@ import {
   Transaction,
 } from '../types';
 import { toLocalISOString } from '../utils';
+import { KJUR } from 'jsrsasign';
+
+export const ENABLE_BANKING_REDIRECT_PATH = '/enable_banking_items/callback';
+
+const getDefaultRedirectUrl = () => {
+  if (typeof window !== 'undefined') {
+    return `${window.location.origin}${ENABLE_BANKING_REDIRECT_PATH}`;
+  }
+
+  return `https://crystal.samxr.com${ENABLE_BANKING_REDIRECT_PATH}`;
+};
 
 const textEncoder = new TextEncoder();
+
+const resolveCrypto = (): Crypto | undefined => {
+  if (typeof globalThis !== 'undefined') {
+    const cryptoImpl = (globalThis as any).crypto || (globalThis as any).msCrypto;
+    if (cryptoImpl?.subtle) {
+      return cryptoImpl as Crypto;
+    }
+  }
+
+  return undefined;
+};
 
 const base64UrlEncode = (value: string | ArrayBuffer): string => {
   const bytes = typeof value === 'string' ? textEncoder.encode(value) : new Uint8Array(value);
@@ -53,19 +75,30 @@ export const createEnableBankingJwt = async (preferences: AppPreferences) => {
     exp: now + 3600,
   };
 
-  const unsigned = `${base64UrlEncode(JSON.stringify(header))}.${base64UrlEncode(JSON.stringify(payload))}`;
+  const cryptoImpl = resolveCrypto();
+  if (cryptoImpl?.subtle) {
+    const unsigned = `${base64UrlEncode(JSON.stringify(header))}.${base64UrlEncode(JSON.stringify(payload))}`;
 
-  const keyBuffer = pemToArrayBuffer(preferences.enableBankingClientCertificate || '');
-  const cryptoKey = await crypto.subtle.importKey(
-    'pkcs8',
-    keyBuffer,
-    { name: 'RSASSA-PKCS1-v1_5', hash: 'SHA-256' },
-    false,
-    ['sign'],
+    const keyBuffer = pemToArrayBuffer(preferences.enableBankingClientCertificate || '');
+    const cryptoKey = await cryptoImpl.subtle.importKey(
+      'pkcs8',
+      keyBuffer,
+      { name: 'RSASSA-PKCS1-v1_5', hash: 'SHA-256' },
+      false,
+      ['sign'],
+    );
+
+    const signature = await cryptoImpl.subtle.sign('RSASSA-PKCS1-v1_5', cryptoKey, textEncoder.encode(unsigned));
+    const jwt = `${unsigned}.${base64UrlEncode(signature)}`;
+    return jwt;
+  }
+
+  const jwt = KJUR.jws.JWS.sign(
+    'RS256',
+    JSON.stringify(header),
+    JSON.stringify(payload),
+    preferences.enableBankingClientCertificate || '',
   );
-
-  const signature = await crypto.subtle.sign('RSASSA-PKCS1-v1_5', cryptoKey, textEncoder.encode(unsigned));
-  const jwt = `${unsigned}.${base64UrlEncode(signature)}`;
   return jwt;
 };
 
@@ -97,6 +130,7 @@ export const startEnableBankingAuthorization = async (
 ) => {
   const jwt = await createEnableBankingJwt(preferences);
   const state = uuidv4();
+  const redirectTarget = redirectUrl || getDefaultRedirectUrl();
   const body = {
     access: {
       valid_until: new Date(Date.now() + 90 * 24 * 60 * 60 * 1000).toISOString(),
@@ -106,7 +140,7 @@ export const startEnableBankingAuthorization = async (
       country: countryCode,
     },
     state,
-    redirect_url: redirectUrl || (typeof window !== 'undefined' ? window.location.origin : 'https://example.com'),
+    redirect_url: redirectTarget,
     psu_type: 'personal',
   };
 
