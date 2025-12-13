@@ -217,6 +217,8 @@ const Accounts: React.FC<AccountsProps> = ({ accounts, transactions, saveAccount
   const preferences = usePreferencesSelector(p => p);
   const [isLinkModalOpen, setLinkModalOpen] = useState(false);
   const [linkTargetAccount, setLinkTargetAccount] = useState<Account | null>(null);
+  const [redirectAuthorization, setRedirectAuthorization] = useState<{ code: string; state?: string | null } | null>(null);
+  const [expectedEnableBankingState, setExpectedEnableBankingState] = useState<string | null>(null);
 
   useEffect(() => {
     const handleClickOutside = (event: MouseEvent) => {
@@ -229,6 +231,36 @@ const Accounts: React.FC<AccountsProps> = ({ accounts, transactions, saveAccount
         document.removeEventListener('mousedown', handleClickOutside);
     };
   }, []);
+
+  useEffect(() => {
+    if (typeof window === 'undefined') return;
+    const storedState = localStorage.getItem('enable_banking_state');
+    if (storedState) {
+      setExpectedEnableBankingState(storedState);
+    }
+  }, []);
+
+  useEffect(() => {
+    if (typeof window === 'undefined') return;
+    const url = new URL(window.location.href);
+    const code = url.searchParams.get('enablebanking_code') || url.searchParams.get('code');
+    const state = url.searchParams.get('enablebanking_state') || url.searchParams.get('state');
+    if (code) {
+      setRedirectAuthorization({ code, state });
+      setLinkModalOpen(true);
+      const storedAccount = localStorage.getItem('enable_banking_account');
+      if (storedAccount) {
+        const match = accounts.find(acc => acc.id === storedAccount);
+        setLinkTargetAccount(match || null);
+      }
+      url.searchParams.delete('enablebanking_code');
+      url.searchParams.delete('enablebanking_state');
+      url.searchParams.delete('code');
+      url.searchParams.delete('state');
+      const newUrl = `${url.pathname}${url.searchParams.toString() ? `?${url.searchParams.toString()}` : ''}${url.hash}`;
+      window.history.replaceState({}, document.title, newUrl);
+    }
+  }, [accounts]);
   
   // Filter accounts: Exclude active Stock/ETF/Crypto types from the main Accounts list
   // They are now managed in the Investments page.
@@ -396,11 +428,38 @@ const Accounts: React.FC<AccountsProps> = ({ accounts, transactions, saveAccount
         <EnableBankingLinkModal
           accounts={accounts}
           targetAccount={linkTargetAccount}
-          onClose={() => { setLinkModalOpen(false); setLinkTargetAccount(null); }}
+          onClose={() => {
+            setLinkModalOpen(false);
+            setLinkTargetAccount(null);
+            setRedirectAuthorization(null);
+            setExpectedEnableBankingState(null);
+            if (typeof window !== 'undefined') {
+              localStorage.removeItem('enable_banking_state');
+              localStorage.removeItem('enable_banking_account');
+            }
+          }}
           onSave={handleSaveEnableBanking}
           defaultCountry={enableBankingCountry || undefined}
           configurationReady={enableBankingConfigured}
           preferences={preferences}
+          initialAuthorizationCode={redirectAuthorization?.code}
+          expectedAuthState={expectedEnableBankingState || redirectAuthorization?.state || null}
+          returnedAuthState={redirectAuthorization?.state || null}
+          onAuthorizationStarted={(state, accountId) => {
+            setExpectedEnableBankingState(state);
+            if (typeof window !== 'undefined') {
+              localStorage.setItem('enable_banking_state', state);
+              localStorage.setItem('enable_banking_account', accountId);
+            }
+          }}
+          onRedirectHandled={() => {
+            setRedirectAuthorization(null);
+            setExpectedEnableBankingState(null);
+            if (typeof window !== 'undefined') {
+              localStorage.removeItem('enable_banking_state');
+              localStorage.removeItem('enable_banking_account');
+            }
+          }}
         />
       )}
       {deletingAccount && (

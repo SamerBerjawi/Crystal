@@ -96,6 +96,7 @@ export const startEnableBankingAuthorization = async (
   redirectUrl?: string,
 ) => {
   const jwt = await createEnableBankingJwt(preferences);
+  const state = uuidv4();
   const body = {
     access: {
       valid_until: new Date(Date.now() + 90 * 24 * 60 * 60 * 1000).toISOString(),
@@ -104,7 +105,7 @@ export const startEnableBankingAuthorization = async (
       name: aspspName,
       country: countryCode,
     },
-    state: uuidv4(),
+    state,
     redirect_url: redirectUrl || (typeof window !== 'undefined' ? window.location.origin : 'https://example.com'),
     psu_type: 'personal',
   };
@@ -123,7 +124,7 @@ export const startEnableBankingAuthorization = async (
   }
 
   const data = await response.json();
-  return { url: data.url as string, authorizationId: data.authorization_id as string };
+  return { url: data.url as string, authorizationId: data.authorization_id as string, state };
 };
 
 export const exchangeEnableBankingCode = async (

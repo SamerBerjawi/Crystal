@@ -23,6 +23,11 @@ interface EnableBankingLinkModalProps {
   defaultCountry?: string;
   configurationReady: boolean;
   preferences?: AppPreferences;
+  initialAuthorizationCode?: string;
+  expectedAuthState?: string | null;
+  returnedAuthState?: string | null;
+  onAuthorizationStarted?: (state: string, accountId: string) => void;
+  onRedirectHandled?: () => void;
 }
 
 const EnableBankingLinkModal: React.FC<EnableBankingLinkModalProps> = ({
@@ -33,6 +38,11 @@ const EnableBankingLinkModal: React.FC<EnableBankingLinkModalProps> = ({
   defaultCountry,
   configurationReady,
   preferences,
+  initialAuthorizationCode,
+  expectedAuthState,
+  returnedAuthState,
+  onAuthorizationStarted,
+  onRedirectHandled,
 }) => {
   const [selectedAccountId, setSelectedAccountId] = useState<string>(targetAccount?.id || accounts[0]?.id || '');
   const [aspspName, setAspspName] = useState(targetAccount?.financialInstitution || '');
@@ -46,12 +56,26 @@ const EnableBankingLinkModal: React.FC<EnableBankingLinkModalProps> = ({
   const [authorizationId, setAuthorizationId] = useState(targetAccount?.enableBanking?.authorizationId || '');
   const [authorizationUrl, setAuthorizationUrl] = useState<string | null>(null);
   const [authorizationCode, setAuthorizationCode] = useState('');
+  const [authorizationState, setAuthorizationState] = useState<string | null>(null);
   const [availableRemoteAccounts, setAvailableRemoteAccounts] = useState<EnableBankingSessionAccount[]>([]);
   const [selectedRemoteAccountUid, setSelectedRemoteAccountUid] = useState('');
   const [syncWindowDays, setSyncWindowDays] = useState(90);
   const [status, setStatus] = useState<EnableBankingConnection['status']>(targetAccount?.enableBanking?.status || 'pending');
+  const [autoExchanged, setAutoExchanged] = useState(false);
 
   const selectedAccount = useMemo(() => accounts.find(acc => acc.id === selectedAccountId), [accounts, selectedAccountId]);
+
+  useEffect(() => {
+    if (targetAccount?.id) {
+      setSelectedAccountId(targetAccount.id);
+    }
+  }, [targetAccount]);
+
+  useEffect(() => {
+    if (expectedAuthState) {
+      setAuthorizationState(expectedAuthState);
+    }
+  }, [expectedAuthState]);
 
   useEffect(() => {
     if (!configurationReady || !preferences) return;
@@ -102,26 +126,45 @@ const EnableBankingLinkModal: React.FC<EnableBankingLinkModalProps> = ({
     try {
       setFlowError(null);
       setAuthorizationUrl(null);
-      const authResponse = await startEnableBankingAuthorization(preferences, aspspName, countryCode);
+      const authResponse = await startEnableBankingAuthorization(preferences, aspspName, countryCode, typeof window !== 'undefined' ? window.location.href : undefined);
       setAuthorizationUrl(authResponse.url);
+      setAuthorizationState(authResponse.state);
+      if (onAuthorizationStarted) {
+        onAuthorizationStarted(authResponse.state, selectedAccountId);
+      }
       if (authResponse.authorizationId) {
         setAuthorizationId(authResponse.authorizationId);
       }
       setStatus('pending');
+      if (typeof window !== 'undefined') {
+        window.open(authResponse.url, '_blank', 'noopener');
+      }
     } catch (err: any) {
       setFlowError(err?.message || 'Unable to start authorization.');
       setStatus('error');
     }
   };
 
-  const handleExchangeCode = async () => {
-    if (!preferences || !authorizationCode) return;
+  const handleExchangeCode = async (codeOverride?: string) => {
+    const codeToUse = codeOverride || authorizationCode;
+    if (!preferences || !codeToUse) return;
+    if (expectedAuthState && returnedAuthState && expectedAuthState !== returnedAuthState) {
+      setFlowError('Return state did not match the started authorization. Please try again.');
+      setStatus('error');
+      return;
+    }
+    if (expectedAuthState && authorizationState && expectedAuthState !== authorizationState) {
+      setFlowError('Return state did not match the started authorization. Please try again.');
+      setStatus('error');
+      return;
+    }
     try {
       setFlowError(null);
-      const session = await exchangeEnableBankingCode(preferences, authorizationCode.trim());
+      const session = await exchangeEnableBankingCode(preferences, codeToUse.trim());
       setSessionId(session.sessionId);
       setAvailableRemoteAccounts(session.accounts);
       setStatus('connected');
+      if (onRedirectHandled) onRedirectHandled();
     } catch (err: any) {
       setFlowError(err?.message || 'Unable to finalize session with this code.');
       setStatus('error');
@@ -145,6 +188,13 @@ const EnableBankingLinkModal: React.FC<EnableBankingLinkModalProps> = ({
 
     onSave(selectedAccount, payload);
   };
+
+  useEffect(() => {
+    if (!initialAuthorizationCode || autoExchanged || !configurationReady || !preferences) return;
+    setAuthorizationCode(initialAuthorizationCode);
+    setAutoExchanged(true);
+    handleExchangeCode(initialAuthorizationCode);
+  }, [initialAuthorizationCode, autoExchanged, configurationReady, preferences]);
 
   return (
     <Modal title="Link with Enable Banking" onClose={onClose} size="lg">
@@ -268,7 +318,7 @@ const EnableBankingLinkModal: React.FC<EnableBankingLinkModalProps> = ({
                 className={INPUT_BASE_STYLE}
                 disabled={!configurationReady}
               />
-              <p className="text-[11px] text-light-text-secondary dark:text-dark-text-secondary">We will exchange it with <code className="font-mono text-xs">/sessions</code> and pull your accounts automatically.</p>
+              <p className="text-[11px] text-light-text-secondary dark:text-dark-text-secondary">Paste the ?code from the redirect (we auto-fill it when you return) and we'll exchange it with <code className="font-mono text-xs">/sessions</code> to pull your accounts automatically.</p>
             </div>
             <button
               type="button"
