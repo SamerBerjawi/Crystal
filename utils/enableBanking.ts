@@ -8,6 +8,16 @@ import {
 } from '../types';
 import { toLocalISOString } from '../utils';
 
+export const ENABLE_BANKING_REDIRECT_PATH = '/enable_banking_items/callback';
+
+const getDefaultRedirectUrl = () => {
+  if (typeof window !== 'undefined') {
+    return `${window.location.origin}${ENABLE_BANKING_REDIRECT_PATH}`;
+  }
+
+  return `https://crystal.samxr.com${ENABLE_BANKING_REDIRECT_PATH}`;
+};
+
 const textEncoder = new TextEncoder();
 
 const base64UrlEncode = (value: string | ArrayBuffer): string => {
@@ -97,6 +107,7 @@ export const startEnableBankingAuthorization = async (
 ) => {
   const jwt = await createEnableBankingJwt(preferences);
   const state = uuidv4();
+  const redirectTarget = redirectUrl || getDefaultRedirectUrl();
   const body = {
     access: {
       valid_until: new Date(Date.now() + 90 * 24 * 60 * 60 * 1000).toISOString(),
@@ -106,7 +117,7 @@ export const startEnableBankingAuthorization = async (
       country: countryCode,
     },
     state,
-    redirect_url: redirectUrl || (typeof window !== 'undefined' ? window.location.origin : 'https://example.com'),
+    redirect_url: redirectTarget,
     psu_type: 'personal',
   };
 

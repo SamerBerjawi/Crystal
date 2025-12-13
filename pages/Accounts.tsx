@@ -13,7 +13,12 @@ import useLocalStorage from '../hooks/useLocalStorage';
 import { useScheduleContext } from '../contexts/FinancialDataContext';
 import PageHeader from '../components/PageHeader';
 import EnableBankingLinkModal from '../components/EnableBankingLinkModal';
-import { buildEnableBankingSync, deriveSyncFromDate, isEnableBankingConfigured } from '../utils/enableBanking';
+import {
+  buildEnableBankingSync,
+  deriveSyncFromDate,
+  ENABLE_BANKING_REDIRECT_PATH,
+  isEnableBankingConfigured,
+} from '../utils/enableBanking';
 import { usePreferencesSelector } from '../contexts/DomainProviders';
 
 interface AccountsProps {
@@ -243,6 +248,7 @@ const Accounts: React.FC<AccountsProps> = ({ accounts, transactions, saveAccount
   useEffect(() => {
     if (typeof window === 'undefined') return;
     const url = new URL(window.location.href);
+    const isEnableBankingCallback = url.pathname === ENABLE_BANKING_REDIRECT_PATH;
     const code = url.searchParams.get('enablebanking_code') || url.searchParams.get('code');
     const state = url.searchParams.get('enablebanking_state') || url.searchParams.get('state');
     if (code) {
@@ -257,7 +263,8 @@ const Accounts: React.FC<AccountsProps> = ({ accounts, transactions, saveAccount
       url.searchParams.delete('enablebanking_state');
       url.searchParams.delete('code');
       url.searchParams.delete('state');
-      const newUrl = `${url.pathname}${url.searchParams.toString() ? `?${url.searchParams.toString()}` : ''}${url.hash}`;
+      const newPathname = isEnableBankingCallback ? '/accounts' : url.pathname;
+      const newUrl = `${newPathname}${url.searchParams.toString() ? `?${url.searchParams.toString()}` : ''}${url.hash}`;
       window.history.replaceState({}, document.title, newUrl);
     }
   }, [accounts]);
