@@ -5,6 +5,7 @@ import cors from 'cors';
 import authRouter from './auth';
 import dataRouter from './data';
 import usersRouter from './users';
+import enableBankingRouter from './enableBanking';
 import { initializeDatabase } from './database';
 // FIX: Import `exit` from the `process` module to correctly type and call the process exit function.
 import { exit } from 'process';
@@ -29,6 +30,7 @@ const startServer = async () => {
 
         app.use('/api/auth', authRouter);
         app.use('/api/data', dataRouter);
+        app.use('/api/enable-banking', enableBankingRouter);
         app.use('/api/users', usersRouter);
 
         app.listen(port, () => {

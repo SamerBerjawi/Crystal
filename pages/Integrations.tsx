@@ -1,13 +1,21 @@
 import React from 'react';
-import { AppPreferences, Page } from '../types';
+import { Account, AppPreferences, EnableBankingConnection, Page } from '../types';
 import Card from '../components/Card';
 import PageHeader from '../components/PageHeader';
 import { INPUT_BASE_STYLE } from '../constants';
+import EnableBankingIntegrationCard from '../components/EnableBankingIntegrationCard';
 
 interface IntegrationsProps {
   preferences: AppPreferences;
   setPreferences: (prefs: AppPreferences) => void;
   setCurrentPage: (page: Page) => void;
+  enableBankingConnections: EnableBankingConnection[];
+  accounts: Account[];
+  onCreateConnection: (payload: { applicationId: string; countryCode: string; clientCertificate: string; selectedBank: string }) => void;
+  onFetchBanks: (payload: { applicationId: string; countryCode: string; clientCertificate: string }) => Promise<{ id: string; name: string; country?: string }[]>;
+  onDeleteConnection: (connectionId: string) => void;
+  onLinkAccount: (connectionId: string, providerAccountId: string, linkedAccountId: string, syncStartDate: string) => void;
+  onTriggerSync: (connectionId: string) => void | Promise<void>;
 }
 
 interface SectionHeaderProps { title: string; icon: string; description: string }
@@ -40,7 +48,18 @@ const SettingRow = React.memo(function SettingRow({ label, description, children
   );
 });
 
-const Integrations: React.FC<IntegrationsProps> = ({ preferences, setPreferences, setCurrentPage }) => {
+const Integrations: React.FC<IntegrationsProps> = ({
+  preferences,
+  setPreferences,
+  setCurrentPage,
+  enableBankingConnections,
+  accounts,
+  onCreateConnection,
+  onFetchBanks,
+  onDeleteConnection,
+  onLinkAccount,
+  onTriggerSync,
+}) => {
   const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const { name, value } = e.target;
     setPreferences({ ...preferences, [name]: value });
@@ -66,6 +85,16 @@ const Integrations: React.FC<IntegrationsProps> = ({ preferences, setPreferences
           subtitle="Manage external services that enrich your Crystal workspace."
         />
       </header>
+
+      <EnableBankingIntegrationCard
+        connections={enableBankingConnections}
+        accounts={accounts}
+        onCreateConnection={onCreateConnection}
+        onFetchBanks={onFetchBanks}
+        onDeleteConnection={onDeleteConnection}
+        onLinkAccount={onLinkAccount}
+        onTriggerSync={onTriggerSync}
+      />
 
       <Card>
         <SectionHeader

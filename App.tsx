@@ -35,6 +35,8 @@ const IntegrationsPage = lazy(loadIntegrationsPage);
 const loadAccountDetail = () => import('./pages/AccountDetail');
 // FIX: Use inline function for lazy import to avoid TypeScript error regarding 'default' property missing
 const AccountDetail = lazy(() => import('./pages/AccountDetail'));
+const loadEnableBankingCallbackPage = () => import('./pages/EnableBankingCallback');
+const EnableBankingCallbackPage = lazy(loadEnableBankingCallbackPage);
 const loadInvestmentsPage = () => import('./pages/Investments');
 const InvestmentsPage = lazy(loadInvestmentsPage);
 const HoldingDetail = lazy(() => import('./pages/HoldingDetail'));
@@ -78,7 +80,7 @@ const pagePreloaders = [
 // UserManagement is removed
 // FIX: Import FinancialData from types.ts
 // FIX: Add `Tag` to the import from `types.ts`.
-import { Page, Theme, Category, User, Transaction, Account, RecurringTransaction, RecurringTransactionOverride, WeekendAdjustment, FinancialGoal, Budget, ImportExportHistoryItem, AppPreferences, AccountType, InvestmentTransaction, Task, Warrant, ImportDataType, FinancialData, Currency, BillPayment, BillPaymentStatus, Duration, InvestmentSubType, Tag, LoanPaymentOverrides, ScheduledPayment, Membership, Invoice, UserStats, Prediction, PriceHistoryEntry } from './types';
+import { Page, Theme, Category, User, Transaction, Account, RecurringTransaction, RecurringTransactionOverride, WeekendAdjustment, FinancialGoal, Budget, ImportExportHistoryItem, AppPreferences, AccountType, InvestmentTransaction, Task, Warrant, ImportDataType, FinancialData, Currency, BillPayment, BillPaymentStatus, Duration, InvestmentSubType, Tag, LoanPaymentOverrides, ScheduledPayment, Membership, Invoice, UserStats, Prediction, PriceHistoryEntry, EnableBankingConnection, EnableBankingAccount } from './types';
 import { MOCK_INCOME_CATEGORIES, MOCK_EXPENSE_CATEGORIES, LIQUID_ACCOUNT_TYPES } from './constants';
 import { v4 as uuidv4 } from 'uuid';
 import ChatFab from './components/ChatFab';
@@ -109,6 +111,7 @@ const routePathMap: Record<Page, string> = {
   'Data Management': '/data-management',
   Preferences: '/preferences',
   Integrations: '/integrations',
+  EnableBankingCallback: '/enable-banking/callback',
   AccountDetail: '/accounts',
   Investments: '/investments',
   HoldingDetail: '/investments',
@@ -182,6 +185,7 @@ const initialFinancialData: FinancialData = {
     invoices: [],
     userStats: { currentStreak: 0, longestStreak: 0, lastLogDate: '', predictionWins: 0, predictionTotal: 0 },
     predictions: [],
+    enableBankingConnections: [],
     preferences: {
         currency: 'EUR (€)',
         language: 'English (en)',
@@ -334,6 +338,7 @@ const App: React.FC = () => {
   const [tags, setTags] = useState<Tag[]>(initialFinancialData.tags || []);
   const [userStats, setUserStats] = useState<UserStats>(initialFinancialData.userStats || { currentStreak: 0, longestStreak: 0, lastLogDate: '' });
   const [predictions, setPredictions] = useState<Prediction[]>(initialFinancialData.predictions || []);
+  const [enableBankingConnections, setEnableBankingConnections] = useState<EnableBankingConnection[]>(initialFinancialData.enableBankingConnections || []);
 
   const latestDataRef = useRef<FinancialData>(initialFinancialData);
   const lastSavedSignatureRef = useRef<string | null>(null);
@@ -610,10 +615,12 @@ const App: React.FC = () => {
       setPredictions(dataToLoad.predictions || []);
       setIncomeCategories(dataToLoad.incomeCategories && dataToLoad.incomeCategories.length > 0 ? dataToLoad.incomeCategories : MOCK_INCOME_CATEGORIES);
       setExpenseCategories(dataToLoad.expenseCategories && dataToLoad.expenseCategories.length > 0 ? dataToLoad.expenseCategories : MOCK_EXPENSE_CATEGORIES);
-      
+
       if (dataToLoad.userStats) {
           setUserStats(dataToLoad.userStats);
       }
+
+      setEnableBankingConnections(dataToLoad.enableBankingConnections || []);
 
       setPreferences(loadedPrefs);
       
@@ -713,7 +720,8 @@ const App: React.FC = () => {
   const dataToSave: FinancialData = useMemo(() => ({
     accounts, transactions, investmentTransactions, recurringTransactions,
     recurringTransactionOverrides, loanPaymentOverrides, financialGoals, budgets, tasks, warrants, memberships, importExportHistory, incomeCategories,
-    expenseCategories, preferences, billsAndPayments, accountOrder, taskOrder, tags, manualWarrantPrices, priceHistory, invoices, userStats, predictions
+    expenseCategories, preferences, billsAndPayments, accountOrder, taskOrder, tags, manualWarrantPrices, priceHistory, invoices, userStats, predictions,
+    enableBankingConnections,
   }), [
     accounts, transactions, investmentTransactions,
     recurringTransactions, recurringTransactionOverrides, loanPaymentOverrides, financialGoals, budgets, tasks, warrants, memberships, importExportHistory,
@@ -748,6 +756,7 @@ const App: React.FC = () => {
     if (dirtySlices.has('invoices')) payload.invoices = invoices;
     if (dirtySlices.has('userStats')) payload.userStats = userStats;
     if (dirtySlices.has('predictions')) payload.predictions = predictions;
+    if (dirtySlices.has('enableBankingConnections')) payload.enableBankingConnections = enableBankingConnections;
 
     return { ...latestDataRef.current, ...payload } as FinancialData;
   }, [
@@ -774,7 +783,8 @@ const App: React.FC = () => {
     priceHistory,
     invoices,
     userStats,
-    predictions
+    predictions,
+    enableBankingConnections
   ]);
 
   useEffect(() => {
@@ -900,6 +910,11 @@ const App: React.FC = () => {
       if (!isDataLoaded || restoreInProgressRef.current) return;
       markSliceDirty('predictions');
   }, [predictions, isDataLoaded, markSliceDirty]);
+
+  useEffect(() => {
+    if (!isDataLoaded || restoreInProgressRef.current) return;
+    markSliceDirty('enableBankingConnections');
+  }, [enableBankingConnections, isDataLoaded, markSliceDirty]);
 
   // Persist data to backend on change
   const saveData = useCallback(
@@ -1641,6 +1656,280 @@ const App: React.FC = () => {
       setPredictions(prev => prev.filter(p => p.id !== id));
   };
 
+  // --- Enable Banking integration ---
+  const fetchWithAuth = useCallback(async (url: string, options: RequestInit = {}) => {
+    const response = await fetch(url, {
+      ...options,
+      headers: {
+        'Content-Type': 'application/json',
+        ...(options.headers || {}),
+        ...(token ? { Authorization: `Bearer ${token}` } : {}),
+      },
+    });
+
+    if (!response.ok) {
+      const text = await response.text();
+      throw new Error(text || response.statusText);
+    }
+
+    return response;
+  }, [token]);
+
+  const handleFetchEnableBankingBanks = useCallback(async ({
+    applicationId,
+    countryCode,
+    clientCertificate,
+  }: {
+    applicationId: string;
+    countryCode: string;
+    clientCertificate: string;
+  }) => {
+    if (!token) {
+      throw new Error('You must be signed in to load banks for Enable Banking.');
+    }
+
+    const response = await fetchWithAuth('/api/enable-banking/aspsps', {
+      method: 'POST',
+      body: JSON.stringify({
+        applicationId: applicationId.trim(),
+        countryCode: countryCode.trim().toUpperCase(),
+        clientCertificate: clientCertificate.trim(),
+      }),
+    });
+
+    const data = await response.json();
+    const items: any[] = Array.isArray(data) ? data : data?.aspsps || [];
+
+    if (!Array.isArray(items) || items.length === 0) {
+      throw new Error('No banks returned for the selected country.');
+    }
+
+    return items.map((item: any, index: number) => ({
+      id: item.id || item.aspsp_id || item.bank_id || item.name || `aspsp-${index}`,
+      name: item.name || item.full_name || item.fullName || 'Bank',
+      country: item.country || countryCode,
+    }));
+  }, [fetchWithAuth, token]);
+
+  const handleCreateEnableBankingConnection = useCallback(async (payload: {
+    applicationId: string;
+    countryCode: string;
+    clientCertificate: string;
+    selectedBank: string;
+  }) => {
+    if (!token) {
+      alert('You must be signed in to start an Enable Banking connection.');
+      return;
+    }
+
+    const connectionId = `eb-${uuidv4()}`;
+    const baseConnection: EnableBankingConnection = {
+      id: connectionId,
+      applicationId: payload.applicationId.trim(),
+      countryCode: payload.countryCode.trim().toUpperCase(),
+      clientCertificate: payload.clientCertificate.trim(),
+      status: 'pending',
+      selectedBank: payload.selectedBank,
+      accounts: [],
+    };
+
+    setEnableBankingConnections(prev => [...prev, baseConnection]);
+
+    try {
+      const response = await fetchWithAuth('/api/enable-banking/authorize', {
+        method: 'POST',
+        body: JSON.stringify({
+          applicationId: baseConnection.applicationId,
+          clientCertificate: baseConnection.clientCertificate,
+          countryCode: baseConnection.countryCode,
+          aspspName: payload.selectedBank,
+          state: connectionId,
+        }),
+      });
+
+      const data = await response.json();
+      setEnableBankingConnections(prev => prev.map(conn => conn.id === connectionId ? {
+        ...conn,
+        authorizationId: data.authorizationId,
+        lastError: undefined,
+      } : conn));
+
+      if (data.authorizationUrl) {
+        window.location.href = data.authorizationUrl;
+      }
+    } catch (error: any) {
+      console.error('Failed to start Enable Banking authorization', error);
+      setEnableBankingConnections(prev => prev.map(conn => conn.id === connectionId ? {
+        ...conn,
+        status: 'requires_update',
+        lastError: error?.message || 'Unable to start authorization',
+      } : conn));
+    }
+  }, [fetchWithAuth, token]);
+
+  const mapProviderTransaction = useCallback((providerTx: any, accountId: string, currency: Currency, connectionId: string): Transaction | null => {
+    const amountRaw = providerTx?.transaction_amount?.amount ?? providerTx?.amount?.amount ?? providerTx?.transactionAmount?.amount;
+    if (amountRaw === undefined || amountRaw === null) return null;
+
+    const creditDebit = providerTx?.credit_debit_indicator || providerTx?.creditDebitIndicator;
+    const signedAmount = Number(amountRaw) * (creditDebit === 'CRDT' ? 1 : -1);
+
+    const date = providerTx?.booking_date || providerTx?.bookingDate || providerTx?.value_date || providerTx?.valueDate;
+    const description = providerTx?.remittance_information_unstructured || providerTx?.remittanceInformationUnstructured || providerTx?.entry_reference || providerTx?.entryReference || providerTx?.transaction_id || 'Transaction';
+    const idSource = providerTx?.transaction_id || providerTx?.transactionId || providerTx?.entry_reference || providerTx?.entryReference || uuidv4();
+
+    return {
+      id: `eb-${connectionId}-${accountId}-${idSource}`,
+      accountId,
+      date: date || new Date().toISOString().slice(0, 10),
+      description,
+      amount: signedAmount,
+      category: 'Uncategorized',
+      type: signedAmount >= 0 ? 'income' : 'expense',
+      currency,
+      importId: `enable-banking-${connectionId}-${accountId}`,
+    };
+  }, []);
+
+  const handleSyncEnableBankingConnection = useCallback(async (connectionId: string) => {
+    if (!token) {
+      alert('Please sign in to sync Enable Banking connections.');
+      return;
+    }
+
+    const connection = enableBankingConnections.find(c => c.id === connectionId);
+    if (!connection || !connection.sessionId) {
+      alert('Connection is missing a session. Please re-authorize.');
+      return;
+    }
+
+    const safeAccounts = connection.accounts || [];
+    const now = new Date().toISOString();
+
+    try {
+      setEnableBankingConnections(prev => prev.map(conn => conn.id === connectionId ? { ...conn, status: 'pending', lastError: undefined } : conn));
+
+      const session = await fetchWithAuth('/api/enable-banking/session/fetch', {
+        method: 'POST',
+        body: JSON.stringify({
+          sessionId: connection.sessionId,
+          applicationId: connection.applicationId,
+          clientCertificate: connection.clientCertificate,
+        }),
+      }).then(res => res.json());
+      const accountsFromSession: any[] = Array.isArray(session?.accounts) ? session.accounts : [];
+
+      const updatedAccounts: EnableBankingAccount[] = [];
+      const importedTransactions: Transaction[] = [];
+
+      for (const account of accountsFromSession) {
+        const existing = safeAccounts.find(a => a.id === account?.uid || a.id === account?.account_id || a.id === account?.id);
+        const providerAccountId = account?.account_id?.id || account?.account_id || account?.uid || account?.id;
+        if (!providerAccountId) continue;
+
+        const balances = await fetchWithAuth(`/api/enable-banking/accounts/${encodeURIComponent(providerAccountId)}/balances`, {
+          method: 'POST',
+          body: JSON.stringify({
+            applicationId: connection.applicationId,
+            clientCertificate: connection.clientCertificate,
+          }),
+        }).then(res => res.json());
+
+        const balanceEntries: any[] = balances?.balances || [];
+        const preferredBalance = balanceEntries.find((b: any) => b.balance_type === 'closingBooked') || balanceEntries.find((b: any) => b.balanceType === 'closingBooked') || balanceEntries[0];
+        const numericBalance = Number(preferredBalance?.balance?.amount ?? 0);
+        const currency = (account?.currency || preferredBalance?.balance?.currency || existing?.currency || 'EUR') as Currency;
+
+        const syncStart = existing?.syncStartDate || toLocalISOString(new Date(Date.now() - 90 * 24 * 60 * 60 * 1000));
+        let continuationKey: string | undefined;
+        let transactionsPage: any = null;
+        const providerTransactions: any[] = [];
+
+        do {
+          transactionsPage = await fetchWithAuth(`/api/enable-banking/accounts/${encodeURIComponent(providerAccountId)}/transactions`, {
+            method: 'POST',
+            body: JSON.stringify({
+              applicationId: connection.applicationId,
+              clientCertificate: connection.clientCertificate,
+              dateFrom: syncStart,
+              continuationKey,
+            }),
+          }).then(res => res.json());
+          const pageItems = transactionsPage?.transactions || transactionsPage?.booked || [];
+          providerTransactions.push(...pageItems);
+          continuationKey = transactionsPage?.continuation_key || transactionsPage?.continuationKey;
+        } while (continuationKey);
+
+        const mappedTx = providerTransactions
+          .map(tx => mapProviderTransaction(tx, existing?.linkedAccountId || '', currency, connectionId))
+          .filter((tx): tx is Transaction => Boolean(tx) && Boolean(tx.accountId));
+
+        importedTransactions.push(...mappedTx);
+
+        updatedAccounts.push({
+          id: providerAccountId,
+          name: account?.name || account?.product || account?.account_id?.iban || account?.iban || 'Bank account',
+          bankName: connection.selectedBank || 'Enable Banking',
+          currency,
+          balance: numericBalance,
+          accountNumber: account?.iban || account?.account_id?.iban || existing?.accountNumber,
+          linkedAccountId: existing?.linkedAccountId,
+          syncStartDate: existing?.syncStartDate || syncStart,
+          lastSyncedAt: now,
+        });
+      }
+
+      const finalAccounts = updatedAccounts.length > 0 ? updatedAccounts : safeAccounts;
+
+      // Update account balances when linked
+      const updatedAccountState = accounts.map(acc => {
+        const linked = finalAccounts.find(a => a.linkedAccountId === acc.id);
+        if (!linked) return acc;
+        return { ...acc, balance: linked.balance, currency: linked.currency };
+      });
+      setAccounts(updatedAccountState);
+
+      // Replace imported transactions for linked accounts
+      const importIds = new Set(importedTransactions.map(tx => tx.importId));
+      const filteredTransactions = transactions.filter(tx => tx.importId ? !importIds.has(tx.importId) : true);
+      setTransactions([...filteredTransactions, ...importedTransactions]);
+
+      setEnableBankingConnections(prev => prev.map(conn => conn.id === connectionId ? {
+        ...conn,
+        status: 'ready',
+        lastError: undefined,
+        lastSyncedAt: now,
+        sessionExpiresAt: connection.sessionExpiresAt,
+        accounts: finalAccounts,
+      } : conn));
+    } catch (error: any) {
+      console.error('Enable Banking sync failed', error);
+      setEnableBankingConnections(prev => prev.map(conn => conn.id === connectionId ? {
+        ...conn,
+        status: 'requires_update',
+        lastError: error?.message || 'Sync failed',
+      } : conn));
+    }
+  }, [accounts, enableBankingConnections, fetchWithAuth, mapProviderTransaction, setAccounts, setTransactions, token, transactions]);
+
+  const handleDeleteEnableBankingConnection = useCallback((connectionId: string) => {
+    setEnableBankingConnections(prev => prev.filter(conn => conn.id !== connectionId));
+  }, []);
+
+  const handleLinkEnableBankingAccount = useCallback((connectionId: string, providerAccountId: string, linkedAccountId: string, syncStartDate: string) => {
+    setEnableBankingConnections(prev => prev.map(conn => {
+      if (conn.id !== connectionId) return conn;
+
+      const updatedAccounts = conn.accounts.map(account => account.id === providerAccountId ? {
+        ...account,
+        linkedAccountId,
+        syncStartDate,
+      } : account);
+
+      return { ...conn, accounts: updatedAccounts };
+    }));
+  }, []);
+
   // --- Data Import / Export ---
   const handlePublishImport = (
     items: (Omit<Account, 'id'> | Omit<Transaction, 'id'>)[],
@@ -1814,8 +2103,29 @@ const App: React.FC = () => {
             />;
       case 'Preferences':
         return <PreferencesPage preferences={preferences} setPreferences={setPreferences} theme={theme} setTheme={setTheme} setCurrentPage={setCurrentPage} />;
+      case 'EnableBankingCallback':
+        return (
+          <EnableBankingCallbackPage
+            connections={enableBankingConnections}
+            setConnections={setEnableBankingConnections}
+            onSync={handleSyncEnableBankingConnection}
+            setCurrentPage={setCurrentPage}
+            authToken={token}
+          />
+        );
       case 'Integrations':
-        return <IntegrationsPage preferences={preferences} setPreferences={setPreferences} setCurrentPage={setCurrentPage} />;
+        return <IntegrationsPage
+          preferences={preferences}
+          setPreferences={setPreferences}
+          setCurrentPage={setCurrentPage}
+          enableBankingConnections={enableBankingConnections}
+          accounts={accounts}
+          onCreateConnection={handleCreateEnableBankingConnection}
+          onFetchBanks={handleFetchEnableBankingBanks}
+          onDeleteConnection={handleDeleteEnableBankingConnection}
+          onLinkAccount={handleLinkEnableBankingAccount}
+          onTriggerSync={handleSyncEnableBankingConnection}
+        />;
       case 'Investments':
         return <InvestmentsPage accounts={accounts} cashAccounts={accounts.filter(a => a.type === 'Checking' || a.type === 'Savings')} investmentTransactions={investmentTransactions} saveInvestmentTransaction={handleSaveInvestmentTransaction} deleteInvestmentTransaction={handleDeleteInvestmentTransaction} saveTransaction={handleSaveTransaction} warrants={warrants} saveWarrant={handleSaveWarrant} deleteWarrant={handleDeleteWarrant} manualPrices={manualWarrantPrices} onManualPriceChange={handleManualWarrantPrice} prices={assetPrices} onOpenHoldingDetail={handleOpenHoldingDetail} holdingsOverview={holdingsOverview} onToggleAccountStatus={handleToggleAccountStatus} deleteAccount={handleDeleteAccount} />;
       case 'Tasks':
