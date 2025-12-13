@@ -5,7 +5,7 @@ import { loadPendingConnection, removePendingConnection } from '../utils/enableB
 interface EnableBankingCallbackProps {
   connections: EnableBankingConnection[];
   setConnections: React.Dispatch<React.SetStateAction<EnableBankingConnection[]>>;
-  onSync: (connectionId: string) => Promise<void>;
+  onSync: (connectionId: string, connectionOverride?: EnableBankingConnection) => Promise<void>;
   setCurrentPage: (page: Page) => void;
   authToken?: string | null;
 }
@@ -91,17 +91,19 @@ const EnableBankingCallback: React.FC<EnableBankingCallbackProps> = ({
           throw new Error('Session identifier missing from response');
         }
 
-        setConnections(prev => prev.map(conn => conn.id === connection.id ? {
-          ...conn,
+        const updatedConnection: EnableBankingConnection = {
+          ...connection,
           sessionId,
           sessionExpiresAt,
           authorizationId: undefined,
           status: 'ready',
-        } : conn));
+        };
+
+        setConnections(prev => prev.map(conn => conn.id === connection.id ? updatedConnection : conn));
         removePendingConnection(connection.id);
 
         setMessage('Session created. Syncing accounts...');
-        await onSync(connection.id);
+        await onSync(connection.id, updatedConnection);
 
         setMessage('Sync complete. Redirecting...');
         setTimeout(() => setCurrentPage('Integrations'), 800);

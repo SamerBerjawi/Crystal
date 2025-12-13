@@ -22,7 +22,7 @@ interface EnableBankingIntegrationCardProps {
     providerAccountId: string,
     payload: EnableBankingLinkPayload
   ) => void;
-  onTriggerSync: (connectionId: string) => void | Promise<void>;
+  onTriggerSync: (connectionId: string, connectionOverride?: EnableBankingConnection) => void | Promise<void>;
 }
 
 const EnableBankingIntegrationCard: React.FC<EnableBankingIntegrationCardProps> = ({
@@ -344,11 +344,18 @@ const EnableBankingIntegrationCard: React.FC<EnableBankingIntegrationCardProps> 
                       <tbody>
                         {providerAccounts.length === 0 && (
                           <tr className="border-t border-black/5 dark:border-white/5">
-                            <td className="px-3 py-3 text-sm text-light-text-secondary dark:text-dark-text-secondary" colSpan={5}>
-                              No accounts fetched yet. Trigger a sync after completing bank authorization to load provider accounts.
+                            <td className="px-3 py-3 text-sm" colSpan={5}>
+                              <div className="text-light-text-secondary dark:text-dark-text-secondary">
+                                No accounts fetched yet. Trigger a sync after completing bank authorization to load provider accounts.
+                              </div>
+                              {connection.lastError && (
+                                <p className="mt-2 text-rose-600 dark:text-rose-300">
+                                  {connection.lastError}
+                                </p>
+                              )}
                               <button
                                 onClick={() => onTriggerSync(connection.id)}
-                                className="ml-3 inline-flex items-center gap-1 px-3 py-2 rounded-lg bg-light-surface-secondary dark:bg-dark-surface-secondary text-light-text dark:text-dark-text text-xs font-semibold"
+                                className="mt-2 inline-flex items-center gap-1 px-3 py-2 rounded-lg bg-light-surface-secondary dark:bg-dark-surface-secondary text-light-text dark:text-dark-text text-xs font-semibold"
                               >
                                 <span className="material-symbols-outlined text-sm">refresh</span>
                                 Sync now
