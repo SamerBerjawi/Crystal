@@ -1867,6 +1867,14 @@ const App: React.FC = () => {
         const providerAccountId = account?.account_id?.id || account?.account_id || account?.uid || account?.id;
         if (!providerAccountId) continue;
 
+        const details = await fetchWithAuth(`/api/enable-banking/accounts/${encodeURIComponent(providerAccountId)}/details`, {
+          method: 'POST',
+          body: JSON.stringify({
+            applicationId: connection.applicationId,
+            clientCertificate: connection.clientCertificate,
+          }),
+        }).then(res => res.json()).catch(() => null);
+
         const balances = await fetchWithAuth(`/api/enable-banking/accounts/${encodeURIComponent(providerAccountId)}/balances`, {
           method: 'POST',
           body: JSON.stringify({
@@ -1878,7 +1886,7 @@ const App: React.FC = () => {
         const balanceEntries: any[] = balances?.balances || [];
         const preferredBalance = balanceEntries.find((b: any) => b.balance_type === 'closingBooked') || balanceEntries.find((b: any) => b.balanceType === 'closingBooked') || balanceEntries[0];
         const numericBalance = Number(preferredBalance?.balance?.amount ?? 0);
-        const currency = (account?.currency || preferredBalance?.balance?.currency || existing?.currency || 'EUR') as Currency;
+        const currency = (account?.currency || preferredBalance?.balance?.currency || details?.currency || existing?.currency || 'EUR') as Currency;
 
         const syncStart = existing?.syncStartDate || toLocalISOString(new Date(Date.now() - 90 * 24 * 60 * 60 * 1000));
         let continuationKey: string | undefined;
@@ -1906,13 +1914,17 @@ const App: React.FC = () => {
 
         importedTransactions.push(...mappedTx);
 
+        const detailSource = (details?.account || details?.details || details) as any;
+        const detailName = detailSource?.name || detailSource?.product || detailSource?.display_name;
+        const detailIban = detailSource?.iban || detailSource?.account_id?.iban;
+
         updatedAccounts.push({
           id: providerAccountId,
-          name: account?.name || account?.product || account?.account_id?.iban || account?.iban || 'Bank account',
+          name: detailName || account?.name || account?.product || account?.account_id?.iban || account?.iban || 'Bank account',
           bankName: connection.selectedBank || 'Enable Banking',
           currency,
           balance: numericBalance,
-          accountNumber: account?.iban || account?.account_id?.iban || existing?.accountNumber,
+          accountNumber: detailIban || account?.iban || account?.account_id?.iban || existing?.accountNumber,
           linkedAccountId: existing?.linkedAccountId,
           syncStartDate: existing?.syncStartDate || syncStart,
           lastSyncedAt: now,
