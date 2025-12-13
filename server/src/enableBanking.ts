@@ -20,7 +20,7 @@ class EnableBankingClient {
       this.clientCertificate,
       {
         algorithm: 'RS256',
-        header: { kid: this.applicationId },
+        keyid: this.applicationId,
       },
     );
   }
