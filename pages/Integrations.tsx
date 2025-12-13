@@ -19,7 +19,7 @@ interface IntegrationsProps {
     providerAccountId: string,
     payload: EnableBankingLinkPayload
   ) => void;
-  onTriggerSync: (connectionId: string) => void | Promise<void>;
+  onTriggerSync: (connectionId: string, connectionOverride?: EnableBankingConnection) => void | Promise<void>;
 }
 
 interface SectionHeaderProps { title: string; icon: string; description: string }

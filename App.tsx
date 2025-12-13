@@ -1793,13 +1793,16 @@ const App: React.FC = () => {
     };
   }, []);
 
-  const handleSyncEnableBankingConnection = useCallback(async (connectionId: string) => {
+  const handleSyncEnableBankingConnection = useCallback(async (
+    connectionId: string,
+    connectionOverride?: EnableBankingConnection,
+  ) => {
     if (!token) {
       alert('Please sign in to sync Enable Banking connections.');
       return;
     }
 
-    const connection = enableBankingConnections.find(c => c.id === connectionId);
+    const connection = connectionOverride || enableBankingConnections.find(c => c.id === connectionId);
     if (!connection || !connection.sessionId) {
       alert('Connection is missing a session. Please re-authorize.');
       return;
