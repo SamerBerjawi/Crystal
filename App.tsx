@@ -1822,7 +1822,42 @@ const App: React.FC = () => {
           clientCertificate: connection.clientCertificate,
         }),
       }).then(res => res.json());
-      const accountsFromSession: any[] = Array.isArray(session?.accounts) ? session.accounts : [];
+
+      const normalizeAccounts = () => {
+        const possibleCollections: any[] = [
+          session?.accounts,
+          session?.access?.accounts,
+          session?.access?.resources,
+          session?.consents?.[0]?.accounts,
+          session?.consents?.[0]?.resources,
+        ].filter(Array.isArray);
+
+        const flattened = possibleCollections.flat();
+        const uniqueById = new Map<string, any>();
+
+        flattened.forEach(account => {
+          const candidate = account?.account || account?.resource || account;
+          const providerAccountId =
+            candidate?.account_id?.id ||
+            candidate?.account_id ||
+            candidate?.resource_id ||
+            candidate?.uid ||
+            candidate?.id;
+
+          if (!providerAccountId) return;
+
+          if (!uniqueById.has(providerAccountId)) {
+            uniqueById.set(providerAccountId, candidate);
+          }
+        });
+
+        return Array.from(uniqueById.values());
+      };
+
+      const accountsFromSession: any[] = normalizeAccounts();
+      if (!accountsFromSession.length) {
+        throw new Error('No accounts returned for this session. Please re-authorize and ensure accounts are permitted.');
+      }
 
       const updatedAccounts: EnableBankingAccount[] = [];
       const importedTransactions: Transaction[] = [];
