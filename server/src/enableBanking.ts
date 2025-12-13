@@ -125,10 +125,12 @@ router.post('/authorize', authenticateToken, async (req: AuthRequest, res) => {
       return res.status(400).json({ message: 'applicationId, clientCertificate, countryCode and aspspName are required' });
     }
     const client = new EnableBankingClient(applicationId, clientCertificate);
-    const host = req.get('host');
+    const forwardedProto = (req.headers['x-forwarded-proto'] as string | undefined)?.split(',')[0];
+    const protocol = forwardedProto || req.protocol;
+    const host = (req.headers['x-forwarded-host'] as string | undefined) || req.get('host');
     const redirectUrl =
       process.env.ENABLE_BANKING_REDIRECT_URL ||
-      (host ? `${req.protocol}://${host}/enable-banking/callback` : DEFAULT_REDIRECT);
+      (host ? `${protocol}://${host}/enable-banking/callback` : DEFAULT_REDIRECT);
     const data = await client.startAuthorization({ aspspName, countryCode, redirectUrl, state });
     res.json({ authorizationUrl: data.url, authorizationId: data.authorization_id });
   } catch (error: any) {
