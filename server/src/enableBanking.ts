@@ -125,14 +125,18 @@ router.post('/authorize', authenticateToken, async (req: AuthRequest, res) => {
       return res.status(400).json({ message: 'applicationId, clientCertificate, countryCode and aspspName are required' });
     }
     const client = new EnableBankingClient(applicationId, clientCertificate);
-    const forwardedProto = (req.headers['x-forwarded-proto'] as string | undefined)?.split(',')[0];
+    const forwardedProto = (req.headers['x-forwarded-proto'] as string | undefined)?.split(',')[0]?.trim();
     const protocol = forwardedProto || req.protocol;
-    const host = (req.headers['x-forwarded-host'] as string | undefined) || req.get('host');
+    const forwardedHost = (req.headers['x-forwarded-host'] as string | undefined)?.split(',')[0]?.trim();
+    const host = forwardedHost || req.get('host');
     const redirectUrl =
       process.env.ENABLE_BANKING_REDIRECT_URL ||
-      (host ? `${protocol}://${host}/enable-banking/callback` : DEFAULT_REDIRECT);
+      (host ? `${protocol}://${host.replace(/\s/g, '')}/enable-banking/callback` : DEFAULT_REDIRECT);
+    if (!process.env.ENABLE_BANKING_REDIRECT_URL && !host) {
+      console.warn('Enable Banking redirect URL falling back to default because host is missing');
+    }
     const data = await client.startAuthorization({ aspspName, countryCode, redirectUrl, state });
-    res.json({ authorizationUrl: data.url, authorizationId: data.authorization_id });
+    res.json({ authorizationUrl: data.url, authorizationId: data.authorization_id, redirectUrl });
   } catch (error: any) {
     console.error('Failed to start authorization', error);
     res.status(502).json({ message: error?.message || 'Unable to start authorization' });
