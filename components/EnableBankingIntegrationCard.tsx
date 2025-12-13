@@ -87,6 +87,13 @@ const EnableBankingIntegrationCard: React.FC<EnableBankingIntegrationCardProps> 
     return value;
   };
 
+  const getLastFour = (value?: string | null) => {
+    if (!value) return null;
+    const cleaned = value.replace(/\s+/g, '');
+    if (!cleaned) return null;
+    return cleaned.slice(-4);
+  };
+
   const loadBanks = async () => {
     if (!formState.applicationId.trim() || !formState.clientCertificate.trim()) {
       alert('Enter application ID and client certificate before loading banks.');
@@ -376,12 +383,15 @@ const EnableBankingIntegrationCard: React.FC<EnableBankingIntegrationCardProps> 
                           newAccountType: savedState.newAccountType ?? ('Checking' as AccountType),
                         };
                         const linkedAccount = accounts.find(a => a.id === account.linkedAccountId);
+                        const accountLastFour = getLastFour(account.accountNumber || account.id);
 
                         return (
                           <tr key={account.id} className="border-t border-black/5 dark:border-white/5">
                             <td className="px-3 py-2">
                               <div className="font-semibold text-light-text dark:text-dark-text">{account.name}</div>
-                              <div className="text-xs text-light-text-secondary dark:text-dark-text-secondary">{account.accountNumber || 'UID available after details fetch'}</div>
+                              <div className="text-xs text-light-text-secondary dark:text-dark-text-secondary">
+                                {accountLastFour ? `Ending in ${accountLastFour}` : 'UID available after details fetch'}
+                              </div>
                             </td>
                             <td className="px-3 py-2 text-light-text dark:text-dark-text">
                               {account.currency} {account.balance.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
