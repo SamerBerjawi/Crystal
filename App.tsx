@@ -726,7 +726,7 @@ const App: React.FC = () => {
   }), [
     accounts, transactions, investmentTransactions,
     recurringTransactions, recurringTransactionOverrides, loanPaymentOverrides, financialGoals, budgets, tasks, warrants, memberships, importExportHistory,
-    incomeCategories, expenseCategories, preferences, billsAndPayments, accountOrder, taskOrder, tags, manualWarrantPrices, priceHistory, invoices, userStats, predictions
+    incomeCategories, expenseCategories, preferences, billsAndPayments, accountOrder, taskOrder, tags, manualWarrantPrices, priceHistory, invoices, userStats, predictions, enableBankingConnections
   ]);
 
   const debouncedDirtySignal = useDebounce(dirtySignal, 900);
@@ -1899,9 +1899,40 @@ const App: React.FC = () => {
         }).then(res => res.json());
 
         const balanceEntries: any[] = balances?.balances || [];
-        const preferredBalance = balanceEntries.find((b: any) => b.balance_type === 'closingBooked') || balanceEntries.find((b: any) => b.balanceType === 'closingBooked') || balanceEntries[0];
-        const numericBalance = Number(preferredBalance?.balance?.amount ?? 0);
-        const currency = (account?.currency || preferredBalance?.balance?.currency || details?.currency || existing?.currency || 'EUR') as Currency;
+        const preferredBalance =
+          balanceEntries.find((b: any) => b.balance_type === 'closingBooked' || b.balanceType === 'closingBooked') ||
+          balanceEntries.find((b: any) =>
+            ['interimAvailable', 'forwardAvailable', 'interimBooked'].includes(b.balance_type) ||
+            ['interimAvailable', 'forwardAvailable', 'interimBooked'].includes(b.balanceType)
+          ) ||
+          balanceEntries[0] || {};
+
+        const extractBalance = (entry: any) => {
+          const balanceSource = entry?.balance || entry?.balanceAmount || entry?.balance_amount || {};
+          const amountCandidates = [
+            balanceSource?.amount,
+            balanceSource?.balanceAmount?.amount,
+            balanceSource?.balance_amount?.amount,
+            balanceSource?.value,
+            entry?.amount,
+          ];
+          const rawAmount = amountCandidates.find(val => val !== undefined && val !== null);
+          const parsedAmount = Number(rawAmount ?? 0);
+
+          const currencyFromBalance =
+            balanceSource?.currency ||
+            balanceSource?.balanceAmount?.currency ||
+            balanceSource?.balance_amount?.currency ||
+            entry?.currency;
+
+          return {
+            amount: Number.isFinite(parsedAmount) ? parsedAmount : 0,
+            currency: currencyFromBalance,
+          };
+        };
+
+        const { amount: numericBalance, currency: balanceCurrency } = extractBalance(preferredBalance);
+        const currency = (account?.currency || balanceCurrency || details?.currency || existing?.currency || 'EUR') as Currency;
 
         const syncStart = existing?.syncStartDate || toLocalISOString(new Date(Date.now() - 90 * 24 * 60 * 60 * 1000));
         let continuationKey: string | undefined;
