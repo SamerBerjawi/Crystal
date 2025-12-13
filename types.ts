@@ -13,6 +13,33 @@ export type Theme = 'light' | 'dark' | 'system';
 export type Duration = 'TODAY' | 'WTD' | 'MTD' | '30D' | '60D' | '90D' | '6M' | 'YTD' | '1Y' | 'ALL';
 export type ForecastDuration = '3M' | '6M' | 'EOY' | '1Y';
 
+export interface EnableBankingConnection {
+  aspspName: string;
+  countryCode: string;
+  accountUid?: string;
+  sessionId?: string;
+  authorizationId?: string;
+  status: 'pending' | 'connected' | 'error';
+  lastSyncedAt?: string;
+  lastSyncError?: string;
+  syncFromDate?: string;
+}
+
+export interface EnableBankingAspsp {
+  name: string;
+  country: string;
+  logo?: string;
+  psu_types?: string[];
+  required_psu_headers?: string[];
+}
+
+export interface EnableBankingSessionAccount {
+  uid: string;
+  name?: string;
+  account_id?: { iban?: string };
+  currency?: Currency;
+}
+
 export interface Category {
   id: string;
   name: string;
@@ -122,6 +149,9 @@ export interface Account {
   // Mileage
   mileageLogs?: MileageLog[];
   imageUrl?: string;
+
+  // Enable Banking connection
+  enableBanking?: EnableBankingConnection;
 
   // Property specific
   address?: string;
@@ -398,6 +428,9 @@ export interface AppPreferences {
   brandfetchClientId?: string;
   twelveDataApiKey?: string;
   merchantLogoOverrides?: Record<string, string>;
+  enableBankingCountryCode?: string;
+  enableBankingApplicationId?: string;
+  enableBankingClientCertificate?: string;
 }
 
 // New types for Bills & Payments

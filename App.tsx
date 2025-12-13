@@ -190,6 +190,9 @@ const initialFinancialData: FinancialData = {
         brandfetchClientId: '',
         twelveDataApiKey: '',
         merchantLogoOverrides: {},
+        enableBankingCountryCode: 'FI',
+        enableBankingApplicationId: '',
+        enableBankingClientCertificate: '',
     },
 };
 
