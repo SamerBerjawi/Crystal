@@ -1,5 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import { EnableBankingConnection, Page } from '../types';
+import { loadPendingConnection, removePendingConnection } from '../utils/enableBankingStorage';
 
 interface EnableBankingCallbackProps {
   connections: EnableBankingConnection[];
@@ -29,7 +30,15 @@ const EnableBankingCallback: React.FC<EnableBankingCallbackProps> = ({
       return;
     }
 
-    const connection = connections.find(c => c.id === state);
+    let connection: EnableBankingConnection | undefined = connections.find(c => c.id === state);
+    if (!connection) {
+      const pendingConnection = loadPendingConnection(state);
+      if (pendingConnection) {
+        connection = pendingConnection;
+        setConnections(prev => prev.some(conn => conn.id === pendingConnection.id) ? prev : [...prev, pendingConnection]);
+      }
+    }
+
     if (!connection) {
       setError('Could not find a matching connection for this callback.');
       return;
@@ -64,6 +73,7 @@ const EnableBankingCallback: React.FC<EnableBankingCallbackProps> = ({
           authorizationId: undefined,
           status: 'ready',
         } : conn));
+        removePendingConnection(connection.id);
 
         setMessage('Session created. Syncing accounts...');
         await onSync(connection.id);
@@ -77,7 +87,7 @@ const EnableBankingCallback: React.FC<EnableBankingCallbackProps> = ({
     };
 
     exchangeSession();
-  }, [connections, setConnections, onSync, setCurrentPage]);
+  }, [authToken, connections, onSync, setConnections, setCurrentPage]);
 
   return (
     <div className="max-w-lg mx-auto mt-20 p-6 rounded-xl bg-white dark:bg-dark-surface shadow-lg text-center animate-fade-in-up">
