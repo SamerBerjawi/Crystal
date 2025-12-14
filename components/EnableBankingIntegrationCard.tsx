@@ -578,11 +578,19 @@ const EnableBankingIntegrationCard: React.FC<EnableBankingIntegrationCardProps> 
                         const accountLastFour = account.iban?.slice(-4) || account.accountNumber?.slice(-4);
                         const rowKey = keyPrefix(account.id);
 
-                        const rowState = linkingState[rowKey] || {
-                          accountId: account.linkedAccountId || '',
-                          syncStartDate: connection.syncStartDate,
-                          mode: account.linkedAccountId ? 'existing' : 'create',
-                          newAccountName: account.name,
+                        const savedState = linkingState[rowKey] || {};
+                        const defaultSyncStart = clampSyncDate(
+                          savedState.syncStartDate ||
+                            account.syncStartDate ||
+                            connection.syncStartDate ||
+                            ninetyDaysAgoStr
+                        );
+                        const rowState = {
+                          mode: savedState.mode || (account.linkedAccountId ? 'existing' : 'create'),
+                          accountId: savedState.accountId ?? account.linkedAccountId ?? '',
+                          syncStartDate: defaultSyncStart,
+                          newAccountName: savedState.newAccountName ?? account.name,
+                          newAccountType: savedState.newAccountType ?? ('Checking' as AccountType),
                         };
 
                         return (
