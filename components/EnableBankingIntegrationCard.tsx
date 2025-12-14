@@ -1,7 +1,7 @@
 import React, { useEffect, useMemo, useState } from 'react';
 import Card from './Card';
 import { INPUT_BASE_STYLE } from '../constants';
-import { Account, AccountType, EnableBankingConnection, EnableBankingLinkPayload } from '../types';
+import { Account, AccountType, EnableBankingConnection, EnableBankingLinkPayload, EnableBankingSyncMode, EnableBankingSyncOptions } from '../types';
 import { toLocalISOString } from '../utils';
 
 interface EnableBankingIntegrationCardProps {
@@ -22,7 +22,11 @@ interface EnableBankingIntegrationCardProps {
     providerAccountId: string,
     payload: EnableBankingLinkPayload
   ) => void;
-  onTriggerSync: (connectionId: string, connectionOverride?: EnableBankingConnection) => void | Promise<void>;
+  onTriggerSync: (
+    connectionId: string,
+    connectionOverride?: EnableBankingConnection,
+    options?: EnableBankingSyncOptions
+  ) => void | Promise<void>;
 }
 
 const EnableBankingIntegrationCard: React.FC<EnableBankingIntegrationCardProps> = ({
@@ -53,6 +57,9 @@ const EnableBankingIntegrationCard: React.FC<EnableBankingIntegrationCardProps> 
       }
     >
   >({});
+  const [syncDialog, setSyncDialog] = useState<
+    { connectionId: string; transactionMode: EnableBankingSyncMode; updateBalances: boolean } | null
+  >(null);
   const autoSyncedConnections = React.useRef<Set<string>>(new Set());
   const [bankOptions, setBankOptions] = useState<{ id: string; name: string; country?: string }[]>([]);
   const [banksLoading, setBanksLoading] = useState(false);
@@ -158,6 +165,23 @@ const EnableBankingIntegrationCard: React.FC<EnableBankingIntegrationCardProps> 
         ...updates,
       },
     }));
+  };
+
+  const openSyncDialog = (connectionId: string) => {
+    setSyncDialog({ connectionId, transactionMode: 'incremental', updateBalances: true });
+  };
+
+  const handleSyncDialogChange = (updates: Partial<{ transactionMode: EnableBankingSyncMode; updateBalances: boolean }>) => {
+    setSyncDialog(prev => (prev ? { ...prev, ...updates } : prev));
+  };
+
+  const confirmSyncDialog = () => {
+    if (!syncDialog) return;
+    onTriggerSync(syncDialog.connectionId, undefined, {
+      transactionMode: syncDialog.transactionMode,
+      updateBalances: syncDialog.updateBalances,
+    });
+    setSyncDialog(null);
   };
 
   const renderStatusBadge = (status: EnableBankingConnection['status']) => {
@@ -321,7 +345,7 @@ const EnableBankingIntegrationCard: React.FC<EnableBankingIntegrationCardProps> 
                   </div>
                   <div className="flex items-center gap-2">
                     <button
-                      onClick={() => onTriggerSync(connection.id)}
+                      onClick={() => openSyncDialog(connection.id)}
                       className="inline-flex items-center gap-1 px-3 py-2 rounded-lg bg-emerald-600 text-white text-xs font-semibold hover:bg-emerald-700"
                     >
                       <span className="material-symbols-outlined text-sm">sync</span>
@@ -361,7 +385,7 @@ const EnableBankingIntegrationCard: React.FC<EnableBankingIntegrationCardProps> 
                                 </p>
                               )}
                               <button
-                                onClick={() => onTriggerSync(connection.id)}
+                                onClick={() => openSyncDialog(connection.id)}
                                 className="mt-2 inline-flex items-center gap-1 px-3 py-2 rounded-lg bg-light-surface-secondary dark:bg-dark-surface-secondary text-light-text dark:text-dark-text text-xs font-semibold"
                               >
                                 <span className="material-symbols-outlined text-sm">refresh</span>
@@ -545,6 +569,102 @@ const EnableBankingIntegrationCard: React.FC<EnableBankingIntegrationCardProps> 
         </div>
       </div>
     </Card>
+
+    {syncDialog && (
+      <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 px-4">
+        <div className="bg-white dark:bg-dark-surface rounded-xl shadow-xl w-full max-w-lg p-5 space-y-4 animate-fade-in-up">
+          <div className="flex items-start justify-between gap-3">
+            <div>
+              <h4 className="text-base font-semibold text-light-text dark:text-dark-text">Sync options</h4>
+              <p className="text-sm text-light-text-secondary dark:text-dark-text-secondary">
+                Choose how you want to pull data from the bank connection.
+              </p>
+            </div>
+            <button
+              onClick={() => setSyncDialog(null)}
+              className="p-2 rounded-lg bg-light-surface-secondary dark:bg-dark-surface-secondary text-light-text dark:text-dark-text"
+            >
+              <span className="material-symbols-outlined">close</span>
+            </button>
+          </div>
+
+          <div className="space-y-3">
+            <p className="text-xs uppercase tracking-wide text-light-text-secondary dark:text-dark-text-secondary">Transactions</p>
+            <label className="flex items-start gap-3 p-3 rounded-lg border border-black/5 dark:border-white/10 hover:border-primary-500 dark:hover:border-primary-500 cursor-pointer">
+              <input
+                type="radio"
+                name="eb-sync-mode"
+                className="mt-1"
+                checked={syncDialog.transactionMode === 'full'}
+                onChange={() => handleSyncDialogChange({ transactionMode: 'full' })}
+              />
+              <div>
+                <div className="font-semibold text-light-text dark:text-dark-text">Sync all transactions</div>
+                <div className="text-sm text-light-text-secondary dark:text-dark-text-secondary">
+                  Import everything from the configured sync start date.
+                </div>
+              </div>
+            </label>
+
+            <label className="flex items-start gap-3 p-3 rounded-lg border border-black/5 dark:border-white/10 hover:border-primary-500 dark:hover:border-primary-500 cursor-pointer">
+              <input
+                type="radio"
+                name="eb-sync-mode"
+                className="mt-1"
+                checked={syncDialog.transactionMode === 'incremental'}
+                onChange={() => handleSyncDialogChange({ transactionMode: 'incremental' })}
+              />
+              <div>
+                <div className="font-semibold text-light-text dark:text-dark-text">Sync new transactions</div>
+                <div className="text-sm text-light-text-secondary dark:text-dark-text-secondary">
+                  Only fetch items since the last completed sync.
+                </div>
+              </div>
+            </label>
+
+            <label className="flex items-start gap-3 p-3 rounded-lg border border-black/5 dark:border-white/10 hover:border-primary-500 dark:hover:border-primary-500 cursor-pointer">
+              <input
+                type="radio"
+                name="eb-sync-mode"
+                className="mt-1"
+                checked={syncDialog.transactionMode === 'none'}
+                onChange={() => handleSyncDialogChange({ transactionMode: 'none' })}
+              />
+              <div>
+                <div className="font-semibold text-light-text dark:text-dark-text">Skip transaction sync</div>
+                <div className="text-sm text-light-text-secondary dark:text-dark-text-secondary">
+                  Use this if you just need to refresh balances or account details.
+                </div>
+              </div>
+            </label>
+          </div>
+
+          <label className="flex items-center gap-2 text-sm font-semibold text-light-text dark:text-dark-text">
+            <input
+              type="checkbox"
+              checked={syncDialog.updateBalances}
+              onChange={(e) => handleSyncDialogChange({ updateBalances: e.target.checked })}
+            />
+            Update balances during sync
+          </label>
+
+          <div className="flex justify-end gap-2 pt-2">
+            <button
+              onClick={() => setSyncDialog(null)}
+              className="px-4 py-2 rounded-lg bg-light-surface-secondary dark:bg-dark-surface-secondary text-light-text dark:text-dark-text text-sm font-semibold"
+            >
+              Cancel
+            </button>
+            <button
+              onClick={confirmSyncDialog}
+              className="px-4 py-2 rounded-lg bg-primary-600 text-white text-sm font-semibold hover:bg-primary-700"
+            >
+              Start sync
+            </button>
+          </div>
+        </div>
+      </div>
+    )}
   );
 };
 
