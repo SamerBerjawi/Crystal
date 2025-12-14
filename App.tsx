@@ -96,6 +96,63 @@ import { AccountsProvider, PreferencesProvider, TransactionsProvider, WarrantsPr
 import { InsightsViewProvider } from './contexts/InsightsViewContext';
 import { persistPendingConnection, removePendingConnection } from './utils/enableBankingStorage';
 
+const IBAN_REGEX = /^[A-Z]{2}[0-9]{2}[A-Z0-9]{9,30}$/i;
+
+const normalizeIban = (value?: string | null) => {
+  if (!value) return undefined;
+  const cleaned = value.replace(/[^A-Za-z0-9]/g, '');
+  return IBAN_REGEX.test(cleaned) ? cleaned.toUpperCase() : undefined;
+};
+
+const findIbanCandidate = (...sources: any[]): string | undefined => {
+  const visited = new WeakSet<object>();
+
+  const search = (input: any): string | undefined => {
+    if (!input) return undefined;
+
+    if (typeof input === 'string') {
+      return normalizeIban(input);
+    }
+
+    if (typeof input !== 'object') {
+      return undefined;
+    }
+
+    if (visited.has(input)) return undefined;
+    visited.add(input);
+
+    if (Array.isArray(input)) {
+      for (const item of input) {
+        const result = search(item);
+        if (result) return result;
+      }
+      return undefined;
+    }
+
+    for (const [key, value] of Object.entries(input)) {
+      if (/iban/i.test(key)) {
+        const prioritizedValue = typeof value === 'string' ? value : (value as any)?.iban ?? (value as any)?.id ?? value;
+        const normalized = normalizeIban(prioritizedValue as any);
+        if (normalized) return normalized;
+      }
+    }
+
+    for (const value of Object.values(input)) {
+      const result = search(value);
+      if (result) return result;
+    }
+
+    return undefined;
+  };
+
+  for (const source of sources) {
+    const result = search(source);
+    if (result) return result;
+  }
+
+  return undefined;
+};
+
 const routePathMap: Record<Page, string> = {
   Dashboard: '/',
   Accounts: '/accounts',
@@ -1994,7 +2051,17 @@ const App: React.FC = () => {
 
         const detailSource = (details?.account || details?.details || details) as any;
         const detailName = detailSource?.name || detailSource?.product || detailSource?.display_name;
-        const detailIban = detailSource?.iban || detailSource?.account_id?.iban;
+        const accountIban =
+          findIbanCandidate(
+            detailSource,
+            detailSource?.account,
+            detailSource?.account_id,
+            account,
+            account?.account,
+            account?.account_id,
+            account?.resource,
+            existing?.accountNumber,
+          );
 
         updatedAccounts.push({
           id: providerAccountId,
@@ -2002,7 +2069,7 @@ const App: React.FC = () => {
           bankName: connection.selectedBank || 'Enable Banking',
           currency,
           balance: updateBalance ? numericBalance : existing?.balance ?? numericBalance,
-          accountNumber: detailIban || account?.iban || account?.account_id?.iban || existing?.accountNumber,
+          accountNumber: accountIban || account?.iban || account?.account_id?.iban || existing?.accountNumber,
           linkedAccountId: existing?.linkedAccountId,
           syncStartDate: existing?.syncStartDate || baseSyncStart,
           lastSyncedAt: shouldMarkSynced ? now : existing?.lastSyncedAt,
