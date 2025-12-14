@@ -1,7 +1,7 @@
 import React, { useEffect, useMemo, useState } from 'react';
 import Card from './Card';
 import { INPUT_BASE_STYLE } from '../constants';
-import { Account, AccountType, EnableBankingConnection, EnableBankingLinkPayload } from '../types';
+import { Account, AccountType, EnableBankingConnection, EnableBankingLinkPayload, EnableBankingSyncOptions } from '../types';
 import { toLocalISOString } from '../utils';
 
 interface EnableBankingIntegrationCardProps {
@@ -22,7 +22,7 @@ interface EnableBankingIntegrationCardProps {
     providerAccountId: string,
     payload: EnableBankingLinkPayload
   ) => void;
-  onTriggerSync: (connectionId: string, connectionOverride?: EnableBankingConnection) => void | Promise<void>;
+  onTriggerSync: (connectionId: string, connectionOverride?: EnableBankingConnection, options?: EnableBankingSyncOptions) => void | Promise<void>;
 }
 
 const EnableBankingIntegrationCard: React.FC<EnableBankingIntegrationCardProps> = ({
@@ -57,6 +57,11 @@ const EnableBankingIntegrationCard: React.FC<EnableBankingIntegrationCardProps> 
   const [bankOptions, setBankOptions] = useState<{ id: string; name: string; country?: string }[]>([]);
   const [banksLoading, setBanksLoading] = useState(false);
   const [banksError, setBanksError] = useState<string | null>(null);
+  const [syncPrompt, setSyncPrompt] = useState<{
+    connectionId: string;
+    transactionMode: EnableBankingSyncOptions['transactionMode'];
+    updateBalance: boolean;
+  } | null>(null);
 
   const todayStr = useMemo(() => toLocalISOString(new Date()), []);
   const ninetyDaysAgoStr = useMemo(
@@ -118,6 +123,35 @@ const EnableBankingIntegrationCard: React.FC<EnableBankingIntegrationCardProps> 
     } finally {
       setBanksLoading(false);
     }
+  };
+
+  const openSyncPrompt = (connection: EnableBankingConnection) => {
+    const hasCompletedSync =
+      Boolean(connection.lastSyncedAt) || connection.accounts?.some(acc => acc.lastSyncedAt);
+
+    setSyncPrompt({
+      connectionId: connection.id,
+      transactionMode: hasCompletedSync ? 'since_last' : 'full',
+      updateBalance: true,
+    });
+  };
+
+  const confirmSync = () => {
+    if (!syncPrompt) return;
+
+    if (syncPrompt.transactionMode === 'none' && !syncPrompt.updateBalance) {
+      alert('Select at least one sync option to continue.');
+      return;
+    }
+
+    const connectionOverride = connections.find(conn => conn.id === syncPrompt.connectionId);
+
+    onTriggerSync(syncPrompt.connectionId, connectionOverride, {
+      transactionMode: syncPrompt.transactionMode,
+      updateBalance: syncPrompt.updateBalance,
+    });
+
+    setSyncPrompt(null);
   };
 
   const handleCreate = () => {
@@ -207,6 +241,102 @@ const EnableBankingIntegrationCard: React.FC<EnableBankingIntegrationCardProps> 
           <div>Session-based sync</div>
         </div>
       </div>
+
+      {syncPrompt && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 px-4">
+          <div className="w-full max-w-lg bg-white dark:bg-dark-surface rounded-xl shadow-xl p-6 space-y-4">
+            <div className="flex items-start justify-between gap-3">
+              <div>
+                <h4 className="text-lg font-semibold text-light-text dark:text-dark-text">Sync Enable Banking connection</h4>
+                <p className="text-sm text-light-text-secondary dark:text-dark-text-secondary">
+                  Choose what to sync for this connection. You can import all historical transactions, only the new ones, or just refresh balances.
+                </p>
+              </div>
+              <button
+                onClick={() => setSyncPrompt(null)}
+                className="text-light-text-secondary dark:text-dark-text-secondary hover:text-light-text hover:dark:text-white"
+                aria-label="Close sync options"
+              >
+                <span className="material-symbols-outlined">close</span>
+              </button>
+            </div>
+
+            <div className="space-y-3">
+              <h5 className="text-sm font-semibold text-light-text dark:text-dark-text">Transactions</h5>
+              <label className="flex items-start gap-3 text-sm text-light-text dark:text-dark-text">
+                <input
+                  type="radio"
+                  name="enable-banking-transaction-mode"
+                  value="full"
+                  checked={syncPrompt.transactionMode === 'full'}
+                  onChange={() => setSyncPrompt(prev => prev ? { ...prev, transactionMode: 'full' } : prev)}
+                />
+                <div>
+                  <div className="font-semibold">Sync all transactions from the configured start date</div>
+                  <div className="text-xs text-light-text-secondary dark:text-dark-text-secondary">Use the sync start date set when linking accounts.</div>
+                </div>
+              </label>
+
+              <label className="flex items-start gap-3 text-sm text-light-text dark:text-dark-text">
+                <input
+                  type="radio"
+                  name="enable-banking-transaction-mode"
+                  value="since_last"
+                  checked={syncPrompt.transactionMode === 'since_last'}
+                  onChange={() => setSyncPrompt(prev => prev ? { ...prev, transactionMode: 'since_last' } : prev)}
+                />
+                <div>
+                  <div className="font-semibold">Sync new transactions since the last completed sync</div>
+                  <div className="text-xs text-light-text-secondary dark:text-dark-text-secondary">Only fetch transactions after the most recent successful sync.</div>
+                </div>
+              </label>
+
+              <label className="flex items-start gap-3 text-sm text-light-text dark:text-dark-text">
+                <input
+                  type="radio"
+                  name="enable-banking-transaction-mode"
+                  value="none"
+                  checked={syncPrompt.transactionMode === 'none'}
+                  onChange={() => setSyncPrompt(prev => prev ? { ...prev, transactionMode: 'none' } : prev)}
+                />
+                <div>
+                  <div className="font-semibold">Skip transaction import</div>
+                  <div className="text-xs text-light-text-secondary dark:text-dark-text-secondary">Use this when you only want to refresh balances.</div>
+                </div>
+              </label>
+            </div>
+
+            <div className="pt-2">
+              <label className="flex items-center gap-3 text-sm text-light-text dark:text-dark-text">
+                <input
+                  type="checkbox"
+                  checked={syncPrompt.updateBalance}
+                  onChange={e => setSyncPrompt(prev => prev ? { ...prev, updateBalance: e.target.checked } : prev)}
+                />
+                <div>
+                  <div className="font-semibold">Update balances</div>
+                  <div className="text-xs text-light-text-secondary dark:text-dark-text-secondary">Refresh balances for any linked accounts.</div>
+                </div>
+              </label>
+            </div>
+
+            <div className="flex justify-end gap-3 pt-2">
+              <button
+                onClick={() => setSyncPrompt(null)}
+                className="px-4 py-2 rounded-lg bg-light-surface-secondary dark:bg-dark-surface-secondary text-sm font-semibold text-light-text dark:text-dark-text"
+              >
+                Cancel
+              </button>
+              <button
+                onClick={confirmSync}
+                className="px-4 py-2 rounded-lg bg-emerald-600 text-white text-sm font-semibold hover:bg-emerald-700"
+              >
+                Start sync
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
 
       <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
         <div className="space-y-4">
@@ -321,7 +451,7 @@ const EnableBankingIntegrationCard: React.FC<EnableBankingIntegrationCardProps> 
                   </div>
                   <div className="flex items-center gap-2">
                     <button
-                      onClick={() => onTriggerSync(connection.id)}
+                      onClick={() => openSyncPrompt(connection)}
                       className="inline-flex items-center gap-1 px-3 py-2 rounded-lg bg-emerald-600 text-white text-xs font-semibold hover:bg-emerald-700"
                     >
                       <span className="material-symbols-outlined text-sm">sync</span>
@@ -361,7 +491,7 @@ const EnableBankingIntegrationCard: React.FC<EnableBankingIntegrationCardProps> 
                                 </p>
                               )}
                               <button
-                                onClick={() => onTriggerSync(connection.id)}
+                                onClick={() => openSyncPrompt(connection)}
                                 className="mt-2 inline-flex items-center gap-1 px-3 py-2 rounded-lg bg-light-surface-secondary dark:bg-dark-surface-secondary text-light-text dark:text-dark-text text-xs font-semibold"
                               >
                                 <span className="material-symbols-outlined text-sm">refresh</span>
