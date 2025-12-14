@@ -578,7 +578,7 @@ const EnableBankingIntegrationCard: React.FC<EnableBankingIntegrationCardProps> 
                         const accountLastFour = account.iban?.slice(-4) || account.accountNumber?.slice(-4);
                         const rowKey = keyPrefix(account.id);
 
-                        const rowState = linkStates[rowKey] || {
+                        const rowState = linkingState[rowKey] || {
                           accountId: account.linkedAccountId || '',
                           syncStartDate: connection.syncStartDate,
                           mode: account.linkedAccountId ? 'existing' : 'create',
