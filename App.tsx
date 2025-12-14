@@ -80,7 +80,7 @@ const pagePreloaders = [
 // UserManagement is removed
 // FIX: Import FinancialData from types.ts
 // FIX: Add `Tag` to the import from `types.ts`.
-import { Page, Theme, Category, User, Transaction, Account, RecurringTransaction, RecurringTransactionOverride, WeekendAdjustment, FinancialGoal, Budget, ImportExportHistoryItem, AppPreferences, AccountType, InvestmentTransaction, Task, Warrant, ImportDataType, FinancialData, Currency, BillPayment, BillPaymentStatus, Duration, InvestmentSubType, Tag, LoanPaymentOverrides, ScheduledPayment, Membership, Invoice, UserStats, Prediction, PriceHistoryEntry, EnableBankingConnection, EnableBankingAccount, EnableBankingLinkPayload } from './types';
+import { Page, Theme, Category, User, Transaction, Account, RecurringTransaction, RecurringTransactionOverride, WeekendAdjustment, FinancialGoal, Budget, ImportExportHistoryItem, AppPreferences, AccountType, InvestmentTransaction, Task, Warrant, ImportDataType, FinancialData, Currency, BillPayment, BillPaymentStatus, Duration, InvestmentSubType, Tag, LoanPaymentOverrides, ScheduledPayment, Membership, Invoice, UserStats, Prediction, PriceHistoryEntry, EnableBankingConnection, EnableBankingAccount, EnableBankingLinkPayload, EnableBankingSyncOptions } from './types';
 import { MOCK_INCOME_CATEGORIES, MOCK_EXPENSE_CATEGORIES, LIQUID_ACCOUNT_TYPES } from './constants';
 import { v4 as uuidv4 } from 'uuid';
 import ChatFab from './components/ChatFab';
@@ -1777,7 +1777,50 @@ const App: React.FC = () => {
     const signedAmount = Number(amountRaw) * (creditDebit === 'CRDT' ? 1 : -1);
 
     const date = providerTx?.booking_date || providerTx?.bookingDate || providerTx?.value_date || providerTx?.valueDate;
-    const description = providerTx?.remittance_information_unstructured || providerTx?.remittanceInformationUnstructured || providerTx?.entry_reference || providerTx?.entryReference || providerTx?.transaction_id || 'Transaction';
+
+    const merchantCandidates = [
+      providerTx?.merchant_name,
+      providerTx?.merchantName,
+      providerTx?.merchant?.name,
+      providerTx?.creditor_name,
+      providerTx?.creditorName,
+      providerTx?.creditor?.name,
+      providerTx?.debtor_name,
+      providerTx?.debtorName,
+      providerTx?.debtor?.name,
+      providerTx?.ultimate_debtor,
+      providerTx?.ultimateDebtor,
+      providerTx?.ultimate_creditor,
+      providerTx?.ultimateCreditor,
+    ];
+    const merchant = merchantCandidates.find(val => typeof val === 'string' && val.trim().length > 0);
+
+    const descriptionCandidates = [
+      providerTx?.remittance_information_unstructured,
+      providerTx?.remittanceInformationUnstructured,
+      providerTx?.remittance_information_unstructured_array?.[0],
+      providerTx?.remittanceInformationUnstructuredArray?.[0],
+      providerTx?.remittance_information_structured?.reference,
+      providerTx?.remittanceInformationStructured?.reference,
+      providerTx?.booking_text,
+      providerTx?.bookingText,
+      providerTx?.additional_information,
+      providerTx?.additionalInformation,
+      providerTx?.transaction_description,
+      providerTx?.transactionDescription,
+      providerTx?.description,
+      providerTx?.payment_product,
+      providerTx?.paymentProduct,
+      merchant,
+      providerTx?.creditor_name,
+      providerTx?.creditorName,
+      providerTx?.debtor_name,
+      providerTx?.debtorName,
+      providerTx?.entry_reference,
+      providerTx?.entryReference,
+    ];
+    const description = descriptionCandidates.find(val => typeof val === 'string' && val.trim().length > 0) || 'Transaction';
+
     const idSource = providerTx?.transaction_id || providerTx?.transactionId || providerTx?.entry_reference || providerTx?.entryReference || uuidv4();
 
     return {
@@ -1785,6 +1828,7 @@ const App: React.FC = () => {
       accountId,
       date: date || new Date().toISOString().slice(0, 10),
       description,
+      merchant: merchant || undefined,
       amount: signedAmount,
       category: 'Uncategorized',
       type: signedAmount >= 0 ? 'income' : 'expense',
@@ -1796,6 +1840,7 @@ const App: React.FC = () => {
   const handleSyncEnableBankingConnection = useCallback(async (
     connectionId: string,
     connectionOverride?: EnableBankingConnection,
+    syncOptions?: EnableBankingSyncOptions,
   ) => {
     if (!token) {
       alert('Please sign in to sync Enable Banking connections.');
@@ -1808,8 +1853,13 @@ const App: React.FC = () => {
       return;
     }
 
+    const transactionMode = syncOptions?.transactionMode || 'full';
+    const shouldSyncTransactions = transactionMode !== 'none';
+    const shouldUpdateBalances = syncOptions?.updateBalances ?? true;
+
     const safeAccounts = connection.accounts || [];
     const now = new Date().toISOString();
+    const defaultSyncStart = toLocalISOString(new Date(Date.now() - 90 * 24 * 60 * 60 * 1000));
 
     try {
       setEnableBankingConnections(prev => prev.map(conn => conn.id === connectionId ? { ...conn, status: 'pending', lastError: undefined } : conn));
@@ -1934,69 +1984,109 @@ const App: React.FC = () => {
         const { amount: numericBalance, currency: balanceCurrency } = extractBalance(preferredBalance);
         const currency = (account?.currency || balanceCurrency || details?.currency || existing?.currency || 'EUR') as Currency;
 
-        const syncStart = existing?.syncStartDate || toLocalISOString(new Date(Date.now() - 90 * 24 * 60 * 60 * 1000));
+        const baseSyncStart = existing?.syncStartDate || defaultSyncStart;
+        const minSyncStartDate = new Date(baseSyncStart);
+        const incrementalStartDateRaw = existing?.lastSyncedAt || connection.lastSyncedAt || existing?.syncStartDate;
+        const incrementalStartDate = incrementalStartDateRaw ? new Date(incrementalStartDateRaw) : minSyncStartDate;
+        const chosenStartDate = transactionMode === 'incremental' ? incrementalStartDate : minSyncStartDate;
+        const syncStartDate = chosenStartDate < minSyncStartDate ? minSyncStartDate : chosenStartDate;
+        const syncStart = toLocalISOString(syncStartDate);
+
         let continuationKey: string | undefined;
         let transactionsPage: any = null;
         const providerTransactions: any[] = [];
 
-        do {
-          transactionsPage = await fetchWithAuth(`/api/enable-banking/accounts/${encodeURIComponent(providerAccountId)}/transactions`, {
-            method: 'POST',
-            body: JSON.stringify({
-              applicationId: connection.applicationId,
-              clientCertificate: connection.clientCertificate,
-              dateFrom: syncStart,
-              continuationKey,
-            }),
-          }).then(res => res.json());
-          const pageItems = transactionsPage?.transactions || transactionsPage?.booked || [];
-          providerTransactions.push(...pageItems);
-          continuationKey = transactionsPage?.continuation_key || transactionsPage?.continuationKey;
-        } while (continuationKey);
+        if (shouldSyncTransactions) {
+          do {
+            transactionsPage = await fetchWithAuth(`/api/enable-banking/accounts/${encodeURIComponent(providerAccountId)}/transactions`, {
+              method: 'POST',
+              body: JSON.stringify({
+                applicationId: connection.applicationId,
+                clientCertificate: connection.clientCertificate,
+                dateFrom: syncStart,
+                continuationKey,
+              }),
+            }).then(res => res.json());
+            const pageItems = transactionsPage?.transactions || transactionsPage?.booked || [];
+            providerTransactions.push(...pageItems);
+            continuationKey = transactionsPage?.continuation_key || transactionsPage?.continuationKey;
+          } while (continuationKey);
+        }
 
-        const mappedTx = providerTransactions
-          .map(tx => mapProviderTransaction(tx, existing?.linkedAccountId || '', currency, connectionId))
-          .filter((tx): tx is Transaction => Boolean(tx) && Boolean(tx.accountId));
+        if (shouldSyncTransactions) {
+          const mappedTx = providerTransactions
+            .map(tx => mapProviderTransaction(tx, existing?.linkedAccountId || '', currency, connectionId))
+            .filter((tx): tx is Transaction => Boolean(tx) && Boolean(tx.accountId));
 
-        importedTransactions.push(...mappedTx);
+          importedTransactions.push(...mappedTx);
+        }
 
         const detailSource = (details?.account || details?.details || details) as any;
         const detailName = detailSource?.name || detailSource?.product || detailSource?.display_name;
-        const detailIban = detailSource?.iban || detailSource?.account_id?.iban;
+        const accountIdentifiers = [
+          detailSource?.iban,
+          detailSource?.masked_iban,
+          detailSource?.account_id?.iban,
+          detailSource?.account_id?.account_identifier,
+          detailSource?.account_id?.accountNumber,
+          detailSource?.account?.iban,
+          detailSource?.account?.account_id?.iban,
+          detailSource?.account?.account_identification?.iban,
+          detailSource?.resource?.iban,
+          detailSource?.identification?.iban,
+          detailSource?.account_number,
+          account?.iban,
+          account?.iban?.iban,
+          account?.account_id?.iban,
+          account?.account_id?.account_identifier,
+          account?.account?.iban,
+          account?.account?.account_id?.iban,
+          account?.resource?.iban,
+          account?.masked_iban,
+          existing?.accountNumber,
+        ];
+        const detailIbanCandidate = accountIdentifiers.find(val => typeof val === 'string' && val.trim().length > 0);
+        const normalizedIban = detailIbanCandidate ? detailIbanCandidate.replace(/\s+/g, '').toUpperCase() : undefined;
+        const balanceForAccount = shouldUpdateBalances ? numericBalance : existing?.balance ?? numericBalance;
+        const accountLastSyncedAt = shouldSyncTransactions || shouldUpdateBalances ? now : existing?.lastSyncedAt;
 
         updatedAccounts.push({
           id: providerAccountId,
           name: detailName || account?.name || account?.product || account?.account_id?.iban || account?.iban || 'Bank account',
           bankName: connection.selectedBank || 'Enable Banking',
           currency,
-          balance: numericBalance,
-          accountNumber: detailIban || account?.iban || account?.account_id?.iban || existing?.accountNumber,
+          balance: balanceForAccount,
+          accountNumber: normalizedIban,
           linkedAccountId: existing?.linkedAccountId,
           syncStartDate: existing?.syncStartDate || syncStart,
-          lastSyncedAt: now,
+          lastSyncedAt: accountLastSyncedAt,
         });
       }
 
       const finalAccounts = updatedAccounts.length > 0 ? updatedAccounts : safeAccounts;
 
-      // Update account balances when linked
-      const updatedAccountState = accounts.map(acc => {
-        const linked = finalAccounts.find(a => a.linkedAccountId === acc.id);
-        if (!linked) return acc;
-        return { ...acc, balance: linked.balance, currency: linked.currency };
-      });
-      setAccounts(updatedAccountState);
+      if (shouldUpdateBalances) {
+        const updatedAccountState = accounts.map(acc => {
+          const linked = finalAccounts.find(a => a.linkedAccountId === acc.id);
+          if (!linked) return acc;
+          return { ...acc, balance: linked.balance, currency: linked.currency };
+        });
+        setAccounts(updatedAccountState);
+      }
 
-      // Replace imported transactions for linked accounts
-      const importIds = new Set(importedTransactions.map(tx => tx.importId));
-      const filteredTransactions = transactions.filter(tx => tx.importId ? !importIds.has(tx.importId) : true);
-      setTransactions([...filteredTransactions, ...importedTransactions]);
+      if (shouldSyncTransactions) {
+        const importIds = new Set(importedTransactions.map(tx => tx.importId));
+        const filteredTransactions = transactions.filter(tx => tx.importId ? !importIds.has(tx.importId) : true);
+        setTransactions([...filteredTransactions, ...importedTransactions]);
+      }
+
+      const connectionLastSyncedAt = shouldSyncTransactions || shouldUpdateBalances ? now : connection.lastSyncedAt;
 
       setEnableBankingConnections(prev => prev.map(conn => conn.id === connectionId ? {
         ...conn,
         status: 'ready',
         lastError: undefined,
-        lastSyncedAt: now,
+        lastSyncedAt: connectionLastSyncedAt,
         sessionExpiresAt: connection.sessionExpiresAt,
         accounts: finalAccounts,
       } : conn));
