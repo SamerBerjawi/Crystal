@@ -2056,12 +2056,17 @@ const App: React.FC = () => {
             detailSource,
             detailSource?.account,
             detailSource?.account_id,
+            detailSource?.identification,
+            detailSource?.account?.identification,
             account,
             account?.account,
             account?.account_id,
+            account?.identification,
             account?.resource,
+            balances,
             existing?.accountNumber,
           );
+        const normalizedAccountIban = normalizeIban(accountIban);
 
         updatedAccounts.push({
           id: providerAccountId,
@@ -2069,7 +2074,7 @@ const App: React.FC = () => {
           bankName: connection.selectedBank || 'Enable Banking',
           currency,
           balance: updateBalance ? numericBalance : existing?.balance ?? numericBalance,
-          accountNumber: accountIban || account?.iban || account?.account_id?.iban || existing?.accountNumber,
+          accountNumber: normalizedAccountIban || account?.iban || account?.account_id?.iban || existing?.accountNumber,
           linkedAccountId: existing?.linkedAccountId,
           syncStartDate: existing?.syncStartDate || baseSyncStart,
           lastSyncedAt: shouldMarkSynced ? now : existing?.lastSyncedAt,
