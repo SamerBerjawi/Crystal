@@ -1710,31 +1710,51 @@ const App: React.FC = () => {
       name: item.name || item.full_name || item.fullName || 'Bank',
       country: item.country || countryCode,
     }));
-  }, [fetchWithAuth, token]);
+  }, [enableBankingConnections, fetchWithAuth, token]);
 
   const handleCreateEnableBankingConnection = useCallback(async (payload: {
     applicationId: string;
     countryCode: string;
     clientCertificate: string;
     selectedBank: string;
+    connectionId?: string;
   }) => {
     if (!token) {
       alert('You must be signed in to start an Enable Banking connection.');
       return;
     }
 
-    const connectionId = `eb-${uuidv4()}`;
-    const baseConnection: EnableBankingConnection = {
-      id: connectionId,
-      applicationId: payload.applicationId.trim(),
-      countryCode: payload.countryCode.trim().toUpperCase(),
-      clientCertificate: payload.clientCertificate.trim(),
-      status: 'pending',
-      selectedBank: payload.selectedBank,
-      accounts: [],
-    };
+    const connectionId = payload.connectionId || `eb-${uuidv4()}`;
+    const existingConnection = payload.connectionId
+      ? enableBankingConnections.find(conn => conn.id === payload.connectionId)
+      : undefined;
+    const baseConnection: EnableBankingConnection = existingConnection
+      ? {
+          ...existingConnection,
+          applicationId: payload.applicationId.trim(),
+          countryCode: payload.countryCode.trim().toUpperCase(),
+          clientCertificate: payload.clientCertificate.trim(),
+          status: 'pending',
+          selectedBank: payload.selectedBank,
+          authorizationId: undefined,
+          lastError: undefined,
+        }
+      : {
+          id: connectionId,
+          applicationId: payload.applicationId.trim(),
+          countryCode: payload.countryCode.trim().toUpperCase(),
+          clientCertificate: payload.clientCertificate.trim(),
+          status: 'pending',
+          selectedBank: payload.selectedBank,
+          accounts: [],
+        };
 
-    setEnableBankingConnections(prev => [...prev, baseConnection]);
+    setEnableBankingConnections(prev => {
+      if (existingConnection) {
+        return prev.map(conn => (conn.id === connectionId ? baseConnection : conn));
+      }
+      return [...prev, baseConnection];
+    });
     persistPendingConnection(baseConnection);
 
     try {
