@@ -22,9 +22,10 @@ interface AccountRowProps {
     onDrop: (e: React.DragEvent) => void;
     onDragEnd: (e: React.DragEvent) => void;
     onContextMenu: (e: React.MouseEvent) => void;
+    isLinkedToEnableBanking?: boolean;
 }
 
-const AccountRow: React.FC<AccountRowProps> = ({ account, transactions, warrants, onClick, onEdit, onAdjustBalance, isDraggable, isBeingDragged, isDragOver, onDragStart, onDragOver, onDragLeave, onDrop, onDragEnd, onContextMenu }) => {
+const AccountRow: React.FC<AccountRowProps> = ({ account, transactions, warrants, onClick, onEdit, onAdjustBalance, isDraggable, isBeingDragged, isDragOver, onDragStart, onDragOver, onDragLeave, onDrop, onDragEnd, onContextMenu, isLinkedToEnableBanking = false }) => {
     const { loanPaymentOverrides } = useScheduleContext();
 
     const handleEditClick = (e: React.MouseEvent) => {
@@ -195,9 +196,20 @@ const AccountRow: React.FC<AccountRowProps> = ({ account, transactions, warrants
                             <span className="material-symbols-outlined text-[20px]">{account.icon || styleConfig?.icon || 'wallet'}</span>
                         </div>
                         <div className="min-w-0">
-                            <h3 className="font-bold text-light-text dark:text-dark-text truncate text-sm leading-tight">
-                                {account.name}
-                            </h3>
+                            <div className="flex items-center gap-1 text-sm leading-tight">
+                                <h3 className="font-bold text-light-text dark:text-dark-text truncate">
+                                    {account.name}
+                                </h3>
+                                {isLinkedToEnableBanking && (
+                                  <span
+                                    className="material-symbols-outlined text-[14px] text-primary-500 shrink-0"
+                                    title="Linked via Enable Banking"
+                                    aria-label="Linked via Enable Banking"
+                                  >
+                                    link
+                                  </span>
+                                )}
+                            </div>
                             <p className="text-xs text-light-text-secondary dark:text-dark-text-secondary truncate font-medium mt-0.5 tracking-wide">
                                 {detailsText}
                                 {account.last4 && <span className="opacity-70 ml-1">•••• {account.last4}</span>}
