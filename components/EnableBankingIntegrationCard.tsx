@@ -413,117 +413,63 @@ const EnableBankingIntegrationCard: React.FC<EnableBankingIntegrationCardProps> 
         </div>
       </div>
 
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-        <div className="space-y-5">
-          <div className="p-4 rounded-lg bg-light-surface-secondary dark:bg-dark-surface-secondary border border-black/5 dark:border-white/5 space-y-3">
-            <div className="flex items-start justify-between gap-3">
-              <div>
-                <h4 className="text-sm font-semibold text-light-text dark:text-dark-text">Connection setup</h4>
-                <p className="text-xs text-light-text-secondary dark:text-dark-text-secondary">Save your credentials once, load banks for a country, then start a new session.</p>
-              </div>
-              <span className="px-2 py-1 rounded-full bg-black/5 dark:bg-white/10 text-[11px] font-semibold text-light-text-secondary dark:text-dark-text-secondary">Local only</span>
-            </div>
 
-            <div className="grid gap-3 sm:grid-cols-[1fr_auto] items-end">
-              <div>
-                <label className="text-xs text-light-text-secondary dark:text-dark-text-secondary block">Country code</label>
-                <input
-                  type="text"
-                  name="countryCode"
-                  value={formState.countryCode}
-                  onChange={handleFormChange}
-                  placeholder="FI"
-                  className={INPUT_BASE_STYLE}
-                />
-              </div>
-              <button
-                type="button"
-                onClick={loadBanks}
-                className="inline-flex items-center gap-2 px-3 py-2 rounded-lg bg-light-surface dark:bg-dark-surface text-sm font-semibold text-light-text dark:text-dark-text border border-black/5 dark:border-white/10"
-              >
-                {banksLoading ? (
-                  <>
-                    <span className="material-symbols-outlined text-sm animate-spin">progress_activity</span>
-                    Loading
-                  </>
-                ) : (
-                  <>
-                    <span className="material-symbols-outlined text-sm">refresh</span>
-                    Load banks
-                  </>
-                )}
-              </button>
-            </div>
-
+      <div className="space-y-5">
+        <div className="p-4 rounded-lg bg-light-surface-secondary dark:bg-dark-surface-secondary border border-black/5 dark:border-white/5 space-y-3">
+          <div className="flex items-start justify-between gap-3">
             <div>
-              <label className="text-xs text-light-text-secondary dark:text-dark-text-secondary block">Bank (loaded per country)</label>
-              <select
-                name="selectedBank"
-                value={formState.selectedBank}
-                onChange={handleFormChange}
-                className={`${INPUT_BASE_STYLE} w-full`}
-                disabled={banksLoading || bankOptions.length === 0}
-              >
-                {bankOptions.length === 0 && <option value="">Select a country and load banks</option>}
-                {bankOptions.map(option => (
-                  <option key={option.id} value={option.name}>{option.name}{option.country ? ` (${option.country})` : ''}</option>
-                ))}
-              </select>
-              {banksError && <p className="text-xs text-rose-600 dark:text-rose-300 mt-1">{banksError}</p>}
+              <h4 className="text-sm font-semibold text-light-text dark:text-dark-text">Connection setup</h4>
+              <p className="text-xs text-light-text-secondary dark:text-dark-text-secondary">Save your credentials once, load banks for a country, then start a new session.</p>
             </div>
+            <span className="px-2 py-1 rounded-full bg-black/5 dark:bg-white/10 text-[11px] font-semibold text-light-text-secondary dark:text-dark-text-secondary">Local only</span>
           </div>
 
-          <div className="p-4 rounded-lg border border-black/5 dark:border-white/10 space-y-3">
+          <div className="grid gap-3 sm:grid-cols-[1fr_auto] items-end">
             <div>
-              <h4 className="text-sm font-semibold text-light-text dark:text-dark-text">Credentials</h4>
-              <p className="text-xs text-light-text-secondary dark:text-dark-text-secondary">Stored locally in your browser. Keep them aligned with your Enable Banking project.</p>
-            </div>
-            <div className="space-y-2">
-              <label className="text-xs text-light-text-secondary dark:text-dark-text-secondary block">Application ID (kid)</label>
+              <label className="text-xs text-light-text-secondary dark:text-dark-text-secondary block">Country code</label>
               <input
                 type="text"
-                name="applicationId"
-                value={formState.applicationId}
+                name="countryCode"
+                value={formState.countryCode}
                 onChange={handleFormChange}
-                placeholder="app_xxxxx"
+                placeholder="FI"
                 className={INPUT_BASE_STYLE}
               />
             </div>
-            <div className="space-y-2">
-              <label className="text-xs text-light-text-secondary dark:text-dark-text-secondary block">Client certificate (PEM)</label>
-              <textarea
-                name="clientCertificate"
-                value={formState.clientCertificate}
-                onChange={handleFormChange}
-                placeholder="-----BEGIN PRIVATE KEY-----"
-                rows={4}
-                className={`${INPUT_BASE_STYLE} font-mono text-xs min-h-[120px]`}
-              />
-            </div>
+            <button
+              type="button"
+              onClick={loadBanks}
+              className="inline-flex items-center gap-2 px-3 py-2 rounded-lg bg-light-surface dark:bg-dark-surface text-sm font-semibold text-light-text dark:text-dark-text border border-black/5 dark:border-white/10"
+            >
+              {banksLoading ? (
+                <>
+                  <span className="material-symbols-outlined text-sm animate-spin">progress_activity</span>
+                  Loading
+                </>
+              ) : (
+                <>
+                  <span className="material-symbols-outlined text-sm">refresh</span>
+                  Load banks
+                </>
+              )}
+            </button>
           </div>
 
-          <div className="rounded-lg bg-primary-50 dark:bg-primary-900/10 border border-primary-100 dark:border-primary-800/30 p-4 space-y-3">
-            <div className="flex items-start gap-3">
-              <div className="w-10 h-10 rounded-lg bg-primary-600 text-white flex items-center justify-center">
-                <span className="material-symbols-outlined">bolt</span>
-              </div>
-              <div>
-                <h4 className="text-sm font-semibold text-light-text dark:text-dark-text">Authorize & sync</h4>
-                <p className="text-xs text-light-text-secondary dark:text-dark-text-secondary">Use your saved credentials and selected bank to start the Enable Banking redirect flow.</p>
-              </div>
-            </div>
-            <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
-              <button
-                onClick={handleCreate}
-                className="w-full sm:w-auto inline-flex items-center justify-center gap-2 px-4 py-3 rounded-lg bg-primary-600 text-white font-semibold hover:bg-primary-700 transition-colors"
-              >
-                <span className="material-symbols-outlined text-base">open_in_new</span>
-                Start authorization
-              </button>
-              <p className="text-xs text-light-text-secondary dark:text-dark-text-secondary sm:text-right">
-                You will be redirected to your bank. When you return, syncing begins for linked accounts using their start dates.
-              </p>
-            </div>
+          <div>
+            <label className="text-xs text-light-text-secondary dark:text-dark-text-secondary block">Bank (loaded per country)</label>
+            <select
+              name="selectedBank"
+              value={formState.selectedBank}
+              onChange={handleFormChange}
+              className={`${INPUT_BASE_STYLE} w-full`}
+              disabled={banksLoading || bankOptions.length === 0}
+            >
+              {bankOptions.length === 0 && <option value="">Select a country and load banks</option>}
+              {bankOptions.map(option => (
+                <option key={option.id} value={option.name}>{option.name}{option.country ? ` (${option.country})` : ''}</option>
+              ))}
+            </select>
+            {banksError && <p className="text-xs text-rose-600 dark:text-rose-300 mt-1">{banksError}</p>}
           </div>
         </div>
 
@@ -537,11 +483,11 @@ const EnableBankingIntegrationCard: React.FC<EnableBankingIntegrationCardProps> 
               <span className="text-[11px] px-2 py-1 rounded-full bg-black/5 dark:bg-white/10 text-light-text-secondary dark:text-dark-text-secondary">{connections.length} total</span>
             )}
           </div>
-            {connections.length === 0 && (
-              <div className="p-4 rounded-lg border border-dashed border-black/10 dark:border-white/10 text-sm text-light-text-secondary dark:text-dark-text-secondary">
+          {connections.length === 0 && (
+            <div className="p-4 rounded-lg border border-dashed border-black/10 dark:border-white/10 text-sm text-light-text-secondary dark:text-dark-text-secondary">
               No Enable Banking sessions yet. Create one to start syncing your real bank accounts and link them to existing ledgers.
-              </div>
-            )}
+            </div>
+          )}
 
           {connections.map(connection => {
             const providerAccounts = connection.accounts || [];
@@ -603,42 +549,41 @@ const EnableBankingIntegrationCard: React.FC<EnableBankingIntegrationCardProps> 
                         <th className="px-3 py-2">Actions</th>
                       </tr>
                     </thead>
-                      <tbody>
-                        {providerAccounts.length === 0 && (
-                          <tr className="border-t border-black/5 dark:border-white/5">
-                            <td className="px-3 py-3 text-sm" colSpan={5}>
-                              <div className="text-light-text-secondary dark:text-dark-text-secondary">
-                                No accounts fetched yet. Trigger a sync after completing bank authorization to load provider accounts.
-                              </div>
-                              {connection.lastError && (
-                                <p className="mt-2 text-rose-600 dark:text-rose-300">
-                                  {connection.lastError}
-                                </p>
-                              )}
-                              <button
-                                onClick={() => openSyncPrompt(connection)}
-                                className="mt-2 inline-flex items-center gap-1 px-3 py-2 rounded-lg bg-light-surface-secondary dark:bg-dark-surface-secondary text-light-text dark:text-dark-text text-xs font-semibold"
-                              >
-                                <span className="material-symbols-outlined text-sm">refresh</span>
-                                Sync now
-                              </button>
-                            </td>
-                          </tr>
-                        )}
+                    <tbody>
+                      {providerAccounts.length === 0 && (
+                        <tr className="border-t border-black/5 dark:border-white/5">
+                          <td className="px-3 py-3 text-sm" colSpan={5}>
+                            <div className="text-light-text-secondary dark:text-dark-text-secondary">
+                              No accounts fetched yet. Trigger a sync after completing bank authorization to load provider accounts.
+                            </div>
+                            {connection.lastError && (
+                              <p className="mt-2 text-rose-600 dark:text-rose-300">
+                                {connection.lastError}
+                              </p>
+                            )}
+                            <button
+                              onClick={() => openSyncPrompt(connection)}
+                              className="mt-2 inline-flex items-center gap-1 px-3 py-2 rounded-lg bg-light-surface-secondary dark:bg-dark-surface-secondary text-light-text dark:text-dark-text text-xs font-semibold"
+                              type="button"
+                            >
+                              <span className="material-symbols-outlined text-sm">sync</span>
+                              Trigger sync
+                            </button>
+                          </td>
+                        </tr>
+                      )}
 
-                        {providerAccounts.map(account => {
+                      {providerAccounts.map(account => {
+                        const linkedAccount = accounts.find(acc => acc.id === account.linkedAccountId);
+                        const accountLastFour = account.iban?.slice(-4) || account.accountNumber?.slice(-4);
                         const rowKey = keyPrefix(account.id);
-                        const savedState = linkingState[rowKey] || {};
-                        const defaultSyncStart = clampSyncDate(savedState.syncStartDate || account.syncStartDate || ninetyDaysAgoStr);
-                        const rowState = {
-                          mode: savedState.mode || 'existing',
-                          accountId: savedState.accountId ?? account.linkedAccountId,
-                          syncStartDate: defaultSyncStart,
-                          newAccountName: savedState.newAccountName ?? account.name,
-                          newAccountType: savedState.newAccountType ?? ('Checking' as AccountType),
+
+                        const rowState = linkingState[rowKey] || {
+                          accountId: account.linkedAccountId || '',
+                          syncStartDate: connection.syncStartDate,
+                          mode: account.linkedAccountId ? 'existing' : 'create',
+                          newAccountName: account.name,
                         };
-                        const linkedAccount = accounts.find(a => a.id === account.linkedAccountId);
-                        const accountLastFour = getLastFour(account.accountNumber || account.id);
 
                         return (
                           <tr key={account.id} className="border-t border-black/5 dark:border-white/5">
@@ -763,30 +708,30 @@ const EnableBankingIntegrationCard: React.FC<EnableBankingIntegrationCardProps> 
                                       return;
                                     }
 
-                                    const newAccountType = rowState.newAccountType || 'Checking';
-
-                                    handleLinkChange(rowKey, { syncStartDate });
+                                    handleLinkChange(rowKey, { syncStartDate, newAccountName });
                                     onLinkAccount(connection.id, account.id, {
-                                      newAccount: {
-                                        name: newAccountName,
-                                        type: newAccountType,
-                                        balance: account.balance,
-                                        currency: account.currency,
-                                        accountNumber: account.accountNumber,
-                                        financialInstitution: connection.selectedBank || 'Enable Banking',
-                                      },
+                                      newAccountName,
+                                      newAccountType: rowState.newAccountType || 'Checking',
                                       syncStartDate,
                                     });
                                   }
                                 }}
                                 className="inline-flex items-center gap-1 px-3 py-2 rounded-lg bg-primary-600 text-white text-xs font-semibold hover:bg-primary-700"
+                                type="button"
                               >
                                 <span className="material-symbols-outlined text-sm">link</span>
-                                Link
+                                Save link
                               </button>
-                              {account.lastSyncedAt && (
-                                <div className="text-[11px] text-light-text-secondary dark:text-dark-text-secondary mt-1">Synced {new Date(account.lastSyncedAt).toLocaleDateString()}</div>
-                              )}
+                              <div className="mt-2 space-y-1 text-[11px] text-light-text-secondary dark:text-dark-text-secondary">
+                                <div className="flex items-center gap-1">
+                                  <span className="material-symbols-outlined text-sm">event</span>
+                                  <span>Default sync start: {defaultSyncStart}</span>
+                                </div>
+                                <div className="flex items-center gap-1">
+                                  <span className="material-symbols-outlined text-sm">history</span>
+                                  <span>Last sync: {connection.lastSyncedAt ? new Date(connection.lastSyncedAt).toLocaleString() : 'Pending'}</span>
+                                </div>
+                              </div>
                             </td>
                           </tr>
                         );
@@ -797,6 +742,59 @@ const EnableBankingIntegrationCard: React.FC<EnableBankingIntegrationCardProps> 
               </div>
             );
           })}
+        </div>
+
+        <div className="p-4 rounded-lg border border-black/5 dark:border-white/10 space-y-3">
+          <div>
+            <h4 className="text-sm font-semibold text-light-text dark:text-dark-text">Credentials</h4>
+            <p className="text-xs text-light-text-secondary dark:text-dark-text-secondary">Stored locally in your browser. Keep them aligned with your Enable Banking project.</p>
+          </div>
+          <div className="space-y-2">
+            <label className="text-xs text-light-text-secondary dark:text-dark-text-secondary block">Application ID (kid)</label>
+            <input
+              type="text"
+              name="applicationId"
+              value={formState.applicationId}
+              onChange={handleFormChange}
+              placeholder="app_xxxxx"
+              className={INPUT_BASE_STYLE}
+            />
+          </div>
+          <div className="space-y-2">
+            <label className="text-xs text-light-text-secondary dark:text-dark-text-secondary block">Client certificate (PEM)</label>
+            <textarea
+              name="clientCertificate"
+              value={formState.clientCertificate}
+              onChange={handleFormChange}
+              placeholder="-----BEGIN PRIVATE KEY-----"
+              rows={4}
+              className={`${INPUT_BASE_STYLE} font-mono text-xs min-h-[120px]`}
+            />
+          </div>
+        </div>
+
+        <div className="rounded-lg bg-primary-50 dark:bg-primary-900/10 border border-primary-100 dark:border-primary-800/30 p-4 space-y-3">
+          <div className="flex items-start gap-3">
+            <div className="w-10 h-10 rounded-lg bg-primary-600 text-white flex items-center justify-center">
+              <span className="material-symbols-outlined">bolt</span>
+            </div>
+            <div>
+              <h4 className="text-sm font-semibold text-light-text dark:text-dark-text">Authorize & sync</h4>
+              <p className="text-xs text-light-text-secondary dark:text-dark-text-secondary">Use your saved credentials and selected bank to start the Enable Banking redirect flow.</p>
+            </div>
+          </div>
+          <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
+            <button
+              onClick={handleCreate}
+              className="w-full sm:w-auto inline-flex items-center justify-center gap-2 px-4 py-3 rounded-lg bg-primary-600 text-white font-semibold hover:bg-primary-700 transition-colors"
+            >
+              <span className="material-symbols-outlined text-base">open_in_new</span>
+              Start authorization
+            </button>
+            <p className="text-xs text-light-text-secondary dark:text-dark-text-secondary sm:text-right">
+              You will be redirected to your bank. When you return, syncing begins for linked accounts using their start dates.
+            </p>
+          </div>
         </div>
       </div>
     </Card>
