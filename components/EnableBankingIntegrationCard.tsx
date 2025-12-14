@@ -3,6 +3,7 @@ import Card from './Card';
 import { INPUT_BASE_STYLE } from '../constants';
 import { Account, AccountType, EnableBankingConnection, EnableBankingLinkPayload, EnableBankingSyncOptions } from '../types';
 import { toLocalISOString } from '../utils';
+import { loadEnableBankingConfig, persistEnableBankingConfig } from '../utils/enableBankingStorage';
 
 interface EnableBankingIntegrationCardProps {
   connections: EnableBankingConnection[];
@@ -12,6 +13,7 @@ interface EnableBankingIntegrationCardProps {
     countryCode: string;
     clientCertificate: string;
     selectedBank: string;
+    connectionId?: string;
   }) => void;
   onFetchBanks: (payload: { applicationId: string; countryCode: string; clientCertificate: string }) => Promise<
     { id: string; name: string; country?: string }[]
@@ -40,6 +42,14 @@ const EnableBankingIntegrationCard: React.FC<EnableBankingIntegrationCardProps> 
     clientCertificate: '',
     selectedBank: '',
   });
+
+  const updateFormState = (updater: React.SetStateAction<typeof formState>) => {
+    setFormState(prev => {
+      const nextState = typeof updater === 'function' ? (updater as (prev: typeof formState) => typeof formState)(prev) : updater;
+      persistEnableBankingConfig(nextState);
+      return nextState;
+    });
+  };
 
   const [linkingState, setLinkingState] = useState<
     Record<
@@ -78,8 +88,15 @@ const EnableBankingIntegrationCard: React.FC<EnableBankingIntegrationCardProps> 
 
   const handleFormChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement>) => {
     const { name, value } = e.target;
-    setFormState(prev => ({ ...prev, [name]: value }));
+    updateFormState(prev => ({ ...prev, [name]: value }));
   };
+
+  useEffect(() => {
+    const savedConfig = loadEnableBankingConfig();
+    if (savedConfig) {
+      updateFormState(prev => ({ ...prev, ...savedConfig }));
+    }
+  }, []);
 
   const clampSyncDate = (value?: string) => {
     if (!value) return value;
@@ -115,7 +132,7 @@ const EnableBankingIntegrationCard: React.FC<EnableBankingIntegrationCardProps> 
         clientCertificate: formState.clientCertificate.trim(),
       });
       setBankOptions(options);
-      setFormState(prev => ({ ...prev, selectedBank: options[0]?.name || '' }));
+      updateFormState(prev => ({ ...prev, selectedBank: options[0]?.name || '' }));
     } catch (error: any) {
       console.error('Failed to load banks', error);
       setBankOptions([]);
@@ -172,7 +189,34 @@ const EnableBankingIntegrationCard: React.FC<EnableBankingIntegrationCardProps> 
       selectedBank: formState.selectedBank,
     });
 
-    setFormState(prev => ({ ...prev, applicationId: '', clientCertificate: '' }));
+  };
+
+  const handleReauthorize = (connection: EnableBankingConnection) => {
+    const resolvedApplicationId = (connection.applicationId || formState.applicationId).trim();
+    const resolvedCertificate = (connection.clientCertificate || formState.clientCertificate).trim();
+    const resolvedCountry = (connection.countryCode || formState.countryCode).trim().toUpperCase();
+    const resolvedBank = connection.selectedBank || formState.selectedBank;
+
+    if (!resolvedApplicationId || !resolvedCertificate) {
+      alert('Application ID and client certificate are required to reauthorize this connection.');
+      return;
+    }
+
+    updateFormState(prev => ({
+      ...prev,
+      applicationId: resolvedApplicationId,
+      clientCertificate: resolvedCertificate,
+      countryCode: resolvedCountry,
+      selectedBank: resolvedBank || prev.selectedBank,
+    }));
+
+    onCreateConnection({
+      applicationId: resolvedApplicationId,
+      countryCode: resolvedCountry,
+      clientCertificate: resolvedCertificate,
+      selectedBank: resolvedBank || connection.selectedBank || 'Enable Banking',
+      connectionId: connection.id,
+    });
   };
 
   const handleLinkChange = (
@@ -450,6 +494,15 @@ const EnableBankingIntegrationCard: React.FC<EnableBankingIntegrationCardProps> 
                     )}
                   </div>
                   <div className="flex items-center gap-2">
+                    {(connection.status === 'requires_update' || !connection.sessionId) && (
+                      <button
+                        onClick={() => handleReauthorize(connection)}
+                        className="inline-flex items-center gap-1 px-3 py-2 rounded-lg bg-amber-600 text-white text-xs font-semibold hover:bg-amber-700"
+                      >
+                        <span className="material-symbols-outlined text-sm">refresh</span>
+                        Reauthorize
+                      </button>
+                    )}
                     <button
                       onClick={() => openSyncPrompt(connection)}
                       className="inline-flex items-center gap-1 px-3 py-2 rounded-lg bg-emerald-600 text-white text-xs font-semibold hover:bg-emerald-700"
