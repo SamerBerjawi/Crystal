@@ -265,6 +265,19 @@ const EnableBankingIntegrationCard: React.FC<EnableBankingIntegrationCardProps> 
     });
   }, [connections, onTriggerSync]);
 
+  const readyConnections = useMemo(
+    () => connections.filter(connection => connection.status === 'ready').length,
+    [connections]
+  );
+  const pendingConnections = useMemo(
+    () => connections.filter(connection => connection.status === 'pending').length,
+    [connections]
+  );
+  const linkedAccountTotal = useMemo(
+    () => connections.reduce((sum, connection) => sum + (connection.accounts?.length || 0), 0),
+    [connections]
+  );
+
   return (
     <Card>
       <div className="flex items-center justify-between gap-4 mb-6">
@@ -382,21 +395,67 @@ const EnableBankingIntegrationCard: React.FC<EnableBankingIntegrationCardProps> 
         </div>
       )}
 
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-        <div className="space-y-4">
-          <h4 className="text-sm font-semibold text-light-text dark:text-dark-text">Create connection</h4>
-          <label className="text-xs text-light-text-secondary dark:text-dark-text-secondary block">Country code</label>
-          <input
-            type="text"
-            name="countryCode"
-            value={formState.countryCode}
-            onChange={handleFormChange}
-            placeholder="FI"
-            className={INPUT_BASE_STYLE}
-          />
+      <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 mb-6">
+        <div className="p-4 rounded-lg bg-light-surface-secondary dark:bg-dark-surface-secondary border border-black/5 dark:border-white/5">
+          <div className="text-xs font-semibold uppercase tracking-wide text-light-text-secondary dark:text-dark-text-secondary">Ready to sync</div>
+          <div className="text-2xl font-bold text-light-text dark:text-dark-text mt-1">{readyConnections}</div>
+          <p className="text-[11px] text-light-text-secondary dark:text-dark-text-secondary">Connections that can sync immediately.</p>
+        </div>
+        <div className="p-4 rounded-lg bg-amber-50 dark:bg-amber-900/20 border border-amber-100 dark:border-amber-800/30">
+          <div className="text-xs font-semibold uppercase tracking-wide text-amber-700 dark:text-amber-200">Pending</div>
+          <div className="text-2xl font-bold text-amber-700 dark:text-amber-200 mt-1">{pendingConnections}</div>
+          <p className="text-[11px] text-amber-700/80 dark:text-amber-200/80">Awaiting authorization or a new session.</p>
+        </div>
+        <div className="p-4 rounded-lg bg-primary-50 dark:bg-primary-900/20 border border-primary-100 dark:border-primary-800/30">
+          <div className="text-xs font-semibold uppercase tracking-wide text-primary-700 dark:text-primary-200">Linked accounts</div>
+          <div className="text-2xl font-bold text-primary-700 dark:text-primary-200 mt-1">{linkedAccountTotal}</div>
+          <p className="text-[11px] text-primary-700/80 dark:text-primary-200/80">Provider accounts mapped to your ledger.</p>
+        </div>
+      </div>
 
-          <div className="flex items-end gap-3">
-            <div className="flex-1">
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+        <div className="space-y-5">
+          <div className="p-4 rounded-lg bg-light-surface-secondary dark:bg-dark-surface-secondary border border-black/5 dark:border-white/5 space-y-3">
+            <div className="flex items-start justify-between gap-3">
+              <div>
+                <h4 className="text-sm font-semibold text-light-text dark:text-dark-text">Connection setup</h4>
+                <p className="text-xs text-light-text-secondary dark:text-dark-text-secondary">Save your credentials once, load banks for a country, then start a new session.</p>
+              </div>
+              <span className="px-2 py-1 rounded-full bg-black/5 dark:bg-white/10 text-[11px] font-semibold text-light-text-secondary dark:text-dark-text-secondary">Local only</span>
+            </div>
+
+            <div className="grid gap-3 sm:grid-cols-[1fr_auto] items-end">
+              <div>
+                <label className="text-xs text-light-text-secondary dark:text-dark-text-secondary block">Country code</label>
+                <input
+                  type="text"
+                  name="countryCode"
+                  value={formState.countryCode}
+                  onChange={handleFormChange}
+                  placeholder="FI"
+                  className={INPUT_BASE_STYLE}
+                />
+              </div>
+              <button
+                type="button"
+                onClick={loadBanks}
+                className="inline-flex items-center gap-2 px-3 py-2 rounded-lg bg-light-surface dark:bg-dark-surface text-sm font-semibold text-light-text dark:text-dark-text border border-black/5 dark:border-white/10"
+              >
+                {banksLoading ? (
+                  <>
+                    <span className="material-symbols-outlined text-sm animate-spin">progress_activity</span>
+                    Loading
+                  </>
+                ) : (
+                  <>
+                    <span className="material-symbols-outlined text-sm">refresh</span>
+                    Load banks
+                  </>
+                )}
+              </button>
+            </div>
+
+            <div>
               <label className="text-xs text-light-text-secondary dark:text-dark-text-secondary block">Bank (loaded per country)</label>
               <select
                 name="selectedBank"
@@ -410,61 +469,74 @@ const EnableBankingIntegrationCard: React.FC<EnableBankingIntegrationCardProps> 
                   <option key={option.id} value={option.name}>{option.name}{option.country ? ` (${option.country})` : ''}</option>
                 ))}
               </select>
+              {banksError && <p className="text-xs text-rose-600 dark:text-rose-300 mt-1">{banksError}</p>}
             </div>
-            <button
-              type="button"
-              onClick={loadBanks}
-              className="inline-flex items-center gap-1 px-3 py-2 rounded-lg bg-light-surface-secondary dark:bg-dark-surface-secondary text-sm font-semibold text-light-text dark:text-dark-text h-[42px]"
-            >
-              {banksLoading ? (
-                <>
-                  <span className="material-symbols-outlined text-sm animate-spin">progress_activity</span>
-                  Loading
-                </>
-              ) : (
-                <>
-                  <span className="material-symbols-outlined text-sm">refresh</span>
-                  Load banks
-                </>
-              )}
-            </button>
           </div>
-          {banksError && <p className="text-xs text-rose-600 dark:text-rose-300">{banksError}</p>}
 
-          <label className="text-xs text-light-text-secondary dark:text-dark-text-secondary block">Application ID (kid)</label>
-          <input
-            type="text"
-            name="applicationId"
-            value={formState.applicationId}
-            onChange={handleFormChange}
-            placeholder="app_xxxxx"
-            className={INPUT_BASE_STYLE}
-          />
+          <div className="p-4 rounded-lg border border-black/5 dark:border-white/10 space-y-3">
+            <div>
+              <h4 className="text-sm font-semibold text-light-text dark:text-dark-text">Credentials</h4>
+              <p className="text-xs text-light-text-secondary dark:text-dark-text-secondary">Stored locally in your browser. Keep them aligned with your Enable Banking project.</p>
+            </div>
+            <div className="space-y-2">
+              <label className="text-xs text-light-text-secondary dark:text-dark-text-secondary block">Application ID (kid)</label>
+              <input
+                type="text"
+                name="applicationId"
+                value={formState.applicationId}
+                onChange={handleFormChange}
+                placeholder="app_xxxxx"
+                className={INPUT_BASE_STYLE}
+              />
+            </div>
+            <div className="space-y-2">
+              <label className="text-xs text-light-text-secondary dark:text-dark-text-secondary block">Client certificate (PEM)</label>
+              <textarea
+                name="clientCertificate"
+                value={formState.clientCertificate}
+                onChange={handleFormChange}
+                placeholder="-----BEGIN PRIVATE KEY-----"
+                rows={4}
+                className={`${INPUT_BASE_STYLE} font-mono text-xs min-h-[120px]`}
+              />
+            </div>
+          </div>
 
-          <label className="text-xs text-light-text-secondary dark:text-dark-text-secondary block">Client certificate (PEM)</label>
-          <textarea
-            name="clientCertificate"
-            value={formState.clientCertificate}
-            onChange={handleFormChange}
-            placeholder="-----BEGIN PRIVATE KEY-----"
-            rows={4}
-            className={`${INPUT_BASE_STYLE} font-mono text-xs min-h-[120px]`}
-          />
-
-          <button
-            onClick={handleCreate}
-            className="w-full inline-flex items-center justify-center gap-2 px-4 py-3 rounded-lg bg-primary-600 text-white font-semibold hover:bg-primary-700 transition-colors"
-          >
-            <span className="material-symbols-outlined text-base">bolt</span>
-            Start authorization
-          </button>
-          <p className="text-xs text-light-text-secondary dark:text-dark-text-secondary">
-            You will be redirected to your bank via Enable Banking. When you return, balances and transactions will sync for any linked accounts starting from your selected date.
-          </p>
+          <div className="rounded-lg bg-primary-50 dark:bg-primary-900/10 border border-primary-100 dark:border-primary-800/30 p-4 space-y-3">
+            <div className="flex items-start gap-3">
+              <div className="w-10 h-10 rounded-lg bg-primary-600 text-white flex items-center justify-center">
+                <span className="material-symbols-outlined">bolt</span>
+              </div>
+              <div>
+                <h4 className="text-sm font-semibold text-light-text dark:text-dark-text">Authorize & sync</h4>
+                <p className="text-xs text-light-text-secondary dark:text-dark-text-secondary">Use your saved credentials and selected bank to start the Enable Banking redirect flow.</p>
+              </div>
+            </div>
+            <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3">
+              <button
+                onClick={handleCreate}
+                className="w-full sm:w-auto inline-flex items-center justify-center gap-2 px-4 py-3 rounded-lg bg-primary-600 text-white font-semibold hover:bg-primary-700 transition-colors"
+              >
+                <span className="material-symbols-outlined text-base">open_in_new</span>
+                Start authorization
+              </button>
+              <p className="text-xs text-light-text-secondary dark:text-dark-text-secondary sm:text-right">
+                You will be redirected to your bank. When you return, syncing begins for linked accounts using their start dates.
+              </p>
+            </div>
+          </div>
         </div>
 
         <div className="space-y-4">
-          <h4 className="text-sm font-semibold text-light-text dark:text-dark-text">Connections</h4>
+          <div className="flex items-start justify-between gap-3">
+            <div>
+              <h4 className="text-sm font-semibold text-light-text dark:text-dark-text">Connections</h4>
+              <p className="text-xs text-light-text-secondary dark:text-dark-text-secondary">Manage each session, then link provider accounts to your ledger entries.</p>
+            </div>
+            {connections.length > 0 && (
+              <span className="text-[11px] px-2 py-1 rounded-full bg-black/5 dark:bg-white/10 text-light-text-secondary dark:text-dark-text-secondary">{connections.length} total</span>
+            )}
+          </div>
             {connections.length === 0 && (
               <div className="p-4 rounded-lg border border-dashed border-black/10 dark:border-white/10 text-sm text-light-text-secondary dark:text-dark-text-secondary">
               No Enable Banking sessions yet. Create one to start syncing your real bank accounts and link them to existing ledgers.
