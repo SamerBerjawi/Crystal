@@ -90,16 +90,6 @@ const Integrations: React.FC<IntegrationsProps> = ({
         />
       </header>
 
-      <EnableBankingIntegrationCard
-        connections={enableBankingConnections}
-        accounts={accounts}
-        onCreateConnection={onCreateConnection}
-        onFetchBanks={onFetchBanks}
-        onDeleteConnection={onDeleteConnection}
-        onLinkAccount={onLinkAccount}
-        onTriggerSync={onTriggerSync}
-      />
-
       <Card>
         <SectionHeader
           title="API Keys"
@@ -135,6 +125,16 @@ const Integrations: React.FC<IntegrationsProps> = ({
           </SettingRow>
         </div>
       </Card>
+
+      <EnableBankingIntegrationCard
+        connections={enableBankingConnections}
+        accounts={accounts}
+        onCreateConnection={onCreateConnection}
+        onFetchBanks={onFetchBanks}
+        onDeleteConnection={onDeleteConnection}
+        onLinkAccount={onLinkAccount}
+        onTriggerSync={onTriggerSync}
+      />
     </div>
   );
 };
