@@ -10,9 +10,11 @@ interface TransactionDetailModalProps {
   title: string;
   transactions: Transaction[];
   accounts: Account[];
+  onEdit?: (transaction: Transaction) => void;
+  onDelete?: (transaction: Transaction) => void;
 }
 
-const TransactionDetailModal: React.FC<TransactionDetailModalProps> = ({ isOpen, onClose, title, transactions, accounts }) => {
+const TransactionDetailModal: React.FC<TransactionDetailModalProps> = ({ isOpen, onClose, title, transactions, accounts, onEdit, onDelete }) => {
   if (!isOpen) return null;
 
   const formatDate = (dateString: string) => {
@@ -33,8 +35,28 @@ const TransactionDetailModal: React.FC<TransactionDetailModalProps> = ({ isOpen,
     return (
       <Modal onClose={onClose} title={title}>
         <div className="divide-y divide-black/10 dark:divide-white/10">
-            <DetailRow 
-                label="Amount" 
+            <div className="flex justify-end gap-3 pb-4">
+                {onEdit && (
+                    <button
+                        onClick={() => onEdit(tx)}
+                        className="inline-flex items-center gap-2 px-4 py-2 rounded-lg border border-light-separator dark:border-dark-separator text-light-text dark:text-dark-text hover:bg-light-fill dark:hover:bg-dark-fill transition"
+                    >
+                        <span className="material-symbols-outlined text-base">edit</span>
+                        <span>Edit</span>
+                    </button>
+                )}
+                {onDelete && (
+                    <button
+                        onClick={() => onDelete(tx)}
+                        className="inline-flex items-center gap-2 px-4 py-2 rounded-lg bg-semantic-red text-white hover:bg-red-700 transition shadow-sm"
+                    >
+                        <span className="material-symbols-outlined text-base">delete</span>
+                        <span>Delete</span>
+                    </button>
+                )}
+            </div>
+            <DetailRow
+                label="Amount"
                 value={
                     <span className={`font-semibold text-lg ${tx.type === 'income' ? 'text-green-500' : 'text-red-500'}`}>
                         {formatCurrency(tx.amount, tx.currency)}

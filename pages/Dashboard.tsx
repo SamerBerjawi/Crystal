@@ -115,7 +115,7 @@ const AnalysisStatCard: React.FC<{ title: string; value: string; subtext: string
 const Dashboard: React.FC<DashboardProps> = ({ user, tasks, saveTask }) => {
   const { activeGoalIds, setActiveGoalIds, dashboardAccountIds: selectedAccountIds, setDashboardAccountIds: setSelectedAccountIds, dashboardDuration: duration, setDashboardDuration: setDuration } = useInsightsView();
   const { accounts } = useAccountsContext();
-  const { transactions, saveTransaction, digest: transactionsDigest } = useTransactionsContext();
+  const { transactions, saveTransaction, deleteTransactions, digest: transactionsDigest } = useTransactionsContext();
   const { incomeCategories, expenseCategories } = useCategoryContext();
   const { financialGoals } = useGoalsContext();
   const { recurringTransactions, recurringTransactionOverrides, loanPaymentOverrides, billsAndPayments, saveRecurringTransaction, saveBillPayment } = useScheduleContext();
@@ -276,6 +276,19 @@ const Dashboard: React.FC<DashboardProps> = ({ user, tasks, saveTask }) => {
     }
     setDetailModalOpen(true);
   }, [transactions]);
+
+  const handleEditTransaction = useCallback((tx: Transaction) => {
+    setDetailModalOpen(false);
+    handleOpenTransactionModal(tx);
+  }, [handleOpenTransactionModal]);
+
+  const handleDeleteTransaction = useCallback((tx: Transaction) => {
+    const confirmed = window.confirm('Delete this transaction? This action cannot be undone.');
+    if (!confirmed) return;
+
+    deleteTransactions([tx.id]);
+    setDetailModalOpen(false);
+  }, [deleteTransactions]);
 
   const { filteredTransactions, income, expenses } = useMemo(() => {
     const cacheKey = `${transactionsKey}|${selectedAccountIds.join(',')}|${duration}`;
@@ -1114,6 +1127,8 @@ const Dashboard: React.FC<DashboardProps> = ({ user, tasks, saveTask }) => {
         title={modalTitle}
         transactions={modalTransactions}
         accounts={accounts}
+        onEdit={handleEditTransaction}
+        onDelete={handleDeleteTransaction}
       />
       <AddWidgetModal isOpen={isAddWidgetModalOpen} onClose={() => setIsAddWidgetModalOpen(false)} availableWidgets={availableWidgetsToAdd} onAddWidget={addWidget} />
       {isMatcherModalOpen && (

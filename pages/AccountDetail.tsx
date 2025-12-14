@@ -29,7 +29,7 @@ const AccountDetail: React.FC<{
     saveAccount: (account: Omit<Account, 'id'> & { id?: string }) => void;
 }> = ({ account, setCurrentPage, setViewingAccountId, saveAccount }) => {
     const { accounts } = useAccountsContext();
-    const { transactions, saveTransaction } = useTransactionsContext();
+    const { transactions, saveTransaction, deleteTransactions } = useTransactionsContext();
     const { incomeCategories, expenseCategories } = useCategoryContext();
     const { tags } = useTagsContext();
     const { loanPaymentOverrides, saveLoanPaymentOverrides } = useScheduleContext();
@@ -186,6 +186,19 @@ const AccountDetail: React.FC<{
         setDetailModalOpen(true);
     };
 
+    const handleEditTransaction = (tx: Transaction) => {
+        setDetailModalOpen(false);
+        handleOpenTransactionModal(tx);
+    };
+
+    const handleDeleteTransaction = (tx: Transaction) => {
+        const confirmed = window.confirm('Delete this transaction? This action cannot be undone.');
+        if (!confirmed) return;
+
+        deleteTransactions([tx.id]);
+        setDetailModalOpen(false);
+    };
+
     const commonProps = {
         account,
         onAddTransaction: () => handleOpenTransactionModal(),
@@ -319,12 +332,14 @@ const AccountDetail: React.FC<{
                 />
             )}
             
-            <TransactionDetailModal 
-                isOpen={isDetailModalOpen} 
-                onClose={() => setDetailModalOpen(false)} 
-                title={modalTitle} 
-                transactions={modalTransactions} 
-                accounts={accounts} 
+            <TransactionDetailModal
+                isOpen={isDetailModalOpen}
+                onClose={() => setDetailModalOpen(false)}
+                title={modalTitle}
+                transactions={modalTransactions}
+                accounts={accounts}
+                onEdit={handleEditTransaction}
+                onDelete={handleDeleteTransaction}
             />
             
             {isAdjustModalOpen && (
