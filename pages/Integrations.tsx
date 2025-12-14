@@ -70,7 +70,7 @@ const Integrations: React.FC<IntegrationsProps> = ({
   };
 
   return (
-    <div className="space-y-8 pb-12 animate-fade-in-up px-4 sm:px-6 lg:px-10 w-full">
+    <div className="space-y-8 max-w-6xl mx-auto pb-12 animate-fade-in-up px-4 sm:px-6 lg:px-10">
       <header className="space-y-4">
         <div className="flex items-center gap-4">
             <button onClick={() => setCurrentPage('Settings')} className="text-light-text-secondary dark:text-dark-text-secondary p-2 rounded-full hover:bg-black/5 dark:hover:bg-white/5 transition-colors">
