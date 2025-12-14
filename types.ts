@@ -172,6 +172,11 @@ export type RecurrenceFrequency = 'daily' | 'weekly' | 'monthly' | 'yearly';
 export type WeekendAdjustment = 'before' | 'after' | 'on';
 
 export type EnableBankingConnectionStatus = 'disconnected' | 'pending' | 'ready' | 'requires_update';
+export type EnableBankingSyncMode = 'full' | 'incremental' | 'none';
+export interface EnableBankingSyncOptions {
+  transactionMode?: EnableBankingSyncMode;
+  updateBalances?: boolean;
+}
 
 export interface EnableBankingAccount {
   id: string;

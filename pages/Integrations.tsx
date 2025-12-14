@@ -1,5 +1,12 @@
 import React from 'react';
-import { Account, AppPreferences, EnableBankingConnection, EnableBankingLinkPayload, Page } from '../types';
+import {
+  Account,
+  AppPreferences,
+  EnableBankingConnection,
+  EnableBankingLinkPayload,
+  EnableBankingSyncOptions,
+  Page,
+} from '../types';
 import Card from '../components/Card';
 import PageHeader from '../components/PageHeader';
 import { INPUT_BASE_STYLE } from '../constants';
@@ -19,7 +26,11 @@ interface IntegrationsProps {
     providerAccountId: string,
     payload: EnableBankingLinkPayload
   ) => void;
-  onTriggerSync: (connectionId: string, connectionOverride?: EnableBankingConnection) => void | Promise<void>;
+  onTriggerSync: (
+    connectionId: string,
+    connectionOverride?: EnableBankingConnection,
+    options?: EnableBankingSyncOptions
+  ) => void | Promise<void>;
 }
 
 interface SectionHeaderProps { title: string; icon: string; description: string }
