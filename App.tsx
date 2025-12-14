@@ -1853,8 +1853,70 @@ const App: React.FC = () => {
     const creditDebit = providerTx?.credit_debit_indicator || providerTx?.creditDebitIndicator;
     const signedAmount = Number(amountRaw) * (creditDebit === 'CRDT' ? 1 : -1);
 
-    const date = providerTx?.booking_date || providerTx?.bookingDate || providerTx?.value_date || providerTx?.valueDate;
-    const description = providerTx?.remittance_information_unstructured || providerTx?.remittanceInformationUnstructured || providerTx?.entry_reference || providerTx?.entryReference || providerTx?.transaction_id || 'Transaction';
+    const date =
+      providerTx?.booking_date ||
+      providerTx?.bookingDate ||
+      providerTx?.booking_date_time ||
+      providerTx?.bookingDateTime ||
+      providerTx?.value_date ||
+      providerTx?.valueDate;
+
+    const descriptionCandidates = [
+      Array.isArray(providerTx?.remittance_information_unstructured_array)
+        ? providerTx.remittance_information_unstructured_array.join(' ')
+        : undefined,
+      Array.isArray(providerTx?.remittanceInformationUnstructuredArray)
+        ? providerTx.remittanceInformationUnstructuredArray.join(' ')
+        : undefined,
+      providerTx?.remittance_information_unstructured,
+      providerTx?.remittanceInformationUnstructured,
+      providerTx?.remittance_information_structured?.reference,
+      providerTx?.remittanceInformationStructured?.reference,
+      providerTx?.remittance_information_structured?.creditor_reference,
+      providerTx?.remittanceInformationStructured?.creditorReference,
+      providerTx?.additional_information,
+      providerTx?.additionalInformation,
+      providerTx?.booking_text,
+      providerTx?.bookingText,
+      providerTx?.description,
+      providerTx?.entry_reference,
+      providerTx?.entryReference,
+      providerTx?.transaction_id,
+      providerTx?.transactionId,
+    ];
+
+    const description = descriptionCandidates.find(val => typeof val === 'string' && val.trim().length > 0)?.trim() || 'Transaction';
+
+    const counterpartyCandidates = signedAmount < 0
+      ? [
+          providerTx?.merchant_name,
+          providerTx?.merchantName,
+          providerTx?.merchant?.name,
+          providerTx?.creditor?.name,
+          providerTx?.creditor_name,
+          providerTx?.ultimate_creditor?.name,
+          providerTx?.ultimateCreditor?.name,
+          providerTx?.counterparty_name,
+          providerTx?.counterpartyName,
+          providerTx?.debtor_name,
+          providerTx?.debtor?.name,
+        ]
+      : [
+          providerTx?.merchant_name,
+          providerTx?.merchantName,
+          providerTx?.merchant?.name,
+          providerTx?.debtor?.name,
+          providerTx?.debtor_name,
+          providerTx?.ultimate_debtor?.name,
+          providerTx?.ultimateDebtor?.name,
+          providerTx?.creditor_name,
+          providerTx?.creditor?.name,
+          providerTx?.counterparty_name,
+          providerTx?.counterpartyName,
+        ];
+
+    const merchant = counterpartyCandidates.find(val => typeof val === 'string' && val.trim().length > 0)?.trim();
+
     const idSource = providerTx?.transaction_id || providerTx?.transactionId || providerTx?.entry_reference || providerTx?.entryReference || uuidv4();
 
     return {
@@ -1862,6 +1924,7 @@ const App: React.FC = () => {
       accountId,
       date: date || new Date().toISOString().slice(0, 10),
       description,
+      merchant: merchant || undefined,
       amount: signedAmount,
       category: 'Uncategorized',
       type: signedAmount >= 0 ? 'income' : 'expense',
@@ -2218,6 +2281,15 @@ const App: React.FC = () => {
   const viewingAccount = useMemo(() => accounts.find(a => a.id === viewingAccountId), [accounts, viewingAccountId]);
   const viewingHolding = useMemo(() => holdingsOverview.holdings.find(h => h.symbol === viewingHoldingSymbol), [holdingsOverview, viewingHoldingSymbol]);
   const currentUser = useMemo(() => isDemoMode ? demoUser : user, [isDemoMode, demoUser, user]);
+  const linkedEnableBankingAccountIds = useMemo(() => {
+    const ids = new Set<string>();
+    enableBankingConnections.forEach(connection => {
+      connection.accounts?.forEach(account => {
+        if (account.linkedAccountId) ids.add(account.linkedAccountId);
+      });
+    });
+    return ids;
+  }, [enableBankingConnections]);
 
   // Reset the account detail view if the referenced account no longer exists to avoid state updates during render
   useEffect(() => {
@@ -2289,7 +2361,7 @@ const App: React.FC = () => {
             saveTask={handleSaveTask}
         />;
       case 'Accounts':
-        return <Accounts accounts={accounts} transactions={transactions} saveAccount={handleSaveAccount} deleteAccount={handleDeleteAccount} setCurrentPage={setCurrentPage} setViewingAccountId={setViewingAccountId} onViewAccount={handleOpenAccountDetail} saveTransaction={handleSaveTransaction} accountOrder={accountOrder} setAccountOrder={setAccountOrder} initialSortBy={preferences.defaultAccountOrder} warrants={warrants} onToggleAccountStatus={handleToggleAccountStatus} onNavigateToTransactions={navigateToTransactions} />;
+        return <Accounts accounts={accounts} transactions={transactions} saveAccount={handleSaveAccount} deleteAccount={handleDeleteAccount} setCurrentPage={setCurrentPage} setViewingAccountId={setViewingAccountId} onViewAccount={handleOpenAccountDetail} saveTransaction={handleSaveTransaction} accountOrder={accountOrder} setAccountOrder={setAccountOrder} initialSortBy={preferences.defaultAccountOrder} warrants={warrants} onToggleAccountStatus={handleToggleAccountStatus} onNavigateToTransactions={navigateToTransactions} linkedEnableBankingAccountIds={linkedEnableBankingAccountIds} />;
       case 'Transactions':
         return <Transactions initialAccountFilter={transactionsViewFilters.current.accountName ?? null} initialTagFilter={transactionsViewFilters.current.tagId ?? null} onClearInitialFilters={clearPendingTransactionFilters} />;
       case 'Budget':

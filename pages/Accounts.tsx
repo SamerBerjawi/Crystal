@@ -28,6 +28,7 @@ interface AccountsProps {
     warrants: Warrant[];
     onToggleAccountStatus: (accountId: string) => void;
     onNavigateToTransactions: (filters?: { accountName?: string | null }) => void;
+    linkedEnableBankingAccountIds: Set<string>;
 }
 
 // A new component for the list section
@@ -36,6 +37,7 @@ const AccountsListSection: React.FC<{
     accounts: Account[];
     transactionsByAccount: Record<string, Transaction[]>;
     warrants: Warrant[];
+    linkedEnableBankingAccountIds: Set<string>;
     onAccountClick: (id: string) => void;
     onEditClick: (account: Account) => void;
     onAdjustBalanceClick: (account: Account) => void;
@@ -46,7 +48,7 @@ const AccountsListSection: React.FC<{
     isCollapsible?: boolean;
     defaultExpanded?: boolean;
     layoutMode: 'stacked' | 'columns';
-}> = ({ title, accounts, transactionsByAccount, warrants, onAccountClick, onEditClick, onAdjustBalanceClick, sortBy, accountOrder, setAccountOrder, onContextMenu, isCollapsible = true, defaultExpanded = true, layoutMode }) => {
+}> = ({ title, accounts, transactionsByAccount, warrants, linkedEnableBankingAccountIds, onAccountClick, onEditClick, onAdjustBalanceClick, sortBy, accountOrder, setAccountOrder, onContextMenu, isCollapsible = true, defaultExpanded = true, layoutMode }) => {
     const [isExpanded, setIsExpanded] = useState(defaultExpanded);
     const [draggedId, setDraggedId] = useState<string | null>(null);
     const [dragOverId, setDragOverId] = useState<string | null>(null);
@@ -168,6 +170,7 @@ const AccountsListSection: React.FC<{
                                                 account={acc}
                                                 transactions={transactionsByAccount[acc.id] || []}
                                                 warrants={warrants}
+                                                isLinkedToEnableBanking={linkedEnableBankingAccountIds.has(acc.id)}
                                                 onClick={() => onAccountClick(acc.id)}
                                                 onEdit={() => onEditClick(acc)}
                                                 onAdjustBalance={() => onAdjustBalanceClick(acc)}
@@ -197,7 +200,7 @@ const AccountsListSection: React.FC<{
     );
 };
 
-const Accounts: React.FC<AccountsProps> = ({ accounts, transactions, saveAccount, deleteAccount, setCurrentPage, setViewingAccountId, onViewAccount, saveTransaction, accountOrder, setAccountOrder, initialSortBy, warrants, onToggleAccountStatus, onNavigateToTransactions }) => {
+const Accounts: React.FC<AccountsProps> = ({ accounts, transactions, saveAccount, deleteAccount, setCurrentPage, setViewingAccountId, onViewAccount, saveTransaction, accountOrder, setAccountOrder, initialSortBy, warrants, onToggleAccountStatus, onNavigateToTransactions, linkedEnableBankingAccountIds }) => {
   const [isAddModalOpen, setAddModalOpen] = useState(false);
   const [isEditModalOpen, setEditModalOpen] = useState(false);
   const [editingAccount, setEditingAccount] = useState<Account | null>(null);
@@ -561,11 +564,12 @@ const Accounts: React.FC<AccountsProps> = ({ accounts, transactions, saveAccount
                     </div>
                     <AccountsListSection 
                         title="Cash & Properties"
-                        accounts={assetAccounts} 
-                        transactionsByAccount={transactionsByAccount} 
+                        accounts={assetAccounts}
+                        transactionsByAccount={transactionsByAccount}
                         warrants={warrants}
-                        onAccountClick={handleAccountClick} 
-                        onEditClick={openEditModal} 
+                        linkedEnableBankingAccountIds={linkedEnableBankingAccountIds}
+                        onAccountClick={handleAccountClick}
+                        onEditClick={openEditModal}
                         onAdjustBalanceClick={openAdjustModal}
                         sortBy={sortBy}
                         accountOrder={accountOrder}
@@ -583,11 +587,12 @@ const Accounts: React.FC<AccountsProps> = ({ accounts, transactions, saveAccount
                     </div>
                     <AccountsListSection 
                         title="Debt & Loans"
-                        accounts={debtAccounts} 
-                        transactionsByAccount={transactionsByAccount} 
+                        accounts={debtAccounts}
+                        transactionsByAccount={transactionsByAccount}
                         warrants={warrants}
-                        onAccountClick={handleAccountClick} 
-                        onEditClick={openEditModal} 
+                        linkedEnableBankingAccountIds={linkedEnableBankingAccountIds}
+                        onAccountClick={handleAccountClick}
+                        onEditClick={openEditModal}
                         onAdjustBalanceClick={openAdjustModal}
                         sortBy={sortBy}
                         accountOrder={accountOrder}
@@ -604,11 +609,12 @@ const Accounts: React.FC<AccountsProps> = ({ accounts, transactions, saveAccount
             <div className="opacity-60 hover:opacity-100 transition-opacity duration-300 mt-12 pt-8 border-t border-black/5 dark:border-white/5">
                 <AccountsListSection 
                     title="Closed Accounts"
-                    accounts={closedAccounts} 
-                    transactionsByAccount={transactionsByAccount} 
+                    accounts={closedAccounts}
+                    transactionsByAccount={transactionsByAccount}
                     warrants={warrants}
-                    onAccountClick={handleAccountClick} 
-                    onEditClick={openEditModal} 
+                    linkedEnableBankingAccountIds={linkedEnableBankingAccountIds}
+                    onAccountClick={handleAccountClick}
+                    onEditClick={openEditModal}
                     onAdjustBalanceClick={openAdjustModal}
                     sortBy={sortBy}
                     accountOrder={accountOrder}
