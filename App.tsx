@@ -80,7 +80,7 @@ const pagePreloaders = [
 // UserManagement is removed
 // FIX: Import FinancialData from types.ts
 // FIX: Add `Tag` to the import from `types.ts`.
-import { Page, Theme, Category, User, Transaction, Account, RecurringTransaction, RecurringTransactionOverride, WeekendAdjustment, FinancialGoal, Budget, ImportExportHistoryItem, AppPreferences, AccountType, InvestmentTransaction, Task, Warrant, ImportDataType, FinancialData, Currency, BillPayment, BillPaymentStatus, Duration, InvestmentSubType, Tag, LoanPaymentOverrides, ScheduledPayment, Membership, Invoice, UserStats, Prediction, PriceHistoryEntry, EnableBankingConnection, EnableBankingAccount, EnableBankingLinkPayload } from './types';
+import { Page, Theme, Category, User, Transaction, Account, RecurringTransaction, RecurringTransactionOverride, WeekendAdjustment, FinancialGoal, Budget, ImportExportHistoryItem, AppPreferences, AccountType, InvestmentTransaction, Task, Warrant, ImportDataType, FinancialData, Currency, BillPayment, BillPaymentStatus, Duration, InvestmentSubType, Tag, LoanPaymentOverrides, ScheduledPayment, Membership, Invoice, UserStats, Prediction, PriceHistoryEntry, EnableBankingConnection, EnableBankingAccount, EnableBankingLinkPayload, EnableBankingSyncOptions } from './types';
 import { MOCK_INCOME_CATEGORIES, MOCK_EXPENSE_CATEGORIES, LIQUID_ACCOUNT_TYPES } from './constants';
 import { v4 as uuidv4 } from 'uuid';
 import ChatFab from './components/ChatFab';
@@ -1796,6 +1796,7 @@ const App: React.FC = () => {
   const handleSyncEnableBankingConnection = useCallback(async (
     connectionId: string,
     connectionOverride?: EnableBankingConnection,
+    syncOptions?: EnableBankingSyncOptions,
   ) => {
     if (!token) {
       alert('Please sign in to sync Enable Banking connections.');
@@ -1809,6 +1810,8 @@ const App: React.FC = () => {
     }
 
     const safeAccounts = connection.accounts || [];
+    const { transactionMode = 'full', updateBalance = true } = syncOptions || {};
+    const shouldSyncTransactions = transactionMode !== 'none';
     const now = new Date().toISOString();
 
     try {
@@ -1934,31 +1937,40 @@ const App: React.FC = () => {
         const { amount: numericBalance, currency: balanceCurrency } = extractBalance(preferredBalance);
         const currency = (account?.currency || balanceCurrency || details?.currency || existing?.currency || 'EUR') as Currency;
 
-        const syncStart = existing?.syncStartDate || toLocalISOString(new Date(Date.now() - 90 * 24 * 60 * 60 * 1000));
-        let continuationKey: string | undefined;
-        let transactionsPage: any = null;
+        const baseSyncStart = existing?.syncStartDate || toLocalISOString(new Date(Date.now() - 90 * 24 * 60 * 60 * 1000));
+        const syncStart = transactionMode === 'since_last'
+          ? (existing?.lastSyncedAt || baseSyncStart)
+          : baseSyncStart;
+        const shouldMarkSynced = shouldSyncTransactions || updateBalance;
         const providerTransactions: any[] = [];
 
-        do {
-          transactionsPage = await fetchWithAuth(`/api/enable-banking/accounts/${encodeURIComponent(providerAccountId)}/transactions`, {
-            method: 'POST',
-            body: JSON.stringify({
-              applicationId: connection.applicationId,
-              clientCertificate: connection.clientCertificate,
-              dateFrom: syncStart,
-              continuationKey,
-            }),
-          }).then(res => res.json());
-          const pageItems = transactionsPage?.transactions || transactionsPage?.booked || [];
-          providerTransactions.push(...pageItems);
-          continuationKey = transactionsPage?.continuation_key || transactionsPage?.continuationKey;
-        } while (continuationKey);
+        if (shouldSyncTransactions) {
+          let continuationKey: string | undefined;
+          let transactionsPage: any = null;
 
-        const mappedTx = providerTransactions
-          .map(tx => mapProviderTransaction(tx, existing?.linkedAccountId || '', currency, connectionId))
-          .filter((tx): tx is Transaction => Boolean(tx) && Boolean(tx.accountId));
+          do {
+            transactionsPage = await fetchWithAuth(`/api/enable-banking/accounts/${encodeURIComponent(providerAccountId)}/transactions`, {
+              method: 'POST',
+              body: JSON.stringify({
+                applicationId: connection.applicationId,
+                clientCertificate: connection.clientCertificate,
+                dateFrom: syncStart,
+                continuationKey,
+              }),
+            }).then(res => res.json());
+            const pageItems = transactionsPage?.transactions || transactionsPage?.booked || [];
+            providerTransactions.push(...pageItems);
+            continuationKey = transactionsPage?.continuation_key || transactionsPage?.continuationKey;
+          } while (continuationKey);
+        }
 
-        importedTransactions.push(...mappedTx);
+        if (providerTransactions.length) {
+          const mappedTx = providerTransactions
+            .map(tx => mapProviderTransaction(tx, existing?.linkedAccountId || '', currency, connectionId))
+            .filter((tx): tx is Transaction => Boolean(tx) && Boolean(tx.accountId));
+
+          importedTransactions.push(...mappedTx);
+        }
 
         const detailSource = (details?.account || details?.details || details) as any;
         const detailName = detailSource?.name || detailSource?.product || detailSource?.display_name;
@@ -1969,11 +1981,11 @@ const App: React.FC = () => {
           name: detailName || account?.name || account?.product || account?.account_id?.iban || account?.iban || 'Bank account',
           bankName: connection.selectedBank || 'Enable Banking',
           currency,
-          balance: numericBalance,
+          balance: updateBalance ? numericBalance : existing?.balance ?? numericBalance,
           accountNumber: detailIban || account?.iban || account?.account_id?.iban || existing?.accountNumber,
           linkedAccountId: existing?.linkedAccountId,
-          syncStartDate: existing?.syncStartDate || syncStart,
-          lastSyncedAt: now,
+          syncStartDate: existing?.syncStartDate || baseSyncStart,
+          lastSyncedAt: shouldMarkSynced ? now : existing?.lastSyncedAt,
         });
       }
 
@@ -1996,7 +2008,7 @@ const App: React.FC = () => {
         ...conn,
         status: 'ready',
         lastError: undefined,
-        lastSyncedAt: now,
+        lastSyncedAt: shouldSyncTransactions || updateBalance ? now : conn.lastSyncedAt,
         sessionExpiresAt: connection.sessionExpiresAt,
         accounts: finalAccounts,
       } : conn));

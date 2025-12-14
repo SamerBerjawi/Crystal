@@ -200,6 +200,11 @@ export interface EnableBankingConnection {
   lastError?: string;
 }
 
+export interface EnableBankingSyncOptions {
+  transactionMode?: 'full' | 'since_last' | 'none';
+  updateBalance?: boolean;
+}
+
 export type EnableBankingLinkPayload =
   | { linkedAccountId: string; syncStartDate: string }
   | { newAccount: Omit<Account, 'id'>; syncStartDate: string };

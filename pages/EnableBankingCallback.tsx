@@ -1,11 +1,11 @@
 import React, { useEffect, useRef, useState } from 'react';
-import { EnableBankingConnection, Page } from '../types';
+import { EnableBankingConnection, EnableBankingSyncOptions, Page } from '../types';
 import { loadPendingConnection, removePendingConnection } from '../utils/enableBankingStorage';
 
 interface EnableBankingCallbackProps {
   connections: EnableBankingConnection[];
   setConnections: React.Dispatch<React.SetStateAction<EnableBankingConnection[]>>;
-  onSync: (connectionId: string, connectionOverride?: EnableBankingConnection) => Promise<void>;
+  onSync: (connectionId: string, connectionOverride?: EnableBankingConnection, syncOptions?: EnableBankingSyncOptions) => Promise<void>;
   setCurrentPage: (page: Page) => void;
   authToken?: string | null;
 }
