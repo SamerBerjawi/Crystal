@@ -18,8 +18,7 @@ services:
       - ${DATA_ROOT:-/volume1/docker/crystal}/db:/var/lib/postgresql/data:rw
 
   backend:
-    build:
-      context: ./server
+    image: ghcr.io/samerberjawi/crystal:backend-latest
     restart: unless-stopped
     depends_on:
       db:
@@ -36,9 +35,7 @@ services:
       DATABASE_NAME: ${POSTGRES_DB:-crystal}
 
   frontend:
-    build:
-      context: .
-      dockerfile: Dockerfile
+    image: ghcr.io/samerberjawi/crystal:frontend-latest
     restart: unless-stopped
     depends_on:
       - backend
