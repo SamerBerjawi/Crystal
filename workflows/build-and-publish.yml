@@ -6,7 +6,7 @@ on:
 
 env:
   REGISTRY: ghcr.io
-  # This resolves to your GitHub username/repository name (e.g., myuser/crystal)
+  # This correctly resolves to samerberjawi/crystal
   BASE_IMAGE_NAME: ${{ github.repository }} 
 
 jobs:
@@ -15,28 +15,27 @@ jobs:
     permissions:
       contents: read
       packages: write
-
+      
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
 
       - name: Set up Docker Buildx
         uses: docker/setup-buildx-action@v3
-
+        
       - name: Log in to the Container registry
         uses: docker/login-action@v3
         with:
           registry: ${{ env.REGISTRY }}
           username: ${{ github.actor }}
           password: ${{ secrets.GITHUB_TOKEN }}
-
+          
       - name: Extract Tag (Version)
         id: meta
         run: |
-          # Extracts the version number (e.g., v1.0.1)
           echo "VERSION=${GITHUB_REF_NAME}" >> $GITHUB_OUTPUT 
 
-      # --- Build and Push Backend Image (Tagged with :backend-...) ---
+      # --- Build and Push Backend Image ---
       - name: Build and Push Backend Image
         uses: docker/build-push-action@v5
         with:
@@ -44,11 +43,11 @@ jobs:
           push: true
           tags: |
             ${{ env.REGISTRY }}/${{ env.BASE_IMAGE_NAME }}:backend-${{ steps.meta.outputs.VERSION }}
-            ${{ env.REGISTRY }}/${{ env.BASE_IMAGE_NAME }}:backend-latest
+            ${{ env.REGISTRY }}/${{ env.BASE_IMAGE_NAME }}:backend-latest # <--- Creates the unique latest tag
           cache-from: type=gha
           cache-to: type=gha,mode=max
 
-      # --- Build and Push Frontend Image (Tagged with :frontend-...) ---
+      # --- Build and Push Frontend Image ---
       - name: Build and Push Frontend Image
         uses: docker/build-push-action@v5
         with:
@@ -57,6 +56,6 @@ jobs:
           push: true
           tags: |
             ${{ env.REGISTRY }}/${{ env.BASE_IMAGE_NAME }}:frontend-${{ steps.meta.outputs.VERSION }}
-            ${{ env.REGISTRY }}/${{ env.BASE_IMAGE_NAME }}:frontend-latest
+            ${{ env.REGISTRY }}/${{ env.BASE_IMAGE_NAME }}:frontend-latest # <--- Creates the unique latest tag
           cache-from: type=gha
           cache-to: type=gha,mode=max
