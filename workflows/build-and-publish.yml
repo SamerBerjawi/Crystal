@@ -1,71 +1,62 @@
 name: Docker Image CI/CD
-
-# 1. Trigger the workflow only on a new Git Tag push (e.g., v1.0.0)
 on:
   push:
     tags:
       - 'v*.*.*'
 
 env:
-  # Define the image repository path in GHCR
   REGISTRY: ghcr.io
-  # The owner/repository for the images
-  IMAGE_REPOSITORY: ${{ github.repository }}
+  # This resolves to your GitHub username/repository name (e.g., myuser/crystal)
+  BASE_IMAGE_NAME: ${{ github.repository }} 
 
 jobs:
   build-and-push:
     runs-on: ubuntu-latest
-    
-    # Give the job permission to read/write packages (images) to GHCR
     permissions:
       contents: read
       packages: write
-      
+
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
 
-      # --- Setup Docker Buildx to handle multi-platform builds ---
       - name: Set up Docker Buildx
         uses: docker/setup-buildx-action@v3
-        
-      # --- Log in to GitHub Container Registry (GHCR) ---
+
       - name: Log in to the Container registry
         uses: docker/login-action@v3
         with:
           registry: ${{ env.REGISTRY }}
           username: ${{ github.actor }}
-          # Use the GITHUB_TOKEN automatically provided by GitHub Actions
           password: ${{ secrets.GITHUB_TOKEN }}
-          
-      # --- Extract Tag from the Git Ref (e.g., refs/tags/v1.0.0 -> v1.0.0) ---
+
       - name: Extract Tag (Version)
         id: meta
         run: |
-          echo "VERSION=${GITHUB_REF_NAME}" >> $GITHUB_OUTPUT
-          echo "LATEST_TAG=latest" >> $GITHUB_OUTPUT
+          # Extracts the version number (e.g., v1.0.1)
+          echo "VERSION=${GITHUB_REF_NAME}" >> $GITHUB_OUTPUT 
 
-      # --- Build and Push Backend Image ---
+      # --- Build and Push Backend Image (Tagged with :backend-...) ---
       - name: Build and Push Backend Image
         uses: docker/build-push-action@v5
         with:
-          context: ./server # Context path for the backend (as defined in your docker-compose)
+          context: ./server
           push: true
           tags: |
-            ${{ env.REGISTRY }}/${{ env.IMAGE_REPOSITORY }}/backend:${{ steps.meta.outputs.VERSION }}
-            ${{ env.REGISTRY }}/${{ env.IMAGE_REPOSITORY }}/backend:${{ steps.meta.outputs.LATEST_TAG }}
+            ${{ env.REGISTRY }}/${{ env.BASE_IMAGE_NAME }}:backend-${{ steps.meta.outputs.VERSION }}
+            ${{ env.REGISTRY }}/${{ env.BASE_IMAGE_NAME }}:backend-latest
           cache-from: type=gha
           cache-to: type=gha,mode=max
 
-      # --- Build and Push Frontend Image ---
+      # --- Build and Push Frontend Image (Tagged with :frontend-...) ---
       - name: Build and Push Frontend Image
         uses: docker/build-push-action@v5
         with:
-          context: . # Context path for the frontend (as defined in your docker-compose)
-          file: Dockerfile # Dockerfile path (as defined in your docker-compose)
+          context: . 
+          file: Dockerfile
           push: true
           tags: |
-            ${{ env.REGISTRY }}/${{ env.IMAGE_REPOSITORY }}/frontend:${{ steps.meta.outputs.VERSION }}
-            ${{ env.REGISTRY }}/${{ env.IMAGE_REPOSITORY }}/frontend:${{ steps.meta.outputs.LATEST_TAG }}
+            ${{ env.REGISTRY }}/${{ env.BASE_IMAGE_NAME }}:frontend-${{ steps.meta.outputs.VERSION }}
+            ${{ env.REGISTRY }}/${{ env.BASE_IMAGE_NAME }}:frontend-latest
           cache-from: type=gha
           cache-to: type=gha,mode=max
