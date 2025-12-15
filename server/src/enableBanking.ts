@@ -1,3 +1,4 @@
+
 import express from 'express';
 import jwt from 'jsonwebtoken';
 import { authenticateToken, AuthRequest } from './middleware';
@@ -125,7 +126,7 @@ router.post('/aspsps', authenticateToken, async (req: AuthRequest, res) => {
 router.post('/accounts/:accountId/details', authenticateToken, async (req: AuthRequest, res) => {
   try {
     const { applicationId, clientCertificate } = req.body as { applicationId?: string; clientCertificate?: string };
-    const { accountId } = req.params;
+    const { accountId } = (req as express.Request).params;
 
     if (!applicationId || !clientCertificate) {
       return res.status(400).json({ message: 'applicationId and clientCertificate are required' });
@@ -148,9 +149,9 @@ router.post('/authorize', authenticateToken, async (req: AuthRequest, res) => {
     }
     const client = new EnableBankingClient(applicationId, clientCertificate);
     const forwardedProto = (req.headers['x-forwarded-proto'] as string | undefined)?.split(',')[0]?.trim();
-    const protocol = forwardedProto || req.protocol;
+    const protocol = forwardedProto || (req as express.Request).protocol;
     const forwardedHost = (req.headers['x-forwarded-host'] as string | undefined)?.split(',')[0]?.trim();
-    const host = forwardedHost || req.get('host');
+    const host = forwardedHost || (req as express.Request).get('host');
     const redirectUrl =
       process.env.ENABLE_BANKING_REDIRECT_URL ||
       (host ? `${protocol}://${host.replace(/\s/g, '')}/enable-banking/callback` : DEFAULT_REDIRECT);
@@ -198,7 +199,7 @@ router.post('/session/fetch', authenticateToken, async (req: AuthRequest, res) =
 router.post('/accounts/:accountId/balances', authenticateToken, async (req: AuthRequest, res) => {
   try {
     const { applicationId, clientCertificate } = req.body as { applicationId?: string; clientCertificate?: string };
-    const { accountId } = req.params;
+    const { accountId } = (req as express.Request).params;
     if (!applicationId || !clientCertificate) {
       return res.status(400).json({ message: 'applicationId and clientCertificate are required' });
     }
@@ -219,7 +220,7 @@ router.post('/accounts/:accountId/transactions', authenticateToken, async (req: 
       dateFrom?: string;
       continuationKey?: string;
     };
-    const { accountId } = req.params;
+    const { accountId } = (req as express.Request).params;
     if (!applicationId || !clientCertificate) {
       return res.status(400).json({ message: 'applicationId and clientCertificate are required' });
     }

@@ -104,6 +104,7 @@ const AddTransactionModal: React.FC<AddTransactionModalProps> = ({ onClose, onSa
   
   // Spare Change State
   const [enableRoundUp, setEnableRoundUp] = useState(false);
+  const [existingRoundUpTransaction, setExistingRoundUpTransaction] = useState<Transaction | null>(null);
   const [roundUpBehavior, setRoundUpBehavior] = useState<'skip' | 'unit'>('skip');
   const [roundUpMultiplier, setRoundUpMultiplier] = useState('1');
   const merchantListId = useId();
@@ -292,6 +293,30 @@ const AddTransactionModal: React.FC<AddTransactionModalProps> = ({ onClose, onSa
         setPrincipalPayment(principal);
         setInterestPayment(interest);
 
+        // Detect Round Up
+        if (transactions) {
+            // Find a transaction that looks like a round-up for this one
+            // Match: same date, same source account, merchant "Round Up", description "Spare change for..."
+            const currentAccountId = transactionToEdit.type === 'income' ? transactionToEdit.accountId : (transactionToEdit.transferId ? (transactionToEdit.type === 'expense' ? transactionToEdit.accountId : (transactions.find(t => t.transferId === transactionToEdit.transferId && t.type === 'expense')?.accountId)) : transactionToEdit.accountId);
+
+            const roundUpTx = transactions.find(t => 
+                t.accountId === currentAccountId &&
+                t.date === transactionToEdit.date &&
+                t.merchant === 'Round Up' &&
+                t.transferId?.startsWith('spare-') &&
+                // Check description match loosely
+                t.description.includes(transactionToEdit.description || '')
+            );
+
+            if (roundUpTx) {
+                setEnableRoundUp(true);
+                setExistingRoundUpTransaction(roundUpTx);
+            } else {
+                setEnableRoundUp(false);
+                setExistingRoundUpTransaction(null);
+            }
+        }
+
     } else {
         setType(initialType || 'expense');
         setDate(initialDetails?.date || toLocalISOString(new Date()));
@@ -307,6 +332,7 @@ const AddTransactionModal: React.FC<AddTransactionModalProps> = ({ onClose, onSa
         setLocationString('');
         setLocationData({});
         setEnableRoundUp(false);
+        setExistingRoundUpTransaction(null);
         setRoundUpBehavior('skip');
         setRoundUpMultiplier('1');
         setShowDetails(false);
@@ -425,36 +451,6 @@ const AddTransactionModal: React.FC<AddTransactionModalProps> = ({ onClose, onSa
         }
 
         toSave.push(expenseTx, incomeTx);
-
-        if (linkedSpareChangeAccount && enableRoundUp && adjustedRoundUpAmount > 0) {
-            const spareChangeTransferId = `spare-${uuidv4()}`;
-
-            const spareExpenseTx: Omit<Transaction, 'id'> = {
-                accountId: fromAccountId,
-                date,
-                description: `Spare change for ${description || 'Transfer'}`,
-                merchant: 'Round Up',
-                amount: -Math.abs(adjustedRoundUpAmount),
-                category: 'Transfer',
-                type: 'expense',
-                currency: expenseTx.currency,
-                transferId: spareChangeTransferId,
-            };
-
-            const spareIncomeTx: Omit<Transaction, 'id'> = {
-                accountId: linkedSpareChangeAccount.id,
-                date,
-                description: `Spare change from ${description || 'Transfer'}`,
-                merchant: 'Round Up',
-                amount: Math.abs(adjustedRoundUpAmount),
-                category: 'Transfer',
-                type: 'income',
-                currency: linkedSpareChangeAccount.currency,
-                transferId: spareChangeTransferId,
-            };
-
-            toSave.push(spareExpenseTx, spareIncomeTx);
-        }
     } else {
         const accountId = type === 'income' ? toAccountId : fromAccountId;
         if (!accountId || !category) {
@@ -487,11 +483,45 @@ const AddTransactionModal: React.FC<AddTransactionModalProps> = ({ onClose, onSa
         }
 
         toSave.push(transactionData);
-        
-        if (type === 'expense' && linkedSpareChangeAccount && enableRoundUp && adjustedRoundUpAmount > 0) {
-             const spareChangeTransferId = `spare-${uuidv4()}`;
-             
-             const spareExpenseTx: Omit<Transaction, 'id'> = {
+    }
+
+    // Unified Round Up Logic
+    // We check if we should create, update, or delete a round-up transaction based on the current state.
+    
+    // Conditions for having a round up:
+    // 1. Must be an expense or transfer (outbound money)
+    // 2. Must have a linked spare change account
+    const canHaveRoundUp = (type === 'expense' || type === 'transfer') && linkedSpareChangeAccount;
+    
+    // Check if we should save (create/update) a round up
+    const shouldSaveRoundUp = canHaveRoundUp && enableRoundUp && adjustedRoundUpAmount > 0;
+    
+    // Check if we should delete an existing round up
+    // Delete if it exists BUT we shouldn't save one (unchecked, or conditions not met)
+    const shouldDeleteRoundUp = existingRoundUpTransaction && !shouldSaveRoundUp;
+
+    if (shouldDeleteRoundUp && existingRoundUpTransaction) {
+        toDelete.push(existingRoundUpTransaction.id);
+        const pair = transactions?.find(t => t.transferId === existingRoundUpTransaction.transferId && t.id !== existingRoundUpTransaction.id);
+        if (pair) toDelete.push(pair.id);
+    } else if (shouldSaveRoundUp && linkedSpareChangeAccount) {
+         // Create or Update
+         const spareTransferId = existingRoundUpTransaction?.transferId || `spare-${uuidv4()}`;
+         const expenseId = existingRoundUpTransaction?.id; // undefined if creating new
+         
+         // Find existing pair ID if updating
+         let incomeId = undefined;
+         if (existingRoundUpTransaction && transactions) {
+             const pair = transactions.find(t => t.transferId === spareTransferId && t.id !== existingRoundUpTransaction.id);
+             incomeId = pair?.id;
+         }
+         
+         // Use the selected account (fromAccountId) for currency and ID
+         const selectedAccount = accounts.find(acc => acc.id === fromAccountId);
+
+         if (selectedAccount) {
+             const spareExpenseTx: Omit<Transaction, 'id'> & { id?: string } = {
+                id: expenseId,
                 accountId: fromAccountId,
                 date,
                 description: `Spare change for ${description || 'Transaction'}`,
@@ -500,10 +530,11 @@ const AddTransactionModal: React.FC<AddTransactionModalProps> = ({ onClose, onSa
                 category: 'Transfer',
                 type: 'expense',
                 currency: selectedAccount.currency,
-                transferId: spareChangeTransferId,
+                transferId: spareTransferId,
             };
 
-            const spareIncomeTx: Omit<Transaction, 'id'> = {
+            const spareIncomeTx: Omit<Transaction, 'id'> & { id?: string } = {
+                id: incomeId,
                 accountId: linkedSpareChangeAccount.id,
                 date,
                 description: `Spare change from ${description || 'Transaction'}`,
@@ -512,11 +543,11 @@ const AddTransactionModal: React.FC<AddTransactionModalProps> = ({ onClose, onSa
                 category: 'Transfer',
                 type: 'income',
                 currency: linkedSpareChangeAccount.currency,
-                transferId: spareChangeTransferId,
+                transferId: spareTransferId,
             };
             
             toSave.push(spareExpenseTx, spareIncomeTx);
-        }
+         }
     }
     
     onSave(toSave, toDelete);

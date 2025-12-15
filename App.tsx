@@ -2187,7 +2187,7 @@ const App: React.FC = () => {
       let finalLinkedAccountId: string | undefined = 'linkedAccountId' in payload ? payload.linkedAccountId : undefined;
 
       if ('newAccount' in payload) {
-        const generatedId = payload.newAccount.id || `acc-${uuidv4()}`;
+        const generatedId = `acc-${uuidv4()}`;
         handleSaveAccount({ ...payload.newAccount, id: generatedId });
         finalLinkedAccountId = generatedId;
       }
