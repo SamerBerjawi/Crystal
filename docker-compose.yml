@@ -14,11 +14,12 @@ services:
       timeout: 5s
       retries: 5
     volumes:
-      # Persist Postgres data directly on your NAS
-      - ${DATA_ROOT:-/volume1/docker/crystal}/db:/var/lib/postgresql/data:rw
+      # Maps the host path (${DATA_ROOT}/db-data) to the container path
+      - ${DATA_ROOT}/db-data:/var/lib/postgresql/data:rw
 
   backend:
-    image: ghcr.io/samerberjawi/crystal:backend-latest
+    # ⚠️ Use the tagged GHCR image instead of 'build'
+    image: ghcr.io/SamerBerjawi/crystal:backend-latest
     restart: unless-stopped
     depends_on:
       db:
@@ -33,11 +34,17 @@ services:
       DATABASE_USER: ${POSTGRES_USER:-crystal_user}
       DATABASE_PASSWORD: ${POSTGRES_PASSWORD:-strong_password_change_me}
       DATABASE_NAME: ${POSTGRES_DB:-crystal}
+    volumes:
+      # If your backend needs persistent storage for logs, configuration, etc.
+      # Create an empty directory inside the container if it's not needed, e.g., /app/config
+      - ${DATA_ROOT}/backend-config:/app/config:rw 
 
   frontend:
-    image: ghcr.io/samerberjawi/crystal:frontend-latest
+    # ⚠️ Use the tagged GHCR image instead of 'build'
+    image: ghcr.io/SamerBerjawi/crystal:frontend-latest
     restart: unless-stopped
     depends_on:
       - backend
     ports:
       - "${FRONTEND_PORT:-7157}:80"
+    # No volumes defined for frontend unless it serves static files/needs config
