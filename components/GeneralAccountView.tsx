@@ -4,7 +4,7 @@ import { Account, DisplayTransaction, Category, Transaction, RecurringTransactio
 import { formatCurrency, parseDateAsUTC, generateSyntheticLoanPayments, generateSyntheticCreditCardPayments, generateBalanceForecast, convertToEur, generateSyntheticPropertyTransactions, calculateStatementPeriods, getCreditCardStatementDetails, getPreferredTimeZone, formatDateKey, toLocalISOString } from '../utils';
 import Card from './Card';
 import TransactionList from './TransactionList';
-import { BTN_PRIMARY_STYLE, ACCOUNT_TYPE_STYLES } from '../constants';
+import { BTN_PRIMARY_STYLE, ACCOUNT_TYPE_STYLES, BTN_SECONDARY_STYLE } from '../constants';
 import { AreaChart, Area, XAxis, YAxis, Tooltip, ResponsiveContainer, CartesianGrid, BarChart, Bar, Cell, Legend, ReferenceLine } from 'recharts';
 import { useGoalsContext, useScheduleContext } from '../contexts/FinancialDataContext';
 import { useAccountsContext, useTransactionsContext } from '../contexts/DomainProviders';
@@ -18,6 +18,8 @@ interface GeneralAccountViewProps {
   onTransactionClick: (tx: DisplayTransaction) => void;
   onBack: () => void;
   setViewingAccountId: (id: string | null) => void;
+  onSyncLinkedAccount?: () => void;
+  isLinkedToEnableBanking?: boolean;
 }
 
 const getCardGradient = (id: string) => {
@@ -51,7 +53,9 @@ const GeneralAccountView: React.FC<GeneralAccountViewProps> = ({
   onAddTransaction,
   onTransactionClick,
   onBack,
-  setViewingAccountId
+  setViewingAccountId,
+  onSyncLinkedAccount,
+  isLinkedToEnableBanking,
 }) => {
   const { recurringTransactions, billsAndPayments, loanPaymentOverrides, recurringTransactionOverrides } = useScheduleContext();
   const { financialGoals } = useGoalsContext();
@@ -466,7 +470,12 @@ const GeneralAccountView: React.FC<GeneralAccountViewProps> = ({
             </div>
           </div>
         </div>
-        <div className="flex-shrink-0 ml-auto md:ml-0">
+        <div className="flex-shrink-0 ml-auto md:ml-0 flex items-center gap-2">
+          {isLinkedToEnableBanking && onSyncLinkedAccount && (
+            <button onClick={onSyncLinkedAccount} className={BTN_SECONDARY_STYLE}>
+              Sync
+            </button>
+          )}
           <button onClick={onAddTransaction} className={BTN_PRIMARY_STYLE}>Add Transaction</button>
         </div>
       </header>

@@ -202,8 +202,9 @@ export interface EnableBankingConnection {
 }
 
 export interface EnableBankingSyncOptions {
-  transactionMode?: 'full' | 'since_last' | 'none';
+  transactionMode?: 'full' | 'none';
   updateBalance?: boolean;
+  syncStartDate?: string;
 }
 
 export type EnableBankingLinkPayload =

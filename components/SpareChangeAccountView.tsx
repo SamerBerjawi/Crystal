@@ -18,6 +18,8 @@ interface SpareChangeAccountViewProps {
   onTransactionClick: (tx: DisplayTransaction) => void;
   onBack: () => void;
   onAdjustBalance?: () => void;
+  onSyncLinkedAccount?: () => void;
+  isLinkedToEnableBanking?: boolean;
 }
 
 const SpareChangeAccountView: React.FC<SpareChangeAccountViewProps> = ({
@@ -28,7 +30,9 @@ const SpareChangeAccountView: React.FC<SpareChangeAccountViewProps> = ({
   onAddTransaction,
   onTransactionClick,
   onBack,
-  onAdjustBalance
+  onAdjustBalance,
+  onSyncLinkedAccount,
+  isLinkedToEnableBanking,
 }) => {
   const { accounts } = useAccountsContext();
   const timeZone = getPreferredTimeZone();
@@ -125,6 +129,9 @@ const SpareChangeAccountView: React.FC<SpareChangeAccountViewProps> = ({
           </div>
         </div>
         <div className="flex gap-3 flex-shrink-0 ml-auto md:ml-0">
+             {isLinkedToEnableBanking && onSyncLinkedAccount && (
+                 <button onClick={onSyncLinkedAccount} className={`${BTN_SECONDARY_STYLE}`}>Sync</button>
+             )}
              {onAdjustBalance && (
                  <button onClick={onAdjustBalance} className={`${BTN_SECONDARY_STYLE}`}>
                      <span className="material-symbols-outlined text-lg mr-2">tune</span>

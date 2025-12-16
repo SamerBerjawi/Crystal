@@ -4,7 +4,7 @@ import { Account, Transaction, DisplayTransaction, Category } from '../types';
 import { formatCurrency, parseDateAsUTC, convertToEur, getPreferredTimeZone } from '../utils';
 import Card from './Card';
 import TransactionList from './TransactionList';
-import { BTN_PRIMARY_STYLE } from '../constants';
+import { BTN_PRIMARY_STYLE, BTN_SECONDARY_STYLE } from '../constants';
 import { ResponsiveContainer, BarChart, CartesianGrid, XAxis, YAxis, Tooltip, Bar, AreaChart, Area } from 'recharts';
 import { useGoalsContext } from '../contexts/FinancialDataContext';
 
@@ -16,6 +16,8 @@ interface SavingsAccountViewProps {
   onAddTransaction: () => void;
   onTransactionClick: (tx: DisplayTransaction) => void;
   onBack: () => void;
+  onSyncLinkedAccount?: () => void;
+  isLinkedToEnableBanking?: boolean;
 }
 
 const SavingsAccountView: React.FC<SavingsAccountViewProps> = ({
@@ -25,7 +27,9 @@ const SavingsAccountView: React.FC<SavingsAccountViewProps> = ({
   allCategories,
   onAddTransaction,
   onTransactionClick,
-  onBack
+  onBack,
+  onSyncLinkedAccount,
+  isLinkedToEnableBanking,
 }) => {
   const { financialGoals } = useGoalsContext();
   const timeZone = getPreferredTimeZone();
@@ -140,10 +144,15 @@ const SavingsAccountView: React.FC<SavingsAccountViewProps> = ({
             </div>
           </div>
         </div>
-        <button onClick={onAddTransaction} className={`${BTN_PRIMARY_STYLE} flex-shrink-0 ml-auto md:ml-0`}>
-            <span className="material-symbols-outlined text-lg mr-2">add</span>
-            Add Transaction
-        </button>
+        <div className="flex items-center gap-2 ml-auto md:ml-0 flex-shrink-0">
+            {isLinkedToEnableBanking && onSyncLinkedAccount && (
+                <button onClick={onSyncLinkedAccount} className={BTN_SECONDARY_STYLE}>Sync</button>
+            )}
+            <button onClick={onAddTransaction} className={`${BTN_PRIMARY_STYLE}`}>
+                <span className="material-symbols-outlined text-lg mr-2">add</span>
+                Add Transaction
+            </button>
+        </div>
       </header>
 
       {/* Hero Section */}

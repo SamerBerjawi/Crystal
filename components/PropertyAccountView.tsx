@@ -13,6 +13,8 @@ interface PropertyAccountViewProps {
   onAddTransaction: () => void;
   setViewingAccountId: (id: string | null) => void;
   onBack: () => void;
+  onSyncLinkedAccount?: () => void;
+  isLinkedToEnableBanking?: boolean;
 }
 
 const PropertyAccountView: React.FC<PropertyAccountViewProps> = ({
@@ -22,7 +24,9 @@ const PropertyAccountView: React.FC<PropertyAccountViewProps> = ({
   loanPaymentOverrides,
   onAddTransaction,
   setViewingAccountId,
-  onBack
+  onBack,
+  onSyncLinkedAccount,
+  isLinkedToEnableBanking,
 }) => {
   const linkedLoan = accounts.find(a => a.id === account.linkedLoanId);
   
@@ -109,10 +113,15 @@ const PropertyAccountView: React.FC<PropertyAccountViewProps> = ({
                 </p>
             </div>
           </div>
-          <button onClick={onAddTransaction} className={BTN_PRIMARY_STYLE}>
-              <span className="material-symbols-outlined mr-2 text-lg">add</span>
-              Update Value
-          </button>
+          <div className="flex items-center gap-2">
+              {isLinkedToEnableBanking && onSyncLinkedAccount && (
+                  <button onClick={onSyncLinkedAccount} className={BTN_SECONDARY_STYLE}>Sync</button>
+              )}
+              <button onClick={onAddTransaction} className={BTN_PRIMARY_STYLE}>
+                  <span className="material-symbols-outlined mr-2 text-lg">add</span>
+                  Update Value
+              </button>
+          </div>
       </header>
 
       {/* Hero Section: Asset & Equity */}
