@@ -162,8 +162,9 @@ export interface Account {
 
   // Other Assets/Liabilities
   notes?: string;
-  
+
   isPrimary?: boolean;
+  includeInAnalytics?: boolean;
   sureId?: string;
   status?: 'open' | 'closed';
 }

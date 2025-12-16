@@ -20,6 +20,7 @@ const AddAccountModal: React.FC<AddAccountModalProps> = ({ onClose, onAdd, accou
   const [icon, setIcon] = useState(ACCOUNT_TYPE_STYLES['Checking'].icon);
   const [last4, setLast4] = useState('');
   const [isPrimary, setIsPrimary] = useState(false);
+  const [includeInAnalytics, setIncludeInAnalytics] = useState(true);
   const [isIconPickerOpen, setIconPickerOpen] = useState(false);
   const [financialInstitution, setFinancialInstitution] = useState('');
   
@@ -228,6 +229,7 @@ const AddAccountModal: React.FC<AddAccountModalProps> = ({ onClose, onAdd, accou
       last4: hasCard && last4 ? last4 : undefined,
       financialInstitution: ['Checking', 'Savings', 'Credit Card'].includes(type) && financialInstitution ? financialInstitution : undefined,
       isPrimary,
+      includeInAnalytics,
       accountNumber: accountNumber || undefined,
       routingNumber: routingNumber || undefined,
       apy: apy !== '' ? parseFloat(apy) : undefined,
@@ -984,16 +986,30 @@ const AddAccountModal: React.FC<AddAccountModalProps> = ({ onClose, onAdd, accou
           </div>
 
           <div className="p-4 bg-black/5 dark:bg-white/5 rounded-xl">
-            <div className="flex justify-between items-center cursor-pointer" onClick={() => setIsPrimary(!isPrimary)}>
-                <div>
-                    <p className="font-bold text-sm text-light-text dark:text-dark-text">Primary Account</p>
-                    <p className="text-xs text-light-text-secondary dark:text-dark-text-secondary">Set as the default account for this type.</p>
-                </div>
-                <div 
-                  className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors ${isPrimary ? 'bg-primary-500' : 'bg-gray-300 dark:bg-gray-700'}`}
-                >
-                  <span className={`inline-block h-4 w-4 transform rounded-full bg-white shadow-sm transition-transform ${isPrimary ? 'translate-x-6' : 'translate-x-1'}`} />
-                </div>
+            <div className="grid gap-4 md:grid-cols-2">
+              <div className="flex justify-between items-center cursor-pointer" onClick={() => setIsPrimary(!isPrimary)}>
+                  <div>
+                      <p className="font-bold text-sm text-light-text dark:text-dark-text">Primary Account</p>
+                      <p className="text-xs text-light-text-secondary dark:text-dark-text-secondary">Set as the default account for this type.</p>
+                  </div>
+                  <div
+                    className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors ${isPrimary ? 'bg-primary-500' : 'bg-gray-300 dark:bg-gray-700'}`}
+                  >
+                    <span className={`inline-block h-4 w-4 transform rounded-full bg-white shadow-sm transition-transform ${isPrimary ? 'translate-x-6' : 'translate-x-1'}`} />
+                  </div>
+              </div>
+
+              <div className="flex justify-between items-center cursor-pointer" onClick={() => setIncludeInAnalytics(!includeInAnalytics)}>
+                  <div>
+                      <p className="font-bold text-sm text-light-text dark:text-dark-text">Include in Analytics</p>
+                      <p className="text-xs text-light-text-secondary dark:text-dark-text-secondary">Exclude this account from assets, liabilities, and reports when off.</p>
+                  </div>
+                  <div
+                    className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors ${includeInAnalytics ? 'bg-primary-500' : 'bg-gray-300 dark:bg-gray-700'}`}
+                  >
+                    <span className={`inline-block h-4 w-4 transform rounded-full bg-white shadow-sm transition-transform ${includeInAnalytics ? 'translate-x-6' : 'translate-x-1'}`} />
+                  </div>
+              </div>
             </div>
           </div>
 

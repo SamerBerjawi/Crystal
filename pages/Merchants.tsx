@@ -101,11 +101,21 @@ const Merchants: React.FC<MerchantsProps> = ({ setCurrentPage }) => {
   }, [persistedOverrides]);
 
   // Aggregation Logic
+  const analyticsAccounts = useMemo(() => accounts.filter(acc => acc.includeInAnalytics ?? true), [accounts]);
+  const accountLookup = useMemo(() => new Map(accounts.map(acc => [acc.id, acc])), [accounts]);
+  const analyticsTransactions = useMemo(
+    () => transactions.filter(tx => {
+        const account = accountLookup.get(tx.accountId);
+        return account ? (account.includeInAnalytics ?? true) : true;
+    }),
+    [transactions, accountLookup]
+  );
+
   const entities = useMemo(() => {
     const map = new Map<string, EntityItem>();
 
     // 1. Process Merchants from Transactions
-    transactions.forEach(tx => {
+    analyticsTransactions.forEach(tx => {
       if (!tx.merchant) return;
       const key = normalizeMerchantKey(tx.merchant);
       if (!key) return;
@@ -134,7 +144,7 @@ const Merchants: React.FC<MerchantsProps> = ({ setCurrentPage }) => {
     });
 
     // 2. Process Financial Institutions from Accounts
-    accounts.forEach(acc => {
+    analyticsAccounts.forEach(acc => {
         if (!acc.financialInstitution) return;
         const key = normalizeMerchantKey(acc.financialInstitution);
         if (!key) return;
@@ -166,7 +176,7 @@ const Merchants: React.FC<MerchantsProps> = ({ setCurrentPage }) => {
     });
 
     return Array.from(map.values());
-  }, [transactions, accounts]);
+  }, [analyticsTransactions, analyticsAccounts]);
 
   // Filtering & Sorting
   const filteredEntities = useMemo(() => {

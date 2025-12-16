@@ -140,19 +140,28 @@ const Dashboard: React.FC<DashboardProps> = ({ user, tasks, saveTask }) => {
 
   const allCategories = useMemo(() => [...incomeCategories, ...expenseCategories], [incomeCategories, expenseCategories]);
 
-  const selectedAccounts = useMemo(() => 
+  const selectedAccounts = useMemo(() =>
       accounts.filter(a => selectedAccountIds.includes(a.id)),
   [accounts, selectedAccountIds]);
 
+  const accountLookup = useMemo(() => new Map(accounts.map(acc => [acc.id, acc])), [accounts]);
+  const analyticsAccounts = useMemo(() => accounts.filter(acc => acc.includeInAnalytics ?? true), [accounts]);
+  const analyticsSelectedAccounts = useMemo(() => selectedAccounts.filter(acc => acc.includeInAnalytics ?? true), [selectedAccounts]);
+  const analyticsSelectedAccountIds = useMemo(() => analyticsSelectedAccounts.map(acc => acc.id), [analyticsSelectedAccounts]);
+  const analyticsTransactions = useMemo(() => transactions.filter(tx => {
+      const account = accountLookup.get(tx.accountId);
+      return account ? (account.includeInAnalytics ?? true) : true;
+  }), [transactions, accountLookup]);
+
   // Combine all recurring items (user-defined + synthetic)
   const { allRecurringItems } = useMemo(() => {
-        const syntheticLoanPayments = generateSyntheticLoanPayments(accounts, transactions, loanPaymentOverrides);
-        const syntheticCreditCardPayments = generateSyntheticCreditCardPayments(accounts, transactions);
-        const syntheticPropertyTransactions = generateSyntheticPropertyTransactions(accounts);
-        
+        const syntheticLoanPayments = generateSyntheticLoanPayments(analyticsAccounts, analyticsTransactions, loanPaymentOverrides);
+        const syntheticCreditCardPayments = generateSyntheticCreditCardPayments(analyticsAccounts, analyticsTransactions);
+        const syntheticPropertyTransactions = generateSyntheticPropertyTransactions(analyticsAccounts);
+
         const all = [...recurringTransactions, ...syntheticLoanPayments, ...syntheticCreditCardPayments, ...syntheticPropertyTransactions];
         return { allRecurringItems: all };
-  }, [accounts, transactions, loanPaymentOverrides, recurringTransactions]);
+  }, [analyticsAccounts, analyticsTransactions, loanPaymentOverrides, recurringTransactions]);
 
   const handleOpenTransactionModal = (tx?: Transaction) => {
     setEditingTransaction(tx || null);
@@ -291,12 +300,12 @@ const Dashboard: React.FC<DashboardProps> = ({ user, tasks, saveTask }) => {
   }, [deleteTransactions]);
 
   const { filteredTransactions, income, expenses } = useMemo(() => {
-    const cacheKey = `${transactionsKey}|${selectedAccountIds.join(',')}|${duration}`;
+    const cacheKey = `${transactionsKey}|${selectedAccountIds.join(',')}|${analyticsSelectedAccountIds.join(',')}|${duration}`;
     const cached = aggregateCacheRef.current.get(cacheKey);
     if (cached) return cached;
 
-    const { start, end } = getDateRange(duration, transactions);
-    const txsInPeriod = transactions.filter(tx => {
+    const { start, end } = getDateRange(duration, analyticsTransactions);
+    const txsInPeriod = analyticsTransactions.filter(tx => {
         const txDate = parseDateAsUTC(tx.date);
         return txDate >= start && txDate <= end;
     });
@@ -306,7 +315,7 @@ const Dashboard: React.FC<DashboardProps> = ({ user, tasks, saveTask }) => {
     let calculatedExpenses = 0;
 
     txsInPeriod.forEach(tx => {
-        if (!selectedAccountIds.includes(tx.accountId)) {
+        if (!analyticsSelectedAccountIds.includes(tx.accountId)) {
             return; // Skip transactions not in selected accounts for calculation.
         }
 
@@ -315,11 +324,11 @@ const Dashboard: React.FC<DashboardProps> = ({ user, tasks, saveTask }) => {
         if (tx.transferId) {
             if (processedTransferIds.has(tx.transferId)) return;
 
-            const counterpart = transactions.find(t => t.transferId === tx.transferId && t.id !== tx.id);
+            const counterpart = analyticsTransactions.find(t => t.transferId === tx.transferId && t.id !== tx.id);
             processedTransferIds.add(tx.transferId);
 
             if (counterpart) {
-                const counterpartSelected = selectedAccountIds.includes(counterpart.accountId);
+                const counterpartSelected = analyticsSelectedAccountIds.includes(counterpart.accountId);
 
                 // If counterpart is NOT selected, this is a real in/outflow for the selected group.
                 if (!counterpartSelected) {
@@ -340,13 +349,13 @@ const Dashboard: React.FC<DashboardProps> = ({ user, tasks, saveTask }) => {
     });
 
     const result = {
-        filteredTransactions: txsInPeriod.filter(tx => selectedAccountIds.includes(tx.accountId)),
+        filteredTransactions: txsInPeriod.filter(tx => analyticsSelectedAccountIds.includes(tx.accountId)),
         income: calculatedIncome,
         expenses: calculatedExpenses,
     };
     aggregateCacheRef.current.set(cacheKey, result);
     return result;
-  }, [aggregateCacheRef, duration, selectedAccountIds, transactions, transactionsKey]);
+  }, [aggregateCacheRef, analyticsSelectedAccountIds, analyticsTransactions, duration, selectedAccountIds, transactionsKey]);
 
   const enrichedTransactions: EnrichedTransaction[] = useMemo(
     () =>
@@ -591,20 +600,20 @@ const Dashboard: React.FC<DashboardProps> = ({ user, tasks, saveTask }) => {
   };
 
   const { totalAssets, totalDebt, netWorth } = useMemo(() => {
-    const safeAccounts = selectedAccounts || [];
-    
-    const { totalAssets, totalDebt, netWorth } = calculateAccountTotals(safeAccounts, transactions, loanPaymentOverrides);
+    const safeAccounts = analyticsSelectedAccounts || [];
+
+    const { totalAssets, totalDebt, netWorth } = calculateAccountTotals(safeAccounts, analyticsTransactions, loanPaymentOverrides);
 
     return {
         totalAssets,
         totalDebt,
         netWorth,
     };
-  }, [selectedAccounts, transactions, loanPaymentOverrides]);
+  }, [analyticsSelectedAccounts, analyticsTransactions, loanPaymentOverrides]);
 
   const { globalTotalAssets, globalTotalDebt, globalAssetBreakdown, globalDebtBreakdown, assetGroups, liabilityGroups } = useMemo(() => {
-     const openAccounts = accounts.filter(acc => acc.status !== 'closed');
-     const { totalAssets, totalDebt } = calculateAccountTotals(openAccounts, transactions, loanPaymentOverrides);
+     const openAccounts = analyticsAccounts.filter(acc => acc.status !== 'closed');
+     const { totalAssets, totalDebt } = calculateAccountTotals(openAccounts, analyticsTransactions, loanPaymentOverrides);
 
     // Group accounts for the detailed breakdown
     const assetGroups: Record<string, { types: AccountType[], value: number, color: string, icon: string }> = {
@@ -615,38 +624,38 @@ const Dashboard: React.FC<DashboardProps> = ({ user, tasks, saveTask }) => {
         'Other Assets': { types: ['Other Assets', 'Lending'], value: 0, color: '#64748B', icon: 'category' }, // Slate
     };
 
-    const liabilityGroups: Record<string, { types: AccountType[], value: number, color: string, icon: string }> = {
-        'Loans': { types: ['Loan'], value: 0, color: '#EF4444', icon: 'request_quote' }, // Red
-        'Credit Cards': { types: ['Credit Card'], value: 0, color: '#F43F5E', icon: 'credit_card' }, // Rose
-        'Other Liabilities': { types: ['Other Liabilities'], value: 0, color: '#94A3B8', icon: 'receipt' }, // Gray
-    };
+      const liabilityGroups: Record<string, { types: AccountType[], value: number, color: string, icon: string }> = {
+          'Loans': { types: ['Loan'], value: 0, color: '#EF4444', icon: 'request_quote' }, // Red
+          'Credit Cards': { types: ['Credit Card'], value: 0, color: '#F43F5E', icon: 'credit_card' }, // Rose
+          'Other Liabilities': { types: ['Other Liabilities'], value: 0, color: '#94A3B8', icon: 'receipt' }, // Gray
+      };
 
-    // Helper to sum a group
-    const calculateGroupTotal = (types: AccountType[]) => {
-        const groupAccounts = openAccounts.filter(acc => types.includes(acc.type));
-        const { totalAssets, totalDebt } = calculateAccountTotals(groupAccounts, transactions, loanPaymentOverrides);
-        return totalAssets + totalDebt; // One will be 0 typically, except for mixed types which we don't have here
-    };
+      // Helper to sum a group
+      const calculateGroupTotal = (types: AccountType[]) => {
+          const groupAccounts = openAccounts.filter(acc => types.includes(acc.type));
+          const { totalAssets, totalDebt } = calculateAccountTotals(groupAccounts, analyticsTransactions, loanPaymentOverrides);
+          return totalAssets + totalDebt; // One will be 0 typically, except for mixed types which we don't have here
+      };
 
     for (const groupName in assetGroups) {
         assetGroups[groupName].value = calculateGroupTotal(assetGroups[groupName].types);
     }
-    for (const groupName in liabilityGroups) {
-         // Liabilities return positive totalDebt from calculateAccountTotals
-         const groupAccounts = openAccounts.filter(acc => liabilityGroups[groupName].types.includes(acc.type));
-         const { totalDebt } = calculateAccountTotals(groupAccounts, transactions, loanPaymentOverrides);
-         liabilityGroups[groupName].value = totalDebt;
-    }
+      for (const groupName in liabilityGroups) {
+           // Liabilities return positive totalDebt from calculateAccountTotals
+           const groupAccounts = openAccounts.filter(acc => liabilityGroups[groupName].types.includes(acc.type));
+           const { totalDebt } = calculateAccountTotals(groupAccounts, analyticsTransactions, loanPaymentOverrides);
+           liabilityGroups[groupName].value = totalDebt;
+      }
 
-     return {
-        globalTotalAssets: totalAssets,
-        globalTotalDebt: totalDebt,
-        globalAssetBreakdown: createBreakdown(openAccounts.filter(acc => ASSET_TYPES.includes(acc.type))),
-        globalDebtBreakdown: createBreakdown(openAccounts.filter(acc => DEBT_TYPES.includes(acc.type))),
-        assetGroups,
-        liabilityGroups
-     };
-  }, [accounts, transactions, loanPaymentOverrides]);
+       return {
+          globalTotalAssets: totalAssets,
+          globalTotalDebt: totalDebt,
+          globalAssetBreakdown: createBreakdown(openAccounts.filter(acc => ASSET_TYPES.includes(acc.type))),
+          globalDebtBreakdown: createBreakdown(openAccounts.filter(acc => DEBT_TYPES.includes(acc.type))),
+          assetGroups,
+          liabilityGroups
+       };
+    }, [analyticsAccounts, analyticsTransactions, loanPaymentOverrides]);
 
   const assetAllocationData: { name: string; value: number; color: string }[] = useMemo(() => {
       // Explicitly type the groups to avoid implicit any errors
@@ -808,11 +817,11 @@ const Dashboard: React.FC<DashboardProps> = ({ user, tasks, saveTask }) => {
         const forecastEndDate = new Date();
         forecastEndDate.setFullYear(forecastEndDate.getFullYear() + 1, forecastEndDate.getMonth() + 1, 0);
 
-        const liquidSelectedAccounts = selectedAccounts.filter(a => LIQUID_ACCOUNT_TYPES.includes(a.type));
+        const liquidSelectedAccounts = analyticsSelectedAccounts.filter(a => LIQUID_ACCOUNT_TYPES.includes(a.type));
         
-        const syntheticLoanPayments = generateSyntheticLoanPayments(accounts, transactions, loanPaymentOverrides);
-        const syntheticCreditCardPayments = generateSyntheticCreditCardPayments(accounts, transactions);
-        const syntheticPropertyTransactions = generateSyntheticPropertyTransactions(accounts);
+        const syntheticLoanPayments = generateSyntheticLoanPayments(analyticsAccounts, analyticsTransactions, loanPaymentOverrides);
+        const syntheticCreditCardPayments = generateSyntheticCreditCardPayments(analyticsAccounts, analyticsTransactions);
+        const syntheticPropertyTransactions = generateSyntheticPropertyTransactions(analyticsAccounts);
         const allRecurringTransactions = [...recurringTransactions, ...syntheticLoanPayments, ...syntheticCreditCardPayments, ...syntheticPropertyTransactions];
 
         const activeGoals = financialGoals.filter(g => activeGoalIds.includes(g.id));
@@ -942,7 +951,7 @@ const Dashboard: React.FC<DashboardProps> = ({ user, tasks, saveTask }) => {
         
         return results;
 
-    }, [selectedAccounts, recurringTransactions, financialGoals, billsAndPayments, accounts, transactions, recurringTransactionOverrides, loanPaymentOverrides, activeGoalIds]);
+    }, [analyticsSelectedAccounts, recurringTransactions, financialGoals, billsAndPayments, analyticsAccounts, analyticsTransactions, recurringTransactionOverrides, loanPaymentOverrides, activeGoalIds]);
 
   const handleBudgetClick = useCallback(() => {
     alert("Navigate to budget page.");
@@ -1054,12 +1063,12 @@ const Dashboard: React.FC<DashboardProps> = ({ user, tasks, saveTask }) => {
   const handleDragEnd = () => { setDraggedWidgetId(null); setDragOverWidgetId(null); };
 
   const { liquidityRatio, savingsRate } = useMemo(() => {
-      const openAccounts = accounts.filter(acc => acc.status !== 'closed');
+      const openAccounts = analyticsAccounts.filter(acc => acc.status !== 'closed');
       const liquidCash = openAccounts.filter(acc => LIQUID_ACCOUNT_TYPES.includes(acc.type))
                            .reduce((sum, acc) => sum + convertToEur(acc.balance, acc.currency), 0);
-      
+
       const threeMonthsAgo = new Date(); threeMonthsAgo.setMonth(threeMonthsAgo.getMonth() - 3);
-      const expenseTxs = transactions.filter(t => {
+      const expenseTxs = analyticsTransactions.filter(t => {
           const d = parseDateAsUTC(t.date);
           return d >= threeMonthsAgo && t.type === 'expense' && !t.transferId;
       });
@@ -1070,8 +1079,8 @@ const Dashboard: React.FC<DashboardProps> = ({ user, tasks, saveTask }) => {
 
       let totalIncomePeriod = 0;
       let totalExpensePeriod = 0;
-      const { start, end } = getDateRange(duration, transactions);
-      const periodTxs = transactions.filter(t => {
+      const { start, end } = getDateRange(duration, analyticsTransactions);
+      const periodTxs = analyticsTransactions.filter(t => {
           const d = parseDateAsUTC(t.date);
           return d >= start && d <= end && !t.transferId;
       });
@@ -1085,7 +1094,7 @@ const Dashboard: React.FC<DashboardProps> = ({ user, tasks, saveTask }) => {
 
       return { liquidityRatio, savingsRate };
 
-  }, [accounts, transactions, duration]);
+  }, [analyticsAccounts, analyticsTransactions, duration]);
 
   const allocationData: { name: string; value: number; color: string }[] = useMemo(() => {
       return budgets.map(b => {

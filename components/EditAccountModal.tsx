@@ -30,6 +30,7 @@ const EditAccountModal: React.FC<EditAccountModalProps> = ({ onClose, onSave, on
   const [icon, setIcon] = useState(account.icon || ACCOUNT_TYPE_STYLES[account.type]?.icon || 'wallet');
   const [last4, setLast4] = useState(account.last4 || '');
   const [isPrimary, setIsPrimary] = useState(account.isPrimary || false);
+  const [includeInAnalytics, setIncludeInAnalytics] = useState(account.includeInAnalytics ?? true);
   const [isIconPickerOpen, setIconPickerOpen] = useState(false);
   const [financialInstitution, setFinancialInstitution] = useState(account.financialInstitution || '');
   
@@ -270,6 +271,7 @@ const EditAccountModal: React.FC<EditAccountModalProps> = ({ onClose, onSave, on
       last4: hasCard && last4 ? last4 : undefined,
       financialInstitution: ['Checking', 'Savings', 'Credit Card'].includes(type) && financialInstitution ? financialInstitution : undefined,
       isPrimary,
+      includeInAnalytics,
       accountNumber: accountNumber || undefined,
       routingNumber: routingNumber || undefined,
       apy: apy !== '' ? parseFloat(apy) : undefined,
@@ -1034,17 +1036,32 @@ const EditAccountModal: React.FC<EditAccountModalProps> = ({ onClose, onSave, on
           </div>
 
           <div className="p-4 bg-black/5 dark:bg-white/5 rounded-lg">
-            <div className="flex justify-between items-center">
-                <div>
-                    <p className="font-medium text-light-text dark:text-dark-text">Primary Account</p>
-                    <p className="text-sm text-light-text-secondary dark:text-dark-text-secondary">Set as the default account for this account type (e.g., default {type}).</p>
-                </div>
-                <div 
-                  onClick={() => setIsPrimary(!isPrimary)}
-                  className={`w-12 h-6 rounded-full p-1 flex items-center cursor-pointer transition-colors ${isPrimary ? 'bg-primary-500' : 'bg-gray-300 dark:bg-gray-700'}`}
-                >
-                  <div className={`w-4 h-4 rounded-full bg-white shadow-md transform transition-transform ${isPrimary ? 'translate-x-6' : 'translate-x-0'}`}></div>
-                </div>
+            <div className="grid gap-4 md:grid-cols-2">
+              <div className="flex justify-between items-center">
+                  <div>
+                      <p className="font-medium text-light-text dark:text-dark-text">Primary Account</p>
+                      <p className="text-sm text-light-text-secondary dark:text-dark-text-secondary">Set as the default account for this account type (e.g., default {type}).</p>
+                  </div>
+                  <div
+                    onClick={() => setIsPrimary(!isPrimary)}
+                    className={`w-12 h-6 rounded-full p-1 flex items-center cursor-pointer transition-colors ${isPrimary ? 'bg-primary-500' : 'bg-gray-300 dark:bg-gray-700'}`}
+                  >
+                    <div className={`w-4 h-4 rounded-full bg-white shadow-md transform transition-transform ${isPrimary ? 'translate-x-6' : 'translate-x-0'}`}></div>
+                  </div>
+              </div>
+
+              <div className="flex justify-between items-center">
+                  <div>
+                      <p className="font-medium text-light-text dark:text-dark-text">Include in Analytics</p>
+                      <p className="text-sm text-light-text-secondary dark:text-dark-text-secondary">Exclude this account from net worth and reporting when off.</p>
+                  </div>
+                  <div
+                    onClick={() => setIncludeInAnalytics(!includeInAnalytics)}
+                    className={`w-12 h-6 rounded-full p-1 flex items-center cursor-pointer transition-colors ${includeInAnalytics ? 'bg-primary-500' : 'bg-gray-300 dark:bg-gray-700'}`}
+                  >
+                    <div className={`w-4 h-4 rounded-full bg-white shadow-md transform transition-transform ${includeInAnalytics ? 'translate-x-6' : 'translate-x-0'}`}></div>
+                  </div>
+              </div>
             </div>
           </div>
 
