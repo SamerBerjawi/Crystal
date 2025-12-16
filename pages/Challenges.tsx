@@ -493,13 +493,20 @@ const Challenges: React.FC<ChallengesProps> = ({ userStats, accounts, transactio
   const [activeSprints, setActiveSprints] = useLocalStorage<ActiveSprint[]>('crystal_active_sprints', []);
   const [isPredictionModalOpen, setPredictionModalOpen] = useState(false);
 
+  const analyticsAccounts = useMemo(() => accounts.filter(acc => acc.includeInAnalytics ?? true), [accounts]);
+  const analyticsAccountIds = useMemo(() => new Set(analyticsAccounts.map(acc => acc.id)), [analyticsAccounts]);
+  const analyticsTransactions = useMemo(
+    () => transactions.filter(tx => analyticsAccountIds.has(tx.accountId)),
+    [transactions, analyticsAccountIds]
+  );
+
   // --- Historical Net Worth ---
   const netWorthHistory = useMemo(() => {
-        const { netWorth: currentNetWorth } = calculateAccountTotals(accounts.filter(a => a.status !== 'closed'));
+        const { netWorth: currentNetWorth } = calculateAccountTotals(analyticsAccounts.filter(a => a.status !== 'closed'), analyticsTransactions);
         const monthlyChanges = new Map<string, number>();
         const today = new Date();
 
-        transactions.forEach(tx => {
+        analyticsTransactions.forEach(tx => {
             const date = parseDateAsUTC(tx.date);
             if (date > today) return;
             const monthKey = date.toISOString().slice(0, 7);
@@ -524,7 +531,7 @@ const Challenges: React.FC<ChallengesProps> = ({ userStats, accounts, transactio
             });
         }
         return { currentNetWorth, history };
-  }, [accounts, transactions]);
+  }, [analyticsAccounts, analyticsTransactions]);
 
   // --- Prediction Resolver (Effect) ---
   useEffect(() => {
@@ -597,7 +604,7 @@ const Challenges: React.FC<ChallengesProps> = ({ userStats, accounts, transactio
      let income = 0; let expense = 0;
      const spendingByCat: Record<string, number> = {};
 
-     transactions.forEach(tx => {
+    analyticsTransactions.forEach(tx => {
         const d = parseDateAsUTC(tx.date);
         if (d >= startOfMonth && !tx.transferId) {
             const val = convertToEur(tx.amount, tx.currency);
@@ -627,28 +634,28 @@ const Challenges: React.FC<ChallengesProps> = ({ userStats, accounts, transactio
      // However, user prompt says "Spend within 5%", which means variance <= 0.05.
      const budgetAccuracy = validBudgets > 0 ? (totalBudgetVariance / validBudgets) : 1;
      
-     const totalInvestments = accounts.filter(a => a.type === 'Investment').reduce((sum, a) => sum + convertToEur(a.balance, a.currency), 0);
-     const uniqueAccountTypes = new Set(accounts.map(a => a.type)).size;
-     
+     const totalInvestments = analyticsAccounts.filter(a => a.type === 'Investment').reduce((sum, a) => sum + convertToEur(a.balance, a.currency), 0);
+     const uniqueAccountTypes = new Set(analyticsAccounts.map(a => a.type)).size;
+
      const threeMonthsAgo = new Date(); threeMonthsAgo.setMonth(threeMonthsAgo.getMonth() - 3);
-     const totalSpend3m = transactions.filter(t => parseDateAsUTC(t.date) >= threeMonthsAgo && t.type === 'expense' && !t.transferId).reduce((sum, t) => sum + Math.abs(convertToEur(t.amount, t.currency)), 0);
+     const totalSpend3m = analyticsTransactions.filter(t => parseDateAsUTC(t.date) >= threeMonthsAgo && t.type === 'expense' && !t.transferId).reduce((sum, t) => sum + Math.abs(convertToEur(t.amount, t.currency)), 0);
      const avgMonthlySpend = totalSpend3m / 3;
-     const liquidAssets = accounts.filter(a => LIQUID_ACCOUNT_TYPES.includes(a.type)).reduce((sum, a) => sum + convertToEur(a.balance, a.currency), 0);
+     const liquidAssets = analyticsAccounts.filter(a => LIQUID_ACCOUNT_TYPES.includes(a.type)).reduce((sum, a) => sum + convertToEur(a.balance, a.currency), 0);
      const liquidityRatio = avgMonthlySpend > 0 ? liquidAssets / avgMonthlySpend : 0;
 
      return { totalDebt, netWorth, savingsRate, totalInvestments, uniqueAccountTypes, liquidityRatio, budgetAccuracy, spendingByCat, creditUtilization };
-  }, [accounts, transactions, budgets, expenseCategories]);
+  }, [analyticsAccounts, analyticsTransactions, budgets, expenseCategories]);
 
   // --- Bosses ---
   const bosses = useMemo(() => {
       const activeBosses: Boss[] = [];
-      accounts.filter(a => DEBT_TYPES.includes(a.type) && a.status !== 'closed').forEach(acc => {
-          let outstanding = Math.abs(acc.balance); 
+      analyticsAccounts.filter(a => DEBT_TYPES.includes(a.type) && a.status !== 'closed').forEach(acc => {
+          let outstanding = Math.abs(acc.balance);
           let maxHp = acc.creditLimit || (acc.totalAmount || outstanding * 1.2);
           let paidPrincipal = 0; let paidInterest = 0;
 
           if (acc.type === 'Loan' && acc.principalAmount && acc.duration) {
-             const schedule = generateAmortizationSchedule(acc, transactions, loanPaymentOverrides[acc.id] || {});
+             const schedule = generateAmortizationSchedule(acc, analyticsTransactions, loanPaymentOverrides[acc.id] || {});
              const totalCost = schedule.reduce((sum, p) => sum + p.principal + p.interest, 0);
              paidPrincipal = schedule.reduce((sum, p) => p.status === 'Paid' ? sum + p.principal : sum, 0);
              paidInterest = schedule.reduce((sum, p) => p.status === 'Paid' ? sum + p.interest : sum, 0);
@@ -656,7 +663,7 @@ const Challenges: React.FC<ChallengesProps> = ({ userStats, accounts, transactio
              maxHp = totalCost;
           } else if (outstanding < 1) return;
 
-          const recentPayments = transactions.filter(t => t.accountId === acc.id && t.type === 'income').sort((a,b) => parseDateAsUTC(b.date).getTime() - parseDateAsUTC(a.date).getTime()).slice(0, 5).map(t => ({ date: t.date, amount: t.amount }));
+          const recentPayments = analyticsTransactions.filter(t => t.accountId === acc.id && t.type === 'income').sort((a,b) => parseDateAsUTC(b.date).getTime() - parseDateAsUTC(a.date).getTime()).slice(0, 5).map(t => ({ date: t.date, amount: t.amount }));
 
           activeBosses.push({ id: acc.id, name: acc.name, type: 'debt', maxHp: Math.max(maxHp, outstanding), currentHp: outstanding, level: Math.floor(maxHp / 1000) + 1, icon: acc.type === 'Loan' ? 'gavel' : 'sentiment_very_dissatisfied', hits: recentPayments, paidPrincipal, paidInterest });
       });
@@ -666,7 +673,7 @@ const Challenges: React.FC<ChallengesProps> = ({ userStats, accounts, transactio
           activeBosses.push({ id: goal.id, name: goal.name, type: 'savings', maxHp: goal.amount, currentHp: goal.amount - goal.currentAmount, level: Math.floor(goal.amount / 500) + 1, icon: 'shield', hits: [] });
       });
       return activeBosses;
-  }, [accounts, financialGoals, transactions, loanPaymentOverrides]);
+  }, [analyticsAccounts, financialGoals, analyticsTransactions, loanPaymentOverrides]);
 
   const debtBosses = useMemo(() => bosses.filter(b => b.type === 'debt'), [bosses]);
   const savingsBosses = useMemo(() => bosses.filter(b => b.type === 'savings'), [bosses]);

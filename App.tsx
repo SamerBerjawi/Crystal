@@ -1125,16 +1125,18 @@ const App: React.FC = () => {
   }, [isDemoMode, setUser]);
 
   const handleSaveAccount = (accountData: Omit<Account, 'id'> & { id?: string }) => {
+    const accountWithDefaults = { ...accountData, includeInAnalytics: accountData.includeInAnalytics ?? true } as Omit<Account, 'id'> & { id?: string };
+
     if (accountData.id) { // UPDATE
         setAccounts(prev => {
             // First, apply the update to the target account
-            const intermediateAccounts = prev.map(acc => acc.id === accountData.id ? { ...acc, ...accountData } as Account : acc);
+            const intermediateAccounts = prev.map(acc => acc.id === accountData.id ? { ...acc, ...accountWithDefaults } as Account : acc);
 
             // If this account is now primary, ensure no other account OF THE SAME TYPE is primary
-            if (accountData.isPrimary) {
+            if (accountWithDefaults.isPrimary) {
                 return intermediateAccounts.map(acc => {
                     // If it's the same type but a different ID, unset primary
-                    if (acc.type === accountData.type && acc.id !== accountData.id && acc.isPrimary) {
+                    if (acc.type === accountWithDefaults.type && acc.id !== accountWithDefaults.id && acc.isPrimary) {
                         return { ...acc, isPrimary: false };
                     }
                     return acc;
@@ -1143,7 +1145,7 @@ const App: React.FC = () => {
             return intermediateAccounts;
         });
     } else { // ADD
-        const newAccount = { ...accountData, id: `acc-${uuidv4()}`, status: 'open' as const } as Account;
+        const newAccount = { ...accountWithDefaults, id: `acc-${uuidv4()}`, status: 'open' as const } as Account;
         setAccounts(prev => {
             let newAccounts = [...prev, newAccount];
             if (newAccount.isPrimary) {

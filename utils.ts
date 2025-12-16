@@ -99,15 +99,17 @@ export const formatDateKey = (date: Date, timeZone?: string): string => {
 };
 
 export function calculateAccountTotals(
-    accounts: Account[], 
-    transactions: Transaction[] = [], 
+    accounts: Account[],
+    transactions: Transaction[] = [],
     loanPaymentOverrides: LoanPaymentOverrides = {}
 ) {
-    const totalAssets = accounts
+    const analyticsAccounts = accounts.filter(acc => acc.includeInAnalytics ?? true);
+
+    const totalAssets = analyticsAccounts
       .filter(acc => ASSET_TYPES.includes(acc.type))
       .reduce((sum, acc) => sum + convertToEur(acc.balance, acc.currency), 0);
-    
-    const totalDebt = accounts
+
+    const totalDebt = analyticsAccounts
       .filter(acc => DEBT_TYPES.includes(acc.type))
       .reduce((sum, acc) => {
           let debtValue = Math.abs(convertToEur(acc.balance, acc.currency));
@@ -143,8 +145,8 @@ export function calculateAccountTotals(
           
           return sum + debtValue;
       }, 0);
-      
-    const creditCardDebt = accounts
+
+    const creditCardDebt = analyticsAccounts
       .filter(acc => acc.type === 'Credit Card')
       .reduce((sum, acc) => sum + Math.abs(convertToEur(acc.balance, acc.currency)), 0);
 

@@ -16,7 +16,14 @@ const PredictionCard: React.FC<PredictionCardProps> = ({ prediction, transaction
     const isSpending = prediction.type === 'spending_cap';
     const isPriceTarget = prediction.type === 'price_target';
     const isActive = prediction.status === 'active';
-    
+
+    const analyticsAccounts = useMemo(() => accounts.filter(acc => acc.includeInAnalytics ?? true), [accounts]);
+    const analyticsAccountIds = useMemo(() => new Set(analyticsAccounts.map(acc => acc.id)), [analyticsAccounts]);
+    const analyticsTransactions = useMemo(
+        () => transactions.filter(tx => analyticsAccountIds.has(tx.accountId)),
+        [transactions, analyticsAccountIds]
+    );
+
     // Calculate Current/Final Value
     const currentValue = useMemo(() => {
         if (!isActive && prediction.finalAmount !== undefined) {
@@ -27,8 +34,8 @@ const PredictionCard: React.FC<PredictionCardProps> = ({ prediction, transaction
             const start = parseDateAsUTC(prediction.startDate);
             // If active, calc until now.
             const now = new Date();
-            
-            return transactions
+
+            return analyticsTransactions
                 .filter(tx => {
                     const d = parseDateAsUTC(tx.date);
                     return d >= start && d <= now && tx.type === 'expense' && !tx.transferId && tx.category === prediction.targetName;
@@ -39,14 +46,14 @@ const PredictionCard: React.FC<PredictionCardProps> = ({ prediction, transaction
         } else {
              // Net Worth Goal
              if (prediction.targetId) {
-                 const acc = accounts.find(a => a.id === prediction.targetId);
+                 const acc = analyticsAccounts.find(a => a.id === prediction.targetId);
                  return acc ? convertToEur(acc.balance, acc.currency) : 0;
              } else {
-                 const { netWorth } = calculateAccountTotals(accounts.filter(a => a.status !== 'closed'));
+                 const { netWorth } = calculateAccountTotals(analyticsAccounts.filter(a => a.status !== 'closed'), analyticsTransactions);
                  return netWorth;
              }
         }
-    }, [prediction, transactions, accounts, isActive, isSpending, isPriceTarget, manualPrice]);
+    }, [prediction, analyticsTransactions, analyticsAccounts, isActive, isSpending, isPriceTarget, manualPrice]);
 
     // Status / Progress Logic
     let progress = 0;

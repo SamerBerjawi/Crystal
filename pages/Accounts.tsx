@@ -146,7 +146,9 @@ const AccountsListSection: React.FC<{
                 <div className="space-y-6 flex-1">
                     {groupOrder.length > 0 ? groupOrder.map(groupName => {
                         const accountsInGroup = groupedAccounts[groupName as AccountType];
-                        const groupTotal = accountsInGroup.reduce((sum, acc) => sum + convertToEur(acc.balance, acc.currency), 0);
+        const groupTotal = accountsInGroup
+            .filter(acc => acc.includeInAnalytics ?? true)
+            .reduce((sum, acc) => sum + convertToEur(acc.balance, acc.currency), 0);
                         return (
                             <div key={groupName} className="space-y-2">
                                 <div onClick={() => toggleGroup(groupName)} className="flex justify-between items-center cursor-pointer group select-none px-1 py-1 rounded hover:bg-black/5 dark:hover:bg-white/5 transition-colors">
@@ -237,22 +239,30 @@ const Accounts: React.FC<AccountsProps> = ({ accounts, transactions, saveAccount
       });
   }, [accounts]);
 
+  const analyticsAccounts = useMemo(() => visibleAccounts.filter(acc => acc.includeInAnalytics ?? true), [visibleAccounts]);
+  const analyticsAccountIds = useMemo(() => new Set(analyticsAccounts.map(acc => acc.id)), [analyticsAccounts]);
+  const analyticsTransactions = useMemo(
+    () => transactions.filter(tx => analyticsAccountIds.has(tx.accountId)),
+    [transactions, analyticsAccountIds]
+  );
+
   // --- Data Processing ---
   const { openAccounts, closedAccounts, totalAssets, totalDebt, netWorth, liquidCash, netChange30d, debtRatio } = useMemo(() => {
     const safeAccounts = visibleAccounts || [];
     const open = safeAccounts.filter(acc => acc.status !== 'closed');
     const closed = safeAccounts.filter(acc => acc.status === 'closed');
-    
-    const { totalAssets, totalDebt, netWorth } = calculateAccountTotals(open, transactions, loanPaymentOverrides);
-    const liquidCash = open.filter(acc => LIQUID_ACCOUNT_TYPES.includes(acc.type))
+    const analyticsOpen = open.filter(acc => acc.includeInAnalytics ?? true);
+
+    const { totalAssets, totalDebt, netWorth } = calculateAccountTotals(analyticsOpen, analyticsTransactions, loanPaymentOverrides);
+    const liquidCash = analyticsOpen.filter(acc => LIQUID_ACCOUNT_TYPES.includes(acc.type))
                            .reduce((sum, acc) => sum + convertToEur(acc.balance, acc.currency), 0);
 
     // Calculate 30 day net change from transactions
     const thirtyDaysAgo = new Date();
     thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
-    const netChange30d = transactions.reduce((sum, tx) => {
+    const netChange30d = analyticsTransactions.reduce((sum, tx) => {
         const txDate = parseDateAsUTC(tx.date);
-        if (txDate >= thirtyDaysAgo && open.some(a => a.id === tx.accountId)) {
+        if (txDate >= thirtyDaysAgo && analyticsOpen.some(a => a.id === tx.accountId)) {
             return sum + convertToEur(tx.amount, tx.currency);
         }
         return sum;
@@ -270,7 +280,7 @@ const Accounts: React.FC<AccountsProps> = ({ accounts, transactions, saveAccount
         netChange30d,
         debtRatio
     };
-  }, [visibleAccounts, transactions, loanPaymentOverrides]);
+  }, [analyticsTransactions, visibleAccounts, loanPaymentOverrides]);
 
   const transactionsByAccount = useMemo(() => transactions.reduce((acc, transaction) => {
     (acc[transaction.accountId] = acc[transaction.accountId] || []).push(transaction);
