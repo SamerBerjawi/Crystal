@@ -27,6 +27,8 @@ interface EnableBankingIntegrationCardProps {
   onTriggerSync: (connectionId: string, connectionOverride?: EnableBankingConnection, options?: EnableBankingSyncOptions) => void | Promise<void>;
 }
 
+const ENABLE_SINCE_LAST_MODE = false;
+
 const EnableBankingIntegrationCard: React.FC<EnableBankingIntegrationCardProps> = ({
   connections,
   accounts,
@@ -148,7 +150,7 @@ const EnableBankingIntegrationCard: React.FC<EnableBankingIntegrationCardProps> 
 
     setSyncPrompt({
       connectionId: connection.id,
-      transactionMode: hasCompletedSync ? 'since_last' : 'full',
+      transactionMode: ENABLE_SINCE_LAST_MODE && hasCompletedSync ? 'since_last' : 'full',
       updateBalance: true,
     });
   };
@@ -162,9 +164,14 @@ const EnableBankingIntegrationCard: React.FC<EnableBankingIntegrationCardProps> 
     }
 
     const connectionOverride = connections.find(conn => conn.id === syncPrompt.connectionId);
+    const resolvedTransactionMode = ENABLE_SINCE_LAST_MODE && syncPrompt.transactionMode !== 'none'
+      ? syncPrompt.transactionMode
+      : syncPrompt.transactionMode === 'since_last'
+        ? 'full'
+        : syncPrompt.transactionMode;
 
     onTriggerSync(syncPrompt.connectionId, connectionOverride, {
-      transactionMode: syncPrompt.transactionMode,
+      transactionMode: resolvedTransactionMode,
       updateBalance: syncPrompt.updateBalance,
     });
 
@@ -301,7 +308,7 @@ const EnableBankingIntegrationCard: React.FC<EnableBankingIntegrationCardProps> 
 
       {syncPrompt && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 px-4">
-          <div className="w-full max-w-lg bg-white dark:bg-dark-surface rounded-xl shadow-xl p-6 space-y-4">
+          <div className="w-full max-w-lg bg-white dark:bg-dark-card text-gray-900 dark:text-dark-text rounded-xl shadow-xl p-6 space-y-4">
             <div className="flex items-start justify-between gap-3">
               <div>
                 <h4 className="text-lg font-semibold text-light-text dark:text-dark-text">Sync Enable Banking connection</h4>
@@ -327,6 +334,7 @@ const EnableBankingIntegrationCard: React.FC<EnableBankingIntegrationCardProps> 
                   value="full"
                   checked={syncPrompt.transactionMode === 'full'}
                   onChange={() => setSyncPrompt(prev => prev ? { ...prev, transactionMode: 'full' } : prev)}
+                  className="mt-1.5 h-4 w-4 text-primary-600"
                 />
                 <div>
                   <div className="font-semibold">Sync all transactions from the configured start date</div>
@@ -334,17 +342,21 @@ const EnableBankingIntegrationCard: React.FC<EnableBankingIntegrationCardProps> 
                 </div>
               </label>
 
-              <label className="flex items-start gap-3 text-sm text-light-text dark:text-dark-text">
+              <label className="flex items-start gap-3 text-sm text-light-text dark:text-dark-text opacity-70">
                 <input
                   type="radio"
                   name="enable-banking-transaction-mode"
                   value="since_last"
                   checked={syncPrompt.transactionMode === 'since_last'}
                   onChange={() => setSyncPrompt(prev => prev ? { ...prev, transactionMode: 'since_last' } : prev)}
+                  disabled={!ENABLE_SINCE_LAST_MODE}
+                  className="mt-1.5 h-4 w-4 text-primary-600 disabled:opacity-50"
                 />
                 <div>
                   <div className="font-semibold">Sync new transactions since the last completed sync</div>
-                  <div className="text-xs text-light-text-secondary dark:text-dark-text-secondary">Only fetch transactions after the most recent successful sync.</div>
+                  <div className="text-xs text-light-text-secondary dark:text-dark-text-secondary">
+                    Only fetch transactions after the most recent successful sync. Currently disabled while we address a service issue.
+                  </div>
                 </div>
               </label>
 
@@ -355,6 +367,7 @@ const EnableBankingIntegrationCard: React.FC<EnableBankingIntegrationCardProps> 
                   value="none"
                   checked={syncPrompt.transactionMode === 'none'}
                   onChange={() => setSyncPrompt(prev => prev ? { ...prev, transactionMode: 'none' } : prev)}
+                  className="mt-1.5 h-4 w-4 text-primary-600"
                 />
                 <div>
                   <div className="font-semibold">Skip transaction import</div>
@@ -369,6 +382,7 @@ const EnableBankingIntegrationCard: React.FC<EnableBankingIntegrationCardProps> 
                   type="checkbox"
                   checked={syncPrompt.updateBalance}
                   onChange={e => setSyncPrompt(prev => prev ? { ...prev, updateBalance: e.target.checked } : prev)}
+                  className="h-4 w-4 text-primary-600"
                 />
                 <div>
                   <div className="font-semibold">Update balances</div>
