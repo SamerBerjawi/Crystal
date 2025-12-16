@@ -17,6 +17,8 @@ interface PensionAccountViewProps {
   onTransactionClick: (tx: DisplayTransaction) => void;
   onBack: () => void;
   onAdjustBalance?: () => void;
+  onSyncLinkedAccount?: () => void;
+  isLinkedToEnableBanking?: boolean;
 }
 
 const PensionAccountView: React.FC<PensionAccountViewProps> = ({
@@ -27,7 +29,9 @@ const PensionAccountView: React.FC<PensionAccountViewProps> = ({
   onAddTransaction,
   onTransactionClick,
   onBack,
-  onAdjustBalance
+  onAdjustBalance,
+  onSyncLinkedAccount,
+  isLinkedToEnableBanking,
 }) => {
   const timeZone = getPreferredTimeZone();
   const currentYear = new Date().getFullYear();
@@ -192,6 +196,9 @@ const PensionAccountView: React.FC<PensionAccountViewProps> = ({
           </div>
         </div>
         <div className="flex gap-3 flex-shrink-0 ml-auto md:ml-0">
+             {isLinkedToEnableBanking && onSyncLinkedAccount && (
+                 <button onClick={onSyncLinkedAccount} className={`${BTN_SECONDARY_STYLE}`}>Sync</button>
+             )}
              {onAdjustBalance && (
                  <button onClick={onAdjustBalance} className={`${BTN_SECONDARY_STYLE}`}>
                      <span className="material-symbols-outlined text-lg mr-2">tune</span>

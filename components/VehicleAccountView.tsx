@@ -13,6 +13,8 @@ interface VehicleAccountViewProps {
   onEditLog: (log: MileageLog) => void;
   onDeleteLog: (id: string) => void;
   onBack: () => void;
+  onSyncLinkedAccount?: () => void;
+  isLinkedToEnableBanking?: boolean;
 }
 
 const VehicleAccountView: React.FC<VehicleAccountViewProps> = ({
@@ -21,7 +23,9 @@ const VehicleAccountView: React.FC<VehicleAccountViewProps> = ({
   onAddLog,
   onEditLog,
   onDeleteLog,
-  onBack
+  onBack,
+  onSyncLinkedAccount,
+  isLinkedToEnableBanking,
 }) => {
   const isLeased = account.ownership === 'Leased';
 
@@ -75,7 +79,12 @@ const VehicleAccountView: React.FC<VehicleAccountViewProps> = ({
          <button onClick={onBack} className="text-light-text-secondary dark:text-dark-text-secondary p-2 rounded-full hover:bg-black/5 dark:hover:bg-white/5 flex-shrink-0 -ml-2">
             <span className="material-symbols-outlined">arrow_back</span>
           </button>
-           <button onClick={onAddTransaction} className={BTN_PRIMARY_STYLE}>Add Transaction</button>
+           <div className="flex items-center gap-2">
+             {isLinkedToEnableBanking && onSyncLinkedAccount && (
+               <button onClick={onSyncLinkedAccount} className={BTN_SECONDARY_STYLE}>Sync</button>
+             )}
+             <button onClick={onAddTransaction} className={BTN_PRIMARY_STYLE}>Add Transaction</button>
+           </div>
       </header>
 
       {/* Hero Section */}

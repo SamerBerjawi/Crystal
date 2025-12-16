@@ -1,7 +1,7 @@
 
 import React, { useMemo, useState, Suspense } from 'react';
-import { Account, Transaction, DisplayTransaction, ScheduledPayment, MileageLog } from '../types';
-import { convertToEur, parseDateAsUTC } from '../utils';
+import { Account, Transaction, DisplayTransaction, ScheduledPayment, MileageLog, EnableBankingConnection, EnableBankingAccount, EnableBankingSyncOptions } from '../types';
+import { convertToEur, parseDateAsUTC, toLocalISOString } from '../utils';
 import AddTransactionModal from '../components/AddTransactionModal';
 import TransactionDetailModal from '../components/TransactionDetailModal';
 import AddMileageLogModal from '../components/AddMileageLogModal';
@@ -10,6 +10,7 @@ import BalanceAdjustmentModal from '../components/BalanceAdjustmentModal';
 import { v4 as uuidv4 } from 'uuid';
 import { useAccountsContext, useTransactionsContext } from '../contexts/DomainProviders';
 import { useCategoryContext, useScheduleContext, useTagsContext } from '../contexts/FinancialDataContext';
+import EnableBankingSyncModal from '../components/EnableBankingSyncModal';
 
 // Lazy load view components
 const PropertyAccountView = React.lazy(() => import('../components/PropertyAccountView'));
@@ -27,13 +28,30 @@ const AccountDetail: React.FC<{
     setCurrentPage: (page: any) => void;
     setViewingAccountId: (id: string | null) => void;
     saveAccount: (account: Omit<Account, 'id'> & { id?: string }) => void;
-}> = ({ account, setCurrentPage, setViewingAccountId, saveAccount }) => {
+    enableBankingLink?: { connection: EnableBankingConnection; account: EnableBankingAccount };
+    onTriggerEnableBankingSync?: (connectionId: string, connectionOverride?: EnableBankingConnection, options?: EnableBankingSyncOptions) => void | Promise<void>;
+}> = ({ account, setCurrentPage, setViewingAccountId, saveAccount, enableBankingLink, onTriggerEnableBankingSync }) => {
     const { accounts } = useAccountsContext();
     const { transactions, saveTransaction, deleteTransactions } = useTransactionsContext();
     const { incomeCategories, expenseCategories } = useCategoryContext();
     const { tags } = useTagsContext();
     const { loanPaymentOverrides, saveLoanPaymentOverrides } = useScheduleContext();
-    
+    const ninetyDaysAgoStr = useMemo(() => toLocalISOString(new Date(Date.now() - 90 * 24 * 60 * 60 * 1000)), []);
+    const todayStr = useMemo(() => toLocalISOString(new Date()), []);
+    const clampSyncDate = useMemo(
+      () => (value?: string) => {
+        if (!value) return value;
+        const parsed = new Date(value);
+        const min = new Date(ninetyDaysAgoStr);
+        const max = new Date(todayStr);
+
+        if (parsed < min) return ninetyDaysAgoStr;
+        if (parsed > max) return todayStr;
+        return toLocalISOString(parsed);
+      },
+      [ninetyDaysAgoStr, todayStr]
+    );
+
     const allCategories = useMemo(() => [...incomeCategories, ...expenseCategories], [expenseCategories, incomeCategories]);
     
     const [isTransactionModalOpen, setTransactionModalOpen] = useState(false);
@@ -58,6 +76,13 @@ const AccountDetail: React.FC<{
     const [editingLog, setEditingLog] = useState<MileageLog | null>(null);
     const [deletingLogId, setDeletingLogId] = useState<string | null>(null);
     const [isAdjustModalOpen, setAdjustModalOpen] = useState(false);
+    const [syncPrompt, setSyncPrompt] = useState<{
+        connectionId: string;
+        connectionOverride: EnableBankingConnection;
+        syncStartDate: string;
+        transactionMode: EnableBankingSyncOptions['transactionMode'];
+        updateBalance: boolean;
+    } | null>(null);
 
     const handleOpenTransactionModal = (tx?: Transaction) => {
         setEditingTransaction(tx || null);
@@ -100,6 +125,34 @@ const AccountDetail: React.FC<{
         
         saveTransaction([txData], []);
         setAdjustModalOpen(false);
+    };
+
+    const handleOpenSyncPrompt = () => {
+        if (!enableBankingLink) return;
+
+        setSyncPrompt({
+            connectionId: enableBankingLink.connection.id,
+            connectionOverride: enableBankingLink.connection,
+            syncStartDate: clampSyncDate(enableBankingLink.account.syncStartDate) || ninetyDaysAgoStr,
+            transactionMode: 'full',
+            updateBalance: true,
+        });
+    };
+
+    const handleConfirmSync = (
+        options: Required<Pick<EnableBankingSyncOptions, 'transactionMode' | 'updateBalance' | 'syncStartDate'>>,
+    ) => {
+        if (!syncPrompt || !onTriggerEnableBankingSync) return;
+
+        const syncStartDate = clampSyncDate(options.syncStartDate) || syncPrompt.syncStartDate || ninetyDaysAgoStr;
+
+        onTriggerEnableBankingSync(syncPrompt.connectionId, syncPrompt.connectionOverride, {
+            transactionMode: options.transactionMode,
+            updateBalance: options.updateBalance,
+            syncStartDate,
+        });
+
+        setSyncPrompt(null);
     };
 
     // Specialized handler for Loan/Lending payments
@@ -203,7 +256,9 @@ const AccountDetail: React.FC<{
         account,
         onAddTransaction: () => handleOpenTransactionModal(),
         setViewingAccountId,
-        onBack: () => { setViewingAccountId(null); setCurrentPage('Accounts'); }
+        onBack: () => { setViewingAccountId(null); setCurrentPage('Accounts'); },
+        onSyncLinkedAccount: enableBankingLink ? handleOpenSyncPrompt : undefined,
+        isLinkedToEnableBanking: Boolean(enableBankingLink),
     };
 
     const renderContent = () => {
@@ -347,6 +402,23 @@ const AccountDetail: React.FC<{
                     onClose={() => setAdjustModalOpen(false)}
                     onSave={handleSaveAdjustment}
                     account={account}
+                />
+            )}
+
+            {syncPrompt && enableBankingLink && (
+                <EnableBankingSyncModal
+                    isOpen={!!syncPrompt}
+                    title={`Sync ${account.name}`}
+                    description="Import transactions from your chosen start date or refresh balances only."
+                    minDate={ninetyDaysAgoStr}
+                    maxDate={todayStr}
+                    initialState={{
+                        transactionMode: syncPrompt.transactionMode,
+                        updateBalance: syncPrompt.updateBalance,
+                        syncStartDate: clampSyncDate(syncPrompt.syncStartDate) || ninetyDaysAgoStr,
+                    }}
+                    onClose={() => setSyncPrompt(null)}
+                    onConfirm={handleConfirmSync}
                 />
             )}
 

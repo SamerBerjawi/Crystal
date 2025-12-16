@@ -16,6 +16,8 @@ interface CashAccountViewProps {
   onTransactionClick: (tx: DisplayTransaction) => void;
   onBack: () => void;
   onAdjustBalance: () => void;
+  onSyncLinkedAccount?: () => void;
+  isLinkedToEnableBanking?: boolean;
 }
 
 const CashAccountView: React.FC<CashAccountViewProps> = ({
@@ -26,7 +28,9 @@ const CashAccountView: React.FC<CashAccountViewProps> = ({
   onAddTransaction,
   onTransactionClick,
   onBack,
-  onAdjustBalance
+  onAdjustBalance,
+  onSyncLinkedAccount,
+  isLinkedToEnableBanking,
 }) => {
   const timeZone = getPreferredTimeZone();
 
@@ -123,7 +127,10 @@ const CashAccountView: React.FC<CashAccountViewProps> = ({
             </div>
           </div>
         </div>
-        <div className="flex gap-3 w-full md:w-auto">
+        <div className="flex gap-3 w-full md:w-auto items-center">
+             {isLinkedToEnableBanking && onSyncLinkedAccount && (
+                <button onClick={onSyncLinkedAccount} className={`${BTN_SECONDARY_STYLE} flex-1 md:flex-none`}>Sync</button>
+             )}
              <button onClick={onAdjustBalance} className={`${BTN_SECONDARY_STYLE} flex-1 md:flex-none`}>
                 <span className="material-symbols-outlined text-lg mr-2">fact_check</span>
                 Count Cash

@@ -1899,9 +1899,21 @@ const App: React.FC = () => {
     }
 
     const safeAccounts = connection.accounts || [];
-    const { transactionMode = 'full', updateBalance = true } = syncOptions || {};
+    const { transactionMode = 'full', updateBalance = true, syncStartDate } = syncOptions || {};
     const shouldSyncTransactions = transactionMode !== 'none';
     const now = new Date().toISOString();
+    const ninetyDaysAgoStr = toLocalISOString(new Date(Date.now() - 90 * 24 * 60 * 60 * 1000));
+    const todayStr = toLocalISOString(new Date());
+    const clampSyncStartDate = (value?: string) => {
+      if (!value) return value;
+      const parsed = new Date(value);
+      const min = new Date(ninetyDaysAgoStr);
+      const max = new Date(todayStr);
+
+      if (parsed < min) return ninetyDaysAgoStr;
+      if (parsed > max) return todayStr;
+      return toLocalISOString(parsed);
+    };
 
     try {
       setEnableBankingConnections(prev => prev.map(conn => conn.id === connectionId ? { ...conn, status: 'pending', lastError: undefined } : conn));
@@ -2026,10 +2038,8 @@ const App: React.FC = () => {
         const { amount: numericBalance, currency: balanceCurrency } = extractBalance(preferredBalance);
         const currency = (account?.currency || balanceCurrency || details?.currency || existing?.currency || 'EUR') as Currency;
 
-        const baseSyncStart = existing?.syncStartDate || toLocalISOString(new Date(Date.now() - 90 * 24 * 60 * 60 * 1000));
-        const syncStart = transactionMode === 'since_last'
-          ? (existing?.lastSyncedAt || baseSyncStart)
-          : baseSyncStart;
+        const baseSyncStart = clampSyncStartDate(syncStartDate) || clampSyncStartDate(existing?.syncStartDate) || ninetyDaysAgoStr;
+        const syncStart = baseSyncStart;
         const shouldMarkSynced = shouldSyncTransactions || updateBalance;
         const providerTransactions: any[] = [];
 
@@ -2088,7 +2098,7 @@ const App: React.FC = () => {
           balance: updateBalance ? numericBalance : existing?.balance ?? numericBalance,
           accountNumber: normalizedAccountIban || account?.iban || account?.account_id?.iban || existing?.accountNumber,
           linkedAccountId: existing?.linkedAccountId,
-          syncStartDate: existing?.syncStartDate || baseSyncStart,
+          syncStartDate: baseSyncStart,
           lastSyncedAt: shouldMarkSynced ? now : existing?.lastSyncedAt,
         });
       }
@@ -2240,6 +2250,18 @@ const App: React.FC = () => {
     return ids;
   }, [enableBankingConnections]);
 
+  const enableBankingLinkMap = useMemo(() => {
+    const map = new Map<string, { connection: EnableBankingConnection; account: EnableBankingAccount }>();
+    enableBankingConnections.forEach(connection => {
+      connection.accounts?.forEach(account => {
+        if (account.linkedAccountId) {
+          map.set(account.linkedAccountId, { connection, account });
+        }
+      });
+    });
+    return map;
+  }, [enableBankingConnections]);
+
   // Reset the account detail view if the referenced account no longer exists to avoid state updates during render
   useEffect(() => {
     if (!isDataLoaded) return;
@@ -2291,6 +2313,8 @@ const App: React.FC = () => {
           setCurrentPage={setCurrentPage}
           setViewingAccountId={setViewingAccountId}
           saveAccount={handleSaveAccount}
+          enableBankingLink={enableBankingLinkMap.get(viewingAccount.id)}
+          onTriggerEnableBankingSync={handleSyncEnableBankingConnection}
         />
       }
       return <PageLoader label="Loading account..." />;

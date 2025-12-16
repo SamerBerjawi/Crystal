@@ -4,7 +4,7 @@ import { Account, Transaction, DisplayTransaction, Category } from '../types';
 import { formatCurrency, calculateStatementPeriods, getCreditCardStatementDetails, getPreferredTimeZone } from '../utils';
 import Card from './Card';
 import TransactionList from './TransactionList';
-import { BTN_PRIMARY_STYLE, ACCOUNT_TYPE_STYLES } from '../constants';
+import { BTN_PRIMARY_STYLE, ACCOUNT_TYPE_STYLES, BTN_SECONDARY_STYLE } from '../constants';
 import { ResponsiveContainer, BarChart, CartesianGrid, XAxis, YAxis, Tooltip, Bar, Cell, ReferenceLine } from 'recharts';
 
 interface CreditCardAccountViewProps {
@@ -15,6 +15,8 @@ interface CreditCardAccountViewProps {
   onAddTransaction: () => void;
   onTransactionClick: (tx: DisplayTransaction) => void;
   onBack: () => void;
+  onSyncLinkedAccount?: () => void;
+  isLinkedToEnableBanking?: boolean;
 }
 
 const getCardGradient = (id: string) => {
@@ -45,7 +47,9 @@ const CreditCardAccountView: React.FC<CreditCardAccountViewProps> = ({
   allCategories,
   onAddTransaction,
   onTransactionClick,
-  onBack
+  onBack,
+  onSyncLinkedAccount,
+  isLinkedToEnableBanking,
 }) => {
   // --- 1. Metrics & Utilization ---
   const creditLimit = account.creditLimit || 0;
@@ -168,7 +172,10 @@ const CreditCardAccountView: React.FC<CreditCardAccountViewProps> = ({
             </div>
           </div>
         </div>
-        <div className="flex-shrink-0 ml-auto md:ml-0">
+        <div className="flex-shrink-0 ml-auto md:ml-0 flex items-center gap-2">
+            {isLinkedToEnableBanking && onSyncLinkedAccount && (
+                <button onClick={onSyncLinkedAccount} className={BTN_SECONDARY_STYLE}>Sync</button>
+            )}
             <button onClick={onAddTransaction} className={BTN_PRIMARY_STYLE}>Add Transaction</button>
         </div>
       </header>

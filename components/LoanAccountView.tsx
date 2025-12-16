@@ -5,7 +5,7 @@ import { formatCurrency, generateAmortizationSchedule, parseDateAsUTC } from '..
 import Card from './Card';
 import MortgageAmortizationChart from './MortgageAmortizationChart';
 import PaymentPlanTable from './PaymentPlanTable';
-import { BTN_PRIMARY_STYLE } from '../constants';
+import { BTN_PRIMARY_STYLE, BTN_SECONDARY_STYLE } from '../constants';
 
 interface LoanAccountViewProps {
   account: Account;
@@ -17,6 +17,8 @@ interface LoanAccountViewProps {
   onAddTransaction: () => void;
   setViewingAccountId: (id: string | null) => void;
   onBack: () => void;
+  onSyncLinkedAccount?: () => void;
+  isLinkedToEnableBanking?: boolean;
 }
 
 const LoanAccountView: React.FC<LoanAccountViewProps> = ({
@@ -28,7 +30,9 @@ const LoanAccountView: React.FC<LoanAccountViewProps> = ({
   onMakePayment,
   onAddTransaction,
   setViewingAccountId,
-  onBack
+  onBack,
+  onSyncLinkedAccount,
+  isLinkedToEnableBanking,
 }) => {
   const isLending = account.type === 'Lending';
 
@@ -101,7 +105,10 @@ const LoanAccountView: React.FC<LoanAccountViewProps> = ({
                 {account.interestRate && <><span>•</span><span>{account.interestRate}% Interest</span></>}
               </div>
             </div>
-            <div className="ml-auto">
+            <div className="ml-auto flex items-center gap-2">
+              {isLinkedToEnableBanking && onSyncLinkedAccount && (
+                <button onClick={onSyncLinkedAccount} className={BTN_SECONDARY_STYLE}>Sync</button>
+              )}
               <button onClick={onAddTransaction} className={BTN_PRIMARY_STYLE}>Add Transaction</button>
             </div>
           </div>
