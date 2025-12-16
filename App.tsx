@@ -82,6 +82,7 @@ const pagePreloaders = [
 // FIX: Add `Tag` to the import from `types.ts`.
 import { Page, Theme, Category, User, Transaction, Account, RecurringTransaction, RecurringTransactionOverride, WeekendAdjustment, FinancialGoal, Budget, ImportExportHistoryItem, AppPreferences, AccountType, InvestmentTransaction, Task, Warrant, ImportDataType, FinancialData, Currency, BillPayment, BillPaymentStatus, Duration, InvestmentSubType, Tag, LoanPaymentOverrides, ScheduledPayment, Membership, Invoice, UserStats, Prediction, PriceHistoryEntry, EnableBankingConnection, EnableBankingAccount, EnableBankingLinkPayload, EnableBankingSyncOptions } from './types';
 import { MOCK_INCOME_CATEGORIES, MOCK_EXPENSE_CATEGORIES, LIQUID_ACCOUNT_TYPES } from './constants';
+import { createDemoUser, initialFinancialData } from './demoData';
 import { v4 as uuidv4 } from 'uuid';
 import ChatFab from './components/ChatFab';
 const Chatbot = lazy(() => import('./components/Chatbot'));
@@ -217,48 +218,6 @@ const pageToPath = (page: Page, accountId?: string | null) => {
 
   return routePathMap[page] || '/';
 };
-
-const initialFinancialData: FinancialData = {
-    accounts: [],
-    transactions: [],
-    investmentTransactions: [],
-    recurringTransactions: [],
-    recurringTransactionOverrides: [],
-    loanPaymentOverrides: {},
-    financialGoals: [],
-    budgets: [],
-    tasks: [],
-    warrants: [],
-    memberships: [],
-    importExportHistory: [],
-    // FIX: Add `tags` to the initial financial data structure.
-    tags: [],
-    incomeCategories: MOCK_INCOME_CATEGORIES, // Keep default categories
-    expenseCategories: MOCK_EXPENSE_CATEGORIES,
-    billsAndPayments: [],
-    accountOrder: [],
-    taskOrder: [],
-    manualWarrantPrices: {},
-    priceHistory: {}, // New field for manual price history
-    invoices: [],
-    userStats: { currentStreak: 0, longestStreak: 0, lastLogDate: '', predictionWins: 0, predictionTotal: 0 },
-    predictions: [],
-    enableBankingConnections: [],
-    preferences: {
-        currency: 'EUR (€)',
-        language: 'English (en)',
-        timezone: typeof Intl !== 'undefined' ? Intl.DateTimeFormat().resolvedOptions().timeZone : 'UTC',
-        dateFormat: 'DD/MM/YYYY',
-        defaultPeriod: 'MTD',
-        defaultAccountOrder: 'name',
-        country: 'Belgium',
-        defaultForecastPeriod: '1Y',
-        brandfetchClientId: '',
-        twelveDataApiKey: '',
-        merchantLogoOverrides: {},
-    },
-};
-
 const safeLocalStorage = {
   getItem: (key: string): string | null => {
     if (typeof window === 'undefined') return null;
@@ -727,19 +686,7 @@ const App: React.FC = () => {
   
   const handleEnterDemoMode = () => {
     loadAllFinancialData(null); // This will load initialFinancialData
-    const mockUser: User = {
-        firstName: 'Demo',
-        lastName: 'User',
-        email: 'demo@crystal.finance',
-        profilePictureUrl: `https://i.pravatar.cc/150?u=demo@crystal.finance`,
-        role: 'Member',
-        phone: undefined,
-        address: undefined,
-        is2FAEnabled: false,
-        status: 'Active',
-        lastLogin: new Date().toISOString(),
-    };
-    setDemoUser(mockUser);
+    setDemoUser(createDemoUser());
     setIsDemoMode(true);
     setIsDataLoaded(true); // Manually set data as loaded for demo
   };
