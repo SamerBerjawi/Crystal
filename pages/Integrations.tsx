@@ -12,7 +12,9 @@ interface IntegrationsProps {
   enableBankingConnections: EnableBankingConnection[];
   accounts: Account[];
   onCreateConnection: (payload: { applicationId: string; countryCode: string; clientCertificate: string; selectedBank: string; connectionId?: string }) => void;
-  onFetchBanks: (payload: { applicationId: string; countryCode: string; clientCertificate: string }) => Promise<{ id: string; name: string; country?: string }[]>;
+  onFetchBanks: (payload: { applicationId: string; countryCode: string; clientCertificate: string }) => Promise<
+    { id: string; name: string; country?: string }[]
+  >;
   onDeleteConnection: (connectionId: string) => void;
   onLinkAccount: (
     connectionId: string,
@@ -22,35 +24,60 @@ interface IntegrationsProps {
   onTriggerSync: (connectionId: string, connectionOverride?: EnableBankingConnection, options?: EnableBankingSyncOptions) => void | Promise<void>;
 }
 
-interface SectionHeaderProps { title: string; icon: string; description: string }
-const SectionHeader = React.memo(function SectionHeader({ title, icon, description }: SectionHeaderProps) {
-  return (
-    <div className="mb-6 pb-4 border-b border-black/5 dark:border-white/5">
-      <div className="flex items-center gap-3 mb-2">
-          <div className="w-8 h-8 rounded-lg bg-primary-100 dark:bg-primary-900/30 text-primary-600 dark:text-primary-400 flex items-center justify-center shrink-0">
-          <span className="material-symbols-outlined text-lg">{icon}</span>
-          </div>
-          <h3 className="text-lg font-bold text-light-text dark:text-dark-text">{title}</h3>
-      </div>
-      <p className="text-sm text-light-text-secondary dark:text-dark-text-secondary ml-11">{description}</p>
-    </div>
-  );
-});
+const ApiKeyCard = ({ 
+    title, 
+    description, 
+    icon, 
+    name, 
+    value, 
+    onChange, 
+    placeholder,
+    colorClass
+}: { 
+    title: string; 
+    description: string; 
+    icon: string; 
+    name: string; 
+    value: string; 
+    onChange: (e: React.ChangeEvent<HTMLInputElement>) => void; 
+    placeholder: string;
+    colorClass: string;
+}) => {
+    const isConfigured = value && value.length > 0;
 
-interface SettingRowProps { label: string; description?: string; children: React.ReactNode }
-const SettingRow = React.memo(function SettingRow({ label, description, children }: SettingRowProps) {
-  return (
-    <div className="flex flex-col sm:flex-row sm:items-start justify-between gap-4 py-4 border-b border-black/5 dark:border-white/5 last:border-0">
-      <div className="flex-1 max-w-md">
-        <label className="font-semibold text-sm text-light-text dark:text-dark-text block mb-1">{label}</label>
-        {description && <p className="text-xs text-light-text-secondary dark:text-dark-text-secondary leading-relaxed">{description}</p>}
-      </div>
-      <div className="w-full sm:w-64 shrink-0">
-        {children}
-      </div>
-    </div>
-  );
-});
+    return (
+        <Card className="flex flex-col h-full border border-black/5 dark:border-white/5 shadow-sm hover:shadow-md transition-shadow duration-200">
+            <div className="flex items-start justify-between mb-4">
+                <div className={`w-12 h-12 rounded-xl flex items-center justify-center ${colorClass}`}>
+                    <span className="material-symbols-outlined text-2xl">{icon}</span>
+                </div>
+                <div className={`px-2.5 py-0.5 rounded-full text-[10px] font-bold uppercase tracking-wide border ${isConfigured ? 'bg-green-100 text-green-700 border-green-200 dark:bg-green-900/30 dark:text-green-400 dark:border-green-800' : 'bg-gray-100 text-gray-500 border-gray-200 dark:bg-white/5 dark:text-gray-400 dark:border-white/10'}`}>
+                    {isConfigured ? 'Active' : 'Setup Required'}
+                </div>
+            </div>
+            
+            <div className="mb-6 flex-grow">
+                <h3 className="text-lg font-bold text-light-text dark:text-dark-text mb-1">{title}</h3>
+                <p className="text-xs text-light-text-secondary dark:text-dark-text-secondary leading-relaxed">{description}</p>
+            </div>
+
+            <div className="relative">
+                <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+                    <span className="material-symbols-outlined text-gray-400 text-lg">key</span>
+                </div>
+                <input
+                    type="text" // Kept as text to allow pasting easily
+                    name={name}
+                    value={value || ''}
+                    onChange={onChange}
+                    placeholder={placeholder}
+                    className={`${INPUT_BASE_STYLE} pl-10 text-sm font-mono`}
+                    autoComplete="off"
+                />
+            </div>
+        </Card>
+    );
+};
 
 const Integrations: React.FC<IntegrationsProps> = ({
   preferences,
@@ -70,7 +97,8 @@ const Integrations: React.FC<IntegrationsProps> = ({
   };
 
   return (
-    <div className="space-y-8 max-w-6xl mx-auto pb-12 animate-fade-in-up px-4 sm:px-6 lg:px-10">
+    <div className="max-w-7xl mx-auto pb-12 space-y-8 animate-fade-in-up">
+      {/* Header */}
       <header className="space-y-4">
         <div className="flex items-center gap-4">
             <button onClick={() => setCurrentPage('Settings')} className="text-light-text-secondary dark:text-dark-text-secondary p-2 rounded-full hover:bg-black/5 dark:hover:bg-white/5 transition-colors">
@@ -83,58 +111,61 @@ const Integrations: React.FC<IntegrationsProps> = ({
             </div>
         </div>
         <PageHeader
-          markerIcon="image"
-          markerLabel="Connect"
+          markerIcon="extension"
+          markerLabel="Connected Services"
           title="Integrations"
-          subtitle="Manage external services that enrich your Crystal workspace."
+          subtitle="Supercharge Crystal with live market data, merchant enrichment, and real bank synchronization."
         />
       </header>
 
-      <Card>
-        <SectionHeader
-          title="API Keys"
-          icon="key"
-          description="Securely store keys locally to unlock additional data sources."
-        />
-        <div className="space-y-2">
-          <SettingRow
-            label="Twelve Data API Key"
-            description="Used to fetch live investment prices from Twelve Data. Your key is stored locally."
-          >
-            <input
-              type="text"
-              name="twelveDataApiKey"
-              value={preferences.twelveDataApiKey || ''}
-              onChange={handleInputChange}
-              placeholder="Enter your Twelve Data API key"
-              className={INPUT_BASE_STYLE}
-            />
-          </SettingRow>
-          <SettingRow
-            label="Brandfetch Client ID"
-            description="Used to fetch merchant logos for your transactions. Leave blank to use category icons instead."
-          >
-            <input
-              type="text"
-              name="brandfetchClientId"
-              value={preferences.brandfetchClientId || ''}
-              onChange={handleInputChange}
-              placeholder="Enter your Brandfetch client ID"
-              className={INPUT_BASE_STYLE}
-            />
-          </SettingRow>
-        </div>
-      </Card>
+      {/* API Keys Grid */}
+      <section>
+          <div className="flex items-center gap-2 mb-4 px-1">
+              <span className="material-symbols-outlined text-primary-500">api</span>
+              <h3 className="text-lg font-bold text-light-text dark:text-dark-text">Data Services</h3>
+          </div>
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+              <ApiKeyCard
+                  title="Twelve Data"
+                  description="Enables real-time stock, ETF, and crypto pricing updates for your investment portfolio."
+                  icon="candlestick_chart"
+                  name="twelveDataApiKey"
+                  value={preferences.twelveDataApiKey || ''}
+                  onChange={handleInputChange}
+                  placeholder="Enter API Key"
+                  colorClass="bg-purple-100 text-purple-600 dark:bg-purple-900/30 dark:text-purple-400"
+              />
+              <ApiKeyCard
+                  title="Brandfetch"
+                  description="Automatically fetches high-quality logos for merchants and institutions based on transaction names."
+                  icon="collections" // 'image' or 'branding_watermark'
+                  name="brandfetchClientId"
+                  value={preferences.brandfetchClientId || ''}
+                  onChange={handleInputChange}
+                  placeholder="Enter Client ID"
+                  colorClass="bg-pink-100 text-pink-600 dark:bg-pink-900/30 dark:text-pink-400"
+              />
+          </div>
+      </section>
 
-      <EnableBankingIntegrationCard
-        connections={enableBankingConnections}
-        accounts={accounts}
-        onCreateConnection={onCreateConnection}
-        onFetchBanks={onFetchBanks}
-        onDeleteConnection={onDeleteConnection}
-        onLinkAccount={onLinkAccount}
-        onTriggerSync={onTriggerSync}
-      />
+      {/* Enable Banking Section */}
+      <section>
+           <div className="flex items-center gap-2 mb-4 px-1 mt-8">
+              <span className="material-symbols-outlined text-emerald-500">account_balance</span>
+              <h3 className="text-lg font-bold text-light-text dark:text-dark-text">Open Banking</h3>
+          </div>
+          <div className="bg-gradient-to-br from-white to-gray-50 dark:from-dark-card dark:to-black/20 rounded-2xl border border-black/5 dark:border-white/5 shadow-sm p-1">
+               <EnableBankingIntegrationCard
+                    connections={enableBankingConnections}
+                    accounts={accounts}
+                    onCreateConnection={onCreateConnection}
+                    onFetchBanks={onFetchBanks}
+                    onDeleteConnection={onDeleteConnection}
+                    onLinkAccount={onLinkAccount}
+                    onTriggerSync={onTriggerSync}
+                />
+          </div>
+      </section>
     </div>
   );
 };
