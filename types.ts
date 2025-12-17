@@ -330,6 +330,7 @@ export interface User {
   role: 'Administrator' | 'Member';
   phone?: string;
   address?: string;
+  twoFASecret?: string;
   is2FAEnabled: boolean;
   status: 'Active' | 'Inactive';
   lastLogin: string;

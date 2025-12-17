@@ -5,9 +5,16 @@ interface AuthResponse {
   token: string;
   user: any;
   financialData?: FinancialData;
+  trustToken?: string;
 }
 
+export type SignInResult =
+  | { status: 'success'; financialData: FinancialData | null }
+  | { status: 'two-factor-required'; message?: string }
+  | { status: 'error'; message: string };
+
 const TOKEN_STORAGE_KEY = 'crystal_auth_token';
+const TRUST_TOKEN_KEY_PREFIX = 'crystal_trust_token_';
 
 const safeLocalStorage = {
   getItem: (key: string): string | null => {
@@ -35,6 +42,20 @@ const safeLocalStorage = {
       console.warn(`Failed to remove "${key}" from localStorage.`, error);
     }
   },
+};
+
+const getTrustTokenKey = (email: string) => `${TRUST_TOKEN_KEY_PREFIX}${email.toLowerCase()}`;
+
+const getStoredTrustToken = (email: string) => safeLocalStorage.getItem(getTrustTokenKey(email));
+
+const persistTrustToken = (email: string, token: string | null) => {
+  if (!email) return;
+  const key = getTrustTokenKey(email);
+  if (token) {
+    safeLocalStorage.setItem(key, token);
+  } else {
+    safeLocalStorage.removeItem(key);
+  }
 };
 
 const mapApiUserToUser = (apiUser: any): User => ({
@@ -102,7 +123,7 @@ export const useAuth = () => {
   );
 
   const signIn = useCallback(
-    async (email: string, password: string): Promise<FinancialData | null> => {
+    async (email: string, password: string, totpCode?: string, rememberDevice?: boolean): Promise<SignInResult> => {
       setIsLoading(true);
       setError(null);
 
@@ -110,15 +131,32 @@ export const useAuth = () => {
         const response = await fetch('/api/auth/login', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ email, password }),
+          body: JSON.stringify({
+            email,
+            password,
+            totpCode,
+            rememberDevice,
+            deviceToken: getStoredTrustToken(email) || undefined,
+          }),
         });
 
         const body = await response.json().catch(() => ({}));
+        if (response.status === 403 && body.requires2FA) {
+          return { status: 'two-factor-required', message: body.message };
+        }
+
         if (!response.ok) {
           throw new Error(body.message || 'Failed to sign in.');
         }
 
-        return processAuthState(body as AuthResponse);
+        const result = processAuthState(body as AuthResponse);
+        if (body.trustToken) {
+          persistTrustToken(email, body.trustToken);
+        } else if (!rememberDevice) {
+          persistTrustToken(email, null);
+        }
+
+        return { status: 'success', financialData: result };
       } catch (err) {
         console.error('Sign-in failed:', err);
         setIsAuthenticated(false);
@@ -126,7 +164,7 @@ export const useAuth = () => {
         persistToken(null);
         setToken(null);
         setError(err instanceof Error ? err.message : 'Failed to sign in.');
-        return null;
+        return { status: 'error', message: err instanceof Error ? err.message : 'Failed to sign in.' };
       } finally {
         setIsLoading(false);
       }
