@@ -484,14 +484,13 @@ const EnableBankingIntegrationCard: React.FC<EnableBankingIntegrationCardProps> 
 
                   {providerAccounts.map(account => {
                     const linkedAccount = accounts.find(acc => acc.id === account.linkedAccountId);
-                    const accountLastFour = account.iban?.slice(-4) || account.accountNumber?.slice(-4);
+                    const accountLastFour = account.accountNumber?.slice(-4);
                     const rowKey = keyPrefix(account.id);
 
                     const savedState = linkingState[rowKey] || {};
                     const defaultSyncStart = clampSyncDate(
                       savedState.syncStartDate ||
                         account.syncStartDate ||
-                        connection.syncStartDate ||
                         ninetyDaysAgoStr
                     );
                     const rowState = {
@@ -648,9 +647,16 @@ const EnableBankingIntegrationCard: React.FC<EnableBankingIntegrationCardProps> 
                                   }
 
                                   handleLinkChange(rowKey, { syncStartDate, newAccountName });
+                                  
+                                  const newAccount: Omit<Account, 'id'> = {
+                                      name: newAccountName,
+                                      type: rowState.newAccountType || 'Checking',
+                                      balance: account.balance,
+                                      currency: account.currency,
+                                  };
+
                                   onLinkAccount(connection.id, account.id, {
-                                    newAccountName,
-                                    newAccountType: rowState.newAccountType || 'Checking',
+                                    newAccount,
                                     syncStartDate,
                                   });
                                 }
