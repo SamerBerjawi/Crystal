@@ -1,5 +1,5 @@
 
-import React, { useState, useRef } from 'react';
+import React, { useState, useRef, useEffect } from 'react';
 import { User, Page } from '../types';
 import Card from '../components/Card';
 import { BTN_PRIMARY_STYLE, INPUT_BASE_STYLE, BTN_SECONDARY_STYLE } from '../constants';
@@ -25,12 +25,104 @@ const PersonalInfo: React.FC<PersonalInfoProps> = ({ user, setUser, onChangePass
   const [twoFactorSeed, setTwoFactorSeed] = useState('');
   const [twoFactorExpectedCode, setTwoFactorExpectedCode] = useState('');
   const [twoFactorError, setTwoFactorError] = useState('');
+  const [otpAuthUrl, setOtpAuthUrl] = useState('');
+
+  const base32Alphabet = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ234567';
+
+  const generateBase32Secret = (byteLength: number) => {
+    const randomBytes = new Uint8Array(byteLength);
+    if (typeof crypto !== 'undefined' && crypto.getRandomValues) {
+      crypto.getRandomValues(randomBytes);
+    } else {
+      for (let i = 0; i < byteLength; i++) {
+        randomBytes[i] = Math.floor(Math.random() * 256);
+      }
+    }
+
+    let bits = 0;
+    let value = 0;
+    let output = '';
+
+    for (const byte of randomBytes) {
+      value = (value << 8) | byte;
+      bits += 8;
+      while (bits >= 5) {
+        output += base32Alphabet[(value >>> (bits - 5)) & 31];
+        bits -= 5;
+      }
+    }
+
+    if (bits > 0) {
+      output += base32Alphabet[(value << (5 - bits)) & 31];
+    }
+
+    return output;
+  };
+
+  const base32ToUint8Array = (secret: string) => {
+    const cleanSecret = secret.replace(/=+$/, '').toUpperCase();
+    const bytes: number[] = [];
+    let bits = 0;
+    let value = 0;
+
+    for (const char of cleanSecret) {
+      const idx = base32Alphabet.indexOf(char);
+      if (idx === -1) continue;
+      value = (value << 5) | idx;
+      bits += 5;
+
+      if (bits >= 8) {
+        bytes.push((value >>> (bits - 8)) & 0xff);
+        bits -= 8;
+      }
+    }
+
+    return new Uint8Array(bytes);
+  };
+
+  const generateTotpCode = async (secret: string, stepOffset = 0) => {
+    if (!secret || typeof crypto === 'undefined' || !crypto.subtle) return '';
+
+    const counter = Math.floor(Date.now() / 30000) + stepOffset;
+    const timeBuffer = new ArrayBuffer(8);
+    const view = new DataView(timeBuffer);
+    view.setUint32(4, counter, false);
+
+    const key = await crypto.subtle.importKey('raw', base32ToUint8Array(secret), { name: 'HMAC', hash: 'SHA-1' }, false, [
+      'sign',
+    ]);
+    const hmac = await crypto.subtle.sign('HMAC', key, timeBuffer);
+    const hmacBytes = new Uint8Array(hmac);
+    const offset = hmacBytes[hmacBytes.length - 1] & 0xf;
+    const code =
+      ((hmacBytes[offset] & 0x7f) << 24) |
+      ((hmacBytes[offset + 1] & 0xff) << 16) |
+      ((hmacBytes[offset + 2] & 0xff) << 8) |
+      (hmacBytes[offset + 3] & 0xff);
+    const otp = (code % 1_000_000).toString().padStart(6, '0');
+    return otp;
+  };
+
+  const updateExpectedCode = async (secret: string) => {
+    const nextCode = await generateTotpCode(secret);
+    if (nextCode) {
+      setTwoFactorExpectedCode(nextCode);
+    }
+  };
+
+  const buildOtpAuthUrl = (secret: string) => {
+    const label = encodeURIComponent(`Crystal:${formData.email || formData.fullName || 'user'}`);
+    const issuer = encodeURIComponent('Crystal');
+    return `otpauth://totp/${label}?secret=${secret}&issuer=${issuer}`;
+  };
 
   const generateSetupSeed = () => {
-    const randomSeed = Array.from({ length: 20 }, () => Math.floor(Math.random() * 16).toString(16)).join('').toUpperCase();
-    setTwoFactorSeed(`CRYS-${randomSeed}`);
-    const verificationCode = Math.floor(100000 + Math.random() * 900000).toString();
-    setTwoFactorExpectedCode(verificationCode);
+    const secret = generateBase32Secret(20);
+    setTwoFactorSeed(secret);
+    setOtpAuthUrl(buildOtpAuthUrl(secret));
+    setTwoFactorCode('');
+    setTwoFactorError('');
+    updateExpectedCode(secret);
   };
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
@@ -49,8 +141,11 @@ const PersonalInfo: React.FC<PersonalInfoProps> = ({ user, setUser, onChangePass
     }
   };
 
-  const enableTwoFactor = () => {
-    if (twoFactorCode !== twoFactorExpectedCode) {
+  const enableTwoFactor = async () => {
+    const currentCode = await generateTotpCode(twoFactorSeed);
+    const previousCode = await generateTotpCode(twoFactorSeed, -1);
+
+    if (twoFactorCode !== currentCode && twoFactorCode !== previousCode) {
       setTwoFactorError('Verification code does not match. Please double-check and try again.');
       return;
     }
@@ -60,6 +155,26 @@ const PersonalInfo: React.FC<PersonalInfoProps> = ({ user, setUser, onChangePass
     setUser({ is2FAEnabled: true });
     setTwoFactorModalOpen(false);
   };
+
+  useEffect(() => {
+    if (!isTwoFactorModalOpen || !twoFactorSeed) return;
+
+    let isMounted = true;
+    const refreshCode = async () => {
+      const next = await generateTotpCode(twoFactorSeed);
+      if (isMounted && next) {
+        setTwoFactorExpectedCode(next);
+      }
+    };
+
+    refreshCode();
+    const interval = setInterval(refreshCode, 1000);
+
+    return () => {
+      isMounted = false;
+      clearInterval(interval);
+    };
+  }, [isTwoFactorModalOpen, twoFactorSeed]);
 
   const disableTwoFactor = () => {
     const updatedUser = { ...formData, is2FAEnabled: false };
@@ -117,13 +232,30 @@ const PersonalInfo: React.FC<PersonalInfoProps> = ({ user, setUser, onChangePass
               </div>
             </div>
 
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
               <div className="rounded-lg border border-dashed border-black/10 dark:border-white/10 bg-black/5 dark:bg-white/5 p-4">
                 <p className="text-xs uppercase font-semibold text-light-text-secondary dark:text-dark-text-secondary mb-2">Setup key</p>
                 <p className="font-mono text-sm text-light-text dark:text-dark-text break-all">{twoFactorSeed}</p>
                 <p className="text-[11px] text-light-text-secondary dark:text-dark-text-secondary mt-2">
-                  Use this code with Google Authenticator, 1Password, or your preferred TOTP app.
+                  Use this code with Google Authenticator, Microsoft Authenticator, or your preferred TOTP app.
                 </p>
+              </div>
+              <div className="rounded-lg border border-black/10 dark:border-white/10 bg-white dark:bg-dark-fill p-4 space-y-3 items-center text-center">
+                <p className="text-xs uppercase font-semibold text-light-text-secondary dark:text-dark-text-secondary">QR code</p>
+                <div className="flex justify-center">
+                  {otpAuthUrl ? (
+                    <img
+                      src={`https://api.qrserver.com/v1/create-qr-code/?size=200x200&data=${encodeURIComponent(otpAuthUrl)}`}
+                      alt="Scan QR code to set up two-factor authentication"
+                      className="h-40 w-40 rounded-lg border border-black/10 dark:border-white/10 bg-white"
+                    />
+                  ) : (
+                    <div className="h-40 w-40 rounded-lg border border-dashed border-light-text-secondary/50 dark:border-dark-text-secondary/50 flex items-center justify-center text-xs text-light-text-secondary dark:text-dark-text-secondary">
+                      Generating QR...
+                    </div>
+                  )}
+                </div>
+                <p className="text-[11px] text-light-text-secondary dark:text-dark-text-secondary">Scan this code directly in your authenticator app.</p>
               </div>
               <div className="rounded-lg border border-black/10 dark:border-white/10 bg-white dark:bg-dark-fill p-4 space-y-2">
                 <p className="text-xs uppercase font-semibold text-light-text-secondary dark:text-dark-text-secondary">Verification code</p>
@@ -153,7 +285,7 @@ const PersonalInfo: React.FC<PersonalInfoProps> = ({ user, setUser, onChangePass
                   {twoFactorExpectedCode}
                 </div>
                 <p className="text-sm text-light-text-secondary dark:text-dark-text-secondary">
-                  Use this one-time code to complete verification in this demo environment.
+                  This code refreshes automatically every 30 seconds to match your authenticator app.
                 </p>
               </div>
             </div>
