@@ -1,11 +1,15 @@
 name: Docker Image CI/CD
+
 on:
   push:
-    tags:
-      - 'v*.*.*'
+    branches: [ main ]
+    tags: [ 'v*.*.*' ]
+  pull_request:
+    branches: [ main ]
 
 env:
   REGISTRY: ghcr.io
+  IMAGE_NAME: samerberjawi/crystal 
 
 jobs:
   build-and-push:
@@ -28,40 +32,35 @@ jobs:
           username: ${{ github.actor }}
           password: ${{ secrets.GITHUB_TOKEN }}
           
-      # --- NEW: Single Metadata Step ---
-      - name: Extract Metadata and Set Lowercase Name
+      - name: Extract Metadata
         id: meta
         run: |
-          # 1. Get the version tag (e.g., v1.0.5)
-          echo "VERSION=${GITHUB_REF_NAME}" >> $GITHUB_OUTPUT
+          if [[ $GITHUB_EVENT_NAME == 'pull_request' ]]; then
+            # Tag for PRs: e.g., pr-192
+            VERSION="pr-${{ github.event.pull_request.number }}"
+          else
+            # Tag for actual releases: e.g., v1.0.6
+            VERSION=${GITHUB_REF_NAME}
+          fi
+          echo "VERSION=$VERSION" >> $GITHUB_OUTPUT
           
-          # 2. Force the repository name to be lowercase for GHCR compliance
-          LOWERCASE_REPO_NAME=$(echo ${{ github.repository }} | tr '[:upper:]' '[:lower:]')
-          echo "REPO_NAME=$LOWERCASE_REPO_NAME" >> $GITHUB_OUTPUT
-          
-      # --- Build and Push Backend Image ---
-      - name: Build and Push Backend Image
-        uses: docker/build-push-action@v5
+      - name: Build and Push Backend
+        uses: docker/build-push-action@v6
         with:
           context: ./server
-          push: true
-          # REFERENCE: Use the meta outputs for both the name and the version
+          push: true  # Now we push PR images too so you can test on NAS
           tags: |
-            ${{ env.REGISTRY }}/${{ steps.meta.outputs.REPO_NAME }}:backend-${{ steps.meta.outputs.VERSION }}
-            ${{ env.REGISTRY }}/${{ steps.meta.outputs.REPO_NAME }}:backend-latest
+            ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:backend-${{ steps.meta.outputs.VERSION }}
           cache-from: type=gha
           cache-to: type=gha,mode=max
 
-      # --- Build and Push Frontend Image ---
-      - name: Build and Push Frontend Image
-        uses: docker/build-push-action@v5
+      - name: Build and Push Frontend
+        uses: docker/build-push-action@v6
         with:
           context: . 
           file: Dockerfile
           push: true
-          # REFERENCE: Use the meta outputs for both the name and the version
           tags: |
-            ${{ env.REGISTRY }}/${{ steps.meta.outputs.REPO_NAME }}:frontend-${{ steps.meta.outputs.VERSION }}
-            ${{ env.REGISTRY }}/${{ steps.meta.outputs.REPO_NAME }}:frontend-latest
+            ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:frontend-${{ steps.meta.outputs.VERSION }}
           cache-from: type=gha
           cache-to: type=gha,mode=max
