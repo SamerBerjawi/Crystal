@@ -89,7 +89,7 @@ const Chatbot = lazy(() => import('./components/Chatbot'));
 import { convertToEur, CONVERSION_RATES, arrayToCSV, downloadCSV, parseDateAsUTC, toLocalISOString } from './utils';
 import { buildHoldingsOverview } from './utils/investments';
 import { useDebounce } from './hooks/useDebounce';
-import { useAuth } from './hooks/useAuth';
+import { useAuth, SignInResult } from './hooks/useAuth';
 import useLocalStorage from './hooks/useLocalStorage';
 const OnboardingModal = lazy(() => import('./components/OnboardingModal'));
 import { FinancialDataProvider } from './contexts/FinancialDataContext';
@@ -1072,13 +1072,24 @@ const App: React.FC = () => {
   }, [tasks, taskOrder, setTaskOrder]);
 
   // Auth handlers
-  const handleSignIn = async (email: string, password: string) => {
+  const handleSignIn = async ({
+    email,
+    password,
+    totpCode,
+    rememberDevice,
+  }: {
+    email: string;
+    password: string;
+    totpCode?: string;
+    rememberDevice?: boolean;
+  }): Promise<SignInResult> => {
     setIsDataLoaded(false);
-    const financialData = await signIn(email, password);
-    if (financialData) {
-      loadAllFinancialData(financialData, { skipNextSave: true });
+    const result = await signIn(email, password, totpCode, rememberDevice);
+    if (result.status === 'success' && result.financialData) {
+      loadAllFinancialData(result.financialData, { skipNextSave: true });
     }
     setIsDataLoaded(true);
+    return result;
   };
 
   const handleSignUp = async (newUserData: { firstName: string, lastName: string, email: string, password: string }) => {

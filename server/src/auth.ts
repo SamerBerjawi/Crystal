@@ -1,12 +1,63 @@
 import express from 'express';
 import bcrypt from 'bcryptjs';
 import jwt from 'jsonwebtoken';
+import crypto from 'crypto';
 import { db } from './database';
 import { authenticateToken, AuthRequest } from './middleware';
 
 const router = express.Router();
 
 const JWT_SECRET = process.env.JWT_SECRET || 'default-secret';
+const BASE32_ALPHABET = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ234567';
+
+function decodeBase32(secret: string) {
+    const cleanSecret = secret.replace(/=+$/, '').toUpperCase();
+    const bytes: number[] = [];
+    let bits = 0;
+    let value = 0;
+
+    for (const char of cleanSecret) {
+        const idx = BASE32_ALPHABET.indexOf(char);
+        if (idx === -1) continue;
+        value = (value << 5) | idx;
+        bits += 5;
+
+        if (bits >= 8) {
+            bytes.push((value >>> (bits - 8)) & 0xff);
+            bits -= 8;
+        }
+    }
+
+    return Buffer.from(bytes);
+}
+
+function generateTotp(secret: string, timeStep: number) {
+    const timeBuffer = Buffer.alloc(8);
+    timeBuffer.writeUInt32BE(0, 0);
+    timeBuffer.writeUInt32BE(timeStep, 4);
+
+    const hmac = crypto.createHmac('sha1', decodeBase32(secret)).update(timeBuffer).digest();
+    const offset = hmac[hmac.length - 1] & 0xf;
+    const code =
+        ((hmac[offset] & 0x7f) << 24) |
+        ((hmac[offset + 1] & 0xff) << 16) |
+        ((hmac[offset + 2] & 0xff) << 8) |
+        (hmac[offset + 3] & 0xff);
+
+    return (code % 1_000_000).toString().padStart(6, '0');
+}
+
+function verifyTotp(secret: string, token: string) {
+    if (!secret || !token) return false;
+    const currentStep = Math.floor(Date.now() / 30000);
+    const sanitized = token.replace(/\D/g, '');
+    for (const drift of [-1, 0, 1]) {
+        if (generateTotp(secret, currentStep + drift) === sanitized) {
+            return true;
+        }
+    }
+    return false;
+}
 
 /**
  * Performs a login for a given user ID. Fetches user data, financial data,
@@ -97,29 +148,59 @@ router.post('/register', async (req, res) => {
 
 // Login
 router.post('/login', async (req, res) => {
-    const { email, password } = req.body;
+    const { email, password, totpCode, rememberDevice, deviceToken } = req.body;
     if (!email || !password) {
-        // FIX: Replaced res.status().json() with res.status() and res.json() to fix type error.
         return res.status(400).json({ message: 'Email and password are required' });
     }
 
     try {
-        const userSql = `SELECT id, email, password FROM users WHERE email = $1`;
+        const userSql = `SELECT id, email, password, is_2fa_enabled, two_fa_secret, two_fa_trust_token, two_fa_trust_expires FROM users WHERE email = $1`;
         const userResult = await db.query(userSql, [email.toLowerCase()]);
         const user = userResult.rows[0];
 
         if (!user || !bcrypt.compareSync(password, user.password)) {
-            // FIX: Replaced res.status().json() with res.status() and res.json() to fix type error.
             return res.status(401).json({ message: 'Invalid credentials' });
         }
-        
-        const loginData = await performLogin(user.id, user.email);
-        // FIX: Replaced res.status(200).json() with res.json() as 200 is the default status.
-        res.json(loginData);
 
+        let trustToken: string | undefined;
+        const now = new Date();
+        const trustValid =
+            !!user.two_fa_trust_token &&
+            !!user.two_fa_trust_expires &&
+            new Date(user.two_fa_trust_expires) > now &&
+            deviceToken === user.two_fa_trust_token;
+
+        if (user.is_2fa_enabled) {
+            const hasValidTrust = trustValid;
+            if (!hasValidTrust) {
+                if (!user.two_fa_secret) {
+                    return res.status(500).json({ message: 'Two-factor secret is missing for this account.' });
+                }
+
+                if (!totpCode) {
+                    return res.status(403).json({ requires2FA: true, message: 'Two-factor code required.' });
+                }
+
+                if (!verifyTotp(user.two_fa_secret, totpCode)) {
+                    return res.status(401).json({ message: 'Invalid or expired two-factor code.' });
+                }
+            }
+
+            if (rememberDevice && !trustValid) {
+                trustToken = crypto.randomBytes(32).toString('hex');
+                const trustExpires = new Date(Date.now() + 7 * 24 * 60 * 60 * 1000);
+                await db.query('UPDATE users SET two_fa_trust_token = $1, two_fa_trust_expires = $2 WHERE id = $3', [
+                    trustToken,
+                    trustExpires.toISOString(),
+                    user.id,
+                ]);
+            }
+        }
+
+        const loginData = await performLogin(user.id, user.email);
+        res.json({ ...loginData, trustToken });
     } catch (err) {
         console.error('Error during login:', err);
-        // FIX: Replaced res.status().json() with res.status() and res.json() to fix type error.
         res.status(500).json({ message: 'Server error during login.' });
     }
 });

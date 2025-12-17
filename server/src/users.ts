@@ -8,7 +8,7 @@ const router = express.Router();
 // Update current user's profile
 router.put('/me', authenticateToken, async (req: AuthRequest, res) => {
     const userId = req.user?.id;
-    const { firstName, lastName, profilePictureUrl, phone, address, is2FAEnabled } = req.body;
+    const { firstName, lastName, profilePictureUrl, phone, address, is2FAEnabled, twoFASecret } = req.body;
 
     const sql = `
         UPDATE users
@@ -18,16 +18,17 @@ router.put('/me', authenticateToken, async (req: AuthRequest, res) => {
             profile_picture_url = COALESCE($3, profile_picture_url),
             phone = COALESCE($4, phone),
             address = COALESCE($5, address),
-            is_2fa_enabled = COALESCE($6, is_2fa_enabled)
-        WHERE id = $7`;
+            is_2fa_enabled = COALESCE($6, is_2fa_enabled),
+            two_fa_secret = CASE WHEN $6 = FALSE THEN NULL ELSE COALESCE($7, two_fa_secret) END,
+            two_fa_trust_token = CASE WHEN $6 = FALSE THEN NULL ELSE two_fa_trust_token END,
+            two_fa_trust_expires = CASE WHEN $6 = FALSE THEN NULL ELSE two_fa_trust_expires END
+        WHERE id = $8`;
 
     try {
-        await db.query(sql, [firstName, lastName, profilePictureUrl, phone, address, is2FAEnabled, userId]);
-        // FIX: Replaced res.status(200).json() with res.json() as 200 is the default status.
+        await db.query(sql, [firstName, lastName, profilePictureUrl, phone, address, is2FAEnabled, twoFASecret, userId]);
         res.json({ message: 'Profile updated successfully' });
     } catch (err) {
         console.error(err);
-        // FIX: Replaced res.status().json() with res.status() and res.json() to fix type error.
         res.status(500).json({ message: 'Failed to update user profile' });
     }
 });

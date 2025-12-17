@@ -150,9 +150,9 @@ const PersonalInfo: React.FC<PersonalInfoProps> = ({ user, setUser, onChangePass
       return;
     }
 
-    const updatedUser = { ...formData, is2FAEnabled: true };
+    const updatedUser = { ...formData, is2FAEnabled: true, twoFASecret: twoFactorSeed };
     setFormData(updatedUser);
-    setUser({ is2FAEnabled: true });
+    setUser({ is2FAEnabled: true, twoFASecret: twoFactorSeed });
     setTwoFactorModalOpen(false);
   };
 
@@ -177,9 +177,9 @@ const PersonalInfo: React.FC<PersonalInfoProps> = ({ user, setUser, onChangePass
   }, [isTwoFactorModalOpen, twoFactorSeed]);
 
   const disableTwoFactor = () => {
-    const updatedUser = { ...formData, is2FAEnabled: false };
+    const updatedUser = { ...formData, is2FAEnabled: false, twoFASecret: undefined };
     setFormData(updatedUser);
-    setUser({ is2FAEnabled: false });
+    setUser({ is2FAEnabled: false, twoFASecret: undefined });
     setDisableTwoFactorOpen(false);
   };
 
@@ -243,17 +243,19 @@ const PersonalInfo: React.FC<PersonalInfoProps> = ({ user, setUser, onChangePass
               <div className="rounded-lg border border-black/10 dark:border-white/10 bg-white dark:bg-dark-fill p-4 space-y-3 items-center text-center">
                 <p className="text-xs uppercase font-semibold text-light-text-secondary dark:text-dark-text-secondary">QR code</p>
                 <div className="flex justify-center">
-                  {otpAuthUrl ? (
-                    <img
-                      src={`https://api.qrserver.com/v1/create-qr-code/?size=200x200&data=${encodeURIComponent(otpAuthUrl)}`}
-                      alt="Scan QR code to set up two-factor authentication"
-                      className="h-40 w-40 rounded-lg border border-black/10 dark:border-white/10 bg-white"
-                    />
-                  ) : (
-                    <div className="h-40 w-40 rounded-lg border border-dashed border-light-text-secondary/50 dark:border-dark-text-secondary/50 flex items-center justify-center text-xs text-light-text-secondary dark:text-dark-text-secondary">
-                      Generating QR...
-                    </div>
-                  )}
+                  <div className="w-40 aspect-square">
+                    {otpAuthUrl ? (
+                      <img
+                        src={`https://api.qrserver.com/v1/create-qr-code/?size=400x400&data=${encodeURIComponent(otpAuthUrl)}`}
+                        alt="Scan QR code to set up two-factor authentication"
+                        className="w-full h-full rounded-lg border border-black/10 dark:border-white/10 bg-white object-contain"
+                      />
+                    ) : (
+                      <div className="w-full h-full rounded-lg border border-dashed border-light-text-secondary/50 dark:border-dark-text-secondary/50 flex items-center justify-center text-xs text-light-text-secondary dark:text-dark-text-secondary">
+                        Generating QR...
+                      </div>
+                    )}
+                  </div>
                 </div>
                 <p className="text-[11px] text-light-text-secondary dark:text-dark-text-secondary">Scan this code directly in your authenticator app.</p>
               </div>
