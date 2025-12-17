@@ -2,13 +2,10 @@ name: Docker Image CI/CD
 
 on:
   push:
-    branches:
-      - main
-    tags:
-      - 'v*.*.*'
+    branches: [ main ]
+    tags: [ 'v*.*.*' ]
   pull_request:
-    branches:
-      - main
+    branches: [ main ]
 
 env:
   REGISTRY: ghcr.io
@@ -29,46 +26,41 @@ jobs:
         uses: docker/setup-buildx-action@v3
         
       - name: Log in to the Container registry
-        if: github.event_name != 'pull_request'
         uses: docker/login-action@v3
         with:
           registry: ${{ env.REGISTRY }}
           username: ${{ github.actor }}
           password: ${{ secrets.GITHUB_TOKEN }}
           
-      - name: Extract Version
+      - name: Extract Metadata
         id: meta
         run: |
-          # Use the tag name if available, otherwise default to 'latest'
-          VERSION=${GITHUB_REF_NAME}
-          if [[ $GITHUB_REF != refs/tags/* ]]; then
-            VERSION="latest"
+          if [[ $GITHUB_EVENT_NAME == 'pull_request' ]]; then
+            # Tag for PRs: e.g., pr-192
+            VERSION="pr-${{ github.event.pull_request.number }}"
+          else
+            # Tag for actual releases: e.g., v1.0.6
+            VERSION=${GITHUB_REF_NAME}
           fi
           echo "VERSION=$VERSION" >> $GITHUB_OUTPUT
           
-      # --- Build and Push Backend Image ---
-      - name: Build and Push Backend Image
-        uses: docker/build-push-action@v5
+      - name: Build and Push Backend
+        uses: docker/build-push-action@v6
         with:
           context: ./server
-          # PUSH only on tags (v1.0.x). BUILD only on PRs.
-          push: ${{ startsWith(github.ref, 'refs/tags/') }}
+          push: true  # Now we push PR images too so you can test on NAS
           tags: |
             ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:backend-${{ steps.meta.outputs.VERSION }}
-            ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:backend-latest
           cache-from: type=gha
           cache-to: type=gha,mode=max
 
-      # --- Build and Push Frontend Image ---
-      - name: Build and Push Frontend Image
-        uses: docker/build-push-action@v5
+      - name: Build and Push Frontend
+        uses: docker/build-push-action@v6
         with:
           context: . 
           file: Dockerfile
-          # PUSH only on tags (v1.0.x). BUILD only on PRs.
-          push: ${{ startsWith(github.ref, 'refs/tags/') }}
+          push: true
           tags: |
             ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:frontend-${{ steps.meta.outputs.VERSION }}
-            ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:frontend-latest
           cache-from: type=gha
           cache-to: type=gha,mode=max
