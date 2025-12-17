@@ -141,7 +141,7 @@ export const useAuth = () => {
         });
 
         const body = await response.json().catch(() => ({}));
-        if (response.status === 403 && body.requires2FA) {
+        if ((response.status === 403 || response.status === 401) && body.requires2FA) {
           return { status: 'two-factor-required', message: body.message };
         }
 

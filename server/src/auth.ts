@@ -182,7 +182,7 @@ router.post('/login', async (req, res) => {
                 }
 
                 if (!verifyTotp(user.two_fa_secret, totpCode)) {
-                    return res.status(401).json({ message: 'Invalid or expired two-factor code.' });
+                    return res.status(401).json({ message: 'Invalid or expired two-factor code.', requires2FA: true });
                 }
             }
 

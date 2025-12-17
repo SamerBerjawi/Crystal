@@ -34,8 +34,9 @@ const SignIn: React.FC<SignInProps> = ({ onSignIn, onNavigateToSignUp, onEnterDe
 
     if (result.status === 'error') {
       setLocalError(result.message);
-      setRequires2FA(false);
-      setTotpCode('');
+      if (!requires2FA) {
+        setTotpCode('');
+      }
       return;
     }
 
