@@ -2,9 +2,10 @@
 import React, { useState } from 'react';
 import { BTN_PRIMARY_STYLE, INPUT_BASE_STYLE, CrystalLogo, BTN_SECONDARY_STYLE } from '../constants';
 import { Theme } from '../types';
+import { SignInResult } from '../hooks/useAuth';
 
 interface SignInProps {
-  onSignIn: (email: string, password: string) => void;
+  onSignIn: (params: { email: string; password: string; totpCode?: string; rememberDevice?: boolean }) => Promise<SignInResult>;
   onNavigateToSignUp: () => void;
   onEnterDemoMode: () => void;
   isLoading: boolean;
@@ -14,11 +15,34 @@ interface SignInProps {
 const SignIn: React.FC<SignInProps> = ({ onSignIn, onNavigateToSignUp, onEnterDemoMode, isLoading, error }) => {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
+  const [totpCode, setTotpCode] = useState('');
+  const [requires2FA, setRequires2FA] = useState(false);
+  const [localError, setLocalError] = useState<string | null>(null);
+  const [rememberDevice, setRememberDevice] = useState(false);
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (isLoading) return;
-    onSignIn(email, password);
+
+    const result = await onSignIn({ email, password, totpCode: requires2FA ? totpCode : undefined, rememberDevice });
+
+    if (result.status === 'two-factor-required') {
+      setRequires2FA(true);
+      setLocalError(result.message || 'Enter the 6-digit code from your authenticator app.');
+      return;
+    }
+
+    if (result.status === 'error') {
+      setLocalError(result.message);
+      if (!requires2FA) {
+        setTotpCode('');
+      }
+      return;
+    }
+
+    setLocalError(null);
+    setRequires2FA(false);
+    setTotpCode('');
   };
 
   return (
@@ -41,10 +65,10 @@ const SignIn: React.FC<SignInProps> = ({ onSignIn, onNavigateToSignUp, onEnterDe
         </div>
 
         <form onSubmit={handleSubmit} className="space-y-5">
-          {error && (
+          {(error || localError) && (
             <div className="bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 text-red-600 dark:text-red-300 px-4 py-3 rounded-xl text-sm flex items-start gap-2">
               <span className="material-symbols-outlined text-lg mt-0.5">error</span>
-              <span>{error}</span>
+              <span>{localError || error}</span>
             </div>
           )}
 
@@ -85,7 +109,42 @@ const SignIn: React.FC<SignInProps> = ({ onSignIn, onNavigateToSignUp, onEnterDe
             </div>
           </div>
 
-          <button type="submit" className={`${BTN_PRIMARY_STYLE} w-full !py-3.5 !text-base !rounded-xl shadow-lg shadow-primary-500/20 mt-2`} disabled={isLoading}>
+          {requires2FA && (
+            <div className="space-y-2 bg-primary-50/60 dark:bg-primary-900/20 border border-primary-200 dark:border-primary-800 rounded-xl p-4">
+              <div className="flex items-center gap-2">
+                <span className="material-symbols-outlined text-primary-500">shield_lock</span>
+                <p className="text-sm font-semibold text-light-text dark:text-dark-text">Two-Factor Verification</p>
+              </div>
+              <p className="text-xs text-light-text-secondary dark:text-dark-text-secondary leading-relaxed">
+                Enter the 6-digit code from your authenticator app to finish signing in.
+              </p>
+              <div className="flex items-center gap-3">
+                <input
+                  id="totp"
+                  inputMode="numeric"
+                  pattern="[0-9]*"
+                  maxLength={6}
+                  value={totpCode}
+                  onChange={e => setTotpCode(e.target.value.replace(/\D/g, ''))}
+                  className={`${INPUT_BASE_STYLE} font-mono tracking-[0.3em] text-lg !h-12`}
+                  placeholder="123456"
+                  required
+                  autoComplete="one-time-code"
+                />
+                <label className="inline-flex items-center gap-2 text-xs text-light-text-secondary dark:text-dark-text-secondary">
+                  <input
+                    type="checkbox"
+                    checked={rememberDevice}
+                    onChange={e => setRememberDevice(e.target.checked)}
+                    className="h-4 w-4 rounded border-gray-300 text-primary-600 focus:ring-primary-500"
+                  />
+                  Don't ask again for 7 days on this device
+                </label>
+              </div>
+            </div>
+          )}
+
+          <button type="submit" className={`${BTN_PRIMARY_STYLE} w-full !py-3.5 !text-base !rounded-xl shadow-lg shadow-primary-500/20 mt-2`} disabled={isLoading || (requires2FA && totpCode.length !== 6)}>
             {isLoading ? (
               <div className="flex items-center justify-center gap-2">
                 <svg className="animate-spin h-5 w-5 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
