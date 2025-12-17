@@ -5,6 +5,8 @@ import Card from '../components/Card';
 import { BTN_PRIMARY_STYLE, INPUT_BASE_STYLE, BTN_SECONDARY_STYLE } from '../constants';
 import ChangePasswordModal from '../components/ChangePasswordModal';
 import PageHeader from '../components/PageHeader';
+import Modal from '../components/Modal';
+import ConfirmationModal from '../components/ConfirmationModal';
 
 interface PersonalInfoProps {
   user: User;
@@ -17,16 +19,53 @@ const PersonalInfo: React.FC<PersonalInfoProps> = ({ user, setUser, onChangePass
   const [formData, setFormData] = useState<User>(user);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [isPasswordModalOpen, setPasswordModalOpen] = useState(false);
+  const [isTwoFactorModalOpen, setTwoFactorModalOpen] = useState(false);
+  const [isDisableTwoFactorOpen, setDisableTwoFactorOpen] = useState(false);
+  const [twoFactorCode, setTwoFactorCode] = useState('');
+  const [twoFactorSeed, setTwoFactorSeed] = useState('');
+  const [twoFactorExpectedCode, setTwoFactorExpectedCode] = useState('');
+  const [twoFactorError, setTwoFactorError] = useState('');
+
+  const generateSetupSeed = () => {
+    const randomSeed = Array.from({ length: 20 }, () => Math.floor(Math.random() * 16).toString(16)).join('').toUpperCase();
+    setTwoFactorSeed(`CRYS-${randomSeed}`);
+    const verificationCode = Math.floor(100000 + Math.random() * 900000).toString();
+    setTwoFactorExpectedCode(verificationCode);
+  };
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
     const { name, value } = e.target;
     setFormData(prev => ({ ...prev, [name]: value }));
   };
-  
+
   const handle2FAToggle = () => {
-    const updatedUser = { ...formData, is2FAEnabled: !formData.is2FAEnabled };
+    if (formData.is2FAEnabled) {
+      setDisableTwoFactorOpen(true);
+    } else {
+      generateSetupSeed();
+      setTwoFactorCode('');
+      setTwoFactorError('');
+      setTwoFactorModalOpen(true);
+    }
+  };
+
+  const enableTwoFactor = () => {
+    if (twoFactorCode !== twoFactorExpectedCode) {
+      setTwoFactorError('Verification code does not match. Please double-check and try again.');
+      return;
+    }
+
+    const updatedUser = { ...formData, is2FAEnabled: true };
     setFormData(updatedUser);
-    setUser({ is2FAEnabled: updatedUser.is2FAEnabled });
+    setUser({ is2FAEnabled: true });
+    setTwoFactorModalOpen(false);
+  };
+
+  const disableTwoFactor = () => {
+    const updatedUser = { ...formData, is2FAEnabled: false };
+    setFormData(updatedUser);
+    setUser({ is2FAEnabled: false });
+    setDisableTwoFactorOpen(false);
   };
 
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -56,12 +95,99 @@ const PersonalInfo: React.FC<PersonalInfoProps> = ({ user, setUser, onChangePass
   return (
     <div className="max-w-5xl mx-auto animate-fade-in-up pb-12">
       {isPasswordModalOpen && (
-        <ChangePasswordModal 
+        <ChangePasswordModal
           isOpen={isPasswordModalOpen}
           onClose={() => setPasswordModalOpen(false)}
           onChangePassword={onChangePassword}
         />
       )}
+
+      {isTwoFactorModalOpen && (
+        <Modal onClose={() => setTwoFactorModalOpen(false)} title="Enable Two-Factor Authentication" size="xl">
+          <div className="space-y-6">
+            <div className="flex items-start gap-4">
+              <div className="w-12 h-12 rounded-xl bg-primary-100 dark:bg-primary-900/30 text-primary-600 dark:text-primary-400 flex items-center justify-center">
+                <span className="material-symbols-outlined text-2xl">verified_user</span>
+              </div>
+              <div>
+                <p className="text-light-text dark:text-dark-text font-semibold mb-1">Secure your account in two steps</p>
+                <p className="text-sm text-light-text-secondary dark:text-dark-text-secondary">
+                  Scan the setup code with your authenticator app, then enter the 6-digit verification code to finish enabling 2FA.
+                </p>
+              </div>
+            </div>
+
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+              <div className="rounded-lg border border-dashed border-black/10 dark:border-white/10 bg-black/5 dark:bg-white/5 p-4">
+                <p className="text-xs uppercase font-semibold text-light-text-secondary dark:text-dark-text-secondary mb-2">Setup key</p>
+                <p className="font-mono text-sm text-light-text dark:text-dark-text break-all">{twoFactorSeed}</p>
+                <p className="text-[11px] text-light-text-secondary dark:text-dark-text-secondary mt-2">
+                  Use this code with Google Authenticator, 1Password, or your preferred TOTP app.
+                </p>
+              </div>
+              <div className="rounded-lg border border-black/10 dark:border-white/10 bg-white dark:bg-dark-fill p-4 space-y-2">
+                <p className="text-xs uppercase font-semibold text-light-text-secondary dark:text-dark-text-secondary">Verification code</p>
+                <input
+                  type="text"
+                  inputMode="numeric"
+                  maxLength={6}
+                  value={twoFactorCode}
+                  onChange={e => {
+                    setTwoFactorCode(e.target.value.replace(/\D/g, ''));
+                    setTwoFactorError('');
+                  }}
+                  placeholder="123456"
+                  className={`${INPUT_BASE_STYLE} font-mono text-lg tracking-widest`}
+                />
+                <p className="text-[11px] text-light-text-secondary dark:text-dark-text-secondary">
+                  Enter the code generated by your authenticator app to verify your setup.
+                </p>
+                {twoFactorError && <p className="text-xs text-red-500">{twoFactorError}</p>}
+              </div>
+            </div>
+
+            <div className="rounded-lg border border-black/5 dark:border-white/5 bg-light-fill dark:bg-dark-fill p-4">
+              <p className="text-xs uppercase font-semibold text-light-text-secondary dark:text-dark-text-secondary mb-1">Demo authenticator preview</p>
+              <div className="flex items-center gap-3">
+                <div className="h-12 w-12 rounded-lg bg-primary-100 dark:bg-primary-900/40 text-primary-600 dark:text-primary-300 flex items-center justify-center font-bold font-mono text-xl">
+                  {twoFactorExpectedCode}
+                </div>
+                <p className="text-sm text-light-text-secondary dark:text-dark-text-secondary">
+                  Use this one-time code to complete verification in this demo environment.
+                </p>
+              </div>
+            </div>
+
+            <div className="flex items-center gap-3 p-3 rounded-lg bg-amber-50 dark:bg-amber-900/30 border border-amber-200/60 dark:border-amber-800/60 text-amber-700 dark:text-amber-200">
+              <span className="material-symbols-outlined">info</span>
+              <p className="text-sm">Save this setup key somewhere safe. You’ll need it to recover access if you change devices.</p>
+            </div>
+
+            <div className="flex justify-end gap-3 pt-4 border-t border-black/5 dark:border-white/5">
+              <button type="button" onClick={() => setTwoFactorModalOpen(false)} className={BTN_SECONDARY_STYLE}>
+                Cancel
+              </button>
+              <button
+                type="button"
+                onClick={enableTwoFactor}
+                className={`${BTN_PRIMARY_STYLE} px-5`}
+                disabled={twoFactorCode.length !== 6}
+              >
+                Verify & Enable
+              </button>
+            </div>
+          </div>
+        </Modal>
+      )}
+
+      <ConfirmationModal
+        isOpen={isDisableTwoFactorOpen}
+        onClose={() => setDisableTwoFactorOpen(false)}
+        onConfirm={disableTwoFactor}
+        title="Disable Two-Factor Authentication"
+        message="Disabling 2FA removes the extra security layer from your account. Are you sure you want to continue?"
+        confirmButtonText="Disable 2FA"
+      />
       
       {/* Navigation Header */}
       <header className="mb-8">
