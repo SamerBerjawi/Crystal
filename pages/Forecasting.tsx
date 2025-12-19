@@ -13,7 +13,7 @@ import {
   ForecastDuration,
 } from '../types';
 import { BTN_PRIMARY_STYLE, BTN_SECONDARY_STYLE, LIQUID_ACCOUNT_TYPES, CHECKBOX_STYLE, FORECAST_DURATION_OPTIONS } from '../constants';
-import { formatCurrency, convertToEur, generateBalanceForecast, generateSyntheticLoanPayments, generateSyntheticCreditCardPayments, parseDateAsUTC, getPreferredTimeZone, generateSyntheticPropertyTransactions, toLocalISOString } from '../utils';
+import { calculateForecastHorizon, formatCurrency, convertToEur, generateBalanceForecast, generateSyntheticLoanPayments, generateSyntheticCreditCardPayments, parseDateAsUTC, getPreferredTimeZone, generateSyntheticPropertyTransactions, toLocalISOString } from '../utils';
 import Card from '../components/Card';
 import MultiAccountFilter from '../components/MultiAccountFilter';
 import FinancialGoalCard from '../components/FinancialGoalCard';
@@ -241,95 +241,7 @@ const Forecasting: React.FC = () => {
 
     // 2. Calculate Horizon Data (Dashboard Style - 1M, 3M, 6M, 1Y)
     const lowestBalanceForecasts = useMemo(() => {
-        const { chartData } = fullForecast;
-        if (chartData.length === 0) return [];
-
-        const today = new Date();
-        today.setUTCHours(0, 0, 0, 0);
-        const todayStr = new Date().toISOString().split('T')[0];
-        const startBalance = chartData[0].value;
-
-        const findNthLowestUniquePoint = (
-            data: { date: string; value: number }[],
-            n: number,
-            excludeValues: number[] = []
-        ): { value: number; date: string } | null => {
-            if (data.length === 0) return null;
-            const uniqueSortedValues = [...new Set(data.map(p => p.value))]
-                .filter(v => !excludeValues.includes(v))
-                .sort((a, b) => a - b);
-            const targetIndex = n - 1;
-            if (targetIndex >= uniqueSortedValues.length) {
-                const fallbackPoint = data.find(p => !excludeValues.includes(p.value)) 
-                                   || data.reduce((min, p) => (p.value < min.value ? p : min), data[0]);
-                return fallbackPoint;
-            }
-            const nthLowestValue = uniqueSortedValues[targetIndex];
-            const point = data.find(p => p.value === nthLowestValue);
-            return point ? { value: point.value, date: point.date } : null;
-        };
-    
-        const periods = [
-            { 
-                label: 'This Month', 
-                startDate: new Date(Date.UTC(today.getUTCFullYear(), today.getUTCMonth(), 1)),
-                endDate: new Date(Date.UTC(today.getUTCFullYear(), today.getUTCMonth() + 1, 0))
-            },
-            { 
-                label: 'Next 3 Months', 
-                startDate: new Date(Date.UTC(today.getUTCFullYear(), today.getUTCMonth() + 1, 1)),
-                endDate: new Date(Date.UTC(today.getUTCFullYear(), today.getUTCMonth() + 3, 0))
-            },
-            { 
-                label: 'Next 6 Months', 
-                startDate: new Date(Date.UTC(today.getUTCFullYear(), today.getUTCMonth() + 3, 1)),
-                endDate: new Date(Date.UTC(today.getUTCFullYear(), today.getUTCMonth() + 6, 0))
-            },
-            { 
-                label: 'Next Year', 
-                startDate: new Date(Date.UTC(today.getUTCFullYear(), today.getUTCMonth() + 6, 1)),
-                endDate: new Date(Date.UTC(today.getUTCFullYear(), today.getUTCMonth() + 12, 0))
-            },
-        ];
-        
-        const results: { period: string; lowestBalance: number; date: string }[] = [];
-        const displayedValues: number[] = [];
-    
-        for (const period of periods) {
-            const dataForPeriod = chartData.filter(d => {
-                const dDate = parseDateAsUTC(d.date);
-                return dDate >= period.startDate && dDate <= period.endDate;
-            });
-            
-            let displayedPoint: { value: number; date: string } | null = null;
-            let n = 1;
-    
-            while(true) {
-                const point = findNthLowestUniquePoint(dataForPeriod, n, displayedValues);
-                if (!point) {
-                     // Fallback to last known if no data in future period (e.g., nothing scheduled)
-                     const lastKnown = chartData.find(d => parseDateAsUTC(d.date) < period.startDate);
-                     const val = lastKnown ? lastKnown.value : startBalance;
-                     displayedPoint = { value: val, date: todayStr };
-                     break;
-                }
-                if (!displayedValues.includes(point.value)) {
-                    displayedPoint = point;
-                    break;
-                }
-                n++;
-                if (n > 20) { displayedPoint = point; break; } // Safety break
-            }
-            
-            results.push({
-                period: period.label,
-                lowestBalance: displayedPoint.value,
-                date: displayedPoint.date,
-            });
-            displayedValues.push(displayedPoint.value);
-        }
-        return results;
-
+        return calculateForecastHorizon(fullForecast.chartData);
     }, [fullForecast]);
 
     // 3. Derived Data for Chart and Table (Filtered by selected Duration)

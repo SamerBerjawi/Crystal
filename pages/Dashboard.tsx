@@ -1,7 +1,7 @@
 
 import React, { useMemo, useState, useCallback, useEffect, useRef, Suspense, lazy } from 'react';
 import { User, Transaction, Account, Category, Duration, CategorySpending, Widget, WidgetConfig, DisplayTransaction, FinancialGoal, RecurringTransaction, BillPayment, Tag, Budget, RecurringTransactionOverride, LoanPaymentOverrides, AccountType, Task, ForecastDuration } from '../types';
-import { formatCurrency, getDateRange, calculateAccountTotals, convertToEur, calculateStatementPeriods, generateBalanceForecast, parseDateAsUTC, getCreditCardStatementDetails, generateSyntheticLoanPayments, generateSyntheticCreditCardPayments, getPreferredTimeZone, formatDateKey, generateSyntheticPropertyTransactions, toLocalISOString } from '../utils';
+import { calculateForecastHorizon, formatCurrency, getDateRange, calculateAccountTotals, convertToEur, calculateStatementPeriods, generateBalanceForecast, parseDateAsUTC, getCreditCardStatementDetails, generateSyntheticLoanPayments, generateSyntheticCreditCardPayments, getPreferredTimeZone, formatDateKey, generateSyntheticPropertyTransactions, toLocalISOString } from '../utils';
 import AddTransactionModal from '../components/AddTransactionModal';
 import { BTN_PRIMARY_STYLE, BTN_SECONDARY_STYLE, LIQUID_ACCOUNT_TYPES, ASSET_TYPES, DEBT_TYPES, ACCOUNT_TYPE_STYLES, INVESTMENT_SUB_TYPE_STYLES, FORECAST_DURATION_OPTIONS, QUICK_CREATE_BUDGET_OPTIONS, CHECKBOX_STYLE } from '../constants';
 import TransactionDetailModal from '../components/TransactionDetailModal';
@@ -814,144 +814,28 @@ const Dashboard: React.FC<DashboardProps> = ({ user, tasks, saveTask }) => {
   }, [configuredCreditCards, transactions]);
 
     const lowestBalanceForecasts = useMemo(() => {
-        const forecastEndDate = new Date();
-        forecastEndDate.setFullYear(forecastEndDate.getFullYear() + 1, forecastEndDate.getMonth() + 1, 0);
+        const projectionEndDate = new Date();
+        projectionEndDate.setMonth(projectionEndDate.getMonth() + 24);
 
-        const liquidSelectedAccounts = analyticsSelectedAccounts.filter(a => LIQUID_ACCOUNT_TYPES.includes(a.type));
-        
-        const syntheticLoanPayments = generateSyntheticLoanPayments(analyticsAccounts, analyticsTransactions, loanPaymentOverrides);
-        const syntheticCreditCardPayments = generateSyntheticCreditCardPayments(analyticsAccounts, analyticsTransactions);
-        const syntheticPropertyTransactions = generateSyntheticPropertyTransactions(analyticsAccounts);
+        const syntheticLoanPayments = generateSyntheticLoanPayments(accounts, transactions, loanPaymentOverrides);
+        const syntheticCreditCardPayments = generateSyntheticCreditCardPayments(accounts, transactions);
+        const syntheticPropertyTransactions = generateSyntheticPropertyTransactions(accounts);
         const allRecurringTransactions = [...recurringTransactions, ...syntheticLoanPayments, ...syntheticCreditCardPayments, ...syntheticPropertyTransactions];
 
         const activeGoals = financialGoals.filter(g => activeGoalIds.includes(g.id));
 
-        const forecastData = generateBalanceForecast(
-            liquidSelectedAccounts, 
-            allRecurringTransactions, 
-            activeGoals, 
-            billsAndPayments, 
-            forecastEndDate,
+        const { chartData } = generateBalanceForecast(
+            selectedAccounts,
+            allRecurringTransactions,
+            activeGoals,
+            billsAndPayments,
+            projectionEndDate,
             recurringTransactionOverrides
-        ).chartData;
+        );
 
-        const today = new Date();
-        today.setUTCHours(0, 0, 0, 0);
+        return calculateForecastHorizon(chartData);
 
-        const getInitialBalance = () => {
-            return liquidSelectedAccounts
-                .reduce((sum, acc) => sum + convertToEur(acc.balance, acc.currency), 0);
-        };
-
-        if (forecastData.length === 0) {
-            const initialBalance = getInitialBalance();
-            const todayStr = new Date().toISOString().split('T')[0];
-            const periods = ['This Month', 'Next 3 Months', 'Next 6 Months', 'Next Year'];
-            return periods.map(period => ({
-                period,
-                lowestBalance: initialBalance,
-                date: todayStr,
-            }));
-        }
-
-        const findNthLowestUniquePoint = (
-            data: { date: string; value: number }[],
-            n: number,
-            excludeValues: number[] = []
-        ): { value: number; date: string } | null => {
-            if (data.length === 0) return null;
-
-            const uniqueSortedValues = [...new Set(data.map(p => p.value))]
-                .filter(v => !excludeValues.includes(v))
-                .sort((a, b) => a - b);
-
-            const targetIndex = n - 1;
-
-            if (targetIndex >= uniqueSortedValues.length) {
-                const fallbackPoint = data.find(p => !excludeValues.includes(p.value)) 
-                                   || data.reduce((min, p) => (p.value < min.value ? p : min), data[0]);
-                return fallbackPoint;
-            }
-    
-            const nthLowestValue = uniqueSortedValues[targetIndex];
-            const point = data.find(p => p.value === nthLowestValue);
-            return point ? { value: point.value, date: point.date } : null;
-        };
-    
-        const periods = [
-            { 
-                label: 'This Month', 
-                startDate: new Date(Date.UTC(today.getUTCFullYear(), today.getUTCMonth(), 1)),
-                endDate: new Date(Date.UTC(today.getUTCFullYear(), today.getUTCMonth() + 1, 0))
-            },
-            { 
-                label: 'Next 3 Months', 
-                startDate: new Date(Date.UTC(today.getUTCFullYear(), today.getUTCMonth() + 1, 1)),
-                endDate: new Date(Date.UTC(today.getUTCFullYear(), today.getUTCMonth() + 3, 0))
-            },
-            { 
-                label: 'Next 6 Months', 
-                startDate: new Date(Date.UTC(today.getUTCFullYear(), today.getUTCMonth() + 3, 1)),
-                endDate: new Date(Date.UTC(today.getUTCFullYear(), today.getUTCMonth() + 6, 0))
-            },
-            { 
-                label: 'Next Year', 
-                startDate: new Date(Date.UTC(today.getUTCFullYear(), today.getUTCMonth() + 6, 1)),
-                endDate: new Date(Date.UTC(today.getUTCFullYear(), today.getUTCMonth() + 12, 0))
-            },
-        ];
-        
-        const results: { period: string; lowestBalance: number; date: string }[] = [];
-        const displayedValues: number[] = [];
-    
-        for (const period of periods) {
-            const dataForPeriod = forecastData.filter(d => {
-                const dDate = parseDateAsUTC(d.date);
-                return dDate >= period.startDate && dDate <= period.endDate;
-            });
-            
-            let displayedPoint: { value: number; date: string } | null = null;
-            let n = 1;
-    
-            while(true) {
-                const point = findNthLowestUniquePoint(dataForPeriod, n, displayedValues);
-                
-                if (!point) {
-                    const lastKnownBalancePoint = forecastData
-                        .filter(d => parseDateAsUTC(d.date) < period.startDate)
-                        .pop();
-                    
-                    const fallbackValue = lastKnownBalancePoint ? lastKnownBalancePoint.value : getInitialBalance();
-                    const fallbackDate = lastKnownBalancePoint ? lastKnownBalancePoint.date : new Date().toISOString().split('T')[0];
-
-                    displayedPoint = { value: fallbackValue, date: fallbackDate };
-                    break;
-                }
-
-                if (!displayedValues.includes(point.value)) {
-                    displayedPoint = point;
-                    break;
-                }
-                
-                n++;
-    
-                if (n > 20) {
-                     displayedPoint = point;
-                     break;
-                }
-            }
-            
-            results.push({
-                period: period.label,
-                lowestBalance: displayedPoint.value,
-                date: displayedPoint.date,
-            });
-            displayedValues.push(displayedPoint.value);
-        }
-        
-        return results;
-
-    }, [analyticsSelectedAccounts, recurringTransactions, financialGoals, billsAndPayments, analyticsAccounts, analyticsTransactions, recurringTransactionOverrides, loanPaymentOverrides, activeGoalIds]);
+    }, [accounts, activeGoalIds, billsAndPayments, financialGoals, loanPaymentOverrides, recurringTransactionOverrides, recurringTransactions, selectedAccounts, transactions]);
 
   const handleBudgetClick = useCallback(() => {
     alert("Navigate to budget page.");
