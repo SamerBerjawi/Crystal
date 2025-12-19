@@ -204,13 +204,13 @@ export const INVESTMENT_SUB_TYPE_STYLES: { [key in InvestmentSubType]: { icon: s
     'ETF': { icon: 'account_tree', color: 'text-teal-500' },
     'Crypto': { icon: 'currency_bitcoin', color: 'text-amber-500' },
     'Pension Fund': { icon: 'assured_workload', color: 'text-indigo-500' },
-    'Spare Change': { icon: 'monetization_on', color: 'text-lime-600' },
+    'Spare Change': { icon: 'savings', color: 'text-cyan-500' },
     'Other': { icon: 'category', color: 'text-slate-500' },
 };
 
 export const OTHER_ASSET_SUB_TYPE_STYLES: { [key in OtherAssetSubType]: { icon: string; color: string } } = {
     'Cash': { icon: 'payments', color: 'text-green-500' },
-    'Precious Metals': { icon: 'diamond', color: 'text-yellow-600' },
+    'Precious Metals': { icon: 'diamond', color: 'text-yellow-500' },
     'Collectibles': { icon: 'local_mall', color: 'text-purple-500' },
     'Art': { icon: 'palette', color: 'text-pink-500' },
     'Business Equity': { icon: 'store', color: 'text-blue-500' },

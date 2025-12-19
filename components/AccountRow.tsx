@@ -162,6 +162,9 @@ const AccountRow: React.FC<AccountRowProps> = ({ account, transactions, warrants
             detailsText = account.subType;
         }
     }
+    
+    // Analytics Status
+    const isIncludedInAnalytics = account.includeInAnalytics ?? true;
 
     return (
         <div 
@@ -179,7 +182,7 @@ const AccountRow: React.FC<AccountRowProps> = ({ account, transactions, warrants
                 rounded-2xl 
                 shadow-sm hover:shadow-lg hover:-translate-y-1
                 transition-all duration-300 ease-out
-                p-5 min-h-[160px] flex flex-col
+                p-6 min-h-[200px] flex flex-col
                 ${cursorClass} ${dragClasses} ${dragOverClasses}
                 ${account.status === 'closed' ? 'opacity-60 grayscale' : ''}
             `}
@@ -187,47 +190,55 @@ const AccountRow: React.FC<AccountRowProps> = ({ account, transactions, warrants
             <div className="relative z-10">
                 {/* Top Section: Icon, Name, Details */}
                 <div className="flex items-start justify-between">
-                    <div className="flex items-center gap-3 min-w-0">
+                    <div className="flex items-center gap-4 min-w-0">
                         <div className={`
-                            w-10 h-10 rounded-xl flex items-center justify-center flex-shrink-0
+                            w-12 h-12 rounded-xl flex items-center justify-center flex-shrink-0
                             ${styleConfig?.color ? styleConfig.color.replace('text-', 'bg-').replace('500', '100') + ' dark:' + styleConfig.color.replace('text-', 'bg-').replace('500', '900/20') : 'bg-gray-100 dark:bg-gray-800'}
                             ${typeColor}
                         `}>
-                            <span className="material-symbols-outlined text-[20px]">{account.icon || styleConfig?.icon || 'wallet'}</span>
+                            <span className="material-symbols-outlined text-2xl">{account.icon || styleConfig?.icon || 'wallet'}</span>
                         </div>
                         <div className="min-w-0">
-                            <div className="flex items-center gap-1 text-sm leading-tight">
-                                <h3 className="font-bold text-light-text dark:text-dark-text truncate">
+                            <div className="flex items-center gap-2 leading-tight">
+                                <h3 className="font-bold text-lg text-light-text dark:text-dark-text truncate">
                                     {account.name}
                                 </h3>
                                 {isLinkedToEnableBanking && (
                                   <span
-                                    className="material-symbols-outlined text-[14px] text-primary-500 shrink-0"
+                                    className="material-symbols-outlined text-2xl text-primary-500 shrink-0"
                                     title="Linked via Enable Banking"
                                     aria-label="Linked via Enable Banking"
                                   >
                                     link
                                   </span>
                                 )}
+                                {isIncludedInAnalytics && (
+                                    <span 
+                                        className="material-symbols-outlined text-base shrink-0 text-primary-300 dark:text-primary-700"
+                                        title="Included in Analytics"
+                                    >
+                                        insights
+                                    </span>
+                                )}
                             </div>
-                            <p className="text-xs text-light-text-secondary dark:text-dark-text-secondary truncate font-medium mt-0.5 tracking-wide">
+                            <p className="text-sm text-light-text-secondary dark:text-dark-text-secondary truncate font-medium mt-1 tracking-wide">
                                 {detailsText}
                                 {account.last4 && <span className="opacity-70 ml-1">•••• {account.last4}</span>}
                             </p>
                         </div>
                     </div>
                     {account.isPrimary && (
-                        <span className="material-symbols-outlined text-yellow-500 text-[16px]" title="Primary Account">star</span>
+                        <span className="material-symbols-outlined text-yellow-500 text-2xl" title="Primary Account">star</span>
                     )}
                 </div>
 
                 {/* Middle: Balance & Trend */}
-                <div className="mt-3 flex items-center gap-3">
-                    <p className={`text-2xl font-extrabold tracking-tight privacy-blur ${displayBalance < 0 ? 'text-light-text dark:text-dark-text' : 'text-light-text dark:text-dark-text'}`}>
+                <div className="mt-6 flex items-center gap-4">
+                    <p className={`text-2xl font-black tracking-tight privacy-blur ${displayBalance < 0 ? 'text-light-text dark:text-dark-text' : 'text-light-text dark:text-dark-text'}`}>
                         {formatCurrency(convertToEur(displayBalance, account.currency), 'EUR')}
                     </p>
                     {transactions.length > 0 && (
-                        <div className={`inline-flex items-center gap-0.5 px-1.5 py-0.5 rounded-md text-[10px] font-bold uppercase privacy-blur ${isPositiveTrend ? 'bg-green-100 dark:bg-green-900/30 text-green-700 dark:text-green-400' : 'bg-red-100 dark:bg-red-900/30 text-red-700 dark:text-red-400'}`}>
+                        <div className={`inline-flex items-center gap-0.5 px-2 py-0.5 rounded-md text-xs font-bold uppercase privacy-blur ${isPositiveTrend ? 'bg-green-100 dark:bg-green-900/30 text-green-700 dark:text-green-400' : 'bg-red-100 dark:bg-red-900/30 text-red-700 dark:text-red-400'}`}>
                             <span>{isPositiveTrend ? '+' : ''}{formatCurrency(trend, 'EUR', { showPlusSign: false })}</span>
                         </div>
                     )}
@@ -235,12 +246,12 @@ const AccountRow: React.FC<AccountRowProps> = ({ account, transactions, warrants
             </div>
 
             {/* Bottom: Sparkline (Absolute Positioned) */}
-            <div className="absolute bottom-4 left-0 right-0 h-12 w-full px-4 pointer-events-none">
+            <div className="absolute bottom-4 left-0 right-0 h-16 w-full px-4 pointer-events-none">
                 <div className="w-full h-full relative">
                      {/* Left Fade */}
-                     <div className="absolute left-0 top-0 bottom-0 w-4 bg-gradient-to-r from-light-card dark:from-dark-card to-transparent z-10"></div>
+                     <div className="absolute left-0 top-0 bottom-0 w-6 bg-gradient-to-r from-light-card dark:from-dark-card to-transparent z-10"></div>
                      {/* Right Fade */}
-                     <div className="absolute right-0 top-0 bottom-0 w-4 bg-gradient-to-l from-light-card dark:from-dark-card to-transparent z-10"></div>
+                     <div className="absolute right-0 top-0 bottom-0 w-6 bg-gradient-to-l from-light-card dark:from-dark-card to-transparent z-10"></div>
                      
                      <ResponsiveContainer width="100%" height="100%" minWidth={0} minHeight={0}>
                         <AreaChart data={sparklineData} className="privacy-blur">
@@ -264,21 +275,21 @@ const AccountRow: React.FC<AccountRowProps> = ({ account, transactions, warrants
             </div>
             
             {/* Actions (Visible on Hover) */}
-             <div className="absolute top-3 right-3 flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity duration-200 z-20">
+             <div className="absolute top-4 right-4 flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity duration-200 z-20">
                 <button 
                     onClick={handleAdjustBalanceClick} 
-                    className="p-1.5 rounded-full bg-white dark:bg-black/40 text-light-text-secondary dark:text-dark-text-secondary hover:text-primary-500 hover:bg-gray-100 dark:hover:bg-white/10 shadow-sm border border-black/5 dark:border-white/10 transition-colors"
+                    className="p-2 rounded-full bg-white dark:bg-black/40 text-light-text-secondary dark:text-dark-text-secondary hover:text-primary-500 hover:bg-gray-100 dark:hover:bg-white/10 shadow-sm border border-black/5 dark:border-white/10 transition-colors"
                     title="Adjust Balance"
                     disabled={isComputedAccount}
                 >
-                    <span className="material-symbols-outlined text-xs">tune</span>
+                    <span className="material-symbols-outlined text-lg">tune</span>
                 </button>
                 <button 
                      onClick={handleEditClick} 
-                     className="p-1.5 rounded-full bg-white dark:bg-black/40 text-light-text-secondary dark:text-dark-text-secondary hover:text-blue-500 hover:bg-gray-100 dark:hover:bg-white/10 shadow-sm border border-black/5 dark:border-white/10 transition-colors"
+                     className="p-2 rounded-full bg-white dark:bg-black/40 text-light-text-secondary dark:text-dark-text-secondary hover:text-blue-500 hover:bg-gray-100 dark:hover:bg-white/10 shadow-sm border border-black/5 dark:border-white/10 transition-colors"
                      title="Edit Account"
                 >
-                     <span className="material-symbols-outlined text-xs">edit</span>
+                     <span className="material-symbols-outlined text-lg">edit</span>
                 </button>
              </div>
         </div>

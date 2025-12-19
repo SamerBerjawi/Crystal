@@ -797,7 +797,7 @@ const AddAccountModal: React.FC<AddAccountModalProps> = ({ onClose, onAdd, accou
 
                       <div className="grid grid-cols-2 gap-4">
                          <div><label htmlFor="bedrooms" className={labelStyle}>Bedrooms</label><input id="bedrooms" type="number" value={bedrooms} onChange={e=>setBedrooms(e.target.value)} className={INPUT_BASE_STYLE} /></div>
-                         <div><label htmlFor="bathrooms" className={labelStyle}>Bathrooms</label><input id="bathrooms" type="number" value={bathrooms} onChange={e=>setBathrooms(e.target.value)} className={INPUT_BASE_STYLE} /></div>
+                         <div><label htmlFor="bathrooms" className={labelStyle}>Bathrooms</label><input id="bathrooms" type="number" value={bathrooms} onChange={e=>setBedrooms(e.target.value)} className={INPUT_BASE_STYLE} /></div>
                       </div>
 
                       <div className="grid grid-cols-2 gap-4">
@@ -943,39 +943,6 @@ const AddAccountModal: React.FC<AddAccountModalProps> = ({ onClose, onAdd, accou
                 </div>
             )}
             
-            {/* Credit Card Specific */}
-            {type === 'Credit Card' && (
-              <div className="bg-gray-50 dark:bg-white/5 rounded-xl p-5 border border-black/5 dark:border-white/5 animate-fade-in-up">
-                  <h4 className="text-sm font-bold text-light-text dark:text-dark-text mb-4 flex items-center gap-2">
-                        <span className="material-symbols-outlined text-primary-500">credit_card</span>
-                        Credit Configuration
-                    </h4>
-                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                      <div><label htmlFor="statement-start" className={labelStyle}>Statement Start Day</label><input id="statement-start" type="number" min="1" max="31" value={statementStartDate} onChange={(e) => setStatementStartDate(e.target.value)} className={INPUT_BASE_STYLE} placeholder="1-31" /></div>
-                       <div><label htmlFor="payment-date" className={labelStyle}>Payment Due Day</label><input id="payment-date" type="number" min="1" max="31" value={paymentDate} onChange={(e) => setPaymentDate(e.target.value)} className={INPUT_BASE_STYLE} placeholder="1-31" /></div>
-                  </div>
-                  <div className="mt-4">
-                      <label htmlFor="settlement-account" className={labelStyle}>Settlement Account</label>
-                      <div className={SELECT_WRAPPER_STYLE}>
-                           <select id="settlement-account" value={settlementAccountId} onChange={(e) => setSettlementAccountId(e.target.value)} className={INPUT_BASE_STYLE}>
-                              <option value="">Select an account</option>
-                              {ALL_ACCOUNT_TYPES.map(type => {
-                                  const group = groupedDebitAccounts[type];
-                                  if (!group || group.length === 0) return null;
-                                  return (
-                                    <optgroup key={type} label={type}>
-                                      {group.map(acc => <option key={acc.id} value={acc.id}>{acc.name}</option>)}
-                                    </optgroup>
-                                  );
-                              })}
-                          </select>
-                          <div className={SELECT_ARROW_STYLE}><span className="material-symbols-outlined">expand_more</span></div>
-                      </div>
-                  </div>
-                  <div className="mt-4"><label htmlFor="credit-limit" className={labelStyle}>Credit Limit</label><input id="credit-limit" type="number" step="0.01" value={creditLimit} onChange={(e) => setCreditLimit(e.target.value)} className={INPUT_BASE_STYLE} /></div>
-              </div>
-            )}
-            
             {/* Notes Section for all types that have it */}
             {(type === 'Other Assets' || type === 'Other Liabilities') && (
               <div className="bg-gray-50 dark:bg-white/5 rounded-xl p-5 border border-black/5 dark:border-white/5">
@@ -985,11 +952,14 @@ const AddAccountModal: React.FC<AddAccountModalProps> = ({ onClose, onAdd, accou
             )}
           </div>
 
-          <div className="p-4 bg-black/5 dark:bg-white/5 rounded-xl">
-            <div className="grid gap-4 md:grid-cols-2">
-              <div className="flex justify-between items-center cursor-pointer" onClick={() => setIsPrimary(!isPrimary)}>
-                  <div>
-                      <p className="font-bold text-sm text-light-text dark:text-dark-text">Primary Account</p>
+          <div className="p-4 bg-black/5 dark:bg-white/5 rounded-xl flex flex-col gap-4">
+              <button
+                type="button"
+                onClick={() => setIsPrimary(!isPrimary)}
+                className="flex justify-between items-center w-full group focus:outline-none p-2 rounded-lg hover:bg-black/5 dark:hover:bg-white/5 transition-colors"
+              >
+                  <div className="text-left">
+                      <p className="font-bold text-sm text-light-text dark:text-dark-text group-hover:text-primary-600 dark:group-hover:text-primary-400 transition-colors">Primary Account</p>
                       <p className="text-xs text-light-text-secondary dark:text-dark-text-secondary">Set as the default account for this type.</p>
                   </div>
                   <div
@@ -997,11 +967,15 @@ const AddAccountModal: React.FC<AddAccountModalProps> = ({ onClose, onAdd, accou
                   >
                     <span className={`inline-block h-4 w-4 transform rounded-full bg-white shadow-sm transition-transform ${isPrimary ? 'translate-x-6' : 'translate-x-1'}`} />
                   </div>
-              </div>
+              </button>
 
-              <div className="flex justify-between items-center cursor-pointer" onClick={() => setIncludeInAnalytics(!includeInAnalytics)}>
-                  <div>
-                      <p className="font-bold text-sm text-light-text dark:text-dark-text">Include in Analytics</p>
+              <button
+                type="button"
+                onClick={() => setIncludeInAnalytics(!includeInAnalytics)}
+                className="flex justify-between items-center w-full group focus:outline-none p-2 rounded-lg hover:bg-black/5 dark:hover:bg-white/5 transition-colors"
+              >
+                  <div className="text-left">
+                      <p className="font-bold text-sm text-light-text dark:text-dark-text group-hover:text-primary-600 dark:group-hover:text-primary-400 transition-colors">Include in Analytics</p>
                       <p className="text-xs text-light-text-secondary dark:text-dark-text-secondary">Exclude this account from assets, liabilities, and reports when off.</p>
                   </div>
                   <div
@@ -1009,8 +983,7 @@ const AddAccountModal: React.FC<AddAccountModalProps> = ({ onClose, onAdd, accou
                   >
                     <span className={`inline-block h-4 w-4 transform rounded-full bg-white shadow-sm transition-transform ${includeInAnalytics ? 'translate-x-6' : 'translate-x-1'}`} />
                   </div>
-              </div>
-            </div>
+              </button>
           </div>
 
           <div className="flex justify-end gap-4 pt-4 border-t border-black/10 dark:border-white/10">

@@ -849,7 +849,7 @@ const EditAccountModal: React.FC<EditAccountModalProps> = ({ onClose, onSave, on
 
                       <div className="grid grid-cols-2 gap-4">
                          <div><label htmlFor="bedrooms" className={labelStyle}>Bedrooms</label><input id="bedrooms" type="number" value={bedrooms} onChange={e=>setBedrooms(e.target.value)} className={INPUT_BASE_STYLE} /></div>
-                         <div><label htmlFor="bathrooms" className={labelStyle}>Bathrooms</label><input id="bathrooms" type="number" value={bathrooms} onChange={e=>setBathrooms(e.target.value)} className={INPUT_BASE_STYLE} /></div>
+                         <div><label htmlFor="bathrooms" className={labelStyle}>Bathrooms</label><input id="bathrooms" type="number" value={bathrooms} onChange={e=>setBedrooms(e.target.value)} className={INPUT_BASE_STYLE} /></div>
                       </div>
 
                       <div className="grid grid-cols-2 gap-4">
@@ -998,7 +998,7 @@ const EditAccountModal: React.FC<EditAccountModalProps> = ({ onClose, onSave, on
             {(type === 'Other Assets' || type === 'Other Liabilities') && (
               <div className="bg-gray-50 dark:bg-white/5 rounded-xl p-5 border border-black/5 dark:border-white/5">
                 <label htmlFor="notes" className={labelStyle}>Notes</label>
-                <textarea id="notes" value={notes} onChange={e=>setNotes(e.target.value)} className={INPUT_BASE_STYLE} rows={2}></textarea>
+                <textarea id="notes" value={notes} onChange={e=>setNotes(e.target.value)} className={INPUT_BASE_STYLE} rows={2} placeholder="Additional details..."></textarea>
               </div>
             )}
 
@@ -1035,34 +1035,38 @@ const EditAccountModal: React.FC<EditAccountModalProps> = ({ onClose, onSave, on
             )}
           </div>
 
-          <div className="p-4 bg-black/5 dark:bg-white/5 rounded-lg">
-            <div className="grid gap-4 md:grid-cols-2">
-              <div className="flex justify-between items-center">
-                  <div>
-                      <p className="font-medium text-light-text dark:text-dark-text">Primary Account</p>
+          <div className="p-4 bg-black/5 dark:bg-white/5 rounded-lg flex flex-col gap-4">
+              <button
+                type="button"
+                onClick={() => setIsPrimary(!isPrimary)}
+                className="flex justify-between items-center w-full group focus:outline-none p-2 rounded-lg hover:bg-black/5 dark:hover:bg-white/5 transition-colors"
+              >
+                  <div className="text-left">
+                      <p className="font-medium text-light-text dark:text-dark-text group-hover:text-primary-600 dark:group-hover:text-primary-400 transition-colors">Primary Account</p>
                       <p className="text-sm text-light-text-secondary dark:text-dark-text-secondary">Set as the default account for this account type (e.g., default {type}).</p>
                   </div>
                   <div
-                    onClick={() => setIsPrimary(!isPrimary)}
-                    className={`w-12 h-6 rounded-full p-1 flex items-center cursor-pointer transition-colors ${isPrimary ? 'bg-primary-500' : 'bg-gray-300 dark:bg-gray-700'}`}
+                    className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors ${isPrimary ? 'bg-primary-500' : 'bg-gray-300 dark:bg-gray-700'}`}
                   >
-                    <div className={`w-4 h-4 rounded-full bg-white shadow-md transform transition-transform ${isPrimary ? 'translate-x-6' : 'translate-x-0'}`}></div>
+                    <span className={`inline-block h-4 w-4 transform rounded-full bg-white shadow-sm transition-transform ${isPrimary ? 'translate-x-6' : 'translate-x-1'}`} />
                   </div>
-              </div>
+              </button>
 
-              <div className="flex justify-between items-center">
-                  <div>
-                      <p className="font-medium text-light-text dark:text-dark-text">Include in Analytics</p>
+              <button
+                type="button"
+                onClick={() => setIncludeInAnalytics(!includeInAnalytics)}
+                className="flex justify-between items-center w-full group focus:outline-none p-2 rounded-lg hover:bg-black/5 dark:hover:bg-white/5 transition-colors"
+              >
+                  <div className="text-left">
+                      <p className="font-medium text-light-text dark:text-dark-text group-hover:text-primary-600 dark:group-hover:text-primary-400 transition-colors">Include in Analytics</p>
                       <p className="text-sm text-light-text-secondary dark:text-dark-text-secondary">Exclude this account from net worth and reporting when off.</p>
                   </div>
                   <div
-                    onClick={() => setIncludeInAnalytics(!includeInAnalytics)}
-                    className={`w-12 h-6 rounded-full p-1 flex items-center cursor-pointer transition-colors ${includeInAnalytics ? 'bg-primary-500' : 'bg-gray-300 dark:bg-gray-700'}`}
+                    className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors ${includeInAnalytics ? 'bg-primary-500' : 'bg-gray-300 dark:bg-gray-700'}`}
                   >
-                    <div className={`w-4 h-4 rounded-full bg-white shadow-md transform transition-transform ${includeInAnalytics ? 'translate-x-6' : 'translate-x-0'}`}></div>
+                    <span className={`inline-block h-4 w-4 transform rounded-full bg-white shadow-sm transition-transform ${includeInAnalytics ? 'translate-x-6' : 'translate-x-0'}`} />
                   </div>
-              </div>
-            </div>
+              </button>
           </div>
 
 
