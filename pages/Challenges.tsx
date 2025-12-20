@@ -2,7 +2,7 @@
 import React, { useMemo, useState, useEffect } from 'react';
 import Card from '../components/Card';
 import { UserStats, Account, Transaction, FinancialGoal, Currency, Category, Prediction, PredictionType, InvestmentTransaction, Warrant } from '../types';
-import { calculateAccountTotals, convertToEur, parseDateAsUTC, formatCurrency, generateAmortizationSchedule, toLocalISOString } from '../utils';
+import { calculateAccountTotals, convertToEur, parseLocalDate, formatCurrency, generateAmortizationSchedule, toLocalISOString } from '../utils';
 import { LIQUID_ACCOUNT_TYPES, ASSET_TYPES, DEBT_TYPES, BTN_PRIMARY_STYLE, BTN_SECONDARY_STYLE } from '../constants';
 import { useBudgetsContext, useGoalsContext, useScheduleContext, useCategoryContext } from '../contexts/FinancialDataContext';
 import useLocalStorage from '../hooks/useLocalStorage';
@@ -507,9 +507,9 @@ const Challenges: React.FC<ChallengesProps> = ({ userStats, accounts, transactio
         const today = new Date();
 
         analyticsTransactions.forEach(tx => {
-            const date = parseDateAsUTC(tx.date);
+            const date = parseLocalDate(tx.date);
             if (date > today) return;
-            const monthKey = date.toISOString().slice(0, 7);
+            const monthKey = toLocalISOString(date).slice(0, 7);
             const val = convertToEur(tx.amount, tx.currency);
             monthlyChanges.set(monthKey, (monthlyChanges.get(monthKey) || 0) + val);
         });
@@ -521,7 +521,7 @@ const Challenges: React.FC<ChallengesProps> = ({ userStats, accounts, transactio
             const d = new Date(today.getFullYear(), today.getMonth() - i, 1);
             if (i > 0) {
                 const prevD = new Date(today.getFullYear(), today.getMonth() - (i - 1), 1);
-                const prevMonthKey = prevD.toISOString().slice(0, 7);
+                const prevMonthKey = toLocalISOString(prevD).slice(0, 7);
                 const changeInPrevMonth = monthlyChanges.get(prevMonthKey) || 0;
                 runningBalance -= changeInPrevMonth;
             }
@@ -535,23 +535,23 @@ const Challenges: React.FC<ChallengesProps> = ({ userStats, accounts, transactio
 
   // --- Prediction Resolver (Effect) ---
   useEffect(() => {
-    const todayDate = parseDateAsUTC(new Date().toISOString().split('T')[0]);
+    const todayDate = parseLocalDate(toLocalISOString(new Date()));
     
     predictions.forEach(prediction => {
         if (prediction.status === 'active') {
-            const endDate = parseDateAsUTC(prediction.endDate);
+            const endDate = parseLocalDate(prediction.endDate);
             if (endDate < todayDate) {
                 let actualAmount = 0;
                 let won = false;
 
                 if (prediction.type === 'spending_cap') {
-                    const start = parseDateAsUTC(prediction.startDate);
-                    const end = parseDateAsUTC(prediction.endDate);
+                    const start = parseLocalDate(prediction.startDate);
+                    const end = parseLocalDate(prediction.endDate);
                     end.setHours(23, 59, 59);
 
                     actualAmount = transactions
                         .filter(tx => {
-                            const d = parseDateAsUTC(tx.date);
+                            const d = parseLocalDate(tx.date);
                             return d >= start && d <= end && tx.type === 'expense' && !tx.transferId && tx.category === prediction.targetName;
                         })
                         .reduce((sum, tx) => sum + Math.abs(convertToEur(tx.amount, tx.currency)), 0);
@@ -600,12 +600,12 @@ const Challenges: React.FC<ChallengesProps> = ({ userStats, accounts, transactio
      const creditUtilization = totalLimit > 0 ? (creditCardDebt / totalLimit) * 100 : 0;
 
      const now = new Date();
-     const startOfMonth = new Date(Date.UTC(now.getFullYear(), now.getMonth(), 1));
+     const startOfMonth = new Date(now.getFullYear(), now.getMonth(), 1);
      let income = 0; let expense = 0;
      const spendingByCat: Record<string, number> = {};
 
     analyticsTransactions.forEach(tx => {
-        const d = parseDateAsUTC(tx.date);
+        const d = parseLocalDate(tx.date);
         if (d >= startOfMonth && !tx.transferId) {
             const val = convertToEur(tx.amount, tx.currency);
             if (tx.type === 'income') income += val;
@@ -638,7 +638,7 @@ const Challenges: React.FC<ChallengesProps> = ({ userStats, accounts, transactio
      const uniqueAccountTypes = new Set(analyticsAccounts.map(a => a.type)).size;
 
      const threeMonthsAgo = new Date(); threeMonthsAgo.setMonth(threeMonthsAgo.getMonth() - 3);
-     const totalSpend3m = analyticsTransactions.filter(t => parseDateAsUTC(t.date) >= threeMonthsAgo && t.type === 'expense' && !t.transferId).reduce((sum, t) => sum + Math.abs(convertToEur(t.amount, t.currency)), 0);
+     const totalSpend3m = analyticsTransactions.filter(t => parseLocalDate(t.date) >= threeMonthsAgo && t.type === 'expense' && !t.transferId).reduce((sum, t) => sum + Math.abs(convertToEur(t.amount, t.currency)), 0);
      const avgMonthlySpend = totalSpend3m / 3;
      const liquidAssets = analyticsAccounts.filter(a => LIQUID_ACCOUNT_TYPES.includes(a.type)).reduce((sum, a) => sum + convertToEur(a.balance, a.currency), 0);
      const liquidityRatio = avgMonthlySpend > 0 ? liquidAssets / avgMonthlySpend : 0;
@@ -663,7 +663,7 @@ const Challenges: React.FC<ChallengesProps> = ({ userStats, accounts, transactio
              maxHp = totalCost;
           } else if (outstanding < 1) return;
 
-          const recentPayments = analyticsTransactions.filter(t => t.accountId === acc.id && t.type === 'income').sort((a,b) => parseDateAsUTC(b.date).getTime() - parseDateAsUTC(a.date).getTime()).slice(0, 5).map(t => ({ date: t.date, amount: t.amount }));
+          const recentPayments = analyticsTransactions.filter(t => t.accountId === acc.id && t.type === 'income').sort((a,b) => parseLocalDate(b.date).getTime() - parseLocalDate(a.date).getTime()).slice(0, 5).map(t => ({ date: t.date, amount: t.amount }));
 
           activeBosses.push({ id: acc.id, name: acc.name, type: 'debt', maxHp: Math.max(maxHp, outstanding), currentHp: outstanding, level: Math.floor(maxHp / 1000) + 1, icon: acc.type === 'Loan' ? 'gavel' : 'sentiment_very_dissatisfied', hits: recentPayments, paidPrincipal, paidInterest });
       });
@@ -697,7 +697,7 @@ const Challenges: React.FC<ChallengesProps> = ({ userStats, accounts, transactio
   // --- Badges ---
   const badges = useMemo(() => {
       const today = new Date();
-      const hasOverdueBills = billsAndPayments.some(b => b.status === 'unpaid' && parseDateAsUTC(b.dueDate) < today);
+      const hasOverdueBills = billsAndPayments.some(b => b.status === 'unpaid' && parseLocalDate(b.dueDate) < today);
       const holdingsCount = new Set(investmentTransactions.map(t => t.symbol)).size;
       const cryptoHoldings = accounts.filter(a => (a.type === 'Investment' && a.subType === 'Crypto') || ((a.type as string) === 'Crypto')).reduce((sum, a) => sum + convertToEur(a.balance, a.currency), 0);
 
@@ -738,7 +738,7 @@ const Challenges: React.FC<ChallengesProps> = ({ userStats, accounts, transactio
   }, [accounts, budgets, netWorth, savingsRate, currentStreak, recurringTransactions, totalDebt, liquidityRatio, totalInvestments, uniqueAccountTypes, budgetAccuracy, creditUtilization, memberships, billsAndPayments, investmentTransactions, userStats]);
 
   // --- Sprints ---
-  const handleStartSprint = (sprintId: string) => { if (activeSprints.some(s => s.id === sprintId)) return; setActiveSprints([...activeSprints, { id: sprintId, startDate: new Date().toISOString().split('T')[0] }]); };
+  const handleStartSprint = (sprintId: string) => { if (activeSprints.some(s => s.id === sprintId)) return; setActiveSprints([...activeSprints, { id: sprintId, startDate: toLocalISOString(new Date()) }]); };
   const handleAbandonSprint = (sprintId: string) => setActiveSprints(activeSprints.filter(s => s.id !== sprintId));
   
   const processedSprints = useMemo(() => {
@@ -746,7 +746,7 @@ const Challenges: React.FC<ChallengesProps> = ({ userStats, accounts, transactio
       return activeSprints.map(active => {
           const def = SAVINGS_SPRINTS.find(s => s.id === active.id);
           if (!def) return null;
-          const start = parseDateAsUTC(active.startDate);
+          const start = parseLocalDate(active.startDate);
           const end = new Date(start); end.setDate(end.getDate() + def.durationDays);
           const elapsed = now.getTime() - start.getTime();
           const daysRemaining = Math.max(0, Math.ceil((end.getTime() - now.getTime()) / (1000 * 60 * 60 * 24)));
@@ -754,7 +754,7 @@ const Challenges: React.FC<ChallengesProps> = ({ userStats, accounts, transactio
           
           let currentSpend = 0;
           transactions.forEach(tx => {
-              const d = parseDateAsUTC(tx.date);
+              const d = parseLocalDate(tx.date);
               if (d >= start && d <= now && tx.type === 'expense' && !tx.transferId) {
                   let include = def.targetType === 'global';
                   if (def.targetType === 'transaction_limit' && Math.abs(convertToEur(tx.amount, tx.currency)) > def.limitAmount) currentSpend++;

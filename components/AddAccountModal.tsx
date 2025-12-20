@@ -5,6 +5,7 @@ import { Account, AccountType, Currency, InvestmentSubType, PropertyType, FuelTy
 import { ALL_ACCOUNT_TYPES, CURRENCIES, ACCOUNT_TYPE_STYLES, INPUT_BASE_STYLE, BTN_PRIMARY_STYLE, BTN_SECONDARY_STYLE, SELECT_ARROW_STYLE, SELECT_WRAPPER_STYLE, ACCOUNT_ICON_LIST, INVESTMENT_SUB_TYPES, PROPERTY_TYPES, INVESTMENT_SUB_TYPE_STYLES, FUEL_TYPES, VEHICLE_OWNERSHIP_TYPES, CHECKBOX_STYLE, FREQUENCIES, CARD_NETWORKS, OTHER_ASSET_SUB_TYPES, OTHER_LIABILITY_SUB_TYPES, OTHER_ASSET_SUB_TYPE_STYLES, OTHER_LIABILITY_SUB_TYPE_STYLES } from '../constants';
 import IconPicker from './IconPicker';
 import { v4 as uuidv4 } from 'uuid';
+import { toLocalISOString } from '../utils';
 
 interface AddAccountModalProps {
   onClose: () => void;
@@ -50,7 +51,7 @@ const AddAccountModal: React.FC<AddAccountModalProps> = ({ onClose, onAdd, accou
 
   const [duration, setDuration] = useState('');
   const [interestRate, setInterestRate] = useState('');
-  const [loanStartDate, setLoanStartDate] = useState(new Date().toISOString().split('T')[0]);
+  const [loanStartDate, setLoanStartDate] = useState(toLocalISOString(new Date()));
   const [monthlyPayment, setMonthlyPayment] = useState('');
   const [paymentDayOfMonth, setPaymentDayOfMonth] = useState('');
   const [make, setMake] = useState('');
@@ -291,7 +292,7 @@ const AddAccountModal: React.FC<AddAccountModalProps> = ({ onClose, onAdd, accou
         leasePaymentDay: vehicleOwnership === 'Leased' && leasePaymentDay !== '' ? parseInt(leasePaymentDay, 10) : undefined,
         leasePaymentAccountId: vehicleOwnership === 'Leased' && leasePaymentAccountId ? leasePaymentAccountId : undefined,
         imageUrl: vehicleImage || undefined,
-        mileageLogs: currentMileage ? [{ id: `log-${uuidv4()}`, date: new Date().toISOString().split('T')[0], reading: parseInt(currentMileage, 10) }] : []
+        mileageLogs: currentMileage ? [{ id: `log-${uuidv4()}`, date: toLocalISOString(new Date()), reading: parseInt(currentMileage, 10) }] : []
       }),
       ...(type === 'Property' && {
         address: address || undefined,

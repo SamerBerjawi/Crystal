@@ -1,7 +1,7 @@
 
 import React, { useMemo } from 'react';
 import { Account, Transaction, ScheduledPayment } from '../types';
-import { formatCurrency, generateAmortizationSchedule, parseDateAsUTC } from '../utils';
+import { formatCurrency, generateAmortizationSchedule, parseLocalDate } from '../utils';
 import Card from './Card';
 import MortgageAmortizationChart from './MortgageAmortizationChart';
 import PaymentPlanTable from './PaymentPlanTable';
@@ -66,7 +66,7 @@ const LoanAccountView: React.FC<LoanAccountViewProps> = ({
     const equity = totalPaidPrincipal + (account.downPayment || 0);
     
     const lastPayment = schedule[schedule.length - 1];
-    const payoffDate = lastPayment ? parseDateAsUTC(lastPayment.date) : null;
+    const payoffDate = lastPayment ? parseLocalDate(lastPayment.date) : null;
     
     return { 
         schedule, 
@@ -166,7 +166,7 @@ const LoanAccountView: React.FC<LoanAccountViewProps> = ({
             <h3 className="text-base font-semibold text-light-text dark:text-dark-text mb-4">Loan Details</h3>
             <div className="space-y-3 text-sm">
               <div className="flex justify-between"><span className="text-light-text-secondary dark:text-dark-text-secondary">Original Amount</span><span className="font-medium">{formatCurrency(account.totalAmount || 0, account.currency)}</span></div>
-              <div className="flex justify-between"><span className="text-light-text-secondary dark:text-dark-text-secondary">Start Date</span><span className="font-medium">{account.loanStartDate ? parseDateAsUTC(account.loanStartDate).toLocaleDateString() : 'N/A'}</span></div>
+              <div className="flex justify-between"><span className="text-light-text-secondary dark:text-dark-text-secondary">Start Date</span><span className="font-medium">{account.loanStartDate ? parseLocalDate(account.loanStartDate).toLocaleDateString() : 'N/A'}</span></div>
               <div className="flex justify-between"><span className="text-light-text-secondary dark:text-dark-text-secondary">Term</span><span className="font-medium">{account.duration} months</span></div>
               <div className="flex justify-between"><span className="text-light-text-secondary dark:text-dark-text-secondary">Projected Payoff</span><span className="font-medium">{loanDetails.payoffDate ? loanDetails.payoffDate.toLocaleDateString() : 'N/A'}</span></div>
               {account.linkedAccountId && <div className="flex justify-between"><span className="text-light-text-secondary dark:text-dark-text-secondary">Linked Account</span><span className="font-medium text-right truncate max-w-[150px]">{accounts.find(a=>a.id===account.linkedAccountId)?.name}</span></div>}

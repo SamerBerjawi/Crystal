@@ -1,7 +1,7 @@
 
 import React, { useMemo, useState, useCallback, useEffect, useRef, Suspense, lazy } from 'react';
 import { User, Transaction, Account, Category, Duration, CategorySpending, Widget, WidgetConfig, DisplayTransaction, FinancialGoal, RecurringTransaction, BillPayment, Tag, Budget, RecurringTransactionOverride, LoanPaymentOverrides, AccountType, Task, ForecastDuration } from '../types';
-import { calculateForecastHorizon, formatCurrency, getDateRange, calculateAccountTotals, convertToEur, calculateStatementPeriods, generateBalanceForecast, parseDateAsUTC, getCreditCardStatementDetails, generateSyntheticLoanPayments, generateSyntheticCreditCardPayments, getPreferredTimeZone, formatDateKey, generateSyntheticPropertyTransactions, toLocalISOString } from '../utils';
+import { calculateForecastHorizon, formatCurrency, getDateRange, calculateAccountTotals, convertToEur, calculateStatementPeriods, generateBalanceForecast, parseLocalDate, getCreditCardStatementDetails, generateSyntheticLoanPayments, generateSyntheticCreditCardPayments, getPreferredTimeZone, formatDateKey, generateSyntheticPropertyTransactions, toLocalISOString } from '../utils';
 import AddTransactionModal from '../components/AddTransactionModal';
 import { BTN_PRIMARY_STYLE, BTN_SECONDARY_STYLE, LIQUID_ACCOUNT_TYPES, ASSET_TYPES, DEBT_TYPES, ACCOUNT_TYPE_STYLES, INVESTMENT_SUB_TYPE_STYLES, FORECAST_DURATION_OPTIONS, QUICK_CREATE_BUDGET_OPTIONS, CHECKBOX_STYLE } from '../constants';
 import TransactionDetailModal from '../components/TransactionDetailModal';
@@ -193,17 +193,17 @@ const Dashboard: React.FC<DashboardProps> = ({ user, tasks, saveTask }) => {
              // Synthetic transactions (like loan payments) are auto-generated based on the schedule.
              // Once a real payment is made, the schedule logic will see it and stop generating that specific instance.
              if (!rt.isSynthetic) {
-                 const postedDate = parseDateAsUTC(transactionsToSave[0].date);
+                 const postedDate = parseLocalDate(transactionsToSave[0].date);
                  let nextDueDate = new Date(postedDate);
                  const interval = rt.frequencyInterval || 1;
-                 const startDateUTC = parseDateAsUTC(rt.startDate);
+                const startDateLocal = parseLocalDate(rt.startDate);
      
                  // Simple advance logic
                  switch (rt.frequency) {
                      case 'daily': nextDueDate.setDate(nextDueDate.getDate() + interval); break;
                      case 'weekly': nextDueDate.setDate(nextDueDate.getDate() + 7 * interval); break;
                      case 'monthly': {
-                         const d = rt.dueDateOfMonth || startDateUTC.getDate();
+                        const d = rt.dueDateOfMonth || startDateLocal.getDate();
                          nextDueDate.setMonth(nextDueDate.getMonth() + interval, 1);
                          const lastDayOfNextMonth = new Date(nextDueDate.getFullYear(), nextDueDate.getMonth() + 1, 0).getDate();
                          nextDueDate.setDate(Math.min(d, lastDayOfNextMonth));
@@ -306,7 +306,7 @@ const Dashboard: React.FC<DashboardProps> = ({ user, tasks, saveTask }) => {
 
     const { start, end } = getDateRange(duration, analyticsTransactions);
     const txsInPeriod = analyticsTransactions.filter(tx => {
-        const txDate = parseDateAsUTC(tx.date);
+        const txDate = parseLocalDate(tx.date);
         return txDate >= start && txDate <= end;
     });
 
@@ -362,7 +362,7 @@ const Dashboard: React.FC<DashboardProps> = ({ user, tasks, saveTask }) => {
       filteredTransactions.map(tx => ({
         ...tx,
         convertedAmount: convertToEur(tx.amount, tx.currency),
-        parsedDate: parseDateAsUTC(tx.date),
+        parsedDate: parseLocalDate(tx.date),
       })),
     [filteredTransactions]
   );
@@ -379,7 +379,7 @@ const Dashboard: React.FC<DashboardProps> = ({ user, tasks, saveTask }) => {
     const prevEnd = new Date(start.getTime() - 1);
 
     const txsInPrevPeriod = transactions.filter(tx => {
-      const txDate = parseDateAsUTC(tx.date);
+      const txDate = parseLocalDate(tx.date);
       return txDate >= prevStart && txDate <= prevEnd;
     });
 
@@ -692,19 +692,19 @@ const Dashboard: React.FC<DashboardProps> = ({ user, tasks, saveTask }) => {
     
     if (duration === 'ALL') {
         const fiveYearsAgo = new Date(end);
-        fiveYearsAgo.setUTCFullYear(end.getUTCFullYear() - 5);
+        fiveYearsAgo.setFullYear(end.getFullYear() - 5);
         if (start < fiveYearsAgo) {
             start.setTime(fiveYearsAgo.getTime());
         }
     }
     
     const currentNetWorth = netWorth;
-    const today = parseDateAsUTC(new Date().toISOString().split('T')[0]);
+    const today = parseLocalDate(toLocalISOString(new Date()));
 
     const transactionsToReverse = transactions.filter(tx => {
         if (!selectedAccountIds.includes(tx.accountId)) return false;
         if (tx.transferId && internalTransferIds.has(tx.transferId)) return false;
-        const txDate = parseDateAsUTC(tx.date);
+        const txDate = parseLocalDate(tx.date);
         return txDate >= start && txDate <= today;
     });
 
@@ -721,7 +721,7 @@ const Dashboard: React.FC<DashboardProps> = ({ user, tasks, saveTask }) => {
     const transactionsInPeriod = transactions.filter(tx => {
         if (!selectedAccountIds.includes(tx.accountId)) return false;
         if (tx.transferId && internalTransferIds.has(tx.transferId)) return false;
-        const txDate = parseDateAsUTC(tx.date);
+        const txDate = parseLocalDate(tx.date);
         return txDate >= start && txDate <= end;
     });
 
@@ -744,7 +744,7 @@ const Dashboard: React.FC<DashboardProps> = ({ user, tasks, saveTask }) => {
         const dateStr = formatDateKey(currentDate);
         runningBalance += dailyChanges.get(dateStr) || 0;
         data.push({ name: dateStr, value: parseFloat(runningBalance.toFixed(2)) });
-        currentDate.setUTCDate(currentDate.getUTCDate() + 1);
+        currentDate.setDate(currentDate.getDate() + 1);
     }
     
     const todayStr = formatDateKey(today);
@@ -953,7 +953,7 @@ const Dashboard: React.FC<DashboardProps> = ({ user, tasks, saveTask }) => {
 
       const threeMonthsAgo = new Date(); threeMonthsAgo.setMonth(threeMonthsAgo.getMonth() - 3);
       const expenseTxs = analyticsTransactions.filter(t => {
-          const d = parseDateAsUTC(t.date);
+          const d = parseLocalDate(t.date);
           return d >= threeMonthsAgo && t.type === 'expense' && !t.transferId;
       });
       const totalSpend = expenseTxs.reduce((sum, tx) => sum + Math.abs(convertToEur(tx.amount, tx.currency)), 0);
@@ -965,7 +965,7 @@ const Dashboard: React.FC<DashboardProps> = ({ user, tasks, saveTask }) => {
       let totalExpensePeriod = 0;
       const { start, end } = getDateRange(duration, analyticsTransactions);
       const periodTxs = analyticsTransactions.filter(t => {
-          const d = parseDateAsUTC(t.date);
+          const d = parseLocalDate(t.date);
           return d >= start && d <= end && !t.transferId;
       });
       periodTxs.forEach(tx => {

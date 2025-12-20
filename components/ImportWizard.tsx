@@ -4,7 +4,7 @@ import React, { useState, useMemo, useCallback, useRef, useEffect } from 'react'
 import { v4 as uuidv4 } from 'uuid';
 import { Account, Category, Transaction, Currency, AccountType } from '../types';
 import { BTN_PRIMARY_STYLE, BTN_SECONDARY_STYLE, INPUT_BASE_STYLE, SELECT_WRAPPER_STYLE, SELECT_ARROW_STYLE, CURRENCIES, ALL_ACCOUNT_TYPES } from '../constants';
-import { flattenCategories } from '../utils';
+import { flattenCategories, toLocalISOString } from '../utils';
 
 
 // --- Helper Functions ---
@@ -119,8 +119,8 @@ const parseDate = (dateStr: string, format: string): Date | null => {
             year += 2000;
         }
 
-        const date = new Date(Date.UTC(year, month - 1, day));
-        if (date.getUTCFullYear() === year && date.getUTCMonth() === month - 1 && date.getUTCDate() === day) {
+        const date = new Date(year, month - 1, day);
+        if (date.getFullYear() === year && date.getMonth() === month - 1 && date.getDate() === day) {
             return date;
         }
         return null;
@@ -309,7 +309,7 @@ const ImportWizard: React.FC<ImportWizardProps> = ({ importType, onClose, onPubl
                 if (columnMap.date && dateVal) {
                     const parsed = parseDate(dateVal, dateFormat);
                     if (parsed) {
-                        newRow.date = parsed.toISOString().split('T')[0];
+                        newRow.date = toLocalISOString(parsed);
                     } else {
                         errorDetails.date = `Invalid date: ${dateVal}`;
                         rowHasErrors = true;
@@ -852,7 +852,7 @@ const Step4Clean: React.FC<{ data: any[], setData: any, errors: any, excludedRow
                     if (isNaN(rowDate.getTime())) return false;
                     const filterDate = new Date(filter.value);
                     switch (filter.type) {
-                        case 'exact': return rowDate.toISOString().split('T')[0] === filter.value;
+                        case 'exact': return toLocalISOString(rowDate) === filter.value;
                         case 'before': return rowDate < filterDate;
                         case 'after': return rowDate > filterDate;
                         case 'year': return rowDate.getFullYear() === parseInt(filter.value);

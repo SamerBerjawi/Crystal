@@ -1,7 +1,7 @@
 
 import React, { useMemo } from 'react';
 import { Account, DisplayTransaction, Category, Transaction, RecurringTransaction } from '../types';
-import { formatCurrency, parseDateAsUTC, generateSyntheticLoanPayments, generateSyntheticCreditCardPayments, generateBalanceForecast, convertToEur, generateSyntheticPropertyTransactions, calculateStatementPeriods, getCreditCardStatementDetails, getPreferredTimeZone, formatDateKey, toLocalISOString } from '../utils';
+import { formatCurrency, parseLocalDate, generateSyntheticLoanPayments, generateSyntheticCreditCardPayments, generateBalanceForecast, convertToEur, generateSyntheticPropertyTransactions, calculateStatementPeriods, getCreditCardStatementDetails, getPreferredTimeZone, formatDateKey, toLocalISOString } from '../utils';
 import Card from './Card';
 import TransactionList from './TransactionList';
 import { BTN_PRIMARY_STYLE, ACCOUNT_TYPE_STYLES, BTN_SECONDARY_STYLE } from '../constants';
@@ -72,7 +72,7 @@ const GeneralAccountView: React.FC<GeneralAccountViewProps> = ({
   const metrics = useMemo(() => {
     const now = new Date();
     // Normalize "Today" to end of day for inclusion, but keep 'now' for future checks
-    const todayStart = new Date(Date.UTC(now.getFullYear(), now.getMonth(), now.getDate()));
+    const todayStart = new Date(now.getFullYear(), now.getMonth(), now.getDate());
 
     // 1. Sort transactions descending (Newest -> Oldest)
     const sortedTxsDesc = [...transactions].sort((a, b) => b.parsedDate.getTime() - a.parsedDate.getTime());
@@ -130,7 +130,7 @@ const GeneralAccountView: React.FC<GeneralAccountViewProps> = ({
     );
     
     relevantRecurringForSafeSpend.forEach(rt => {
-        let nextDue = parseDateAsUTC(rt.nextDueDate);
+        let nextDue = parseLocalDate(rt.nextDueDate);
         const interval = rt.frequencyInterval || 1;
         
         // Check occurrences within next 7 days
@@ -153,7 +153,7 @@ const GeneralAccountView: React.FC<GeneralAccountViewProps> = ({
     // 2. Bills
     billsAndPayments.forEach(bill => {
         if (bill.accountId === account.id && bill.status === 'unpaid' && bill.type === 'payment') {
-            const due = parseDateAsUTC(bill.dueDate);
+            const due = parseLocalDate(bill.dueDate);
             if (due >= todayStart && due <= next7Days) {
                 upcomingOutflows += Math.abs(bill.amount);
             }
@@ -199,8 +199,8 @@ const GeneralAccountView: React.FC<GeneralAccountViewProps> = ({
           const d = new Date(today.getFullYear(), today.getMonth() - i, 1);
           const monthKey = d.toLocaleString('default', { month: 'short' });
           
-          const startOfMonth = new Date(Date.UTC(d.getFullYear(), d.getMonth(), 1));
-          const endOfMonth = new Date(Date.UTC(d.getFullYear(), d.getMonth() + 1, 0));
+          const startOfMonth = new Date(d.getFullYear(), d.getMonth(), 1);
+          const endOfMonth = new Date(d.getFullYear(), d.getMonth() + 1, 0);
           
           const txs = transactions.filter(t => t.parsedDate >= startOfMonth && t.parsedDate <= endOfMonth);
           
@@ -256,8 +256,8 @@ const GeneralAccountView: React.FC<GeneralAccountViewProps> = ({
   const upcomingPayments = useMemo(() => {
       const list: { date: string; description: string; amount: number; isRecurring: boolean }[] = [];
       const now = new Date();
-      const todayUTC = new Date(Date.UTC(now.getFullYear(), now.getMonth(), now.getDate()));
-      const horizon = new Date(todayUTC);
+      const todayLocal = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+      const horizon = new Date(todayLocal);
       horizon.setDate(horizon.getDate() + 14);
 
       // Recurring
@@ -269,16 +269,16 @@ const GeneralAccountView: React.FC<GeneralAccountViewProps> = ({
       const syntheticCC = generateSyntheticCreditCardPayments(accounts, allTransactions).filter(rt => rt.accountId === account.id);
       
       [...relevantRecurring, ...syntheticLoans, ...syntheticCC].forEach(rt => {
-          let nextDue = parseDateAsUTC(rt.nextDueDate);
+          let nextDue = parseLocalDate(rt.nextDueDate);
           const interval = rt.frequencyInterval || 1;
           
           // Find occurrences in window
           let safety = 0;
           while (nextDue <= horizon && safety < 100) {
              safety++;
-             if (nextDue >= todayUTC) {
+             if (nextDue >= todayLocal) {
                  list.push({
-                     date: nextDue.toISOString().split('T')[0],
+                     date: toLocalISOString(nextDue),
                      description: rt.description,
                      amount: Math.abs(rt.amount),
                      isRecurring: true
@@ -297,8 +297,8 @@ const GeneralAccountView: React.FC<GeneralAccountViewProps> = ({
       // Bills
       billsAndPayments.forEach(bill => {
         if (bill.accountId === account.id && bill.status === 'unpaid' && bill.type === 'payment') {
-             const due = parseDateAsUTC(bill.dueDate);
-             if (due >= todayUTC && due <= horizon) {
+             const due = parseLocalDate(bill.dueDate);
+             if (due >= todayLocal && due <= horizon) {
                  list.push({
                      date: bill.dueDate,
                      description: bill.description,
@@ -319,19 +319,19 @@ const GeneralAccountView: React.FC<GeneralAccountViewProps> = ({
     let currentBalance = metrics.realTodayBalance;
     
     const today = new Date();
-    const endDate = new Date(Date.UTC(today.getFullYear(), today.getMonth(), today.getDate()));
+    const endDate = new Date(today.getFullYear(), today.getMonth(), today.getDate());
     const sortedTxs = [...transactions].sort((a, b) => b.parsedDate.getTime() - a.parsedDate.getTime());
     const dailyChanges: Record<string, number> = {};
     
     sortedTxs.forEach(({ tx, parsedDate }) => {
          if (parsedDate > today) return; // Ignore future
-         const dateStr = parsedDate.toISOString().split('T')[0];
+        const dateStr = toLocalISOString(parsedDate);
          dailyChanges[dateStr] = (dailyChanges[dateStr] || 0) + tx.amount;
     });
 
     let iterDate = new Date(endDate);
     for (let i = 0; i <= 30; i++) {
-        const dateStr = iterDate.toISOString().split('T')[0];
+        const dateStr = toLocalISOString(iterDate);
         data.push({ date: dateStr, value: currentBalance });
         const change = dailyChanges[dateStr] || 0;
         currentBalance -= change;
@@ -569,7 +569,7 @@ const GeneralAccountView: React.FC<GeneralAccountViewProps> = ({
                  {account.openingDate && (
                     <div>
                          <p className="text-xs text-light-text-secondary dark:text-dark-text-secondary mb-1">Opened On</p>
-                         <p className="font-medium text-light-text dark:text-dark-text">{parseDateAsUTC(account.openingDate).toLocaleDateString()}</p>
+                         <p className="font-medium text-light-text dark:text-dark-text">{parseLocalDate(account.openingDate).toLocaleDateString()}</p>
                     </div>
                 )}
                 
@@ -728,8 +728,8 @@ const GeneralAccountView: React.FC<GeneralAccountViewProps> = ({
                           <div key={idx} className="flex items-center justify-between p-2 rounded-lg hover:bg-black/5 dark:hover:bg-white/5 transition-colors">
                               <div className="flex items-center gap-3 min-w-0">
                                   <div className="bg-light-fill dark:bg-dark-fill w-10 h-10 rounded-lg flex flex-col items-center justify-center text-xs flex-shrink-0">
-                                      <span className="font-bold text-light-text dark:text-dark-text">{parseDateAsUTC(item.date).getDate()}</span>
-                                      <span className="text-[10px] uppercase text-light-text-secondary dark:text-dark-text-secondary">{parseDateAsUTC(item.date).toLocaleString('default', { month: 'short' })}</span>
+                                      <span className="font-bold text-light-text dark:text-dark-text">{parseLocalDate(item.date).getDate()}</span>
+                                      <span className="text-[10px] uppercase text-light-text-secondary dark:text-dark-text-secondary">{parseLocalDate(item.date).toLocaleString('default', { month: 'short' })}</span>
                                   </div>
                                   <div className="min-w-0">
                                       <p className="text-sm font-medium text-light-text dark:text-dark-text truncate">{item.description}</p>

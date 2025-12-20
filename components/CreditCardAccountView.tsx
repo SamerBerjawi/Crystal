@@ -112,8 +112,8 @@ const CreditCardAccountView: React.FC<CreditCardAccountViewProps> = ({
         const d = new Date(today.getFullYear(), today.getMonth() - i, 1);
         const monthKey = d.toLocaleString('default', { month: 'short' });
         
-        const startOfMonth = new Date(Date.UTC(d.getFullYear(), d.getMonth(), 1));
-        const endOfMonth = new Date(Date.UTC(d.getFullYear(), d.getMonth() + 1, 0));
+        const startOfMonth = new Date(d.getFullYear(), d.getMonth(), 1);
+        const endOfMonth = new Date(d.getFullYear(), d.getMonth() + 1, 0);
         
         const totalSpent = transactions
             .filter(t => t.parsedDate >= startOfMonth && t.parsedDate <= endOfMonth && t.tx.amount < 0 && !t.tx.transferId)

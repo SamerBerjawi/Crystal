@@ -1,7 +1,7 @@
 
 import React, { useMemo } from 'react';
 import { Account, Transaction, DisplayTransaction, Category } from '../types';
-import { formatCurrency, parseDateAsUTC, convertToEur, getPreferredTimeZone } from '../utils';
+import { formatCurrency, parseLocalDate, convertToEur, getPreferredTimeZone } from '../utils';
 import Card from './Card';
 import TransactionList from './TransactionList';
 import { BTN_PRIMARY_STYLE, BTN_SECONDARY_STYLE } from '../constants';
@@ -37,7 +37,7 @@ const CashAccountView: React.FC<CashAccountViewProps> = ({
   // --- Metrics ---
   const { totalInflow, totalOutflow, netChange, lastReplenishment } = useMemo(() => {
       const today = new Date();
-      const startOfMonth = new Date(Date.UTC(today.getFullYear(), today.getMonth(), 1));
+      const startOfMonth = new Date(today.getFullYear(), today.getMonth(), 1);
       
       let inflow = 0;
       let outflow = 0;
@@ -72,8 +72,8 @@ const CashAccountView: React.FC<CashAccountViewProps> = ({
         const d = new Date(today.getFullYear(), today.getMonth() - i, 1);
         const monthKey = d.toLocaleString('default', { month: 'short' });
         
-        const startOfMonth = new Date(Date.UTC(d.getFullYear(), d.getMonth(), 1));
-        const endOfMonth = new Date(Date.UTC(d.getFullYear(), d.getMonth() + 1, 0));
+        const startOfMonth = new Date(d.getFullYear(), d.getMonth(), 1);
+        const endOfMonth = new Date(d.getFullYear(), d.getMonth() + 1, 0);
         
         let inc = 0;
         let exp = 0;

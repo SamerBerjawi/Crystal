@@ -58,7 +58,7 @@ const GoalContributionPlan: React.FC<GoalContributionPlanProps> = ({ plan, isLoa
                             {step.date.startsWith('Upfront') ? 'star' : 'calendar_month'}
                         </span>
                         {/* FIX: Ensure that only valid date strings are passed to the Date constructor. */}
-                        <span>{step.date.includes('-') ? new Date(step.date).toLocaleDateString('en-US', { year: 'numeric', month: 'long', timeZone: 'UTC' }) : step.date}</span>
+                        <span>{step.date.includes('-') ? new Date(step.date).toLocaleDateString('en-US', { year: 'numeric', month: 'long' }) : step.date}</span>
                     </div>
                     <div className="text-light-text-secondary dark:text-dark-text-secondary">
                         From <span className="font-semibold text-light-text dark:text-dark-text">{step.accountName}</span>

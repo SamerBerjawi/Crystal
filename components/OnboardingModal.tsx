@@ -4,6 +4,7 @@ import React, { useState, useEffect } from 'react';
 import { Account, Category, AccountType, Currency, User, AppPreferences, FinancialGoal, RecurringTransaction } from '../types';
 import { CrystalLogo, BTN_PRIMARY_STYLE, BTN_SECONDARY_STYLE, INPUT_BASE_STYLE, SELECT_WRAPPER_STYLE, SELECT_ARROW_STYLE, CURRENCIES, ACCOUNT_TYPE_STYLES, ALL_ACCOUNT_TYPES, CURRENCY_OPTIONS } from '../constants';
 import Card from './Card';
+import { toLocalISOString } from '../utils';
 
 interface OnboardingModalProps {
   isOpen: boolean;
@@ -50,7 +51,7 @@ const OnboardingModal: React.FC<OnboardingModalProps> = ({
   const [goalDate, setGoalDate] = useState(() => {
     const d = new Date();
     d.setFullYear(d.getFullYear() + 1);
-    return d.toISOString().split('T')[0];
+    return toLocalISOString(d);
   });
   const [paymentAccountId, setPaymentAccountId] = useState<string>('');
   
@@ -118,8 +119,8 @@ const OnboardingModal: React.FC<OnboardingModalProps> = ({
           category: rtCategory,
           currency: selectedAccount?.currency || 'EUR',
           frequency: 'monthly',
-          startDate: new Date().toISOString().split('T')[0],
-          nextDueDate: new Date().toISOString().split('T')[0], // For simplicity
+          startDate: toLocalISOString(new Date()),
+          nextDueDate: toLocalISOString(new Date()), // For simplicity
           weekendAdjustment: 'on',
         };
         saveRecurringTransaction(newRt);

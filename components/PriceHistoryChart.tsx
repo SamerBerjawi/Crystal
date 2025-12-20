@@ -2,7 +2,7 @@
 import React, { useMemo } from 'react';
 import { AreaChart, Area, XAxis, YAxis, Tooltip, ResponsiveContainer, CartesianGrid } from 'recharts';
 import { PriceHistoryEntry } from '../types';
-import { formatCurrency, parseDateAsUTC } from '../utils';
+import { formatCurrency, parseLocalDate } from '../utils';
 
 interface PriceHistoryChartProps {
   history: PriceHistoryEntry[];
@@ -23,7 +23,7 @@ const PriceHistoryChart: React.FC<PriceHistoryChartProps> = ({ history }) => {
 
     const CustomTooltip = ({ active, payload, label }: any) => {
         if (active && payload && payload.length) {
-            const date = parseDateAsUTC(label);
+            const date = parseLocalDate(label);
             return (
                 <div className="bg-light-card dark:bg-dark-card p-3 rounded-lg shadow-lg border border-black/5 dark:border-white/5">
                     <p className="label font-semibold text-light-text dark:text-dark-text mb-1">
@@ -39,7 +39,7 @@ const PriceHistoryChart: React.FC<PriceHistoryChartProps> = ({ history }) => {
     };
 
     const tickFormatter = (dateStr: string) => {
-        const date = parseDateAsUTC(dateStr);
+        const date = parseLocalDate(dateStr);
         return date.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
     };
 

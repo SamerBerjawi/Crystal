@@ -2,7 +2,7 @@
 
 import React, { useMemo } from 'react';
 import { Account, Transaction, DisplayTransaction, Category } from '../types';
-import { formatCurrency, parseDateAsUTC, convertToEur, getPreferredTimeZone } from '../utils';
+import { formatCurrency, parseLocalDate, convertToEur, getPreferredTimeZone, toLocalISOYearMonth } from '../utils';
 import Card from './Card';
 import TransactionList from './TransactionList';
 import { BTN_PRIMARY_STYLE, BTN_SECONDARY_STYLE } from '../constants';
@@ -109,13 +109,13 @@ const PensionAccountView: React.FC<PensionAccountViewProps> = ({
     // Backfill history
     for (let i = 0; i < 60; i++) { // Last 60 months
         const d = new Date(today.getFullYear(), today.getMonth() - i, 1);
-        const key = d.toISOString().slice(0, 7); // YYYY-MM
+        const key = toLocalISOYearMonth(d); // YYYY-MM
         
         monthlyDataMap.set(key, { balance: currentBal, contributions: currentContrib });
         
         // Reverse transactions in this month
-        const startOfMonth = new Date(Date.UTC(d.getFullYear(), d.getMonth(), 1));
-        const endOfMonth = new Date(Date.UTC(d.getFullYear(), d.getMonth() + 1, 0));
+        const startOfMonth = new Date(d.getFullYear(), d.getMonth(), 1);
+        const endOfMonth = new Date(d.getFullYear(), d.getMonth() + 1, 0);
         
         const txsInMonth = transactions.filter(t => t.parsedDate >= startOfMonth && t.parsedDate <= endOfMonth);
         
@@ -157,10 +157,10 @@ const PensionAccountView: React.FC<PensionAccountViewProps> = ({
         projBalance = projBalance * (1 + monthlyRate);
         
         d.setMonth(d.getMonth() + 1);
-        
+
         if (i % step === 0 || i === monthsToRetire) {
              projectionData.push({
-                 date: d.toISOString().slice(0, 7),
+                 date: toLocalISOYearMonth(d),
                  balance: projBalance,
                  contributions: projContrib,
                  type: 'Projection'
@@ -321,7 +321,7 @@ const PensionAccountView: React.FC<PensionAccountViewProps> = ({
                             dot={false}
                             strokeDasharray="5 5"
                         />
-                        <ReferenceLine x={new Date().toISOString().slice(0,7)} stroke="#F59E0B" strokeDasharray="3 3" label={{ value: "Today", position: "insideTopRight", fill: "#F59E0B", fontSize: 12 }} />
+                       <ReferenceLine x={toLocalISOYearMonth(new Date())} stroke="#F59E0B" strokeDasharray="3 3" label={{ value: "Today", position: "insideTopRight", fill: "#F59E0B", fontSize: 12 }} />
                     </ComposedChart>
                 </ResponsiveContainer>
            </div>

@@ -9,7 +9,7 @@ import {
     PriceHistoryEntry
 } from '../types';
 import Card from '../components/Card';
-import { formatCurrency, parseDateAsUTC } from '../utils';
+import { formatCurrency, parseLocalDate } from '../utils';
 import { BTN_PRIMARY_STYLE, BTN_SECONDARY_STYLE, INVESTMENT_SUB_TYPE_STYLES } from '../constants';
 import WarrantPriceModal from '../components/WarrantPriceModal';
 import { formatHoldingType } from '../utils/investments';
@@ -77,13 +77,13 @@ const HoldingDetail: React.FC<HoldingDetailProps> = ({
                 badgeClass: 'bg-purple-100 text-purple-700 dark:bg-purple-900/30 dark:text-purple-400'
             }));
 
-        return [...txs, ...grants].sort((a, b) => parseDateAsUTC(b.date).getTime() - parseDateAsUTC(a.date).getTime());
+        return [...txs, ...grants].sort((a, b) => parseLocalDate(b.date).getTime() - parseLocalDate(a.date).getTime());
     }, [holdingSymbol, investmentTransactions, warrants]);
 
     // Price History for Table
     const sortedPriceHistory = useMemo(() => {
         const history = priceHistory[holdingSymbol] || [];
-        return [...history].sort((a, b) => parseDateAsUTC(b.date).getTime() - parseDateAsUTC(a.date).getTime());
+        return [...history].sort((a, b) => parseLocalDate(b.date).getTime() - parseLocalDate(a.date).getTime());
     }, [priceHistory, holdingSymbol]);
 
     if (!holding) {
@@ -303,7 +303,7 @@ const HoldingDetail: React.FC<HoldingDetailProps> = ({
                                                     {item.quantity.toLocaleString()} units
                                                 </p>
                                                 <p className="text-xs text-light-text-secondary dark:text-dark-text-secondary font-medium opacity-80">
-                                                    {parseDateAsUTC(item.date).toLocaleDateString(undefined, { year: 'numeric', month: 'short', day: 'numeric' })}
+                                                    {parseLocalDate(item.date).toLocaleDateString(undefined, { year: 'numeric', month: 'short', day: 'numeric' })}
                                                 </p>
                                             </div>
                                         </div>
@@ -348,7 +348,7 @@ const HoldingDetail: React.FC<HoldingDetailProps> = ({
                                                  <span className="material-symbols-outlined text-sm">calendar_today</span>
                                              </div>
                                              <span className="text-sm font-medium text-light-text dark:text-dark-text">
-                                                 {parseDateAsUTC(entry.date).toLocaleDateString(undefined, { year: 'numeric', month: 'short', day: 'numeric' })}
+                                                 {parseLocalDate(entry.date).toLocaleDateString(undefined, { year: 'numeric', month: 'short', day: 'numeric' })}
                                              </span>
                                          </div>
                                          

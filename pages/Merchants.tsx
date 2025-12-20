@@ -7,7 +7,7 @@ import Modal from '../components/Modal';
 import { BTN_PRIMARY_STYLE, BTN_SECONDARY_STYLE, INPUT_BASE_STYLE, SELECT_ARROW_STYLE, SELECT_WRAPPER_STYLE, SELECT_STYLE } from '../constants';
 import { useAccountsContext, usePreferencesContext, usePreferencesSelector, useTransactionsContext } from '../contexts/DomainProviders';
 import { getMerchantLogoUrl, normalizeMerchantKey } from '../utils/brandfetch';
-import { fuzzySearch, convertToEur, formatCurrency, parseDateAsUTC } from '../utils';
+import { fuzzySearch, convertToEur, formatCurrency, parseLocalDate } from '../utils';
 
 interface MerchantsProps {
   setCurrentPage: (page: Page) => void;
@@ -439,7 +439,7 @@ const Merchants: React.FC<MerchantsProps> = ({ setCurrentPage }) => {
                                 <div className="text-right">
                                      <p className="text-[10px] uppercase font-bold text-light-text-secondary dark:text-dark-text-secondary tracking-wider mb-0.5">Last Seen</p>
                                      <p className="text-xs font-medium text-light-text dark:text-dark-text">
-                                         {parseDateAsUTC(entity.lastActivity).toLocaleDateString(undefined, { month: 'short', day: 'numeric', year: '2-digit' })}
+                                         {parseLocalDate(entity.lastActivity).toLocaleDateString(undefined, { month: 'short', day: 'numeric', year: '2-digit' })}
                                      </p>
                                 </div>
                             )}
@@ -515,7 +515,7 @@ const Merchants: React.FC<MerchantsProps> = ({ setCurrentPage }) => {
                                       {entity.count}
                                   </td>
                                   <td className="px-6 py-3 text-right text-light-text-secondary dark:text-dark-text-secondary text-xs">
-                                      {entity.lastActivity ? parseDateAsUTC(entity.lastActivity).toLocaleDateString() : '—'}
+                                      {entity.lastActivity ? parseLocalDate(entity.lastActivity).toLocaleDateString() : '—'}
                                   </td>
                                   <td className={`px-6 py-3 text-right font-mono font-bold ${entity.totalValue >= 0 ? 'text-blue-600 dark:text-blue-400' : 'text-light-text dark:text-dark-text'}`}>
                                       {formatCurrency(entity.totalValue, 'EUR')}

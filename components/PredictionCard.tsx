@@ -2,7 +2,7 @@
 import React, { useMemo } from 'react';
 import Card from './Card';
 import { Prediction, Transaction, Account } from '../types';
-import { formatCurrency, parseDateAsUTC, convertToEur, calculateAccountTotals } from '../utils';
+import { formatCurrency, parseLocalDate, convertToEur, calculateAccountTotals } from '../utils';
 
 interface PredictionCardProps {
     prediction: Prediction;
@@ -31,13 +31,13 @@ const PredictionCard: React.FC<PredictionCardProps> = ({ prediction, transaction
         }
 
         if (isSpending) {
-            const start = parseDateAsUTC(prediction.startDate);
+            const start = parseLocalDate(prediction.startDate);
             // If active, calc until now.
             const now = new Date();
 
             return analyticsTransactions
                 .filter(tx => {
-                    const d = parseDateAsUTC(tx.date);
+                    const d = parseLocalDate(tx.date);
                     return d >= start && d <= now && tx.type === 'expense' && !tx.transferId && tx.category === prediction.targetName;
                 })
                 .reduce((sum, tx) => sum + Math.abs(convertToEur(tx.amount, tx.currency)), 0);
@@ -161,7 +161,7 @@ const PredictionCard: React.FC<PredictionCardProps> = ({ prediction, transaction
                  <div className="flex justify-between items-center text-xs font-medium pt-1">
                      <span className={statusColor}>{statusText}</span>
                      <span className="text-light-text-secondary dark:text-dark-text-secondary">
-                         {isActive ? `Ends ${parseDateAsUTC(prediction.endDate).toLocaleDateString()}` : `Ended ${parseDateAsUTC(prediction.endDate).toLocaleDateString()}`}
+                         {isActive ? `Ends ${parseLocalDate(prediction.endDate).toLocaleDateString()}` : `Ended ${parseLocalDate(prediction.endDate).toLocaleDateString()}`}
                      </span>
                  </div>
             </div>

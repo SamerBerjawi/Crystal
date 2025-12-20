@@ -1,6 +1,6 @@
 import { BRAND_COLORS } from '../constants';
 import { Account, HoldingDistribution, HoldingSummary, HoldingsOverview, InvestmentSubType, InvestmentTransaction, Warrant } from '../types';
-import { parseDateAsUTC } from '../utils';
+import { parseLocalDate } from '../utils';
 
 const getTypeLabel = (holding: HoldingSummary) =>
     holding.type === 'Warrant' ? 'Warrants' : (holding.subType || 'Other');
@@ -29,7 +29,7 @@ export const buildHoldingsOverview = (
     });
 
     [...investmentTransactions]
-        .sort((a, b) => parseDateAsUTC(a.date).getTime() - parseDateAsUTC(b.date).getTime())
+        .sort((a, b) => parseLocalDate(a.date).getTime() - parseLocalDate(b.date).getTime())
         .forEach(tx => {
             const holding = holdingsMap[tx.symbol];
             if (!holding) return;

@@ -11,7 +11,7 @@ import ConfirmationModal from '../components/ConfirmationModal';
 import FinalConfirmationModal from '../components/FinalConfirmationModal';
 import SmartRestoreModal from '../components/SmartRestoreModal';
 import { v4 as uuidv4 } from 'uuid';
-import { arrayToCSV, downloadCSV, parseDateAsUTC } from '../utils';
+import { arrayToCSV, downloadCSV, parseLocalDate, toLocalISOString } from '../utils';
 import PageHeader from '../components/PageHeader';
 
 interface DataManagementProps {
@@ -148,11 +148,11 @@ const DataManagement: React.FC<DataManagementProps> = (props) => {
         // Filter Transactions
         let filteredTransactions = props.transactions;
         if (dateRange) {
-            const start = parseDateAsUTC(dateRange.start);
-            const end = parseDateAsUTC(dateRange.end);
+            const start = parseLocalDate(dateRange.start);
+            const end = parseLocalDate(dateRange.end);
             end.setHours(23, 59, 59, 999);
             filteredTransactions = filteredTransactions.filter(t => {
-                const d = parseDateAsUTC(t.date);
+                const d = parseLocalDate(t.date);
                 return d >= start && d <= end;
             });
         }
@@ -222,7 +222,7 @@ const DataManagement: React.FC<DataManagementProps> = (props) => {
             const url = URL.createObjectURL(blob);
             const a = document.createElement('a');
             a.href = url;
-            a.download = `crystal-export-${new Date().toISOString().split('T')[0]}.json`;
+            a.download = `crystal-export-${toLocalISOString(new Date())}.json`;
             document.body.appendChild(a);
             a.click();
             document.body.removeChild(a);

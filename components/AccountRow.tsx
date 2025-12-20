@@ -1,7 +1,7 @@
 
 import React, { useMemo } from 'react';
 import { Account, OtherAssetSubType, OtherLiabilitySubType, Transaction, Warrant } from '../types';
-import { convertToEur, formatCurrency, generateAmortizationSchedule } from '../utils';
+import { convertToEur, formatCurrency, generateAmortizationSchedule, toLocalISOString } from '../utils';
 import { AreaChart, Area, ResponsiveContainer } from 'recharts';
 import { ACCOUNT_TYPE_STYLES, INVESTMENT_SUB_TYPE_STYLES, OTHER_ASSET_SUB_TYPE_STYLES, OTHER_LIABILITY_SUB_TYPE_STYLES } from '../constants';
 import { useScheduleContext } from '../contexts/FinancialDataContext';
@@ -98,7 +98,7 @@ const AccountRow: React.FC<AccountRowProps> = ({ account, transactions, warrants
         history.push(currentBal);
 
         while (tempDate > startDate) {
-            const dateStr = tempDate.toISOString().split('T')[0];
+            const dateStr = toLocalISOString(tempDate);
             const change = txsByDate[dateStr] || 0;
             currentBal -= change; // Reverse the transaction
             history.push(currentBal);
