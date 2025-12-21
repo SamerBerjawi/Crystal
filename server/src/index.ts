@@ -6,6 +6,7 @@ import authRouter from './auth';
 import dataRouter from './data';
 import usersRouter from './users';
 import enableBankingRouter from './enableBanking';
+import smartFetcherRouter from './smartFetcher';
 import { initializeDatabase } from './database';
 // FIX: Import `exit` from the `process` module to correctly type and call the process exit function.
 import { exit } from 'process';
@@ -36,6 +37,7 @@ const startServer = async () => {
         app.use('/api/data', dataRouter);
         app.use('/api/enable-banking', enableBankingRouter);
         app.use('/api/users', usersRouter);
+        app.use('/api/smart-fetch', smartFetcherRouter);
 
         app.listen(port, () => {
             console.log(`Server is running on http://localhost:${port}`);
