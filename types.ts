@@ -202,9 +202,10 @@ export interface EnableBankingConnection {
 }
 
 export interface EnableBankingSyncOptions {
-  transactionMode?: 'full' | 'none';
+  transactionMode?: 'full' | 'incremental' | 'none';
   updateBalance?: boolean;
   syncStartDate?: string;
+  targetAccountIds?: string[];
 }
 
 export type EnableBankingLinkPayload =

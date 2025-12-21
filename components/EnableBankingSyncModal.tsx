@@ -109,8 +109,8 @@ const EnableBankingSyncModal: React.FC<EnableBankingSyncModalProps> = ({
         {/* Options */}
         <div className="space-y-4">
           
-          {/* Option 1: Transactions */}
-          <div 
+          {/* Option 1: Transactions from a date */}
+          <div
             className={`p-4 rounded-xl border transition-all cursor-pointer ${state.transactionMode === 'full' ? 'bg-primary-50 dark:bg-primary-900/10 border-primary-200 dark:border-primary-800' : 'bg-transparent border-black/10 dark:border-white/10 hover:bg-black/5 dark:hover:bg-white/5'}`}
             onClick={() => setState(prev => ({ ...prev, transactionMode: 'full' }))}
           >
@@ -121,7 +121,7 @@ const EnableBankingSyncModal: React.FC<EnableBankingSyncModalProps> = ({
                 <div className="flex-1 space-y-3">
                     <div>
                         <div className="font-bold text-sm text-light-text dark:text-dark-text">Sync transactions & balance</div>
-                        <div className="text-xs text-light-text-secondary dark:text-dark-text-secondary">Import new transactions and update account balance.</div>
+                        <div className="text-xs text-light-text-secondary dark:text-dark-text-secondary">Import transactions starting from a specific date and update account balance.</div>
                     </div>
                     
                     {/* Date Picker (Nested) */}
@@ -152,8 +152,24 @@ const EnableBankingSyncModal: React.FC<EnableBankingSyncModalProps> = ({
             </div>
           </div>
 
-          {/* Option 2: Balance Only */}
-          <div 
+          {/* Option 2: Sync only new transactions */}
+          <div
+            className={`p-4 rounded-xl border transition-all cursor-pointer ${state.transactionMode === 'incremental' ? 'bg-primary-50 dark:bg-primary-900/10 border-primary-200 dark:border-primary-800' : 'bg-transparent border-black/10 dark:border-white/10 hover:bg-black/5 dark:hover:bg-white/5'}`}
+            onClick={() => setState(prev => ({ ...prev, transactionMode: 'incremental', updateBalance: true }))}
+          >
+            <div className="flex items-start gap-3">
+              <div className={`mt-0.5 w-4 h-4 rounded-full border flex items-center justify-center ${state.transactionMode === 'incremental' ? 'border-primary-600 bg-primary-600' : 'border-gray-400'}`}>
+                {state.transactionMode === 'incremental' && <div className="w-1.5 h-1.5 bg-white rounded-full"></div>}
+              </div>
+              <div>
+                <div className="font-bold text-sm text-light-text dark:text-dark-text">Sync only new transactions</div>
+                <div className="text-xs text-light-text-secondary dark:text-dark-text-secondary">Use the last synced time for this account to import only fresh activity and update balance.</div>
+              </div>
+            </div>
+          </div>
+
+          {/* Option 3: Balance Only */}
+          <div
             className={`p-4 rounded-xl border transition-all cursor-pointer ${state.transactionMode === 'none' ? 'bg-primary-50 dark:bg-primary-900/10 border-primary-200 dark:border-primary-800' : 'bg-transparent border-black/10 dark:border-white/10 hover:bg-black/5 dark:hover:bg-white/5'}`}
             onClick={() => setState(prev => ({ ...prev, transactionMode: 'none', updateBalance: true }))}
           >

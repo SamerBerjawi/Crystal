@@ -1793,7 +1793,7 @@ const App: React.FC = () => {
         lastError: error?.message || 'Unable to start authorization',
       } : conn));
     }
-  }, [fetchWithAuth, token]);
+  }, [enableBankingConnections, fetchWithAuth, token]);
 
   const mapProviderTransaction = useCallback((providerTx: any, accountId: string, currency: Currency, connectionId: string): Transaction | null => {
     const amountRaw = providerTx?.transaction_amount?.amount ?? providerTx?.amount?.amount ?? providerTx?.transactionAmount?.amount;
@@ -1899,6 +1899,12 @@ const App: React.FC = () => {
     }
 
     const safeAccounts = connection.accounts || [];
+    const targetAccountIds = (syncOptions?.targetAccountIds || []).filter(Boolean);
+    const targetAccountSet = targetAccountIds.length ? new Set(targetAccountIds) : null;
+    const safeAccountsForSync = targetAccountSet
+      ? safeAccounts.filter(account => targetAccountSet.has(account.id))
+      : safeAccounts;
+
     const { transactionMode = 'full', updateBalance = true, syncStartDate } = syncOptions || {};
     const shouldSyncTransactions = transactionMode !== 'none';
     const ninetyDaysAgoStr = toLocalISOString(new Date(Date.now() - 90 * 24 * 60 * 60 * 1000));
@@ -1938,18 +1944,16 @@ const App: React.FC = () => {
         const flattened = possibleCollections.flat();
         const uniqueById = new Map<string, any>();
 
+        const resolveProviderAccountId = (account: any) =>
+          account?.account_id?.id || account?.account_id || account?.resource_id || account?.uid || account?.id;
+
         flattened.forEach(account => {
           const candidate = account?.account || account?.resource || account;
-          const providerAccountId =
-            typeof candidate === 'string'
-              ? candidate
-              : candidate?.account_id?.id ||
-                candidate?.account_id ||
-                candidate?.resource_id ||
-                candidate?.uid ||
-                candidate?.id;
+          const providerAccountId = typeof candidate === 'string' ? candidate : resolveProviderAccountId(candidate);
 
           if (!providerAccountId) return;
+
+          if (targetAccountSet && !targetAccountSet.has(providerAccountId)) return;
 
           if (!uniqueById.has(providerAccountId)) {
             const normalized =
@@ -1965,8 +1969,11 @@ const App: React.FC = () => {
       };
 
       let accountsFromSession: any[] = normalizeAccounts();
-      if (!accountsFromSession.length && safeAccounts.length > 0) {
-        accountsFromSession = safeAccounts.map(account => ({
+      const providerIdFromAccount = (account: any) =>
+        account?.account_id?.id || account?.account_id || account?.uid || account?.id;
+
+      if (!accountsFromSession.length && safeAccountsForSync.length > 0) {
+        accountsFromSession = safeAccountsForSync.map(account => ({
           id: account.id,
           name: account.name,
           currency: account.currency,
@@ -1974,22 +1981,42 @@ const App: React.FC = () => {
       }
 
       if (!accountsFromSession.length) {
+        if (targetAccountSet?.size) {
+          throw new Error('No matching accounts returned for this session. Confirm access and try again.');
+        }
+
         throw new Error('No accounts returned for this session. Please re-authorize and ensure accounts are permitted.');
       }
 
+      const accountsToSync = accountsFromSession.filter(account => {
+        if (!targetAccountSet) return true;
+        const providerId = providerIdFromAccount(account);
+        return providerId && targetAccountSet.has(providerId);
+      });
+
+      if (targetAccountSet && accountsToSync.length === 0) {
+        throw new Error('No matching accounts found to sync for this connection.');
+      }
+
+      const selectedAccounts = accountsToSync.length > 0 ? accountsToSync : accountsFromSession;
       const updatedAccounts: EnableBankingAccount[] = [];
       const importedTransactions: Transaction[] = [];
+      const now = new Date().toISOString();
 
-      for (const account of accountsFromSession) {
-        const existing = safeAccounts.find(a => a.id === account?.uid || a.id === account?.account_id || a.id === account?.id);
-        const providerAccountId = account?.account_id?.id || account?.account_id || account?.uid || account?.id;
+      for (const account of selectedAccounts) {
+        const providerAccountId = providerIdFromAccount(account);
         if (!providerAccountId) continue;
+
+        const existing = safeAccounts.find(
+          a => a.id === account?.uid || a.id === account?.account_id || a.id === account?.id || a.id === providerAccountId,
+        );
 
         const details = await fetchWithAuth(`/api/enable-banking/accounts/${encodeURIComponent(providerAccountId)}/details`, {
           method: 'POST',
           body: JSON.stringify({
             applicationId: connection.applicationId,
             clientCertificate: connection.clientCertificate,
+            sessionId: connection.sessionId,
           }),
         }).then(res => res.json()).catch(() => null);
 
@@ -1998,6 +2025,7 @@ const App: React.FC = () => {
           body: JSON.stringify({
             applicationId: connection.applicationId,
             clientCertificate: connection.clientCertificate,
+            sessionId: connection.sessionId,
           }),
         }).then(res => res.json());
 
@@ -2037,8 +2065,16 @@ const App: React.FC = () => {
         const { amount: numericBalance, currency: balanceCurrency } = extractBalance(preferredBalance);
         const currency = (account?.currency || balanceCurrency || details?.currency || existing?.currency || 'EUR') as Currency;
 
-        const baseSyncStart = clampSyncStartDate(syncStartDate) || clampSyncStartDate(existing?.syncStartDate) || ninetyDaysAgoStr;
-        const syncStart = baseSyncStart;
+        const baseSyncStart =
+          clampSyncStartDate(syncStartDate) || clampSyncStartDate(existing?.syncStartDate) || ninetyDaysAgoStr;
+        const accountLastSyncedAt = clampSyncStartDate(existing?.lastSyncedAt);
+        const incrementalSyncStart =
+          transactionMode === 'incremental'
+            ? accountLastSyncedAt && new Date(accountLastSyncedAt) > new Date(baseSyncStart)
+              ? accountLastSyncedAt
+              : baseSyncStart
+            : baseSyncStart;
+        const syncStart = incrementalSyncStart;
         const shouldMarkSynced = shouldSyncTransactions || updateBalance;
         const providerTransactions: any[] = [];
 
@@ -2054,6 +2090,7 @@ const App: React.FC = () => {
                 clientCertificate: connection.clientCertificate,
                 dateFrom: syncStart,
                 continuationKey,
+                sessionId: connection.sessionId,
               }),
             }).then(res => res.json());
             const pageItems = transactionsPage?.transactions || transactionsPage?.booked || [];
@@ -2102,7 +2139,16 @@ const App: React.FC = () => {
         });
       }
 
-      const finalAccounts = updatedAccounts.length > 0 ? updatedAccounts : safeAccounts;
+      const mergedAccounts = new Map<string, EnableBankingAccount>();
+      safeAccounts.forEach(acc => mergedAccounts.set(acc.id, acc));
+      updatedAccounts.forEach(acc => mergedAccounts.set(acc.id, acc));
+      const finalAccounts = Array.from(mergedAccounts.values());
+
+      const latestSyncedAt = finalAccounts.reduce<string | undefined>((latest, account) => {
+        if (!account.lastSyncedAt) return latest;
+        if (!latest) return account.lastSyncedAt;
+        return new Date(account.lastSyncedAt) > new Date(latest) ? account.lastSyncedAt : latest;
+      }, undefined);
 
       // Update account balances when linked
       const updatedAccountState = accounts.map(acc => {
@@ -2121,7 +2167,7 @@ const App: React.FC = () => {
         ...conn,
         status: 'ready',
         lastError: undefined,
-        lastSyncedAt: shouldSyncTransactions || updateBalance ? now : conn.lastSyncedAt,
+        lastSyncedAt: shouldSyncTransactions || updateBalance ? (latestSyncedAt || conn.lastSyncedAt) : conn.lastSyncedAt,
         sessionExpiresAt: connection.sessionExpiresAt,
         accounts: finalAccounts,
       } : conn));
