@@ -377,28 +377,30 @@ const App: React.FC = () => {
   
   // Update Streak Logic
   useEffect(() => {
-    if (!isDataLoaded || !isAuthenticated) return;
+    if (!isDataLoaded || restoreInProgressRef.current) return;
 
     const todayStr = toLocalISOString(new Date());
     const yesterday = new Date();
     yesterday.setDate(yesterday.getDate() - 1);
     const yesterdayStr = toLocalISOString(yesterday);
-    
+
+    const lastLogDate = (userStats.lastLogDate || '').split('T')[0];
+
     // Only update if not already logged today
-    if (userStats.lastLogDate !== todayStr) {
+    if (lastLogDate !== todayStr) {
        let newStreak = 1;
-       
-       if (userStats.lastLogDate === yesterdayStr) {
+
+       if (lastLogDate === yesterdayStr) {
            newStreak = (userStats.currentStreak || 0) + 1;
        }
-       
+
        const newStats = {
            ...userStats,
            currentStreak: newStreak,
            longestStreak: Math.max(newStreak, userStats.longestStreak || 0),
            lastLogDate: todayStr
        };
-       
+
        setUserStats(newStats);
        // Trigger save
        markSliceDirty('userStats');
