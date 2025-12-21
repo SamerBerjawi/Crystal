@@ -28,6 +28,15 @@ const WarrantPriceModal: React.FC<WarrantPriceModalProps> = ({ onClose, onSave, 
     const [fetchError, setFetchError] = useState<string | null>(null);
     const [isFetching, setIsFetching] = useState(false);
 
+    // Smart Fetcher State
+    const [isSmartFetcherOpen, setIsSmartFetcherOpen] = useState(false);
+    const [smartFetcherUrl, setSmartFetcherUrl] = useState('');
+    const [smartFetcherStatus, setSmartFetcherStatus] = useState<'idle' | 'loading' | 'ready' | 'error'>('idle');
+    const [smartFetcherError, setSmartFetcherError] = useState<string | null>(null);
+    const [smartFetcherCandidates, setSmartFetcherCandidates] = useState<{ id: string; value: number; selector: string; context: string }[]>([]);
+    const [smartFetcherSelection, setSmartFetcherSelection] = useState<string | null>(null);
+    const [smartFetcherBinding, setSmartFetcherBinding] = useState<{ url: string; selector: string } | null>(null);
+
     useEffect(() => {
         if (initialEntry) {
             setNewPrice(String(initialEntry.price));
@@ -38,6 +47,21 @@ const WarrantPriceModal: React.FC<WarrantPriceModalProps> = ({ onClose, onSave, 
             setDate(toLocalISOString(new Date()));
         }
     }, [initialEntry, manualPrice]);
+
+    useEffect(() => {
+        try {
+            const stored = localStorage.getItem('smartPriceBindings');
+            if (stored) {
+                const parsed = JSON.parse(stored) as Record<string, { url: string; selector: string }>;
+                if (parsed[isin]) {
+                    setSmartFetcherBinding(parsed[isin]);
+                    setSmartFetcherUrl(parsed[isin].url);
+                }
+            }
+        } catch (err) {
+            console.warn('Unable to restore smart price bindings', err);
+        }
+    }, [isin]);
 
     // Parse Bulk Data
     useEffect(() => {
@@ -50,24 +74,20 @@ const WarrantPriceModal: React.FC<WarrantPriceModalProps> = ({ onClose, onSave, 
                 const trimmed = line.trim();
                 if (!trimmed) return;
 
-                // Match YYYY-MM-DD
-                const dateMatch = trimmed.match(/\b\d{4}-\d{2}-\d{2}\b/);
-                // Match number (price)
-                const priceMatch = trimmed.match(/\b\d+(\.\d+)?\b/);
-                
                 // Ensure we aren't matching the date parts as price if no other number exists
                 // A better approach: split by comma/tab/space
                 const parts = trimmed.split(/[\s,;]+/).filter(Boolean);
-                
+
                 if (parts.length >= 2) {
                     // Assume Date is one part, Price is another
                     let d = parts.find(p => p.match(/^\d{4}-\d{2}-\d{2}$/));
-                    let p = parts.find(p => p !== d && !isNaN(parseFloat(p)));
+                    let p = parts.find(p => p !== d && p.match(/^-?\d+[.,]?\d*$/));
 
                     if (d && p) {
+                        const normalizedPrice = normalizeDecimalString(p);
                         parsed.push({
                             date: d,
-                            price: parseFloat(p)
+                            price: parseFloat(normalizedPrice)
                         });
                     }
                 }
@@ -76,14 +96,128 @@ const WarrantPriceModal: React.FC<WarrantPriceModalProps> = ({ onClose, onSave, 
         }
     }, [bulkData, mode]);
 
+    const normalizeDecimalString = (value: string): string => value.replace(/,/g, '.');
+
+    const parsePriceFromText = (text: string): number | null => {
+        const normalized = normalizeDecimalString(text);
+        const match = normalized.match(/-?\d+(?:\.\d+)?/);
+        if (!match) return null;
+        const parsed = parseFloat(match[0]);
+        return isNaN(parsed) ? null : parsed;
+    };
+
+    const buildSelector = (element: Element): string => {
+        const parts: string[] = [];
+        let current: Element | null = element;
+
+        while (current && current.nodeType === 1 && current.tagName.toLowerCase() !== 'html') {
+            const tag = current.tagName.toLowerCase();
+            const id = current.id ? `#${current.id}` : '';
+            const className = (current.className && typeof current.className === 'string')
+                ? `.${current.className.trim().split(/\s+/).filter(Boolean).join('.')}`
+                : '';
+            const siblingIndex = Array.from(current.parentElement?.children || []).indexOf(current) + 1;
+            parts.unshift(`${tag}${id || className}${siblingIndex > 0 ? `:nth-child(${siblingIndex})` : ''}`);
+            current = current.parentElement;
+        }
+
+        return parts.length ? parts.join(' > ') : '';
+    };
+
+    const persistSmartBinding = (binding: { url: string; selector: string }) => {
+        try {
+            const stored = localStorage.getItem('smartPriceBindings');
+            const parsed = stored ? (JSON.parse(stored) as Record<string, { url: string; selector: string }>) : {};
+            parsed[isin] = binding;
+            localStorage.setItem('smartPriceBindings', JSON.stringify(parsed));
+            setSmartFetcherBinding(binding);
+        } catch (err) {
+            console.error('Failed to persist smart price binding', err);
+        }
+    };
+
+    const hydrateSmartFetcher = (html: string) => {
+        const parser = new DOMParser();
+        const doc = parser.parseFromString(html, 'text/html');
+        const elements = Array.from(doc.querySelectorAll('body *'));
+        const candidates: { id: string; value: number; selector: string; context: string }[] = [];
+
+        elements.slice(0, 2000).forEach((el, idx) => {
+            const text = (el.textContent || '').trim();
+            if (!text || text.length > 120) return;
+            const price = parsePriceFromText(text);
+            if (price === null) return;
+
+            const selector = buildSelector(el);
+            const context = text.length > 80 ? `${text.slice(0, 77)}…` : text;
+            candidates.push({ id: `${idx}-${selector}`, value: price, selector, context });
+        });
+
+        setSmartFetcherCandidates(candidates.slice(0, 10));
+        setSmartFetcherSelection(candidates[0]?.id || null);
+        setSmartFetcherStatus(candidates.length ? 'ready' : 'error');
+        if (!candidates.length) {
+            setSmartFetcherError('No obvious price values were found on that page. Try a different URL or selector.');
+        }
+    };
+
+    const handleSmartFetcher = async (opts?: { useSavedSelector?: boolean }) => {
+        if (!smartFetcherUrl.trim() && !smartFetcherBinding) {
+            setSmartFetcherError('Provide a page URL to scan for prices.');
+            return;
+        }
+
+        const targetUrl = smartFetcherBinding?.url || smartFetcherUrl.trim();
+        setSmartFetcherStatus('loading');
+        setSmartFetcherError(null);
+
+        try {
+            const response = await fetch(targetUrl);
+            if (!response.ok) throw new Error(`Request failed with status ${response.status}`);
+            const html = await response.text();
+
+            if (opts?.useSavedSelector && smartFetcherBinding) {
+                const parser = new DOMParser();
+                const doc = parser.parseFromString(html, 'text/html');
+                const element = doc.querySelector(smartFetcherBinding.selector);
+                if (element) {
+                    const price = parsePriceFromText(element.textContent || '');
+                    if (price !== null) {
+                        setNewPrice(String(price));
+                        setDate(toLocalISOString(new Date()));
+                        setSmartFetcherStatus('ready');
+                        return;
+                    }
+                }
+            }
+
+            hydrateSmartFetcher(html);
+        } catch (error) {
+            console.error('Smart fetcher failed', error);
+            setSmartFetcherStatus('error');
+            setSmartFetcherError('Unable to scan that page. Some sites block cross-origin requests—try another URL or use a saved selector.');
+        }
+    };
+
+    const applySmartSelection = () => {
+        if (!smartFetcherSelection) return;
+        const selected = smartFetcherCandidates.find(c => c.id === smartFetcherSelection);
+        if (!selected) return;
+
+        setNewPrice(String(selected.value));
+        setDate(toLocalISOString(new Date()));
+        persistSmartBinding({ url: smartFetcherUrl.trim(), selector: selected.selector });
+    };
+
     const handleSubmit = (e: React.FormEvent) => {
         e.preventDefault();
         
         if (mode === 'single') {
-            const parsedPrice = parseFloat(newPrice);
+            const normalized = normalizeDecimalString(newPrice);
+            const parsedPrice = parseFloat(normalized);
             if (newPrice.trim() === '' || isNaN(parsedPrice)) {
                 // If empty, treat as delete
-                onSave(isin, null, date); 
+                onSave(isin, null, date);
             } else {
                 onSave(isin, parsedPrice, date);
             }
@@ -220,24 +354,34 @@ const WarrantPriceModal: React.FC<WarrantPriceModalProps> = ({ onClose, onSave, 
                                     type="number"
                                     step="any"
                                     value={newPrice}
-                                    onChange={(e) => setNewPrice(e.target.value)}
+                                    onChange={(e) => setNewPrice(normalizeDecimalString(e.target.value))}
                                     className={`${INPUT_BASE_STYLE} pl-8`}
                                     placeholder="0.00"
                                     autoFocus
                                 />
                             </div>
-                            <div className="flex items-center gap-2 mt-2">
-                                <button
-                                    type="button"
-                                    onClick={handleFetchLatestPrice}
-                                    className={`${BTN_SECONDARY_STYLE} !py-2 flex items-center gap-2`}
-                                    disabled={isFetching}
-                                >
-                                    <span className="material-symbols-outlined text-lg">cloud_download</span>
-                                    {isFetching ? 'Fetching…' : 'Fetch from Twelve Data'}
-                                </button>
+                            <div className="flex flex-col gap-2 mt-3">
+                                <div className="flex flex-wrap gap-2">
+                                    <button
+                                        type="button"
+                                        onClick={handleFetchLatestPrice}
+                                        className={`${BTN_SECONDARY_STYLE} !py-2 flex items-center gap-2`}
+                                        disabled={isFetching}
+                                    >
+                                        <span className="material-symbols-outlined text-lg">cloud_download</span>
+                                        {isFetching ? 'Fetching…' : 'Fetch from Twelve Data'}
+                                    </button>
+                                    <button
+                                        type="button"
+                                        onClick={() => setIsSmartFetcherOpen(prev => !prev)}
+                                        className={`${BTN_SECONDARY_STYLE} !py-2 flex items-center gap-2`}
+                                    >
+                                        <span className="material-symbols-outlined text-lg">travel_explore</span>
+                                        {isSmartFetcherOpen ? 'Hide Smart Fetcher' : 'Smart Fetch from Website'}
+                                    </button>
+                                </div>
                                 <p className="text-xs text-light-text-secondary dark:text-dark-text-secondary">
-                                    Uses your saved Twelve Data API key.
+                                    Uses your saved Twelve Data API key or a custom web page scan for hard-to-find warrant prices.
                                 </p>
                             </div>
                             {fetchError && (
@@ -245,6 +389,103 @@ const WarrantPriceModal: React.FC<WarrantPriceModalProps> = ({ onClose, onSave, 
                                     <span className="material-symbols-outlined text-base">error</span>
                                     {fetchError}
                                 </p>
+                            )}
+                            {isSmartFetcherOpen && (
+                                <div className="mt-3 space-y-3 p-4 rounded-xl bg-gray-50 dark:bg-white/5 border border-black/5 dark:border-white/5">
+                                    <div className="space-y-2">
+                                        <label className={labelStyle}>Page URL to scan</label>
+                                        <input
+                                            type="url"
+                                            value={smartFetcherUrl}
+                                            onChange={(e) => setSmartFetcherUrl(e.target.value)}
+                                            placeholder="https://example.com/your-warrant"
+                                            className={INPUT_BASE_STYLE}
+                                        />
+                                        {smartFetcherBinding && (
+                                            <p className="text-xs text-light-text-secondary dark:text-dark-text-secondary">
+                                                Saved selector for this holding: <span className="font-mono break-all">{smartFetcherBinding.selector}</span>
+                                            </p>
+                                        )}
+                                        <div className="flex flex-wrap gap-2">
+                                            <button
+                                                type="button"
+                                                onClick={() => handleSmartFetcher()}
+                                                className={`${BTN_SECONDARY_STYLE} !py-2 flex items-center gap-2`}
+                                                disabled={smartFetcherStatus === 'loading'}
+                                            >
+                                                <span className="material-symbols-outlined text-lg">search</span>
+                                                {smartFetcherStatus === 'loading' ? 'Scanning…' : 'Scan page for prices'}
+                                            </button>
+                                            {smartFetcherBinding && (
+                                                <button
+                                                    type="button"
+                                                    onClick={() => handleSmartFetcher({ useSavedSelector: true })}
+                                                    className={`${BTN_SECONDARY_STYLE} !py-2 flex items-center gap-2`}
+                                                    disabled={smartFetcherStatus === 'loading'}
+                                                >
+                                                    <span className="material-symbols-outlined text-lg">refresh</span>
+                                                    Refresh from saved selector
+                                                </button>
+                                            )}
+                                        </div>
+                                    </div>
+
+                                    {smartFetcherStatus === 'loading' && (
+                                        <p className="text-sm text-light-text-secondary dark:text-dark-text-secondary flex items-center gap-2">
+                                            <span className="material-symbols-outlined text-lg animate-spin">progress_activity</span>
+                                            Looking for price-like values on the page…
+                                        </p>
+                                    )}
+
+                                    {smartFetcherCandidates.length > 0 && (
+                                        <div className="space-y-2">
+                                            <p className="text-sm font-semibold text-light-text dark:text-dark-text flex items-center gap-2">
+                                                <span className="material-symbols-outlined text-lg">radar</span>
+                                                Select the correct price below
+                                            </p>
+                                            <div className="space-y-2 max-h-48 overflow-auto pr-1">
+                                                {smartFetcherCandidates.map(candidate => (
+                                                    <label key={candidate.id} className="flex items-start gap-2 p-2 rounded-lg border border-black/5 dark:border-white/5 bg-white dark:bg-dark-card">
+                                                        <input
+                                                            type="radio"
+                                                            name="smart-fetcher-price"
+                                                            checked={smartFetcherSelection === candidate.id}
+                                                            onChange={() => setSmartFetcherSelection(candidate.id)}
+                                                            className="mt-1"
+                                                        />
+                                                        <div className="flex-1">
+                                                            <p className="font-bold text-light-text dark:text-dark-text">€{candidate.value}</p>
+                                                            <p className="text-xs text-light-text-secondary dark:text-dark-text-secondary break-words">{candidate.context}</p>
+                                                            <p className="text-[11px] text-light-text-secondary dark:text-dark-text-secondary mt-1">Selector: <span className="font-mono break-all">{candidate.selector}</span></p>
+                                                        </div>
+                                                    </label>
+                                                ))}
+                                            </div>
+                                            <button
+                                                type="button"
+                                                onClick={applySmartSelection}
+                                                className={`${BTN_PRIMARY_STYLE} !py-2 w-full`}
+                                                disabled={!smartFetcherSelection}
+                                            >
+                                                Use selected price and remember this location
+                                            </button>
+                                        </div>
+                                    )}
+
+                                    {smartFetcherError && (
+                                        <p className="text-xs text-red-600 dark:text-red-400 flex items-center gap-1">
+                                            <span className="material-symbols-outlined text-base">error</span>
+                                            {smartFetcherError}
+                                        </p>
+                                    )}
+
+                                    {smartFetcherBinding && smartFetcherStatus === 'ready' && !smartFetcherError && (
+                                        <p className="text-xs text-green-700 dark:text-green-300 flex items-center gap-1">
+                                            <span className="material-symbols-outlined text-base">check_circle</span>
+                                            Saved price location for quick refreshes.
+                                        </p>
+                                    )}
+                                </div>
                             )}
                         </div>
                     </>
