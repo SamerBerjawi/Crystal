@@ -33,7 +33,7 @@ const WarrantPriceModal: React.FC<WarrantPriceModalProps> = ({ onClose, onSave, 
     const [smartFetcherUrl, setSmartFetcherUrl] = useState('');
     const [smartFetcherStatus, setSmartFetcherStatus] = useState<'idle' | 'loading' | 'ready' | 'error'>('idle');
     const [smartFetcherError, setSmartFetcherError] = useState<string | null>(null);
-    const [smartFetcherCandidates, setSmartFetcherCandidates] = useState<{ id: string; value: number; selector: string; context: string }[]>([]);
+    const [smartFetcherCandidates, setSmartFetcherCandidates] = useState<{ id: string; value: number; selector: string; context: string; score: number }[]>([]);
     const [smartFetcherSelection, setSmartFetcherSelection] = useState<string | null>(null);
     const [smartFetcherBinding, setSmartFetcherBinding] = useState<{ url: string; selector: string } | null>(null);
 
@@ -96,14 +96,41 @@ const WarrantPriceModal: React.FC<WarrantPriceModalProps> = ({ onClose, onSave, 
         }
     }, [bulkData, mode]);
 
-    const normalizeDecimalString = (value: string): string => value.replace(/,/g, '.');
+    const normalizeDecimalString = (rawValue: string): string => {
+        const cleaned = rawValue
+            .replace(/\s+/g, '')
+            .replace(/\u00A0/g, '')
+            .replace(/[^0-9.,-]/g, '');
+
+        const lastDot = cleaned.lastIndexOf('.');
+        const lastComma = cleaned.lastIndexOf(',');
+        const decimalSeparator = lastDot > lastComma ? '.' : (lastComma > lastDot ? ',' : null);
+
+        if (decimalSeparator) {
+            const thousandsSeparator = decimalSeparator === '.' ? ',' : '.';
+            const withoutThousands = cleaned.split(thousandsSeparator).join('');
+            return withoutThousands.replace(decimalSeparator, '.');
+        }
+
+        return cleaned.replace(/,/g, '.');
+    };
 
     const parsePriceFromText = (text: string): number | null => {
-        const normalized = normalizeDecimalString(text);
-        const match = normalized.match(/-?\d+(?:\.\d+)?/);
-        if (!match) return null;
-        const parsed = parseFloat(match[0]);
+        const numericPart = text.match(/-?\d[\d.,-]*/);
+        if (!numericPart) return null;
+
+        const normalized = normalizeDecimalString(numericPart[0]);
+        const parsed = parseFloat(normalized);
         return isNaN(parsed) ? null : parsed;
+    };
+
+    const fetchSmartPage = async (targetUrl: string): Promise<string> => {
+        const encodedUrl = encodeURIComponent(targetUrl);
+        const response = await fetch(`/api/smart-fetch?url=${encodedUrl}`);
+        if (!response.ok) {
+            throw new Error(`Request failed with status ${response.status}`);
+        }
+        return response.text();
     };
 
     const buildSelector = (element: Element): string => {
@@ -140,22 +167,57 @@ const WarrantPriceModal: React.FC<WarrantPriceModalProps> = ({ onClose, onSave, 
         const parser = new DOMParser();
         const doc = parser.parseFromString(html, 'text/html');
         const elements = Array.from(doc.querySelectorAll('body *'));
-        const candidates: { id: string; value: number; selector: string; context: string }[] = [];
+        const candidates: { id: string; value: number; selector: string; context: string; score: number }[] = [];
 
-        elements.slice(0, 2000).forEach((el, idx) => {
-            const text = (el.textContent || '').trim();
-            if (!text || text.length > 120) return;
+        const scoreText = (text: string, el: Element) => {
+            let score = 0;
+            if (/€|eur/i.test(text)) score += 2;
+            if (/(last|aktuell|bid|ask|preis|price)/i.test(text)) score += 1;
+            if (text.length <= 20) score += 1;
+            if (['strong', 'b'].includes(el.tagName.toLowerCase())) score += 1;
+            return score;
+        };
+
+        const registerCandidate = (el: Element, text: string, scoreBoost = 0) => {
             const price = parsePriceFromText(text);
             if (price === null) return;
-
             const selector = buildSelector(el);
             const context = text.length > 80 ? `${text.slice(0, 77)}…` : text;
-            candidates.push({ id: `${idx}-${selector}`, value: price, selector, context });
+            candidates.push({
+                id: `${candidates.length}-${selector || el.tagName}-${Math.random().toString(16).slice(2, 6)}`,
+                value: price,
+                selector,
+                context,
+                score: scoreText(text, el) + scoreBoost,
+            });
+        };
+
+        const attributeSelectors = ['[data-price]', '[data-last]', '[data-value]', '[itemprop="price"]'];
+        attributeSelectors.forEach(sel => {
+            doc.querySelectorAll(sel).forEach(el => {
+                const text = (el.getAttribute('content') || el.getAttribute('data-price') || el.getAttribute('data-last') || el.getAttribute('data-value') || el.textContent || '').trim();
+                if (text) registerCandidate(el, text, 2);
+            });
         });
 
-        setSmartFetcherCandidates(candidates.slice(0, 10));
-        setSmartFetcherSelection(candidates[0]?.id || null);
-        setSmartFetcherStatus(candidates.length ? 'ready' : 'error');
+        doc.querySelectorAll('meta[itemprop="price"], meta[property="product:price:amount"], meta[name="price"]').forEach(el => {
+            const content = el.getAttribute('content') || '';
+            if (content) registerCandidate(el, content, 3);
+        });
+
+        elements.slice(0, 2000).forEach(el => {
+            const text = (el.textContent || '').trim();
+            if (!text || text.length > 120) return;
+            registerCandidate(el, text);
+        });
+
+        const topCandidates = candidates
+            .sort((a, b) => b.score - a.score)
+            .slice(0, 10);
+
+        setSmartFetcherCandidates(topCandidates);
+        setSmartFetcherSelection(topCandidates[0]?.id || null);
+        setSmartFetcherStatus(topCandidates.length ? 'ready' : 'error');
         if (!candidates.length) {
             setSmartFetcherError('No obvious price values were found on that page. Try a different URL or selector.');
         }
@@ -167,14 +229,17 @@ const WarrantPriceModal: React.FC<WarrantPriceModalProps> = ({ onClose, onSave, 
             return;
         }
 
-        const targetUrl = smartFetcherBinding?.url || smartFetcherUrl.trim();
+        const targetUrl = (opts?.useSavedSelector && smartFetcherBinding?.url) || smartFetcherUrl.trim() || smartFetcherBinding?.url || '';
+        if (!targetUrl) {
+            setSmartFetcherError('Provide a page URL to scan for prices.');
+            return;
+        }
         setSmartFetcherStatus('loading');
         setSmartFetcherError(null);
+        setSmartFetcherCandidates([]);
 
         try {
-            const response = await fetch(targetUrl);
-            if (!response.ok) throw new Error(`Request failed with status ${response.status}`);
-            const html = await response.text();
+            const html = await fetchSmartPage(targetUrl);
 
             if (opts?.useSavedSelector && smartFetcherBinding) {
                 const parser = new DOMParser();
@@ -186,11 +251,14 @@ const WarrantPriceModal: React.FC<WarrantPriceModalProps> = ({ onClose, onSave, 
                         setNewPrice(String(price));
                         setDate(toLocalISOString(new Date()));
                         setSmartFetcherStatus('ready');
+                        setSmartFetcherUrl(targetUrl);
                         return;
                     }
                 }
+                setSmartFetcherError('Saved selector no longer matches that page. Try scanning again.');
             }
 
+            setSmartFetcherUrl(targetUrl);
             hydrateSmartFetcher(html);
         } catch (error) {
             console.error('Smart fetcher failed', error);
@@ -206,7 +274,10 @@ const WarrantPriceModal: React.FC<WarrantPriceModalProps> = ({ onClose, onSave, 
 
         setNewPrice(String(selected.value));
         setDate(toLocalISOString(new Date()));
-        persistSmartBinding({ url: smartFetcherUrl.trim(), selector: selected.selector });
+        const bindingUrl = smartFetcherUrl.trim() || smartFetcherBinding?.url || '';
+        if (bindingUrl) {
+            persistSmartBinding({ url: bindingUrl, selector: selected.selector });
+        }
     };
 
     const handleSubmit = (e: React.FormEvent) => {
