@@ -2,7 +2,14 @@
 import React, { useEffect, useMemo, useState } from 'react';
 import Card from './Card';
 import { INPUT_BASE_STYLE, BTN_PRIMARY_STYLE, BTN_SECONDARY_STYLE } from '../constants';
-import { Account, AccountType, EnableBankingConnection, EnableBankingLinkPayload, EnableBankingSyncOptions } from '../types';
+import {
+  Account,
+  AccountType,
+  EnableBankingAccount,
+  EnableBankingConnection,
+  EnableBankingLinkPayload,
+  EnableBankingSyncOptions,
+} from '../types';
 import { toLocalISOString } from '../utils';
 import { loadEnableBankingConfig, persistEnableBankingConfig } from '../utils/enableBankingStorage';
 import EnableBankingSyncModal from './EnableBankingSyncModal';
@@ -74,6 +81,7 @@ const EnableBankingIntegrationCard: React.FC<EnableBankingIntegrationCardProps> 
     transactionMode: EnableBankingSyncOptions['transactionMode'];
     updateBalance: boolean;
     syncStartDate: string;
+    targetAccountIds?: string[];
   } | null>(null);
 
   const todayStr = useMemo(() => toLocalISOString(new Date()), []);
@@ -145,17 +153,23 @@ const EnableBankingIntegrationCard: React.FC<EnableBankingIntegrationCardProps> 
     }
   };
 
-  const openSyncPrompt = (connection: EnableBankingConnection) => {
-    const earliestAccountSyncDate = connection.accounts
+  const openSyncPrompt = (connection: EnableBankingConnection, account?: EnableBankingAccount) => {
+    const earliestAccountSyncDate = (account ? [account] : connection.accounts)
       ?.map(acc => clampSyncDate(acc.syncStartDate))
       .filter(Boolean)
       .sort()[0];
 
+    const hasPreviousSync = account
+      ? Boolean(account.lastSyncedAt)
+      : Boolean(connection.accounts?.some(acc => acc.lastSyncedAt));
+    const defaultTransactionMode = hasPreviousSync ? 'incremental' : 'full';
+
     setSyncPrompt({
       connectionId: connection.id,
-      transactionMode: 'full',
+      transactionMode: defaultTransactionMode,
       updateBalance: true,
       syncStartDate: clampSyncDate(earliestAccountSyncDate) || ninetyDaysAgoStr,
+      targetAccountIds: account ? [account.id] : undefined,
     });
   };
 
@@ -168,6 +182,7 @@ const EnableBankingIntegrationCard: React.FC<EnableBankingIntegrationCardProps> 
       transactionMode: options.transactionMode,
       updateBalance: options.updateBalance,
       syncStartDate: options.syncStartDate,
+      targetAccountIds: syncPrompt.targetAccountIds,
     });
 
     setSyncPrompt(null);
@@ -501,6 +516,14 @@ const EnableBankingIntegrationCard: React.FC<EnableBankingIntegrationCardProps> 
                                                         {account.currency} {account.balance.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
                                                     </p>
                                                     <p className="text-[10px] text-light-text-secondary dark:text-dark-text-secondary mt-1">Default sync start: {defaultSyncStart}</p>
+                                                    <div className="flex justify-end mt-3">
+                                                      <button
+                                                        onClick={() => openSyncPrompt(connection, account)}
+                                                        className={`${BTN_SECONDARY_STYLE} text-xs flex items-center gap-1`}
+                                                      >
+                                                        <span className="material-symbols-outlined text-sm">sync</span> Sync account
+                                                      </button>
+                                                    </div>
                                                 </div>
                                             </div>
 

@@ -26,7 +26,10 @@ class EnableBankingClient {
     );
   }
 
-  private async request<T>(path: string, init: RequestInit & { retryUnauthorized?: boolean } = {}): Promise<T> {
+  private async request<T>(
+    path: string,
+    init: RequestInit & { retryUnauthorized?: boolean; sessionId?: string } = {},
+  ): Promise<T> {
     const token = this.generateJwt();
     const url = `${ENABLE_BANKING_API}${path}`;
     const response = await fetch(url, {
@@ -34,6 +37,7 @@ class EnableBankingClient {
       headers: {
         'Content-Type': 'application/json',
         Authorization: `Bearer ${token}`,
+        ...(init.sessionId ? { 'Session-ID': init.sessionId } : {}),
         ...(init.headers || {}),
       },
     });
@@ -80,29 +84,31 @@ class EnableBankingClient {
     return this.request(`/sessions/${encodeURIComponent(sessionId)}`);
   }
 
-  getAccountBalances(accountId: string) {
-    return this.request(`/accounts/${encodeURIComponent(accountId)}/balances`);
+  getAccountBalances(accountId: string, sessionId: string) {
+    return this.request(`/accounts/${encodeURIComponent(accountId)}/balances`, { sessionId });
   }
 
-  getAccountDetails(accountId: string) {
-    return this.request(`/accounts/${encodeURIComponent(accountId)}/details`);
+  getAccountDetails(accountId: string, sessionId: string) {
+    return this.request(`/accounts/${encodeURIComponent(accountId)}/details`, { sessionId });
   }
 
   getAccountTransactions({
     accountId,
     dateFrom,
     continuationKey,
+    sessionId,
   }: {
     accountId: string;
     dateFrom?: string;
     continuationKey?: string;
+    sessionId?: string;
   }) {
     const params = new URLSearchParams();
     params.set('transaction_status', 'BOOK');
     if (dateFrom) params.set('date_from', dateFrom);
     if (continuationKey) params.set('continuation_key', continuationKey);
 
-    return this.request(`/accounts/${encodeURIComponent(accountId)}/transactions?${params.toString()}`);
+    return this.request(`/accounts/${encodeURIComponent(accountId)}/transactions?${params.toString()}`, { sessionId });
   }
 }
 
@@ -125,15 +131,19 @@ router.post('/aspsps', authenticateToken, async (req: AuthRequest, res) => {
 
 router.post('/accounts/:accountId/details', authenticateToken, async (req: AuthRequest, res) => {
   try {
-    const { applicationId, clientCertificate } = req.body as { applicationId?: string; clientCertificate?: string };
+    const { applicationId, clientCertificate, sessionId } = req.body as {
+      applicationId?: string;
+      clientCertificate?: string;
+      sessionId?: string;
+    };
     const { accountId } = (req as express.Request).params;
 
-    if (!applicationId || !clientCertificate) {
-      return res.status(400).json({ message: 'applicationId and clientCertificate are required' });
+    if (!applicationId || !clientCertificate || !sessionId) {
+      return res.status(400).json({ message: 'applicationId, clientCertificate and sessionId are required' });
     }
 
     const client = new EnableBankingClient(applicationId, clientCertificate);
-    const details = await client.getAccountDetails(accountId);
+    const details = await client.getAccountDetails(accountId, sessionId);
     res.json(details);
   } catch (error: any) {
     console.error('Failed to fetch account details', error);
@@ -198,13 +208,17 @@ router.post('/session/fetch', authenticateToken, async (req: AuthRequest, res) =
 
 router.post('/accounts/:accountId/balances', authenticateToken, async (req: AuthRequest, res) => {
   try {
-    const { applicationId, clientCertificate } = req.body as { applicationId?: string; clientCertificate?: string };
+    const { applicationId, clientCertificate, sessionId } = req.body as {
+      applicationId?: string;
+      clientCertificate?: string;
+      sessionId?: string;
+    };
     const { accountId } = (req as express.Request).params;
-    if (!applicationId || !clientCertificate) {
-      return res.status(400).json({ message: 'applicationId and clientCertificate are required' });
+    if (!applicationId || !clientCertificate || !sessionId) {
+      return res.status(400).json({ message: 'applicationId, clientCertificate and sessionId are required' });
     }
     const client = new EnableBankingClient(applicationId, clientCertificate);
-    const balances = await client.getAccountBalances(accountId);
+    const balances = await client.getAccountBalances(accountId, sessionId);
     res.json(balances);
   } catch (error: any) {
     console.error('Failed to fetch balances', error);
@@ -214,18 +228,19 @@ router.post('/accounts/:accountId/balances', authenticateToken, async (req: Auth
 
 router.post('/accounts/:accountId/transactions', authenticateToken, async (req: AuthRequest, res) => {
   try {
-    const { applicationId, clientCertificate, dateFrom, continuationKey } = req.body as {
+    const { applicationId, clientCertificate, dateFrom, continuationKey, sessionId } = req.body as {
       applicationId?: string;
       clientCertificate?: string;
       dateFrom?: string;
       continuationKey?: string;
+      sessionId?: string;
     };
     const { accountId } = (req as express.Request).params;
-    if (!applicationId || !clientCertificate) {
-      return res.status(400).json({ message: 'applicationId and clientCertificate are required' });
+    if (!applicationId || !clientCertificate || !sessionId) {
+      return res.status(400).json({ message: 'applicationId, clientCertificate and sessionId are required' });
     }
     const client = new EnableBankingClient(applicationId, clientCertificate);
-    const transactions = await client.getAccountTransactions({ accountId, dateFrom, continuationKey });
+    const transactions = await client.getAccountTransactions({ accountId, dateFrom, continuationKey, sessionId });
     res.json(transactions);
   } catch (error: any) {
     console.error('Failed to fetch transactions', error);

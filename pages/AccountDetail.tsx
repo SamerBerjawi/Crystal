@@ -82,6 +82,7 @@ const AccountDetail: React.FC<{
         syncStartDate: string;
         transactionMode: EnableBankingSyncOptions['transactionMode'];
         updateBalance: boolean;
+        targetAccountIds?: string[];
     } | null>(null);
 
     const handleOpenTransactionModal = (tx?: Transaction) => {
@@ -130,12 +131,16 @@ const AccountDetail: React.FC<{
     const handleOpenSyncPrompt = () => {
         if (!enableBankingLink) return;
 
+        const defaultTransactionMode = enableBankingLink.account.lastSyncedAt ? 'incremental' : 'full';
+        const defaultSyncStart = clampSyncDate(enableBankingLink.account.syncStartDate) || ninetyDaysAgoStr;
+
         setSyncPrompt({
             connectionId: enableBankingLink.connection.id,
             connectionOverride: enableBankingLink.connection,
-            syncStartDate: clampSyncDate(enableBankingLink.account.syncStartDate) || ninetyDaysAgoStr,
-            transactionMode: 'full',
+            syncStartDate: defaultSyncStart,
+            transactionMode: defaultTransactionMode,
             updateBalance: true,
+            targetAccountIds: [enableBankingLink.account.id],
         });
     };
 
@@ -150,6 +155,7 @@ const AccountDetail: React.FC<{
             transactionMode: options.transactionMode,
             updateBalance: options.updateBalance,
             syncStartDate,
+            targetAccountIds: syncPrompt.targetAccountIds,
         });
 
         setSyncPrompt(null);
