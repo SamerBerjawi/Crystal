@@ -35,7 +35,8 @@ const WarrantPriceModal: React.FC<WarrantPriceModalProps> = ({ onClose, onSave, 
     const [smartFetcherError, setSmartFetcherError] = useState<string | null>(null);
     const [smartFetcherCandidates, setSmartFetcherCandidates] = useState<{ id: string; value: number; selector: string; context: string; score: number }[]>([]);
     const [smartFetcherSelection, setSmartFetcherSelection] = useState<string | null>(null);
-    const [smartFetcherBinding, setSmartFetcherBinding] = useState<{ url: string; selector: string } | null>(null);
+    const [smartFetcherBinding, setSmartFetcherBinding] = useState<{ url: string; selector: string; cookies?: string } | null>(null);
+    const [smartFetcherCookies, setSmartFetcherCookies] = useState('');
 
     useEffect(() => {
         if (initialEntry) {
@@ -52,10 +53,13 @@ const WarrantPriceModal: React.FC<WarrantPriceModalProps> = ({ onClose, onSave, 
         try {
             const stored = localStorage.getItem('smartPriceBindings');
             if (stored) {
-                const parsed = JSON.parse(stored) as Record<string, { url: string; selector: string }>;
+                const parsed = JSON.parse(stored) as Record<string, { url: string; selector: string; cookies?: string }>;
                 if (parsed[isin]) {
                     setSmartFetcherBinding(parsed[isin]);
                     setSmartFetcherUrl(parsed[isin].url);
+                    if (parsed[isin].cookies) {
+                        setSmartFetcherCookies(parsed[isin].cookies);
+                    }
                 }
             }
         } catch (err) {
@@ -124,9 +128,10 @@ const WarrantPriceModal: React.FC<WarrantPriceModalProps> = ({ onClose, onSave, 
         return isNaN(parsed) ? null : parsed;
     };
 
-    const fetchSmartPage = async (targetUrl: string): Promise<string> => {
+    const fetchSmartPage = async (targetUrl: string, cookies?: string): Promise<string> => {
         const encodedUrl = encodeURIComponent(targetUrl);
-        const response = await fetch(`/api/smart-fetch?url=${encodedUrl}`);
+        const cookieParam = cookies ? `&cookies=${encodeURIComponent(cookies)}` : '';
+        const response = await fetch(`/api/smart-fetch?url=${encodedUrl}${cookieParam}`);
         if (!response.ok) {
             throw new Error(`Request failed with status ${response.status}`);
         }
@@ -151,10 +156,10 @@ const WarrantPriceModal: React.FC<WarrantPriceModalProps> = ({ onClose, onSave, 
         return parts.length ? parts.join(' > ') : '';
     };
 
-    const persistSmartBinding = (binding: { url: string; selector: string }) => {
+    const persistSmartBinding = (binding: { url: string; selector: string; cookies?: string }) => {
         try {
             const stored = localStorage.getItem('smartPriceBindings');
-            const parsed = stored ? (JSON.parse(stored) as Record<string, { url: string; selector: string }>) : {};
+            const parsed = stored ? (JSON.parse(stored) as Record<string, { url: string; selector: string; cookies?: string }>) : {};
             parsed[isin] = binding;
             localStorage.setItem('smartPriceBindings', JSON.stringify(parsed));
             setSmartFetcherBinding(binding);
@@ -230,6 +235,7 @@ const WarrantPriceModal: React.FC<WarrantPriceModalProps> = ({ onClose, onSave, 
         }
 
         const targetUrl = (opts?.useSavedSelector && smartFetcherBinding?.url) || smartFetcherUrl.trim() || smartFetcherBinding?.url || '';
+        const cookies = smartFetcherCookies.trim() || smartFetcherBinding?.cookies || '';
         if (!targetUrl) {
             setSmartFetcherError('Provide a page URL to scan for prices.');
             return;
@@ -239,7 +245,7 @@ const WarrantPriceModal: React.FC<WarrantPriceModalProps> = ({ onClose, onSave, 
         setSmartFetcherCandidates([]);
 
         try {
-            const html = await fetchSmartPage(targetUrl);
+            const html = await fetchSmartPage(targetUrl, cookies);
 
             if (opts?.useSavedSelector && smartFetcherBinding) {
                 const parser = new DOMParser();
@@ -259,6 +265,9 @@ const WarrantPriceModal: React.FC<WarrantPriceModalProps> = ({ onClose, onSave, 
             }
 
             setSmartFetcherUrl(targetUrl);
+            if (cookies) {
+                setSmartFetcherCookies(cookies);
+            }
             hydrateSmartFetcher(html);
         } catch (error) {
             console.error('Smart fetcher failed', error);
@@ -275,8 +284,9 @@ const WarrantPriceModal: React.FC<WarrantPriceModalProps> = ({ onClose, onSave, 
         setNewPrice(String(selected.value));
         setDate(toLocalISOString(new Date()));
         const bindingUrl = smartFetcherUrl.trim() || smartFetcherBinding?.url || '';
+        const cookies = smartFetcherCookies.trim() || smartFetcherBinding?.cookies;
         if (bindingUrl) {
-            persistSmartBinding({ url: bindingUrl, selector: selected.selector });
+            persistSmartBinding({ url: bindingUrl, selector: selected.selector, ...(cookies ? { cookies } : {}) });
         }
     };
 
@@ -472,6 +482,17 @@ const WarrantPriceModal: React.FC<WarrantPriceModalProps> = ({ onClose, onSave, 
                                             placeholder="https://example.com/your-warrant"
                                             className={INPUT_BASE_STYLE}
                                         />
+                                        <label className={labelStyle}>Optional cookies (useful for T&C or disclaimer gates)</label>
+                                        <input
+                                            type="text"
+                                            value={smartFetcherCookies}
+                                            onChange={(e) => setSmartFetcherCookies(e.target.value)}
+                                            placeholder="consent=true; disclaimerAccepted=1"
+                                            className={INPUT_BASE_STYLE}
+                                        />
+                                        <p className="text-xs text-light-text-secondary dark:text-dark-text-secondary">
+                                            Paste cookies after accepting any T&C or disclaimer in your browser so the proxy can reuse that session and reach the real price data.
+                                        </p>
                                         {smartFetcherBinding && (
                                             <p className="text-xs text-light-text-secondary dark:text-dark-text-secondary">
                                                 Saved selector for this holding: <span className="font-mono break-all">{smartFetcherBinding.selector}</span>

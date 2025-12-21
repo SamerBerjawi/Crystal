@@ -4,6 +4,7 @@ const smartFetcherRouter = express.Router();
 
 smartFetcherRouter.get('/', async (req, res) => {
     const targetUrl = req.query.url;
+    const cookies = typeof req.query.cookies === 'string' ? req.query.cookies : '';
 
     if (!targetUrl || typeof targetUrl !== 'string') {
         return res.status(400).json({ error: 'A URL query param is required.' });
@@ -19,6 +20,7 @@ smartFetcherRouter.get('/', async (req, res) => {
             headers: {
                 'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/123.0 Safari/537.36',
                 'Accept-Language': 'en-US,en;q=0.9',
+                ...(cookies ? { Cookie: cookies } : {}),
             },
         });
 
