@@ -1,7 +1,7 @@
 
 import React, { useMemo, useState, Suspense } from 'react';
 import { Account, Transaction, DisplayTransaction, ScheduledPayment, MileageLog, EnableBankingConnection, EnableBankingAccount, EnableBankingSyncOptions } from '../types';
-import { convertToEur, parseDateAsUTC, toLocalISOString } from '../utils';
+import { convertToEur, parseLocalDate, toLocalISOString } from '../utils';
 import AddTransactionModal from '../components/AddTransactionModal';
 import TransactionDetailModal from '../components/TransactionDetailModal';
 import AddMileageLogModal from '../components/AddMileageLogModal';
@@ -220,7 +220,7 @@ const AccountDetail: React.FC<{
             .filter(tx => tx.accountId === account.id)
             .map(tx => ({
                 tx,
-                parsedDate: parseDateAsUTC(tx.date),
+                parsedDate: parseLocalDate(tx.date),
                 convertedAmount: convertToEur(tx.amount, tx.currency)
             }));
     }, [transactions, account.id]);

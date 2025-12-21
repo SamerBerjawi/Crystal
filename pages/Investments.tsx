@@ -3,7 +3,7 @@ import React, { useState, useMemo, useCallback } from 'react';
 import { Account, InvestmentTransaction, Transaction, Warrant, InvestmentSubType, HoldingsOverview } from '../types';
 import { BTN_PRIMARY_STYLE, BRAND_COLORS, BTN_SECONDARY_STYLE, INVESTMENT_SUB_TYPE_STYLES } from '../constants';
 import Card from '../components/Card';
-import { formatCurrency, parseDateAsUTC } from '../utils';
+import { formatCurrency, parseLocalDate } from '../utils';
 import AddInvestmentTransactionModal from '../components/AddInvestmentTransactionModal';
 import PortfolioDistributionChart from '../components/PortfolioDistributionChart';
 import WarrantModal from '../components/WarrantModal';
@@ -136,7 +136,7 @@ const Investments: React.FC<InvestmentsProps> = ({
             data: w
         }));
 
-        return [...txs, ...grants].sort((a, b) => parseDateAsUTC(b.date).getTime() - parseDateAsUTC(a.date).getTime());
+        return [...txs, ...grants].sort((a, b) => parseLocalDate(b.date).getTime() - parseLocalDate(a.date).getTime());
     }, [investmentTransactions, warrants]);
 
     return (
@@ -408,7 +408,7 @@ const Investments: React.FC<InvestmentsProps> = ({
                                             </div>
                                             <div>
                                                 <p className="font-bold text-light-text dark:text-dark-text">{item.symbol}</p>
-                                                <p className="text-xs text-light-text-secondary dark:text-dark-text-secondary">{parseDateAsUTC(item.date).toLocaleDateString()}</p>
+                                                <p className="text-xs text-light-text-secondary dark:text-dark-text-secondary">{parseLocalDate(item.date).toLocaleDateString()}</p>
                                             </div>
                                         </div>
                                         <div className="text-right">

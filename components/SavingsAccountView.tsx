@@ -1,7 +1,7 @@
 
 import React, { useMemo } from 'react';
 import { Account, Transaction, DisplayTransaction, Category } from '../types';
-import { formatCurrency, parseDateAsUTC, convertToEur, getPreferredTimeZone } from '../utils';
+import { formatCurrency, parseLocalDate, convertToEur, getPreferredTimeZone, toLocalISOString } from '../utils';
 import Card from './Card';
 import TransactionList from './TransactionList';
 import { BTN_PRIMARY_STYLE, BTN_SECONDARY_STYLE } from '../constants';
@@ -48,8 +48,8 @@ const SavingsAccountView: React.FC<SavingsAccountViewProps> = ({
         const d = new Date(today.getFullYear(), today.getMonth() - i, 1);
         const monthKey = d.toLocaleString('default', { month: 'short' });
         
-        const startOfMonth = new Date(Date.UTC(d.getFullYear(), d.getMonth(), 1));
-        const endOfMonth = new Date(Date.UTC(d.getFullYear(), d.getMonth() + 1, 0));
+        const startOfMonth = new Date(d.getFullYear(), d.getMonth(), 1);
+        const endOfMonth = new Date(d.getFullYear(), d.getMonth() + 1, 0);
         
         // Filter for transactions that look like interest
         const interestTxs = transactions.filter(({ tx, parsedDate }) => {
@@ -67,7 +67,7 @@ const SavingsAccountView: React.FC<SavingsAccountViewProps> = ({
 
   const totalInterestYTD = useMemo(() => {
       const now = new Date();
-      const startOfYear = new Date(Date.UTC(now.getFullYear(), 0, 1));
+      const startOfYear = new Date(now.getFullYear(), 0, 1);
       return transactions
         .filter(({ tx, parsedDate }) => 
             parsedDate >= startOfYear && 
@@ -84,21 +84,21 @@ const SavingsAccountView: React.FC<SavingsAccountViewProps> = ({
     let currentBalance = account.balance;
     
     const today = new Date();
-    const endDate = new Date(Date.UTC(today.getFullYear(), today.getMonth(), today.getDate()));
+    const endDate = new Date(today.getFullYear(), today.getMonth(), today.getDate());
     
     const sortedTxs = [...transactions].sort((a, b) => b.parsedDate.getTime() - a.parsedDate.getTime());
     const dailyChanges: Record<string, number> = {};
     
     sortedTxs.forEach(({ tx, parsedDate }) => {
          if (parsedDate > today) return; 
-         const dateStr = parsedDate.toISOString().split('T')[0];
+         const dateStr = toLocalISOString(parsedDate);
          dailyChanges[dateStr] = (dailyChanges[dateStr] || 0) + tx.amount; // using native currency amount
     });
 
     let iterDate = new Date(endDate);
     // 3 months history
     for (let i = 0; i <= 90; i++) {
-        const dateStr = iterDate.toISOString().split('T')[0];
+        const dateStr = toLocalISOString(iterDate);
         data.push({ date: dateStr, value: currentBalance });
         const change = dailyChanges[dateStr] || 0;
         currentBalance -= change; // Reverse to go back in time
@@ -326,7 +326,7 @@ const SavingsAccountView: React.FC<SavingsAccountViewProps> = ({
                         {account.openingDate && (
                             <div className="flex justify-between">
                                 <span className="text-light-text-secondary dark:text-dark-text-secondary">Opened</span>
-                                <span className="font-medium text-light-text dark:text-dark-text">{parseDateAsUTC(account.openingDate).toLocaleDateString()}</span>
+                                <span className="font-medium text-light-text dark:text-dark-text">{parseLocalDate(account.openingDate).toLocaleDateString()}</span>
                             </div>
                         )}
                          {account.accountNumber && (

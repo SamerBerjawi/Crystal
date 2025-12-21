@@ -5,6 +5,7 @@ import { Account, AccountType, Currency, InvestmentSubType, PropertyType, Warran
 import { ALL_ACCOUNT_TYPES, CURRENCIES, ACCOUNT_TYPE_STYLES, INPUT_BASE_STYLE, BTN_PRIMARY_STYLE, BTN_SECONDARY_STYLE, BTN_DANGER_STYLE, SELECT_ARROW_STYLE, SELECT_WRAPPER_STYLE, ACCOUNT_ICON_LIST, INVESTMENT_SUB_TYPES, PROPERTY_TYPES, INVESTMENT_SUB_TYPE_STYLES, FUEL_TYPES, VEHICLE_OWNERSHIP_TYPES, CHECKBOX_STYLE, FREQUENCIES, ALL_ACCOUNT_TYPES as ALL_TYPES_CONST, CARD_NETWORKS, OTHER_ASSET_SUB_TYPES, OTHER_LIABILITY_SUB_TYPES, OTHER_ASSET_SUB_TYPE_STYLES, OTHER_LIABILITY_SUB_TYPE_STYLES } from '../constants';
 import IconPicker from './IconPicker';
 import { v4 as uuidv4 } from 'uuid';
+import { toLocalISOString } from '../utils';
 
 interface EditAccountModalProps {
   onClose: () => void;
@@ -62,7 +63,7 @@ const EditAccountModal: React.FC<EditAccountModalProps> = ({ onClose, onSave, on
 
   const [duration, setDuration] = useState(account.duration != null ? String(account.duration) : '');
   const [interestRate, setInterestRate] = useState(account.interestRate != null ? String(account.interestRate) : '');
-  const [loanStartDate, setLoanStartDate] = useState(account.loanStartDate || new Date().toISOString().split('T')[0]);
+  const [loanStartDate, setLoanStartDate] = useState(account.loanStartDate || toLocalISOString(new Date()));
   const [monthlyPayment, setMonthlyPayment] = useState(account.monthlyPayment != null ? String(account.monthlyPayment) : '');
   const [paymentDayOfMonth, setPaymentDayOfMonth] = useState(account.paymentDayOfMonth != null ? String(account.paymentDayOfMonth) : '');
   const [make, setMake] = useState(account.make || '');
@@ -95,7 +96,7 @@ const EditAccountModal: React.FC<EditAccountModalProps> = ({ onClose, onSave, on
   const [leasePaymentAccountId, setLeasePaymentAccountId] = useState(account.leasePaymentAccountId || '');
   const [vehicleImage, setVehicleImage] = useState(account.imageUrl || '');
   const [mileageLogs, setMileageLogs] = useState<MileageLog[]>(account.mileageLogs || []);
-  const [newLogDate, setNewLogDate] = useState(new Date().toISOString().split('T')[0]);
+  const [newLogDate, setNewLogDate] = useState(toLocalISOString(new Date()));
   const [newLogReading, setNewLogReading] = useState('');
   
   const fileInputRef = useRef<HTMLInputElement>(null);

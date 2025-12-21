@@ -13,7 +13,7 @@ import {
   ForecastDuration,
 } from '../types';
 import { BTN_PRIMARY_STYLE, BTN_SECONDARY_STYLE, LIQUID_ACCOUNT_TYPES, CHECKBOX_STYLE, FORECAST_DURATION_OPTIONS } from '../constants';
-import { calculateForecastHorizon, formatCurrency, convertToEur, generateBalanceForecast, generateSyntheticLoanPayments, generateSyntheticCreditCardPayments, parseDateAsUTC, getPreferredTimeZone, generateSyntheticPropertyTransactions, toLocalISOString } from '../utils';
+import { calculateForecastHorizon, formatCurrency, convertToEur, generateBalanceForecast, generateSyntheticLoanPayments, generateSyntheticCreditCardPayments, parseLocalDate, getPreferredTimeZone, generateSyntheticPropertyTransactions, toLocalISOString } from '../utils';
 import Card from '../components/Card';
 import MultiAccountFilter from '../components/MultiAccountFilter';
 import FinancialGoalCard from '../components/FinancialGoalCard';
@@ -59,7 +59,7 @@ const useSmartGoalPlanner = (
             
             const liquidAccounts = accounts.filter(a => LIQUID_ACCOUNT_TYPES.includes(a.type));
             const context = {
-                current_date: new Date().toISOString().split('T')[0],
+                current_date: toLocalISOString(new Date()),
                 liquid_accounts: liquidAccounts.map(({ name, balance, currency }) => ({ name, balance, currency })),
                 recurring_transactions: recurringTransactions.map(({ description, amount, type, frequency, nextDueDate }) => ({ description, amount, type, frequency, nextDueDate })),
                 financial_goals: financialGoals.filter(g => g.projection).map(({ name, amount, currentAmount, date, projection }) => ({ name, target_amount: amount, current_amount: currentAmount, target_date: date, projected_status: projection?.status })),
@@ -251,7 +251,7 @@ const Forecasting: React.FC = () => {
         const goalsWithProjections = financialGoals.map(goal => {
             if (goal.isBucket) return { ...goal, projection: undefined };
             
-            const goalDate = goal.date ? parseDateAsUTC(goal.date) : null;
+            const goalDate = goal.date ? parseLocalDate(goal.date) : null;
             let projectedDate = 'Beyond forecast';
             let status: 'on-track' | 'at-risk' | 'off-track' = 'off-track';
 
@@ -259,7 +259,7 @@ const Forecasting: React.FC = () => {
                 if (point.value >= goal.amount) {
                     projectedDate = point.date;
                     if (goalDate) {
-                        const projDate = parseDateAsUTC(projectedDate);
+                        const projDate = parseLocalDate(projectedDate);
                         if (projDate <= goalDate) {
                             status = 'on-track';
                         } else {
@@ -281,8 +281,8 @@ const Forecasting: React.FC = () => {
             case '1Y': endDate.setFullYear(endDate.getFullYear() + 1); break;
         }
 
-        const forecastDataForPeriod = chartData.filter(d => parseDateAsUTC(d.date) <= endDate);
-        const tableDataForPeriod = tableData.filter(d => parseDateAsUTC(d.date) <= endDate);
+        const forecastDataForPeriod = chartData.filter(d => parseLocalDate(d.date) <= endDate);
+        const tableDataForPeriod = tableData.filter(d => parseLocalDate(d.date) <= endDate);
 
         let lowestPointInPeriod = { value: Infinity, date: '' };
         if (forecastDataForPeriod.length > 0) {
@@ -319,7 +319,7 @@ const Forecasting: React.FC = () => {
             if (rt.type !== 'expense' && rt.type !== 'transfer') return;
             if (selectedAccountIds.length > 0 && !selectedAccountIds.includes(rt.accountId)) return;
             
-            const nextDue = parseDateAsUTC(rt.nextDueDate);
+            const nextDue = parseLocalDate(rt.nextDueDate);
             if (nextDue >= today && nextDue <= endDate) {
                 outflows.push({
                     name: rt.description,
@@ -336,7 +336,7 @@ const Forecasting: React.FC = () => {
             if (bill.type !== 'payment') return;
             if (selectedAccountIds.length > 0 && bill.accountId && !selectedAccountIds.includes(bill.accountId)) return;
 
-            const due = parseDateAsUTC(bill.dueDate);
+            const due = parseLocalDate(bill.dueDate);
             if (due >= today && due <= endDate) {
                  outflows.push({
                     name: bill.description,
@@ -580,7 +580,7 @@ const Forecasting: React.FC = () => {
                     </div>
                     <div className="relative z-10">
                         <p className={`text-2xl font-extrabold tracking-tight ${lowestPoint.value < 0 ? 'text-red-600' : 'text-light-text dark:text-dark-text'}`}>{formatCurrency(lowestPoint.value, 'EUR')}</p>
-                        <p className="text-xs font-medium mt-1 opacity-80">Lowest on {parseDateAsUTC(lowestPoint.date).toLocaleDateString()}</p>
+                        <p className="text-xs font-medium mt-1 opacity-80">Lowest on {parseLocalDate(lowestPoint.date).toLocaleDateString()}</p>
                     </div>
                 </div>
             </div>
@@ -713,7 +713,7 @@ const Forecasting: React.FC = () => {
                                             onClick={() => handleEditForecastItem(row)}
                                         >
                                             <td className="px-6 py-4 whitespace-nowrap font-mono text-xs text-light-text-secondary dark:text-dark-text-secondary group-hover:text-light-text dark:group-hover:text-dark-text">
-                                                {parseDateAsUTC(row.date).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric', timeZone })}
+                                                {parseLocalDate(row.date).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric', timeZone })}
                                             </td>
                                             <td className="px-6 py-4">
                                                 <span className="font-semibold text-light-text dark:text-dark-text truncate block max-w-[140px]">{row.accountName}</span>
@@ -771,7 +771,7 @@ const Forecasting: React.FC = () => {
                             
                             <div className="space-y-4">
                                 {majorUpcomingOutflows.length > 0 ? majorUpcomingOutflows.map((item, idx) => {
-                                    const dateObj = parseDateAsUTC(item.date);
+                                    const dateObj = parseLocalDate(item.date);
                                     return (
                                     <div key={`${item.name}-${item.date}-${item.amount}`} className="relative pl-10 flex items-center justify-between group">
                                         {/* Dot */}

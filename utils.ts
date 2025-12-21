@@ -50,7 +50,7 @@ export const getPreferredTimeZone = (fallback?: string): string => {
     try {
         return Intl.DateTimeFormat().resolvedOptions().timeZone;
     } catch (e) {
-        return 'UTC';
+        return fallback || 'local';
     }
 };
 
@@ -59,6 +59,12 @@ export const toLocalISOString = (date: Date): string => {
     const month = String(date.getMonth() + 1).padStart(2, '0');
     const day = String(date.getDate()).padStart(2, '0');
     return `${year}-${month}-${day}`;
+};
+
+export const toLocalISOYearMonth = (date: Date): string => {
+    const year = date.getFullYear();
+    const month = String(date.getMonth() + 1).padStart(2, '0');
+    return `${year}-${month}`;
 };
 
 /**
@@ -72,7 +78,7 @@ export const parseLocalDate = (dateString: string): Date => {
     try {
         // Parse YYYY-MM-DD string directly into a Local Date object (midnight)
         // This ensures that "Today" matches the device's concept of Today, avoiding
-        // shift issues (Yesterday/Tomorrow) caused by UTC offsets when using new Date(string).
+        // shift issues (Yesterday/Tomorrow) caused by timezone offsets when using new Date(string).
         const parts = dateString.split('-').map(Number);
         if (parts.length === 3 && !isNaN(parts[0]) && !isNaN(parts[1]) && !isNaN(parts[2])) {
             return new Date(parts[0], parts[1] - 1, parts[2]);
@@ -90,18 +96,15 @@ export const parseLocalDate = (dateString: string): Date => {
     }
 };
 
-// Deprecated alias for backward compatibility
-export const parseDateAsUTC = parseLocalDate;
-
 export function calculateForecastHorizon(
     chartData: { date: string; value: number }[],
 ): { period: string; lowestBalance: number; date: string }[] {
     if (!chartData || chartData.length === 0) return [];
 
     const today = new Date();
-    today.setUTCHours(0, 0, 0, 0);
+    today.setHours(0, 0, 0, 0);
 
-    const todayStr = new Date().toISOString().split('T')[0];
+    const todayStr = toLocalISOString(new Date());
     const startBalance = chartData[0].value;
 
     const findNthLowestUniquePoint = (
@@ -131,23 +134,23 @@ export function calculateForecastHorizon(
     const periods = [
         {
             label: 'This Month',
-            startDate: new Date(Date.UTC(today.getUTCFullYear(), today.getUTCMonth(), 1)),
-            endDate: new Date(Date.UTC(today.getUTCFullYear(), today.getUTCMonth() + 1, 0))
+            startDate: new Date(today.getFullYear(), today.getMonth(), 1),
+            endDate: new Date(today.getFullYear(), today.getMonth() + 1, 0)
         },
         {
             label: 'Next 3 Months',
-            startDate: new Date(Date.UTC(today.getUTCFullYear(), today.getUTCMonth() + 1, 1)),
-            endDate: new Date(Date.UTC(today.getUTCFullYear(), today.getUTCMonth() + 3, 0))
+            startDate: new Date(today.getFullYear(), today.getMonth() + 1, 1),
+            endDate: new Date(today.getFullYear(), today.getMonth() + 3, 0)
         },
         {
             label: 'Next 6 Months',
-            startDate: new Date(Date.UTC(today.getUTCFullYear(), today.getUTCMonth() + 3, 1)),
-            endDate: new Date(Date.UTC(today.getUTCFullYear(), today.getUTCMonth() + 6, 0))
+            startDate: new Date(today.getFullYear(), today.getMonth() + 3, 1),
+            endDate: new Date(today.getFullYear(), today.getMonth() + 6, 0)
         },
         {
             label: 'Next Year',
-            startDate: new Date(Date.UTC(today.getUTCFullYear(), today.getUTCMonth() + 6, 1)),
-            endDate: new Date(Date.UTC(today.getUTCFullYear(), today.getUTCMonth() + 12, 0))
+            startDate: new Date(today.getFullYear(), today.getMonth() + 6, 1),
+            endDate: new Date(today.getFullYear(), today.getMonth() + 12, 0)
         },
     ];
 
@@ -156,7 +159,7 @@ export function calculateForecastHorizon(
 
     for (const period of periods) {
         const dataForPeriod = chartData.filter(d => {
-            const dDate = parseDateAsUTC(d.date);
+            const dDate = parseLocalDate(d.date);
             return dDate >= period.startDate && dDate <= period.endDate;
         });
 
@@ -167,7 +170,7 @@ export function calculateForecastHorizon(
             const point = findNthLowestUniquePoint(dataForPeriod, n, displayedValues);
 
             if (!point) {
-                const lastKnown = chartData.find(d => parseDateAsUTC(d.date) < period.startDate);
+                const lastKnown = chartData.find(d => parseLocalDate(d.date) < period.startDate);
                 const val = lastKnown ? lastKnown.value : startBalance;
                 displayedPoint = { value: val, date: todayStr };
                 break;
@@ -476,7 +479,7 @@ export function generateSyntheticLoanPayments(accounts: Account[], transactions:
     const syntheticPayments: RecurringTransaction[] = [];
 
     const today = new Date();
-    const todayUTC = new Date(today.getFullYear(), today.getMonth(), today.getDate());
+    const todayLocal = new Date(today.getFullYear(), today.getMonth(), today.getDate());
 
     const loanAccounts = accounts.filter(
         (acc) =>
@@ -492,7 +495,7 @@ export function generateSyntheticLoanPayments(accounts: Account[], transactions:
 
         schedule.forEach(payment => {
             const paymentDate = parseLocalDate(payment.date);
-            if (payment.status === 'Paid' || paymentDate < todayUTC) {
+            if (payment.status === 'Paid' || paymentDate < todayLocal) {
                 return;
             }
 
@@ -528,7 +531,7 @@ export function generateSyntheticCreditCardPayments(accounts: Account[], allTran
     );
 
     const today = new Date();
-    const todayUTC = new Date(today.getFullYear(), today.getMonth(), today.getDate());
+    const todayLocal = new Date(today.getFullYear(), today.getMonth(), today.getDate());
 
     for (const account of configuredCreditCards) {
         const periods = calculateStatementPeriods(account.statementStartDate!, account.paymentDate!);
@@ -571,7 +574,7 @@ export function generateSyntheticCreditCardPayments(accounts: Account[], allTran
 
         for (const detail of statementDetails) {
             // Only create synthetic payments for FUTURE due dates
-            if (detail.period.paymentDue >= todayUTC) {
+            if (detail.period.paymentDue >= todayLocal) {
                 const { statementBalance } = getCreditCardStatementDetails(
                     account,
                     detail.period.start,
@@ -759,25 +762,25 @@ export function generateBalanceForecast(
 
     recurringTransactions.forEach(rt => {
         let nextDate = parseLocalDate(rt.nextDueDate);
-        const endDateUTC = rt.endDate ? parseLocalDate(rt.endDate) : null;
-        const startDateUTC = parseLocalDate(rt.startDate);
+        const endDateLocal = rt.endDate ? parseLocalDate(rt.endDate) : null;
+        const startDateLocal = parseLocalDate(rt.startDate);
 
-        while (nextDate < startDate && (!endDateUTC || nextDate < endDateUTC)) {
+        while (nextDate < startDate && (!endDateLocal || nextDate < endDateLocal)) {
             // This logic fast-forwards past-due occurrences to catch up to the present day for the forecast
             const interval = rt.frequencyInterval || 1;
             switch(rt.frequency) {
                 case 'daily': nextDate.setDate(nextDate.getDate() + interval); break;
                 case 'weekly': nextDate.setDate(nextDate.getDate() + 7 * interval); break;
                 case 'monthly': {
-                    const d = rt.dueDateOfMonth || startDateUTC.getDate();
+                    const d = rt.dueDateOfMonth || startDateLocal.getDate();
                     nextDate.setMonth(nextDate.getMonth() + interval, 1);
                     const lastDay = new Date(nextDate.getFullYear(), nextDate.getMonth() + 1, 0).getDate();
                     nextDate.setDate(Math.min(d, lastDay));
                     break;
                 }
                 case 'yearly': {
-                     const d = rt.dueDateOfMonth || startDateUTC.getDate();
-                     const m = startDateUTC.getMonth();
+                     const d = rt.dueDateOfMonth || startDateLocal.getDate();
+                     const m = startDateLocal.getMonth();
                      nextDate.setFullYear(nextDate.getFullYear() + interval);
                      const lastDay = new Date(nextDate.getFullYear(), m + 1, 0).getDate();
                      nextDate.setMonth(m, Math.min(d, lastDay));
@@ -785,8 +788,8 @@ export function generateBalanceForecast(
                 }
             }
         }
-        
-        while (nextDate <= forecastEndDate && (!endDateUTC || nextDate <= endDateUTC)) {
+
+        while (nextDate <= forecastEndDate && (!endDateLocal || nextDate <= endDateLocal)) {
             const dateStr = toLocalISOString(nextDate);
             // Use Map lookup instead of .find()
             const override = overrideMap.get(`${rt.id}-${dateStr}`);
@@ -848,15 +851,15 @@ export function generateBalanceForecast(
                 case 'daily': nextDate.setDate(nextDate.getDate() + interval); break;
                 case 'weekly': nextDate.setDate(nextDate.getDate() + 7 * interval); break;
                 case 'monthly': {
-                    const d = rt.dueDateOfMonth || startDateUTC.getDate();
+                    const d = rt.dueDateOfMonth || startDateLocal.getDate();
                     nextDate.setMonth(nextDate.getMonth() + interval, 1);
                     const lastDay = new Date(nextDate.getFullYear(), nextDate.getMonth() + 1, 0).getDate();
                     nextDate.setDate(Math.min(d, lastDay));
                     break;
                 }
                 case 'yearly': {
-                     const d = rt.dueDateOfMonth || startDateUTC.getDate();
-                     const m = startDateUTC.getMonth();
+                     const d = rt.dueDateOfMonth || startDateLocal.getDate();
+                     const m = startDateLocal.getMonth();
                      nextDate.setFullYear(nextDate.getFullYear() + interval);
                      const lastDay = new Date(nextDate.getFullYear(), m + 1, 0).getDate();
                      nextDate.setMonth(m, Math.min(d, lastDay));
@@ -977,15 +980,15 @@ export function generateAmortizationSchedule(
 
   const monthlyInterestRate = (interestRate || 0) / 100 / 12;
 
-  const paymentTransactions = transactions.filter(tx => 
+    const paymentTransactions = transactions.filter(tx =>
     tx.accountId === account.id &&
     tx.transferId &&
     ( (account.type === 'Loan' && tx.type === 'income') || (account.type === 'Lending' && tx.type === 'expense') )
   ).sort((a, b) => parseLocalDate(a.date).getTime() - parseLocalDate(b.date).getTime());
-  
+
   const paymentMap = new Map<string, Transaction>();
   paymentTransactions.forEach(p => {
-    const monthYear = parseLocalDate(p.date).toISOString().slice(0, 7);
+    const monthYear = toLocalISOYearMonth(parseLocalDate(p.date));
     paymentMap.set(monthYear, p);
   });
 
@@ -1002,7 +1005,7 @@ export function generateAmortizationSchedule(
   for (let i = 1; i <= duration; i++) {
     const scheduledDate = parseLocalDate(loanStartDate);
     scheduledDate.setMonth(scheduledDate.getMonth() + i);
-    const monthYearKey = parseLocalDate(scheduledDate.toISOString()).toISOString().slice(0, 7);
+    const monthYearKey = toLocalISOYearMonth(scheduledDate);
     
     const realPaymentForPeriod = paymentMap.get(monthYearKey);
 

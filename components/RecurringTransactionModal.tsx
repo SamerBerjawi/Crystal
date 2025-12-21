@@ -3,7 +3,7 @@ import React, { useState, useMemo, useEffect } from 'react';
 import Modal from './Modal';
 import { Account, Category, RecurringTransaction, RecurrenceFrequency, WeekendAdjustment } from '../types';
 import { INPUT_BASE_STYLE, BTN_PRIMARY_STYLE, BTN_SECONDARY_STYLE, SELECT_WRAPPER_STYLE, SELECT_ARROW_STYLE, FREQUENCIES, WEEKEND_ADJUSTMENTS, ALL_ACCOUNT_TYPES } from '../constants';
-import { toLocalISOString } from '../utils';
+import { parseLocalDate, toLocalISOString } from '../utils';
 
 interface RecurringTransactionModalProps {
     onClose: () => void;
@@ -149,14 +149,14 @@ const RecurringTransactionModal: React.FC<RecurringTransactionModalProps> = ({ o
             return;
         }
 
-        const start = new Date(`${startDate}T12:00:00Z`); // Use noon to avoid timezone issues
+        const start = parseLocalDate(startDate);
         let nextDue = new Date(start);
 
         if ((frequency === 'monthly' || frequency === 'yearly') && dueDateOfMonth) {
             const day = parseInt(dueDateOfMonth, 10);
-            nextDue.setUTCDate(day);
+            nextDue.setDate(day);
             if (nextDue < start) {
-                nextDue.setUTCMonth(nextDue.getUTCMonth() + 1);
+                nextDue.setMonth(nextDue.getMonth() + 1);
             }
         }
 

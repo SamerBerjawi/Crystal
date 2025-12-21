@@ -1,7 +1,7 @@
 
 import React, { useMemo, useState } from 'react';
 import { Membership } from '../types';
-import { parseDateAsUTC } from '../utils';
+import { parseLocalDate } from '../utils';
 
 interface LoyaltyCardProps {
   membership: Membership;
@@ -32,7 +32,7 @@ const LoyaltyCard: React.FC<LoyaltyCardProps> = ({ membership, onEdit, onDelete 
   const cardColor = membership.color || '#4f46e5';
 
   const formattedExpiry = membership.expiryDate
-    ? parseDateAsUTC(membership.expiryDate).toLocaleDateString('en-US', { month: '2-digit', year: '2-digit' })
+    ? parseLocalDate(membership.expiryDate).toLocaleDateString('en-US', { month: '2-digit', year: '2-digit' })
     : 'Never';
 
   const isExpired = useMemo(() => {

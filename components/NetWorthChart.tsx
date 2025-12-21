@@ -1,7 +1,7 @@
 
 import React from 'react';
 import { AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts';
-import { formatCurrency, parseDateAsUTC } from '../utils';
+import { formatCurrency, parseLocalDate } from '../utils';
 
 interface ChartData {
   name: string;
@@ -25,7 +25,7 @@ const NetWorthChart: React.FC<NetWorthChartProps> = ({ data, lineColor = '#6366F
       if (active && payload && payload.length) {
         return (
           <div className="bg-white dark:bg-dark-card p-3 rounded-xl shadow-lg border border-black/5 dark:border-white/10">
-            <p className="label font-semibold text-light-text-secondary dark:text-dark-text-secondary text-xs mb-1">{parseDateAsUTC(label).toLocaleDateString('en-US', { day: 'numeric', month: 'long', year: 'numeric' })}</p>
+            <p className="label font-semibold text-light-text-secondary dark:text-dark-text-secondary text-xs mb-1">{parseLocalDate(label).toLocaleDateString('en-US', { day: 'numeric', month: 'long', year: 'numeric' })}</p>
             <p className="font-bold text-lg text-light-text dark:text-dark-text">{formatCurrency(payload[0].value, 'EUR')}</p>
           </div>
         );
@@ -34,12 +34,12 @@ const NetWorthChart: React.FC<NetWorthChartProps> = ({ data, lineColor = '#6366F
   };
 
   const tickFormatter = (dateStr: string) => {
-    const date = parseDateAsUTC(dateStr);
+    const date = parseLocalDate(dateStr);
 
     if (data.length <= 1) return '';
 
-    const startDate = parseDateAsUTC(data[0].name);
-    const endDate = parseDateAsUTC(data[data.length - 1].name);
+    const startDate = parseLocalDate(data[0].name);
+    const endDate = parseLocalDate(data[data.length - 1].name);
     const rangeInDays = (endDate.getTime() - startDate.getTime()) / (1000 * 3600 * 24);
 
     if (rangeInDays <= 31) {

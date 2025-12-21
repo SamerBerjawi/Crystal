@@ -86,7 +86,7 @@ import { createDemoUser, initialFinancialData } from './demoData';
 import { v4 as uuidv4 } from 'uuid';
 import ChatFab from './components/ChatFab';
 const Chatbot = lazy(() => import('./components/Chatbot'));
-import { convertToEur, CONVERSION_RATES, arrayToCSV, downloadCSV, parseDateAsUTC, toLocalISOString } from './utils';
+import { convertToEur, CONVERSION_RATES, arrayToCSV, downloadCSV, parseLocalDate, toLocalISOString } from './utils';
 import { buildHoldingsOverview } from './utils/investments';
 import { useDebounce } from './hooks/useDebounce';
 import { useAuth } from './hooks/useAuth';
@@ -551,7 +551,7 @@ const App: React.FC = () => {
   
   useEffect(() => {
       // Always sync app preference to device timezone on load to prevent "tomorrow/yesterday" bugs
-      const deviceTimezone = typeof Intl !== 'undefined' ? Intl.DateTimeFormat().resolvedOptions().timeZone : 'UTC';
+      const deviceTimezone = typeof Intl !== 'undefined' ? Intl.DateTimeFormat().resolvedOptions().timeZone : 'local';
       if (preferences.timezone !== deviceTimezone) {
           setPreferences(prev => ({ ...prev, timezone: deviceTimezone }));
       }
@@ -1871,7 +1871,7 @@ const App: React.FC = () => {
     return {
       id: `eb-${connectionId}-${accountId}-${idSource}`,
       accountId,
-      date: date || new Date().toISOString().slice(0, 10),
+      date: date || toLocalISOString(new Date()),
       description,
       merchant: merchant || undefined,
       amount: signedAmount,
@@ -1901,7 +1901,6 @@ const App: React.FC = () => {
     const safeAccounts = connection.accounts || [];
     const { transactionMode = 'full', updateBalance = true, syncStartDate } = syncOptions || {};
     const shouldSyncTransactions = transactionMode !== 'none';
-    const now = new Date().toISOString();
     const ninetyDaysAgoStr = toLocalISOString(new Date(Date.now() - 90 * 24 * 60 * 60 * 1000));
     const todayStr = toLocalISOString(new Date());
     const clampSyncStartDate = (value?: string) => {

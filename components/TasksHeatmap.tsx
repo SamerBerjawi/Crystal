@@ -1,7 +1,7 @@
 
 import React, { useMemo } from 'react';
 import { Task, TaskPriority } from '../types';
-import { parseDateAsUTC } from '../utils';
+import { parseLocalDate, toLocalISOString } from '../utils';
 
 interface TasksHeatmapProps {
     tasks: Task[];
@@ -30,7 +30,7 @@ const TasksHeatmap: React.FC<TasksHeatmapProps> = ({ tasks }) => {
         const tasksByDate = new Map<string, { priority: TaskPriority, count: number }>();
         tasks.forEach(task => {
             if (task.dueDate) {
-                const taskDate = parseDateAsUTC(task.dueDate);
+                const taskDate = parseLocalDate(task.dueDate);
 
                 if (taskDate >= startDate && taskDate <= endDate) {
                     const dateStr = task.dueDate;
@@ -93,7 +93,7 @@ const TasksHeatmap: React.FC<TasksHeatmapProps> = ({ tasks }) => {
 
     }, [tasks]);
     
-    const todayStr = new Date().toISOString().split('T')[0];
+    const todayStr = toLocalISOString(new Date());
 
     return (
         <div className="flex flex-col items-center w-full">
@@ -140,7 +140,7 @@ const TasksHeatmap: React.FC<TasksHeatmapProps> = ({ tasks }) => {
                                 if (!day) {
                                     return <div key={`pad-${index}`} className="w-[14px] h-[14px]" />;
                                 }
-                                const dateStr = day.toISOString().split('T')[0];
+                                const dateStr = toLocalISOString(day);
                                 const isToday = dateStr === todayStr;
 
                                 const dayData = tasksByDate.get(dateStr);

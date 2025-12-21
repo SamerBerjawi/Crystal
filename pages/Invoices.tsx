@@ -2,7 +2,7 @@
 import React, { useState, useMemo, useEffect } from 'react';
 import { Invoice, InvoiceItem, InvoiceType, InvoiceStatus, InvoiceDirection, Currency, PaymentTerm } from '../types';
 import { BTN_PRIMARY_STYLE, BTN_SECONDARY_STYLE, INPUT_BASE_STYLE, SELECT_WRAPPER_STYLE, SELECT_ARROW_STYLE } from '../constants';
-import { formatCurrency, toLocalISOString, parseDateAsUTC } from '../utils';
+import { formatCurrency, toLocalISOString, parseLocalDate } from '../utils';
 import Card from '../components/Card';
 import Modal from '../components/Modal';
 import ConfirmationModal from '../components/ConfirmationModal';
@@ -377,13 +377,13 @@ const InvoicesPage: React.FC<InvoicesProps> = () => {
     const invoicesList = useMemo(() => {
         return invoices
             .filter(inv => inv.type === 'invoice')
-            .sort((a,b) => parseDateAsUTC(b.date).getTime() - parseDateAsUTC(a.date).getTime());
+            .sort((a,b) => parseLocalDate(b.date).getTime() - parseLocalDate(a.date).getTime());
     }, [invoices]);
 
     const quotesList = useMemo(() => {
         return invoices
             .filter(inv => inv.type === 'quote')
-            .sort((a,b) => parseDateAsUTC(b.date).getTime() - parseDateAsUTC(a.date).getTime());
+            .sort((a,b) => parseLocalDate(b.date).getTime() - parseLocalDate(a.date).getTime());
     }, [invoices]);
 
     const stats = useMemo(() => {

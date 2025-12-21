@@ -2,7 +2,7 @@
 
 import React, { useMemo } from 'react';
 import { Account, Transaction, DisplayTransaction, Category } from '../types';
-import { formatCurrency, parseDateAsUTC, convertToEur, getPreferredTimeZone } from '../utils';
+import { formatCurrency, parseLocalDate, convertToEur, getPreferredTimeZone } from '../utils';
 import Card from './Card';
 import TransactionList from './TransactionList';
 import { BTN_PRIMARY_STYLE, BTN_SECONDARY_STYLE } from '../constants';
@@ -50,7 +50,7 @@ const SpareChangeAccountView: React.FC<SpareChangeAccountViewProps> = ({
       let max = 0;
       
       const now = new Date();
-      const currentMonthStart = new Date(Date.UTC(now.getFullYear(), now.getMonth(), 1));
+      const currentMonthStart = new Date(now.getFullYear(), now.getMonth(), 1);
 
       transactions.forEach(({ tx, parsedDate, convertedAmount }) => {
           if (tx.type === 'income') {
@@ -85,8 +85,8 @@ const SpareChangeAccountView: React.FC<SpareChangeAccountViewProps> = ({
         const d = new Date(today.getFullYear(), today.getMonth() - i, 1);
         const monthKey = d.toLocaleString('default', { month: 'short' });
         
-        const startOfMonth = new Date(Date.UTC(d.getFullYear(), d.getMonth(), 1));
-        const endOfMonth = new Date(Date.UTC(d.getFullYear(), d.getMonth() + 1, 0));
+        const startOfMonth = new Date(d.getFullYear(), d.getMonth(), 1);
+        const endOfMonth = new Date(d.getFullYear(), d.getMonth() + 1, 0);
         
         const total = transactions
             .filter(t => t.parsedDate >= startOfMonth && t.parsedDate <= endOfMonth && t.tx.type === 'income' && !t.tx.isMarketAdjustment)
