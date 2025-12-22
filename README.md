@@ -3,6 +3,7 @@
 **Crystal** is the ultimate personal finance operating system. It moves beyond simple expense tracking to provide a professional-grade financial simulation engine wrapped in a beautiful, **privacy-first, self-hosted** application.
 
 Designed for data sovereignty, Crystal ensures your financial data remains yours while offering features typically found only in enterprise wealth management software.
+<img width="3565" height="1879" alt="Untitled design" src="https://github.com/user-attachments/assets/fdcd513b-f0c2-492c-9124-b34453fbf196" />
 
 ## 🌟 Key Features
 
