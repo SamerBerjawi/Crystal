@@ -384,26 +384,28 @@ const App: React.FC = () => {
     yesterday.setDate(yesterday.getDate() - 1);
     const yesterdayStr = toLocalISOString(yesterday);
 
-    const lastLogDate = (userStats.lastLogDate || '').split('T')[0];
+    const normalizedLastLogDate = userStats.lastLogDate
+      ? toLocalISOString(parseLocalDate(userStats.lastLogDate))
+      : '';
 
     // Only update if not already logged today
-    if (lastLogDate !== todayStr) {
-       let newStreak = 1;
+    if (normalizedLastLogDate !== todayStr) {
+      let newStreak = 1;
 
-       if (lastLogDate === yesterdayStr) {
-           newStreak = (userStats.currentStreak || 0) + 1;
-       }
+      if (normalizedLastLogDate === yesterdayStr) {
+        newStreak = (userStats.currentStreak || 0) + 1;
+      }
 
-       const newStats = {
-           ...userStats,
-           currentStreak: newStreak,
-           longestStreak: Math.max(newStreak, userStats.longestStreak || 0),
-           lastLogDate: todayStr
-       };
+      const newStats = {
+        ...userStats,
+        currentStreak: newStreak,
+        longestStreak: Math.max(newStreak, userStats.longestStreak || 0),
+        lastLogDate: todayStr,
+      };
 
-       setUserStats(newStats);
-       // Trigger save
-       markSliceDirty('userStats');
+      setUserStats(newStats);
+      // Trigger save
+      markSliceDirty('userStats');
     }
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [isDataLoaded, isAuthenticated]);
