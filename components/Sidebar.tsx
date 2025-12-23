@@ -74,6 +74,7 @@ const Sidebar: React.FC<SidebarProps> = ({
 
     // Icon Styles
     const iconClass = `material-symbols-outlined text-[22px] flex-shrink-0 transition-transform duration-200 ${!isActive && 'group-hover:scale-110'}`;
+    const iconGlowClass = isActive ? 'bg-white/10 shadow-lg shadow-primary-500/30' : '';
 
     return (
       <li key={item.name} className="mb-1">
@@ -83,7 +84,9 @@ const Sidebar: React.FC<SidebarProps> = ({
           title={isSidebarCollapsed ? item.name : undefined}
         >
             <div className={`flex items-center ${isSidebarCollapsed ? 'justify-center w-full' : 'gap-3 min-w-0'}`}>
-              <span className={iconClass}>{item.icon}</span>
+              <span className={`rounded-lg p-1 ${iconGlowClass}`}>
+                <span className={iconClass}>{item.icon}</span>
+              </span>
               <span className={`whitespace-nowrap truncate transition-all duration-300 ${isSidebarCollapsed ? 'w-0 opacity-0 overflow-hidden' : 'w-auto opacity-100'}`}>
                   {item.name}
               </span>

@@ -18,7 +18,7 @@ const SectionHeader = React.memo(function SectionHeader({ title, icon, descripti
   return (
     <div className="mb-6 pb-4 border-b border-black/5 dark:border-white/5">
       <div className="flex items-center gap-3 mb-2">
-          <div className="w-8 h-8 rounded-lg bg-primary-100 dark:bg-primary-900/30 text-primary-600 dark:text-primary-400 flex items-center justify-center shrink-0">
+          <div className="w-8 h-8 rounded-lg bg-primary-100 dark:bg-primary-900/30 text-primary-600 dark:text-primary-400 flex items-center justify-center shrink-0 shadow-lg shadow-primary-500/25">
           <span className="material-symbols-outlined text-lg">{icon}</span>
           </div>
           <h3 className="text-lg font-bold text-light-text dark:text-dark-text">{title}</h3>
@@ -62,7 +62,7 @@ const ThemeCard = React.memo(function ThemeCard({ label, theme, currentTheme, se
           : 'border-transparent bg-light-bg dark:bg-dark-bg hover:bg-black/5 dark:hover:bg-white/5'
       }`}
     >
-      <div className={`w-12 h-12 rounded-full flex items-center justify-center mb-3 transition-colors ${isSelected ? 'bg-primary-100 text-primary-600 dark:bg-primary-900/50 dark:text-primary-400' : 'bg-white dark:bg-white/10 text-gray-500'}`}>
+      <div className={`w-12 h-12 rounded-full flex items-center justify-center mb-3 transition-colors shadow-lg ${isSelected ? 'bg-primary-100 text-primary-600 dark:bg-primary-900/50 dark:text-primary-400 shadow-primary-500/30' : 'bg-white dark:bg-white/10 text-gray-500 shadow-slate-500/20'}`}>
         <span className="material-symbols-outlined text-2xl">{icon}</span>
       </div>
       <span className={`text-sm font-semibold ${isSelected ? 'text-primary-700 dark:text-primary-300' : 'text-light-text dark:text-dark-text'}`}>{label}</span>

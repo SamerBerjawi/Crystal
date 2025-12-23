@@ -21,7 +21,9 @@ const PageHeader: React.FC<PageHeaderProps> = ({
     <header className={`flex flex-col md:flex-row gap-4 md:items-center md:justify-between ${className}`}>
       <div className="flex flex-col gap-3">
         <div className="flex items-center gap-2 text-sm font-semibold text-primary-600 dark:text-primary-300">
-          <span className="material-symbols-outlined text-xl">{markerIcon}</span>
+          <span className="material-symbols-outlined text-xl inline-flex items-center justify-center rounded-full p-1 shadow-lg shadow-primary-500/30 bg-primary-500/10">
+            {markerIcon}
+          </span>
           <span>{markerLabel}</span>
         </div>
         <div className="space-y-1">

@@ -19,12 +19,13 @@ const AccountBreakdownCard: React.FC<AccountBreakdownCardProps> = ({ title, tota
     const iconColor = isAsset ? 'text-emerald-600 dark:text-emerald-400' : 'text-rose-600 dark:text-rose-400';
     const iconBg = isAsset ? 'bg-emerald-100 dark:bg-emerald-900/30' : 'bg-rose-100 dark:bg-rose-900/30';
     const iconName = isAsset ? 'account_balance' : 'credit_card';
+    const iconGlow = isAsset ? 'shadow-lg shadow-emerald-500/30' : 'shadow-lg shadow-rose-500/30';
 
     return (
         <div className="bg-white dark:bg-dark-card rounded-2xl p-5 border border-black/5 dark:border-white/5 shadow-sm h-full flex flex-col justify-between">
             <div>
                 <div className="flex justify-between items-start mb-4">
-                    <div className={`w-10 h-10 rounded-xl flex items-center justify-center ${iconBg} ${iconColor}`}>
+                    <div className={`w-10 h-10 rounded-xl flex items-center justify-center ${iconBg} ${iconColor} ${iconGlow}`}>
                         <span className="material-symbols-outlined text-xl">{iconName}</span>
                     </div>
                     <div className="text-right">

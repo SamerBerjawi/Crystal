@@ -101,7 +101,7 @@ const WIDGET_TABS: Record<DashboardTab, string[]> = {
 
 const AnalysisStatCard: React.FC<{ title: string; value: string; subtext: string; icon: string; colorClass: string }> = ({ title, value, subtext, icon, colorClass }) => (
     <div className="bg-white dark:bg-dark-card p-6 rounded-2xl border border-black/5 dark:border-white/5 shadow-sm flex items-center gap-5 hover:shadow-md transition-all duration-200">
-        <div className={`w-14 h-14 rounded-xl flex items-center justify-center ${colorClass} shrink-0`}>
+        <div className={`w-14 h-14 rounded-xl flex items-center justify-center ${colorClass} shadow-lg shrink-0`}>
             <span className="material-symbols-outlined text-3xl">{icon}</span>
         </div>
         <div>
@@ -1190,21 +1190,21 @@ const Dashboard: React.FC<DashboardProps> = ({ user, tasks, saveTask }) => {
                     value={`${liquidityRatio.toFixed(1)} months`} 
                     subtext="Runway based on avg. spend" 
                     icon="savings" 
-                    colorClass="bg-blue-100 dark:bg-blue-900/30 text-blue-600 dark:text-blue-400"
+                    colorClass="bg-blue-100 dark:bg-blue-900/30 text-blue-600 dark:text-blue-400 shadow-blue-500/30"
                   />
                   <AnalysisStatCard 
                     title="Savings Rate" 
                     value={`${savingsRate.toFixed(0)}%`} 
                     subtext={`of total income (${duration})`}
                     icon="trending_up" 
-                    colorClass="bg-green-100 dark:bg-green-900/30 text-green-600 dark:text-green-400"
+                    colorClass="bg-green-100 dark:bg-green-900/30 text-green-600 dark:text-green-400 shadow-green-500/30"
                   />
                   <AnalysisStatCard 
                     title="Debt Ratio" 
                     value={`${(globalTotalAssets > 0 ? (Math.abs(globalTotalDebt) / globalTotalAssets) * 100 : 0).toFixed(1)}%`} 
                     subtext="Liabilities / Assets"
                     icon="pie_chart" 
-                    colorClass="bg-purple-100 dark:bg-purple-900/30 text-purple-600 dark:text-purple-400"
+                    colorClass="bg-purple-100 dark:bg-purple-900/30 text-purple-600 dark:text-purple-400 shadow-purple-500/30"
                   />
               </div>
 

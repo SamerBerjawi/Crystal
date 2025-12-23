@@ -25,10 +25,10 @@ interface TransactionsProps {
   onClearInitialFilters?: () => void;
 }
 
-const MetricCard = React.memo(function MetricCard({ label, value, colorClass = "text-light-text dark:text-dark-text", icon }: { label: string; value: string; colorClass?: string; icon: string }) {
+const MetricCard = React.memo(function MetricCard({ label, value, colorClass = "text-light-text dark:text-dark-text", icon, glowClass = "shadow-slate-500/20" }: { label: string; value: string; colorClass?: string; icon: string; glowClass?: string }) {
     return (
         <div className="bg-white dark:bg-dark-card p-4 rounded-xl shadow-sm border border-black/5 dark:border-white/5 flex items-center gap-4 transition-transform hover:scale-[1.02] duration-200 h-full">
-            <div className={`w-12 h-12 rounded-full flex items-center justify-center bg-light-bg dark:bg-white/5 text-light-text-secondary dark:text-dark-text-secondary flex-shrink-0`}>
+            <div className={`w-12 h-12 rounded-full flex items-center justify-center bg-light-bg dark:bg-white/5 text-light-text-secondary dark:text-dark-text-secondary flex-shrink-0 shadow-lg ${glowClass}`}>
                 <span className="material-symbols-outlined text-2xl">{icon}</span>
             </div>
             <div>
@@ -1003,9 +1003,9 @@ const Transactions: React.FC<TransactionsProps> = ({ initialAccountFilter, initi
                 <span className="material-symbols-outlined text-9xl">receipt_long</span>
             </div>
         </Card>
-        <MetricCard label="Total Income" value={formatCurrency(totalIncome, 'EUR')} colorClass="text-green-600 dark:text-green-400" icon="arrow_downward" />
-        <MetricCard label="Total Expenses" value={formatCurrency(totalExpense, 'EUR')} colorClass="text-red-600 dark:text-red-400" icon="arrow_upward" />
-        <MetricCard label="Net Cash Flow" value={formatCurrency(netFlow, 'EUR', { showPlusSign: true })} colorClass={netFlow >= 0 ? 'text-green-600 dark:text-green-400' : 'text-red-600 dark:text-red-400'} icon="account_balance_wallet" />
+        <MetricCard label="Total Income" value={formatCurrency(totalIncome, 'EUR')} colorClass="text-green-600 dark:text-green-400" icon="arrow_downward" glowClass="shadow-green-500/30" />
+        <MetricCard label="Total Expenses" value={formatCurrency(totalExpense, 'EUR')} colorClass="text-red-600 dark:text-red-400" icon="arrow_upward" glowClass="shadow-red-500/30" />
+        <MetricCard label="Net Cash Flow" value={formatCurrency(netFlow, 'EUR', { showPlusSign: true })} colorClass={netFlow >= 0 ? 'text-green-600 dark:text-green-400' : 'text-red-600 dark:text-red-400'} icon="account_balance_wallet" glowClass={netFlow >= 0 ? 'shadow-green-500/30' : 'shadow-red-500/30'} />
       </div>
       
       {/* Filter Toolbar */}

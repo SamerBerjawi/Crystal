@@ -17,13 +17,13 @@ const Settings: React.FC<SettingsProps> = ({ setCurrentPage, user }) => {
     }
   };
 
-  const SettingItem = ({ page, icon, title, description, colorClass = "bg-gray-100 text-gray-600 dark:bg-gray-800 dark:text-gray-300" }: { page: Page; icon: string; title: string; description?: string; colorClass?: string }) => (
+  const SettingItem = ({ page, icon, title, description, colorClass = "bg-gray-100 text-gray-600 dark:bg-gray-800 dark:text-gray-300", glowClass = "shadow-slate-500/20" }: { page: Page; icon: string; title: string; description?: string; colorClass?: string; glowClass?: string }) => (
     <div 
       onClick={() => handleNavigation(page)}
       className="flex items-center justify-between p-4 hover:bg-black/5 dark:hover:bg-white/5 transition-colors cursor-pointer group first:rounded-t-xl last:rounded-b-xl"
     >
       <div className="flex items-center gap-4">
-        <div className={`w-10 h-10 rounded-full flex items-center justify-center ${colorClass}`}>
+        <div className={`w-10 h-10 rounded-full flex items-center justify-center shadow-lg ${glowClass} ${colorClass}`}>
           <span className="material-symbols-outlined text-xl">{icon}</span>
         </div>
         <div>
@@ -78,6 +78,7 @@ const Settings: React.FC<SettingsProps> = ({ setCurrentPage, user }) => {
             title="Preferences"
             description="Theme, currency, language, and regional formats"
             colorClass="bg-blue-100 text-blue-600 dark:bg-blue-900/30 dark:text-blue-400"
+            glowClass="shadow-blue-500/30"
           />
           <SettingItem
             page="Integrations"
@@ -85,6 +86,7 @@ const Settings: React.FC<SettingsProps> = ({ setCurrentPage, user }) => {
             title="Integrations"
             description="Manage API keys and external service connections"
             colorClass="bg-indigo-100 text-indigo-600 dark:bg-indigo-900/30 dark:text-indigo-400"
+            glowClass="shadow-indigo-500/30"
           />
           <SettingItem
             page="Merchants"
@@ -92,6 +94,7 @@ const Settings: React.FC<SettingsProps> = ({ setCurrentPage, user }) => {
             title="Merchant Logos"
             description="Review detected merchants and customize their logos"
             colorClass="bg-green-100 text-green-600 dark:bg-green-900/30 dark:text-green-400"
+            glowClass="shadow-green-500/30"
           />
            <SettingItem
             page="AI Assistant"
@@ -99,6 +102,7 @@ const Settings: React.FC<SettingsProps> = ({ setCurrentPage, user }) => {
             title="AI Assistant"
             description="Configure API keys and AI behaviors"
             colorClass="bg-purple-100 text-purple-600 dark:bg-purple-900/30 dark:text-purple-400"
+            glowClass="shadow-purple-500/30"
           />
         </div>
       </div>
@@ -113,6 +117,7 @@ const Settings: React.FC<SettingsProps> = ({ setCurrentPage, user }) => {
             title="Categories" 
             description="Manage income and expense categories"
             colorClass="bg-orange-100 text-orange-600 dark:bg-orange-900/30 dark:text-orange-400"
+            glowClass="shadow-orange-500/30"
           />
           <SettingItem 
             page="Tags" 
@@ -120,6 +125,7 @@ const Settings: React.FC<SettingsProps> = ({ setCurrentPage, user }) => {
             title="Tags" 
             description="Custom tags for transaction filtering"
             colorClass="bg-pink-100 text-pink-600 dark:bg-pink-900/30 dark:text-pink-400"
+            glowClass="shadow-pink-500/30"
           />
         </div>
       </div>
@@ -134,6 +140,7 @@ const Settings: React.FC<SettingsProps> = ({ setCurrentPage, user }) => {
             title="Data Management" 
             description="Import, export, backup, and reset data"
             colorClass="bg-emerald-100 text-emerald-600 dark:bg-emerald-900/30 dark:text-emerald-400"
+            glowClass="shadow-emerald-500/30"
           />
           <SettingItem 
             page="Documentation" 
@@ -141,6 +148,7 @@ const Settings: React.FC<SettingsProps> = ({ setCurrentPage, user }) => {
             title="Documentation" 
             description="Learn about features and usage"
             colorClass="bg-gray-100 text-gray-600 dark:bg-gray-800 dark:text-gray-400"
+            glowClass="shadow-gray-400/30"
           />
         </div>
       </div>
