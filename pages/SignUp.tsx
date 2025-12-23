@@ -35,7 +35,7 @@ const SignUp: React.FC<SignUpProps> = ({ onSignUp, onNavigateToSignIn, isLoading
   );
 
   return (
-    <div className="flex min-h-screen bg-light-bg dark:bg-dark-bg">
+    <div className="flex min-h-screen bg-gradient-to-br from-gray-50 to-gray-200 dark:from-black dark:to-[#171717]">
       {/* Left Side - Visuals/Features */}
       <div className="hidden lg:flex w-1/2 bg-gradient-to-br from-indigo-900 to-gray-900 relative overflow-hidden items-center justify-center p-12">
         <div className="absolute inset-0 bg-[url('https://www.transparenttextures.com/patterns/carbon-fibre.png')] opacity-20"></div>

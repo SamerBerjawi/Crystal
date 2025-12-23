@@ -22,7 +22,7 @@ const SignIn: React.FC<SignInProps> = ({ onSignIn, onNavigateToSignUp, onEnterDe
   };
 
   return (
-    <div className="flex min-h-screen bg-light-bg dark:bg-dark-bg">
+    <div className="flex min-h-screen bg-gradient-to-br from-gray-50 to-gray-200 dark:from-black dark:to-[#171717]">
       {/* Left Side - Form */}
       <div className="w-full lg:w-1/2 flex flex-col justify-center px-8 sm:px-12 lg:px-24 xl:px-32 relative z-10 bg-light-card dark:bg-dark-card lg:bg-transparent lg:dark:bg-transparent">
         <div className="mb-8">

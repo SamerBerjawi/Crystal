@@ -104,7 +104,7 @@ const Sidebar: React.FC<SidebarProps> = ({
       <aside
         className={`
             fixed top-0 left-0 bottom-0 z-40 
-            bg-white dark:bg-[#121214] 
+            bg-white/40 dark:bg-gray-900/80 backdrop-blur-xl 
             border-r border-gray-200 dark:border-white/5
             flex flex-col transition-all duration-300 ease-[cubic-bezier(0.2,0,0,1)] 
             md:relative md:h-screen 

@@ -288,7 +288,7 @@ class ErrorBoundary extends Component<ErrorBoundaryProps, ErrorBoundaryState> {
   render() {
     if (this.state.hasError) {
       return (
-        <div className="flex items-center justify-center min-h-screen bg-light-bg dark:bg-dark-bg px-6">
+        <div className="flex items-center justify-center min-h-screen bg-gradient-to-br from-gray-50 to-gray-200 dark:from-black dark:to-[#171717] px-6">
           <div className="bg-white dark:bg-dark-card shadow-2xl rounded-2xl p-6 max-w-lg w-full border border-black/5 dark:border-white/10">
             <h1 className="text-xl font-semibold text-light-text dark:text-dark-text mb-2">Something went wrong</h1>
             <p className="text-light-text-secondary dark:text-dark-text-secondary text-sm mb-4">
@@ -2533,7 +2533,7 @@ const App: React.FC = () => {
   // Loading state
   if (isAuthLoading || !isDataLoaded) {
     return (
-      <div className="flex items-center justify-center min-h-screen bg-light-bg dark:bg-dark-bg">
+      <div className="flex items-center justify-center min-h-screen bg-gradient-to-br from-gray-50 to-gray-200 dark:from-black dark:to-[#171717]">
           <svg className="animate-spin h-10 w-10 text-primary-500" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
             <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
             <path
@@ -2585,7 +2585,7 @@ const App: React.FC = () => {
         warrants={warrantsContextValue}
         invoices={invoicesContextValue}
       >
-        <div className={`flex h-screen bg-light-card dark:bg-dark-card text-light-text dark:text-dark-text font-sans`}>
+        <div className={`flex h-screen bg-gradient-to-br from-gray-50 to-gray-200 dark:from-black dark:to-[#171717] text-light-text dark:text-dark-text font-sans`}>
           <Sidebar
             currentPage={currentPage}
             setCurrentPage={(page) => { setViewingAccountId(null); setCurrentPage(page); }}
@@ -2600,7 +2600,7 @@ const App: React.FC = () => {
             isPrivacyMode={isPrivacyMode}
             togglePrivacyMode={() => setIsPrivacyMode(!isPrivacyMode)}
           />
-          <div className="flex-1 flex flex-col overflow-hidden relative z-0 bg-light-bg dark:bg-dark-bg">
+          <div className="flex-1 flex flex-col overflow-hidden relative z-0 bg-transparent">
              {/* Header removed here */}
              
              {/* Add Mobile Toggle */}
