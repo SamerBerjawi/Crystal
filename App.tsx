@@ -407,8 +407,7 @@ const App: React.FC = () => {
       // Trigger save
       markSliceDirty('userStats');
     }
-  // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [isDataLoaded, isAuthenticated]);
+  }, [isAuthenticated, isDataLoaded, markSliceDirty, userStats]);
 
 
   // FIX: Explicitly type assetPrices to avoid 'unknown' inference and ensure type safety
