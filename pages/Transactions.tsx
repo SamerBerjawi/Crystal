@@ -16,7 +16,7 @@ import { useCategoryContext, useScheduleContext, useTagsContext } from '../conte
 import VirtualizedList from '../components/VirtualizedList';
 import { useDebounce } from '../hooks/useDebounce';
 import { useThrottledCallback } from '../hooks/useThrottledCallback';
-import { getMerchantLogoUrl, normalizeMerchantKey } from '../utils/brandfetch';
+import { fetchMerchantLogoUrl, normalizeMerchantKey } from '../utils/brandfetch';
 import PageHeader from '../components/PageHeader';
 
 interface TransactionsProps {
@@ -170,6 +170,8 @@ const Transactions: React.FC<TransactionsProps> = ({ initialAccountFilter, initi
   const contextMenuRef = useRef<HTMLDivElement>(null);
   const [isFiltersExpanded, setIsFiltersExpanded] = useState(false);
   const [logoLoadErrors, setLogoLoadErrors] = useState<Record<string, boolean>>({});
+  const [merchantLogoUrls, setMerchantLogoUrls] = useState<Record<string, string | null>>({});
+  const [institutionLogoUrls, setInstitutionLogoUrls] = useState<Record<string, string | null>>({});
 
   // Virtualized list sizing
   const [listHeight, setListHeight] = useState(600);
@@ -265,16 +267,67 @@ const Transactions: React.FC<TransactionsProps> = ({ initialAccountFilter, initi
     return {};
   };
 
-  const merchantLogoUrls = useMemo(() => {
-    if (!brandfetchClientId) return {} as Record<string, string>;
-    return transactions.reduce((acc, tx) => {
-      const key = normalizeMerchantKey(tx.merchant);
-      if (!key || acc[key]) return acc;
-      const url = getMerchantLogoUrl(tx.merchant, brandfetchClientId, merchantLogoOverrides, { fallback: 'lettermark', type: 'icon', width: 96, height: 96 });
-      if (url) acc[key] = url;
-      return acc;
-    }, {} as Record<string, string>);
-  }, [brandfetchClientId, merchantLogoOverrides, transactions]);
+  useEffect(() => {
+    if (!brandfetchClientId) {
+      setMerchantLogoUrls({});
+      setInstitutionLogoUrls({});
+      return;
+    }
+
+    let isCancelled = false;
+
+    const loadLogos = async () => {
+      const merchantEntries = new Map<string, string>();
+      transactions.forEach(tx => {
+        const key = normalizeMerchantKey(tx.merchant);
+        if (!key || merchantEntries.has(key)) return;
+        merchantEntries.set(key, tx.merchant || '');
+      });
+
+      const institutionEntries = new Map<string, string>();
+      accounts.forEach(account => {
+        const name = account.financialInstitution;
+        const key = normalizeMerchantKey(name);
+        if (!key || institutionEntries.has(key)) return;
+        institutionEntries.set(key, name || '');
+      });
+
+      const [merchantResults, institutionResults] = await Promise.all([
+        Promise.all([...merchantEntries.entries()].map(async ([key, name]) => ({
+          key,
+          url: await fetchMerchantLogoUrl(name, brandfetchClientId, merchantLogoOverrides, { type: 'icon' }),
+        }))),
+        Promise.all([...institutionEntries.entries()].map(async ([key, name]) => ({
+          key,
+          url: await fetchMerchantLogoUrl(name, brandfetchClientId, merchantLogoOverrides, { type: 'icon' }),
+        }))),
+      ]);
+
+      if (isCancelled) return;
+
+      setMerchantLogoUrls(prev => {
+        const next = { ...prev };
+        merchantResults.forEach(result => {
+          next[result.key] = result.url;
+        });
+        return next;
+      });
+
+      setInstitutionLogoUrls(prev => {
+        const next = { ...prev };
+        institutionResults.forEach(result => {
+          next[result.key] = result.url;
+        });
+        return next;
+      });
+    };
+
+    loadLogos();
+
+    return () => {
+      isCancelled = true;
+    };
+  }, [accounts, brandfetchClientId, merchantLogoOverrides, transactions]);
 
   const handleLogoError = useCallback((logoUrl: string) => {
     setLogoLoadErrors(prev => (prev[logoUrl] ? prev : { ...prev, [logoUrl]: true }));
@@ -1236,7 +1289,8 @@ const Transactions: React.FC<TransactionsProps> = ({ initialAccountFilter, initi
                         ? formatCurrency(convertToEur(Math.abs(amount), tx.currency), 'EUR')
                         : formatCurrency(convertToEur(amount, tx.currency), 'EUR', { showPlusSign: true });
 
-                    const institutionLogoUrl = account?.financialInstitution ? getMerchantLogoUrl(account.financialInstitution, brandfetchClientId, merchantLogoOverrides, { fallback: 'lettermark', type: 'icon', width: 64, height: 64 }) : null;
+                    const institutionKey = normalizeMerchantKey(account?.financialInstitution);
+                    const institutionLogoUrl = institutionKey ? institutionLogoUrls[institutionKey] : null;
                     const showInstitutionLogo = Boolean(institutionLogoUrl && !logoLoadErrors[institutionLogoUrl]);
 
                     return (

@@ -6,7 +6,7 @@ import PageHeader from '../components/PageHeader';
 import Modal from '../components/Modal';
 import { BTN_PRIMARY_STYLE, BTN_SECONDARY_STYLE, INPUT_BASE_STYLE, SELECT_ARROW_STYLE, SELECT_WRAPPER_STYLE, SELECT_STYLE } from '../constants';
 import { useAccountsContext, usePreferencesContext, usePreferencesSelector, useTransactionsContext } from '../contexts/DomainProviders';
-import { getMerchantLogoUrl, normalizeMerchantKey } from '../utils/brandfetch';
+import { fetchMerchantLogoUrl, normalizeMerchantKey } from '../utils/brandfetch';
 import { fuzzySearch, convertToEur, formatCurrency, parseLocalDate } from '../utils';
 
 interface MerchantsProps {
@@ -92,6 +92,7 @@ const Merchants: React.FC<MerchantsProps> = ({ setCurrentPage }) => {
   const [viewMode, setViewMode] = useState<'grid' | 'list'>('grid');
   const [overrideDrafts, setOverrideDrafts] = useState<Record<string, string>>(persistedOverrides);
   const [logoLoadErrors, setLogoLoadErrors] = useState<Record<string, boolean>>({});
+  const [logoUrls, setLogoUrls] = useState<Record<string, string | null>>({});
   
   const [editingEntity, setEditingEntity] = useState<EntityItem | null>(null);
   const [isRenameModalOpen, setIsRenameModalOpen] = useState(false);
@@ -245,8 +246,40 @@ const Merchants: React.FC<MerchantsProps> = ({ setCurrentPage }) => {
     });
   };
 
-  const getPreviewUrl = (merchantName: string) =>
-    getMerchantLogoUrl(merchantName, brandfetchClientId, overrideDrafts, { fallback: 'lettermark', type: 'icon', width: 128, height: 128 });
+  useEffect(() => {
+    if (!brandfetchClientId) {
+      setLogoUrls({});
+      return;
+    }
+
+    let isCancelled = false;
+
+    const loadLogos = async () => {
+      const entries = filteredEntities
+        .map(entity => ({ key: entity.id, name: entity.name }))
+        .filter(entry => entry.key);
+
+      const results = await Promise.all(entries.map(async entry => ({
+        key: entry.key,
+        url: await fetchMerchantLogoUrl(entry.name, brandfetchClientId, overrideDrafts, { type: 'icon' }),
+      })));
+
+      if (isCancelled) return;
+      setLogoUrls(prev => {
+        const next = { ...prev };
+        results.forEach(result => {
+          next[result.key] = result.url;
+        });
+        return next;
+      });
+    };
+
+    loadLogos();
+
+    return () => {
+      isCancelled = true;
+    };
+  }, [brandfetchClientId, filteredEntities, overrideDrafts]);
 
   const handleLogoError = (url: string) => setLogoLoadErrors(prev => ({ ...prev, [url]: true }));
 
@@ -375,7 +408,7 @@ const Merchants: React.FC<MerchantsProps> = ({ setCurrentPage }) => {
       ) : viewMode === 'grid' ? (
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
             {filteredEntities.map(entity => {
-              const previewUrl = getPreviewUrl(entity.name);
+              const previewUrl = logoUrls[entity.id] ?? null;
               const hasLogo = Boolean(previewUrl && !logoLoadErrors[previewUrl]);
               const draftValue = overrideDrafts[entity.id] || '';
               const initialLetter = entity.name.charAt(0).toUpperCase();
@@ -488,7 +521,7 @@ const Merchants: React.FC<MerchantsProps> = ({ setCurrentPage }) => {
                   </thead>
                   <tbody className="divide-y divide-black/5 dark:divide-white/5">
                       {filteredEntities.map(entity => {
-                          const previewUrl = getPreviewUrl(entity.name);
+                          const previewUrl = logoUrls[entity.id] ?? null;
                           const hasLogo = Boolean(previewUrl && !logoLoadErrors[previewUrl]);
                           const initialLetter = entity.name.charAt(0).toUpperCase();
 
