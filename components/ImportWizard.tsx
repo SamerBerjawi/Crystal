@@ -601,7 +601,7 @@ const ImportWizard: React.FC<ImportWizardProps> = ({ importType, onClose, onPubl
     };
     
     return (
-        <div className="fixed inset-0 bg-light-card dark:bg-dark-bg z-[60] flex flex-col">
+        <div className="fixed inset-0 bg-gradient-to-br from-gray-50 to-gray-200 dark:from-black dark:to-[#171717] z-[60] flex flex-col">
             <header className="flex items-center justify-between p-4 border-b border-black/10 dark:border-white/10">
                 <button onClick={() => currentStep > 1 ? goToStep(currentStep - 1) : onClose()} className="p-2 rounded-full hover:bg-black/5 dark:hover:bg-white/5"><span className="material-symbols-outlined">arrow_back</span></button>
                 <nav aria-label="Import Steps" className="flex-grow">
@@ -627,7 +627,7 @@ const ImportWizard: React.FC<ImportWizardProps> = ({ importType, onClose, onPubl
                 </nav>
                 <button onClick={onClose} className="p-2 rounded-full hover:bg-black/5 dark:hover:bg-white/5"><span className="material-symbols-outlined">close</span></button>
             </header>
-            <main className="flex-1 overflow-y-auto bg-light-bg dark:bg-dark-bg p-4 md:p-8">{renderContent()}</main>
+            <main className="flex-1 overflow-y-auto bg-transparent p-4 md:p-8">{renderContent()}</main>
             {!isPublishing && <footer className="p-4 border-t border-black/10 dark:border-white/10 flex justify-end">
                 {currentStep < 6 ? <button onClick={() => goToStep(currentStep + 1)} className={BTN_PRIMARY_STYLE} disabled={currentStep === 1 && !rawCSV}>Next Step</button> : <button onClick={handlePublish} className={BTN_PRIMARY_STYLE}>Publish Import</button>}
             </footer>}
