@@ -388,7 +388,7 @@ const Dashboard: React.FC<DashboardProps> = ({ user, tasks, saveTask }) => {
 
     const processedTransferIds = new Set<string>();
     txsInPrevPeriod.forEach(tx => {
-      if (!selectedAccountIds.includes(tx.accountId)) return;
+      if (!analyticsSelectedAccountIds.includes(tx.accountId)) return;
 
       const convertedAmount = convertToEur(tx.amount, tx.currency);
 
@@ -396,7 +396,7 @@ const Dashboard: React.FC<DashboardProps> = ({ user, tasks, saveTask }) => {
         if (processedTransferIds.has(tx.transferId)) return;
         const counterpart = transactions.find(t => t.transferId === tx.transferId && t.id !== tx.id);
         processedTransferIds.add(tx.transferId);
-        if (counterpart && !selectedAccountIds.includes(counterpart.accountId)) {
+        if (counterpart && !analyticsSelectedAccountIds.includes(counterpart.accountId)) {
           if (tx.type === 'income') prevIncome += convertedAmount;
           else prevExpenses += Math.abs(convertedAmount);
         }
@@ -420,7 +420,7 @@ const Dashboard: React.FC<DashboardProps> = ({ user, tasks, saveTask }) => {
       incomeChange: calculateChangeString(income, prevIncome),
       expenseChange: calculateChangeString(expenses, prevExpenses),
     };
-  }, [duration, transactions, selectedAccountIds, income, expenses]);
+  }, [duration, transactions, analyticsSelectedAccountIds, income, expenses]);
 
   const outflowsByCategory: CategorySpending[] = useMemo(() => {
     const spending: { [key: string]: CategorySpending } = {};
@@ -439,7 +439,7 @@ const Dashboard: React.FC<DashboardProps> = ({ user, tasks, saveTask }) => {
             processedTransferIds.add(tx.transferId);
             
             // This is an outflow only if its counterpart is NOT selected.
-            if (counterpart && !selectedAccountIds.includes(counterpart.accountId)) {
+            if (counterpart && !analyticsSelectedAccountIds.includes(counterpart.accountId)) {
                 const name = 'Transfers Out';
                 if (!spending[name]) {
                     spending[name] = { name, value: 0, color: '#A0AEC0', icon: 'arrow_upward' };
@@ -461,7 +461,7 @@ const Dashboard: React.FC<DashboardProps> = ({ user, tasks, saveTask }) => {
     });
 
     return Object.values(spending).sort((a: CategorySpending, b: CategorySpending) => b.value - a.value);
-  }, [enrichedTransactions, selectedAccountIds, transactions, expenseCategories]);
+  }, [enrichedTransactions, analyticsSelectedAccountIds, transactions, expenseCategories]);
   
   const handleCategoryClick = useCallback((categoryName: string) => {
     const expenseCats = expenseCategories;
@@ -469,7 +469,7 @@ const Dashboard: React.FC<DashboardProps> = ({ user, tasks, saveTask }) => {
         if (categoryName === 'Transfers Out') {
             if (!tx.transferId || tx.type !== 'expense') return false;
             const counterpart = transactions.find(t => t.transferId === tx.transferId && t.id !== tx.id);
-            return counterpart && !selectedAccountIds.includes(counterpart.accountId);
+            return counterpart && !analyticsSelectedAccountIds.includes(counterpart.accountId);
         }
         
         const category = findCategoryDetails(tx.category, expenseCats);
@@ -482,7 +482,7 @@ const Dashboard: React.FC<DashboardProps> = ({ user, tasks, saveTask }) => {
     setModalTransactions(txs);
     setModalTitle(`Transactions for ${categoryName}`);
     setDetailModalOpen(true);
-  }, [filteredTransactions, transactions, selectedAccountIds, expenseCategories]);
+  }, [filteredTransactions, transactions, analyticsSelectedAccountIds, expenseCategories]);
   
   const accountMap = useMemo(() => accounts.reduce((map, acc) => { map[acc.id] = acc.name; return map; }, {} as Record<string, string>), [accounts]);
 
@@ -682,7 +682,7 @@ const Dashboard: React.FC<DashboardProps> = ({ user, tasks, saveTask }) => {
     const internalTransferIds = new Set<string>();
     transferGroups.forEach((group, transferId) => {
       if (group.length === 0) return;
-      const allAccountsSelected = group.every(tx => selectedAccountIds.includes(tx.accountId));
+      const allAccountsSelected = group.every(tx => analyticsSelectedAccountIds.includes(tx.accountId));
       if (allAccountsSelected) {
         internalTransferIds.add(transferId);
       }
@@ -702,7 +702,7 @@ const Dashboard: React.FC<DashboardProps> = ({ user, tasks, saveTask }) => {
     const today = parseLocalDate(toLocalISOString(new Date()));
 
     const transactionsToReverse = transactions.filter(tx => {
-        if (!selectedAccountIds.includes(tx.accountId)) return false;
+        if (!analyticsSelectedAccountIds.includes(tx.accountId)) return false;
         if (tx.transferId && internalTransferIds.has(tx.transferId)) return false;
         const txDate = parseLocalDate(tx.date);
         return txDate >= start && txDate <= today;
@@ -719,7 +719,7 @@ const Dashboard: React.FC<DashboardProps> = ({ user, tasks, saveTask }) => {
     const startingNetWorth = currentNetWorth - totalChangeSinceStart;
 
     const transactionsInPeriod = transactions.filter(tx => {
-        if (!selectedAccountIds.includes(tx.accountId)) return false;
+        if (!analyticsSelectedAccountIds.includes(tx.accountId)) return false;
         if (tx.transferId && internalTransferIds.has(tx.transferId)) return false;
         const txDate = parseLocalDate(tx.date);
         return txDate >= start && txDate <= end;
@@ -727,7 +727,7 @@ const Dashboard: React.FC<DashboardProps> = ({ user, tasks, saveTask }) => {
 
     const dailyChanges = new Map<string, number>();
     for (const tx of transactionsInPeriod) {
-        const dateStr = tx.date;
+        const dateStr = formatDateKey(parseLocalDate(tx.date));
         const signedAmount = tx.type === 'expense'
             ? -Math.abs(convertToEur(tx.amount, tx.currency))
             : Math.abs(convertToEur(tx.amount, tx.currency));
@@ -755,7 +755,7 @@ const Dashboard: React.FC<DashboardProps> = ({ user, tasks, saveTask }) => {
 
 
     return data;
-  }, [duration, transactions, selectedAccountIds, netWorth]);
+  }, [duration, transactions, analyticsSelectedAccountIds, netWorth]);
 
   const netWorthTrendColor = useMemo(() => {
     if (netWorthData.length < 2) return '#6366F1';
@@ -792,6 +792,7 @@ const Dashboard: React.FC<DashboardProps> = ({ user, tasks, saveTask }) => {
           const formatFullDate = (date: Date) => date.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric', timeZone });
 
           return {
+              accountId: account.id,
               accountName: account.name,
               currency: account.currency,
               accountBalance: account.balance,
@@ -1158,7 +1159,7 @@ const Dashboard: React.FC<DashboardProps> = ({ user, tasks, saveTask }) => {
                 <div className="space-y-6">
                     {creditCardStatements.map(statement => (
                         <CreditCardStatementCard
-                            key={statement.accountName}
+                            key={statement.accountId}
                             accountName={statement.accountName}
                             accountBalance={statement.accountBalance}
                             creditLimit={statement.creditLimit}
