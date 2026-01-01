@@ -34,37 +34,61 @@ const EnableBankingCallback: React.FC<EnableBankingCallbackProps> = ({
 
     if (hasProcessed.current) return;
 
-    let connection: EnableBankingConnection | undefined = connections.find(c => c.id === state);
-    if (!connection) {
-      const pendingConnection = loadPendingConnection(state);
-      if (pendingConnection) {
-        connection = pendingConnection;
-        setConnections(prev => prev.some(conn => conn.id === pendingConnection.id) ? prev : [...prev, pendingConnection]);
+    const resolveConnection = async () => {
+      let connection: EnableBankingConnection | undefined = connections.find(c => c.id === state);
+      if (!connection) {
+        const pendingConnection = loadPendingConnection(state);
+        if (pendingConnection) {
+          connection = pendingConnection;
+          setConnections(prev => prev.some(conn => conn.id === pendingConnection.id) ? prev : [...prev, pendingConnection]);
+        }
       }
-    }
 
-    if (!connection) {
-      setError('Could not find a matching connection for this callback.');
-      return;
-    }
+      if (!connection && authToken) {
+        try {
+          const response = await fetch(`/api/enable-banking/pending/${encodeURIComponent(state)}`, {
+            headers: {
+              'Content-Type': 'application/json',
+              Authorization: `Bearer ${authToken}`,
+            },
+          });
+          if (response.ok) {
+            const data = await response.json();
+            if (data?.connection) {
+              connection = data.connection;
+              setConnections(prev => prev.some(conn => conn.id === data.connection.id) ? prev : [...prev, data.connection]);
+            }
+          }
+        } catch (error) {
+          console.warn('Failed to load pending Enable Banking connection from server', error);
+        }
+      }
 
-    hasProcessed.current = true;
+      if (!connection) {
+        setError('Could not find a matching connection for this callback.');
+        return;
+      }
 
-    const exchangeSession = async () => {
-      try {
-        setMessage('Exchanging authorization code for a session...');
-        const response = await fetch('/api/enable-banking/session', {
-          method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-            ...(authToken ? { Authorization: `Bearer ${authToken}` } : {}),
-          },
-          body: JSON.stringify({
-            applicationId: connection.applicationId,
-            clientCertificate: connection.clientCertificate,
-            code,
-          }),
-        });
+      hasProcessed.current = true;
+      if (typeof window !== 'undefined') {
+        window.history.replaceState(null, '', window.location.pathname);
+      }
+
+      const exchangeSession = async () => {
+        try {
+          setMessage('Exchanging authorization code for a session...');
+          const response = await fetch('/api/enable-banking/session', {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+              ...(authToken ? { Authorization: `Bearer ${authToken}` } : {}),
+            },
+            body: JSON.stringify({
+              applicationId: connection.applicationId,
+              clientCertificate: connection.clientCertificate,
+              code,
+            }),
+          });
 
         let session: any = null;
         if (!response.ok) {
@@ -99,26 +123,37 @@ const EnableBankingCallback: React.FC<EnableBankingCallbackProps> = ({
           status: 'ready',
         };
 
-        setConnections(prev => prev.map(conn => conn.id === connection.id ? updatedConnection : conn));
-        removePendingConnection(connection.id);
+          setConnections(prev => prev.map(conn => conn.id === connection.id ? updatedConnection : conn));
+          removePendingConnection(connection.id);
+          if (authToken) {
+            fetch(`/api/enable-banking/pending/${encodeURIComponent(connection.id)}`, {
+              method: 'DELETE',
+              headers: {
+                Authorization: `Bearer ${authToken}`,
+              },
+            }).catch(error => console.warn('Failed to remove pending Enable Banking connection from server', error));
+          }
 
-        setMessage('Session created. Syncing accounts...');
-        await onSync(connection.id, updatedConnection);
+          setMessage('Session created. Syncing accounts...');
+          await onSync(connection.id, updatedConnection);
 
-        setMessage('Sync complete. Redirecting...');
-        setTimeout(() => setCurrentPage('Integrations'), 800);
-      } catch (err: any) {
-        console.error(err);
-        setConnections(prev => prev.map(conn => conn.id === connection?.id ? {
-          ...conn,
-          status: 'requires_update',
-          lastError: err?.message || 'Failed to complete Enable Banking connection',
-        } : conn));
-        setError(err?.message || 'Failed to complete Enable Banking connection');
-      }
+          setMessage('Sync complete. Redirecting...');
+          setTimeout(() => setCurrentPage('Integrations'), 800);
+        } catch (err: any) {
+          console.error(err);
+          setConnections(prev => prev.map(conn => conn.id === connection?.id ? {
+            ...conn,
+            status: 'requires_update',
+            lastError: err?.message || 'Failed to complete Enable Banking connection',
+          } : conn));
+          setError(err?.message || 'Failed to complete Enable Banking connection');
+        }
+      };
+
+      exchangeSession();
     };
 
-    exchangeSession();
+    resolveConnection();
   }, [authToken, connections, onSync, setConnections, setCurrentPage]);
 
   return (

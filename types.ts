@@ -66,6 +66,8 @@ export interface Account {
   routingNumber?: string; // BIC, SWIFT, Sort Code, or Routing Number
   apy?: number; // Annual Percentage Yield for savings
   openingDate?: string; // Date account was opened
+  balanceLastSyncedAt?: string;
+  balanceSource?: 'enable_banking' | 'manual';
 
   // Card specific
   expirationDate?: string; // MM/YY

@@ -327,6 +327,9 @@ const EnableBankingIntegrationCard: React.FC<EnableBankingIntegrationCardProps> 
             <p className="text-sm text-light-text-secondary dark:text-dark-text-secondary">
               Save your Enable Banking API details locally to authorize new connections.
             </p>
+            <p className="text-xs text-light-text-secondary/80 dark:text-dark-text-secondary/80 mt-2">
+              Note: credentials are stored in this browser only and are not encrypted.
+            </p>
           </div>
           <span className="px-3 py-1 rounded-full bg-black/5 dark:bg-white/10 text-[11px] font-bold text-light-text-secondary dark:text-dark-text-secondary uppercase tracking-wider">Local Storage</span>
         </div>
@@ -451,9 +454,19 @@ const EnableBankingIntegrationCard: React.FC<EnableBankingIntegrationCardProps> 
                                     Last synced {connection.lastSyncedAt ? new Date(connection.lastSyncedAt).toLocaleString() : 'Never'}
                                 </p>
                                 {connection.lastError && (
-                                    <p className="text-xs text-rose-600 dark:text-rose-400 mt-1 font-bold bg-red-50 dark:bg-red-900/20 px-2 py-1 rounded inline-block">
-                                        Error: {connection.lastError}
-                                    </p>
+                                    <div className="mt-1 inline-flex flex-wrap items-center gap-2">
+                                        <p className="text-xs text-rose-600 dark:text-rose-400 font-bold bg-red-50 dark:bg-red-900/20 px-2 py-1 rounded">
+                                            Error: {connection.lastError}
+                                        </p>
+                                        {(connection.status === 'requires_update' || !connection.sessionId) && (
+                                            <button
+                                                onClick={() => handleReauthorize(connection)}
+                                                className="text-xs font-semibold text-amber-700 dark:text-amber-300 hover:underline"
+                                            >
+                                                Re-authorize now
+                                            </button>
+                                        )}
+                                    </div>
                                 )}
                             </div>
                             <div className="flex items-center gap-2">
@@ -484,6 +497,9 @@ const EnableBankingIntegrationCard: React.FC<EnableBankingIntegrationCardProps> 
                                     const rowKey = keyPrefix(account.id);
                                     const savedState = linkingState[rowKey] || {};
                                     const defaultSyncStart = clampSyncDate(savedState.syncStartDate || account.syncStartDate || ninetyDaysAgoStr);
+                                    const balanceSyncLabel = linkedAccount?.balanceLastSyncedAt
+                                        ? `Balance synced ${new Date(linkedAccount.balanceLastSyncedAt).toLocaleString()} via ${linkedAccount.balanceSource === 'enable_banking' ? 'Enable Banking' : 'Manual'}`
+                                        : null;
                                     
                                     const rowState = {
                                         mode: savedState.mode || (account.linkedAccountId ? 'existing' : 'create'),
@@ -515,6 +531,11 @@ const EnableBankingIntegrationCard: React.FC<EnableBankingIntegrationCardProps> 
                                                     <p className="text-2xl font-black text-light-text dark:text-dark-text tracking-tight">
                                                         {account.currency} {account.balance.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
                                                     </p>
+                                                    {balanceSyncLabel && (
+                                                        <p className="text-[11px] text-light-text-secondary dark:text-dark-text-secondary mt-1">
+                                                            {balanceSyncLabel}
+                                                        </p>
+                                                    )}
                                                     <p className="text-[10px] text-light-text-secondary dark:text-dark-text-secondary mt-1">Default sync start: {defaultSyncStart}</p>
                                                     <div className="flex justify-end mt-3">
                                                       <button
