@@ -41,6 +41,12 @@ export const buildHoldingsOverview = (
                 const avgCost = holding.quantity > 0 ? holding.totalCost / holding.quantity : 0;
                 holding.totalCost -= tx.quantity * avgCost;
                 holding.quantity -= tx.quantity;
+                if (holding.quantity < 0) {
+                    holding.quantity = 0;
+                    holding.totalCost = 0;
+                } else if (holding.totalCost < 0) {
+                    holding.totalCost = 0;
+                }
             }
         });
 
