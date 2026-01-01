@@ -147,9 +147,9 @@ const BadgeItem: React.FC<{ badge: any }> = ({ badge }) => {
 
             {/* Progress Bar */}
              <div className="w-full mt-4 opacity-50 group-hover:opacity-80 transition-opacity">
-                 <div className="flex justify-between text-[9px] font-bold text-gray-400 dark:text-gray-500 mb-1 uppercase tracking-wide">
+                <div className="flex justify-between text-[9px] font-bold text-gray-400 dark:text-gray-500 mb-1 uppercase tracking-wide">
                     <span>Locked</span>
-                    <span>{Math.round(badge.progress)}%</span>
+                    <span>{Math.round(Math.min(100, badge.progress))}%</span>
                 </div>
                 <div className="w-full h-1.5 bg-gray-200 dark:bg-gray-800 rounded-full overflow-hidden">
                     <div 
@@ -169,7 +169,7 @@ const PersonalBestLeaderboard: React.FC<{
 }> = ({ currentNetWorth, history }) => {
     
     const { ath, isNewRecord, data } = useMemo(() => {
-        let max = 0;
+        let max = Number.NEGATIVE_INFINITY;
         if (history.length > 0) {
             max = history.reduce((prev, current) => (prev.value > current.value) ? prev : current).value;
         }
@@ -241,7 +241,7 @@ const PersonalBestLeaderboard: React.FC<{
                      </h3>
                      
                      {/* Progress to ATH (if not there) */}
-                     {!isNewRecord && (
+                     {!isNewRecord && ath > 0 && (
                          <div className="mt-4">
                              <div className="flex justify-between text-xs font-bold text-gray-500 dark:text-gray-400 mb-1">
                                  <span>Current Progress</span>
@@ -280,6 +280,9 @@ const PersonalBestLeaderboard: React.FC<{
                          </div>
                      ))}
                  </div>
+                 <p className="text-[11px] text-light-text-secondary dark:text-dark-text-secondary mt-4">
+                    Records are calculated from analytics-enabled accounts, rolling backward from today for up to 60 months.
+                 </p>
              </div>
         </div>
     );
@@ -300,7 +303,7 @@ interface Boss {
 }
 
 const BossBattleCard: React.FC<{ boss: Boss; currency: Currency }> = ({ boss, currency }) => {
-    const healthPercent = (boss.currentHp / boss.maxHp) * 100;
+    const healthPercent = boss.maxHp > 0 ? (boss.currentHp / boss.maxHp) * 100 : 0;
     const isDefeated = boss.currentHp <= 0;
     
     const config = boss.type === 'debt' 
@@ -376,7 +379,7 @@ const MasteryCard: React.FC<{
     icon: string;
     categoryColor: string;
 }> = ({ categoryName, spent, budget, level, title, icon, categoryColor }) => {
-    const ratio = Math.min(100, (spent / budget) * 100);
+    const ratio = budget > 0 ? Math.min(100, (spent / budget) * 100) : 0;
     const isMaster = level === 4;
     const isOverBudget = spent > budget;
 
@@ -537,7 +540,9 @@ const Challenges: React.FC<ChallengesProps> = ({ userStats, accounts, transactio
   // --- Prediction Resolver (Effect) ---
   useEffect(() => {
     const todayDate = parseLocalDate(toLocalISOString(new Date()));
-    
+    let winsDelta = 0;
+    let totalDelta = 0;
+
     predictions.forEach(prediction => {
         if (prediction.status === 'active') {
             const endDate = parseLocalDate(prediction.endDate);
@@ -550,7 +555,7 @@ const Challenges: React.FC<ChallengesProps> = ({ userStats, accounts, transactio
                     const end = parseLocalDate(prediction.endDate);
                     end.setHours(23, 59, 59);
 
-                    actualAmount = transactions
+                    actualAmount = analyticsTransactions
                         .filter(tx => {
                             const d = parseLocalDate(tx.date);
                             return d >= start && d <= end && tx.type === 'expense' && !tx.transferId && tx.category === prediction.targetName;
@@ -560,10 +565,10 @@ const Challenges: React.FC<ChallengesProps> = ({ userStats, accounts, transactio
                     won = actualAmount <= prediction.targetAmount;
                 } else if (prediction.type === 'net_worth_goal') {
                     if (prediction.targetId) {
-                         const account = accounts.find(a => a.id === prediction.targetId);
+                         const account = analyticsAccounts.find(a => a.id === prediction.targetId);
                          actualAmount = account ? convertToEur(account.balance, account.currency) : 0;
                     } else {
-                         const { netWorth } = calculateAccountTotals(accounts.filter(a => a.status !== 'closed'));
+                         const { netWorth } = calculateAccountTotals(analyticsAccounts.filter(a => a.status !== 'closed'));
                          actualAmount = netWorth;
                     }
                     won = actualAmount >= prediction.targetAmount;
@@ -579,17 +584,23 @@ const Challenges: React.FC<ChallengesProps> = ({ userStats, accounts, transactio
                 }
                 
                 savePrediction({ ...prediction, status: won ? 'won' : 'lost', finalAmount: actualAmount });
-                
+
+                totalDelta += 1;
                 if (won) {
-                    saveUserStats({ ...userStats, predictionWins: (userStats.predictionWins || 0) + 1, predictionTotal: (userStats.predictionTotal || 0) + 1 });
-                } else {
-                    saveUserStats({ ...userStats, predictionTotal: (userStats.predictionTotal || 0) + 1 });
+                    winsDelta += 1;
                 }
             }
         }
     });
-  // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [predictions, transactions, accounts, assetPrices]);
+
+    if (totalDelta > 0) {
+        saveUserStats({
+            ...userStats,
+            predictionWins: (userStats.predictionWins || 0) + winsDelta,
+            predictionTotal: (userStats.predictionTotal || 0) + totalDelta,
+        });
+    }
+  }, [predictions, analyticsTransactions, analyticsAccounts, assetPrices, userStats, savePrediction, saveUserStats]);
 
   // --- Metrics ---
   const { totalDebt, netWorth, savingsRate, totalInvestments, uniqueAccountTypes, liquidityRatio, budgetAccuracy, spendingByCat, creditUtilization } = useMemo(() => {
@@ -627,6 +638,7 @@ const Challenges: React.FC<ChallengesProps> = ({ userStats, accounts, transactio
      const savingsRate = income > 0 ? ((income - expense) / income) : 0;
      let totalBudgetVariance = 0; let validBudgets = 0;
      budgets.forEach(b => {
+         if (b.amount <= 0) return;
          const spent = spendingByCat[b.categoryName] || 0;
          const variance = Math.abs(b.amount - spent) / b.amount;
          totalBudgetVariance += variance;
@@ -667,7 +679,11 @@ const Challenges: React.FC<ChallengesProps> = ({ userStats, accounts, transactio
              maxHp = totalCost;
           } else if (outstanding < 1) return;
 
-          const recentPayments = analyticsTransactions.filter(t => t.accountId === acc.id && t.type === 'income').sort((a,b) => parseLocalDate(b.date).getTime() - parseLocalDate(a.date).getTime()).slice(0, 5).map(t => ({ date: t.date, amount: t.amount }));
+          const recentPayments = analyticsTransactions
+              .filter(t => t.accountId === acc.id && (t.type === 'income' || t.type === 'expense') && !t.transferId)
+              .sort((a, b) => parseLocalDate(b.date).getTime() - parseLocalDate(a.date).getTime())
+              .slice(0, 5)
+              .map(t => ({ date: t.date, amount: Math.abs(t.amount) }));
 
           activeBosses.push({ id: acc.id, name: acc.name, type: 'debt', maxHp: Math.max(maxHp, outstanding), currentHp: outstanding, level: Math.floor(maxHp / 1000) + 1, icon: acc.type === 'Loan' ? 'gavel' : 'sentiment_very_dissatisfied', hits: recentPayments, paidPrincipal, paidInterest });
       });
@@ -686,9 +702,12 @@ const Challenges: React.FC<ChallengesProps> = ({ userStats, accounts, transactio
   const categoryMastery = useMemo(() => {
       return budgets.map(budget => {
           const spent = spendingByCat[budget.categoryName] || 0;
-          const ratio = budget.amount > 0 ? spent / budget.amount : 1;
+          const ratio = budget.amount > 0 ? spent / budget.amount : 0;
           let level = 0, title = 'Unranked';
-          if (ratio > 1) { level = 0; title = 'Overloaded'; }
+          if (budget.amount <= 0) {
+              level = 0;
+              title = 'Unranked';
+          } else if (ratio > 1) { level = 0; title = 'Overloaded'; }
           else if (ratio > 0.9) { level = 1; title = 'Novice'; }
           else if (ratio > 0.75) { level = 2; title = 'Adept'; }
           else if (ratio > 0.5) { level = 3; title = 'Expert'; }
@@ -757,12 +776,12 @@ const Challenges: React.FC<ChallengesProps> = ({ userStats, accounts, transactio
           const timeProgress = Math.min(100, Math.max(0, (elapsed / (def.durationDays * 86400000)) * 100));
           
           let currentSpend = 0;
-          transactions.forEach(tx => {
+          analyticsTransactions.forEach(tx => {
               const d = parseLocalDate(tx.date);
               if (d >= start && d <= now && tx.type === 'expense' && !tx.transferId) {
                   let include = def.targetType === 'global';
                   if (def.targetType === 'transaction_limit' && Math.abs(convertToEur(tx.amount, tx.currency)) > def.limitAmount) currentSpend++;
-                  else if (def.targetType === 'category' && def.targetCategory && tx.category.toLowerCase().includes(def.targetCategory)) include = true;
+                  else if (def.targetType === 'category' && def.targetCategory && tx.category.toLowerCase() === def.targetCategory) include = true;
                   if (include && def.targetType !== 'transaction_limit') currentSpend += Math.abs(convertToEur(tx.amount, tx.currency));
               }
           });
@@ -773,7 +792,7 @@ const Challenges: React.FC<ChallengesProps> = ({ userStats, accounts, transactio
           
           return { ...def, active, currentSpend, daysRemaining, timeProgress, status };
       }).filter(Boolean) as any[];
-  }, [activeSprints, transactions]);
+  }, [activeSprints, analyticsTransactions]);
 
   // --- Render Sections ---
   const renderScoreSection = () => {
