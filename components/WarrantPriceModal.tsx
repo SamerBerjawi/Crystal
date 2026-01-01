@@ -131,7 +131,18 @@ const WarrantPriceModal: React.FC<WarrantPriceModalProps> = ({ onClose, onSave, 
     const fetchSmartPage = async (targetUrl: string, cookies?: string): Promise<string> => {
         const encodedUrl = encodeURIComponent(targetUrl);
         const cookieParam = cookies ? `&cookies=${encodeURIComponent(cookies)}` : '';
-        const response = await fetch(`/api/smart-fetch?url=${encodedUrl}${cookieParam}`);
+        let authToken: string | null = null;
+        try {
+            authToken = window.localStorage.getItem('crystal_auth_token');
+        } catch (error) {
+            console.warn('Unable to read auth token for smart fetch.', error);
+        }
+
+        const response = await fetch(`/api/smart-fetch?url=${encodedUrl}${cookieParam}`, {
+            headers: {
+                ...(authToken ? { Authorization: `Bearer ${authToken}` } : {}),
+            },
+        });
         if (!response.ok) {
             throw new Error(`Request failed with status ${response.status}`);
         }
