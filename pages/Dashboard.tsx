@@ -94,7 +94,7 @@ type EnrichedTransaction = Transaction & { convertedAmount: number; parsedDate: 
 type DashboardTab = 'overview' | 'analysis' | 'activity';
 
 const WIDGET_TABS: Record<DashboardTab, string[]> = {
-    overview: ['netWorthOverTime'], // Removed 'todayWidget' as it's now hardcoded in the layout
+    overview: ['netWorthOverTime', 'outflowsByCategory', 'recentActivity', 'netWorthBreakdown'], // Removed 'todayWidget' as it's now hardcoded in the layout
     analysis: [],
     activity: ['transactionMap', 'outflowsByCategory', 'recentActivity', 'cashflowSankey']
 };
@@ -509,8 +509,8 @@ const Dashboard: React.FC<DashboardProps> = ({ user, tasks, saveTask }) => {
   const accountMap = useMemo(() => accounts.reduce((map, acc) => { map[acc.id] = acc.name; return map; }, {} as Record<string, string>), [accounts]);
 
   const recentTransactions = useMemo(() => {
-    const sortedSourceTransactions = transactions
-      .filter(tx => selectedAccountIds.includes(tx.accountId))
+    const sortedSourceTransactions = analyticsTransactions
+      .filter(tx => analyticsSelectedAccountIds.includes(tx.accountId))
       .sort((a, b) => parseLocalDate(b.date).getTime() - parseLocalDate(a.date).getTime());
   
     const processedTransferIds = new Set<string>();
@@ -547,7 +547,7 @@ const Dashboard: React.FC<DashboardProps> = ({ user, tasks, saveTask }) => {
       }
     }
     return result.slice(0, 30);
-  }, [transactions, selectedAccountIds, accountMap, transferLookup]);
+  }, [analyticsTransactions, analyticsSelectedAccountIds, accountMap, transferLookup]);
   
   const { incomeSparkline, expenseSparkline } = useMemo(() => {
     const NUM_POINTS = 30;
@@ -859,7 +859,10 @@ const Dashboard: React.FC<DashboardProps> = ({ user, tasks, saveTask }) => {
     }, [accounts, activeGoalIds, billsAndPayments, financialGoals, loanPaymentOverrides, recurringTransactionOverrides, recurringTransactions, selectedAccounts, transactions]);
 
   const handleBudgetClick = useCallback(() => {
-    alert("Navigate to budget page.");
+    if (typeof window === 'undefined') return;
+    const targetPath = '/budget';
+    window.history.pushState(null, '', targetPath);
+    window.dispatchEvent(new PopStateEvent('popstate'));
   }, []);
 
   // --- Widget Management ---
