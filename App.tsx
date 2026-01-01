@@ -1866,7 +1866,12 @@ const App: React.FC = () => {
 
     const merchant = counterpartyCandidates.find(val => typeof val === 'string' && val.trim().length > 0)?.trim();
 
-    const idSource = providerTx?.transaction_id || providerTx?.transactionId || providerTx?.entry_reference || providerTx?.entryReference || uuidv4();
+    const idSource =
+      providerTx?.transaction_id ||
+      providerTx?.transactionId ||
+      providerTx?.entry_reference ||
+      providerTx?.entryReference ||
+      `${date || ''}-${signedAmount}-${description.replace(/\s+/g, ' ').trim()}`;
 
     return {
       id: `eb-${connectionId}-${accountId}-${idSource}`,
@@ -2093,7 +2098,13 @@ const App: React.FC = () => {
                 sessionId: connection.sessionId,
               }),
             }).then(res => res.json());
-            const pageItems = transactionsPage?.transactions || transactionsPage?.booked || [];
+            const rawItems = transactionsPage?.booked || transactionsPage?.transactions || [];
+            const pageItems = rawItems.filter((tx: any) => {
+              const status = tx?.transaction_status || tx?.transactionStatus || tx?.status;
+              if (!status) return true;
+              const normalized = String(status).toUpperCase();
+              return ['BOOK', 'BOOKED', 'COMPLETED', 'POSTED'].includes(normalized);
+            });
             providerTransactions.push(...pageItems);
             continuationKey = transactionsPage?.continuation_key || transactionsPage?.continuationKey;
           } while (continuationKey);
@@ -2158,10 +2169,20 @@ const App: React.FC = () => {
       });
       setAccounts(updatedAccountState);
 
-      // Replace imported transactions for linked accounts
-      const importIds = new Set(importedTransactions.map(tx => tx.importId));
-      const filteredTransactions = transactions.filter(tx => tx.importId ? !importIds.has(tx.importId) : true);
-      setTransactions([...filteredTransactions, ...importedTransactions]);
+      if (importedTransactions.length) {
+        const existingTransactionIds = new Set(transactions.map(tx => tx.id));
+        const dedupedImports: Transaction[] = [];
+
+        importedTransactions.forEach(tx => {
+          if (existingTransactionIds.has(tx.id)) return;
+          existingTransactionIds.add(tx.id);
+          dedupedImports.push(tx);
+        });
+
+        if (dedupedImports.length) {
+          setTransactions([...transactions, ...dedupedImports]);
+        }
+      }
 
       setEnableBankingConnections(prev => prev.map(conn => conn.id === connectionId ? {
         ...conn,
