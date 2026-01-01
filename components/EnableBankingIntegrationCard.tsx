@@ -18,13 +18,11 @@ interface EnableBankingIntegrationCardProps {
   connections: EnableBankingConnection[];
   accounts: Account[];
   onCreateConnection: (payload: {
-    applicationId: string;
     countryCode: string;
-    clientCertificate: string;
     selectedBank: string;
     connectionId?: string;
   }) => void;
-  onFetchBanks: (payload: { applicationId: string; countryCode: string; clientCertificate: string }) => Promise<
+  onFetchBanks: (payload: { countryCode: string }) => Promise<
     { id: string; name: string; country?: string }[]
   >;
   onDeleteConnection: (connectionId: string) => void;
@@ -46,9 +44,7 @@ const EnableBankingIntegrationCard: React.FC<EnableBankingIntegrationCardProps> 
   onTriggerSync,
 }) => {
   const [formState, setFormState] = useState({
-    applicationId: '',
     countryCode: 'FI',
-    clientCertificate: '',
     selectedBank: '',
   });
 
@@ -128,19 +124,12 @@ const EnableBankingIntegrationCard: React.FC<EnableBankingIntegrationCardProps> 
   };
 
   const loadBanks = async () => {
-    if (!formState.applicationId.trim() || !formState.clientCertificate.trim()) {
-      alert('Enter application ID and client certificate before loading banks.');
-      return;
-    }
-
     setBanksLoading(true);
     setBanksError(null);
 
     try {
       const options = await onFetchBanks({
-        applicationId: formState.applicationId.trim(),
         countryCode: formState.countryCode.trim().toUpperCase(),
-        clientCertificate: formState.clientCertificate.trim(),
       });
       setBankOptions(options);
       updateFormState(prev => ({ ...prev, selectedBank: options[0]?.name || '' }));
@@ -189,48 +178,30 @@ const EnableBankingIntegrationCard: React.FC<EnableBankingIntegrationCardProps> 
   };
 
   const handleCreate = () => {
-    if (!formState.applicationId.trim() || !formState.clientCertificate.trim()) {
-      alert('Application ID and client certificate are required to start the Enable Banking flow.');
-      return;
-    }
-
     if (!formState.selectedBank) {
       alert('Select a bank for the chosen country.');
       return;
     }
 
     onCreateConnection({
-      applicationId: formState.applicationId,
       countryCode: formState.countryCode,
-      clientCertificate: formState.clientCertificate,
       selectedBank: formState.selectedBank,
     });
 
   };
 
   const handleReauthorize = (connection: EnableBankingConnection) => {
-    const resolvedApplicationId = (connection.applicationId || formState.applicationId).trim();
-    const resolvedCertificate = (connection.clientCertificate || formState.clientCertificate).trim();
     const resolvedCountry = (connection.countryCode || formState.countryCode).trim().toUpperCase();
     const resolvedBank = connection.selectedBank || formState.selectedBank;
 
-    if (!resolvedApplicationId || !resolvedCertificate) {
-      alert('Application ID and client certificate are required to reauthorize this connection.');
-      return;
-    }
-
     updateFormState(prev => ({
       ...prev,
-      applicationId: resolvedApplicationId,
-      clientCertificate: resolvedCertificate,
       countryCode: resolvedCountry,
       selectedBank: resolvedBank || prev.selectedBank,
     }));
 
     onCreateConnection({
-      applicationId: resolvedApplicationId,
       countryCode: resolvedCountry,
-      clientCertificate: resolvedCertificate,
       selectedBank: resolvedBank || connection.selectedBank || 'Enable Banking',
       connectionId: connection.id,
     });
@@ -322,31 +293,20 @@ const EnableBankingIntegrationCard: React.FC<EnableBankingIntegrationCardProps> 
               <div className="w-9 h-9 rounded-lg bg-emerald-100 dark:bg-emerald-900/40 text-emerald-600 dark:text-emerald-300 flex items-center justify-center">
                 <span className="material-symbols-outlined">key</span>
               </div>
-              <h3 className="text-lg font-bold text-light-text dark:text-dark-text">Credentials Setup</h3>
+              <h3 className="text-lg font-bold text-light-text dark:text-dark-text">Enable Banking setup</h3>
             </div>
             <p className="text-sm text-light-text-secondary dark:text-dark-text-secondary">
-              Save your Enable Banking API details locally to authorize new connections.
+              Select your country and load available banks to start authorization.
             </p>
             <p className="text-xs text-light-text-secondary/80 dark:text-dark-text-secondary/80 mt-2">
-              Note: credentials are stored in this browser only and are not encrypted.
+              Note: Enable Banking credentials are stored securely on the server.
             </p>
           </div>
-          <span className="px-3 py-1 rounded-full bg-black/5 dark:bg-white/10 text-[11px] font-bold text-light-text-secondary dark:text-dark-text-secondary uppercase tracking-wider">Local Storage</span>
+          <span className="px-3 py-1 rounded-full bg-black/5 dark:bg-white/10 text-[11px] font-bold text-light-text-secondary dark:text-dark-text-secondary uppercase tracking-wider">Server Managed</span>
         </div>
 
         <div className="grid gap-6">
             <div className="grid gap-4 sm:grid-cols-2">
-                 <div className="space-y-2">
-                    <label className="text-xs font-bold text-light-text-secondary dark:text-dark-text-secondary uppercase tracking-wider block">Application ID (kid)</label>
-                    <input
-                    type="text"
-                    name="applicationId"
-                    value={formState.applicationId}
-                    onChange={handleFormChange}
-                    placeholder="app_xxxxx"
-                    className={INPUT_BASE_STYLE}
-                    />
-                </div>
                  <div className="space-y-2">
                      <label className="text-xs font-bold text-light-text-secondary dark:text-dark-text-secondary uppercase tracking-wider block">Country code</label>
                     <div className="flex gap-2">
@@ -367,18 +327,6 @@ const EnableBankingIntegrationCard: React.FC<EnableBankingIntegrationCardProps> 
                         </button>
                     </div>
                 </div>
-            </div>
-          
-            <div className="space-y-2">
-                <label className="text-xs font-bold text-light-text-secondary dark:text-dark-text-secondary uppercase tracking-wider block">Client certificate (PEM)</label>
-                <textarea
-                name="clientCertificate"
-                value={formState.clientCertificate}
-                onChange={handleFormChange}
-                placeholder="-----BEGIN PRIVATE KEY-----"
-                rows={3}
-                className={`${INPUT_BASE_STYLE} font-mono text-xs min-h-[80px]`}
-                />
             </div>
         </div>
       </Card>

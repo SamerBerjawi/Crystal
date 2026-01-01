@@ -1625,13 +1625,9 @@ const App: React.FC = () => {
   }, [token]);
 
   const handleFetchEnableBankingBanks = useCallback(async ({
-    applicationId,
     countryCode,
-    clientCertificate,
   }: {
-    applicationId: string;
     countryCode: string;
-    clientCertificate: string;
   }) => {
     if (!token) {
       throw new Error('You must be signed in to load banks for Enable Banking.');
@@ -1640,9 +1636,7 @@ const App: React.FC = () => {
     const response = await fetchWithAuth('/api/enable-banking/aspsps', {
       method: 'POST',
       body: JSON.stringify({
-        applicationId: applicationId.trim(),
         countryCode: countryCode.trim().toUpperCase(),
-        clientCertificate: clientCertificate.trim(),
       }),
     });
 
@@ -1661,9 +1655,7 @@ const App: React.FC = () => {
   }, [enableBankingConnections, fetchWithAuth, isDemoMode, saveDataWithRetry, token]);
 
   const handleCreateEnableBankingConnection = useCallback(async (payload: {
-    applicationId: string;
     countryCode: string;
-    clientCertificate: string;
     selectedBank: string;
     connectionId?: string;
   }) => {
@@ -1679,9 +1671,7 @@ const App: React.FC = () => {
     const baseConnection: EnableBankingConnection = existingConnection
       ? {
           ...existingConnection,
-          applicationId: payload.applicationId.trim(),
           countryCode: payload.countryCode.trim().toUpperCase(),
-          clientCertificate: payload.clientCertificate.trim(),
           status: 'pending',
           selectedBank: payload.selectedBank,
           authorizationId: undefined,
@@ -1689,9 +1679,7 @@ const App: React.FC = () => {
         }
       : {
           id: connectionId,
-          applicationId: payload.applicationId.trim(),
           countryCode: payload.countryCode.trim().toUpperCase(),
-          clientCertificate: payload.clientCertificate.trim(),
           status: 'pending',
           selectedBank: payload.selectedBank,
           accounts: [],
@@ -1719,8 +1707,6 @@ const App: React.FC = () => {
       const response = await fetchWithAuth('/api/enable-banking/authorize', {
         method: 'POST',
         body: JSON.stringify({
-          applicationId: baseConnection.applicationId,
-          clientCertificate: baseConnection.clientCertificate,
           countryCode: baseConnection.countryCode,
           aspspName: payload.selectedBank,
           state: connectionId,
@@ -1917,8 +1903,6 @@ const App: React.FC = () => {
         method: 'POST',
         body: JSON.stringify({
           sessionId: connection.sessionId,
-          applicationId: connection.applicationId,
-          clientCertificate: connection.clientCertificate,
         }),
       }).then(res => res.json());
 
@@ -2003,16 +1987,12 @@ const App: React.FC = () => {
           fetchWithAuth(`/api/enable-banking/accounts/${encodeURIComponent(providerAccountId)}/details`, {
             method: 'POST',
             body: JSON.stringify({
-              applicationId: connection.applicationId,
-              clientCertificate: connection.clientCertificate,
               sessionId: connection.sessionId,
             }),
           }).then(res => res.json()).catch(() => null),
           fetchWithAuth(`/api/enable-banking/accounts/${encodeURIComponent(providerAccountId)}/balances`, {
             method: 'POST',
             body: JSON.stringify({
-              applicationId: connection.applicationId,
-              clientCertificate: connection.clientCertificate,
               sessionId: connection.sessionId,
             }),
           }).then(res => res.json()),
@@ -2078,8 +2058,6 @@ const App: React.FC = () => {
             transactionsPage = await fetchWithAuth(`/api/enable-banking/accounts/${encodeURIComponent(providerAccountId)}/transactions`, {
               method: 'POST',
               body: JSON.stringify({
-                applicationId: connection.applicationId,
-                clientCertificate: connection.clientCertificate,
                 dateFrom: syncStart,
                 continuationKey,
                 sessionId: connection.sessionId,

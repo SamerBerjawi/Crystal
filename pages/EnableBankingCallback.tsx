@@ -84,8 +84,6 @@ const EnableBankingCallback: React.FC<EnableBankingCallbackProps> = ({
               ...(authToken ? { Authorization: `Bearer ${authToken}` } : {}),
             },
             body: JSON.stringify({
-              applicationId: connection.applicationId,
-              clientCertificate: connection.clientCertificate,
               code,
             }),
           });

@@ -4,9 +4,7 @@ export const PENDING_EB_CONNECTIONS_KEY = 'enableBankingPendingConnections';
 export const ENABLE_BANKING_CONFIG_KEY = 'enableBankingConfig';
 
 export interface EnableBankingConfig {
-  applicationId: string;
   countryCode: string;
-  clientCertificate: string;
   selectedBank?: string;
 }
 
@@ -70,9 +68,7 @@ export const loadEnableBankingConfig = (): EnableBankingConfig | null => {
     if (!parsed || typeof parsed !== 'object') return null;
 
     return {
-      applicationId: parsed.applicationId || '',
       countryCode: parsed.countryCode || 'FI',
-      clientCertificate: parsed.clientCertificate || '',
       selectedBank: parsed.selectedBank || '',
     };
   } catch (error) {

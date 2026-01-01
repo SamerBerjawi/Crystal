@@ -190,9 +190,7 @@ export interface EnableBankingAccount {
 
 export interface EnableBankingConnection {
   id: string;
-  applicationId: string;
   countryCode: string;
-  clientCertificate: string;
   status: EnableBankingConnectionStatus;
   selectedBank?: string;
   sessionId?: string;

@@ -11,8 +11,8 @@ interface IntegrationsProps {
   setCurrentPage: (page: Page) => void;
   enableBankingConnections: EnableBankingConnection[];
   accounts: Account[];
-  onCreateConnection: (payload: { applicationId: string; countryCode: string; clientCertificate: string; selectedBank: string; connectionId?: string }) => void;
-  onFetchBanks: (payload: { applicationId: string; countryCode: string; clientCertificate: string }) => Promise<
+  onCreateConnection: (payload: { countryCode: string; selectedBank: string; connectionId?: string }) => void;
+  onFetchBanks: (payload: { countryCode: string }) => Promise<
     { id: string; name: string; country?: string }[]
   >;
   onDeleteConnection: (connectionId: string) => void;
