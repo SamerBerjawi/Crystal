@@ -509,6 +509,7 @@ const Challenges: React.FC<ChallengesProps> = ({ userStats, accounts, transactio
         analyticsTransactions.forEach(tx => {
             const date = parseLocalDate(tx.date);
             if (date > today) return;
+            if (tx.transferId) return;
             const monthKey = toLocalISOString(date).slice(0, 7);
             const val = convertToEur(tx.amount, tx.currency);
             monthlyChanges.set(monthKey, (monthlyChanges.get(monthKey) || 0) + val);
@@ -608,8 +609,9 @@ const Challenges: React.FC<ChallengesProps> = ({ userStats, accounts, transactio
         const d = parseLocalDate(tx.date);
         if (d >= startOfMonth && !tx.transferId) {
             const val = convertToEur(tx.amount, tx.currency);
-            if (tx.type === 'income') income += val;
-            else {
+            if (tx.type === 'income') {
+                income += val;
+            } else if (tx.type === 'expense') {
                 expense += Math.abs(val);
                 
                 let catName = tx.category;
@@ -634,8 +636,10 @@ const Challenges: React.FC<ChallengesProps> = ({ userStats, accounts, transactio
      // However, user prompt says "Spend within 5%", which means variance <= 0.05.
      const budgetAccuracy = validBudgets > 0 ? (totalBudgetVariance / validBudgets) : 1;
      
-     const totalInvestments = analyticsAccounts.filter(a => a.type === 'Investment').reduce((sum, a) => sum + convertToEur(a.balance, a.currency), 0);
-     const uniqueAccountTypes = new Set(analyticsAccounts.map(a => a.type)).size;
+     const totalInvestments = analyticsAccounts
+        .filter(a => a.type === 'Investment' && a.status !== 'closed')
+        .reduce((sum, a) => sum + convertToEur(a.balance, a.currency), 0);
+     const uniqueAccountTypes = new Set(analyticsAccounts.filter(a => a.status !== 'closed').map(a => a.type)).size;
 
      const threeMonthsAgo = new Date(); threeMonthsAgo.setMonth(threeMonthsAgo.getMonth() - 3);
      const totalSpend3m = analyticsTransactions.filter(t => parseLocalDate(t.date) >= threeMonthsAgo && t.type === 'expense' && !t.transferId).reduce((sum, t) => sum + Math.abs(convertToEur(t.amount, t.currency)), 0);
@@ -773,13 +777,14 @@ const Challenges: React.FC<ChallengesProps> = ({ userStats, accounts, transactio
 
   // --- Render Sections ---
   const renderScoreSection = () => {
-       const healthScoreDetails = [
-          { id: 'savings', label: 'Savings Rate', score: Math.min(30, savingsRate * 100 * 1.5), max: 30, value: `${(savingsRate * 100).toFixed(1)}%`, icon: 'savings', color: 'emerald' },
-          { id: 'liquidity', label: 'Liquidity', score: Math.min(30, liquidityRatio * 10), max: 30, value: `${liquidityRatio.toFixed(1)}mo`, icon: 'water_drop', color: 'blue' },
-          { id: 'debt', label: 'Debt Mgmt', score: totalDebt === 0 ? 20 : Math.max(0, 20 - (Math.abs(totalDebt) / 1000)), max: 20, value: formatCurrency(totalDebt, 'EUR'), icon: 'credit_card', color: 'rose' },
-          { id: 'diversity', label: 'Asset Mix', score: Math.min(20, uniqueAccountTypes * 5), max: 20, value: `${uniqueAccountTypes} Types`, icon: 'category', color: 'purple' }
+      const clampScore = (score: number, max: number) => Math.min(max, Math.max(0, score));
+      const healthScoreDetails = [
+          { id: 'savings', label: 'Savings Rate', score: clampScore(savingsRate * 100 * 1.5, 30), max: 30, value: `${(savingsRate * 100).toFixed(1)}%`, icon: 'savings', color: 'emerald' },
+          { id: 'liquidity', label: 'Liquidity', score: clampScore(liquidityRatio * 10, 30), max: 30, value: `${liquidityRatio.toFixed(1)}mo`, icon: 'water_drop', color: 'blue' },
+          { id: 'debt', label: 'Debt Mgmt', score: clampScore(totalDebt === 0 ? 20 : 20 - (Math.abs(totalDebt) / 1000), 20), max: 20, value: formatCurrency(totalDebt, 'EUR'), icon: 'credit_card', color: 'rose' },
+          { id: 'diversity', label: 'Asset Mix', score: clampScore(uniqueAccountTypes * 5, 20), max: 20, value: `${uniqueAccountTypes} Types`, icon: 'category', color: 'purple' }
       ];
-      const healthScore = healthScoreDetails.reduce((sum, d) => sum + d.score, 0);
+      const healthScore = clampScore(healthScoreDetails.reduce((sum, d) => sum + d.score, 0), 100);
       
       let rank = "Financial Novice";
       let rankColor = "text-gray-500";

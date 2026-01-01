@@ -383,12 +383,15 @@ const App: React.FC = () => {
     const yesterday = new Date();
     yesterday.setDate(yesterday.getDate() - 1);
     const yesterdayStr = toLocalISOString(yesterday);
+    const normalizedLastLogDate = userStats.lastLogDate
+      ? toLocalISOString(parseLocalDate(userStats.lastLogDate))
+      : '';
     
     // Only update if not already logged today
-    if (userStats.lastLogDate !== todayStr) {
+    if (normalizedLastLogDate !== todayStr) {
        let newStreak = 1;
        
-       if (userStats.lastLogDate === yesterdayStr) {
+       if (normalizedLastLogDate === yesterdayStr) {
            newStreak = (userStats.currentStreak || 0) + 1;
        }
        
