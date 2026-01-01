@@ -367,19 +367,6 @@ const Investments: React.FC<InvestmentsProps> = ({
                                                                 <span className="material-symbols-outlined text-lg">manage_accounts</span>
                                                             </button>
                                                         )}
-                                                        {holding.type === 'Warrant' && (
-                                                            <button
-                                                                onClick={(e) => {
-                                                                    e.stopPropagation();
-                                                                    const warrant = warrants.find(w => w.id === holding.warrantId);
-                                                                    if(warrant) handleOpenWarrantModal(warrant);
-                                                                }}
-                                                                className="p-1.5 rounded-md text-light-text-secondary dark:text-dark-text-secondary hover:bg-black/10 dark:hover:bg-white/10"
-                                                                title="Edit Grant"
-                                                            >
-                                                                <span className="material-symbols-outlined text-lg">card_membership</span>
-                                                            </button>
-                                                        )}
                                                     </div>
                                                 </td>
                                             </tr>

@@ -2340,8 +2340,11 @@ const App: React.FC = () => {
           holdingSymbol={viewingHoldingSymbol}
           holdingsOverview={holdingsOverview}
           accounts={accounts}
+          cashAccounts={accounts.filter(a => a.type === 'Checking' || a.type === 'Savings')}
           investmentTransactions={investmentTransactions}
+          saveInvestmentTransaction={handleSaveInvestmentTransaction}
           warrants={warrants}
+          saveWarrant={handleSaveWarrant}
           manualPrices={manualWarrantPrices}
           onManualPriceChange={handleManualWarrantPrice}
           onBack={() => setCurrentPage('Investments')}

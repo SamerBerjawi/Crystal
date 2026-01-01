@@ -5,6 +5,7 @@ import {
     HoldingSummary,
     HoldingsOverview,
     InvestmentTransaction,
+    Transaction,
     Warrant,
     PriceHistoryEntry
 } from '../types';
@@ -12,6 +13,8 @@ import Card from '../components/Card';
 import { formatCurrency, parseLocalDate } from '../utils';
 import { BTN_PRIMARY_STYLE, BTN_SECONDARY_STYLE, INVESTMENT_SUB_TYPE_STYLES } from '../constants';
 import WarrantPriceModal from '../components/WarrantPriceModal';
+import AddInvestmentTransactionModal from '../components/AddInvestmentTransactionModal';
+import WarrantModal from '../components/WarrantModal';
 import { formatHoldingType } from '../utils/investments';
 import PriceHistoryChart from '../components/PriceHistoryChart';
 
@@ -19,8 +22,11 @@ interface HoldingDetailProps {
     holdingSymbol: string;
     holdingsOverview: HoldingsOverview;
     accounts: Account[];
+    cashAccounts: Account[];
     investmentTransactions: InvestmentTransaction[];
+    saveInvestmentTransaction: (invTx: Omit<InvestmentTransaction, 'id'> & { id?: string }, cashTx?: Omit<Transaction, 'id'>, newAccount?: Omit<Account, 'id'>) => void;
     warrants: Warrant[];
+    saveWarrant: (warrant: Omit<Warrant, 'id'> & { id?: string }) => void;
     manualPrices: Record<string, number | undefined>;
     onManualPriceChange: (isin: string, price: number | null | {date: string, price: number}[], date?: string) => void;
     onBack: () => void;
@@ -31,14 +37,21 @@ const HoldingDetail: React.FC<HoldingDetailProps> = ({
     holdingSymbol,
     holdingsOverview,
     accounts,
+    cashAccounts,
     investmentTransactions,
+    saveInvestmentTransaction,
     warrants,
+    saveWarrant,
     onManualPriceChange,
     onBack,
     priceHistory = {}
 }) => {
     const [isPriceModalOpen, setIsPriceModalOpen] = useState(false);
     const [editingEntry, setEditingEntry] = useState<{ date: string, price: number } | undefined>(undefined);
+    const [editingTransaction, setEditingTransaction] = useState<InvestmentTransaction | null>(null);
+    const [isTransactionModalOpen, setIsTransactionModalOpen] = useState(false);
+    const [editingWarrant, setEditingWarrant] = useState<Warrant | null>(null);
+    const [isWarrantModalOpen, setIsWarrantModalOpen] = useState(false);
 
     const holding: HoldingSummary | undefined = useMemo(
         () => holdingsOverview.holdings.find(h => h.symbol === holdingSymbol),
@@ -61,7 +74,9 @@ const HoldingDetail: React.FC<HoldingDetailProps> = ({
                 price: tx.price,
                 badgeClass: tx.type === 'buy'
                     ? 'bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400'
-                    : 'bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-400'
+                    : 'bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-400',
+                isWarrant: false,
+                data: tx
             }));
 
         const grants = warrants
@@ -74,7 +89,9 @@ const HoldingDetail: React.FC<HoldingDetailProps> = ({
                 amount: w.quantity * w.grantPrice,
                 detail: `@ ${formatCurrency(w.grantPrice, 'EUR')}`,
                 price: w.grantPrice,
-                badgeClass: 'bg-purple-100 text-purple-700 dark:bg-purple-900/30 dark:text-purple-400'
+                badgeClass: 'bg-purple-100 text-purple-700 dark:bg-purple-900/30 dark:text-purple-400',
+                isWarrant: true,
+                data: w
             }));
 
         return [...txs, ...grants].sort((a, b) => parseLocalDate(b.date).getTime() - parseLocalDate(a.date).getTime());
@@ -133,6 +150,16 @@ const HoldingDetail: React.FC<HoldingDetailProps> = ({
         setIsPriceModalOpen(true);
     };
 
+    const handleOpenTransactionModal = (transaction?: InvestmentTransaction) => {
+        setEditingTransaction(transaction || null);
+        setIsTransactionModalOpen(true);
+    };
+
+    const handleOpenWarrantModal = (warrant?: Warrant) => {
+        setEditingWarrant(warrant || null);
+        setIsWarrantModalOpen(true);
+    };
+
     const handleDeletePrice = (date: string) => {
         if(window.confirm(`Are you sure you want to delete the price log for ${date}?`)) {
             onManualPriceChange(holding.symbol, null, date);
@@ -148,6 +175,22 @@ const HoldingDetail: React.FC<HoldingDetailProps> = ({
                     isin={holding.symbol}
                     name={holding.name}
                     initialEntry={editingEntry}
+                />
+            )}
+            {isTransactionModalOpen && (
+                <AddInvestmentTransactionModal
+                    onClose={() => setIsTransactionModalOpen(false)}
+                    onSave={saveInvestmentTransaction}
+                    accounts={accounts}
+                    cashAccounts={cashAccounts}
+                    transactionToEdit={editingTransaction}
+                />
+            )}
+            {isWarrantModalOpen && (
+                <WarrantModal
+                    onClose={() => setIsWarrantModalOpen(false)}
+                    onSave={(w) => { saveWarrant(w); setIsWarrantModalOpen(false); }}
+                    warrantToEdit={editingWarrant}
                 />
             )}
 
@@ -307,13 +350,30 @@ const HoldingDetail: React.FC<HoldingDetailProps> = ({
                                                 </p>
                                             </div>
                                         </div>
-                                        <div className="text-right">
-                                            <p className="font-mono font-bold text-sm text-light-text dark:text-dark-text">
-                                                {formatCurrency(item.amount, 'EUR')}
-                                            </p>
-                                            <p className="text-xs text-light-text-secondary dark:text-dark-text-secondary">
-                                                {item.detail}
-                                            </p>
+                                        <div className="flex items-center gap-3">
+                                            <div className="text-right">
+                                                <p className="font-mono font-bold text-sm text-light-text dark:text-dark-text">
+                                                    {formatCurrency(item.amount, 'EUR')}
+                                                </p>
+                                                <p className="text-xs text-light-text-secondary dark:text-dark-text-secondary">
+                                                    {item.detail}
+                                                </p>
+                                            </div>
+                                            <button
+                                                onClick={() => {
+                                                    if (item.isWarrant) {
+                                                        handleOpenWarrantModal(item.data as Warrant);
+                                                    } else {
+                                                        handleOpenTransactionModal(item.data as InvestmentTransaction);
+                                                    }
+                                                }}
+                                                className="p-1.5 rounded-md text-light-text-secondary dark:text-dark-text-secondary hover:bg-black/10 dark:hover:bg-white/10"
+                                                title={item.isWarrant ? 'Edit Grant' : 'Edit Transaction'}
+                                            >
+                                                <span className="material-symbols-outlined text-lg">
+                                                    {item.isWarrant ? 'card_membership' : 'edit_note'}
+                                                </span>
+                                            </button>
                                         </div>
                                     </div>
                                 ))
