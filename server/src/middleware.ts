@@ -2,7 +2,8 @@
 
 import { Request, Response, NextFunction } from 'express';
 import jwt from 'jsonwebtoken';
-import { JWT_SECRET } from './config';
+
+const JWT_SECRET = process.env.JWT_SECRET || 'default-secret';
 
 // FIX: Explicitly add body and headers to solve potential type conflicts with a global Request type.
 export interface AuthRequest extends Request {
