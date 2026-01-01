@@ -41,9 +41,9 @@ const AccountDetail: React.FC<{
     const clampSyncDate = useMemo(
       () => (value?: string) => {
         if (!value) return value;
-        const parsed = new Date(value);
-        const min = new Date(ninetyDaysAgoStr);
-        const max = new Date(todayStr);
+        const parsed = parseLocalDate(value);
+        const min = parseLocalDate(ninetyDaysAgoStr);
+        const max = parseLocalDate(todayStr);
 
         if (parsed < min) return ninetyDaysAgoStr;
         if (parsed > max) return todayStr;
@@ -76,6 +76,7 @@ const AccountDetail: React.FC<{
     const [editingLog, setEditingLog] = useState<MileageLog | null>(null);
     const [deletingLogId, setDeletingLogId] = useState<string | null>(null);
     const [isAdjustModalOpen, setAdjustModalOpen] = useState(false);
+    const [transactionToDelete, setTransactionToDelete] = useState<Transaction | null>(null);
     const [syncPrompt, setSyncPrompt] = useState<{
         connectionId: string;
         connectionOverride: EnableBankingConnection;
@@ -251,11 +252,7 @@ const AccountDetail: React.FC<{
     };
 
     const handleDeleteTransaction = (tx: Transaction) => {
-        const confirmed = window.confirm('Delete this transaction? This action cannot be undone.');
-        if (!confirmed) return;
-
-        deleteTransactions([tx.id]);
-        setDetailModalOpen(false);
+        setTransactionToDelete(tx);
     };
 
     const commonProps = {
@@ -442,6 +439,20 @@ const AccountDetail: React.FC<{
                 onConfirm={confirmDeleteLog}
                 title="Delete Log"
                 message="Are you sure you want to delete this mileage log entry?"
+                confirmButtonText="Delete"
+            />
+
+            <ConfirmationModal
+                isOpen={!!transactionToDelete}
+                onClose={() => setTransactionToDelete(null)}
+                onConfirm={() => {
+                    if (!transactionToDelete) return;
+                    deleteTransactions([transactionToDelete.id]);
+                    setTransactionToDelete(null);
+                    setDetailModalOpen(false);
+                }}
+                title="Delete Transaction"
+                message="Are you sure you want to delete this transaction? This action cannot be undone."
                 confirmButtonText="Delete"
             />
 
