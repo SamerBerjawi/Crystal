@@ -376,7 +376,7 @@ const Investments: React.FC<InvestmentsProps> = ({
                                                                 className="p-1.5 rounded-md text-light-text-secondary dark:text-dark-text-secondary hover:bg-black/10 dark:hover:bg-white/10"
                                                                 title="Edit Account"
                                                             >
-                                                                <span className="material-symbols-outlined text-lg">edit</span>
+                                                                <span className="material-symbols-outlined text-lg">manage_accounts</span>
                                                             </button>
                                                         )}
                                                         {holding.type === 'Warrant' && (
@@ -389,7 +389,7 @@ const Investments: React.FC<InvestmentsProps> = ({
                                                                 className="p-1.5 rounded-md text-light-text-secondary dark:text-dark-text-secondary hover:bg-black/10 dark:hover:bg-white/10"
                                                                 title="Edit Grant"
                                                             >
-                                                                <span className="material-symbols-outlined text-lg">edit</span>
+                                                                <span className="material-symbols-outlined text-lg">card_membership</span>
                                                             </button>
                                                         )}
                                                         {holdingAccount && (
@@ -450,9 +450,27 @@ const Investments: React.FC<InvestmentsProps> = ({
                                                 <p className="text-xs text-light-text-secondary dark:text-dark-text-secondary">{parseLocalDate(item.date).toLocaleDateString()}</p>
                                             </div>
                                         </div>
-                                        <div className="text-right">
-                                            <p className="font-bold text-light-text dark:text-dark-text">{formatCurrency(item.quantity * item.price, 'EUR')}</p>
-                                            <p className="text-xs text-light-text-secondary dark:text-dark-text-secondary">{item.quantity} @ {formatCurrency(item.price, 'EUR')}</p>
+                                        <div className="flex items-center gap-3">
+                                            <div className="text-right">
+                                                <p className="font-bold text-light-text dark:text-dark-text">{formatCurrency(item.quantity * item.price, 'EUR')}</p>
+                                                <p className="text-xs text-light-text-secondary dark:text-dark-text-secondary">{item.quantity} @ {formatCurrency(item.price, 'EUR')}</p>
+                                            </div>
+                                            <button
+                                                onClick={(event) => {
+                                                    event.stopPropagation();
+                                                    if (item.isWarrant) {
+                                                        handleOpenWarrantModal(item.data as Warrant);
+                                                    } else {
+                                                        handleOpenModal(item.data as InvestmentTransaction);
+                                                    }
+                                                }}
+                                                className="p-1.5 rounded-md text-light-text-secondary dark:text-dark-text-secondary hover:bg-black/10 dark:hover:bg-white/10"
+                                                title={item.isWarrant ? 'Edit Grant' : 'Edit Transaction'}
+                                            >
+                                                <span className="material-symbols-outlined text-lg">
+                                                    {item.isWarrant ? 'card_membership' : 'edit_note'}
+                                                </span>
+                                            </button>
                                         </div>
                                     </div>
                                 );
