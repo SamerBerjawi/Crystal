@@ -85,9 +85,13 @@ const AccountsListSection: React.FC<{
     const [expandedGroups, setExpandedGroups] = useState<Record<string, boolean>>({});
 
     useEffect(() => {
-        const initialExpanded: Record<string, boolean> = {};
-        groupOrder.forEach(key => initialExpanded[key] = true);
-        setExpandedGroups(initialExpanded);
+        setExpandedGroups(prev => {
+            const next: Record<string, boolean> = {};
+            groupOrder.forEach(key => {
+                next[key] = prev[key] ?? true;
+            });
+            return next;
+        });
     }, [groupOrder]);
 
     const toggleGroup = (groupName: string) => setExpandedGroups(prev => ({ ...prev, [groupName]: !prev[groupName] }));
@@ -252,6 +256,7 @@ const Accounts: React.FC<AccountsProps> = ({ accounts, transactions, saveAccount
     const open = safeAccounts.filter(acc => acc.status !== 'closed');
     const closed = safeAccounts.filter(acc => acc.status === 'closed');
     const analyticsOpen = open.filter(acc => acc.includeInAnalytics ?? true);
+    const analyticsOpenIds = new Set(analyticsOpen.map(acc => acc.id));
 
     const { totalAssets, totalDebt, netWorth } = calculateAccountTotals(analyticsOpen, analyticsTransactions, loanPaymentOverrides);
     const liquidCash = analyticsOpen.filter(acc => LIQUID_ACCOUNT_TYPES.includes(acc.type))
@@ -262,7 +267,7 @@ const Accounts: React.FC<AccountsProps> = ({ accounts, transactions, saveAccount
     thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
     const netChange30d = analyticsTransactions.reduce((sum, tx) => {
         const txDate = parseLocalDate(tx.date);
-        if (txDate >= thirtyDaysAgo && analyticsOpen.some(a => a.id === tx.accountId)) {
+        if (tx.type !== 'transfer' && txDate >= thirtyDaysAgo && analyticsOpenIds.has(tx.accountId)) {
             return sum + convertToEur(tx.amount, tx.currency);
         }
         return sum;
@@ -346,8 +351,26 @@ const Accounts: React.FC<AccountsProps> = ({ accounts, transactions, saveAccount
 
   const handleContextMenu = (event: React.MouseEvent, account: Account) => {
     event.preventDefault();
-    setContextMenu({ x: event.clientX, y: event.clientY, account });
+    const menuWidth = 224;
+    const menuHeight = 260;
+    const padding = 12;
+    const maxX = window.innerWidth - menuWidth - padding;
+    const maxY = window.innerHeight - menuHeight - padding;
+    const x = Math.max(padding, Math.min(event.clientX, maxX));
+    const y = Math.max(padding, Math.min(event.clientY, maxY));
+
+    setContextMenu({ x, y, account });
   };
+
+  useEffect(() => {
+    const visibleIds = visibleAccounts.map(acc => acc.id);
+    setAccountOrder(prev => {
+        const filtered = prev.filter(id => visibleIds.includes(id));
+        const missing = visibleIds.filter(id => !filtered.includes(id));
+        const next = [...filtered, ...missing];
+        return next;
+    });
+  }, [setAccountOrder, visibleAccounts]);
 
   return (
     <div className="space-y-8 pb-12 animate-fade-in-up">
@@ -391,7 +414,7 @@ const Accounts: React.FC<AccountsProps> = ({ accounts, transactions, saveAccount
                 <li>
                     <button onClick={() => { handleAccountClick(contextMenu.account.id); setContextMenu(null); }} className="w-full text-left flex items-center gap-3 px-4 py-2 hover:bg-black/5 dark:hover:bg-white/10">
                         <span className="material-symbols-outlined text-base">visibility</span>
-                        <span>View Transactions</span>
+                        <span>View Account</span>
                     </button>
                 </li>
                 <li>
