@@ -749,7 +749,7 @@ const Challenges: React.FC<ChallengesProps> = ({ userStats, accounts, transactio
       const categoryLookup = new Map<string, string>();
       expenseCategories.forEach(category => {
           categoryLookup.set(category.name, category.name.toLowerCase());
-          category.subCategories.forEach(sub => {
+          (category.subCategories ?? []).forEach(sub => {
               categoryLookup.set(sub.name, category.name.toLowerCase());
           });
       });
