@@ -277,6 +277,10 @@ export interface DisplayTransaction extends Transaction {
     toAccountName?: string;
     originalId?: string; // To keep track of the real ID for editing transfers
     spareChangeAmount?: number;
+    transferExpenseAmount?: number;
+    transferExpenseCurrency?: Currency;
+    transferIncomeAmount?: number;
+    transferIncomeCurrency?: Currency;
 }
 
 export interface InvestmentTransaction {

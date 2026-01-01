@@ -185,12 +185,16 @@ const Transactions: React.FC<TransactionsProps> = ({ initialAccountFilter, initi
     if (accountFilter) {
       const account = accounts.find(a => a.name === accountFilter);
       if (account) setSelectedAccountIds([account.id]);
+    } else {
+      setSelectedAccountIds([]);
     }
   }, [accountFilter, accounts]);
 
   useEffect(() => {
     if (tagFilter) {
       setSelectedTagIds([tagFilter]);
+    } else {
+      setSelectedTagIds([]);
     }
   }, [tagFilter]);
 
@@ -351,6 +355,10 @@ const Transactions: React.FC<TransactionsProps> = ({ initialAccountFilter, initi
                     category: 'Transfer',
                     description: 'Account Transfer',
                     spareChangeAmount,
+                    transferExpenseAmount: Math.abs(pair.expense.amount),
+                    transferExpenseCurrency: pair.expense.currency,
+                    transferIncomeAmount: Math.abs(pair.income.amount),
+                    transferIncomeCurrency: pair.income.currency,
                 });
             } else {
                 const spareKey = getSpareChangeKey(tx.accountId, tx.date, tx.description, true);
@@ -363,6 +371,25 @@ const Transactions: React.FC<TransactionsProps> = ({ initialAccountFilter, initi
     }
     return result;
   }, [transactions, accountMap]);
+
+  const indexedTransactions = useMemo(() => {
+    return displayTransactions.map(tx => {
+      const amountEur = convertToEur(tx.amount, tx.currency);
+      const amountAbsEur = Math.abs(amountEur);
+      const searchText = [
+        tx.description,
+        tx.category,
+        tx.accountName,
+        tx.fromAccountName,
+        tx.toAccountName,
+      ]
+        .filter(Boolean)
+        .join(' ')
+        .toLowerCase();
+      const merchantText = (tx.merchant || '').toLowerCase();
+      return { tx, amountEur, amountAbsEur, searchText, merchantText };
+    });
+  }, [displayTransactions]);
 
   const filteredTransactions = useMemo(() => {
     const startDateTime = startDate ? new Date(startDate) : null;
@@ -382,9 +409,10 @@ const Transactions: React.FC<TransactionsProps> = ({ initialAccountFilter, initi
         return findParent(allCategories);
     };
 
-    const normalizedSearchTerm = debouncedSearchTerm.trim();
+    const normalizedSearchTerm = debouncedSearchTerm.trim().toLowerCase();
+    const normalizedMerchantFilter = merchantFilter.trim().toLowerCase();
 
-    const transactionList = displayTransactions.filter(tx => {
+    const transactionList = indexedTransactions.filter(({ tx, amountAbsEur, searchText, merchantText }) => {
         const matchAccount = selectedAccountIds.length === 0 ||
             (tx.isTransfer
                 ? selectedAccountIds.includes(accountMapByName[tx.fromAccountName!]?.id) || selectedAccountIds.includes(accountMapByName[tx.toAccountName!]?.id)
@@ -392,14 +420,10 @@ const Transactions: React.FC<TransactionsProps> = ({ initialAccountFilter, initi
 
         const matchSearch = (
             !normalizedSearchTerm ||
-            fuzzySearch(normalizedSearchTerm, tx.description) ||
-            fuzzySearch(normalizedSearchTerm, tx.category) ||
-            fuzzySearch(normalizedSearchTerm, tx.accountName || '') ||
-            fuzzySearch(normalizedSearchTerm, tx.fromAccountName || '') ||
-            fuzzySearch(normalizedSearchTerm, tx.toAccountName || '')
+            fuzzySearch(normalizedSearchTerm, searchText)
         );
         
-        const matchMerchant = !merchantFilter || fuzzySearch(merchantFilter, tx.merchant || '');
+        const matchMerchant = !normalizedMerchantFilter || fuzzySearch(normalizedMerchantFilter, merchantText);
 
         let matchType = true;
         if (typeFilter === 'expense') matchType = !tx.isTransfer && tx.type === 'expense';
@@ -414,14 +438,13 @@ const Transactions: React.FC<TransactionsProps> = ({ initialAccountFilter, initi
         
         const matchCategory = selectedCategoryNames.length === 0 || selectedCategoryNames.includes(tx.category) || selectedCategoryNames.includes(getParentCategoryName(tx.category) || '');
 
-        const txAbsAmount = Math.abs(convertToEur(tx.amount, tx.currency));
         const min = parseFloat(minAmount);
         const max = parseFloat(maxAmount);
-        const matchMinAmount = isNaN(min) || txAbsAmount >= min;
-        const matchMaxAmount = isNaN(max) || txAbsAmount <= max;
+        const matchMinAmount = isNaN(min) || amountAbsEur >= min;
+        const matchMaxAmount = isNaN(max) || amountAbsEur <= max;
 
         return matchAccount && matchTag && matchSearch && matchType && matchStartDate && matchEndDate && matchCategory && matchMinAmount && matchMaxAmount && matchMerchant;
-      });
+      }).map(({ tx }) => tx);
     
     return transactionList.sort((a, b) => {
       switch (sortBy) {
@@ -436,7 +459,7 @@ const Transactions: React.FC<TransactionsProps> = ({ initialAccountFilter, initi
       }
     });
 
-  }, [debouncedSearchTerm, sortBy, typeFilter, startDate, endDate, displayTransactions, selectedAccountIds, selectedCategoryNames, selectedTagIds, minAmount, maxAmount, allCategories, accountMapByName, merchantFilter]);
+  }, [debouncedSearchTerm, sortBy, typeFilter, startDate, endDate, indexedTransactions, selectedAccountIds, selectedCategoryNames, selectedTagIds, minAmount, maxAmount, allCategories, accountMapByName, merchantFilter]);
   
   type VirtualRow = { type: 'header'; date: string; total: number } | { type: 'transaction'; transaction: DisplayTransaction };
 
@@ -682,6 +705,32 @@ const Transactions: React.FC<TransactionsProps> = ({ initialAccountFilter, initi
     setIsRecurringModalOpen(true);
   };
 
+  const resolveTransferDisplay = useCallback((tx: DisplayTransaction) => {
+    if (!tx.isTransfer) {
+      return { amount: tx.amount, currency: tx.currency };
+    }
+    const expenseAmount = tx.transferExpenseAmount ?? Math.abs(tx.amount);
+    const expenseCurrency = tx.transferExpenseCurrency ?? tx.currency;
+    const incomeAmount = tx.transferIncomeAmount ?? expenseAmount;
+    const incomeCurrency = tx.transferIncomeCurrency ?? expenseCurrency;
+
+    const fromAccId = accountMapByName[tx.fromAccountName || '']?.id;
+    const toAccId = accountMapByName[tx.toAccountName || '']?.id;
+    const fromSelected = fromAccId ? selectedAccountIds.includes(fromAccId) : false;
+    const toSelected = toAccId ? selectedAccountIds.includes(toAccId) : false;
+
+    if (selectedAccountIds.length > 0) {
+      if (fromSelected && !toSelected) {
+        return { amount: -Math.abs(expenseAmount), currency: expenseCurrency };
+      }
+      if (!fromSelected && toSelected) {
+        return { amount: Math.abs(incomeAmount), currency: incomeCurrency };
+      }
+    }
+
+    return { amount: Math.abs(expenseAmount), currency: expenseCurrency };
+  }, [accountMapByName, selectedAccountIds]);
+
   const handleExport = () => {
     if (filteredTransactions.length === 0) {
         alert("No transactions to export.");
@@ -689,12 +738,13 @@ const Transactions: React.FC<TransactionsProps> = ({ initialAccountFilter, initi
     }
     const dataForExport = filteredTransactions.map(tx => {
         const { id, originalId, accountId, transferId, recurringSourceId, importId, sureId, ...rest } = tx;
+        const resolved = resolveTransferDisplay(tx);
         return {
             date: rest.date,
             description: rest.description,
             merchant: rest.merchant,
-            amount: rest.amount,
-            currency: rest.currency,
+            amount: resolved.amount,
+            currency: resolved.currency,
             category: rest.category,
             type: rest.isTransfer ? 'transfer' : rest.type,
             account: rest.accountName || (rest.isTransfer ? `${rest.fromAccountName} -> ${rest.toAccountName}` : 'N/A'),
@@ -1206,7 +1256,6 @@ const Transactions: React.FC<TransactionsProps> = ({ initialAccountFilter, initi
                         }
 
                     const tx = row.transaction;
-                    let amount = tx.amount;
                     let amountColor = tx.type === 'income' ? 'text-green-600 dark:text-green-400' : 'text-red-600 dark:text-red-400';
 
                     const fromAcc = accountMapByName[tx.fromAccountName!];
@@ -1215,8 +1264,8 @@ const Transactions: React.FC<TransactionsProps> = ({ initialAccountFilter, initi
                     if (tx.isTransfer) {
                       amountColor = 'text-light-text dark:text-dark-text';
                       if (selectedAccountIds.length > 0) {
-                        if (selectedAccountIds.includes(fromAcc?.id) && !selectedAccountIds.includes(toAcc?.id)) { amount = -tx.amount; amountColor = 'text-red-600 dark:text-red-400'; }
-                        else if (!selectedAccountIds.includes(fromAcc?.id) && selectedAccountIds.includes(toAcc?.id)) { amount = tx.amount; amountColor = 'text-green-600 dark:text-green-400'; }
+                        if (selectedAccountIds.includes(fromAcc?.id) && !selectedAccountIds.includes(toAcc?.id)) { amountColor = 'text-red-600 dark:text-red-400'; }
+                        else if (!selectedAccountIds.includes(fromAcc?.id) && selectedAccountIds.includes(toAcc?.id)) { amountColor = 'text-green-600 dark:text-green-400'; }
                       }
                     }
 
@@ -1234,9 +1283,10 @@ const Transactions: React.FC<TransactionsProps> = ({ initialAccountFilter, initi
                     const accountName = account?.name || tx.accountName || (tx.isTransfer ? `${tx.fromAccountName} → ${tx.toAccountName}` : 'Unknown');
                     const accountSub = account ? (account.last4 ? `•••• ${account.last4}` : (account.type === 'Credit Card' ? 'Credit' : account.type)) : 'Manual';
                     
+                    const resolvedDisplay = resolveTransferDisplay(tx);
                     const displayAmount = tx.isTransfer && selectedAccountIds.length === 0
-                        ? formatCurrency(convertToEur(Math.abs(amount), tx.currency), 'EUR')
-                        : formatCurrency(convertToEur(amount, tx.currency), 'EUR', { showPlusSign: true });
+                        ? formatCurrency(convertToEur(Math.abs(resolvedDisplay.amount), resolvedDisplay.currency), 'EUR')
+                        : formatCurrency(convertToEur(resolvedDisplay.amount, resolvedDisplay.currency), 'EUR', { showPlusSign: true });
 
                     const institutionLogoUrl = account?.financialInstitution ? getMerchantLogoUrl(account.financialInstitution, brandfetchClientId, merchantLogoOverrides, { fallback: 'lettermark', type: 'icon', width: 64, height: 64 }) : null;
                     const showInstitutionLogo = Boolean(institutionLogoUrl && !logoLoadErrors[institutionLogoUrl]);

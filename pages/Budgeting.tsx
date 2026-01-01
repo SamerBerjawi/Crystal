@@ -260,6 +260,8 @@ const Budgeting: React.FC<BudgetingProps> = ({ budgets, transactions, expenseCat
       const parentCategory = findParentCategory(tx.category, expenseCategories);
       if (parentCategory) {
         spending[parentCategory.name] = (spending[parentCategory.name] || 0) + Math.abs(convertToEur(tx.amount, tx.currency));
+      } else {
+        spending.Uncategorized = (spending.Uncategorized || 0) + Math.abs(convertToEur(tx.amount, tx.currency));
       }
     }
     
