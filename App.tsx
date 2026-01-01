@@ -738,63 +738,6 @@ const App: React.FC = () => {
 
   const debouncedDirtySignal = useDebounce(dirtySignal, 900);
 
-  const buildDirtyPayload = useCallback((dirtySlices: Set<keyof FinancialData>): FinancialData => {
-    const payload: Partial<FinancialData> = {};
-    if (dirtySlices.has('accounts')) payload.accounts = accounts;
-    if (dirtySlices.has('transactions')) payload.transactions = transactions;
-    if (dirtySlices.has('investmentTransactions')) payload.investmentTransactions = investmentTransactions;
-    if (dirtySlices.has('recurringTransactions')) payload.recurringTransactions = recurringTransactions;
-    if (dirtySlices.has('recurringTransactionOverrides')) payload.recurringTransactionOverrides = recurringTransactionOverrides;
-    if (dirtySlices.has('loanPaymentOverrides')) payload.loanPaymentOverrides = loanPaymentOverrides;
-    if (dirtySlices.has('financialGoals')) payload.financialGoals = financialGoals;
-    if (dirtySlices.has('budgets')) payload.budgets = budgets;
-    if (dirtySlices.has('tasks')) payload.tasks = tasks;
-    if (dirtySlices.has('warrants')) payload.warrants = warrants;
-    if (dirtySlices.has('memberships')) payload.memberships = memberships;
-    if (dirtySlices.has('importExportHistory')) payload.importExportHistory = importExportHistory;
-    if (dirtySlices.has('incomeCategories')) payload.incomeCategories = incomeCategories;
-    if (dirtySlices.has('expenseCategories')) payload.expenseCategories = expenseCategories;
-    if (dirtySlices.has('preferences')) payload.preferences = preferences;
-    if (dirtySlices.has('billsAndPayments')) payload.billsAndPayments = billsAndPayments;
-    if (dirtySlices.has('accountOrder')) payload.accountOrder = accountOrder;
-    if (dirtySlices.has('taskOrder')) payload.taskOrder = taskOrder;
-    if (dirtySlices.has('tags')) payload.tags = tags;
-    if (dirtySlices.has('manualWarrantPrices')) payload.manualWarrantPrices = manualWarrantPrices;
-    if (dirtySlices.has('priceHistory')) payload.priceHistory = priceHistory;
-    if (dirtySlices.has('invoices')) payload.invoices = invoices;
-    if (dirtySlices.has('userStats')) payload.userStats = userStats;
-    if (dirtySlices.has('predictions')) payload.predictions = predictions;
-    if (dirtySlices.has('enableBankingConnections')) payload.enableBankingConnections = enableBankingConnections;
-
-    return { ...latestDataRef.current, ...payload } as FinancialData;
-  }, [
-    accountOrder,
-    accounts,
-    billsAndPayments,
-    budgets,
-    expenseCategories,
-    financialGoals,
-    importExportHistory,
-    incomeCategories,
-    investmentTransactions,
-    loanPaymentOverrides,
-    preferences,
-    recurringTransactionOverrides,
-    recurringTransactions,
-    tags,
-    taskOrder,
-    tasks,
-    transactions,
-    warrants,
-    memberships,
-    manualWarrantPrices,
-    priceHistory,
-    invoices,
-    userStats,
-    predictions,
-    enableBankingConnections
-  ]);
-
   useEffect(() => {
     latestDataRef.current = dataToSave;
   }, [dataToSave]);
@@ -995,25 +938,23 @@ const App: React.FC = () => {
 
     if (dirtySlicesRef.current.size === 0) return;
 
-    const dirtySlices = new Set(dirtySlicesRef.current);
     const persistDirtySlices = async () => {
-      const payload = buildDirtyPayload(dirtySlices);
-      const payloadSignature = JSON.stringify(payload);
+      const payloadSignature = JSON.stringify(dataToSave);
 
       if (payloadSignature === lastSavedSignatureRef.current) {
         dirtySlicesRef.current.clear();
         return;
       }
 
-      const succeeded = await saveData(payload);
+      const succeeded = await saveData(dataToSave);
       if (succeeded) {
-        dirtySlices.forEach(slice => dirtySlicesRef.current.delete(slice));
+        dirtySlicesRef.current.clear();
         lastSavedSignatureRef.current = payloadSignature;
       }
     };
 
     persistDirtySlices();
-  }, [buildDirtyPayload, debouncedDirtySignal, isAuthenticated, isDataLoaded, isDemoMode, saveData]);
+  }, [dataToSave, debouncedDirtySignal, isAuthenticated, isDataLoaded, isDemoMode, saveData]);
 
   useEffect(() => {
     if (!isAuthenticated || isDemoMode || typeof window === 'undefined') {
@@ -1025,15 +966,13 @@ const App: React.FC = () => {
         return;
       }
 
-      const dirtySlices = new Set(dirtySlicesRef.current);
-      const payload = buildDirtyPayload(dirtySlices);
-      const payloadSignature = JSON.stringify(payload);
+      const payloadSignature = JSON.stringify(dataToSave);
 
       if (payloadSignature === lastSavedSignatureRef.current) {
         return;
       }
 
-      saveData(payload, { keepalive: true, suppressErrors: true })
+      saveData(dataToSave, { keepalive: true, suppressErrors: true })
         .then(succeeded => {
           if (succeeded) {
             lastSavedSignatureRef.current = payloadSignature;
@@ -1048,7 +987,7 @@ const App: React.FC = () => {
     return () => {
       window.removeEventListener('beforeunload', handleBeforeUnload);
     };
-  }, [buildDirtyPayload, isAuthenticated, isDataLoaded, isDemoMode, saveData]);
+  }, [dataToSave, isAuthenticated, isDataLoaded, isDemoMode, saveData]);
   
   // Keep accountOrder in sync with accounts list
   useEffect(() => {
@@ -1719,7 +1658,7 @@ const App: React.FC = () => {
       name: item.name || item.full_name || item.fullName || 'Bank',
       country: item.country || countryCode,
     }));
-  }, [enableBankingConnections, fetchWithAuth, token]);
+  }, [enableBankingConnections, fetchWithAuth, isDemoMode, saveDataWithRetry, token]);
 
   const handleCreateEnableBankingConnection = useCallback(async (payload: {
     applicationId: string;
@@ -1758,13 +1697,23 @@ const App: React.FC = () => {
           accounts: [],
         };
 
+    let nextConnections: EnableBankingConnection[] = [];
     setEnableBankingConnections(prev => {
-      if (existingConnection) {
-        return prev.map(conn => (conn.id === connectionId ? baseConnection : conn));
-      }
-      return [...prev, baseConnection];
+      nextConnections = existingConnection
+        ? prev.map(conn => (conn.id === connectionId ? baseConnection : conn))
+        : [...prev, baseConnection];
+      return nextConnections;
     });
     persistPendingConnection(baseConnection);
+    if (!isDemoMode) {
+      void saveDataWithRetry({ ...latestDataRef.current, enableBankingConnections: nextConnections });
+      void fetchWithAuth('/api/enable-banking/pending', {
+        method: 'POST',
+        body: JSON.stringify({ connection: baseConnection }),
+      }).catch(error => {
+        console.warn('Failed to persist pending Enable Banking connection on server', error);
+      });
+    }
 
     try {
       const response = await fetchWithAuth('/api/enable-banking/authorize', {
@@ -1796,11 +1745,39 @@ const App: React.FC = () => {
         lastError: error?.message || 'Unable to start authorization',
       } : conn));
     }
-  }, [enableBankingConnections, fetchWithAuth, token]);
+  }, [enableBankingConnections, fetchWithAuth, isDemoMode, saveDataWithRetry, token]);
 
-  const mapProviderTransaction = useCallback((providerTx: any, accountId: string, currency: Currency, connectionId: string): Transaction | null => {
+  const resolveProviderAccountId = useCallback((account: any) => {
+    return (
+      account?.account_id?.id ||
+      account?.account_id ||
+      account?.resource_id ||
+      account?.uid ||
+      account?.id
+    );
+  }, []);
+
+  const hashString = useCallback((value: string) => {
+    let hash = 5381;
+    for (let i = 0; i < value.length; i += 1) {
+      hash = (hash * 33) ^ value.charCodeAt(i);
+    }
+    return (hash >>> 0).toString(36);
+  }, []);
+
+  const normalizeProviderTransactionId = useCallback((providerTx: any) => {
+    return (
+      providerTx?.transaction_id ||
+      providerTx?.transactionId ||
+      providerTx?.entry_reference ||
+      providerTx?.entryReference
+    );
+  }, []);
+
+  const mapProviderTransaction = useCallback((providerTx: any, linkedAccountId: string | undefined, providerAccountId: string, currency: Currency, connectionId: string): Transaction | null => {
     const amountRaw = providerTx?.transaction_amount?.amount ?? providerTx?.amount?.amount ?? providerTx?.transactionAmount?.amount;
     if (amountRaw === undefined || amountRaw === null) return null;
+    if (!linkedAccountId) return null;
 
     const creditDebit = providerTx?.credit_debit_indicator || providerTx?.creditDebitIndicator;
     const signedAmount = Number(amountRaw) * (creditDebit === 'CRDT' ? 1 : -1);
@@ -1869,16 +1846,21 @@ const App: React.FC = () => {
 
     const merchant = counterpartyCandidates.find(val => typeof val === 'string' && val.trim().length > 0)?.trim();
 
-    const idSource =
-      providerTx?.transaction_id ||
-      providerTx?.transactionId ||
-      providerTx?.entry_reference ||
-      providerTx?.entryReference ||
-      `${date || ''}-${signedAmount}-${description.replace(/\s+/g, ' ').trim()}`;
+    const normalizedProviderId = normalizeProviderTransactionId(providerTx);
+    const fallbackPayload = {
+      amount: signedAmount,
+      date: date || '',
+      description,
+      merchant: merchant || '',
+      currency,
+      creditDebit: creditDebit || '',
+    };
+    const fallbackHash = hashString(JSON.stringify(fallbackPayload));
+    const idSource = normalizedProviderId || `hash-${fallbackHash}`;
 
     return {
-      id: `eb-${connectionId}-${accountId}-${idSource}`,
-      accountId,
+      id: `eb-${connectionId}-${providerAccountId}-${idSource}`,
+      accountId: linkedAccountId,
       date: date || toLocalISOString(new Date()),
       description,
       merchant: merchant || undefined,
@@ -1886,9 +1868,9 @@ const App: React.FC = () => {
       category: 'Uncategorized',
       type: signedAmount >= 0 ? 'income' : 'expense',
       currency,
-      importId: `enable-banking-${connectionId}-${accountId}`,
+      importId: `enable-banking-${connectionId}-${linkedAccountId}`,
     };
-  }, []);
+  }, [hashString, normalizeProviderTransactionId]);
 
   const handleSyncEnableBankingConnection = useCallback(async (
     connectionId: string,
@@ -1952,9 +1934,6 @@ const App: React.FC = () => {
         const flattened = possibleCollections.flat();
         const uniqueById = new Map<string, any>();
 
-        const resolveProviderAccountId = (account: any) =>
-          account?.account_id?.id || account?.account_id || account?.resource_id || account?.uid || account?.id;
-
         flattened.forEach(account => {
           const candidate = account?.account || account?.resource || account;
           const providerAccountId = typeof candidate === 'string' ? candidate : resolveProviderAccountId(candidate);
@@ -1977,8 +1956,7 @@ const App: React.FC = () => {
       };
 
       let accountsFromSession: any[] = normalizeAccounts();
-      const providerIdFromAccount = (account: any) =>
-        account?.account_id?.id || account?.account_id || account?.uid || account?.id;
+      const providerIdFromAccount = (account: any) => resolveProviderAccountId(account);
 
       if (!accountsFromSession.length && safeAccountsForSync.length > 0) {
         accountsFromSession = safeAccountsForSync.map(account => ({
@@ -2009,33 +1987,36 @@ const App: React.FC = () => {
       const selectedAccounts = accountsToSync.length > 0 ? accountsToSync : accountsFromSession;
       const updatedAccounts: EnableBankingAccount[] = [];
       const importedTransactions: Transaction[] = [];
+      const unlinkedProviderAccounts: string[] = [];
       const now = new Date().toISOString();
 
-      for (const account of selectedAccounts) {
+      const concurrencyLimit = 3;
+      const processAccount = async (account: any) => {
         const providerAccountId = providerIdFromAccount(account);
-        if (!providerAccountId) continue;
+        if (!providerAccountId) return { account: null, transactions: [] as Transaction[] };
 
         const existing = safeAccounts.find(
           a => a.id === account?.uid || a.id === account?.account_id || a.id === account?.id || a.id === providerAccountId,
         );
 
-        const details = await fetchWithAuth(`/api/enable-banking/accounts/${encodeURIComponent(providerAccountId)}/details`, {
-          method: 'POST',
-          body: JSON.stringify({
-            applicationId: connection.applicationId,
-            clientCertificate: connection.clientCertificate,
-            sessionId: connection.sessionId,
-          }),
-        }).then(res => res.json()).catch(() => null);
-
-        const balances = await fetchWithAuth(`/api/enable-banking/accounts/${encodeURIComponent(providerAccountId)}/balances`, {
-          method: 'POST',
-          body: JSON.stringify({
-            applicationId: connection.applicationId,
-            clientCertificate: connection.clientCertificate,
-            sessionId: connection.sessionId,
-          }),
-        }).then(res => res.json());
+        const [details, balances] = await Promise.all([
+          fetchWithAuth(`/api/enable-banking/accounts/${encodeURIComponent(providerAccountId)}/details`, {
+            method: 'POST',
+            body: JSON.stringify({
+              applicationId: connection.applicationId,
+              clientCertificate: connection.clientCertificate,
+              sessionId: connection.sessionId,
+            }),
+          }).then(res => res.json()).catch(() => null),
+          fetchWithAuth(`/api/enable-banking/accounts/${encodeURIComponent(providerAccountId)}/balances`, {
+            method: 'POST',
+            body: JSON.stringify({
+              applicationId: connection.applicationId,
+              clientCertificate: connection.clientCertificate,
+              sessionId: connection.sessionId,
+            }),
+          }).then(res => res.json()),
+        ]);
 
         const balanceEntries: any[] = balances?.balances || [];
         const preferredBalance =
@@ -2087,6 +2068,9 @@ const App: React.FC = () => {
         const providerTransactions: any[] = [];
 
         if (shouldSyncTransactions) {
+          if (!existing?.linkedAccountId) {
+            unlinkedProviderAccounts.push(providerAccountId);
+          }
           let continuationKey: string | undefined;
           let transactionsPage: any = null;
 
@@ -2113,13 +2097,11 @@ const App: React.FC = () => {
           } while (continuationKey);
         }
 
-        if (providerTransactions.length) {
-          const mappedTx = providerTransactions
-            .map(tx => mapProviderTransaction(tx, existing?.linkedAccountId || '', currency, connectionId))
-            .filter((tx): tx is Transaction => Boolean(tx) && Boolean(tx.accountId));
-
-          importedTransactions.push(...mappedTx);
-        }
+        const mappedTx = providerTransactions.length
+          ? providerTransactions
+              .map(tx => mapProviderTransaction(tx, existing?.linkedAccountId, providerAccountId, currency, connectionId))
+              .filter((tx): tx is Transaction => Boolean(tx))
+          : [];
 
         const detailSource = (details?.account || details?.details || details) as any;
         const detailName = detailSource?.name || detailSource?.product || detailSource?.display_name;
@@ -2140,7 +2122,7 @@ const App: React.FC = () => {
           );
         const normalizedAccountIban = normalizeIban(accountIban);
 
-        updatedAccounts.push({
+        const updatedAccount: EnableBankingAccount = {
           id: providerAccountId,
           name: detailName || account?.name || account?.product || account?.account_id?.iban || account?.iban || 'Bank account',
           bankName: connection.selectedBank || 'Enable Banking',
@@ -2150,6 +2132,17 @@ const App: React.FC = () => {
           linkedAccountId: existing?.linkedAccountId,
           syncStartDate: baseSyncStart,
           lastSyncedAt: shouldMarkSynced ? now : existing?.lastSyncedAt,
+        };
+
+        return { account: updatedAccount, transactions: mappedTx };
+      };
+
+      for (let index = 0; index < selectedAccounts.length; index += concurrencyLimit) {
+        const batch = selectedAccounts.slice(index, index + concurrencyLimit);
+        const results = await Promise.all(batch.map(processAccount));
+        results.forEach(result => {
+          if (result.account) updatedAccounts.push(result.account);
+          if (result.transactions.length) importedTransactions.push(...result.transactions);
         });
       }
 
@@ -2168,15 +2161,28 @@ const App: React.FC = () => {
       const updatedAccountState = accounts.map(acc => {
         const linked = finalAccounts.find(a => a.linkedAccountId === acc.id);
         if (!linked) return acc;
-        return { ...acc, balance: linked.balance, currency: linked.currency };
+        return {
+          ...acc,
+          balance: linked.balance,
+          currency: linked.currency,
+          balanceLastSyncedAt: now,
+          balanceSource: 'enable_banking',
+        };
       });
       setAccounts(updatedAccountState);
 
       if (importedTransactions.length) {
         const existingTransactionIds = new Set(transactions.map(tx => tx.id));
-        const dedupedImports: Transaction[] = [];
+        const uniqueImports = new Map<string, Transaction>();
 
         importedTransactions.forEach(tx => {
+          if (!uniqueImports.has(tx.id)) {
+            uniqueImports.set(tx.id, tx);
+          }
+        });
+
+        const dedupedImports: Transaction[] = [];
+        uniqueImports.forEach(tx => {
           if (existingTransactionIds.has(tx.id)) return;
           existingTransactionIds.add(tx.id);
           dedupedImports.push(tx);
@@ -2187,28 +2193,43 @@ const App: React.FC = () => {
         }
       }
 
+      const unlinkedMessage = unlinkedProviderAccounts.length
+        ? `Transactions skipped for ${unlinkedProviderAccounts.length} unlinked account(s). Link them to import transactions.`
+        : undefined;
       setEnableBankingConnections(prev => prev.map(conn => conn.id === connectionId ? {
         ...conn,
         status: 'ready',
-        lastError: undefined,
+        lastError: unlinkedMessage,
         lastSyncedAt: shouldSyncTransactions || updateBalance ? (latestSyncedAt || conn.lastSyncedAt) : conn.lastSyncedAt,
         sessionExpiresAt: connection.sessionExpiresAt,
         accounts: finalAccounts,
       } : conn));
     } catch (error: any) {
       console.error('Enable Banking sync failed', error);
+      const rawMessage = error?.message || 'Sync failed';
+      const requiresReauth = /session|expired|unauthori|consent/i.test(rawMessage);
+      const message = requiresReauth
+        ? 'Session expired or invalid. Please re-authorize this connection to continue syncing.'
+        : rawMessage;
       setEnableBankingConnections(prev => prev.map(conn => conn.id === connectionId ? {
         ...conn,
         status: 'requires_update',
-        lastError: error?.message || 'Sync failed',
+        lastError: message,
       } : conn));
     }
-  }, [accounts, enableBankingConnections, fetchWithAuth, mapProviderTransaction, setAccounts, setTransactions, token, transactions]);
+  }, [accounts, enableBankingConnections, fetchWithAuth, mapProviderTransaction, resolveProviderAccountId, setAccounts, setTransactions, token, transactions]);
 
   const handleDeleteEnableBankingConnection = useCallback((connectionId: string) => {
     setEnableBankingConnections(prev => prev.filter(conn => conn.id !== connectionId));
     removePendingConnection(connectionId);
-  }, []);
+    if (!isDemoMode) {
+      void fetchWithAuth(`/api/enable-banking/pending/${encodeURIComponent(connectionId)}`, {
+        method: 'DELETE',
+      }).catch(error => {
+        console.warn('Failed to remove pending Enable Banking connection on server', error);
+      });
+    }
+  }, [fetchWithAuth, isDemoMode]);
 
   const handleLinkEnableBankingAccount = useCallback(
     (connectionId: string, providerAccountId: string, payload: EnableBankingLinkPayload) => {

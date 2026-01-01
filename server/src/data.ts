@@ -35,7 +35,8 @@ router.post('/', authenticateToken, async (req: AuthRequest, res) => {
     const data = req.body; // Data is already a JSON object from body-parser
     
     // Use INSERT ... ON CONFLICT for an upsert operation in PostgreSQL
-    const sql = `
+    const selectSql = `SELECT data FROM financial_data WHERE user_id = $1`;
+    const upsertSql = `
         INSERT INTO financial_data (user_id, data) 
         VALUES ($1, $2)
         ON CONFLICT (user_id) 
@@ -43,7 +44,10 @@ router.post('/', authenticateToken, async (req: AuthRequest, res) => {
     `;
 
     try {
-        await db.query(sql, [userId, data]);
+        const existing = await db.query(selectSql, [userId]);
+        const currentData = existing.rows?.[0]?.data || {};
+        const mergedData = { ...currentData, ...data };
+        await db.query(upsertSql, [userId, mergedData]);
         // FIX: Replaced res.status(200).json() with res.json() as 200 is the default status.
         res.json({ message: 'Data saved successfully' });
     } catch (err) {
