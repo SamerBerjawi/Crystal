@@ -376,35 +376,40 @@ const App: React.FC = () => {
   const [lastUpdated, setLastUpdated] = useState<Date | null>(null);
   
   // Update Streak Logic
-  useEffect(() => {
+  const updateLoginStreak = useCallback(() => {
     if (!isDataLoaded || !isAuthenticated) return;
 
     const todayStr = toLocalISOString(new Date());
     const yesterday = new Date();
     yesterday.setDate(yesterday.getDate() - 1);
     const yesterdayStr = toLocalISOString(yesterday);
-    
+
     // Only update if not already logged today
     if (userStats.lastLogDate !== todayStr) {
-       let newStreak = 1;
-       
-       if (userStats.lastLogDate === yesterdayStr) {
-           newStreak = (userStats.currentStreak || 0) + 1;
-       }
-       
-       const newStats = {
-           ...userStats,
-           currentStreak: newStreak,
-           longestStreak: Math.max(newStreak, userStats.longestStreak || 0),
-           lastLogDate: todayStr
-       };
-       
-       setUserStats(newStats);
-       // Trigger save
-       markSliceDirty('userStats');
+      let newStreak = 1;
+
+      if (userStats.lastLogDate === yesterdayStr) {
+        newStreak = (userStats.currentStreak || 0) + 1;
+      }
+
+      const newStats = {
+        ...userStats,
+        currentStreak: newStreak,
+        longestStreak: Math.max(newStreak, userStats.longestStreak || 0),
+        lastLogDate: todayStr
+      };
+
+      setUserStats(newStats);
+      // Trigger save
+      markSliceDirty('userStats');
     }
-  // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [isDataLoaded, isAuthenticated]);
+  }, [isAuthenticated, isDataLoaded, markSliceDirty, userStats]);
+
+  useEffect(() => {
+    updateLoginStreak();
+    const intervalId = window.setInterval(updateLoginStreak, 60 * 60 * 1000);
+    return () => window.clearInterval(intervalId);
+  }, [updateLoginStreak]);
 
 
   // FIX: Explicitly type assetPrices to avoid 'unknown' inference and ensure type safety
