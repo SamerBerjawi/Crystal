@@ -310,7 +310,7 @@ const Forecasting: React.FC = () => {
             case 'EOY': endDate.setFullYear(endDate.getFullYear(), 11, 31); break;
             case '1Y': endDate.setFullYear(endDate.getFullYear() + 1); break;
         }
-        const today = new Date();
+        const today = parseLocalDate(toLocalISOString(new Date()));
 
         const outflows: any[] = [];
 
@@ -498,6 +498,18 @@ const Forecasting: React.FC = () => {
     const totalGoalTarget = displayedGoals.reduce((sum, g) => sum + (g.isBucket ? 0 : g.amount), 0);
     const totalGoalSaved = displayedGoals.reduce((sum, g) => sum + (g.isBucket ? 0 : g.currentAmount), 0);
     const goalProgress = totalGoalTarget > 0 ? (totalGoalSaved / totalGoalTarget) * 100 : 0;
+    const hasForecastData = forecastData.length > 0;
+
+    useEffect(() => {
+        if (accounts.length === 0) return;
+        setSelectedAccountIds(prev => {
+            const validIds = prev.filter(id => accounts.some(account => account.id === id));
+            if (validIds.length > 0) return validIds;
+            const primaryAccount = accounts.find(a => a.isPrimary);
+            if (primaryAccount) return [primaryAccount.id];
+            return accounts.filter(a => LIQUID_ACCOUNT_TYPES.includes(a.type)).map(a => a.id);
+        });
+    }, [accounts]);
 
     return (
         <div className="space-y-8 pb-12 animate-fade-in-up">
@@ -571,7 +583,7 @@ const Forecasting: React.FC = () => {
                     icon="track_changes"
                     colorClass="text-purple-600 dark:text-purple-400 bg-purple-100 dark:bg-purple-900/30"
                 />
-                 <div className="bg-white dark:bg-dark-card p-5 rounded-2xl border border-black/5 dark:border-white/5 shadow-sm flex flex-col justify-between h-full relative overflow-hidden group">
+                <div className="bg-white dark:bg-dark-card p-5 rounded-2xl border border-black/5 dark:border-white/5 shadow-sm flex flex-col justify-between h-full relative overflow-hidden group">
                     <div className="flex justify-between items-start mb-2 relative z-10">
                         <span className="text-xs font-bold uppercase tracking-wider text-light-text-secondary dark:text-dark-text-secondary">Safety Margin</span>
                          <div className={`w-10 h-10 rounded-xl flex items-center justify-center bg-opacity-20 transition-transform duration-300 group-hover:scale-110 ${lowestPoint.value < 0 ? 'bg-red-100 text-red-600' : 'bg-orange-100 text-orange-600 dark:text-orange-400'}`}>
@@ -579,8 +591,12 @@ const Forecasting: React.FC = () => {
                         </div>
                     </div>
                     <div className="relative z-10">
-                        <p className={`text-2xl font-extrabold tracking-tight ${lowestPoint.value < 0 ? 'text-red-600' : 'text-light-text dark:text-dark-text'}`}>{formatCurrency(lowestPoint.value, 'EUR')}</p>
-                        <p className="text-xs font-medium mt-1 opacity-80">Lowest on {parseLocalDate(lowestPoint.date).toLocaleDateString()}</p>
+                        <p className={`text-2xl font-extrabold tracking-tight ${lowestPoint.value < 0 ? 'text-red-600' : 'text-light-text dark:text-dark-text'}`}>
+                            {hasForecastData ? formatCurrency(lowestPoint.value, 'EUR') : '—'}
+                        </p>
+                        <p className="text-xs font-medium mt-1 opacity-80">
+                            {hasForecastData ? `Lowest on ${parseLocalDate(lowestPoint.date).toLocaleDateString()}` : 'No forecast data yet'}
+                        </p>
                     </div>
                 </div>
             </div>
@@ -697,7 +713,7 @@ const Forecasting: React.FC = () => {
                              </thead>
                              <tbody className="divide-y divide-black/5 dark:divide-white/5 bg-white dark:bg-dark-card">
                                 {tableData.map(row => {
-                                    const isLowest = row.balance.toFixed(2) === lowestPoint.value.toFixed(2);
+                                    const isLowest = hasForecastData && row.balance.toFixed(2) === lowestPoint.value.toFixed(2);
                                     
                                     let rowClass = 'hover:bg-gray-50 dark:hover:bg-white/5 transition-colors group cursor-pointer';
                                     if (isLowest) rowClass += ' bg-red-50/50 dark:bg-red-900/10 hover:!bg-red-100/50 dark:hover:!bg-red-900/20 border-l-4 border-l-red-500';

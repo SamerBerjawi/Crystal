@@ -285,6 +285,9 @@ const SchedulePage: React.FC<ScheduleProps> = () => {
         const syntheticCreditCardPayments = generateSyntheticCreditCardPayments(accounts, transactions);
         const syntheticPropertyTransactions = generateSyntheticPropertyTransactions(accounts);
         const allRecurringTransactions = [...recurringTransactions, ...syntheticLoanPayments, ...syntheticCreditCardPayments, ...syntheticPropertyTransactions];
+        const recurringOverrideMap = new Map<string, RecurringTransactionOverride>(
+            recurringTransactionOverrides.map(override => [`${override.recurringTransactionId}-${override.originalDate}`, override])
+        );
 
         // Prepare list for "List View" (Management)
         // Group synthetic loan payments by account to avoid listing every month separately
@@ -319,7 +322,11 @@ const SchedulePage: React.FC<ScheduleProps> = () => {
         const recurringListItems = processedRecurringList.map(rt => ({
             ...rt,
             isSynthetic: rt.isSynthetic || false,
-            accountName: rt.accountId === 'external' ? 'External' : (rt.type === 'transfer' ? `${accountMap[rt.accountId]} → ${accountMap[rt.toAccountId!]}` : accountMap[rt.accountId])
+            accountName: rt.accountId === 'external'
+                ? 'External'
+                : (rt.type === 'transfer'
+                    ? `${accountMap[rt.accountId] || 'Unknown'} → ${accountMap[rt.toAccountId ?? ''] || 'External'}`
+                    : accountMap[rt.accountId] || 'Unknown')
         }));
 
 
@@ -349,13 +356,17 @@ const SchedulePage: React.FC<ScheduleProps> = () => {
             while (nextDate <= forecastEndDate && (!endDateLocal || nextDate <= endDateLocal)) {
                 // Use ISO String splitting to get date string without local timezone offset
                 const originalDateStr = toLocalISOString(nextDate);
-                const override = recurringTransactionOverrides.find(o => o.recurringTransactionId === rt.id && o.originalDate === originalDateStr);
+                const override = recurringOverrideMap.get(`${rt.id}-${originalDateStr}`);
 
                 if (!override?.isSkipped) {
                     const itemDate = override?.date || originalDateStr;
                     const itemAmount = override?.amount !== undefined ? override.amount : (rt.type === 'expense' ? -rt.amount : rt.amount);
                     const itemDescription = override?.description || rt.description;
-                    const accountName = rt.accountId === 'external' ? 'External' : (rt.type === 'transfer' ? `${accountMap[rt.accountId]} → ${accountMap[rt.toAccountId!]}` : accountMap[rt.accountId]);
+                    const accountName = rt.accountId === 'external'
+                        ? 'External'
+                        : (rt.type === 'transfer'
+                            ? `${accountMap[rt.accountId] || 'Unknown'} → ${accountMap[rt.toAccountId ?? ''] || 'External'}`
+                            : accountMap[rt.accountId] || 'Unknown');
 
                     allUpcomingItems.push({
                         id: override ? `override-${rt.id}-${originalDateStr}` : `${rt.id}-${originalDateStr}`,
@@ -831,7 +842,10 @@ const SchedulePage: React.FC<ScheduleProps> = () => {
                         {sortedGroupKeys.map(groupKey => {
                             const items = groupedItems[groupKey];
                             if (!items || items.length === 0) return null;
-                            const groupTotal = items.reduce((sum, item) => sum + convertToEur(item.amount, (item.originalItem as any).currency), 0);
+                            const groupTotal = items.reduce((sum, item) => {
+                                if (item.type === 'transfer') return sum;
+                                return sum + convertToEur(item.amount, (item.originalItem as any).currency);
+                            }, 0);
 
                             return (
                                 <ScheduleGroup 
@@ -868,7 +882,7 @@ const SchedulePage: React.FC<ScheduleProps> = () => {
                                     </div>
                                     <div className="flex items-center gap-3 text-xs text-light-text-secondary dark:text-dark-text-secondary mt-1">
                                         <span className="capitalize bg-black/5 dark:bg-white/5 px-2 py-0.5 rounded">{rt.frequency}</span>
-                                        <span>Next: {rt.nextDueDate}</span>
+                                        <span>Next: {parseLocalDate(rt.nextDueDate).toLocaleDateString()}</span>
                                         <span className="truncate max-w-[150px]">{rt.accountName}</span>
                                     </div>
                                 </div>
