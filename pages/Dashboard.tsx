@@ -123,6 +123,7 @@ const Dashboard: React.FC<DashboardProps> = ({ user, tasks, saveTask }) => {
   const { budgets } = useBudgetsContext();
   const transactionsKey = transactionsDigest;
   const aggregateCacheRef = useRef<Map<string, { filteredTransactions: Transaction[]; income: number; expenses: number }>>(new Map());
+  const aggregateCacheMax = 25;
   const [isTransactionModalOpen, setTransactionModalOpen] = useState(false);
   const [editingTransaction, setEditingTransaction] = useState<Transaction | null>(null);
   const [itemToPost, setItemToPost] = useState<{ item: RecurringTransaction | BillPayment } | null>(null);
@@ -152,6 +153,27 @@ const Dashboard: React.FC<DashboardProps> = ({ user, tasks, saveTask }) => {
       const account = accountLookup.get(tx.accountId);
       return account ? (account.includeInAnalytics ?? true) : true;
   }), [transactions, accountLookup]);
+  const transferLookup = useMemo(() => {
+    const lookup = new Map<string, Transaction[]>();
+    transactions.forEach(tx => {
+      if (!tx.transferId) return;
+      const group = lookup.get(tx.transferId) || [];
+      group.push(tx);
+      lookup.set(tx.transferId, group);
+    });
+    return lookup;
+  }, [transactions]);
+
+  const cacheAggregateResult = useCallback((cacheKey: string, value: { filteredTransactions: Transaction[]; income: number; expenses: number }) => {
+    const cache = aggregateCacheRef.current;
+    if (!cache.has(cacheKey) && cache.size >= aggregateCacheMax) {
+      const oldestKey = cache.keys().next().value;
+      if (oldestKey) {
+        cache.delete(oldestKey);
+      }
+    }
+    cache.set(cacheKey, value);
+  }, [aggregateCacheMax]);
 
   // Combine all recurring items (user-defined + synthetic)
   const { allRecurringItems } = useMemo(() => {
@@ -273,7 +295,7 @@ const Dashboard: React.FC<DashboardProps> = ({ user, tasks, saveTask }) => {
 
   const handleTransactionClick = useCallback((clickedTx: DisplayTransaction) => {
     if (clickedTx.isTransfer && clickedTx.transferId) {
-        const pair = transactions.filter(t => t.transferId === clickedTx.transferId);
+        const pair = transferLookup.get(clickedTx.transferId) || [];
         setModalTransactions(pair);
         setModalTitle('Transfer Details');
     } else {
@@ -284,7 +306,7 @@ const Dashboard: React.FC<DashboardProps> = ({ user, tasks, saveTask }) => {
         }
     }
     setDetailModalOpen(true);
-  }, [transactions]);
+  }, [transactions, transferLookup]);
 
   const handleEditTransaction = useCallback((tx: Transaction) => {
     setDetailModalOpen(false);
@@ -324,7 +346,7 @@ const Dashboard: React.FC<DashboardProps> = ({ user, tasks, saveTask }) => {
         if (tx.transferId) {
             if (processedTransferIds.has(tx.transferId)) return;
 
-            const counterpart = analyticsTransactions.find(t => t.transferId === tx.transferId && t.id !== tx.id);
+            const counterpart = transferLookup.get(tx.transferId)?.find(t => t.id !== tx.id);
             processedTransferIds.add(tx.transferId);
 
             if (counterpart) {
@@ -353,9 +375,9 @@ const Dashboard: React.FC<DashboardProps> = ({ user, tasks, saveTask }) => {
         income: calculatedIncome,
         expenses: calculatedExpenses,
     };
-    aggregateCacheRef.current.set(cacheKey, result);
+    cacheAggregateResult(cacheKey, result);
     return result;
-  }, [aggregateCacheRef, analyticsSelectedAccountIds, analyticsTransactions, duration, selectedAccountIds, transactionsKey]);
+  }, [aggregateCacheRef, analyticsSelectedAccountIds, analyticsTransactions, cacheAggregateResult, duration, selectedAccountIds, transactionsKey, transferLookup]);
 
   const enrichedTransactions: EnrichedTransaction[] = useMemo(
     () =>
@@ -394,7 +416,7 @@ const Dashboard: React.FC<DashboardProps> = ({ user, tasks, saveTask }) => {
 
       if (tx.transferId) {
         if (processedTransferIds.has(tx.transferId)) return;
-        const counterpart = transactions.find(t => t.transferId === tx.transferId && t.id !== tx.id);
+        const counterpart = transferLookup.get(tx.transferId)?.find(t => t.id !== tx.id);
         processedTransferIds.add(tx.transferId);
         if (counterpart && !analyticsSelectedAccountIds.includes(counterpart.accountId)) {
           if (tx.type === 'income') prevIncome += convertedAmount;
@@ -420,7 +442,7 @@ const Dashboard: React.FC<DashboardProps> = ({ user, tasks, saveTask }) => {
       incomeChange: calculateChangeString(income, prevIncome),
       expenseChange: calculateChangeString(expenses, prevExpenses),
     };
-  }, [duration, transactions, analyticsSelectedAccountIds, income, expenses]);
+  }, [duration, transactions, analyticsSelectedAccountIds, income, expenses, transferLookup]);
 
   const outflowsByCategory: CategorySpending[] = useMemo(() => {
     const spending: { [key: string]: CategorySpending } = {};
@@ -435,7 +457,7 @@ const Dashboard: React.FC<DashboardProps> = ({ user, tasks, saveTask }) => {
         if (tx.transferId) {
             if (processedTransferIds.has(tx.transferId)) return;
             
-            const counterpart = transactions.find(t => t.transferId === tx.transferId && t.id !== tx.id);
+            const counterpart = transferLookup.get(tx.transferId)?.find(t => t.id !== tx.id);
             processedTransferIds.add(tx.transferId);
             
             // This is an outflow only if its counterpart is NOT selected.
@@ -461,14 +483,14 @@ const Dashboard: React.FC<DashboardProps> = ({ user, tasks, saveTask }) => {
     });
 
     return Object.values(spending).sort((a: CategorySpending, b: CategorySpending) => b.value - a.value);
-  }, [enrichedTransactions, analyticsSelectedAccountIds, transactions, expenseCategories]);
+  }, [enrichedTransactions, analyticsSelectedAccountIds, expenseCategories, transferLookup]);
   
   const handleCategoryClick = useCallback((categoryName: string) => {
     const expenseCats = expenseCategories;
     const txs = filteredTransactions.filter(tx => {
         if (categoryName === 'Transfers Out') {
             if (!tx.transferId || tx.type !== 'expense') return false;
-            const counterpart = transactions.find(t => t.transferId === tx.transferId && t.id !== tx.id);
+            const counterpart = transferLookup.get(tx.transferId)?.find(t => t.id !== tx.id);
             return counterpart && !analyticsSelectedAccountIds.includes(counterpart.accountId);
         }
         
@@ -482,19 +504,17 @@ const Dashboard: React.FC<DashboardProps> = ({ user, tasks, saveTask }) => {
     setModalTransactions(txs);
     setModalTitle(`Transactions for ${categoryName}`);
     setDetailModalOpen(true);
-  }, [filteredTransactions, transactions, analyticsSelectedAccountIds, expenseCategories]);
+  }, [filteredTransactions, analyticsSelectedAccountIds, expenseCategories, transferLookup]);
   
   const accountMap = useMemo(() => accounts.reduce((map, acc) => { map[acc.id] = acc.name; return map; }, {} as Record<string, string>), [accounts]);
 
   const recentTransactions = useMemo(() => {
     const sortedSourceTransactions = transactions
       .filter(tx => selectedAccountIds.includes(tx.accountId))
-      .sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
+      .sort((a, b) => parseLocalDate(b.date).getTime() - parseLocalDate(a.date).getTime());
   
     const processedTransferIds = new Set<string>();
     const result: DisplayTransaction[] = [];
-  
-    const fullTransactionsList = [...transactions];
   
     for (const tx of sortedSourceTransactions) {
       if (result.length >= 50) break; // Load more for activity view
@@ -502,7 +522,7 @@ const Dashboard: React.FC<DashboardProps> = ({ user, tasks, saveTask }) => {
       if (tx.transferId) {
         if (processedTransferIds.has(tx.transferId)) continue;
   
-        const pair = fullTransactionsList.find(t => t.transferId === tx.transferId && t.id !== tx.id);
+        const pair = transferLookup.get(tx.transferId)?.find(t => t.id !== tx.id);
         processedTransferIds.add(tx.transferId);
   
         if (pair) {
@@ -527,7 +547,7 @@ const Dashboard: React.FC<DashboardProps> = ({ user, tasks, saveTask }) => {
       }
     }
     return result.slice(0, 30);
-  }, [transactions, selectedAccountIds, accountMap]);
+  }, [transactions, selectedAccountIds, accountMap, transferLookup]);
   
   const { incomeSparkline, expenseSparkline } = useMemo(() => {
     const NUM_POINTS = 30;
@@ -869,7 +889,7 @@ const Dashboard: React.FC<DashboardProps> = ({ user, tasks, saveTask }) => {
     { id: 'budgetOverview', name: 'Budget Overview', defaultW: 2, defaultH: 2, component: BudgetOverviewWidget, props: { budgets: budgets, transactions: transactions, expenseCategories: expenseCategories, accounts: accounts, duration: duration, onBudgetClick: handleBudgetClick } },
     { id: 'transactionMap', name: 'Transaction Map', defaultW: 2, defaultH: 2, component: TransactionMapWidget, props: { transactions: filteredTransactions } },
     { id: 'cashflowSankey', name: 'Cash Flow Sankey', defaultW: 4, defaultH: 2, component: CashflowSankey, props: { transactions: filteredTransactions, incomeCategories, expenseCategories } }
-  ], [tasks, recurringTransactions, allRecurringItems, recurringTransactionOverrides, billsAndPayments, financialGoals, saveTask, netWorthData, netWorthTrendColor, outflowsByCategory, handleCategoryClick, totalAssets, totalDebt, recentTransactions, allCategories, handleTransactionClick, globalTotalAssets, globalAssetBreakdown, globalTotalDebt, globalDebtBreakdown, budgets, transactions, expenseCategories, accounts, duration, handleBudgetClick, filteredTransactions, incomeCategories]);
+  ], [tasks, allRecurringItems, recurringTransactionOverrides, billsAndPayments, financialGoals, saveTask, netWorthData, netWorthTrendColor, outflowsByCategory, handleCategoryClick, totalAssets, totalDebt, recentTransactions, allCategories, handleTransactionClick, globalTotalAssets, globalAssetBreakdown, globalTotalDebt, globalDebtBreakdown, budgets, transactions, expenseCategories, accounts, duration, handleBudgetClick, filteredTransactions, incomeCategories]);
 
   const [widgets, setWidgets] = useLocalStorage<WidgetConfig[]>('dashboard-layout', allWidgets.map(w => ({ id: w.id, title: w.name, w: w.defaultW, h: w.defaultH })));
 
