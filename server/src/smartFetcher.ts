@@ -1,20 +1,83 @@
 import express from 'express';
+import { authenticateToken, AuthRequest } from './middleware';
+import { lookup } from 'dns/promises';
+import net from 'net';
 
 const smartFetcherRouter = express.Router();
+const COOKIE_MAX_LENGTH = 4096;
 
-smartFetcherRouter.get('/', async (req, res) => {
-    const targetUrl = req.query.url;
-    const cookies = typeof req.query.cookies === 'string' ? req.query.cookies : '';
+const allowedHosts = (process.env.SMART_FETCH_ALLOWED_HOSTS || '')
+    .split(',')
+    .map(host => host.trim().toLowerCase())
+    .filter(Boolean);
+
+const isPrivateIp = (ip: string) => {
+    const normalized = ip.toLowerCase();
+    if (normalized === '0.0.0.0' || normalized === '::' || normalized === '::1') return true;
+    if (normalized.startsWith('127.')) return true;
+    if (normalized.startsWith('10.')) return true;
+    if (normalized.startsWith('192.168.')) return true;
+    if (normalized.startsWith('169.254.')) return true;
+    if (normalized.startsWith('172.')) {
+        const octet = Number.parseInt(normalized.split('.')[1] || '', 10);
+        if (octet >= 16 && octet <= 31) return true;
+    }
+    return normalized.startsWith('fc') || normalized.startsWith('fd') || normalized.startsWith('fe80:');
+};
+
+const isAllowedHostname = (hostname: string) => {
+    if (!allowedHosts.length) return false;
+    return allowedHosts.some(allowed => hostname === allowed || hostname.endsWith(`.${allowed}`));
+};
+
+const validateTarget = async (targetUrl: string) => {
+    const url = new URL(targetUrl);
+    if (!['http:', 'https:'].includes(url.protocol)) {
+        throw new Error('Only http and https URLs are allowed.');
+    }
+
+    const hostname = url.hostname.toLowerCase();
+    if (hostname === 'localhost' || hostname.endsWith('.localhost')) {
+        throw new Error('Localhost access is not allowed.');
+    }
+
+    if (!isAllowedHostname(hostname)) {
+        throw new Error('Target host is not in the allow-list.');
+    }
+
+    if (net.isIP(hostname)) {
+        if (isPrivateIp(hostname)) {
+            throw new Error('Target host resolves to a private network.');
+        }
+        return url;
+    }
+
+    const resolved = await lookup(hostname, { all: true, verbatim: true });
+    if (!resolved.length) {
+        throw new Error('Unable to resolve target host.');
+    }
+
+    if (resolved.some(record => isPrivateIp(record.address))) {
+        throw new Error('Target host resolves to a private network.');
+    }
+
+    return url;
+};
+
+smartFetcherRouter.post('/', authenticateToken, async (req: AuthRequest, res) => {
+    const targetUrl = req.body?.url;
+    const cookies = typeof req.body?.cookies === 'string' ? req.body.cookies : '';
 
     if (!targetUrl || typeof targetUrl !== 'string') {
-        return res.status(400).json({ error: 'A URL query param is required.' });
+        return res.status(400).json({ error: 'A URL body field is required.' });
+    }
+
+    if (cookies && cookies.length > COOKIE_MAX_LENGTH) {
+        return res.status(400).json({ error: 'Cookies are too long.' });
     }
 
     try {
-        const url = new URL(targetUrl);
-        if (!['http:', 'https:'].includes(url.protocol)) {
-            return res.status(400).json({ error: 'Only http and https URLs are allowed.' });
-        }
+        const url = await validateTarget(targetUrl);
 
         const response = await fetch(url, {
             headers: {
@@ -31,8 +94,9 @@ smartFetcherRouter.get('/', async (req, res) => {
         const html = await response.text();
         res.type('text/html').send(html);
     } catch (error) {
+        const message = error instanceof Error ? error.message : 'Unable to fetch the requested page.';
         console.error('Smart fetch proxy failed', error);
-        res.status(500).json({ error: 'Unable to fetch the requested page.' });
+        res.status(400).json({ error: message });
     }
 });
 

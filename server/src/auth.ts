@@ -3,10 +3,9 @@ import bcrypt from 'bcryptjs';
 import jwt from 'jsonwebtoken';
 import { db } from './database';
 import { authenticateToken, AuthRequest } from './middleware';
+import { JWT_SECRET } from './config';
 
 const router = express.Router();
-
-const JWT_SECRET = process.env.JWT_SECRET || 'default-secret';
 
 /**
  * Performs a login for a given user ID. Fetches user data, financial data,
