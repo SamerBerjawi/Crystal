@@ -87,6 +87,7 @@ const Investments: React.FC<InvestmentsProps> = ({
     ).filter(a => a.type === 'Investment' && ['Stock', 'ETF', 'Crypto'].includes(a.subType || '')), [accounts]);
 
     const activeInvestmentAccounts = useMemo(() => investmentAccounts.filter(a => a.status !== 'closed'), [investmentAccounts]);
+    const [showInactiveHoldings, setShowInactiveHoldings] = useState(false);
 
     const activeOverview = useMemo(
         () => buildHoldingsOverview(activeInvestmentAccounts, investmentTransactions, warrants, prices),
@@ -96,8 +97,30 @@ const Investments: React.FC<InvestmentsProps> = ({
     const { holdings: activeHoldings, totalValue, totalCostBasis, investedCapital, grantedCapital, distributionData, typeBreakdown } = activeOverview;
 
     const displayHoldings = useMemo(
-        () => buildHoldingsOverview(investmentAccounts, investmentTransactions, warrants, prices).holdings,
-        [investmentAccounts, investmentTransactions, warrants, prices]
+        () => {
+            const holdings = buildHoldingsOverview(investmentAccounts, investmentTransactions, warrants, prices).holdings;
+            if (showInactiveHoldings) {
+                return holdings;
+            }
+            const activeSymbols = new Set(activeInvestmentAccounts.map(account => account.symbol));
+            return holdings.filter(holding => activeSymbols.has(holding.symbol));
+        },
+        [activeInvestmentAccounts, investmentAccounts, investmentTransactions, warrants, prices, showInactiveHoldings]
+    );
+
+    const accountBySymbol = useMemo(() => {
+        const map = new Map<string, Account>();
+        investmentAccounts.forEach(account => {
+            if (account.symbol) {
+                map.set(account.symbol, account);
+            }
+        });
+        return map;
+    }, [investmentAccounts]);
+
+    const safeTotalValue = totalValue > 0 ? totalValue : 0;
+    const formatPercent = (value: number, digits = 1) => (
+        safeTotalValue > 0 ? ((value / safeTotalValue) * 100).toFixed(digits) : '0.0'
     );
 
     const handleOpenModal = (tx?: InvestmentTransaction) => {
@@ -115,7 +138,7 @@ const Investments: React.FC<InvestmentsProps> = ({
         setAccountModalOpen(true);
     };
 
-    const handleOpenPriceModal = useCallback((symbol: string, name: string, currentPrice: number) => {
+    const handleOpenPriceModal = useCallback((symbol: string, name: string, currentPrice: number | null) => {
         setEditingPriceItem({ symbol, name, currentPrice });
         setIsPriceModalOpen(true);
     }, []);
@@ -198,7 +221,7 @@ const Investments: React.FC<InvestmentsProps> = ({
                 markerIcon="finance_chip"
                 markerLabel="Portfolio Lab"
                 title="Investments"
-                subtitle="Performance, risk, and allocation snapshots with drill-downs into holdings and transactions."
+                subtitle="Performance, risk, and allocation snapshots with drill-downs into holdings and transactions. Values shown in EUR."
                 actions={
                     <div className="flex gap-3">
                         <button onClick={() => handleOpenWarrantModal()} className={`${BTN_SECONDARY_STYLE} flex items-center gap-2`}>
@@ -252,7 +275,9 @@ const Investments: React.FC<InvestmentsProps> = ({
                             <div>
                                 <p className="text-light-text-secondary dark:text-dark-text-secondary font-bold text-xs uppercase tracking-wider mb-1">Top Asset Class</p>
                                 <p className="text-2xl font-bold text-light-text dark:text-dark-text">{typeBreakdown[0]?.name || '—'}</p>
-                                <p className="text-sm text-light-text-secondary dark:text-dark-text-secondary mt-1">{typeBreakdown[0] ? `${((typeBreakdown[0].value / totalValue) * 100).toFixed(1)}% of Portfolio` : ''}</p>
+                                <p className="text-sm text-light-text-secondary dark:text-dark-text-secondary mt-1">
+                                    {typeBreakdown[0] ? `${formatPercent(typeBreakdown[0].value, 1)}% of Portfolio` : ''}
+                                </p>
                             </div>
                              <div className="w-12 h-12 rounded-full bg-blue-100 dark:bg-blue-900/30 text-blue-600 dark:text-blue-400 flex items-center justify-center">
                                 <span className="material-symbols-outlined text-2xl">pie_chart</span>
@@ -279,8 +304,17 @@ const Investments: React.FC<InvestmentsProps> = ({
                 {/* Left Column: Holdings Table */}
                 <div className="lg:col-span-2 space-y-8">
                     <Card className="overflow-hidden">
-                        <div className="flex justify-between items-center mb-6">
+                        <div className="flex flex-wrap justify-between items-center mb-6 gap-3">
                              <h3 className="text-lg font-bold text-light-text dark:text-dark-text">Your Holdings</h3>
+                             <label className="flex items-center gap-2 text-xs font-semibold uppercase tracking-wide text-light-text-secondary dark:text-dark-text-secondary">
+                                <input
+                                    type="checkbox"
+                                    checked={showInactiveHoldings}
+                                    onChange={(event) => setShowInactiveHoldings(event.target.checked)}
+                                    className="rounded border-gray-300 text-primary-600 focus:ring-primary-500"
+                                />
+                                Show inactive
+                             </label>
                         </div>
                         <div className="overflow-x-auto -mx-6 px-6">
                             <table className="w-full text-left border-collapse">
@@ -296,7 +330,7 @@ const Investments: React.FC<InvestmentsProps> = ({
                                 </thead>
                                 <tbody className="divide-y divide-black/5 dark:divide-white/5">
                                     {displayHoldings.map(holding => {
-                                        const holdingAccount = accounts.find(acc => acc.symbol === holding.symbol);
+                                        const holdingAccount = accountBySymbol.get(holding.symbol);
                                         const gainLoss = holding.currentValue - holding.totalCost;
                                         const gainLossPercent = holding.totalCost > 0 ? (gainLoss / holding.totalCost) * 100 : 0;
                                         const isPositive = gainLoss >= 0;
@@ -395,10 +429,11 @@ const Investments: React.FC<InvestmentsProps> = ({
                                     : isBuy 
                                         ? 'bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400' 
                                         : 'bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-400';
+                                const amountLabel = isGrant ? 'Grant value' : isBuy ? 'Cost' : 'Proceeds';
                                 
                                 return (
                                     <div 
-                                        key={item.id} 
+                                        key={`${item.isWarrant ? 'grant' : 'tx'}-${item.id}`} 
                                         className="flex items-center justify-between p-3 rounded-lg hover:bg-black/5 dark:hover:bg-white/5 transition-colors cursor-pointer border border-transparent hover:border-black/5 dark:hover:border-white/10" 
                                         onClick={() => item.isWarrant ? handleOpenWarrantModal(item.data as Warrant) : handleOpenModal(item.data as InvestmentTransaction)}
                                     >
@@ -414,6 +449,7 @@ const Investments: React.FC<InvestmentsProps> = ({
                                         <div className="flex items-center gap-3">
                                             <div className="text-right">
                                                 <p className="font-bold text-light-text dark:text-dark-text">{formatCurrency(item.quantity * item.price, 'EUR')}</p>
+                                                <p className="text-[11px] text-light-text-secondary dark:text-dark-text-secondary">{amountLabel}</p>
                                                 <p className="text-xs text-light-text-secondary dark:text-dark-text-secondary">{item.quantity} @ {formatCurrency(item.price, 'EUR')}</p>
                                             </div>
                                             <button
@@ -484,7 +520,7 @@ const Investments: React.FC<InvestmentsProps> = ({
                                     </div>
                                     <div className="flex items-center gap-4">
                                         <span className="text-light-text dark:text-dark-text">{formatCurrency(item.value, 'EUR')}</span>
-                                        <span className="text-light-text-secondary dark:text-dark-text-secondary w-10 text-right">{((item.value / totalValue) * 100).toFixed(0)}%</span>
+                                        <span className="text-light-text-secondary dark:text-dark-text-secondary w-10 text-right">{formatPercent(item.value, 0)}%</span>
                                     </div>
                                 </div>
                             ))}
@@ -499,10 +535,10 @@ const Investments: React.FC<InvestmentsProps> = ({
                                 <div key={type.name}>
                                     <div className="flex justify-between text-sm mb-1">
                                         <span className="font-medium text-light-text dark:text-dark-text">{type.name}</span>
-                                        <span className="text-light-text-secondary dark:text-dark-text-secondary">{((type.value / totalValue) * 100).toFixed(1)}%</span>
+                                        <span className="text-light-text-secondary dark:text-dark-text-secondary">{formatPercent(type.value, 1)}%</span>
                                     </div>
                                     <div className="w-full bg-gray-100 dark:bg-white/10 rounded-full h-2 overflow-hidden">
-                                        <div className="h-full rounded-full" style={{ width: `${(type.value / totalValue) * 100}%`, backgroundColor: type.color }}></div>
+                                        <div className="h-full rounded-full" style={{ width: `${formatPercent(type.value, 2)}%`, backgroundColor: type.color }}></div>
                                     </div>
                                 </div>
                             ))}
