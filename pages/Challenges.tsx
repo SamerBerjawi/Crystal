@@ -609,8 +609,9 @@ const Challenges: React.FC<ChallengesProps> = ({ userStats, accounts, transactio
         const d = parseLocalDate(tx.date);
         if (d >= startOfMonth && !tx.transferId) {
             const val = convertToEur(tx.amount, tx.currency);
-            if (tx.type === 'income') income += val;
-            else {
+            if (tx.type === 'income') {
+                income += val;
+            } else if (tx.type === 'expense') {
                 expense += Math.abs(val);
                 
                 let catName = tx.category;
@@ -635,8 +636,10 @@ const Challenges: React.FC<ChallengesProps> = ({ userStats, accounts, transactio
      // However, user prompt says "Spend within 5%", which means variance <= 0.05.
      const budgetAccuracy = validBudgets > 0 ? (totalBudgetVariance / validBudgets) : 1;
      
-     const totalInvestments = analyticsAccounts.filter(a => a.type === 'Investment').reduce((sum, a) => sum + convertToEur(a.balance, a.currency), 0);
-     const uniqueAccountTypes = new Set(analyticsAccounts.map(a => a.type)).size;
+     const totalInvestments = analyticsAccounts
+        .filter(a => a.type === 'Investment' && a.status !== 'closed')
+        .reduce((sum, a) => sum + convertToEur(a.balance, a.currency), 0);
+     const uniqueAccountTypes = new Set(analyticsAccounts.filter(a => a.status !== 'closed').map(a => a.type)).size;
 
      const threeMonthsAgo = new Date(); threeMonthsAgo.setMonth(threeMonthsAgo.getMonth() - 3);
      const totalSpend3m = analyticsTransactions.filter(t => parseLocalDate(t.date) >= threeMonthsAgo && t.type === 'expense' && !t.transferId).reduce((sum, t) => sum + Math.abs(convertToEur(t.amount, t.currency)), 0);
