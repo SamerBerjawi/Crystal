@@ -376,7 +376,7 @@ const MasteryCard: React.FC<{
     icon: string;
     categoryColor: string;
 }> = ({ categoryName, spent, budget, level, title, icon, categoryColor }) => {
-    const ratio = Math.min(100, (spent / budget) * 100);
+    const ratio = budget > 0 ? Math.min(100, Math.max(0, (spent / budget) * 100)) : 0;
     const isMaster = level === 4;
     const isOverBudget = spent > budget;
 
@@ -592,7 +592,7 @@ const Challenges: React.FC<ChallengesProps> = ({ userStats, accounts, transactio
   }, [predictions, transactions, accounts, assetPrices]);
 
   // --- Metrics ---
-  const { totalDebt, netWorth, savingsRate, totalInvestments, uniqueAccountTypes, liquidityRatio, budgetAccuracy, spendingByCat, creditUtilization } = useMemo(() => {
+  const { totalDebt, netWorth, savingsRate, totalInvestments, uniqueAccountTypes, liquidityRatio, budgetAccuracy, spendingByCat, creditUtilization, validBudgets } = useMemo(() => {
      const { totalDebt, netWorth, creditCardDebt } = calculateAccountTotals(accounts.filter(a => a.status !== 'closed'));
      
      // Calculate Credit Utilization
@@ -626,6 +626,7 @@ const Challenges: React.FC<ChallengesProps> = ({ userStats, accounts, transactio
      const savingsRate = income > 0 ? ((income - expense) / income) : 0;
      let totalBudgetVariance = 0; let validBudgets = 0;
      budgets.forEach(b => {
+         if (b.amount <= 0) return;
          const spent = spendingByCat[b.categoryName] || 0;
          const variance = Math.abs(b.amount - spent) / b.amount;
          totalBudgetVariance += variance;
@@ -633,7 +634,7 @@ const Challenges: React.FC<ChallengesProps> = ({ userStats, accounts, transactio
      });
      // Accuracy is 1 minus average variance. Closer to 1 (100%) is better.
      // However, user prompt says "Spend within 5%", which means variance <= 0.05.
-     const budgetAccuracy = validBudgets > 0 ? (totalBudgetVariance / validBudgets) : 1;
+     const budgetAccuracy = validBudgets > 0 ? (totalBudgetVariance / validBudgets) : 0;
      
      const totalInvestments = analyticsAccounts.filter(a => a.type === 'Investment').reduce((sum, a) => sum + convertToEur(a.balance, a.currency), 0);
      const uniqueAccountTypes = new Set(analyticsAccounts.map(a => a.type)).size;
@@ -644,7 +645,7 @@ const Challenges: React.FC<ChallengesProps> = ({ userStats, accounts, transactio
      const liquidAssets = analyticsAccounts.filter(a => LIQUID_ACCOUNT_TYPES.includes(a.type)).reduce((sum, a) => sum + convertToEur(a.balance, a.currency), 0);
      const liquidityRatio = avgMonthlySpend > 0 ? liquidAssets / avgMonthlySpend : 0;
 
-     return { totalDebt, netWorth, savingsRate, totalInvestments, uniqueAccountTypes, liquidityRatio, budgetAccuracy, spendingByCat, creditUtilization };
+     return { totalDebt, netWorth, savingsRate, totalInvestments, uniqueAccountTypes, liquidityRatio, budgetAccuracy, spendingByCat, creditUtilization, validBudgets };
   }, [analyticsAccounts, analyticsTransactions, budgets, expenseCategories]);
 
   // --- Bosses ---
@@ -701,42 +702,43 @@ const Challenges: React.FC<ChallengesProps> = ({ userStats, accounts, transactio
       const hasOverdueBills = billsAndPayments.some(b => b.status === 'unpaid' && parseLocalDate(b.dueDate) < today);
       const holdingsCount = new Set(investmentTransactions.map(t => t.symbol)).size;
       const cryptoHoldings = accounts.filter(a => (a.type === 'Investment' && a.subType === 'Crypto') || ((a.type as string) === 'Crypto')).reduce((sum, a) => sum + convertToEur(a.balance, a.currency), 0);
+      const clampPercent = (value: number) => Math.max(0, Math.min(100, value));
 
       return [
         // Account & Setup
-        { id: 'novice', title: 'Novice Explorer', description: 'Create your first account.', icon: 'explore', color: 'blue', unlocked: accounts.length > 0, progress: (accounts.length / 1) * 100 },
-        { id: 'diversified', title: 'Diversified', description: 'Hold 4+ different types of accounts.', icon: 'category', color: 'purple', unlocked: uniqueAccountTypes >= 4, progress: (uniqueAccountTypes / 4) * 100 },
+        { id: 'novice', title: 'Novice Explorer', description: 'Create your first account.', icon: 'explore', color: 'blue', unlocked: accounts.length > 0, progress: clampPercent((accounts.length / 1) * 100) },
+        { id: 'diversified', title: 'Diversified', description: 'Hold 4+ different types of accounts.', icon: 'category', color: 'purple', unlocked: uniqueAccountTypes >= 4, progress: clampPercent((uniqueAccountTypes / 4) * 100) },
         { id: 'real_estate', title: 'Real Estate Mogul', description: 'Add a Property asset to your portfolio.', icon: 'home_work', color: 'amber', unlocked: accounts.some(a => a.type === 'Property'), progress: accounts.some(a => a.type === 'Property') ? 100 : 0 },
         { id: 'penny_pincher', title: 'Penny Pincher', description: 'Activate a "Spare Change" account.', icon: 'savings', color: 'teal', unlocked: accounts.some(a => a.subType === 'Spare Change'), progress: accounts.some(a => a.subType === 'Spare Change') ? 100 : 0 },
-        { id: 'loyalist', title: 'Loyalist', description: 'Add 3+ membership cards to your wallet.', icon: 'loyalty', color: 'pink', unlocked: memberships.length >= 3, progress: (memberships.length / 3) * 100 },
+        { id: 'loyalist', title: 'Loyalist', description: 'Add 3+ membership cards to your wallet.', icon: 'loyalty', color: 'pink', unlocked: memberships.length >= 3, progress: clampPercent((memberships.length / 3) * 100) },
         
         // Wealth
-        { id: 'high_roller', title: 'High Roller', description: 'Net Worth > €100,000.', icon: 'paid', color: 'emerald', unlocked: netWorth >= 100000, progress: (netWorth / 100000) * 100 },
-        { id: '1percent', title: 'The 1%', description: 'Net Worth > €1M.', icon: 'diamond', color: 'cyan', unlocked: netWorth >= 1000000, progress: (netWorth / 1000000) * 100 },
-        { id: 'investor', title: 'Investor', description: 'Investment portfolio > €5k.', icon: 'trending_up', color: 'green', unlocked: totalInvestments >= 5000, progress: (totalInvestments / 5000) * 100 },
-        { id: 'crypto_whale', title: 'Crypto Whale', description: 'Hold > €10k in Crypto.', icon: 'currency_bitcoin', color: 'orange', unlocked: cryptoHoldings >= 10000, progress: (cryptoHoldings / 10000) * 100 },
-        { id: 'collector', title: 'Collector', description: 'Hold 5+ distinct investment assets.', icon: 'collections', color: 'indigo', unlocked: holdingsCount >= 5, progress: (holdingsCount / 5) * 100 },
+        { id: 'high_roller', title: 'High Roller', description: 'Net Worth > €100,000.', icon: 'paid', color: 'emerald', unlocked: netWorth >= 100000, progress: clampPercent((netWorth / 100000) * 100) },
+        { id: '1percent', title: 'The 1%', description: 'Net Worth > €1M.', icon: 'diamond', color: 'cyan', unlocked: netWorth >= 1000000, progress: clampPercent((netWorth / 1000000) * 100) },
+        { id: 'investor', title: 'Investor', description: 'Investment portfolio > €5k.', icon: 'trending_up', color: 'green', unlocked: totalInvestments >= 5000, progress: clampPercent((totalInvestments / 5000) * 100) },
+        { id: 'crypto_whale', title: 'Crypto Whale', description: 'Hold > €10k in Crypto.', icon: 'currency_bitcoin', color: 'orange', unlocked: cryptoHoldings >= 10000, progress: clampPercent((cryptoHoldings / 10000) * 100) },
+        { id: 'collector', title: 'Collector', description: 'Hold 5+ distinct investment assets.', icon: 'collections', color: 'indigo', unlocked: holdingsCount >= 5, progress: clampPercent((holdingsCount / 5) * 100) },
         
         // Habits & Health
-        { id: 'crystal', title: 'Crystal Clear', description: 'Savings rate > 20%.', icon: 'water_drop', color: 'blue', unlocked: savingsRate >= 0.20, progress: (savingsRate / 0.20) * 100 },
-        { id: 'safety', title: 'Safety Net', description: '3-mo liquidity runway.', icon: 'health_and_safety', color: 'emerald', unlocked: liquidityRatio >= 3, progress: (liquidityRatio / 3) * 100 },
-        { id: 'streak', title: 'Streak Master', description: '7-day login streak.', icon: 'local_fire_department', color: 'orange', unlocked: currentStreak >= 7, progress: (currentStreak / 7) * 100 },
-        { id: 'debtfree', title: 'Debt Destroyer', description: '€0 total debt.', icon: 'no_crash', color: 'green', unlocked: totalDebt === 0, progress: totalDebt === 0 ? 100 : (1 - (Math.min(totalDebt, 10000)/10000)) * 50 }, // Approximation
-        { id: 'credit_ace', title: 'Credit Ace', description: 'Credit utilization < 30%.', icon: 'credit_score', color: 'blue', unlocked: accounts.some(a => a.type === 'Credit Card') && creditUtilization < 30, progress: accounts.some(a => a.type === 'Credit Card') ? (creditUtilization < 30 ? 100 : (30 / creditUtilization) * 100) : 0 },
+        { id: 'crystal', title: 'Crystal Clear', description: 'Savings rate > 20%.', icon: 'water_drop', color: 'blue', unlocked: savingsRate >= 0.20, progress: clampPercent((savingsRate / 0.20) * 100) },
+        { id: 'safety', title: 'Safety Net', description: '3-mo liquidity runway.', icon: 'health_and_safety', color: 'emerald', unlocked: liquidityRatio >= 3, progress: clampPercent((liquidityRatio / 3) * 100) },
+        { id: 'streak', title: 'Streak Master', description: '7-day login streak.', icon: 'local_fire_department', color: 'orange', unlocked: currentStreak >= 7, progress: clampPercent((currentStreak / 7) * 100) },
+        { id: 'debtfree', title: 'Debt Destroyer', description: '€0 total debt.', icon: 'no_crash', color: 'green', unlocked: totalDebt === 0, progress: totalDebt === 0 ? 100 : clampPercent(100 - ((Math.min(Math.abs(totalDebt), 10000) / 10000) * 100)) },
+        { id: 'credit_ace', title: 'Credit Ace', description: 'Credit utilization < 30%.', icon: 'credit_score', color: 'blue', unlocked: accounts.some(a => a.type === 'Credit Card') && creditUtilization < 30, progress: accounts.some(a => a.type === 'Credit Card') ? (creditUtilization <= 0 ? 100 : clampPercent((30 / creditUtilization) * 100)) : 0 },
         { id: 'bill_crusher', title: 'Bill Crusher', description: 'No overdue unpaid bills.', icon: 'receipt_long', color: 'purple', unlocked: billsAndPayments.length > 0 && !hasOverdueBills, progress: billsAndPayments.length > 0 ? (hasOverdueBills ? 0 : 100) : 0 },
         
         // Planning
-        { id: 'architect', title: 'Budget Architect', description: 'Create 3 budgets.', icon: 'architecture', color: 'purple', unlocked: budgets.length >= 3, progress: (budgets.length / 3) * 100 },
-        { id: 'oracle', title: 'Oracle', description: 'Budget variance < 5%.', icon: 'visibility', color: 'indigo', unlocked: budgets.length > 0 && budgetAccuracy <= 0.05, progress: budgets.length > 0 ? (budgetAccuracy <= 0.05 ? 100 : (0.05 / budgetAccuracy) * 100) : 0 },
-        { id: 'automator', title: 'Automator', description: '5+ recurring transactions.', icon: 'settings_suggest', color: 'slate', unlocked: recurringTransactions.length >= 5, progress: (recurringTransactions.length / 5) * 100 },
-        { id: 'goal_setter', title: 'Goal Setter', description: 'Create your first financial goal.', icon: 'flag', color: 'red', unlocked: financialGoals.length > 0, progress: (financialGoals.length / 1) * 100 },
+        { id: 'architect', title: 'Budget Architect', description: 'Create 3 budgets.', icon: 'architecture', color: 'purple', unlocked: budgets.length >= 3, progress: clampPercent((budgets.length / 3) * 100) },
+        { id: 'oracle', title: 'Oracle', description: 'Budget variance < 5%.', icon: 'visibility', color: 'indigo', unlocked: validBudgets > 0 && budgetAccuracy <= 0.05, progress: validBudgets > 0 ? (budgetAccuracy <= 0.05 ? 100 : clampPercent((0.05 / Math.max(budgetAccuracy, 0.0001)) * 100)) : 0 },
+        { id: 'automator', title: 'Automator', description: '5+ recurring transactions.', icon: 'settings_suggest', color: 'slate', unlocked: recurringTransactions.length >= 5, progress: clampPercent((recurringTransactions.length / 5) * 100) },
+        { id: 'goal_setter', title: 'Goal Setter', description: 'Create your first financial goal.', icon: 'flag', color: 'red', unlocked: financialGoals.length > 0, progress: clampPercent((financialGoals.length / 1) * 100) },
         { id: 'goal_getter', title: 'Goal Getter', description: 'Fully fund a goal (100%).', icon: 'emoji_events', color: 'yellow', unlocked: financialGoals.some(g => g.currentAmount >= g.amount), progress: financialGoals.some(g => g.currentAmount >= g.amount) ? 100 : 50 },
         
         // Predictions
         { id: 'forecaster', title: 'Forecaster', description: 'Create a prediction.', icon: 'psychology', color: 'pink', unlocked: (userStats.predictionTotal || 0) > 0, progress: ((userStats.predictionTotal || 0) > 0) ? 100 : 0 },
-        { id: 'prophet', title: 'Prophet', description: 'Win 5 predictions.', icon: 'auto_awesome', color: 'violet', unlocked: (userStats.predictionWins || 0) >= 5, progress: ((userStats.predictionWins || 0) / 5) * 100 },
+        { id: 'prophet', title: 'Prophet', description: 'Win 5 predictions.', icon: 'auto_awesome', color: 'violet', unlocked: (userStats.predictionWins || 0) >= 5, progress: clampPercent(((userStats.predictionWins || 0) / 5) * 100) },
       ];
-  }, [accounts, budgets, netWorth, savingsRate, currentStreak, recurringTransactions, totalDebt, liquidityRatio, totalInvestments, uniqueAccountTypes, budgetAccuracy, creditUtilization, memberships, billsAndPayments, investmentTransactions, userStats]);
+  }, [accounts, budgets, netWorth, savingsRate, currentStreak, recurringTransactions, totalDebt, liquidityRatio, totalInvestments, uniqueAccountTypes, budgetAccuracy, creditUtilization, memberships, billsAndPayments, investmentTransactions, userStats, validBudgets]);
 
   // --- Sprints ---
   const handleStartSprint = (sprintId: string) => { if (activeSprints.some(s => s.id === sprintId)) return; setActiveSprints([...activeSprints, { id: sprintId, startDate: toLocalISOString(new Date()) }]); };
@@ -744,6 +746,14 @@ const Challenges: React.FC<ChallengesProps> = ({ userStats, accounts, transactio
   
   const processedSprints = useMemo(() => {
       const now = new Date();
+      const categoryLookup = new Map<string, string>();
+      expenseCategories.forEach(category => {
+          categoryLookup.set(category.name, category.name.toLowerCase());
+          category.subCategories.forEach(sub => {
+              categoryLookup.set(sub.name, category.name.toLowerCase());
+          });
+      });
+
       return activeSprints.map(active => {
           const def = SAVINGS_SPRINTS.find(s => s.id === active.id);
           if (!def) return null;
@@ -759,7 +769,11 @@ const Challenges: React.FC<ChallengesProps> = ({ userStats, accounts, transactio
               if (d >= start && d <= now && tx.type === 'expense' && !tx.transferId) {
                   let include = def.targetType === 'global';
                   if (def.targetType === 'transaction_limit' && Math.abs(convertToEur(tx.amount, tx.currency)) > def.limitAmount) currentSpend++;
-                  else if (def.targetType === 'category' && def.targetCategory && tx.category.toLowerCase().includes(def.targetCategory)) include = true;
+                  else if (def.targetType === 'category' && def.targetCategory) {
+                      const normalizedTarget = def.targetCategory.toLowerCase();
+                      const normalizedCategory = categoryLookup.get(tx.category) ?? tx.category.toLowerCase();
+                      include = normalizedCategory === normalizedTarget;
+                  }
                   if (include && def.targetType !== 'transaction_limit') currentSpend += Math.abs(convertToEur(tx.amount, tx.currency));
               }
           });
@@ -770,7 +784,7 @@ const Challenges: React.FC<ChallengesProps> = ({ userStats, accounts, transactio
           
           return { ...def, active, currentSpend, daysRemaining, timeProgress, status };
       }).filter(Boolean) as any[];
-  }, [activeSprints, transactions]);
+  }, [activeSprints, expenseCategories, transactions]);
 
   // --- Render Sections ---
   const renderScoreSection = () => {
