@@ -1,5 +1,5 @@
 
-import React from 'react';
+import React, { useState } from 'react';
 import { Page, User } from '../types';
 
 interface SettingsProps {
@@ -8,6 +8,7 @@ interface SettingsProps {
 }
 
 const Settings: React.FC<SettingsProps> = ({ setCurrentPage, user }) => {
+  const [profileImageError, setProfileImageError] = useState(false);
 
   const handleNavigation = (page: Page) => {
     if (window.innerWidth < 768) {
@@ -18,9 +19,10 @@ const Settings: React.FC<SettingsProps> = ({ setCurrentPage, user }) => {
   };
 
   const SettingItem = ({ page, icon, title, description, colorClass = "bg-gray-100 text-gray-600 dark:bg-gray-800 dark:text-gray-300" }: { page: Page; icon: string; title: string; description?: string; colorClass?: string }) => (
-    <div 
+    <button
+      type="button"
       onClick={() => handleNavigation(page)}
-      className="flex items-center justify-between p-4 hover:bg-black/5 dark:hover:bg-white/5 transition-colors cursor-pointer group first:rounded-t-xl last:rounded-b-xl"
+      className="w-full flex items-center justify-between p-4 hover:bg-black/5 dark:hover:bg-white/5 transition-colors cursor-pointer group first:rounded-t-xl last:rounded-b-xl text-left"
     >
       <div className="flex items-center gap-4">
         <div className={`w-10 h-10 rounded-full flex items-center justify-center ${colorClass}`}>
@@ -32,7 +34,7 @@ const Settings: React.FC<SettingsProps> = ({ setCurrentPage, user }) => {
         </div>
       </div>
       <span className="material-symbols-outlined text-light-text-secondary dark:text-dark-text-secondary text-lg group-hover:translate-x-1 transition-transform">chevron_right</span>
-    </div>
+    </button>
   );
 
   return (
@@ -44,16 +46,26 @@ const Settings: React.FC<SettingsProps> = ({ setCurrentPage, user }) => {
       </div>
 
       {/* Profile Section */}
-      <div 
+      <button
+        type="button"
         onClick={() => handleNavigation('Personal Info')}
-        className="bg-white dark:bg-dark-card rounded-2xl p-6 shadow-sm border border-black/5 dark:border-white/5 flex items-center gap-5 cursor-pointer hover:shadow-md transition-all group"
+        className="w-full text-left bg-white dark:bg-dark-card rounded-2xl p-6 shadow-sm border border-black/5 dark:border-white/5 flex items-center gap-5 cursor-pointer hover:shadow-md transition-all group"
       >
         <div className="relative">
-          <img 
-            src={user.profilePictureUrl} 
-            alt="Profile" 
-            className="w-20 h-20 rounded-full object-cover border-2 border-white dark:border-dark-card shadow-sm"
-          />
+          {profileImageError || !user.profilePictureUrl ? (
+            <div className="w-20 h-20 rounded-full border-2 border-white dark:border-dark-card shadow-sm bg-primary-100 dark:bg-primary-900/30 text-primary-600 dark:text-primary-300 flex items-center justify-center text-xl font-semibold">
+              {user.firstName?.charAt(0)}
+              {user.lastName?.charAt(0)}
+            </div>
+          ) : (
+            <img
+              src={user.profilePictureUrl}
+              alt={`${user.firstName} ${user.lastName}`}
+              className="w-20 h-20 rounded-full object-cover border-2 border-white dark:border-dark-card shadow-sm"
+              loading="lazy"
+              onError={() => setProfileImageError(true)}
+            />
+          )}
           <div className="absolute bottom-0 right-0 bg-primary-500 text-white p-1 rounded-full border-2 border-white dark:border-dark-card">
              <span className="material-symbols-outlined text-xs block">edit</span>
           </div>
@@ -66,7 +78,7 @@ const Settings: React.FC<SettingsProps> = ({ setCurrentPage, user }) => {
           </div>
         </div>
         <span className="material-symbols-outlined text-light-text-secondary dark:text-dark-text-secondary text-2xl">chevron_right</span>
-      </div>
+      </button>
 
       {/* App Settings Group */}
       <div>

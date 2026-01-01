@@ -553,9 +553,9 @@ const App: React.FC = () => {
   }, []);
   
   useEffect(() => {
-      // Always sync app preference to device timezone on load to prevent "tomorrow/yesterday" bugs
+      // Sync to device timezone only when unset to avoid overriding user preferences.
       const deviceTimezone = typeof Intl !== 'undefined' ? Intl.DateTimeFormat().resolvedOptions().timeZone : 'local';
-      if (preferences.timezone !== deviceTimezone) {
+      if (!preferences.timezone) {
           setPreferences(prev => ({ ...prev, timezone: deviceTimezone }));
       }
   }, [preferences.timezone]);
