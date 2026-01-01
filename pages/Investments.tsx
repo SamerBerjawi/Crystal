@@ -5,6 +5,7 @@ import { BTN_PRIMARY_STYLE, BRAND_COLORS, BTN_SECONDARY_STYLE, INVESTMENT_SUB_TY
 import Card from '../components/Card';
 import { formatCurrency, parseLocalDate } from '../utils';
 import AddInvestmentTransactionModal from '../components/AddInvestmentTransactionModal';
+import EditAccountModal from '../components/EditAccountModal';
 import PortfolioDistributionChart from '../components/PortfolioDistributionChart';
 import WarrantModal from '../components/WarrantModal';
 import WarrantPriceModal from '../components/WarrantPriceModal';
@@ -17,6 +18,7 @@ interface InvestmentsProps {
     cashAccounts: Account[];
     investmentTransactions: InvestmentTransaction[];
     saveInvestmentTransaction: (invTx: Omit<InvestmentTransaction, 'id'> & { id?: string }, cashTx?: Omit<Transaction, 'id'>, newAccount?: Omit<Account, 'id'>) => void;
+    saveAccount: (account: Omit<Account, 'id'> & { id?: string }) => void;
     deleteInvestmentTransaction: (id: string) => void;
     saveTransaction: (transactions: (Omit<Transaction, 'id'> & { id?: string })[], idsToDelete?: string[]) => void;
     warrants: Warrant[];
@@ -57,6 +59,7 @@ const Investments: React.FC<InvestmentsProps> = ({
     cashAccounts,
     investmentTransactions,
     saveInvestmentTransaction,
+    saveAccount,
     deleteInvestmentTransaction,
     saveTransaction,
     warrants,
@@ -73,8 +76,10 @@ const Investments: React.FC<InvestmentsProps> = ({
     const [isWarrantModalOpen, setWarrantModalOpen] = useState(false);
     const [editingTransaction, setEditingTransaction] = useState<InvestmentTransaction | null>(null);
     const [editingWarrant, setEditingWarrant] = useState<Warrant | null>(null);
+    const [editingAccount, setEditingAccount] = useState<Account | null>(null);
     const [isPriceModalOpen, setIsPriceModalOpen] = useState(false);
     const [editingPriceItem, setEditingPriceItem] = useState<{ symbol: string; name: string; currentPrice: number | null } | null>(null);
+    const [isAccountModalOpen, setAccountModalOpen] = useState(false);
 
     // Include only Stocks, ETFs, Crypto for the Investments page
     const investmentAccounts = useMemo(() => (
@@ -104,6 +109,11 @@ const Investments: React.FC<InvestmentsProps> = ({
          setEditingWarrant(warrant || null);
          setWarrantModalOpen(true);
     }
+
+    const handleOpenAccountModal = (account: Account) => {
+        setEditingAccount(account);
+        setAccountModalOpen(true);
+    };
 
     const handleOpenPriceModal = useCallback((symbol: string, name: string, currentPrice: number) => {
         setEditingPriceItem({ symbol, name, currentPrice });
@@ -155,6 +165,23 @@ const Investments: React.FC<InvestmentsProps> = ({
                     onClose={() => setWarrantModalOpen(false)} 
                     onSave={(w) => { saveWarrant(w); setWarrantModalOpen(false); }} 
                     warrantToEdit={editingWarrant} 
+                />
+            )}
+            {isAccountModalOpen && editingAccount && (
+                <EditAccountModal
+                    onClose={() => setAccountModalOpen(false)}
+                    onSave={(account) => { saveAccount(account); setAccountModalOpen(false); }}
+                    onDelete={(accountId) => {
+                        const account = accounts.find(acc => acc.id === accountId);
+                        if (account && window.confirm(`Are you sure you want to delete ${account.name}? This will remove all associated data.`)) {
+                            deleteAccount(accountId);
+                        }
+                        setAccountModalOpen(false);
+                    }}
+                    account={editingAccount}
+                    accounts={accounts}
+                    warrants={warrants}
+                    onToggleStatus={onToggleAccountStatus}
                 />
             )}
             {isPriceModalOpen && editingPriceItem && (
@@ -321,18 +348,6 @@ const Investments: React.FC<InvestmentsProps> = ({
                                                 </td>
                                                 <td className="py-4 text-right">
                                                     <div className="flex justify-end gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
-                                                        {holdingAccount && (
-                                                            <button
-                                                                onClick={(e) => {
-                                                                    e.stopPropagation();
-                                                                    onToggleAccountStatus(holdingAccount.id);
-                                                                }}
-                                                                className="p-1.5 rounded-md text-light-text-secondary dark:text-dark-text-secondary hover:bg-black/10 dark:hover:bg-white/10"
-                                                                title={holdingAccount.status === 'closed' ? 'Mark Active' : 'Mark Inactive'}
-                                                            >
-                                                                <span className="material-symbols-outlined text-lg">do_not_disturb_on</span>
-                                                            </button>
-                                                        )}
                                                         <button
                                                             onClick={(e) => { e.stopPropagation(); handleOpenPriceModal(holding.symbol, holding.name, holding.currentPrice); }}
                                                             className="p-1.5 rounded-md text-light-text-secondary dark:text-dark-text-secondary hover:bg-black/10 dark:hover:bg-white/10"
@@ -340,31 +355,16 @@ const Investments: React.FC<InvestmentsProps> = ({
                                                         >
                                                             <span className="material-symbols-outlined text-lg">edit_note</span>
                                                         </button>
-                                                        {holding.type === 'Warrant' && (
-                                                            <button
-                                                                onClick={(e) => {
-                                                                    e.stopPropagation();
-                                                                    const warrant = warrants.find(w => w.id === holding.warrantId);
-                                                                    if(warrant) handleOpenWarrantModal(warrant);
-                                                                }}
-                                                                className="p-1.5 rounded-md text-light-text-secondary dark:text-dark-text-secondary hover:bg-black/10 dark:hover:bg-white/10"
-                                                                title="Edit Grant"
-                                                            >
-                                                                <span className="material-symbols-outlined text-lg">edit</span>
-                                                            </button>
-                                                        )}
                                                         {holdingAccount && (
                                                             <button
                                                                 onClick={(e) => {
                                                                     e.stopPropagation();
-                                                                    if (window.confirm(`Are you sure you want to delete ${holdingAccount.name}? This will remove all associated data.`)) {
-                                                                        deleteAccount(holdingAccount.id);
-                                                                    }
+                                                                    handleOpenAccountModal(holdingAccount);
                                                                 }}
-                                                                className="p-1.5 rounded-md text-red-500 dark:text-red-400 hover:bg-red-50 dark:hover:bg-red-900/20"
-                                                                title="Delete Holding"
+                                                                className="p-1.5 rounded-md text-light-text-secondary dark:text-dark-text-secondary hover:bg-black/10 dark:hover:bg-white/10"
+                                                                title="Edit Account"
                                                             >
-                                                                <span className="material-symbols-outlined text-lg">delete</span>
+                                                                <span className="material-symbols-outlined text-lg">manage_accounts</span>
                                                             </button>
                                                         )}
                                                     </div>
@@ -411,9 +411,27 @@ const Investments: React.FC<InvestmentsProps> = ({
                                                 <p className="text-xs text-light-text-secondary dark:text-dark-text-secondary">{parseLocalDate(item.date).toLocaleDateString()}</p>
                                             </div>
                                         </div>
-                                        <div className="text-right">
-                                            <p className="font-bold text-light-text dark:text-dark-text">{formatCurrency(item.quantity * item.price, 'EUR')}</p>
-                                            <p className="text-xs text-light-text-secondary dark:text-dark-text-secondary">{item.quantity} @ {formatCurrency(item.price, 'EUR')}</p>
+                                        <div className="flex items-center gap-3">
+                                            <div className="text-right">
+                                                <p className="font-bold text-light-text dark:text-dark-text">{formatCurrency(item.quantity * item.price, 'EUR')}</p>
+                                                <p className="text-xs text-light-text-secondary dark:text-dark-text-secondary">{item.quantity} @ {formatCurrency(item.price, 'EUR')}</p>
+                                            </div>
+                                            <button
+                                                onClick={(event) => {
+                                                    event.stopPropagation();
+                                                    if (item.isWarrant) {
+                                                        handleOpenWarrantModal(item.data as Warrant);
+                                                    } else {
+                                                        handleOpenModal(item.data as InvestmentTransaction);
+                                                    }
+                                                }}
+                                                className="p-1.5 rounded-md text-light-text-secondary dark:text-dark-text-secondary hover:bg-black/10 dark:hover:bg-white/10"
+                                                title={item.isWarrant ? 'Edit Grant' : 'Edit Transaction'}
+                                            >
+                                                <span className="material-symbols-outlined text-lg">
+                                                    {item.isWarrant ? 'card_membership' : 'edit_note'}
+                                                </span>
+                                            </button>
                                         </div>
                                     </div>
                                 );
