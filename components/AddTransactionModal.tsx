@@ -133,12 +133,21 @@ const AddTransactionModal: React.FC<AddTransactionModalProps> = ({ onClose, onSa
 
   const currencySymbol = activeAccount ? (activeAccount.currency === 'USD' ? '$' : activeAccount.currency === 'EUR' ? '€' : activeAccount.currency === 'GBP' ? '£' : '') : '€';
 
-  const isLoanPayment = useMemo(() => {
-    const targetAccountId = type === 'income' ? toAccountId : (type === 'transfer' ? toAccountId : null);
-    if (!targetAccountId) return false;
+  const loanAccount = useMemo(() => {
+    if (type === 'transfer') {
+      return accounts.find(a => a.id === fromAccountId && (a.type === 'Loan' || a.type === 'Lending'))
+        || accounts.find(a => a.id === toAccountId && (a.type === 'Loan' || a.type === 'Lending'));
+    }
+    const targetAccountId = type === 'income' ? toAccountId : fromAccountId;
+    if (!targetAccountId) return undefined;
     const targetAccount = accounts.find(a => a.id === targetAccountId);
-    return targetAccount?.type === 'Loan';
-  }, [type, toAccountId, accounts]);
+    if (!targetAccount || (targetAccount.type !== 'Loan' && targetAccount.type !== 'Lending')) {
+      return undefined;
+    }
+    return targetAccount;
+  }, [type, fromAccountId, toAccountId, accounts]);
+
+  const isLoanPayment = Boolean(loanAccount);
 
   // Detect linked spare change account
   const linkedSpareChangeAccount = useMemo(() => {
@@ -187,13 +196,12 @@ const AddTransactionModal: React.FC<AddTransactionModalProps> = ({ onClose, onSa
 
   // Auto-calculate principal and interest for loan payments
   useEffect(() => {
-    const targetAccount = accounts.find(a => a.id === toAccountId);
-    const isPaymentToLoan = (type === 'income' || type === 'transfer') && targetAccount?.type === 'Loan';
+    const isPaymentToLoan = (type === 'income' || type === 'transfer') && loanAccount;
 
-    if (isPaymentToLoan && useAutoLoanSplit && targetAccount.interestRate && parseFloat(amount) > 0) {
+    if (isPaymentToLoan && useAutoLoanSplit && loanAccount?.interestRate && parseFloat(amount) > 0) {
         const totalPayment = parseFloat(amount);
-        const outstandingPrincipal = Math.abs(targetAccount.balance); 
-        const monthlyInterestRate = (targetAccount.interestRate / 100) / 12;
+        const outstandingPrincipal = Math.abs(loanAccount.balance); 
+        const monthlyInterestRate = (loanAccount.interestRate / 100) / 12;
         
         const calculatedInterest = parseFloat((outstandingPrincipal * monthlyInterestRate).toFixed(2));
         const interest = Math.min(totalPayment, calculatedInterest);
@@ -205,7 +213,7 @@ const AddTransactionModal: React.FC<AddTransactionModalProps> = ({ onClose, onSa
         setPrincipalPayment('');
         setInterestPayment('');
     }
-  }, [amount, toAccountId, type, accounts, useAutoLoanSplit]);
+  }, [amount, type, loanAccount, useAutoLoanSplit]);
   
   const handlePrincipalChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     setUseAutoLoanSplit(false);
@@ -443,9 +451,16 @@ const AddTransactionModal: React.FC<AddTransactionModalProps> = ({ onClose, onSa
             ...locationProps
         };
         
-        if (isLoanPayment) {
-            incomeTx.principalAmount = parseFloat(principalPayment) || 0;
-            incomeTx.interestAmount = parseFloat(interestPayment) || 0;
+        if (isLoanPayment && loanAccount) {
+            const principalValue = parseFloat(principalPayment) || 0;
+            const interestValue = parseFloat(interestPayment) || 0;
+            if (expenseTx.accountId === loanAccount.id) {
+                expenseTx.principalAmount = principalValue;
+                expenseTx.interestAmount = interestValue;
+            } else if (incomeTx.accountId === loanAccount.id) {
+                incomeTx.principalAmount = principalValue;
+                incomeTx.interestAmount = interestValue;
+            }
         }
 
         if (isEditing && wasTransfer) {
@@ -478,7 +493,7 @@ const AddTransactionModal: React.FC<AddTransactionModalProps> = ({ onClose, onSa
             ...locationProps
         };
         
-        if (isLoanPayment) {
+        if (isLoanPayment && loanAccount && accountId === loanAccount.id) {
             transactionData.principalAmount = parseFloat(principalPayment) || 0;
             transactionData.interestAmount = parseFloat(interestPayment) || 0;
         }
