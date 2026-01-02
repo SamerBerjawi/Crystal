@@ -101,6 +101,7 @@ const AddTransactionModal: React.FC<AddTransactionModalProps> = ({ onClose, onSa
   // Loan payment split state
   const [principalPayment, setPrincipalPayment] = useState('');
   const [interestPayment, setInterestPayment] = useState('');
+  const [useAutoLoanSplit, setUseAutoLoanSplit] = useState(true);
   
   // Spare Change State
   const [enableRoundUp, setEnableRoundUp] = useState(false);
@@ -189,7 +190,7 @@ const AddTransactionModal: React.FC<AddTransactionModalProps> = ({ onClose, onSa
     const targetAccount = accounts.find(a => a.id === toAccountId);
     const isPaymentToLoan = (type === 'income' || type === 'transfer') && targetAccount?.type === 'Loan';
 
-    if (isPaymentToLoan && targetAccount.interestRate && parseFloat(amount) > 0) {
+    if (isPaymentToLoan && useAutoLoanSplit && targetAccount.interestRate && parseFloat(amount) > 0) {
         const totalPayment = parseFloat(amount);
         const outstandingPrincipal = Math.abs(targetAccount.balance); 
         const monthlyInterestRate = (targetAccount.interestRate / 100) / 12;
@@ -200,13 +201,14 @@ const AddTransactionModal: React.FC<AddTransactionModalProps> = ({ onClose, onSa
 
         setPrincipalPayment(principal.toFixed(2));
         setInterestPayment(interest.toFixed(2));
-    } else {
+    } else if (!isPaymentToLoan) {
         setPrincipalPayment('');
         setInterestPayment('');
     }
-  }, [amount, toAccountId, type, accounts]);
+  }, [amount, toAccountId, type, accounts, useAutoLoanSplit]);
   
   const handlePrincipalChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    setUseAutoLoanSplit(false);
     const newPrincipalValue = e.target.value;
     const totalPayment = parseFloat(amount) || 0;
     let newPrincipal = parseFloat(newPrincipalValue) || 0;
@@ -221,6 +223,7 @@ const AddTransactionModal: React.FC<AddTransactionModalProps> = ({ onClose, onSa
   };
 
   const handleInterestChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    setUseAutoLoanSplit(false);
     const newInterestValue = e.target.value;
     const totalPayment = parseFloat(amount) || 0;
     let newInterest = parseFloat(newInterestValue) || 0;
@@ -292,6 +295,7 @@ const AddTransactionModal: React.FC<AddTransactionModalProps> = ({ onClose, onSa
         setAmount(amountToSet);
         setPrincipalPayment(principal);
         setInterestPayment(interest);
+        setUseAutoLoanSplit(!(principal || interest));
 
         // Detect Round Up
         if (transactions) {
@@ -328,6 +332,7 @@ const AddTransactionModal: React.FC<AddTransactionModalProps> = ({ onClose, onSa
         setCategory(initialCategory || '');
         setPrincipalPayment(initialDetails?.principal || '');
         setInterestPayment(initialDetails?.interest || '');
+        setUseAutoLoanSplit(!(initialDetails?.principal || initialDetails?.interest));
         setTagIds([]);
         setLocationString('');
         setLocationData({});

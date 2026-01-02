@@ -972,13 +972,47 @@ export function generateAmortizationSchedule(
   transactions: Transaction[],
   overrides: Record<number, Partial<ScheduledPayment>> = {}
 ): ScheduledPayment[] {
-  const { principalAmount, interestRate, duration, loanStartDate, monthlyPayment, paymentDayOfMonth } = account;
+  const { principalAmount, interestRate, duration, loanStartDate, monthlyPayment, paymentDayOfMonth, interestAmount } = account;
 
   if (!principalAmount || !duration || !loanStartDate || interestRate === undefined) {
     return [];
   }
 
-  const monthlyInterestRate = (interestRate || 0) / 100 / 12;
+  const solveMonthlyRateFromTotalInterest = (principal: number, months: number, totalInterest: number) => {
+    if (totalInterest <= 0) {
+      return 0;
+    }
+
+    const totalInterestForRate = (rate: number) => {
+      if (rate === 0) {
+        return 0;
+      }
+      const payment = (principal * (rate * Math.pow(1 + rate, months))) / (Math.pow(1 + rate, months) - 1);
+      return (payment * months) - principal;
+    };
+
+    let low = 0;
+    let high = 1;
+    while (totalInterestForRate(high) < totalInterest && high < 10) {
+      high *= 2;
+    }
+
+    for (let i = 0; i < 60; i++) {
+      const mid = (low + high) / 2;
+      if (totalInterestForRate(mid) >= totalInterest) {
+        high = mid;
+      } else {
+        low = mid;
+      }
+    }
+
+    return high;
+  };
+
+  const targetTotalInterest = interestAmount;
+  const monthlyInterestRate = typeof targetTotalInterest === 'number'
+    ? solveMonthlyRateFromTotalInterest(principalAmount, duration, targetTotalInterest)
+    : (interestRate || 0) / 100 / 12;
 
     const paymentTransactions = transactions.filter(tx =>
     tx.accountId === account.id &&
@@ -993,6 +1027,9 @@ export function generateAmortizationSchedule(
   });
 
   const schedule: ScheduledPayment[] = [];
+  const roundToTwo = (value: number) => Math.round((value + Number.EPSILON) * 100) / 100;
+  let roundedPrincipalTotal = 0;
+  let roundedInterestTotal = 0;
   let outstandingBalance = principalAmount; // Use full precision
   const today = new Date();
   today.setHours(0, 0, 0, 0);
@@ -1018,12 +1055,14 @@ export function generateAmortizationSchedule(
     const dateStr = toLocalISOString(scheduledDate);
 
     const override = overrides[i];
+    const hasExplicitBreakdown = override?.principal !== undefined || override?.interest !== undefined;
 
     let totalPayment: number;
     let principal: number;
     let interest: number;
     let status: ScheduledPayment['status'] = 'Upcoming';
     let transactionId: string | undefined = undefined;
+    let isFinalScheduledPayment = false;
     
     // Calculate interest on the high-precision outstanding balance
     const calculatedInterest = outstandingBalance * monthlyInterestRate;
@@ -1047,14 +1086,39 @@ export function generateAmortizationSchedule(
         let basePayment = standardAmortizedPayment;
         if (override?.totalPayment) {
             basePayment = override.totalPayment;
-        } else if (monthlyPayment) {
+        } else if (typeof targetTotalInterest !== 'number' && monthlyPayment) {
             basePayment = monthlyPayment;
         }
 
-        if (i === duration || outstandingBalance < (basePayment - interest)) {
+        if (hasExplicitBreakdown) {
+            if (override?.principal !== undefined && override?.interest !== undefined) {
+                principal = override.principal;
+                interest = override.interest;
+                totalPayment = principal + interest;
+            } else if (override?.totalPayment !== undefined && override?.principal !== undefined) {
+                totalPayment = override.totalPayment;
+                principal = override.principal;
+                interest = totalPayment - principal;
+            } else if (override?.totalPayment !== undefined && override?.interest !== undefined) {
+                totalPayment = override.totalPayment;
+                interest = override.interest;
+                principal = totalPayment - interest;
+            } else if (override?.principal !== undefined) {
+                principal = override.principal;
+                totalPayment = principal + interest;
+            } else if (override?.interest !== undefined) {
+                interest = override.interest;
+                totalPayment = basePayment;
+                principal = totalPayment - interest;
+            } else {
+                totalPayment = basePayment;
+                principal = totalPayment - interest;
+            }
+        } else if (i === duration || outstandingBalance < (basePayment - interest)) {
             // This is the final payment to clear the balance.
             principal = outstandingBalance;
             totalPayment = principal + interest;
+            isFinalScheduledPayment = true;
         } else {
             totalPayment = basePayment;
             principal = totalPayment - interest;
@@ -1067,16 +1131,35 @@ export function generateAmortizationSchedule(
     
     const newOutstandingBalance = outstandingBalance - principal;
 
+    let roundedPrincipal = roundToTwo(principal);
+    let roundedInterest = roundToTwo(interest);
+    let roundedTotalPayment = roundToTwo(totalPayment);
+
+    if (isFinalScheduledPayment && !realPaymentForPeriod && !hasExplicitBreakdown) {
+        const remainingPrincipal = roundToTwo(principalAmount - roundedPrincipalTotal);
+        roundedPrincipal = remainingPrincipal;
+        roundedInterest = roundToTwo(roundedTotalPayment - roundedPrincipal);
+        roundedTotalPayment = roundToTwo(roundedPrincipal + roundedInterest);
+        if (typeof targetTotalInterest === 'number') {
+            const remainingInterest = roundToTwo(targetTotalInterest - roundedInterestTotal);
+            roundedInterest = Math.max(0, remainingInterest);
+            roundedTotalPayment = roundToTwo(roundedPrincipal + roundedInterest);
+        }
+    }
+
     schedule.push({
       paymentNumber: i,
       date: dateStr,
-      totalPayment: parseFloat(totalPayment.toFixed(2)),
-      principal: parseFloat(principal.toFixed(2)),
-      interest: parseFloat(interest.toFixed(2)),
-      outstandingBalance: parseFloat(Math.max(0, newOutstandingBalance).toFixed(2)),
+      totalPayment: roundedTotalPayment,
+      principal: roundedPrincipal,
+      interest: roundedInterest,
+      outstandingBalance: roundToTwo(Math.max(0, newOutstandingBalance)),
       status,
       transactionId,
     });
+
+    roundedPrincipalTotal += roundedPrincipal;
+    roundedInterestTotal += roundedInterest;
     
     // Use high-precision value for the next iteration
     outstandingBalance = newOutstandingBalance;

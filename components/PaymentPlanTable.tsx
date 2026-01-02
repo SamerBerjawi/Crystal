@@ -3,6 +3,7 @@ import React, { useState, useMemo, useEffect } from 'react';
 import { Account, Transaction, ScheduledPayment } from '../types';
 import { generateAmortizationSchedule, formatCurrency, parseLocalDate } from '../utils';
 import { INPUT_BASE_STYLE, BTN_PRIMARY_STYLE, BTN_SECONDARY_STYLE } from '../constants';
+import LoanPaymentBulkEditModal, { BulkPaymentEntry } from './LoanPaymentBulkEditModal';
 
 interface PaymentPlanTableProps {
   account: Account;
@@ -16,6 +17,7 @@ const PaymentPlanTable: React.FC<PaymentPlanTableProps> = ({ account, transactio
     const [editingPaymentNumber, setEditingPaymentNumber] = useState<number | null>(null);
     const [editFormData, setEditFormData] = useState<Partial<Pick<ScheduledPayment, 'totalPayment' | 'principal' | 'interest'>>>({});
     const [lastEditedField, setLastEditedField] = useState<'total' | 'principal' | 'interest' | null>(null);
+    const [isBulkEditOpen, setIsBulkEditOpen] = useState(false);
 
     const schedule = useMemo(() => {
         return generateAmortizationSchedule(account, transactions, overrides);
@@ -49,6 +51,19 @@ const PaymentPlanTable: React.FC<PaymentPlanTableProps> = ({ account, transactio
         if (editingPaymentNumber === null) return;
         onOverridesChange({ ...overrides, [editingPaymentNumber]: editFormData });
         handleCancelEdit();
+    };
+
+    const handleBulkApply = (entries: BulkPaymentEntry[]) => {
+        const nextOverrides = { ...overrides };
+        entries.forEach(entry => {
+            nextOverrides[entry.paymentNumber] = {
+                totalPayment: entry.totalPayment,
+                principal: entry.principal,
+                interest: entry.interest,
+            };
+        });
+        onOverridesChange(nextOverrides);
+        setIsBulkEditOpen(false);
     };
 
     useEffect(() => {
@@ -87,6 +102,11 @@ const PaymentPlanTable: React.FC<PaymentPlanTableProps> = ({ account, transactio
 
     return (
         <div className="flex flex-col h-[600px]">
+            <div className="flex justify-end mb-2">
+                <button onClick={() => setIsBulkEditOpen(true)} className={BTN_SECONDARY_STYLE}>
+                    Bulk Edit
+                </button>
+            </div>
             <div className="flex-grow overflow-auto border border-black/5 dark:border-white/10 rounded-lg bg-light-bg dark:bg-dark-bg scrollbar-thin scrollbar-thumb-gray-300 dark:scrollbar-thumb-gray-600">
                 <table className="w-full text-sm text-left relative border-collapse">
                     <thead className="text-xs uppercase bg-light-fill dark:bg-dark-fill text-light-text-secondary dark:text-dark-text-secondary font-semibold sticky top-0 z-10 backdrop-blur-md">
@@ -168,6 +188,14 @@ const PaymentPlanTable: React.FC<PaymentPlanTableProps> = ({ account, transactio
                     <span className="font-bold">{formatCurrency(totals.totalPayment, account.currency)}</span>
                 </div>
             </div>
+
+            {isBulkEditOpen && (
+                <LoanPaymentBulkEditModal
+                    scheduleLength={schedule.length}
+                    onClose={() => setIsBulkEditOpen(false)}
+                    onApply={handleBulkApply}
+                />
+            )}
         </div>
     );
 };
