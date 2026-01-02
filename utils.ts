@@ -993,6 +993,8 @@ export function generateAmortizationSchedule(
   });
 
   const schedule: ScheduledPayment[] = [];
+  const roundToTwo = (value: number) => Math.round((value + Number.EPSILON) * 100) / 100;
+  let roundedPrincipalTotal = 0;
   let outstandingBalance = principalAmount; // Use full precision
   const today = new Date();
   today.setHours(0, 0, 0, 0);
@@ -1024,6 +1026,7 @@ export function generateAmortizationSchedule(
     let interest: number;
     let status: ScheduledPayment['status'] = 'Upcoming';
     let transactionId: string | undefined = undefined;
+    let isFinalScheduledPayment = false;
     
     // Calculate interest on the high-precision outstanding balance
     const calculatedInterest = outstandingBalance * monthlyInterestRate;
@@ -1055,6 +1058,7 @@ export function generateAmortizationSchedule(
             // This is the final payment to clear the balance.
             principal = outstandingBalance;
             totalPayment = principal + interest;
+            isFinalScheduledPayment = true;
         } else {
             totalPayment = basePayment;
             principal = totalPayment - interest;
@@ -1067,16 +1071,29 @@ export function generateAmortizationSchedule(
     
     const newOutstandingBalance = outstandingBalance - principal;
 
+    let roundedPrincipal = roundToTwo(principal);
+    let roundedInterest = roundToTwo(interest);
+    let roundedTotalPayment = roundToTwo(totalPayment);
+
+    if (isFinalScheduledPayment && !realPaymentForPeriod) {
+        const remainingPrincipal = roundToTwo(principalAmount - roundedPrincipalTotal);
+        roundedPrincipal = remainingPrincipal;
+        roundedInterest = roundToTwo(roundedTotalPayment - roundedPrincipal);
+        roundedTotalPayment = roundToTwo(roundedPrincipal + roundedInterest);
+    }
+
     schedule.push({
       paymentNumber: i,
       date: dateStr,
-      totalPayment: parseFloat(totalPayment.toFixed(2)),
-      principal: parseFloat(principal.toFixed(2)),
-      interest: parseFloat(interest.toFixed(2)),
-      outstandingBalance: parseFloat(Math.max(0, newOutstandingBalance).toFixed(2)),
+      totalPayment: roundedTotalPayment,
+      principal: roundedPrincipal,
+      interest: roundedInterest,
+      outstandingBalance: roundToTwo(Math.max(0, newOutstandingBalance)),
       status,
       transactionId,
     });
+
+    roundedPrincipalTotal += roundedPrincipal;
     
     // Use high-precision value for the next iteration
     outstandingBalance = newOutstandingBalance;
