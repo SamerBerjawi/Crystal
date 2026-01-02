@@ -972,13 +972,47 @@ export function generateAmortizationSchedule(
   transactions: Transaction[],
   overrides: Record<number, Partial<ScheduledPayment>> = {}
 ): ScheduledPayment[] {
-  const { principalAmount, interestRate, duration, loanStartDate, monthlyPayment, paymentDayOfMonth } = account;
+  const { principalAmount, interestRate, duration, loanStartDate, monthlyPayment, paymentDayOfMonth, interestAmount } = account;
 
   if (!principalAmount || !duration || !loanStartDate || interestRate === undefined) {
     return [];
   }
 
-  const monthlyInterestRate = (interestRate || 0) / 100 / 12;
+  const solveMonthlyRateFromTotalInterest = (principal: number, months: number, totalInterest: number) => {
+    if (totalInterest <= 0) {
+      return 0;
+    }
+
+    const totalInterestForRate = (rate: number) => {
+      if (rate === 0) {
+        return 0;
+      }
+      const payment = (principal * (rate * Math.pow(1 + rate, months))) / (Math.pow(1 + rate, months) - 1);
+      return (payment * months) - principal;
+    };
+
+    let low = 0;
+    let high = 1;
+    while (totalInterestForRate(high) < totalInterest && high < 10) {
+      high *= 2;
+    }
+
+    for (let i = 0; i < 60; i++) {
+      const mid = (low + high) / 2;
+      if (totalInterestForRate(mid) >= totalInterest) {
+        high = mid;
+      } else {
+        low = mid;
+      }
+    }
+
+    return high;
+  };
+
+  const targetTotalInterest = interestAmount;
+  const monthlyInterestRate = typeof targetTotalInterest === 'number'
+    ? solveMonthlyRateFromTotalInterest(principalAmount, duration, targetTotalInterest)
+    : (interestRate || 0) / 100 / 12;
 
     const paymentTransactions = transactions.filter(tx =>
     tx.accountId === account.id &&
@@ -994,7 +1028,6 @@ export function generateAmortizationSchedule(
 
   const schedule: ScheduledPayment[] = [];
   const roundToTwo = (value: number) => Math.round((value + Number.EPSILON) * 100) / 100;
-  const targetTotalInterest = account.interestAmount;
   let roundedPrincipalTotal = 0;
   let roundedInterestTotal = 0;
   let outstandingBalance = principalAmount; // Use full precision
@@ -1052,7 +1085,7 @@ export function generateAmortizationSchedule(
         let basePayment = standardAmortizedPayment;
         if (override?.totalPayment) {
             basePayment = override.totalPayment;
-        } else if (monthlyPayment) {
+        } else if (typeof targetTotalInterest !== 'number' && monthlyPayment) {
             basePayment = monthlyPayment;
         }
 
