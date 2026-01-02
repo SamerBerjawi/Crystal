@@ -994,7 +994,9 @@ export function generateAmortizationSchedule(
 
   const schedule: ScheduledPayment[] = [];
   const roundToTwo = (value: number) => Math.round((value + Number.EPSILON) * 100) / 100;
+  const targetTotalInterest = account.interestAmount;
   let roundedPrincipalTotal = 0;
+  let roundedInterestTotal = 0;
   let outstandingBalance = principalAmount; // Use full precision
   const today = new Date();
   today.setHours(0, 0, 0, 0);
@@ -1080,6 +1082,11 @@ export function generateAmortizationSchedule(
         roundedPrincipal = remainingPrincipal;
         roundedInterest = roundToTwo(roundedTotalPayment - roundedPrincipal);
         roundedTotalPayment = roundToTwo(roundedPrincipal + roundedInterest);
+        if (typeof targetTotalInterest === 'number') {
+            const remainingInterest = roundToTwo(targetTotalInterest - roundedInterestTotal);
+            roundedInterest = Math.max(0, remainingInterest);
+            roundedTotalPayment = roundToTwo(roundedPrincipal + roundedInterest);
+        }
     }
 
     schedule.push({
@@ -1094,6 +1101,7 @@ export function generateAmortizationSchedule(
     });
 
     roundedPrincipalTotal += roundedPrincipal;
+    roundedInterestTotal += roundedInterest;
     
     // Use high-precision value for the next iteration
     outstandingBalance = newOutstandingBalance;
