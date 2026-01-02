@@ -928,7 +928,7 @@ const Transactions: React.FC<TransactionsProps> = ({ initialAccountFilter, initi
   };
 
   return (
-    <div className="space-y-6 flex flex-col h-full animate-fade-in-up">
+    <div className="space-y-6 flex flex-col h-full min-h-0 overflow-hidden animate-fade-in-up">
       {isTransactionModalOpen && (
         <AddTransactionModal 
           onClose={handleCloseModal}
@@ -1145,7 +1145,7 @@ const Transactions: React.FC<TransactionsProps> = ({ initialAccountFilter, initi
       </div>
       
       {/* Transaction List Card */}
-      <div className="flex-1 min-w-0 relative">
+      <div className="flex-1 min-w-0 relative min-h-0">
         <Card className="p-0 h-full flex flex-col relative overflow-hidden border border-black/5 dark:border-white/5 shadow-sm">
             <div className="overflow-x-auto">
               <div className="min-w-[900px] flex flex-col">
@@ -1169,7 +1169,7 @@ const Transactions: React.FC<TransactionsProps> = ({ initialAccountFilter, initi
                         </div>
                     </div>
                 ) : (
-                    <div className="px-5 py-3 border-b border-black/5 dark:border-white/5 flex items-center gap-3 bg-white dark:bg-dark-card sticky top-0 z-10">
+                    <div className="px-5 py-3 border-b border-black/5 dark:border-white/5 flex items-center gap-3 bg-white dark:bg-dark-card">
                         <div className="flex items-center justify-center w-5">
                              <input type="checkbox" onChange={handleSelectAll} checked={isAllSelected} className={CHECKBOX_STYLE} aria-label="Select all transactions"/>
                         </div>
@@ -1231,8 +1231,7 @@ const Transactions: React.FC<TransactionsProps> = ({ initialAccountFilter, initi
 
                 <div
                   ref={listContainerRef}
-                  className="flex-grow bg-white dark:bg-dark-card"
-                  style={{ height: '60vh', minHeight: '400px' }}
+                  className="flex-1 min-h-0 bg-white dark:bg-dark-card"
                 >
                   {virtualRows.length > 0 ? (
                     <VirtualizedList
@@ -1247,7 +1246,7 @@ const Transactions: React.FC<TransactionsProps> = ({ initialAccountFilter, initi
                         
                         if (row.type === 'header') {
                             return (
-                                <div key={`header-${row.date}`} style={style} className="flex items-center px-4 py-2 bg-gray-50/80 dark:bg-black/20 border-y border-black/5 dark:border-white/5 sticky top-0 z-10 backdrop-blur-sm">
+                                <div key={`header-${row.date}`} style={style} className="flex items-center px-4 py-2 bg-gray-50/80 dark:bg-black/20 border-y border-black/5 dark:border-white/5">
                                     <span className="text-xs font-bold text-light-text-secondary dark:text-dark-text-secondary uppercase tracking-wider">
                                         {parseLocalDate(row.date).toLocaleDateString(undefined, { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' })}
                                     </span>

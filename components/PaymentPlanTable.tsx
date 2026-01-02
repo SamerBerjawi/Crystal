@@ -101,15 +101,15 @@ const PaymentPlanTable: React.FC<PaymentPlanTableProps> = ({ account, transactio
     const isLending = account.type === 'Lending';
 
     return (
-        <div className="flex flex-col h-[600px]">
+        <div className="flex flex-col">
             <div className="flex justify-end mb-2">
                 <button onClick={() => setIsBulkEditOpen(true)} className={BTN_SECONDARY_STYLE}>
                     Bulk Edit
                 </button>
             </div>
-            <div className="flex-grow overflow-auto border border-black/5 dark:border-white/10 rounded-lg bg-light-bg dark:bg-dark-bg scrollbar-thin scrollbar-thumb-gray-300 dark:scrollbar-thumb-gray-600">
+            <div className="flex-grow overflow-x-auto border border-black/5 dark:border-white/10 rounded-lg bg-light-bg dark:bg-dark-bg scrollbar-thin scrollbar-thumb-gray-300 dark:scrollbar-thumb-gray-600">
                 <table className="w-full text-sm text-left relative border-collapse">
-                    <thead className="text-xs uppercase bg-light-fill dark:bg-dark-fill text-light-text-secondary dark:text-dark-text-secondary font-semibold sticky top-0 z-10 backdrop-blur-md">
+                    <thead className="text-xs uppercase bg-light-fill dark:bg-dark-fill text-light-text-secondary dark:text-dark-text-secondary font-semibold">
                         <tr>
                             <th className="p-3 whitespace-nowrap border-b border-black/5 dark:border-white/5">#</th>
                             <th className="p-3 whitespace-nowrap border-b border-black/5 dark:border-white/5">Date</th>
