@@ -1055,6 +1055,7 @@ export function generateAmortizationSchedule(
     const dateStr = toLocalISOString(scheduledDate);
 
     const override = overrides[i];
+    const hasExplicitBreakdown = override?.principal !== undefined || override?.interest !== undefined;
 
     let totalPayment: number;
     let principal: number;
@@ -1089,7 +1090,31 @@ export function generateAmortizationSchedule(
             basePayment = monthlyPayment;
         }
 
-        if (i === duration || outstandingBalance < (basePayment - interest)) {
+        if (hasExplicitBreakdown) {
+            if (override?.principal !== undefined && override?.interest !== undefined) {
+                principal = override.principal;
+                interest = override.interest;
+                totalPayment = principal + interest;
+            } else if (override?.totalPayment !== undefined && override?.principal !== undefined) {
+                totalPayment = override.totalPayment;
+                principal = override.principal;
+                interest = totalPayment - principal;
+            } else if (override?.totalPayment !== undefined && override?.interest !== undefined) {
+                totalPayment = override.totalPayment;
+                interest = override.interest;
+                principal = totalPayment - interest;
+            } else if (override?.principal !== undefined) {
+                principal = override.principal;
+                totalPayment = principal + interest;
+            } else if (override?.interest !== undefined) {
+                interest = override.interest;
+                totalPayment = basePayment;
+                principal = totalPayment - interest;
+            } else {
+                totalPayment = basePayment;
+                principal = totalPayment - interest;
+            }
+        } else if (i === duration || outstandingBalance < (basePayment - interest)) {
             // This is the final payment to clear the balance.
             principal = outstandingBalance;
             totalPayment = principal + interest;
@@ -1110,7 +1135,7 @@ export function generateAmortizationSchedule(
     let roundedInterest = roundToTwo(interest);
     let roundedTotalPayment = roundToTwo(totalPayment);
 
-    if (isFinalScheduledPayment && !realPaymentForPeriod) {
+    if (isFinalScheduledPayment && !realPaymentForPeriod && !hasExplicitBreakdown) {
         const remainingPrincipal = roundToTwo(principalAmount - roundedPrincipalTotal);
         roundedPrincipal = remainingPrincipal;
         roundedInterest = roundToTwo(roundedTotalPayment - roundedPrincipal);
