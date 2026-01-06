@@ -358,6 +358,34 @@ export const initialFinancialData: FinancialData = {
     },
 };
 
+export const emptyFinancialData: FinancialData = {
+    accounts: [],
+    transactions: [],
+    investmentTransactions: [],
+    recurringTransactions: [],
+    recurringTransactionOverrides: [],
+    loanPaymentOverrides: {},
+    financialGoals: [],
+    budgets: [],
+    tasks: [],
+    taskOrder: [],
+    warrants: [],
+    memberships: [],
+    importExportHistory: [],
+    incomeCategories: [],
+    expenseCategories: [],
+    preferences: initialFinancialData.preferences,
+    billsAndPayments: [],
+    accountOrder: [],
+    tags: [],
+    manualWarrantPrices: {},
+    priceHistory: {},
+    invoices: [],
+    userStats: { currentStreak: 0, longestStreak: 0, lastLogDate: '', predictionWins: 0, predictionTotal: 0 },
+    predictions: [],
+    enableBankingConnections: [],
+};
+
 export const createDemoUser = (): User => ({
     firstName: 'Demo',
     lastName: 'User',
