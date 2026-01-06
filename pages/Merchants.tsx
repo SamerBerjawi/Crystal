@@ -16,7 +16,8 @@ interface MerchantsProps {
 type EntityType = 'Merchant' | 'Institution';
 
 interface EntityItem {
-    id: string; // normalized key
+    id: string; // unique key
+    logoKey: string; // normalized key for branding overrides
     name: string;
     type: EntityType;
     count: number; // Transactions count or Accounts count
@@ -119,9 +120,10 @@ const Merchants: React.FC<MerchantsProps> = ({ setCurrentPage }) => {
       if (!tx.merchant) return;
       const key = normalizeMerchantKey(tx.merchant);
       if (!key) return;
+      const mapKey = `merchant:${key}`;
       
       const val = convertToEur(tx.amount, tx.currency);
-      const existing = map.get(key);
+      const existing = map.get(mapKey);
 
       if (existing) {
         existing.count += 1;
@@ -130,8 +132,9 @@ const Merchants: React.FC<MerchantsProps> = ({ setCurrentPage }) => {
             existing.lastActivity = tx.date;
         }
       } else {
-        map.set(key, { 
-            id: key, 
+        map.set(mapKey, { 
+            id: mapKey, 
+            logoKey: key,
             name: tx.merchant.trim(), 
             type: 'Merchant', 
             count: 1, 
@@ -148,22 +151,18 @@ const Merchants: React.FC<MerchantsProps> = ({ setCurrentPage }) => {
         if (!acc.financialInstitution) return;
         const key = normalizeMerchantKey(acc.financialInstitution);
         if (!key) return;
+        const mapKey = `institution:${key}`;
 
         const val = convertToEur(acc.balance, acc.currency);
-        const existing = map.get(key);
+        const existing = map.get(mapKey);
 
         if (existing) {
-            // If collision, upgrade to Institution and prioritize Account Balance value
-            if (existing.type === 'Merchant') {
-                 existing.type = 'Institution';
-                 existing.totalValue = 0; // Reset to sum accounts instead of txs
-                 existing.count = 0; // Reset to count accounts
-            }
             existing.count += 1;
             existing.totalValue += val;
         } else {
-            map.set(key, { 
-                id: key, 
+            map.set(mapKey, { 
+                id: mapKey, 
+                logoKey: key,
                 name: acc.financialInstitution.trim(), 
                 type: 'Institution', 
                 count: 1, 
@@ -216,7 +215,7 @@ const Merchants: React.FC<MerchantsProps> = ({ setCurrentPage }) => {
     });
   };
   
-  const handleWipe = (entityId: string, currentName: string) => {
+  const handleWipe = (logoKey: string, currentName: string) => {
     // 1. Strip known TLDs from the name to create a "clean" name
     let cleanName = currentName.toLowerCase();
     // Regex matches common TLDs at the end of the string
@@ -230,7 +229,7 @@ const Merchants: React.FC<MerchantsProps> = ({ setCurrentPage }) => {
 
     // 2. Set this clean name as the override
     // Because it lacks a dot, buildMerchantIdentifier will return null, forcing a lettermark.
-    const key = normalizeMerchantKey(entityId) || entityId;
+    const key = normalizeMerchantKey(logoKey) || logoKey;
     
     setOverrideDrafts(prev => ({ ...prev, [key]: cleanName }));
     
@@ -377,7 +376,7 @@ const Merchants: React.FC<MerchantsProps> = ({ setCurrentPage }) => {
             {filteredEntities.map(entity => {
               const previewUrl = getPreviewUrl(entity.name);
               const hasLogo = Boolean(previewUrl && !logoLoadErrors[previewUrl]);
-              const draftValue = overrideDrafts[entity.id] || '';
+              const draftValue = overrideDrafts[entity.logoKey] || '';
               const initialLetter = entity.name.charAt(0).toUpperCase();
               
               const isPositive = entity.totalValue >= 0;
@@ -454,14 +453,14 @@ const Merchants: React.FC<MerchantsProps> = ({ setCurrentPage }) => {
                               type="text"
                               value={draftValue}
                               placeholder="e.g. amazon.com"
-                              onChange={e => handleOverrideChange(entity.id, e.target.value)}
-                              onBlur={() => persistOverride(entity.id)}
+                              onChange={e => handleOverrideChange(entity.logoKey, e.target.value)}
+                              onBlur={() => persistOverride(entity.logoKey)}
                               className="w-full bg-transparent border-b border-dashed border-black/20 dark:border-white/20 text-xs py-0.5 focus:border-primary-500 outline-none text-right placeholder-gray-400 dark:placeholder-gray-600"
                               disabled={!brandfetchClientId}
                             />
                             {/* Wipe Button */}
                             <button
-                                onClick={() => handleWipe(entity.id, entity.name)}
+                                onClick={() => handleWipe(entity.logoKey, entity.name)}
                                 className="text-light-text-secondary dark:text-dark-text-secondary hover:text-red-500 transition-colors p-1 -mr-2 rounded-full hover:bg-black/5 dark:hover:bg-white/10"
                                 title="Wipe branding (revert to icon)"
                             >

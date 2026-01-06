@@ -211,8 +211,7 @@ const DataManagement: React.FC<DataManagementProps> = (props) => {
                      exportData.tags = props.fullFinancialData.tags;
                  }
                  if (dataTypes.includes('preferences')) {
-                     const { brandfetchClientId, twelveDataApiKey, ...safePreferences } = props.fullFinancialData.preferences || {};
-                     exportData.preferences = safePreferences;
+                     exportData.preferences = props.fullFinancialData.preferences || {};
                  }
                  if (dataTypes.includes('userStats')) {
                      exportData.userStats = props.fullFinancialData.userStats;
