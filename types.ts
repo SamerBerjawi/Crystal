@@ -587,6 +587,7 @@ export interface FinancialData {
     userStats?: UserStats;
     predictions?: Prediction[];
     enableBankingConnections?: EnableBankingConnection[];
+    lastUpdatedAt?: string;
 }
 
 // New types for Tasks feature

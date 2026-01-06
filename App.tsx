@@ -82,7 +82,7 @@ const pagePreloaders = [
 // FIX: Add `Tag` to the import from `types.ts`.
 import { Page, Theme, Category, User, Transaction, Account, RecurringTransaction, RecurringTransactionOverride, WeekendAdjustment, FinancialGoal, Budget, ImportExportHistoryItem, AppPreferences, AccountType, InvestmentTransaction, Task, Warrant, ImportDataType, FinancialData, Currency, BillPayment, BillPaymentStatus, Duration, InvestmentSubType, Tag, LoanPaymentOverrides, ScheduledPayment, Membership, Invoice, UserStats, Prediction, PriceHistoryEntry, EnableBankingConnection, EnableBankingAccount, EnableBankingLinkPayload, EnableBankingSyncOptions } from './types';
 import { MOCK_INCOME_CATEGORIES, MOCK_EXPENSE_CATEGORIES, LIQUID_ACCOUNT_TYPES } from './constants';
-import { createDemoUser, initialFinancialData } from './demoData';
+import { createDemoUser, emptyFinancialData, initialFinancialData } from './demoData';
 import { v4 as uuidv4 } from 'uuid';
 import ChatFab from './components/ChatFab';
 const Chatbot = lazy(() => import('./components/Chatbot'));
@@ -334,30 +334,31 @@ const App: React.FC = () => {
   });
   
   // All financial data states
-  const [preferences, setPreferences] = useState<AppPreferences>(initialFinancialData.preferences);
-  const [incomeCategories, setIncomeCategories] = useState<Category[]>(initialFinancialData.incomeCategories);
-  const [expenseCategories, setExpenseCategories] = useState<Category[]>(initialFinancialData.expenseCategories);
-  const [transactions, setTransactions] = useState<Transaction[]>(initialFinancialData.transactions);
-  const [investmentTransactions, setInvestmentTransactions] = useState<InvestmentTransaction[]>(initialFinancialData.investmentTransactions);
-  const [accounts, setAccounts] = useState<Account[]>(initialFinancialData.accounts);
-  const [recurringTransactions, setRecurringTransactions] = useState<RecurringTransaction[]>(initialFinancialData.recurringTransactions);
-  const [recurringTransactionOverrides, setRecurringTransactionOverrides] = useState<RecurringTransactionOverride[]>(initialFinancialData.recurringTransactionOverrides || []);
-  const [loanPaymentOverrides, setLoanPaymentOverrides] = useState<LoanPaymentOverrides>(initialFinancialData.loanPaymentOverrides || {});
-  const [financialGoals, setFinancialGoals] = useState<FinancialGoal[]>(initialFinancialData.financialGoals);
-  const [budgets, setBudgets] = useState<Budget[]>(initialFinancialData.budgets);
-  const [tasks, setTasks] = useState<Task[]>(initialFinancialData.tasks);
-  const [warrants, setWarrants] = useState<Warrant[]>(initialFinancialData.warrants);
-  const [memberships, setMemberships] = useState<Membership[]>(initialFinancialData.memberships || []);
-  const [importExportHistory, setImportExportHistory] = useState<ImportExportHistoryItem[]>(initialFinancialData.importExportHistory);
-  const [billsAndPayments, setBillsAndPayments] = useState<BillPayment[]>(initialFinancialData.billsAndPayments);
-  const [invoices, setInvoices] = useState<Invoice[]>(initialFinancialData.invoices || []);
+  const [preferences, setPreferences] = useState<AppPreferences>(emptyFinancialData.preferences);
+  const [incomeCategories, setIncomeCategories] = useState<Category[]>(emptyFinancialData.incomeCategories);
+  const [expenseCategories, setExpenseCategories] = useState<Category[]>(emptyFinancialData.expenseCategories);
+  const [transactions, setTransactions] = useState<Transaction[]>(emptyFinancialData.transactions);
+  const [investmentTransactions, setInvestmentTransactions] = useState<InvestmentTransaction[]>(emptyFinancialData.investmentTransactions);
+  const [accounts, setAccounts] = useState<Account[]>(emptyFinancialData.accounts);
+  const [recurringTransactions, setRecurringTransactions] = useState<RecurringTransaction[]>(emptyFinancialData.recurringTransactions);
+  const [recurringTransactionOverrides, setRecurringTransactionOverrides] = useState<RecurringTransactionOverride[]>(emptyFinancialData.recurringTransactionOverrides || []);
+  const [loanPaymentOverrides, setLoanPaymentOverrides] = useState<LoanPaymentOverrides>(emptyFinancialData.loanPaymentOverrides || {});
+  const [financialGoals, setFinancialGoals] = useState<FinancialGoal[]>(emptyFinancialData.financialGoals);
+  const [budgets, setBudgets] = useState<Budget[]>(emptyFinancialData.budgets);
+  const [tasks, setTasks] = useState<Task[]>(emptyFinancialData.tasks);
+  const [warrants, setWarrants] = useState<Warrant[]>(emptyFinancialData.warrants);
+  const [memberships, setMemberships] = useState<Membership[]>(emptyFinancialData.memberships || []);
+  const [importExportHistory, setImportExportHistory] = useState<ImportExportHistoryItem[]>(emptyFinancialData.importExportHistory);
+  const [billsAndPayments, setBillsAndPayments] = useState<BillPayment[]>(emptyFinancialData.billsAndPayments);
+  const [invoices, setInvoices] = useState<Invoice[]>(emptyFinancialData.invoices || []);
   // FIX: Add state for tags and tag filtering to support the Tags feature.
-  const [tags, setTags] = useState<Tag[]>(initialFinancialData.tags || []);
-  const [userStats, setUserStats] = useState<UserStats>(initialFinancialData.userStats || { currentStreak: 0, longestStreak: 0, lastLogDate: '' });
-  const [predictions, setPredictions] = useState<Prediction[]>(initialFinancialData.predictions || []);
-  const [enableBankingConnections, setEnableBankingConnections] = useState<EnableBankingConnection[]>(initialFinancialData.enableBankingConnections || []);
+  const [tags, setTags] = useState<Tag[]>(emptyFinancialData.tags || []);
+  const [userStats, setUserStats] = useState<UserStats>(emptyFinancialData.userStats || { currentStreak: 0, longestStreak: 0, lastLogDate: '' });
+  const [predictions, setPredictions] = useState<Prediction[]>(emptyFinancialData.predictions || []);
+  const [enableBankingConnections, setEnableBankingConnections] = useState<EnableBankingConnection[]>(emptyFinancialData.enableBankingConnections || []);
 
-  const latestDataRef = useRef<FinancialData>(initialFinancialData);
+  const latestDataRef = useRef<FinancialData>(emptyFinancialData);
+  const lastUpdatedAtRef = useRef<string | null>(null);
   const lastSavedSignatureRef = useRef<string | null>(null);
   const skipNextSaveRef = useRef(false);
   const restoreInProgressRef = useRef(false);
@@ -371,8 +372,8 @@ const App: React.FC = () => {
   const [isChatOpen, setIsChatOpen] = useState(false);
   
   // State for Warrant prices and history
-  const [manualWarrantPrices, setManualWarrantPrices] = useState<Record<string, number | undefined>>(initialFinancialData.manualWarrantPrices || {});
-  const [priceHistory, setPriceHistory] = useState<Record<string, PriceHistoryEntry[]>>(initialFinancialData.priceHistory || {});
+  const [manualWarrantPrices, setManualWarrantPrices] = useState<Record<string, number | undefined>>(emptyFinancialData.manualWarrantPrices || {});
+  const [priceHistory, setPriceHistory] = useState<Record<string, PriceHistoryEntry[]>>(emptyFinancialData.priceHistory || {});
   const [lastUpdated, setLastUpdated] = useState<Date | null>(null);
   
   // Update Streak Logic
@@ -600,13 +601,14 @@ const App: React.FC = () => {
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [assetPrices, warrantHoldingsBySymbol]);
 
-  const loadAllFinancialData = useCallback((data: FinancialData | null, options?: { skipNextSave?: boolean }) => {
-    const dataToLoad = data || initialFinancialData;
+  const loadAllFinancialData = useCallback((data: FinancialData | null, options?: { skipNextSave?: boolean; useDemoDefaults?: boolean }) => {
+    const dataToLoad = data ?? (options?.useDemoDefaults ? initialFinancialData : emptyFinancialData);
     const loadedPrefs = {
       ...initialFinancialData.preferences,
       ...(dataToLoad.preferences || {}),
     };
     const dataSignature = JSON.stringify(dataToLoad);
+    lastUpdatedAtRef.current = dataToLoad.lastUpdatedAt ?? null;
 
     startTransition(() => {
       // Only set properties if they exist in the incoming payload, otherwise default to empty or initial
@@ -658,37 +660,8 @@ const App: React.FC = () => {
     latestDataRef.current = dataToLoad;
   }, [setAccountOrder, setTaskOrder]);
   
-  // Handler for granular restore that allows merging
-  const handleRestoreData = useCallback((data: FinancialData) => {
-      // This function triggers a save to the backend to persist the changes immediately,
-      // similar to how full import works but it assumes `data` is already the merged result.
-      restoreInProgressRef.current = true;
-      skipNextSaveRef.current = true;
-      
-      loadAllFinancialData(data); // Update local state
-      
-      // Persist to backend
-      if (!isDemoMode && token) {
-           fetch('/api/data', {
-              method: 'POST',
-              headers: {
-                'Content-Type': 'application/json',
-                'Authorization': `Bearer ${token}`,
-              },
-              body: JSON.stringify(data),
-            }).catch(console.error)
-            .finally(() => {
-                restoreInProgressRef.current = false;
-                skipNextSaveRef.current = false;
-            });
-      } else {
-          restoreInProgressRef.current = false;
-          skipNextSaveRef.current = false;
-      }
-  }, [isDemoMode, token, loadAllFinancialData]);
-  
   const handleEnterDemoMode = () => {
-    loadAllFinancialData(null); // This will load initialFinancialData
+    loadAllFinancialData(null, { useDemoDefaults: true }); // This will load initialFinancialData
     setDemoUser(createDemoUser());
     setIsDemoMode(true);
     setIsDataLoaded(true); // Manually set data as loaded for demo
@@ -868,9 +841,9 @@ const App: React.FC = () => {
   }, [enableBankingConnections, isDataLoaded, markSliceDirty]);
 
   // Persist data to backend on change
-  const saveData = useCallback(
+  const postData = useCallback(
     async (
-      data: FinancialData,
+      payload: Record<string, unknown>,
       options?: { keepalive?: boolean; suppressErrors?: boolean }
     ): Promise<boolean> => {
       if (!token || isDemoMode) return false;
@@ -881,7 +854,7 @@ const App: React.FC = () => {
             'Content-Type': 'application/json',
             'Authorization': `Bearer ${token}`,
           },
-          body: JSON.stringify(data),
+          body: JSON.stringify(payload),
           keepalive: options?.keepalive,
         });
 
@@ -904,6 +877,47 @@ const App: React.FC = () => {
     [token, isDemoMode]
   );
 
+  const saveData = useCallback(
+    async (
+      data: FinancialData,
+      options?: { keepalive?: boolean; suppressErrors?: boolean }
+    ): Promise<boolean> => {
+      const now = new Date().toISOString();
+      const payload = {
+        ...data,
+        lastUpdatedAt: now,
+        previousUpdatedAt: lastUpdatedAtRef.current,
+      };
+      const succeeded = await postData(payload, options);
+      if (succeeded) {
+        lastUpdatedAtRef.current = now;
+      }
+      return succeeded;
+    },
+    [postData]
+  );
+
+  const savePartialData = useCallback(
+    async (
+      data: Partial<FinancialData>,
+      options?: { keepalive?: boolean; suppressErrors?: boolean }
+    ): Promise<boolean> => {
+      const now = new Date().toISOString();
+      const payload = {
+        partial: true,
+        data,
+        lastUpdatedAt: now,
+        previousUpdatedAt: lastUpdatedAtRef.current,
+      };
+      const succeeded = await postData(payload, options);
+      if (succeeded) {
+        lastUpdatedAtRef.current = now;
+      }
+      return succeeded;
+    },
+    [postData]
+  );
+
   const saveDataWithRetry = useCallback(
     async (
       data: FinancialData,
@@ -924,6 +938,50 @@ const App: React.FC = () => {
     },
     [saveData]
   );
+
+  const savePartialDataWithRetry = useCallback(
+    async (
+      data: Partial<FinancialData>,
+      options?: { attempts?: number }
+    ): Promise<boolean> => {
+      const maxAttempts = Math.max(1, options?.attempts ?? 3);
+      for (let attempt = 1; attempt <= maxAttempts; attempt++) {
+        const succeeded = await savePartialData(data);
+        if (succeeded) {
+          return true;
+        }
+
+        if (attempt < maxAttempts) {
+          await new Promise(resolve => setTimeout(resolve, attempt * 1000));
+        }
+      }
+      return false;
+    },
+    [savePartialData]
+  );
+
+  // Handler for granular restore that allows merging
+  const handleRestoreData = useCallback((data: FinancialData) => {
+      // This function triggers a save to the backend to persist the changes immediately,
+      // similar to how full import works but it assumes `data` is already the merged result.
+      restoreInProgressRef.current = true;
+      skipNextSaveRef.current = true;
+      
+      loadAllFinancialData(data); // Update local state
+      
+      // Persist to backend
+      if (!isDemoMode && token) {
+           saveData(data, { suppressErrors: true })
+            .catch(console.error)
+            .finally(() => {
+                restoreInProgressRef.current = false;
+                skipNextSaveRef.current = false;
+            });
+      } else {
+          restoreInProgressRef.current = false;
+          skipNextSaveRef.current = false;
+      }
+  }, [isDemoMode, token, loadAllFinancialData, saveData]);
 
   useEffect(() => {
     if (!isDataLoaded || !isAuthenticated || isDemoMode || restoreInProgressRef.current) {
@@ -1706,7 +1764,11 @@ const App: React.FC = () => {
     });
     persistPendingConnection(baseConnection);
     if (!isDemoMode) {
-      void saveDataWithRetry({ ...latestDataRef.current, enableBankingConnections: nextConnections });
+      if (isDataLoaded) {
+        void savePartialDataWithRetry({ enableBankingConnections: nextConnections });
+      } else {
+        console.warn('Skipping Enable Banking save until data has finished loading.');
+      }
       void fetchWithAuth('/api/enable-banking/pending', {
         method: 'POST',
         body: JSON.stringify({ connection: baseConnection }),
@@ -1745,7 +1807,7 @@ const App: React.FC = () => {
         lastError: error?.message || 'Unable to start authorization',
       } : conn));
     }
-  }, [enableBankingConnections, fetchWithAuth, isDemoMode, saveDataWithRetry, token]);
+  }, [enableBankingConnections, fetchWithAuth, isDataLoaded, isDemoMode, savePartialDataWithRetry, token]);
 
   const resolveProviderAccountId = useCallback((account: any) => {
     return (
@@ -2312,7 +2374,7 @@ const App: React.FC = () => {
 
   const handleResetAccount = () => {
     if (user) {
-        loadAllFinancialData(initialFinancialData);
+        loadAllFinancialData(emptyFinancialData);
         alert("Client-side data has been reset.");
     }
   };
