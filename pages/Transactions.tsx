@@ -134,11 +134,21 @@ const Transactions: React.FC<TransactionsProps> = ({ initialAccountFilter, initi
   const merchantLogoOverrides = usePreferencesSelector(p => p.merchantLogoOverrides || {});
   const [accountFilter, setAccountFilter] = useState<string | null>(initialAccountFilter ?? null);
   const [tagFilter, setTagFilter] = useState<string | null>(initialTagFilter ?? null);
+  const appliedInitialFiltersRef = useRef<{ account: string | null; tag: string | null } | null>(null);
 
   useEffect(() => {
-    setAccountFilter(initialAccountFilter ?? null);
-    setTagFilter(initialTagFilter ?? null);
-    onClearInitialFilters?.();
+    const nextAccount = initialAccountFilter ?? null;
+    const nextTag = initialTagFilter ?? null;
+    const hasInitialFilters = Boolean(nextAccount || nextTag);
+    if (!hasInitialFilters) return;
+
+    const lastApplied = appliedInitialFiltersRef.current;
+    if (!lastApplied || lastApplied.account !== nextAccount || lastApplied.tag !== nextTag) {
+      setAccountFilter(nextAccount);
+      setTagFilter(nextTag);
+      appliedInitialFiltersRef.current = { account: nextAccount, tag: nextTag };
+      onClearInitialFilters?.();
+    }
   }, [initialAccountFilter, initialTagFilter, onClearInitialFilters]);
 
   const [searchTerm, setSearchTerm] = useState('');

@@ -1,9 +1,8 @@
 
 import React, { useState } from 'react';
 import Modal from './Modal';
-import { BTN_PRIMARY_STYLE, BTN_SECONDARY_STYLE, INPUT_BASE_STYLE, CHECKBOX_STYLE, SELECT_WRAPPER_STYLE, SELECT_ARROW_STYLE } from '../constants';
+import { BTN_PRIMARY_STYLE, BTN_SECONDARY_STYLE, CHECKBOX_STYLE } from '../constants';
 import { FinancialData } from '../types';
-import { formatCurrency } from '../utils';
 
 interface SmartRestoreModalProps {
   onClose: () => void;
@@ -47,6 +46,34 @@ const SmartRestoreModal: React.FC<SmartRestoreModalProps> = ({ onClose, onRestor
     
     // Strategy state: 'merge' or 'replace' per section
     const [strategies, setStrategies] = useState<Record<string, 'merge' | 'replace'>>({});
+
+    const isObjectSection = (key: SectionKey) =>
+        ['preferences', 'manualWarrantPrices', 'priceHistory', 'loanPaymentOverrides', 'userStats'].includes(key);
+
+    const hasSectionData = (key: SectionKey) => {
+        if (!parsedData) return false;
+        const data = parsedData[key];
+        if (Array.isArray(data)) return data.length > 0;
+        if (data && typeof data === 'object') return Object.keys(data).length > 0;
+        return false;
+    };
+
+    const applyBulkStrategy = (strategy: 'merge' | 'replace') => {
+        if (!parsedData) return;
+        const nextSelections: Record<string, boolean> = {};
+        const nextStrategies: Record<string, 'merge' | 'replace'> = {};
+
+        SECTIONS.forEach(section => {
+            const data = parsedData[section.key];
+            const hasData = hasSectionData(section.key) || (section.key === 'preferences' && !!data);
+            if (!hasData) return;
+            nextSelections[section.key] = true;
+            nextStrategies[section.key] = isObjectSection(section.key) ? 'replace' : strategy;
+        });
+
+        setSelectedSections(nextSelections);
+        setStrategies(nextStrategies);
+    };
 
     const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
         const selectedFile = e.target.files?.[0];
@@ -151,13 +178,29 @@ const SmartRestoreModal: React.FC<SmartRestoreModalProps> = ({ onClose, onRestor
                              </div>
                              <button onClick={() => { setParsedData(null); setFile(null); }} className="text-sm text-red-500 hover:underline">Change File</button>
                         </div>
+                        <div className="flex flex-wrap items-center gap-2">
+                            <button
+                                type="button"
+                                onClick={() => applyBulkStrategy('merge')}
+                                className={BTN_SECONDARY_STYLE}
+                            >
+                                Merge All
+                            </button>
+                            <button
+                                type="button"
+                                onClick={() => applyBulkStrategy('replace')}
+                                className={BTN_SECONDARY_STYLE}
+                            >
+                                Replace All
+                            </button>
+                        </div>
 
                         <div className="space-y-2 max-h-[50vh] overflow-y-auto pr-2">
                             {SECTIONS.map(section => {
                                 const count = getCount(section.key);
                                 if (count === 0 && section.key !== 'preferences') return null; // Hide empty sections except prefs
 
-                                const isObjectData = ['preferences', 'manualWarrantPrices', 'priceHistory', 'loanPaymentOverrides', 'userStats'].includes(section.key);
+                                const isObjectData = isObjectSection(section.key);
 
                                 return (
                                     <div key={section.key} className="flex flex-col sm:flex-row sm:items-center justify-between p-3 rounded-lg bg-light-bg dark:bg-dark-bg border border-black/5 dark:border-white/5 gap-3">
