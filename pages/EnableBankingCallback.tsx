@@ -21,18 +21,25 @@ const EnableBankingCallback: React.FC<EnableBankingCallbackProps> = ({
   const [error, setError] = useState<string | null>(null);
 
   const hasProcessed = useRef(false);
+  const callbackParamsRef = useRef<{ code: string | null; state: string | null } | null>(null);
 
   useEffect(() => {
-    const params = new URLSearchParams(window.location.search);
-    const code = params.get('code');
-    const state = params.get('state');
+    if (hasProcessed.current) return;
+
+    if (!callbackParamsRef.current) {
+      const params = new URLSearchParams(window.location.search);
+      callbackParamsRef.current = {
+        code: params.get('code'),
+        state: params.get('state'),
+      };
+    }
+
+    const { code, state } = callbackParamsRef.current;
 
     if (!code || !state) {
       setError('Missing code or connection reference in callback.');
       return;
     }
-
-    if (hasProcessed.current) return;
 
     const resolveConnection = async () => {
       let connection: EnableBankingConnection | undefined = connections.find(c => c.id === state);

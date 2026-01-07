@@ -2220,7 +2220,7 @@ const App: React.FC = () => {
       }, undefined);
 
       // Update account balances when linked
-      const updatedAccountState = accounts.map(acc => {
+      setAccounts(prev => prev.map(acc => {
         const linked = finalAccounts.find(a => a.linkedAccountId === acc.id);
         if (!linked) return acc;
         return {
@@ -2230,29 +2230,32 @@ const App: React.FC = () => {
           balanceLastSyncedAt: now,
           balanceSource: 'enable_banking',
         };
-      });
-      setAccounts(updatedAccountState);
+      }));
 
       if (importedTransactions.length) {
-        const existingTransactionIds = new Set(transactions.map(tx => tx.id));
-        const uniqueImports = new Map<string, Transaction>();
+        setTransactions(prev => {
+          const existingTransactionIds = new Set(prev.map(tx => tx.id));
+          const uniqueImports = new Map<string, Transaction>();
 
-        importedTransactions.forEach(tx => {
-          if (!uniqueImports.has(tx.id)) {
-            uniqueImports.set(tx.id, tx);
+          importedTransactions.forEach(tx => {
+            if (!uniqueImports.has(tx.id)) {
+              uniqueImports.set(tx.id, tx);
+            }
+          });
+
+          const dedupedImports: Transaction[] = [];
+          uniqueImports.forEach(tx => {
+            if (existingTransactionIds.has(tx.id)) return;
+            existingTransactionIds.add(tx.id);
+            dedupedImports.push(tx);
+          });
+
+          if (!dedupedImports.length) {
+            return prev;
           }
-        });
 
-        const dedupedImports: Transaction[] = [];
-        uniqueImports.forEach(tx => {
-          if (existingTransactionIds.has(tx.id)) return;
-          existingTransactionIds.add(tx.id);
-          dedupedImports.push(tx);
+          return [...prev, ...dedupedImports];
         });
-
-        if (dedupedImports.length) {
-          setTransactions([...transactions, ...dedupedImports]);
-        }
       }
 
       const unlinkedMessage = unlinkedProviderAccounts.length
@@ -2279,7 +2282,7 @@ const App: React.FC = () => {
         lastError: message,
       } : conn));
     }
-  }, [accounts, enableBankingConnections, fetchWithAuth, mapProviderTransaction, resolveProviderAccountId, setAccounts, setTransactions, token, transactions]);
+  }, [enableBankingConnections, fetchWithAuth, mapProviderTransaction, resolveProviderAccountId, setAccounts, setTransactions, token]);
 
   const handleDeleteEnableBankingConnection = useCallback((connectionId: string) => {
     setEnableBankingConnections(prev => prev.filter(conn => conn.id !== connectionId));
