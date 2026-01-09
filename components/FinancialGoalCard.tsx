@@ -51,6 +51,21 @@ const FinancialGoalCard: React.FC<FinancialGoalCardProps> = ({ goal, subGoals, i
   } : goal;
 
   const progress = goalToDisplay.amount > 0 ? (goalToDisplay.currentAmount / goalToDisplay.amount) * 100 : 0;
+  const isCompleted = progress >= 100;
+
+  const isIncomeGoal = goalToDisplay.transactionType === 'income';
+
+  // Determine bucket label
+  const bucketTypeLabel = useMemo(() => {
+      if (!isBucket) return isIncomeGoal ? 'Earned' : 'Saved';
+      
+      const hasIncome = subGoals.some(sg => sg.transactionType === 'income');
+      const hasExpense = subGoals.some(sg => sg.transactionType === 'expense');
+
+      if (hasIncome && hasExpense) return 'Mixed';
+      if (hasIncome) return 'Earned';
+      return 'Saved';
+  }, [isBucket, isIncomeGoal, subGoals]);
 
   const formatDate = (dateString?: string) => {
     if (!dateString || dateString === 'Beyond forecast') return 'Beyond forecast';
@@ -89,26 +104,65 @@ const FinancialGoalCard: React.FC<FinancialGoalCardProps> = ({ goal, subGoals, i
     return () => document.removeEventListener('mousedown', handleClickOutside);
   }, [isMenuOpen]);
 
+  // Dynamic Styles
+  const cardBorder = isCompleted 
+    ? 'border-green-500/50 bg-green-50/50 dark:bg-green-900/10' 
+    : isActive 
+        ? 'border-primary-500/50 dark:border-primary-500/50 shadow-md' 
+        : 'border-black/5 dark:border-white/5 opacity-80 hover:opacity-100';
+
+  const iconColorClass = isCompleted 
+    ? 'bg-green-100 text-green-600 dark:bg-green-900/30 dark:text-green-400' 
+    : isBucket 
+        ? 'bg-indigo-100 text-indigo-600 dark:bg-indigo-900/30 dark:text-indigo-400' 
+        : isIncomeGoal
+            ? 'bg-emerald-100 text-emerald-600 dark:bg-emerald-900/30 dark:text-emerald-400'
+            : 'bg-blue-100 text-blue-600 dark:bg-blue-900/30 dark:text-blue-400';
+            
+  const iconName = isCompleted 
+    ? 'check_circle' 
+    : isBucket 
+        ? 'folder_open' 
+        : isIncomeGoal 
+            ? 'monetization_on' 
+            : 'flag';
+
+  const progressBarClass = isCompleted 
+    ? 'bg-green-500' 
+    : isActive 
+        ? isIncomeGoal 
+            ? 'bg-gradient-to-r from-emerald-500 to-teal-500' 
+            : 'bg-gradient-to-r from-primary-500 to-indigo-500'
+        : 'bg-gray-400';
+
   return (
-    <div className={`relative group flex flex-col bg-white dark:bg-dark-card rounded-2xl shadow-sm border transition-all duration-300 self-start w-full ${isActive ? 'border-primary-500/50 dark:border-primary-500/50 shadow-md' : 'border-black/5 dark:border-white/5 opacity-80 hover:opacity-100'}`}>
+    <div className={`relative group flex flex-col bg-white dark:bg-dark-card rounded-2xl shadow-sm border transition-all duration-300 self-start w-full ${cardBorder}`}>
+        {isCompleted && (
+            <div className="absolute top-0 right-0 p-4 opacity-10 pointer-events-none">
+                <span className="material-symbols-outlined text-8xl text-green-500">emoji_events</span>
+            </div>
+        )}
+
         <div className="p-5 flex flex-col h-full relative z-0">
             {/* Header - Aligned Row */}
             <div className="flex justify-between items-center mb-3">
                 <div className="flex items-center gap-3 min-w-0 pr-2">
-                     <div className={`w-10 h-10 rounded-xl flex-shrink-0 flex items-center justify-center ${isBucket ? 'bg-indigo-100 text-indigo-600 dark:bg-indigo-900/30 dark:text-indigo-400' : 'bg-blue-100 text-blue-600 dark:bg-blue-900/30 dark:text-blue-400'}`}>
-                        <span className="material-symbols-outlined text-xl">{isBucket ? 'folder_open' : 'flag'}</span>
+                     <div className={`w-10 h-10 rounded-xl flex-shrink-0 flex items-center justify-center ${iconColorClass}`}>
+                        <span className="material-symbols-outlined text-xl">{iconName}</span>
                     </div>
                     <h4 className="font-bold text-lg text-light-text dark:text-dark-text truncate" title={goal.name}>{goal.name}</h4>
                 </div>
 
                 <div className="flex items-center gap-2 flex-shrink-0">
-                     <button 
-                        onClick={handleToggle}
-                        className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors focus:outline-none ${isActive ? 'bg-primary-500' : 'bg-gray-200 dark:bg-gray-700'}`}
-                        title={isActive ? 'Active in forecast' : 'Ignored in forecast'}
-                    >
-                        <span className={`inline-block h-4 w-4 transform rounded-full bg-white shadow-sm transition-transform duration-200 ease-in-out ${isActive ? 'translate-x-6' : 'translate-x-1'}`} />
-                    </button>
+                     {!isCompleted && (
+                         <button 
+                            onClick={handleToggle}
+                            className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors focus:outline-none ${isActive ? 'bg-primary-500' : 'bg-gray-200 dark:bg-gray-700'}`}
+                            title={isActive ? 'Active in forecast' : 'Ignored in forecast'}
+                        >
+                            <span className={`inline-block h-4 w-4 transform rounded-full bg-white shadow-sm transition-transform duration-200 ease-in-out ${isActive ? 'translate-x-6' : 'translate-x-1'}`} />
+                        </button>
+                    )}
                     
                     <div className="relative" ref={menuRef}>
                         <button 
@@ -158,17 +212,36 @@ const FinancialGoalCard: React.FC<FinancialGoalCardProps> = ({ goal, subGoals, i
 
             {/* Badges / Status */}
             <div className="flex flex-wrap gap-2 mb-4">
-                {statusStyle && isActive && (
+                 {/* Type Badge - Only if NOT bucket */}
+                 {!isBucket && (
+                     <span className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-md text-[10px] font-bold uppercase tracking-wider border ${isIncomeGoal ? 'bg-emerald-50 text-emerald-700 border-emerald-200 dark:bg-emerald-900/20 dark:text-emerald-400 dark:border-emerald-800' : 'bg-blue-50 text-blue-700 border-blue-200 dark:bg-blue-900/20 dark:text-blue-400 dark:border-blue-800'}`}>
+                        {isIncomeGoal ? 'Earning' : 'Saving'}
+                    </span>
+                 )}
+
+                {statusStyle && isActive && !isCompleted && (
                     <span className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-md text-[10px] font-bold uppercase tracking-wider border ${statusStyle.bg} ${statusStyle.textCol} ${statusStyle.border}`}>
                         <span className="material-symbols-outlined text-[12px]">{statusStyle.icon}</span>
                         {statusStyle.text}
                     </span>
                 )}
-                {goalToDisplay.date && !isBucket && (
-                    <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-md text-[10px] font-medium bg-gray-100 text-gray-600 dark:bg-gray-800 dark:text-gray-400 border border-gray-200 dark:border-gray-700">
+                {isCompleted && (
+                     <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-md text-[10px] font-bold uppercase tracking-wider border bg-green-100 dark:bg-green-900/30 text-green-700 dark:text-green-400 border-green-200 dark:border-green-800">
+                        <span className="material-symbols-outlined text-[12px]">emoji_events</span>
+                        Completed
+                    </span>
+                )}
+                {(goalToDisplay.date && !isBucket) && (
+                    <div className="inline-flex items-center gap-1 px-2 py-0.5 rounded-md text-[10px] font-medium bg-gray-100 text-gray-600 dark:bg-gray-800 dark:text-gray-400 border border-gray-200 dark:border-gray-700">
                         <span className="material-symbols-outlined text-[12px]">event</span>
                         {formatDate(goalToDisplay.date)}
-                    </span>
+                        {paymentAccountName && (
+                            <>
+                                <span className="mx-1 opacity-50">|</span>
+                                <span className="truncate max-w-[100px] text-primary-600 dark:text-primary-400 font-semibold">{paymentAccountName}</span>
+                            </>
+                        )}
+                    </div>
                 )}
             </div>
 
@@ -176,6 +249,7 @@ const FinancialGoalCard: React.FC<FinancialGoalCardProps> = ({ goal, subGoals, i
             <div className="mt-auto">
                 <div className="flex justify-between items-end mb-2">
                     <div>
+                        <span className="text-[10px] font-bold text-light-text-secondary dark:text-dark-text-secondary uppercase mb-0.5 block">{bucketTypeLabel}</span>
                         <span className="text-2xl font-bold text-light-text dark:text-dark-text tracking-tight">{formatCurrency(goalToDisplay.currentAmount, 'EUR')}</span>
                     </div>
                     <div className="text-right">
@@ -187,18 +261,17 @@ const FinancialGoalCard: React.FC<FinancialGoalCardProps> = ({ goal, subGoals, i
                 {/* Progress Bar */}
                 <div className="relative w-full h-2.5 bg-gray-100 dark:bg-gray-800 rounded-full overflow-hidden">
                      <div 
-                        className={`absolute top-0 left-0 h-full rounded-full transition-all duration-1000 ease-out ${isActive ? 'bg-gradient-to-r from-primary-500 to-indigo-500' : 'bg-gray-400'}`}
+                        className={`absolute top-0 left-0 h-full rounded-full transition-all duration-1000 ease-out ${progressBarClass}`}
                         style={{ width: `${Math.min(progress, 100)}%` }}
                      ></div>
                 </div>
                 <div className="flex justify-between mt-1.5 text-[10px] font-bold text-light-text-secondary dark:text-dark-text-secondary uppercase tracking-wide">
                     <span>{progress.toFixed(0)}% Complete</span>
-                    {paymentAccountName && <span className="truncate max-w-[150px]">via {paymentAccountName}</span>}
                 </div>
             </div>
             
             {/* Forecast Date */}
-            {goalToDisplay.projection && isActive && (
+            {goalToDisplay.projection && isActive && !isCompleted && (
                  <div className="mt-4 pt-3 border-t border-black/5 dark:border-white/5 flex items-center gap-2 text-xs">
                      <span className="material-symbols-outlined text-sm text-primary-500">timeline</span>
                      <span className="text-light-text-secondary dark:text-dark-text-secondary">Expected:</span>
@@ -220,14 +293,35 @@ const FinancialGoalCard: React.FC<FinancialGoalCardProps> = ({ goal, subGoals, i
                 
                 {isExpanded && (
                     <div className="mt-3 space-y-2 animate-fade-in-up">
-                         {subGoals.map(sg => (
-                             <div key={sg.id} className="flex justify-between items-center text-sm p-2 rounded-lg bg-white dark:bg-white/5 border border-black/5 dark:border-white/5 shadow-sm group/subgoal">
+                         {subGoals.map(sg => {
+                             const subProgress = sg.amount > 0 ? (sg.currentAmount / sg.amount) * 100 : 0;
+                             const isSubComplete = subProgress >= 100;
+                             const sgIsIncome = sg.transactionType === 'income';
+                             const sgAccountName = accounts.find(a => a.id === sg.paymentAccountId)?.name;
+                             
+                             return (
+                             <div key={sg.id} className={`flex justify-between items-center text-sm p-2 rounded-lg border shadow-sm group/subgoal ${isSubComplete ? 'bg-green-50 dark:bg-green-900/10 border-green-200 dark:border-green-800' : 'bg-white dark:bg-white/5 border-black/5 dark:border-white/5'}`}>
                                  <div className="flex flex-col">
-                                     <span className="font-medium text-light-text dark:text-dark-text">{sg.name}</span>
-                                     <span className="text-[10px] text-light-text-secondary dark:text-dark-text-secondary">{formatDate(sg.date)}</span>
+                                     <div className="flex items-center gap-2">
+                                         <span className="font-medium text-light-text dark:text-dark-text">{sg.name}</span>
+                                         {/* Type Badge for Subgoal */}
+                                         <span className={`text-[9px] font-bold uppercase px-1.5 py-0.5 rounded ${sgIsIncome ? 'bg-emerald-100 text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-400' : 'bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-400'}`}>
+                                            {sgIsIncome ? 'Earn' : 'Save'}
+                                         </span>
+                                         {isSubComplete && <span className="material-symbols-outlined text-[14px] text-green-600 dark:text-green-400">check_circle</span>}
+                                     </div>
+                                     <div className="flex items-center gap-1 text-[10px] text-light-text-secondary dark:text-dark-text-secondary">
+                                         <span>{formatDate(sg.date)}</span>
+                                         {sgAccountName && (
+                                            <>
+                                                <span className="opacity-50">•</span>
+                                                <span className="truncate max-w-[80px] text-primary-600 dark:text-primary-400">{sgAccountName}</span>
+                                            </>
+                                        )}
+                                     </div>
                                  </div>
                                  <div className="flex items-center gap-3">
-                                     <span className="font-mono font-semibold text-light-text dark:text-dark-text">{formatCurrency(sg.amount, 'EUR')}</span>
+                                     <span className={`font-mono font-semibold ${isSubComplete ? 'text-green-700 dark:text-green-400' : 'text-light-text dark:text-dark-text'}`}>{formatCurrency(sg.amount, 'EUR')}</span>
                                      <div className="flex opacity-0 group-hover/subgoal:opacity-100 transition-opacity gap-1">
                                         <button 
                                             onClick={(e) => { e.stopPropagation(); onEdit(sg); }}
@@ -246,7 +340,7 @@ const FinancialGoalCard: React.FC<FinancialGoalCardProps> = ({ goal, subGoals, i
                                      </div>
                                  </div>
                              </div>
-                         ))}
+                         )})}
                     </div>
                 )}
              </div>

@@ -11,6 +11,7 @@ import {
   LoanPaymentOverrides,
   BillPayment,
   ForecastDuration,
+  Currency,
 } from '../types';
 import { BTN_PRIMARY_STYLE, BTN_SECONDARY_STYLE, LIQUID_ACCOUNT_TYPES, CHECKBOX_STYLE, FORECAST_DURATION_OPTIONS } from '../constants';
 import { calculateForecastHorizon, formatCurrency, convertToEur, generateBalanceForecast, generateSyntheticLoanPayments, generateSyntheticCreditCardPayments, parseLocalDate, getPreferredTimeZone, generateSyntheticPropertyTransactions, toLocalISOString } from '../utils';
@@ -302,6 +303,40 @@ const Forecasting: React.FC = () => {
         };
     }, [fullForecast, financialGoals, forecastDuration]);
     
+    // Account Goal Allocation Summary
+    const accountGoalSummary = useMemo(() => {
+        const summary: Record<string, { id: string; name: string; current: number; target: number; currency: Currency; goalsCount: number; type: 'income' | 'expense' }> = {};
+        
+        financialGoals.forEach(g => {
+            if (g.isBucket) return;
+            const isVisible = !filterGoalsByAccount || !g.paymentAccountId || selectedAccountIds.includes(g.paymentAccountId);
+            if (!isVisible) return;
+
+            const accId = g.paymentAccountId || 'unlinked';
+            const type = g.transactionType; // 'income' | 'expense'
+            // Create a unique key for account + type combination
+            const key = `${accId}_${type}`;
+
+            if (!summary[key]) {
+                 const acc = accounts.find(a => a.id === accId);
+                 summary[key] = {
+                     id: key,
+                     name: acc ? acc.name : 'General (Unlinked)',
+                     current: 0,
+                     target: 0,
+                     currency: acc?.currency || 'EUR',
+                     goalsCount: 0,
+                     type: type
+                 };
+            }
+            summary[key].current += g.currentAmount;
+            summary[key].target += g.amount;
+            summary[key].goalsCount += 1;
+        });
+        
+        return Object.values(summary).sort((a, b) => a.name.localeCompare(b.name));
+    }, [financialGoals, accounts, filterGoalsByAccount, selectedAccountIds]);
+
     const majorUpcomingOutflows = useMemo(() => {
         const endDate = new Date();
         switch (forecastDuration) {
@@ -414,7 +449,7 @@ const Forecasting: React.FC = () => {
     };
 
     const handleConfirmDelete = () => {
-        if (!deletingGoal) return;
+        if (deletingGoal) return;
         deleteFinancialGoal(deletingGoal.id);
         setDeletingGoal(null);
     };
@@ -625,6 +660,7 @@ const Forecasting: React.FC = () => {
             
             {/* Goals Section (Full Width with 3 Cols) */}
              <div className="space-y-6">
+                 {/* Goal Header & Filters */}
                  <div className="bg-light-fill dark:bg-dark-fill p-4 rounded-2xl flex flex-wrap justify-between items-center gap-4">
                     <div className="flex items-center gap-2">
                          <div className="p-2 rounded-lg bg-white dark:bg-white/10 shadow-sm text-amber-500">
@@ -643,7 +679,42 @@ const Forecasting: React.FC = () => {
                         </button>
                     </div>
                 </div>
+
+                {/* Goals Summary Hero Grid */}
+                {accountGoalSummary.length > 0 && (
+                    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 animate-fade-in-up">
+                        {accountGoalSummary.map(summary => {
+                            const progress = Math.min(100, (summary.current / summary.target) * 100);
+                            return (
+                            <div key={summary.id} className="bg-white dark:bg-dark-card rounded-xl p-4 border border-black/5 dark:border-white/5 shadow-sm">
+                                <div className="flex justify-between items-start mb-1">
+                                     <p className="text-xs font-bold text-light-text-secondary dark:text-dark-text-secondary uppercase tracking-wider truncate max-w-[70%]">{summary.name}</p>
+                                     <span className={`text-[10px] font-bold uppercase px-1.5 py-0.5 rounded ${summary.type === 'income' ? 'bg-emerald-100 text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-400' : 'bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-400'}`}>
+                                         {summary.type === 'income' ? 'Earnings' : 'Savings'}
+                                     </span>
+                                </div>
+                                <div className="flex items-end justify-between">
+                                    <div>
+                                        <p className="text-lg font-bold text-light-text dark:text-dark-text">{formatCurrency(summary.current, summary.currency)}</p>
+                                        <p className="text-[10px] text-light-text-secondary dark:text-dark-text-secondary">{summary.type === 'income' ? 'Earned' : 'Saved'}</p>
+                                    </div>
+                                    <div className="text-right">
+                                        <p className="text-sm font-semibold text-light-text dark:text-dark-text opacity-70">{formatCurrency(summary.target, summary.currency)}</p>
+                                        <p className="text-[10px] text-light-text-secondary dark:text-dark-text-secondary">Target <span className="font-bold ml-1">{progress.toFixed(0)}%</span></p>
+                                    </div>
+                                </div>
+                                <div className="w-full h-1.5 bg-gray-100 dark:bg-white/10 rounded-full mt-3 overflow-hidden">
+                                    <div 
+                                        className={`h-full rounded-full ${summary.type === 'income' ? 'bg-emerald-500' : 'bg-primary-500'}`}
+                                        style={{ width: `${progress}%` }}
+                                    ></div>
+                                </div>
+                            </div>
+                        )})}
+                    </div>
+                )}
                 
+                {/* Individual Goals Grid */}
                 <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
                     {topLevelGoals.length > 0 ? topLevelGoals.map(goal => {
                         const subGoals = goalsByParentId.get(goal.id) || [];

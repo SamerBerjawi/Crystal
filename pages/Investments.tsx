@@ -12,6 +12,7 @@ import WarrantPriceModal from '../components/WarrantPriceModal';
 import { PieChart, Pie, Cell, ResponsiveContainer, Tooltip } from 'recharts';
 import { buildHoldingsOverview } from '../utils/investments';
 import PageHeader from '../components/PageHeader';
+import AccountsListSection from '../components/AccountsListSection';
 
 interface InvestmentsProps {
     accounts: Account[];
@@ -31,6 +32,8 @@ interface InvestmentsProps {
     holdingsOverview?: HoldingsOverview;
     onToggleAccountStatus: (accountId: string) => void;
     deleteAccount: (accountId: string) => void;
+    transactions: Transaction[];
+    onViewAccount?: (accountId: string) => void;
 }
 
 // Helper components for the redesign
@@ -70,7 +73,9 @@ const Investments: React.FC<InvestmentsProps> = ({
     prices,
     onOpenHoldingDetail,
     onToggleAccountStatus,
-    deleteAccount
+    deleteAccount,
+    transactions,
+    onViewAccount
 }) => {
     const [isModalOpen, setIsModalOpen] = useState(false);
     const [isWarrantModalOpen, setWarrantModalOpen] = useState(false);
@@ -80,6 +85,7 @@ const Investments: React.FC<InvestmentsProps> = ({
     const [isPriceModalOpen, setIsPriceModalOpen] = useState(false);
     const [editingPriceItem, setEditingPriceItem] = useState<{ symbol: string; name: string; currentPrice: number | null } | null>(null);
     const [isAccountModalOpen, setAccountModalOpen] = useState(false);
+    const [contextMenu, setContextMenu] = useState<{ x: number, y: number, account: Account } | null>(null);
 
     // Include only Stocks, ETFs, Crypto for the Investments page
     const investmentAccounts = useMemo(() => (
@@ -87,6 +93,7 @@ const Investments: React.FC<InvestmentsProps> = ({
     ).filter(a => a.type === 'Investment' && ['Stock', 'ETF', 'Crypto'].includes(a.subType || '')), [accounts]);
 
     const activeInvestmentAccounts = useMemo(() => investmentAccounts.filter(a => a.status !== 'closed'), [investmentAccounts]);
+    const closedInvestmentAccounts = useMemo(() => investmentAccounts.filter(a => a.status === 'closed'), [investmentAccounts]);
     const [showInactiveHoldings, setShowInactiveHoldings] = useState(false);
 
     const activeOverview = useMemo(
@@ -117,6 +124,11 @@ const Investments: React.FC<InvestmentsProps> = ({
         });
         return map;
     }, [investmentAccounts]);
+    
+    const transactionsByAccount = useMemo(() => transactions.reduce((acc, transaction) => {
+        (acc[transaction.accountId] = acc[transaction.accountId] || []).push(transaction);
+        return acc;
+    }, {} as Record<string, Transaction[]>), [transactions]);
 
     const safeTotalValue = totalValue > 0 ? totalValue : 0;
     const formatPercent = (value: number, digits = 1) => (
@@ -171,6 +183,15 @@ const Investments: React.FC<InvestmentsProps> = ({
 
         return [...txs, ...grants].sort((a, b) => parseLocalDate(b.date).getTime() - parseLocalDate(a.date).getTime());
     }, [investmentTransactions, warrants]);
+    
+    const handleContextMenu = (event: React.MouseEvent, account: Account) => {
+        event.preventDefault();
+        setContextMenu({ x: event.clientX, y: event.clientY, account });
+    };
+
+    const handleAccountClick = (accountId: string) => {
+        if (onViewAccount) onViewAccount(accountId);
+    };
 
     return (
         <div className="space-y-8 pb-12 animate-fade-in-up">
@@ -546,6 +567,29 @@ const Investments: React.FC<InvestmentsProps> = ({
                     </Card>
                 </div>
             </div>
+            
+            {/* Closed Accounts Section */}
+            {closedInvestmentAccounts.length > 0 && (
+                <div className="opacity-60 hover:opacity-100 transition-opacity duration-300 mt-12 pt-8 border-t border-black/5 dark:border-white/5">
+                    <AccountsListSection 
+                        title="Closed Portfolios"
+                        accounts={closedInvestmentAccounts}
+                        transactionsByAccount={transactionsByAccount}
+                        warrants={warrants}
+                        linkedEnableBankingAccountIds={new Set(accounts.filter(a => !!a.linkedAccountId).map(a => a.id))} // Assuming simple check for now or pass actual set
+                        onAccountClick={handleAccountClick}
+                        onEditClick={handleOpenAccountModal}
+                        onAdjustBalanceClick={() => {/* Balance adjust on closed account? Maybe allow reopening first */}}
+                        sortBy="name"
+                        accountOrder={[]}
+                        // setAccountOrder is optional in the interface now or ignored for non-manual sort
+                        onContextMenu={handleContextMenu}
+                        isCollapsible={true}
+                        defaultExpanded={false}
+                        layoutMode="stacked"
+                    />
+                </div>
+            )}
         </div>
     );
 };

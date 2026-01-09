@@ -39,6 +39,7 @@ const AddAccountModal: React.FC<AddAccountModalProps> = ({ onClose, onAdd, accou
 
   // New detailed fields
   const [subType, setSubType] = useState<InvestmentSubType>('Stock');
+  const [symbol, setSymbol] = useState('');
   const [otherAssetSubType, setOtherAssetSubType] = useState<OtherAssetSubType>('Other');
   const [otherLiabilitySubType, setOtherLiabilitySubType] = useState<OtherLiabilitySubType>('Other');
   const [expectedRetirementYear, setExpectedRetirementYear] = useState('');
@@ -243,6 +244,7 @@ const AddAccountModal: React.FC<AddAccountModalProps> = ({ onClose, onAdd, accou
       // Conditionally add new fields
       ...(type === 'Investment' && { 
           subType,
+          symbol: symbol ? symbol.toUpperCase() : undefined,
           expectedRetirementYear: subType === 'Pension Fund' && expectedRetirementYear ? parseInt(expectedRetirementYear, 10) : undefined,
           linkedAccountId: subType === 'Spare Change' ? linkedAccountId : undefined,
       }),
@@ -527,6 +529,13 @@ const AddAccountModal: React.FC<AddAccountModalProps> = ({ onClose, onAdd, accou
                         <div className={SELECT_ARROW_STYLE}><span className="material-symbols-outlined">expand_more</span></div>
                       </div>
                     </div>
+                    {/* Show Symbol input for standard investment types */}
+                    {['Stock', 'ETF', 'Crypto'].includes(subType) && (
+                        <div>
+                             <label htmlFor="symbol" className={labelStyle}>Ticker / Symbol</label>
+                             <input id="symbol" type="text" value={symbol} onChange={e => setSymbol(e.target.value)} className={`${INPUT_BASE_STYLE} uppercase`} placeholder="e.g. AAPL" />
+                        </div>
+                    )}
                     {subType === 'Pension Fund' && (
                          <div>
                             <label htmlFor="retirementYear" className={labelStyle}>Expected Retirement Year</label>
@@ -943,12 +952,42 @@ const AddAccountModal: React.FC<AddAccountModalProps> = ({ onClose, onAdd, accou
                   </div>
                 </div>
             )}
-            
-            {/* Notes Section for all types that have it */}
             {(type === 'Other Assets' || type === 'Other Liabilities') && (
               <div className="bg-gray-50 dark:bg-white/5 rounded-xl p-5 border border-black/5 dark:border-white/5">
                 <label htmlFor="notes" className={labelStyle}>Notes</label>
                 <textarea id="notes" value={notes} onChange={e=>setNotes(e.target.value)} className={INPUT_BASE_STYLE} rows={2} placeholder="Additional details..."></textarea>
+              </div>
+            )}
+
+            {type === 'Credit Card' && (
+              <div className="bg-gray-50 dark:bg-white/5 rounded-xl p-5 border border-black/5 dark:border-white/5 animate-fade-in-up">
+                  <h4 className="text-sm font-bold text-light-text dark:text-dark-text mb-4 flex items-center gap-2">
+                        <span className="material-symbols-outlined text-primary-500">credit_card</span>
+                        Credit Configuration
+                    </h4>
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                      <div><label htmlFor="statement-start" className={labelStyle}>Statement Start Day</label><input id="statement-start" type="number" min="1" max="31" value={statementStartDate} onChange={(e) => setStatementStartDate(e.target.value)} className={INPUT_BASE_STYLE} placeholder="1-31" /></div>
+                       <div><label htmlFor="payment-date" className={labelStyle}>Payment Due Day</label><input id="payment-date" type="number" min="1" max="31" value={paymentDate} onChange={(e) => setPaymentDate(e.target.value)} className={INPUT_BASE_STYLE} placeholder="1-31" /></div>
+                  </div>
+                  <div className="mt-4">
+                      <label htmlFor="settlement-account" className={labelStyle}>Settlement Account</label>
+                      <div className={SELECT_WRAPPER_STYLE}>
+                           <select id="settlement-account" value={settlementAccountId} onChange={(e) => setSettlementAccountId(e.target.value)} className={INPUT_BASE_STYLE}>
+                              <option value="">Select an account</option>
+                              {ALL_ACCOUNT_TYPES.map(type => {
+                                  const group = groupedDebitAccounts[type];
+                                  if (!group || group.length === 0) return null;
+                                  return (
+                                    <optgroup key={type} label={type}>
+                                      {group.map(acc => <option key={acc.id} value={acc.id}>{acc.name}</option>)}
+                                    </optgroup>
+                                  );
+                              })}
+                          </select>
+                          <div className={SELECT_ARROW_STYLE}><span className="material-symbols-outlined">expand_more</span></div>
+                      </div>
+                  </div>
+                  <div className="mt-4"><label htmlFor="credit-limit" className={labelStyle}>Credit Limit</label><input id="credit-limit" type="number" step="0.01" value={creditLimit} onChange={(e) => setCreditLimit(e.target.value)} className={INPUT_BASE_STYLE} /></div>
               </div>
             )}
           </div>
