@@ -218,6 +218,51 @@ const pageToPath = (page: Page, accountId?: string | null) => {
 
   return routePathMap[page] || '/';
 };
+
+const MATERIAL_DATA_ARRAY_KEYS: (keyof FinancialData)[] = [
+  'accounts',
+  'transactions',
+  'investmentTransactions',
+  'recurringTransactions',
+  'recurringTransactionOverrides',
+  'financialGoals',
+  'budgets',
+  'tasks',
+  'warrants',
+  'memberships',
+  'importExportHistory',
+  'billsAndPayments',
+  'invoices',
+  'tags',
+  'predictions',
+  'enableBankingConnections',
+  'incomeCategories',
+  'expenseCategories',
+  'accountOrder',
+  'taskOrder',
+];
+
+const MATERIAL_DATA_OBJECT_KEYS: (keyof FinancialData)[] = [
+  'loanPaymentOverrides',
+  'manualWarrantPrices',
+  'priceHistory',
+];
+
+const hasMaterialData = (data: Partial<FinancialData> | null | undefined) => {
+  if (!data) return false;
+
+  const hasArrays = MATERIAL_DATA_ARRAY_KEYS.some(key => {
+    const value = data[key];
+    return Array.isArray(value) && value.length > 0;
+  });
+
+  if (hasArrays) return true;
+
+  return MATERIAL_DATA_OBJECT_KEYS.some(key => {
+    const value = data[key];
+    return value && typeof value === 'object' && !Array.isArray(value) && Object.keys(value).length > 0;
+  });
+};
 const safeLocalStorage = {
   getItem: (key: string): string | null => {
     if (typeof window === 'undefined') return null;
@@ -362,6 +407,7 @@ const App: React.FC = () => {
   const lastSavedSignatureRef = useRef<string | null>(null);
   const skipNextSaveRef = useRef(false);
   const restoreInProgressRef = useRef(false);
+  const allowEmptySaveRef = useRef(false);
   const dirtySlicesRef = useRef<Set<keyof FinancialData>>(new Set());
   const [dirtySignal, setDirtySignal] = useState(0);
   const [accountOrder, setAccountOrder] = useLocalStorage<string[]>('crystal-account-order', []);
@@ -880,13 +926,18 @@ const App: React.FC = () => {
   const saveData = useCallback(
     async (
       data: FinancialData,
-      options?: { keepalive?: boolean; suppressErrors?: boolean }
+      options?: { keepalive?: boolean; suppressErrors?: boolean; allowEmpty?: boolean }
     ): Promise<boolean> => {
+      if (!options?.allowEmpty && !hasMaterialData(data) && lastUpdatedAtRef.current) {
+        console.warn('Skipping save to avoid overwriting existing data with an empty payload.');
+        return false;
+      }
       const now = new Date().toISOString();
       const payload = {
         ...data,
         lastUpdatedAt: now,
         previousUpdatedAt: lastUpdatedAtRef.current,
+        ...(options?.allowEmpty ? { allowEmpty: true } : {}),
       };
       const succeeded = await postData(payload, options);
       if (succeeded) {
@@ -1004,10 +1055,21 @@ const App: React.FC = () => {
         return;
       }
 
-      const succeeded = await saveData(dataToSave);
+      if (!allowEmptySaveRef.current && !hasMaterialData(dataToSave) && lastUpdatedAtRef.current) {
+        console.warn('Skipping save to avoid overwriting existing data with an empty payload.');
+        dirtySlicesRef.current.clear();
+        lastSavedSignatureRef.current = payloadSignature;
+        return;
+      }
+
+      const allowEmpty = allowEmptySaveRef.current;
+      const succeeded = await saveData(dataToSave, { allowEmpty });
       if (succeeded) {
         dirtySlicesRef.current.clear();
         lastSavedSignatureRef.current = payloadSignature;
+        if (allowEmpty) {
+          allowEmptySaveRef.current = false;
+        }
       }
     };
 
@@ -2220,7 +2282,7 @@ const App: React.FC = () => {
       }, undefined);
 
       // Update account balances when linked
-      const updatedAccountState = accounts.map(acc => {
+      setAccounts(prev => prev.map(acc => {
         const linked = finalAccounts.find(a => a.linkedAccountId === acc.id);
         if (!linked) return acc;
         return {
@@ -2230,29 +2292,32 @@ const App: React.FC = () => {
           balanceLastSyncedAt: now,
           balanceSource: 'enable_banking',
         };
-      });
-      setAccounts(updatedAccountState);
+      }));
 
       if (importedTransactions.length) {
-        const existingTransactionIds = new Set(transactions.map(tx => tx.id));
-        const uniqueImports = new Map<string, Transaction>();
+        setTransactions(prev => {
+          const existingTransactionIds = new Set(prev.map(tx => tx.id));
+          const uniqueImports = new Map<string, Transaction>();
 
-        importedTransactions.forEach(tx => {
-          if (!uniqueImports.has(tx.id)) {
-            uniqueImports.set(tx.id, tx);
+          importedTransactions.forEach(tx => {
+            if (!uniqueImports.has(tx.id)) {
+              uniqueImports.set(tx.id, tx);
+            }
+          });
+
+          const dedupedImports: Transaction[] = [];
+          uniqueImports.forEach(tx => {
+            if (existingTransactionIds.has(tx.id)) return;
+            existingTransactionIds.add(tx.id);
+            dedupedImports.push(tx);
+          });
+
+          if (!dedupedImports.length) {
+            return prev;
           }
-        });
 
-        const dedupedImports: Transaction[] = [];
-        uniqueImports.forEach(tx => {
-          if (existingTransactionIds.has(tx.id)) return;
-          existingTransactionIds.add(tx.id);
-          dedupedImports.push(tx);
+          return [...prev, ...dedupedImports];
         });
-
-        if (dedupedImports.length) {
-          setTransactions([...transactions, ...dedupedImports]);
-        }
       }
 
       const unlinkedMessage = unlinkedProviderAccounts.length
@@ -2279,7 +2344,7 @@ const App: React.FC = () => {
         lastError: message,
       } : conn));
     }
-  }, [accounts, enableBankingConnections, fetchWithAuth, mapProviderTransaction, resolveProviderAccountId, setAccounts, setTransactions, token, transactions]);
+  }, [enableBankingConnections, fetchWithAuth, mapProviderTransaction, resolveProviderAccountId, setAccounts, setTransactions, token]);
 
   const handleDeleteEnableBankingConnection = useCallback((connectionId: string) => {
     setEnableBankingConnections(prev => prev.filter(conn => conn.id !== connectionId));
@@ -2374,6 +2439,7 @@ const App: React.FC = () => {
 
   const handleResetAccount = () => {
     if (user) {
+        allowEmptySaveRef.current = true;
         loadAllFinancialData(emptyFinancialData);
         alert("Client-side data has been reset.");
     }

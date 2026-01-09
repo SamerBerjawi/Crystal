@@ -33,6 +33,7 @@ router.get('/', authenticateToken, async (req: AuthRequest, res) => {
 router.post('/', authenticateToken, async (req: AuthRequest, res) => {
     const userId = req.user?.id;
     const body = req.body || {}; // Data is already a JSON object from body-parser
+    const allowEmpty = Boolean(body.allowEmpty);
     
     // Use INSERT ... ON CONFLICT for an upsert operation in PostgreSQL
     const selectSql = `SELECT data FROM financial_data WHERE user_id = $1`;
@@ -52,11 +53,55 @@ router.post('/', authenticateToken, async (req: AuthRequest, res) => {
         delete incomingData.data;
         delete incomingData.previousUpdatedAt;
 
+        delete incomingData.allowEmpty;
         const previousUpdatedAt = body.previousUpdatedAt as string | undefined;
         const currentUpdatedAt = currentData.lastUpdatedAt as string | undefined;
         if (previousUpdatedAt && currentUpdatedAt && previousUpdatedAt !== currentUpdatedAt) {
             return res.status(409).json({
                 message: 'Data conflict: your local copy is stale. Please refresh and try again.',
+                currentUpdatedAt,
+            });
+        }
+
+        const hasMaterialData = (data: Record<string, any>) => {
+            const arrayKeys = [
+                'accounts',
+                'transactions',
+                'investmentTransactions',
+                'recurringTransactions',
+                'recurringTransactionOverrides',
+                'financialGoals',
+                'budgets',
+                'tasks',
+                'warrants',
+                'memberships',
+                'importExportHistory',
+                'billsAndPayments',
+                'invoices',
+                'tags',
+                'predictions',
+                'enableBankingConnections',
+                'incomeCategories',
+                'expenseCategories',
+                'accountOrder',
+                'taskOrder',
+            ];
+
+            const objectKeys = ['loanPaymentOverrides', 'manualWarrantPrices', 'priceHistory'];
+
+            if (arrayKeys.some(key => Array.isArray(data[key]) && data[key].length > 0)) {
+                return true;
+            }
+
+            return objectKeys.some(key => {
+                const value = data[key];
+                return value && typeof value === 'object' && !Array.isArray(value) && Object.keys(value).length > 0;
+            });
+        };
+
+        if (!isPartial && !allowEmpty && hasMaterialData(currentData) && !hasMaterialData(incomingData)) {
+            return res.status(409).json({
+                message: 'Refusing to overwrite existing data with an empty payload.',
                 currentUpdatedAt,
             });
         }
