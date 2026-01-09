@@ -13,6 +13,7 @@ interface SmartRestoreModalProps {
 type SectionKey = keyof FinancialData;
 
 const SECTIONS: { key: SectionKey; label: string; icon: string }[] = [
+    { key: 'userProfile', label: 'User Profile (Name, Email, etc.)', icon: 'person' },
     { key: 'accounts', label: 'Accounts', icon: 'wallet' },
     { key: 'transactions', label: 'Transactions', icon: 'receipt_long' },
     { key: 'invoices', label: 'Quotes & Invoices', icon: 'description' },
@@ -48,7 +49,7 @@ const SmartRestoreModal: React.FC<SmartRestoreModalProps> = ({ onClose, onRestor
     const [strategies, setStrategies] = useState<Record<string, 'merge' | 'replace'>>({});
 
     const isObjectSection = (key: SectionKey) =>
-        ['preferences', 'manualWarrantPrices', 'priceHistory', 'loanPaymentOverrides', 'userStats'].includes(key);
+        ['preferences', 'manualWarrantPrices', 'priceHistory', 'loanPaymentOverrides', 'userStats', 'userProfile'].includes(key);
 
     const hasSectionData = (key: SectionKey) => {
         if (!parsedData) return false;
@@ -96,7 +97,8 @@ const SmartRestoreModal: React.FC<SmartRestoreModalProps> = ({ onClose, onRestor
                         const data = json[section.key];
                         if (Array.isArray(data) && data.length > 0) {
                             initialSelection[section.key] = true;
-                            initialStrategies[section.key] = 'merge';
+                            // Change default to replace for arrays based on request
+                            initialStrategies[section.key] = 'replace';
                         } else if (data && typeof data === 'object' && !Array.isArray(data) && Object.keys(data).length > 0) {
                             // Objects (like preferences) default to replace usually, or merge properties
                             initialSelection[section.key] = true;
@@ -171,28 +173,42 @@ const SmartRestoreModal: React.FC<SmartRestoreModalProps> = ({ onClose, onRestor
                     </div>
                 ) : (
                     <div className="space-y-4">
-                        <div className="flex justify-between items-center pb-2 border-b border-black/10 dark:border-white/10">
-                             <div>
-                                 <h3 className="font-bold text-light-text dark:text-dark-text">{file?.name}</h3>
-                                 <p className="text-xs text-light-text-secondary dark:text-dark-text-secondary">Select data to restore</p>
-                             </div>
-                             <button onClick={() => { setParsedData(null); setFile(null); }} className="text-sm text-red-500 hover:underline">Change File</button>
-                        </div>
-                        <div className="flex flex-wrap items-center gap-2">
-                            <button
-                                type="button"
-                                onClick={() => applyBulkStrategy('merge')}
-                                className={BTN_SECONDARY_STYLE}
-                            >
-                                Merge All
-                            </button>
-                            <button
-                                type="button"
-                                onClick={() => applyBulkStrategy('replace')}
-                                className={BTN_SECONDARY_STYLE}
-                            >
-                                Replace All
-                            </button>
+                        <div className="flex flex-col gap-4 pb-4 border-b border-black/10 dark:border-white/10">
+                            <div className="flex justify-between items-center gap-4">
+                                 <div className="min-w-0">
+                                     <h3 className="font-bold text-light-text dark:text-dark-text truncate" title={file?.name}>{file?.name}</h3>
+                                     <p className="text-xs text-light-text-secondary dark:text-dark-text-secondary">Select sections to restore</p>
+                                 </div>
+                                 <button 
+                                    onClick={() => { setParsedData(null); setFile(null); }} 
+                                    className="text-xs font-medium text-red-600 dark:text-red-400 hover:bg-red-50 dark:hover:bg-red-900/20 px-3 py-1.5 rounded-lg transition-colors whitespace-nowrap"
+                                 >
+                                    Change File
+                                 </button>
+                            </div>
+                            
+                            <div className="flex flex-wrap items-center justify-between gap-3 bg-gray-50 dark:bg-white/5 p-2 rounded-xl">
+                                <span className="text-xs font-bold text-light-text-secondary dark:text-dark-text-secondary uppercase tracking-wider px-2">Bulk Actions</span>
+                                <div className="flex bg-white dark:bg-black/40 p-1 rounded-lg shadow-sm">
+                                    <button 
+                                        type="button"
+                                        onClick={() => applyBulkStrategy('merge')}
+                                        className={`px-4 py-1.5 text-xs font-bold rounded-md transition-all text-gray-600 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-white/10`}
+                                        title="Merge data where possible"
+                                    >
+                                        Merge All
+                                    </button>
+                                    <div className="w-px bg-gray-200 dark:bg-white/10 my-1 mx-1"></div>
+                                    <button 
+                                        type="button"
+                                        onClick={() => applyBulkStrategy('replace')}
+                                        className={`px-4 py-1.5 text-xs font-bold rounded-md transition-all text-gray-600 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-white/10`}
+                                        title="Overwrite existing data"
+                                    >
+                                        Replace All
+                                    </button>
+                                </div>
+                            </div>
                         </div>
 
                         <div className="space-y-2 max-h-[50vh] overflow-y-auto pr-2">

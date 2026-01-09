@@ -42,28 +42,31 @@ const useSmartGoalPlanner = (
     const [plan, setPlan] = useState<Record<string, ContributionPlanStep[]> | null>(null);
     const [isLoading, setIsLoading] = useState(false);
     const [error, setError] = useState<string | null>(null);
+    const { preferences } = usePreferencesContext();
 
     const generatePlan = useCallback(async () => {
         setIsLoading(true);
         setError(null);
         setPlan(null);
 
-        if (!process.env.API_KEY) {
-            setError("The AI Planner is not configured. An API key is required. Please see Settings > AI Assistant for configuration instructions.");
+        const apiKey = process.env.API_KEY || preferences.geminiApiKey;
+
+        if (!apiKey) {
+            setError("The AI Planner is not configured. An API key is required. Please see Settings > Integrations.");
             setIsLoading(false);
             return;
         }
 
         try {
             const { GoogleGenAI, Type } = await loadGenAiModule();
-            const ai = new GoogleGenAI({ apiKey: process.env.API_KEY });
+            const ai = new GoogleGenAI({ apiKey });
             
             const liquidAccounts = accounts.filter(a => LIQUID_ACCOUNT_TYPES.includes(a.type));
             const context = {
                 current_date: toLocalISOString(new Date()),
                 liquid_accounts: liquidAccounts.map(({ name, balance, currency }) => ({ name, balance, currency })),
                 recurring_transactions: recurringTransactions.map(({ description, amount, type, frequency, nextDueDate }) => ({ description, amount, type, frequency, nextDueDate })),
-                financial_goals: financialGoals.filter(g => g.projection).map(({ name, amount, currentAmount, date, projection }) => ({ name, target_amount: amount, current_amount: currentAmount, target_date: date, projected_status: projection?.status })),
+                financial_goals: financialGoals.filter(g => g.projection).map(({ name, type, amount, currentAmount, date, projection }) => ({ name, type, amount, currentAmount, date, projected_status: projection?.status })),
             };
 
             const prompt = `You are a financial planner. Based on the user's financial data, create a smart contribution plan to help them achieve their goals. 
@@ -127,7 +130,7 @@ const useSmartGoalPlanner = (
         } finally {
             setIsLoading(false);
         }
-    }, [accounts, recurringTransactions, financialGoals]);
+    }, [accounts, recurringTransactions, financialGoals, preferences.geminiApiKey]);
     
     return { generatePlan, plan, isLoading, error };
 };
@@ -586,6 +589,15 @@ const Forecasting: React.FC = () => {
                              <button onClick={() => setShowIndividualLines(false)} className={`${segmentItemBase} ${!showIndividualLines ? segmentItemActive : segmentItemInactive}`}>Consolidated</button>
                              <button onClick={() => setShowIndividualLines(true)} className={`${segmentItemBase} ${showIndividualLines ? segmentItemActive : segmentItemInactive}`}>Individual</button>
                         </div>
+                        <div className="flex bg-light-fill dark:bg-dark-fill p-1 rounded-lg h-10 flex-shrink-0 w-full sm:w-auto">
+                             <button onClick={() => setShowGoalLines(true)} className={`${segmentItemBase} ${showGoalLines ? segmentItemActive : segmentItemInactive}`}>
+                                <span className="material-symbols-outlined text-lg mr-1.5">flag</span>
+                                Goals
+                             </button>
+                             <button onClick={() => setShowGoalLines(false)} className={`${segmentItemBase} ${!showGoalLines ? segmentItemActive : segmentItemInactive}`}>
+                                Hide
+                             </button>
+                        </div>
                         <button onClick={() => handleOpenModal()} className={`${BTN_PRIMARY_STYLE} flex-shrink-0 whitespace-nowrap w-full sm:w-auto h-10`}>
                             <span className="material-symbols-outlined text-xl mr-2">add</span>
                             Add Goal
@@ -826,116 +838,13 @@ const Forecasting: React.FC = () => {
                                         </tr>
                                     );
                                 })}
-                                {tableData.length === 0 && (
-                                    <tr>
-                                        <td colSpan={6} className="px-6 py-16 text-center text-light-text-secondary dark:text-dark-text-secondary">
-                                            <span className="material-symbols-outlined text-4xl mb-2 opacity-30">event_busy</span>
-                                            <p className="text-sm">No forecast data available for the selected period.</p>
-                                        </td>
-                                    </tr>
-                                )}
                              </tbody>
                         </table>
                     </div>
                 </Card>
             </div>
-            
-            {/* Bottom Grid: Major Expenses & AI Planner */}
-            <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
-                 {/* Major Expenses (1/3) */}
-                 <div className="lg:col-span-1 space-y-6">
-                     <Card className="border-l-4 border-l-red-500 h-full flex flex-col">
-                        <div className="flex items-center justify-between mb-4">
-                            <h3 className="text-lg font-bold text-light-text dark:text-dark-text flex items-center gap-2">
-                                <span className="material-symbols-outlined text-red-500">payments</span>
-                                Major Outflows
-                            </h3>
-                            <span className="text-[10px] font-bold uppercase bg-red-50 dark:bg-red-900/20 text-red-600 dark:text-red-400 px-2 py-0.5 rounded-full">Next {forecastDuration}</span>
-                        </div>
-                         <div className="relative flex-grow">
-                            {/* Timeline Line */}
-                            <div className="absolute left-3.5 top-2 bottom-2 w-0.5 bg-gray-100 dark:bg-white/5"></div>
-                            
-                            <div className="space-y-4">
-                                {majorUpcomingOutflows.length > 0 ? majorUpcomingOutflows.map((item, idx) => {
-                                    const dateObj = parseLocalDate(item.date);
-                                    return (
-                                    <div key={`${item.name}-${item.date}-${item.amount}`} className="relative pl-10 flex items-center justify-between group">
-                                        {/* Dot */}
-                                        <div className="absolute left-1.5 top-1/2 -translate-y-1/2 w-4 h-4 rounded-full border-2 border-white dark:border-dark-card bg-red-400 z-10 shadow-sm"></div>
-                                        
-                                        <div className="min-w-0 pr-4">
-                                            <p className="font-bold text-sm text-light-text dark:text-dark-text truncate">{item.name}</p>
-                                            <p className="text-[10px] font-bold uppercase text-light-text-secondary dark:text-dark-text-secondary mt-0.5">
-                                                {dateObj.getDate()} {dateObj.toLocaleString('default', { month: 'short' })}
-                                            </p>
-                                        </div>
-                                        <span className="font-mono font-bold text-sm text-light-text dark:text-dark-text bg-gray-50 dark:bg-white/5 px-2 py-1 rounded border border-black/5 dark:border-white/5 whitespace-nowrap">
-                                            {formatCurrency(item.amount, 'EUR')}
-                                        </span>
-                                    </div>
-                                )}) : (
-                                    <div className="pl-10 py-6 text-sm text-light-text-secondary dark:text-dark-text-secondary italic">
-                                        No major expenses projected.
-                                    </div>
-                                )}
-                            </div>
-                         </div>
-                     </Card>
-                 </div>
-
-                 {/* AI Planner (2/3) */}
-                 <div className="lg:col-span-2">
-                     <div className="rounded-3xl p-1 bg-gradient-to-br from-indigo-500 via-purple-500 to-pink-500 h-full">
-                         <div className="bg-white dark:bg-dark-card rounded-[20px] p-5 h-full relative overflow-hidden flex flex-col">
-                             <div className="absolute top-0 right-0 p-4 opacity-5 pointer-events-none">
-                                 <span className="material-symbols-outlined text-8xl">psychology</span>
-                             </div>
-                             
-                             <div className="relative z-10 flex-grow">
-                                 <div className="flex items-center gap-3 mb-4">
-                                      <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-indigo-500 to-purple-600 flex items-center justify-center text-white shadow-lg">
-                                         <span className="material-symbols-outlined text-xl">auto_awesome</span>
-                                      </div>
-                                      <div>
-                                          <h3 className="text-lg font-bold text-gray-900 dark:text-white leading-tight">Smart Planner</h3>
-                                          <p className="text-[10px] uppercase font-bold tracking-wider text-indigo-500 dark:text-indigo-400">AI Powered</p>
-                                      </div>
-                                 </div>
-                                
-                                <p className="text-sm text-gray-600 dark:text-gray-300 mb-6 leading-relaxed">
-                                    Not sure how to reach your goals? I can analyze your cash flow and build a custom contribution strategy for you.
-                                </p>
-                                
-                                <button 
-                                    onClick={generatePlan} 
-                                    className="w-full py-3 rounded-xl bg-gray-900 dark:bg-white text-white dark:text-gray-900 font-bold text-sm shadow-lg hover:shadow-xl hover:-translate-y-0.5 transition-all flex items-center justify-center gap-2 disabled:opacity-70 disabled:cursor-not-allowed"
-                                    disabled={isPlanLoading}
-                                >
-                                    {isPlanLoading ? (
-                                        <>
-                                            <svg className="animate-spin h-4 w-4" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24"><circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle><path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path></svg>
-                                            Generating...
-                                        </>
-                                    ) : (
-                                        <>
-                                            <span>Create Plan</span>
-                                            <span className="material-symbols-outlined text-sm">arrow_forward</span>
-                                        </>
-                                    )}
-                                </button>
-                                
-                                <div className="mt-4 max-h-[300px] overflow-y-auto pr-1 custom-scrollbar">
-                                     <GoalContributionPlan plan={plan} isLoading={isPlanLoading} error={planError} />
-                                </div>
-                             </div>
-                         </div>
-                     </div>
-                </div>
-            </div>
-            
         </div>
     );
 };
 
-export default React.memo(Forecasting);
+export default Forecasting;

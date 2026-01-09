@@ -310,6 +310,7 @@ export interface HoldingDistribution {
   name: string;
   value: number;
   color: string;
+  [key: string]: any;
 }
 
 export interface HoldingsOverview {
@@ -445,6 +446,7 @@ export interface AppPreferences {
   brandfetchClientId?: string;
   twelveDataApiKey?: string;
   merchantLogoOverrides?: Record<string, string>;
+  geminiApiKey?: string;
 }
 
 // New types for Bills & Payments
@@ -588,6 +590,7 @@ export interface FinancialData {
     predictions?: Prediction[];
     enableBankingConnections?: EnableBankingConnection[];
     lastUpdatedAt?: string;
+    userProfile?: User;
 }
 
 // New types for Tasks feature

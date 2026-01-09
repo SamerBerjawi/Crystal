@@ -1,4 +1,5 @@
 
+
 // FIX: Import `useMemo` from React to resolve the 'Cannot find name' error.
 import React, { useState, useEffect, useMemo, useCallback, Suspense, lazy, useRef, Component, ErrorInfo, startTransition } from 'react';
 import Sidebar from './components/Sidebar';
@@ -13,7 +14,8 @@ const Transactions = lazy(loadTransactions);
 const loadBudgeting = () => import('./pages/Budgeting');
 const Budgeting = lazy(loadBudgeting);
 const loadForecasting = () => import('./pages/Forecasting');
-const Forecasting = lazy(loadForecasting);
+// FIX: Use inline function for lazy import to match AccountDetail pattern and avoid TS error
+const Forecasting = lazy(() => import('./pages/Forecasting'));
 const loadChallengesPage = () => import('./pages/Challenges');
 const ChallengesPage = lazy(loadChallengesPage);
 const loadSettingsPage = () => import('./pages/Settings');
@@ -421,6 +423,15 @@ const App: React.FC = () => {
   const [manualWarrantPrices, setManualWarrantPrices] = useState<Record<string, number | undefined>>(emptyFinancialData.manualWarrantPrices || {});
   const [priceHistory, setPriceHistory] = useState<Record<string, PriceHistoryEntry[]>>(emptyFinancialData.priceHistory || {});
   const [lastUpdated, setLastUpdated] = useState<Date | null>(null);
+
+  const markSliceDirty = useCallback((slice: keyof FinancialData) => {
+    const pending = new Set(dirtySlicesRef.current);
+    if (!pending.has(slice)) {
+      pending.add(slice);
+      dirtySlicesRef.current = pending;
+      setDirtySignal(signal => signal + 1);
+    }
+  }, []);
   
   // Update Streak Logic
   useEffect(() => {
@@ -453,8 +464,7 @@ const App: React.FC = () => {
        // Trigger save
        markSliceDirty('userStats');
     }
-  // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [isDataLoaded, isAuthenticated]);
+  }, [isDataLoaded, isAuthenticated, userStats, markSliceDirty]);
 
 
   // FIX: Explicitly type assetPrices to avoid 'unknown' inference and ensure type safety
@@ -577,15 +587,6 @@ const App: React.FC = () => {
   // Onboarding flow state
   const [hasCompletedOnboarding, setHasCompletedOnboarding] = useLocalStorage('crystal-onboarding-complete', false);
   const [isOnboardingOpen, setIsOnboardingOpen] = useState(false);
-
-  const markSliceDirty = useCallback((slice: keyof FinancialData) => {
-    const pending = new Set(dirtySlicesRef.current);
-    if (!pending.has(slice)) {
-      pending.add(slice);
-      dirtySlicesRef.current = pending;
-      setDirtySignal(signal => signal + 1);
-    }
-  }, []);
 
   const navigateToTransactions = useCallback((filters?: { accountName?: string | null; tagId?: string | null }) => {
     transactionsViewFilters.current = {
@@ -742,17 +743,26 @@ const App: React.FC = () => {
     setHasCompletedOnboarding(true);
     setIsOnboardingOpen(false);
   };
+  
+  const handleSetUser = useCallback((updates: Partial<User>) => {
+    if (isDemoMode) {
+        setDemoUser(prev => prev ? {...prev, ...updates} as User : null);
+    } else {
+        setUser(updates);
+    }
+  }, [isDemoMode, setUser]);
 
+  const currentUser = useMemo(() => isDemoMode ? demoUser : user, [isDemoMode, demoUser, user]);
 
   const dataToSave: FinancialData = useMemo(() => ({
     accounts, transactions, investmentTransactions, recurringTransactions,
     recurringTransactionOverrides, loanPaymentOverrides, financialGoals, budgets, tasks, warrants, memberships, importExportHistory, incomeCategories,
     expenseCategories, preferences, billsAndPayments, accountOrder, taskOrder, tags, manualWarrantPrices, priceHistory, invoices, userStats, predictions,
-    enableBankingConnections,
+    enableBankingConnections, userProfile: currentUser || undefined
   }), [
     accounts, transactions, investmentTransactions,
     recurringTransactions, recurringTransactionOverrides, loanPaymentOverrides, financialGoals, budgets, tasks, warrants, memberships, importExportHistory,
-    incomeCategories, expenseCategories, preferences, billsAndPayments, accountOrder, taskOrder, tags, manualWarrantPrices, priceHistory, invoices, userStats, predictions, enableBankingConnections
+    incomeCategories, expenseCategories, preferences, billsAndPayments, accountOrder, taskOrder, tags, manualWarrantPrices, priceHistory, invoices, userStats, predictions, enableBankingConnections, currentUser
   ]);
 
   const debouncedDirtySignal = useDebounce(dirtySignal, 900);
@@ -1018,6 +1028,11 @@ const App: React.FC = () => {
       restoreInProgressRef.current = true;
       skipNextSaveRef.current = true;
       
+      // Update user state first if included in restore
+      if (data.userProfile) {
+          handleSetUser(data.userProfile);
+      }
+
       loadAllFinancialData(data); // Update local state
       
       // Persist to backend
@@ -1032,7 +1047,7 @@ const App: React.FC = () => {
           restoreInProgressRef.current = false;
           skipNextSaveRef.current = false;
       }
-  }, [isDemoMode, token, loadAllFinancialData, saveData]);
+  }, [isDemoMode, token, loadAllFinancialData, saveData, handleSetUser]);
 
   useEffect(() => {
     if (!isDataLoaded || !isAuthenticated || isDemoMode || restoreInProgressRef.current) {
@@ -1177,14 +1192,6 @@ const App: React.FC = () => {
     }
     finalizeLogout();
   }, [finalizeLogout, isAuthenticated, isDataLoaded, isDemoMode, saveData]);
-
-  const handleSetUser = useCallback((updates: Partial<User>) => {
-    if (isDemoMode) {
-        setDemoUser(prev => prev ? {...prev, ...updates} as User : null);
-    } else {
-        setUser(updates);
-    }
-  }, [isDemoMode, setUser]);
 
   const handleSaveAccount = (accountData: Omit<Account, 'id'> & { id?: string }) => {
     const accountWithDefaults = { ...accountData, includeInAnalytics: accountData.includeInAnalytics ?? true } as Omit<Account, 'id'> & { id?: string };
@@ -2457,7 +2464,7 @@ const App: React.FC = () => {
   
   const viewingAccount = useMemo(() => accounts.find(a => a.id === viewingAccountId), [accounts, viewingAccountId]);
   const viewingHolding = useMemo(() => holdingsOverview.holdings.find(h => h.symbol === viewingHoldingSymbol), [holdingsOverview, viewingHoldingSymbol]);
-  const currentUser = useMemo(() => isDemoMode ? demoUser : user, [isDemoMode, demoUser, user]);
+  // Removed duplicate currentUser declaration here
   const linkedEnableBankingAccountIds = useMemo(() => {
     const ids = new Set<string>();
     enableBankingConnections.forEach(connection => {

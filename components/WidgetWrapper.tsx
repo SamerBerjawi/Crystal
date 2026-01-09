@@ -1,3 +1,4 @@
+
 import React from 'react';
 import Card from './Card';
 
@@ -51,7 +52,7 @@ const WidgetWrapper: React.FC<WidgetWrapperProps> = ({
   
   return (
     <div 
-        className={`${colSpanClasses[w] || 'md:col-span-1'} ${rowSpanClasses[h] || 'md:row-span-1'} ${dragClasses} transition-opacity duration-300 relative`}
+        className={`${colSpanClasses[w] || 'md:col-span-1'} ${rowSpanClasses[h] || 'md:row-span-1'} ${dragClasses} transition-opacity duration-300 relative h-full`}
         draggable={isEditMode}
         onDragStart={onDragStart}
         onDragEnter={onDragEnter}
@@ -69,11 +70,11 @@ const WidgetWrapper: React.FC<WidgetWrapperProps> = ({
             </button>
           )}
         </header>
-        <div className="flex-grow">
+        <div className="flex-grow min-h-0">
           {children}
         </div>
         {isEditMode && (
-          <div className="absolute bottom-2 right-2 flex gap-1 bg-light-card dark:bg-dark-card/80 backdrop-blur-sm p-1 rounded-md shadow-lg border border-black/5 dark:border-white/10">
+          <div className="absolute bottom-2 right-2 flex gap-1 bg-light-card dark:bg-dark-card/80 backdrop-blur-sm p-1 rounded-md shadow-lg border border-black/5 dark:border-white/10 z-10">
             <button onClick={(e) => { e.stopPropagation(); onResize('w', -1); }} disabled={w <= 1} className="p-1 rounded disabled:opacity-30 hover:bg-black/5 dark:hover:bg-white/5"><span className="material-symbols-outlined text-sm">west</span></button>
             <button onClick={(e) => { e.stopPropagation(); onResize('w', 1); }} disabled={w >= 4} className="p-1 rounded disabled:opacity-30 hover:bg-black/5 dark:hover:bg-white/5"><span className="material-symbols-outlined text-sm">east</span></button>
             <div className="w-px bg-gray-200 dark:bg-gray-700 mx-1"></div>

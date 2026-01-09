@@ -1,3 +1,4 @@
+
 import React from 'react';
 import { Account, AppPreferences, EnableBankingConnection, EnableBankingLinkPayload, EnableBankingSyncOptions, Page } from '../types';
 import Card from '../components/Card';
@@ -106,14 +107,16 @@ const Integrations: React.FC<IntegrationsProps> = ({
   const [localApiKeys, setLocalApiKeys] = React.useState({
     twelveDataApiKey: preferences.twelveDataApiKey || '',
     brandfetchClientId: preferences.brandfetchClientId || '',
+    geminiApiKey: preferences.geminiApiKey || '',
   });
 
   React.useEffect(() => {
     setLocalApiKeys({
       twelveDataApiKey: preferences.twelveDataApiKey || '',
       brandfetchClientId: preferences.brandfetchClientId || '',
+      geminiApiKey: preferences.geminiApiKey || '',
     });
-  }, [preferences.brandfetchClientId, preferences.twelveDataApiKey]);
+  }, [preferences.brandfetchClientId, preferences.twelveDataApiKey, preferences.geminiApiKey]);
 
   const handleLocalChange = (name: keyof typeof localApiKeys, value: string) => {
     setLocalApiKeys(prev => ({ ...prev, [name]: value }));
@@ -125,6 +128,8 @@ const Integrations: React.FC<IntegrationsProps> = ({
       setPreferences({ ...preferences, [name]: nextValue });
     }
   };
+
+  const isGeminiEnv = !!process.env.API_KEY;
 
   return (
     <div className="max-w-7xl mx-auto pb-12 space-y-8 animate-fade-in-up">
@@ -154,7 +159,49 @@ const Integrations: React.FC<IntegrationsProps> = ({
               <span className="material-symbols-outlined text-primary-500">api</span>
               <h3 className="text-lg font-bold text-light-text dark:text-dark-text">Data Services</h3>
           </div>
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+              
+              {isGeminiEnv ? (
+                <Card className="flex flex-col h-full border border-black/5 dark:border-white/5 shadow-sm hover:shadow-md transition-shadow duration-200">
+                    <div className="flex items-start justify-between mb-4">
+                        <div className="w-12 h-12 rounded-xl flex items-center justify-center bg-blue-100 text-blue-600 dark:bg-blue-900/30 dark:text-blue-400">
+                            <span className="material-symbols-outlined text-2xl">smart_toy</span>
+                        </div>
+                        <div className="px-2.5 py-0.5 rounded-full text-[10px] font-bold uppercase tracking-wide border bg-green-100 text-green-700 border-green-200 dark:bg-green-900/30 dark:text-green-400 dark:border-green-800">
+                            Active (Env)
+                        </div>
+                    </div>
+                    
+                    <div className="mb-6 flex-grow">
+                        <h3 className="text-lg font-bold text-light-text dark:text-dark-text mb-1">Google Gemini</h3>
+                        <p className="text-xs text-light-text-secondary dark:text-dark-text-secondary leading-relaxed">
+                            Powers the AI Assistant and Smart Planner features.
+                        </p>
+                    </div>
+
+                    <div className="relative">
+                        <div className="p-3 bg-gray-50 dark:bg-black/20 rounded-lg border border-black/5 dark:border-white/5 text-xs text-light-text-secondary dark:text-dark-text-secondary">
+                            <div className="flex items-center gap-2 text-green-600 dark:text-green-400">
+                                <span className="material-symbols-outlined text-sm">check_circle</span>
+                                <span>Configured via Environment</span>
+                            </div>
+                        </div>
+                    </div>
+                </Card>
+              ) : (
+                <ApiKeyCard
+                    title="Google Gemini"
+                    description="Powers the AI Assistant and Smart Planner features."
+                    icon="smart_toy"
+                    name="geminiApiKey"
+                    value={localApiKeys.geminiApiKey}
+                    onChange={(value) => handleLocalChange('geminiApiKey', value)}
+                    onBlur={() => handleCommit('geminiApiKey')}
+                    placeholder="Enter API Key"
+                    colorClass="bg-blue-100 text-blue-600 dark:bg-blue-900/30 dark:text-blue-400"
+                />
+              )}
+
               <ApiKeyCard
                   title="Twelve Data"
                   description="Enables real-time stock, ETF, and crypto pricing updates for your investment portfolio."
@@ -169,7 +216,7 @@ const Integrations: React.FC<IntegrationsProps> = ({
               <ApiKeyCard
                   title="Brandfetch"
                   description="Automatically fetches high-quality logos for merchants and institutions based on transaction names."
-                  icon="collections" // 'image' or 'branding_watermark'
+                  icon="collections"
                   name="brandfetchClientId"
                   value={localApiKeys.brandfetchClientId}
                   onChange={(value) => handleLocalChange('brandfetchClientId', value)}

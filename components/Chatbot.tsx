@@ -1,7 +1,9 @@
+
 import React, { useState, useEffect, useRef } from 'react';
 // FIX: Import InvestmentTransaction type to use in the ChatbotProps interface.
 import { Account, Transaction, Budget, FinancialGoal, RecurringTransaction, InvestmentTransaction } from '../types';
 import { loadGenAiModule, GenAiChat } from '../genAiLoader';
+import { usePreferencesContext } from '../contexts/DomainProviders';
 
 interface ChatbotProps {
   isOpen: boolean;
@@ -31,6 +33,8 @@ const Chatbot: React.FC<ChatbotProps> = ({ isOpen, onClose, financialData }) => 
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const [isMounted, setIsMounted] = useState(false);
   const [isConfigured, setIsConfigured] = useState(true);
+  
+  const { preferences } = usePreferencesContext();
 
   const scrollToBottom = () => {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
@@ -60,8 +64,10 @@ const Chatbot: React.FC<ChatbotProps> = ({ isOpen, onClose, financialData }) => 
       const initializeChat = async () => {
         setIsLoading(true);
 
-        if (!process.env.API_KEY) {
-            setMessages([{ sender: 'ai', text: "The AI Assistant is not configured. An API key is required to use this feature. Please see Settings > AI Assistant for configuration instructions." }]);
+        const apiKey = process.env.API_KEY || preferences.geminiApiKey;
+
+        if (!apiKey) {
+            setMessages([{ sender: 'ai', text: "The AI Assistant is not configured. An API key is required to use this feature. Please configure it in Settings > Integrations." }]);
             setIsConfigured(false);
             setIsLoading(false);
             return;
@@ -70,7 +76,7 @@ const Chatbot: React.FC<ChatbotProps> = ({ isOpen, onClose, financialData }) => 
 
         try {
           const { GoogleGenAI } = await loadGenAiModule();
-          const ai = new GoogleGenAI({ apiKey: process.env.API_KEY });
+          const ai = new GoogleGenAI({ apiKey });
           
           // Optimize data sent to the model
           const recentTransactions = financialData.transactions
@@ -109,7 +115,7 @@ const Chatbot: React.FC<ChatbotProps> = ({ isOpen, onClose, financialData }) => 
         setMessages([]);
         chatRef.current = null;
     }
-  }, [isOpen, financialData]);
+  }, [isOpen, financialData, preferences.geminiApiKey]);
 
   const handleSendMessage = async (e: React.FormEvent) => {
     e.preventDefault();
