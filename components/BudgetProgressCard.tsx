@@ -3,15 +3,17 @@ import React from 'react';
 import { Category } from '../types';
 import { formatCurrency } from '../utils';
 import Card from './Card';
+import { AreaChart, Area, ResponsiveContainer, Tooltip as RechartsTooltip } from 'recharts';
 
 interface BudgetProgressCardProps {
   category: Category;
   budgeted: number;
   spent: number;
   onEdit: () => void;
+  history?: { date: string; amount: number }[];
 }
 
-const BudgetProgressCard: React.FC<BudgetProgressCardProps> = ({ category, budgeted, spent, onEdit }) => {
+const BudgetProgressCard: React.FC<BudgetProgressCardProps> = ({ category, budgeted, spent, onEdit, history = [] }) => {
   const hasBudget = budgeted > 0;
   const remaining = hasBudget ? budgeted - spent : 0;
   const progress = hasBudget ? (spent / budgeted) * 100 : 0;
@@ -31,9 +33,9 @@ const BudgetProgressCard: React.FC<BudgetProgressCardProps> = ({ category, budge
   }
 
   return (
-    <Card className="flex flex-col gap-4 group transition-transform duration-200 hover:-translate-y-1">
+    <Card className="flex flex-col gap-4 group transition-transform duration-200 hover:-translate-y-1 relative overflow-hidden">
       {/* Header */}
-      <div className="flex justify-between items-start">
+      <div className="flex justify-between items-start relative z-10">
         <div className="flex items-center gap-3">
           <div className="flex-shrink-0 h-10 w-10 rounded-full bg-light-bg dark:bg-dark-bg shadow-neu-inset-light dark:shadow-neu-inset-dark flex items-center justify-center">
             <span
@@ -54,7 +56,7 @@ const BudgetProgressCard: React.FC<BudgetProgressCardProps> = ({ category, budge
       </div>
       
       {/* Progress Bar and Amounts */}
-      <div>
+      <div className="relative z-10">
         {hasBudget ? (
           <>
             <div className="w-full bg-light-bg dark:bg-dark-bg rounded-full h-3 shadow-neu-inset-light dark:shadow-neu-inset-dark">
@@ -78,6 +80,38 @@ const BudgetProgressCard: React.FC<BudgetProgressCardProps> = ({ category, budge
           </div>
         )}
       </div>
+
+      {/* Historical Trend Sparkline */}
+      {history.length > 1 && (
+        <div className="h-10 w-full mt-1 relative z-0 opacity-40 hover:opacity-100 transition-opacity">
+            <ResponsiveContainer width="100%" height="100%">
+                <AreaChart data={history}>
+                    <defs>
+                        <linearGradient id={`color-${category.id}`} x1="0" y1="0" x2="0" y2="1">
+                            <stop offset="5%" stopColor={category.color} stopOpacity={0.3}/>
+                            <stop offset="95%" stopColor={category.color} stopOpacity={0}/>
+                        </linearGradient>
+                    </defs>
+                    <RechartsTooltip 
+                       contentStyle={{ backgroundColor: 'var(--light-card)', borderColor: 'rgba(0,0,0,0.1)', borderRadius: '8px', fontSize: '10px', padding: '4px 8px' }}
+                       itemStyle={{ color: 'var(--light-text)' }}
+                       formatter={(val: number) => [formatCurrency(val, 'EUR'), '']}
+                       labelStyle={{ display: 'none' }}
+                       cursor={false}
+                    />
+                    <Area 
+                        type="monotone" 
+                        dataKey="amount" 
+                        stroke={category.color} 
+                        fillOpacity={1} 
+                        fill={`url(#color-${category.id})`} 
+                        strokeWidth={2} 
+                        isAnimationActive={false}
+                    />
+                </AreaChart>
+            </ResponsiveContainer>
+        </div>
+      )}
     </Card>
   );
 };

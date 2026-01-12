@@ -23,13 +23,17 @@ export const initializeDatabase = async () => {
                 role VARCHAR(50) DEFAULT 'Member',
                 is_2fa_enabled BOOLEAN DEFAULT FALSE,
                 status VARCHAR(50) DEFAULT 'Active',
-                last_login TIMESTAMPTZ
+                last_login TIMESTAMPTZ,
+                two_factor_secret TEXT,
+                two_factor_backup_codes TEXT[]
             )
         `);
 
         // Ensure older databases pick up the newer optional columns as well
         await db.query(`ALTER TABLE users ADD COLUMN IF NOT EXISTS phone VARCHAR(50)`);
         await db.query(`ALTER TABLE users ADD COLUMN IF NOT EXISTS address TEXT`);
+        await db.query(`ALTER TABLE users ADD COLUMN IF NOT EXISTS two_factor_secret TEXT`);
+        await db.query(`ALTER TABLE users ADD COLUMN IF NOT EXISTS two_factor_backup_codes TEXT[]`);
 
         await db.query(`
             CREATE TABLE IF NOT EXISTS financial_data (

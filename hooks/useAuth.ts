@@ -7,6 +7,15 @@ interface AuthResponse {
   financialData?: FinancialData;
 }
 
+// Login can return a full auth response OR a 2FA challenge
+interface LoginResponse {
+  require2fa?: boolean;
+  tempToken?: string;
+  token?: string;
+  user?: any;
+  financialData?: FinancialData;
+}
+
 const TOKEN_STORAGE_KEY = 'crystal_auth_token';
 
 const safeLocalStorage = {
@@ -102,7 +111,7 @@ export const useAuth = () => {
   );
 
   const signIn = useCallback(
-    async (email: string, password: string): Promise<FinancialData | null> => {
+    async (email: string, password: string): Promise<LoginResponse | null> => {
       setIsLoading(true);
       setError(null);
 
@@ -118,7 +127,12 @@ export const useAuth = () => {
           throw new Error(body.message || 'Failed to sign in.');
         }
 
-        return processAuthState(body as AuthResponse);
+        if (body.require2fa) {
+            return { require2fa: true, tempToken: body.tempToken };
+        }
+
+        const data = processAuthState(body as AuthResponse);
+        return { financialData: data || undefined, user: body.user, token: body.token };
       } catch (err) {
         console.error('Sign-in failed:', err);
         setIsAuthenticated(false);
@@ -132,6 +146,36 @@ export const useAuth = () => {
       }
     },
     [processAuthState]
+  );
+  
+  const verify2FALogin = useCallback(
+      async (tempToken: string, code: string): Promise<FinancialData | null> => {
+          setIsLoading(true);
+          setError(null);
+          try {
+              const response = await fetch('/api/auth/login/2fa', {
+                  method: 'POST',
+                  headers: { 
+                      'Content-Type': 'application/json',
+                      'Authorization': `Bearer ${tempToken}`
+                   },
+                  body: JSON.stringify({ code })
+              });
+              
+              const body = await response.json().catch(() => ({}));
+              if (!response.ok) {
+                  throw new Error(body.message || 'Failed to verify 2FA code.');
+              }
+              
+              return processAuthState(body as AuthResponse);
+          } catch (err) {
+              console.error('2FA verification failed:', err);
+              setError(err instanceof Error ? err.message : 'Failed to verify code.');
+              return null;
+          } finally {
+              setIsLoading(false);
+          }
+      }, [processAuthState]
   );
 
   const signUp = useCallback(
@@ -270,6 +314,46 @@ export const useAuth = () => {
     },
     [authorizedFetch]
   );
+  
+  const initiate2FASetup = useCallback(async (): Promise<{ secret: string; qrCodeUrl: string } | null> => {
+      try {
+          const response = await authorizedFetch('/api/auth/2fa/generate', { method: 'POST' });
+          if (!response.ok) throw new Error('Failed to generate 2FA secret');
+          return await response.json();
+      } catch (err) {
+          setError('Failed to start 2FA setup');
+          return null;
+      }
+  }, [authorizedFetch]);
+  
+  const confirm2FASetup = useCallback(async (code: string): Promise<string[] | null> => {
+      try {
+          const response = await authorizedFetch('/api/auth/2fa/enable', {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({ code })
+          });
+          
+          if (!response.ok) throw new Error('Invalid code');
+          const data = await response.json();
+          
+          setUser({ is2FAEnabled: true });
+          return data.backupCodes || [];
+      } catch (err) {
+          return null;
+      }
+  }, [authorizedFetch, setUser]);
+  
+  const disable2FA = useCallback(async (): Promise<boolean> => {
+      try {
+          const response = await authorizedFetch('/api/auth/2fa/disable', { method: 'POST' });
+          if (!response.ok) throw new Error('Failed to disable');
+          setUser({ is2FAEnabled: false });
+          return true;
+      } catch(err) {
+          return false;
+      }
+  }, [authorizedFetch, setUser]);
 
-  return { user, setUser, token, isAuthenticated, isLoading, error, signIn, signUp, signOut, checkAuthStatus, setError, changePassword };
+  return { user, setUser, token, isAuthenticated, isLoading, error, signIn, signUp, signOut, checkAuthStatus, setError, changePassword, verify2FALogin, initiate2FASetup, confirm2FASetup, disable2FA };
 };

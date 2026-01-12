@@ -1,6 +1,9 @@
 import express from 'express';
 import bcrypt from 'bcryptjs';
 import jwt from 'jsonwebtoken';
+import speakeasy from 'speakeasy';
+import qrcode from 'qrcode';
+import crypto from 'crypto';
 import { db } from './database';
 import { authenticateToken, AuthRequest } from './middleware';
 
@@ -23,6 +26,7 @@ async function performLogin(userId: number, email: string) {
     const userUpdateRes = await db.query(`UPDATE users SET last_login = $1 WHERE id = $2 RETURNING *`, [lastLogin, userId]);
     const user = userUpdateRes.rows[0];
 
+    // Full access token
     const token = jwt.sign({ id: user.id, email: user.email }, JWT_SECRET, { expiresIn: '24h' });
 
     const mappedUser = {
@@ -43,12 +47,10 @@ async function performLogin(userId: number, email: string) {
     return { token, user: mappedUser, financialData };
 }
 
-
 // Register
 router.post('/register', async (req, res) => {
     const { firstName, lastName, email, password } = req.body;
     if (!firstName || !lastName || !email || !password) {
-        // FIX: Replaced res.status().json() with res.status() and res.json() to fix type error.
         return res.status(400).json({ message: 'All fields are required' });
     }
 
@@ -59,7 +61,6 @@ router.post('/register', async (req, res) => {
         const userExistsResult = await client.query('SELECT id FROM users WHERE email = $1', [email.toLowerCase()]);
         if (userExistsResult.rows.length > 0) {
             await client.query('ROLLBACK');
-            // FIX: Replaced res.status().json() with res.status() and res.json() to fix type error.
             return res.status(409).json({ message: 'Email already in use.' });
         }
         
@@ -75,20 +76,16 @@ router.post('/register', async (req, res) => {
 
         await client.query('COMMIT');
         
-        // After successful registration, perform login to get consistent data
         const loginData = await performLogin(newUser.id, newUser.email);
-        // FIX: Replaced res.status().json() with res.status() and res.json() to fix type error.
         res.status(201).json(loginData);
 
     } catch (err) {
-        // Make sure to rollback before logging the error
         try {
             await client.query('ROLLBACK');
         } catch (rollbackErr) {
             console.error('Error during rollback:', rollbackErr);
         }
         console.error('Error during registration:', err);
-        // FIX: Replaced res.status().json() with res.status() and res.json() to fix type error.
         res.status(500).json({ message: 'Failed to register user.' });
     } finally {
         client.release();
@@ -99,31 +96,155 @@ router.post('/register', async (req, res) => {
 router.post('/login', async (req, res) => {
     const { email, password } = req.body;
     if (!email || !password) {
-        // FIX: Replaced res.status().json() with res.status() and res.json() to fix type error.
         return res.status(400).json({ message: 'Email and password are required' });
     }
 
     try {
-        const userSql = `SELECT id, email, password FROM users WHERE email = $1`;
+        const userSql = `SELECT id, email, password, is_2fa_enabled FROM users WHERE email = $1`;
         const userResult = await db.query(userSql, [email.toLowerCase()]);
         const user = userResult.rows[0];
 
         if (!user || !bcrypt.compareSync(password, user.password)) {
-            // FIX: Replaced res.status().json() with res.status() and res.json() to fix type error.
             return res.status(401).json({ message: 'Invalid credentials' });
         }
         
+        // 2FA Check
+        if (user.is_2fa_enabled) {
+            // Return a temporary token that only allows hitting the verify endpoint
+            const tempToken = jwt.sign(
+                { id: user.id, email: user.email, partial: true }, 
+                JWT_SECRET, 
+                { expiresIn: '10m' }
+            );
+            return res.json({ require2fa: true, tempToken });
+        }
+        
         const loginData = await performLogin(user.id, user.email);
-        // FIX: Replaced res.status(200).json() with res.json() as 200 is the default status.
         res.json(loginData);
 
     } catch (err) {
         console.error('Error during login:', err);
-        // FIX: Replaced res.status().json() with res.status() and res.json() to fix type error.
         res.status(500).json({ message: 'Server error during login.' });
     }
 });
 
+// Verify 2FA Login
+router.post('/login/2fa', authenticateToken, async (req: AuthRequest, res) => {
+    const userId = req.user?.id;
+    const { code } = req.body;
+
+    if (!userId || !code) {
+        return res.status(400).json({ message: 'Code is required' });
+    }
+
+    try {
+        const sql = `SELECT two_factor_secret, two_factor_backup_codes, email FROM users WHERE id = $1`;
+        const result = await db.query(sql, [userId]);
+        const user = result.rows[0];
+
+        if (!user || (!user.two_factor_secret && !user.two_factor_backup_codes)) {
+             return res.status(400).json({ message: '2FA is not enabled for this user.' });
+        }
+
+        // 1. Try TOTP
+        let verified = false;
+        if (user.two_factor_secret) {
+            verified = speakeasy.totp.verify({
+                secret: user.two_factor_secret,
+                encoding: 'base32',
+                token: code
+            });
+        }
+
+        // 2. Try Backup Codes if TOTP failed
+        if (!verified && user.two_factor_backup_codes && Array.isArray(user.two_factor_backup_codes)) {
+            if (user.two_factor_backup_codes.includes(code)) {
+                verified = true;
+                // Remove used backup code
+                const newCodes = user.two_factor_backup_codes.filter((c: string) => c !== code);
+                await db.query('UPDATE users SET two_factor_backup_codes = $1 WHERE id = $2', [newCodes, userId]);
+            }
+        }
+
+        if (!verified) {
+             return res.status(401).json({ message: 'Invalid two-factor code.' });
+        }
+
+        const loginData = await performLogin(userId, user.email);
+        res.json(loginData);
+
+    } catch (err) {
+        console.error('Error during 2fa verification:', err);
+        res.status(500).json({ message: 'Server error during verification.' });
+    }
+});
+
+// Setup 2FA - Generate Secret
+router.post('/2fa/generate', authenticateToken, async (req: AuthRequest, res) => {
+    const userId = req.user?.id;
+    
+    try {
+        const secret = speakeasy.generateSecret({ length: 20, name: `Crystal (${req.user?.email})` });
+        
+        // Store secret but do not enable yet
+        await db.query(`UPDATE users SET two_factor_secret = $1 WHERE id = $2`, [secret.base32, userId]);
+        
+        const qrCodeUrl = await qrcode.toDataURL(secret.otpauth_url || '');
+        
+        res.json({ secret: secret.base32, qrCodeUrl });
+    } catch (err) {
+        console.error('Error generating 2FA secret:', err);
+        res.status(500).json({ message: 'Failed to generate 2FA secret.' });
+    }
+});
+
+// Setup 2FA - Confirm & Enable
+router.post('/2fa/enable', authenticateToken, async (req: AuthRequest, res) => {
+    const userId = req.user?.id;
+    const { code } = req.body;
+    
+    try {
+        const userRes = await db.query(`SELECT two_factor_secret FROM users WHERE id = $1`, [userId]);
+        const user = userRes.rows[0];
+        
+        if (!user.two_factor_secret) {
+            return res.status(400).json({ message: 'No 2FA setup in progress.' });
+        }
+        
+        const verified = speakeasy.totp.verify({
+            secret: user.two_factor_secret,
+            encoding: 'base32',
+            token: code
+        });
+        
+        if (verified) {
+            // Generate backup codes
+            const backupCodes = Array.from({ length: 10 }, () => crypto.randomBytes(4).toString('hex'));
+            
+            await db.query(`UPDATE users SET is_2fa_enabled = TRUE, two_factor_backup_codes = $1 WHERE id = $2`, [backupCodes, userId]);
+            
+            res.json({ message: '2FA enabled successfully.', backupCodes });
+        } else {
+            res.status(400).json({ message: 'Invalid code. Please try again.' });
+        }
+    } catch (err) {
+        console.error('Error enabling 2FA:', err);
+        res.status(500).json({ message: 'Failed to enable 2FA.' });
+    }
+});
+
+// Disable 2FA
+router.post('/2fa/disable', authenticateToken, async (req: AuthRequest, res) => {
+    const userId = req.user?.id;
+    
+    try {
+        await db.query(`UPDATE users SET is_2fa_enabled = FALSE, two_factor_secret = NULL, two_factor_backup_codes = NULL WHERE id = $1`, [userId]);
+        res.json({ message: '2FA disabled successfully.' });
+    } catch (err) {
+        console.error('Error disabling 2FA:', err);
+        res.status(500).json({ message: 'Failed to disable 2FA.' });
+    }
+});
 
 // Get current user
 router.get('/me', authenticateToken, async (req: AuthRequest, res) => {
@@ -145,14 +266,11 @@ router.get('/me', authenticateToken, async (req: AuthRequest, res) => {
         const result = await db.query(sql, [userId]);
         const user = result.rows[0];
         if (!user) {
-            // FIX: Replaced res.status().json() with res.status() and res.json() to fix type error.
             return res.status(404).json({ message: 'User not found' });
         }
-        // FIX: Replaced res.status(200).json() with res.json() as 200 is the default status.
         res.json(user);
     } catch (err) {
         console.error(err);
-        // FIX: Replaced res.status().json() with res.status() and res.json() to fix type error.
         res.status(500).json({ message: 'Failed to fetch user profile.' });
     }
 });
