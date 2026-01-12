@@ -1,5 +1,4 @@
 
-
 // FIX: Import `useMemo` from React to resolve the 'Cannot find name' error.
 import React, { useState, useEffect, useMemo, useCallback, Suspense, lazy, useRef, Component, ErrorInfo, startTransition } from 'react';
 import Sidebar from './components/Sidebar';
@@ -415,6 +414,7 @@ const App: React.FC = () => {
   const [accountOrder, setAccountOrder] = useLocalStorage<string[]>('crystal-account-order', []);
   const [taskOrder, setTaskOrder] = useLocalStorage<string[]>('crystal-task-order', []);
   const transactionsViewFilters = useRef<{ accountName?: string | null; tagId?: string | null }>({});
+  const streakUpdatedRef = useRef(false);
   
   // State for AI Chat
   const [isChatOpen, setIsChatOpen] = useState(false);
@@ -435,21 +435,21 @@ const App: React.FC = () => {
   
   // Update Streak Logic
   useEffect(() => {
-    if (!isDataLoaded || !isAuthenticated) return;
+    if (!isDataLoaded || !isAuthenticated || streakUpdatedRef.current) return;
 
     const todayStr = toLocalISOString(new Date());
     const yesterday = new Date();
     yesterday.setDate(yesterday.getDate() - 1);
     const yesterdayStr = toLocalISOString(yesterday);
-    const normalizedLastLogDate = userStats.lastLogDate
-      ? toLocalISOString(parseLocalDate(userStats.lastLogDate))
-      : '';
+
+    const lastLogDate = userStats.lastLogDate || '';
     
     // Only update if not already logged today
-    if (normalizedLastLogDate !== todayStr) {
+    if (lastLogDate !== todayStr) {
+       streakUpdatedRef.current = true;
        let newStreak = 1;
        
-       if (normalizedLastLogDate === yesterdayStr) {
+       if (lastLogDate === yesterdayStr) {
            newStreak = (userStats.currentStreak || 0) + 1;
        }
        
@@ -461,10 +461,18 @@ const App: React.FC = () => {
        };
        
        setUserStats(newStats);
-       // Trigger save
        markSliceDirty('userStats');
+    } else {
+       streakUpdatedRef.current = true;
     }
-  }, [isDataLoaded, isAuthenticated, userStats, markSliceDirty]);
+  }, [isDataLoaded, isAuthenticated, userStats.lastLogDate, userStats.currentStreak, markSliceDirty]);
+
+  // Reset streak update guard on authentication change (e.g., logout/login)
+  useEffect(() => {
+    if (!isAuthenticated) {
+      streakUpdatedRef.current = false;
+    }
+  }, [isAuthenticated]);
 
 
   // FIX: Explicitly type assetPrices to avoid 'unknown' inference and ensure type safety
@@ -687,6 +695,8 @@ const App: React.FC = () => {
 
       if (dataToLoad.userStats) {
           setUserStats(dataToLoad.userStats);
+          // If we are loading fresh data, we should allow the streak logic to run again once per session
+          streakUpdatedRef.current = false;
       }
 
       setEnableBankingConnections(dataToLoad.enableBankingConnections || []);
@@ -2404,28 +2414,29 @@ const App: React.FC = () => {
   );
 
   // --- Data Import / Export ---
+  // FIX: Fixed syntax error in parameter types (|| to |) and resolved shadowing of newAccounts.
   const handlePublishImport = (
     items: (Omit<Account, 'id'> | Omit<Transaction, 'id'>)[],
     dataType: ImportDataType,
     fileName: string,
     originalData: Record<string, any>[],
     errors: Record<number, Record<string, string>>,
-    newAccounts?: Account[]
+    newAccountsArg?: Account[]
   ) => {
       const importId = `imp-${uuidv4()}`;
       
       // First save any new accounts created during import mapping
-      if (newAccounts && newAccounts.length > 0) {
-          newAccounts.forEach(acc => handleSaveAccount(acc));
+      if (newAccountsArg && newAccountsArg.length > 0) {
+          newAccountsArg.forEach(acc => handleSaveAccount(acc));
       }
 
       if (dataType === 'accounts') {
-          const newAccounts = items as Omit<Account, 'id'>[];
-          newAccounts.forEach(acc => handleSaveAccount(acc));
+          const importedAccounts = items as Omit<Account, 'id'>[];
+          importedAccounts.forEach(acc => handleSaveAccount(acc));
       } 
       else if (dataType === 'transactions') {
-          const newTransactions = items as Omit<Transaction, 'id'>[];
-          const transactionsWithImportId = newTransactions.map(t => ({ ...t, importId }));
+          const importedTransactions = items as Omit<Transaction, 'id'>[];
+          const transactionsWithImportId = importedTransactions.map(t => ({ ...t, importId }));
           handleSaveTransaction(transactionsWithImportId);
       }
       setImportExportHistory(prev => [...prev, {

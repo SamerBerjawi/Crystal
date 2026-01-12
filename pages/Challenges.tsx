@@ -9,6 +9,7 @@ import useLocalStorage from '../hooks/useLocalStorage';
 import PredictionCard from '../components/PredictionCard';
 import PredictionModal from '../components/PredictionModal';
 import PageHeader from '../components/PageHeader';
+import Modal from '../components/Modal';
 
 interface ChallengesProps {
     userStats: UserStats;
@@ -495,6 +496,7 @@ const Challenges: React.FC<ChallengesProps> = ({ userStats, accounts, transactio
   const [activeSection, setActiveSection] = useState<ChallengeSection>('score');
   const [activeSprints, setActiveSprints] = useLocalStorage<ActiveSprint[]>('crystal_active_sprints', []);
   const [isPredictionModalOpen, setPredictionModalOpen] = useState(false);
+  const [isScoreInfoOpen, setScoreInfoOpen] = useState(false);
 
   const analyticsAccounts = useMemo(() => accounts.filter(acc => acc.includeInAnalytics ?? true), [accounts]);
   const analyticsAccountIds = useMemo(() => new Set(analyticsAccounts.map(acc => acc.id)), [analyticsAccounts]);
@@ -793,6 +795,73 @@ const Challenges: React.FC<ChallengesProps> = ({ userStats, accounts, transactio
           return { ...def, active, currentSpend, daysRemaining, timeProgress, status };
       }).filter(Boolean) as any[];
   }, [activeSprints, analyticsTransactions]);
+  
+  const ScoreExplainerModal = () => (
+      <Modal onClose={() => setScoreInfoOpen(false)} title="Financial Health Score Explained" size="lg">
+          <div className="space-y-6">
+              <div className="bg-gray-50 dark:bg-white/5 p-4 rounded-xl border border-black/5 dark:border-white/5">
+                  <p className="text-sm text-light-text-secondary dark:text-dark-text-secondary leading-relaxed">
+                      Your Financial Health Score is a composite metric derived from four key pillars of personal finance. 
+                      It is designed to give you a quick, holistic view of your financial stability and growth potential.
+                  </p>
+              </div>
+
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  {/* Savings Rate */}
+                  <div className="p-4 rounded-xl border border-emerald-100 dark:border-emerald-900/30 bg-emerald-50/50 dark:bg-emerald-900/10">
+                      <div className="flex items-center gap-2 mb-2 text-emerald-700 dark:text-emerald-400 font-bold">
+                          <span className="material-symbols-outlined">savings</span>
+                          <h3>Savings Rate (Max 30pts)</h3>
+                      </div>
+                      <p className="text-xs text-light-text-secondary dark:text-dark-text-secondary">
+                          Measures the percentage of income you save. 
+                          <br/><span className="font-semibold">Goal:</span> Save &gt;20% of your income for maximum points.
+                      </p>
+                  </div>
+
+                  {/* Liquidity */}
+                  <div className="p-4 rounded-xl border border-blue-100 dark:border-blue-900/30 bg-blue-50/50 dark:bg-blue-900/10">
+                      <div className="flex items-center gap-2 mb-2 text-blue-700 dark:text-blue-400 font-bold">
+                          <span className="material-symbols-outlined">water_drop</span>
+                          <h3>Liquidity Ratio (Max 30pts)</h3>
+                      </div>
+                      <p className="text-xs text-light-text-secondary dark:text-dark-text-secondary">
+                          Measures your ability to cover expenses with cash.
+                          <br/><span className="font-semibold">Goal:</span> Have 3+ months of expenses in liquid cash (Checking/Savings).
+                      </p>
+                  </div>
+
+                  {/* Debt Management */}
+                  <div className="p-4 rounded-xl border border-rose-100 dark:border-rose-900/30 bg-rose-50/50 dark:bg-rose-900/10">
+                      <div className="flex items-center gap-2 mb-2 text-rose-700 dark:text-rose-400 font-bold">
+                          <span className="material-symbols-outlined">credit_card</span>
+                          <h3>Debt Management (Max 20pts)</h3>
+                      </div>
+                      <p className="text-xs text-light-text-secondary dark:text-dark-text-secondary">
+                          Evaluates your total debt load.
+                          <br/><span className="font-semibold">Goal:</span> 0 Debt yields max points. Points decrease as debt increases.
+                      </p>
+                  </div>
+
+                   {/* Diversity */}
+                  <div className="p-4 rounded-xl border border-purple-100 dark:border-purple-900/30 bg-purple-50/50 dark:bg-purple-900/10">
+                      <div className="flex items-center gap-2 mb-2 text-purple-700 dark:text-purple-400 font-bold">
+                          <span className="material-symbols-outlined">category</span>
+                          <h3>Asset Diversity (Max 20pts)</h3>
+                      </div>
+                      <p className="text-xs text-light-text-secondary dark:text-dark-text-secondary">
+                          Rewards portfolio diversification.
+                          <br/><span className="font-semibold">Goal:</span> Hold at least 4 different account types (e.g., Cash, Investment, Property, Vehicle).
+                      </p>
+                  </div>
+              </div>
+              
+              <div className="flex justify-end pt-4 border-t border-black/10 dark:border-white/10">
+                  <button onClick={() => setScoreInfoOpen(false)} className={BTN_PRIMARY_STYLE}>Got it</button>
+              </div>
+          </div>
+      </Modal>
+  );
 
   // --- Render Sections ---
   const renderScoreSection = () => {
@@ -826,7 +895,16 @@ const Challenges: React.FC<ChallengesProps> = ({ userStats, accounts, transactio
                       </div>
                       
                       <div className="relative z-10 flex-grow text-center sm:text-left">
-                          <h3 className="text-lg font-bold text-light-text-secondary dark:text-dark-text-secondary uppercase tracking-wider mb-1">Financial Health Score</h3>
+                          <div className="flex items-center justify-center sm:justify-start gap-2 mb-1">
+                               <h3 className="text-lg font-bold text-light-text-secondary dark:text-dark-text-secondary uppercase tracking-wider">Financial Health Score</h3>
+                               <button 
+                                    onClick={() => setScoreInfoOpen(true)}
+                                    className="text-light-text-secondary dark:text-dark-text-secondary hover:text-primary-500 transition-colors"
+                                    title="How is this calculated?"
+                                >
+                                   <span className="material-symbols-outlined text-lg">info</span>
+                               </button>
+                          </div>
                           <h2 className={`text-4xl font-black ${rankColor} mb-2`}>{rank}</h2>
                           <p className="text-light-text dark:text-dark-text leading-relaxed max-w-md">
                               Your score is based on key financial pillars including savings rate, liquidity runway, debt management, and portfolio diversity.
@@ -898,6 +976,7 @@ const Challenges: React.FC<ChallengesProps> = ({ userStats, accounts, transactio
   return (
     <div className="space-y-8 pb-12 animate-fade-in-up">
       {isPredictionModalOpen && <PredictionModal onClose={() => setPredictionModalOpen(false)} onSave={savePrediction} accounts={accounts} expenseCategories={expenseCategories} investmentTransactions={investmentTransactions} warrants={warrants} />}
+      {isScoreInfoOpen && <ScoreExplainerModal />}
       
       <PageHeader
         markerIcon="stadia_controller"

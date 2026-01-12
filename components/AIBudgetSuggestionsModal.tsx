@@ -1,5 +1,4 @@
 
-
 import React, { useState, useEffect } from 'react';
 import Modal from './Modal';
 import { BudgetSuggestion, Budget } from '../types';
@@ -64,11 +63,11 @@ const AIBudgetSuggestionsModal: React.FC<AIBudgetSuggestionsModalProps> = ({ isO
       .filter(([, value]) => (value as { selected: boolean }).selected)
       .map(([categoryName, value]) => {
           const original = suggestions.find(s => s.categoryName === categoryName);
+          const typedValue = value as { suggestedBudget: number; selected: boolean };
           return {
             categoryName,
             averageSpending: original?.averageSpending || 0,
-            // FIX: Explicitly cast `value` to resolve 'unknown' type error.
-            suggestedBudget: (value as { suggestedBudget: number }).suggestedBudget
+            suggestedBudget: typedValue.suggestedBudget
           };
       });
     onApply(selected);

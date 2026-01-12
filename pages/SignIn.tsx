@@ -98,13 +98,17 @@ const SignIn: React.FC<SignInProps> = ({ onSignIn, onNavigateToSignUp, onEnterDe
           </button>
         </form>
 
-        <div className="relative my-8">
-          <div className="absolute inset-0 flex items-center">
-            <div className="w-full border-t border-gray-200 dark:border-gray-800"></div>
-          </div>
-          <div className="relative flex justify-center text-sm">
-            <span className="px-4 bg-light-card dark:bg-dark-card lg:bg-light-bg lg:dark:bg-dark-bg text-light-text-secondary dark:text-dark-text-secondary font-medium">Or continue with</span>
-          </div>
+        <div className="flex items-center my-8">
+          {/* Left Line */}
+          <div className="flex-grow border-t border-gray-200 dark:border-gray-800"></div>
+          
+          {/* The Text - Now background-free */}
+          <span className="mx-4 text-sm font-medium text-light-text-secondary dark:text-dark-text-secondary">
+            Or continue with
+          </span>
+          
+          {/* Right Line */}
+          <div className="flex-grow border-t border-gray-200 dark:border-gray-800"></div>
         </div>
 
         <button onClick={onEnterDemoMode} className={`${BTN_SECONDARY_STYLE} w-full !py-3.5 !text-base !rounded-xl flex items-center justify-center gap-2 group`}>

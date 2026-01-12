@@ -1,4 +1,3 @@
-
 import React, { useState, useMemo, useCallback, useEffect } from 'react';
 import {
   Page,
@@ -339,6 +338,30 @@ const Forecasting: React.FC = () => {
         
         return Object.values(summary).sort((a, b) => a.name.localeCompare(b.name));
     }, [financialGoals, accounts, filterGoalsByAccount, selectedAccountIds]);
+
+    const { totalIncomeGoalTarget, totalIncomeGoalCurrent, totalSavingsGoalTarget, totalSavingsGoalCurrent } = useMemo(() => {
+        let incTarget = 0, incCurrent = 0, savTarget = 0, savCurrent = 0;
+        goalsWithProjections.forEach(g => {
+            if (g.isBucket) return;
+            // Respect account filters for grand totals if the checkbox is checked
+            const isVisible = !filterGoalsByAccount || !g.paymentAccountId || selectedAccountIds.includes(g.paymentAccountId);
+            if (!isVisible) return;
+
+            if (g.transactionType === 'income') {
+                incTarget += g.amount;
+                incCurrent += g.currentAmount;
+            } else {
+                savTarget += g.amount;
+                savCurrent += g.currentAmount;
+            }
+        });
+        return { 
+            totalIncomeGoalTarget: incTarget, 
+            totalIncomeGoalCurrent: incCurrent, 
+            totalSavingsGoalTarget: savTarget, 
+            totalSavingsGoalCurrent: savCurrent 
+        };
+    }, [goalsWithProjections, filterGoalsByAccount, selectedAccountIds]);
 
     const majorUpcomingOutflows = useMemo(() => {
         const endDate = new Date();
@@ -693,38 +716,91 @@ const Forecasting: React.FC = () => {
                 </div>
 
                 {/* Goals Summary Hero Grid */}
-                {accountGoalSummary.length > 0 && (
-                    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 animate-fade-in-up">
-                        {accountGoalSummary.map(summary => {
-                            const progress = Math.min(100, (summary.current / summary.target) * 100);
-                            return (
-                            <div key={summary.id} className="bg-white dark:bg-dark-card rounded-xl p-4 border border-black/5 dark:border-white/5 shadow-sm">
-                                <div className="flex justify-between items-start mb-1">
-                                     <p className="text-xs font-bold text-light-text-secondary dark:text-dark-text-secondary uppercase tracking-wider truncate max-w-[70%]">{summary.name}</p>
-                                     <span className={`text-[10px] font-bold uppercase px-1.5 py-0.5 rounded ${summary.type === 'income' ? 'bg-emerald-100 text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-400' : 'bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-400'}`}>
-                                         {summary.type === 'income' ? 'Earnings' : 'Savings'}
-                                     </span>
+                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 animate-fade-in-up">
+                    {/* Grand Total Income Card */}
+                    <div className="bg-white dark:bg-dark-card rounded-xl p-4 border-2 border-emerald-500/20 shadow-sm relative overflow-hidden group">
+                        <div className="flex justify-between items-start mb-1 relative z-10">
+                             <p className="text-[10px] font-black text-emerald-600 dark:text-emerald-400 uppercase tracking-widest">GRAND TOTAL INCOME</p>
+                             <span className="text-[10px] font-black uppercase px-2 py-0.5 rounded-full bg-emerald-100 text-emerald-700 dark:bg-emerald-900/40 dark:text-emerald-300 border border-emerald-200 dark:border-emerald-800 shadow-sm">GLOBAL</span>
+                        </div>
+                        <div className="flex items-end justify-between relative z-10 mt-2">
+                            <div>
+                                <p className="text-2xl font-black text-emerald-700 dark:text-emerald-400 tracking-tight">{formatCurrency(totalIncomeGoalCurrent, 'EUR')}</p>
+                                <p className="text-[10px] font-bold text-light-text-secondary dark:text-dark-text-secondary uppercase mt-0.5">Total Earned</p>
+                            </div>
+                            <div className="text-right">
+                                <p className="text-sm font-bold text-light-text dark:text-dark-text opacity-60">{formatCurrency(totalIncomeGoalTarget, 'EUR')}</p>
+                                <p className="text-[10px] font-bold text-light-text-secondary dark:text-dark-text-secondary uppercase">Target <span className="text-emerald-600 dark:text-emerald-400 font-black ml-1">{totalIncomeGoalTarget > 0 ? ((totalIncomeGoalCurrent / totalIncomeGoalTarget) * 100).toFixed(0) : 0}%</span></p>
+                            </div>
+                        </div>
+                        <div className="w-full h-2 bg-gray-100 dark:bg-white/5 rounded-full mt-4 overflow-hidden relative z-10 border border-black/5 dark:border-white/5 shadow-inner">
+                            <div 
+                                className="h-full bg-gradient-to-r from-emerald-400 to-emerald-600 rounded-full transition-all duration-1000 ease-out"
+                                style={{ width: `${totalIncomeGoalTarget > 0 ? Math.min(100, (totalIncomeGoalCurrent / totalIncomeGoalTarget) * 100) : 0}%` }}
+                            ></div>
+                        </div>
+                        <div className="absolute top-0 right-0 p-2 opacity-[0.03] group-hover:opacity-[0.07] transition-opacity pointer-events-none">
+                            <span className="material-symbols-outlined text-7xl">monetization_on</span>
+                        </div>
+                    </div>
+
+                    {/* Grand Total Savings Card */}
+                    <div className="bg-white dark:bg-dark-card rounded-xl p-4 border-2 border-rose-500/20 shadow-sm relative overflow-hidden group">
+                        <div className="flex justify-between items-start mb-1 relative z-10">
+                             <p className="text-[10px] font-black text-rose-600 dark:text-rose-400 uppercase tracking-widest">GRAND TOTAL SAVINGS</p>
+                             <span className="text-[10px] font-black uppercase px-2 py-0.5 rounded-full bg-rose-100 text-rose-700 dark:bg-rose-900/40 dark:text-rose-300 border border-rose-200 dark:border-rose-800 shadow-sm">GLOBAL</span>
+                        </div>
+                        <div className="flex items-end justify-between relative z-10 mt-2">
+                            <div>
+                                <p className="text-2xl font-black text-rose-700 dark:text-rose-400 tracking-tight">{formatCurrency(totalSavingsGoalCurrent, 'EUR')}</p>
+                                <p className="text-[10px] font-bold text-light-text-secondary dark:text-dark-text-secondary uppercase mt-0.5">Total Saved</p>
+                            </div>
+                            <div className="text-right">
+                                <p className="text-sm font-bold text-light-text dark:text-dark-text opacity-60">{formatCurrency(totalSavingsGoalTarget, 'EUR')}</p>
+                                <p className="text-[10px] font-bold text-light-text-secondary dark:text-dark-text-secondary uppercase">Target <span className="text-rose-600 dark:text-rose-400 font-black ml-1">{totalSavingsGoalTarget > 0 ? ((totalSavingsGoalCurrent / totalSavingsGoalTarget) * 100).toFixed(0) : 0}%</span></p>
+                            </div>
+                        </div>
+                        <div className="w-full h-2 bg-gray-100 dark:bg-white/5 rounded-full mt-4 overflow-hidden relative z-10 border border-black/5 dark:border-white/5 shadow-inner">
+                            <div 
+                                className="h-full bg-gradient-to-r from-rose-400 to-rose-600 rounded-full transition-all duration-1000 ease-out"
+                                style={{ width: `${totalSavingsGoalTarget > 0 ? Math.min(100, (totalSavingsGoalCurrent / totalSavingsGoalTarget) * 100) : 0}%` }}
+                            ></div>
+                        </div>
+                         <div className="absolute top-0 right-0 p-2 opacity-[0.03] group-hover:opacity-[0.07] transition-opacity pointer-events-none">
+                            <span className="material-symbols-outlined text-7xl">savings</span>
+                        </div>
+                    </div>
+
+                    {/* Individual Account Goal Summaries */}
+                    {accountGoalSummary.map(summary => {
+                        const progress = Math.min(100, (summary.current / summary.target) * 100);
+                        return (
+                        <div key={summary.id} className="bg-white dark:bg-dark-card rounded-xl p-4 border border-black/5 dark:border-white/5 shadow-sm">
+                            <div className="flex justify-between items-start mb-1">
+                                 <p className="text-[10px] font-bold text-light-text-secondary dark:text-dark-text-secondary uppercase tracking-widest truncate max-w-[70%]">{summary.name}</p>
+                                 <span className={`text-[10px] font-bold uppercase px-1.5 py-0.5 rounded ${summary.type === 'income' ? 'bg-emerald-100 text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-400' : 'bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-400'}`}>
+                                     {summary.type === 'income' ? 'Earnings' : 'Savings'}
+                                 </span>
+                            </div>
+                            <div className="flex items-end justify-between mt-2">
+                                <div>
+                                    <p className="text-xl font-bold text-light-text dark:text-dark-text">{formatCurrency(summary.current, summary.currency)}</p>
+                                    <p className="text-[10px] font-bold text-light-text-secondary dark:text-dark-text-secondary uppercase mt-0.5">{summary.type === 'income' ? 'Earned' : 'Saved'}</p>
                                 </div>
-                                <div className="flex items-end justify-between">
-                                    <div>
-                                        <p className="text-lg font-bold text-light-text dark:text-dark-text">{formatCurrency(summary.current, summary.currency)}</p>
-                                        <p className="text-[10px] text-light-text-secondary dark:text-dark-text-secondary">{summary.type === 'income' ? 'Earned' : 'Saved'}</p>
-                                    </div>
-                                    <div className="text-right">
-                                        <p className="text-sm font-semibold text-light-text dark:text-dark-text opacity-70">{formatCurrency(summary.target, summary.currency)}</p>
-                                        <p className="text-[10px] text-light-text-secondary dark:text-dark-text-secondary">Target <span className="font-bold ml-1">{progress.toFixed(0)}%</span></p>
-                                    </div>
-                                </div>
-                                <div className="w-full h-1.5 bg-gray-100 dark:bg-white/10 rounded-full mt-3 overflow-hidden">
-                                    <div 
-                                        className={`h-full rounded-full ${summary.type === 'income' ? 'bg-emerald-500' : 'bg-primary-500'}`}
-                                        style={{ width: `${progress}%` }}
-                                    ></div>
+                                <div className="text-right">
+                                    <p className="text-sm font-semibold text-light-text dark:text-dark-text opacity-60">{formatCurrency(summary.target, summary.currency)}</p>
+                                    <p className="text-[10px] font-bold text-light-text-secondary dark:text-dark-text-secondary uppercase">Target <span className="font-black ml-1">{progress.toFixed(0)}%</span></p>
                                 </div>
                             </div>
-                        )})}
-                    </div>
-                )}
+                            <div className="w-full h-1.5 bg-gray-100 dark:bg-white/5 rounded-full mt-4 overflow-hidden border border-black/5 dark:border-white/5 shadow-inner">
+                                <div 
+                                    className={`h-full rounded-full ${summary.type === 'income' ? 'bg-emerald-500' : 'bg-primary-500'}`}
+                                    style={{ width: `${progress}%` }}
+                                ></div>
+                            </div>
+                        </div>
+                    )})}
+                </div>
                 
                 {/* Individual Goals Grid */}
                 <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
