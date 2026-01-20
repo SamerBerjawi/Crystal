@@ -52,6 +52,7 @@ const FinancialGoalCard: React.FC<FinancialGoalCardProps> = ({ goal, subGoals, i
 
   const progress = goalToDisplay.amount > 0 ? (goalToDisplay.currentAmount / goalToDisplay.amount) * 100 : 0;
   const isCompleted = progress >= 100;
+  const remainingAmount = Math.max(0, goalToDisplay.amount - goalToDisplay.currentAmount);
 
   const isIncomeGoal = goalToDisplay.transactionType === 'income';
 
@@ -267,6 +268,7 @@ const FinancialGoalCard: React.FC<FinancialGoalCardProps> = ({ goal, subGoals, i
                 </div>
                 <div className="flex justify-between mt-1.5 text-[10px] font-bold text-light-text-secondary dark:text-dark-text-secondary uppercase tracking-wide">
                     <span>{progress.toFixed(0)}% Complete</span>
+                    {remainingAmount > 0 && <span>{formatCurrency(remainingAmount, goalToDisplay.currency)} Left</span>}
                 </div>
             </div>
             

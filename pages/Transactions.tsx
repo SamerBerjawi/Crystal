@@ -318,15 +318,18 @@ const Transactions: React.FC<TransactionsProps> = ({ initialAccountFilter, initi
     const getSpareChangeKey = (accountId: string, date: string, description?: string, isTransfer?: boolean) =>
       `${accountId}|${date}|${normalizeDescription(description, isTransfer)}`;
 
+    // Store array of amounts for each key to handle multiple transactions with same description/date
     const spareChangeLookup = sortedTransactions.reduce((map, tx) => {
         if (!tx.transferId?.startsWith('spare-') || tx.amount >= 0) return map;
 
         const baseDescription = tx.description?.replace(/^Spare change (for|from)\s*/i, '').trim();
-        const key = getSpareChangeKey(tx.accountId, tx.date, baseDescription, tx.category === 'Transfer');
-        const currentAmount = map.get(key) || 0;
-        map.set(key, currentAmount + Math.abs(tx.amount));
+        const key = getSpareChangeKey(tx.accountId, tx.date, baseDescription, false);
+        
+        const currentAmounts = map.get(key) || [];
+        currentAmounts.push(Math.abs(tx.amount));
+        map.set(key, currentAmounts);
         return map;
-    }, new Map<string, number>());
+    }, new Map<string, number[]>());
 
     const transferLookup = sortedTransactions.reduce((map, tx) => {
         if (!tx.transferId || tx.transferId.startsWith('spare-')) return map;
@@ -340,6 +343,31 @@ const Transactions: React.FC<TransactionsProps> = ({ initialAccountFilter, initi
         return map;
     }, new Map<string, { income?: Transaction; expense?: Transaction }>());
 
+    const consumeSpareChange = (accountId: string, date: string, description?: string, isTransfer?: boolean, txAmount?: number) => {
+         const key = getSpareChangeKey(accountId, date, description, isTransfer);
+         const amounts = spareChangeLookup.get(key);
+         
+         if (!amounts || amounts.length === 0) return undefined;
+         
+         // Try to find a logical match based on standard round up
+         let bestIndex = 0;
+         if (txAmount !== undefined) {
+             const absAmt = Math.abs(txAmount);
+             const remainder = absAmt % 1;
+             // Default logic: 1.0 - remainder. If remainder 0, checking for 1.0 (unit)
+             const expected = parseFloat((remainder === 0 ? 1.00 : (1.00 - remainder)).toFixed(2));
+             
+             // Look for exact match to expected
+             const idx = amounts.findIndex(a => Math.abs(a - expected) < 0.005);
+             if (idx !== -1) bestIndex = idx;
+         }
+         
+         const amount = amounts[bestIndex];
+         amounts.splice(bestIndex, 1);
+         if (amounts.length === 0) spareChangeLookup.delete(key);
+         return amount;
+    };
+
     for (const tx of sortedTransactions) {
         if (tx.transferId?.startsWith('spare-')) continue; // Spare change handled separately
 
@@ -350,8 +378,7 @@ const Transactions: React.FC<TransactionsProps> = ({ initialAccountFilter, initi
             processedTransferIds.add(tx.transferId);
 
             if (pair?.expense && pair?.income) {
-                const spareKey = getSpareChangeKey(pair.expense.accountId, pair.expense.date, pair.expense.description, true);
-                const spareChangeAmount = spareChangeLookup.get(spareKey);
+                const spareChangeAmount = consumeSpareChange(pair.expense.accountId, pair.expense.date, pair.expense.description, true, pair.expense.amount);
 
                 result.push({
                     ...pair.expense,
@@ -371,12 +398,12 @@ const Transactions: React.FC<TransactionsProps> = ({ initialAccountFilter, initi
                     transferIncomeCurrency: pair.income.currency,
                 });
             } else {
-                const spareKey = getSpareChangeKey(tx.accountId, tx.date, tx.description, true);
-                result.push({ ...tx, accountName: accountMap[tx.accountId]?.name, spareChangeAmount: spareChangeLookup.get(spareKey) });
+                const spareChangeAmount = consumeSpareChange(tx.accountId, tx.date, tx.description, true, tx.amount);
+                result.push({ ...tx, accountName: accountMap[tx.accountId]?.name, spareChangeAmount });
             }
         } else {
-            const spareKey = getSpareChangeKey(tx.accountId, tx.date, tx.description, false);
-            result.push({ ...tx, accountName: accountMap[tx.accountId]?.name, spareChangeAmount: spareChangeLookup.get(spareKey) });
+            const spareChangeAmount = consumeSpareChange(tx.accountId, tx.date, tx.description, false, tx.amount);
+            result.push({ ...tx, accountName: accountMap[tx.accountId]?.name, spareChangeAmount });
         }
     }
     return result;
