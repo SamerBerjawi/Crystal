@@ -3,7 +3,7 @@ import React, { useState, useMemo } from 'react';
 import { Budget, Category, Transaction, Account, BudgetSuggestion, AppPreferences } from '../types';
 import { BTN_PRIMARY_STYLE, BTN_SECONDARY_STYLE, LIQUID_ACCOUNT_TYPES, QUICK_CREATE_BUDGET_OPTIONS, SELECT_ARROW_STYLE, SELECT_STYLE, SELECT_WRAPPER_STYLE } from '../constants';
 import Card from '../components/Card';
-import { formatCurrency, convertToEur, parseLocalDate } from '../utils';
+import { formatCurrency, convertToEur } from '../utils';
 import BudgetProgressCard from '../components/BudgetProgressCard';
 import BudgetModal from '../components/BudgetModal';
 import AIBudgetSuggestionsModal from '../components/AIBudgetSuggestionsModal';
@@ -271,53 +271,6 @@ const Budgeting: React.FC<BudgetingProps> = ({ budgets, transactions, expenseCat
     return { totalBudgeted, totalSpent, spendingByCategory: spending, totalIncome };
   }, [currentDate, transactions, budgets, expenseCategories, accounts]);
 
-  // Calculate historical spending for each category for sparklines
-  const categoryHistory = useMemo(() => {
-    const today = new Date();
-    const history: Record<string, { date: string; amount: number }[]> = {};
-
-    // Initialize for all expense categories
-    expenseCategories.forEach(cat => {
-        history[cat.name] = [];
-    });
-
-    // 6 months history
-    for (let i = 5; i >= 0; i--) {
-        const d = new Date(today.getFullYear(), today.getMonth() - i, 1);
-        const monthKey = d.toLocaleString('default', { month: 'short' });
-        const startOfMonth = new Date(d.getFullYear(), d.getMonth(), 1);
-        const endOfMonth = new Date(d.getFullYear(), d.getMonth() + 1, 0, 23, 59, 59);
-        
-        const liquidAccountIds = new Set(
-            accounts.filter(acc => LIQUID_ACCOUNT_TYPES.includes(acc.type)).map(acc => acc.id)
-        );
-
-        // Filter transactions for this month
-        const monthlyTxs = transactions.filter(t => {
-            const txDate = parseLocalDate(t.date);
-            return txDate >= startOfMonth && txDate <= endOfMonth && t.type === 'expense' && !t.transferId && liquidAccountIds.has(t.accountId);
-        });
-
-        // Aggregate by category
-        const monthlySpending: Record<string, number> = {};
-        
-        monthlyTxs.forEach(tx => {
-             const parentCategory = findParentCategory(tx.category, expenseCategories);
-             if (parentCategory) {
-                 monthlySpending[parentCategory.name] = (monthlySpending[parentCategory.name] || 0) + Math.abs(convertToEur(tx.amount, tx.currency));
-             }
-        });
-
-        // Push to history for each category
-        expenseCategories.forEach(cat => {
-            if (!history[cat.name]) history[cat.name] = [];
-            history[cat.name].push({ date: monthKey, amount: monthlySpending[cat.name] || 0 });
-        });
-    }
-
-    return history;
-  }, [transactions, expenseCategories, accounts]);
-
   // Metrics Calculations
   const totalRemaining = totalBudgeted - totalSpent;
   const monthName = currentDate.toLocaleString('default', { month: 'long', year: 'numeric' });
@@ -526,7 +479,6 @@ const Budgeting: React.FC<BudgetingProps> = ({ budgets, transactions, expenseCat
                 {expenseCategories.filter(c => !c.parentId).map(category => {
                   const budget = budgets.find(b => b.categoryName === category.name);
                   const spent = spendingByCategory[category.name] || 0;
-                  const history = categoryHistory[category.name] || [];
                   
                   return (
                     <BudgetProgressCard 
@@ -535,7 +487,6 @@ const Budgeting: React.FC<BudgetingProps> = ({ budgets, transactions, expenseCat
                       budgeted={budget?.amount || 0}
                       spent={spent}
                       onEdit={() => handleOpenModal(budget, category.name)}
-                      history={history}
                     />
                   );
                 })}

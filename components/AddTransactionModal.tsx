@@ -245,6 +245,11 @@ const AddTransactionModal: React.FC<AddTransactionModalProps> = ({ onClose, onSa
     setPrincipalPayment(newPrincipal.toFixed(2));
   };
 
+  const handleDescriptionBlur = () => {
+    if (!merchant && description) {
+        setMerchant(description);
+    }
+  };
 
   useEffect(() => {
     if (isEditing && transactionToEdit) {
@@ -706,7 +711,16 @@ const AddTransactionModal: React.FC<AddTransactionModalProps> = ({ onClose, onSa
                              <label className={labelStyle}>Description</label>
                              <div className="relative">
                                 <span className="material-symbols-outlined absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 text-lg">description</span>
-                                <input id="tx-description" type="text" value={description} onChange={e => setDescription(e.target.value)} className={`${INPUT_BASE_STYLE} pl-10`} placeholder="What was this for?" required />
+                                <input 
+                                  id="tx-description" 
+                                  type="text" 
+                                  value={description} 
+                                  onChange={e => setDescription(e.target.value)} 
+                                  onBlur={handleDescriptionBlur} 
+                                  className={`${INPUT_BASE_STYLE} pl-10`} 
+                                  placeholder="What was this for?" 
+                                  required 
+                                />
                              </div>
                          </div>
                      </div>
@@ -715,7 +729,16 @@ const AddTransactionModal: React.FC<AddTransactionModalProps> = ({ onClose, onSa
                          <label className={labelStyle}>Description</label>
                          <div className="relative">
                             <span className="material-symbols-outlined absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 text-lg">description</span>
-                            <input id="tx-description" type="text" value={description} onChange={e => setDescription(e.target.value)} className={`${INPUT_BASE_STYLE} pl-10`} placeholder="Reason for transfer" required />
+                            <input 
+                              id="tx-description" 
+                              type="text" 
+                              value={description} 
+                              onChange={e => setDescription(e.target.value)} 
+                              onBlur={handleDescriptionBlur}
+                              className={`${INPUT_BASE_STYLE} pl-10`} 
+                              placeholder="Reason for transfer" 
+                              required 
+                            />
                          </div>
                      </div>
                  )}

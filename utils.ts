@@ -1,5 +1,6 @@
 
-import { Currency, Account, Transaction, Duration, Category, FinancialGoal, RecurringTransaction, BillPayment, ScheduledPayment, RecurringTransactionOverride, LoanPaymentOverrides } from './types';
+
+import { Currency, Account, Transaction, Duration, Category, FinancialGoal, RecurringTransaction, BillPayment, ScheduledPayment, RecurringTransactionOverride, LoanPaymentOverrides, WeekendAdjustment } from './types';
 import { ASSET_TYPES, DEBT_TYPES, LIQUID_ACCOUNT_TYPES } from './constants';
 import { v4 as uuidv4 } from 'uuid';
 
@@ -94,6 +95,21 @@ export const parseLocalDate = (dateString: string): Date => {
         console.error('Error parsing date:', e);
         return new Date();
     }
+};
+
+export const adjustDateForWeekend = (dateStr: string, strategy: WeekendAdjustment): string => {
+    if (strategy === 'on') return dateStr;
+    const date = parseLocalDate(dateStr);
+    const day = date.getDay(); // 0=Sun, 6=Sat
+    
+    if (day === 0) { // Sunday
+        if (strategy === 'before') date.setDate(date.getDate() - 2); // Fri
+        if (strategy === 'after') date.setDate(date.getDate() + 1); // Mon
+    } else if (day === 6) { // Saturday
+        if (strategy === 'before') date.setDate(date.getDate() - 1); // Fri
+        if (strategy === 'after') date.setDate(date.getDate() + 2); // Mon
+    }
+    return toLocalISOString(date);
 };
 
 export function calculateForecastHorizon(
@@ -768,104 +784,98 @@ export function generateBalanceForecast(
         while (nextDate < startDate && (!endDateLocal || nextDate < endDateLocal)) {
             // This logic fast-forwards past-due occurrences to catch up to the present day for the forecast
             const interval = rt.frequencyInterval || 1;
-            switch(rt.frequency) {
-                case 'daily': nextDate.setDate(nextDate.getDate() + interval); break;
-                case 'weekly': nextDate.setDate(nextDate.getDate() + 7 * interval); break;
-                case 'monthly': {
-                    const d = rt.dueDateOfMonth || startDateLocal.getDate();
-                    nextDate.setMonth(nextDate.getMonth() + interval, 1);
-                    const lastDay = new Date(nextDate.getFullYear(), nextDate.getMonth() + 1, 0).getDate();
-                    nextDate.setDate(Math.min(d, lastDay));
-                    break;
-                }
-                case 'yearly': {
-                     const d = rt.dueDateOfMonth || startDateLocal.getDate();
-                     const m = startDateLocal.getMonth();
-                     nextDate.setFullYear(nextDate.getFullYear() + interval);
-                     const lastDay = new Date(nextDate.getFullYear(), m + 1, 0).getDate();
-                     nextDate.setMonth(m, Math.min(d, lastDay));
-                     break;
-                }
+            const d = new Date(nextDate);
+            if (rt.frequency === 'monthly') {
+                d.setMonth(d.getMonth() + interval);
+                // Keep original day
             }
+            else if (rt.frequency === 'weekly') d.setDate(d.getDate() + (7 * interval));
+            else if (rt.frequency === 'daily') d.setDate(d.getDate() + interval);
+            else if (rt.frequency === 'yearly') d.setFullYear(d.getFullYear() + interval);
+            nextDate = d;
         }
 
         while (nextDate <= forecastEndDate && (!endDateLocal || nextDate <= endDateLocal)) {
-            const dateStr = toLocalISOString(nextDate);
+            // Raw date before any adjustment
+            const rawDateStr = toLocalISOString(nextDate);
+            // Adjusted date based on rules
+            const adjustedDateStr = adjustDateForWeekend(rawDateStr, rt.weekendAdjustment);
+
             // Use Map lookup instead of .find()
-            const override = overrideMap.get(`${rt.id}-${dateStr}`);
+            const override = overrideMap.get(`${rt.id}-${rawDateStr}`);
 
-            if (override?.isSkipped) {
-                // No event added, just advance to the next occurrence
+            // Important: We still generate the event even if skipped, but filter it later for balance impact if needed.
+            // Or better, handle the logic here: if skipped, don't add to balance, but maybe track it?
+            // The requirement is "Visible but strikedout". So we must generate it.
+            
+            const effectiveDate = override?.date || adjustedDateStr;
+            let amount = override?.amount !== undefined ? override.amount : (rt.type === 'expense' ? -rt.amount : rt.amount);
+            let accountName = 'N/A';
+            const isSkipped = !!override?.isSkipped;
+
+            // Only add financial impact if NOT skipped
+            // But we need to record the event for UI purposes regardless
+            // The chart calculation logic below iterates over events. We can add a property 'isSkipped' to event.
+
+            if (rt.type === 'transfer') {
+                const fromSelected = accountIds.has(rt.accountId);
+                const toSelected = rt.toAccountId ? accountIds.has(rt.toAccountId) : false;
+                
+                if (fromSelected && toSelected) {
+                    // Internal transfer within selected accounts
+                     addEvent(effectiveDate, { 
+                         amount: -(override?.amount !== undefined ? override.amount : rt.amount), 
+                         currency: rt.currency, 
+                         description: `Transfer to ${accountMap.get(rt.toAccountId!) || 'External'}`, 
+                         accountName: accountMap.get(rt.accountId) || 'Unknown',
+                         accountId: rt.accountId,
+                         type: 'Recurring', 
+                         isGoal: false,
+                         originalItem: isSkipped ? { ...rt, isSkipped: true } : rt
+                    });
+                    addEvent(effectiveDate, { 
+                         amount: (override?.amount !== undefined ? override.amount : rt.amount), 
+                         currency: rt.currency, 
+                         description: `Transfer from ${accountMap.get(rt.accountId) || 'External'}`, 
+                         accountName: accountMap.get(rt.toAccountId!) || 'Unknown',
+                         accountId: rt.toAccountId,
+                         type: 'Recurring', 
+                         isGoal: false,
+                         originalItem: isSkipped ? { ...rt, isSkipped: true } : rt
+                    });
+                } else if (fromSelected) {
+                    // Outflow from selected
+                    accountName = `${accountMap.get(rt.accountId) || 'Unknown'} → External`;
+                    amount = -(override?.amount !== undefined ? override.amount : rt.amount);
+                    addEvent(effectiveDate, { amount, currency: rt.currency, description: override?.description || rt.description, accountName, accountId: rt.accountId, type: 'Recurring', isGoal: false, originalItem: isSkipped ? { ...rt, isSkipped: true } : rt });
+                } else if (toSelected) {
+                    // Inflow to selected
+                     accountName = `External → ${accountMap.get(rt.toAccountId!) || 'Unknown'}`;
+                     amount = override?.amount !== undefined ? override.amount : rt.amount;
+                     addEvent(effectiveDate, { amount, currency: rt.currency, description: override?.description || rt.description, accountName, accountId: rt.toAccountId, type: 'Recurring', isGoal: false, originalItem: isSkipped ? { ...rt, isSkipped: true } : rt });
+                }
             } else {
-                const effectiveDate = override?.date || dateStr;
-                let amount = override?.amount !== undefined ? override.amount : (rt.type === 'expense' ? -rt.amount : rt.amount);
-                let accountName = 'N/A';
-
-                if (rt.type === 'transfer') {
-                    const fromSelected = accountIds.has(rt.accountId);
-                    const toSelected = rt.toAccountId ? accountIds.has(rt.toAccountId) : false;
-                    
-                    if (fromSelected && toSelected) {
-                        // Internal transfer within selected accounts: net zero on Total, but individual balances change
-                         addEvent(effectiveDate, { 
-                             amount: -(override?.amount !== undefined ? override.amount : rt.amount), 
-                             currency: rt.currency, 
-                             description: `Transfer to ${accountMap.get(rt.toAccountId!) || 'External'}`, 
-                             accountName: accountMap.get(rt.accountId) || 'Unknown',
-                             accountId: rt.accountId,
-                             type: 'Recurring', 
-                             isGoal: false,
-                             originalItem: rt
-                        });
-                        addEvent(effectiveDate, { 
-                             amount: (override?.amount !== undefined ? override.amount : rt.amount), 
-                             currency: rt.currency, 
-                             description: `Transfer from ${accountMap.get(rt.accountId) || 'External'}`, 
-                             accountName: accountMap.get(rt.toAccountId!) || 'Unknown',
-                             accountId: rt.toAccountId,
-                             type: 'Recurring', 
-                             isGoal: false,
-                             originalItem: rt
-                        });
-                    } else if (fromSelected) {
-                        // Outflow from selected
-                        accountName = `${accountMap.get(rt.accountId) || 'Unknown'} → External`;
-                        amount = -(override?.amount !== undefined ? override.amount : rt.amount);
-                        addEvent(effectiveDate, { amount, currency: rt.currency, description: override?.description || rt.description, accountName, accountId: rt.accountId, type: 'Recurring', isGoal: false, originalItem: rt });
-                    } else if (toSelected) {
-                        // Inflow to selected
-                         accountName = `External → ${accountMap.get(rt.toAccountId!) || 'Unknown'}`;
-                         amount = override?.amount !== undefined ? override.amount : rt.amount;
-                         addEvent(effectiveDate, { amount, currency: rt.currency, description: override?.description || rt.description, accountName, accountId: rt.toAccountId, type: 'Recurring', isGoal: false, originalItem: rt });
-                    }
-                } else {
-                    accountName = accountMap.get(rt.accountId) || 'Unknown';
-                    if (accountIds.has(rt.accountId)) {
-                         addEvent(effectiveDate, { amount, currency: rt.currency, description: override?.description || rt.description, accountName, accountId: rt.accountId, type: 'Recurring', isGoal: false, originalItem: rt });
-                    }
+                accountName = accountMap.get(rt.accountId) || 'Unknown';
+                if (accountIds.has(rt.accountId)) {
+                     addEvent(effectiveDate, { amount, currency: rt.currency, description: override?.description || rt.description, accountName, accountId: rt.accountId, type: 'Recurring', isGoal: false, originalItem: isSkipped ? { ...rt, isSkipped: true } : rt });
                 }
             }
+            
 
             const interval = rt.frequencyInterval || 1;
-             switch(rt.frequency) {
-                case 'daily': nextDate.setDate(nextDate.getDate() + interval); break;
-                case 'weekly': nextDate.setDate(nextDate.getDate() + 7 * interval); break;
-                case 'monthly': {
-                    const d = rt.dueDateOfMonth || startDateLocal.getDate();
-                    nextDate.setMonth(nextDate.getMonth() + interval, 1);
-                    const lastDay = new Date(nextDate.getFullYear(), nextDate.getMonth() + 1, 0).getDate();
-                    nextDate.setDate(Math.min(d, lastDay));
-                    break;
-                }
-                case 'yearly': {
-                     const d = rt.dueDateOfMonth || startDateLocal.getDate();
-                     const m = startDateLocal.getMonth();
-                     nextDate.setFullYear(nextDate.getFullYear() + interval);
-                     const lastDay = new Date(nextDate.getFullYear(), m + 1, 0).getDate();
-                     nextDate.setMonth(m, Math.min(d, lastDay));
-                     break;
-                }
+             const d = new Date(nextDate); // Base logic on unadjusted date
+             if (rt.frequency === 'monthly') {
+                const targetDay = rt.dueDateOfMonth || startDateLocal.getDate();
+                d.setMonth(d.getMonth() + interval);
+                const year = d.getFullYear();
+                const month = d.getMonth();
+                const lastDayOfMonth = new Date(year, month + 1, 0).getDate();
+                d.setDate(Math.min(targetDay, lastDayOfMonth));
             }
+            else if (rt.frequency === 'weekly') d.setDate(d.getDate() + (7 * interval));
+            else if (rt.frequency === 'daily') d.setDate(d.getDate() + interval);
+            else if (rt.frequency === 'yearly') d.setFullYear(d.getFullYear() + interval);
+            nextDate = d;
         }
     });
 
@@ -922,16 +932,19 @@ export function generateBalanceForecast(
         if (eventsForDay.length > 0) {
             for (const event of eventsForDay) {
                 const amountInEur = convertToEur(event.amount, event.currency);
+                const isSkipped = (event.originalItem as any)?.isSkipped;
                 
-                if (event.accountId && currentBalances[event.accountId] !== undefined) {
-                    currentBalances[event.accountId] += amountInEur;
-                }
-                
-                if (event.accountId && accountIds.has(event.accountId)) {
-                     runningTotalBalance += amountInEur;
-                } else if (!event.accountId) {
-                     // Unassigned bill/income -> affects total view
-                     runningTotalBalance += amountInEur;
+                if (!isSkipped) {
+                    if (event.accountId && currentBalances[event.accountId] !== undefined) {
+                        currentBalances[event.accountId] += amountInEur;
+                    }
+                    
+                    if (event.accountId && accountIds.has(event.accountId)) {
+                         runningTotalBalance += amountInEur;
+                    } else if (!event.accountId) {
+                         // Unassigned bill/income -> affects total view
+                         runningTotalBalance += amountInEur;
+                    }
                 }
 
                 tableData.push({ id: uuidv4(), date: dateStr, ...event, amount: amountInEur, balance: runningTotalBalance });

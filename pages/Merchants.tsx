@@ -4,7 +4,7 @@ import { Page } from '../types';
 import Card from '../components/Card';
 import PageHeader from '../components/PageHeader';
 import Modal from '../components/Modal';
-import { BTN_PRIMARY_STYLE, BTN_SECONDARY_STYLE, INPUT_BASE_STYLE, SELECT_ARROW_STYLE, SELECT_WRAPPER_STYLE, SELECT_STYLE } from '../constants';
+import { BTN_PRIMARY_STYLE, BTN_SECONDARY_STYLE, INPUT_BASE_STYLE, SELECT_ARROW_STYLE, SELECT_WRAPPER_STYLE, SELECT_STYLE, CHECKBOX_STYLE } from '../constants';
 import { useAccountsContext, usePreferencesContext, usePreferencesSelector, useTransactionsContext } from '../contexts/DomainProviders';
 import { getMerchantLogoUrl, normalizeMerchantKey } from '../utils/brandfetch';
 import { fuzzySearch, convertToEur, formatCurrency, parseLocalDate } from '../utils';
@@ -26,6 +26,18 @@ interface EntityItem {
     lastActivity?: string; // ISO Date
     currency?: string; // Dominant currency (optional/cosmetic)
 }
+
+const StatCard: React.FC<{ title: string; value: string | number; icon: string; colorClass: string }> = ({ title, value, icon, colorClass }) => (
+    <div className="bg-white dark:bg-dark-card p-4 rounded-xl border border-black/5 dark:border-white/5 shadow-sm flex items-center justify-between">
+        <div>
+            <p className="text-xs font-bold uppercase text-light-text-secondary dark:text-dark-text-secondary tracking-wider mb-1">{title}</p>
+            <p className="text-2xl font-bold text-light-text dark:text-dark-text">{value}</p>
+        </div>
+        <div className={`w-12 h-12 rounded-full flex items-center justify-center ${colorClass}`}>
+            <span className="material-symbols-outlined text-2xl">{icon}</span>
+        </div>
+    </div>
+);
 
 const RenameModal = ({ 
     isOpen, 
@@ -84,13 +96,15 @@ const RenameModal = ({
 const Merchants: React.FC<MerchantsProps> = ({ setCurrentPage }) => {
   const { transactions, saveTransaction } = useTransactionsContext();
   const { accounts, saveAccount } = useAccountsContext();
-  const { setPreferences } = usePreferencesContext();
+  const { preferences, setPreferences } = usePreferencesContext();
   const brandfetchClientId = usePreferencesSelector(p => (p.brandfetchClientId || '').trim());
   const persistedOverrides = usePreferencesSelector(p => p.merchantLogoOverrides || {});
+  const hiddenMerchants = useMemo(() => new Set(preferences.hiddenMerchants || []), [preferences.hiddenMerchants]);
 
   const [searchTerm, setSearchTerm] = useState('');
   const [sortBy, setSortBy] = useState<'name' | 'count' | 'value' | 'recent'>('count');
   const [viewMode, setViewMode] = useState<'grid' | 'list'>('grid');
+  const [showHidden, setShowHidden] = useState(false);
   const [overrideDrafts, setOverrideDrafts] = useState<Record<string, string>>(persistedOverrides);
   const [logoLoadErrors, setLogoLoadErrors] = useState<Record<string, boolean>>({});
   
@@ -101,22 +115,15 @@ const Merchants: React.FC<MerchantsProps> = ({ setCurrentPage }) => {
     setOverrideDrafts(persistedOverrides);
   }, [persistedOverrides]);
 
-  // Aggregation Logic
-  const analyticsAccounts = useMemo(() => accounts.filter(acc => acc.includeInAnalytics ?? true), [accounts]);
-  const accountLookup = useMemo(() => new Map(accounts.map(acc => [acc.id, acc])), [accounts]);
-  const analyticsTransactions = useMemo(
-    () => transactions.filter(tx => {
-        const account = accountLookup.get(tx.accountId);
-        return account ? (account.includeInAnalytics ?? true) : true;
-    }),
-    [transactions, accountLookup]
-  );
+  const missingMerchantCount = useMemo(() => 
+    transactions.filter(tx => !tx.merchant || !tx.merchant.trim()).length,
+  [transactions]);
 
   const entities = useMemo(() => {
     const map = new Map<string, EntityItem>();
 
-    // 1. Process Merchants from Transactions
-    analyticsTransactions.forEach(tx => {
+    // 1. Process Merchants from ALL Transactions
+    transactions.forEach(tx => {
       if (!tx.merchant) return;
       const key = normalizeMerchantKey(tx.merchant);
       if (!key) return;
@@ -146,8 +153,8 @@ const Merchants: React.FC<MerchantsProps> = ({ setCurrentPage }) => {
       }
     });
 
-    // 2. Process Financial Institutions from Accounts
-    analyticsAccounts.forEach(acc => {
+    // 2. Process Financial Institutions from ALL Accounts
+    accounts.forEach(acc => {
         if (!acc.financialInstitution) return;
         const key = normalizeMerchantKey(acc.financialInstitution);
         if (!key) return;
@@ -175,11 +182,15 @@ const Merchants: React.FC<MerchantsProps> = ({ setCurrentPage }) => {
     });
 
     return Array.from(map.values());
-  }, [analyticsTransactions, analyticsAccounts]);
+  }, [transactions, accounts]);
 
   // Filtering & Sorting
   const filteredEntities = useMemo(() => {
       let result = entities;
+
+      if (!showHidden) {
+          result = result.filter(e => !hiddenMerchants.has(e.name));
+      }
       
       if (searchTerm) {
           result = result.filter(e => fuzzySearch(searchTerm, e.name));
@@ -195,8 +206,18 @@ const Merchants: React.FC<MerchantsProps> = ({ setCurrentPage }) => {
           }
           return a.name.localeCompare(b.name);
       });
-  }, [entities, searchTerm, sortBy]);
+  }, [entities, searchTerm, sortBy, showHidden, hiddenMerchants]);
 
+  const toggleHideMerchant = (name: string) => {
+      const currentHidden = preferences.hiddenMerchants || [];
+      let newHidden;
+      if (currentHidden.includes(name)) {
+          newHidden = currentHidden.filter(h => h !== name);
+      } else {
+          newHidden = [...currentHidden, name];
+      }
+      setPreferences({ ...preferences, hiddenMerchants: newHidden });
+  };
 
   const handleOverrideChange = (key: string, value: string) => {
     setOverrideDrafts(prev => ({ ...prev, [key]: value }));
@@ -278,7 +299,24 @@ const Merchants: React.FC<MerchantsProps> = ({ setCurrentPage }) => {
              return { ...prev, merchantLogoOverrides: next };
           });
       }
+      
+      // Update hidden list if renamed
+      if (hiddenMerchants.has(oldName)) {
+           const newHidden = (preferences.hiddenMerchants || []).filter(h => h !== oldName);
+           newHidden.push(normalizedNewName);
+           setPreferences({ ...preferences, hiddenMerchants: newHidden });
+      }
   };
+
+  const stats = useMemo(() => {
+      const totalVolume = entities.reduce((sum, e) => sum + Math.abs(e.totalValue), 0);
+      return {
+          totalMerchants: entities.filter(e => e.type === 'Merchant').length,
+          totalInstitutions: entities.filter(e => e.type === 'Institution').length,
+          totalVolume,
+          missingCount: missingMerchantCount
+      };
+  }, [entities, missingMerchantCount]);
 
   return (
     <div className="max-w-7xl mx-auto pb-12 space-y-8 animate-fade-in-up">
@@ -320,6 +358,14 @@ const Merchants: React.FC<MerchantsProps> = ({ setCurrentPage }) => {
           </div>
         )}
       </header>
+      
+      {/* Metrics Overview */}
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
+          <StatCard title="Total Merchants" value={stats.totalMerchants} icon="store" colorClass="bg-blue-100 text-blue-600 dark:bg-blue-900/30 dark:text-blue-400" />
+          <StatCard title="Total Banks" value={stats.totalInstitutions} icon="account_balance" colorClass="bg-purple-100 text-purple-600 dark:bg-purple-900/30 dark:text-purple-400" />
+          <StatCard title="Total Volume" value={formatCurrency(stats.totalVolume, 'EUR')} icon="payments" colorClass="bg-green-100 text-green-600 dark:bg-green-900/30 dark:text-green-400" />
+          <StatCard title="Unidentified Txns" value={stats.missingCount} icon="help_outline" colorClass="bg-orange-100 text-orange-600 dark:bg-orange-900/30 dark:text-orange-400" />
+      </div>
 
       {/* Controls */}
       <div className="flex flex-col md:flex-row gap-4 justify-between items-center bg-white dark:bg-dark-card p-2 rounded-2xl border border-black/5 dark:border-white/5 shadow-sm">
@@ -335,6 +381,16 @@ const Merchants: React.FC<MerchantsProps> = ({ setCurrentPage }) => {
            </div>
            
            <div className="flex items-center gap-3 w-full md:w-auto px-1 md:px-0">
+               <label className="flex items-center gap-2 cursor-pointer select-none text-sm font-medium text-light-text-secondary dark:text-dark-text-secondary hover:text-light-text dark:hover:text-dark-text transition-colors">
+                   <input 
+                       type="checkbox" 
+                       checked={showHidden} 
+                       onChange={(e) => setShowHidden(e.target.checked)} 
+                       className={CHECKBOX_STYLE} 
+                   />
+                   Show Hidden
+               </label>
+               <div className="h-6 w-px bg-black/10 dark:bg-white/10 mx-1"></div>
                <div className="flex bg-light-fill dark:bg-dark-fill p-1 rounded-lg">
                    <button 
                       onClick={() => setViewMode('grid')}
@@ -370,6 +426,11 @@ const Merchants: React.FC<MerchantsProps> = ({ setCurrentPage }) => {
           <div className="text-center py-20 bg-light-card/50 dark:bg-dark-card/30 rounded-3xl border border-dashed border-black/10 dark:border-white/10">
               <span className="material-symbols-outlined text-5xl text-gray-300 dark:text-gray-600 mb-4">store_off</span>
               <p className="text-light-text-secondary dark:text-dark-text-secondary">No entities found.</p>
+              {stats.missingCount > 0 && (
+                  <p className="text-xs text-orange-500 mt-2">
+                      Tip: You have {stats.missingCount} transactions without a merchant name assigned.
+                  </p>
+              )}
           </div>
       ) : viewMode === 'grid' ? (
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
@@ -378,8 +439,7 @@ const Merchants: React.FC<MerchantsProps> = ({ setCurrentPage }) => {
               const hasLogo = Boolean(previewUrl && !logoLoadErrors[previewUrl]);
               const draftValue = overrideDrafts[entity.logoKey] || '';
               const initialLetter = entity.name.charAt(0).toUpperCase();
-              
-              const isPositive = entity.totalValue >= 0;
+              const isHidden = hiddenMerchants.has(entity.name);
               
               // Institutions usually show positive Balance (Green/Blue). Merchants usually show Expenses (Red/Gray).
               const accentColor = entity.type === 'Institution' 
@@ -387,7 +447,7 @@ const Merchants: React.FC<MerchantsProps> = ({ setCurrentPage }) => {
                   : 'text-light-text dark:text-dark-text';
 
               return (
-                <Card key={entity.id} className="flex flex-col gap-4 group relative overflow-visible hover:border-primary-500/30 transition-colors">
+                <Card key={entity.id} className={`flex flex-col gap-4 group relative overflow-visible hover:border-primary-500/30 transition-all duration-200 ${isHidden ? 'opacity-60 grayscale-[0.5] hover:opacity-100 hover:grayscale-0' : ''}`}>
                     {/* Header */}
                     <div className="flex items-start justify-between">
                          <div
@@ -404,9 +464,18 @@ const Merchants: React.FC<MerchantsProps> = ({ setCurrentPage }) => {
                               <span className="text-xl font-bold">{initialLetter}</span>
                             )}
                         </div>
-                        <span className={`text-[10px] font-bold uppercase tracking-wider px-2 py-0.5 rounded-full ${entity.type === 'Institution' ? 'bg-purple-100 text-purple-700 dark:bg-purple-900/30 dark:text-purple-300' : 'bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-300'}`}>
-                            {entity.type === 'Institution' ? 'Bank' : 'Merch'}
-                        </span>
+                        <div className="flex flex-col items-end gap-1">
+                            <span className={`text-[10px] font-bold uppercase tracking-wider px-2 py-0.5 rounded-full ${entity.type === 'Institution' ? 'bg-purple-100 text-purple-700 dark:bg-purple-900/30 dark:text-purple-300' : 'bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-300'}`}>
+                                {entity.type === 'Institution' ? 'Bank' : 'Merch'}
+                            </span>
+                            <button
+                                onClick={(e) => { e.stopPropagation(); toggleHideMerchant(entity.name); }}
+                                className="p-1 rounded-full text-light-text-secondary dark:text-dark-text-secondary hover:bg-black/5 dark:hover:bg-white/10 transition-colors opacity-0 group-hover:opacity-100"
+                                title={isHidden ? "Unhide Merchant" : "Hide Merchant"}
+                            >
+                                <span className="material-symbols-outlined text-lg">{isHidden ? 'visibility' : 'visibility_off'}</span>
+                            </button>
+                        </div>
                     </div>
 
                     {/* Info */}
@@ -490,9 +559,10 @@ const Merchants: React.FC<MerchantsProps> = ({ setCurrentPage }) => {
                           const previewUrl = getPreviewUrl(entity.name);
                           const hasLogo = Boolean(previewUrl && !logoLoadErrors[previewUrl]);
                           const initialLetter = entity.name.charAt(0).toUpperCase();
+                          const isHidden = hiddenMerchants.has(entity.name);
 
                           return (
-                              <tr key={entity.id} className="hover:bg-black/5 dark:hover:bg-white/5 transition-colors group">
+                              <tr key={entity.id} className={`hover:bg-black/5 dark:hover:bg-white/5 transition-colors group ${isHidden ? 'opacity-60 bg-gray-50 dark:bg-white/5' : ''}`}>
                                   <td className="px-6 py-3">
                                       <div className="flex items-center gap-3">
                                            <div className={`w-8 h-8 rounded-lg flex items-center justify-center overflow-hidden border border-black/5 dark:border-white/10 shadow-sm ${hasLogo ? 'bg-white dark:bg-dark-card' : 'bg-gray-100 dark:bg-gray-800 text-gray-500'}`}>
@@ -503,6 +573,7 @@ const Merchants: React.FC<MerchantsProps> = ({ setCurrentPage }) => {
                                                 )}
                                            </div>
                                            <span className="font-bold text-light-text dark:text-dark-text truncate max-w-[200px]">{entity.name}</span>
+                                           {isHidden && <span className="material-symbols-outlined text-xs text-gray-400">visibility_off</span>}
                                       </div>
                                   </td>
                                   <td className="px-6 py-3">
@@ -520,13 +591,22 @@ const Merchants: React.FC<MerchantsProps> = ({ setCurrentPage }) => {
                                       {formatCurrency(entity.totalValue, 'EUR')}
                                   </td>
                                   <td className="px-6 py-3 text-right">
-                                       <button 
-                                            onClick={() => { setEditingEntity(entity); setIsRenameModalOpen(true); }}
-                                            className="p-1.5 rounded-full text-light-text-secondary dark:text-dark-text-secondary hover:bg-black/10 dark:hover:bg-white/10 opacity-0 group-hover:opacity-100 transition-opacity"
-                                            title="Rename"
-                                        >
-                                            <span className="material-symbols-outlined text-lg">edit</span>
-                                        </button>
+                                       <div className="flex justify-end gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+                                           <button 
+                                                onClick={() => toggleHideMerchant(entity.name)}
+                                                className="p-1.5 rounded-full text-light-text-secondary dark:text-dark-text-secondary hover:bg-black/10 dark:hover:bg-white/10"
+                                                title={isHidden ? "Unhide Merchant" : "Hide Merchant"}
+                                            >
+                                                <span className="material-symbols-outlined text-lg">{isHidden ? 'visibility' : 'visibility_off'}</span>
+                                            </button>
+                                           <button 
+                                                onClick={() => { setEditingEntity(entity); setIsRenameModalOpen(true); }}
+                                                className="p-1.5 rounded-full text-light-text-secondary dark:text-dark-text-secondary hover:bg-black/10 dark:hover:bg-white/10"
+                                                title="Rename"
+                                            >
+                                                <span className="material-symbols-outlined text-lg">edit</span>
+                                            </button>
+                                       </div>
                                   </td>
                               </tr>
                           );

@@ -437,20 +437,33 @@ const App: React.FC = () => {
   useEffect(() => {
     if (!isDataLoaded || !isAuthenticated || streakUpdatedRef.current) return;
 
-    const todayStr = toLocalISOString(new Date());
-    const yesterday = new Date();
+    const now = new Date();
+    const todayStr = toLocalISOString(now); // YYYY-MM-DD based on local time
+    
+    // Calculate yesterday based on local time
+    const yesterday = new Date(now);
     yesterday.setDate(yesterday.getDate() - 1);
     const yesterdayStr = toLocalISOString(yesterday);
 
-    const lastLogDate = userStats.lastLogDate || '';
+    let lastLogStr = userStats.lastLogDate || '';
+    
+    // Robust parsing: Handle full ISO strings if they snuck in
+    if (lastLogStr.includes('T')) {
+        lastLogStr = lastLogStr.split('T')[0];
+    }
     
     // Only update if not already logged today
-    if (lastLogDate !== todayStr) {
+    if (lastLogStr !== todayStr) {
        streakUpdatedRef.current = true;
        let newStreak = 1;
        
-       if (lastLogDate === yesterdayStr) {
+       // If last log was yesterday, increment.
+       // We also strictly check it wasn't today (already checked via !== todayStr, but safeguard)
+       if (lastLogStr === yesterdayStr) {
            newStreak = (userStats.currentStreak || 0) + 1;
+       } else if (lastLogStr === todayStr) {
+           // Should be caught by outer if, but just in case normalization changed it
+           newStreak = userStats.currentStreak || 1;
        }
        
        const newStats = {
@@ -463,6 +476,7 @@ const App: React.FC = () => {
        setUserStats(newStats);
        markSliceDirty('userStats');
     } else {
+       // Already logged today
        streakUpdatedRef.current = true;
     }
   }, [isDataLoaded, isAuthenticated, userStats.lastLogDate, userStats.currentStreak, markSliceDirty]);
@@ -695,9 +709,13 @@ const App: React.FC = () => {
 
       if (dataToLoad.userStats) {
           setUserStats(dataToLoad.userStats);
-          // If we are loading fresh data, we should allow the streak logic to run again once per session
-          streakUpdatedRef.current = false;
+      } else {
+           // Ensure we have a valid object if DB didn't provide one
+           setUserStats(emptyFinancialData.userStats!);
       }
+      
+      // Reset streak guard on any full load to allow re-evaluation
+      streakUpdatedRef.current = false;
 
       setEnableBankingConnections(dataToLoad.enableBankingConnections || []);
 
@@ -1184,6 +1202,7 @@ const App: React.FC = () => {
     setAuthPage('signIn');
     setIsDemoMode(false);
     setDemoUser(null);
+    streakUpdatedRef.current = false; // Reset streak guard
   }, [
     signOut,
     loadAllFinancialData,
@@ -2764,6 +2783,10 @@ const App: React.FC = () => {
     );
   }
 
+  if (!currentUser) {
+    return <PageLoader label="Loading profile..." />;
+  }
+  
   // Main app
   return (
     <ErrorBoundary>

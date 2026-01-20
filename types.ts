@@ -231,6 +231,7 @@ export interface RecurringTransaction {
   dueDateOfMonth?: number; // Day of month (1-31) for monthly/yearly recurrences
   weekendAdjustment: WeekendAdjustment;
   isSynthetic?: boolean;
+  isSkipped?: boolean;
 }
 
 export interface RecurringTransactionOverride {
@@ -447,6 +448,7 @@ export interface AppPreferences {
   twelveDataApiKey?: string;
   merchantLogoOverrides?: Record<string, string>;
   geminiApiKey?: string;
+  hiddenMerchants?: string[];
 }
 
 // New types for Bills & Payments
@@ -664,4 +666,5 @@ export type ScheduledItem = {
     originalItem: RecurringTransaction | BillPayment;
     isOverride?: boolean;
     originalDateForOverride?: string;
+    isSkipped?: boolean; // New Property
 };

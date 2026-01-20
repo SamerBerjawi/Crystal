@@ -4,9 +4,7 @@ import { User, Page } from '../types';
 import Card from '../components/Card';
 import { BTN_PRIMARY_STYLE, INPUT_BASE_STYLE, BTN_SECONDARY_STYLE } from '../constants';
 import ChangePasswordModal from '../components/ChangePasswordModal';
-import TwoFactorSetupModal from '../components/TwoFactorSetupModal';
 import PageHeader from '../components/PageHeader';
-import { useAuth } from '../hooks/useAuth';
 
 interface PersonalInfoProps {
   user: User;
@@ -19,37 +17,16 @@ const PersonalInfo: React.FC<PersonalInfoProps> = ({ user, setUser, onChangePass
   const [formData, setFormData] = useState<User>(user);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [isPasswordModalOpen, setPasswordModalOpen] = useState(false);
-  const [is2FASetupOpen, setIs2FASetupOpen] = useState(false);
-  const { disable2FA } = useAuth();
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
     const { name, value } = e.target;
     setFormData(prev => ({ ...prev, [name]: value }));
   };
   
-  const handle2FAToggle = async () => {
-    if (formData.is2FAEnabled) {
-        // Disable
-        if (window.confirm("Are you sure you want to disable Two-Factor Authentication? Your account will be less secure.")) {
-            const success = await disable2FA();
-            if (success) {
-                const updatedUser = { ...formData, is2FAEnabled: false };
-                setFormData(updatedUser);
-            } else {
-                alert("Failed to disable 2FA. Please try again.");
-            }
-        }
-    } else {
-        // Enable -> Open Modal
-        setIs2FASetupOpen(true);
-    }
-  };
-  
-  const handle2FASuccess = () => {
-      const updatedUser = { ...formData, is2FAEnabled: true };
-      setFormData(updatedUser);
-      // setUser logic is handled by the hook/modal implicitly via server update, 
-      // but we update local form state to reflect change immediately
+  const handle2FAToggle = () => {
+    const updatedUser = { ...formData, is2FAEnabled: !formData.is2FAEnabled };
+    setFormData(updatedUser);
+    setUser({ is2FAEnabled: updatedUser.is2FAEnabled });
   };
 
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -84,13 +61,6 @@ const PersonalInfo: React.FC<PersonalInfoProps> = ({ user, setUser, onChangePass
           onClose={() => setPasswordModalOpen(false)}
           onChangePassword={onChangePassword}
         />
-      )}
-      
-      {is2FASetupOpen && (
-          <TwoFactorSetupModal 
-            onClose={() => setIs2FASetupOpen(false)} 
-            onSuccess={handle2FASuccess}
-          />
       )}
       
       {/* Navigation Header */}
