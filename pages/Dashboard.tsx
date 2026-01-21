@@ -835,6 +835,12 @@ const Dashboard: React.FC<DashboardProps> = ({ user, tasks, saveTask }) => {
             forecastEndDate,
             recurringTransactionOverrides
         );
+
+        const baseForecastPoint = forecastChartData.find(point => {
+            const pointDate = parseLocalDate(point.date);
+            return pointDate.getTime() === today.getTime();
+        }) || forecastChartData[0];
+        const netWorthAdjustment = baseForecastPoint ? currentNetWorth - baseForecastPoint.value : 0;
         
         // Map forecast data to our chart format
         forecastChartData.forEach(point => {
@@ -843,7 +849,7 @@ const Dashboard: React.FC<DashboardProps> = ({ user, tasks, saveTask }) => {
                  historyPoints.push({ 
                      date: point.date, 
                      actual: null, 
-                     forecast: point.value 
+                     forecast: point.value + netWorthAdjustment 
                  });
              }
         });
