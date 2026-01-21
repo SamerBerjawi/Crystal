@@ -1,7 +1,7 @@
 
 import React, { useMemo } from 'react';
 import { AreaChart, Area, LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, ReferenceLine, Label, Legend } from 'recharts';
-import { formatCurrency, getPreferredTimeZone, parseLocalDate } from '../utils';
+import { formatCurrency, getPreferredTimeZone, parseLocalDate, toLocalISOString } from '../utils';
 import { FinancialGoal, Account } from '../types';
 import { ACCOUNT_TYPE_STYLES } from '../constants';
 
@@ -117,7 +117,8 @@ const yAxisTickFormatter = (value: number) => {
 };
 
 const ForecastChart: React.FC<ForecastChartProps> = ({ data, oneTimeGoals, lowestPoint, showIndividualLines = false, accounts = [], showGoalLines = true, onDataPointClick }) => {
-  
+  const todayStr = toLocalISOString(new Date());
+
   // Handle empty data gracefully
   if (!data || data.length === 0) {
     return (
@@ -193,13 +194,6 @@ const ForecastChart: React.FC<ForecastChartProps> = ({ data, oneTimeGoals, lowes
     }
   }, [data]);
 
-  const lowestPointDateFormatted = lowestPoint?.date
-    ? parseLocalDate(lowestPoint.date).toLocaleDateString('en-US', {
-        month: 'short',
-        day: 'numeric',
-      })
-    : '';
-  
   // Common Props
   const commonAxisProps = {
       stroke: "#9CA3AF", // gray-400
@@ -248,17 +242,21 @@ const ForecastChart: React.FC<ForecastChartProps> = ({ data, oneTimeGoals, lowes
                     />
                 ))}
 
+                <ReferenceLine x={todayStr} stroke="#3B82F6" strokeDasharray="4 4" strokeOpacity={0.8} strokeWidth={1.5} ifOverflow="extendDomain">
+                    <Label value="Today" position="insideTopLeft" fill="#3B82F6" fontSize={11} fontWeight={700} dy={-10} dx={5} />
+                </ReferenceLine>
+
                 {showGoalLines && oneTimeGoals.map(goal => (
                     <ReferenceLine key={goal.id} x={goal.date} stroke="#F59E0B" strokeDasharray="3 3" strokeOpacity={0.8}>
                         <Label 
-                            value={goal.name} 
+                            value={`★ ${goal.name}`}
                             position="insideTopRight" 
                             fill="#F59E0B" 
                             fontSize={11} 
                             fontWeight={600}
                             angle={-90} 
-                            dx={10} 
-                            dy={20} 
+                            dx={8} 
+                            dy={10} 
                         />
                     </ReferenceLine>
                 ))}
@@ -300,18 +298,22 @@ const ForecastChart: React.FC<ForecastChartProps> = ({ data, oneTimeGoals, lowes
               />
               
               <ReferenceLine y={0} stroke="#9CA3AF" strokeDasharray="3 3" opacity={0.4} />
+
+              <ReferenceLine x={todayStr} stroke="#3B82F6" strokeDasharray="4 4" strokeOpacity={0.8} strokeWidth={1.5} ifOverflow="extendDomain">
+                  <Label value="Today" position="insideTopLeft" fill="#3B82F6" fontSize={11} fontWeight={700} dy={-10} dx={5} />
+              </ReferenceLine>
               
               {showGoalLines && oneTimeGoals.map(goal => (
-                  <ReferenceLine key={goal.id} x={goal.date} stroke="#F59E0B" strokeDasharray="3 3" strokeWidth={1.5}>
+                  <ReferenceLine key={goal.id} x={goal.date} stroke="#F59E0B" strokeDasharray="3 3" strokeWidth={1.5} ifOverflow="extendDomain">
                       <Label 
-                        value={`Goal: ${goal.name}`} 
+                        value={`★ ${goal.name}`} 
                         position="insideTopRight" 
                         fill="#F59E0B" 
                         fontSize={11} 
                         fontWeight={600}
                         angle={-90} 
-                        dx={12} 
-                        dy={20}
+                        dx={8} 
+                        dy={10}
                       />
                   </ReferenceLine>
               ))}

@@ -1,3 +1,4 @@
+
 import React, { useState, useMemo, useCallback, useEffect } from 'react';
 import {
   Page,
@@ -11,6 +12,7 @@ import {
   BillPayment,
   ForecastDuration,
   Currency,
+  Transaction,
 } from '../types';
 import { BTN_PRIMARY_STYLE, BTN_SECONDARY_STYLE, LIQUID_ACCOUNT_TYPES, CHECKBOX_STYLE, FORECAST_DURATION_OPTIONS } from '../constants';
 import { calculateForecastHorizon, formatCurrency, convertToEur, generateBalanceForecast, generateSyntheticLoanPayments, generateSyntheticCreditCardPayments, parseLocalDate, getPreferredTimeZone, generateSyntheticPropertyTransactions, toLocalISOString } from '../utils';
@@ -65,7 +67,7 @@ const useSmartGoalPlanner = (
                 current_date: toLocalISOString(new Date()),
                 liquid_accounts: liquidAccounts.map(({ name, balance, currency }) => ({ name, balance, currency })),
                 recurring_transactions: recurringTransactions.map(({ description, amount, type, frequency, nextDueDate }) => ({ description, amount, type, frequency, nextDueDate })),
-                financial_goals: financialGoals.filter(g => g.projection).map(({ name, type, amount, currentAmount, date, projection }) => ({ name, type, amount, currentAmount, date, projected_status: projection?.status })),
+                financial_goals: financialGoals.filter(g => g.projection).map(({ name, type, amount, currentAmount, date, startDate, projection }) => ({ name, type, amount, currentAmount, date, startDate, projected_status: projection?.status })),
             };
 
             const prompt = `You are a financial planner. Based on the user's financial data, create a smart contribution plan to help them achieve their goals. 
@@ -227,6 +229,96 @@ const Forecasting: React.FC = () => {
         return { allRecurringItems: all, syntheticItemsOnly: synthetic };
     }, [accounts, transactions, loanPaymentOverrides, recurringTransactions]);
 
+    // 0. Calculate Historical Data (D-7 to D-1)
+    const historyData = useMemo(() => {
+      if (selectedAccounts.length === 0) return [];
+
+      const today = new Date();
+      // Ensure we treat "today" as local date to match transaction dates
+      const todayDate = parseLocalDate(toLocalISOString(today));
+      const pastDays = 7;
+      const historyPoints: any[] = [];
+      const selectedAccountIdsSet = new Set(selectedAccountIds);
+
+      // Start with current balances
+      const currentBalances: Record<string, number> = {};
+      let runningTotal = 0;
+      selectedAccounts.forEach(acc => {
+          const val = convertToEur(acc.balance, acc.currency);
+          currentBalances[acc.id] = val;
+          runningTotal += val;
+      });
+
+      // Filter relevant transactions
+      const relevantTransactions = transactions.filter(tx => 
+          selectedAccountIdsSet.has(tx.accountId)
+      );
+
+      // Map transactions by date for quick lookup
+      // Since we need to 'rewind' from Today's balance, we need transactions from Today backwards.
+      const txsByDate = new Map<string, Transaction[]>();
+      relevantTransactions.forEach(tx => {
+          const d = tx.date;
+          if (!txsByDate.has(d)) txsByDate.set(d, []);
+          txsByDate.get(d)!.push(tx);
+      });
+
+      // Iterate backwards from Today to D-7
+      // Logic: Balance(Start of Day T) = Balance(End of Day T) - Transactions(Day T)
+      // We assume account.balance is "Current Balance" (End of Today effectively, or Now).
+      // So to get yesterday's closing balance, we subtract today's transactions.
+      
+      let iterDate = new Date(todayDate);
+
+      // We go back 7 days.
+      // i=0 corresponds to Today. We calculate Start of Today (which is End of Yesterday)
+      // i=1 corresponds to Yesterday. We calculate Start of Yesterday (End of D-2)
+      for (let i = 0; i < pastDays; i++) {
+          const dateStr = toLocalISOString(iterDate);
+          
+          // Transactions that happened on `iterDate` contributed to the `currentBalances`.
+          // To rewind to the start of `iterDate` (or end of `iterDate - 1`), we subtract the effect of `iterDate` transactions.
+          const todaysTxs = txsByDate.get(dateStr) || [];
+
+          todaysTxs.forEach(tx => {
+              const amountEur = convertToEur(tx.amount, tx.currency);
+              
+              if (currentBalances[tx.accountId] !== undefined) {
+                  // Reverse the transaction: if it was income (+), subtract. If expense (-), add.
+                  currentBalances[tx.accountId] -= amountEur; 
+              }
+              runningTotal -= amountEur;
+          });
+
+          // The balances now represent the state at the BEGINNING of `iterDate` (or end of previous day).
+          // We want to plot this as the data point for `iterDate - 1 day`.
+          
+          const plottingDate = new Date(iterDate);
+          plottingDate.setDate(plottingDate.getDate() - 1);
+          const plottingDateStr = toLocalISOString(plottingDate);
+
+          const dataPoint: any = {
+              date: plottingDateStr,
+              value: runningTotal,
+              dailySummary: [], // No forecast summary for history
+              isHistorical: true
+          };
+          
+          // Add individual account balances
+          Object.entries(currentBalances).forEach(([accId, bal]) => {
+              dataPoint[accId] = bal;
+          });
+
+          historyPoints.unshift(dataPoint);
+          
+          // Move iterDate back by one day for next iteration
+          iterDate.setDate(iterDate.getDate() - 1);
+      }
+
+      return historyPoints;
+    }, [selectedAccounts, selectedAccountIds, transactions]);
+
+
     // 1. Generate Full Forecast (2 Years) - This is the stable base for all views
     const fullForecast = useMemo(() => {
         const projectionEndDate = new Date();
@@ -251,6 +343,9 @@ const Forecasting: React.FC = () => {
     const { forecastData, tableData, lowestPoint, goalsWithProjections, startBalance, endBalance } = useMemo(() => {
         const { chartData, tableData, lowestPoint } = fullForecast;
         
+        // Merge History with Forecast Chart Data
+        const mergedChartData = [...historyData, ...chartData];
+
         const goalsWithProjections = financialGoals.map(goal => {
             if (goal.isBucket) return { ...goal, projection: undefined };
             
@@ -284,7 +379,11 @@ const Forecasting: React.FC = () => {
             case '1Y': endDate.setFullYear(endDate.getFullYear() + 1); break;
         }
 
-        const forecastDataForPeriod = chartData.filter(d => parseLocalDate(d.date) <= endDate);
+        // Filter Chart Data (History is kept, future is clipped)
+        // We show all history (7 days) + forecast up to limit
+        const forecastDataForPeriod = mergedChartData.filter(d => parseLocalDate(d.date) <= endDate);
+        
+        // Table data usually only shows future items
         const tableDataForPeriod = tableData.filter(d => parseLocalDate(d.date) <= endDate);
 
         let lowestPointInPeriod = { value: Infinity, date: '' };
@@ -303,7 +402,7 @@ const Forecasting: React.FC = () => {
             startBalance: startBal,
             endBalance: endBal
         };
-    }, [fullForecast, financialGoals, forecastDuration]);
+    }, [fullForecast, financialGoals, forecastDuration, historyData]);
     
     // Account Goal Allocation Summary
     const accountGoalSummary = useMemo(() => {
@@ -679,7 +778,7 @@ const Forecasting: React.FC = () => {
                 <div className="flex justify-between items-center mb-4">
                     <h3 className="text-xl font-semibold text-light-text dark:text-dark-text">Cash Flow Forecast</h3>
                     <div className="text-sm text-light-text-secondary dark:text-dark-text-secondary">
-                        <span className="font-semibold">{forecastData.length}</span> data points
+                        <span className="font-semibold">{forecastData.length}</span> data points (incl. 7 days history)
                     </div>
                 </div>
                 <ForecastChart 
