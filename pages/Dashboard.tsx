@@ -165,6 +165,8 @@ const Dashboard: React.FC<DashboardProps> = ({ user, tasks, saveTask }) => {
     return lookup;
   }, [transactions]);
 
+  const activeGoals = useMemo(() => financialGoals.filter(g => activeGoalIds.includes(g.id)), [financialGoals, activeGoalIds]);
+
   const cacheAggregateResult = useCallback((cacheKey: string, value: { filteredTransactions: Transaction[]; income: number; expenses: number }) => {
     const cache = aggregateCacheRef.current;
     if (!cache.has(cacheKey) && cache.size >= aggregateCacheMax) {
@@ -828,9 +830,9 @@ const Dashboard: React.FC<DashboardProps> = ({ user, tasks, saveTask }) => {
         // Note: generateBalanceForecast calculates balance for *future* dates based on recurring items.
         // It starts from the *current* balance of the accounts.
         const { chartData: forecastChartData } = generateBalanceForecast(
-            analyticsSelectedAccounts,
+            selectedAccounts,
             allRecurringItems,
-            financialGoals,
+            activeGoals,
             billsAndPayments,
             forecastEndDate,
             recurringTransactionOverrides
@@ -856,7 +858,7 @@ const Dashboard: React.FC<DashboardProps> = ({ user, tasks, saveTask }) => {
     }
 
     return historyPoints;
-  }, [duration, transactions, analyticsSelectedAccountIds, netWorth, showNetWorthForecast, allRecurringItems, financialGoals, billsAndPayments, recurringTransactionOverrides, analyticsSelectedAccounts]);
+  }, [duration, transactions, analyticsSelectedAccountIds, netWorth, showNetWorthForecast, allRecurringItems, activeGoals, billsAndPayments, recurringTransactionOverrides, selectedAccounts]);
 
   const netWorthTrendColor = useMemo(() => {
     // Determine color based on historical trend
@@ -933,8 +935,6 @@ const Dashboard: React.FC<DashboardProps> = ({ user, tasks, saveTask }) => {
         const syntheticPropertyTransactions = generateSyntheticPropertyTransactions(accounts);
         const allRecurringTransactions = [...recurringTransactions, ...syntheticLoanPayments, ...syntheticCreditCardPayments, ...syntheticPropertyTransactions];
 
-        const activeGoals = financialGoals.filter(g => activeGoalIds.includes(g.id));
-
         const { chartData } = generateBalanceForecast(
             selectedAccounts,
             allRecurringTransactions,
@@ -946,7 +946,7 @@ const Dashboard: React.FC<DashboardProps> = ({ user, tasks, saveTask }) => {
 
         return calculateForecastHorizon(chartData);
 
-    }, [accounts, activeGoalIds, billsAndPayments, financialGoals, loanPaymentOverrides, recurringTransactionOverrides, recurringTransactions, selectedAccounts, transactions]);
+    }, [accounts, activeGoals, billsAndPayments, loanPaymentOverrides, recurringTransactionOverrides, recurringTransactions, selectedAccounts, transactions]);
 
   const handleBudgetClick = useCallback(() => {
     if (typeof window === 'undefined') return;
