@@ -694,29 +694,9 @@ const Dashboard: React.FC<DashboardProps> = ({ user, tasks, saveTask }) => {
   }, [assetGroups]);
 
   const netWorthData = useMemo(() => {
-    const transferGroups = new Map<string, Transaction[]>();
-    transactions.forEach(tx => {
-      if (!tx.transferId) return;
-      const group = transferGroups.get(tx.transferId) || [];
-      group.push(tx);
-      transferGroups.set(tx.transferId, group);
-    });
-
-    const internalTransferIds = new Set<string>();
-    transferGroups.forEach((group, transferId) => {
-      if (group.length === 0) return;
-      const allAccountsSelected = group.every(tx => analyticsSelectedAccountIds.includes(tx.accountId));
-      if (allAccountsSelected) {
-        internalTransferIds.add(transferId);
-      }
-    });
-
     const { start, end } = getDateRange(duration, transactions);
-    
-    // For net worth calculation over time, we need a reliable starting point.
-    // If we only look at transactions in the window, we miss the accumulated balance.
-    // We calculate "Today's Net Worth" (current state) and reverse transactions.
-    
+    const today = parseLocalDate(toLocalISOString(new Date()));
+
     if (duration === 'ALL') {
         const fiveYearsAgo = new Date(end);
         fiveYearsAgo.setFullYear(end.getFullYear() - 5);
@@ -724,79 +704,54 @@ const Dashboard: React.FC<DashboardProps> = ({ user, tasks, saveTask }) => {
             start.setTime(fiveYearsAgo.getTime());
         }
     }
-    
-    const currentNetWorth = netWorth;
-    const today = parseLocalDate(toLocalISOString(new Date()));
 
-    // Reverse calculations from Today back to Start of period
-    const transactionsToReverse = transactions.filter(tx => {
-        if (!analyticsSelectedAccountIds.includes(tx.accountId)) return false;
-        if (tx.transferId && internalTransferIds.has(tx.transferId)) return false;
-        const txDate = parseLocalDate(tx.date);
-        return txDate >= start && txDate <= today;
+    const rangeEnd = end < today ? end : today;
+    const selectedAccountIdsSet = new Set(selectedAccounts.map(acc => acc.id));
+
+    let runningTotal = 0;
+    selectedAccounts.forEach(acc => {
+        runningTotal += convertToEur(acc.balance, acc.currency);
     });
 
-    // Calculate total change in the period (to find start value)
-    const totalChangeSinceStart = transactionsToReverse.reduce((sum, tx) => {
-        const signedAmount = tx.type === 'expense'
-            ? -Math.abs(convertToEur(tx.amount, tx.currency))
-            : Math.abs(convertToEur(tx.amount, tx.currency));
-
-        return sum + signedAmount;
-    }, 0);
-
-    const startingNetWorth = currentNetWorth - totalChangeSinceStart;
-
-    // Now roll forward from Start to End to build daily points
-    const transactionsInPeriod = transactions.filter(tx => {
-        if (!analyticsSelectedAccountIds.includes(tx.accountId)) return false;
-        if (tx.transferId && internalTransferIds.has(tx.transferId)) return false;
+    const txsByDate = new Map<string, Transaction[]>();
+    transactions.forEach(tx => {
+        if (!selectedAccountIdsSet.has(tx.accountId)) return;
         const txDate = parseLocalDate(tx.date);
-        return txDate >= start && txDate <= end;
+        if (txDate < start || txDate > today) return;
+        const dateKey = formatDateKey(txDate);
+        const group = txsByDate.get(dateKey) || [];
+        group.push(tx);
+        txsByDate.set(dateKey, group);
     });
 
-    const dailyChanges = new Map<string, number>();
-    for (const tx of transactionsInPeriod) {
-        const dateStr = formatDateKey(parseLocalDate(tx.date));
-        const signedAmount = tx.type === 'expense'
-            ? -Math.abs(convertToEur(tx.amount, tx.currency))
-            : Math.abs(convertToEur(tx.amount, tx.currency));
+    const historyPointsReversed: { date: string; actual: number | null; forecast: number | null }[] = [];
+    const iterDate = new Date(today);
 
-        dailyChanges.set(dateStr, (dailyChanges.get(dateStr) || 0) + signedAmount);
-    }
-    
-    // Generate merged history and forecast data
-    const historyPoints: { date: string; actual: number | null; forecast: number | null }[] = [];
-    let runningBalance = startingNetWorth;
-    
-    let currentDate = new Date(start);
+    while (iterDate >= start) {
+        const dateKey = formatDateKey(iterDate);
+        historyPointsReversed.push({ date: dateKey, actual: parseFloat(runningTotal.toFixed(2)), forecast: null });
 
-    // Build historical points
-    while (currentDate <= today && currentDate <= end) {
-        const dateStr = formatDateKey(currentDate);
-        runningBalance += dailyChanges.get(dateStr) || 0;
-        historyPoints.push({ date: dateStr, actual: parseFloat(runningBalance.toFixed(2)), forecast: null });
-        currentDate.setDate(currentDate.getDate() + 1);
+        const dailyTxs = txsByDate.get(dateKey) || [];
+        dailyTxs.forEach(tx => {
+            const signedAmount = tx.type === 'expense'
+                ? -Math.abs(convertToEur(tx.amount, tx.currency))
+                : Math.abs(convertToEur(tx.amount, tx.currency));
+            runningTotal -= signedAmount;
+        });
+
+        iterDate.setDate(iterDate.getDate() - 1);
     }
 
-    // Ensure Today matches current net worth exactly to fix drift
-    if (historyPoints.length > 0) {
-        const lastPoint = historyPoints[historyPoints.length - 1];
-        if (lastPoint.date === formatDateKey(today)) {
-             lastPoint.actual = parseFloat(currentNetWorth.toFixed(2));
-        }
-    }
-    
-    // Add forecast points if toggle is enabled
+    const historyPoints = historyPointsReversed
+        .reverse()
+        .filter(point => parseLocalDate(point.date) <= rangeEnd);
+
     if (showNetWorthForecast) {
-        // Forecast Calculation
         const forecastEndDate = new Date();
-        
-        // Determine forecast duration based on dashboard filter
+
         switch (duration) {
             case 'TODAY':
             case 'WTD':
-                // No forecast for very short periods
                 break;
             case 'MTD':
             case '30D':
@@ -820,15 +775,11 @@ const Dashboard: React.FC<DashboardProps> = ({ user, tasks, saveTask }) => {
                 break;
         }
 
-        // Bridge the gap: The last historical point becomes the start of the forecast
         if (historyPoints.length > 0) {
             const bridgePoint = historyPoints[historyPoints.length - 1];
             bridgePoint.forecast = bridgePoint.actual;
         }
 
-        // Generate Forecast using utility
-        // Note: generateBalanceForecast calculates balance for *future* dates based on recurring items.
-        // It starts from the *current* balance of the accounts.
         const { chartData: forecastChartData } = generateBalanceForecast(
             selectedAccounts,
             allRecurringItems,
@@ -838,27 +789,20 @@ const Dashboard: React.FC<DashboardProps> = ({ user, tasks, saveTask }) => {
             recurringTransactionOverrides
         );
 
-        const baseForecastPoint = forecastChartData.find(point => {
-            const pointDate = parseLocalDate(point.date);
-            return pointDate.getTime() === today.getTime();
-        }) || forecastChartData[0];
-        const netWorthAdjustment = baseForecastPoint ? currentNetWorth - baseForecastPoint.value : 0;
-        
-        // Map forecast data to our chart format
         forecastChartData.forEach(point => {
-             const pointDate = parseLocalDate(point.date);
-             if (pointDate > today) {
-                 historyPoints.push({ 
-                     date: point.date, 
-                     actual: null, 
-                     forecast: point.value + netWorthAdjustment 
-                 });
-             }
+            const pointDate = parseLocalDate(point.date);
+            if (pointDate > today) {
+                historyPoints.push({
+                    date: point.date,
+                    actual: null,
+                    forecast: point.value
+                });
+            }
         });
     }
 
     return historyPoints;
-  }, [duration, transactions, analyticsSelectedAccountIds, netWorth, showNetWorthForecast, allRecurringItems, activeGoals, billsAndPayments, recurringTransactionOverrides, selectedAccounts]);
+  }, [duration, transactions, selectedAccounts, showNetWorthForecast, allRecurringItems, activeGoals, billsAndPayments, recurringTransactionOverrides]);
 
   const netWorthTrendColor = useMemo(() => {
     // Determine color based on historical trend
