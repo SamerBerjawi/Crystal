@@ -94,7 +94,7 @@ type EnrichedTransaction = Transaction & { convertedAmount: number; parsedDate: 
 type DashboardTab = 'overview' | 'analysis' | 'activity';
 
 const WIDGET_TABS: Record<DashboardTab, string[]> = {
-    overview: ['netWorthOverTime'],
+    overview: ['netWorthOverTime', 'forecastChart'],
     analysis: [],
     activity: ['transactionMap', 'outflowsByCategory', 'netWorthBreakdown', 'recentActivity', 'cashflowSankey']
 };
@@ -117,7 +117,7 @@ const Dashboard: React.FC<DashboardProps> = ({ user, tasks, saveTask }) => {
   const { accounts } = useAccountsContext();
   const { transactions, saveTransaction, deleteTransactions, digest: transactionsDigest } = useTransactionsContext();
   const { incomeCategories, expenseCategories } = useCategoryContext();
-  const { financialGoals } = useGoalsContext();
+  const { financialGoals, saveFinancialGoal } = useGoalsContext();
   const { recurringTransactions, recurringTransactionOverrides, loanPaymentOverrides, billsAndPayments, saveRecurringTransaction, saveBillPayment } = useScheduleContext();
   const { tags } = useTagsContext();
   const { budgets } = useBudgetsContext();
@@ -136,6 +136,16 @@ const Dashboard: React.FC<DashboardProps> = ({ user, tasks, saveTask }) => {
   const [isEditMode, setIsEditMode] = useState(false);
   const [isMatcherModalOpen, setIsMatcherModalOpen] = useState(false);
   const [activeTab, setActiveTab] = useState<DashboardTab>('overview');
+  
+  const [selectedForecastDate, setSelectedForecastDate] = useState<string | null>(null);
+
+  // States for Forecast Interaction Modals
+  const [isRecurringModalOpen, setIsRecurringModalOpen] = useState(false);
+  const [editingRecurring, setEditingRecurring] = useState<RecurringTransaction | null>(null);
+  const [isBillModalOpen, setIsBillModalOpen] = useState(false);
+  const [editingBill, setEditingBill] = useState<BillPayment | null>(null);
+  const [isGoalModalOpen, setIsGoalModalOpen] = useState(false);
+  const [editingGoal, setEditingGoal] = useState<FinancialGoal | null>(null);
 
   const { suggestions, confirmMatch, dismissSuggestion, confirmAllMatches, dismissAllSuggestions } = useTransactionMatcher(transactions, accounts, saveTransaction);
 
@@ -184,6 +194,67 @@ const Dashboard: React.FC<DashboardProps> = ({ user, tasks, saveTask }) => {
         const all = [...recurringTransactions, ...syntheticLoanPayments, ...syntheticCreditCardPayments, ...syntheticPropertyTransactions];
         return { allRecurringItems: all };
   }, [analyticsAccounts, analyticsTransactions, loanPaymentOverrides, recurringTransactions]);
+  
+  // Forecast Data for Widget
+  const { forecastChartData, lowestBalanceForecasts, lowestForecastPoint, forecastTableData } = useMemo(() => {
+        const projectionEndDate = new Date();
+        projectionEndDate.setMonth(projectionEndDate.getMonth() + 12); // 1 Year Forecast
+
+        // Use ALL accounts to generate synthetic items.
+        // This ensures that if we have a Loan (not selected) paid by Checking (selected),
+        // the payment logic is still generated so the forecast engine can deduct it from Checking.
+        const syntheticLoanPayments = generateSyntheticLoanPayments(accounts, transactions, loanPaymentOverrides);
+        const syntheticCreditCardPayments = generateSyntheticCreditCardPayments(accounts, transactions);
+        const syntheticPropertyTransactions = generateSyntheticPropertyTransactions(accounts);
+        
+        const allRecurring = [...recurringTransactions, ...syntheticLoanPayments, ...syntheticCreditCardPayments, ...syntheticPropertyTransactions];
+        const activeGoals = financialGoals.filter(g => activeGoalIds.includes(g.id));
+
+        const { chartData, lowestPoint, tableData } = generateBalanceForecast(
+            selectedAccounts,
+            allRecurring,
+            activeGoals,
+            billsAndPayments,
+            projectionEndDate,
+            recurringTransactionOverrides
+        );
+
+        return {
+            forecastChartData: chartData,
+            lowestBalanceForecasts: calculateForecastHorizon(chartData),
+            lowestForecastPoint: lowestPoint,
+            forecastTableData: tableData
+        };
+
+    }, [accounts, selectedAccounts, transactions, loanPaymentOverrides, recurringTransactions, financialGoals, activeGoalIds, billsAndPayments, recurringTransactionOverrides]);
+
+  const selectedDayItems = useMemo(() => {
+      if (!selectedForecastDate) return [];
+      return forecastTableData.filter(item => item.date === selectedForecastDate);
+  }, [selectedForecastDate, forecastTableData]);
+
+  const handleDateClick = (date: string) => {
+      setSelectedForecastDate(date);
+  };
+
+  const handleEditForecastItem = (item: any) => {
+      setSelectedForecastDate(null);
+      if (item.type === 'Financial Goal') {
+            setEditingGoal(item.originalItem);
+            setIsGoalModalOpen(true);
+      } else if (item.type === 'Recurring') {
+            setEditingRecurring(item.originalItem);
+            setIsRecurringModalOpen(true);
+      } else if (item.type === 'Bill/Payment') {
+            setEditingBill(item.originalItem);
+            setIsBillModalOpen(true);
+      }
+  };
+
+  const handleAddNewToDate = () => {
+      setEditingRecurring(null);
+      setIsRecurringModalOpen(true);
+  };
 
   const handleOpenTransactionModal = (tx?: Transaction) => {
     setEditingTransaction(tx || null);
@@ -210,10 +281,6 @@ const Dashboard: React.FC<DashboardProps> = ({ user, tasks, saveTask }) => {
           if ('frequency' in original) {
              // Recurring
              const rt = original as RecurringTransaction;
-             
-             // Only advance the date if it is NOT a synthetic transaction.
-             // Synthetic transactions (like loan payments) are auto-generated based on the schedule.
-             // Once a real payment is made, the schedule logic will see it and stop generating that specific instance.
              if (!rt.isSynthetic) {
                  const postedDate = parseLocalDate(transactionsToSave[0].date);
                  let nextDueDate = new Date(postedDate);
@@ -755,7 +822,7 @@ const Dashboard: React.FC<DashboardProps> = ({ user, tasks, saveTask }) => {
         dailyChanges.set(dateStr, (dailyChanges.get(dateStr) || 0) + signedAmount);
     }
     
-    const data: { name: string, value: number }[] = [];
+    const data: { name: string, value?: number, forecast?: number }[] = [];
     let runningBalance = startingNetWorth;
     
     let currentDate = new Date(start);
@@ -772,15 +839,45 @@ const Dashboard: React.FC<DashboardProps> = ({ user, tasks, saveTask }) => {
     if (todayDataPoint) {
       todayDataPoint.value = parseFloat(currentNetWorth.toFixed(2));
     }
-
+    
+    // --- INTEGRATE FORECAST DATA ---
+    if (forecastChartData && forecastChartData.length > 0) {
+        const currentForecastBase = forecastChartData[0].value;
+        const currentNetWorthVal = currentNetWorth;
+        
+        // Find today's index in history data to connect lines
+        const todayIndex = data.findIndex(d => d.name === todayStr);
+        
+        if (todayIndex !== -1) {
+            // Set the 'forecast' value for today to match 'value' so lines connect
+            data[todayIndex].forecast = data[todayIndex].value;
+            
+            // Append future points
+            forecastChartData.forEach(point => {
+                if (point.date > todayStr) {
+                    // Calculate relative change from forecast engine and apply to current Net Worth
+                    const predictedChange = point.value - currentForecastBase;
+                    const projectedNetWorth = currentNetWorthVal + predictedChange;
+                    
+                    data.push({
+                        name: point.date,
+                        value: undefined, // No actual value for future
+                        forecast: parseFloat(projectedNetWorth.toFixed(2))
+                    });
+                }
+            });
+        }
+    }
 
     return data;
-  }, [duration, transactions, analyticsSelectedAccountIds, netWorth]);
+  }, [duration, transactions, analyticsSelectedAccountIds, netWorth, forecastChartData]);
 
   const netWorthTrendColor = useMemo(() => {
-    if (netWorthData.length < 2) return '#6366F1';
-    const startValue = netWorthData[0].value;
-    const endValue = netWorthData[netWorthData.length - 1].value;
+    // Check trend based on historical data only
+    const historyPoints = netWorthData.filter(d => d.value !== undefined);
+    if (historyPoints.length < 2) return '#6366F1';
+    const startValue = historyPoints[0].value!;
+    const endValue = historyPoints[historyPoints.length - 1].value!;
     return endValue >= startValue ? '#34C759' : '#FF3B30';
   }, [netWorthData]);
   
@@ -834,31 +931,7 @@ const Dashboard: React.FC<DashboardProps> = ({ user, tasks, saveTask }) => {
       });
   }, [configuredCreditCards, transactions]);
 
-    const lowestBalanceForecasts = useMemo(() => {
-        const projectionEndDate = new Date();
-        projectionEndDate.setMonth(projectionEndDate.getMonth() + 24);
-
-        const syntheticLoanPayments = generateSyntheticLoanPayments(accounts, transactions, loanPaymentOverrides);
-        const syntheticCreditCardPayments = generateSyntheticCreditCardPayments(accounts, transactions);
-        const syntheticPropertyTransactions = generateSyntheticPropertyTransactions(accounts);
-        const allRecurringTransactions = [...recurringTransactions, ...syntheticLoanPayments, ...syntheticCreditCardPayments, ...syntheticPropertyTransactions];
-
-        const activeGoals = financialGoals.filter(g => activeGoalIds.includes(g.id));
-
-        const { chartData } = generateBalanceForecast(
-            selectedAccounts,
-            allRecurringTransactions,
-            activeGoals,
-            billsAndPayments,
-            projectionEndDate,
-            recurringTransactionOverrides
-        );
-
-        return calculateForecastHorizon(chartData);
-
-    }, [accounts, activeGoalIds, billsAndPayments, financialGoals, loanPaymentOverrides, recurringTransactionOverrides, recurringTransactions, selectedAccounts, transactions]);
-
-  const handleBudgetClick = useCallback(() => {
+    const handleBudgetClick = useCallback(() => {
     if (typeof window === 'undefined') return;
     const targetPath = '/budget';
     window.history.pushState(null, '', targetPath);
@@ -883,7 +956,17 @@ const Dashboard: React.FC<DashboardProps> = ({ user, tasks, saveTask }) => {
             onProcessItem: handleProcessItem 
         } 
     },
-    { id: 'netWorthOverTime', name: 'Net Worth Over Time', defaultW: 4, defaultH: 2, component: NetWorthChart, props: { data: netWorthData, lineColor: netWorthTrendColor } },
+    // Updated default width for Net Worth to share row with Forecast
+    { id: 'netWorthOverTime', name: 'Net Worth Over Time', defaultW: 2, defaultH: 2, component: NetWorthChart, props: { data: netWorthData, lineColor: netWorthTrendColor } },
+    { id: 'forecastChart', name: 'Cash Flow Forecast', defaultW: 2, defaultH: 2, component: ForecastChart, props: { 
+        data: forecastChartData, 
+        oneTimeGoals: financialGoals.filter(g => activeGoalIds.includes(g.id) && g.type === 'one-time'), 
+        lowestPoint: lowestForecastPoint,
+        showIndividualLines: false,
+        accounts: selectedAccounts,
+        showGoalLines: true,
+        onDataPointClick: handleDateClick // Pass handleDateClick here
+    }},
     { id: 'outflowsByCategory', name: 'Outflows by Category', defaultW: 2, defaultH: 2, component: OutflowsChart, props: { data: outflowsByCategory, onCategoryClick: handleCategoryClick } },
     { id: 'netWorthBreakdown', name: 'Net Worth Breakdown', defaultW: 2, defaultH: 2, component: AssetDebtDonutChart, props: { assets: totalAssets, debt: totalDebt } },
     { id: 'recentActivity', name: 'Recent Activity', defaultW: 4, defaultH: 3, component: TransactionList, props: { transactions: recentTransactions, allCategories: allCategories, onTransactionClick: handleTransactionClick } },
@@ -892,7 +975,7 @@ const Dashboard: React.FC<DashboardProps> = ({ user, tasks, saveTask }) => {
     { id: 'budgetOverview', name: 'Budget Overview', defaultW: 2, defaultH: 2, component: BudgetOverviewWidget, props: { budgets: budgets, transactions: transactions, expenseCategories: expenseCategories, accounts: accounts, duration: duration, onBudgetClick: handleBudgetClick } },
     { id: 'transactionMap', name: 'Transaction Map', defaultW: 2, defaultH: 2, component: TransactionMapWidget, props: { transactions: filteredTransactions } },
     { id: 'cashflowSankey', name: 'Cash Flow Sankey', defaultW: 4, defaultH: 2, component: CashflowSankey, props: { transactions: filteredTransactions, incomeCategories, expenseCategories } }
-  ], [tasks, allRecurringItems, recurringTransactionOverrides, billsAndPayments, financialGoals, saveTask, netWorthData, netWorthTrendColor, outflowsByCategory, handleCategoryClick, totalAssets, totalDebt, recentTransactions, allCategories, handleTransactionClick, globalTotalAssets, globalAssetBreakdown, globalTotalDebt, globalDebtBreakdown, budgets, transactions, expenseCategories, accounts, duration, handleBudgetClick, filteredTransactions, incomeCategories]);
+  ], [tasks, allRecurringItems, recurringTransactionOverrides, billsAndPayments, financialGoals, saveTask, netWorthData, netWorthTrendColor, forecastChartData, activeGoalIds, lowestForecastPoint, selectedAccounts, outflowsByCategory, handleCategoryClick, totalAssets, totalDebt, recentTransactions, allCategories, handleTransactionClick, globalTotalAssets, globalAssetBreakdown, globalTotalDebt, globalDebtBreakdown, budgets, transactions, expenseCategories, accounts, duration, handleBudgetClick, filteredTransactions, incomeCategories]);
 
   const [widgets, setWidgets] = useLocalStorage<WidgetConfig[]>('dashboard-layout', allWidgets.map(w => ({ id: w.id, title: w.name, w: w.defaultW, h: w.defaultH })));
 
@@ -901,19 +984,56 @@ const Dashboard: React.FC<DashboardProps> = ({ user, tasks, saveTask }) => {
     const requiredActivityWidgets = WIDGET_TABS.activity;
 
     setWidgets(prev => {
+        // 1. Check for missing activity widgets
         const currentIds = new Set(prev.map(w => w.id));
         const missing = requiredActivityWidgets.filter(id => !currentIds.has(id));
+        
+        let newWidgets = [...prev];
 
-        if (!missing.length) return prev;
+        if (missing.length) {
+             const additions = missing
+                .map(id => {
+                    const widgetDef = allWidgets.find(w => w.id === id);
+                    return widgetDef ? { id: widgetDef.id, title: widgetDef.name, w: widgetDef.defaultW, h: widgetDef.defaultH } : null;
+                })
+                .filter(Boolean) as WidgetConfig[];
+             newWidgets = [...newWidgets, ...additions];
+        }
+        
+        // 2. Enforce new layout for Net Worth / Forecast split if Forecast is missing or Net Worth is full width
+        const netWorthIndex = newWidgets.findIndex(w => w.id === 'netWorthOverTime');
+        const forecastIndex = newWidgets.findIndex(w => w.id === 'forecastChart');
+        const netWorthWidget = newWidgets[netWorthIndex];
 
-        const additions = missing
-            .map(id => {
-                const widgetDef = allWidgets.find(w => w.id === id);
-                return widgetDef ? { id: widgetDef.id, title: widgetDef.name, w: widgetDef.defaultW, h: widgetDef.defaultH } : null;
-            })
-            .filter(Boolean) as WidgetConfig[];
+        // If Net Worth is still full width (old default) OR Forecast is missing
+        if ((netWorthWidget && netWorthWidget.w > 2) || forecastIndex === -1) {
+             // Resize Net Worth to 2
+             if (netWorthWidget) {
+                 newWidgets[netWorthIndex] = { ...netWorthWidget, w: 2 };
+             }
+             
+             // Add Forecast Chart if missing
+             if (forecastIndex === -1) {
+                  const forecastDef = allWidgets.find(w => w.id === 'forecastChart');
+                  if (forecastDef) {
+                       const newForecastConfig = { 
+                           id: forecastDef.id, 
+                           title: forecastDef.name, 
+                           w: 2, 
+                           h: netWorthWidget ? netWorthWidget.h : 2 
+                       };
+                       // Insert after Net Worth if present, otherwise append
+                       if (netWorthIndex !== -1) {
+                           newWidgets.splice(netWorthIndex + 1, 0, newForecastConfig);
+                       } else {
+                           newWidgets.push(newForecastConfig);
+                       }
+                  }
+             }
+             return newWidgets;
+        }
 
-        return additions.length ? [...prev, ...additions] : prev;
+        return newWidgets.length !== prev.length ? newWidgets : prev;
     });
   }, [allWidgets, setWidgets]);
 
@@ -1060,6 +1180,47 @@ const Dashboard: React.FC<DashboardProps> = ({ user, tasks, saveTask }) => {
               onDismissAll={dismissAllSuggestions}
           />
       )}
+      
+      {/* Forecast Interaction Modals */}
+      {isRecurringModalOpen && (
+        <RecurringTransactionModal
+            onClose={() => setIsRecurringModalOpen(false)}
+            onSave={(data) => {
+                saveRecurringTransaction(data);
+                setIsRecurringModalOpen(false);
+            }}
+            accounts={accounts}
+            incomeCategories={incomeCategories}
+            expenseCategories={expenseCategories}
+            recurringTransactionToEdit={editingRecurring}
+        />
+      )}
+      {isBillModalOpen && (
+        <BillPaymentModal
+            onClose={() => setIsBillModalOpen(false)}
+            onSave={(data) => {
+                saveBillPayment(data);
+                setIsBillModalOpen(false);
+            }}
+            bill={editingBill}
+            accounts={accounts}
+            initialDate={selectedForecastDate || undefined}
+        />
+      )}
+      {isGoalModalOpen && (
+          <GoalScenarioModal
+            onClose={() => setIsGoalModalOpen(false)}
+            onSave={(data) => {
+                saveFinancialGoal(data);
+                setIsGoalModalOpen(false);
+            }}
+            goalToEdit={editingGoal}
+            financialGoals={financialGoals}
+            accounts={accounts}
+          />
+      )}
+      
+      {selectedForecastDate && <ForecastDayModal isOpen={!!selectedForecastDate} onClose={() => setSelectedForecastDate(null)} date={selectedForecastDate} items={selectedDayItems} onEditItem={handleEditForecastItem} onAddTransaction={handleAddNewToDate} />}
       
       {/* Header Section */}
       <PageHeader

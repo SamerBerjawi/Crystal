@@ -5,7 +5,8 @@ import { formatCurrency, parseLocalDate } from '../utils';
 
 interface ChartData {
   name: string;
-  value: number;
+  value?: number;
+  forecast?: number;
 }
 
 interface NetWorthChartProps {
@@ -23,10 +24,31 @@ const NetWorthChart: React.FC<NetWorthChartProps> = ({ data, lineColor = '#6366F
 
   const CustomTooltip = ({ active, payload, label }: any) => {
       if (active && payload && payload.length) {
+        // payload can contain both 'value' and 'forecast' depending on the point
+        const historyPayload = payload.find((p: any) => p.dataKey === 'value');
+        const forecastPayload = payload.find((p: any) => p.dataKey === 'forecast');
+
         return (
-          <div className="bg-white dark:bg-dark-card p-3 rounded-xl shadow-lg border border-black/5 dark:border-white/10">
-            <p className="label font-semibold text-light-text-secondary dark:text-dark-text-secondary text-xs mb-1">{parseLocalDate(label).toLocaleDateString('en-US', { day: 'numeric', month: 'long', year: 'numeric' })}</p>
-            <p className="font-bold text-lg text-light-text dark:text-dark-text">{formatCurrency(payload[0].value, 'EUR')}</p>
+          <div className="bg-white dark:bg-dark-card p-3 rounded-xl shadow-lg border border-black/5 dark:border-white/10 text-sm">
+            <p className="label font-semibold text-light-text-secondary dark:text-dark-text-secondary text-xs mb-2 pb-1 border-b border-black/5 dark:border-white/5">
+                {parseLocalDate(label).toLocaleDateString('en-US', { day: 'numeric', month: 'long', year: 'numeric' })}
+            </p>
+            {historyPayload && (
+                <div className="flex justify-between gap-4 mb-1">
+                    <span className="text-light-text dark:text-dark-text">Actual:</span>
+                    <span className="font-bold text-light-text dark:text-dark-text font-mono">
+                        {formatCurrency(historyPayload.value, 'EUR')}
+                    </span>
+                </div>
+            )}
+            {forecastPayload && (
+                <div className="flex justify-between gap-4">
+                    <span className="text-light-text-secondary dark:text-dark-text-secondary">Forecast:</span>
+                    <span className="font-bold text-primary-500 font-mono">
+                        {formatCurrency(forecastPayload.value, 'EUR')}
+                    </span>
+                </div>
+            )}
           </div>
         );
       }
@@ -54,6 +76,7 @@ const NetWorthChart: React.FC<NetWorthChartProps> = ({ data, lineColor = '#6366F
   };
   
   const gradientId = `colorNetWorth-${lineColor.replace('#', '')}`;
+  const forecastGradientId = `colorNetWorthForecast-${lineColor.replace('#', '')}`;
 
   return (
     <div className="flex-grow" style={{ width: '100%', height: '270px' }}>
@@ -67,6 +90,14 @@ const NetWorthChart: React.FC<NetWorthChartProps> = ({ data, lineColor = '#6366F
               <stop offset="5%" stopColor={lineColor} stopOpacity={0.3}/>
               <stop offset="95%" stopColor={lineColor} stopOpacity={0}/>
             </linearGradient>
+            <linearGradient id={forecastGradientId} x1="0" y1="0" x2="0" y2="1">
+              <stop offset="5%" stopColor={lineColor} stopOpacity={0.1}/>
+              <stop offset="95%" stopColor={lineColor} stopOpacity={0}/>
+            </linearGradient>
+            {/* Pattern for forecast area to give it a "projected" look */}
+            <pattern id="patternForecast" patternUnits="userSpaceOnUse" width="4" height="4">
+                <path d="M-1,1 l2,-2 M0,4 l4,-4 M3,5 l2,-2" style={{ stroke: lineColor, strokeOpacity: 0.1, strokeWidth: 1 }} />
+            </pattern>
           </defs>
           <CartesianGrid strokeDasharray="3 3" stroke="currentColor" opacity={0.05} vertical={false} />
           <XAxis 
@@ -92,6 +123,21 @@ const NetWorthChart: React.FC<NetWorthChartProps> = ({ data, lineColor = '#6366F
             cursor={{ stroke: lineColor, strokeWidth: 1, strokeDasharray: '4 4', opacity: 0.5 }}
             content={<CustomTooltip />} 
            />
+          
+          {/* Forecast Area (Rendered first so it sits behind if overlapping, though typically they join) */}
+          <Area 
+            type="monotone" 
+            dataKey="forecast" 
+            name="Forecast" 
+            stroke={lineColor} 
+            strokeDasharray="5 5"
+            fill={`url(#${forecastGradientId})`} 
+            strokeWidth={2}
+            strokeOpacity={0.6}
+            activeDot={{ r: 4, fill: 'white', stroke: lineColor, strokeWidth: 2 }}
+          />
+
+          {/* Actual History Area */}
           <Area 
             type="monotone" 
             dataKey="value" 
