@@ -968,7 +968,21 @@ const Dashboard: React.FC<DashboardProps> = ({ user, tasks, saveTask }) => {
         } 
     },
     // Updated props for Net Worth chart to support toggles
-    { id: 'netWorthOverTime', name: 'Net Worth Over Time', defaultW: 4, defaultH: 2, component: NetWorthChart, props: { data: netWorthData, lineColor: netWorthTrendColor, showForecast, showGoals, goals: financialGoals.filter(g => g.date) } },
+    { 
+      id: 'netWorthOverTime', 
+      name: 'Net Worth Over Time', 
+      defaultW: 4, 
+      defaultH: 2, 
+      component: NetWorthChart, 
+      props: { 
+        data: netWorthData, 
+        lineColor: netWorthTrendColor, 
+        showForecast, 
+        showGoals, 
+        // Filter goals to only show those attached to selected accounts OR unlinked goals (which are global)
+        goals: financialGoals.filter(g => g.date && (!g.paymentAccountId || selectedAccountIds.includes(g.paymentAccountId)))
+      } 
+    },
     // Removed forecastChart
     { id: 'outflowsByCategory', name: 'Outflows by Category', defaultW: 2, defaultH: 2, component: OutflowsChart, props: { data: outflowsByCategory, onCategoryClick: handleCategoryClick } },
     { id: 'netWorthBreakdown', name: 'Net Worth Breakdown', defaultW: 2, defaultH: 2, component: AssetDebtDonutChart, props: { assets: totalAssets, debt: totalDebt } },
@@ -978,7 +992,7 @@ const Dashboard: React.FC<DashboardProps> = ({ user, tasks, saveTask }) => {
     { id: 'budgetOverview', name: 'Budget Overview', defaultW: 2, defaultH: 2, component: BudgetOverviewWidget, props: { budgets: budgets, transactions: transactions, expenseCategories: expenseCategories, accounts: accounts, duration: duration, onBudgetClick: handleBudgetClick } },
     { id: 'transactionMap', name: 'Transaction Map', defaultW: 2, defaultH: 2, component: TransactionMapWidget, props: { transactions: filteredTransactions } },
     { id: 'cashflowSankey', name: 'Cash Flow Sankey', defaultW: 4, defaultH: 2, component: CashflowSankey, props: { transactions: filteredTransactions, incomeCategories, expenseCategories } }
-  ], [tasks, allRecurringItems, recurringTransactionOverrides, billsAndPayments, financialGoals, saveTask, netWorthData, netWorthTrendColor, activeGoalIds, lowestForecastPoint, selectedAccounts, outflowsByCategory, handleCategoryClick, totalAssets, totalDebt, recentTransactions, allCategories, handleTransactionClick, globalTotalAssets, globalAssetBreakdown, globalTotalDebt, globalDebtBreakdown, budgets, transactions, expenseCategories, accounts, duration, handleBudgetClick, filteredTransactions, incomeCategories, showForecast, showGoals]);
+  ], [tasks, allRecurringItems, recurringTransactionOverrides, billsAndPayments, financialGoals, saveTask, netWorthData, netWorthTrendColor, activeGoalIds, lowestForecastPoint, selectedAccounts, outflowsByCategory, handleCategoryClick, totalAssets, totalDebt, recentTransactions, allCategories, handleTransactionClick, globalTotalAssets, globalAssetBreakdown, globalTotalDebt, globalDebtBreakdown, budgets, transactions, expenseCategories, accounts, duration, handleBudgetClick, filteredTransactions, incomeCategories, showForecast, showGoals, selectedAccountIds]);
 
   const [widgets, setWidgets] = useLocalStorage<WidgetConfig[]>('dashboard-layout', allWidgets.map(w => ({ id: w.id, title: w.name, w: w.defaultW, h: w.defaultH })));
 
