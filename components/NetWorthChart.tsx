@@ -8,6 +8,7 @@ interface ChartData {
   name: string;
   value?: number;
   forecast?: number;
+  benchmark?: number;
 }
 
 interface NetWorthChartProps {
@@ -34,9 +35,10 @@ const NetWorthChart: React.FC<NetWorthChartProps> = ({
 
   const CustomTooltip = ({ active, payload, label }: any) => {
       if (active && payload && payload.length) {
-        // payload can contain both 'value' and 'forecast' depending on the point
+        // payload can contain 'value', 'forecast', and 'benchmark'
         const historyPayload = payload.find((p: any) => p.dataKey === 'value');
         const forecastPayload = payload.find((p: any) => p.dataKey === 'forecast');
+        const benchmarkPayload = payload.find((p: any) => p.dataKey === 'benchmark');
 
         return (
           <div className="bg-white dark:bg-dark-card p-3 rounded-xl shadow-lg border border-black/5 dark:border-white/10 text-sm">
@@ -52,10 +54,18 @@ const NetWorthChart: React.FC<NetWorthChartProps> = ({
                 </div>
             )}
             {forecastPayload && (
-                <div className="flex justify-between gap-4">
-                    <span className="text-light-text-secondary dark:text-dark-text-secondary">Forecast:</span>
+                <div className="flex justify-between gap-4 mb-1">
+                    <span className="text-light-text-secondary dark:text-dark-text-secondary">Projected:</span>
                     <span className="font-bold text-primary-500 font-mono">
                         {formatCurrency(forecastPayload.value, 'EUR')}
+                    </span>
+                </div>
+            )}
+            {benchmarkPayload && (
+                <div className="flex justify-between gap-4 pt-1 border-t border-black/5 dark:border-white/5">
+                    <span className="text-gray-500 dark:text-gray-400 text-xs uppercase tracking-wider">Baseline:</span>
+                    <span className="font-bold text-gray-500 dark:text-gray-400 font-mono">
+                        {formatCurrency(benchmarkPayload.value, 'EUR')}
                     </span>
                 </div>
             )}
@@ -104,10 +114,6 @@ const NetWorthChart: React.FC<NetWorthChartProps> = ({
               <stop offset="5%" stopColor={lineColor} stopOpacity={0.1}/>
               <stop offset="95%" stopColor={lineColor} stopOpacity={0}/>
             </linearGradient>
-            {/* Pattern for forecast area to give it a "projected" look */}
-            <pattern id="patternForecast" patternUnits="userSpaceOnUse" width="4" height="4">
-                <path d="M-1,1 l2,-2 M0,4 l4,-4 M3,5 l2,-2" style={{ stroke: lineColor, strokeOpacity: 0.1, strokeWidth: 1 }} />
-            </pattern>
           </defs>
           <CartesianGrid strokeDasharray="3 3" stroke="currentColor" opacity={0.05} vertical={false} />
           <XAxis 
@@ -164,6 +170,18 @@ const NetWorthChart: React.FC<NetWorthChartProps> = ({
                 </ReferenceLine>
               );
           })}
+
+          {/* Benchmark Line (Baseline) */}
+          <Area 
+            type="monotone" 
+            dataKey="benchmark" 
+            name="Baseline" 
+            stroke="#9CA3AF" 
+            strokeDasharray="3 3"
+            strokeWidth={2}
+            fill="none"
+            activeDot={{ r: 4, fill: '#9CA3AF', strokeWidth: 0 }}
+          />
 
           {/* Forecast Area */}
           {showForecast && (

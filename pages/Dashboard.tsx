@@ -49,14 +49,7 @@ const CashflowSankey = lazy(() => import('../components/CashflowSankey'));
 
 interface DashboardProps {
   user: User;
-  incomeCategories: Category[];
-  expenseCategories: Category[];
-  financialGoals: FinancialGoal[];
-  recurringTransactions: RecurringTransaction[];
-  recurringTransactionOverrides: RecurringTransactionOverride[];
-  loanPaymentOverrides: LoanPaymentOverrides;
-  tasks: Task[];
-  saveTask: (task: Omit<Task, 'id'> & { id?: string }) => void;
+  setCurrentPage: (page: any) => void;
 }
 
 // Define the AssetGroup type to fix type errors
@@ -111,12 +104,12 @@ const AnalysisStatCard: React.FC<{ title: string; value: string; subtext: string
     </div>
 );
 
-const Dashboard: React.FC<DashboardProps> = ({ user, tasks, saveTask }) => {
+const Dashboard: React.FC<DashboardProps> = ({ user, setCurrentPage }) => {
   const { activeGoalIds, setActiveGoalIds, dashboardAccountIds: selectedAccountIds, setDashboardAccountIds: setSelectedAccountIds, dashboardDuration: duration, setDashboardDuration: setDuration } = useInsightsView();
   const { accounts } = useAccountsContext();
   const { transactions, saveTransaction, deleteTransactions, digest: transactionsDigest } = useTransactionsContext();
   const { incomeCategories, expenseCategories } = useCategoryContext();
-  const { financialGoals, saveFinancialGoal } = useGoalsContext();
+  const { financialGoals, saveFinancialGoal, forecastSnapshots } = useGoalsContext();
   const { recurringTransactions, recurringTransactionOverrides, loanPaymentOverrides, billsAndPayments, saveRecurringTransaction, saveBillPayment } = useScheduleContext();
   const { tags } = useTagsContext();
   const { budgets } = useBudgetsContext();
@@ -858,7 +851,7 @@ const Dashboard: React.FC<DashboardProps> = ({ user, tasks, saveTask }) => {
         dailyChanges.set(dateStr, (dailyChanges.get(dateStr) || 0) + signedAmount);
     }
     
-    const data: { name: string, value?: number, forecast?: number }[] = [];
+    const data: { name: string, value?: number, forecast?: number, benchmark?: number }[] = [];
     let runningBalance = startingNetWorth;
     
     let currentDate = new Date(start);
@@ -866,7 +859,11 @@ const Dashboard: React.FC<DashboardProps> = ({ user, tasks, saveTask }) => {
     while (currentDate <= end) {
         const dateStr = formatDateKey(currentDate);
         runningBalance += dailyChanges.get(dateStr) || 0;
-        data.push({ name: dateStr, value: parseFloat(runningBalance.toFixed(2)) });
+        data.push({ 
+            name: dateStr, 
+            value: parseFloat(runningBalance.toFixed(2)),
+            benchmark: forecastSnapshots ? forecastSnapshots[dateStr] : undefined // Add benchmark data
+        });
         currentDate.setDate(currentDate.getDate() + 1);
     }
     
@@ -898,7 +895,8 @@ const Dashboard: React.FC<DashboardProps> = ({ user, tasks, saveTask }) => {
                     data.push({
                         name: point.date,
                         value: undefined, // No actual value for future
-                        forecast: parseFloat(projectedNetWorth.toFixed(2))
+                        forecast: parseFloat(projectedNetWorth.toFixed(2)),
+                        benchmark: forecastSnapshots ? forecastSnapshots[point.date] : undefined // Add benchmark for future too
                     });
                 }
             });
@@ -906,7 +904,7 @@ const Dashboard: React.FC<DashboardProps> = ({ user, tasks, saveTask }) => {
     }
 
     return data;
-  }, [duration, transactions, analyticsSelectedAccountIds, netWorth, forecastChartData, showForecast]);
+  }, [duration, transactions, analyticsSelectedAccountIds, netWorth, forecastChartData, showForecast, forecastSnapshots]);
 
   const netWorthTrendColor = useMemo(() => {
     // Check trend based on historical data only
