@@ -1,25 +1,43 @@
 
+import React, { Dispatch, SetStateAction } from 'react';
 
-export type Currency = 'USD' | 'EUR' | 'GBP' | 'BTC' | 'RON' | 'JPY' | 'CAD' | 'AUD' | 'CHF' | 'CNY' | 'INR';
+// FIX: Add 'AI Assistant' to Page type
+export type Page = 'Dashboard' | 'Accounts' | 'Transactions' | 'Budget' | 'Forecasting' | 'Settings' | 'Schedule & Bills' | 'Tasks' | 'Categories' | 'Tags' | 'Personal Info' | 'Data Management' | 'Preferences' | 'AccountDetail' | 'Investments' | 'HoldingDetail' | 'Documentation' | 'AI Assistant' | 'Subscriptions' | 'Quotes & Invoices' | 'Challenges' | 'Merchants' | 'Integrations' | 'EnableBankingCallback';
 
 export type AccountType = 'Checking' | 'Savings' | 'Credit Card' | 'Investment' | 'Loan' | 'Property' | 'Vehicle' | 'Other Assets' | 'Other Liabilities' | 'Lending';
 
-export type InvestmentSubType = 'Stock' | 'ETF' | 'Crypto' | 'Pension Fund' | 'Spare Change' | 'Other';
-export type OtherAssetSubType = 'Cash' | 'Precious Metals' | 'Collectibles' | 'Art' | 'Business Equity' | 'Private Loan' | 'Electronics' | 'Furniture' | 'Other';
-export type OtherLiabilitySubType = 'Tax' | 'Private Debt' | 'Legal Settlement' | 'Business Debt' | 'Other';
-export type PropertyType = 'Apartment' | 'Detached House' | 'Semi-Detached House' | 'Terraced House' | 'Land' | 'Commercial' | 'Other';
-export type VehicleOwnership = 'Owned' | 'Leased';
-export type FuelType = 'Gasoline' | 'Diesel' | 'Electric' | 'Hybrid' | 'LPG';
+export type Currency = 'USD' | 'EUR' | 'GBP' | 'BTC' | 'RON';
 
-export type RecurrenceFrequency = 'daily' | 'weekly' | 'monthly' | 'yearly';
-export type WeekendAdjustment = 'on' | 'before' | 'after';
-export type DefaultAccountOrder = 'manual' | 'name' | 'balance';
+export type Theme = 'light' | 'dark' | 'system';
+
 export type Duration = 'TODAY' | 'WTD' | 'MTD' | '30D' | '60D' | '90D' | '6M' | 'YTD' | '1Y' | 'ALL';
 export type ForecastDuration = '3M' | '6M' | 'EOY' | '1Y';
 
-export type Page = 'Dashboard' | 'Accounts' | 'Transactions' | 'Budget' | 'Forecasting' | 'Investments' | 'Schedule & Bills' | 'Subscriptions' | 'Quotes & Invoices' | 'Tasks' | 'Challenges' | 'Settings' | 'Personal Info' | 'Preferences' | 'Integrations' | 'Merchants' | 'AI Assistant' | 'Data Management' | 'AccountDetail' | 'Categories' | 'Tags' | 'Documentation';
+export interface Category {
+  id: string;
+  name: string;
+  color: string;
+  icon?: string;
+  classification: 'income' | 'expense';
+  subCategories: Category[];
+  parentId?: string;
+}
 
-export type Theme = 'light' | 'dark' | 'system';
+export interface Tag {
+  id: string;
+  name: string;
+  color: string;
+  icon: string;
+}
+
+export type InvestmentSubType = 'Stock' | 'ETF' | 'Crypto' | 'Pension Fund' | 'Spare Change' | 'Other';
+export type PropertyType = 'Apartment' | 'Detached House' | 'Semi-Detached House' | 'Terraced House' | 'Land' | 'Commercial' | 'Other';
+export type OtherAssetSubType = 'Cash' | 'Precious Metals' | 'Collectibles' | 'Art' | 'Business Equity' | 'Private Loan' | 'Electronics' | 'Furniture' | 'Other';
+export type OtherLiabilitySubType = 'Tax' | 'Private Debt' | 'Legal Settlement' | 'Business Debt' | 'Other';
+
+// Vehicle Specific Types
+export type FuelType = 'Gasoline' | 'Diesel' | 'Electric' | 'Hybrid' | 'LPG';
+export type VehicleOwnership = 'Owned' | 'Leased';
 
 export interface MileageLog {
     id: string;
@@ -27,454 +45,369 @@ export interface MileageLog {
     reading: number;
 }
 
-export interface Account {
-    id: string;
-    name: string;
-    type: AccountType;
-    balance: number;
-    currency: Currency;
-    icon?: string;
-    isPrimary?: boolean;
-    includeInAnalytics?: boolean;
-    status?: 'open' | 'closed';
-    
-    // Banking
-    financialInstitution?: string;
-    accountNumber?: string;
-    routingNumber?: string;
-    apy?: number;
-    openingDate?: string;
-
-    // Credit Card
-    creditLimit?: number;
-    last4?: string;
-    expirationDate?: string;
-    cardNetwork?: string;
-    cardholderName?: string;
-    statementStartDate?: number;
-    paymentDate?: number;
-    settlementAccountId?: string;
-
-    // Investment
-    subType?: InvestmentSubType;
-    symbol?: string;
-    expectedRetirementYear?: number;
-    linkedAccountId?: string; // For Spare Change or Loan payment source
-
-    // Property
-    propertyType?: PropertyType;
-    address?: string;
-    purchasePrice?: number;
-    principalOwned?: number;
-    linkedLoanId?: string;
-    propertySize?: number; // m2
-    yearBuilt?: number;
-    floors?: number;
-    bedrooms?: number;
-    bathrooms?: number;
-    hasBasement?: boolean;
-    hasAttic?: boolean;
-    indoorParkingSpaces?: number;
-    outdoorParkingSpaces?: number;
-    hasGarden?: boolean;
-    gardenSize?: number;
-    hasTerrace?: boolean;
-    terraceSize?: number;
-    // Property Recurring
-    propertyTaxAmount?: number;
-    propertyTaxDate?: string;
-    insuranceProvider?: string;
-    insurancePolicyNumber?: string;
-    insuranceAmount?: number;
-    insuranceFrequency?: RecurrenceFrequency;
-    insurancePaymentDate?: string;
-    hoaFeeAmount?: number;
-    hoaFeeFrequency?: RecurrenceFrequency;
-    isRental?: boolean;
-    rentalIncomeAmount?: number;
-    rentalIncomeFrequency?: RecurrenceFrequency;
-
-    // Vehicle
-    make?: string;
-    model?: string;
-    year?: number;
-    licensePlate?: string;
-    registrationCountryCode?: string;
-    vin?: string;
-    fuelType?: FuelType;
-    ownership?: VehicleOwnership;
-    purchaseDate?: string;
-    leaseProvider?: string;
-    leaseStartDate?: string;
-    leaseEndDate?: string;
-    annualMileageAllowance?: number;
-    leasePaymentAmount?: number;
-    leasePaymentDay?: number;
-    leasePaymentAccountId?: string;
-    mileageLogs?: MileageLog[];
-    imageUrl?: string;
-
-    // Loan / Lending
-    totalAmount?: number;
-    principalAmount?: number;
-    interestAmount?: number;
-    downPayment?: number;
-    duration?: number; // months
-    interestRate?: number;
-    loanStartDate?: string;
-    monthlyPayment?: number;
-    paymentDayOfMonth?: number;
-
-    // Other
-    otherSubType?: OtherAssetSubType | OtherLiabilitySubType;
-    location?: string;
-    assetCondition?: string;
-    counterparty?: string;
-    notes?: string;
-    
-    // Enable Banking
-    balanceLastSyncedAt?: string;
-    balanceSource?: 'enable_banking' | 'manual';
-}
-
-export interface Transaction {
-    id: string;
-    accountId: string;
-    date: string;
-    amount: number;
-    currency: Currency;
-    description: string;
-    category: string;
-    type: 'income' | 'expense'; // 'transfer' is handled via transferId usually, but UI might use 'transfer' type temporarily
-    merchant?: string;
-    transferId?: string;
-    isTransfer?: boolean; // UI helper
-    tagIds?: string[];
-    
-    // Investment specific
-    price?: number;
-    quantity?: number;
-    symbol?: string;
-    
-    // Location
-    city?: string;
-    country?: string;
-    latitude?: number;
-    longitude?: number;
-    
-    // Meta
-    isMarketAdjustment?: boolean;
-    importId?: string;
-    
-    // Split loan payment details attached to transaction
-    principalAmount?: number;
-    interestAmount?: number;
-    
-    // Original IDs for tracking
-    originalId?: string;
-}
-
-export interface DisplayTransaction extends Transaction {
-    accountName?: string;
-    fromAccountName?: string;
-    toAccountName?: string;
-    transferExpenseAmount?: number;
-    transferExpenseCurrency?: Currency;
-    transferIncomeAmount?: number;
-    transferIncomeCurrency?: Currency;
-    spareChangeAmount?: number;
-    formattedDate?: string;
-}
-
-export interface Category {
-    id: string;
-    name: string;
-    color: string;
-    icon: string;
-    classification: 'income' | 'expense';
-    subCategories: Category[];
-    parentId?: string;
-}
-
-export interface Budget {
-    id: string;
-    categoryName: string;
-    amount: number;
-    period: 'monthly' | 'yearly';
-    currency: Currency;
-}
-
-export type GoalType = 'one-time' | 'recurring';
-
-export interface FinancialGoal {
-    id: string;
-    name: string;
-    amount: number;
-    currentAmount: number;
-    currency: Currency;
-    transactionType: 'income' | 'expense';
-    
-    // Target Date (One-time)
-    type: GoalType;
-    date?: string; // Target date
-
-    // Recurring
-    frequency?: RecurrenceFrequency;
-    startDate?: string;
-    monthlyContribution?: number;
-    dueDateOfMonth?: number;
-    
-    // Bucket
-    isBucket?: boolean;
-    parentId?: string;
-    
-    // Linking
-    paymentAccountId?: string;
-    
-    // UI
-    projection?: {
-        projectedDate?: string;
-        status: 'on-track' | 'at-risk' | 'off-track';
-    };
-}
-
-export interface RecurringTransaction {
-    id: string;
-    accountId: string;
-    toAccountId?: string;
-    description: string;
-    amount: number;
-    currency: Currency;
-    type: 'income' | 'expense' | 'transfer';
-    category?: string;
-    frequency: RecurrenceFrequency;
-    frequencyInterval?: number;
-    startDate: string;
-    endDate?: string;
-    nextDueDate: string;
-    dueDateOfMonth?: number;
-    weekendAdjustment?: WeekendAdjustment;
-    isSynthetic?: boolean;
-    isSkipped?: boolean;
-}
-
-export interface BillPayment {
-    id: string;
-    description: string;
-    amount: number;
-    currency: Currency;
-    dueDate: string;
-    status: 'paid' | 'unpaid';
-    type: 'payment' | 'deposit';
-    accountId?: string;
-    category?: string;
-}
-
-export interface RecurringTransactionOverride {
-    recurringTransactionId: string;
-    originalDate: string;
-    date?: string;
-    amount?: number;
-    description?: string;
-    isSkipped?: boolean;
-    principal?: number;
-    interest?: number;
-    totalPayment?: number;
-}
-
-export interface LoanPaymentOverrides {
-    [accountId: string]: Record<number, Partial<ScheduledPayment>>;
-}
-
-export interface ScheduledPayment {
-    paymentNumber: number;
-    date: string;
-    totalPayment: number;
-    principal: number;
-    interest: number;
-    outstandingBalance: number;
-    status: 'Paid' | 'Upcoming' | 'Overdue';
-    transactionId?: string;
-}
-
-export interface ScheduledItem {
-    id: string;
-    date: string;
-    description: string;
-    amount: number;
-    type: 'income' | 'expense' | 'transfer' | 'payment' | 'deposit';
-    accountName?: string;
-    isRecurring: boolean;
-    originalItem: RecurringTransaction | BillPayment;
-    isTransfer?: boolean;
-    isOverride?: boolean;
-    originalDateForOverride?: string;
-    isSkipped?: boolean;
-}
-
-export interface Tag {
-    id: string;
-    name: string;
-    color: string;
-    icon: string;
-}
-
-export interface InvestmentTransaction {
-    id: string;
-    symbol: string;
-    name: string;
-    quantity: number;
-    price: number;
-    date: string;
-    type: 'buy' | 'sell';
-}
-
-export interface Warrant {
-    id: string;
-    isin: string;
-    name: string;
-    grantDate: string;
-    quantity: number;
-    grantPrice: number;
-}
-
 export interface PriceHistoryEntry {
-    date: string;
+    date: string; // ISO Date YYYY-MM-DD
     price: number;
 }
 
-export interface Membership {
-    id: string;
-    provider: string;
-    memberId: string;
-    tier?: string;
-    holderName?: string;
-    memberSince?: string;
-    points?: string;
-    expiryDate?: string;
-    color: string;
-    icon: string;
-    notes?: string;
-    website?: string;
-    category?: string;
+export interface Account {
+  id:string;
+  name: string;
+  type: AccountType;
+  balance: number; // For Vehicle/Property, this is the CURRENT value.
+  currency: Currency;
+  icon?: string;
+  last4?: string;
+  financialInstitution?: string;
+  symbol?: string; // Ticker symbol for investments/warrants
+
+  // Banking specific
+  accountNumber?: string; // IBAN or local account number
+  routingNumber?: string; // BIC, SWIFT, Sort Code, or Routing Number
+  apy?: number; // Annual Percentage Yield for savings
+  openingDate?: string; // Date account was opened
+  balanceLastSyncedAt?: string;
+  balanceSource?: 'enable_banking' | 'manual';
+
+  // Card specific
+  expirationDate?: string; // MM/YY
+  cardNetwork?: string; // Visa, Mastercard, etc.
+  cardholderName?: string;
+
+  // Investment specific
+  subType?: InvestmentSubType;
+  expectedRetirementYear?: number; // For Pension Funds
+  
+  // Other Assets/Liabilities specific
+  otherSubType?: OtherAssetSubType | OtherLiabilitySubType;
+  counterparty?: string; // Who owes you or who you owe
+  assetCondition?: string; // Mint, Good, Fair
+  location?: string; // Physical location of asset
+
+  // Credit Card specific fields
+  statementStartDate?: number; // Day of the month (1-31)
+  paymentDate?: number; // Day of themonth (1-31)
+  settlementAccountId?: string; // ID of a checking account
+  creditLimit?: number;
+
+  // Loan specific
+  totalAmount?: number;
+  principalAmount?: number;
+  interestAmount?: number;
+  duration?: number; // in months
+  interestRate?: number; // percentage
+  loanStartDate?: string;
+  linkedAccountId?: string; // Used for Loans (Debit account) and Spare Change (Source account)
+  downPayment?: number;
+  monthlyPayment?: number;
+  paymentDayOfMonth?: number;
+
+  // Vehicle specific
+  make?: string;
+  model?: string;
+  year?: number;
+  licensePlate?: string;
+  registrationCountryCode?: string;
+  vin?: string;
+  fuelType?: FuelType;
+  ownership?: VehicleOwnership;
+  // If Owned
+  purchaseDate?: string;
+  // If Leased
+  leaseProvider?: string;
+  leaseStartDate?: string;
+  leaseEndDate?: string;
+  annualMileageAllowance?: number;
+  leasePaymentAmount?: number;
+  leasePaymentDay?: number;
+  leasePaymentAccountId?: string;
+  // Mileage
+  mileageLogs?: MileageLog[];
+  imageUrl?: string;
+
+  // Property specific
+  address?: string;
+  propertyType?: PropertyType;
+  purchasePrice?: number; // Shared with Vehicle
+  principalOwned?: number;
+  linkedLoanId?: string;
+  propertySize?: number; // sq meters
+  yearBuilt?: number;
+  floors?: number;
+  bedrooms?: number;
+  bathrooms?: number;
+  hasBasement?: boolean;
+  hasAttic?: boolean;
+  indoorParkingSpaces?: number;
+  outdoorParkingSpaces?: number;
+  hasGarden?: boolean;
+  gardenSize?: number;
+  hasTerrace?: boolean;
+  terraceSize?: number;
+  
+  // Property Recurring Costs
+  propertyTaxAmount?: number;
+  propertyTaxDate?: string; // Next due date
+  
+  insuranceProvider?: string;
+  insurancePolicyNumber?: string;
+  insuranceAmount?: number;
+  insuranceFrequency?: RecurrenceFrequency;
+  insurancePaymentDate?: string;
+
+  hoaFeeAmount?: number;
+  hoaFeeFrequency?: RecurrenceFrequency;
+  
+  isRental?: boolean;
+  rentalIncomeAmount?: number;
+  rentalIncomeFrequency?: RecurrenceFrequency;
+
+  // Other Assets/Liabilities
+  notes?: string;
+
+  isPrimary?: boolean;
+  includeInAnalytics?: boolean;
+  sureId?: string;
+  status?: 'open' | 'closed';
 }
 
-export type TaskPriority = 'Low' | 'Medium' | 'High';
-export type TaskStatus = 'To Do' | 'In Progress' | 'Done';
+export type RecurrenceFrequency = 'daily' | 'weekly' | 'monthly' | 'yearly';
+export type WeekendAdjustment = 'before' | 'after' | 'on';
 
-export interface Task {
-    id: string;
-    title: string;
-    description?: string;
-    dueDate?: string;
-    reminderDate?: string;
-    status: TaskStatus;
-    priority: TaskPriority;
+export type EnableBankingConnectionStatus = 'disconnected' | 'pending' | 'ready' | 'requires_update';
+
+export interface EnableBankingAccount {
+  id: string;
+  name: string;
+  bankName: string;
+  currency: Currency;
+  balance: number;
+  accountNumber?: string;
+  linkedAccountId?: string;
+  syncStartDate?: string;
+  lastSyncedAt?: string;
 }
 
-export type ImportDataType = 'transactions' | 'accounts';
-export type HistoryStatus = 'Complete' | 'Failed' | 'In Progress';
-
-export interface ImportExportHistoryItem {
-    id: string;
-    date: string;
-    type: 'import' | 'export';
-    dataType: string;
-    fileName?: string;
-    itemCount: number;
-    status: HistoryStatus;
-    importedData?: any[];
-    errors?: Record<number, any>;
-}
-
-export interface User {
-    firstName: string;
-    lastName: string;
-    email: string;
-    profilePictureUrl: string;
-    role: string;
-    phone?: string;
-    address?: string;
-    is2FAEnabled: boolean;
-    status: string;
-    lastLogin: string;
-}
-
-export interface UserStats {
-    currentStreak: number;
-    longestStreak: number;
-    lastLogDate: string;
-    predictionWins: number;
-    predictionTotal: number;
-}
-
-export interface AppPreferences {
-    currency: string; // e.g. "EUR (€)"
-    language: string;
-    timezone: string;
-    dateFormat: string;
-    defaultPeriod: Duration;
-    defaultAccountOrder: DefaultAccountOrder;
-    country: string;
-    defaultForecastPeriod: ForecastDuration;
-    defaultQuickCreatePeriod?: number;
-    brandfetchClientId?: string;
-    twelveDataApiKey?: string;
-    geminiApiKey?: string;
-    merchantLogoOverrides?: Record<string, string>;
-    hiddenMerchants?: string[];
-}
-
-export type PredictionType = 'spending_cap' | 'net_worth_goal' | 'price_target';
-
-export interface Prediction {
-    id: string;
-    type: PredictionType;
-    targetId?: string; // Category Name, Account ID, or Symbol
-    targetName: string;
-    targetAmount: number;
-    startDate: string;
-    endDate: string;
-    status: 'active' | 'won' | 'lost';
-    finalAmount?: number;
-}
-
-// Enable Banking
 export interface EnableBankingConnection {
   id: string;
   applicationId: string;
   countryCode: string;
   clientCertificate: string;
-  selectedBank: string;
-  status: 'pending' | 'ready' | 'requires_update' | 'disconnected';
+  status: EnableBankingConnectionStatus;
+  selectedBank?: string;
   sessionId?: string;
   sessionExpiresAt?: string;
   authorizationId?: string;
+  accounts: EnableBankingAccount[];
   lastSyncedAt?: string;
   lastError?: string;
-  accounts: EnableBankingAccount[];
-}
-
-export interface EnableBankingAccount {
-  id: string; // ASPSP account ID
-  accountNumber?: string;
-  currency?: string;
-  linkedAccountId?: string;
-  lastSyncedAt?: string;
-  syncStartDate?: string;
-}
-
-export interface EnableBankingLinkPayload {
-    linkedAccountId?: string;
-    newAccount?: Partial<Account>;
-    syncStartDate: string;
 }
 
 export interface EnableBankingSyncOptions {
-    transactionMode?: 'full' | 'incremental' | 'none';
-    updateBalance?: boolean;
-    syncStartDate?: string;
-    targetAccountIds?: string[];
+  transactionMode?: 'full' | 'incremental' | 'none';
+  updateBalance?: boolean;
+  syncStartDate?: string;
+  targetAccountIds?: string[];
+}
+
+export type EnableBankingLinkPayload =
+  | { linkedAccountId: string; syncStartDate: string }
+  | { newAccount: Omit<Account, 'id'>; syncStartDate: string };
+
+export interface RecurringTransaction {
+  id: string;
+  accountId: string; // from account for transfers
+  toAccountId?: string; // to account for transfers
+  description: string;
+  amount: number; // Always positive
+  category?: string;
+  type: 'income' | 'expense' | 'transfer';
+  currency: Currency;
+  frequency: RecurrenceFrequency;
+  frequencyInterval?: number;
+  startDate: string;
+  endDate?: string;
+  nextDueDate: string;
+  dueDateOfMonth?: number; // Day of month (1-31) for monthly/yearly recurrences
+  weekendAdjustment: WeekendAdjustment;
+  isSynthetic?: boolean;
+  isSkipped?: boolean;
+}
+
+export interface RecurringTransactionOverride {
+  recurringTransactionId: string;
+  originalDate: string; // The original date of the occurrence, YYYY-MM-DD
+  date?: string; // New date if overridden
+  amount?: number; // New amount if overridden (signed)
+  description?: string; // New description if overridden
+  isSkipped?: boolean;
+}
+
+export type LoanPaymentOverrides = Record<string, Record<number, Partial<ScheduledPayment>>>;
+
+export interface Transaction {
+  id: string;
+  accountId: string;
+  date: string;
+  description: string;
+  merchant?: string;
+  amount: number;
+  category: string;
+  type: 'income' | 'expense';
+  currency: Currency;
+  transferId?: string;
+  recurringSourceId?: string;
+  importId?: string;
+  sureId?: string;
+  principalAmount?: number;
+  interestAmount?: number;
+  tagIds?: string[];
+  // Location data
+  city?: string;
+  country?: string;
+  latitude?: number;
+  longitude?: number;
+  // Investment helpers
+  isMarketAdjustment?: boolean;
+}
+
+export interface DisplayTransaction extends Transaction {
+    accountName?: string;
+    isTransfer?: boolean;
+    fromAccountName?: string;
+    toAccountName?: string;
+    originalId?: string; // To keep track of the real ID for editing transfers
+    spareChangeAmount?: number;
+    transferExpenseAmount?: number;
+    transferExpenseCurrency?: Currency;
+    transferIncomeAmount?: number;
+    transferIncomeCurrency?: Currency;
+}
+
+export interface InvestmentTransaction {
+  id: string;
+  symbol: string;
+  name: string;
+  quantity: number;
+  price: number; // Price per unit
+  date: string;
+  type: 'buy' | 'sell';
+}
+
+export interface HoldingSummary {
+  symbol: string;
+  name: string;
+  quantity: number;
+  totalCost: number;
+  currentValue: number;
+  currentPrice: number;
+  type: 'Standard' | 'Warrant';
+  subType?: InvestmentSubType;
+  warrantId?: string;
+  color?: string;
+}
+
+export interface HoldingDistribution {
+  name: string;
+  value: number;
+  color: string;
+  [key: string]: any;
+}
+
+export interface HoldingsOverview {
+  holdings: HoldingSummary[];
+  totalValue: number;
+  totalCostBasis: number;
+  investedCapital: number;
+  grantedCapital: number;
+  distributionData: HoldingDistribution[];
+  typeBreakdown: HoldingDistribution[];
+}
+
+export interface CategorySpending {
+  name: string;
+  value: number;
+  color: string;
+  icon?: string;
+}
+
+export interface User {
+  firstName: string;
+  lastName: string;
+  email: string;
+  profilePictureUrl: string;
+  role: 'Administrator' | 'Member';
+  phone?: string;
+  address?: string;
+  is2FAEnabled: boolean;
+  status: 'Active' | 'Inactive';
+  lastLogin: string;
+}
+
+
+export interface Widget {
+    id: string;
+    name: string;
+    component: React.ComponentType<any>;
+    defaultW: number;
+    defaultH: number;
+    // FIX: Add props property to the Widget interface to fix type errors in Dashboard.tsx and AccountDetail.tsx
+    props: any;
+}
+
+export interface WidgetConfig {
+  id: string;
+  title: string;
+  w: number;
+  h: number;
+}
+
+export type GoalType = 'one-time' | 'recurring';
+
+export type GoalProjectionStatus = 'on-track' | 'at-risk' | 'off-track';
+
+export interface GoalProjection {
+  projectedDate: string;
+  status: GoalProjectionStatus;
+}
+
+export interface FinancialGoal {
+  id: string;
+  name: string;
+  type: GoalType;
+  transactionType: 'income' | 'expense';
+  amount: number; // This is the TARGET amount
+  currentAmount: number; // This is the current saved amount
+  currency: Currency;
+  parentId?: string;
+  isBucket?: boolean;
+  paymentAccountId?: string;
+  // One-time
+  date?: string; 
+  // Recurring
+  frequency?: RecurrenceFrequency;
+  startDate?: string;
+  endDate?: string;
+  monthlyContribution?: number;
+  dueDateOfMonth?: number;
+  // For UI display, calculated dynamically
+  projection?: GoalProjection;
+}
+
+export interface ContributionPlanStep {
+  goalName: string;
+  date: string; 
+  amount: number;
+  accountName: string;
+  notes?: string;
+}
+
+export interface Budget {
+  id: string;
+  categoryName: string; // Budget by parent category name for simplicity
+  amount: number;
+  period: 'monthly'; // For now, only monthly
+  currency: Currency;
 }
 
 export interface BudgetSuggestion {
@@ -483,144 +416,255 @@ export interface BudgetSuggestion {
     suggestedBudget: number;
 }
 
-export interface HoldingSummary {
-    symbol: string;
-    name: string;
-    quantity: number;
-    totalCost: number;
-    currentValue: number;
-    currentPrice: number;
-    type: 'Standard' | 'Warrant';
-    subType?: InvestmentSubType;
-    warrantId?: string;
-    color?: string;
+export type HistoryType = 'import' | 'export';
+export type HistoryStatus = 'Complete' | 'Failed' | 'In Progress';
+export type ImportDataType = 'transactions' | 'accounts' | 'categories' | 'tags' | 'budgets' | 'schedule' | 'investments' | 'mint' | 'all';
+
+export interface ImportExportHistoryItem {
+  id: string;
+  type: HistoryType;
+  dataType: ImportDataType;
+  fileName: string;
+  date: string;
+  status: HistoryStatus;
+  itemCount: number;
+  importedData?: Record<string, any>[];
+  errors?: Record<number, Record<string, string>>;
 }
 
-export interface HoldingsOverview {
-    holdings: HoldingSummary[];
-    totalValue: number;
-    totalCostBasis: number;
-    investedCapital: number;
-    grantedCapital: number;
-    distributionData: HoldingDistribution[];
-    typeBreakdown: HoldingDistribution[];
+export type DefaultAccountOrder = 'manual' | 'name' | 'balance';
+
+export interface AppPreferences {
+  currency: string;
+  language: string;
+  timezone: string;
+  dateFormat: string;
+  defaultPeriod: Duration;
+  defaultAccountOrder: DefaultAccountOrder;
+  country: string;
+  defaultQuickCreatePeriod?: number;
+  defaultForecastPeriod?: ForecastDuration;
+  brandfetchClientId?: string;
+  twelveDataApiKey?: string;
+  merchantLogoOverrides?: Record<string, string>;
+  geminiApiKey?: string;
+  hiddenMerchants?: string[];
 }
 
-export interface HoldingDistribution {
-    name: string;
-    value: number;
-    color: string;
-}
+// New types for Bills & Payments
+export type BillPaymentStatus = 'unpaid' | 'paid';
 
-export interface CategorySpending {
-    name: string;
-    value: number;
-    color: string;
-    icon?: string;
-}
-
-export interface Widget {
+export interface BillPayment {
     id: string;
-    name: string;
-    type: string;
-    w: number;
-    h: number;
-    defaultW: number;
-    defaultH: number;
-    component: React.FC<any>;
-    props?: Record<string, any>;
+    description: string;
+    amount: number; // positive for deposit, negative for payment
+    type: 'deposit' | 'payment';
+    currency: Currency;
+    dueDate: string;
+    status: BillPaymentStatus;
+    accountId?: string; // The account it was paid from/to
 }
 
-export interface WidgetConfig {
+export interface AccountDetailProps {
+  account: Account;
+  setCurrentPage: (page: Page) => void;
+  setViewingAccountId: (id: string | null) => void;
+  saveAccount: (account: Omit<Account, 'id'> & { id?: string }) => void;
+}
+
+export interface Membership {
+  id: string;
+  provider: string; // e.g. "British Airways", "Starbucks"
+  memberId: string;
+  tier?: string; // e.g. "Gold"
+  holderName?: string; // New: e.g. "John Doe"
+  memberSince?: string; // New: e.g. "2019" or ISO date
+  points?: string; // New: e.g. "50,000 pts" or "€150.00"
+  expiryDate?: string; // ISO date
+  color: string;
+  icon: string;
+  notes?: string;
+  website?: string;
+  category?: string;
+}
+
+// Invoice & Quote Types
+export type InvoiceType = 'quote' | 'invoice';
+export type InvoiceDirection = 'sent' | 'received';
+export type InvoiceStatus = 'draft' | 'sent' | 'paid' | 'overdue' | 'accepted' | 'rejected';
+
+export interface InvoiceItem {
+  id: string;
+  sku?: string;
+  description: string;
+  quantity: number;
+  unitPrice: number;
+  discountPercent?: number;
+  total: number;
+}
+
+export interface PaymentTerm {
+  id: string;
+  label: string; // e.g. "Deposit", "Completion"
+  percentage: number; // % of total
+  amount: number;
+  dueDate: string;
+  status: 'pending' | 'paid';
+}
+
+export interface Invoice {
+  id: string;
+  type: InvoiceType;
+  direction: InvoiceDirection;
+  number: string;
+  date: string; // ISO Date
+  dueDate?: string; // ISO Date
+  
+  // Entity Info (Client if sent, Merchant if received)
+  entityName: string;
+  entityEmail?: string;
+  entityAddress?: string;
+
+  // Financials
+  currency: Currency;
+  items: InvoiceItem[];
+  subtotal: number;
+  globalDiscountValue?: number; // Flat discount on total
+  taxRate?: number; // %
+  taxAmount: number;
+  total: number;
+  
+  // Payment Terms
+  paymentTerms?: PaymentTerm[];
+
+  status: InvoiceStatus;
+  notes?: string;
+}
+
+export interface UserStats {
+    currentStreak: number;
+    longestStreak: number;
+    lastLogDate: string; // ISO Date YYYY-MM-DD
+    predictionWins?: number;
+    predictionTotal?: number;
+}
+
+export type PredictionType = 'spending_cap' | 'net_worth_goal' | 'price_target';
+export type PredictionStatus = 'active' | 'won' | 'lost';
+
+export interface Prediction {
     id: string;
-    title: string;
-    w: number;
-    h: number;
+    type: PredictionType;
+    targetId?: string; // Category Name for spending, Account ID for Net Worth (or null for total)
+    targetName: string;
+    targetAmount: number;
+    startDate: string;
+    endDate: string;
+    status: PredictionStatus;
+    finalAmount?: number; // Snapshot when resolved
 }
 
-export interface ContributionPlanStep {
-    date: string;
-    amount: number;
-    accountName: string;
-    notes?: string;
-}
-
+// FIX: Move FinancialData interface from App.tsx to types.ts to resolve import error in mockData.ts
 export interface FinancialData {
     accounts: Account[];
     transactions: Transaction[];
     investmentTransactions: InvestmentTransaction[];
     recurringTransactions: RecurringTransaction[];
-    recurringTransactionOverrides: RecurringTransactionOverride[];
-    loanPaymentOverrides: LoanPaymentOverrides;
+    recurringTransactionOverrides?: RecurringTransactionOverride[];
+    loanPaymentOverrides?: LoanPaymentOverrides;
     financialGoals: FinancialGoal[];
     budgets: Budget[];
     tasks: Task[];
+    taskOrder?: string[];
     warrants: Warrant[];
-    memberships: Membership[];
+    memberships?: Membership[];
     importExportHistory: ImportExportHistoryItem[];
-    tags: Tag[];
     incomeCategories: Category[];
     expenseCategories: Category[];
+    preferences: AppPreferences;
     billsAndPayments: BillPayment[];
-    accountOrder: string[];
-    taskOrder: string[];
-    manualWarrantPrices: Record<string, number | undefined>;
-    priceHistory: Record<string, PriceHistoryEntry[]>;
-    invoices: Invoice[]; 
-    userStats: UserStats;
-    predictions: Prediction[];
-    enableBankingConnections: EnableBankingConnection[];
-    // Key: YYYY-MM-DD, Value: Balance
-    forecastSnapshots?: Record<string, number>;
+    accountOrder?: string[];
+    tags?: Tag[];
+    manualWarrantPrices?: Record<string, number | undefined>;
+    priceHistory?: Record<string, PriceHistoryEntry[]>; // New field for price history
+    invoices?: Invoice[];
+    userStats?: UserStats;
+    predictions?: Prediction[];
+    enableBankingConnections?: EnableBankingConnection[];
     lastUpdatedAt?: string;
     userProfile?: User;
-    preferences?: AppPreferences;
-    enableBankingPendingConnections?: Record<string, EnableBankingConnection>;
 }
 
-export interface InvoiceItem {
-    id: string;
-    description: string;
-    quantity: number;
-    unitPrice: number;
-    total: number;
-    discountPercent?: number;
-    sku?: string;
+// New types for Tasks feature
+export type TaskStatus = 'To Do' | 'In Progress' | 'Done';
+export type TaskPriority = 'Low' | 'Medium' | 'High';
+
+export interface Task {
+  id: string;
+  title: string;
+  description?: string;
+  dueDate?: string;
+  status: TaskStatus;
+  priority: TaskPriority;
+  reminderDate?: string;
 }
 
-export type InvoiceType = 'invoice' | 'quote';
-export type InvoiceStatus = 'draft' | 'sent' | 'paid' | 'overdue' | 'accepted' | 'rejected';
-export type InvoiceDirection = 'sent' | 'received';
-
-export interface PaymentTerm {
-    id: string;
-    label: string;
-    days: number;
+export interface Warrant {
+  id: string;
+  isin: string;
+  name: string;
+  grantDate: string;
+  quantity: number;
+  grantPrice: number;
 }
 
-export interface Invoice {
+// New types for Scraper feature
+export interface ScraperResource {
+  url: string;
+  method: 'GET' | 'POST';
+  authType: 'none' | 'basic' | 'digest';
+  username?: string;
+  password?: string;
+  verifySsl: boolean;
+  timeout: number;
+  encoding: string;
+}
+
+export interface ScraperOptions {
+  select: string;
+  index: number;
+  attribute: string;
+}
+
+export interface ScraperConfig {
+  id: string; // ISIN
+  resource: ScraperResource;
+  options: ScraperOptions;
+}
+
+export interface ScheduledPayment {
+  paymentNumber: number;
+  date: string;
+  totalPayment: number;
+  principal: number;
+  interest: number;
+  outstandingBalance: number;
+  status: 'Paid' | 'Due' | 'Upcoming' | 'Overdue';
+  transactionId?: string;
+}
+
+// FIX: Moved ScheduledItem type from pages/Schedule.tsx to make it globally available.
+export type ScheduledItem = {
     id: string;
-    type: InvoiceType;
-    direction: InvoiceDirection;
-    number: string;
+    isRecurring: boolean;
     date: string;
-    dueDate?: string;
-    
-    // Entity
-    entityName: string;
-    entityEmail?: string;
-    entityAddress?: string;
-    
-    // Financials
-    currency: Currency;
-    items: InvoiceItem[];
-    subtotal: number;
-    globalDiscountValue?: number;
-    taxRate?: number;
-    taxAmount?: number;
-    total: number;
-    
-    status: InvoiceStatus;
-    notes?: string;
-    paymentTerms?: PaymentTerm[];
-}
+    description: string;
+    amount: number;
+    accountName: string;
+    isTransfer?: boolean;
+    type: 'income' | 'expense' | 'transfer' | 'payment' | 'deposit';
+    originalItem: RecurringTransaction | BillPayment;
+    isOverride?: boolean;
+    originalDateForOverride?: string;
+    isSkipped?: boolean; // New Property
+};
