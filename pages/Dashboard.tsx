@@ -3,7 +3,7 @@ import React, { useMemo, useState, useCallback, useEffect, useRef, Suspense, laz
 import { User, Transaction, Account, Category, Duration, CategorySpending, Widget, WidgetConfig, DisplayTransaction, FinancialGoal, RecurringTransaction, BillPayment, Tag, Budget, RecurringTransactionOverride, LoanPaymentOverrides, AccountType, Task, ForecastDuration } from '../types';
 import { calculateForecastHorizon, formatCurrency, convertToEur, generateBalanceForecast, generateSyntheticLoanPayments, generateSyntheticCreditCardPayments, generateSyntheticPropertyTransactions, parseLocalDate, getCreditCardStatementDetails, getPreferredTimeZone, formatDateKey, toLocalISOString, getDateRange, calculateAccountTotals, calculateStatementPeriods } from '../utils';
 import AddTransactionModal from '../components/AddTransactionModal';
-import { BTN_PRIMARY_STYLE, BTN_SECONDARY_STYLE, LIQUID_ACCOUNT_TYPES, ASSET_TYPES, DEBT_TYPES, ACCOUNT_TYPE_STYLES, INVESTMENT_SUB_TYPE_STYLES, FORECAST_DURATION_OPTIONS, QUICK_CREATE_BUDGET_OPTIONS, CHECKBOX_STYLE } from '../constants';
+import { BTN_PRIMARY_STYLE, BTN_SECONDARY_STYLE, LIQUID_ACCOUNT_TYPES, ASSET_TYPES, DEBT_TYPES, ACCOUNT_TYPE_STYLES, INVESTMENT_SUB_TYPE_STYLES, FORECAST_DURATION_OPTIONS, QUICK_CREATE_BUDGET_OPTIONS, CHECKBOX_STYLE, SELECT_STYLE, SELECT_WRAPPER_STYLE, SELECT_ARROW_STYLE } from '../constants';
 import TransactionDetailModal from '../components/TransactionDetailModal';
 import WidgetWrapper from '../components/WidgetWrapper';
 import OutflowsChart from '../components/OutflowsChart';
@@ -33,7 +33,6 @@ import BillPaymentModal from '../components/BillPaymentModal';
 import GoalScenarioModal from '../components/GoalScenarioModal';
 import FinancialGoalCard from '../components/FinancialGoalCard';
 import ConfirmationModal from '../components/ConfirmationModal';
-import ForecastChart from '../components/ForecastChart';
 import GoalContributionPlan from '../components/GoalContributionPlan';
 import BulkCategorizeModal from '../components/BulkCategorizeModal';
 import BulkEditTransactionsModal from '../components/BulkEditTransactionsModal';
@@ -94,7 +93,7 @@ type EnrichedTransaction = Transaction & { convertedAmount: number; parsedDate: 
 type DashboardTab = 'overview' | 'analysis' | 'activity';
 
 const WIDGET_TABS: Record<DashboardTab, string[]> = {
-    overview: ['netWorthOverTime', 'forecastChart'],
+    overview: ['netWorthOverTime'],
     analysis: [],
     activity: ['transactionMap', 'outflowsByCategory', 'netWorthBreakdown', 'recentActivity', 'cashflowSankey']
 };
@@ -121,6 +120,13 @@ const Dashboard: React.FC<DashboardProps> = ({ user, tasks, saveTask }) => {
   const { recurringTransactions, recurringTransactionOverrides, loanPaymentOverrides, billsAndPayments, saveRecurringTransaction, saveBillPayment } = useScheduleContext();
   const { tags } = useTagsContext();
   const { budgets } = useBudgetsContext();
+  const { preferences } = usePreferencesContext();
+
+  // Dashboard Specific State
+  const [showForecast, setShowForecast] = useState(true);
+  const [showGoals, setShowGoals] = useState(true);
+  const [forecastDuration, setForecastDuration] = useState<ForecastDuration>(preferences.defaultForecastPeriod || '1Y');
+
   const transactionsKey = transactionsDigest;
   const aggregateCacheRef = useRef<Map<string, { filteredTransactions: Transaction[]; income: number; expenses: number }>>(new Map());
   const aggregateCacheMax = 25;
@@ -195,14 +201,19 @@ const Dashboard: React.FC<DashboardProps> = ({ user, tasks, saveTask }) => {
         return { allRecurringItems: all };
   }, [analyticsAccounts, analyticsTransactions, loanPaymentOverrides, recurringTransactions]);
   
-  // Forecast Data for Widget
+  // Forecast Data for Widget (Used for Lowest Balance Cards & Net Worth Chart)
   const { forecastChartData, lowestBalanceForecasts, lowestForecastPoint, forecastTableData } = useMemo(() => {
         const projectionEndDate = new Date();
-        projectionEndDate.setMonth(projectionEndDate.getMonth() + 12); // 1 Year Forecast
+        // Adjust duration based on filter
+        switch(forecastDuration) {
+            case '3M': projectionEndDate.setMonth(projectionEndDate.getMonth() + 3); break;
+            case '6M': projectionEndDate.setMonth(projectionEndDate.getMonth() + 6); break;
+            case 'EOY': projectionEndDate.setFullYear(projectionEndDate.getFullYear(), 11, 31); break;
+            case '1Y': projectionEndDate.setMonth(projectionEndDate.getMonth() + 12); break;
+            default: projectionEndDate.setMonth(projectionEndDate.getMonth() + 12); break;
+        }
 
         // Use ALL accounts to generate synthetic items.
-        // This ensures that if we have a Loan (not selected) paid by Checking (selected),
-        // the payment logic is still generated so the forecast engine can deduct it from Checking.
         const syntheticLoanPayments = generateSyntheticLoanPayments(accounts, transactions, loanPaymentOverrides);
         const syntheticCreditCardPayments = generateSyntheticCreditCardPayments(accounts, transactions);
         const syntheticPropertyTransactions = generateSyntheticPropertyTransactions(accounts);
@@ -211,7 +222,7 @@ const Dashboard: React.FC<DashboardProps> = ({ user, tasks, saveTask }) => {
         const activeGoals = financialGoals.filter(g => activeGoalIds.includes(g.id));
 
         const { chartData, lowestPoint, tableData } = generateBalanceForecast(
-            selectedAccounts,
+            selectedAccounts, // The engine will filter impacts based on these selected accounts
             allRecurring,
             activeGoals,
             billsAndPayments,
@@ -226,7 +237,7 @@ const Dashboard: React.FC<DashboardProps> = ({ user, tasks, saveTask }) => {
             forecastTableData: tableData
         };
 
-    }, [accounts, selectedAccounts, transactions, loanPaymentOverrides, recurringTransactions, financialGoals, activeGoalIds, billsAndPayments, recurringTransactionOverrides]);
+    }, [accounts, selectedAccounts, transactions, loanPaymentOverrides, recurringTransactions, financialGoals, activeGoalIds, billsAndPayments, recurringTransactionOverrides, forecastDuration]);
 
   const selectedDayItems = useMemo(() => {
       if (!selectedForecastDate) return [];
@@ -841,7 +852,7 @@ const Dashboard: React.FC<DashboardProps> = ({ user, tasks, saveTask }) => {
     }
     
     // --- INTEGRATE FORECAST DATA ---
-    if (forecastChartData && forecastChartData.length > 0) {
+    if (showForecast && forecastChartData && forecastChartData.length > 0) {
         const currentForecastBase = forecastChartData[0].value;
         const currentNetWorthVal = currentNetWorth;
         
@@ -870,7 +881,7 @@ const Dashboard: React.FC<DashboardProps> = ({ user, tasks, saveTask }) => {
     }
 
     return data;
-  }, [duration, transactions, analyticsSelectedAccountIds, netWorth, forecastChartData]);
+  }, [duration, transactions, analyticsSelectedAccountIds, netWorth, forecastChartData, showForecast]);
 
   const netWorthTrendColor = useMemo(() => {
     // Check trend based on historical data only
@@ -956,17 +967,9 @@ const Dashboard: React.FC<DashboardProps> = ({ user, tasks, saveTask }) => {
             onProcessItem: handleProcessItem 
         } 
     },
-    // Updated default width for Net Worth to share row with Forecast
-    { id: 'netWorthOverTime', name: 'Net Worth Over Time', defaultW: 2, defaultH: 2, component: NetWorthChart, props: { data: netWorthData, lineColor: netWorthTrendColor } },
-    { id: 'forecastChart', name: 'Cash Flow Forecast', defaultW: 2, defaultH: 2, component: ForecastChart, props: { 
-        data: forecastChartData, 
-        oneTimeGoals: financialGoals.filter(g => activeGoalIds.includes(g.id) && g.type === 'one-time'), 
-        lowestPoint: lowestForecastPoint,
-        showIndividualLines: false,
-        accounts: selectedAccounts,
-        showGoalLines: true,
-        onDataPointClick: handleDateClick // Pass handleDateClick here
-    }},
+    // Updated props for Net Worth chart to support toggles
+    { id: 'netWorthOverTime', name: 'Net Worth Over Time', defaultW: 4, defaultH: 2, component: NetWorthChart, props: { data: netWorthData, lineColor: netWorthTrendColor, showForecast, showGoals, goals: financialGoals.filter(g => g.date) } },
+    // Removed forecastChart
     { id: 'outflowsByCategory', name: 'Outflows by Category', defaultW: 2, defaultH: 2, component: OutflowsChart, props: { data: outflowsByCategory, onCategoryClick: handleCategoryClick } },
     { id: 'netWorthBreakdown', name: 'Net Worth Breakdown', defaultW: 2, defaultH: 2, component: AssetDebtDonutChart, props: { assets: totalAssets, debt: totalDebt } },
     { id: 'recentActivity', name: 'Recent Activity', defaultW: 4, defaultH: 3, component: TransactionList, props: { transactions: recentTransactions, allCategories: allCategories, onTransactionClick: handleTransactionClick } },
@@ -975,7 +978,7 @@ const Dashboard: React.FC<DashboardProps> = ({ user, tasks, saveTask }) => {
     { id: 'budgetOverview', name: 'Budget Overview', defaultW: 2, defaultH: 2, component: BudgetOverviewWidget, props: { budgets: budgets, transactions: transactions, expenseCategories: expenseCategories, accounts: accounts, duration: duration, onBudgetClick: handleBudgetClick } },
     { id: 'transactionMap', name: 'Transaction Map', defaultW: 2, defaultH: 2, component: TransactionMapWidget, props: { transactions: filteredTransactions } },
     { id: 'cashflowSankey', name: 'Cash Flow Sankey', defaultW: 4, defaultH: 2, component: CashflowSankey, props: { transactions: filteredTransactions, incomeCategories, expenseCategories } }
-  ], [tasks, allRecurringItems, recurringTransactionOverrides, billsAndPayments, financialGoals, saveTask, netWorthData, netWorthTrendColor, forecastChartData, activeGoalIds, lowestForecastPoint, selectedAccounts, outflowsByCategory, handleCategoryClick, totalAssets, totalDebt, recentTransactions, allCategories, handleTransactionClick, globalTotalAssets, globalAssetBreakdown, globalTotalDebt, globalDebtBreakdown, budgets, transactions, expenseCategories, accounts, duration, handleBudgetClick, filteredTransactions, incomeCategories]);
+  ], [tasks, allRecurringItems, recurringTransactionOverrides, billsAndPayments, financialGoals, saveTask, netWorthData, netWorthTrendColor, activeGoalIds, lowestForecastPoint, selectedAccounts, outflowsByCategory, handleCategoryClick, totalAssets, totalDebt, recentTransactions, allCategories, handleTransactionClick, globalTotalAssets, globalAssetBreakdown, globalTotalDebt, globalDebtBreakdown, budgets, transactions, expenseCategories, accounts, duration, handleBudgetClick, filteredTransactions, incomeCategories, showForecast, showGoals]);
 
   const [widgets, setWidgets] = useLocalStorage<WidgetConfig[]>('dashboard-layout', allWidgets.map(w => ({ id: w.id, title: w.name, w: w.defaultW, h: w.defaultH })));
 
@@ -984,11 +987,19 @@ const Dashboard: React.FC<DashboardProps> = ({ user, tasks, saveTask }) => {
     const requiredActivityWidgets = WIDGET_TABS.activity;
 
     setWidgets(prev => {
-        // 1. Check for missing activity widgets
         const currentIds = new Set(prev.map(w => w.id));
         const missing = requiredActivityWidgets.filter(id => !currentIds.has(id));
         
-        let newWidgets = [...prev];
+        // Remove forecastChart if it exists
+        let newWidgets = prev.filter(w => w.id !== 'forecastChart');
+        
+        // Enforce Net Worth Width = 4
+        newWidgets = newWidgets.map(w => {
+            if (w.id === 'netWorthOverTime' && w.w !== 4) {
+                return { ...w, w: 4 };
+            }
+            return w;
+        });
 
         if (missing.length) {
              const additions = missing
@@ -999,41 +1010,10 @@ const Dashboard: React.FC<DashboardProps> = ({ user, tasks, saveTask }) => {
                 .filter(Boolean) as WidgetConfig[];
              newWidgets = [...newWidgets, ...additions];
         }
-        
-        // 2. Enforce new layout for Net Worth / Forecast split if Forecast is missing or Net Worth is full width
-        const netWorthIndex = newWidgets.findIndex(w => w.id === 'netWorthOverTime');
-        const forecastIndex = newWidgets.findIndex(w => w.id === 'forecastChart');
-        const netWorthWidget = newWidgets[netWorthIndex];
 
-        // If Net Worth is still full width (old default) OR Forecast is missing
-        if ((netWorthWidget && netWorthWidget.w > 2) || forecastIndex === -1) {
-             // Resize Net Worth to 2
-             if (netWorthWidget) {
-                 newWidgets[netWorthIndex] = { ...netWorthWidget, w: 2 };
-             }
-             
-             // Add Forecast Chart if missing
-             if (forecastIndex === -1) {
-                  const forecastDef = allWidgets.find(w => w.id === 'forecastChart');
-                  if (forecastDef) {
-                       const newForecastConfig = { 
-                           id: forecastDef.id, 
-                           title: forecastDef.name, 
-                           w: 2, 
-                           h: netWorthWidget ? netWorthWidget.h : 2 
-                       };
-                       // Insert after Net Worth if present, otherwise append
-                       if (netWorthIndex !== -1) {
-                           newWidgets.splice(netWorthIndex + 1, 0, newForecastConfig);
-                       } else {
-                           newWidgets.push(newForecastConfig);
-                       }
-                  }
-             }
-             return newWidgets;
-        }
-
-        return newWidgets.length !== prev.length ? newWidgets : prev;
+        // Check if anything actually changed to avoid infinite loop
+        const isDifferent = JSON.stringify(newWidgets) !== JSON.stringify(prev);
+        return isDifferent ? newWidgets : prev;
     });
   }, [allWidgets, setWidgets]);
 
@@ -1256,7 +1236,7 @@ const Dashboard: React.FC<DashboardProps> = ({ user, tasks, saveTask }) => {
       />
 
       {/* Controls Bar: Tabs & Filters */}
-      <div className="flex flex-col md:flex-row justify-between items-center gap-4 bg-white dark:bg-dark-card p-1.5 rounded-2xl border border-black/5 dark:border-white/5 shadow-sm">
+      <div className="flex flex-col xl:flex-row justify-between items-center gap-4 bg-white dark:bg-dark-card p-1.5 rounded-2xl border border-black/5 dark:border-white/5 shadow-sm">
            {/* Tabs */}
            <div className="bg-gray-100 dark:bg-white/5 p-1 rounded-full inline-flex shadow-inner overflow-x-auto no-scrollbar max-w-full">
             {tabs.map((tab) => (
@@ -1275,11 +1255,38 @@ const Dashboard: React.FC<DashboardProps> = ({ user, tasks, saveTask }) => {
           </div>
 
           {/* Filters */}
-          <div className="flex gap-3 w-full md:w-auto px-1 md:px-0">
-              <div className="flex-1 md:flex-none">
+          <div className="flex flex-wrap gap-3 w-full xl:w-auto px-1 xl:px-0 justify-end">
+              {/* Forecast Controls (Only visible in overview) */}
+              {activeTab === 'overview' && (
+                  <div className="flex items-center gap-2 bg-light-fill dark:bg-dark-fill p-1 rounded-lg">
+                      <div className={SELECT_WRAPPER_STYLE}>
+                          <select 
+                            value={forecastDuration} 
+                            onChange={(e) => setForecastDuration(e.target.value as ForecastDuration)} 
+                            className={`${SELECT_STYLE} !py-1.5 !text-xs !h-8 w-24`}
+                          >
+                             {FORECAST_DURATION_OPTIONS.map(opt => (
+                                 <option key={opt.value} value={opt.value}>{opt.label}</option>
+                             ))}
+                          </select>
+                          <div className={SELECT_ARROW_STYLE}><span className="material-symbols-outlined text-sm">expand_more</span></div>
+                      </div>
+                      <div className="h-4 w-px bg-black/10 dark:bg-white/10 mx-1"></div>
+                      <label className="flex items-center gap-1.5 cursor-pointer px-2">
+                          <input type="checkbox" checked={showForecast} onChange={e => setShowForecast(e.target.checked)} className={CHECKBOX_STYLE} />
+                          <span className="text-xs font-medium text-light-text dark:text-dark-text">Forecast</span>
+                      </label>
+                      <label className="flex items-center gap-1.5 cursor-pointer px-2">
+                          <input type="checkbox" checked={showGoals} onChange={e => setShowGoals(e.target.checked)} className={CHECKBOX_STYLE} />
+                          <span className="text-xs font-medium text-light-text dark:text-dark-text">Goals</span>
+                      </label>
+                  </div>
+              )}
+
+              <div className="flex-1 sm:flex-none">
                   <MultiAccountFilter accounts={accounts} selectedAccountIds={selectedAccountIds} setSelectedAccountIds={setSelectedAccountIds} />
               </div>
-              <div className="flex-1 md:flex-none">
+              <div className="flex-1 sm:flex-none">
                    <DurationFilter selectedDuration={duration} onDurationChange={setDuration} />
               </div>
           </div>
@@ -1333,6 +1340,7 @@ const Dashboard: React.FC<DashboardProps> = ({ user, tasks, saveTask }) => {
                 </div>
             </div>
             
+            {/* Display lowest balance forecasts based on the new forecast duration/logic */}
             {lowestBalanceForecasts && lowestBalanceForecasts.length > 0 && (
                 <div>
                     <ForecastOverview forecasts={lowestBalanceForecasts} currency="EUR" />

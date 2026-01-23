@@ -1,7 +1,8 @@
 
 import React from 'react';
-import { AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts';
+import { AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, ReferenceLine, Label } from 'recharts';
 import { formatCurrency, parseLocalDate } from '../utils';
+import { FinancialGoal } from '../types';
 
 interface ChartData {
   name: string;
@@ -12,6 +13,9 @@ interface ChartData {
 interface NetWorthChartProps {
   data: ChartData[];
   lineColor?: string;
+  showForecast?: boolean;
+  showGoals?: boolean;
+  goals?: FinancialGoal[];
 }
 
 const yAxisTickFormatter = (value: number) => {
@@ -20,7 +24,13 @@ const yAxisTickFormatter = (value: number) => {
     return `€${value}`;
 };
 
-const NetWorthChart: React.FC<NetWorthChartProps> = ({ data, lineColor = '#6366F1' }) => {
+const NetWorthChart: React.FC<NetWorthChartProps> = ({ 
+    data, 
+    lineColor = '#6366F1',
+    showForecast = true,
+    showGoals = true,
+    goals = []
+}) => {
 
   const CustomTooltip = ({ active, payload, label }: any) => {
       if (active && payload && payload.length) {
@@ -124,18 +134,51 @@ const NetWorthChart: React.FC<NetWorthChartProps> = ({ data, lineColor = '#6366F
             content={<CustomTooltip />} 
            />
           
-          {/* Forecast Area (Rendered first so it sits behind if overlapping, though typically they join) */}
-          <Area 
-            type="monotone" 
-            dataKey="forecast" 
-            name="Forecast" 
-            stroke={lineColor} 
-            strokeDasharray="5 5"
-            fill={`url(#${forecastGradientId})`} 
-            strokeWidth={2}
-            strokeOpacity={0.6}
-            activeDot={{ r: 4, fill: 'white', stroke: lineColor, strokeWidth: 2 }}
-          />
+          {/* Goal Markers */}
+          {showGoals && goals.map((goal, index) => {
+              if (!goal.date) return null;
+              // Check if date is within chart range
+              if(data.length === 0) return null;
+              const start = data[0].name;
+              const end = data[data.length - 1].name;
+              if (goal.date < start || goal.date > end) return null;
+
+              return (
+                <ReferenceLine 
+                    key={goal.id} 
+                    x={goal.date} 
+                    stroke="#F59E0B" 
+                    strokeDasharray="3 3"
+                    strokeOpacity={0.6}
+                >
+                    <Label 
+                        value={goal.name} 
+                        position="insideTop" 
+                        fill="#F59E0B" 
+                        fontSize={10} 
+                        fontWeight={700}
+                        angle={-90}
+                        dy={20}
+                        dx={-5}
+                    />
+                </ReferenceLine>
+              );
+          })}
+
+          {/* Forecast Area */}
+          {showForecast && (
+              <Area 
+                type="monotone" 
+                dataKey="forecast" 
+                name="Forecast" 
+                stroke={lineColor} 
+                strokeDasharray="5 5"
+                fill={`url(#${forecastGradientId})`} 
+                strokeWidth={2}
+                strokeOpacity={0.6}
+                activeDot={{ r: 4, fill: 'white', stroke: lineColor, strokeWidth: 2 }}
+              />
+          )}
 
           {/* Actual History Area */}
           <Area 
