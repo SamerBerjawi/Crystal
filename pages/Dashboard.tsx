@@ -136,7 +136,6 @@ const Dashboard: React.FC<DashboardProps> = ({ user, tasks, saveTask }) => {
   const [isEditMode, setIsEditMode] = useState(false);
   const [isMatcherModalOpen, setIsMatcherModalOpen] = useState(false);
   const [activeTab, setActiveTab] = useState<DashboardTab>('overview');
-  const [showNetWorthForecast, setShowNetWorthForecast] = useLocalStorage('show-nw-forecast', false);
 
   const { suggestions, confirmMatch, dismissSuggestion, confirmAllMatches, dismissAllSuggestions } = useTransactionMatcher(transactions, accounts, saveTransaction);
 
@@ -711,10 +710,6 @@ const Dashboard: React.FC<DashboardProps> = ({ user, tasks, saveTask }) => {
 
     const { start, end } = getDateRange(duration, transactions);
     
-    // For net worth calculation over time, we need a reliable starting point.
-    // If we only look at transactions in the window, we miss the accumulated balance.
-    // We calculate "Today's Net Worth" (current state) and reverse transactions.
-    
     if (duration === 'ALL') {
         const fiveYearsAgo = new Date(end);
         fiveYearsAgo.setFullYear(end.getFullYear() - 5);
@@ -726,7 +721,6 @@ const Dashboard: React.FC<DashboardProps> = ({ user, tasks, saveTask }) => {
     const currentNetWorth = netWorth;
     const today = parseLocalDate(toLocalISOString(new Date()));
 
-    // Reverse calculations from Today back to Start of period
     const transactionsToReverse = transactions.filter(tx => {
         if (!analyticsSelectedAccountIds.includes(tx.accountId)) return false;
         if (tx.transferId && internalTransferIds.has(tx.transferId)) return false;
@@ -734,7 +728,6 @@ const Dashboard: React.FC<DashboardProps> = ({ user, tasks, saveTask }) => {
         return txDate >= start && txDate <= today;
     });
 
-    // Calculate total change in the period (to find start value)
     const totalChangeSinceStart = transactionsToReverse.reduce((sum, tx) => {
         const signedAmount = tx.type === 'expense'
             ? -Math.abs(convertToEur(tx.amount, tx.currency))
@@ -745,7 +738,6 @@ const Dashboard: React.FC<DashboardProps> = ({ user, tasks, saveTask }) => {
 
     const startingNetWorth = currentNetWorth - totalChangeSinceStart;
 
-    // Now roll forward from Start to End to build daily points
     const transactionsInPeriod = transactions.filter(tx => {
         if (!analyticsSelectedAccountIds.includes(tx.accountId)) return false;
         if (tx.transferId && internalTransferIds.has(tx.transferId)) return false;
@@ -763,109 +755,33 @@ const Dashboard: React.FC<DashboardProps> = ({ user, tasks, saveTask }) => {
         dailyChanges.set(dateStr, (dailyChanges.get(dateStr) || 0) + signedAmount);
     }
     
-    // Generate merged history and forecast data
-    const historyPoints: { date: string; actual: number | null; forecast: number | null }[] = [];
+    const data: { name: string, value: number }[] = [];
     let runningBalance = startingNetWorth;
     
     let currentDate = new Date(start);
 
-    // Build historical points
-    while (currentDate <= today && currentDate <= end) {
+    while (currentDate <= end) {
         const dateStr = formatDateKey(currentDate);
         runningBalance += dailyChanges.get(dateStr) || 0;
-        historyPoints.push({ date: dateStr, actual: parseFloat(runningBalance.toFixed(2)), forecast: null });
+        data.push({ name: dateStr, value: parseFloat(runningBalance.toFixed(2)) });
         currentDate.setDate(currentDate.getDate() + 1);
     }
-
-    // Ensure Today matches current net worth exactly to fix drift
-    if (historyPoints.length > 0) {
-        const lastPoint = historyPoints[historyPoints.length - 1];
-        if (lastPoint.date === formatDateKey(today)) {
-             lastPoint.actual = parseFloat(currentNetWorth.toFixed(2));
-        }
-    }
     
-    // Add forecast points if toggle is enabled
-    if (showNetWorthForecast) {
-        // Forecast Calculation
-        const forecastEndDate = new Date();
-        
-        // Determine forecast duration based on dashboard filter
-        switch (duration) {
-            case 'TODAY':
-            case 'WTD':
-                // No forecast for very short periods
-                break;
-            case 'MTD':
-            case '30D':
-                forecastEndDate.setDate(forecastEndDate.getDate() + 30);
-                break;
-            case '60D':
-                forecastEndDate.setDate(forecastEndDate.getDate() + 60);
-                break;
-            case '90D':
-                forecastEndDate.setDate(forecastEndDate.getDate() + 90);
-                break;
-            case '6M':
-                forecastEndDate.setMonth(forecastEndDate.getMonth() + 6);
-                break;
-            case 'YTD':
-                forecastEndDate.setFullYear(forecastEndDate.getFullYear(), 11, 31);
-                break;
-            case '1Y':
-            case 'ALL':
-                forecastEndDate.setFullYear(forecastEndDate.getFullYear() + 1);
-                break;
-        }
-
-        // Bridge the gap: The last historical point becomes the start of the forecast
-        if (historyPoints.length > 0) {
-            const bridgePoint = historyPoints[historyPoints.length - 1];
-            bridgePoint.forecast = bridgePoint.actual;
-        }
-
-        // Generate Forecast using utility
-        // Note: generateBalanceForecast calculates balance for *future* dates based on recurring items.
-        // It starts from the *current* balance of the accounts.
-        const { chartData: forecastChartData } = generateBalanceForecast(
-            analyticsSelectedAccounts,
-            allRecurringItems,
-            financialGoals,
-            billsAndPayments,
-            forecastEndDate,
-            recurringTransactionOverrides
-        );
-        
-        // Map forecast data to our chart format
-        forecastChartData.forEach(point => {
-             const pointDate = parseLocalDate(point.date);
-             if (pointDate > today) {
-                 historyPoints.push({ 
-                     date: point.date, 
-                     actual: null, 
-                     forecast: point.value 
-                 });
-             }
-        });
+    const todayStr = formatDateKey(today);
+    const todayDataPoint = data.find(d => d.name === todayStr);
+    if (todayDataPoint) {
+      todayDataPoint.value = parseFloat(currentNetWorth.toFixed(2));
     }
 
-    return historyPoints;
-  }, [duration, transactions, analyticsSelectedAccountIds, netWorth, showNetWorthForecast, allRecurringItems, financialGoals, billsAndPayments, recurringTransactionOverrides, analyticsSelectedAccounts]);
+
+    return data;
+  }, [duration, transactions, analyticsSelectedAccountIds, netWorth]);
 
   const netWorthTrendColor = useMemo(() => {
-    // Determine color based on historical trend
     if (netWorthData.length < 2) return '#6366F1';
-    
-    // Find first and last ACTUAL values
-    const firstActual = netWorthData.find(d => d.actual !== null)?.actual || 0;
-    // Find last ACTUAL value (not forecast)
-    const lastActualIndex = netWorthData.map(d => d.actual).lastIndexOf(null) === -1 
-        ? netWorthData.length - 1 
-        : netWorthData.findIndex(d => d.actual === null) - 1;
-        
-    const lastActual = netWorthData[Math.max(0, lastActualIndex)]?.actual || 0;
-
-    return lastActual >= firstActual ? '#34C759' : '#FF3B30';
+    const startValue = netWorthData[0].value;
+    const endValue = netWorthData[netWorthData.length - 1].value;
+    return endValue >= startValue ? '#34C759' : '#FF3B30';
   }, [netWorthData]);
   
   const configuredCreditCards = useMemo(() => {
@@ -967,19 +883,7 @@ const Dashboard: React.FC<DashboardProps> = ({ user, tasks, saveTask }) => {
             onProcessItem: handleProcessItem 
         } 
     },
-    { 
-        id: 'netWorthOverTime', 
-        name: 'Net Worth Over Time', 
-        defaultW: 4, 
-        defaultH: 2, 
-        component: NetWorthChart, 
-        props: { 
-            data: netWorthData, 
-            lineColor: netWorthTrendColor, 
-            showForecast: showNetWorthForecast, 
-            onToggleForecast: setShowNetWorthForecast 
-        } 
-    },
+    { id: 'netWorthOverTime', name: 'Net Worth Over Time', defaultW: 4, defaultH: 2, component: NetWorthChart, props: { data: netWorthData, lineColor: netWorthTrendColor } },
     { id: 'outflowsByCategory', name: 'Outflows by Category', defaultW: 2, defaultH: 2, component: OutflowsChart, props: { data: outflowsByCategory, onCategoryClick: handleCategoryClick } },
     { id: 'netWorthBreakdown', name: 'Net Worth Breakdown', defaultW: 2, defaultH: 2, component: AssetDebtDonutChart, props: { assets: totalAssets, debt: totalDebt } },
     { id: 'recentActivity', name: 'Recent Activity', defaultW: 4, defaultH: 3, component: TransactionList, props: { transactions: recentTransactions, allCategories: allCategories, onTransactionClick: handleTransactionClick } },
@@ -988,7 +892,7 @@ const Dashboard: React.FC<DashboardProps> = ({ user, tasks, saveTask }) => {
     { id: 'budgetOverview', name: 'Budget Overview', defaultW: 2, defaultH: 2, component: BudgetOverviewWidget, props: { budgets: budgets, transactions: transactions, expenseCategories: expenseCategories, accounts: accounts, duration: duration, onBudgetClick: handleBudgetClick } },
     { id: 'transactionMap', name: 'Transaction Map', defaultW: 2, defaultH: 2, component: TransactionMapWidget, props: { transactions: filteredTransactions } },
     { id: 'cashflowSankey', name: 'Cash Flow Sankey', defaultW: 4, defaultH: 2, component: CashflowSankey, props: { transactions: filteredTransactions, incomeCategories, expenseCategories } }
-  ], [tasks, allRecurringItems, recurringTransactionOverrides, billsAndPayments, financialGoals, saveTask, netWorthData, netWorthTrendColor, showNetWorthForecast, setShowNetWorthForecast, outflowsByCategory, handleCategoryClick, totalAssets, totalDebt, recentTransactions, allCategories, handleTransactionClick, globalTotalAssets, globalAssetBreakdown, globalTotalDebt, globalDebtBreakdown, budgets, transactions, expenseCategories, accounts, duration, handleBudgetClick, filteredTransactions, incomeCategories]);
+  ], [tasks, allRecurringItems, recurringTransactionOverrides, billsAndPayments, financialGoals, saveTask, netWorthData, netWorthTrendColor, outflowsByCategory, handleCategoryClick, totalAssets, totalDebt, recentTransactions, allCategories, handleTransactionClick, globalTotalAssets, globalAssetBreakdown, globalTotalDebt, globalDebtBreakdown, budgets, transactions, expenseCategories, accounts, duration, handleBudgetClick, filteredTransactions, incomeCategories]);
 
   const [widgets, setWidgets] = useLocalStorage<WidgetConfig[]>('dashboard-layout', allWidgets.map(w => ({ id: w.id, title: w.name, w: w.defaultW, h: w.defaultH })));
 

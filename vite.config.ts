@@ -3,7 +3,7 @@ import { defineConfig, loadEnv, type PluginOption } from 'vite';
 import react from '@vitejs/plugin-react';
 import process from 'process';
 
-const createBundleAnalyzerPlugin = (): any => ({
+const createBundleAnalyzerPlugin = (): PluginOption => ({
   name: 'bundle-size-analyzer',
   generateBundle(_, bundle: any) {
     const textEncoder = new TextEncoder();
