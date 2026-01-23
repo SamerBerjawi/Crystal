@@ -1,3 +1,4 @@
+
 import React, { useState, useMemo, useCallback, useEffect } from 'react';
 import {
   Page,
@@ -65,7 +66,7 @@ const useSmartGoalPlanner = (
                 current_date: toLocalISOString(new Date()),
                 liquid_accounts: liquidAccounts.map(({ name, balance, currency }) => ({ name, balance, currency })),
                 recurring_transactions: recurringTransactions.map(({ description, amount, type, frequency, nextDueDate }) => ({ description, amount, type, frequency, nextDueDate })),
-                financial_goals: financialGoals.filter(g => g.projection).map(({ name, type, amount, currentAmount, date, projection }) => ({ name, type, amount, currentAmount, date, projected_status: projection?.status })),
+                financial_goals: financialGoals.filter(g => g.projection).map(({ name, type, amount, currentAmount, date, projection }) => ({ name, type, amount, currentAmount, date, startDate }) => ({ name, type, amount, currentAmount, date, projected_status: projection?.status })),
             };
 
             const prompt = `You are a financial planner. Based on the user's financial data, create a smart contribution plan to help them achieve their goals. 
@@ -248,7 +249,7 @@ const Forecasting: React.FC = () => {
     }, [fullForecast]);
 
     // 3. Derived Data for Chart and Table (Filtered by selected Duration)
-    const { forecastData, tableData, lowestPoint, goalsWithProjections, startBalance, endBalance } = useMemo(() => {
+    const { forecastData, tableData, lowestPoint, goalsWithProjections, startBalance, endBalance, combinedChartData } = useMemo(() => {
         const { chartData, tableData, lowestPoint } = fullForecast;
         
         const goalsWithProjections = financialGoals.map(goal => {
@@ -295,15 +296,108 @@ const Forecasting: React.FC = () => {
         const startBal = forecastDataForPeriod.length > 0 ? forecastDataForPeriod[0].value : 0;
         const endBal = forecastDataForPeriod.length > 0 ? forecastDataForPeriod[forecastDataForPeriod.length - 1].value : 0;
 
+        // --- Calculate Historic Data (Last 10 Days) ---
+        const historyData: typeof forecastDataForPeriod = [];
+        let currentHistoryBal = startBal;
+        const today = new Date();
+        const todayStr = toLocalISOString(today);
+
+        // Group transactions by date for efficient lookup
+        const txsByDate = new Map<string, number>();
+        transactions.forEach(tx => {
+             // Only include transactions from selected accounts
+             if (selectedAccountIds.includes(tx.accountId) && !tx.transferId) {
+                  const d = tx.date;
+                  txsByDate.set(d, (txsByDate.get(d) || 0) + convertToEur(tx.amount, tx.currency));
+             } else if (tx.transferId) {
+                 // For transfers, check if it's external-facing relative to the selected group
+                 // Logic: If 'from' is selected and 'to' is NOT, it's an expense.
+                 // If 'to' is selected and 'from' is NOT, it's income.
+                 // If both selected, it cancels out.
+                 // Since we don't have easy 'to/from' in flat transaction list without looking up pair, 
+                 // we rely on the fact that if only one side of the transfer is in `transactions` (filtered by account),
+                 // it acts as a valid in/out flow. 
+                 // However, `transactions` comes from context and contains ALL transactions.
+                 // So we must check accountId.
+                 if (selectedAccountIds.includes(tx.accountId)) {
+                     // Check if counterpart is also in selected group is hard without looking up pairing.
+                     // Simplified: If user selected "All Liquid", transfers between them are ignored.
+                     // We will include it if it modifies the TOTAL balance of the selected group.
+                     // BUT `generateBalanceForecast` uses `selectedAccounts` to start `startBal`.
+                     // `startBal` is sum of `account.balance` NOW.
+                     // So we need to reverse transactions to go back in time.
+                     
+                     // We will use a simpler approximation: just sum all transactions for selected accounts.
+                     // Internal transfers sum to 0 across the group (one +amount, one -amount).
+                     const d = tx.date;
+                     txsByDate.set(d, (txsByDate.get(d) || 0) + convertToEur(tx.amount, tx.currency));
+                 }
+             }
+        });
+
+        // Walk back 10 days
+        for (let i = 0; i <= 10; i++) {
+             const d = new Date(today);
+             d.setDate(d.getDate() - i);
+             const dateStr = toLocalISOString(d);
+             
+             // Don't include today in history to avoid overlap with forecast start (which is today)
+             if (dateStr === todayStr) continue; 
+             
+             // Balance at end of 'dateStr' = Balance at end of 'dateStr + 1' - (Transactions on 'dateStr + 1')
+             // Wait, standard accounting:
+             // Balance(Today) = Balance(Yesterday) + Change(Today).
+             // So Balance(Yesterday) = Balance(Today) - Change(Today).
+             
+             // Logic:
+             // StartBal is Balance(Today, End of Day approx).
+             // Loop i=0 (Today). Change = Txs Today. Bal(Yesterday End) = StartBal - Change.
+             // Loop i=1 (Yesterday). Change = Txs Yesterday. Bal(Day Before) = Bal(Yesterday End) - Change.
+             
+             const dateForChangeLookup = new Date(today);
+             dateForChangeLookup.setDate(today.getDate() - i);
+             const lookupDateStr = toLocalISOString(dateForChangeLookup);
+             
+             const change = txsByDate.get(lookupDateStr) || 0;
+             currentHistoryBal -= change; // Reverse the flow to go back in time
+             
+             // We push the balance representing the END of 'date - 1' (which is start of 'date')?
+             // No, we want to plot daily balances.
+             // We calculated Balance at END of `dateStr` (which is d - 1 day).
+             
+             // Let's refine.
+             // Iteration 0: i=0. d=Today. currentHistoryBal (starts as Today End) - Change(Today) = Yesterday End.
+             // We push { date: Yesterday, value: Yesterday End }.
+             
+             // Create a date string for the day we just calculated the END balance for.
+             const dPrev = new Date(d);
+             dPrev.setDate(d.getDate() - 1);
+             
+             historyData.push({ 
+                 date: toLocalISOString(dPrev), 
+                 value: currentHistoryBal,
+                 dailySummary: [], // No summary for history in this view
+                 isHistory: true
+            });
+        }
+        
+        // Reverse history to be chronological
+        const sortedHistory = historyData.reverse();
+        
+        // Combine: History -> Today (Forecast Start) -> Future
+        // ForecastData[0] is Today.
+        const combinedChartData = [...sortedHistory, ...forecastDataForPeriod];
+
         return { 
             forecastData: forecastDataForPeriod, 
             tableData: tableDataForPeriod, 
             lowestPoint: lowestPointInPeriod, 
             goalsWithProjections,
             startBalance: startBal,
-            endBalance: endBal
+            endBalance: endBal,
+            combinedChartData
         };
-    }, [fullForecast, financialGoals, forecastDuration]);
+    }, [fullForecast, financialGoals, forecastDuration, transactions, selectedAccountIds]);
     
     // Account Goal Allocation Summary
     const accountGoalSummary = useMemo(() => {
@@ -683,7 +777,7 @@ const Forecasting: React.FC = () => {
                     </div>
                 </div>
                 <ForecastChart 
-                    data={forecastData} 
+                    data={combinedChartData} 
                     lowestPoint={lowestPoint} 
                     oneTimeGoals={activeGoals.filter(g => g.type === 'one-time')} 
                     showIndividualLines={showIndividualLines}
