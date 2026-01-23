@@ -127,6 +127,31 @@ const Dashboard: React.FC<DashboardProps> = ({ user, tasks, saveTask }) => {
   const [showGoals, setShowGoals] = useState(true);
   const [forecastDuration, setForecastDuration] = useState<ForecastDuration>(preferences.defaultForecastPeriod || '1Y');
 
+  // Sync Forecast Duration with Historical Duration by default
+  useEffect(() => {
+    let target: ForecastDuration = '1Y';
+    switch (duration) {
+        case 'TODAY':
+        case 'WTD':
+        case 'MTD':
+        case '30D':
+            target = '3M';
+            break;
+        case '60D':
+        case '90D':
+        case '6M':
+            target = '6M';
+            break;
+        case 'YTD':
+        case '1Y':
+        case 'ALL':
+        default:
+            target = '1Y';
+            break;
+    }
+    setForecastDuration(target);
+  }, [duration]);
+
   const transactionsKey = transactionsDigest;
   const aggregateCacheRef = useRef<Map<string, { filteredTransactions: Transaction[]; income: number; expenses: number }>>(new Map());
   const aggregateCacheMax = 25;
