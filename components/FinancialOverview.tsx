@@ -1,8 +1,8 @@
-
 import React from 'react';
 import Card from './Card';
 import { formatCurrency } from '../utils';
 import { Currency } from '../types';
+import { AreaChart, Area, ResponsiveContainer } from 'recharts';
 
 interface FinancialOverviewProps {
     netWorth: number;
@@ -22,108 +22,139 @@ const FinancialOverview: React.FC<FinancialOverviewProps> = ({
     currency = 'EUR' 
 }) => {
     const netCashFlow = income - expenses;
-    // Savings rate is Net Flow / Income
     const savingsRate = income > 0 ? (netCashFlow / income) * 100 : 0;
     const expenseRatio = income > 0 ? (expenses / income) * 100 : 0;
-    
     const isPositiveNet = netCashFlow >= 0;
 
-    return (
-        <Card className="p-0 overflow-hidden border border-black/5 dark:border-white/5 shadow-sm bg-white dark:bg-dark-card">
-            <div className="flex flex-col lg:flex-row h-full">
-                
-                {/* LEFT COLUMN: Net Worth (The Foundation) */}
-                <div className="lg:w-1/3 p-5 sm:p-6 border-b lg:border-b-0 lg:border-r border-black/5 dark:border-white/5 bg-gray-50 dark:bg-white/5 flex flex-col justify-between relative overflow-hidden group hover:bg-indigo-50/50 dark:hover:bg-indigo-900/10 transition-colors duration-300">
-                    
-                    {/* Background Decor */}
-                    <div className="absolute top-0 right-0 -mr-4 -mt-4 w-24 h-24 bg-primary-500/10 rounded-full blur-2xl pointer-events-none opacity-0 group-hover:opacity-100 transition-opacity duration-500"></div>
+    // Mock trend data for the background visual effect
+    const mockTrend = [
+        { v: 45 }, { v: 52 }, { v: 48 }, { v: 61 }, { v: 55 }, { v: 68 }, { v: 72 }
+    ];
 
-                    <div className="relative z-10">
-                        <div className="flex items-center gap-3 mb-2">
-                            <div className="w-10 h-10 rounded-xl bg-white dark:bg-white/10 shadow-sm flex items-center justify-center text-primary-500 border border-black/5 dark:border-white/5">
-                                <span className="material-symbols-outlined text-xl">savings</span>
+    return (
+        <Card className="p-0 overflow-hidden border border-black/5 dark:border-white/10 shadow-2xl bg-white/40 dark:bg-dark-card/40 backdrop-blur-3xl group">
+            <div className="flex flex-col lg:flex-row min-h-[240px]">
+                
+                {/* --- NET WORTH SECTION --- */}
+                <div className="lg:w-2/5 p-8 relative overflow-hidden border-b lg:border-b-0 lg:border-r border-black/5 dark:border-white/10 transition-all duration-500 hover:bg-white/40 dark:hover:bg-white/5">
+                    {/* Background Trend Visual */}
+                    <div className="absolute inset-0 z-0 opacity-10 dark:opacity-20 pointer-events-none translate-y-8">
+                        <ResponsiveContainer width="100%" height="100%">
+                            <AreaChart data={mockTrend}>
+                                <Area 
+                                    type="monotone" 
+                                    dataKey="v" 
+                                    stroke="#fa9a1d" 
+                                    fill="#fa9a1d" 
+                                    strokeWidth={3}
+                                />
+                            </AreaChart>
+                        </ResponsiveContainer>
+                    </div>
+
+                    <div className="relative z-10 flex flex-col h-full justify-between">
+                        <div>
+                            <div className="flex items-center gap-2 mb-2">
+                                <div className="w-8 h-8 rounded-lg bg-primary-500 text-white flex items-center justify-center shadow-lg shadow-primary-500/20">
+                                    <span className="material-symbols-outlined text-lg">account_balance</span>
+                                </div>
+                                <span className="text-[10px] font-black uppercase tracking-[0.2em] text-light-text-secondary dark:text-dark-text-secondary">
+                                    Total Position
+                                </span>
                             </div>
-                            <span className="text-xs font-bold uppercase tracking-widest text-light-text-secondary dark:text-dark-text-secondary">Net Worth</span>
+                            <h2 className="text-4xl font-black tracking-tighter text-light-text dark:text-dark-text privacy-blur">
+                                {formatCurrency(netWorth, currency as Currency)}
+                            </h2>
+                            <p className="text-xs font-bold text-light-text-secondary dark:text-dark-text-secondary mt-1 uppercase tracking-wider opacity-60">Net Worth</p>
                         </div>
-                        
-                        <h2 className="text-3xl font-extrabold tracking-tight text-light-text dark:text-dark-text mb-1 privacy-blur">
-                            {formatCurrency(netWorth, currency as Currency)}
-                        </h2>
-                        <p className="text-xs text-light-text-secondary dark:text-dark-text-secondary font-medium">Total Assets - Liabilities</p>
+
+                        <div className="mt-8 flex items-center gap-3">
+                            <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse"></span>
+                            <span className="text-[10px] font-black text-light-text-secondary dark:text-dark-text-secondary uppercase tracking-widest">Live Valuation</span>
+                        </div>
                     </div>
                 </div>
 
-                {/* RIGHT COLUMN: Cash Flow (The Pulse) */}
-                <div className="lg:w-2/3 p-5 sm:p-6 flex flex-col justify-between">
-                    
-                    {/* Top Row: Net Flow & Savings Badge */}
-                    <div className="flex justify-between items-start mb-4">
-                        <div>
-                            <p className="text-xs font-bold uppercase text-light-text-secondary dark:text-dark-text-secondary tracking-wider mb-1">Net Cash Flow</p>
-                            <div className="flex items-baseline gap-2">
-                                <span className={`text-2xl font-extrabold privacy-blur ${isPositiveNet ? 'text-light-text dark:text-dark-text' : 'text-red-500'}`}>
-                                    {formatCurrency(netCashFlow, currency as Currency, { showPlusSign: true })}
+                {/* --- CASH FLOW SECTION --- */}
+                <div className="lg:w-3/5 p-8 relative overflow-hidden transition-all duration-500 hover:bg-white/40 dark:hover:bg-white/5">
+                    {/* Background Trend Visual (Mirrored color) */}
+                    <div className="absolute inset-0 z-0 opacity-10 dark:opacity-20 pointer-events-none translate-y-8">
+                        <ResponsiveContainer width="100%" height="100%">
+                            <AreaChart data={mockTrend}>
+                                <Area 
+                                    type="monotone" 
+                                    dataKey="v" 
+                                    stroke={isPositiveNet ? '#10b981' : '#f43f5e'} 
+                                    fill={isPositiveNet ? '#10b981' : '#f43f5e'} 
+                                    strokeWidth={3}
+                                />
+                            </AreaChart>
+                        </ResponsiveContainer>
+                    </div>
+
+                    <div className="relative z-10 flex flex-col h-full">
+                        <div className="flex justify-between items-start mb-6">
+                            <div>
+                                <span className="text-[10px] font-black uppercase tracking-[0.2em] text-light-text-secondary dark:text-dark-text-secondary mb-1 block">
+                                    Cash Flow Pulse
                                 </span>
+                                <h3 className={`text-4xl font-black tracking-tighter privacy-blur ${isPositiveNet ? 'text-emerald-600 dark:text-emerald-400' : 'text-rose-600 dark:text-rose-400'}`}>
+                                    {formatCurrency(netCashFlow, currency as Currency, { showPlusSign: true })}
+                                </h3>
+                            </div>
+                            <div className={`px-4 py-2 rounded-2xl backdrop-blur-xl border flex flex-col items-center ${isPositiveNet ? 'bg-emerald-500/10 border-emerald-500/20 text-emerald-600 dark:text-emerald-400' : 'bg-rose-500/10 border-rose-500/20 text-rose-600 dark:text-rose-400'}`}>
+                                <span className="text-xl font-black leading-none">{savingsRate.toFixed(0)}%</span>
+                                <span className="text-[9px] font-black uppercase tracking-tighter mt-1 opacity-80">Savings Rate</span>
                             </div>
                         </div>
-                        <div className={`flex flex-col items-end px-3 py-1.5 rounded-xl ${isPositiveNet ? 'bg-emerald-50 dark:bg-emerald-900/20' : 'bg-red-50 dark:bg-red-900/20'}`}>
-                            <span className={`text-sm font-bold privacy-blur ${isPositiveNet ? 'text-emerald-600 dark:text-emerald-400' : 'text-red-600 dark:text-red-400'}`}>
-                                {savingsRate.toFixed(0)}%
-                            </span>
-                            <span className={`text-[10px] font-bold uppercase ${isPositiveNet ? 'text-emerald-600/70 dark:text-emerald-400/70' : 'text-red-600/70 dark:text-red-400/70'}`}>Savings Rate</span>
-                        </div>
-                    </div>
 
-                    {/* Middle Row: Visual Flow Bar */}
-                    <div className="mb-4">
-                         <div className="flex justify-between text-[10px] font-bold uppercase text-light-text-secondary dark:text-dark-text-secondary mb-1.5">
-                            <span>Expenses {Math.min(expenseRatio, 100).toFixed(0)}%</span>
-                            <span>Income 100%</span>
+                        {/* Flow Meter */}
+                        <div className="mb-8">
+                            <div className="flex justify-between text-[9px] font-black uppercase text-light-text-secondary dark:text-dark-text-secondary tracking-widest mb-2">
+                                <span>Inbound 100%</span>
+                                <span>Utilization {Math.min(expenseRatio, 100).toFixed(0)}%</span>
+                            </div>
+                            <div className="h-3 w-full bg-emerald-500/20 dark:bg-emerald-500/10 rounded-full overflow-hidden flex shadow-inner border border-black/5 dark:border-white/5">
+                                <div 
+                                    className="h-full bg-gradient-to-r from-rose-500 to-rose-400 rounded-full transition-all duration-1000 ease-out shadow-lg" 
+                                    style={{ width: `${Math.min(expenseRatio, 100)}%` }}
+                                ></div>
+                            </div>
                         </div>
-                        <div className="h-2 w-full bg-emerald-100 dark:bg-emerald-900/30 rounded-full overflow-hidden relative flex">
-                            {/* Savings Portion (Background is already green, representing income) */}
-                            
-                            {/* Expense Portion */}
-                            <div 
-                                className="h-full bg-rose-400 dark:bg-rose-500/80 rounded-full z-10 transition-all duration-1000 ease-out" 
-                                style={{ width: `${Math.min(expenseRatio, 100)}%` }}
-                            ></div>
-                        </div>
-                    </div>
 
-                    {/* Bottom Row: Detailed Splits */}
-                    <div className="grid grid-cols-2 gap-4">
-                        <div className="p-3 rounded-xl bg-gray-50 dark:bg-white/5 border border-black/5 dark:border-white/5 transition-colors hover:bg-emerald-50/50 dark:hover:bg-emerald-900/10 group">
-                            <div className="flex items-center gap-3 mb-2">
-                                <div className="w-8 h-8 rounded-lg bg-white dark:bg-white/10 shadow-sm flex items-center justify-center text-emerald-600 dark:text-emerald-400">
-                                     <span className="material-symbols-outlined text-lg">arrow_downward</span>
+                        {/* Summary Grid */}
+                        <div className="grid grid-cols-2 gap-4 mt-auto">
+                            <div className="group/item">
+                                <div className="flex items-center gap-2 mb-1">
+                                    <span className="material-symbols-outlined text-sm text-emerald-500 font-black">south_east</span>
+                                    <span className="text-[9px] font-black text-light-text-secondary dark:text-dark-text-secondary uppercase tracking-widest">Income</span>
                                 </div>
-                                <span className="text-xs font-bold text-light-text-secondary dark:text-dark-text-secondary uppercase tracking-wide">Income</span>
-                            </div>
-                            <p className="text-xl font-bold text-light-text dark:text-dark-text privacy-blur">{formatCurrency(income, currency as Currency)}</p>
-                            {incomeChange && (
-                                <p className={`text-[10px] font-medium mt-0.5 ${incomeChange.startsWith('+') ? 'text-emerald-600' : 'text-red-500'}`}>
-                                    {incomeChange} vs prev.
+                                <p className="text-lg font-black text-light-text dark:text-dark-text privacy-blur leading-none">
+                                    {formatCurrency(income, currency as Currency)}
                                 </p>
-                            )}
-                        </div>
+                                {incomeChange && (
+                                    <p className={`text-[9px] font-black mt-1 ${incomeChange.startsWith('+') ? 'text-emerald-500' : 'text-rose-500'}`}>
+                                        {incomeChange} VELOCITY
+                                    </p>
+                                )}
+                            </div>
 
-                        <div className="p-3 rounded-xl bg-gray-50 dark:bg-white/5 border border-black/5 dark:border-white/5 transition-colors hover:bg-rose-50/50 dark:hover:bg-rose-900/10 group">
-                            <div className="flex items-center gap-3 mb-2">
-                                <div className="w-8 h-8 rounded-lg bg-white dark:bg-white/10 shadow-sm flex items-center justify-center text-rose-600 dark:text-rose-400">
-                                     <span className="material-symbols-outlined text-lg">arrow_upward</span>
+                            <div className="group/item text-right">
+                                <div className="flex items-center gap-2 mb-1 justify-end">
+                                    <span className="text-[9px] font-black text-light-text-secondary dark:text-dark-text-secondary uppercase tracking-widest">Expenses</span>
+                                    <span className="material-symbols-outlined text-sm text-rose-500 font-black">north_east</span>
                                 </div>
-                                <span className="text-xs font-bold text-light-text-secondary dark:text-dark-text-secondary uppercase tracking-wide">Expenses</span>
-                            </div>
-                            <p className="text-xl font-bold text-light-text dark:text-dark-text privacy-blur">{formatCurrency(expenses, currency as Currency)}</p>
-                            {expenseChange && (
-                                <p className={`text-[10px] font-medium mt-0.5 ${expenseChange.startsWith('+') ? 'text-red-500' : 'text-emerald-600'}`}>
-                                    {expenseChange} vs prev.
+                                <p className="text-lg font-black text-light-text dark:text-dark-text privacy-blur leading-none">
+                                    {formatCurrency(expenses, currency as Currency)}
                                 </p>
-                            )}
+                                {expenseChange && (
+                                    <p className={`text-[9px] font-black mt-1 ${expenseChange.startsWith('+') ? 'text-rose-500' : 'text-emerald-500'}`}>
+                                        {expenseChange} INTENSITY
+                                    </p>
+                                )}
+                            </div>
                         </div>
                     </div>
-
                 </div>
             </div>
         </Card>
