@@ -1,4 +1,3 @@
-
 import React, { useMemo } from 'react';
 import { Account, OtherAssetSubType, OtherLiabilitySubType, Transaction, Warrant } from '../types';
 import { convertToEur, formatCurrency, generateAmortizationSchedule, toLocalISOString } from '../utils';
@@ -40,15 +39,13 @@ const AccountRow: React.FC<AccountRowProps> = ({ account, transactions, warrants
 
     const displayBalance = useMemo(() => {
         if (account.type === 'Loan') {
-             // Use robust amortization calculation if details are available
              if (account.principalAmount && account.duration && account.loanStartDate && account.interestRate !== undefined) {
                  const overrides = loanPaymentOverrides[account.id] || {};
                  const schedule = generateAmortizationSchedule(account, transactions, overrides);
                  
                  const totalScheduledPrincipal = schedule.reduce((sum, p) => sum + p.principal, 0);
-                 const totalScheduledInterest = schedule.reduce((sum, p) => sum + p.interest, 0);
-    
                  const totalPaidPrincipal = schedule.reduce((acc, p) => p.status === 'Paid' ? acc + p.principal : acc, 0);
+                 const totalScheduledInterest = schedule.reduce((sum, p) => sum + p.interest, 0);
                  const totalPaidInterest = schedule.reduce((acc, p) => p.status === 'Paid' ? acc + p.interest : acc, 0);
                 
                  const outstandingPrincipal = Math.max(0, totalScheduledPrincipal - totalPaidPrincipal);
@@ -57,7 +54,6 @@ const AccountRow: React.FC<AccountRowProps> = ({ account, transactions, warrants
                  return -(outstandingPrincipal + outstandingInterest);
              }
 
-             // Fallback for loans with incomplete setup
              if (account.totalAmount) {
                 const loanPayments = transactions.filter(tx => tx.type === 'income');
                 const totalPaid = loanPayments.reduce((sum, tx) => {
@@ -75,47 +71,36 @@ const AccountRow: React.FC<AccountRowProps> = ({ account, transactions, warrants
         const today = new Date();
         const endDate = new Date(today.getFullYear(), today.getMonth(), today.getDate());
         const startDate = new Date(endDate);
-        startDate.setDate(endDate.getDate() - 30); // Last 30 days
+        startDate.setDate(endDate.getDate() - 30);
 
-        const sortedTransactions = [...transactions].sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
-        
-        // Calculate daily balances working backwards
+        const sortedTransactions = [...transactions].sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime());
         let currentBal = convertToEur(displayBalance, account.currency);
         
-        // Map transactions to dates for O(1) lookup or simple filtering
         const txsByDate: Record<string, number> = {};
         sortedTransactions.forEach(tx => {
-            const dateStr = tx.date; // YYYY-MM-DD
+            const dateStr = tx.date;
             const amount = convertToEur(tx.amount, tx.currency);
             txsByDate[dateStr] = (txsByDate[dateStr] || 0) + amount;
         });
 
-        // We iterate from Today backwards to StartDate
         const tempDate = new Date(endDate);
         const history: number[] = [];
-
-        // Push today's balance first
         history.push(currentBal);
 
         while (tempDate > startDate) {
             const dateStr = toLocalISOString(tempDate);
             const change = txsByDate[dateStr] || 0;
-            currentBal -= change; // Reverse the transaction
+            currentBal -= change;
             history.push(currentBal);
             tempDate.setDate(tempDate.getDate() - 1);
         }
         
-        // The history array is now [Today, Yesterday, ..., 30 Days Ago]
-        // Reverse it to be [30 Days Ago, ..., Today] for the chart
         const chronological = history.reverse();
-        
-        // Downsample for sparkline to NUM_POINTS
         const data: { value: number }[] = [];
         const step = Math.ceil(chronological.length / NUM_POINTS);
         for (let i = 0; i < chronological.length; i += step) {
             data.push({ value: Math.max(0, chronological[i]) });
         }
-        // Ensure the last point is the actual current balance
         if (data.length < NUM_POINTS || data[data.length-1].value !== convertToEur(displayBalance, account.currency)) {
              data.push({ value: Math.max(0, convertToEur(displayBalance, account.currency)) });
         }
@@ -124,7 +109,6 @@ const AccountRow: React.FC<AccountRowProps> = ({ account, transactions, warrants
         const isPositive = trendVal >= 0;
         
         return { sparklineData: data, trend: trendVal, isPositiveTrend: isPositive };
-
     }, [account, transactions, displayBalance]);
 
     const isComputedAccount = useMemo(() => {
@@ -132,7 +116,6 @@ const AccountRow: React.FC<AccountRowProps> = ({ account, transactions, warrants
         return warrants.some(w => w.isin === account.symbol);
     }, [account, warrants]);
 
-    // Style determination
     let styleConfig = ACCOUNT_TYPE_STYLES[account.type];
 
     if (account.type === 'Investment' && account.subType) {
@@ -144,14 +127,11 @@ const AccountRow: React.FC<AccountRowProps> = ({ account, transactions, warrants
     }
         
     const typeColor = styleConfig?.color || 'text-gray-500';
-    
-    const chartColor = isPositiveTrend ? '#22c55e' : '#ef4444'; // Green or Red
-
+    const chartColor = isPositiveTrend ? '#22c55e' : '#ef4444';
     const dragClasses = isBeingDragged ? 'opacity-50 scale-95 ring-2 ring-primary-500' : '';
     const dragOverClasses = isDragOver ? 'ring-2 ring-primary-500 scale-[1.02]' : '';
     const cursorClass = isDraggable ? 'cursor-grab active:cursor-grabbing' : 'cursor-pointer';
 
-    // Sub-details text logic
     let detailsText = account.financialInstitution || account.type;
     if (account.type === 'Other Assets' || account.type === 'Other Liabilities') {
         detailsText = account.otherSubType || detailsText;
@@ -161,42 +141,42 @@ const AccountRow: React.FC<AccountRowProps> = ({ account, transactions, warrants
         } else {
             detailsText = account.subType;
         }
+    } else if (account.type === 'Savings' && account.apy) {
+        detailsText = `${account.financialInstitution || 'Savings'} • ${account.apy}% APY`;
     }
     
-    // Analytics Status
     const isIncludedInAnalytics = account.includeInAnalytics ?? true;
 
     return (
         <div 
             draggable={isDraggable}
-            onDragStart={onDragStart}
-            onDragOver={onDragOver}
+            onDragStart={(e) => onDragStart(e)}
+            onDragOver={(e) => onDragOver(e)}
             onDragLeave={onDragLeave}
-            onDrop={onDrop}
+            onDrop={(e) => onDrop(e)}
             onDragEnd={onDragEnd}
             onContextMenu={onContextMenu}
             onClick={onClick}
             className={`
                 relative group overflow-hidden
-                bg-light-card dark:bg-dark-card
-                rounded-2xl 
-                shadow-sm hover:shadow-lg hover:-translate-y-1
+                bg-white/60 dark:bg-dark-card/60 backdrop-blur-xl
+                rounded-2xl border border-black/5 dark:border-white/10
+                shadow-sm hover:shadow-xl hover:-translate-y-1
                 transition-all duration-300 ease-out
                 p-6 min-h-[200px] flex flex-col
                 ${cursorClass} ${dragClasses} ${dragOverClasses}
                 ${account.status === 'closed' ? 'opacity-60 grayscale' : ''}
             `}
         >
-            <div className="relative z-10">
-                {/* Top Section: Icon, Name, Details */}
+            <div className="relative z-10 flex-grow">
                 <div className="flex items-start justify-between">
                     <div className="flex items-center gap-4 min-w-0">
                         <div className={`
                             w-12 h-12 rounded-xl flex items-center justify-center flex-shrink-0
-                            ${styleConfig?.color ? styleConfig.color.replace('text-', 'bg-').replace('500', '100') + ' dark:' + styleConfig.color.replace('text-', 'bg-').replace('500', '900/20') : 'bg-gray-100 dark:bg-gray-800'}
+                            ${styleConfig?.color ? styleConfig.color.replace('text-', 'bg-').replace('500', '100') + ' dark:' + styleConfig.color.replace('text-', 'bg-').replace('500', '900/30') : 'bg-gray-100 dark:bg-gray-800'}
                             ${typeColor}
                         `}>
-                            <span className="material-symbols-outlined text-2xl">{account.icon || styleConfig?.icon || 'wallet'}</span>
+                            <span className="material-symbols-outlined text-2xl leading-none">{account.icon || styleConfig?.icon || 'wallet'}</span>
                         </div>
                         <div className="min-w-0">
                             <div className="flex items-center gap-2 leading-tight">
@@ -204,92 +184,77 @@ const AccountRow: React.FC<AccountRowProps> = ({ account, transactions, warrants
                                     {account.name}
                                 </h3>
                                 {isLinkedToEnableBanking && (
-                                  <span
-                                    className="material-symbols-outlined text-2xl text-primary-500 shrink-0"
-                                    title="Linked via Enable Banking"
-                                    aria-label="Linked via Enable Banking"
-                                  >
-                                    link
-                                  </span>
+                                  <span className="material-symbols-outlined text-xl text-primary-500 shrink-0" title="Linked via Enable Banking">link</span>
                                 )}
                                 {isIncludedInAnalytics && (
-                                    <span 
-                                        className="material-symbols-outlined text-base shrink-0 text-primary-300 dark:text-primary-700"
-                                        title="Included in Analytics"
-                                    >
-                                        insights
-                                    </span>
+                                    <span className="material-symbols-outlined text-base shrink-0 text-primary-400 dark:text-primary-600" title="Included in Analytics">insights</span>
                                 )}
                             </div>
-                            <p className="text-sm text-light-text-secondary dark:text-dark-text-secondary truncate font-medium mt-1 tracking-wide">
+                            <p className="text-xs text-light-text-secondary dark:text-dark-text-secondary truncate font-semibold mt-1 tracking-wide uppercase">
                                 {detailsText}
                                 {account.last4 && <span className="opacity-70 ml-1">•••• {account.last4}</span>}
                             </p>
                         </div>
                     </div>
                     {account.isPrimary && (
-                        <span className="material-symbols-outlined text-yellow-500 text-2xl" title="Primary Account">star</span>
+                        <span className="material-symbols-outlined text-yellow-500 text-2xl drop-shadow-sm" title="Primary Account">stars</span>
                     )}
                 </div>
 
-                {/* Middle: Balance & Trend */}
-                <div className="mt-6 flex items-center gap-4">
-                    <p className={`text-2xl font-black tracking-tight privacy-blur ${displayBalance < 0 ? 'text-light-text dark:text-dark-text' : 'text-light-text dark:text-dark-text'}`}>
+                <div className="mt-6 flex items-baseline gap-3">
+                    <p className="text-3xl font-black tracking-tighter text-light-text dark:text-dark-text privacy-blur">
                         {formatCurrency(convertToEur(displayBalance, account.currency), 'EUR')}
                     </p>
                     {transactions.length > 0 && (
-                        <div className={`inline-flex items-center gap-0.5 px-2 py-0.5 rounded-md text-xs font-bold uppercase privacy-blur ${isPositiveTrend ? 'bg-green-100 dark:bg-green-900/30 text-green-700 dark:text-green-400' : 'bg-red-100 dark:bg-red-900/30 text-red-700 dark:text-red-400'}`}>
-                            <span>{isPositiveTrend ? '+' : ''}{formatCurrency(trend, 'EUR', { showPlusSign: false })}</span>
+                        <div className={`inline-flex items-center gap-0.5 px-2 py-0.5 rounded-full text-[10px] font-black uppercase tracking-tighter privacy-blur ${isPositiveTrend ? 'bg-emerald-100 dark:bg-emerald-900/40 text-emerald-700 dark:text-emerald-400 border border-emerald-200 dark:border-emerald-800' : 'bg-rose-100 dark:bg-rose-900/40 text-rose-700 dark:text-rose-400 border border-rose-200 dark:border-rose-800'}`}>
+                            <span>{isPositiveTrend ? '▲' : '▼'} {formatCurrency(Math.abs(trend), 'EUR', { showPlusSign: false })}</span>
                         </div>
                     )}
                 </div>
+                {account.currency !== 'EUR' && (
+                    <p className="text-xs text-light-text-secondary dark:text-dark-text-secondary font-mono font-medium mt-1 privacy-blur opacity-70">
+                        {formatCurrency(displayBalance, account.currency)}
+                    </p>
+                )}
             </div>
 
-            {/* Bottom: Sparkline (Absolute Positioned) */}
-            <div className="absolute bottom-4 left-0 right-0 h-16 w-full px-4 pointer-events-none">
-                <div className="w-full h-full relative">
-                     {/* Left Fade */}
-                     <div className="absolute left-0 top-0 bottom-0 w-6 bg-gradient-to-r from-light-card dark:from-dark-card to-transparent z-10"></div>
-                     {/* Right Fade */}
-                     <div className="absolute right-0 top-0 bottom-0 w-6 bg-gradient-to-l from-light-card dark:from-dark-card to-transparent z-10"></div>
-                     
-                     <ResponsiveContainer width="100%" height="100%" minWidth={0} minHeight={0}>
-                        <AreaChart data={sparklineData} className="privacy-blur">
-                            <defs>
-                                <linearGradient id={`gradient-${account.id}`} x1="0" y1="0" x2="0" y2="1">
-                                    <stop offset="5%" stopColor={chartColor} stopOpacity={0.2}/>
-                                    <stop offset="95%" stopColor={chartColor} stopOpacity={0}/>
-                                </linearGradient>
-                            </defs>
-                            <Area 
-                                type="monotone" 
-                                dataKey="value" 
-                                stroke={chartColor} 
-                                strokeWidth={3} 
-                                fill={`url(#gradient-${account.id})`}
-                                isAnimationActive={false}
-                            />
-                        </AreaChart>
-                    </ResponsiveContainer>
-                </div>
+            <div className="absolute bottom-0 left-0 right-0 h-20 w-full pointer-events-none opacity-40 group-hover:opacity-70 transition-opacity duration-500">
+                 <ResponsiveContainer width="100%" height="100%">
+                    <AreaChart data={sparklineData} margin={{ top: 0, right: 0, left: 0, bottom: 0 }}>
+                        <defs>
+                            <linearGradient id={`gradient-${account.id}`} x1="0" y1="0" x2="0" y2="1">
+                                <stop offset="5%" stopColor={chartColor} stopOpacity={0.4}/>
+                                <stop offset="95%" stopColor={chartColor} stopOpacity={0}/>
+                            </linearGradient>
+                        </defs>
+                        <Area 
+                            type="monotone" 
+                            dataKey="value" 
+                            stroke={chartColor} 
+                            strokeWidth={2.5} 
+                            fill={`url(#gradient-${account.id})`}
+                            isAnimationActive={true}
+                            animationDuration={1500}
+                        />
+                    </AreaChart>
+                </ResponsiveContainer>
             </div>
             
-            {/* Actions (Visible on Hover) */}
-             <div className="absolute top-4 right-4 flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity duration-200 z-20">
+             <div className="absolute top-4 right-4 flex gap-1.5 opacity-0 group-hover:opacity-100 transition-all duration-300 transform translate-x-2 group-hover:translate-x-0 z-20">
                 <button 
                     onClick={handleAdjustBalanceClick} 
-                    className="p-2 rounded-full bg-white dark:bg-black/40 text-light-text-secondary dark:text-dark-text-secondary hover:text-primary-500 hover:bg-gray-100 dark:hover:bg-white/10 shadow-sm border border-black/5 dark:border-white/10 transition-colors"
+                    className="p-2 rounded-xl bg-white/80 dark:bg-black/60 backdrop-blur-md text-light-text-secondary dark:text-dark-text-secondary hover:text-primary-500 shadow-lg border border-black/5 dark:border-white/10 transition-all active:scale-95"
                     title="Adjust Balance"
                     disabled={isComputedAccount}
                 >
-                    <span className="material-symbols-outlined text-lg">tune</span>
+                    <span className="material-symbols-outlined text-lg block">tune</span>
                 </button>
                 <button 
                      onClick={handleEditClick} 
-                     className="p-2 rounded-full bg-white dark:bg-black/40 text-light-text-secondary dark:text-dark-text-secondary hover:text-blue-500 hover:bg-gray-100 dark:hover:bg-white/10 shadow-sm border border-black/5 dark:border-white/10 transition-colors"
+                     className="p-2 rounded-xl bg-white/80 dark:bg-black/60 backdrop-blur-md text-light-text-secondary dark:text-dark-text-secondary hover:text-blue-500 shadow-lg border border-black/5 dark:border-white/10 transition-all active:scale-95"
                      title="Edit Account"
                 >
-                     <span className="material-symbols-outlined text-lg">edit</span>
+                     <span className="material-symbols-outlined text-lg block">settings</span>
                 </button>
              </div>
         </div>

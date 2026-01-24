@@ -1,4 +1,3 @@
-
 import React, { useState, useMemo, useEffect } from 'react';
 import { Account, Transaction, Warrant, AccountType } from '../types';
 import AccountRow from './AccountRow';
@@ -110,7 +109,6 @@ const AccountsListSection: React.FC<AccountsListSectionProps> = ({
         return null;
     }
     
-    // Determine grid columns based on layout mode
     const gridClasses = layoutMode === 'columns' 
         ? 'grid-cols-1 sm:grid-cols-2 xl:grid-cols-1 2xl:grid-cols-2' 
         : 'grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4';
@@ -120,40 +118,37 @@ const AccountsListSection: React.FC<AccountsListSectionProps> = ({
             {isCollapsible ? (
                 <div 
                     onClick={() => setIsExpanded(prev => !prev)} 
-                    className="flex justify-between items-center mb-4 group cursor-pointer py-2 select-none"
+                    className="flex justify-between items-center mb-6 group cursor-pointer py-2 select-none"
                 >
                     <div className="flex items-center gap-3">
-                        <div className={`w-8 h-8 rounded-lg bg-light-fill dark:bg-dark-fill flex items-center justify-center transition-colors group-hover:bg-primary-100 dark:group-hover:bg-primary-900/30`}>
+                        <div className={`w-8 h-8 rounded-lg bg-white/50 dark:bg-white/5 flex items-center justify-center transition-colors group-hover:bg-primary-100 dark:group-hover:bg-primary-900/30 border border-black/5 dark:border-white/5`}>
                              <span className={`material-symbols-outlined transition-transform duration-300 text-light-text-secondary dark:text-dark-text-secondary group-hover:text-primary-500 ${isExpanded ? 'rotate-180' : ''}`}>
                                 expand_more
                             </span>
                         </div>
-                        <h3 className="text-base font-bold text-light-text dark:text-dark-text uppercase tracking-wider">{title}</h3>
-                        <span className="bg-light-fill dark:bg-dark-fill text-[10px] font-bold px-2 py-0.5 rounded-full text-light-text-secondary dark:text-dark-text-secondary">{accounts.length}</span>
+                        <h3 className="text-sm font-black text-light-text dark:text-dark-text uppercase tracking-[0.2em]">{title}</h3>
+                        <span className="bg-primary-100 dark:bg-primary-900/30 text-[10px] font-black px-2 py-0.5 rounded-full text-primary-700 dark:text-primary-300">{accounts.length}</span>
                     </div>
                     <div className="h-px flex-grow bg-black/5 dark:bg-white/5 ml-4"></div>
                 </div>
-            ) : (
-                // Non-collapsible header (optional, or just render nothing if title handled outside)
-                null
-            )}
+            ) : null}
             
             {isExpanded && (
-                <div className="space-y-6 flex-1">
+                <div className="space-y-10 flex-1">
                     {groupOrder.length > 0 ? groupOrder.map(groupName => {
                         const accountsInGroup = groupedAccounts[groupName as AccountType];
                         const groupTotal = accountsInGroup
                             .filter(acc => acc.includeInAnalytics ?? true)
                             .reduce((sum, acc) => sum + convertToEur(acc.balance, acc.currency), 0);
                         return (
-                            <div key={groupName} className="space-y-2">
-                                <div onClick={() => toggleGroup(groupName)} className="flex justify-between items-center cursor-pointer group select-none px-1 py-1 rounded hover:bg-black/5 dark:hover:bg-white/5 transition-colors">
-                                    <div className="flex items-center gap-2">
-                                        <div className={`w-1 h-4 rounded-full bg-primary-500 transition-all duration-300 ${expandedGroups[groupName] ? 'h-4' : 'h-2 opacity-50'}`}></div>
-                                        <h4 className="font-semibold text-light-text dark:text-dark-text text-sm">{groupName}</h4>
+                            <div key={groupName} className="space-y-4">
+                                <div onClick={() => toggleGroup(groupName)} className="flex justify-between items-center cursor-pointer group select-none px-2 py-1.5 rounded-xl hover:bg-black/5 dark:hover:bg-white/5 transition-colors">
+                                    <div className="flex items-center gap-3">
+                                        <div className={`w-1.5 h-4 rounded-full bg-primary-500 transition-all duration-300 ${expandedGroups[groupName] ? 'h-4' : 'h-2 opacity-50'}`}></div>
+                                        <h4 className="font-bold text-light-text dark:text-dark-text text-sm tracking-tight">{groupName}</h4>
                                     </div>
-                                    <div className="flex items-center gap-2">
-                                        <span className="font-mono text-xs font-medium text-light-text-secondary dark:text-dark-text-secondary group-hover:text-light-text dark:group-hover:text-dark-text transition-colors">
+                                    <div className="flex items-center gap-3">
+                                        <span className="font-mono text-xs font-bold text-light-text-secondary dark:text-dark-text-secondary group-hover:text-light-text dark:group-hover:text-dark-text transition-colors">
                                             {formatCurrency(groupTotal, 'EUR')}
                                         </span>
                                          <span className={`material-symbols-outlined text-sm text-light-text-secondary dark:text-dark-text-secondary transition-transform duration-200 ${expandedGroups[groupName] ? 'rotate-0' : '-rotate-90'}`}>expand_more</span>
@@ -161,7 +156,7 @@ const AccountsListSection: React.FC<AccountsListSectionProps> = ({
                                 </div>
                                 
                                 {expandedGroups[groupName] && (
-                                    <div className={`grid gap-3 ${gridClasses}`}>
+                                    <div className={`grid gap-6 ${gridClasses}`}>
                                         {accountsInGroup.map(acc => (
                                             <AccountRow
                                                 key={acc.id}
@@ -188,8 +183,9 @@ const AccountsListSection: React.FC<AccountsListSectionProps> = ({
                             </div>
                         );
                     }) : (
-                        <div className="text-center py-8 bg-light-card/50 dark:bg-dark-card/30 rounded-xl border border-dashed border-black/10 dark:border-white/10 text-light-text-secondary dark:text-dark-text-secondary text-sm">
-                            <p>No {title.toLowerCase()} found.</p>
+                        <div className="text-center py-16 bg-light-card/50 dark:bg-dark-card/30 rounded-3xl border-2 border-dashed border-black/5 dark:border-white/5 text-light-text-secondary dark:text-dark-text-secondary text-sm">
+                            <span className="material-symbols-outlined text-4xl mb-2 opacity-30">account_balance_wallet</span>
+                            <p className="font-medium">No {title.toLowerCase()} found.</p>
                         </div>
                     )}
                 </div>
