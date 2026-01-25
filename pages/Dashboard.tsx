@@ -1,4 +1,5 @@
 
+// ... existing imports
 import React, { useMemo, useState, useCallback, useEffect, useRef, Suspense, lazy } from 'react';
 import { User, Transaction, Account, Category, Duration, CategorySpending, Widget, WidgetConfig, DisplayTransaction, FinancialGoal, RecurringTransaction, BillPayment, Tag, Budget, RecurringTransactionOverride, LoanPaymentOverrides, AccountType, Task, ForecastDuration } from '../types';
 import { calculateForecastHorizon, formatCurrency, convertToEur, generateBalanceForecast, generateSyntheticLoanPayments, generateSyntheticCreditCardPayments, generateSyntheticPropertyTransactions, parseLocalDate, getCreditCardStatementDetails, getPreferredTimeZone, formatDateKey, toLocalISOString, getDateRange, calculateAccountTotals, calculateStatementPeriods } from '../utils';
@@ -1158,6 +1159,7 @@ const Dashboard: React.FC<DashboardProps> = ({ user, tasks, saveTask }) => {
 
   return (
     <div className="space-y-6 pb-12 animate-fade-in-up">
+      {/* ... existing modals */}
       {isTransactionModalOpen && (
         <AddTransactionModal 
           onClose={handleCloseTransactionModal}
@@ -1361,6 +1363,8 @@ const Dashboard: React.FC<DashboardProps> = ({ user, tasks, saveTask }) => {
                         expenses={expenses}
                         incomeChange={incomeChange}
                         expenseChange={expenseChange}
+                        incomeSparkline={incomeSparkline}
+                        expenseSparkline={expenseSparkline}
                         currency="EUR"
                     />
                 </div>
@@ -1378,7 +1382,7 @@ const Dashboard: React.FC<DashboardProps> = ({ user, tasks, saveTask }) => {
                      </Card>
                 </div>
             </div>
-            
+            {/* ... remaining content */}
             {/* Display lowest balance forecasts based on the new forecast duration/logic */}
             {lowestBalanceForecasts && lowestBalanceForecasts.length > 0 && (
                 <div>
