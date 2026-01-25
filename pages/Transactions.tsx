@@ -1,7 +1,6 @@
-
 import React, { useState, useMemo, useRef, useEffect, useCallback } from 'react';
-import { INPUT_BASE_STYLE, SELECT_WRAPPER_STYLE, SELECT_ARROW_STYLE, BTN_PRIMARY_STYLE, BTN_SECONDARY_STYLE, SELECT_STYLE, CHECKBOX_STYLE } from '../constants';
-import { Transaction, Account, DisplayTransaction, RecurringTransaction, Category } from '../types';
+import { INPUT_BASE_STYLE, SELECT_WRAPPER_STYLE, SELECT_ARROW_STYLE, BTN_PRIMARY_STYLE, BTN_SECONDARY_STYLE, SELECT_STYLE, CHECKBOX_STYLE, ALL_ACCOUNT_TYPES } from '../constants';
+import { Transaction, Account, DisplayTransaction, RecurringTransaction, Category, AccountType } from '../types';
 import Card from '../components/Card';
 import { formatCurrency, fuzzySearch, convertToEur, arrayToCSV, downloadCSV, parseLocalDate, toLocalISOString } from '../utils';
 import AddTransactionModal from '../components/AddTransactionModal';
@@ -114,7 +113,7 @@ const ColumnHeader = React.memo(function ColumnHeader({
                         <span className={`material-symbols-outlined text-[14px] ${isFilterActive ? 'filled-icon' : ''}`}>filter_alt</span>
                     </button>
                     {isFilterOpen && (
-                        <div className={`absolute top-full mt-2 ${alignRight ? 'right-0' : 'left-0'} z-50 w-64 bg-white dark:bg-dark-card rounded-xl shadow-xl border border-black/5 dark:border-white/10 p-3 animate-fade-in-up cursor-default text-left normal-case font-normal text-light-text dark:text-dark-text`} onClick={e => e.stopPropagation()}>
+                        <div className={`absolute top-full mt-2 ${alignRight ? 'right-0' : 'left-0'} z-50 w-64 bg-white/90 dark:bg-dark-card/90 backdrop-blur-xl rounded-xl shadow-xl border border-black/5 dark:border-white/10 p-3 animate-fade-in-up cursor-default text-left normal-case font-normal text-light-text dark:text-dark-text`} onClick={e => e.stopPropagation()}>
                             {filterContent}
                         </div>
                     )}
@@ -869,21 +868,53 @@ const Transactions: React.FC<TransactionsProps> = ({ initialAccountFilter, initi
       </div>
   ), [endDate, startDate]);
 
-  const accountFilterContent = useMemo(() => (
+  const accountFilterContent = useMemo(() => {
+    const open = accounts.filter(acc => acc.status !== 'closed');
+    const closed = accounts.filter(acc => acc.status === 'closed');
+    const groupedOpen: Record<string, Account[]> = {};
+    open.forEach(acc => {
+        if (!groupedOpen[acc.type]) groupedOpen[acc.type] = [];
+        groupedOpen[acc.type].push(acc);
+    });
+
+    return (
       <div className="space-y-2">
-           <div className="max-h-48 overflow-y-auto space-y-1 pr-1">
-              {accounts.map(acc => (
-                   <label key={acc.id} className="flex items-center gap-2 text-sm p-1.5 rounded hover:bg-black/5 dark:hover:bg-white/5 cursor-pointer">
-                       <input type="checkbox" checked={selectedAccountIds.includes(acc.id)} onChange={() => handleAccountToggle(acc.id)} className={CHECKBOX_STYLE} />
-                       <span className="truncate">{acc.name}</span>
-                   </label>
-              ))}
+           <div className="max-h-64 overflow-y-auto space-y-1 pr-1 custom-scrollbar">
+              {ALL_ACCOUNT_TYPES.map(type => {
+                  const group = groupedOpen[type];
+                  if (!group || group.length === 0) return null;
+                  return (
+                      <div key={type} className="mb-2">
+                          <h4 className="px-1.5 py-1 text-[10px] font-bold text-light-text-secondary dark:text-dark-text-secondary uppercase tracking-widest">{type}</h4>
+                          {group.map(acc => (
+                              /* FIX: Inlined AccountCheckbox JSX to avoid type errors with 'key' prop on a locally defined component. */
+                              <label key={acc.id} className="flex items-center gap-2 text-sm p-1.5 rounded hover:bg-black/5 dark:hover:bg-white/5 cursor-pointer">
+                                  <input type="checkbox" checked={selectedAccountIds.includes(acc.id)} onChange={() => handleAccountToggle(acc.id)} className={CHECKBOX_STYLE} />
+                                  <span className="truncate">{acc.name}</span>
+                              </label>
+                          ))}
+                      </div>
+                  );
+              })}
+              {closed.length > 0 && (
+                  <div className="mt-2 pt-2 border-t border-black/5 dark:border-white/5">
+                      <h4 className="px-1.5 py-1 text-[10px] font-bold text-light-text-secondary dark:text-dark-text-secondary uppercase tracking-widest">Closed</h4>
+                      {closed.map(acc => (
+                          /* FIX: Inlined AccountCheckbox JSX to avoid type errors with 'key' prop on a locally defined component. */
+                          <label key={acc.id} className="flex items-center gap-2 text-sm p-1.5 rounded hover:bg-black/5 dark:hover:bg-white/5 cursor-pointer">
+                              <input type="checkbox" checked={selectedAccountIds.includes(acc.id)} onChange={() => handleAccountToggle(acc.id)} className={CHECKBOX_STYLE} />
+                              <span className="truncate">{acc.name}</span>
+                          </label>
+                      ))}
+                  </div>
+              )}
           </div>
           {selectedAccountIds.length > 0 && (
               <button onClick={() => setSelectedAccountIds([])} className="text-xs text-red-500 w-full text-center hover:underline pt-1 border-t border-black/5 dark:border-white/5">Clear Selection</button>
           )}
       </div>
-  ), [accounts, handleAccountToggle, selectedAccountIds]);
+    );
+  }, [accounts, handleAccountToggle, selectedAccountIds]);
 
   const merchantFilterContent = useMemo(() => (
       <div className="space-y-2 p-1">
@@ -920,9 +951,9 @@ const Transactions: React.FC<TransactionsProps> = ({ initialAccountFilter, initi
           {tagOptions.length > 0 ? (
               <div className="max-h-48 overflow-y-auto space-y-1 pr-1">
                   {tagOptions.map(tag => (
-                      <label key={tag.value} className="flex items-center gap-2 text-sm p-1.5 rounded hover:bg-black/5 dark:hover:bg-white/5 cursor-pointer">
+                      <label key={tag.value} className="flex items-center gap-3 p-2 hover:bg-black/5 dark:hover:bg-white/5 cursor-pointer rounded-md">
                           <input type="checkbox" checked={selectedTagIds.includes(tag.value)} onChange={() => handleTagToggle(tag.value)} className={CHECKBOX_STYLE} />
-                          <span className="truncate">{tag.label}</span>
+                          <span className="text-sm font-medium">{tag.label}</span>
                       </label>
                   ))}
               </div>
@@ -1029,7 +1060,7 @@ const Transactions: React.FC<TransactionsProps> = ({ initialAccountFilter, initi
             <div
                 ref={contextMenuRef}
                 style={{ top: contextMenu.y, left: contextMenu.x }}
-                className="fixed z-50 w-56 bg-light-card dark:bg-dark-card rounded-xl shadow-xl border border-black/10 dark:border-white/10 py-1.5 animate-fade-in-up overflow-hidden"
+                className="fixed z-50 w-56 bg-light-card/90 dark:bg-dark-card/90 backdrop-blur-xl rounded-xl shadow-xl border border-black/10 dark:border-white/10 py-1.5 animate-fade-in-up overflow-hidden"
             >
                 <button onClick={() => { setEditingTransaction(transactions.find(t => t.id === (contextMenu.transaction.isTransfer ? contextMenu.transaction.originalId : contextMenu.transaction.id)) || null); setIsTransactionModalOpen(true); setContextMenu(null); }} className="w-full text-left flex items-center gap-3 px-4 py-2.5 text-sm hover:bg-black/5 dark:hover:bg-white/10 transition-colors">
                     <span className="material-symbols-outlined text-lg text-blue-500">edit</span>
@@ -1187,7 +1218,7 @@ const Transactions: React.FC<TransactionsProps> = ({ initialAccountFilter, initi
             <div className="overflow-x-auto">
               <div className="min-w-[900px] flex flex-col">
                 {selectedIds.size > 0 ? (
-                    <div className="bg-primary-600 dark:bg-primary-800 text-white px-6 flex justify-between items-center h-[60px] z-30 relative shadow-md pointer-events-auto">
+                    <div className="bg-primary-600 dark:bg-primary-800 text-white px-6 flex justify-between items-center h-[60px] z-[40] relative shadow-md pointer-events-auto">
                          <div className="flex items-center gap-4">
                              <button 
                                 onClick={() => setSelectedIds(new Set())} 
@@ -1206,7 +1237,7 @@ const Transactions: React.FC<TransactionsProps> = ({ initialAccountFilter, initi
                         </div>
                     </div>
                 ) : (
-                    <div className="px-5 py-3 border-b border-black/5 dark:border-white/5 flex items-center gap-3 bg-white dark:bg-dark-card sticky top-0 z-10">
+                    <div className="px-5 py-3 border-b border-black/5 dark:border-white/5 flex items-center gap-3 bg-white dark:bg-dark-card sticky top-0 z-[30]">
                         <div className="flex items-center justify-center w-5">
                              <input type="checkbox" onChange={handleSelectAll} checked={isAllSelected} className={CHECKBOX_STYLE} aria-label="Select all transactions"/>
                         </div>
@@ -1284,7 +1315,7 @@ const Transactions: React.FC<TransactionsProps> = ({ initialAccountFilter, initi
                         
                         if (row.type === 'header') {
                             return (
-                                <div key={`header-${row.date}`} style={style} className="flex items-center px-4 py-2 bg-gray-50/80 dark:bg-black/20 border-y border-black/5 dark:border-white/5 sticky top-0 z-10 backdrop-blur-sm">
+                                <div key={`header-${row.date}`} style={style} className="flex items-center px-4 py-2 bg-gray-50/80 dark:bg-black/20 border-y border-black/5 dark:border-white/5 sticky top-0 z-[10] backdrop-blur-sm">
                                     <span className="text-xs font-bold text-light-text-secondary dark:text-dark-text-secondary uppercase tracking-wider">
                                         {parseLocalDate(row.date).toLocaleDateString(undefined, { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' })}
                                     </span>
