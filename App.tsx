@@ -247,6 +247,7 @@ const MATERIAL_DATA_OBJECT_KEYS: (keyof FinancialData)[] = [
   'loanPaymentOverrides',
   'manualWarrantPrices',
   'priceHistory',
+  'userStats',
 ];
 
 const hasMaterialData = (data: Partial<FinancialData> | null | undefined) => {
@@ -2359,14 +2360,7 @@ const App: React.FC = () => {
       const unlinkedMessage = unlinkedProviderAccounts.length
         ? `Transactions skipped for ${unlinkedProviderAccounts.length} unlinked account(s). Link them to import transactions.`
         : undefined;
-      setEnableBankingConnections(prev => prev.map(conn => conn.id === connectionId ? {
-        ...conn,
-        status: 'ready',
-        lastError: unlinkedMessage,
-        lastSyncedAt: shouldSyncTransactions || updateBalance ? (latestSyncedAt || conn.lastSyncedAt) : conn.lastSyncedAt,
-        sessionExpiresAt: connection.sessionExpiresAt,
-        accounts: finalAccounts,
-      } : conn));
+      setEnableBankingConnections(prev => prev.map(conn => conn.id === connectionId ? { ...conn, status: 'ready', lastError: unlinkedMessage, lastSyncedAt: shouldSyncTransactions || updateBalance ? (latestSyncedAt || conn.lastSyncedAt) : conn.lastSyncedAt, sessionExpiresAt: connection.sessionExpiresAt, accounts: finalAccounts, } : conn));
     } catch (error: any) {
       console.error('Enable Banking sync failed', error);
       const rawMessage = error?.message || 'Sync failed';

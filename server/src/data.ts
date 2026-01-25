@@ -1,3 +1,4 @@
+
 import express from 'express';
 import { db } from './database';
 import { authenticateToken, AuthRequest } from './middleware';
@@ -87,7 +88,7 @@ router.post('/', authenticateToken, async (req: AuthRequest, res) => {
                 'taskOrder',
             ];
 
-            const objectKeys = ['loanPaymentOverrides', 'manualWarrantPrices', 'priceHistory'];
+            const objectKeys = ['loanPaymentOverrides', 'manualWarrantPrices', 'priceHistory', 'userStats'];
 
             if (arrayKeys.some(key => Array.isArray(data[key]) && data[key].length > 0)) {
                 return true;
