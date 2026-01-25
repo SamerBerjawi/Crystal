@@ -59,13 +59,13 @@ const MultiSelectFilter: React.FC<MultiSelectFilterProps> = ({ options, selected
       <button
         type="button"
         onClick={() => setIsOpen(!isOpen)}
-        className={`${INPUT_BASE_STYLE} !w-auto min-w-[10rem] flex items-center justify-between text-left whitespace-nowrap`}
+        className={`${INPUT_BASE_STYLE} !w-auto min-w-[10rem] flex items-center justify-between text-left whitespace-nowrap bg-light-fill/80 dark:bg-dark-fill/80 backdrop-blur-md transition-all duration-200`}
       >
         <span className="mr-2 truncate max-w-[12rem]">{buttonText}</span>
         <span className={`material-symbols-outlined transition-transform duration-200 ${isOpen ? 'rotate-180' : ''}`}>expand_more</span>
       </button>
       {isOpen && (
-        <div className="absolute top-full left-0 mt-1 w-full min-w-[14rem] bg-light-card dark:bg-dark-card rounded-lg shadow-lg border border-black/10 dark:border-white/10 z-50 p-2">
+        <div className="absolute top-full left-0 mt-1 w-full min-w-[14rem] bg-light-card/95 dark:bg-dark-card/95 backdrop-blur-xl rounded-lg shadow-lg border border-black/10 dark:border-white/10 z-50 p-2">
           <input
             type="text"
             value={searchTerm}

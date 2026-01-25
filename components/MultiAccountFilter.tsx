@@ -99,13 +99,13 @@ const MultiAccountFilter: React.FC<MultiAccountFilterProps> = ({ accounts, selec
     <div className="relative w-auto" ref={wrapperRef}>
       <button
         onClick={() => setIsOpen(!isOpen)}
-        className="h-10 w-auto flex items-center justify-between bg-light-fill dark:bg-dark-fill text-light-text dark:text-dark-text font-semibold pl-4 pr-2 rounded-lg border border-black/5 dark:border-white/10 hover:bg-gray-500/20 dark:hover:bg-gray-400/20 transition-colors duration-200 focus:outline-none focus:ring-2 focus:ring-primary-500 whitespace-nowrap"
+        className="h-10 w-auto flex items-center justify-between bg-light-fill/80 dark:bg-dark-fill/80 backdrop-blur-md text-light-text dark:text-dark-text font-semibold pl-4 pr-2 rounded-lg border border-black/5 dark:border-white/10 hover:bg-gray-500/20 dark:hover:bg-gray-400/20 transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-primary-500 whitespace-nowrap"
       >
         <span className="mr-2">{buttonText()}</span>
         <span className="material-symbols-outlined text-base">expand_more</span>
       </button>
       {isOpen && (
-        <div className="absolute top-full left-0 mt-2 w-80 max-w-[90vw] bg-light-card dark:bg-dark-card rounded-lg shadow-lg border border-black/5 dark:border-white/10 z-50">
+        <div className="absolute top-full left-0 mt-2 w-80 max-w-[90vw] bg-light-card/90 dark:bg-dark-card/90 backdrop-blur-xl rounded-lg shadow-lg border border-black/5 dark:border-white/10 z-50">
           {/* Quick Filters */}
           <div className="p-3">
             <h4 className="px-1 pb-2 text-xs font-bold text-light-text-secondary dark:text-dark-text-secondary uppercase">Quick Filters</h4>

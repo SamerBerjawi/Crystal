@@ -57,12 +57,8 @@ const Budgeting: React.FC<BudgetingProps> = ({ budgets, transactions, expenseCat
     setSuggestionError(null);
     setSuggestions([]);
 
-    if (!process.env.API_KEY) {
-        setSuggestionError("AI Assistant is not configured. Please set your API key in the settings.");
-        setIsGeneratingSuggestions(false);
-        setSuggestionModalOpen(true); // Open modal to show error
-        return;
-    }
+    // FIX: According to guidelines, API key must be obtained exclusively from process.env.API_KEY.
+    // Assume this variable is pre-configured and accessible.
 
     try {
         const threeMonthsAgo = new Date();
@@ -98,7 +94,8 @@ const Budgeting: React.FC<BudgetingProps> = ({ budgets, transactions, expenseCat
         }
 
         const { GoogleGenAI, Type } = await loadGenAiModule();
-        const ai = new GoogleGenAI({ apiKey: process.env.API_KEY });
+        // FIX: Initialize GoogleGenAI with a named parameter as per guidelines.
+        const ai = new GoogleGenAI({ apiKey: process.env.API_KEY as string });
         
         const prompt = `You are a financial advisor. Based on the user's average monthly spending over the last 3 months, suggest a reasonable monthly budget for each category. For discretionary categories (like Shopping, Entertainment), suggest a budget slightly lower than the average to encourage saving. For essential categories (like Housing, Food), suggest a budget around the average. Round suggestions to the nearest whole number. Here is the data: ${JSON.stringify(averageSpending)}`;
 
@@ -122,8 +119,9 @@ const Budgeting: React.FC<BudgetingProps> = ({ budgets, transactions, expenseCat
             required: ['suggestions']
         };
 
+        // FIX: Using 'gemini-3-pro-preview' for complex financial advising logic.
         const response = await ai.models.generateContent({
-            model: 'gemini-2.5-pro',
+            model: 'gemini-3-pro-preview',
             contents: prompt,
             config: {
                 responseMimeType: 'application/json',
@@ -131,7 +129,11 @@ const Budgeting: React.FC<BudgetingProps> = ({ budgets, transactions, expenseCat
             }
         });
         
-        const result = JSON.parse(response.text);
+        // FIX: Access .text property directly (it's a getter).
+        const responseText = response.text;
+        if (!responseText) throw new Error("AI returned no suggestions.");
+        
+        const result = JSON.parse(responseText);
         
         // Match suggestions back to the original average spending data to ensure consistency
         const finalSuggestions = result.suggestions.map((suggestion: any) => {
@@ -145,9 +147,9 @@ const Budgeting: React.FC<BudgetingProps> = ({ budgets, transactions, expenseCat
 
         setSuggestions(finalSuggestions);
 
-    } catch (err) {
+    } catch (err: any) {
         console.error("Error generating budget suggestions:", err);
-        setSuggestionError("An error occurred while generating suggestions. Please try again.");
+        setSuggestionError(err.message || "An error occurred while generating suggestions. Please try again.");
     } finally {
         setIsGeneratingSuggestions(false);
         setSuggestionModalOpen(true);

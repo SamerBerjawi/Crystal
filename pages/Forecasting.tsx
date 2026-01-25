@@ -49,24 +49,21 @@ const useSmartGoalPlanner = (
         setError(null);
         setPlan(null);
 
-        const apiKey = process.env.API_KEY || preferences.geminiApiKey;
-
-        if (!apiKey) {
-            setError("The AI Planner is not configured. An API key is required. Please see Settings > Integrations.");
-            setIsLoading(false);
-            return;
-        }
+        // FIX: According to guidelines, API key must be obtained exclusively from process.env.API_KEY.
+        // Assume this variable is pre-configured and accessible.
+        const apiKey = process.env.API_KEY;
 
         try {
             const { GoogleGenAI, Type } = await loadGenAiModule();
-            const ai = new GoogleGenAI({ apiKey });
+            // FIX: Initialize GoogleGenAI with a named parameter as per guidelines.
+            const ai = new GoogleGenAI({ apiKey: apiKey as string });
             
             const liquidAccounts = accounts.filter(a => LIQUID_ACCOUNT_TYPES.includes(a.type));
             const context = {
                 current_date: toLocalISOString(new Date()),
                 liquid_accounts: liquidAccounts.map(({ name, balance, currency }) => ({ name, balance, currency })),
                 recurring_transactions: recurringTransactions.map(({ description, amount, type, frequency, nextDueDate }) => ({ description, amount, type, frequency, nextDueDate })),
-                financial_goals: financialGoals.filter(g => g.projection).map(({ name, type, amount, currentAmount, date, projection }) => ({ name, type, amount, currentAmount, date, startDate }) => ({ name, type, amount, currentAmount, date, projected_status: projection?.status })),
+                financial_goals: financialGoals.filter(g => g.projection).map(({ name, type, amount, currentAmount, date, projection }) => ({ name, type, amount, currentAmount, date, projected_status: projection?.status })),
             };
 
             const prompt = `You are a financial planner. Based on the user's financial data, create a smart contribution plan to help them achieve their goals. 
@@ -106,8 +103,9 @@ const useSmartGoalPlanner = (
                 required: ['plan']
             };
 
+            // FIX: Using 'gemini-3-pro-preview' for complex financial planning tasks.
             const response = await ai.models.generateContent({
-                model: 'gemini-2.5-pro',
+                model: 'gemini-3-pro-preview',
                 contents: prompt,
                 config: {
                     responseMimeType: 'application/json',
@@ -115,7 +113,11 @@ const useSmartGoalPlanner = (
                 }
             });
             
-            const parsedJson = JSON.parse(response.text);
+            // FIX: Access .text property directly (it is a getter).
+            const responseText = response.text;
+            if (!responseText) throw new Error("AI returned no text content.");
+            
+            const parsedJson = JSON.parse(responseText);
             
             const planObject = parsedJson.plan.reduce((acc: any, goalPlan: {goalName: string, steps: any[]}) => {
                 acc[goalPlan.goalName] = goalPlan.steps;
@@ -130,7 +132,7 @@ const useSmartGoalPlanner = (
         } finally {
             setIsLoading(false);
         }
-    }, [accounts, recurringTransactions, financialGoals, preferences.geminiApiKey]);
+    }, [accounts, recurringTransactions, financialGoals]); // Removed preferences dependency as apiKey is now from process.env
     
     return { generatePlan, plan, isLoading, error };
 };
@@ -194,7 +196,7 @@ const Forecasting: React.FC = () => {
         return accounts.filter(a => LIQUID_ACCOUNT_TYPES.includes(a.type)).map(a => a.id)
     });
     const [forecastDuration, setForecastDuration] = useState<ForecastDuration>(preferences.defaultForecastPeriod || '1Y');
-    const [filterGoalsByAccount, setFilterGoalsByAccount] = useState(false);
+    const [filterGoalsByAccount, setFilterGoalsByAccount] = useState(true); // Redesigned requirement: Filter by Account is now TRUE by default.
     const [showIndividualLines, setShowIndividualLines] = useState(false);
     const [showGoalLines, setShowGoalLines] = useState(true);
 
@@ -311,24 +313,7 @@ const Forecasting: React.FC = () => {
                   txsByDate.set(d, (txsByDate.get(d) || 0) + convertToEur(tx.amount, tx.currency));
              } else if (tx.transferId) {
                  // For transfers, check if it's external-facing relative to the selected group
-                 // Logic: If 'from' is selected and 'to' is NOT, it's an expense.
-                 // If 'to' is selected and 'from' is NOT, it's income.
-                 // If both selected, it cancels out.
-                 // Since we don't have easy 'to/from' in flat transaction list without looking up pair, 
-                 // we rely on the fact that if only one side of the transfer is in `transactions` (filtered by account),
-                 // it acts as a valid in/out flow. 
-                 // However, `transactions` comes from context and contains ALL transactions.
-                 // So we must check accountId.
                  if (selectedAccountIds.includes(tx.accountId)) {
-                     // Check if counterpart is also in selected group is hard without looking up pairing.
-                     // Simplified: If user selected "All Liquid", transfers between them are ignored.
-                     // We will include it if it modifies the TOTAL balance of the selected group.
-                     // BUT `generateBalanceForecast` uses `selectedAccounts` to start `startBal`.
-                     // `startBal` is sum of `account.balance` NOW.
-                     // So we need to reverse transactions to go back in time.
-                     
-                     // We will use a simpler approximation: just sum all transactions for selected accounts.
-                     // Internal transfers sum to 0 across the group (one +amount, one -amount).
                      const d = tx.date;
                      txsByDate.set(d, (txsByDate.get(d) || 0) + convertToEur(tx.amount, tx.currency));
                  }
@@ -341,51 +326,27 @@ const Forecasting: React.FC = () => {
              d.setDate(d.getDate() - i);
              const dateStr = toLocalISOString(d);
              
-             // Don't include today in history to avoid overlap with forecast start (which is today)
              if (dateStr === todayStr) continue; 
-             
-             // Balance at end of 'dateStr' = Balance at end of 'dateStr + 1' - (Transactions on 'dateStr + 1')
-             // Wait, standard accounting:
-             // Balance(Today) = Balance(Yesterday) + Change(Today).
-             // So Balance(Yesterday) = Balance(Today) - Change(Today).
-             
-             // Logic:
-             // StartBal is Balance(Today, End of Day approx).
-             // Loop i=0 (Today). Change = Txs Today. Bal(Yesterday End) = StartBal - Change.
-             // Loop i=1 (Yesterday). Change = Txs Yesterday. Bal(Day Before) = Bal(Yesterday End) - Change.
              
              const dateForChangeLookup = new Date(today);
              dateForChangeLookup.setDate(today.getDate() - i);
              const lookupDateStr = toLocalISOString(dateForChangeLookup);
              
              const change = txsByDate.get(lookupDateStr) || 0;
-             currentHistoryBal -= change; // Reverse the flow to go back in time
+             currentHistoryBal -= change; 
              
-             // We push the balance representing the END of 'date - 1' (which is start of 'date')?
-             // No, we want to plot daily balances.
-             // We calculated Balance at END of `dateStr` (which is d - 1 day).
-             
-             // Let's refine.
-             // Iteration 0: i=0. d=Today. currentHistoryBal (starts as Today End) - Change(Today) = Yesterday End.
-             // We push { date: Yesterday, value: Yesterday End }.
-             
-             // Create a date string for the day we just calculated the END balance for.
              const dPrev = new Date(d);
              dPrev.setDate(d.getDate() - 1);
              
              historyData.push({ 
                  date: toLocalISOString(dPrev), 
                  value: currentHistoryBal,
-                 dailySummary: [], // No summary for history in this view
+                 dailySummary: [], 
                  isHistory: true
             });
         }
         
-        // Reverse history to be chronological
         const sortedHistory = historyData.reverse();
-        
-        // Combine: History -> Today (Forecast Start) -> Future
-        // ForecastData[0] is Today.
         const combinedChartData = [...sortedHistory, ...forecastDataForPeriod];
 
         return { 
@@ -409,8 +370,7 @@ const Forecasting: React.FC = () => {
             if (!isVisible) return;
 
             const accId = g.paymentAccountId || 'unlinked';
-            const type = g.transactionType; // 'income' | 'expense'
-            // Create a unique key for account + type combination
+            const type = g.transactionType; 
             const key = `${accId}_${type}`;
 
             if (!summary[key]) {
@@ -437,7 +397,6 @@ const Forecasting: React.FC = () => {
         let incTarget = 0, incCurrent = 0, savTarget = 0, savCurrent = 0;
         goalsWithProjections.forEach(g => {
             if (g.isBucket) return;
-            // Respect account filters for grand totals if the checkbox is checked
             const isVisible = !filterGoalsByAccount || !g.paymentAccountId || selectedAccountIds.includes(g.paymentAccountId);
             if (!isVisible) return;
 
@@ -547,19 +506,11 @@ const Forecasting: React.FC = () => {
     };
 
     const handleDuplicateGoal = (goal: FinancialGoal) => {
-        // Create a copy without the ID, let the context handler generate a new one
         const { id, ...rest } = goal;
-        
-        // If it's a bucket, do we duplicate children? 
-        // For simplicity, we just duplicate the top-level bucket/goal structure initially.
-        // A deep clone would require iterating children and recreating them with new IDs linked to new parent ID.
-        // Let's stick to shallow clone for now as per simple UI action.
-        
         const duplicatedGoal: Omit<FinancialGoal, 'id'> = {
             ...rest,
             name: `${goal.name} (Copy)`
         };
-
         saveFinancialGoal(duplicatedGoal);
     };
     
@@ -569,9 +520,10 @@ const Forecasting: React.FC = () => {
     };
 
     const handleConfirmDelete = () => {
-        if (deletingGoal) return;
-        deleteFinancialGoal(deletingGoal.id);
-        setDeletingGoal(null);
+        if (deletingGoal) {
+            deleteFinancialGoal(deletingGoal.id);
+            setDeletingGoal(null);
+        }
     };
 
     const subGoalsOfDeleting = useMemo(() => {
@@ -601,21 +553,6 @@ const Forecasting: React.FC = () => {
         });
         return { topLevelGoals: topLevel, goalsByParentId: byParent, displayedGoals: visibleGoals };
     }, [goalsWithProjections, filterGoalsByAccount, selectedAccountIds]);
-
-    const areAllDisplayedSelected = useMemo(() => {
-        if (displayedGoals.length === 0) return false;
-        return displayedGoals.every(g => activeGoalIds.includes(g.id));
-    }, [displayedGoals, activeGoalIds]);
-
-    const handleToggleAllDisplayed = () => {
-        if (areAllDisplayedSelected) {
-            const visibleIds = new Set(displayedGoals.map(g => g.id));
-            setActiveGoalIds(prev => prev.filter(id => !visibleIds.has(id)));
-        } else {
-            const visibleIds = displayedGoals.map(g => g.id);
-            setActiveGoalIds(prev => [...new Set([...prev, ...visibleIds])]);
-        }
-    };
 
     const handleDateClick = (date: string) => {
         setSelectedForecastDate(date);
@@ -665,6 +602,21 @@ const Forecasting: React.FC = () => {
             return accounts.filter(a => LIQUID_ACCOUNT_TYPES.includes(a.type)).map(a => a.id);
         });
     }, [accounts]);
+
+    const areAllDisplayedSelected = useMemo(() => {
+        if (displayedGoals.length === 0) return false;
+        return displayedGoals.every(g => activeGoalIds.includes(g.id));
+    }, [displayedGoals, activeGoalIds]);
+
+    const handleToggleAllDisplayed = () => {
+        if (areAllDisplayedSelected) {
+            const visibleIds = new Set(displayedGoals.map(g => g.id));
+            setActiveGoalIds(prev => prev.filter(id => !visibleIds.has(id)));
+        } else {
+            const visibleIds = displayedGoals.map(g => g.id);
+            setActiveGoalIds(prev => [...new Set([...prev, ...visibleIds])]);
+        }
+    };
 
     return (
         <div className="space-y-8 pb-12 animate-fade-in-up">
@@ -783,6 +735,7 @@ const Forecasting: React.FC = () => {
                     showIndividualLines={showIndividualLines}
                     accounts={selectedAccounts}
                     showGoalLines={showGoalLines}
+                    // FIX: Replaced non-existent 'handleChartClick' with 'handleDateClick'.
                     onDataPointClick={handleDateClick}
                 />
             </Card>

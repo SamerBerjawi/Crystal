@@ -64,19 +64,16 @@ const Chatbot: React.FC<ChatbotProps> = ({ isOpen, onClose, financialData }) => 
       const initializeChat = async () => {
         setIsLoading(true);
 
-        const apiKey = process.env.API_KEY || preferences.geminiApiKey;
+        // FIX: According to guidelines, API key must be obtained exclusively from process.env.API_KEY.
+        // Assume this variable is pre-configured and accessible.
+        const apiKey = process.env.API_KEY;
 
-        if (!apiKey) {
-            setMessages([{ sender: 'ai', text: "The AI Assistant is not configured. An API key is required to use this feature. Please configure it in Settings > Integrations." }]);
-            setIsConfigured(false);
-            setIsLoading(false);
-            return;
-        }
         setIsConfigured(true);
 
         try {
           const { GoogleGenAI } = await loadGenAiModule();
-          const ai = new GoogleGenAI({ apiKey });
+          // FIX: Initialize GoogleGenAI with a named parameter as per guidelines.
+          const ai = new GoogleGenAI({ apiKey: apiKey as string });
           
           // Optimize data sent to the model
           const recentTransactions = financialData.transactions
@@ -94,8 +91,9 @@ const Chatbot: React.FC<ChatbotProps> = ({ isOpen, onClose, financialData }) => 
 
           const systemInstruction = `You are a helpful personal finance assistant for an app called Crystal. Analyze the user's financial data provided in the following JSON to answer their questions. Your answers must be short, straightforward, and easy to understand. Use markdown for emphasis if needed (e.g., **bold**). Avoid long paragraphs. Today's date is ${new Date().toLocaleDateString()}. Financial Data: ${JSON.stringify(dataSummary)}`;
           
+          // FIX: Using 'gemini-3-pro-preview' for complex financial reasoning tasks as per guidelines.
           const newChat = ai.chats.create({
-            model: 'gemini-flash-lite-latest',
+            model: 'gemini-3-pro-preview',
             config: {
                 systemInstruction: systemInstruction,
             },
