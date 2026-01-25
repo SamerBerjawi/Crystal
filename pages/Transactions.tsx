@@ -92,7 +92,7 @@ const ColumnHeader = React.memo(function ColumnHeader({
                 className={`flex items-center gap-1.5 select-none cursor-pointer group/sort py-1 px-1.5 -ml-1.5 rounded-lg hover:bg-black/5 dark:hover:bg-white/5 transition-all duration-200`} 
                 onClick={handleSort}
             >
-                <span className={`text-[11px] font-bold uppercase tracking-wider transition-colors ${isSorted ? 'text-primary-600 dark:text-primary-400' : 'text-light-text-secondary dark:text-dark-text-secondary group-hover/sort:text-light-text dark:group-hover/sort:text-dark-text'}`}>
+                <span className={`text-[10px] font-black uppercase tracking-[0.1em] transition-colors ${isSorted ? 'text-primary-600 dark:text-primary-400' : 'text-light-text-secondary dark:text-dark-text-secondary group-hover/sort:text-light-text dark:group-hover/sort:text-dark-text'}`}>
                     {label}
                 </span>
                 
@@ -165,7 +165,7 @@ const Transactions: React.FC<TransactionsProps> = ({ initialAccountFilter, initi
   const [selectedCategoryNames, setSelectedCategoryNames] = useState<string[]>([]);
   const [selectedTagIds, setSelectedTagIds] = useState<string[]>([]);
 
-  const [isTransactionModalOpen, setIsTransactionModalOpen] = useState(false);
+  const [isTransactionModalOpen, setTransactionModalOpen] = useState(false);
   const [editingTransaction, setEditingTransaction] = useState<Transaction | null>(null);
   const [duplicateData, setDuplicateData] = useState<any>(null); // For duplication
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
@@ -663,7 +663,7 @@ const Transactions: React.FC<TransactionsProps> = ({ initialAccountFilter, initi
   const handleOpenAddModal = () => {
     setEditingTransaction(null);
     setDuplicateData(null);
-    setIsTransactionModalOpen(true);
+    setTransactionModalOpen(true);
   };
 
   const handleDuplicate = (tx: DisplayTransaction) => {
@@ -682,11 +682,11 @@ const Transactions: React.FC<TransactionsProps> = ({ initialAccountFilter, initi
         }
     });
     setEditingTransaction(null);
-    setIsTransactionModalOpen(true);
+    setTransactionModalOpen(true);
   };
 
   const handleCloseModal = () => {
-    setIsTransactionModalOpen(false);
+    setTransactionModalOpen(false);
     setEditingTransaction(null);
     setDuplicateData(null);
   };
@@ -887,7 +887,6 @@ const Transactions: React.FC<TransactionsProps> = ({ initialAccountFilter, initi
                       <div key={type} className="mb-2">
                           <h4 className="px-1.5 py-1 text-[10px] font-bold text-light-text-secondary dark:text-dark-text-secondary uppercase tracking-widest">{type}</h4>
                           {group.map(acc => (
-                              /* FIX: Inlined AccountCheckbox JSX to avoid type errors with 'key' prop on a locally defined component. */
                               <label key={acc.id} className="flex items-center gap-2 text-sm p-1.5 rounded hover:bg-black/5 dark:hover:bg-white/5 cursor-pointer">
                                   <input type="checkbox" checked={selectedAccountIds.includes(acc.id)} onChange={() => handleAccountToggle(acc.id)} className={CHECKBOX_STYLE} />
                                   <span className="truncate">{acc.name}</span>
@@ -900,7 +899,6 @@ const Transactions: React.FC<TransactionsProps> = ({ initialAccountFilter, initi
                   <div className="mt-2 pt-2 border-t border-black/5 dark:border-white/5">
                       <h4 className="px-1.5 py-1 text-[10px] font-bold text-light-text-secondary dark:text-dark-text-secondary uppercase tracking-widest">Closed</h4>
                       {closed.map(acc => (
-                          /* FIX: Inlined AccountCheckbox JSX to avoid type errors with 'key' prop on a locally defined component. */
                           <label key={acc.id} className="flex items-center gap-2 text-sm p-1.5 rounded hover:bg-black/5 dark:hover:bg-white/5 cursor-pointer">
                               <input type="checkbox" checked={selectedAccountIds.includes(acc.id)} onChange={() => handleAccountToggle(acc.id)} className={CHECKBOX_STYLE} />
                               <span className="truncate">{acc.name}</span>
@@ -1062,7 +1060,7 @@ const Transactions: React.FC<TransactionsProps> = ({ initialAccountFilter, initi
                 style={{ top: contextMenu.y, left: contextMenu.x }}
                 className="fixed z-50 w-56 bg-light-card/90 dark:bg-dark-card/90 backdrop-blur-xl rounded-xl shadow-xl border border-black/10 dark:border-white/10 py-1.5 animate-fade-in-up overflow-hidden"
             >
-                <button onClick={() => { setEditingTransaction(transactions.find(t => t.id === (contextMenu.transaction.isTransfer ? contextMenu.transaction.originalId : contextMenu.transaction.id)) || null); setIsTransactionModalOpen(true); setContextMenu(null); }} className="w-full text-left flex items-center gap-3 px-4 py-2.5 text-sm hover:bg-black/5 dark:hover:bg-white/10 transition-colors">
+                <button onClick={() => { setEditingTransaction(transactions.find(t => t.id === (contextMenu.transaction.isTransfer ? contextMenu.transaction.originalId : contextMenu.transaction.id)) || null); setTransactionModalOpen(true); setContextMenu(null); }} className="w-full text-left flex items-center gap-3 px-4 py-2.5 text-sm hover:bg-black/5 dark:hover:bg-white/10 transition-colors">
                     <span className="material-symbols-outlined text-lg text-blue-500">edit</span>
                     <span>Edit Transaction</span>
                 </button>
@@ -1214,7 +1212,7 @@ const Transactions: React.FC<TransactionsProps> = ({ initialAccountFilter, initi
       
       {/* Transaction List Card */}
       <div className="flex-1 min-w-0 relative">
-        <Card className="p-0 h-full flex flex-col relative overflow-hidden border border-black/5 dark:border-white/5 shadow-sm">
+        <Card className="p-0 h-full flex flex-col relative overflow-hidden border border-black/5 dark:border-white/5 shadow-sm rounded-2xl">
             <div className="overflow-x-auto">
               <div className="min-w-[900px] flex flex-col">
                 {selectedIds.size > 0 ? (
@@ -1237,21 +1235,20 @@ const Transactions: React.FC<TransactionsProps> = ({ initialAccountFilter, initi
                         </div>
                     </div>
                 ) : (
-                    <div className="px-5 py-3 border-b border-black/5 dark:border-white/5 flex items-center gap-3 bg-white dark:bg-dark-card sticky top-0 z-[30]">
+                    <div className="px-5 py-3 border-b border-black/5 dark:border-white/5 flex items-center gap-3 bg-gray-50/50 dark:bg-white/[0.02] sticky top-0 z-[30] backdrop-blur-md">
                         <div className="flex items-center justify-center w-5">
                              <input type="checkbox" onChange={handleSelectAll} checked={isAllSelected} className={CHECKBOX_STYLE} aria-label="Select all transactions"/>
                         </div>
                         <div className="flex-1 grid grid-cols-12 gap-3 ml-3 items-center">
                             <div className="col-span-5">
                                 <ColumnHeader
-                                    label="Description"
+                                    label="Description & Merchant"
                                     currentSort={sortBy}
                                     onSort={setSortBy}
                                     isFilterActive={!!merchantFilter}
                                     filterContent={merchantFilterContent}
                                 />
                             </div>
-                            {/* Date Column Removed from Header */}
                             <div className="col-span-2">
                                  <ColumnHeader
                                     label="Account"
@@ -1273,7 +1270,7 @@ const Transactions: React.FC<TransactionsProps> = ({ initialAccountFilter, initi
                             </div>
                             <div className="col-span-2">
                                 <ColumnHeader
-                                    label="Tag"
+                                    label="Context Tags"
                                     currentSort={sortBy}
                                     onSort={setSortBy}
                                     isFilterActive={selectedTagIds.length > 0}
@@ -1282,7 +1279,7 @@ const Transactions: React.FC<TransactionsProps> = ({ initialAccountFilter, initi
                             </div>
                             <div className="col-span-1 text-right flex justify-end">
                                  <ColumnHeader
-                                    label="Amount"
+                                    label="Value"
                                     sortKey="amount"
                                     currentSort={sortBy}
                                     onSort={setSortBy}
@@ -1315,8 +1312,8 @@ const Transactions: React.FC<TransactionsProps> = ({ initialAccountFilter, initi
                         
                         if (row.type === 'header') {
                             return (
-                                <div key={`header-${row.date}`} style={style} className="flex items-center px-4 py-2 bg-gray-50/80 dark:bg-black/20 border-y border-black/5 dark:border-white/5 sticky top-0 z-[10] backdrop-blur-sm">
-                                    <span className="text-xs font-bold text-light-text-secondary dark:text-dark-text-secondary uppercase tracking-wider">
+                                <div key={`header-${row.date}`} style={style} className="flex items-center px-4 py-2 bg-gray-50/80 dark:bg-black/20 border-y border-black/5 dark:border-white/5 sticky top-0 z-10 backdrop-blur-sm">
+                                    <span className="text-[10px] font-black text-light-text-secondary dark:text-dark-text-secondary uppercase tracking-[0.2em]">
                                         {parseLocalDate(row.date).toLocaleDateString(undefined, { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' })}
                                     </span>
                                 </div>
@@ -1376,7 +1373,7 @@ const Transactions: React.FC<TransactionsProps> = ({ initialAccountFilter, initi
                           {/* Column 1: Description (Expanded) */}
                             <div className="col-span-5 flex items-center gap-3 min-w-0">
                               <div
-                                className={`w-10 h-10 rounded-full flex items-center justify-center text-white shadow-sm shrink-0 overflow-hidden ${showMerchantLogo ? 'bg-white dark:bg-dark-card' : 'border border-black/5 dark:border-white/10'}`}
+                                className={`w-10 h-10 rounded-xl flex items-center justify-center text-white shadow-sm shrink-0 overflow-hidden ${showMerchantLogo ? 'bg-white dark:bg-dark-card' : ''}`}
                                 style={showMerchantLogo ? undefined : { backgroundColor: categoryColor }}
                               >
                                 {showMerchantLogo && merchantLogoUrl ? (
@@ -1405,7 +1402,7 @@ const Transactions: React.FC<TransactionsProps> = ({ initialAccountFilter, initi
                                         <img 
                                             src={institutionLogoUrl!} 
                                             alt={account?.financialInstitution || 'Bank'} 
-                                            className="w-10 h-10 object-contain rounded-full shadow-sm bg-white dark:bg-white/10" 
+                                            className="w-10 h-10 object-contain rounded-xl shadow-sm bg-white dark:bg-white/10" 
                                             onError={() => handleLogoError(institutionLogoUrl!)}
                                         />
                                    ) : (
@@ -1459,7 +1456,8 @@ const Transactions: React.FC<TransactionsProps> = ({ initialAccountFilter, initi
                                 {displayAmount}
                             </p>
                             {tx.spareChangeAmount ? (
-                                <p className="text-sm font-mono text-light-text-secondary dark:text-dark-text-secondary mt-0.5">
+                                <p className="text-[11px] font-mono font-bold text-light-text-secondary dark:text-dark-text-secondary mt-1 flex items-center justify-end gap-1">
+                                    <span className="material-symbols-outlined text-[12px] opacity-70">savings</span>
                                     {formatCurrency(convertToEur(Math.abs(tx.spareChangeAmount), tx.currency), 'EUR')}
                                 </p>
                             ) : null}

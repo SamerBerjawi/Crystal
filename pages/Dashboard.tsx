@@ -1,5 +1,4 @@
 
-// ... existing imports
 import React, { useMemo, useState, useCallback, useEffect, useRef, Suspense, lazy } from 'react';
 import { User, Transaction, Account, Category, Duration, CategorySpending, Widget, WidgetConfig, DisplayTransaction, FinancialGoal, RecurringTransaction, BillPayment, Tag, Budget, RecurringTransactionOverride, LoanPaymentOverrides, AccountType, Task, ForecastDuration } from '../types';
 import { calculateForecastHorizon, formatCurrency, convertToEur, generateBalanceForecast, generateSyntheticLoanPayments, generateSyntheticCreditCardPayments, generateSyntheticPropertyTransactions, parseLocalDate, getCreditCardStatementDetails, getPreferredTimeZone, formatDateKey, toLocalISOString, getDateRange, calculateAccountTotals, calculateStatementPeriods } from '../utils';
@@ -44,6 +43,11 @@ import BudgetProgressCard from '../components/BudgetProgressCard';
 import BudgetModal from '../components/BudgetModal';
 import MultiSelectFilter from '../components/MultiSelectFilter';
 import PageHeader from '../components/PageHeader';
+
+// Analysis widgets
+import MerchantParetoWidget from '../components/MerchantParetoWidget';
+import FinancialRunwayWidget from '../components/FinancialRunwayWidget';
+import WealthVelocityWidget from '../components/WealthVelocityWidget';
 
 const TransactionMapWidget = lazy(() => import('../components/TransactionMapWidget'));
 const CashflowSankey = lazy(() => import('../components/CashflowSankey'));
@@ -95,13 +99,13 @@ type DashboardTab = 'overview' | 'analysis' | 'activity';
 
 const WIDGET_TABS: Record<DashboardTab, string[]> = {
     overview: ['netWorthOverTime'],
-    analysis: [],
+    analysis: [], // Using a structured layout for Analysis instead of dynamic widgets
     activity: ['transactionMap', 'outflowsByCategory', 'netWorthBreakdown', 'recentActivity', 'cashflowSankey']
 };
 
 const AnalysisStatCard: React.FC<{ title: string; value: string; subtext: string; icon: string; colorClass: string }> = ({ title, value, subtext, icon, colorClass }) => (
-    <div className="bg-white dark:bg-dark-card p-6 rounded-2xl border border-black/5 dark:border-white/5 shadow-sm flex items-center gap-5 hover:shadow-md transition-all duration-200">
-        <div className={`w-14 h-14 rounded-xl flex items-center justify-center ${colorClass} shrink-0`}>
+    <div className="bg-white dark:bg-dark-card p-6 rounded-3xl border border-black/5 dark:border-white/5 shadow-sm flex items-center gap-5 hover:shadow-md transition-all duration-200">
+        <div className={`w-14 h-14 rounded-2xl flex items-center justify-center ${colorClass} shrink-0`}>
             <span className="material-symbols-outlined text-3xl">{icon}</span>
         </div>
         <div>
@@ -1017,21 +1021,27 @@ const Dashboard: React.FC<DashboardProps> = ({ user, tasks, saveTask }) => {
     { id: 'liabilityBreakdown', name: 'Liability Breakdown', defaultW: 2, defaultH: 2, component: AccountBreakdownCard, props: { title: 'Liabilities', totalValue: Math.abs(globalTotalDebt), breakdownData: globalDebtBreakdown } },
     { id: 'budgetOverview', name: 'Budget Overview', defaultW: 2, defaultH: 2, component: BudgetOverviewWidget, props: { budgets: budgets, transactions: transactions, expenseCategories: expenseCategories, accounts: accounts, duration: duration, onBudgetClick: handleBudgetClick } },
     { id: 'transactionMap', name: 'Transaction Map', defaultW: 2, defaultH: 2, component: TransactionMapWidget, props: { transactions: filteredTransactions } },
-    { id: 'cashflowSankey', name: 'Cash Flow Sankey', defaultW: 4, defaultH: 2, component: CashflowSankey, props: { transactions: filteredTransactions, incomeCategories, expenseCategories } }
-  ], [tasks, allRecurringItems, recurringTransactionOverrides, billsAndPayments, financialGoals, saveTask, netWorthData, netWorthTrendColor, activeGoalIds, lowestForecastPoint, selectedAccounts, outflowsByCategory, handleCategoryClick, totalAssets, totalDebt, recentTransactions, allCategories, handleTransactionClick, globalTotalAssets, globalAssetBreakdown, globalTotalDebt, globalDebtBreakdown, budgets, transactions, expenseCategories, accounts, duration, handleBudgetClick, filteredTransactions, incomeCategories, showForecast, showGoals, selectedAccountIds]);
+    { id: 'cashflowSankey', name: 'Cash Flow Sankey', defaultW: 4, defaultH: 2, component: CashflowSankey, props: { transactions: filteredTransactions, incomeCategories, expenseCategories } },
+    
+    // ANALYSIS WIDGETS
+    { id: 'financialRunway', name: 'Financial Runway', defaultW: 2, defaultH: 2, component: FinancialRunwayWidget, props: { accounts, transactions: analyticsTransactions } },
+    { id: 'merchantPareto', name: 'Merchant Pareto', defaultW: 2, defaultH: 2, component: MerchantParetoWidget, props: { transactions: analyticsTransactions } },
+    { id: 'wealthVelocity', name: 'Wealth Velocity', defaultW: 2, defaultH: 2, component: WealthVelocityWidget, props: { transactions: analyticsTransactions, accounts } }
+  ], [tasks, allRecurringItems, recurringTransactionOverrides, billsAndPayments, financialGoals, saveTask, netWorthData, netWorthTrendColor, activeGoalIds, lowestForecastPoint, selectedAccounts, outflowsByCategory, handleCategoryClick, totalAssets, totalDebt, recentTransactions, allCategories, handleTransactionClick, globalTotalAssets, globalAssetBreakdown, globalTotalDebt, globalDebtBreakdown, budgets, transactions, expenseCategories, accounts, duration, handleBudgetClick, filteredTransactions, incomeCategories, showForecast, showGoals, selectedAccountIds, analyticsTransactions]);
 
   const [widgets, setWidgets] = useLocalStorage<WidgetConfig[]>('dashboard-layout', allWidgets.map(w => ({ id: w.id, title: w.name, w: w.defaultW, h: w.defaultH })));
 
   // Ensure activity dashboard always includes its required widgets (including Cash Flow Sankey)
   useEffect(() => {
-    const requiredActivityWidgets = WIDGET_TABS.activity;
+    const requiredWidgets = WIDGET_TABS[activeTab];
 
     setWidgets(prev => {
         const currentIds = new Set(prev.map(w => w.id));
-        const missing = requiredActivityWidgets.filter(id => !currentIds.has(id));
+        const missing = requiredWidgets.filter(id => !currentIds.has(id));
         
-        // Remove forecastChart if it exists
-        let newWidgets = prev.filter(w => w.id !== 'forecastChart');
+        // Filter out widgets that are NOT in the current tab's required list
+        // Note: This makes the tabs strictly enforce their own layouts
+        let newWidgets = prev.filter(w => requiredWidgets.includes(w.id));
         
         // Enforce Net Worth Width = 4
         newWidgets = newWidgets.map(w => {
@@ -1055,7 +1065,7 @@ const Dashboard: React.FC<DashboardProps> = ({ user, tasks, saveTask }) => {
         const isDifferent = JSON.stringify(newWidgets) !== JSON.stringify(prev);
         return isDifferent ? newWidgets : prev;
     });
-  }, [allWidgets, setWidgets]);
+  }, [allWidgets, setWidgets, activeTab]);
 
   const removeWidget = (widgetId: string) => {
     setWidgets(prev => prev.filter(w => w.id !== widgetId));
@@ -1277,7 +1287,7 @@ const Dashboard: React.FC<DashboardProps> = ({ user, tasks, saveTask }) => {
       />
 
       {/* Controls Bar: Tabs & Filters */}
-      <div className="flex flex-col xl:flex-row justify-between items-center gap-4 bg-white dark:bg-dark-card p-1.5 rounded-2xl border border-black/5 dark:border-white/5 shadow-sm">
+      <div className="flex flex-col xl:flex-row justify-between items-center gap-4 bg-white dark:bg-dark-card p-1.5 rounded-full border border-black/5 dark:border-white/5 shadow-sm">
            {/* Tabs */}
            <div className="bg-gray-100 dark:bg-white/5 p-1 rounded-full inline-flex shadow-inner overflow-x-auto no-scrollbar max-w-full">
             {tabs.map((tab) => (
@@ -1299,7 +1309,7 @@ const Dashboard: React.FC<DashboardProps> = ({ user, tasks, saveTask }) => {
           <div className="flex flex-wrap gap-3 w-full xl:w-auto px-1 xl:px-0 justify-end">
               {/* Forecast Controls (Only visible in overview) */}
               {activeTab === 'overview' && (
-                  <div className="flex items-center gap-2 bg-light-fill dark:bg-dark-fill p-1 rounded-lg">
+                  <div className="flex items-center gap-2 bg-light-fill dark:bg-dark-fill p-1 rounded-2xl">
                       <div className={SELECT_WRAPPER_STYLE}>
                           <select 
                             value={forecastDuration} 
@@ -1334,7 +1344,7 @@ const Dashboard: React.FC<DashboardProps> = ({ user, tasks, saveTask }) => {
       </div>
       
       {suggestions.length > 0 && (
-          <Card>
+          <Card className="rounded-3xl">
               <div className="flex flex-wrap justify-between items-center gap-4">
                   <div className="flex items-center gap-3">
                       <span className="material-symbols-outlined text-2xl text-primary-500">autorenew</span>
@@ -1369,7 +1379,7 @@ const Dashboard: React.FC<DashboardProps> = ({ user, tasks, saveTask }) => {
                     />
                 </div>
                 <div className="xl:col-span-1 h-full">
-                     <Card className="h-full p-0 overflow-hidden border border-black/5 dark:border-white/5 shadow-sm">
+                     <Card className="h-full p-0 overflow-hidden border border-black/5 dark:border-white/5 shadow-sm rounded-3xl">
                         <TodayWidget 
                             tasks={tasks} 
                             recurringTransactions={allRecurringItems} 
@@ -1444,7 +1454,43 @@ const Dashboard: React.FC<DashboardProps> = ({ user, tasks, saveTask }) => {
                   />
               </div>
 
-              <Card className="overflow-hidden">
+              {/* Dynamic widgets grid remains for any other widgets user might add in future, but WIDGET_TABS.analysis is currently empty */}
+              {widgets.filter(w => WIDGET_TABS.analysis.includes(w.id)).length > 0 && (
+                <div className="grid grid-cols-1 md:grid-cols-4 gap-6" style={{ gridAutoRows: 'minmax(200px, auto)' }}>
+                    {widgets
+                        .filter(widget => WIDGET_TABS.analysis.includes(widget.id))
+                        .map(widget => {
+                            const widgetDetails = allWidgets.find(w => w.id === widget.id);
+                            if (!widgetDetails) return null;
+                            const WidgetComponent = widgetDetails.component;
+
+                            return (
+                                <WidgetWrapper
+                                    key={widget.id}
+                                    title={widget.title}
+                                    w={widget.w}
+                                    h={widget.h}
+                                    onRemove={() => removeWidget(widget.id)}
+                                    onResize={(dim, change) => handleResize(widget.id, dim, change)}
+                                    isEditMode={isEditMode}
+                                    isBeingDragged={draggedWidgetId === widget.id}
+                                    isDragOver={dragOverWidgetId === widget.id}
+                                    onDragStart={e => handleDragStart(e, widget.id)}
+                                    onDragEnter={e => handleDragEnter(e, widget.id)}
+                                    onDragLeave={e => handleDragLeave(e, widget.id)}
+                                    onDrop={e => handleDrop(e, widget.id)}
+                                    onDragEnd={handleDragEnd}
+                                >
+                                    <Suspense fallback={<div className="p-4 text-center">Loading...</div>}>
+                                        <WidgetComponent {...widgetDetails.props as any} />
+                                    </Suspense>
+                                </WidgetWrapper>
+                            );
+                    })}
+                </div>
+              )}
+
+              <Card className="overflow-hidden rounded-3xl">
                   <div className="flex flex-col lg:flex-row gap-8">
                       <div className="lg:w-1/3 flex flex-col justify-center border-b lg:border-b-0 lg:border-r border-black/5 dark:border-white/5 pb-8 lg:pb-0 lg:pr-8">
                           <h3 className="text-lg font-bold text-light-text dark:text-dark-text mb-6 self-start">Asset Allocation</h3>
@@ -1472,11 +1518,11 @@ const Dashboard: React.FC<DashboardProps> = ({ user, tasks, saveTask }) => {
                               </div>
                           </div>
                           <div className="w-full mt-8 grid grid-cols-2 gap-4">
-                              <div className="p-3 rounded-xl bg-green-50 dark:bg-green-900/20 border border-green-100 dark:border-green-900/30 text-center">
+                              <div className="p-3 rounded-2xl bg-green-50 dark:bg-green-900/20 border border-green-100 dark:border-green-900/30 text-center">
                                   <p className="text-xs text-green-600 dark:text-green-400 font-semibold uppercase mb-1">Assets</p>
                                   <p className="text-lg font-bold text-green-700 dark:text-green-300 privacy-blur">{formatCurrency(globalTotalAssets, 'EUR')}</p>
                               </div>
-                              <div className="p-3 rounded-xl bg-red-50 dark:bg-red-900/20 border border-red-100 dark:border-red-900/30 text-center">
+                              <div className="p-3 rounded-2xl bg-red-50 dark:bg-red-900/20 border border-red-100 dark:border-red-900/30 text-center">
                                   <p className="text-xs text-red-600 dark:text-red-400 font-semibold uppercase mb-1">Liabilities</p>
                                   <p className="text-lg font-bold text-red-700 dark:text-red-300 privacy-blur">{formatCurrency(Math.abs(globalTotalDebt), 'EUR')}</p>
                               </div>
@@ -1549,15 +1595,26 @@ const Dashboard: React.FC<DashboardProps> = ({ user, tasks, saveTask }) => {
                   </div>
               </Card>
               
-              <Card className="min-h-[400px] flex flex-col">
-                    <div className="flex justify-between items-center mb-4">
-                        <h3 className="text-xl font-bold text-light-text dark:text-dark-text">Budget Performance</h3>
-                        <button onClick={() => handleBudgetClick()} className="text-sm text-primary-500 hover:underline">View Details</button>
-                    </div>
-                    <div className="flex-grow">
-                         <BudgetOverviewWidget budgets={budgets} transactions={transactions} expenseCategories={expenseCategories} accounts={accounts} duration={duration} onBudgetClick={handleBudgetClick} />
-                    </div>
-              </Card>
+              {/* Structured 3-Column Row: Budget, Runway, Velocity */}
+              <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+                  <Card className="min-h-[400px] flex flex-col rounded-3xl">
+                      <div className="flex justify-between items-center mb-4">
+                          <h3 className="text-xl font-bold text-light-text dark:text-dark-text">Budget Performance</h3>
+                          <button onClick={() => handleBudgetClick()} className="text-sm text-primary-500 hover:underline">View Details</button>
+                      </div>
+                      <div className="flex-grow">
+                          <BudgetOverviewWidget budgets={budgets} transactions={transactions} expenseCategories={expenseCategories} accounts={accounts} duration={duration} onBudgetClick={handleBudgetClick} />
+                      </div>
+                  </Card>
+                  
+                  <Card className="min-h-[400px] flex flex-col rounded-3xl">
+                      <FinancialRunwayWidget accounts={accounts} transactions={analyticsTransactions} />
+                  </Card>
+                  
+                  <Card className="min-h-[400px] flex flex-col rounded-3xl">
+                      <WealthVelocityWidget transactions={analyticsTransactions} accounts={accounts} />
+                  </Card>
+              </div>
           </div>
       )}
 
