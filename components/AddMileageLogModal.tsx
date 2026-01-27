@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import Modal from './Modal';
 import { MileageLog } from '../types';
@@ -40,7 +39,7 @@ const AddMileageLogModal: React.FC<AddMileageLogModalProps> = ({ onClose, onSave
   const modalTitle = isEditing ? 'Edit Mileage Log' : 'Log Mileage';
 
   return (
-    <Modal onClose={onClose} title={modalTitle} zIndexClass="z-[60]">
+    <Modal onClose={onClose} title={modalTitle}>
       <form onSubmit={handleSubmit} className="space-y-4">
         <div>
           <label htmlFor="date" className={labelStyle}>Date</label>

@@ -1,4 +1,5 @@
 
+
 import { FinancialData, User } from './types';
 import { MOCK_EXPENSE_CATEGORIES, MOCK_INCOME_CATEGORIES } from './constants';
 
@@ -356,6 +357,7 @@ export const initialFinancialData: FinancialData = {
         brandfetchClientId: '',
         twelveDataApiKey: '',
         merchantLogoOverrides: {},
+        merchantRules: {},
         geminiApiKey: '',
     },
 };

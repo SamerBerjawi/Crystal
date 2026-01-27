@@ -1,4 +1,5 @@
 
+
 import React, { useState, useMemo, useEffect, useRef, useId } from 'react';
 import Modal from './Modal';
 import { Account, Category, Transaction, Tag, Currency } from '../types';
@@ -6,6 +7,8 @@ import { INPUT_BASE_STYLE, BTN_PRIMARY_STYLE, BTN_SECONDARY_STYLE, SELECT_WRAPPE
 import { v4 as uuidv4 } from 'uuid';
 import LocationAutocomplete from './LocationAutocomplete';
 import { toLocalISOString, formatCurrency } from '../utils';
+import { normalizeMerchantKey } from '../utils/brandfetch';
+import { usePreferencesSelector } from '../contexts/DomainProviders';
 
 interface AddTransactionModalProps {
   onClose: () => void;
@@ -75,6 +78,7 @@ const AccountOptions: React.FC<{ accounts: Account[] }> = ({ accounts }) => {
 
 const AddTransactionModal: React.FC<AddTransactionModalProps> = ({ onClose, onSave, accounts, incomeCategories, expenseCategories, transactions, transactionToEdit, initialType, initialFromAccountId, initialToAccountId, initialCategory, tags, initialDetails }) => {
   const isEditing = !!transactionToEdit;
+  const merchantRules = usePreferencesSelector(p => p.merchantRules || {});
 
   const defaultAccountId = useMemo(() => {
     const primary = accounts.find(a => a.isPrimary);
@@ -247,8 +251,38 @@ const AddTransactionModal: React.FC<AddTransactionModalProps> = ({ onClose, onSa
 
   const handleDescriptionBlur = () => {
     if (!merchant && description) {
-        setMerchant(description);
+        const potentialMerchant = description;
+        setMerchant(potentialMerchant);
+        
+        // Try to apply rules based on description if merchant field was empty
+        applyMerchantRules(potentialMerchant);
     }
+  };
+
+  // Auto-apply merchant rules
+  const applyMerchantRules = (merchantName: string) => {
+      // Only apply defaults if we aren't editing an existing transaction
+      // or if the user is changing the merchant on a new transaction
+      if (isEditing) return;
+
+      const key = normalizeMerchantKey(merchantName);
+      if (!key) return;
+
+      const rule = merchantRules[key];
+      if (rule) {
+          if (rule.category) setCategory(rule.category);
+          if (rule.defaultDescription) setDescription(rule.defaultDescription);
+      }
+  };
+
+  const handleMerchantChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+      const val = e.target.value;
+      setMerchant(val);
+      // Debounce or just check on significant change? For now, instant feedback is nice.
+      // But we check only if value length > 2 to avoid noise
+      if (val.length > 2) {
+          applyMerchantRules(val);
+      }
   };
 
   useEffect(() => {
@@ -647,7 +681,7 @@ const AddTransactionModal: React.FC<AddTransactionModalProps> = ({ onClose, onSa
                                 id="tx-merchant"
                                 type="text"
                                 value={merchant}
-                                onChange={e => setMerchant(e.target.value)}
+                                onChange={handleMerchantChange}
                                 className={`${INPUT_BASE_STYLE} pl-10`}
                                 placeholder="Optional"
                                 list={merchantSuggestions.length > 0 ? merchantListId : undefined}

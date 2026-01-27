@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import { createPortal } from 'react-dom';
 
 interface ModalProps {
   children: React.ReactNode;
@@ -8,11 +9,15 @@ interface ModalProps {
   size?: 'lg' | 'xl' | '2xl' | '3xl';
 }
 
-const Modal: React.FC<ModalProps> = ({ children, onClose, title, zIndexClass = 'z-50', size = 'lg' }) => {
+const Modal: React.FC<ModalProps> = ({ children, onClose, title, zIndexClass = 'z-[9999]', size = 'lg' }) => {
   const [isVisible, setIsVisible] = useState(false);
+  const [mounted, setMounted] = useState(false);
 
   useEffect(() => {
-    setIsVisible(true);
+    setMounted(true);
+    // Small timeout to allow mount before animation
+    const timer = setTimeout(() => setIsVisible(true), 10);
+    return () => clearTimeout(timer);
   }, []);
 
   const sizeClasses = {
@@ -31,10 +36,13 @@ const Modal: React.FC<ModalProps> = ({ children, onClose, title, zIndexClass = '
     e.stopPropagation();
   };
 
-  return (
+  if (!mounted || typeof document === 'undefined') return null;
+
+  const modalContent = (
     <div 
       className={`fixed inset-0 flex items-center justify-center bg-gray-900/40 dark:bg-black/80 backdrop-blur-sm p-4 ${zIndexClass} transition-opacity duration-300 ${isVisible ? 'opacity-100' : 'opacity-0'}`}
       onClick={handleClose}
+      style={{ position: 'fixed', top: 0, left: 0, right: 0, bottom: 0 }}
     >
       <div 
         className={`bg-white/95 dark:bg-gray-900/95 rounded-xl shadow-modal w-full ${sizeClasses[size]} transition-all duration-300 ease-in-out ${isVisible ? 'scale-100 opacity-100' : 'scale-95 opacity-0'}`}
@@ -52,6 +60,8 @@ const Modal: React.FC<ModalProps> = ({ children, onClose, title, zIndexClass = '
       </div>
     </div>
   );
+
+  return createPortal(modalContent, document.body);
 };
 
 export default Modal;

@@ -1,3 +1,4 @@
+
 import React, { useState, useMemo, useEffect } from 'react';
 import { Account, Transaction, Warrant, AccountType } from '../types';
 import AccountRow from './AccountRow';
@@ -109,9 +110,12 @@ const AccountsListSection: React.FC<AccountsListSectionProps> = ({
         return null;
     }
     
+    // Updated grid classes: Use auto-fill with the new fixed card width to ensure they flow correctly.
+    // 'columns' mode is treated as the primary responsive grid.
+    // 'stacked' mode is treated as a list or single column for density.
     const gridClasses = layoutMode === 'columns' 
-        ? 'grid-cols-1 sm:grid-cols-2 xl:grid-cols-1 2xl:grid-cols-2' 
-        : 'grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4';
+        ? 'grid-cols-[repeat(auto-fill,minmax(332px,1fr))]' 
+        : 'grid-cols-1 xl:grid-cols-2';
 
     return (
         <section className="animate-fade-in-up h-full flex flex-col">
@@ -156,7 +160,7 @@ const AccountsListSection: React.FC<AccountsListSectionProps> = ({
                                 </div>
                                 
                                 {expandedGroups[groupName] && (
-                                    <div className={`grid gap-6 ${gridClasses}`}>
+                                    <div className={`grid gap-1 justify-items-left ${gridClasses}`}>
                                         {accountsInGroup.map(acc => (
                                             <AccountRow
                                                 key={acc.id}

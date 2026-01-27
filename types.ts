@@ -219,6 +219,7 @@ export interface RecurringTransaction {
   accountId: string; // from account for transfers
   toAccountId?: string; // to account for transfers
   description: string;
+  merchant?: string; // Explicit merchant name
   amount: number; // Always positive
   category?: string;
   type: 'income' | 'expense' | 'transfer';
@@ -434,6 +435,15 @@ export interface ImportExportHistoryItem {
 
 export type DefaultAccountOrder = 'manual' | 'name' | 'balance';
 
+export interface MerchantRule {
+  category?: string;
+  website?: string;
+  logo?: string; // Custom logo override (e.g. 'amazon.com')
+  notes?: string;
+  isHidden?: boolean;
+  defaultDescription?: string;
+}
+
 export interface AppPreferences {
   currency: string;
   language: string;
@@ -446,9 +456,10 @@ export interface AppPreferences {
   defaultForecastPeriod?: ForecastDuration;
   brandfetchClientId?: string;
   twelveDataApiKey?: string;
-  merchantLogoOverrides?: Record<string, string>;
+  merchantLogoOverrides?: Record<string, string>; // Deprecated in favor of merchantRules, kept for backward compat if needed
+  merchantRules?: Record<string, MerchantRule>; // Key is normalized merchant name
   geminiApiKey?: string;
-  hiddenMerchants?: string[];
+  hiddenMerchants?: string[]; // Deprecated in favor of merchantRules[x].isHidden
 }
 
 // New types for Bills & Payments

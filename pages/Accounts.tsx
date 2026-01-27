@@ -1,3 +1,4 @@
+
 import React, { useState, useMemo, useEffect, useRef } from 'react';
 import { Account, Page, AccountType, Transaction, Warrant } from '../types';
 import AddAccountModal from '../components/AddAccountModal';
@@ -11,7 +12,7 @@ import Card from '../components/Card';
 import useLocalStorage from '../hooks/useLocalStorage';
 import { useScheduleContext } from '../contexts/FinancialDataContext';
 import PageHeader from '../components/PageHeader';
-import { LineChart, Line, ResponsiveContainer, YAxis } from 'recharts';
+import { LineChart, Line, ResponsiveContainer, YAxis, AreaChart, Area } from 'recharts';
 
 interface AccountsProps {
     accounts: Account[];
@@ -31,6 +32,8 @@ interface AccountsProps {
     linkedEnableBankingAccountIds: Set<string>;
 }
 
+type AccountSegment = 'all' | 'cash' | 'invested' | 'property' | 'debt';
+
 const Accounts: React.FC<AccountsProps> = ({ accounts, transactions, saveAccount, deleteAccount, setCurrentPage, setViewingAccountId, onViewAccount, saveTransaction, accountOrder, setAccountOrder, initialSortBy, warrants, onToggleAccountStatus, onNavigateToTransactions, linkedEnableBankingAccountIds }) => {
   const [isAddModalOpen, setAddModalOpen] = useState(false);
   const [isEditModalOpen, setEditModalOpen] = useState(false);
@@ -40,9 +43,12 @@ const Accounts: React.FC<AccountsProps> = ({ accounts, transactions, saveAccount
   const [contextMenu, setContextMenu] = useState<{ x: number, y: number, account: Account } | null>(null);
   const [deletingAccount, setDeletingAccount] = useState<Account | null>(null);
   const contextMenuRef = useRef<HTMLDivElement>(null);
-  const [layoutMode, setLayoutMode] = useLocalStorage<'stacked' | 'columns'>('crystal_accounts_section_layout', 'stacked');
+  const [layoutMode, setLayoutMode] = useLocalStorage<'stacked' | 'columns'>('crystal_accounts_section_layout', 'columns');
   const [sortBy, setSortBy] = useState<'name' | 'balance' | 'manual'>(initialSortBy);
   const { loanPaymentOverrides } = useScheduleContext();
+  
+  // New State for Segmentation
+  const [activeSegment, setActiveSegment] = useState<AccountSegment>('all');
 
   useEffect(() => {
     const handleClickOutside = (event: MouseEvent) => {
@@ -58,6 +64,7 @@ const Accounts: React.FC<AccountsProps> = ({ accounts, transactions, saveAccount
   
   const visibleAccounts = useMemo(() => {
       return accounts.filter(acc => {
+          // Hide underlying warrant accounts from main view as they are managed via Warrants page
           if (acc.type === 'Investment') {
                if (['Stock', 'ETF', 'Crypto'].includes(acc.subType || '')) {
                    return !acc.symbol; 
@@ -68,6 +75,7 @@ const Accounts: React.FC<AccountsProps> = ({ accounts, transactions, saveAccount
       });
   }, [accounts]);
 
+  // --- Metrics Calculation ---
   const analyticsAccounts = useMemo(() => visibleAccounts.filter(acc => acc.includeInAnalytics ?? true), [visibleAccounts]);
   const analyticsAccountIds = useMemo(() => new Set(analyticsAccounts.map(acc => acc.id)), [analyticsAccounts]);
   const analyticsTransactions = useMemo(
@@ -75,68 +83,139 @@ const Accounts: React.FC<AccountsProps> = ({ accounts, transactions, saveAccount
     [transactions, analyticsAccountIds]
   );
 
-  const { openAccounts, closedAccounts, totalAssets, totalDebt, netWorth, liquidCash, netChange30d, debtRatio, trendData } = useMemo(() => {
-    const safeAccounts = visibleAccounts || [];
-    const open = safeAccounts.filter(acc => acc.status !== 'closed');
-    const closed = safeAccounts.filter(acc => acc.status === 'closed');
-    const analyticsOpen = open.filter(acc => acc.includeInAnalytics ?? true);
-    const analyticsOpenIds = new Set(analyticsOpen.map(acc => acc.id));
+  const globalMetrics = useMemo(() => {
+      const open = visibleAccounts.filter(acc => acc.status !== 'closed');
+      const { totalAssets, totalDebt, netWorth } = calculateAccountTotals(open, analyticsTransactions, loanPaymentOverrides);
+      const liquidCash = open.filter(acc => LIQUID_ACCOUNT_TYPES.includes(acc.type))
+                            .reduce((sum, acc) => sum + convertToEur(acc.balance, acc.currency), 0);
+                            
+      // Calculate daily trend for sparkline
+      const dailyTrend = [];
+      let runningNetWorth = netWorth;
+      const sortedTxs = [...analyticsTransactions].sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
+      
+      const changesByDate: Record<string, number> = {};
+      sortedTxs.forEach(tx => {
+          const d = tx.date;
+          changesByDate[d] = (changesByDate[d] || 0) + convertToEur(tx.amount, tx.currency);
+      });
 
-    const { totalAssets, totalDebt, netWorth } = calculateAccountTotals(analyticsOpen, analyticsTransactions, loanPaymentOverrides);
-    const liquidCash = analyticsOpen.filter(acc => LIQUID_ACCOUNT_TYPES.includes(acc.type))
-                           .reduce((sum, acc) => sum + convertToEur(acc.balance, acc.currency), 0);
+      for (let i = 0; i < 30; i++) {
+          const date = new Date();
+          date.setDate(date.getDate() - i);
+          const dateStr = toLocalISOString(date);
+          dailyTrend.push({ date: dateStr, value: runningNetWorth });
+          runningNetWorth -= (changesByDate[dateStr] || 0);
+      }
+      
+      return { totalAssets, totalDebt, netWorth, liquidCash, trendData: dailyTrend.reverse() };
+  }, [visibleAccounts, analyticsTransactions, loanPaymentOverrides]);
 
-    const thirtyDaysAgo = new Date();
-    thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
-    const netChange30d = analyticsTransactions.reduce((sum, tx) => {
-        const txDate = parseLocalDate(tx.date);
-        if (txDate >= thirtyDaysAgo && analyticsOpenIds.has(tx.accountId)) {
-            return sum + convertToEur(tx.amount, tx.currency);
-        }
-        return sum;
-    }, 0);
+  // --- Filter Logic ---
+  const filteredAccounts = useMemo(() => {
+      const open = visibleAccounts.filter(acc => acc.status !== 'closed');
+      switch (activeSegment) {
+          case 'cash':
+              return open.filter(acc => LIQUID_ACCOUNT_TYPES.includes(acc.type));
+          case 'invested':
+              return open.filter(acc => acc.type === 'Investment');
+          case 'property':
+              return open.filter(acc => acc.type === 'Property' || acc.type === 'Vehicle' || acc.type === 'Other Assets');
+          case 'debt':
+              return open.filter(acc => DEBT_TYPES.includes(acc.type));
+          default:
+              return open;
+      }
+  }, [visibleAccounts, activeSegment]);
+  
+  const closedAccounts = useMemo(() => visibleAccounts.filter(acc => acc.status === 'closed'), [visibleAccounts]);
 
-    const debtRatio = totalAssets > 0 ? (totalDebt / totalAssets) * 100 : 0;
+  // --- Segment Metrics ---
+  const segmentMetrics = useMemo(() => {
+      const accountsToSum = filteredAccounts.filter(acc => acc.includeInAnalytics ?? true);
+      let totalValue = 0;
+      let label = 'Total Net Worth';
+      let subLabel = 'All Accounts';
+      let details: { label: string; value: string; icon?: string }[] = [];
+      
+      if (activeSegment === 'all') {
+          totalValue = globalMetrics.netWorth;
+          details = [
+              { label: 'Total Assets', value: formatCurrency(globalMetrics.totalAssets, 'EUR'), icon: 'account_balance' },
+              { label: 'Total Liabilities', value: formatCurrency(globalMetrics.totalDebt, 'EUR'), icon: 'money_off' },
+              { label: 'Liquid Cash', value: formatCurrency(globalMetrics.liquidCash, 'EUR'), icon: 'savings' },
+          ];
+      } else if (activeSegment === 'cash') {
+          totalValue = accountsToSum.reduce((sum, acc) => sum + convertToEur(acc.balance, acc.currency), 0);
+          label = 'Total Liquidity';
+          subLabel = 'Cash & Equivalents';
 
-    const dailyTrend = [];
-    let runningNetWorth = netWorth;
-    const sortedTxs = [...analyticsTransactions].sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
-    
-    const changesByDate: Record<string, number> = {};
-    sortedTxs.forEach(tx => {
-        const d = tx.date;
-        changesByDate[d] = (changesByDate[d] || 0) + convertToEur(tx.amount, tx.currency);
-    });
+          const checking = accountsToSum.filter(a => a.type === 'Checking').reduce((s, a) => s + convertToEur(a.balance, a.currency), 0);
+          const savings = accountsToSum.filter(a => a.type === 'Savings').reduce((s, a) => s + convertToEur(a.balance, a.currency), 0);
+          
+          // Calculate 30-day net flow for cash accounts
+          const thirtyDaysAgo = new Date(); thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
+          const cashIds = new Set(accountsToSum.map(a => a.id));
+          const netFlow = transactions
+            .filter(t => cashIds.has(t.accountId) && new Date(t.date) >= thirtyDaysAgo && !t.transferId)
+            .reduce((sum, t) => sum + convertToEur(t.amount, t.currency), 0);
 
-    for (let i = 0; i < 30; i++) {
-        const date = new Date();
-        date.setDate(date.getDate() - i);
-        const dateStr = toLocalISOString(date);
-        dailyTrend.push({ date: dateStr, value: runningNetWorth });
-        runningNetWorth -= (changesByDate[dateStr] || 0);
-    }
-    const trendData = dailyTrend.reverse();
+          details = [
+              { label: 'Checking', value: formatCurrency(checking, 'EUR'), icon: 'payments' },
+              { label: 'Savings', value: formatCurrency(savings, 'EUR'), icon: 'savings' },
+              { label: '30d Net Flow', value: (netFlow >= 0 ? '+' : '') + formatCurrency(netFlow, 'EUR'), icon: 'show_chart' },
+          ];
+      } else if (activeSegment === 'invested') {
+          totalValue = accountsToSum.reduce((sum, acc) => sum + convertToEur(acc.balance, acc.currency), 0);
+          label = 'Investment Value';
+          subLabel = 'Market Value';
+          
+          const crypto = accountsToSum.filter(a => a.subType === 'Crypto').reduce((s, a) => s + convertToEur(a.balance, a.currency), 0);
+          const stocks = accountsToSum.filter(a => ['Stock', 'ETF'].includes(a.subType || '')).reduce((s, a) => s + convertToEur(a.balance, a.currency), 0);
 
-    return {
-        openAccounts: open,
-        closedAccounts: closed,
-        totalAssets,
-        totalDebt,
-        netWorth,
-        liquidCash,
-        netChange30d,
-        debtRatio,
-        trendData
-    };
-  }, [analyticsTransactions, visibleAccounts, loanPaymentOverrides]);
+          details = [
+               { label: 'Stocks & ETFs', value: formatCurrency(stocks, 'EUR'), icon: 'candlestick_chart' },
+               { label: 'Crypto', value: formatCurrency(crypto, 'EUR'), icon: 'currency_bitcoin' },
+               { label: 'Count', value: accountsToSum.length.toString(), icon: 'format_list_numbered' },
+          ];
+      } else if (activeSegment === 'property') {
+          totalValue = accountsToSum.reduce((sum, acc) => sum + convertToEur(acc.balance, acc.currency), 0);
+          label = 'Asset Value';
+          subLabel = 'Current Market Value';
+
+          // Calculate Debt linked to these properties
+          const linkedLoanIds = new Set(accountsToSum.map(a => a.linkedLoanId).filter(Boolean));
+          const linkedLoans = accounts.filter(a => linkedLoanIds.has(a.id));
+          const { totalDebt } = calculateAccountTotals(linkedLoans, analyticsTransactions, loanPaymentOverrides);
+          const equity = totalValue - totalDebt;
+
+          details = [
+              { label: 'Total Equity', value: formatCurrency(equity, 'EUR'), icon: 'pie_chart' },
+              { label: 'Linked Debt', value: formatCurrency(totalDebt, 'EUR'), icon: 'link' },
+              { label: 'Assets', value: accountsToSum.length.toString(), icon: 'home' },
+          ];
+      } else if (activeSegment === 'debt') {
+           const { totalDebt } = calculateAccountTotals(accountsToSum, analyticsTransactions, loanPaymentOverrides);
+           totalValue = totalDebt; 
+           label = 'Total Liabilities';
+           subLabel = 'Outstanding Balance';
+
+           const ccDebt = accountsToSum.filter(a => a.type === 'Credit Card').reduce((sum, a) => sum + Math.abs(convertToEur(a.balance, a.currency)), 0);
+           const loanDebt = totalDebt - ccDebt;
+
+           details = [
+               { label: 'Credit Cards', value: formatCurrency(ccDebt, 'EUR'), icon: 'credit_card' },
+               { label: 'Loans', value: formatCurrency(loanDebt, 'EUR'), icon: 'real_estate_agent' },
+               { label: 'Count', value: accountsToSum.length.toString(), icon: 'format_list_numbered' },
+           ];
+      }
+      return { totalValue, label, subLabel, details };
+  }, [filteredAccounts, activeSegment, globalMetrics, analyticsTransactions, loanPaymentOverrides, accounts]);
 
   const transactionsByAccount = useMemo(() => transactions.reduce((acc, transaction) => {
     (acc[transaction.accountId] = acc[transaction.accountId] || []).push(transaction);
     return acc;
   }, {} as Record<string, Transaction[]>), [transactions]);
-
-  const assetAccounts = useMemo(() => openAccounts.filter(acc => ASSET_TYPES.includes(acc.type)), [openAccounts]);
-  const debtAccounts = useMemo(() => openAccounts.filter(acc => DEBT_TYPES.includes(acc.type)), [openAccounts]);
 
   const handleAccountClick = (accountId: string) => {
     if (onViewAccount) {
@@ -187,8 +266,25 @@ const Accounts: React.FC<AccountsProps> = ({ accounts, transactions, saveAccount
     const y = Math.max(padding, Math.min(event.clientY, window.innerHeight - menuHeight - padding));
     setContextMenu({ x, y, account });
   };
+  
+  // Segment Pills config
+  const segments: { id: AccountSegment; label: string; icon: string }[] = [
+      { id: 'all', label: 'Overview', icon: 'dashboard' },
+      { id: 'cash', label: 'Cash', icon: 'payments' },
+      { id: 'invested', label: 'Invested', icon: 'trending_up' },
+      { id: 'property', label: 'Assets', icon: 'home' },
+      { id: 'debt', label: 'Liabilities', icon: 'credit_card' },
+  ];
 
-  const netChangePercent = netWorth > 0 ? (netChange30d / (netWorth - netChange30d)) * 100 : 0;
+  const heroGradient = activeSegment === 'debt' 
+    ? 'from-red-500 to-rose-600' 
+    : activeSegment === 'cash' 
+        ? 'from-blue-500 to-cyan-600'
+        : activeSegment === 'invested'
+            ? 'from-purple-500 to-indigo-600'
+            : activeSegment === 'property'
+                ? 'from-emerald-500 to-teal-600'
+                : 'from-primary-600 to-primary-800'; // Default/All
 
   return (
     <div className="space-y-6 pb-12 animate-fade-in-up">
@@ -196,6 +292,7 @@ const Accounts: React.FC<AccountsProps> = ({ accounts, transactions, saveAccount
       {isEditModalOpen && editingAccount && <EditAccountModal onClose={() => setEditModalOpen(false)} onSave={handleUpdateAccount} onDelete={(accountId) => { setEditModalOpen(false); setDeletingAccount(editingAccount);}} account={editingAccount} accounts={accounts} warrants={warrants} onToggleStatus={onToggleAccountStatus} />}
       {isAdjustModalOpen && adjustingAccount && <BalanceAdjustmentModal onClose={() => setAdjustingAccount(null)} onSave={handleSaveAdjustment} account={adjustingAccount} />}
       {deletingAccount && <FinalConfirmationModal isOpen={!!deletingAccount} onClose={() => setDeletingAccount(null)} onConfirm={handleConfirmDelete} title="Delete Account" message={<><p className="text-light-text-secondary dark:text-dark-text-secondary mb-4">You are about to permanently delete the account <strong className="text-light-text dark:text-dark-text">{deletingAccount.name}</strong>.</p><div className="p-3 bg-red-500/10 rounded-lg text-red-700 dark:text-red-300 text-sm"><p className="font-bold">This action cannot be undone.</p><p>All associated transactions will also be permanently deleted.</p></div></>} requiredText="DELETE" confirmButtonText="Delete Account" />}
+      
       {contextMenu && (
         <div ref={contextMenuRef} style={{ top: contextMenu.y, left: contextMenu.x }} className="fixed z-50 w-56 bg-light-card dark:bg-dark-card rounded-lg shadow-lg border border-black/10 dark:border-white/10 py-2 animate-fade-in-up">
             <ul className="text-sm">
@@ -210,129 +307,157 @@ const Accounts: React.FC<AccountsProps> = ({ accounts, transactions, saveAccount
         </div>
       )}
 
-      <PageHeader markerIcon="account_balance" markerLabel="Money Map" title="Accounts" subtitle="Bank, card, and lending balances with tools to rebalance, reorder, and reconcile on the fly." actions={<button onClick={() => setAddModalOpen(true)} className={`${BTN_PRIMARY_STYLE} flex items-center gap-2`}><span className="material-symbols-outlined text-xl">add</span>Add Account</button>} />
+      <PageHeader 
+        markerIcon="account_balance" 
+        markerLabel="Money Map" 
+        title="Accounts" 
+        subtitle="Manage your assets and liabilities with a unified, real-time portfolio view." 
+        actions={<button onClick={() => setAddModalOpen(true)} className={`${BTN_PRIMARY_STYLE} flex items-center gap-2`}><span className="material-symbols-outlined text-xl">add</span>Add Account</button>} 
+      />
 
-      {/* --- REFINED WEALTH CONSOLE --- */}
-      <div className="relative group">
-          <div className="bg-white/40 dark:bg-dark-card/40 backdrop-blur-2xl rounded-2xl border border-black/5 dark:border-white/5 shadow-lg overflow-hidden">
-              <div className="flex flex-col xl:flex-row items-stretch">
+      {/* --- Dynamic Wealth Console --- */}
+      <div className={`relative overflow-hidden rounded-3xl bg-gradient-to-br ${heroGradient} text-white shadow-xl`}>
+          <div className="absolute inset-0 bg-[url('https://www.transparenttextures.com/patterns/cubes.png')] opacity-10 pointer-events-none"></div>
+          
+          <div className="relative z-10 flex flex-col xl:flex-row">
+              {/* Main Total */}
+              <div className="p-8 flex flex-col justify-between flex-1">
+                  <div className="space-y-2">
+                      <div className="flex items-center gap-2 text-white/80 text-xs font-bold uppercase tracking-widest">
+                           <span className="material-symbols-outlined text-sm">
+                               {activeSegment === 'debt' ? 'trending_down' : 'trending_up'}
+                           </span>
+                           {segmentMetrics.subLabel}
+                      </div>
+                      <div className="flex items-baseline gap-4">
+                          <h2 className="text-5xl font-black tracking-tighter privacy-blur">{formatCurrency(segmentMetrics.totalValue, 'EUR')}</h2>
+                      </div>
+                      <p className="text-white/60 text-sm font-medium">{segmentMetrics.label}</p>
+                  </div>
                   
-                  {/* Left: Main Balance & Sparkline */}
-                  <div className="flex-1 flex flex-col sm:flex-row items-center gap-8 p-6 border-b xl:border-b-0 xl:border-r border-black/5 dark:border-white/5">
-                      <div className="space-y-1 text-center sm:text-left">
-                          <p className="text-[10px] font-black uppercase tracking-[0.2em] text-light-text-secondary dark:text-dark-text-secondary">Aggregate Net Worth</p>
-                          <div className="flex items-baseline gap-3">
-                              <h2 className="text-4xl md:text-5xl font-black text-light-text dark:text-dark-text tracking-tighter privacy-blur leading-none">
-                                  {formatCurrency(netWorth, 'EUR')}
-                              </h2>
-                              <div className={`flex items-center gap-1 text-[10px] font-black uppercase ${netChange30d >= 0 ? 'text-emerald-500' : 'text-rose-500'}`}>
-                                  {netChange30d >= 0 ? '▲' : '▼'} {formatCurrency(Math.abs(netChange30d), 'EUR', { showPlusSign: false })}
-                              </div>
-                          </div>
-                      </div>
-                      
-                      {/* Compact Trend Line (Doesn't span full width) */}
-                      <div className="w-full sm:w-32 h-12 opacity-50 hover:opacity-100 transition-opacity">
-                          <ResponsiveContainer width="100%" height="100%">
-                              <LineChart data={trendData}>
-                                  <YAxis hide domain={['auto', 'auto']} />
-                                  <Line 
-                                      type="monotone" 
-                                      dataKey="value" 
-                                      stroke="#fa9a1d" 
-                                      strokeWidth={3} 
-                                      dot={false} 
-                                      animationDuration={1500}
-                                  />
-                              </LineChart>
-                          </ResponsiveContainer>
-                      </div>
-                  </div>
+                  {/* Sparkline */}
+                   <div className="w-full h-24 mt-6 opacity-60">
+                       <ResponsiveContainer width="100%" height="100%">
+                          <AreaChart data={globalMetrics.trendData}>
+                              <defs>
+                                <linearGradient id="colorTrend" x1="0" y1="0" x2="0" y2="1">
+                                  <stop offset="5%" stopColor="#ffffff" stopOpacity={0.4}/>
+                                  <stop offset="95%" stopColor="#ffffff" stopOpacity={0}/>
+                                </linearGradient>
+                              </defs>
+                              <Area type="monotone" dataKey="value" stroke="#ffffff" strokeWidth={2} fillOpacity={1} fill="url(#colorTrend)" />
+                          </AreaChart>
+                       </ResponsiveContainer>
+                   </div>
+              </div>
 
-                  {/* Right: Wealth Vitals Grid (High density) */}
-                  <div className="flex-[1.5] grid grid-cols-1 sm:grid-cols-3 divide-y sm:divide-y-0 sm:divide-x border-black/5 dark:border-white/5">
-                      
-                      {/* Vital: Liquidity */}
-                      <div className="p-5 flex items-center gap-4 group/vital hover:bg-black/5 dark:hover:bg-white/5 transition-colors">
-                          <div className="w-10 h-10 rounded-xl bg-blue-500/10 text-blue-600 dark:text-blue-400 flex items-center justify-center shadow-inner">
-                              <span className="material-symbols-outlined text-xl">savings</span>
+              {/* Detail Metrics */}
+              <div className="xl:w-1/3 p-6 bg-white/10 backdrop-blur-md border-t xl:border-t-0 xl:border-l border-white/10 flex flex-col justify-center gap-4">
+                  {segmentMetrics.details.map((detail, index) => (
+                      <div key={index} className="flex items-center gap-4 p-3 rounded-xl bg-black/10 hover:bg-black/20 transition-colors border border-white/5">
+                          <div className="w-10 h-10 rounded-full flex items-center justify-center bg-white/10 text-white">
+                              <span className="material-symbols-outlined text-lg">{detail.icon}</span>
                           </div>
-                          <div className="min-w-0">
-                              <span className="text-[9px] font-black uppercase tracking-widest text-light-text-secondary dark:text-dark-text-secondary block mb-0.5">Liquidity</span>
-                              <p className="text-lg font-black text-light-text dark:text-dark-text privacy-blur leading-tight truncate">{formatCurrency(liquidCash, 'EUR')}</p>
-                          </div>
-                      </div>
-
-                      {/* Vital: Solvency */}
-                      <div className="p-5 flex flex-col justify-center group/vital hover:bg-black/5 dark:hover:bg-white/5 transition-colors">
-                          <div className="flex justify-between items-baseline mb-2">
-                              <span className="text-[9px] font-black uppercase tracking-widest text-light-text-secondary dark:text-dark-text-secondary">Solvency</span>
-                              <span className="text-[11px] font-black text-rose-500">{debtRatio.toFixed(1)}%</span>
-                          </div>
-                          <div className="w-full h-1 bg-black/5 dark:bg-white/10 rounded-full overflow-hidden">
-                               <div className="h-full bg-rose-500 rounded-full transition-all duration-1000" style={{ width: `${Math.min(100, debtRatio)}%` }}></div>
+                          <div>
+                              <p className="text-xs text-white/60 uppercase tracking-wider font-bold mb-0.5">{detail.label}</p>
+                              <p className="text-lg font-bold text-white privacy-blur">{detail.value}</p>
                           </div>
                       </div>
-
-                      {/* Vital: Velocity */}
-                      <div className="p-5 flex items-center gap-4 group/vital hover:bg-black/5 dark:hover:bg-white/5 transition-colors">
-                          <div className="w-10 h-10 rounded-xl bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 flex items-center justify-center shadow-inner">
-                              <span className="material-symbols-outlined text-xl">payments</span>
-                          </div>
-                          <div className="min-w-0">
-                              <span className="text-[9px] font-black uppercase tracking-widest text-light-text-secondary dark:text-dark-text-secondary block mb-0.5">Velocity</span>
-                              <p className="text-lg font-black text-light-text dark:text-dark-text privacy-blur leading-tight truncate">{formatCurrency(netChange30d, 'EUR', { showPlusSign: true })}</p>
-                          </div>
-                      </div>
-
-                  </div>
+                  ))}
               </div>
           </div>
       </div>
 
-      {/* Controls Bar */}
-      <div className="flex flex-col md:flex-row justify-between items-center gap-4 bg-white dark:bg-dark-card p-1.5 rounded-2xl border border-black/5 dark:border-white/5 shadow-sm">
-           <div className="flex items-center gap-3 px-4 py-2">
-                <span className="text-sm font-medium text-light-text-secondary dark:text-dark-text-secondary">Sort by:</span>
-                <div className="relative group">
-                    <select value={sortBy} onChange={(e) => setSortBy(e.target.value as any)} className="bg-transparent text-sm font-bold text-light-text dark:text-dark-text focus:outline-none cursor-pointer pr-5 appearance-none">
-                        <option value="manual">Manual Order</option>
-                        <option value="name">Name (A-Z)</option>
-                        <option value="balance">Value (High-Low)</option>
-                    </select>
-                    <div className="absolute inset-y-0 right-0 flex items-center pointer-events-none text-light-text dark:text-dark-text"><span className="material-symbols-outlined text-[16px]">expand_more</span></div>
-                </div>
+      {/* --- Segment Navigation & Controls --- */}
+      <div className="flex flex-col xl:flex-row justify-between items-center gap-4 bg-white dark:bg-dark-card p-2 rounded-2xl border border-black/5 dark:border-white/5 shadow-sm sticky top-4 z-10 backdrop-blur-md bg-opacity-90 dark:bg-opacity-90">
+           {/* Segment Pills */}
+           <div className="flex bg-light-fill dark:bg-dark-fill p-1 rounded-xl w-full xl:w-auto overflow-x-auto no-scrollbar">
+                {segments.map(seg => (
+                    <button
+                        key={seg.id}
+                        onClick={() => setActiveSegment(seg.id)}
+                        className={`
+                            flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-bold transition-all duration-200 whitespace-nowrap
+                            ${activeSegment === seg.id 
+                                ? 'bg-white dark:bg-dark-card shadow-sm text-primary-600 dark:text-primary-400 scale-105' 
+                                : 'text-light-text-secondary dark:text-dark-text-secondary hover:text-light-text dark:hover:text-dark-text'}
+                        `}
+                    >
+                        <span className="material-symbols-outlined text-lg">{seg.icon}</span>
+                        {seg.label}
+                    </button>
+                ))}
            </div>
-           <div className="flex bg-light-fill dark:bg-dark-fill p-1 rounded-xl w-full md:w-auto">
-                <button onClick={() => setLayoutMode('columns')} className={`flex-1 md:flex-none px-6 py-2 rounded-lg text-sm font-bold transition-all duration-200 flex items-center justify-center gap-2 ${layoutMode === 'columns' ? 'bg-white dark:bg-dark-card shadow-sm text-primary-600 dark:text-primary-400' : 'text-light-text-secondary dark:text-dark-text-secondary hover:text-light-text dark:hover:text-dark-text'}`}><span className="material-symbols-outlined text-[20px]">grid_view</span><span>Grid</span></button>
-                <button onClick={() => setLayoutMode('stacked')} className={`flex-1 md:flex-none px-6 py-2 rounded-lg text-sm font-bold transition-all duration-200 flex items-center justify-center gap-2 ${layoutMode === 'stacked' ? 'bg-white dark:bg-dark-card shadow-sm text-primary-600 dark:text-primary-400' : 'text-light-text-secondary dark:text-dark-text-secondary hover:text-light-text dark:hover:text-dark-text'}`}><span className="material-symbols-outlined text-[20px]">view_list</span><span>List</span></button>
+
+           {/* View & Sort Controls */}
+           <div className="flex items-center gap-3 w-full xl:w-auto justify-end px-1">
+                <div className={`${SELECT_WRAPPER_STYLE} !w-auto`}>
+                    <select value={sortBy} onChange={(e) => setSortBy(e.target.value as any)} className={`${SELECT_STYLE} !py-2 !text-sm pr-8`}>
+                        <option value="manual">Sort: Manual</option>
+                        <option value="name">Sort: Name</option>
+                        <option value="balance">Sort: Balance</option>
+                    </select>
+                    <div className={SELECT_ARROW_STYLE}><span className="material-symbols-outlined text-sm">expand_more</span></div>
+                </div>
+                
+                <div className="flex bg-light-fill dark:bg-dark-fill p-1 rounded-lg">
+                    <button onClick={() => setLayoutMode('columns')} className={`p-1.5 rounded-md transition-all ${layoutMode === 'columns' ? 'bg-white dark:bg-dark-card shadow text-primary-500' : 'text-gray-400 hover:text-gray-600 dark:hover:text-gray-200'}`}>
+                        <span className="material-symbols-outlined text-xl">grid_view</span>
+                    </button>
+                    <button onClick={() => setLayoutMode('stacked')} className={`p-1.5 rounded-md transition-all ${layoutMode === 'stacked' ? 'bg-white dark:bg-dark-card shadow text-primary-500' : 'text-gray-400 hover:text-gray-600 dark:hover:text-gray-200'}`}>
+                        <span className="material-symbols-outlined text-xl">view_list</span>
+                    </button>
+                </div>
            </div>
       </div>
 
+      {/* --- Filtered Content --- */}
       <div className="space-y-8">
-        <div className={`gap-8 ${layoutMode === 'columns' ? 'grid grid-cols-1 xl:grid-cols-2 items-start' : 'flex flex-col space-y-8'}`}>
-            <div className="space-y-4 min-w-0">
-                    <div className="flex items-center gap-2 pb-2 border-b border-black/5 dark:border-white/5">
-                        <span className="material-symbols-outlined text-emerald-500">account_balance</span>
-                        <h2 className="text-xl font-bold text-light-text dark:text-dark-text">Assets</h2>
-                    </div>
-                    <AccountsListSection title="Cash & Properties" accounts={assetAccounts} transactionsByAccount={transactionsByAccount} warrants={warrants} linkedEnableBankingAccountIds={linkedEnableBankingAccountIds} onAccountClick={handleAccountClick} onEditClick={openEditModal} onAdjustBalanceClick={openAdjustModal} sortBy={sortBy} accountOrder={accountOrder} setAccountOrder={setAccountOrder} onContextMenu={handleContextMenu} isCollapsible={false} layoutMode={layoutMode} />
-                </div>
-                <div className="space-y-4 min-w-0">
-                    <div className="flex items-center gap-2 pb-2 border-b border-black/5 dark:border-white/5">
-                        <span className="material-symbols-outlined text-rose-500">credit_card</span>
-                        <h2 className="text-xl font-bold text-light-text dark:text-dark-text">Liabilities</h2>
-                    </div>
-                    <AccountsListSection title="Debt & Loans" accounts={debtAccounts} transactionsByAccount={transactionsByAccount} warrants={warrants} linkedEnableBankingAccountIds={linkedEnableBankingAccountIds} onAccountClick={handleAccountClick} onEditClick={openEditModal} onAdjustBalanceClick={openAdjustModal} sortBy={sortBy} accountOrder={accountOrder} setAccountOrder={setAccountOrder} onContextMenu={handleContextMenu} isCollapsible={false} layoutMode={layoutMode} />
-                </div>
-        </div>
+            {/* 
+                We use AccountsListSection to render the filtered accounts. 
+                We group accounts by type logic inside the section, but here we just pass the pre-filtered list.
+                We disable "collapsible" for the segmented view to make it cleaner, unless 'All' is selected.
+            */}
+            <AccountsListSection 
+                title={activeSegment === 'all' ? 'Your Portfolio' : `${segments.find(s => s.id === activeSegment)?.label} Accounts`}
+                accounts={filteredAccounts} 
+                transactionsByAccount={transactionsByAccount} 
+                warrants={warrants} 
+                linkedEnableBankingAccountIds={linkedEnableBankingAccountIds} 
+                onAccountClick={handleAccountClick} 
+                onEditClick={openEditModal} 
+                onAdjustBalanceClick={openAdjustModal} 
+                sortBy={sortBy} 
+                accountOrder={accountOrder} 
+                setAccountOrder={setAccountOrder} 
+                onContextMenu={handleContextMenu} 
+                isCollapsible={activeSegment === 'all'} 
+                defaultExpanded={true}
+                layoutMode={layoutMode} 
+            />
 
-        {closedAccounts.length > 0 && (
-            <div className="opacity-60 hover:opacity-100 transition-opacity duration-300 mt-12 pt-8 border-t border-black/5 dark:border-white/5">
-                {/* FIX: Changed 'openAdjustBalanceClick' to 'openAdjustModal' which is the correct function defined in the component. */}
-                <AccountsListSection title="Closed Accounts" accounts={closedAccounts} transactionsByAccount={transactionsByAccount} warrants={warrants} linkedEnableBankingAccountIds={linkedEnableBankingAccountIds} onAccountClick={handleAccountClick} onEditClick={openEditModal} onAdjustBalanceClick={openAdjustModal} sortBy={sortBy} accountOrder={accountOrder} setAccountOrder={setAccountOrder} onContextMenu={handleContextMenu} isCollapsible={true} defaultExpanded={false} layoutMode={layoutMode} />
-            </div>
-        )}
+            {/* Closed Accounts - Only show if relevant to filter or in All view */}
+            {closedAccounts.length > 0 && activeSegment === 'all' && (
+                <div className="opacity-60 hover:opacity-100 transition-opacity duration-300 mt-12 pt-8 border-t border-black/5 dark:border-white/5">
+                    <AccountsListSection 
+                        title="Closed Accounts" 
+                        accounts={closedAccounts} 
+                        transactionsByAccount={transactionsByAccount} 
+                        warrants={warrants} 
+                        linkedEnableBankingAccountIds={linkedEnableBankingAccountIds} 
+                        onAccountClick={handleAccountClick} 
+                        onEditClick={openEditModal} 
+                        onAdjustBalanceClick={openAdjustModal} 
+                        sortBy={sortBy} 
+                        accountOrder={accountOrder} 
+                        setAccountOrder={setAccountOrder} 
+                        onContextMenu={handleContextMenu} 
+                        isCollapsible={true} 
+                        defaultExpanded={false} 
+                        layoutMode={layoutMode} 
+                    />
+                </div>
+            )}
       </div>
     </div>
   );

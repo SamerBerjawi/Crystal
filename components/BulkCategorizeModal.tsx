@@ -1,4 +1,3 @@
-
 import React, { useState } from 'react';
 import Modal from './Modal';
 import { Category } from '../types';
@@ -53,7 +52,7 @@ const BulkCategorizeModal: React.FC<BulkCategorizeModalProps> = ({ onClose, onSa
     const labelStyle = "block text-sm font-medium text-light-text-secondary dark:text-dark-text-secondary mb-1";
 
     return (
-        <Modal onClose={onClose} title="Assign Category">
+        <Modal onClose={onClose} title="Assign Category" zIndexClass="z-[9999]">
             <form onSubmit={handleSubmit} className="space-y-4">
                 <div>
                     <label htmlFor="bulk-category" className={labelStyle}>New Category</label>

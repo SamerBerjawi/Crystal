@@ -1,4 +1,3 @@
-
 import React, { useState } from 'react';
 import { Page, User } from '../types';
 
@@ -101,8 +100,8 @@ const Settings: React.FC<SettingsProps> = ({ setCurrentPage, user }) => {
           <SettingItem
             page="Merchants"
             icon="store"
-            title="Merchant Logos"
-            description="Review detected merchants and customize their logos"
+            title="Merchants"
+            description="Manage merchant defaults, branding, and visibility"
             colorClass="bg-green-100 text-green-600 dark:bg-green-900/30 dark:text-green-400"
           />
            <SettingItem
