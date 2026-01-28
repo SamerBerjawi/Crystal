@@ -393,16 +393,16 @@ const Merchants: React.FC<MerchantsProps> = ({ setCurrentPage }) => {
             })}
           </div>
       ) : (
-          <Card className="p-0 overflow-hidden">
+          <Card className="!p-0 overflow-hidden">
               <table className="w-full text-left text-sm">
                   <thead className="bg-light-bg dark:bg-white/5 border-b border-black/5 dark:border-white/5 text-xs uppercase font-bold text-light-text-secondary dark:text-dark-text-secondary tracking-wider">
                       <tr>
-                          <th className="px-6 py-3">Entity</th>
-                          <th className="px-6 py-3">Default Category</th>
-                          <th className="px-6 py-3 text-right">Count</th>
-                          <th className="px-6 py-3 text-right">Last Activity</th>
-                          <th className="px-6 py-3 text-right">Total Value</th>
-                          <th className="px-6 py-3 w-20"></th>
+                          <th className="px-4 py-3">Entity</th>
+                          <th className="px-4 py-3">Default Category</th>
+                          <th className="px-4 py-3 text-right">Count</th>
+                          <th className="px-4 py-3 text-right">Last Activity</th>
+                          <th className="px-4 py-3 text-right">Total Value</th>
+                          <th className="px-4 py-3 w-20"></th>
                       </tr>
                   </thead>
                   <tbody className="divide-y divide-black/5 dark:divide-white/5">
@@ -418,7 +418,7 @@ const Merchants: React.FC<MerchantsProps> = ({ setCurrentPage }) => {
                                 onClick={() => { setEditingEntity(entity); setIsDetailModalOpen(true); }}
                                 className={`hover:bg-black/5 dark:hover:bg-white/5 transition-colors cursor-pointer group ${isHidden ? 'opacity-60 bg-gray-50 dark:bg-white/5' : ''}`}
                               >
-                                  <td className="px-6 py-3">
+                                  <td className="px-4 py-3">
                                       <div className="flex items-center gap-3">
                                            <div className={`w-8 h-8 rounded-lg flex items-center justify-center overflow-hidden border border-black/5 dark:border-white/10 shadow-sm ${hasLogo ? 'bg-white dark:bg-dark-card' : 'bg-gray-100 dark:bg-gray-800 text-gray-500'}`}>
                                                 {hasLogo && previewUrl ? (
@@ -431,7 +431,7 @@ const Merchants: React.FC<MerchantsProps> = ({ setCurrentPage }) => {
                                            {isHidden && <span className="material-symbols-outlined text-xs text-gray-400">visibility_off</span>}
                                       </div>
                                   </td>
-                                  <td className="px-6 py-3">
+                                  <td className="px-4 py-3">
                                       {entity.rule?.category ? (
                                           <span className="inline-flex items-center px-2 py-0.5 rounded text-xs font-medium bg-gray-100 dark:bg-white/10 text-light-text dark:text-dark-text">
                                               {entity.rule.category}
@@ -440,16 +440,16 @@ const Merchants: React.FC<MerchantsProps> = ({ setCurrentPage }) => {
                                           <span className="text-light-text-secondary dark:text-dark-text-secondary text-xs italic">None</span>
                                       )}
                                   </td>
-                                  <td className="px-6 py-3 text-right font-medium text-light-text-secondary dark:text-dark-text-secondary">
+                                  <td className="px-4 py-3 text-right font-medium text-light-text-secondary dark:text-dark-text-secondary">
                                       {entity.count}
                                   </td>
-                                  <td className="px-6 py-3 text-right text-light-text-secondary dark:text-dark-text-secondary text-xs">
+                                  <td className="px-4 py-3 text-right text-light-text-secondary dark:text-dark-text-secondary text-xs">
                                       {entity.lastActivity ? parseLocalDate(entity.lastActivity).toLocaleDateString() : '—'}
                                   </td>
-                                  <td className={`px-6 py-3 text-right font-mono font-bold ${entity.totalValue >= 0 ? 'text-blue-600 dark:text-blue-400' : 'text-light-text dark:text-dark-text'}`}>
+                                  <td className={`px-4 py-3 text-right font-mono font-bold ${entity.totalValue >= 0 ? 'text-blue-600 dark:text-blue-400' : 'text-light-text dark:text-dark-text'}`}>
                                       {formatCurrency(entity.totalValue, 'EUR')}
                                   </td>
-                                  <td className="px-6 py-3 text-right">
+                                  <td className="px-4 py-3 text-right">
                                        <div className="flex justify-end gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
                                            <button 
                                                 onClick={(e) => handleToggleHidden(entity, e)}

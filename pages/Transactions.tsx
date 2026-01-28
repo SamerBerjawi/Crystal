@@ -27,8 +27,8 @@ interface TransactionsProps {
 
 const MetricCard = React.memo(function MetricCard({ label, value, colorClass = "text-light-text dark:text-dark-text", icon }: { label: string; value: string; colorClass?: string; icon: string }) {
     return (
-        <div className="bg-white dark:bg-dark-card p-4 rounded-xl shadow-sm border border-black/5 dark:border-white/5 flex items-center gap-4 transition-transform hover:scale-[1.02] duration-200 h-full">
-            <div className={`w-12 h-12 rounded-full flex items-center justify-center bg-light-bg dark:bg-white/5 text-light-text-secondary dark:text-dark-text-secondary flex-shrink-0`}>
+        <div className="bg-gray-50 dark:bg-dark-card p-4 rounded-xl shadow-sm border border-black/5 dark:border-white/5 flex items-center gap-4 transition-transform hover:scale-[1.02] duration-200 h-full">
+            <div className={`w-12 h-12 rounded-full flex items-center justify-center bg-white dark:bg-white/5 text-light-text-secondary dark:text-dark-text-secondary flex-shrink-0`}>
                 <span className="material-symbols-outlined text-2xl">{icon}</span>
             </div>
             <div>
@@ -1143,7 +1143,7 @@ const Transactions: React.FC<TransactionsProps> = ({ initialAccountFilter, initi
       </div>
       
       {/* Filter Toolbar */}
-      <div className={`p-4 bg-white dark:bg-dark-card rounded-2xl border border-black/5 dark:border-white/5 shadow-sm transition-all duration-300`}>
+      <div className={`p-4 bg-gray-50 dark:bg-dark-card rounded-2xl border border-black/5 dark:border-white/5 shadow-sm transition-all duration-300`}>
           <div className="flex flex-col gap-4">
               {/* Main Row */}
               <div className="flex flex-col xl:flex-row gap-4 items-start xl:items-end">
@@ -1230,7 +1230,7 @@ const Transactions: React.FC<TransactionsProps> = ({ initialAccountFilter, initi
       
       {/* Transaction List Card */}
       <div className="flex-1 min-w-0 relative">
-        <Card className="!p-0 h-full flex flex-col relative overflow-hidden border border-black/5 dark:border-white/5 shadow-sm rounded-2xl">
+        <Card className="!p-0 h-full flex flex-col relative overflow-hidden border border-black/5 dark:border-white/5 shadow-sm rounded-2xl bg-gray-50 dark:bg-dark-card">
             <div className="overflow-x-auto">
               <div className="min-w-[900px] flex flex-col">
                 {selectedIds.size > 0 ? (
