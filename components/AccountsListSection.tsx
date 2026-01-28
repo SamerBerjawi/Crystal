@@ -160,7 +160,7 @@ const AccountsListSection: React.FC<AccountsListSectionProps> = ({
                                 </div>
                                 
                                 {expandedGroups[groupName] && (
-                                    <div className={`grid gap-1 justify-items-left ${gridClasses}`}>
+                                    <div className={`grid gap-6 ${gridClasses}`}>
                                         {accountsInGroup.map(acc => (
                                             <AccountRow
                                                 key={acc.id}

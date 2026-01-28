@@ -1,4 +1,3 @@
-
 import React, { useMemo, useState, useCallback, useEffect, useRef, Suspense, lazy } from 'react';
 import { User, Transaction, Account, Category, Duration, CategorySpending, Widget, WidgetConfig, DisplayTransaction, FinancialGoal, RecurringTransaction, BillPayment, Tag, Budget, RecurringTransactionOverride, LoanPaymentOverrides, AccountType, Task, ForecastDuration } from '../types';
 import { calculateForecastHorizon, formatCurrency, convertToEur, generateBalanceForecast, generateSyntheticLoanPayments, generateSyntheticCreditCardPayments, generateSyntheticPropertyTransactions, parseLocalDate, getCreditCardStatementDetails, getPreferredTimeZone, formatDateKey, toLocalISOString, getDateRange, calculateAccountTotals, calculateStatementPeriods } from '../utils';
@@ -1379,7 +1378,7 @@ const Dashboard: React.FC<DashboardProps> = ({ user, tasks, saveTask }) => {
                     />
                 </div>
                 <div className="xl:col-span-1 h-full">
-                     <Card className="h-full p-0 overflow-hidden border border-black/5 dark:border-white/5 shadow-sm rounded-3xl">
+                     <Card className="h-full !p-0 overflow-hidden border border-black/5 dark:border-white/5 shadow-sm rounded-3xl">
                         <TodayWidget 
                             tasks={tasks} 
                             recurringTransactions={allRecurringItems} 

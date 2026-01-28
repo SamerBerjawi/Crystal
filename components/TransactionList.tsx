@@ -105,7 +105,7 @@ const TransactionList: React.FC<TransactionListProps> = ({ transactions, allCate
   const visibleTransactions = preparedTransactions.slice(startIndex, endIndex);
 
   return (
-      <div ref={containerRef} className="space-y-2 h-full max-h-[32rem] overflow-y-auto relative" role="list">
+      <div ref={containerRef} className="space-y-2 h-full max-h-[32rem] overflow-y-auto relative p-2" role="list">
         <div style={{ height: preparedTransactions.length * ROW_HEIGHT }} aria-hidden />
         <ul className="absolute inset-0" style={{ transform: `translateY(${offsetY}px)` }}>
           {visibleTransactions.map(({ tx, description, amountDisplay, icon, categoryColor, isTransfer, formattedDate, spareAmountEur, merchantLogoUrl, showMerchantLogo, merchantInitial }) => {

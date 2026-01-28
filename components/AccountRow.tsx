@@ -127,9 +127,9 @@ const AccountRow: React.FC<AccountRowProps> = ({ account, transactions, warrants
     if (account.type === 'Investment' && account.subType) {
         styleConfig = INVESTMENT_SUB_TYPE_STYLES[account.subType];
     } else if (account.type === 'Other Assets' && account.otherSubType) {
-        styleConfig = OTHER_ASSET_SUB_TYPE_STYLES[account.otherSubType as OtherAssetSubType];
+        styleConfig = OTHER_ASSET_SUB_TYPE_STYLES[account.otherSubType as OtherAssetSubType] || styleConfig;
     } else if (account.type === 'Other Liabilities' && account.otherSubType) {
-        styleConfig = OTHER_LIABILITY_SUB_TYPE_STYLES[account.otherSubType as OtherLiabilitySubType];
+        styleConfig = OTHER_LIABILITY_SUB_TYPE_STYLES[account.otherSubType as OtherLiabilitySubType] || styleConfig;
     }
         
     const typeColor = styleConfig?.color || 'text-gray-500';
@@ -145,18 +145,23 @@ const AccountRow: React.FC<AccountRowProps> = ({ account, transactions, warrants
 
     let detailsText = account.financialInstitution || account.type;
     if (account.type === 'Other Assets' || account.type === 'Other Liabilities') {
-        detailsText = account.otherSubType || detailsText;
+        detailsText = account.otherSubType || account.type;
     } else if (account.type === 'Property' && account.propertyType) {
         detailsText = account.propertyType;
     } else if (account.type === 'Investment' && account.subType) {
+        detailsText = account.subType;
         if (account.subType === 'Pension Fund' && account.expectedRetirementYear) {
             detailsText = `Pension • Retires ${account.expectedRetirementYear}`;
-        } else {
-            detailsText = account.subType;
+        } else if (account.subType === 'Spare Change' && account.linkedAccountId) {
+            // Ideally we would lookup account name, but here we just indicate it's linked
+            detailsText = 'Round-ups Active'; 
         }
     } else if (account.type === 'Savings' && account.apy) {
         detailsText = `${account.financialInstitution || 'Savings'} • ${account.apy}% APY`;
     }
+
+    // Secondary Text fallback
+    let secondaryText = detailsText;
     
     const isIncludedInAnalytics = account.includeInAnalytics ?? true;
 
@@ -189,7 +194,7 @@ const AccountRow: React.FC<AccountRowProps> = ({ account, transactions, warrants
                 rounded-2xl border border-black/5 dark:border-white/10
                 shadow-sm hover:shadow-xl hover:-translate-y-1
                 transition-all duration-300 ease-out
-                w-[332px] h-[210px] p-5 flex flex-col justify-between
+                w-full h-[210px] p-5 flex flex-col justify-between
                 ${cursorClass} ${dragClasses} ${dragOverClasses}
                 ${account.status === 'closed' ? 'opacity-60 grayscale' : ''}
             `}
@@ -223,7 +228,7 @@ const AccountRow: React.FC<AccountRowProps> = ({ account, transactions, warrants
                                 {account.name}
                             </h3>
                             <p className="text-[10px] text-light-text-secondary dark:text-dark-text-secondary truncate font-semibold mt-0.5 tracking-wide uppercase">
-                                {detailsText}
+                                {secondaryText}
                                 {account.last4 && <span className="opacity-70 ml-1">•••• {account.last4}</span>}
                             </p>
                         </div>

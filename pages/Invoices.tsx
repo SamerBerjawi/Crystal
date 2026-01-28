@@ -25,7 +25,7 @@ const InvoicesPage: React.FC = () => {
     const brandfetchClientId = usePreferencesSelector(p => (p.brandfetchClientId || '').trim());
     const merchantLogoOverrides = usePreferencesSelector(p => p.merchantLogoOverrides || {});
 
-    const [activeTab, setActiveTab] = useState<'invoices' | 'quotes'>('invoice');
+    const [activeTab, setActiveTab] = useState<'invoices' | 'quotes'>('invoices');
     const [isEditorOpen, setIsEditorOpen] = useState(false);
     const [editingInvoice, setEditingInvoice] = useState<Invoice | null>(null);
     const [editorInitialType, setEditorInitialType] = useState<InvoiceType>('invoice');
@@ -36,7 +36,7 @@ const InvoicesPage: React.FC = () => {
 
     // Derived Lists
     const displayedDocs = useMemo(() => {
-        const typeMatch = activeTab === 'invoice' ? 'invoice' : 'quote';
+        const typeMatch = activeTab === 'invoices' ? 'invoice' : 'quote';
         return invoices
             .filter(doc => doc.type === typeMatch)
             .filter(doc => statusFilter === 'all' || doc.status === statusFilter)
@@ -86,7 +86,7 @@ const InvoicesPage: React.FC = () => {
         };
         saveInvoice(newInvoice);
         saveInvoice({ ...quote, status: 'accepted' });
-        setActiveTab('invoice'); // Switch tab to show new invoice
+        setActiveTab('invoices'); // Switch tab to show new invoice
     };
 
     const handleLogoError = (url: string) => setLogoLoadErrors(prev => ({ ...prev, [url]: true }));
@@ -156,8 +156,8 @@ const InvoicesPage: React.FC = () => {
                     {/* Tab Switcher */}
                     <div className="flex bg-gray-100 dark:bg-white/10 p-1 rounded-xl w-full md:w-auto">
                         <button 
-                            onClick={() => setActiveTab('invoice')} 
-                            className={`flex-1 md:flex-none px-6 py-2 rounded-lg text-sm font-bold transition-all ${activeTab === 'invoice' ? 'bg-white dark:bg-dark-card shadow text-primary-600 dark:text-primary-400' : 'text-gray-500 hover:text-gray-700 dark:hover:text-gray-300'}`}
+                            onClick={() => setActiveTab('invoices')} 
+                            className={`flex-1 md:flex-none px-6 py-2 rounded-lg text-sm font-bold transition-all ${activeTab === 'invoices' ? 'bg-white dark:bg-dark-card shadow text-primary-600 dark:text-primary-400' : 'text-gray-500 hover:text-gray-700 dark:hover:text-gray-300'}`}
                         >
                             Invoices
                         </button>

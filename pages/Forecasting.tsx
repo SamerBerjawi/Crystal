@@ -63,7 +63,7 @@ const useSmartGoalPlanner = (
                 current_date: toLocalISOString(new Date()),
                 liquid_accounts: liquidAccounts.map(({ name, balance, currency }) => ({ name, balance, currency })),
                 recurring_transactions: recurringTransactions.map(({ description, amount, type, frequency, nextDueDate }) => ({ description, amount, type, frequency, nextDueDate })),
-                financial_goals: financialGoals.filter(g => g.projection).map(({ name, type, amount, currentAmount, date, projection }) => ({ name, type, amount, currentAmount, date, projected_status: projection?.status })),
+                financial_goals: financialGoals.filter(g => g.projection).map(({ name, type, amount, currentAmount, date, startDate }) => ({ name, type, amount, currentAmount, date, startDate })),
             };
 
             const prompt = `You are a financial planner. Based on the user's financial data, create a smart contribution plan to help them achieve their goals. 
@@ -735,7 +735,6 @@ const Forecasting: React.FC = () => {
                     showIndividualLines={showIndividualLines}
                     accounts={selectedAccounts}
                     showGoalLines={showGoalLines}
-                    // FIX: Replaced non-existent 'handleChartClick' with 'handleDateClick'.
                     onDataPointClick={handleDateClick}
                 />
             </Card>
@@ -904,7 +903,7 @@ const Forecasting: React.FC = () => {
                     </div>
                 </div>
 
-                <Card className="overflow-hidden border-0 shadow-lg bg-white dark:bg-dark-card p-0">
+                <Card className="overflow-hidden border-0 shadow-lg bg-white dark:bg-dark-card !p-0">
                     <div className="overflow-x-auto max-h-[600px]">
                         <table className="w-full text-sm text-left border-collapse">
                              <thead className="sticky top-0 z-20 bg-white dark:bg-[#1E1E20] shadow-sm text-xs uppercase font-bold tracking-wider text-light-text-secondary dark:text-dark-text-secondary">

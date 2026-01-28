@@ -783,7 +783,7 @@ const Transactions: React.FC<TransactionsProps> = ({ initialAccountFilter, initi
             currency: resolved.currency,
             category: rest.category,
             type: rest.isTransfer ? 'transfer' : rest.type,
-            account: rest.accountName || (rest.isTransfer ? `${rest.fromAccountName} -> ${rest.toAccountName}` : 'N/A'),
+            account: rest.accountName || (rest.isTransfer ? `${rest.fromAccountName} → ${rest.toAccountName}` : 'N/A'),
             tags: rest.tagIds?.map(tid => tags.find(t=>t.id === tid)?.name).join(' | ') || ''
         };
     });
@@ -1212,7 +1212,7 @@ const Transactions: React.FC<TransactionsProps> = ({ initialAccountFilter, initi
       
       {/* Transaction List Card */}
       <div className="flex-1 min-w-0 relative">
-        <Card className="p-0 h-full flex flex-col relative overflow-hidden border border-black/5 dark:border-white/5 shadow-sm rounded-2xl">
+        <Card className="!p-0 h-full flex flex-col relative overflow-hidden border border-black/5 dark:border-white/5 shadow-sm rounded-2xl">
             <div className="overflow-x-auto">
               <div className="min-w-[900px] flex flex-col">
                 {selectedIds.size > 0 ? (
