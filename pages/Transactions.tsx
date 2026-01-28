@@ -1,3 +1,4 @@
+
 import React, { useState, useMemo, useRef, useEffect, useCallback } from 'react';
 import { INPUT_BASE_STYLE, SELECT_WRAPPER_STYLE, SELECT_ARROW_STYLE, BTN_PRIMARY_STYLE, BTN_SECONDARY_STYLE, SELECT_STYLE, CHECKBOX_STYLE, ALL_ACCOUNT_TYPES } from '../constants';
 import { Transaction, Account, DisplayTransaction, RecurringTransaction, Category, AccountType } from '../types';
@@ -397,7 +398,7 @@ const Transactions: React.FC<TransactionsProps> = ({ initialAccountFilter, initi
                     transferIncomeCurrency: pair.income.currency,
                 });
             } else {
-                const spareChangeAmount = consumeSpareChange(tx.accountId, tx.date, tx.description, true, tx.amount);
+                const spareChangeAmount = consumeSpareChange(tx.accountId, tx.date, tx.description, false, tx.amount);
                 result.push({ ...tx, accountName: accountMap[tx.accountId]?.name, spareChangeAmount });
             }
         } else {
@@ -508,10 +509,6 @@ const Transactions: React.FC<TransactionsProps> = ({ initialAccountFilter, initi
         filteredTransactions.forEach(tx => {
             const dateStr = tx.date; // ISO string YYYY-MM-DD
             if (dateStr !== lastDate) {
-                // Calculate daily total for the header
-                // Note: This is expensive if done naively every row. Optimization:
-                // We could pre-calculate totals or just sum on the fly if lists are small.
-                // For virtualization, we just insert the header.
                 rows.push({ type: 'header', date: dateStr, total: 0 }); // Total calculated later if needed or skipped
                 lastDate = dateStr;
             }
@@ -557,18 +554,24 @@ const Transactions: React.FC<TransactionsProps> = ({ initialAccountFilter, initi
     return { totalIncome: income, totalExpense: expense, netFlow: income - expense };
   }, [filteredTransactions]);
   
-  const containsTransfer = useMemo(() => {
-    return Array.from(selectedIds).some((id: string) => id.startsWith('transfer-'));
-  }, [selectedIds]);
-
   const isAllSelected = useMemo(() => {
       if (filteredTransactions.length === 0) return false;
       return filteredTransactions.every(tx => selectedIds.has(tx.id));
   }, [filteredTransactions, selectedIds]);
   
     const selectedTransactions = useMemo(() => {
-        const regularTxIds = Array.from(selectedIds).filter((id: string) => !id.startsWith('transfer-'));
-        return transactions.filter(t => regularTxIds.includes(t.id));
+        const resolvedIds = new Set<string>();
+        selectedIds.forEach(id => {
+            if (id.startsWith('transfer-')) {
+                 const transferId = id.replace('transfer-', '');
+                 // Find the expense side transaction for this transfer (typically what is displayed)
+                 const tx = transactions.find(t => t.transferId === transferId && t.type === 'expense');
+                 if (tx) resolvedIds.add(tx.id);
+            } else {
+                 resolvedIds.add(id);
+            }
+        });
+        return transactions.filter(t => resolvedIds.has(t.id));
     }, [selectedIds, transactions]);
 
   const handleSelectAll = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -591,13 +594,12 @@ const Transactions: React.FC<TransactionsProps> = ({ initialAccountFilter, initi
   };
   
   const handleOpenCategorizeModal = () => {
-    if (containsTransfer) return;
     setIsCategorizeModalOpen(true);
   };
 
   const handleSaveBulkCategory = (newCategoryName: string) => {
       const transactionUpdates: (Omit<Transaction, 'id'> & { id: string })[] = [];
-      const selectedRegularTxIds = Array.from(selectedIds).filter((id: string) => !id.startsWith('transfer-'));
+      const idsToDelete: string[] = [];
 
       // Use recursive finder to handle sub-categories
       const categoryDetails = findCategoryByName(newCategoryName, allCategories);
@@ -609,8 +611,23 @@ const Transactions: React.FC<TransactionsProps> = ({ initialAccountFilter, initi
       
       const newType = categoryDetails.classification || 'expense';
 
-      for (const txId of selectedRegularTxIds) {
-          const originalTx = transactions.find(t => t.id === txId);
+      // Iterate through raw selectedIds to handle transfers properly
+      for (const selectedId of selectedIds) {
+          let originalTx: Transaction | undefined;
+          
+          if (selectedId.startsWith('transfer-')) {
+               const transferId = selectedId.replace('transfer-', '');
+               originalTx = transactions.find(t => t.transferId === transferId && t.type === 'expense');
+               
+               // If we are converting a transfer to a category, we need to delete the income side counterpart
+               if (originalTx) {
+                   const counterpart = transactions.find(t => t.transferId === transferId && t.id !== originalTx.id);
+                   if (counterpart) idsToDelete.push(counterpart.id);
+               }
+          } else {
+               originalTx = transactions.find(t => t.id === selectedId);
+          }
+
           if (originalTx) {
               const newAmount = newType === 'income' ? Math.abs(originalTx.amount) : -Math.abs(originalTx.amount);
               transactionUpdates.push({ 
@@ -618,12 +635,13 @@ const Transactions: React.FC<TransactionsProps> = ({ initialAccountFilter, initi
                   category: newCategoryName,
                   type: newType,
                   amount: newAmount,
+                  transferId: undefined // Remove transfer link if it was one
               });
           }
       }
       
       if (transactionUpdates.length > 0) {
-          saveTransaction(transactionUpdates, []);
+          saveTransaction(transactionUpdates, idsToDelete);
       }
       
       setIsCategorizeModalOpen(false);
@@ -1228,8 +1246,8 @@ const Transactions: React.FC<TransactionsProps> = ({ initialAccountFilter, initi
                              <span className="font-bold text-sm">{selectedIds.size} selected</span>
                          </div>
                         <div className="flex gap-2">
-                            <button type="button" onClick={() => setBulkEditModalOpen(true)} className="bg-white/20 hover:bg-white/30 text-white py-1.5 px-3 rounded-lg text-xs font-semibold transition-colors backdrop-blur-sm" disabled={containsTransfer}>Edit</button>
-                            <button type="button" onClick={handleOpenCategorizeModal} className="bg-white/20 hover:bg-white/30 text-white py-1.5 px-3 rounded-lg text-xs font-semibold transition-colors backdrop-blur-sm" disabled={containsTransfer}>Categorize</button>
+                            <button type="button" onClick={() => setBulkEditModalOpen(true)} className="bg-white/20 hover:bg-white/30 text-white py-1.5 px-3 rounded-lg text-xs font-semibold transition-colors backdrop-blur-sm">Edit</button>
+                            <button type="button" onClick={handleOpenCategorizeModal} className="bg-white/20 hover:bg-white/30 text-white py-1.5 px-3 rounded-lg text-xs font-semibold transition-colors backdrop-blur-sm">Categorize</button>
                             <button type="button" onClick={() => handleMakeRecurring()} className="bg-white/20 hover:bg-white/30 text-white py-1.5 px-3 rounded-lg text-xs font-semibold transition-colors backdrop-blur-sm" disabled={selectedIds.size !== 1}>Recurring</button>
                             <button type="button" onClick={handleOpenDeleteModal} className="bg-red-500/80 hover:bg-red-500 text-white py-1.5 px-3 rounded-lg text-xs font-semibold transition-colors backdrop-blur-sm">Delete</button>
                         </div>
