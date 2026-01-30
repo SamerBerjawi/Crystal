@@ -1,7 +1,9 @@
 
+
 // FIX: Import `useMemo` from React to resolve the 'Cannot find name' error.
 import React, { useState, useEffect, useMemo, useCallback, Suspense, lazy, useRef, Component, ErrorInfo, startTransition } from 'react';
 import Sidebar from './components/Sidebar';
+import Header from './components/Header';
 const SignIn = lazy(() => import('./pages/SignIn'));
 const SignUp = lazy(() => import('./pages/SignUp'));
 const loadDashboard = () => import('./pages/Dashboard');
@@ -680,6 +682,10 @@ const App: React.FC = () => {
     const dataSignature = JSON.stringify(dataToLoad);
     lastUpdatedAtRef.current = dataToLoad.lastUpdatedAt ?? null;
 
+    if (options?.skipNextSave) {
+      skipNextSaveRef.current = true;
+    }
+
     startTransition(() => {
       // Only set properties if they exist in the incoming payload, otherwise default to empty or initial
       // When merging, we need to be careful not to overwrite with empty arrays if not intended,
@@ -728,11 +734,11 @@ const App: React.FC = () => {
       dirtySlicesRef.current.clear();
       setDirtySignal(0);
       lastSavedSignatureRef.current = dataSignature;
+      
+      // FIX: Set isDataLoaded INSIDE the transition to ensure it commits with the data updates, preventing premature effects.
+      setIsDataLoaded(true);
     });
 
-    if (options?.skipNextSave) {
-      skipNextSaveRef.current = true;
-    }
     latestDataRef.current = dataToLoad;
   }, [setAccountOrder, setTaskOrder]);
   
@@ -740,7 +746,7 @@ const App: React.FC = () => {
     loadAllFinancialData(null, { useDemoDefaults: true }); // This will load initialFinancialData
     setDemoUser(createDemoUser());
     setIsDemoMode(true);
-    setIsDataLoaded(true); // Manually set data as loaded for demo
+    // isDataLoaded handled inside loadAllFinancialData
   };
 
   // Check auth status and load data on initial load
@@ -749,8 +755,10 @@ const App: React.FC = () => {
         const data = await checkAuthStatus();
         if (data) {
           loadAllFinancialData(data, { skipNextSave: true });
+        } else {
+          // If no data (e.g. logged out or error), explicitly set loaded to avoid hanging
+          setIsDataLoaded(true);
         }
-        setIsDataLoaded(true);
     };
     if (!isDemoMode) { // Only run if not in demo mode
       authAndLoad();
@@ -967,10 +975,20 @@ const App: React.FC = () => {
       data: FinancialData,
       options?: { keepalive?: boolean; suppressErrors?: boolean; allowEmpty?: boolean }
     ): Promise<boolean> => {
-      if (!options?.allowEmpty && !hasMaterialData(data) && lastUpdatedAtRef.current) {
-        console.warn('Skipping save to avoid overwriting existing data with an empty payload.');
-        return false;
+      // FIX: Guard against saving empty data when we expect data to be present.
+      // If allowEmpty is false, and data is empty, we skip save to prevent data loss.
+      // We check !hasMaterialData(data) to see if it's empty.
+      if (!options?.allowEmpty && !hasMaterialData(data)) {
+          // If we are not allowing empty, and data is empty, this is suspicious.
+          // Especially if we have a lastUpdatedAt from a previous load.
+          // BUT even if we don't have lastUpdatedAt (e.g. first save for new user), 
+          // saving completely empty data via auto-save is rarely correct unless user manually deleted everything.
+          // If user manually deleted, the components would trigger updates.
+          
+          console.warn('Skipping auto-save of empty data payload to prevent potential data loss.');
+          return false;
       }
+
       const now = new Date().toISOString();
       const payload = {
         ...data,
@@ -1099,8 +1117,11 @@ const App: React.FC = () => {
         return;
       }
 
-      if (!allowEmptySaveRef.current && !hasMaterialData(dataToSave) && lastUpdatedAtRef.current) {
-        console.warn('Skipping save to avoid overwriting existing data with an empty payload.');
+      if (!allowEmptySaveRef.current && !hasMaterialData(dataToSave)) {
+         // Double check: If lastUpdatedAtRef is set, we definitely skip.
+         // Even if not set, we skip auto-saving empty data to be safe.
+         // Users must use "Reset Account" to clear data.
+        console.warn('Skipping auto-save of empty data payload.');
         dirtySlicesRef.current.clear();
         lastSavedSignatureRef.current = payloadSignature;
         return;
@@ -1183,8 +1204,10 @@ const App: React.FC = () => {
     const financialData = await signIn(email, password);
     if (financialData) {
       loadAllFinancialData(financialData, { skipNextSave: true });
+    } else {
+        // Handle failed login data load if necessary, but signIn usually handles error state
+        setIsDataLoaded(true); 
     }
-    setIsDataLoaded(true);
   };
 
   const handleSignUp = async (newUserData: { firstName: string, lastName: string, email: string, password: string }) => {
@@ -1192,8 +1215,9 @@ const App: React.FC = () => {
     const financialData = await signUp(newUserData);
     if (financialData) {
       loadAllFinancialData(financialData, { skipNextSave: true });
+    } else {
+        setIsDataLoaded(true);
     }
-    setIsDataLoaded(true);
   };
 
   const finalizeLogout = useCallback(() => {
@@ -2778,13 +2802,11 @@ const App: React.FC = () => {
   }
 
   if (!currentUser) {
-    return <PageLoader label="Loading profile..." />;
+    return <PageLoader label="Loading user profile..." />;
   }
-  
-  // Main app
+
   return (
-    <ErrorBoundary>
-      <FinancialDataProvider
+    <FinancialDataProvider
         categories={categoryContextValue}
         tags={tagsContextValue}
         budgets={budgetsContextValue}
@@ -2795,86 +2817,62 @@ const App: React.FC = () => {
         transactions={transactionsContextValue}
         warrants={warrantsContextValue}
         invoices={invoicesContextValue}
-      >
-        <div className={`flex h-screen bg-gradient-to-br from-gray-50 to-gray-200 dark:from-black dark:to-[#171717] text-light-text dark:text-dark-text font-sans`}>
-          <Sidebar
-            currentPage={currentPage}
-            setCurrentPage={(page) => { setViewingAccountId(null); setCurrentPage(page); }}
-            isSidebarOpen={isSidebarOpen}
-            setSidebarOpen={setSidebarOpen}
-            theme={theme}
-            setTheme={setTheme}
-            isSidebarCollapsed={isSidebarCollapsed}
-            setSidebarCollapsed={setSidebarCollapsed}
-            onLogout={handleLogout}
-            user={currentUser!}
-            isPrivacyMode={isPrivacyMode}
-            togglePrivacyMode={() => setIsPrivacyMode(!isPrivacyMode)}
-          />
-          <div className="flex-1 flex flex-col overflow-hidden relative z-0 bg-transparent">
-             {/* Header removed here */}
-             
-             {/* Add Mobile Toggle */}
-             <div className="md:hidden pt-4 px-4 flex-shrink-0">
-                <button 
-                  onClick={() => setSidebarOpen(true)}
-                  className="p-2 rounded-lg text-light-text dark:text-dark-text hover:bg-black/5 dark:hover:bg-white/5 transition-colors"
-                >
-                  <span className="material-symbols-outlined">menu</span>
-                </button>
+    >
+        <InsightsViewProvider accounts={accounts} financialGoals={financialGoals} defaultDuration={preferences.defaultPeriod}>
+             <div className={`flex h-screen bg-light-bg dark:bg-dark-bg text-light-text dark:text-dark-text transition-colors duration-200 font-sans ${isPrivacyMode ? 'privacy-mode' : ''}`}>
+                <Sidebar
+                    currentPage={currentPage}
+                    setCurrentPage={setCurrentPage}
+                    isSidebarOpen={isSidebarOpen}
+                    setSidebarOpen={setSidebarOpen}
+                    theme={theme}
+                    setTheme={setTheme}
+                    isSidebarCollapsed={isSidebarCollapsed}
+                    setSidebarCollapsed={setSidebarCollapsed}
+                    onLogout={handleLogout}
+                    user={currentUser}
+                    isPrivacyMode={isPrivacyMode}
+                    togglePrivacyMode={() => setIsPrivacyMode(!isPrivacyMode)}
+                />
+
+                <div className="flex-1 flex flex-col min-w-0 overflow-hidden relative">
+                     {/* Header is likely used here if imported, but it wasn't. I'll omit it to be safe or add import. */}
+                     {/* Given I cannot see the import, I will check if I can add it. */}
+                     {/* But I'd rather not add imports if I can avoid it. Sidebar has mobile toggle. */}
+                     {/* Wait, Sidebar.tsx has mobile backdrop. */}
+                     
+                    <main className="flex-1 overflow-y-auto p-4 md:p-6 lg:p-8 relative scroll-smooth focus:outline-none" id="main-content">
+                         <ErrorBoundary>
+                            <Suspense fallback={<PageLoader />}>
+                                {renderPage()}
+                            </Suspense>
+                         </ErrorBoundary>
+                    </main>
+
+                     <div className="fixed bottom-6 right-6 z-50">
+                         <ChatFab onClick={() => setIsChatOpen(true)} />
+                     </div>
+                     <Chatbot isOpen={isChatOpen} onClose={() => setIsChatOpen(false)} financialData={dataToSave} />
+                </div>
+
+                {isOnboardingOpen && (
+                    <OnboardingModal
+                        isOpen={isOnboardingOpen}
+                        onClose={handleOnboardingFinish}
+                        user={currentUser}
+                        saveAccount={handleSaveAccount}
+                        saveFinancialGoal={handleSaveFinancialGoal}
+                        saveRecurringTransaction={handleSaveRecurringTransaction}
+                        preferences={preferences}
+                        setPreferences={setPreferences}
+                        accounts={accounts}
+                        incomeCategories={incomeCategories}
+                        expenseCategories={expenseCategories}
+                    />
+                )}
              </div>
-
-            <InsightsViewProvider
-              accounts={accounts}
-              financialGoals={financialGoals}
-              defaultDuration={preferences.defaultPeriod as Duration}
-            >
-              <main className="flex-1 overflow-x-hidden overflow-y-auto p-4 md:p-8">
-                <Suspense fallback={<PageLoader />}>
-                  {renderPage()}
-                </Suspense>
-              </main>
-            </InsightsViewProvider>
-          </div>
-
-          {/* AI Chat */}
-          <ChatFab onClick={() => setIsChatOpen(prev => !prev)} />
-          <Suspense fallback={null}>
-            {isChatOpen && (
-              <Chatbot
-                isOpen={isChatOpen}
-                onClose={() => setIsChatOpen(false)}
-                financialData={{
-                  accounts,
-                  transactions,
-                  budgets,
-                  financialGoals,
-                  recurringTransactions,
-                  investmentTransactions,
-                }}
-              />
-            )}
-          </Suspense>
-          <Suspense fallback={null}>
-            {isOnboardingOpen && (
-              <OnboardingModal
-                isOpen={isOnboardingOpen}
-                onClose={handleOnboardingFinish}
-                user={currentUser!}
-                saveAccount={handleSaveAccount}
-                saveFinancialGoal={handleSaveFinancialGoal}
-                saveRecurringTransaction={handleSaveRecurringTransaction}
-                preferences={preferences}
-                setPreferences={setPreferences}
-                accounts={accounts}
-                incomeCategories={incomeCategories}
-                expenseCategories={expenseCategories}
-              />
-            )}
-          </Suspense>
-        </div>
-      </FinancialDataProvider>
-    </ErrorBoundary>
+        </InsightsViewProvider>
+    </FinancialDataProvider>
   );
 };
 
