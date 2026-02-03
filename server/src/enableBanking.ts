@@ -10,8 +10,23 @@ const DEFAULT_REDIRECT = process.env.ENABLE_BANKING_REDIRECT_URL || 'http://loca
 class EnableBankingClient {
   constructor(private applicationId: string, private clientCertificate: string) {}
 
+  private getFormattedKey() {
+    let key = this.clientCertificate.trim();
+    // Simple heuristic to fix common copy-paste issues where newlines are lost or escaped
+    if (!key.includes('\n') && key.includes('BEGIN PRIVATE KEY')) {
+       // If it looks like a one-liner but has headers, try to split it
+       // This handles the case where \n literals might be present or just spaces
+       key = key.replace(/\\n/g, '\n')
+                .replace('-----BEGIN PRIVATE KEY-----', '-----BEGIN PRIVATE KEY-----\n')
+                .replace('-----END PRIVATE KEY-----', '\n-----END PRIVATE KEY-----');
+    }
+    return key;
+  }
+
   private generateJwt() {
     const now = Math.floor(Date.now() / 1000);
+    const key = this.getFormattedKey();
+    
     return jwt.sign(
       {
         iss: 'enablebanking.com',
@@ -19,7 +34,7 @@ class EnableBankingClient {
         iat: now,
         exp: now + 3600,
       },
-      this.clientCertificate,
+      key,
       {
         algorithm: 'RS256',
         keyid: this.applicationId,
@@ -45,6 +60,7 @@ class EnableBankingClient {
 
     if (!response.ok) {
       const text = await response.text();
+      // Throw with status code info if possible to help upstream handling
       throw new Error(`Enable Banking request failed (${response.status}): ${text || response.statusText}`);
     }
 
@@ -126,7 +142,7 @@ router.post('/aspsps', authenticateToken, async (req: AuthRequest, res) => {
     res.json(data);
   } catch (error: any) {
     console.error('Failed to fetch ASPSPs', error);
-    res.status(502).json({ message: error?.message || 'Unable to fetch banks' });
+    res.status(500).json({ message: error?.message || 'Unable to fetch banks' });
   }
 });
 
@@ -137,7 +153,7 @@ router.post('/accounts/:accountId/details', authenticateToken, async (req: AuthR
       clientCertificate?: string;
       sessionId?: string;
     };
-    const { accountId } = (req as express.Request).params;
+    const { accountId } = req.params;
 
     if (!applicationId || !clientCertificate || !sessionId) {
       return res.status(400).json({ message: 'applicationId, clientCertificate and sessionId are required' });
@@ -148,7 +164,7 @@ router.post('/accounts/:accountId/details', authenticateToken, async (req: AuthR
     res.json(details);
   } catch (error: any) {
     console.error('Failed to fetch account details', error);
-    res.status(502).json({ message: error?.message || 'Unable to fetch account details' });
+    res.status(500).json({ message: error?.message || 'Unable to fetch account details' });
   }
 });
 
@@ -160,9 +176,9 @@ router.post('/authorize', authenticateToken, async (req: AuthRequest, res) => {
     }
     const client = new EnableBankingClient(applicationId, clientCertificate);
     const forwardedProto = (req.headers['x-forwarded-proto'] as string | undefined)?.split(',')[0]?.trim();
-    const protocol = forwardedProto || (req as express.Request).protocol;
+    const protocol = forwardedProto || req.protocol;
     const forwardedHost = (req.headers['x-forwarded-host'] as string | undefined)?.split(',')[0]?.trim();
-    const host = forwardedHost || (req as express.Request).get('host');
+    const host = forwardedHost || req.get('host');
     const redirectUrl =
       process.env.ENABLE_BANKING_REDIRECT_URL ||
       (host ? `${protocol}://${host.replace(/\s/g, '')}/enable-banking/callback` : DEFAULT_REDIRECT);
@@ -173,7 +189,7 @@ router.post('/authorize', authenticateToken, async (req: AuthRequest, res) => {
     res.json({ authorizationUrl: data.url, authorizationId: data.authorization_id, redirectUrl });
   } catch (error: any) {
     console.error('Failed to start authorization', error);
-    res.status(502).json({ message: error?.message || 'Unable to start authorization' });
+    res.status(500).json({ message: error?.message || 'Unable to start authorization' });
   }
 });
 
@@ -188,7 +204,7 @@ router.post('/session', authenticateToken, async (req: AuthRequest, res) => {
     res.json(session);
   } catch (error: any) {
     console.error('Failed to create session', error);
-    res.status(502).json({ message: error?.message || 'Unable to create session' });
+    res.status(500).json({ message: error?.message || 'Unable to create session' });
   }
 });
 
@@ -203,7 +219,7 @@ router.post('/session/fetch', authenticateToken, async (req: AuthRequest, res) =
     res.json(session);
   } catch (error: any) {
     console.error('Failed to fetch session', error);
-    res.status(502).json({ message: error?.message || 'Unable to fetch session' });
+    res.status(500).json({ message: error?.message || 'Unable to fetch session' });
   }
 });
 
@@ -214,7 +230,7 @@ router.post('/accounts/:accountId/balances', authenticateToken, async (req: Auth
       clientCertificate?: string;
       sessionId?: string;
     };
-    const { accountId } = (req as express.Request).params;
+    const { accountId } = req.params;
     if (!applicationId || !clientCertificate || !sessionId) {
       return res.status(400).json({ message: 'applicationId, clientCertificate and sessionId are required' });
     }
@@ -223,7 +239,7 @@ router.post('/accounts/:accountId/balances', authenticateToken, async (req: Auth
     res.json(balances);
   } catch (error: any) {
     console.error('Failed to fetch balances', error);
-    res.status(502).json({ message: error?.message || 'Unable to fetch balances' });
+    res.status(500).json({ message: error?.message || 'Unable to fetch balances' });
   }
 });
 
@@ -236,7 +252,7 @@ router.post('/accounts/:accountId/transactions', authenticateToken, async (req: 
       continuationKey?: string;
       sessionId?: string;
     };
-    const { accountId } = (req as express.Request).params;
+    const { accountId } = req.params;
     if (!applicationId || !clientCertificate || !sessionId) {
       return res.status(400).json({ message: 'applicationId, clientCertificate and sessionId are required' });
     }
@@ -245,7 +261,7 @@ router.post('/accounts/:accountId/transactions', authenticateToken, async (req: 
     res.json(transactions);
   } catch (error: any) {
     console.error('Failed to fetch transactions', error);
-    res.status(502).json({ message: error?.message || 'Unable to fetch transactions' });
+    res.status(500).json({ message: error?.message || 'Unable to fetch transactions' });
   }
 });
 
@@ -283,7 +299,7 @@ router.post('/pending', authenticateToken, async (req: AuthRequest, res) => {
 router.get('/pending/:connectionId', authenticateToken, async (req: AuthRequest, res) => {
   try {
     const userId = req.user?.id;
-    const { connectionId } = (req as express.Request).params;
+    const { connectionId } = req.params;
     if (!userId || !connectionId) {
       return res.status(400).json({ message: 'connectionId is required' });
     }
@@ -308,7 +324,7 @@ router.get('/pending/:connectionId', authenticateToken, async (req: AuthRequest,
 router.delete('/pending/:connectionId', authenticateToken, async (req: AuthRequest, res) => {
   try {
     const userId = req.user?.id;
-    const { connectionId } = (req as express.Request).params;
+    const { connectionId } = req.params;
     if (!userId || !connectionId) {
       return res.status(400).json({ message: 'connectionId is required' });
     }
