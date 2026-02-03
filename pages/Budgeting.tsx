@@ -1,4 +1,3 @@
-
 import React, { useState, useMemo } from 'react';
 import { Budget, Category, Transaction, Account, BudgetSuggestion, AppPreferences } from '../types';
 import { BTN_PRIMARY_STYLE, BTN_SECONDARY_STYLE, LIQUID_ACCOUNT_TYPES, QUICK_CREATE_BUDGET_OPTIONS, SELECT_ARROW_STYLE, SELECT_STYLE, SELECT_WRAPPER_STYLE } from '../constants';
@@ -6,10 +5,9 @@ import Card from '../components/Card';
 import { formatCurrency, convertToEur } from '../utils';
 import BudgetProgressCard from '../components/BudgetProgressCard';
 import BudgetModal from '../components/BudgetModal';
-import AIBudgetSuggestionsModal from '../components/AIBudgetSuggestionsModal';
+import BudgetSuggestionsModal from '../components/AIBudgetSuggestionsModal';
 import QuickBudgetModal from '../components/QuickBudgetModal';
 import PageHeader from '../components/PageHeader';
-import { loadGenAiModule } from '../genAiLoader';
 import { PieChart, Pie, Cell, ResponsiveContainer, Tooltip as RechartsTooltip, Legend } from 'recharts';
 
 interface BudgetingProps {
@@ -37,7 +35,7 @@ const Budgeting: React.FC<BudgetingProps> = ({ budgets, transactions, expenseCat
   const [editingBudget, setEditingBudget] = useState<Budget | null>(null);
   const [categoryNameToCreate, setCategoryNameToCreate] = useState<string | undefined>();
 
-  // State for AI budget suggestions
+  // State for budget suggestions
   const [isSuggestionModalOpen, setSuggestionModalOpen] = useState(false);
   const [isGeneratingSuggestions, setIsGeneratingSuggestions] = useState(false);
   const [suggestions, setSuggestions] = useState<BudgetSuggestion[]>([]);
@@ -56,9 +54,6 @@ const Budgeting: React.FC<BudgetingProps> = ({ budgets, transactions, expenseCat
     setIsGeneratingSuggestions(true);
     setSuggestionError(null);
     setSuggestions([]);
-
-    // FIX: According to guidelines, API key must be obtained exclusively from process.env.API_KEY.
-    // Assume this variable is pre-configured and accessible.
 
     try {
         const threeMonthsAgo = new Date();
@@ -81,71 +76,24 @@ const Budgeting: React.FC<BudgetingProps> = ({ budgets, transactions, expenseCat
             }
         }
         
-        const averageSpending = Object.entries(spendingByCategory).map(([categoryName, total]) => ({
-            category: categoryName,
-            averageMonthlySpending: parseFloat((total / 3).toFixed(2))
-        })).filter(item => item.averageMonthlySpending > 0); // Only include categories with spending
+        const calculatedSuggestions = Object.entries(spendingByCategory).map(([categoryName, total]) => {
+            const avg = total / 3;
+            // Simple heuristic: Suggest budget slightly higher (10%) than average spending to account for variance
+            // rounded to nearest 5
+            const suggested = Math.ceil((avg * 1.1) / 5) * 5;
+            
+            return {
+                categoryName: categoryName,
+                averageMonthlySpending: parseFloat(avg.toFixed(2)),
+                suggestedBudget: suggested
+            };
+        }).filter(item => item.averageMonthlySpending > 0);
 
-        if (averageSpending.length === 0) {
+        if (calculatedSuggestions.length === 0) {
             setSuggestionError("Not enough spending data from the last 3 months to generate suggestions.");
-            setIsGeneratingSuggestions(false);
-            setSuggestionModalOpen(true);
-            return;
+        } else {
+            setSuggestions(calculatedSuggestions);
         }
-
-        const { GoogleGenAI, Type } = await loadGenAiModule();
-        // FIX: Initialize GoogleGenAI with a named parameter as per guidelines.
-        const ai = new GoogleGenAI({ apiKey: process.env.API_KEY as string });
-        
-        const prompt = `You are a financial advisor. Based on the user's average monthly spending over the last 3 months, suggest a reasonable monthly budget for each category. For discretionary categories (like Shopping, Entertainment), suggest a budget slightly lower than the average to encourage saving. For essential categories (like Housing, Food), suggest a budget around the average. Round suggestions to the nearest whole number. Here is the data: ${JSON.stringify(averageSpending)}`;
-
-        const responseSchema = {
-            type: Type.OBJECT,
-            properties: {
-                suggestions: {
-                    type: Type.ARRAY,
-                    description: "The array of budget suggestions.",
-                    items: {
-                        type: Type.OBJECT,
-                        properties: {
-                            categoryName: { type: Type.STRING },
-                            averageSpending: { type: Type.NUMBER },
-                            suggestedBudget: { type: Type.NUMBER }
-                        },
-                        required: ['categoryName', 'averageSpending', 'suggestedBudget']
-                    }
-                }
-            },
-            required: ['suggestions']
-        };
-
-        // FIX: Using 'gemini-3-pro-preview' for complex financial advising logic.
-        const response = await ai.models.generateContent({
-            model: 'gemini-3-pro-preview',
-            contents: prompt,
-            config: {
-                responseMimeType: 'application/json',
-                responseSchema
-            }
-        });
-        
-        // FIX: Access .text property directly (it's a getter).
-        const responseText = response.text;
-        if (!responseText) throw new Error("AI returned no suggestions.");
-        
-        const result = JSON.parse(responseText);
-        
-        // Match suggestions back to the original average spending data to ensure consistency
-        const finalSuggestions = result.suggestions.map((suggestion: any) => {
-             const originalData = averageSpending.find(avg => avg.category === suggestion.categoryName);
-             return {
-                 categoryName: suggestion.categoryName,
-                 averageSpending: originalData?.averageMonthlySpending || 0,
-                 suggestedBudget: suggestion.suggestedBudget
-             };
-        });
-
-        setSuggestions(finalSuggestions);
 
     } catch (err: any) {
         console.error("Error generating budget suggestions:", err);
@@ -173,11 +121,8 @@ const Budgeting: React.FC<BudgetingProps> = ({ budgets, transactions, expenseCat
 
   const handleApplyQuickBudget = (periodInMonths: number) => {
     const today = new Date();
-    // End date is the last day of the *previous* month
     const endDate = new Date(today.getFullYear(), today.getMonth(), 0);
-    
     const startDate = new Date(endDate);
-    // Set to the first day of the starting month
     startDate.setMonth(startDate.getMonth() - (periodInMonths - 1));
     startDate.setDate(1);
 
@@ -200,7 +145,6 @@ const Budgeting: React.FC<BudgetingProps> = ({ budgets, transactions, expenseCat
 
     const averageSpending = Object.entries(spending).map(([categoryName, total]) => ({
         categoryName: categoryName,
-        // Round to nearest whole number
         averageMonthlySpending: Math.round(total / periodInMonths)
     })).filter(item => item.averageMonthlySpending > 0);
 
@@ -235,8 +179,7 @@ const Budgeting: React.FC<BudgetingProps> = ({ budgets, transactions, expenseCat
         }
     };
 
-
-  const { totalBudgeted, totalSpent, spendingByCategory, totalIncome } = useMemo(() => {
+  const { totalBudgeted, totalSpent, spendingByCategory } = useMemo(() => {
     const year = currentDate.getFullYear();
     const month = currentDate.getMonth();
     const startDate = new Date(year, month, 1);
@@ -252,13 +195,9 @@ const Budgeting: React.FC<BudgetingProps> = ({ budgets, transactions, expenseCat
     });
 
     const spending: Record<string, number> = {};
-    let totalIncome = 0;
 
     for (const tx of relevantTransactions) {
-      if (tx.type === 'income') {
-          totalIncome += convertToEur(tx.amount, tx.currency);
-          continue;
-      }
+      if (tx.type === 'income') continue;
       const parentCategory = findParentCategory(tx.category, expenseCategories);
       if (parentCategory) {
         spending[parentCategory.name] = (spending[parentCategory.name] || 0) + Math.abs(convertToEur(tx.amount, tx.currency));
@@ -270,29 +209,25 @@ const Budgeting: React.FC<BudgetingProps> = ({ budgets, transactions, expenseCat
     const totalBudgeted = budgets.reduce((sum, b) => sum + b.amount, 0);
     const totalSpent = Object.values(spending).reduce((sum, amount) => sum + amount, 0);
 
-    return { totalBudgeted, totalSpent, spendingByCategory: spending, totalIncome };
+    return { totalBudgeted, totalSpent, spendingByCategory: spending };
   }, [currentDate, transactions, budgets, expenseCategories, accounts]);
 
-  // Metrics Calculations
   const totalRemaining = totalBudgeted - totalSpent;
   const monthName = currentDate.toLocaleString('default', { month: 'long', year: 'numeric' });
   const overallProgress = totalBudgeted > 0 ? (totalSpent / totalBudgeted) * 100 : 0;
   
-  // Daily Safe Spend Logic
   const today = new Date();
   const daysInMonth = new Date(currentDate.getFullYear(), currentDate.getMonth() + 1, 0).getDate();
   let daysRemaining = daysInMonth;
   
-  // Only calculate days remaining if viewing current month
   if (currentDate.getMonth() === today.getMonth() && currentDate.getFullYear() === today.getFullYear()) {
       daysRemaining = Math.max(1, daysInMonth - today.getDate());
   } else if (currentDate < today) {
-      daysRemaining = 0; // Past months
+      daysRemaining = 0;
   }
   
   const dailySafeSpend = daysRemaining > 0 ? Math.max(0, totalRemaining / daysRemaining) : 0;
   
-  // Allocation Chart Data
   const allocationData = useMemo(() => {
       return budgets.map(b => {
           const cat = expenseCategories.find(c => c.name === b.categoryName);
@@ -326,11 +261,11 @@ const Budgeting: React.FC<BudgetingProps> = ({ budgets, transactions, expenseCat
           budgetToEdit={editingBudget}
           categoryNameToCreate={categoryNameToCreate}
           existingBudgets={budgets}
-          expenseCategories={expenseCategories.filter(c => !c.parentId)} // Only allow parent categories for budgets
+          expenseCategories={expenseCategories.filter(c => !c.parentId)}
         />
       )}
       {isSuggestionModalOpen && (
-          <AIBudgetSuggestionsModal
+          <BudgetSuggestionsModal
             isOpen={isSuggestionModalOpen}
             onClose={() => setSuggestionModalOpen(false)}
             suggestions={suggestions}
@@ -348,7 +283,6 @@ const Budgeting: React.FC<BudgetingProps> = ({ budgets, transactions, expenseCat
         />
       )}
 
-      {/* Header */}
       <PageHeader
         markerIcon="pie_chart"
         markerLabel="Spending Plan"
@@ -362,9 +296,7 @@ const Budgeting: React.FC<BudgetingProps> = ({ budgets, transactions, expenseCat
         }
       />
 
-      {/* Controls Bar */}
       <div className="flex flex-col md:flex-row justify-between items-center gap-4 bg-white dark:bg-dark-card p-1.5 rounded-2xl border border-black/5 dark:border-white/5 shadow-sm">
-           {/* Month Navigation */}
            <div className="flex items-center gap-3 bg-light-fill dark:bg-dark-fill p-1.5 rounded-xl w-full md:w-auto justify-between md:justify-start">
                 <button onClick={() => handleMonthChange(-1)} className="p-1.5 rounded-lg hover:bg-white dark:hover:bg-white/10 transition-colors shadow-sm">
                     <span className="material-symbols-outlined text-lg">chevron_left</span>
@@ -375,7 +307,6 @@ const Budgeting: React.FC<BudgetingProps> = ({ budgets, transactions, expenseCat
                 </button>
            </div>
            
-           {/* Actions */}
            <div className="flex items-center gap-2 w-full md:w-auto">
                 <div className="flex rounded-lg shadow-sm bg-light-card dark:bg-dark-card border border-black/5 dark:border-white/5">
                     <button
@@ -396,16 +327,13 @@ const Budgeting: React.FC<BudgetingProps> = ({ budgets, transactions, expenseCat
                     </button>
                 </div>
                 <button onClick={handleGenerateSuggestions} className={`${BTN_SECONDARY_STYLE} flex items-center gap-2 whitespace-nowrap`} disabled={isGeneratingSuggestions}>
-                    <span className="material-symbols-outlined text-lg text-purple-500">smart_toy</span>
-                    {isGeneratingSuggestions ? 'Thinking...' : 'AI Advice'}
+                    <span className="material-symbols-outlined text-lg text-purple-500">calculate</span>
+                    {isGeneratingSuggestions ? 'Calculating...' : 'Auto-Calculate'}
                 </button>
            </div>
       </div>
 
-
-      {/* Hero Metrics Section */}
       <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-          {/* 1. Budget Summary */}
           <div className="md:col-span-2 bg-gradient-to-br from-primary-600 to-primary-800 dark:from-primary-800 dark:to-primary-900 rounded-3xl p-6 text-white shadow-lg relative overflow-hidden flex flex-col justify-between min-h-[200px]">
                 <div className="absolute top-0 right-0 p-6 opacity-10 pointer-events-none">
                     <span className="material-symbols-outlined text-9xl">account_balance_wallet</span>
@@ -433,7 +361,6 @@ const Budgeting: React.FC<BudgetingProps> = ({ budgets, transactions, expenseCat
                      </div>
                 </div>
                 
-                {/* Progress Bar */}
                 <div className="relative z-10 mt-6">
                      <div className="w-full bg-black/20 rounded-full h-1.5 overflow-hidden">
                         <div 
@@ -448,29 +375,17 @@ const Budgeting: React.FC<BudgetingProps> = ({ budgets, transactions, expenseCat
                 </div>
           </div>
 
-          {/* 2. Daily Pacing Card */}
           <div className="bg-white dark:bg-dark-card rounded-3xl p-6 shadow-sm border border-black/5 dark:border-white/5 flex flex-col justify-center relative overflow-hidden">
               <div className="absolute -right-4 -top-4 w-24 h-24 bg-green-500/10 rounded-full blur-2xl"></div>
               <div className="relative z-10 text-center">
                   <p className="text-light-text-secondary dark:text-dark-text-secondary text-xs font-bold uppercase tracking-wider mb-2">Daily Safe Spend</p>
                   <h3 className="text-3xl font-bold text-light-text dark:text-dark-text mb-1">{formatCurrency(dailySafeSpend, 'EUR')}</h3>
                   <p className="text-xs text-light-text-secondary dark:text-dark-text-secondary">per day for {daysRemaining} days</p>
-                  
-                  <div className="mt-6 pt-6 border-t border-black/5 dark:border-white/5">
-                      <div className="flex justify-between items-center text-sm">
-                           <span className="text-light-text-secondary dark:text-dark-text-secondary">Projected Savings</span>
-                           <span className="font-bold text-emerald-600 dark:text-emerald-400">{formatCurrency(Math.max(0, totalIncome - totalBudgeted), 'EUR')}</span>
-                      </div>
-                      <p className="text-[10px] text-light-text-secondary dark:text-dark-text-secondary mt-1 text-right">Based on Income - Budget</p>
-                  </div>
               </div>
           </div>
       </div>
 
-      {/* Main Content Grid */}
       <div className="grid grid-cols-1 xl:grid-cols-3 gap-8">
-          
-          {/* Left Column: Budget Cards */}
           <div className="xl:col-span-2 space-y-6">
               <div className="flex items-center gap-2 pb-2 border-b border-black/5 dark:border-white/5">
                  <span className="material-symbols-outlined text-primary-500">category</span>
@@ -503,7 +418,6 @@ const Budgeting: React.FC<BudgetingProps> = ({ budgets, transactions, expenseCat
               )}
           </div>
 
-          {/* Right Column: Analytics Sidebar */}
           <div className="space-y-6">
               <Card className="h-96 flex flex-col">
                   <h3 className="text-base font-bold text-light-text dark:text-dark-text mb-4">Allocation</h3>

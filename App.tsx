@@ -43,8 +43,6 @@ const InvestmentsPage = lazy(loadInvestmentsPage);
 const HoldingDetail = lazy(() => import('./pages/HoldingDetail'));
 const loadTasksPage = () => import('./pages/Tasks');
 const TasksPage = lazy(loadTasksPage);
-const loadAIAssistantSettingsPage = () => import('./pages/AIAssistantSettings');
-const AIAssistantSettingsPage = lazy(loadAIAssistantSettingsPage);
 const loadDocumentation = () => import('./pages/Documentation');
 const Documentation = lazy(loadDocumentation);
 const loadSubscriptionsPage = () => import('./pages/Subscriptions');
@@ -72,7 +70,6 @@ const pagePreloaders = [
   loadAccountDetail,
   loadInvestmentsPage,
   loadTasksPage,
-  loadAIAssistantSettingsPage,
   loadDocumentation,
   loadSubscriptionsPage,
   loadInvoicesPage,
@@ -83,9 +80,7 @@ import { Page, Theme, Category, User, Transaction, Account, RecurringTransaction
 import { MOCK_INCOME_CATEGORIES, MOCK_EXPENSE_CATEGORIES, LIQUID_ACCOUNT_TYPES } from './constants';
 import { createDemoUser, emptyFinancialData, initialFinancialData } from './demoData';
 import { v4 as uuidv4 } from 'uuid';
-import ChatFab from './components/ChatFab';
-const Chatbot = lazy(() => import('./components/Chatbot'));
-import { convertToEur, CONVERSION_RATES, arrayToCSV, downloadCSV, parseLocalDate, toLocalISOString } from './utils';
+import { convertToEur, CONVERSION_RATES, arrayToCSV, downloadCSV, parseLocalDate, toLocalISOString, toLocalDateTimeString } from './utils';
 import { buildHoldingsOverview } from './utils/investments';
 import { useDebounce } from './hooks/useDebounce';
 import { useAuth } from './hooks/useAuth';
@@ -174,7 +169,6 @@ const routePathMap: Record<Page, string> = {
   Investments: '/investments',
   HoldingDetail: '/investments',
   Documentation: '/documentation',
-  'AI Assistant': '/ai-assistant',
   Subscriptions: '/subscriptions',
   'Quotes & Invoices': '/invoices',
   Merchants: '/merchants',
@@ -235,6 +229,10 @@ const MATERIAL_DATA_ARRAY_KEYS: (keyof FinancialData)[] = [
   'tags',
   'predictions',
   'enableBankingConnections',
+  'incomeCategories',
+  'expenseCategories',
+  'accountOrder',
+  'taskOrder',
 ];
 
 const MATERIAL_DATA_OBJECT_KEYS: (keyof FinancialData)[] = [
@@ -401,7 +399,6 @@ const App: React.FC = () => {
   const [taskOrder, setTaskOrder] = useLocalStorage<string[]>('crystal-task-order', []);
   const transactionsViewFilters = useRef<{ accountName?: string | null; tagId?: string | null }>({});
   const streakUpdatedRef = useRef(false);
-  const [isChatOpen, setIsChatOpen] = useState(false);
   const [manualWarrantPrices, setManualWarrantPrices] = useState<Record<string, number | undefined>>(emptyFinancialData.manualWarrantPrices || {});
   const [priceHistory, setPriceHistory] = useState<Record<string, PriceHistoryEntry[]>>(emptyFinancialData.priceHistory || {});
   const [lastUpdated, setLastUpdated] = useState<Date | null>(null);
@@ -740,7 +737,7 @@ const App: React.FC = () => {
           console.warn('Skipping auto-save of empty data payload to prevent potential data loss.');
           return false;
       }
-      const now = new Date().toISOString();
+      const now = toLocalDateTimeString(new Date());
       const payload = { ...data, lastUpdatedAt: now, previousUpdatedAt: lastUpdatedAtRef.current, ...(options?.allowEmpty ? { allowEmpty: true } : {}), };
       const succeeded = await postData(payload, options);
       if (succeeded) { lastUpdatedAtRef.current = now; }
@@ -750,7 +747,7 @@ const App: React.FC = () => {
 
   const savePartialData = useCallback(
     async (data: Partial<FinancialData>, options?: { keepalive?: boolean; suppressErrors?: boolean }): Promise<boolean> => {
-      const now = new Date().toISOString();
+      const now = toLocalDateTimeString(new Date());
       const payload = { partial: true, data, lastUpdatedAt: now, previousUpdatedAt: lastUpdatedAtRef.current, };
       const succeeded = await postData(payload, options);
       if (succeeded) { lastUpdatedAtRef.current = now; }
@@ -1046,43 +1043,32 @@ const App: React.FC = () => {
       setManualWarrantPrices(prev => { const updated = { ...prev }; delete updated[warrantToDelete.isin]; return updated; });
     }
   };
-  // FIX: Added explicit types to functional update parameter 'prev' and the 'historyMap' to resolve 'unknown' type errors.
   const handleManualWarrantPrice = (isin: string, priceOrEntries: number | null | {date: string, price: number}[], date?: string) => {
     if (Array.isArray(priceOrEntries)) {
-        // FIX: Added explicit type to 'prev' parameter in setPriceHistory to resolve type inference issues.
         setPriceHistory((prev: Record<string, PriceHistoryEntry[]>) => {
-            // FIX: Explicitly typed the Map and its items to ensure 'date' and other properties are recognized.
             const historyMap = new Map<string, PriceHistoryEntry>((prev[isin] || []).map((item: PriceHistoryEntry) => [item.date, item]));
-            // FIX: Explicitly typed 'entry'.
             priceOrEntries.forEach((entry: {date: string, price: number}) => historyMap.set(entry.date, entry as PriceHistoryEntry));
-            // FIX: Typed 'a' and 'b' in sort.
             const newList = Array.from(historyMap.values()).sort((a: PriceHistoryEntry, b: PriceHistoryEntry) => new Date(a.date).getTime() - new Date(b.date).getTime());
             const latest = newList.length > 0 ? newList[newList.length - 1] : null;
-            // FIX: 'latest' is now correctly typed as PriceHistoryEntry | null.
             setManualWarrantPrices(cp => { const np = { ...cp }; if (latest) np[isin] = latest.price; else if (newList.length === 0) delete np[isin]; return np; });
             return { ...prev, [isin]: newList };
         });
         setLastUpdated(new Date());
         return;
     }
-    // FIX: Added explicit type to 'prev' parameter here as well for consistency.
     setPriceHistory((prev: Record<string, PriceHistoryEntry[]>) => {
         let newList = prev[isin] ? [...prev[isin]] : [];
         const targetDate = date || toLocalISOString(new Date());
         if (priceOrEntries === null) { 
-            // FIX: Explicitly typed 'item'.
             newList = newList.filter((item: PriceHistoryEntry) => item.date !== targetDate); 
         } 
         else {
-            // FIX: Explicitly typed 'item'.
             const index = newList.findIndex((item: PriceHistoryEntry) => item.date === targetDate);
             if (index > -1) newList[index] = { date: targetDate, price: priceOrEntries };
             else newList.push({ date: targetDate, price: priceOrEntries });
         }
-        // FIX: Explicitly typed 'a' and 'b'.
         newList.sort((a: PriceHistoryEntry, b: PriceHistoryEntry) => new Date(a.date).getTime() - new Date(b.date).getTime());
         const latest = newList.length > 0 ? newList[newList.length - 1] : null;
-        // FIX: 'latest' is now correctly typed.
         setManualWarrantPrices(cp => { const np = { ...cp }; if (latest) np[isin] = latest.price; else if (priceOrEntries === null && newList.length === 0) delete np[isin]; return np; });
         return { ...prev, [isin]: newList };
     });
@@ -1197,9 +1183,9 @@ const App: React.FC = () => {
           ]);
           const balanceEntry = balances?.balances?.[0] || {};
           const currency = (account?.currency || details?.currency || 'EUR') as Currency;
-          updatedAccounts.push({ id: providerAccountId, name: details?.name || account?.name || 'Bank account', bankName: connection.selectedBank || 'Enable Banking', currency, balance: Number(balanceEntry?.balanceAmount?.amount || 0), linkedAccountId: connection.accounts?.find(a=>a.id === providerAccountId)?.linkedAccountId, lastSyncedAt: new Date().toISOString() });
+          updatedAccounts.push({ id: providerAccountId, name: details?.name || account?.name || 'Bank account', bankName: connection.selectedBank || 'Enable Banking', currency, balance: Number(balanceEntry?.balanceAmount?.amount || 0), linkedAccountId: connection.accounts?.find(a=>a.id === providerAccountId)?.linkedAccountId, lastSyncedAt: toLocalDateTimeString(new Date()) });
       }
-      setEnableBankingConnections(prev => prev.map(conn => conn.id === connectionId ? { ...conn, status: 'ready', accounts: updatedAccounts, lastSyncedAt: new Date().toISOString() } : conn));
+      setEnableBankingConnections(prev => prev.map(conn => conn.id === connectionId ? { ...conn, status: 'ready', accounts: updatedAccounts, lastSyncedAt: toLocalDateTimeString(new Date()) } : conn));
     } catch (error: any) {
       setEnableBankingConnections(prev => prev.map(conn => conn.id === connectionId ? { ...conn, status: 'requires_update', lastError: error?.message || 'Sync failed', } : conn));
     }
@@ -1229,7 +1215,7 @@ const App: React.FC = () => {
       if (newAccountsArg) { newAccountsArg.forEach(acc => handleSaveAccount(acc)); }
       if (dataType === 'accounts') { items.forEach(acc => handleSaveAccount(acc)); } 
       else if (dataType === 'transactions') { handleSaveTransaction(items.map(t => ({ ...t, importId }))); }
-      setImportExportHistory(prev => [...prev, { id: importId, type: 'import', dataType, fileName, date: new Date().toISOString(), status: Object.keys(errors).length > 0 ? 'Failed' : 'Complete', itemCount: items.length, importedData: originalData, errors, }]);
+      setImportExportHistory(prev => [...prev, { id: importId, type: 'import', dataType, fileName, date: toLocalDateTimeString(new Date()), status: Object.keys(errors).length > 0 ? 'Failed' : 'Complete', itemCount: items.length, importedData: originalData, errors, }]);
   };
   
   const handleDeleteHistoryItem = (id: string) => { setImportExportHistory(prev => prev.filter(item => item.id !== id)); };
@@ -1288,7 +1274,6 @@ const App: React.FC = () => {
       case 'Investments': return <InvestmentsPage accounts={accounts} cashAccounts={accounts.filter(a => a.type === 'Checking' || a.type === 'Savings')} investmentTransactions={investmentTransactions} saveInvestmentTransaction={handleSaveInvestmentTransaction} saveAccount={handleSaveAccount} deleteInvestmentTransaction={handleDeleteInvestmentTransaction} saveTransaction={handleSaveTransaction} warrants={warrants} saveWarrant={handleSaveWarrant} deleteWarrant={handleDeleteWarrant} manualPrices={manualWarrantPrices} onManualPriceChange={handleManualWarrantPrice} prices={assetPrices} onOpenHoldingDetail={handleOpenHoldingDetail} holdingsOverview={holdingsOverview} onToggleAccountStatus={handleToggleAccountStatus} deleteAccount={handleDeleteAccount} transactions={transactions} onViewAccount={handleOpenAccountDetail} />;
       case 'Tasks': return <TasksPage tasks={tasks} saveTask={handleSaveTask} deleteTask={handleDeleteTask} taskOrder={taskOrder} setTaskOrder={setTaskOrder} />;
       case 'Documentation': return <Documentation setCurrentPage={setCurrentPage} />;
-      case 'AI Assistant': return <AIAssistantSettingsPage setCurrentPage={setCurrentPage} />;
       case 'Subscriptions': return <SubscriptionsPage />;
       case 'Quotes & Invoices': return <InvoicesPage />;
       case 'Merchants': return <MerchantsPage setCurrentPage={setCurrentPage} />;
@@ -1325,8 +1310,6 @@ const App: React.FC = () => {
                     <main className="flex-1 overflow-y-auto p-4 md:p-6 lg:p-8 relative scroll-smooth focus:outline-none" id="main-content">
                          <ErrorBoundary><Suspense fallback={<PageLoader />}>{renderPage()}</Suspense></ErrorBoundary>
                     </main>
-                     <div className="fixed bottom-6 right-6 z-50"><ChatFab onClick={() => setIsChatOpen(true)} /></div>
-                     <Chatbot isOpen={isChatOpen} onClose={() => setIsChatOpen(false)} financialData={dataToSave} />
                 </div>
                 {isOnboardingOpen && <OnboardingModal isOpen={isOnboardingOpen} onClose={handleOnboardingFinish} user={currentUser} saveAccount={handleSaveAccount} saveFinancialGoal={handleSaveFinancialGoal} saveRecurringTransaction={handleSaveRecurringTransaction} preferences={preferences} setPreferences={setPreferences} accounts={accounts} incomeCategories={incomeCategories} expenseCategories={expenseCategories} />}
              </div>

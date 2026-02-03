@@ -1,4 +1,5 @@
 
+
 import React, { useState, useEffect, useRef } from 'react';
 import { Page } from '../types';
 import Card from '../components/Card';
@@ -120,7 +121,7 @@ const sections: Section[] = [
                     <li className="flex gap-3">
                         <span className="material-symbols-outlined text-primary-500">auto_awesome</span>
                         <div>
-                            <strong>AI Suggestions:</strong> Tap the "AI Advice" button to analyze your last 3 months of spending and auto-generate realistic budget limits for each category.
+                            <strong>Auto Suggestions:</strong> Tap the "Auto-Calculate" button to analyze your last 3 months of spending and auto-generate realistic budget limits for each category.
                         </div>
                     </li>
                     <li className="flex gap-3">
@@ -172,30 +173,6 @@ const sections: Section[] = [
                     <li><strong>Warrants:</strong> Specialized tracking for employee equity grants with manual price inputs for each grant.</li>
                     <li><strong>Analysis:</strong> View asset allocation pie charts and track your total gains/losses over time.</li>
                 </ul>
-            </div>
-        )
-    },
-    {
-        id: 'ai-assistant',
-        title: 'AI Assistant',
-        icon: 'smart_toy',
-        iconColor: 'text-pink-500',
-        content: (
-            <div className="space-y-4">
-                <p>
-                    Crystal integrates with Google's Gemini AI to provide a conversational interface for your finances.
-                </p>
-                <div className="flex items-start gap-4 p-4 border border-pink-200 dark:border-pink-900/50 bg-pink-50 dark:bg-pink-900/10 rounded-xl">
-                    <span className="material-symbols-outlined text-pink-500 text-2xl">forum</span>
-                    <div>
-                        <p className="font-semibold text-pink-900 dark:text-pink-100">Ask anything:</p>
-                        <p className="text-sm text-pink-800 dark:text-pink-300 italic mt-1">"How much did I spend on coffee last month?"</p>
-                        <p className="text-sm text-pink-800 dark:text-pink-300 italic">"Can I afford a vacation in July?"</p>
-                    </div>
-                </div>
-                <p className="text-xs text-gray-500">
-                    Note: You must configure your own API Key in the Settings &gt; AI Assistant page to enable this feature.
-                </p>
             </div>
         )
     }

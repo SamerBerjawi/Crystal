@@ -1,9 +1,7 @@
 
 import React, { useState, useMemo, useCallback, useEffect } from 'react';
 import {
-  Page,
   ContributionPlanStep,
-  ScheduledPayment,
   Account,
   RecurringTransaction,
   FinancialGoal,
@@ -26,14 +24,13 @@ import ForecastDayModal from '../components/ForecastDayModal';
 import RecurringTransactionModal from '../components/RecurringTransactionModal';
 import BillPaymentModal from '../components/BillPaymentModal';
 import ForecastOverview from '../components/ForecastOverview';
-import { loadGenAiModule } from '../genAiLoader';
 import { useAccountsContext, usePreferencesContext, useTransactionsContext } from '../contexts/DomainProviders';
 import { useCategoryContext, useGoalsContext, useScheduleContext } from '../contexts/FinancialDataContext';
 import { useInsightsView } from '../contexts/InsightsViewContext';
 import PageHeader from '../components/PageHeader';
 import { v4 as uuidv4 } from 'uuid';
 
-// --- AI Planner Hook ---
+// --- Smart Goal Planner Hook (Deterministic) ---
 const useSmartGoalPlanner = (
     accounts: Account[],
     recurringTransactions: RecurringTransaction[],
@@ -42,97 +39,69 @@ const useSmartGoalPlanner = (
     const [plan, setPlan] = useState<Record<string, ContributionPlanStep[]> | null>(null);
     const [isLoading, setIsLoading] = useState(false);
     const [error, setError] = useState<string | null>(null);
-    const { preferences } = usePreferencesContext();
 
     const generatePlan = useCallback(async () => {
         setIsLoading(true);
         setError(null);
         setPlan(null);
 
-        // FIX: According to guidelines, API key must be obtained exclusively from process.env.API_KEY.
-        // Assume this variable is pre-configured and accessible.
-        const apiKey = process.env.API_KEY;
-
         try {
-            const { GoogleGenAI, Type } = await loadGenAiModule();
-            // FIX: Initialize GoogleGenAI with a named parameter as per guidelines.
-            const ai = new GoogleGenAI({ apiKey: apiKey as string });
-            
+            // Simulate a brief calculation delay for UX consistency
+            await new Promise(resolve => setTimeout(resolve, 500));
+
             const liquidAccounts = accounts.filter(a => LIQUID_ACCOUNT_TYPES.includes(a.type));
-            const context = {
-                current_date: toLocalISOString(new Date()),
-                liquid_accounts: liquidAccounts.map(({ name, balance, currency }) => ({ name, balance, currency })),
-                recurring_transactions: recurringTransactions.map(({ description, amount, type, frequency, nextDueDate }) => ({ description, amount, type, frequency, nextDueDate })),
-                financial_goals: financialGoals.filter(g => g.projection).map(({ name, type, amount, currentAmount, date, startDate }) => ({ name, type, amount, currentAmount, date, startDate })),
-            };
-
-            const prompt = `You are a financial planner. Based on the user's financial data, create a smart contribution plan to help them achieve their goals. 
-            Prioritize goals that are "at-risk" or "off-track". Suggest an "Upfront Contribution" if there's enough cash in checking/savings accounts. 
-            For shortfalls, add a final step with accountName "Unfunded Shortfall" and notes explaining the situation.
+            const totalLiquidCash = liquidAccounts.reduce((sum, a) => sum + convertToEur(a.balance, a.currency), 0);
             
-            User's Data: ${JSON.stringify(context, null, 2)}`;
+            const planObject: Record<string, ContributionPlanStep[]> = {};
             
-            const responseSchema = {
-                type: Type.OBJECT,
-                properties: {
-                    plan: {
-                        type: Type.ARRAY,
-                        description: "The array of contribution plans for each goal.",
-                        items: {
-                            type: Type.OBJECT,
-                            properties: {
-                                goalName: { type: Type.STRING },
-                                steps: {
-                                    type: Type.ARRAY,
-                                    items: {
-                                        type: Type.OBJECT,
-                                        properties: {
-                                            date: { type: Type.STRING, description: "Contribution date (YYYY-MM) or 'Upfront Contribution'." },
-                                            amount: { type: Type.NUMBER },
-                                            accountName: { type: Type.STRING, description: "The name of the account to contribute from, or 'Unfunded Shortfall'." },
-                                            notes: { type: Type.STRING, description: "Optional notes or warnings." }
-                                        },
-                                        required: ['date', 'amount', 'accountName']
-                                    }
-                                }
-                            },
-                            required: ['goalName', 'steps']
-                        }
-                    }
-                },
-                required: ['plan']
-            };
-
-            // FIX: Using 'gemini-3-pro-preview' for complex financial planning tasks.
-            const response = await ai.models.generateContent({
-                model: 'gemini-3-pro-preview',
-                contents: prompt,
-                config: {
-                    responseMimeType: 'application/json',
-                    responseSchema
-                }
+            // Basic logic: prioritize goals based on date
+            // This replaces the GenAI logic with a deterministic distribution strategy.
+            const sortedGoals = [...financialGoals].sort((a, b) => {
+                if (!a.date) return 1;
+                if (!b.date) return -1;
+                return new Date(a.date).getTime() - new Date(b.date).getTime();
             });
-            
-            // FIX: Access .text property directly (it is a getter).
-            const responseText = response.text;
-            if (!responseText) throw new Error("AI returned no text content.");
-            
-            const parsedJson = JSON.parse(responseText);
-            
-            const planObject = parsedJson.plan.reduce((acc: any, goalPlan: {goalName: string, steps: any[]}) => {
-                acc[goalPlan.goalName] = goalPlan.steps;
-                return acc;
-            }, {} as Record<string, ContributionPlanStep[]>);
+
+            sortedGoals.forEach(goal => {
+                if (goal.currentAmount >= goal.amount) return; // Goal met
+                
+                const steps: ContributionPlanStep[] = [];
+                const remainingNeeded = goal.amount - goal.currentAmount;
+                const today = new Date();
+                const goalDate = goal.date ? new Date(goal.date) : new Date(today.getFullYear() + 1, today.getMonth(), today.getDate());
+                
+                // Calculate months remaining
+                const monthsDiff = (goalDate.getFullYear() - today.getFullYear()) * 12 + (goalDate.getMonth() - today.getMonth());
+                const months = Math.max(1, monthsDiff);
+                
+                const monthlyAmount = remainingNeeded / months;
+                
+                // Determine source account (simply pick the first liquid account with balance > 0, or default to first)
+                // In a real app, this would check free cash flow from the forecast engine.
+                const sourceAccount = liquidAccounts.find(a => a.balance > 0) || liquidAccounts[0];
+                const sourceName = sourceAccount ? sourceAccount.name : 'Unknown Account';
+                
+                // Generate step
+                steps.push({
+                    goalName: goal.name,
+                    date: `Monthly until ${goalDate.toLocaleDateString()}`,
+                    amount: parseFloat(monthlyAmount.toFixed(2)),
+                    accountName: sourceName,
+                    notes: `Calculated over ${months} months`
+                });
+
+                planObject[goal.name] = steps;
+            });
 
             setPlan(planObject);
 
         } catch (err: any) {
-            console.error("Error generating smart plan:", err);
-            setError(err.message || "An error occurred while generating the plan.");
+            console.error("Error generating plan:", err);
+            setError("An error occurred while generating the plan.");
         } finally {
             setIsLoading(false);
         }
-    }, [accounts, recurringTransactions, financialGoals]); // Removed preferences dependency as apiKey is now from process.env
+    }, [accounts, recurringTransactions, financialGoals]);
     
     return { generatePlan, plan, isLoading, error };
 };
@@ -196,7 +165,7 @@ const Forecasting: React.FC = () => {
         return accounts.filter(a => LIQUID_ACCOUNT_TYPES.includes(a.type)).map(a => a.id)
     });
     const [forecastDuration, setForecastDuration] = useState<ForecastDuration>(preferences.defaultForecastPeriod || '1Y');
-    const [filterGoalsByAccount, setFilterGoalsByAccount] = useState(true); // Redesigned requirement: Filter by Account is now TRUE by default.
+    const [filterGoalsByAccount, setFilterGoalsByAccount] = useState(true);
     const [showIndividualLines, setShowIndividualLines] = useState(false);
     const [showGoalLines, setShowGoalLines] = useState(true);
 
@@ -208,7 +177,6 @@ const Forecasting: React.FC = () => {
       accounts.filter(a => selectedAccountIds.includes(a.id)),
     [accounts, selectedAccountIds]);
 
-    // Updated activeGoals to respect the account filter
     const activeGoals = useMemo(() => {
         let goals = financialGoals.filter(g => activeGoalIds.includes(g.id));
         if (filterGoalsByAccount) {
@@ -220,20 +188,18 @@ const Forecasting: React.FC = () => {
         return goals;
     }, [financialGoals, activeGoalIds, filterGoalsByAccount, selectedAccountIds]);
     
-    const { allRecurringItems, syntheticItemsOnly } = useMemo(() => {
+    const { allRecurringItems } = useMemo(() => {
         const syntheticLoanPayments = generateSyntheticLoanPayments(accounts, transactions, loanPaymentOverrides);
         const syntheticCreditCardPayments = generateSyntheticCreditCardPayments(accounts, transactions);
         const syntheticPropertyTransactions = generateSyntheticPropertyTransactions(accounts);
         
         const all = [...recurringTransactions, ...syntheticLoanPayments, ...syntheticCreditCardPayments, ...syntheticPropertyTransactions];
-        const synthetic = [...syntheticLoanPayments, ...syntheticCreditCardPayments, ...syntheticPropertyTransactions];
-        return { allRecurringItems: all, syntheticItemsOnly: synthetic };
+        return { allRecurringItems: all };
     }, [accounts, transactions, loanPaymentOverrides, recurringTransactions]);
 
-    // 1. Generate Full Forecast (2 Years) - This is the stable base for all views
     const fullForecast = useMemo(() => {
         const projectionEndDate = new Date();
-        projectionEndDate.setMonth(projectionEndDate.getMonth() + 24); // 2 years
+        projectionEndDate.setMonth(projectionEndDate.getMonth() + 24);
 
         return generateBalanceForecast(
             selectedAccounts,
@@ -245,12 +211,10 @@ const Forecasting: React.FC = () => {
         );
     }, [selectedAccounts, allRecurringItems, activeGoals, billsAndPayments, recurringTransactionOverrides]);
 
-    // 2. Calculate Horizon Data (Dashboard Style - 1M, 3M, 6M, 1Y)
     const lowestBalanceForecasts = useMemo(() => {
         return calculateForecastHorizon(fullForecast.chartData);
     }, [fullForecast]);
 
-    // 3. Derived Data for Chart and Table (Filtered by selected Duration)
     const { forecastData, tableData, lowestPoint, goalsWithProjections, startBalance, endBalance, combinedChartData } = useMemo(() => {
         const { chartData, tableData, lowestPoint } = fullForecast;
         
@@ -298,21 +262,17 @@ const Forecasting: React.FC = () => {
         const startBal = forecastDataForPeriod.length > 0 ? forecastDataForPeriod[0].value : 0;
         const endBal = forecastDataForPeriod.length > 0 ? forecastDataForPeriod[forecastDataForPeriod.length - 1].value : 0;
 
-        // --- Calculate Historic Data (Last 10 Days) ---
         const historyData: typeof forecastDataForPeriod = [];
         let currentHistoryBal = startBal;
         const today = new Date();
         const todayStr = toLocalISOString(today);
 
-        // Group transactions by date for efficient lookup
         const txsByDate = new Map<string, number>();
         transactions.forEach(tx => {
-             // Only include transactions from selected accounts
              if (selectedAccountIds.includes(tx.accountId) && !tx.transferId) {
                   const d = tx.date;
                   txsByDate.set(d, (txsByDate.get(d) || 0) + convertToEur(tx.amount, tx.currency));
              } else if (tx.transferId) {
-                 // For transfers, check if it's external-facing relative to the selected group
                  if (selectedAccountIds.includes(tx.accountId)) {
                      const d = tx.date;
                      txsByDate.set(d, (txsByDate.get(d) || 0) + convertToEur(tx.amount, tx.currency));
@@ -320,7 +280,6 @@ const Forecasting: React.FC = () => {
              }
         });
 
-        // Walk back 10 days
         for (let i = 0; i <= 10; i++) {
              const d = new Date(today);
              d.setDate(d.getDate() - i);
@@ -360,7 +319,6 @@ const Forecasting: React.FC = () => {
         };
     }, [fullForecast, financialGoals, forecastDuration, transactions, selectedAccountIds]);
     
-    // Account Goal Allocation Summary
     const accountGoalSummary = useMemo(() => {
         const summary: Record<string, { id: string; name: string; current: number; target: number; currency: Currency; goalsCount: number; type: 'income' | 'expense' }> = {};
         
@@ -415,55 +373,6 @@ const Forecasting: React.FC = () => {
             totalSavingsGoalCurrent: savCurrent 
         };
     }, [goalsWithProjections, filterGoalsByAccount, selectedAccountIds]);
-
-    const majorUpcomingOutflows = useMemo(() => {
-        const endDate = new Date();
-        switch (forecastDuration) {
-            case '3M': endDate.setMonth(endDate.getMonth() + 3); break;
-            case '6M': endDate.setMonth(endDate.getMonth() + 6); break;
-            case 'EOY': endDate.setFullYear(endDate.getFullYear(), 11, 31); break;
-            case '1Y': endDate.setFullYear(endDate.getFullYear() + 1); break;
-        }
-        const today = parseLocalDate(toLocalISOString(new Date()));
-
-        const outflows: any[] = [];
-
-        // 1. Recurring
-        allRecurringItems.forEach(rt => {
-            if (rt.type !== 'expense' && rt.type !== 'transfer') return;
-            if (selectedAccountIds.length > 0 && !selectedAccountIds.includes(rt.accountId)) return;
-            
-            const nextDue = parseLocalDate(rt.nextDueDate);
-            if (nextDue >= today && nextDue <= endDate) {
-                outflows.push({
-                    name: rt.description,
-                    amount: Math.abs(rt.amount),
-                    date: rt.nextDueDate,
-                    isRecurring: true
-                });
-            }
-        });
-
-        // 2. Bills
-        billsAndPayments.forEach(bill => {
-            if (bill.status === 'paid') return;
-            if (bill.type !== 'payment') return;
-            if (selectedAccountIds.length > 0 && bill.accountId && !selectedAccountIds.includes(bill.accountId)) return;
-
-            const due = parseLocalDate(bill.dueDate);
-            if (due >= today && due <= endDate) {
-                 outflows.push({
-                    name: bill.description,
-                    amount: Math.abs(bill.amount),
-                    date: bill.dueDate,
-                    isRecurring: false
-                });
-            }
-        });
-        
-        return outflows.sort((a, b) => b.amount - a.amount).slice(0, 5);
-
-    }, [forecastDuration, allRecurringItems, billsAndPayments, selectedAccountIds]);
 
     const plannerGoals = useMemo(() => {
         return goalsWithProjections.filter(g => {
@@ -636,7 +545,6 @@ const Forecasting: React.FC = () => {
                 />
             )}
 
-            {/* Header */}
             <PageHeader
                 markerIcon="trending_up"
                 markerLabel="Forward View"
@@ -675,7 +583,6 @@ const Forecasting: React.FC = () => {
                 }
             />
 
-            {/* Summary Metrics */}
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
                 <MetricCard 
                     title="Projected End Balance" 
@@ -717,10 +624,8 @@ const Forecasting: React.FC = () => {
                 </div>
             </div>
             
-            {/* Forecast Horizon */}
             <ForecastOverview forecasts={lowestBalanceForecasts} currency="EUR" />
 
-            {/* Main Chart */}
             <Card>
                 <div className="flex justify-between items-center mb-4">
                     <h3 className="text-xl font-semibold text-light-text dark:text-dark-text">Cash Flow Forecast</h3>
@@ -739,9 +644,7 @@ const Forecasting: React.FC = () => {
                 />
             </Card>
             
-            {/* Goals Section (Full Width with 3 Cols) */}
              <div className="space-y-6">
-                 {/* Goal Header & Filters */}
                  <div className="bg-light-fill dark:bg-dark-fill p-4 rounded-2xl flex flex-wrap justify-between items-center gap-4">
                     <div className="flex items-center gap-2">
                          <div className="p-2 rounded-lg bg-white dark:bg-white/10 shadow-sm text-amber-500">
@@ -761,9 +664,7 @@ const Forecasting: React.FC = () => {
                     </div>
                 </div>
 
-                {/* Goals Summary Hero Grid */}
                 <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 animate-fade-in-up">
-                    {/* Grand Total Income Card */}
                     <div className="bg-white dark:bg-dark-card rounded-xl p-4 border-2 border-emerald-500/20 shadow-sm relative overflow-hidden group">
                         <div className="flex justify-between items-start mb-1 relative z-10">
                              <p className="text-[10px] font-black text-emerald-600 dark:text-emerald-400 uppercase tracking-widest">GRAND TOTAL INCOME</p>
@@ -790,7 +691,6 @@ const Forecasting: React.FC = () => {
                         </div>
                     </div>
 
-                    {/* Grand Total Savings Card */}
                     <div className="bg-white dark:bg-dark-card rounded-xl p-4 border-2 border-rose-500/20 shadow-sm relative overflow-hidden group">
                         <div className="flex justify-between items-start mb-1 relative z-10">
                              <p className="text-[10px] font-black text-rose-600 dark:text-rose-400 uppercase tracking-widest">GRAND TOTAL SAVINGS</p>
@@ -817,7 +717,6 @@ const Forecasting: React.FC = () => {
                         </div>
                     </div>
 
-                    {/* Individual Account Goal Summaries */}
                     {accountGoalSummary.map(summary => {
                         const progress = Math.min(100, (summary.current / summary.target) * 100);
                         return (
@@ -848,7 +747,6 @@ const Forecasting: React.FC = () => {
                     )})}
                 </div>
                 
-                {/* Individual Goals Grid */}
                 <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
                     {topLevelGoals.length > 0 ? topLevelGoals.map(goal => {
                         const subGoals = goalsByParentId.get(goal.id) || [];
@@ -885,7 +783,6 @@ const Forecasting: React.FC = () => {
                 </div>
             </div>
 
-            {/* Forecast Ledger (Redesigned) */}
             <div className="space-y-4">
                  <div className="flex flex-col sm:flex-row sm:justify-between sm:items-center gap-4">
                     <div className="flex items-center gap-3">

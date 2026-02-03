@@ -1,11 +1,10 @@
-
 import React, { useState, useEffect } from 'react';
 import Modal from './Modal';
 import { BudgetSuggestion, Budget } from '../types';
 import { BTN_PRIMARY_STYLE, BTN_SECONDARY_STYLE, INPUT_BASE_STYLE, CHECKBOX_STYLE } from '../constants';
 import { formatCurrency } from '../utils';
 
-interface AIBudgetSuggestionsModalProps {
+interface BudgetSuggestionsModalProps {
   isOpen: boolean;
   onClose: () => void;
   suggestions: BudgetSuggestion[];
@@ -15,7 +14,7 @@ interface AIBudgetSuggestionsModalProps {
   existingBudgets: Budget[];
 }
 
-const AIBudgetSuggestionsModal: React.FC<AIBudgetSuggestionsModalProps> = ({ isOpen, onClose, suggestions, onApply, isLoading, error, existingBudgets }) => {
+const BudgetSuggestionsModal: React.FC<BudgetSuggestionsModalProps> = ({ isOpen, onClose, suggestions, onApply, isLoading, error, existingBudgets }) => {
   const [customSuggestions, setCustomSuggestions] = useState<Record<string, { suggestedBudget: number; selected: boolean }>>({});
 
   useEffect(() => {
@@ -23,8 +22,8 @@ const AIBudgetSuggestionsModal: React.FC<AIBudgetSuggestionsModalProps> = ({ isO
       const initialCustomState = suggestions.reduce((acc, s) => {
         const existing = existingBudgets.find(b => b.categoryName === s.categoryName);
         acc[s.categoryName] = {
-          suggestedBudget: existing ? existing.amount : s.suggestedBudget, // Prefer existing budget amount if it exists
-          selected: !existing, // Pre-select only new budget suggestions
+          suggestedBudget: existing ? existing.amount : s.suggestedBudget,
+          selected: !existing,
         };
         return acc;
       }, {} as Record<string, { suggestedBudget: number; selected: boolean }>);
@@ -59,7 +58,6 @@ const AIBudgetSuggestionsModal: React.FC<AIBudgetSuggestionsModalProps> = ({ isO
 
   const handleApply = () => {
     const selected = Object.entries(customSuggestions)
-      // FIX: Explicitly cast `value` to resolve 'unknown' type error.
       .filter(([, value]) => (value as { selected: boolean }).selected)
       .map(([categoryName, value]) => {
           const original = suggestions.find(s => s.categoryName === categoryName);
@@ -89,13 +87,13 @@ const AIBudgetSuggestionsModal: React.FC<AIBudgetSuggestionsModalProps> = ({ isO
       return <p className="text-center text-red-500 py-8">{error}</p>;
     }
     if (suggestions.length === 0) {
-      return <p className="text-center text-light-text-secondary dark:text-dark-text-secondary py-8">No suggestions available.</p>;
+      return <p className="text-center text-light-text-secondary dark:text-dark-text-secondary py-8">No suggestions available based on recent data.</p>;
     }
 
     return (
         <>
             <div className="flex justify-between items-center mb-4">
-                <p className="text-sm text-light-text-secondary dark:text-dark-text-secondary">Based on your spending over the last 3 months.</p>
+                <p className="text-sm text-light-text-secondary dark:text-dark-text-secondary">Based on average spending over the last 3 months.</p>
                 <div className="flex gap-4">
                     <button onClick={() => handleSelectAll(true)} className="text-sm font-semibold text-primary-500 hover:underline">Select All</button>
                     <button onClick={() => handleSelectAll(false)} className="text-sm font-semibold text-primary-500 hover:underline">Deselect All</button>
@@ -106,7 +104,6 @@ const AIBudgetSuggestionsModal: React.FC<AIBudgetSuggestionsModalProps> = ({ isO
                 <div key={suggestion.categoryName} className="grid grid-cols-[auto_1fr_1fr_1fr] items-center gap-4 p-2 rounded-lg hover:bg-black/5 dark:hover:bg-white/5">
                     <input
                         type="checkbox"
-                        // FIX: Explicitly cast the object to resolve 'unknown' type error.
                         checked={(customSuggestions[suggestion.categoryName] as { selected: boolean })?.selected || false}
                         onChange={() => handleSelectionChange(suggestion.categoryName)}
                         className={CHECKBOX_STYLE}
@@ -134,12 +131,11 @@ const AIBudgetSuggestionsModal: React.FC<AIBudgetSuggestionsModalProps> = ({ isO
   const numSelected = Object.values(customSuggestions).filter(s => (s as { selected: boolean }).selected).length;
 
   return (
-    <Modal onClose={onClose} title="AI Budget Suggestions">
+    <Modal onClose={onClose} title="Auto-Budget Suggestions">
         {renderContent()}
         {!isLoading && (
              <div className="flex justify-end gap-4 pt-4 mt-4 border-t border-black/10 dark:border-white/10">
                 <button type="button" onClick={onClose} className={BTN_SECONDARY_STYLE}>Cancel</button>
-                {/* FIX: Coerce `error` to a boolean to prevent passing a string to the `disabled` prop, which expects a boolean. */}
                 <button type="button" onClick={handleApply} className={BTN_PRIMARY_STYLE} disabled={!!error || numSelected === 0}>
                     Apply {numSelected > 0 ? `${numSelected} Selected` : ''}
                 </button>
@@ -149,4 +145,4 @@ const AIBudgetSuggestionsModal: React.FC<AIBudgetSuggestionsModalProps> = ({ isO
   );
 };
 
-export default AIBudgetSuggestionsModal;
+export default BudgetSuggestionsModal;

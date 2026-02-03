@@ -104,13 +104,6 @@ const Settings: React.FC<SettingsProps> = ({ setCurrentPage, user }) => {
             description="Manage merchant defaults, branding, and visibility"
             colorClass="bg-green-100 text-green-600 dark:bg-green-900/30 dark:text-green-400"
           />
-           <SettingItem
-            page="AI Assistant"
-            icon="smart_toy"
-            title="AI Assistant"
-            description="Configure API keys and AI behaviors"
-            colorClass="bg-purple-100 text-purple-600 dark:bg-purple-900/30 dark:text-purple-400"
-          />
         </div>
       </div>
 

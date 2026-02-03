@@ -1,8 +1,9 @@
 
+
 import React, { Dispatch, SetStateAction } from 'react';
 
-// FIX: Add 'AI Assistant' to Page type
-export type Page = 'Dashboard' | 'Accounts' | 'Transactions' | 'Budget' | 'Forecasting' | 'Settings' | 'Schedule & Bills' | 'Tasks' | 'Categories' | 'Tags' | 'Personal Info' | 'Data Management' | 'Preferences' | 'AccountDetail' | 'Investments' | 'HoldingDetail' | 'Documentation' | 'AI Assistant' | 'Subscriptions' | 'Quotes & Invoices' | 'Challenges' | 'Merchants' | 'Integrations' | 'EnableBankingCallback';
+// FIX: Remove 'AI Assistant' from Page type
+export type Page = 'Dashboard' | 'Accounts' | 'Transactions' | 'Budget' | 'Forecasting' | 'Settings' | 'Schedule & Bills' | 'Tasks' | 'Categories' | 'Tags' | 'Personal Info' | 'Data Management' | 'Preferences' | 'AccountDetail' | 'Investments' | 'HoldingDetail' | 'Documentation' | 'Subscriptions' | 'Quotes & Invoices' | 'Challenges' | 'Merchants' | 'Integrations' | 'EnableBankingCallback';
 
 export type AccountType = 'Checking' | 'Savings' | 'Credit Card' | 'Investment' | 'Loan' | 'Property' | 'Vehicle' | 'Other Assets' | 'Other Liabilities' | 'Lending';
 
@@ -458,7 +459,6 @@ export interface AppPreferences {
   twelveDataApiKey?: string;
   merchantLogoOverrides?: Record<string, string>; // Deprecated in favor of merchantRules, kept for backward compat if needed
   merchantRules?: Record<string, MerchantRule>; // Key is normalized merchant name
-  geminiApiKey?: string;
   hiddenMerchants?: string[]; // Deprecated in favor of merchantRules[x].isHidden
 }
 
