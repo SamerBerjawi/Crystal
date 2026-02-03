@@ -84,10 +84,10 @@ const Budgeting: React.FC<BudgetingProps> = ({ budgets, transactions, expenseCat
             
             return {
                 categoryName: categoryName,
-                averageMonthlySpending: parseFloat(avg.toFixed(2)),
+                averageSpending: parseFloat(avg.toFixed(2)),
                 suggestedBudget: suggested
             };
-        }).filter(item => item.averageMonthlySpending > 0);
+        }).filter(item => item.averageSpending > 0);
 
         if (calculatedSuggestions.length === 0) {
             setSuggestionError("Not enough spending data from the last 3 months to generate suggestions.");

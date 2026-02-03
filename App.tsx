@@ -1107,7 +1107,7 @@ const App: React.FC = () => {
   const handleDeleteInvoice = (id: string) => { setInvoices(prev => prev.filter(inv => inv.id !== id)); };
   const handleSavePrediction = (predictionData: Omit<Prediction, 'id'> & { id?: string }) => {
       if (predictionData.id) { setPredictions(prev => prev.map(p => p.id === predictionData.id ? { ...p, ...predictionData } as Prediction : p)); } 
-      else { setInvoices(prev => [...prev, { ...predictionData, id: `pred-${uuidv4()}` } as Prediction]); }
+      else { setPredictions(prev => [...prev, { ...predictionData, id: `pred-${uuidv4()}` } as Prediction]); } // Changed setInvoices to setPredictions
   };
   const handleDeletePrediction = (id: string) => { setPredictions(prev => prev.filter(p => p.id !== id)); };
 
