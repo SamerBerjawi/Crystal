@@ -1154,7 +1154,29 @@ const App: React.FC = () => {
     }
   }, [enableBankingConnections, fetchWithAuth, isDataLoaded, isDemoMode, savePartialDataWithRetry, token]);
 
-  const resolveProviderAccountId = useCallback((account: any) => account?.account_id?.id || account?.account_id || account?.resource_id || account?.uid || account?.id, []);
+  const resolveProviderAccountId = useCallback((account: any) => {
+    if (typeof account === 'string') return account;
+    if (!account) return undefined;
+    if (typeof account.account_id === 'string') return account.account_id;
+    return account?.account_id?.id
+      || account?.accountId
+      || account?.account?.id
+      || account?.resource_id
+      || account?.uid
+      || account?.id;
+  }, []);
+  const resolveBalanceAmount = useCallback((balances: any) => {
+    const balanceList: any[] = Array.isArray(balances?.balances) ? balances.balances : [];
+    const firstBalance = balanceList[0];
+    const amount =
+      firstBalance?.balanceAmount?.amount
+      ?? firstBalance?.balance_amount?.amount
+      ?? firstBalance?.amount?.amount
+      ?? balances?.balanceAmount?.amount
+      ?? balances?.balance_amount?.amount
+      ?? balances?.balance?.amount;
+    return amount !== undefined && amount !== null ? Number(amount) : null;
+  }, []);
   const mapProviderTransaction = useCallback((providerTx: any, linkedAccountId: string | undefined, providerAccountId: string, currency: Currency, connectionId: string): Transaction | null => {
     const amountRaw = providerTx?.transaction_amount?.amount ?? providerTx?.amount?.amount ?? providerTx?.transactionAmount?.amount;
     if (amountRaw === undefined || amountRaw === null || !linkedAccountId) return null;
@@ -1173,23 +1195,73 @@ const App: React.FC = () => {
       setEnableBankingConnections(prev => prev.map(conn => conn.id === connectionId ? { ...conn, status: 'pending', lastError: undefined } : conn));
       const session = await fetchWithAuth('/api/enable-banking/session/fetch', { method: 'POST', body: JSON.stringify({ sessionId: connection.sessionId, applicationId: connection.applicationId, clientCertificate: connection.clientCertificate, }), }).then(res => res.json());
       const accountsFromSession: any[] = session?.accounts || [];
+      const existingAccountsById = new Map(connection.accounts.map(account => [account.id, account]));
       const updatedAccounts: EnableBankingAccount[] = [];
       const importedTransactions: Transaction[] = [];
       for (const account of accountsFromSession) {
           const providerAccountId = resolveProviderAccountId(account);
+          if (!providerAccountId) {
+            console.warn('Enable Banking account missing provider account id. Skipping.', account);
+            continue;
+          }
+          const existingAccount = existingAccountsById.get(providerAccountId);
           const [details, balances] = await Promise.all([
             fetchWithAuth(`/api/enable-banking/accounts/${encodeURIComponent(providerAccountId)}/details`, { method: 'POST', body: JSON.stringify({ applicationId: connection.applicationId, clientCertificate: connection.clientCertificate, sessionId: connection.sessionId, }), }).then(res => res.json()).catch(() => null),
             fetchWithAuth(`/api/enable-banking/accounts/${encodeURIComponent(providerAccountId)}/balances`, { method: 'POST', body: JSON.stringify({ applicationId: connection.applicationId, clientCertificate: connection.clientCertificate, sessionId: connection.sessionId, }), }).then(res => res.json()),
           ]);
-          const balanceEntry = balances?.balances?.[0] || {};
+          const resolvedBalance = resolveBalanceAmount(balances);
           const currency = (account?.currency || details?.currency || 'EUR') as Currency;
-          updatedAccounts.push({ id: providerAccountId, name: details?.name || account?.name || 'Bank account', bankName: connection.selectedBank || 'Enable Banking', currency, balance: Number(balanceEntry?.balanceAmount?.amount || 0), linkedAccountId: connection.accounts?.find(a=>a.id === providerAccountId)?.linkedAccountId, lastSyncedAt: toLocalDateTimeString(new Date()) });
+          const linkedAccountId = existingAccount?.linkedAccountId;
+          const syncStartDate = existingAccount?.syncStartDate || syncOptions?.syncStartDate;
+          const updateBalance = syncOptions?.updateBalance ?? true;
+          const nextBalance = updateBalance ? (resolvedBalance ?? existingAccount?.balance ?? 0) : (existingAccount?.balance ?? 0);
+          updatedAccounts.push({
+            id: providerAccountId,
+            name: details?.name || account?.name || 'Bank account',
+            bankName: connection.selectedBank || 'Enable Banking',
+            currency,
+            balance: nextBalance,
+            linkedAccountId,
+            syncStartDate,
+            lastSyncedAt: toLocalDateTimeString(new Date()),
+          });
+
+          const shouldSyncTransactions = (syncOptions?.transactionMode || 'full') !== 'none';
+          const isTargetAccount = !syncOptions?.targetAccountIds?.length || (linkedAccountId && syncOptions.targetAccountIds.includes(linkedAccountId));
+          if (shouldSyncTransactions && linkedAccountId && isTargetAccount) {
+            const incrementalMode = (syncOptions?.transactionMode || 'full') === 'incremental';
+            const dateFrom = incrementalMode
+              ? toLocalISOString(new Date(existingAccount?.lastSyncedAt || syncStartDate || new Date()))
+              : syncStartDate;
+            let continuationKey: string | undefined;
+            do {
+              const response = await fetchWithAuth(`/api/enable-banking/accounts/${encodeURIComponent(providerAccountId)}/transactions`, {
+                method: 'POST',
+                body: JSON.stringify({
+                  applicationId: connection.applicationId,
+                  clientCertificate: connection.clientCertificate,
+                  sessionId: connection.sessionId,
+                  dateFrom,
+                  continuationKey,
+                }),
+              }).then(res => res.json());
+              const items: any[] = response?.transactions || response?.items || response?.booked || [];
+              items.forEach(tx => {
+                const mapped = mapProviderTransaction(tx, linkedAccountId, providerAccountId, currency, connection.id);
+                if (mapped) importedTransactions.push(mapped);
+              });
+              continuationKey = response?.continuation_key || response?.continuationKey || response?.next_continuation_key;
+            } while (continuationKey);
+          }
+      }
+      if (importedTransactions.length > 0) {
+        handleSaveTransaction(importedTransactions);
       }
       setEnableBankingConnections(prev => prev.map(conn => conn.id === connectionId ? { ...conn, status: 'ready', accounts: updatedAccounts, lastSyncedAt: toLocalDateTimeString(new Date()) } : conn));
     } catch (error: any) {
       setEnableBankingConnections(prev => prev.map(conn => conn.id === connectionId ? { ...conn, status: 'requires_update', lastError: error?.message || 'Sync failed', } : conn));
     }
-  }, [enableBankingConnections, fetchWithAuth, resolveProviderAccountId, token]);
+  }, [enableBankingConnections, fetchWithAuth, handleSaveTransaction, mapProviderTransaction, resolveBalanceAmount, resolveProviderAccountId, token]);
 
   const handleDeleteEnableBankingConnection = useCallback((connectionId: string) => {
     setEnableBankingConnections(prev => prev.filter(conn => conn.id !== connectionId));
