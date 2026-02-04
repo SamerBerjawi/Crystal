@@ -1154,7 +1154,17 @@ const App: React.FC = () => {
     }
   }, [enableBankingConnections, fetchWithAuth, isDataLoaded, isDemoMode, savePartialDataWithRetry, token]);
 
-  const resolveProviderAccountId = useCallback((account: any) => account?.account_id?.id || account?.account_id || account?.resource_id || account?.uid || account?.id, []);
+  const resolveProviderAccountId = useCallback((account: any) => {
+    if (typeof account === 'string') return account;
+    if (!account) return undefined;
+    if (typeof account.account_id === 'string') return account.account_id;
+    return account?.account_id?.id
+      || account?.accountId
+      || account?.account?.id
+      || account?.resource_id
+      || account?.uid
+      || account?.id;
+  }, []);
   const mapProviderTransaction = useCallback((providerTx: any, linkedAccountId: string | undefined, providerAccountId: string, currency: Currency, connectionId: string): Transaction | null => {
     const amountRaw = providerTx?.transaction_amount?.amount ?? providerTx?.amount?.amount ?? providerTx?.transactionAmount?.amount;
     if (amountRaw === undefined || amountRaw === null || !linkedAccountId) return null;
