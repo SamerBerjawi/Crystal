@@ -1177,6 +1177,10 @@ const App: React.FC = () => {
       const importedTransactions: Transaction[] = [];
       for (const account of accountsFromSession) {
           const providerAccountId = resolveProviderAccountId(account);
+          if (!providerAccountId) {
+            console.warn('Enable Banking account missing provider account id. Skipping.', account);
+            continue;
+          }
           const [details, balances] = await Promise.all([
             fetchWithAuth(`/api/enable-banking/accounts/${encodeURIComponent(providerAccountId)}/details`, { method: 'POST', body: JSON.stringify({ applicationId: connection.applicationId, clientCertificate: connection.clientCertificate, sessionId: connection.sessionId, }), }).then(res => res.json()).catch(() => null),
             fetchWithAuth(`/api/enable-banking/accounts/${encodeURIComponent(providerAccountId)}/balances`, { method: 'POST', body: JSON.stringify({ applicationId: connection.applicationId, clientCertificate: connection.clientCertificate, sessionId: connection.sessionId, }), }).then(res => res.json()),
