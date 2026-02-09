@@ -132,8 +132,7 @@ const Transactions: React.FC<TransactionsProps> = ({ initialAccountFilter, initi
   const { saveRecurringTransaction } = useScheduleContext();
   const brandfetchClientId = usePreferencesSelector(p => (p.brandfetchClientId || '').trim());
   const merchantLogoOverrides = usePreferencesSelector(p => p.merchantLogoOverrides || {});
-  const [accountFilter, setAccountFilter] = useState<string | null>(initialAccountFilter ?? null);
-  const [tagFilter, setTagFilter] = useState<string | null>(initialTagFilter ?? null);
+  const merchantRules = usePreferencesSelector(p => p.merchantRules || {});
   const appliedInitialFiltersRef = useRef<{ account: string | null; tag: string | null } | null>(null);
 
   useEffect(() => {
@@ -144,12 +143,18 @@ const Transactions: React.FC<TransactionsProps> = ({ initialAccountFilter, initi
 
     const lastApplied = appliedInitialFiltersRef.current;
     if (!lastApplied || lastApplied.account !== nextAccount || lastApplied.tag !== nextTag) {
-      setAccountFilter(nextAccount);
-      setTagFilter(nextTag);
+      if (nextAccount) {
+        const account = accounts.find(a => a.name === nextAccount);
+        if (account) setSelectedAccountIds([account.id]);
+      }
+      if (nextTag) {
+        setSelectedTagIds([nextTag]);
+      }
+
       appliedInitialFiltersRef.current = { account: nextAccount, tag: nextTag };
       onClearInitialFilters?.();
     }
-  }, [initialAccountFilter, initialTagFilter, onClearInitialFilters]);
+  }, [accounts, initialAccountFilter, initialTagFilter, onClearInitialFilters]);
 
   const [searchTerm, setSearchTerm] = useState('');
   const debouncedSearchTerm = useDebounce(searchTerm, 300);
@@ -190,23 +195,6 @@ const Transactions: React.FC<TransactionsProps> = ({ initialAccountFilter, initi
     setListHeight(measuredHeight > 0 ? measuredHeight : 600);
   }, 150);
 
-  // Sync with global filters from props
-  useEffect(() => {
-    if (accountFilter) {
-      const account = accounts.find(a => a.name === accountFilter);
-      if (account) setSelectedAccountIds([account.id]);
-    } else {
-      setSelectedAccountIds([]);
-    }
-  }, [accountFilter, accounts]);
-
-  useEffect(() => {
-    if (tagFilter) {
-      setSelectedTagIds([tagFilter]);
-    } else {
-      setSelectedTagIds([]);
-    }
-  }, [tagFilter]);
 
   useEffect(() => {
     const handleKeyDown = (event: KeyboardEvent) => {
@@ -279,16 +267,30 @@ const Transactions: React.FC<TransactionsProps> = ({ initialAccountFilter, initi
     return {};
   };
 
+  const effectiveMerchantLogoOverrides = useMemo(() => {
+    const ruleLogoOverrides = Object.entries(merchantRules).reduce((acc, [merchantKey, rule]) => {
+      if (rule?.logo) acc[merchantKey] = rule.logo;
+      return acc;
+    }, {} as Record<string, string>);
+
+    return {
+      ...merchantLogoOverrides,
+      ...ruleLogoOverrides,
+    };
+  }, [merchantLogoOverrides, merchantRules]);
+
+
+
   const merchantLogoUrls = useMemo(() => {
     if (!brandfetchClientId) return {} as Record<string, string>;
     return transactions.reduce((acc, tx) => {
       const key = normalizeMerchantKey(tx.merchant);
       if (!key || acc[key]) return acc;
-      const url = getMerchantLogoUrl(tx.merchant, brandfetchClientId, merchantLogoOverrides, { fallback: 'lettermark', type: 'icon', width: 96, height: 96 });
+      const url = getMerchantLogoUrl(tx.merchant, brandfetchClientId, effectiveMerchantLogoOverrides, { fallback: 'lettermark', type: 'icon', width: 96, height: 96 });
       if (url) acc[key] = url;
       return acc;
     }, {} as Record<string, string>);
-  }, [brandfetchClientId, merchantLogoOverrides, transactions]);
+  }, [brandfetchClientId, effectiveMerchantLogoOverrides, transactions]);
 
   const handleLogoError = useCallback((logoUrl: string) => {
     setLogoLoadErrors(prev => (prev[logoUrl] ? prev : { ...prev, [logoUrl]: true }));
@@ -811,10 +813,8 @@ const Transactions: React.FC<TransactionsProps> = ({ initialAccountFilter, initi
   
   const clearFilters = () => {
     setSearchTerm('');
-    setAccountFilter(null);
     setSelectedAccountIds([]);
     setSelectedCategoryNames([]);
-    setTagFilter(null);
     setSelectedTagIds([]);
     setTypeFilter('all');
     setStartDate('');
@@ -1371,7 +1371,7 @@ const Transactions: React.FC<TransactionsProps> = ({ initialAccountFilter, initi
                         ? formatCurrency(convertToEur(Math.abs(resolvedDisplay.amount), resolvedDisplay.currency), 'EUR')
                         : formatCurrency(convertToEur(resolvedDisplay.amount, resolvedDisplay.currency), 'EUR', { showPlusSign: true });
 
-                    const institutionLogoUrl = account?.financialInstitution ? getMerchantLogoUrl(account.financialInstitution, brandfetchClientId, merchantLogoOverrides, { fallback: 'lettermark', type: 'icon', width: 64, height: 64 }) : null;
+                    const institutionLogoUrl = account?.financialInstitution ? getMerchantLogoUrl(account.financialInstitution, brandfetchClientId, effectiveMerchantLogoOverrides, { fallback: 'lettermark', type: 'icon', width: 64, height: 64 }) : null;
                     const showInstitutionLogo = Boolean(institutionLogoUrl && !logoLoadErrors[institutionLogoUrl]);
 
                     return (

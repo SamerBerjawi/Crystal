@@ -261,10 +261,6 @@ const AddTransactionModal: React.FC<AddTransactionModalProps> = ({ onClose, onSa
 
   // Auto-apply merchant rules
   const applyMerchantRules = (merchantName: string) => {
-      // Only apply defaults if we aren't editing an existing transaction
-      // or if the user is changing the merchant on a new transaction
-      if (isEditing) return;
-
       const key = normalizeMerchantKey(merchantName);
       if (!key) return;
 
