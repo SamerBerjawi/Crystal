@@ -1,12 +1,13 @@
 
 import React from 'react';
-import { AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, ReferenceLine, Label } from 'recharts';
+import { AreaChart, Area, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, ReferenceLine, Label, Legend } from 'recharts';
 import { formatCurrency, parseLocalDate } from '../utils';
 import { FinancialGoal } from '../types';
 
 interface ChartData {
   name: string;
   value?: number;
+  actual?: number;
   forecast?: number;
 }
 
@@ -31,11 +32,14 @@ const NetWorthChart: React.FC<NetWorthChartProps> = ({
     showGoals = true,
     goals = []
 }) => {
+  const chartData = data.map(point => ({
+    ...point,
+    actual: point.value,
+  }));
 
   const CustomTooltip = ({ active, payload, label }: any) => {
       if (active && payload && payload.length) {
-        // payload can contain both 'value' and 'forecast' depending on the point
-        const historyPayload = payload.find((p: any) => p.dataKey === 'value');
+        const historyPayload = payload.find((p: any) => p.dataKey === 'actual');
         const forecastPayload = payload.find((p: any) => p.dataKey === 'forecast');
 
         return (
@@ -68,10 +72,10 @@ const NetWorthChart: React.FC<NetWorthChartProps> = ({
   const tickFormatter = (dateStr: string) => {
     const date = parseLocalDate(dateStr);
 
-    if (data.length <= 1) return '';
+    if (chartData.length <= 1) return '';
 
-    const startDate = parseLocalDate(data[0].name);
-    const endDate = parseLocalDate(data[data.length - 1].name);
+    const startDate = parseLocalDate(chartData[0].name);
+    const endDate = parseLocalDate(chartData[chartData.length - 1].name);
     const rangeInDays = (endDate.getTime() - startDate.getTime()) / (1000 * 3600 * 24);
 
     if (rangeInDays <= 31) {
@@ -86,28 +90,19 @@ const NetWorthChart: React.FC<NetWorthChartProps> = ({
   };
   
   const gradientId = `colorNetWorth-${lineColor.replace('#', '')}`;
-  const forecastGradientId = `colorNetWorthForecast-${lineColor.replace('#', '')}`;
 
   return (
     <div className="flex-grow" style={{ width: '100%', height: '270px' }}>
       <ResponsiveContainer minWidth={0} minHeight={0} debounce={50}>
         <AreaChart
-          data={data}
+          data={chartData}
           margin={{ top: 10, right: 0, left: -20, bottom: 0 }}
         >
           <defs>
             <linearGradient id={gradientId} x1="0" y1="0" x2="0" y2="1">
-              <stop offset="5%" stopColor={lineColor} stopOpacity={0.3}/>
-              <stop offset="95%" stopColor={lineColor} stopOpacity={0}/>
+              <stop offset="5%" stopColor="#10B981" stopOpacity={0.3}/>
+              <stop offset="95%" stopColor="#10B981" stopOpacity={0}/>
             </linearGradient>
-            <linearGradient id={forecastGradientId} x1="0" y1="0" x2="0" y2="1">
-              <stop offset="5%" stopColor={lineColor} stopOpacity={0.1}/>
-              <stop offset="95%" stopColor={lineColor} stopOpacity={0}/>
-            </linearGradient>
-            {/* Pattern for forecast area to give it a "projected" look */}
-            <pattern id="patternForecast" patternUnits="userSpaceOnUse" width="4" height="4">
-                <path d="M-1,1 l2,-2 M0,4 l4,-4 M3,5 l2,-2" style={{ stroke: lineColor, strokeOpacity: 0.1, strokeWidth: 1 }} />
-            </pattern>
           </defs>
           <CartesianGrid strokeDasharray="3 3" stroke="currentColor" opacity={0.05} vertical={false} />
           <XAxis 
@@ -133,14 +128,14 @@ const NetWorthChart: React.FC<NetWorthChartProps> = ({
             cursor={{ stroke: lineColor, strokeWidth: 1, strokeDasharray: '4 4', opacity: 0.5 }}
             content={<CustomTooltip />} 
            />
+          <Legend verticalAlign="top" height={24} iconType="line" wrapperStyle={{ fontSize: '12px' }} />
           
           {/* Goal Markers */}
-          {showGoals && goals.map((goal, index) => {
+          {showGoals && goals.map((goal) => {
               if (!goal.date) return null;
-              // Check if date is within chart range
-              if(data.length === 0) return null;
-              const start = data[0].name;
-              const end = data[data.length - 1].name;
+              if(chartData.length === 0) return null;
+              const start = chartData[0].name;
+              const end = chartData[chartData.length - 1].name;
               if (goal.date < start || goal.date > end) return null;
 
               return (
@@ -165,30 +160,29 @@ const NetWorthChart: React.FC<NetWorthChartProps> = ({
               );
           })}
 
-          {/* Forecast Area */}
           {showForecast && (
-              <Area 
+              <Line 
                 type="monotone" 
                 dataKey="forecast" 
                 name="Forecast" 
                 stroke={lineColor} 
-                strokeDasharray="5 5"
-                fill={`url(#${forecastGradientId})`} 
+                strokeDasharray="6 5"
                 strokeWidth={2}
-                strokeOpacity={0.6}
+                strokeOpacity={0.8}
+                dot={false}
+                connectNulls
                 activeDot={{ r: 4, fill: 'white', stroke: lineColor, strokeWidth: 2 }}
               />
           )}
 
-          {/* Actual History Area */}
           <Area 
             type="monotone" 
-            dataKey="value" 
-            name="Net Worth" 
-            stroke={lineColor} 
+            dataKey="actual" 
+            name="Actual Net Worth" 
+            stroke="#10B981" 
             fill={`url(#${gradientId})`} 
             strokeWidth={3}
-            activeDot={{ r: 6, fill: 'white', stroke: lineColor, strokeWidth: 3 }}
+            activeDot={{ r: 6, fill: 'white', stroke: '#10B981', strokeWidth: 3 }}
           />
         </AreaChart>
       </ResponsiveContainer>
