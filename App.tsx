@@ -1235,6 +1235,7 @@ const App: React.FC = () => {
       setEnableBankingConnections(prev => prev.map(conn => conn.id === connectionId ? { ...conn, status: 'pending', lastError: undefined } : conn));
       const session = await fetchWithAuth('/api/enable-banking/session/fetch', { method: 'POST', body: JSON.stringify({ sessionId: connection.sessionId, applicationId: connection.applicationId, clientCertificate: connection.clientCertificate, }), }).then(res => res.json());
       const accountsFromSession: any[] = session?.accounts || [];
+      const existingAccountsById = new Map(connection.accounts.map(account => [account.id, account]));
       const updatedAccounts: EnableBankingAccount[] = [];
       const importedTransactions: Transaction[] = [];
       const shouldSyncTransactions = (syncOptions?.transactionMode || 'full') !== 'none';
@@ -1244,11 +1245,12 @@ const App: React.FC = () => {
             console.warn('Enable Banking account missing provider account id. Skipping.', account);
             continue;
           }
+          const existingAccount = existingAccountsById.get(providerAccountId);
           const [details, balances] = await Promise.all([
             fetchWithAuth(`/api/enable-banking/accounts/${encodeURIComponent(providerAccountId)}/details`, { method: 'POST', body: JSON.stringify({ applicationId: connection.applicationId, clientCertificate: connection.clientCertificate, sessionId: connection.sessionId, }), }).then(res => res.json()).catch(() => null),
             fetchWithAuth(`/api/enable-banking/accounts/${encodeURIComponent(providerAccountId)}/balances`, { method: 'POST', body: JSON.stringify({ applicationId: connection.applicationId, clientCertificate: connection.clientCertificate, sessionId: connection.sessionId, }), }).then(res => res.json()),
           ]);
-          const balanceEntry = balances?.balances?.[0] || {};
+          const resolvedBalance = resolveBalanceAmount(balances);
           const currency = (account?.currency || details?.currency || 'EUR') as Currency;
           const existingLinkedAccount = connection.accounts?.find(a => a.id === providerAccountId);
           const linkedAccountId = existingLinkedAccount?.linkedAccountId;

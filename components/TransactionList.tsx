@@ -25,7 +25,20 @@ const findCategoryDetails = (name: string, categories: Category[]): { icon?: str
 const TransactionList: React.FC<TransactionListProps> = ({ transactions, allCategories, onTransactionClick }) => {
   const brandfetchClientId = usePreferencesSelector(p => (p.brandfetchClientId || '').trim());
   const merchantLogoOverrides = usePreferencesSelector(p => p.merchantLogoOverrides || {});
+  const merchantRules = usePreferencesSelector(p => p.merchantRules || {});
   const [logoLoadErrors, setLogoLoadErrors] = useState<Record<string, boolean>>({});
+
+  const effectiveMerchantLogoOverrides = useMemo(() => {
+    const ruleLogoOverrides = Object.entries(merchantRules).reduce((acc, [merchantKey, rule]) => {
+      if (rule?.logo) acc[merchantKey] = rule.logo;
+      return acc;
+    }, {} as Record<string, string>);
+
+    return {
+      ...merchantLogoOverrides,
+      ...ruleLogoOverrides,
+    };
+  }, [merchantLogoOverrides, merchantRules]);
 
   const handleLogoError = useCallback((logoUrl: string) => {
     setLogoLoadErrors(prev => (prev[logoUrl] ? prev : { ...prev, [logoUrl]: true }));
@@ -49,7 +62,7 @@ const TransactionList: React.FC<TransactionListProps> = ({ transactions, allCate
         const categoryColor = isTransfer ? '#64748B' : (catDetails.color || '#A0AEC0');
         
         const merchantKey = normalizeMerchantKey(tx.merchant);
-        const merchantLogoUrl = merchantKey ? getMerchantLogoUrl(tx.merchant, brandfetchClientId, merchantLogoOverrides, { fallback: 'lettermark', type: 'icon', width: 80, height: 80 }) : null;
+        const merchantLogoUrl = merchantKey ? getMerchantLogoUrl(tx.merchant, brandfetchClientId, effectiveMerchantLogoOverrides, { fallback: 'lettermark', type: 'icon', width: 80, height: 80 }) : null;
         const showMerchantLogo = Boolean(merchantLogoUrl && !logoLoadErrors[merchantLogoUrl]);
         const merchantInitial = tx.merchant?.trim().charAt(0)?.toUpperCase();
 
@@ -70,7 +83,7 @@ const TransactionList: React.FC<TransactionListProps> = ({ transactions, allCate
           merchantInitial
         };
       }),
-    [transactions, allCategories, brandfetchClientId, merchantLogoOverrides, logoLoadErrors]
+    [transactions, allCategories, brandfetchClientId, effectiveMerchantLogoOverrides, logoLoadErrors]
   );
 
   const containerRef = useRef<HTMLDivElement>(null);
