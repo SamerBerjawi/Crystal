@@ -1,5 +1,5 @@
 
-import React from 'react';
+import React, { useMemo } from 'react';
 import { AreaChart, Area, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, ReferenceLine, Label, Legend } from 'recharts';
 import { formatCurrency, parseLocalDate } from '../utils';
 import { FinancialGoal } from '../types';
@@ -37,10 +37,36 @@ const NetWorthChart: React.FC<NetWorthChartProps> = ({
     actual: point.value,
   }));
 
+  const latestPerformancePoint = useMemo(() => {
+    const comparablePoints = chartData.filter(
+      point => typeof point.actual === 'number' && typeof point.forecast === 'number'
+    );
+
+    if (comparablePoints.length === 0) return null;
+
+    const latestPoint = comparablePoints[comparablePoints.length - 1];
+    const delta = (latestPoint.actual as number) - (latestPoint.forecast as number);
+    const deltaPercent = (latestPoint.forecast && latestPoint.forecast !== 0)
+      ? (delta / latestPoint.forecast) * 100
+      : 0;
+
+    return {
+      ...latestPoint,
+      delta,
+      deltaPercent,
+    };
+  }, [chartData]);
+
   const CustomTooltip = ({ active, payload, label }: any) => {
       if (active && payload && payload.length) {
         const historyPayload = payload.find((p: any) => p.dataKey === 'actual');
         const forecastPayload = payload.find((p: any) => p.dataKey === 'forecast');
+        const delta = historyPayload && forecastPayload
+          ? historyPayload.value - forecastPayload.value
+          : null;
+        const deltaPercent = delta !== null && forecastPayload?.value
+          ? (delta / forecastPayload.value) * 100
+          : null;
 
         return (
           <div className="bg-white dark:bg-dark-card p-3 rounded-xl shadow-lg border border-black/5 dark:border-white/10 text-sm">
@@ -60,6 +86,14 @@ const NetWorthChart: React.FC<NetWorthChartProps> = ({
                     <span className="text-light-text-secondary dark:text-dark-text-secondary">Forecast:</span>
                     <span className="font-bold text-primary-500 font-mono">
                         {formatCurrency(forecastPayload.value, 'EUR')}
+                    </span>
+                </div>
+            )}
+            {delta !== null && deltaPercent !== null && (
+                <div className="flex justify-between gap-4 pt-2 mt-2 border-t border-black/5 dark:border-white/5">
+                    <span className="text-light-text-secondary dark:text-dark-text-secondary">Performance:</span>
+                    <span className={`font-bold font-mono ${delta >= 0 ? 'text-emerald-600' : 'text-rose-600'}`}>
+                        {delta >= 0 ? '+' : ''}{formatCurrency(delta, 'EUR')} ({deltaPercent >= 0 ? '+' : ''}{deltaPercent.toFixed(1)}%)
                     </span>
                 </div>
             )}
@@ -93,6 +127,17 @@ const NetWorthChart: React.FC<NetWorthChartProps> = ({
 
   return (
     <div className="flex-grow" style={{ width: '100%', height: '270px' }}>
+      {latestPerformancePoint && (
+        <div className="flex justify-end mb-2 text-xs">
+          <div className="px-2 py-1 rounded-md bg-black/5 dark:bg-white/10 font-medium">
+            <span className="text-light-text-secondary dark:text-dark-text-secondary mr-1">Vs forecast:</span>
+            <span className={latestPerformancePoint.delta >= 0 ? 'text-emerald-600' : 'text-rose-600'}>
+              {latestPerformancePoint.delta >= 0 ? '+' : ''}
+              {formatCurrency(latestPerformancePoint.delta, 'EUR')} ({latestPerformancePoint.deltaPercent >= 0 ? '+' : ''}{latestPerformancePoint.deltaPercent.toFixed(1)}%)
+            </span>
+          </div>
+        </div>
+      )}
       <ResponsiveContainer minWidth={0} minHeight={0} debounce={50}>
         <AreaChart
           data={chartData}
