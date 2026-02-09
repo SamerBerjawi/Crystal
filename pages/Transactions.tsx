@@ -132,6 +132,8 @@ const Transactions: React.FC<TransactionsProps> = ({ initialAccountFilter, initi
   const { saveRecurringTransaction } = useScheduleContext();
   const brandfetchClientId = usePreferencesSelector(p => (p.brandfetchClientId || '').trim());
   const merchantLogoOverrides = usePreferencesSelector(p => p.merchantLogoOverrides || {});
+  const merchantRules = usePreferencesSelector(p => p.merchantRules || {});
+  const hiddenMerchants = usePreferencesSelector(p => p.hiddenMerchants || []);
   const [accountFilter, setAccountFilter] = useState<string | null>(initialAccountFilter ?? null);
   const [tagFilter, setTagFilter] = useState<string | null>(initialTagFilter ?? null);
   const appliedInitialFiltersRef = useRef<{ account: string | null; tag: string | null } | null>(null);
@@ -279,16 +281,40 @@ const Transactions: React.FC<TransactionsProps> = ({ initialAccountFilter, initi
     return {};
   };
 
+  const effectiveMerchantLogoOverrides = useMemo(() => {
+    const ruleLogoOverrides = Object.entries(merchantRules).reduce((acc, [merchantKey, rule]) => {
+      if (rule?.logo) acc[merchantKey] = rule.logo;
+      return acc;
+    }, {} as Record<string, string>);
+
+    return {
+      ...merchantLogoOverrides,
+      ...ruleLogoOverrides,
+    };
+  }, [merchantLogoOverrides, merchantRules]);
+
+  const hiddenMerchantKeys = useMemo(() => {
+    const fromRules = Object.entries(merchantRules)
+      .filter(([, rule]) => rule?.isHidden)
+      .map(([merchantKey]) => merchantKey);
+
+    const fromLegacy = hiddenMerchants
+      .map(merchantName => normalizeMerchantKey(merchantName))
+      .filter((merchantKey): merchantKey is string => Boolean(merchantKey));
+
+    return new Set([...fromRules, ...fromLegacy]);
+  }, [merchantRules, hiddenMerchants]);
+
   const merchantLogoUrls = useMemo(() => {
     if (!brandfetchClientId) return {} as Record<string, string>;
     return transactions.reduce((acc, tx) => {
       const key = normalizeMerchantKey(tx.merchant);
       if (!key || acc[key]) return acc;
-      const url = getMerchantLogoUrl(tx.merchant, brandfetchClientId, merchantLogoOverrides, { fallback: 'lettermark', type: 'icon', width: 96, height: 96 });
+      const url = getMerchantLogoUrl(tx.merchant, brandfetchClientId, effectiveMerchantLogoOverrides, { fallback: 'lettermark', type: 'icon', width: 96, height: 96 });
       if (url) acc[key] = url;
       return acc;
     }, {} as Record<string, string>);
-  }, [brandfetchClientId, merchantLogoOverrides, transactions]);
+  }, [brandfetchClientId, effectiveMerchantLogoOverrides, transactions]);
 
   const handleLogoError = useCallback((logoUrl: string) => {
     setLogoLoadErrors(prev => (prev[logoUrl] ? prev : { ...prev, [logoUrl]: true }));
@@ -462,6 +488,9 @@ const Transactions: React.FC<TransactionsProps> = ({ initialAccountFilter, initi
         
         const matchMerchant = !normalizedMerchantFilter || fuzzySearch(normalizedMerchantFilter, merchantText);
 
+        const merchantKey = normalizeMerchantKey(tx.merchant);
+        const isHiddenMerchant = merchantKey ? hiddenMerchantKeys.has(merchantKey) : false;
+
         let matchType = true;
         if (typeFilter === 'expense') matchType = !tx.isTransfer && tx.type === 'expense';
         else if (typeFilter === 'income') matchType = !tx.isTransfer && tx.type === 'income';
@@ -480,7 +509,7 @@ const Transactions: React.FC<TransactionsProps> = ({ initialAccountFilter, initi
         const matchMinAmount = isNaN(min) || amountAbsEur >= min;
         const matchMaxAmount = isNaN(max) || amountAbsEur <= max;
 
-        return matchAccount && matchTag && matchSearch && matchType && matchStartDate && matchEndDate && matchCategory && matchMinAmount && matchMaxAmount && matchMerchant;
+        return !isHiddenMerchant && matchAccount && matchTag && matchSearch && matchType && matchStartDate && matchEndDate && matchCategory && matchMinAmount && matchMaxAmount && matchMerchant;
       }).map(({ tx }) => tx);
     
     return transactionList.sort((a, b) => {
@@ -496,7 +525,7 @@ const Transactions: React.FC<TransactionsProps> = ({ initialAccountFilter, initi
       }
     });
 
-  }, [debouncedSearchTerm, sortBy, typeFilter, startDate, endDate, indexedTransactions, selectedAccountIds, selectedCategoryNames, selectedTagIds, minAmount, maxAmount, allCategories, accountMapByName, merchantFilter]);
+  }, [debouncedSearchTerm, sortBy, typeFilter, startDate, endDate, indexedTransactions, selectedAccountIds, selectedCategoryNames, selectedTagIds, minAmount, maxAmount, allCategories, accountMapByName, merchantFilter, hiddenMerchantKeys]);
   
   type VirtualRow = { type: 'header'; date: string; total: number } | { type: 'transaction'; transaction: DisplayTransaction };
 
@@ -1371,7 +1400,7 @@ const Transactions: React.FC<TransactionsProps> = ({ initialAccountFilter, initi
                         ? formatCurrency(convertToEur(Math.abs(resolvedDisplay.amount), resolvedDisplay.currency), 'EUR')
                         : formatCurrency(convertToEur(resolvedDisplay.amount, resolvedDisplay.currency), 'EUR', { showPlusSign: true });
 
-                    const institutionLogoUrl = account?.financialInstitution ? getMerchantLogoUrl(account.financialInstitution, brandfetchClientId, merchantLogoOverrides, { fallback: 'lettermark', type: 'icon', width: 64, height: 64 }) : null;
+                    const institutionLogoUrl = account?.financialInstitution ? getMerchantLogoUrl(account.financialInstitution, brandfetchClientId, effectiveMerchantLogoOverrides, { fallback: 'lettermark', type: 'icon', width: 64, height: 64 }) : null;
                     const showInstitutionLogo = Boolean(institutionLogoUrl && !logoLoadErrors[institutionLogoUrl]);
 
                     return (

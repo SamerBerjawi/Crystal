@@ -51,6 +51,7 @@ const Merchants: React.FC<MerchantsProps> = ({ setCurrentPage }) => {
   // Migrate old overrides or rules if needed (simplified: just read both)
   const merchantRules = usePreferencesSelector(p => p.merchantRules || {});
   const legacyOverrides = usePreferencesSelector(p => p.merchantLogoOverrides || {});
+  const hiddenMerchants = usePreferencesSelector(p => p.hiddenMerchants || []);
 
   const [searchTerm, setSearchTerm] = useState('');
   const [sortBy, setSortBy] = useState<'name' | 'count' | 'value' | 'recent'>('count');
@@ -60,6 +61,49 @@ const Merchants: React.FC<MerchantsProps> = ({ setCurrentPage }) => {
   
   const [editingEntity, setEditingEntity] = useState<EntityItem | null>(null);
   const [isDetailModalOpen, setIsDetailModalOpen] = useState(false);
+  const effectiveMerchantRules = useMemo(() => {
+    const migratedRules = { ...merchantRules };
+
+    hiddenMerchants.forEach(merchantName => {
+      const merchantKey = normalizeMerchantKey(merchantName);
+      if (!merchantKey) return;
+
+      migratedRules[merchantKey] = {
+        ...(migratedRules[merchantKey] || {}),
+        isHidden: true,
+      };
+    });
+
+    return migratedRules;
+  }, [merchantRules, hiddenMerchants]);
+
+  useEffect(() => {
+    if (!hiddenMerchants.length) return;
+
+    const needsMigration = hiddenMerchants.some(merchantName => {
+      const merchantKey = normalizeMerchantKey(merchantName);
+      return merchantKey && !merchantRules[merchantKey]?.isHidden;
+    });
+
+    if (!needsMigration) return;
+
+    setPreferences(prev => {
+      const nextRules = { ...(prev.merchantRules || {}) };
+      hiddenMerchants.forEach(merchantName => {
+        const merchantKey = normalizeMerchantKey(merchantName);
+        if (!merchantKey) return;
+        nextRules[merchantKey] = {
+          ...(nextRules[merchantKey] || {}),
+          isHidden: true,
+        };
+      });
+
+      return {
+        ...prev,
+        merchantRules: nextRules,
+      };
+    });
+  }, [hiddenMerchants, merchantRules, setPreferences]);
 
   const missingMerchantCount = useMemo(() => 
     transactions.filter(tx => !tx.merchant || !tx.merchant.trim()).length,
@@ -87,7 +131,7 @@ const Merchants: React.FC<MerchantsProps> = ({ setCurrentPage }) => {
       } else {
         // Construct effective rule by merging legacy overrides if rule doesn't exist
         // This ensures backward compatibility
-        const effectiveRule = merchantRules[key] || (legacyOverrides[key] ? { logo: legacyOverrides[key] } : undefined);
+        const effectiveRule = effectiveMerchantRules[key] || (legacyOverrides[key] ? { logo: legacyOverrides[key] } : undefined);
 
         map.set(mapKey, { 
             id: mapKey, 
@@ -118,7 +162,7 @@ const Merchants: React.FC<MerchantsProps> = ({ setCurrentPage }) => {
             existing.count += 1;
             existing.totalValue += val;
         } else {
-            const effectiveRule = merchantRules[key] || (legacyOverrides[key] ? { logo: legacyOverrides[key] } : undefined);
+            const effectiveRule = effectiveMerchantRules[key] || (legacyOverrides[key] ? { logo: legacyOverrides[key] } : undefined);
 
             map.set(mapKey, { 
                 id: mapKey, 
@@ -136,7 +180,7 @@ const Merchants: React.FC<MerchantsProps> = ({ setCurrentPage }) => {
     });
 
     return Array.from(map.values());
-  }, [transactions, accounts, merchantRules, legacyOverrides]);
+  }, [transactions, accounts, effectiveMerchantRules, legacyOverrides]);
 
   // Filtering & Sorting
   const filteredEntities = useMemo(() => {
