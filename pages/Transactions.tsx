@@ -134,8 +134,6 @@ const Transactions: React.FC<TransactionsProps> = ({ initialAccountFilter, initi
   const merchantLogoOverrides = usePreferencesSelector(p => p.merchantLogoOverrides || {});
   const merchantRules = usePreferencesSelector(p => p.merchantRules || {});
   const hiddenMerchants = usePreferencesSelector(p => p.hiddenMerchants || []);
-  const [accountFilter, setAccountFilter] = useState<string | null>(initialAccountFilter ?? null);
-  const [tagFilter, setTagFilter] = useState<string | null>(initialTagFilter ?? null);
   const appliedInitialFiltersRef = useRef<{ account: string | null; tag: string | null } | null>(null);
 
   useEffect(() => {
@@ -146,12 +144,18 @@ const Transactions: React.FC<TransactionsProps> = ({ initialAccountFilter, initi
 
     const lastApplied = appliedInitialFiltersRef.current;
     if (!lastApplied || lastApplied.account !== nextAccount || lastApplied.tag !== nextTag) {
-      setAccountFilter(nextAccount);
-      setTagFilter(nextTag);
+      if (nextAccount) {
+        const account = accounts.find(a => a.name === nextAccount);
+        if (account) setSelectedAccountIds([account.id]);
+      }
+      if (nextTag) {
+        setSelectedTagIds([nextTag]);
+      }
+
       appliedInitialFiltersRef.current = { account: nextAccount, tag: nextTag };
       onClearInitialFilters?.();
     }
-  }, [initialAccountFilter, initialTagFilter, onClearInitialFilters]);
+  }, [accounts, initialAccountFilter, initialTagFilter, onClearInitialFilters]);
 
   const [searchTerm, setSearchTerm] = useState('');
   const debouncedSearchTerm = useDebounce(searchTerm, 300);
@@ -192,23 +196,6 @@ const Transactions: React.FC<TransactionsProps> = ({ initialAccountFilter, initi
     setListHeight(measuredHeight > 0 ? measuredHeight : 600);
   }, 150);
 
-  // Sync with global filters from props
-  useEffect(() => {
-    if (accountFilter) {
-      const account = accounts.find(a => a.name === accountFilter);
-      if (account) setSelectedAccountIds([account.id]);
-    } else {
-      setSelectedAccountIds([]);
-    }
-  }, [accountFilter, accounts]);
-
-  useEffect(() => {
-    if (tagFilter) {
-      setSelectedTagIds([tagFilter]);
-    } else {
-      setSelectedTagIds([]);
-    }
-  }, [tagFilter]);
 
   useEffect(() => {
     const handleKeyDown = (event: KeyboardEvent) => {
@@ -840,10 +827,8 @@ const Transactions: React.FC<TransactionsProps> = ({ initialAccountFilter, initi
   
   const clearFilters = () => {
     setSearchTerm('');
-    setAccountFilter(null);
     setSelectedAccountIds([]);
     setSelectedCategoryNames([]);
-    setTagFilter(null);
     setSelectedTagIds([]);
     setTypeFilter('all');
     setStartDate('');
