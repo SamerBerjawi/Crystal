@@ -1166,6 +1166,36 @@ const App: React.FC = () => {
       || account?.id;
   }, []);
 
+  const resolveBalanceAmount = useCallback((balances: any) => {
+    const balanceEntries: any[] = Array.isArray(balances)
+      ? balances
+      : balances?.balances || balances?.account?.balances || [];
+    if (!Array.isArray(balanceEntries) || balanceEntries.length === 0) {
+      return { amount: 0, currency: undefined as string | undefined };
+    }
+
+    const prioritizedBalance =
+      balanceEntries.find(entry => entry?.balanceType === 'closingBooked')
+      || balanceEntries.find(entry => entry?.balance_type === 'closingBooked')
+      || balanceEntries.find(entry => entry?.balanceType === 'expected')
+      || balanceEntries.find(entry => entry?.balance_type === 'expected')
+      || balanceEntries[0];
+
+    const amountRaw = prioritizedBalance?.balanceAmount?.amount
+      ?? prioritizedBalance?.balance_amount?.amount
+      ?? prioritizedBalance?.amount?.amount
+      ?? prioritizedBalance?.amount;
+    const parsedAmount = Number(amountRaw);
+    const currency = prioritizedBalance?.balanceAmount?.currency
+      ?? prioritizedBalance?.balance_amount?.currency
+      ?? prioritizedBalance?.amount?.currency;
+
+    return {
+      amount: Number.isFinite(parsedAmount) ? parsedAmount : 0,
+      currency: typeof currency === 'string' ? currency : undefined,
+    };
+  }, []);
+
   const pickFirstText = useCallback((...values: any[]): string | undefined => {
     for (const value of values) {
       if (typeof value === 'string') {
@@ -1251,10 +1281,10 @@ const App: React.FC = () => {
             fetchWithAuth(`/api/enable-banking/accounts/${encodeURIComponent(providerAccountId)}/balances`, { method: 'POST', body: JSON.stringify({ applicationId: connection.applicationId, clientCertificate: connection.clientCertificate, sessionId: connection.sessionId, }), }).then(res => res.json()),
           ]);
           const resolvedBalance = resolveBalanceAmount(balances);
-          const currency = (account?.currency || details?.currency || 'EUR') as Currency;
+          const currency = (account?.currency || details?.currency || resolvedBalance.currency || 'EUR') as Currency;
           const existingLinkedAccount = connection.accounts?.find(a => a.id === providerAccountId);
           const linkedAccountId = existingLinkedAccount?.linkedAccountId;
-          updatedAccounts.push({ id: providerAccountId, name: details?.name || account?.name || 'Bank account', bankName: connection.selectedBank || 'Enable Banking', currency, balance: Number(balanceEntry?.balanceAmount?.amount || 0), linkedAccountId, syncStartDate: existingLinkedAccount?.syncStartDate, lastSyncedAt: toLocalDateTimeString(new Date()) });
+          updatedAccounts.push({ id: providerAccountId, name: details?.name || account?.name || 'Bank account', bankName: connection.selectedBank || 'Enable Banking', currency, balance: resolvedBalance.amount, linkedAccountId, syncStartDate: existingLinkedAccount?.syncStartDate, lastSyncedAt: toLocalDateTimeString(new Date()) });
 
           const accountTargeted = !syncOptions?.targetAccountIds?.length || syncOptions.targetAccountIds.includes(providerAccountId);
           if (!shouldSyncTransactions || !linkedAccountId || !accountTargeted) {
@@ -1309,7 +1339,7 @@ const App: React.FC = () => {
     } catch (error: any) {
       setEnableBankingConnections(prev => prev.map(conn => conn.id === connectionId ? { ...conn, status: 'requires_update', lastError: error?.message || 'Sync failed', } : conn));
     }
-  }, [enableBankingConnections, fetchWithAuth, handleSaveTransaction, mapProviderTransaction, resolveProviderAccountId, token, transactions]);
+  }, [enableBankingConnections, fetchWithAuth, handleSaveTransaction, mapProviderTransaction, resolveBalanceAmount, resolveProviderAccountId, token, transactions]);
 
   const handleDeleteEnableBankingConnection = useCallback((connectionId: string) => {
     setEnableBankingConnections(prev => prev.filter(conn => conn.id !== connectionId));
