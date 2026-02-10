@@ -879,37 +879,71 @@ const Dashboard: React.FC<DashboardProps> = ({ user, tasks, saveTask }) => {
       todayDataPoint.value = parseFloat(currentNetWorth.toFixed(2));
     }
     
-    // --- INTEGRATE FORECAST DATA ---
-    if (showForecast && forecastChartData && forecastChartData.length > 0) {
-        const currentForecastBase = forecastChartData[0].value;
-        const currentNetWorthVal = currentNetWorth;
-        
-        // Find today's index in history data to connect lines
-        const todayIndex = data.findIndex(d => d.name === todayStr);
-        
-        if (todayIndex !== -1) {
-            // Set the 'forecast' value for today to match 'value' so lines connect
-            data[todayIndex].forecast = data[todayIndex].value;
-            
-            // Append future points
-            forecastChartData.forEach(point => {
-                if (point.date > todayStr) {
-                    // Calculate relative change from forecast engine and apply to current Net Worth
-                    const predictedChange = point.value - currentForecastBase;
-                    const projectedNetWorth = currentNetWorthVal + predictedChange;
-                    
-                    data.push({
-                        name: point.date,
-                        value: undefined, // No actual value for future
-                        forecast: parseFloat(projectedNetWorth.toFixed(2))
-                    });
-                }
+    if (showForecast && analyticsAccounts.length > 0) {
+      const selectedAccountsForForecast = analyticsAccounts.filter(acc => analyticsSelectedAccountIds.includes(acc.id));
+
+      const txsAffectingBalances = transactions.filter(tx => {
+        if (!analyticsSelectedAccountIds.includes(tx.accountId)) return false;
+        const txDate = parseLocalDate(tx.date);
+        return txDate >= start && txDate <= today;
+      });
+
+      const accountNetChanges = new Map<string, number>();
+      for (const tx of txsAffectingBalances) {
+        const signedAmount = tx.type === 'expense'
+          ? -Math.abs(convertToEur(tx.amount, tx.currency))
+          : Math.abs(convertToEur(tx.amount, tx.currency));
+        accountNetChanges.set(tx.accountId, (accountNetChanges.get(tx.accountId) || 0) + signedAmount);
+      }
+
+      const forecastAccounts = selectedAccountsForForecast.map(acc => {
+        const currentBalanceEur = convertToEur(acc.balance, acc.currency);
+        const netChangeSinceStart = accountNetChanges.get(acc.id) || 0;
+        const startBalanceEur = currentBalanceEur - netChangeSinceStart;
+        return {
+          ...acc,
+          balance: startBalanceEur,
+          currency: 'EUR' as const,
+        };
+      });
+
+      const allRecurring = [...recurringTransactions, ...syntheticLoanPayments, ...syntheticCreditCardPayments, ...syntheticPropertyTransactions];
+      const { chartData: performanceForecastData } = generateBalanceForecast(
+        forecastAccounts,
+        allRecurring,
+        financialGoals.filter(g => activeGoalIds.includes(g.id)),
+        billsAndPayments,
+        end,
+        recurringTransactionOverrides,
+        { startDate: start, includePastOccurrences: true }
+      );
+
+      const forecastByDate = new Map<string, number>();
+      performanceForecastData.forEach(point => {
+        forecastByDate.set(point.date, parseFloat(point.value.toFixed(2)));
+      });
+
+      data.forEach(point => {
+        point.forecast = forecastByDate.get(point.name);
+      });
+
+      const lastDate = data.length > 0 ? parseLocalDate(data[data.length - 1].name) : null;
+      if (lastDate) {
+        performanceForecastData.forEach(point => {
+          const forecastDate = parseLocalDate(point.date);
+          if (forecastDate > lastDate && forecastDate <= end) {
+            data.push({
+              name: point.date,
+              value: undefined,
+              forecast: parseFloat(point.value.toFixed(2)),
             });
-        }
+          }
+        });
+      }
     }
 
     return data;
-  }, [duration, transactions, analyticsSelectedAccountIds, netWorth, forecastChartData, showForecast]);
+  }, [duration, transactions, analyticsSelectedAccountIds, netWorth, showForecast, analyticsAccounts, recurringTransactions, syntheticLoanPayments, syntheticCreditCardPayments, syntheticPropertyTransactions, financialGoals, activeGoalIds, billsAndPayments, recurringTransactionOverrides]);
 
   const netWorthTrendColor = useMemo(() => {
     // Check trend based on historical data only

@@ -732,7 +732,11 @@ export function generateBalanceForecast(
     financialGoals: FinancialGoal[],
     billsAndPayments: BillPayment[],
     forecastEndDate: Date,
-    recurringTransactionOverrides: RecurringTransactionOverride[] = []
+    recurringTransactionOverrides: RecurringTransactionOverride[] = [],
+    options?: {
+        startDate?: Date;
+        includePastOccurrences?: boolean;
+    }
 ): {
     chartData: ({ date: string; value: number; dailySummary: { description: string; amount: number; type: string }[]; [key: string]: any })[];
     tableData: {
@@ -757,7 +761,11 @@ export function generateBalanceForecast(
 
     const accountMap = new Map(accounts.map(a => [a.id, a.name]));
     const now = new Date();
-    const startDate = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+    const defaultStartDate = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+    const startDate = options?.startDate
+        ? new Date(options.startDate.getFullYear(), options.startDate.getMonth(), options.startDate.getDate())
+        : defaultStartDate;
+    const includePastOccurrences = options?.includePastOccurrences ?? false;
 
     // Optimization: Create a map for overrides for O(1) lookup
     const overrideMap = new Map<string, RecurringTransactionOverride>();
@@ -791,7 +799,7 @@ export function generateBalanceForecast(
         const endDateLocal = rt.endDate ? parseLocalDate(rt.endDate) : null;
         const startDateLocal = parseLocalDate(rt.startDate);
 
-        while (nextDate < startDate && (!endDateLocal || nextDate < endDateLocal)) {
+        while (!includePastOccurrences && nextDate < startDate && (!endDateLocal || nextDate < endDateLocal)) {
             // This logic fast-forwards past-due occurrences to catch up to the present day for the forecast
             const interval = rt.frequencyInterval || 1;
             const d = new Date(nextDate);
