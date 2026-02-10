@@ -415,39 +415,36 @@ const App: React.FC = () => {
   useEffect(() => {
     if (!isDataLoaded || !isAuthenticated || streakUpdatedRef.current) return;
 
-    const now = new Date();
-    const todayStr = toLocalISOString(now);
-    const yesterday = new Date(now);
-    yesterday.setDate(yesterday.getDate() - 1);
-    const yesterdayStr = toLocalISOString(yesterday);
+    const today = parseLocalDate(toLocalISOString(new Date()));
+    const toDayStart = (dateStr: string): Date | null => {
+      if (!dateStr) return null;
+      const normalized = dateStr.includes('T') ? dateStr.split('T')[0] : dateStr;
+      if (!normalized) return null;
+      return parseLocalDate(normalized);
+    };
 
-    let lastLogStr = userStats.lastLogDate || '';
-    if (lastLogStr.includes('T')) {
-        lastLogStr = lastLogStr.split('T')[0];
+    const lastLogDate = toDayStart(userStats.lastLogDate || '');
+    const diffDays = lastLogDate
+      ? Math.floor((today.getTime() - lastLogDate.getTime()) / (1000 * 60 * 60 * 24))
+      : Number.POSITIVE_INFINITY;
+
+    streakUpdatedRef.current = true;
+
+    if (diffDays <= 0) {
+      return;
     }
-    
-    if (lastLogStr !== todayStr) {
-       streakUpdatedRef.current = true;
-       let newStreak = 1;
-       if (lastLogStr === yesterdayStr) {
-           newStreak = (userStats.currentStreak || 0) + 1;
-       } else if (lastLogStr === todayStr) {
-           newStreak = userStats.currentStreak || 1;
-       }
-       
-       const newStats = {
-           ...userStats,
-           currentStreak: newStreak,
-           longestStreak: Math.max(newStreak, userStats.longestStreak || 0),
-           lastLogDate: todayStr
-       };
-       
-       setUserStats(newStats);
-       markSliceDirty('userStats');
-    } else {
-       streakUpdatedRef.current = true;
-    }
-  }, [isDataLoaded, isAuthenticated, userStats.lastLogDate, userStats.currentStreak, markSliceDirty]);
+
+    setUserStats(prev => {
+      const nextStreak = diffDays === 1 ? (prev.currentStreak || 0) + 1 : 1;
+      return {
+        ...prev,
+        currentStreak: nextStreak,
+        longestStreak: Math.max(nextStreak, prev.longestStreak || 0),
+        lastLogDate: toLocalISOString(today),
+      };
+    });
+    markSliceDirty('userStats');
+  }, [isDataLoaded, isAuthenticated, userStats.lastLogDate, markSliceDirty]);
 
   useEffect(() => {
     if (!isAuthenticated) {
