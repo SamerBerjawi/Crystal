@@ -881,6 +881,9 @@ const Dashboard: React.FC<DashboardProps> = ({ user, tasks, saveTask }) => {
     
     if (showForecast && analyticsAccounts.length > 0) {
       const selectedAccountsForForecast = analyticsAccounts.filter(acc => analyticsSelectedAccountIds.includes(acc.id));
+      const syntheticLoanPayments = generateSyntheticLoanPayments(analyticsAccounts, analyticsTransactions, loanPaymentOverrides);
+      const syntheticCreditCardPayments = generateSyntheticCreditCardPayments(analyticsAccounts, analyticsTransactions);
+      const syntheticPropertyTransactions = generateSyntheticPropertyTransactions(analyticsAccounts);
 
       const txsAffectingBalances = transactions.filter(tx => {
         if (!analyticsSelectedAccountIds.includes(tx.accountId)) return false;
@@ -943,7 +946,7 @@ const Dashboard: React.FC<DashboardProps> = ({ user, tasks, saveTask }) => {
     }
 
     return data;
-  }, [duration, transactions, analyticsSelectedAccountIds, netWorth, showForecast, analyticsAccounts, recurringTransactions, syntheticLoanPayments, syntheticCreditCardPayments, syntheticPropertyTransactions, financialGoals, activeGoalIds, billsAndPayments, recurringTransactionOverrides]);
+  }, [duration, transactions, analyticsSelectedAccountIds, netWorth, showForecast, analyticsAccounts, analyticsTransactions, recurringTransactions, financialGoals, activeGoalIds, billsAndPayments, recurringTransactionOverrides, loanPaymentOverrides]);
 
   const netWorthTrendColor = useMemo(() => {
     // Check trend based on historical data only
