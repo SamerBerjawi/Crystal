@@ -11,22 +11,27 @@ interface TransactionListProps {
   onTransactionClick?: (transaction: DisplayTransaction) => void;
 }
 
-const findCategoryDetails = (name: string, categories: Category[]): { icon?: string; parentIcon?: string; color?: string } => {
-    for (const cat of categories) {
-        if (cat.name === name) return { icon: cat.icon, color: cat.color };
-        if (cat.subCategories.length > 0) {
-            const found = findCategoryDetails(name, cat.subCategories);
-            if (found.icon) return { icon: found.icon, parentIcon: cat.icon, color: found.color || cat.color };
-        }
-    }
-    return {};
+const buildCategoryDetailsMap = (categories: Category[]) => {
+  const detailsMap = new Map<string, { icon?: string; parentIcon?: string; color?: string }>();
+
+  const walk = (nodes: Category[], parentIcon?: string, parentColor?: string) => {
+    nodes.forEach(node => {
+      detailsMap.set(node.name, { icon: node.icon, parentIcon, color: node.color || parentColor });
+      if (node.subCategories.length > 0) {
+        walk(node.subCategories, node.icon || parentIcon, node.color || parentColor);
+      }
+    });
+  };
+
+  walk(categories);
+  return detailsMap;
 };
 
 const TransactionList: React.FC<TransactionListProps> = ({ transactions, allCategories, onTransactionClick }) => {
   const brandfetchClientId = usePreferencesSelector(p => (p.brandfetchClientId || '').trim());
   const merchantLogoOverrides = usePreferencesSelector(p => p.merchantLogoOverrides || {});
   const merchantRules = usePreferencesSelector(p => p.merchantRules || {});
-  const [logoLoadErrors, setLogoLoadErrors] = useState<Record<string, boolean>>({});
+  const [logoLoadErrors, setLogoLoadErrors] = useState<Set<string>>(() => new Set());
 
   const effectiveMerchantLogoOverrides = useMemo(() => {
     const ruleLogoOverrides = Object.entries(merchantRules).reduce((acc, [merchantKey, rule]) => {
@@ -41,12 +46,14 @@ const TransactionList: React.FC<TransactionListProps> = ({ transactions, allCate
   }, [merchantLogoOverrides, merchantRules]);
 
   const handleLogoError = useCallback((logoUrl: string) => {
-    setLogoLoadErrors(prev => (prev[logoUrl] ? prev : { ...prev, [logoUrl]: true }));
+    setLogoLoadErrors(prev => (prev.has(logoUrl) ? prev : new Set(prev).add(logoUrl)));
   }, []);
 
   const formatDate = (dateString: string) => {
     return parseLocalDate(dateString).toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
   };
+
+  const categoryDetailsMap = useMemo(() => buildCategoryDetailsMap(allCategories), [allCategories]);
 
   const preparedTransactions = useMemo(
     () =>
@@ -57,13 +64,12 @@ const TransactionList: React.FC<TransactionListProps> = ({ transactions, allCate
           ? formatCurrency(tx.amount, tx.currency)
           : formatCurrency(convertToEur(tx.amount, tx.currency), 'EUR');
         
-        const catDetails = findCategoryDetails(tx.category, allCategories);
+        const catDetails = categoryDetailsMap.get(tx.category) || {};
         const icon = isTransfer ? 'swap_horiz' : (catDetails.icon || catDetails.parentIcon || 'sell');
         const categoryColor = isTransfer ? '#64748B' : (catDetails.color || '#A0AEC0');
         
         const merchantKey = normalizeMerchantKey(tx.merchant);
         const merchantLogoUrl = merchantKey ? getMerchantLogoUrl(tx.merchant, brandfetchClientId, effectiveMerchantLogoOverrides, { fallback: 'lettermark', type: 'icon', width: 80, height: 80 }) : null;
-        const showMerchantLogo = Boolean(merchantLogoUrl && !logoLoadErrors[merchantLogoUrl]);
         const merchantInitial = tx.merchant?.trim().charAt(0)?.toUpperCase();
 
         const formattedDate = formatDate(tx.date);
@@ -79,11 +85,10 @@ const TransactionList: React.FC<TransactionListProps> = ({ transactions, allCate
           formattedDate, 
           spareAmountEur,
           merchantLogoUrl,
-          showMerchantLogo,
           merchantInitial
         };
       }),
-    [transactions, allCategories, brandfetchClientId, effectiveMerchantLogoOverrides, logoLoadErrors]
+    [transactions, categoryDetailsMap, brandfetchClientId, effectiveMerchantLogoOverrides]
   );
 
   const containerRef = useRef<HTMLDivElement>(null);
@@ -121,7 +126,8 @@ const TransactionList: React.FC<TransactionListProps> = ({ transactions, allCate
       <div ref={containerRef} className="space-y-2 h-full w-full overflow-y-auto relative p-2" role="list">
         <div style={{ height: preparedTransactions.length * ROW_HEIGHT }} aria-hidden />
         <ul className="absolute inset-0" style={{ transform: `translateY(${offsetY}px)` }}>
-          {visibleTransactions.map(({ tx, description, amountDisplay, icon, categoryColor, isTransfer, formattedDate, spareAmountEur, merchantLogoUrl, showMerchantLogo, merchantInitial }) => {
+          {visibleTransactions.map(({ tx, description, amountDisplay, icon, categoryColor, isTransfer, formattedDate, spareAmountEur, merchantLogoUrl, merchantInitial }) => {
+            const showMerchantLogo = Boolean(merchantLogoUrl && !logoLoadErrors.has(merchantLogoUrl));
             return (
               <li
                 key={tx.id}

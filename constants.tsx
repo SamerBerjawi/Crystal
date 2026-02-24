@@ -92,6 +92,21 @@ export const CHECKBOX_STYLE = "h-4 w-4 rounded text-white bg-light-bg dark:bg-da
 
 export const BRAND_COLORS = ['#fcb045', '#fd1d1d', '#3B82F6', '#22d3ee', '#a78bfa', '#f472b6'];
 
+export const CATEGORY_TAG_PRESET_COLORS = [
+  '#EF4444',
+  '#F97316',
+  '#F59E0B',
+  '#84CC16',
+  '#10B981',
+  '#06B6D4',
+  '#3B82F6',
+  '#6366F1',
+  '#8B5CF6',
+  '#EC4899',
+  '#F43F5E',
+  '#64748B',
+];
+
 export interface NavItem {
   name: Page;
   icon: string;

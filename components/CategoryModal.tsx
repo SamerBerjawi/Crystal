@@ -2,7 +2,7 @@
 import React, { useState, useEffect } from 'react';
 import Modal from './Modal';
 import { Category } from '../types';
-import { INPUT_BASE_STYLE, BTN_PRIMARY_STYLE, BTN_SECONDARY_STYLE, CATEGORY_ICON_LIST } from '../constants';
+import { INPUT_BASE_STYLE, BTN_PRIMARY_STYLE, BTN_SECONDARY_STYLE, CATEGORY_ICON_LIST, CATEGORY_TAG_PRESET_COLORS } from '../constants';
 import IconPicker from './IconPicker';
 
 interface CategoryModalProps {
@@ -14,21 +14,6 @@ interface CategoryModalProps {
   mode: 'add' | 'edit';
   classification: 'income' | 'expense';
 }
-
-const PRESET_COLORS = [
-  '#EF4444', // Red
-  '#F97316', // Orange
-  '#F59E0B', // Amber
-  '#84CC16', // Lime
-  '#10B981', // Emerald
-  '#06B6D4', // Cyan
-  '#3B82F6', // Blue
-  '#6366F1', // Indigo
-  '#8B5CF6', // Violet
-  '#EC4899', // Pink
-  '#F43F5E', // Rose
-  '#64748B', // Slate
-];
 
 const CategoryModal: React.FC<CategoryModalProps> = ({ isOpen, onClose, onSave, category, parentId, mode, classification: initialClassification }) => {
   const [name, setName] = useState('');
@@ -45,7 +30,7 @@ const CategoryModal: React.FC<CategoryModalProps> = ({ isOpen, onClose, onSave, 
       setClassification(category.classification);
     } else {
       setName('');
-      setColor(PRESET_COLORS[Math.floor(Math.random() * PRESET_COLORS.length)]);
+      setColor(CATEGORY_TAG_PRESET_COLORS[Math.floor(Math.random() * CATEGORY_TAG_PRESET_COLORS.length)]);
       setIcon('category');
       setClassification(initialClassification);
     }
@@ -143,7 +128,7 @@ const CategoryModal: React.FC<CategoryModalProps> = ({ isOpen, onClose, onSave, 
                 {/* Color Swatches */}
                 <div className="flex-1">
                     <div className="grid grid-cols-6 gap-3">
-                        {PRESET_COLORS.map((c) => (
+                        {CATEGORY_TAG_PRESET_COLORS.map((c) => (
                             <button
                                 key={c}
                                 type="button"

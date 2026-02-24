@@ -13,7 +13,7 @@ import TransactionList from '../components/TransactionList';
 import MultiAccountFilter from '../components/MultiAccountFilter';
 import FinancialOverview from '../components/FinancialOverview';
 import ForecastOverview from '../components/ForecastOverview';
-import useLocalStorage from '../hooks/useLocalStorage';
+import { useLocalStorage } from '../hooks/useLocalStorage';
 import AddWidgetModal from '../components/AddWidgetModal';
 import { useTransactionMatcher } from '../hooks/useTransactionMatcher';
 import TransactionMatcherModal from '../components/TransactionMatcherModal';
