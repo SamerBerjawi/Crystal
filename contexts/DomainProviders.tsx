@@ -100,22 +100,26 @@ export const useInvoicesContext = () => {
   return context;
 };
 
+const useSelector = <TInput, TOutput>(input: TInput, selector: (value: TInput) => TOutput) => {
+  return useMemo(() => selector(input), [input, selector]);
+};
+
 export const useTransactionSelector = <T,>(selector: (transactions: Transaction[]) => T) => {
   const { transactions } = useTransactionsContext();
-  return useMemo(() => selector(transactions), [selector, transactions]);
+  return useSelector(transactions, selector);
 };
 
 export const useAccountSelector = <T,>(selector: (accounts: Account[]) => T) => {
   const { accounts } = useAccountsContext();
-  return useMemo(() => selector(accounts), [selector, accounts]);
+  return useSelector(accounts, selector);
 };
 
 export const usePreferencesSelector = <T,>(selector: (preferences: AppPreferences) => T) => {
   const { preferences } = usePreferencesContext();
-  return useMemo(() => selector(preferences), [selector, preferences]);
+  return useSelector(preferences, selector);
 };
 
 export const useWarrantSelector = <T,>(selector: (warrants: Warrant[]) => T) => {
   const { warrants } = useWarrantsContext();
-  return useMemo(() => selector(warrants), [selector, warrants]);
+  return useSelector(warrants, selector);
 };

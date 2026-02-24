@@ -7,7 +7,7 @@ import { BTN_PRIMARY_STYLE, BTN_SECONDARY_STYLE, BTN_DANGER_STYLE } from '../con
 import RecurringTransactionModal from '../components/RecurringTransactionModal';
 import MembershipModal from '../components/MembershipModal';
 import LoyaltyCard from '../components/LoyaltyCard';
-import useLocalStorage from '../hooks/useLocalStorage';
+import { useLocalStorage } from '../hooks/useLocalStorage';
 import { useAccountsContext, usePreferencesSelector, useTransactionsContext } from '../contexts/DomainProviders';
 import { useScheduleContext, useCategoryContext } from '../contexts/FinancialDataContext';
 import PageHeader from '../components/PageHeader';

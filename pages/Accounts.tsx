@@ -9,7 +9,7 @@ import AccountsListSection from '../components/AccountsListSection';
 import BalanceAdjustmentModal from '../components/BalanceAdjustmentModal';
 import FinalConfirmationModal from '../components/FinalConfirmationModal';
 import Card from '../components/Card';
-import useLocalStorage from '../hooks/useLocalStorage';
+import { useLocalStorage } from '../hooks/useLocalStorage';
 import { useScheduleContext } from '../contexts/FinancialDataContext';
 import PageHeader from '../components/PageHeader';
 import { LineChart, Line, ResponsiveContainer, YAxis, AreaChart, Area } from 'recharts';

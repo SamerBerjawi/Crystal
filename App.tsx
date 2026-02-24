@@ -4,77 +4,57 @@ import Sidebar from './components/Sidebar';
 import Header from './components/Header';
 const SignIn = lazy(() => import('./pages/SignIn'));
 const SignUp = lazy(() => import('./pages/SignUp'));
-const loadDashboard = () => import('./pages/Dashboard');
-const Dashboard = lazy(loadDashboard);
-const loadAccounts = () => import('./pages/Accounts');
-const Accounts = lazy(loadAccounts);
-const loadTransactions = () => import('./pages/Transactions');
-const Transactions = lazy(loadTransactions);
-const loadBudgeting = () => import('./pages/Budgeting');
-const Budgeting = lazy(loadBudgeting);
-const loadForecasting = () => import('./pages/Forecasting');
-// FIX: Use inline function for lazy import to match AccountDetail pattern and avoid TS error
-const Forecasting = lazy(() => import('./pages/Forecasting'));
-const loadChallengesPage = () => import('./pages/Challenges');
-const ChallengesPage = lazy(loadChallengesPage);
-const loadSettingsPage = () => import('./pages/Settings');
-const SettingsPage = lazy(loadSettingsPage);
-const loadSchedulePage = () => import('./pages/Schedule');
-const SchedulePage = lazy(loadSchedulePage);
-const loadCategoriesPage = () => import('./pages/Categories');
-const CategoriesPage = lazy(loadCategoriesPage);
-const loadTagsPage = () => import('./pages/Tags');
-const TagsPage = lazy(loadTagsPage);
-const loadPersonalInfoPage = () => import('./pages/PersonalInfo');
-const PersonalInfoPage = lazy(loadPersonalInfoPage);
-const loadDataManagement = () => import('./pages/DataImportExport');
-const DataManagement = lazy(loadDataManagement);
-const loadPreferencesPage = () => import('./pages/Preferences');
-const PreferencesPage = lazy(loadPreferencesPage);
-const loadIntegrationsPage = () => import('./pages/Integrations');
-const IntegrationsPage = lazy(loadIntegrationsPage);
-const loadAccountDetail = () => import('./pages/AccountDetail');
-// FIX: Use inline function for lazy import to avoid TypeScript error regarding 'default' property missing
-const AccountDetail = lazy(() => import('./pages/AccountDetail'));
-const loadEnableBankingCallbackPage = () => import('./pages/EnableBankingCallback');
-const EnableBankingCallbackPage = lazy(loadEnableBankingCallbackPage);
-const loadInvestmentsPage = () => import('./pages/Investments');
-const InvestmentsPage = lazy(loadInvestmentsPage);
-const HoldingDetail = lazy(() => import('./pages/HoldingDetail'));
-const loadTasksPage = () => import('./pages/Tasks');
-const TasksPage = lazy(loadTasksPage);
-const loadDocumentation = () => import('./pages/Documentation');
-const Documentation = lazy(loadDocumentation);
-const loadSubscriptionsPage = () => import('./pages/Subscriptions');
-const SubscriptionsPage = lazy(loadSubscriptionsPage);
-const loadInvoicesPage = () => import('./pages/Invoices');
-const InvoicesPage = lazy(loadInvoicesPage);
-const loadMerchantsPage = () => import('./pages/Merchants');
-const MerchantsPage = lazy(loadMerchantsPage);
+const pageRegistry = {
+  Dashboard: { path: '/', loader: () => import('./pages/Dashboard') },
+  Accounts: { path: '/accounts', loader: () => import('./pages/Accounts') },
+  Transactions: { path: '/transactions', loader: () => import('./pages/Transactions') },
+  Budget: { path: '/budget', loader: () => import('./pages/Budgeting') },
+  Forecasting: { path: '/forecasting', loader: () => import('./pages/Forecasting') },
+  Challenges: { path: '/challenges', loader: () => import('./pages/Challenges') },
+  Settings: { path: '/settings', loader: () => import('./pages/Settings') },
+  'Schedule & Bills': { path: '/schedule', loader: () => import('./pages/Schedule') },
+  Tasks: { path: '/tasks', loader: () => import('./pages/Tasks') },
+  Categories: { path: '/categories', loader: () => import('./pages/Categories') },
+  Tags: { path: '/tags', loader: () => import('./pages/Tags') },
+  'Personal Info': { path: '/personal-info', loader: () => import('./pages/PersonalInfo') },
+  'Data Management': { path: '/data-management', loader: () => import('./pages/DataImportExport') },
+  Preferences: { path: '/preferences', loader: () => import('./pages/Preferences') },
+  Integrations: { path: '/integrations', loader: () => import('./pages/Integrations') },
+  EnableBankingCallback: { path: '/enable-banking/callback', loader: () => import('./pages/EnableBankingCallback') },
+  AccountDetail: { path: '/accounts', loader: () => import('./pages/AccountDetail') },
+  Investments: { path: '/investments', loader: () => import('./pages/Investments') },
+  HoldingDetail: { path: '/investments', loader: () => import('./pages/HoldingDetail') },
+  Documentation: { path: '/documentation', loader: () => import('./pages/Documentation') },
+  Subscriptions: { path: '/subscriptions', loader: () => import('./pages/Subscriptions') },
+  'Quotes & Invoices': { path: '/invoices', loader: () => import('./pages/Invoices') },
+  Merchants: { path: '/merchants', loader: () => import('./pages/Merchants') },
+} as const;
 
-const pagePreloaders = [
-  loadDashboard,
-  loadAccounts,
-  loadTransactions,
-  loadBudgeting,
-  loadForecasting,
-  loadChallengesPage,
-  loadSettingsPage,
-  loadSchedulePage,
-  loadCategoriesPage,
-  loadTagsPage,
-  loadPersonalInfoPage,
-  loadDataManagement,
-  loadPreferencesPage,
-  loadIntegrationsPage,
-  loadAccountDetail,
-  loadInvestmentsPage,
-  loadTasksPage,
-  loadDocumentation,
-  loadSubscriptionsPage,
-  loadInvoicesPage,
-  loadMerchantsPage
-];
+const Dashboard = lazy(pageRegistry.Dashboard.loader);
+const Accounts = lazy(pageRegistry.Accounts.loader);
+const Transactions = lazy(pageRegistry.Transactions.loader);
+const Budgeting = lazy(pageRegistry.Budget.loader);
+const Forecasting = lazy(pageRegistry.Forecasting.loader);
+const ChallengesPage = lazy(pageRegistry.Challenges.loader);
+const SettingsPage = lazy(pageRegistry.Settings.loader);
+const SchedulePage = lazy(pageRegistry['Schedule & Bills'].loader);
+const CategoriesPage = lazy(pageRegistry.Categories.loader);
+const TagsPage = lazy(pageRegistry.Tags.loader);
+const PersonalInfoPage = lazy(pageRegistry['Personal Info'].loader);
+const DataImportExportPage = lazy(pageRegistry['Data Management'].loader);
+const PreferencesPage = lazy(pageRegistry.Preferences.loader);
+const IntegrationsPage = lazy(pageRegistry.Integrations.loader);
+const AccountDetail = lazy(pageRegistry.AccountDetail.loader);
+const EnableBankingCallbackPage = lazy(pageRegistry.EnableBankingCallback.loader);
+const InvestmentsPage = lazy(pageRegistry.Investments.loader);
+const HoldingDetail = lazy(pageRegistry.HoldingDetail.loader);
+const TasksPage = lazy(pageRegistry.Tasks.loader);
+const Documentation = lazy(pageRegistry.Documentation.loader);
+const SubscriptionsPage = lazy(pageRegistry.Subscriptions.loader);
+const InvoicesPage = lazy(pageRegistry['Quotes & Invoices'].loader);
+const MerchantsPage = lazy(pageRegistry.Merchants.loader);
+
+const pagePreloaders = Object.values(pageRegistry).map(entry => entry.loader);
 
 import { Page, Theme, Category, User, Transaction, Account, RecurringTransaction, RecurringTransactionOverride, WeekendAdjustment, FinancialGoal, Budget, ImportExportHistoryItem, AppPreferences, AccountType, InvestmentTransaction, Task, Warrant, ImportDataType, FinancialData, Currency, BillPayment, BillPaymentStatus, Duration, InvestmentSubType, Tag, LoanPaymentOverrides, ScheduledPayment, Membership, Invoice, UserStats, Prediction, PriceHistoryEntry, EnableBankingConnection, EnableBankingAccount, EnableBankingLinkPayload, EnableBankingSyncOptions } from './types';
 import { MOCK_INCOME_CATEGORIES, MOCK_EXPENSE_CATEGORIES, LIQUID_ACCOUNT_TYPES } from './constants';
@@ -82,9 +62,10 @@ import { createDemoUser, emptyFinancialData, initialFinancialData } from './demo
 import { v4 as uuidv4 } from 'uuid';
 import { convertToEur, CONVERSION_RATES, arrayToCSV, downloadCSV, parseLocalDate, toLocalISOString, toLocalDateTimeString } from './utils';
 import { buildHoldingsOverview } from './utils/investments';
+import { upsertEntity, removeEntityById } from './utils/collection';
 import { useDebounce } from './hooks/useDebounce';
 import { useAuth } from './hooks/useAuth';
-import useLocalStorage from './hooks/useLocalStorage';
+import { useLocalStorage } from './hooks/useLocalStorage';
 const OnboardingModal = lazy(() => import('./components/OnboardingModal'));
 import { FinancialDataProvider } from './contexts/FinancialDataContext';
 import { AccountsProvider, PreferencesProvider, TransactionsProvider, WarrantsProvider, InvoicesProvider } from './contexts/DomainProviders';
@@ -148,31 +129,10 @@ const findIbanCandidate = (...sources: any[]): string | undefined => {
   return undefined;
 };
 
-const routePathMap: Record<Page, string> = {
-  Dashboard: '/',
-  Accounts: '/accounts',
-  Transactions: '/transactions',
-  Budget: '/budget',
-  Forecasting: '/forecasting',
-  Challenges: '/challenges',
-  Settings: '/settings',
-  'Schedule & Bills': '/schedule',
-  Tasks: '/tasks',
-  Categories: '/categories',
-  Tags: '/tags',
-  'Personal Info': '/personal-info',
-  'Data Management': '/data-management',
-  Preferences: '/preferences',
-  Integrations: '/integrations',
-  EnableBankingCallback: '/enable-banking/callback',
-  AccountDetail: '/accounts',
-  Investments: '/investments',
-  HoldingDetail: '/investments',
-  Documentation: '/documentation',
-  Subscriptions: '/subscriptions',
-  'Quotes & Invoices': '/invoices',
-  Merchants: '/merchants',
-};
+const routePathMap = Object.entries(pageRegistry).reduce((acc, [page, config]) => {
+  acc[page as Page] = config.path;
+  return acc;
+}, {} as Record<Page, string>);
 
 type RouteInfo = { page: Page; matched: boolean; accountId?: string | null; holdingSymbol?: string | null };
 
@@ -990,10 +950,9 @@ const App: React.FC = () => {
   };
   const handleDeleteInvestmentTransaction = (id: string) => { setInvestmentTransactions(prev => prev.filter(t => t.id !== id)); };
   const handleSaveRecurringTransaction = (recurringData: Omit<RecurringTransaction, 'id'> & { id?: string }) => {
-    if (recurringData.id) { setRecurringTransactions(prev => prev.map(rt => rt.id === recurringData.id ? { ...rt, ...recurringData } as RecurringTransaction : rt)); } 
-    else { setRecurringTransactions(prev => [...prev, { ...recurringData, id: `rec-${uuidv4()}` } as RecurringTransaction]); }
+    setRecurringTransactions(prev => upsertEntity(prev, recurringData, () => `rec-${uuidv4()}`));
   };
-  const handleDeleteRecurringTransaction = (id: string) => { setRecurringTransactions(prev => prev.filter(rt => rt.id !== id)); };
+  const handleDeleteRecurringTransaction = (id: string) => { setRecurringTransactions(prev => removeEntityById(prev, id)); };
   const handleSaveLoanPaymentOverrides = (accountId: string, overrides: Record<number, Partial<ScheduledPayment>>) => { setLoanPaymentOverrides(prev => ({ ...prev, [accountId]: overrides })); };
   const handleSaveRecurringOverride = (override: RecurringTransactionOverride) => {
     setRecurringTransactionOverrides(prev => {
@@ -1004,8 +963,7 @@ const App: React.FC = () => {
   };
   const handleDeleteRecurringOverride = (recurringTransactionId: string, originalDate: string) => { setRecurringTransactionOverrides(prev => prev.filter(o => !(o.recurringTransactionId === recurringTransactionId && o.originalDate === originalDate))); };
   const handleSaveFinancialGoal = (goalData: Omit<FinancialGoal, 'id'> & { id?: string }) => {
-    if (goalData.id) { setFinancialGoals((prev) => prev.map((g) => (g.id === goalData.id ? { ...g, ...goalData } as FinancialGoal : g))); } 
-    else { setFinancialGoals((prev) => [...prev, { ...goalData, id: `goal-${uuidv4()}` } as FinancialGoal]); }
+    setFinancialGoals(prev => upsertEntity(prev, goalData, () => `goal-${uuidv4()}`));
   };
   const handleDeleteFinancialGoal = (id: string) => {
     const goalToDelete = financialGoals.find((g) => g.id === id);
@@ -1015,15 +973,13 @@ const App: React.FC = () => {
     setFinancialGoals((prev) => prev.filter((g) => !idsToDelete.includes(g.id)));
   };
   const handleSaveBudget = (budgetData: Omit<Budget, 'id'> & { id?: string }) => {
-    if (budgetData.id) { setBudgets(prev => prev.map(b => b.id === budgetData.id ? { ...b, ...budgetData } as Budget : b)); } 
-    else { setBudgets(prev => [...prev, { ...budgetData, id: `bud-${uuidv4()}` } as Budget]); }
+    setBudgets(prev => upsertEntity(prev, budgetData, () => `bud-${uuidv4()}`));
   };
-  const handleDeleteBudget = (id: string) => { setBudgets(prev => prev.filter(b => b.id !== id)); };
+  const handleDeleteBudget = (id: string) => { setBudgets(prev => removeEntityById(prev, id)); };
   const handleSaveTask = (taskData: Omit<Task, 'id'> & { id?: string }) => {
-    if (taskData.id) { setTasks(prev => prev.map(t => t.id === taskData.id ? { ...t, ...taskData } as Task : t)); } 
-    else { setTasks(prev => [...prev, { ...taskData, id: `task-${uuidv4()}` } as Task]); }
+    setTasks(prev => upsertEntity(prev, taskData, () => `task-${uuidv4()}`));
   };
-  const handleDeleteTask = (taskId: string) => { setTasks(prev => prev.filter(t => t.id !== taskId)); };
+  const handleDeleteTask = (taskId: string) => { setTasks(prev => removeEntityById(prev, taskId)); };
   const handleSaveWarrant = (warrantData: Omit<Warrant, 'id'> & { id?: string }) => {
     if (warrantData.id) { setWarrants(prev => prev.map(w => w.id === warrantData.id ? { ...w, ...warrantData } as Warrant : w)); } 
     else {
@@ -1072,8 +1028,7 @@ const App: React.FC = () => {
     setLastUpdated(new Date());
   };
   const handleSaveTag = (tagData: Omit<Tag, 'id'> & { id?: string }) => {
-    if (tagData.id) { setTags(prev => prev.map(t => (t.id === tagData.id ? { ...t, ...tagData } as Tag : t))); } 
-    else { setTags(prev => [...prev, { ...tagData, id: `tag-${uuidv4()}` } as Tag]); }
+    setTags(prev => upsertEntity(prev, tagData, () => `tag-${uuidv4()}`));
   };
   const handleDeleteTag = (tagId: string) => {
       setTags(prev => prev.filter(t => t.id !== tagId));
@@ -1081,10 +1036,9 @@ const App: React.FC = () => {
       if (transactionsViewFilters.current.tagId === tagId) transactionsViewFilters.current.tagId = null;
   };
   const handleSaveBillPayment = (billData: Omit<BillPayment, 'id'> & { id?: string }) => {
-    if (billData.id) { setBillsAndPayments(prev => prev.map(b => b.id === billData.id ? {...b, ...billData} as BillPayment : b)); } 
-    else { setBillsAndPayments(prev => [...prev, { ...billData, id: `bill-${uuidv4()}` } as BillPayment]); }
+    setBillsAndPayments(prev => upsertEntity(prev, billData, () => `bill-${uuidv4()}`));
   };
-  const handleDeleteBillPayment = (billId: string) => { setBillsAndPayments(prev => prev.filter(b => b.id !== billId)); };
+  const handleDeleteBillPayment = (billId: string) => { setBillsAndPayments(prev => removeEntityById(prev, billId)); };
   const handleMarkBillAsPaid = (billId: string, paymentAccountId: string, paymentDate: string) => {
     const bill = billsAndPayments.find(b => b.id === billId);
     if (!bill) return;
@@ -1093,20 +1047,17 @@ const App: React.FC = () => {
     if (paymentAccount) { handleSaveTransaction([{ accountId: paymentAccountId, date: paymentDate, description: bill.description, amount: bill.amount, category: bill.amount >= 0 ? 'Income' : 'Bills & Utilities', type: bill.amount >= 0 ? 'income' : 'expense', currency: paymentAccount.currency, }]); }
   };
   const handleSaveMembership = (membershipData: Omit<Membership, 'id'> & { id?: string }) => {
-    if (membershipData.id) { setMemberships(prev => prev.map(m => m.id === membershipData.id ? { ...m, ...membershipData } as Membership : m)); } 
-    else { setMemberships(prev => [...prev, { ...membershipData, id: `mem-${uuidv4()}` } as Membership]); }
+    setMemberships(prev => upsertEntity(prev, membershipData, () => `mem-${uuidv4()}`));
   };
-  const handleDeleteMembership = (membershipId: string) => { setMemberships(prev => prev.filter(m => m.id !== membershipId)); };
+  const handleDeleteMembership = (membershipId: string) => { setMemberships(prev => removeEntityById(prev, membershipId)); };
   const handleSaveInvoice = (invoiceData: Omit<Invoice, 'id'> & { id?: string }) => {
-      if (invoiceData.id) { setInvoices(prev => prev.map(inv => inv.id === invoiceData.id ? { ...inv, ...invoiceData } as Invoice : inv)); } 
-      else { setInvoices(prev => [...prev, { ...invoiceData, id: `inv-${uuidv4()}` } as Invoice]); }
+      setInvoices(prev => upsertEntity(prev, invoiceData, () => `inv-${uuidv4()}`));
   };
-  const handleDeleteInvoice = (id: string) => { setInvoices(prev => prev.filter(inv => inv.id !== id)); };
+  const handleDeleteInvoice = (id: string) => { setInvoices(prev => removeEntityById(prev, id)); };
   const handleSavePrediction = (predictionData: Omit<Prediction, 'id'> & { id?: string }) => {
-      if (predictionData.id) { setPredictions(prev => prev.map(p => p.id === predictionData.id ? { ...p, ...predictionData } as Prediction : p)); } 
-      else { setPredictions(prev => [...prev, { ...predictionData, id: `pred-${uuidv4()}` } as Prediction]); } // Changed setInvoices to setPredictions
+      setPredictions(prev => upsertEntity(prev, predictionData, () => `pred-${uuidv4()}`));
   };
-  const handleDeletePrediction = (id: string) => { setPredictions(prev => prev.filter(p => p.id !== id)); };
+  const handleDeletePrediction = (id: string) => { setPredictions(prev => removeEntityById(prev, id)); };
 
   const fetchWithAuth = useCallback(async (url: string, options: RequestInit = {}) => {
     const response = await fetch(url, { ...options, headers: { 'Content-Type': 'application/json', ...(options.headers || {}), ...(token ? { Authorization: `Bearer ${token}` } : {}), }, });
@@ -1378,6 +1329,7 @@ const App: React.FC = () => {
   
   const viewingAccount = useMemo(() => accounts.find(a => a.id === viewingAccountId), [accounts, viewingAccountId]);
   const viewingHolding = useMemo(() => holdingsOverview.holdings.find(h => h.symbol === viewingHoldingSymbol), [holdingsOverview, viewingHoldingSymbol]);
+  const cashAccounts = useMemo(() => accounts.filter(a => a.type === 'Checking' || a.type === 'Savings'), [accounts]);
 
   const linkedEnableBankingAccountIds = useMemo(() => new Set(enableBankingConnections.flatMap(c => (c.accounts || []).map(a => a.linkedAccountId).filter(Boolean))), [enableBankingConnections]);
   const enableBankingLinkMap = useMemo(() => {
@@ -1395,7 +1347,7 @@ const App: React.FC = () => {
 
   const renderPage = () => {
     if (viewingHoldingSymbol) {
-      if (viewingHolding) return <HoldingDetail holdingSymbol={viewingHoldingSymbol} holdingsOverview={holdingsOverview} accounts={accounts} cashAccounts={accounts.filter(a => a.type === 'Checking' || a.type === 'Savings')} investmentTransactions={investmentTransactions} saveInvestmentTransaction={handleSaveInvestmentTransaction} warrants={warrants} saveWarrant={handleSaveWarrant} manualPrices={manualWarrantPrices} onManualPriceChange={handleManualWarrantPrice} onBack={() => setCurrentPage('Investments')} priceHistory={priceHistory} />;
+      if (viewingHolding) return <HoldingDetail holdingSymbol={viewingHoldingSymbol} holdingsOverview={holdingsOverview} accounts={accounts} cashAccounts={cashAccounts} investmentTransactions={investmentTransactions} saveInvestmentTransaction={handleSaveInvestmentTransaction} warrants={warrants} saveWarrant={handleSaveWarrant} manualPrices={manualWarrantPrices} onManualPriceChange={handleManualWarrantPrice} onBack={() => setCurrentPage('Investments')} priceHistory={priceHistory} />;
       return <PageLoader label="Loading holding..." />;
     }
     if (viewingAccountId) {
@@ -1414,11 +1366,11 @@ const App: React.FC = () => {
       case 'Categories': return <CategoriesPage incomeCategories={incomeCategories} setIncomeCategories={setIncomeCategories} expenseCategories={expenseCategories} setExpenseCategories={setExpenseCategories} setCurrentPage={setCurrentPage} />;
       case 'Tags': return <TagsPage tags={tags} transactions={transactions} saveTag={handleSaveTag} deleteTag={handleDeleteTag} setCurrentPage={setCurrentPage} onNavigateToTransactions={navigateToTransactions} />;
       case 'Personal Info': return <PersonalInfoPage user={currentUser!} setUser={handleSetUser} onChangePassword={changePassword} setCurrentPage={setCurrentPage} />;
-      case 'Data Management': return <DataManagement accounts={accounts} transactions={transactions} budgets={budgets} recurringTransactions={recurringTransactions} allCategories={[...incomeCategories, ...expenseCategories]} history={importExportHistory} onPublishImport={handlePublishImport} onDeleteHistoryItem={handleDeleteHistoryItem} onDeleteImportedTransactions={handleDeleteImportedTransactions} onResetAccount={handleResetAccount} setCurrentPage={setCurrentPage} onRestoreData={handleRestoreData} fullFinancialData={dataToSave} />;
+      case 'Data Management': return <DataImportExportPage accounts={accounts} transactions={transactions} budgets={budgets} recurringTransactions={recurringTransactions} allCategories={[...incomeCategories, ...expenseCategories]} history={importExportHistory} onPublishImport={handlePublishImport} onDeleteHistoryItem={handleDeleteHistoryItem} onDeleteImportedTransactions={handleDeleteImportedTransactions} onResetAccount={handleResetAccount} setCurrentPage={setCurrentPage} onRestoreData={handleRestoreData} fullFinancialData={dataToSave} />;
       case 'Preferences': return <PreferencesPage preferences={preferences} setPreferences={setPreferences} theme={theme} setTheme={setTheme} setCurrentPage={setCurrentPage} />;
       case 'EnableBankingCallback': return <EnableBankingCallbackPage connections={enableBankingConnections} setConnections={setEnableBankingConnections} onSync={handleSyncEnableBankingConnection} setCurrentPage={setCurrentPage} authToken={token} />;
       case 'Integrations': return <IntegrationsPage preferences={preferences} setPreferences={setPreferences} setCurrentPage={setCurrentPage} enableBankingConnections={enableBankingConnections} accounts={accounts} onCreateConnection={handleCreateEnableBankingConnection} onFetchBanks={handleFetchEnableBankingBanks} onDeleteConnection={handleDeleteEnableBankingConnection} onLinkAccount={handleLinkEnableBankingAccount} onTriggerSync={handleSyncEnableBankingConnection} />;
-      case 'Investments': return <InvestmentsPage accounts={accounts} cashAccounts={accounts.filter(a => a.type === 'Checking' || a.type === 'Savings')} investmentTransactions={investmentTransactions} saveInvestmentTransaction={handleSaveInvestmentTransaction} saveAccount={handleSaveAccount} deleteInvestmentTransaction={handleDeleteInvestmentTransaction} saveTransaction={handleSaveTransaction} warrants={warrants} saveWarrant={handleSaveWarrant} deleteWarrant={handleDeleteWarrant} manualPrices={manualWarrantPrices} onManualPriceChange={handleManualWarrantPrice} prices={assetPrices} onOpenHoldingDetail={handleOpenHoldingDetail} holdingsOverview={holdingsOverview} onToggleAccountStatus={handleToggleAccountStatus} deleteAccount={handleDeleteAccount} transactions={transactions} onViewAccount={handleOpenAccountDetail} />;
+      case 'Investments': return <InvestmentsPage accounts={accounts} cashAccounts={cashAccounts} investmentTransactions={investmentTransactions} saveInvestmentTransaction={handleSaveInvestmentTransaction} saveAccount={handleSaveAccount} deleteInvestmentTransaction={handleDeleteInvestmentTransaction} saveTransaction={handleSaveTransaction} warrants={warrants} saveWarrant={handleSaveWarrant} deleteWarrant={handleDeleteWarrant} manualPrices={manualWarrantPrices} onManualPriceChange={handleManualWarrantPrice} prices={assetPrices} onOpenHoldingDetail={handleOpenHoldingDetail} holdingsOverview={holdingsOverview} onToggleAccountStatus={handleToggleAccountStatus} deleteAccount={handleDeleteAccount} transactions={transactions} onViewAccount={handleOpenAccountDetail} />;
       case 'Tasks': return <TasksPage tasks={tasks} saveTask={handleSaveTask} deleteTask={handleDeleteTask} taskOrder={taskOrder} setTaskOrder={setTaskOrder} />;
       case 'Documentation': return <Documentation setCurrentPage={setCurrentPage} />;
       case 'Subscriptions': return <SubscriptionsPage />;
