@@ -623,7 +623,7 @@ const Dashboard: React.FC<DashboardProps> = ({ user, tasks, saveTask }) => {
     const result: DisplayTransaction[] = [];
   
     for (const tx of sortedSourceTransactions) {
-      if (result.length >= 50) break; // Load more for activity view
+      if (result.length >= 10) break;
   
       if (tx.transferId) {
         if (processedTransferIds.has(tx.transferId)) continue;
@@ -652,7 +652,7 @@ const Dashboard: React.FC<DashboardProps> = ({ user, tasks, saveTask }) => {
         result.push({ ...tx, accountName: accountMap[tx.accountId] });
       }
     }
-    return result.slice(0, 30);
+    return result;
   }, [analyticsTransactions, analyticsSelectedAccountIds, accountMap, transferLookup]);
   
   const { incomeSparkline, expenseSparkline } = useMemo(() => {
