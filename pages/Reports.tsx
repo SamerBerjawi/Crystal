@@ -452,7 +452,6 @@ const Reports: React.FC = () => {
     <div className="p-4 md:p-6 space-y-6">
       <div>
         <h1 className="text-2xl font-bold text-light-text dark:text-dark-text">Reports</h1>
-        <p className="text-light-text-secondary dark:text-dark-text-secondary mt-1">Phase 2: period comparison, budget vs actual, recurring spend detection, and saved report views.</p>
       </div>
 
       <section className="bg-light-card dark:bg-dark-card rounded-xl p-4 border border-black/5 dark:border-white/10 space-y-3">
