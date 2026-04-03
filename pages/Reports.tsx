@@ -1,8 +1,10 @@
-import React, { useMemo, useState } from 'react';
+import React, { useMemo, useState, useCallback } from 'react';
 import { useTransactionSelector, usePreferencesSelector } from '../contexts/DomainProviders';
-import { useBudgetsContext } from '../contexts/FinancialDataContext';
+import { useBudgetsContext, useCategoryContext } from '../contexts/FinancialDataContext';
 import { BTN_PRIMARY_STYLE, BTN_SECONDARY_STYLE, INPUT_BASE_STYLE } from '../constants';
+import { Category } from '../types';
 import { convertToEur, parseLocalDate, toLocalISOString } from '../utils';
+import { getMerchantLogoUrl, normalizeMerchantKey } from '../utils/brandfetch';
 
 const SAVED_REPORTS_KEY = 'reports.savedViews.v1';
 
@@ -50,7 +52,11 @@ const writeSavedViews = (views: SavedReportView[]) => {
 const Reports: React.FC = () => {
   const transactions = useTransactionSelector(tx => tx);
   const defaultCurrency = usePreferencesSelector(p => p.currency || 'EUR');
+  const brandfetchClientId = usePreferencesSelector(p => p.brandfetchClientId);
+  const merchantLogoOverrides = usePreferencesSelector(p => p.merchantLogoOverrides || {});
+  const merchantRules = usePreferencesSelector(p => p.merchantRules || {});
   const { budgets } = useBudgetsContext();
+  const { incomeCategories, expenseCategories } = useCategoryContext();
 
   const [startDate, setStartDate] = useState(getDefaultStartDate());
   const [endDate, setEndDate] = useState(toLocalISOString(new Date()));
@@ -59,6 +65,60 @@ const Reports: React.FC = () => {
   const [groupBy, setGroupBy] = useState<GroupBy>('merchant');
   const [savedViews, setSavedViews] = useState<SavedReportView[]>(() => readSavedViews());
   const [reportName, setReportName] = useState('');
+  const [logoLoadErrors, setLogoLoadErrors] = useState<Record<string, true>>({});
+
+  const allCategories = useMemo(() => [...incomeCategories, ...expenseCategories], [incomeCategories, expenseCategories]);
+
+  const findCategoryByName = useCallback((name: string, categories: Category[]): Category | undefined => {
+    for (const category of categories) {
+      if (category.name === name) return category;
+      if (category.subCategories?.length) {
+        const nested = findCategoryByName(name, category.subCategories);
+        if (nested) return nested;
+      }
+    }
+    return undefined;
+  }, []);
+
+  const effectiveMerchantLogoOverrides = useMemo(() => {
+    const ruleLogoOverrides = Object.entries(merchantRules).reduce((acc, [merchantKey, rule]) => {
+      if (rule?.logo) acc[merchantKey] = rule.logo;
+      return acc;
+    }, {} as Record<string, string>);
+
+    return {
+      ...merchantLogoOverrides,
+      ...ruleLogoOverrides,
+    };
+  }, [merchantLogoOverrides, merchantRules]);
+
+  const merchantLogoUrls = useMemo(() => {
+    if (!brandfetchClientId) return {} as Record<string, string>;
+    return transactions.reduce((acc, tx) => {
+      const key = normalizeMerchantKey(tx.merchant || tx.description);
+      if (!key || acc[key]) return acc;
+      const url = getMerchantLogoUrl(tx.merchant || tx.description, brandfetchClientId, effectiveMerchantLogoOverrides, {
+        fallback: 'lettermark',
+        type: 'icon',
+        width: 64,
+        height: 64,
+      });
+      if (url) acc[key] = url;
+      return acc;
+    }, {} as Record<string, string>);
+  }, [brandfetchClientId, effectiveMerchantLogoOverrides, transactions]);
+
+  const handleLogoError = useCallback((logoUrl: string) => {
+    setLogoLoadErrors(prev => (prev[logoUrl] ? prev : { ...prev, [logoUrl]: true }));
+  }, []);
+
+  const merchantVisual = useCallback((merchantLabel: string) => {
+    const merchantKey = normalizeMerchantKey(merchantLabel);
+    const merchantLogoUrl = merchantKey ? merchantLogoUrls[merchantKey] : null;
+    const showMerchantLogo = Boolean(merchantLogoUrl && !logoLoadErrors[merchantLogoUrl]);
+    const merchantInitial = merchantLabel?.trim().charAt(0)?.toUpperCase() || '?';
+    return { merchantLogoUrl, showMerchantLogo, merchantInitial };
+  }, [merchantLogoUrls, logoLoadErrors]);
 
   const categories = useMemo(() => {
     const unique = Array.from(new Set<string>(transactions.filter(tx => tx.type === 'expense').map(tx => tx.category || 'Uncategorized')));
@@ -484,9 +544,36 @@ const Reports: React.FC = () => {
             <tbody>
               {groupedRows.map(row => {
                 const share = totals.totalSpendEur > 0 ? (row.totalEur / totals.totalSpendEur) * 100 : 0;
+                const category = findCategoryByName(row.label, allCategories);
+                const { merchantLogoUrl, showMerchantLogo, merchantInitial } = merchantVisual(row.label);
                 return (
                   <tr key={row.label} className="border-b border-black/5 dark:border-white/5">
-                    <td className="py-2 pr-3">{row.label}</td>
+                    <td className="py-2 pr-3">
+                      {groupBy === 'merchant' ? (
+                        <div className="flex items-center gap-2">
+                          <div className={`w-7 h-7 rounded-lg shrink-0 flex items-center justify-center overflow-hidden ${showMerchantLogo ? 'bg-white dark:bg-dark-card' : 'bg-primary-500/20 text-primary-700 dark:text-primary-300'}`}>
+                            {showMerchantLogo && merchantLogoUrl ? (
+                              <img
+                                src={merchantLogoUrl}
+                                alt={`${row.label} logo`}
+                                className="w-full h-full object-cover"
+                                onError={() => handleLogoError(merchantLogoUrl)}
+                              />
+                            ) : (
+                              <span className="text-xs font-semibold">{merchantInitial}</span>
+                            )}
+                          </div>
+                          <span>{row.label}</span>
+                        </div>
+                      ) : (
+                        <div className="flex items-center gap-2">
+                          <span className="material-symbols-outlined text-[18px] text-light-text-secondary dark:text-dark-text-secondary">
+                            {category?.icon || 'category'}
+                          </span>
+                          <span>{row.label}</span>
+                        </div>
+                      )}
+                    </td>
                     <td className="py-2 pr-3">{row.count}</td>
                     <td className="py-2 pr-3">€{row.totalEur.toFixed(2)}</td>
                     <td className="py-2 pr-3">{share.toFixed(1)}%</td>
@@ -525,7 +612,14 @@ const Reports: React.FC = () => {
             <tbody>
               {budgetVsActual.map(row => (
                 <tr key={row.categoryName} className="border-b border-black/5 dark:border-white/5">
-                  <td className="py-2 pr-3">{row.categoryName}</td>
+                  <td className="py-2 pr-3">
+                    <div className="flex items-center gap-2">
+                      <span className="material-symbols-outlined text-[18px] text-light-text-secondary dark:text-dark-text-secondary">
+                        {findCategoryByName(row.categoryName, allCategories)?.icon || 'category'}
+                      </span>
+                      <span>{row.categoryName}</span>
+                    </div>
+                  </td>
                   <td className="py-2 pr-3">€{row.budgetEur.toFixed(2)}</td>
                   <td className="py-2 pr-3">€{row.actualEur.toFixed(2)}</td>
                   <td className={`py-2 pr-3 font-medium ${row.varianceEur >= 0 ? 'text-green-600' : 'text-red-500'}`}>
@@ -607,8 +701,36 @@ const Reports: React.FC = () => {
               {anomalyCandidates.map(row => (
                 <tr key={row.id} className="border-b border-black/5 dark:border-white/5">
                   <td className="py-2 pr-3">{row.date}</td>
-                  <td className="py-2 pr-3">{row.merchant}</td>
-                  <td className="py-2 pr-3">{row.category}</td>
+                  <td className="py-2 pr-3">
+                    <div className="flex items-center gap-2">
+                      {(() => {
+                        const { merchantLogoUrl, showMerchantLogo, merchantInitial } = merchantVisual(row.merchant);
+                        return (
+                          <div className={`w-7 h-7 rounded-lg shrink-0 flex items-center justify-center overflow-hidden ${showMerchantLogo ? 'bg-white dark:bg-dark-card' : 'bg-primary-500/20 text-primary-700 dark:text-primary-300'}`}>
+                            {showMerchantLogo && merchantLogoUrl ? (
+                              <img
+                                src={merchantLogoUrl}
+                                alt={`${row.merchant} logo`}
+                                className="w-full h-full object-cover"
+                                onError={() => handleLogoError(merchantLogoUrl)}
+                              />
+                            ) : (
+                              <span className="text-xs font-semibold">{merchantInitial}</span>
+                            )}
+                          </div>
+                        );
+                      })()}
+                      <span>{row.merchant}</span>
+                    </div>
+                  </td>
+                  <td className="py-2 pr-3">
+                    <div className="flex items-center gap-2">
+                      <span className="material-symbols-outlined text-[18px] text-light-text-secondary dark:text-dark-text-secondary">
+                        {findCategoryByName(row.category, allCategories)?.icon || 'category'}
+                      </span>
+                      <span>{row.category}</span>
+                    </div>
+                  </td>
                   <td className="py-2 pr-3">€{row.amountEur.toFixed(2)}</td>
                   <td className="py-2 pr-3">{row.zScore.toFixed(2)}σ</td>
                 </tr>
@@ -639,7 +761,28 @@ const Reports: React.FC = () => {
             <tbody>
               {recurringCandidates.map(candidate => (
                 <tr key={candidate.merchant} className="border-b border-black/5 dark:border-white/5">
-                  <td className="py-2 pr-3">{candidate.merchant}</td>
+                  <td className="py-2 pr-3">
+                    <div className="flex items-center gap-2">
+                      {(() => {
+                        const { merchantLogoUrl, showMerchantLogo, merchantInitial } = merchantVisual(candidate.merchant);
+                        return (
+                          <div className={`w-7 h-7 rounded-lg shrink-0 flex items-center justify-center overflow-hidden ${showMerchantLogo ? 'bg-white dark:bg-dark-card' : 'bg-primary-500/20 text-primary-700 dark:text-primary-300'}`}>
+                            {showMerchantLogo && merchantLogoUrl ? (
+                              <img
+                                src={merchantLogoUrl}
+                                alt={`${candidate.merchant} logo`}
+                                className="w-full h-full object-cover"
+                                onError={() => handleLogoError(merchantLogoUrl)}
+                              />
+                            ) : (
+                              <span className="text-xs font-semibold">{merchantInitial}</span>
+                            )}
+                          </div>
+                        );
+                      })()}
+                      <span>{candidate.merchant}</span>
+                    </div>
+                  </td>
                   <td className="py-2 pr-3">{candidate.frequency}</td>
                   <td className="py-2 pr-3">{candidate.occurrences}</td>
                   <td className="py-2 pr-3">€{candidate.averageEur.toFixed(2)}</td>
