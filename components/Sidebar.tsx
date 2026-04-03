@@ -22,7 +22,7 @@ interface SidebarProps {
 const NAV_GROUPS = [
   {
     title: 'Overview',
-    items: ['Dashboard', 'Accounts', 'Transactions']
+    items: ['Dashboard', 'Accounts', 'Transactions', 'Reports']
   },
   {
     title: 'Planning',
