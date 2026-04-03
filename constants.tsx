@@ -117,6 +117,7 @@ export const NAV_ITEMS: NavItem[] = [
   { name: 'Dashboard', icon: 'space_dashboard' },
   { name: 'Accounts', icon: 'wallet' },
   { name: 'Transactions', icon: 'receipt_long' },
+  { name: 'Reports', icon: 'analytics' },
   { name: 'Budget', icon: 'pie_chart' },
   { name: 'Forecasting', icon: 'show_chart' },
   { name: 'Investments', icon: 'candlestick_chart' },

@@ -8,6 +8,7 @@ const pageRegistry = {
   Dashboard: { path: '/', loader: () => import('./pages/Dashboard') },
   Accounts: { path: '/accounts', loader: () => import('./pages/Accounts') },
   Transactions: { path: '/transactions', loader: () => import('./pages/Transactions') },
+  Reports: { path: '/reports', loader: () => import('./pages/Reports') },
   Budget: { path: '/budget', loader: () => import('./pages/Budgeting') },
   Forecasting: { path: '/forecasting', loader: () => import('./pages/Forecasting') },
   Challenges: { path: '/challenges', loader: () => import('./pages/Challenges') },
@@ -33,6 +34,7 @@ const pageRegistry = {
 const Dashboard = lazy(pageRegistry.Dashboard.loader);
 const Accounts = lazy(pageRegistry.Accounts.loader);
 const Transactions = lazy(pageRegistry.Transactions.loader);
+const ReportsPage = lazy(pageRegistry.Reports.loader);
 const Budgeting = lazy(pageRegistry.Budget.loader);
 const Forecasting = lazy(pageRegistry.Forecasting.loader);
 const ChallengesPage = lazy(pageRegistry.Challenges.loader);
@@ -1458,6 +1460,7 @@ const App: React.FC = () => {
       case 'Dashboard': return <Dashboard user={currentUser!} incomeCategories={incomeCategories} expenseCategories={expenseCategories} financialGoals={financialGoals} recurringTransactions={recurringTransactions} recurringTransactionOverrides={recurringTransactionOverrides} loanPaymentOverrides={loanPaymentOverrides} tasks={tasks} saveTask={handleSaveTask} />;
       case 'Accounts': return <Accounts accounts={accounts} transactions={transactions} saveAccount={handleSaveAccount} deleteAccount={handleDeleteAccount} setCurrentPage={setCurrentPage} setViewingAccountId={setViewingAccountId} onViewAccount={handleOpenAccountDetail} saveTransaction={handleSaveTransaction} accountOrder={accountOrder} setAccountOrder={setAccountOrder} initialSortBy={preferences.defaultAccountOrder} warrants={warrants} onToggleAccountStatus={handleToggleAccountStatus} onNavigateToTransactions={navigateToTransactions} linkedEnableBankingAccountIds={linkedEnableBankingAccountIds} />;
       case 'Transactions': return <Transactions initialAccountFilter={transactionsViewFilters.current.accountName ?? null} initialTagFilter={transactionsViewFilters.current.tagId ?? null} onClearInitialFilters={clearPendingTransactionFilters} />;
+      case 'Reports': return <ReportsPage />;
       case 'Budget': return <Budgeting budgets={budgets} transactions={transactions} expenseCategories={expenseCategories} saveBudget={handleSaveBudget} deleteBudget={handleDeleteBudget} accounts={accounts} preferences={preferences} />;
       case 'Forecasting': return <Forecasting />;
       case 'Challenges': return <ChallengesPage userStats={userStats} accounts={accounts} transactions={transactions} predictions={predictions} savePrediction={handleSavePrediction} deletePrediction={handleDeletePrediction} saveUserStats={setUserStats} investmentTransactions={investmentTransactions} warrants={warrants} assetPrices={assetPrices} />;
