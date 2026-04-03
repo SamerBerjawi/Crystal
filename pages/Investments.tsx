@@ -3,7 +3,7 @@ import React, { useState, useMemo, useCallback } from 'react';
 import { Account, InvestmentTransaction, Transaction, Warrant, InvestmentSubType, HoldingsOverview } from '../types';
 import { BTN_PRIMARY_STYLE, BRAND_COLORS, BTN_SECONDARY_STYLE, INVESTMENT_SUB_TYPE_STYLES } from '../constants';
 import Card from '../components/Card';
-import { formatCurrency, parseLocalDate } from '../utils';
+import { formatCurrency, parseLocalDate, toLocalISOString } from '../utils';
 import AddInvestmentTransactionModal from '../components/AddInvestmentTransactionModal';
 import EditAccountModal from '../components/EditAccountModal';
 import PortfolioDistributionChart from '../components/PortfolioDistributionChart';
@@ -13,6 +13,7 @@ import { PieChart, Pie, Cell, ResponsiveContainer, Tooltip } from 'recharts';
 import { buildHoldingsOverview } from '../utils/investments';
 import PageHeader from '../components/PageHeader';
 import AccountsListSection from '../components/AccountsListSection';
+import { usePreferencesSelector } from '../contexts/DomainProviders';
 
 interface InvestmentsProps {
     accounts: Account[];
@@ -86,6 +87,8 @@ const Investments: React.FC<InvestmentsProps> = ({
     const [editingPriceItem, setEditingPriceItem] = useState<{ symbol: string; name: string; currentPrice: number | null } | null>(null);
     const [isAccountModalOpen, setAccountModalOpen] = useState(false);
     const [contextMenu, setContextMenu] = useState<{ x: number, y: number, account: Account } | null>(null);
+    const [isUpdatingAllPrices, setIsUpdatingAllPrices] = useState(false);
+    const twelveDataApiKey = usePreferencesSelector(p => p.twelveDataApiKey || '');
 
     // Include only Stocks, ETFs, Crypto for the Investments page
     const investmentAccounts = useMemo(() => (
@@ -192,6 +195,145 @@ const Investments: React.FC<InvestmentsProps> = ({
     const handleAccountClick = (accountId: string) => {
         if (onViewAccount) onViewAccount(accountId);
     };
+
+    const normalizeDecimalString = useCallback((rawValue: string): string => {
+        const cleaned = rawValue
+            .replace(/\s+/g, '')
+            .replace(/\u00A0/g, '')
+            .replace(/[^0-9.,-]/g, '');
+
+        const lastDot = cleaned.lastIndexOf('.');
+        const lastComma = cleaned.lastIndexOf(',');
+        const decimalSeparator = lastDot > lastComma ? '.' : (lastComma > lastDot ? ',' : null);
+
+        if (decimalSeparator) {
+            const thousandsSeparator = decimalSeparator === '.' ? ',' : '.';
+            const withoutThousands = cleaned.split(thousandsSeparator).join('');
+            return withoutThousands.replace(decimalSeparator, '.');
+        }
+
+        return cleaned.replace(/,/g, '.');
+    }, []);
+
+    const parsePriceFromText = useCallback((text: string): number | null => {
+        const numericPart = text.match(/-?\d[\d.,-]*/);
+        if (!numericPart) return null;
+
+        const normalized = normalizeDecimalString(numericPart[0]);
+        const parsed = parseFloat(normalized);
+        return isNaN(parsed) ? null : parsed;
+    }, [normalizeDecimalString]);
+
+    const fetchFromTwelveData = useCallback(async (symbol: string): Promise<number> => {
+        if (!twelveDataApiKey) {
+            throw new Error('Missing Twelve Data API key');
+        }
+
+        const fetchPrice = async (query: string) => {
+            const response = await fetch(query);
+            const data = await response.json();
+            if (data.status === 'error' || data.code) {
+                throw new Error(data.message || 'Unable to fetch price');
+            }
+            const parsed = parseFloat(data.price);
+            if (isNaN(parsed)) throw new Error('Invalid price returned');
+            return parsed;
+        };
+
+        const upperSymbol = symbol.toUpperCase();
+        const candidates = upperSymbol.includes('/')
+            ? [upperSymbol]
+            : [`${upperSymbol}/EUR`, `${upperSymbol}/USD`, upperSymbol];
+
+        for (const candidate of candidates) {
+            const queryParams = new URLSearchParams({
+                symbol: candidate,
+                apikey: twelveDataApiKey,
+            });
+
+            if (!candidate.toUpperCase().endsWith('/EUR')) {
+                queryParams.set('currency', 'EUR');
+            }
+
+            try {
+                return await fetchPrice(`https://api.twelvedata.com/price?${queryParams.toString()}`);
+            } catch {
+                continue;
+            }
+        }
+
+        throw new Error('Price not available from Twelve Data');
+    }, [twelveDataApiKey]);
+
+    const fetchFromSmartBinding = useCallback(async (symbol: string, binding: { url: string; selector: string; cookies?: string }) => {
+        const encodedUrl = encodeURIComponent(binding.url);
+        const cookieParam = binding.cookies ? `&cookies=${encodeURIComponent(binding.cookies)}` : '';
+        const response = await fetch(`/api/smart-fetch?url=${encodedUrl}${cookieParam}`);
+        if (!response.ok) {
+            throw new Error(`Request failed with status ${response.status}`);
+        }
+        const html = await response.text();
+        const parser = new DOMParser();
+        const doc = parser.parseFromString(html, 'text/html');
+        const element = doc.querySelector(binding.selector);
+        if (!element) {
+            throw new Error(`Saved selector for ${symbol} no longer matches`);
+        }
+        const price = parsePriceFromText(element.textContent || '');
+        if (price === null) {
+            throw new Error(`Could not parse price for ${symbol}`);
+        }
+        return price;
+    }, [parsePriceFromText]);
+
+    const handleUpdateAllPrices = useCallback(async () => {
+        if (isUpdatingAllPrices || displayHoldings.length === 0) return;
+
+        setIsUpdatingAllPrices(true);
+        try {
+            const smartBindingsRaw = localStorage.getItem('smartPriceBindings');
+            const smartBindings = smartBindingsRaw
+                ? JSON.parse(smartBindingsRaw) as Record<string, { url: string; selector: string; cookies?: string }>
+                : {};
+
+            const settled = await Promise.allSettled(displayHoldings.map(async (holding) => {
+                const binding = smartBindings[holding.symbol];
+                const nextPrice = binding
+                    ? await fetchFromSmartBinding(holding.symbol, binding)
+                    : await fetchFromTwelveData(holding.symbol);
+                onManualPriceChange(holding.symbol, nextPrice, toLocalISOString(new Date()));
+                return { symbol: holding.symbol, source: binding ? 'Custom site' : 'Twelve Data' };
+            }));
+
+            const successCount = settled.filter(result => result.status === 'fulfilled').length;
+            const failed = settled
+                .map((result, index) => ({ result, symbol: displayHoldings[index].symbol }))
+                .filter(item => item.result.status === 'rejected');
+
+            if (failed.length > 0) {
+                const failedSymbols = failed.map(item => item.symbol).join(', ');
+                window.alert(`Updated ${successCount}/${displayHoldings.length} holdings. Failed: ${failedSymbols}`);
+            } else {
+                window.alert(`Updated prices for ${successCount} holdings.`);
+            }
+        } catch (error) {
+            console.error('Failed to update holdings prices', error);
+            window.alert('Unable to update prices right now. Please try again.');
+        } finally {
+            setIsUpdatingAllPrices(false);
+        }
+    }, [displayHoldings, fetchFromSmartBinding, fetchFromTwelveData, isUpdatingAllPrices, onManualPriceChange]);
+
+    const holdingsByType = useMemo(() => {
+        const groups = new Map<string, typeof displayHoldings>();
+        displayHoldings.forEach((holding) => {
+            const key = holding.type === 'Warrant' ? 'Warrants' : (holding.subType || 'Other');
+            const existing = groups.get(key) || [];
+            existing.push(holding);
+            groups.set(key, existing);
+        });
+        return Array.from(groups.entries()).sort((a, b) => a[0].localeCompare(b[0]));
+    }, [displayHoldings]);
 
     return (
         <div className="space-y-8 pb-12 animate-fade-in-up">
@@ -327,15 +469,24 @@ const Investments: React.FC<InvestmentsProps> = ({
                     <Card className="overflow-hidden">
                         <div className="flex flex-wrap justify-between items-center mb-6 gap-3">
                              <h3 className="text-lg font-bold text-light-text dark:text-dark-text">Your Holdings</h3>
-                             <label className="flex items-center gap-2 text-xs font-semibold uppercase tracking-wide text-light-text-secondary dark:text-dark-text-secondary">
-                                <input
-                                    type="checkbox"
-                                    checked={showInactiveHoldings}
-                                    onChange={(event) => setShowInactiveHoldings(event.target.checked)}
-                                    className="rounded border-gray-300 text-primary-600 focus:ring-primary-500"
-                                />
-                                Show inactive
-                             </label>
+                             <div className="flex items-center gap-4">
+                                <button
+                                    onClick={handleUpdateAllPrices}
+                                    disabled={isUpdatingAllPrices || displayHoldings.length === 0}
+                                    className={`${BTN_SECONDARY_STYLE} !py-2 !px-3 text-xs font-semibold disabled:opacity-60 disabled:cursor-not-allowed`}
+                                >
+                                    {isUpdatingAllPrices ? 'Updating…' : 'Update Prices'}
+                                </button>
+                                <label className="flex items-center gap-2 text-xs font-semibold uppercase tracking-wide text-light-text-secondary dark:text-dark-text-secondary">
+                                    <input
+                                        type="checkbox"
+                                        checked={showInactiveHoldings}
+                                        onChange={(event) => setShowInactiveHoldings(event.target.checked)}
+                                        className="rounded border-gray-300 text-primary-600 focus:ring-primary-500"
+                                    />
+                                    Show inactive
+                                </label>
+                             </div>
                         </div>
                         <div className="overflow-x-auto -mx-6 px-6">
                             <table className="w-full text-left border-collapse">
@@ -350,7 +501,13 @@ const Investments: React.FC<InvestmentsProps> = ({
                                     </tr>
                                 </thead>
                                 <tbody className="divide-y divide-black/5 dark:divide-white/5">
-                                    {displayHoldings.map(holding => {
+                                    {holdingsByType.flatMap(([typeName, holdings]) => ([
+                                        <tr key={`group-${typeName}`} className="bg-black/[0.03] dark:bg-white/[0.03]">
+                                            <td colSpan={6} className="py-2 pl-2 pr-2 text-xs font-bold uppercase tracking-wide text-light-text-secondary dark:text-dark-text-secondary">
+                                                {typeName} ({holdings.length})
+                                            </td>
+                                        </tr>,
+                                        ...holdings.map(holding => {
                                         const holdingAccount = accountBySymbol.get(holding.symbol);
                                         const gainLoss = holding.currentValue - holding.totalCost;
                                         const gainLossPercent = holding.totalCost > 0 ? (gainLoss / holding.totalCost) * 100 : 0;
@@ -364,7 +521,7 @@ const Investments: React.FC<InvestmentsProps> = ({
                                         
                                         return (
                                             <tr
-                                                key={holding.symbol}
+                                                key={`${typeName}-${holding.symbol}`}
                                                 className={`group hover:bg-black/5 dark:hover:bg-white/5 transition-colors cursor-pointer ${isClosed ? 'opacity-60' : ''}`}
                                                 onClick={() => onOpenHoldingDetail(holding.symbol)}
                                             >
@@ -426,7 +583,8 @@ const Investments: React.FC<InvestmentsProps> = ({
                                                 </td>
                                             </tr>
                                         );
-                                    })}
+                                    })
+                                    ]))}
                                     {displayHoldings.length === 0 && (
                                         <tr>
                                             <td colSpan={6} className="py-8 text-center text-light-text-secondary dark:text-dark-text-secondary">
