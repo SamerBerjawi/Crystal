@@ -339,6 +339,13 @@ const FinancialGoalCard: React.FC<FinancialGoalCardProps> = ({ goal, subGoals, i
                                         >
                                             <span className="material-symbols-outlined text-base">content_copy</span>
                                         </button>
+                                        <button
+                                            onClick={(e) => { e.stopPropagation(); onDelete(sg.id); }}
+                                            className="p-1 hover:bg-black/5 dark:hover:bg-white/10 rounded text-red-500"
+                                            title="Delete Item"
+                                        >
+                                            <span className="material-symbols-outlined text-base">delete</span>
+                                        </button>
                                      </div>
                                  </div>
                              </div>
