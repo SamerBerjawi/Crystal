@@ -5,6 +5,8 @@ import { BTN_PRIMARY_STYLE, BTN_SECONDARY_STYLE, INPUT_BASE_STYLE } from '../con
 import { Category } from '../types';
 import { convertToEur, parseLocalDate, toLocalISOString } from '../utils';
 import { getMerchantLogoUrl, normalizeMerchantKey } from '../utils/brandfetch';
+import Card from '../components/Card';
+import PageHeader from '../components/PageHeader';
 
 const SAVED_REPORTS_KEY = 'reports.savedViews.v1';
 
@@ -449,28 +451,30 @@ const Reports: React.FC = () => {
   };
 
   return (
-    <div className="p-4 md:p-6 space-y-6">
-      <div>
-        <h1 className="text-2xl font-bold text-light-text dark:text-dark-text">Reports</h1>
-      </div>
+    <div className="space-y-6 pb-12 animate-fade-in-up">
+      <PageHeader
+        title="Reports"
+        icon="analytics"
+        description="Analyze your spending patterns and uncover insights."
+      />
 
-      <section className="bg-light-card dark:bg-dark-card rounded-xl p-4 border border-black/5 dark:border-white/10 space-y-3">
+      <Card className="space-y-3">
         <h2 className="text-sm font-semibold uppercase tracking-wide text-light-text-secondary dark:text-dark-text-secondary">Filters</h2>
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-3">
           <div>
-            <label className="block text-xs mb-1 text-light-text-secondary dark:text-dark-text-secondary">Start date</label>
+            <label className="block text-xs font-semibold uppercase tracking-wide mb-1 text-light-text-secondary dark:text-dark-text-secondary">Start date</label>
             <input type="date" value={startDate} onChange={(e) => setStartDate(e.target.value)} className={INPUT_BASE_STYLE} />
           </div>
           <div>
-            <label className="block text-xs mb-1 text-light-text-secondary dark:text-dark-text-secondary">End date</label>
+            <label className="block text-xs font-semibold uppercase tracking-wide mb-1 text-light-text-secondary dark:text-dark-text-secondary">End date</label>
             <input type="date" value={endDate} onChange={(e) => setEndDate(e.target.value)} className={INPUT_BASE_STYLE} />
           </div>
           <div>
-            <label className="block text-xs mb-1 text-light-text-secondary dark:text-dark-text-secondary">Merchant contains</label>
+            <label className="block text-xs font-semibold uppercase tracking-wide mb-1 text-light-text-secondary dark:text-dark-text-secondary">Merchant contains</label>
             <input type="text" value={merchantFilter} onChange={(e) => setMerchantFilter(e.target.value)} placeholder="e.g. Amazon" className={INPUT_BASE_STYLE} />
           </div>
           <div>
-            <label className="block text-xs mb-1 text-light-text-secondary dark:text-dark-text-secondary">Category</label>
+            <label className="block text-xs font-semibold uppercase tracking-wide mb-1 text-light-text-secondary dark:text-dark-text-secondary">Category</label>
             <select value={categoryFilter} onChange={(e) => setCategoryFilter(e.target.value)} className={INPUT_BASE_STYLE}>
               <option value="all">All categories</option>
               {categories.map(category => (
@@ -479,7 +483,7 @@ const Reports: React.FC = () => {
             </select>
           </div>
           <div>
-            <label className="block text-xs mb-1 text-light-text-secondary dark:text-dark-text-secondary">Group results by</label>
+            <label className="block text-xs font-semibold uppercase tracking-wide mb-1 text-light-text-secondary dark:text-dark-text-secondary">Group results by</label>
             <select value={groupBy} onChange={(e) => setGroupBy(e.target.value as GroupBy)} className={INPUT_BASE_STYLE}>
               <option value="merchant">Merchant</option>
               <option value="category">Category</option>
@@ -502,52 +506,52 @@ const Reports: React.FC = () => {
             ))}
           </div>
         )}
-      </section>
+      </Card>
 
-      <section className="grid grid-cols-1 md:grid-cols-4 gap-3">
-        <div className="bg-light-card dark:bg-dark-card rounded-xl p-4 border border-black/5 dark:border-white/10">
-          <p className="text-xs text-light-text-secondary dark:text-dark-text-secondary">Total spend ({defaultCurrency})</p>
+      <section className="grid grid-cols-1 md:grid-cols-4 gap-4">
+        <Card>
+          <p className="text-xs font-semibold uppercase tracking-wide text-light-text-secondary dark:text-dark-text-secondary mb-1">Total spend ({defaultCurrency})</p>
           <p className="text-2xl font-bold">€{totals.totalSpendEur.toFixed(2)}</p>
-        </div>
-        <div className="bg-light-card dark:bg-dark-card rounded-xl p-4 border border-black/5 dark:border-white/10">
-          <p className="text-xs text-light-text-secondary dark:text-dark-text-secondary">Transactions</p>
+        </Card>
+        <Card>
+          <p className="text-xs font-semibold uppercase tracking-wide text-light-text-secondary dark:text-dark-text-secondary mb-1">Transactions</p>
           <p className="text-2xl font-bold">{totals.transactionCount}</p>
-        </div>
-        <div className="bg-light-card dark:bg-dark-card rounded-xl p-4 border border-black/5 dark:border-white/10">
-          <p className="text-xs text-light-text-secondary dark:text-dark-text-secondary">Average transaction (EUR)</p>
+        </Card>
+        <Card>
+          <p className="text-xs font-semibold uppercase tracking-wide text-light-text-secondary dark:text-dark-text-secondary mb-1">Average transaction (EUR)</p>
           <p className="text-2xl font-bold">€{totals.averageEur.toFixed(2)}</p>
-        </div>
-        <div className="bg-light-card dark:bg-dark-card rounded-xl p-4 border border-black/5 dark:border-white/10">
-          <p className="text-xs text-light-text-secondary dark:text-dark-text-secondary">Vs previous period</p>
-          <p className={`text-2xl font-bold ${(totals.changePct ?? 0) <= 0 ? 'text-green-600' : 'text-red-500'}`}>
+        </Card>
+        <Card>
+          <p className="text-xs font-semibold uppercase tracking-wide text-light-text-secondary dark:text-dark-text-secondary mb-1">Vs previous period</p>
+          <p className={`text-2xl font-bold ${(totals.changePct ?? 0) <= 0 ? 'text-emerald-600' : 'text-rose-600'}`}>
             {totals.changePct === null ? '—' : `${totals.changePct > 0 ? '+' : ''}${totals.changePct.toFixed(1)}%`}
           </p>
           <p className="text-xs text-light-text-secondary dark:text-dark-text-secondary mt-1">
             Compared to {previousPeriodTotals.start} → {previousPeriodTotals.end}
           </p>
-        </div>
+        </Card>
       </section>
 
-      <section className="bg-light-card dark:bg-dark-card rounded-xl p-4 border border-black/5 dark:border-white/10">
-        <h2 className="font-semibold mb-3">Spend breakdown by {groupBy}</h2>
-        <div className="overflow-x-auto">
-          <table className="min-w-full text-sm">
+      <Card>
+        <h2 className="font-semibold mb-4 text-lg">Spend breakdown by {groupBy}</h2>
+        <div className="overflow-x-auto -mx-6 px-6">
+          <table className="w-full text-left border-collapse text-sm">
             <thead>
-              <tr className="text-left border-b border-black/5 dark:border-white/10">
-                <th className="py-2 pr-3 font-medium capitalize">{groupBy}</th>
-                <th className="py-2 pr-3 font-medium">Transactions</th>
-                <th className="py-2 pr-3 font-medium">Total (EUR)</th>
-                <th className="py-2 pr-3 font-medium">Share</th>
+              <tr className="border-b border-black/5 dark:border-white/10">
+                <th className="py-3 pr-3 font-semibold text-xs uppercase tracking-wide text-light-text-secondary dark:text-dark-text-secondary">{groupBy}</th>
+                <th className="py-3 pr-3 font-semibold text-xs uppercase tracking-wide text-light-text-secondary dark:text-dark-text-secondary">Transactions</th>
+                <th className="py-3 pr-3 font-semibold text-xs uppercase tracking-wide text-light-text-secondary dark:text-dark-text-secondary">Total (EUR)</th>
+                <th className="py-3 pr-3 font-semibold text-xs uppercase tracking-wide text-light-text-secondary dark:text-dark-text-secondary">Share</th>
               </tr>
             </thead>
-            <tbody>
+            <tbody className="divide-y divide-black/5 dark:divide-white/5">
               {groupedRows.map(row => {
                 const share = totals.totalSpendEur > 0 ? (row.totalEur / totals.totalSpendEur) * 100 : 0;
                 const category = findCategoryByName(row.label, allCategories);
                 const { merchantLogoUrl, showMerchantLogo, merchantInitial } = merchantVisual(row.label);
                 return (
-                  <tr key={row.label} className="border-b border-black/5 dark:border-white/5">
-                    <td className="py-2 pr-3">
+                  <tr key={row.label} className="group hover:bg-black/5 dark:hover:bg-white/5 transition-colors">
+                    <td className="py-3 pr-3">
                       {groupBy === 'merchant' ? (
                         <div className="flex items-center gap-2">
                           <div className={`w-7 h-7 rounded-lg shrink-0 flex items-center justify-center overflow-hidden ${showMerchantLogo ? 'bg-white dark:bg-dark-card' : 'bg-primary-500/20 text-primary-700 dark:text-primary-300'}`}>
@@ -573,9 +577,9 @@ const Reports: React.FC = () => {
                         </div>
                       )}
                     </td>
-                    <td className="py-2 pr-3">{row.count}</td>
-                    <td className="py-2 pr-3">€{row.totalEur.toFixed(2)}</td>
-                    <td className="py-2 pr-3">{share.toFixed(1)}%</td>
+                    <td className="py-3 pr-3">{row.count}</td>
+                    <td className="py-3 pr-3">€{row.totalEur.toFixed(2)}</td>
+                    <td className="py-3 pr-3">{share.toFixed(1)}%</td>
                   </tr>
                 );
               })}
@@ -583,11 +587,11 @@ const Reports: React.FC = () => {
           </table>
           {groupedRows.length === 0 && <p className="text-sm text-light-text-secondary dark:text-dark-text-secondary py-3">No matching expenses found for the selected filters.</p>}
         </div>
-      </section>
+      </Card>
 
-      <section className="bg-light-card dark:bg-dark-card rounded-xl p-4 border border-black/5 dark:border-white/10">
-        <div className="flex items-center justify-between mb-3">
-          <h2 className="font-semibold">Budget vs Actual</h2>
+      <Card>
+        <div className="flex items-center justify-between mb-4">
+          <h2 className="font-semibold text-lg">Budget vs Actual</h2>
           <button
             onClick={() => {
               setCategoryFilter('all');
@@ -598,20 +602,20 @@ const Reports: React.FC = () => {
             Clear category/merchant filters
           </button>
         </div>
-        <div className="overflow-x-auto">
-          <table className="min-w-full text-sm">
+        <div className="overflow-x-auto -mx-6 px-6">
+          <table className="w-full text-left border-collapse text-sm">
             <thead>
-              <tr className="text-left border-b border-black/5 dark:border-white/10">
-                <th className="py-2 pr-3 font-medium">Category</th>
-                <th className="py-2 pr-3 font-medium">Budget (EUR)</th>
-                <th className="py-2 pr-3 font-medium">Actual (EUR)</th>
-                <th className="py-2 pr-3 font-medium">Variance</th>
+              <tr className="border-b border-black/5 dark:border-white/10">
+                <th className="py-3 pr-3 font-semibold text-xs uppercase tracking-wide text-light-text-secondary dark:text-dark-text-secondary">Category</th>
+                <th className="py-3 pr-3 font-semibold text-xs uppercase tracking-wide text-light-text-secondary dark:text-dark-text-secondary">Budget (EUR)</th>
+                <th className="py-3 pr-3 font-semibold text-xs uppercase tracking-wide text-light-text-secondary dark:text-dark-text-secondary">Actual (EUR)</th>
+                <th className="py-3 pr-3 font-semibold text-xs uppercase tracking-wide text-light-text-secondary dark:text-dark-text-secondary">Variance</th>
               </tr>
             </thead>
-            <tbody>
+            <tbody className="divide-y divide-black/5 dark:divide-white/5">
               {budgetVsActual.map(row => (
-                <tr key={row.categoryName} className="border-b border-black/5 dark:border-white/5">
-                  <td className="py-2 pr-3">
+                <tr key={row.categoryName} className="group hover:bg-black/5 dark:hover:bg-white/5 transition-colors">
+                  <td className="py-3 pr-3">
                     <div className="flex items-center gap-2">
                       <span className="material-symbols-outlined text-[18px] text-light-text-secondary dark:text-dark-text-secondary">
                         {findCategoryByName(row.categoryName, allCategories)?.icon || 'category'}
@@ -619,9 +623,9 @@ const Reports: React.FC = () => {
                       <span>{row.categoryName}</span>
                     </div>
                   </td>
-                  <td className="py-2 pr-3">€{row.budgetEur.toFixed(2)}</td>
-                  <td className="py-2 pr-3">€{row.actualEur.toFixed(2)}</td>
-                  <td className={`py-2 pr-3 font-medium ${row.varianceEur >= 0 ? 'text-green-600' : 'text-red-500'}`}>
+                  <td className="py-3 pr-3">€{row.budgetEur.toFixed(2)}</td>
+                  <td className="py-3 pr-3">€{row.actualEur.toFixed(2)}</td>
+                  <td className={`py-3 pr-3 font-medium ${row.varianceEur >= 0 ? 'text-emerald-600' : 'text-rose-600'}`}>
                     {row.varianceEur >= 0 ? '+' : ''}€{row.varianceEur.toFixed(2)}
                   </td>
                 </tr>
@@ -630,11 +634,11 @@ const Reports: React.FC = () => {
           </table>
           {budgetVsActual.length === 0 && <p className="text-sm text-light-text-secondary dark:text-dark-text-secondary py-3">No budgets configured yet. Create budgets to see budget vs actual reporting.</p>}
         </div>
-      </section>
+      </Card>
 
-      <section className="bg-light-card dark:bg-dark-card rounded-xl p-4 border border-black/5 dark:border-white/10">
-        <h2 className="font-semibold mb-3">Automated Insights</h2>
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-2">
+      <Card>
+        <h2 className="font-semibold mb-4 text-lg">Automated Insights</h2>
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
           {insights.map(item => (
             <div
               key={item.id}
@@ -655,52 +659,52 @@ const Reports: React.FC = () => {
             Not enough data yet to generate insights for this filter selection.
           </p>
         )}
-      </section>
+      </Card>
 
-      <section className="bg-light-card dark:bg-dark-card rounded-xl p-4 border border-black/5 dark:border-white/10">
-        <h2 className="font-semibold mb-3">Forecast (End of Month)</h2>
+      <Card>
+        <h2 className="font-semibold mb-4 text-lg">Forecast (End of Month)</h2>
         {forecast ? (
-          <div className="grid grid-cols-1 md:grid-cols-4 gap-3">
-            <div className="rounded-lg border border-black/10 dark:border-white/10 p-3">
-              <p className="text-xs text-light-text-secondary dark:text-dark-text-secondary">Month window</p>
+          <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+            <div className="rounded-xl border border-black/5 dark:border-white/10 p-4 bg-light-fill dark:bg-dark-fill">
+              <p className="text-xs font-semibold uppercase tracking-wide text-light-text-secondary dark:text-dark-text-secondary mb-1">Month window</p>
               <p className="font-semibold">{forecast.monthStart} → {forecast.monthEnd}</p>
             </div>
-            <div className="rounded-lg border border-black/10 dark:border-white/10 p-3">
-              <p className="text-xs text-light-text-secondary dark:text-dark-text-secondary">MTD spend (EUR)</p>
+            <div className="rounded-xl border border-black/5 dark:border-white/10 p-4 bg-light-fill dark:bg-dark-fill">
+              <p className="text-xs font-semibold uppercase tracking-wide text-light-text-secondary dark:text-dark-text-secondary mb-1">MTD spend (EUR)</p>
               <p className="font-semibold">€{forecast.mtdSpendEur.toFixed(2)}</p>
             </div>
-            <div className="rounded-lg border border-black/10 dark:border-white/10 p-3">
-              <p className="text-xs text-light-text-secondary dark:text-dark-text-secondary">Daily average (EUR)</p>
+            <div className="rounded-xl border border-black/5 dark:border-white/10 p-4 bg-light-fill dark:bg-dark-fill">
+              <p className="text-xs font-semibold uppercase tracking-wide text-light-text-secondary dark:text-dark-text-secondary mb-1">Daily average (EUR)</p>
               <p className="font-semibold">€{forecast.dailyAverage.toFixed(2)}</p>
             </div>
-            <div className="rounded-lg border border-black/10 dark:border-white/10 p-3">
-              <p className="text-xs text-light-text-secondary dark:text-dark-text-secondary">Projected month-end (EUR)</p>
+            <div className="rounded-xl border border-black/5 dark:border-white/10 p-4 bg-light-fill dark:bg-dark-fill">
+              <p className="text-xs font-semibold uppercase tracking-wide text-light-text-secondary dark:text-dark-text-secondary mb-1">Projected month-end (EUR)</p>
               <p className="font-semibold">€{forecast.projectedMonthEnd.toFixed(2)}</p>
             </div>
           </div>
         ) : (
           <p className="text-sm text-light-text-secondary dark:text-dark-text-secondary">Forecast unavailable for current selection.</p>
         )}
-      </section>
+      </Card>
 
-      <section className="bg-light-card dark:bg-dark-card rounded-xl p-4 border border-black/5 dark:border-white/10">
-        <h2 className="font-semibold mb-3">Anomaly Detection (Large Outliers)</h2>
-        <div className="overflow-x-auto">
-          <table className="min-w-full text-sm">
+      <Card>
+        <h2 className="font-semibold mb-4 text-lg">Anomaly Detection (Large Outliers)</h2>
+        <div className="overflow-x-auto -mx-6 px-6">
+          <table className="w-full text-left border-collapse text-sm">
             <thead>
-              <tr className="text-left border-b border-black/5 dark:border-white/10">
-                <th className="py-2 pr-3 font-medium">Date</th>
-                <th className="py-2 pr-3 font-medium">Merchant</th>
-                <th className="py-2 pr-3 font-medium">Category</th>
-                <th className="py-2 pr-3 font-medium">Amount (EUR)</th>
-                <th className="py-2 pr-3 font-medium">Outlier score</th>
+              <tr className="border-b border-black/5 dark:border-white/10">
+                <th className="py-3 pr-3 font-semibold text-xs uppercase tracking-wide text-light-text-secondary dark:text-dark-text-secondary">Date</th>
+                <th className="py-3 pr-3 font-semibold text-xs uppercase tracking-wide text-light-text-secondary dark:text-dark-text-secondary">Merchant</th>
+                <th className="py-3 pr-3 font-semibold text-xs uppercase tracking-wide text-light-text-secondary dark:text-dark-text-secondary">Category</th>
+                <th className="py-3 pr-3 font-semibold text-xs uppercase tracking-wide text-light-text-secondary dark:text-dark-text-secondary">Amount (EUR)</th>
+                <th className="py-3 pr-3 font-semibold text-xs uppercase tracking-wide text-light-text-secondary dark:text-dark-text-secondary">Outlier score</th>
               </tr>
             </thead>
-            <tbody>
+            <tbody className="divide-y divide-black/5 dark:divide-white/5">
               {anomalyCandidates.map(row => (
-                <tr key={row.id} className="border-b border-black/5 dark:border-white/5">
-                  <td className="py-2 pr-3">{row.date}</td>
-                  <td className="py-2 pr-3">
+                <tr key={row.id} className="group hover:bg-black/5 dark:hover:bg-white/5 transition-colors">
+                  <td className="py-3 pr-3">{row.date}</td>
+                  <td className="py-3 pr-3">
                     <div className="flex items-center gap-2">
                       {(() => {
                         const { merchantLogoUrl, showMerchantLogo, merchantInitial } = merchantVisual(row.merchant);
@@ -722,7 +726,7 @@ const Reports: React.FC = () => {
                       <span>{row.merchant}</span>
                     </div>
                   </td>
-                  <td className="py-2 pr-3">
+                  <td className="py-3 pr-3">
                     <div className="flex items-center gap-2">
                       <span className="material-symbols-outlined text-[18px] text-light-text-secondary dark:text-dark-text-secondary">
                         {findCategoryByName(row.category, allCategories)?.icon || 'category'}
@@ -730,8 +734,8 @@ const Reports: React.FC = () => {
                       <span>{row.category}</span>
                     </div>
                   </td>
-                  <td className="py-2 pr-3">€{row.amountEur.toFixed(2)}</td>
-                  <td className="py-2 pr-3">{row.zScore.toFixed(2)}σ</td>
+                  <td className="py-3 pr-3">€{row.amountEur.toFixed(2)}</td>
+                  <td className="py-3 pr-3">{row.zScore.toFixed(2)}σ</td>
                 </tr>
               ))}
             </tbody>
@@ -742,25 +746,25 @@ const Reports: React.FC = () => {
             </p>
           )}
         </div>
-      </section>
+      </Card>
 
-      <section className="bg-light-card dark:bg-dark-card rounded-xl p-4 border border-black/5 dark:border-white/10">
-        <h2 className="font-semibold mb-3">Recurring Spend Candidates</h2>
-        <div className="overflow-x-auto">
-          <table className="min-w-full text-sm">
+      <Card>
+        <h2 className="font-semibold mb-4 text-lg">Recurring Spend Candidates</h2>
+        <div className="overflow-x-auto -mx-6 px-6">
+          <table className="w-full text-left border-collapse text-sm">
             <thead>
-              <tr className="text-left border-b border-black/5 dark:border-white/10">
-                <th className="py-2 pr-3 font-medium">Merchant</th>
-                <th className="py-2 pr-3 font-medium">Detected frequency</th>
-                <th className="py-2 pr-3 font-medium">Occurrences</th>
-                <th className="py-2 pr-3 font-medium">Avg amount (EUR)</th>
-                <th className="py-2 pr-3 font-medium">Estimated monthly (EUR)</th>
+              <tr className="border-b border-black/5 dark:border-white/10">
+                <th className="py-3 pr-3 font-semibold text-xs uppercase tracking-wide text-light-text-secondary dark:text-dark-text-secondary">Merchant</th>
+                <th className="py-3 pr-3 font-semibold text-xs uppercase tracking-wide text-light-text-secondary dark:text-dark-text-secondary">Detected frequency</th>
+                <th className="py-3 pr-3 font-semibold text-xs uppercase tracking-wide text-light-text-secondary dark:text-dark-text-secondary">Occurrences</th>
+                <th className="py-3 pr-3 font-semibold text-xs uppercase tracking-wide text-light-text-secondary dark:text-dark-text-secondary">Avg amount (EUR)</th>
+                <th className="py-3 pr-3 font-semibold text-xs uppercase tracking-wide text-light-text-secondary dark:text-dark-text-secondary">Estimated monthly (EUR)</th>
               </tr>
             </thead>
-            <tbody>
+            <tbody className="divide-y divide-black/5 dark:divide-white/5">
               {recurringCandidates.map(candidate => (
-                <tr key={candidate.merchant} className="border-b border-black/5 dark:border-white/5">
-                  <td className="py-2 pr-3">
+                <tr key={candidate.merchant} className="group hover:bg-black/5 dark:hover:bg-white/5 transition-colors">
+                  <td className="py-3 pr-3">
                     <div className="flex items-center gap-2">
                       {(() => {
                         const { merchantLogoUrl, showMerchantLogo, merchantInitial } = merchantVisual(candidate.merchant);
@@ -782,17 +786,17 @@ const Reports: React.FC = () => {
                       <span>{candidate.merchant}</span>
                     </div>
                   </td>
-                  <td className="py-2 pr-3">{candidate.frequency}</td>
-                  <td className="py-2 pr-3">{candidate.occurrences}</td>
-                  <td className="py-2 pr-3">€{candidate.averageEur.toFixed(2)}</td>
-                  <td className="py-2 pr-3">€{candidate.estimatedMonthlyEur.toFixed(2)}</td>
+                  <td className="py-3 pr-3">{candidate.frequency}</td>
+                  <td className="py-3 pr-3">{candidate.occurrences}</td>
+                  <td className="py-3 pr-3">€{candidate.averageEur.toFixed(2)}</td>
+                  <td className="py-3 pr-3">€{candidate.estimatedMonthlyEur.toFixed(2)}</td>
                 </tr>
               ))}
             </tbody>
           </table>
           {recurringCandidates.length === 0 && <p className="text-sm text-light-text-secondary dark:text-dark-text-secondary py-3">No recurring patterns detected for this filtered period.</p>}
         </div>
-      </section>
+      </Card>
     </div>
   );
 };
