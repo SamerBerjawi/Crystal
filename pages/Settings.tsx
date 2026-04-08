@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
 import { Page, User } from '../types';
+import PageHeader from '../components/PageHeader';
 
 interface SettingsProps {
   setCurrentPage: (page: Page) => void;
@@ -39,10 +40,12 @@ const Settings: React.FC<SettingsProps> = ({ setCurrentPage, user }) => {
   return (
     <div className="max-w-3xl mx-auto space-y-8 animate-fade-in-up pb-12">
       {/* Header */}
-      <div>
-        {/* <h1 className="text-3xl font-bold text-light-text dark:text-dark-text">Settings</h1> */}
-        <p className="text-light-text-secondary dark:text-dark-text-secondary mt-1">Manage your account, preferences, and data.</p>
-      </div>
+      <PageHeader
+        markerIcon="settings"
+        markerLabel="Control Center"
+        title="Settings"
+        subtitle="Manage your account, preferences, and data."
+      />
 
       {/* Profile Section */}
       <button

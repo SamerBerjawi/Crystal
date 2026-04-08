@@ -1,7 +1,6 @@
 // FIX: Import `useMemo` from React to resolve the 'Cannot find name' error.
 import React, { useState, useEffect, useMemo, useCallback, Suspense, lazy, useRef, Component, ErrorInfo, startTransition } from 'react';
 import Sidebar from './components/Sidebar';
-import Header from './components/Header';
 const SignIn = lazy(() => import('./pages/SignIn'));
 const SignUp = lazy(() => import('./pages/SignUp'));
 const pageRegistry = {
@@ -1508,7 +1507,13 @@ const App: React.FC = () => {
              <div className={`flex h-screen bg-light-bg dark:bg-dark-bg text-light-text dark:text-dark-text transition-colors duration-200 font-sans ${isPrivacyMode ? 'privacy-mode' : ''}`}>
                 <Sidebar currentPage={currentPage} setCurrentPage={setCurrentPage} isSidebarOpen={isSidebarOpen} setSidebarOpen={setSidebarOpen} theme={theme} setTheme={setTheme} isSidebarCollapsed={isSidebarCollapsed} setSidebarCollapsed={setSidebarCollapsed} onLogout={handleLogout} user={currentUser} isPrivacyMode={isPrivacyMode} togglePrivacyMode={() => setIsPrivacyMode(!isPrivacyMode)} />
                 <div className="flex-1 flex flex-col min-w-0 overflow-hidden relative">
-                    <Header user={currentUser} setSidebarOpen={setSidebarOpen} theme={theme} setTheme={setTheme} currentPage={currentPage} isPrivacyMode={isPrivacyMode} togglePrivacyMode={() => setIsPrivacyMode(!isPrivacyMode)} />
+                    <button
+                      onClick={() => setSidebarOpen(true)}
+                      className="md:hidden absolute top-4 left-4 z-20 p-2 rounded-lg bg-white/90 dark:bg-[#1E1E20]/90 text-light-text-secondary dark:text-dark-text-secondary shadow-sm border border-black/5 dark:border-white/10 backdrop-blur hover:bg-white dark:hover:bg-[#252528] transition-colors"
+                      aria-label="Open navigation menu"
+                    >
+                      <span className="material-symbols-outlined">menu</span>
+                    </button>
                     <main className="flex-1 overflow-y-auto p-4 md:p-6 lg:p-8 relative scroll-smooth focus:outline-none" id="main-content">
                          <ErrorBoundary><Suspense fallback={<PageLoader />}>{renderPage()}</Suspense></ErrorBoundary>
                     </main>
