@@ -127,17 +127,6 @@ const NetWorthChart: React.FC<NetWorthChartProps> = ({
 
   return (
     <div className="flex-grow" style={{ width: '100%', height: '270px' }}>
-      {latestPerformancePoint && (
-        <div className="flex justify-end mb-2 text-xs">
-          <div className="px-2 py-1 rounded-md bg-black/5 dark:bg-white/10 font-medium">
-            <span className="text-light-text-secondary dark:text-dark-text-secondary mr-1">Vs forecast:</span>
-            <span className={latestPerformancePoint.delta >= 0 ? 'text-emerald-600' : 'text-rose-600'}>
-              {latestPerformancePoint.delta >= 0 ? '+' : ''}
-              {formatCurrency(latestPerformancePoint.delta, 'EUR')} ({latestPerformancePoint.deltaPercent >= 0 ? '+' : ''}{latestPerformancePoint.deltaPercent.toFixed(1)}%)
-            </span>
-          </div>
-        </div>
-      )}
       <ResponsiveContainer minWidth={0} minHeight={0} debounce={50}>
         <AreaChart
           data={chartData}
