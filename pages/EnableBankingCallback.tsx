@@ -7,7 +7,6 @@ interface EnableBankingCallbackProps {
   setConnections: React.Dispatch<React.SetStateAction<EnableBankingConnection[]>>;
   onSync: (connectionId: string, connectionOverride?: EnableBankingConnection, syncOptions?: EnableBankingSyncOptions) => Promise<void>;
   setCurrentPage: (page: Page) => void;
-  authToken?: string | null;
 }
 
 const EnableBankingCallback: React.FC<EnableBankingCallbackProps> = ({
@@ -15,7 +14,6 @@ const EnableBankingCallback: React.FC<EnableBankingCallbackProps> = ({
   setConnections,
   onSync,
   setCurrentPage,
-  authToken,
 }) => {
   const [message, setMessage] = useState('Finalising your Enable Banking connection...');
   const [error, setError] = useState<string | null>(null);
@@ -51,12 +49,12 @@ const EnableBankingCallback: React.FC<EnableBankingCallbackProps> = ({
         }
       }
 
-      if (!connection && authToken) {
+      if (!connection) {
         try {
           const response = await fetch(`/api/enable-banking/pending/${encodeURIComponent(state)}`, {
+            credentials: 'include',
             headers: {
               'Content-Type': 'application/json',
-              Authorization: `Bearer ${authToken}`,
             },
           });
           if (response.ok) {
@@ -86,9 +84,9 @@ const EnableBankingCallback: React.FC<EnableBankingCallbackProps> = ({
           setMessage('Exchanging authorization code for a session...');
           const response = await fetch('/api/enable-banking/session', {
             method: 'POST',
+            credentials: 'include',
             headers: {
               'Content-Type': 'application/json',
-              ...(authToken ? { Authorization: `Bearer ${authToken}` } : {}),
             },
             body: JSON.stringify({
               applicationId: connection.applicationId,
@@ -132,14 +130,10 @@ const EnableBankingCallback: React.FC<EnableBankingCallbackProps> = ({
 
           setConnections(prev => prev.map(conn => conn.id === connection.id ? updatedConnection : conn));
           removePendingConnection(connection.id);
-          if (authToken) {
-            fetch(`/api/enable-banking/pending/${encodeURIComponent(connection.id)}`, {
-              method: 'DELETE',
-              headers: {
-                Authorization: `Bearer ${authToken}`,
-              },
-            }).catch(error => console.warn('Failed to remove pending Enable Banking connection from server', error));
-          }
+          fetch(`/api/enable-banking/pending/${encodeURIComponent(connection.id)}`, {
+            method: 'DELETE',
+            credentials: 'include',
+          }).catch(error => console.warn('Failed to remove pending Enable Banking connection from server', error));
 
           setMessage('Session created. Syncing accounts...');
           await onSync(connection.id, updatedConnection);
@@ -161,7 +155,7 @@ const EnableBankingCallback: React.FC<EnableBankingCallbackProps> = ({
     };
 
     resolveConnection();
-  }, [authToken, connections, onSync, setConnections, setCurrentPage]);
+  }, [connections, onSync, setConnections, setCurrentPage]);
 
   return (
     <div className="max-w-lg mx-auto mt-20 p-6 rounded-xl bg-white dark:bg-dark-surface shadow-lg text-center animate-fade-in-up">

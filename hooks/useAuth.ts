@@ -2,40 +2,9 @@ import { useState, useCallback } from 'react';
 import { User, FinancialData } from '../types';
 
 interface AuthResponse {
-  token: string;
   user?: any;
   financialData?: FinancialData;
 }
-
-const TOKEN_STORAGE_KEY = 'crystal_auth_token';
-
-const safeLocalStorage = {
-  getItem: (key: string): string | null => {
-    if (typeof window === 'undefined') return null;
-    try {
-      return window.localStorage.getItem(key);
-    } catch (error) {
-      console.warn(`Failed to read "${key}" from localStorage.`, error);
-      return null;
-    }
-  },
-  setItem: (key: string, value: string) => {
-    if (typeof window === 'undefined') return;
-    try {
-      window.localStorage.setItem(key, value);
-    } catch (error) {
-      console.warn(`Failed to write "${key}" to localStorage.`, error);
-    }
-  },
-  removeItem: (key: string) => {
-    if (typeof window === 'undefined') return;
-    try {
-      window.localStorage.removeItem(key);
-    } catch (error) {
-      console.warn(`Failed to remove "${key}" from localStorage.`, error);
-    }
-  },
-};
 
 const mapApiUserToUser = (apiUser: any): User => ({
   firstName: apiUser.firstName ?? '',
@@ -68,20 +37,9 @@ const resolveAuthUser = (payload: AuthResponse | null): User => {
   throw new Error('Sign-in succeeded but no user profile was returned.');
 };
 
-const getStoredToken = () => safeLocalStorage.getItem(TOKEN_STORAGE_KEY);
-
-const persistToken = (newToken: string | null) => {
-  if (newToken) {
-    safeLocalStorage.setItem(TOKEN_STORAGE_KEY, newToken);
-  } else {
-    safeLocalStorage.removeItem(TOKEN_STORAGE_KEY);
-  }
-};
-
 export const useAuth = () => {
   const [user, setUserState] = useState<User | null>(null);
-  const [token, setToken] = useState<string | null>(getStoredToken());
-  const [isAuthenticated, setIsAuthenticated] = useState<boolean>(Boolean(getStoredToken()));
+  const [isAuthenticated, setIsAuthenticated] = useState<boolean>(false);
   const [isLoading, setIsLoading] = useState<boolean>(true);
   const [error, setError] = useState<string | null>(null);
 
@@ -90,8 +48,6 @@ export const useAuth = () => {
 
     const mappedUser = resolveAuthUser(payload);
     setUserState(mappedUser);
-    setToken(payload.token);
-    persistToken(payload.token);
     setIsAuthenticated(true);
     setError(null);
 
@@ -99,9 +55,14 @@ export const useAuth = () => {
   }, []);
 
   const signOut = useCallback(() => {
+    fetch('/api/auth/logout', {
+      method: 'POST',
+      credentials: 'include',
+    }).catch(error => {
+      console.warn('Sign-out request failed:', error);
+    });
+
     setUserState(null);
-    setToken(null);
-    persistToken(null);
     setIsAuthenticated(false);
     setError(null);
     setIsLoading(false);
@@ -109,14 +70,12 @@ export const useAuth = () => {
 
   const authorizedFetch = useCallback(
     async (input: RequestInfo | URL, init: RequestInit = {}) => {
-      const activeToken = token ?? getStoredToken();
-      const headers = new Headers(init.headers || {});
-      if (activeToken) {
-        headers.set('Authorization', `Bearer ${activeToken}`);
-      }
-      return fetch(input, { ...init, headers });
+      return fetch(input, {
+        ...init,
+        credentials: 'include',
+      });
     },
-    [token]
+    []
   );
 
   const signIn = useCallback(
@@ -129,6 +88,7 @@ export const useAuth = () => {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ email, password }),
+          credentials: 'include',
         });
 
         const body = await response.json().catch(() => ({}));
@@ -141,8 +101,6 @@ export const useAuth = () => {
         console.error('Sign-in failed:', err);
         setIsAuthenticated(false);
         setUserState(null);
-        persistToken(null);
-        setToken(null);
         setError(err instanceof Error ? err.message : 'Failed to sign in.');
         return null;
       } finally {
@@ -162,6 +120,7 @@ export const useAuth = () => {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify(newUserData),
+          credentials: 'include',
         });
 
         const body = await response.json().catch(() => ({}));
@@ -174,8 +133,6 @@ export const useAuth = () => {
         console.error('Sign-up failed:', err);
         setIsAuthenticated(false);
         setUserState(null);
-        persistToken(null);
-        setToken(null);
         setError(err instanceof Error ? err.message : 'Failed to register.');
         return null;
       } finally {
@@ -186,25 +143,20 @@ export const useAuth = () => {
   );
 
   const checkAuthStatus = useCallback(async (): Promise<FinancialData | null> => {
-    const storedToken = getStoredToken();
-    if (!storedToken) {
-      signOut();
-      setIsLoading(false);
-      return null;
-    }
-
     setIsLoading(true);
     setError(null);
 
     try {
       const [userRes, dataRes] = await Promise.all([
-        fetch('/api/auth/me', {
-          headers: { Authorization: `Bearer ${storedToken}` },
-        }),
-        fetch('/api/data', {
-          headers: { Authorization: `Bearer ${storedToken}` },
-        }),
+        fetch('/api/auth/me', { credentials: 'include' }),
+        fetch('/api/data', { credentials: 'include' }),
       ]);
+
+      if (userRes.status === 401 || userRes.status === 403) {
+        setUserState(null);
+        setIsAuthenticated(false);
+        return null;
+      }
 
       if (!userRes.ok) {
         const errorBody = await userRes.json().catch(() => ({}));
@@ -217,11 +169,14 @@ export const useAuth = () => {
       }
 
       setUserState(mapApiUserToUser(userPayload));
-      setToken(storedToken);
-      persistToken(storedToken);
       setIsAuthenticated(true);
 
       if (!dataRes.ok) {
+        if (dataRes.status === 401 || dataRes.status === 403) {
+          setUserState(null);
+          setIsAuthenticated(false);
+          return null;
+        }
         const errorBody = await dataRes.json().catch(() => ({}));
         throw new Error(errorBody.message || 'Failed to fetch financial data.');
       }
@@ -243,11 +198,6 @@ export const useAuth = () => {
       setUserState(prev => (prev ? { ...prev, ...updates } : prev));
 
       (async () => {
-        const activeToken = token ?? getStoredToken();
-        if (!activeToken) {
-          return;
-        }
-
         try {
           const response = await authorizedFetch('/api/users/me', {
             method: 'PUT',
@@ -265,7 +215,7 @@ export const useAuth = () => {
         }
       })();
     },
-    [authorizedFetch, token]
+    [authorizedFetch]
   );
 
   const changePassword = useCallback(
@@ -283,6 +233,7 @@ export const useAuth = () => {
         }
 
         setError(null);
+        signOut();
         return true;
       } catch (err) {
         console.error('Failed to change password:', err);
@@ -290,8 +241,8 @@ export const useAuth = () => {
         return false;
       }
     },
-    [authorizedFetch]
+    [authorizedFetch, signOut]
   );
 
-  return { user, setUser, token, isAuthenticated, isLoading, error, signIn, signUp, signOut, checkAuthStatus, setError, changePassword };
+  return { user, setUser, isAuthenticated, isLoading, error, signIn, signUp, signOut, checkAuthStatus, setError, changePassword, authorizedFetch };
 };

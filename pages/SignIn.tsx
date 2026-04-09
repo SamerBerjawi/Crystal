@@ -36,7 +36,7 @@ const SignIn: React.FC<SignInProps> = ({ onSignIn, onNavigateToSignUp, onEnterDe
           </div>
           <h1 className="text-4xl font-bold text-light-text dark:text-dark-text mb-3 tracking-tight">Sign In</h1>
           <p className="text-light-text-secondary dark:text-dark-text-secondary text-lg">
-            Secure entry with MFA and device trust so you can pick up where you left off.
+            Securely access your Crystal workspace and continue where you left off.
           </p>
         </div>
 

@@ -311,7 +311,7 @@ const App: React.FC = () => {
   const initialRoute = parseRoute(initialPath);
   const prefersDark = usePrefersDark();
 
-  const { user, setUser, token, isAuthenticated, isLoading: isAuthLoading, error: authError, signIn, signUp, signOut, checkAuthStatus, setError: setAuthError, changePassword } = useAuth();
+  const { user, setUser, isAuthenticated, isLoading: isAuthLoading, error: authError, signIn, signUp, signOut, checkAuthStatus, setError: setAuthError, changePassword, authorizedFetch } = useAuth();
   const [authPage, setAuthPage] = useState<'signIn' | 'signUp'>('signIn');
   const [isDemoMode, setIsDemoMode] = useState(false);
   const [demoUser, setDemoUser] = useState<User | null>(null);
@@ -678,18 +678,18 @@ const App: React.FC = () => {
 
   const postData = useCallback(
     async (payload: Record<string, unknown>, options?: { keepalive?: boolean; suppressErrors?: boolean }): Promise<boolean> => {
-      if (!token || isDemoMode) return false;
+      if (!isAuthenticated || isDemoMode) return false;
       try {
-        const response = await fetch('/api/data', {
+        const response = await authorizedFetch('/api/data', {
           method: 'POST',
-          headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}`, },
+          headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify(payload),
           keepalive: options?.keepalive,
         });
         if (!response.ok) { return false; }
         return true;
       } catch (error) { return false; }
-    }, [token, isDemoMode]
+    }, [authorizedFetch, isAuthenticated, isDemoMode]
   );
 
   const saveData = useCallback(
@@ -745,7 +745,7 @@ const App: React.FC = () => {
       skipNextSaveRef.current = true;
       if (data.userProfile) { handleSetUser(data.userProfile); }
       loadAllFinancialData(data);
-      if (!isDemoMode && token) {
+      if (!isDemoMode && isAuthenticated) {
            saveData(data, { suppressErrors: true })
             .catch(console.error)
             .finally(() => { restoreInProgressRef.current = false; skipNextSaveRef.current = false; });
@@ -753,7 +753,7 @@ const App: React.FC = () => {
           restoreInProgressRef.current = false;
           skipNextSaveRef.current = false;
       }
-  }, [isDemoMode, token, loadAllFinancialData, saveData, handleSetUser]);
+  }, [isAuthenticated, isDemoMode, loadAllFinancialData, saveData, handleSetUser]);
 
   useEffect(() => {
     if (!isDataLoaded || !isAuthenticated || isDemoMode || restoreInProgressRef.current) return;
@@ -1064,22 +1064,22 @@ const App: React.FC = () => {
   const handleDeletePrediction = (id: string) => { setPredictions(prev => removeEntityById(prev, id)); };
 
   const fetchWithAuth = useCallback(async (url: string, options: RequestInit = {}) => {
-    const response = await fetch(url, { ...options, headers: { 'Content-Type': 'application/json', ...(options.headers || {}), ...(token ? { Authorization: `Bearer ${token}` } : {}), }, });
+    const response = await authorizedFetch(url, { ...options, headers: { 'Content-Type': 'application/json', ...(options.headers || {}) } });
     if (!response.ok) { const text = await response.text(); throw new Error(text || response.statusText); }
     return response;
-  }, [token]);
+  }, [authorizedFetch]);
 
   const handleFetchEnableBankingBanks = useCallback(async (payload: { applicationId: string; countryCode: string; clientCertificate: string; }) => {
-    if (!token) throw new Error('You must be signed in to load banks.');
+    if (!isAuthenticated) throw new Error('You must be signed in to load banks.');
     const response = await fetchWithAuth('/api/enable-banking/aspsps', { method: 'POST', body: JSON.stringify({ applicationId: payload.applicationId.trim(), countryCode: payload.countryCode.trim().toUpperCase(), clientCertificate: payload.clientCertificate.trim(), }), });
     const data = await response.json();
     const items: any[] = Array.isArray(data) ? data : data?.aspsps || [];
     if (items.length === 0) throw new Error('No banks returned.');
     return items.map((item: any, index: number) => ({ id: item.id || item.aspsp_id || item.bank_id || item.name || `aspsp-${index}`, name: item.name || item.full_name || item.fullName || 'Bank', country: item.country || payload.countryCode, }));
-  }, [fetchWithAuth, token]);
+  }, [fetchWithAuth, isAuthenticated]);
 
   const handleCreateEnableBankingConnection = useCallback(async (payload: { applicationId: string; countryCode: string; clientCertificate: string; selectedBank: string; connectionId?: string; }) => {
-    if (!token) return;
+    if (!isAuthenticated) return;
     const connectionId = payload.connectionId || `eb-${uuidv4()}`;
     const existingConnection = payload.connectionId ? enableBankingConnections.find(conn => conn.id === payload.connectionId) : undefined;
     const baseConnection: EnableBankingConnection = {
@@ -1104,7 +1104,7 @@ const App: React.FC = () => {
     } catch (error: any) {
       setEnableBankingConnections(prev => prev.map(conn => conn.id === connectionId ? { ...conn, status: 'requires_update', lastError: error?.message || 'Unable to start authorization', } : conn));
     }
-  }, [enableBankingConnections, fetchWithAuth, isDataLoaded, isDemoMode, savePartialDataWithRetry, token]);
+  }, [enableBankingConnections, fetchWithAuth, isAuthenticated, isDataLoaded, isDemoMode, savePartialDataWithRetry]);
 
   const resolveProviderAccountId = useCallback((account: any) => {
     if (typeof account === 'string') return account;
@@ -1268,7 +1268,7 @@ const App: React.FC = () => {
   }, [pickFirstText]);
 
   const handleSyncEnableBankingConnection = useCallback(async (connectionId: string, connectionOverride?: EnableBankingConnection, syncOptions?: EnableBankingSyncOptions) => {
-    if (!token) return;
+    if (!isAuthenticated) return;
     const connection = connectionOverride || enableBankingConnections.find(c => c.id === connectionId);
     if (!connection?.sessionId) return;
     try {
@@ -1391,7 +1391,7 @@ const App: React.FC = () => {
     } catch (error: any) {
       setEnableBankingConnections(prev => prev.map(conn => conn.id === connectionId ? { ...conn, status: 'requires_update', lastError: error?.message || 'Sync failed', } : conn));
     }
-  }, [enableBankingConnections, fetchWithAuth, handleSaveTransaction, mapProviderTransaction, resolveBalanceAmount, resolveProviderAccountId, token, transactions]);
+  }, [enableBankingConnections, fetchWithAuth, handleSaveTransaction, isAuthenticated, mapProviderTransaction, resolveBalanceAmount, resolveProviderAccountId, transactions]);
 
   const handleDeleteEnableBankingConnection = useCallback((connectionId: string) => {
     setEnableBankingConnections(prev => prev.filter(conn => conn.id !== connectionId));
@@ -1473,7 +1473,7 @@ const App: React.FC = () => {
       case 'Personal Info': return <PersonalInfoPage user={currentUser!} setUser={handleSetUser} onChangePassword={changePassword} setCurrentPage={setCurrentPage} />;
       case 'Data Management': return <DataImportExportPage accounts={accounts} transactions={transactions} budgets={budgets} recurringTransactions={recurringTransactions} allCategories={[...incomeCategories, ...expenseCategories]} history={importExportHistory} onPublishImport={handlePublishImport} onDeleteHistoryItem={handleDeleteHistoryItem} onDeleteImportedTransactions={handleDeleteImportedTransactions} onResetAccount={handleResetAccount} setCurrentPage={setCurrentPage} onRestoreData={handleRestoreData} fullFinancialData={dataToSave} />;
       case 'Preferences': return <PreferencesPage preferences={preferences} setPreferences={setPreferences} theme={theme} setTheme={setTheme} setCurrentPage={setCurrentPage} />;
-      case 'EnableBankingCallback': return <EnableBankingCallbackPage connections={enableBankingConnections} setConnections={setEnableBankingConnections} onSync={handleSyncEnableBankingConnection} setCurrentPage={setCurrentPage} authToken={token} />;
+      case 'EnableBankingCallback': return <EnableBankingCallbackPage connections={enableBankingConnections} setConnections={setEnableBankingConnections} onSync={handleSyncEnableBankingConnection} setCurrentPage={setCurrentPage} />;
       case 'Integrations': return <IntegrationsPage preferences={preferences} setPreferences={setPreferences} setCurrentPage={setCurrentPage} enableBankingConnections={enableBankingConnections} accounts={accounts} onCreateConnection={handleCreateEnableBankingConnection} onFetchBanks={handleFetchEnableBankingBanks} onDeleteConnection={handleDeleteEnableBankingConnection} onLinkAccount={handleLinkEnableBankingAccount} onTriggerSync={handleSyncEnableBankingConnection} />;
       case 'Investments': return <InvestmentsPage accounts={accounts} cashAccounts={cashAccounts} investmentTransactions={investmentTransactions} saveInvestmentTransaction={handleSaveInvestmentTransaction} saveAccount={handleSaveAccount} deleteInvestmentTransaction={handleDeleteInvestmentTransaction} saveTransaction={handleSaveTransaction} warrants={warrants} saveWarrant={handleSaveWarrant} deleteWarrant={handleDeleteWarrant} manualPrices={manualWarrantPrices} onManualPriceChange={handleManualWarrantPrice} prices={assetPrices} onOpenHoldingDetail={handleOpenHoldingDetail} holdingsOverview={holdingsOverview} onToggleAccountStatus={handleToggleAccountStatus} deleteAccount={handleDeleteAccount} transactions={transactions} onViewAccount={handleOpenAccountDetail} />;
       case 'Tasks': return <TasksPage tasks={tasks} saveTask={handleSaveTask} deleteTask={handleDeleteTask} taskOrder={taskOrder} setTaskOrder={setTaskOrder} />;

@@ -1,6 +1,4 @@
-
-
-import express, { RequestHandler } from 'express';
+import express from 'express';
 import cors from 'cors';
 import authRouter from './auth';
 import dataRouter from './data';
@@ -22,7 +20,27 @@ const startServer = async () => {
         // use the correct external protocol/host when running behind HTTPS.
         app.set('trust proxy', true);
 
-        app.use(cors());
+        const defaultOrigins = [
+            'http://localhost:5173',
+            'http://127.0.0.1:5173',
+            'http://localhost:3000',
+            'http://127.0.0.1:3000',
+        ];
+        const configuredOrigins = (process.env.CORS_ORIGIN || '')
+            .split(',')
+            .map(origin => origin.trim())
+            .filter(Boolean);
+        const allowedOrigins = new Set(configuredOrigins.length > 0 ? configuredOrigins : defaultOrigins);
+
+        app.use(cors({
+            origin: (origin, callback) => {
+                if (!origin || allowedOrigins.has(origin)) {
+                    return callback(null, true);
+                }
+                return callback(new Error('Origin not allowed by CORS policy.'));
+            },
+            credentials: true,
+        }));
         const bodyLimit = process.env.API_BODY_LIMIT || '50mb';
         // FIX: Removed the unnecessary cast to `RequestHandler` which was causing a type conflict and preventing correct overload resolution for `app.use`.
         app.use(express.json({ limit: bodyLimit }));
