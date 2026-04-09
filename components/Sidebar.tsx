@@ -1,5 +1,5 @@
 
-import React, { useState, useRef, useEffect } from 'react';
+import React, { useState, useRef, useEffect, useMemo } from 'react';
 import { Page, Theme, User } from '../types';
 import { NAV_ITEMS, CrystalLogo, NavItem } from '../constants';
 import ThemeToggle from './ThemeToggle';
@@ -54,6 +54,14 @@ const Sidebar: React.FC<SidebarProps> = ({
 }) => {
   const [isProfileMenuOpen, setProfileMenuOpen] = useState(false);
   const profileMenuRef = useRef<HTMLDivElement>(null);
+  const navGroupItems = useMemo(() => (
+    NAV_GROUPS.map(group => ({
+      ...group,
+      resolvedItems: group.items
+        .map(name => NAV_ITEMS.find(i => i.name === name))
+        .filter(Boolean) as NavItem[],
+    })).filter(group => group.resolvedItems.length > 0)
+  ), []);
   
   useEffect(() => {
     const handleClickOutside = (event: MouseEvent) => {
@@ -66,6 +74,19 @@ const Sidebar: React.FC<SidebarProps> = ({
       document.removeEventListener('mousedown', handleClickOutside);
     };
   }, []);
+
+  useEffect(() => {
+    if (!isProfileMenuOpen) return;
+
+    const handleEscape = (event: KeyboardEvent) => {
+      if (event.key === 'Escape') {
+        setProfileMenuOpen(false);
+      }
+    };
+
+    document.addEventListener('keydown', handleEscape);
+    return () => document.removeEventListener('keydown', handleEscape);
+  }, [isProfileMenuOpen]);
 
   const handleNavClick = (page: Page) => {
     if (isSidebarCollapsed) {
@@ -81,7 +102,7 @@ const Sidebar: React.FC<SidebarProps> = ({
     const isActive = currentPage === item.name;
 
     // Styles
-    const baseClasses = `group flex items-center rounded-xl transition-all duration-200 cursor-pointer select-none mx-3 my-0.5 relative overflow-hidden`;
+    const baseClasses = `group flex w-full items-center rounded-xl transition-colors duration-200 select-none mx-3 my-0.5 relative overflow-hidden focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary-500 focus-visible:ring-offset-2 focus-visible:ring-offset-white dark:focus-visible:ring-offset-[#0A0A0A]`;
     const layoutClasses = isSidebarCollapsed ? 'justify-center px-0 py-2.5' : 'justify-start px-3 py-2.5';
     
     // Color states
@@ -96,21 +117,23 @@ const Sidebar: React.FC<SidebarProps> = ({
 
     return (
       <li key={item.name} className="mb-0.5">
-        <div
+        <button
+          type="button"
           onClick={() => handleNavClick(item.name)}
           className={`${baseClasses} ${layoutClasses} ${colorClass}`}
           title={isSidebarCollapsed ? item.name : undefined}
+          aria-current={isActive ? 'page' : undefined}
         >
             {isActive && (
               <div className="absolute left-0 top-1/2 -translate-y-1/2 h-1/2 w-1 bg-primary-500 rounded-r-full" />
             )}
             <div className={`flex items-center ${isSidebarCollapsed ? 'justify-center w-full' : 'gap-3 min-w-0'}`}>
-              <span className={iconClass}>{item.icon}</span>
+              <span className={iconClass} aria-hidden="true">{item.icon}</span>
               <span className={`whitespace-nowrap text-sm truncate transition-all duration-300 ${isSidebarCollapsed ? 'w-0 opacity-0 overflow-hidden' : 'w-auto opacity-100'}`}>
                   {item.name}
               </span>
             </div>
-        </div>
+        </button>
       </li>
     );
   };
@@ -118,10 +141,12 @@ const Sidebar: React.FC<SidebarProps> = ({
   return (
     <>
       {/* Mobile Backdrop */}
-      <div 
+      <button
+        type="button"
         className={`fixed inset-0 z-30 bg-black/40 backdrop-blur-sm transition-opacity duration-300 md:hidden ${isSidebarOpen ? 'opacity-100' : 'opacity-0 pointer-events-none'}`} 
         onClick={() => setSidebarOpen(false)}
-      ></div>
+        aria-label="Close navigation menu"
+      />
       
       <aside
         className={`
@@ -148,10 +173,7 @@ const Sidebar: React.FC<SidebarProps> = ({
 
         {/* Navigation */}
         <nav className="flex-1 min-h-0 py-2 overflow-y-auto overflow-x-hidden scrollbar-thin scrollbar-thumb-gray-200 dark:scrollbar-thumb-gray-800 hover:scrollbar-thumb-gray-300 dark:hover:scrollbar-thumb-gray-700">
-          {NAV_GROUPS.map((group, index) => {
-            const groupItems = group.items.map(name => NAV_ITEMS.find(i => i.name === name)).filter(Boolean) as NavItem[];
-            if (groupItems.length === 0) return null;
-
+          {navGroupItems.map((group, index) => {
             return (
               <div key={group.title} className={index > 0 ? 'mt-6' : ''}>
                 {!isSidebarCollapsed && (
@@ -162,7 +184,7 @@ const Sidebar: React.FC<SidebarProps> = ({
                   </div>
                 )}
                 <ul className="space-y-0.5">
-                  {groupItems.map((item) => renderNavItem(item))}
+                  {group.resolvedItems.map((item) => renderNavItem(item))}
                 </ul>
               </div>
             );
@@ -177,11 +199,13 @@ const Sidebar: React.FC<SidebarProps> = ({
                  <div className={`flex items-center gap-1 ${isSidebarCollapsed ? 'flex-col' : ''}`}>
                     {/* Privacy Toggle */}
                     <button
+                        type="button"
                         onClick={togglePrivacyMode}
                         className={`w-8 h-8 rounded-lg flex items-center justify-center transition-all duration-200 ${isPrivacyMode ? 'bg-primary-100 text-primary-600 dark:bg-primary-900/30 dark:text-primary-400' : 'text-gray-500 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-white/10'}`}
+                        aria-label={isPrivacyMode ? 'Disable privacy mode' : 'Enable privacy mode'}
                         title={isPrivacyMode ? "Disable Privacy Mode" : "Enable Privacy Mode"}
                     >
-                        <span className="material-symbols-outlined text-[18px]">{isPrivacyMode ? 'visibility_off' : 'visibility'}</span>
+                        <span className="material-symbols-outlined text-[18px]" aria-hidden="true">{isPrivacyMode ? 'visibility_off' : 'visibility'}</span>
                     </button>
                     
                     {/* Theme Toggle */}
@@ -192,11 +216,13 @@ const Sidebar: React.FC<SidebarProps> = ({
 
                 {/* Collapse Button (Desktop Only) */}
                 <button
+                    type="button"
                     onClick={() => setSidebarCollapsed(!isSidebarCollapsed)}
                     className="hidden md:flex w-8 h-8 items-center justify-center rounded-lg text-gray-400 hover:text-gray-600 dark:hover:text-gray-200 hover:bg-gray-100 dark:hover:bg-white/10 transition-colors"
+                    aria-label={isSidebarCollapsed ? 'Expand sidebar' : 'Collapse sidebar'}
                     title={isSidebarCollapsed ? 'Expand Sidebar' : 'Collapse Sidebar'}
                 >
-                     <span className="material-symbols-outlined text-[18px]">
+                     <span className="material-symbols-outlined text-[18px]" aria-hidden="true">
                         {isSidebarCollapsed ? 'last_page' : 'first_page'}
                     </span>
                 </button>
@@ -207,6 +233,7 @@ const Sidebar: React.FC<SidebarProps> = ({
                 {isProfileMenuOpen && (
                     <div className="animate-fade-in-up absolute bottom-[calc(100%+8px)] left-0 right-0 z-50 bg-white dark:bg-[#1E1E20] rounded-2xl shadow-xl border border-gray-100 dark:border-white/10 overflow-hidden ring-1 ring-black/5 p-1 w-56">
                         <button
+                            type="button"
                             onClick={() => { setCurrentPage('Personal Info'); setProfileMenuOpen(false); }}
                             className="w-full text-left px-3 py-2.5 text-sm flex items-center gap-3 text-gray-700 dark:text-gray-200 hover:bg-gray-100 dark:hover:bg-white/5 rounded-xl transition-colors group"
                         >
@@ -214,6 +241,7 @@ const Sidebar: React.FC<SidebarProps> = ({
                             <span className="font-medium">My Account</span>
                         </button>
                          <button
+                            type="button"
                             onClick={() => { setCurrentPage('Preferences'); setProfileMenuOpen(false); }}
                             className="w-full text-left px-3 py-2.5 text-sm flex items-center gap-3 text-gray-700 dark:text-gray-200 hover:bg-gray-100 dark:hover:bg-white/5 rounded-xl transition-colors group"
                         >
@@ -222,6 +250,7 @@ const Sidebar: React.FC<SidebarProps> = ({
                         </button>
                         <div className="h-px bg-gray-100 dark:bg-white/5 my-1 mx-2"></div>
                         <button
+                            type="button"
                             onClick={onLogout}
                             className="w-full text-left px-3 py-2.5 text-sm flex items-center gap-3 text-red-600 dark:text-red-400 hover:bg-red-50 dark:hover:bg-red-900/20 rounded-xl transition-colors"
                         >
@@ -232,6 +261,7 @@ const Sidebar: React.FC<SidebarProps> = ({
                 )}
                 
                 <button
+                    type="button"
                     onClick={() => setProfileMenuOpen(prev => !prev)}
                     className={`
                         w-full flex items-center p-2 rounded-xl transition-all duration-200 
@@ -239,6 +269,9 @@ const Sidebar: React.FC<SidebarProps> = ({
                         hover:bg-gray-100 dark:hover:bg-white/10
                         ${isSidebarCollapsed ? 'justify-center aspect-square p-0 bg-transparent dark:bg-transparent' : 'gap-3'}
                     `}
+                    aria-haspopup="menu"
+                    aria-expanded={isProfileMenuOpen}
+                    aria-label="Open profile menu"
                 >
                     <div className="relative flex-shrink-0">
                          <img className="h-8 w-8 rounded-full object-cover bg-gray-200" src={user.profilePictureUrl} alt="User" loading="lazy" decoding="async" />

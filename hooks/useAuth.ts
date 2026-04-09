@@ -3,7 +3,7 @@ import { User, FinancialData } from '../types';
 
 interface AuthResponse {
   token: string;
-  user: any;
+  user?: any;
   financialData?: FinancialData;
 }
 
@@ -50,6 +50,24 @@ const mapApiUserToUser = (apiUser: any): User => ({
   lastLogin: apiUser.lastLogin ?? new Date().toISOString(),
 });
 
+const isUserLike = (value: unknown): value is Partial<User> => {
+  return Boolean(value) && typeof value === 'object';
+};
+
+const resolveAuthUser = (payload: AuthResponse | null): User => {
+  const candidateUser = payload?.user;
+  if (isUserLike(candidateUser)) {
+    return mapApiUserToUser(candidateUser);
+  }
+
+  const fallbackUser = payload?.financialData?.userProfile;
+  if (isUserLike(fallbackUser)) {
+    return mapApiUserToUser(fallbackUser);
+  }
+
+  throw new Error('Sign-in succeeded but no user profile was returned.');
+};
+
 const getStoredToken = () => safeLocalStorage.getItem(TOKEN_STORAGE_KEY);
 
 const persistToken = (newToken: string | null) => {
@@ -70,7 +88,7 @@ export const useAuth = () => {
   const processAuthState = useCallback((payload: AuthResponse | null): FinancialData | null => {
     if (!payload) return null;
 
-    const mappedUser = mapApiUserToUser(payload.user);
+    const mappedUser = resolveAuthUser(payload);
     setUserState(mappedUser);
     setToken(payload.token);
     persistToken(payload.token);
@@ -194,6 +212,10 @@ export const useAuth = () => {
       }
 
       const userPayload = await userRes.json();
+      if (!isUserLike(userPayload)) {
+        throw new Error('Failed to fetch a valid user profile.');
+      }
+
       setUserState(mapApiUserToUser(userPayload));
       setToken(storedToken);
       persistToken(storedToken);
