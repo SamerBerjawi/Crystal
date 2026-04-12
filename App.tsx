@@ -73,6 +73,7 @@ import { FinancialDataProvider } from './contexts/FinancialDataContext';
 import { AccountsProvider, PreferencesProvider, TransactionsProvider, WarrantsProvider, InvoicesProvider } from './contexts/DomainProviders';
 import { InsightsViewProvider } from './contexts/InsightsViewContext';
 import { persistPendingConnection, removePendingConnection } from './utils/enableBankingStorage';
+import { usePrefersDark } from './hooks/usePrefersDark';
 
 const IBAN_REGEX = /^[A-Z]{2}[0-9]{2}[A-Z0-9]{9,30}$/i;
 
@@ -246,7 +247,7 @@ const safeLocalStorage = {
   },
 };
 
-const PageLoader: React.FC<{ label?: string }> = ({ label = 'Loading content...' }) => (
+const PageLoader: React.FC<{ label?: string }> = ({ label = 'Loading content…' }) => (
   <div className="flex items-center justify-center py-10 text-primary-500" role="status" aria-live="polite">
     <svg className="animate-spin h-8 w-8 mr-2" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
       <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
@@ -308,8 +309,9 @@ class ErrorBoundary extends Component<ErrorBoundaryProps, ErrorBoundaryState> {
 const App: React.FC = () => {
   const initialPath = typeof window !== 'undefined' ? window.location.pathname : '/';
   const initialRoute = parseRoute(initialPath);
+  const prefersDark = usePrefersDark();
 
-  const { user, setUser, token, isAuthenticated, isLoading: isAuthLoading, error: authError, signIn, signUp, signOut, checkAuthStatus, setError: setAuthError, changePassword } = useAuth();
+  const { user, setUser, isAuthenticated, isLoading: isAuthLoading, error: authError, signIn, signUp, signOut, checkAuthStatus, setError: setAuthError, changePassword, authorizedFetch } = useAuth();
   const [authPage, setAuthPage] = useState<'signIn' | 'signUp'>('signIn');
   const [isDemoMode, setIsDemoMode] = useState(false);
   const [demoUser, setDemoUser] = useState<User | null>(null);
@@ -676,18 +678,18 @@ const App: React.FC = () => {
 
   const postData = useCallback(
     async (payload: Record<string, unknown>, options?: { keepalive?: boolean; suppressErrors?: boolean }): Promise<boolean> => {
-      if (!token || isDemoMode) return false;
+      if (!isAuthenticated || isDemoMode) return false;
       try {
-        const response = await fetch('/api/data', {
+        const response = await authorizedFetch('/api/data', {
           method: 'POST',
-          headers: { 'Content-Type': 'application/json', 'Authorization': `Bearer ${token}`, },
+          headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify(payload),
           keepalive: options?.keepalive,
         });
         if (!response.ok) { return false; }
         return true;
       } catch (error) { return false; }
-    }, [token, isDemoMode]
+    }, [authorizedFetch, isAuthenticated, isDemoMode]
   );
 
   const saveData = useCallback(
@@ -743,7 +745,7 @@ const App: React.FC = () => {
       skipNextSaveRef.current = true;
       if (data.userProfile) { handleSetUser(data.userProfile); }
       loadAllFinancialData(data);
-      if (!isDemoMode && token) {
+      if (!isDemoMode && isAuthenticated) {
            saveData(data, { suppressErrors: true })
             .catch(console.error)
             .finally(() => { restoreInProgressRef.current = false; skipNextSaveRef.current = false; });
@@ -751,7 +753,7 @@ const App: React.FC = () => {
           restoreInProgressRef.current = false;
           skipNextSaveRef.current = false;
       }
-  }, [isDemoMode, token, loadAllFinancialData, saveData, handleSetUser]);
+  }, [isAuthenticated, isDemoMode, loadAllFinancialData, saveData, handleSetUser]);
 
   useEffect(() => {
     if (!isDataLoaded || !isAuthenticated || isDemoMode || restoreInProgressRef.current) return;
@@ -1062,22 +1064,22 @@ const App: React.FC = () => {
   const handleDeletePrediction = (id: string) => { setPredictions(prev => removeEntityById(prev, id)); };
 
   const fetchWithAuth = useCallback(async (url: string, options: RequestInit = {}) => {
-    const response = await fetch(url, { ...options, headers: { 'Content-Type': 'application/json', ...(options.headers || {}), ...(token ? { Authorization: `Bearer ${token}` } : {}), }, });
+    const response = await authorizedFetch(url, { ...options, headers: { 'Content-Type': 'application/json', ...(options.headers || {}) } });
     if (!response.ok) { const text = await response.text(); throw new Error(text || response.statusText); }
     return response;
-  }, [token]);
+  }, [authorizedFetch]);
 
   const handleFetchEnableBankingBanks = useCallback(async (payload: { applicationId: string; countryCode: string; clientCertificate: string; }) => {
-    if (!token) throw new Error('You must be signed in to load banks.');
+    if (!isAuthenticated) throw new Error('You must be signed in to load banks.');
     const response = await fetchWithAuth('/api/enable-banking/aspsps', { method: 'POST', body: JSON.stringify({ applicationId: payload.applicationId.trim(), countryCode: payload.countryCode.trim().toUpperCase(), clientCertificate: payload.clientCertificate.trim(), }), });
     const data = await response.json();
     const items: any[] = Array.isArray(data) ? data : data?.aspsps || [];
     if (items.length === 0) throw new Error('No banks returned.');
     return items.map((item: any, index: number) => ({ id: item.id || item.aspsp_id || item.bank_id || item.name || `aspsp-${index}`, name: item.name || item.full_name || item.fullName || 'Bank', country: item.country || payload.countryCode, }));
-  }, [fetchWithAuth, token]);
+  }, [fetchWithAuth, isAuthenticated]);
 
   const handleCreateEnableBankingConnection = useCallback(async (payload: { applicationId: string; countryCode: string; clientCertificate: string; selectedBank: string; connectionId?: string; }) => {
-    if (!token) return;
+    if (!isAuthenticated) return;
     const connectionId = payload.connectionId || `eb-${uuidv4()}`;
     const existingConnection = payload.connectionId ? enableBankingConnections.find(conn => conn.id === payload.connectionId) : undefined;
     const baseConnection: EnableBankingConnection = {
@@ -1102,7 +1104,7 @@ const App: React.FC = () => {
     } catch (error: any) {
       setEnableBankingConnections(prev => prev.map(conn => conn.id === connectionId ? { ...conn, status: 'requires_update', lastError: error?.message || 'Unable to start authorization', } : conn));
     }
-  }, [enableBankingConnections, fetchWithAuth, isDataLoaded, isDemoMode, savePartialDataWithRetry, token]);
+  }, [enableBankingConnections, fetchWithAuth, isAuthenticated, isDataLoaded, isDemoMode, savePartialDataWithRetry]);
 
   const resolveProviderAccountId = useCallback((account: any) => {
     if (typeof account === 'string') return account;
@@ -1160,11 +1162,19 @@ const App: React.FC = () => {
     return undefined;
   }, []);
 
-  const mapProviderTransaction = useCallback((providerTx: any, linkedAccountId: string | undefined, providerAccountId: string, currency: Currency, connectionId: string): Transaction | null => {
+  const mapProviderTransaction = useCallback((
+    providerTx: any,
+    linkedAccountId: string | undefined,
+    providerAccountId: string,
+    currency: Currency,
+    connectionId: string,
+    accountDisplayName?: string,
+  ): Transaction | null => {
     const amountRaw = providerTx?.transaction_amount?.amount ?? providerTx?.amount?.amount ?? providerTx?.transactionAmount?.amount;
     if (amountRaw === undefined || amountRaw === null || !linkedAccountId) return null;
 
     const creditDebit = providerTx?.credit_debit_indicator || providerTx?.creditDebitIndicator;
+    const isCredit = creditDebit === 'CRDT';
     const signedAmount = Number(amountRaw) * (creditDebit === 'CRDT' ? 1 : -1);
     if (Number.isNaN(signedAmount)) return null;
 
@@ -1196,45 +1206,99 @@ const App: React.FC = () => {
     const sanitizeMerchant = (candidate?: string) => {
       if (!candidate) return undefined;
       const trimmed = candidate.trim();
+      const normalized = trimmed.toLowerCase();
+      const normalizedAccountName = accountDisplayName?.trim().toLowerCase();
       if (!trimmed || /^([A-Z]{2}\d{2}[A-Z0-9]{8,30}|\d{8,})$/i.test(trimmed)) return undefined;
+      if (normalizedAccountName && normalized === normalizedAccountName) return undefined;
       return trimmed;
     };
 
+    const pickJoinedText = (...values: any[]): string | undefined => {
+      const segments: string[] = [];
+      const visit = (value: any) => {
+        if (!value) return;
+        if (typeof value === 'string') {
+          const trimmed = value.trim();
+          if (trimmed && !segments.includes(trimmed)) segments.push(trimmed);
+          return;
+        }
+        if (Array.isArray(value)) {
+          value.forEach(visit);
+          return;
+        }
+        if (typeof value === 'object') {
+          visit(value?.remittance_line);
+          visit(value?.remittanceLine);
+          visit(value?.reference);
+        }
+      };
+      values.forEach(visit);
+      return segments.length > 0 ? segments.join(' / ') : undefined;
+    };
+
+    // Counterparty fields vary by bank. For outgoing payments prefer creditor-side fields;
+    // for incoming payments prefer debtor-side fields.
     const merchant = sanitizeMerchant(pickFirstText(
       providerTx?.merchant_name,
       providerTx?.merchantName,
       providerTx?.merchant?.name,
       providerTx?.merchant?.display_name,
       providerTx?.merchant?.displayName,
-      providerTx?.counterparty_name,
-      providerTx?.counterpartyName,
-      providerTx?.counterparty?.name,
-      providerTx?.creditor_name,
-      providerTx?.creditorName,
-      providerTx?.creditor?.name,
-      providerTx?.debtor_name,
-      providerTx?.debtorName,
-      providerTx?.debtor?.name,
-      providerTx?.ultimate_creditor,
-      providerTx?.ultimateCreditor,
-      providerTx?.ultimate_debtor,
-      providerTx?.ultimateDebtor,
       providerTx?.card_acceptor?.name,
       providerTx?.cardAcceptor?.name,
-      providerTx?.proprietary_bank_transaction_code?.description,
-      providerTx?.proprietaryBankTransactionCode?.description,
+      ...(isCredit
+        ? [
+            providerTx?.debtor_name,
+            providerTx?.debtorName,
+            providerTx?.debtor?.name,
+            providerTx?.ultimate_debtor,
+            providerTx?.ultimateDebtor,
+            providerTx?.counterparty_name,
+            providerTx?.counterpartyName,
+            providerTx?.counterparty?.name,
+            providerTx?.creditor_name,
+            providerTx?.creditorName,
+            providerTx?.creditor?.name,
+            providerTx?.ultimate_creditor,
+            providerTx?.ultimateCreditor,
+          ]
+        : [
+            providerTx?.creditor_name,
+            providerTx?.creditorName,
+            providerTx?.creditor?.name,
+            providerTx?.ultimate_creditor,
+            providerTx?.ultimateCreditor,
+            providerTx?.counterparty_name,
+            providerTx?.counterpartyName,
+            providerTx?.counterparty?.name,
+            providerTx?.debtor_name,
+            providerTx?.debtorName,
+            providerTx?.debtor?.name,
+            providerTx?.ultimate_debtor,
+            providerTx?.ultimateDebtor,
+          ]),
     ));
 
     const desc = pickFirstText(
-      providerTx?.remittance_information_unstructured,
-      providerTx?.remittanceInformationUnstructured,
-      providerTx?.remittance_information_unstructured_array,
-      providerTx?.remittanceInformationUnstructuredArray,
+      pickJoinedText(
+        providerTx?.remittance_information_unstructured,
+        providerTx?.remittanceInformationUnstructured,
+        providerTx?.remittance_information_unstructured_array,
+        providerTx?.remittanceInformationUnstructuredArray,
+        providerTx?.remittance_information_structured,
+        providerTx?.remittanceInformationStructured,
+        providerTx?.remittance_information_structured_array,
+        providerTx?.remittanceInformationStructuredArray,
+        providerTx?.remittance_information_reference,
+        providerTx?.remittanceInformationReference,
+      ),
       providerTx?.additional_information,
       providerTx?.additionalInformation,
       providerTx?.booking_text,
       providerTx?.bookingText,
       providerTx?.description,
+      providerTx?.proprietary_bank_transaction_code?.description,
+      providerTx?.proprietaryBankTransactionCode?.description,
       merchant,
     ) || 'Transaction';
 
@@ -1266,7 +1330,7 @@ const App: React.FC = () => {
   }, [pickFirstText]);
 
   const handleSyncEnableBankingConnection = useCallback(async (connectionId: string, connectionOverride?: EnableBankingConnection, syncOptions?: EnableBankingSyncOptions) => {
-    if (!token) return;
+    if (!isAuthenticated) return;
     const connection = connectionOverride || enableBankingConnections.find(c => c.id === connectionId);
     if (!connection?.sessionId) return;
     try {
@@ -1328,7 +1392,14 @@ const App: React.FC = () => {
 
             const bookedTransactions = txResponse?.transactions?.booked || txResponse?.booked || txResponse?.transactions || [];
             bookedTransactions.forEach((providerTx: any) => {
-              const mappedTx = mapProviderTransaction(providerTx, linkedAccountId, providerAccountId, currency, connectionId);
+              const mappedTx = mapProviderTransaction(
+                providerTx,
+                linkedAccountId,
+                providerAccountId,
+                currency,
+                connectionId,
+                details?.name || account?.name,
+              );
               if (mappedTx) importedTransactions.push(mappedTx);
             });
 
@@ -1389,7 +1460,7 @@ const App: React.FC = () => {
     } catch (error: any) {
       setEnableBankingConnections(prev => prev.map(conn => conn.id === connectionId ? { ...conn, status: 'requires_update', lastError: error?.message || 'Sync failed', } : conn));
     }
-  }, [enableBankingConnections, fetchWithAuth, handleSaveTransaction, mapProviderTransaction, resolveBalanceAmount, resolveProviderAccountId, token, transactions]);
+  }, [enableBankingConnections, fetchWithAuth, handleSaveTransaction, isAuthenticated, mapProviderTransaction, resolveBalanceAmount, resolveProviderAccountId, transactions]);
 
   const handleDeleteEnableBankingConnection = useCallback((connectionId: string) => {
     setEnableBankingConnections(prev => prev.filter(conn => conn.id !== connectionId));
@@ -1424,10 +1495,10 @@ const App: React.FC = () => {
   
   useEffect(() => {
     const root = document.documentElement;
-    const isDark = theme === 'dark' || (theme === 'system' && window.matchMedia('(prefers-color-scheme: dark)').matches);
+    const isDark = theme === 'dark' || (theme === 'system' && prefersDark);
     root.classList.toggle('dark', isDark);
     safeLocalStorage.setItem('theme', theme);
-  }, [theme]);
+  }, [prefersDark, theme]);
   
   const viewingAccount = useMemo(() => accounts.find(a => a.id === viewingAccountId), [accounts, viewingAccountId]);
   const viewingHolding = useMemo(() => holdingsOverview.holdings.find(h => h.symbol === viewingHoldingSymbol), [holdingsOverview, viewingHoldingSymbol]);
@@ -1471,7 +1542,7 @@ const App: React.FC = () => {
       case 'Personal Info': return <PersonalInfoPage user={currentUser!} setUser={handleSetUser} onChangePassword={changePassword} setCurrentPage={setCurrentPage} />;
       case 'Data Management': return <DataImportExportPage accounts={accounts} transactions={transactions} budgets={budgets} recurringTransactions={recurringTransactions} allCategories={[...incomeCategories, ...expenseCategories]} history={importExportHistory} onPublishImport={handlePublishImport} onDeleteHistoryItem={handleDeleteHistoryItem} onDeleteImportedTransactions={handleDeleteImportedTransactions} onResetAccount={handleResetAccount} setCurrentPage={setCurrentPage} onRestoreData={handleRestoreData} fullFinancialData={dataToSave} />;
       case 'Preferences': return <PreferencesPage preferences={preferences} setPreferences={setPreferences} theme={theme} setTheme={setTheme} setCurrentPage={setCurrentPage} />;
-      case 'EnableBankingCallback': return <EnableBankingCallbackPage connections={enableBankingConnections} setConnections={setEnableBankingConnections} onSync={handleSyncEnableBankingConnection} setCurrentPage={setCurrentPage} authToken={token} />;
+      case 'EnableBankingCallback': return <EnableBankingCallbackPage connections={enableBankingConnections} setConnections={setEnableBankingConnections} onSync={handleSyncEnableBankingConnection} setCurrentPage={setCurrentPage} />;
       case 'Integrations': return <IntegrationsPage preferences={preferences} setPreferences={setPreferences} setCurrentPage={setCurrentPage} enableBankingConnections={enableBankingConnections} accounts={accounts} onCreateConnection={handleCreateEnableBankingConnection} onFetchBanks={handleFetchEnableBankingBanks} onDeleteConnection={handleDeleteEnableBankingConnection} onLinkAccount={handleLinkEnableBankingAccount} onTriggerSync={handleSyncEnableBankingConnection} />;
       case 'Investments': return <InvestmentsPage accounts={accounts} cashAccounts={cashAccounts} investmentTransactions={investmentTransactions} saveInvestmentTransaction={handleSaveInvestmentTransaction} saveAccount={handleSaveAccount} deleteInvestmentTransaction={handleDeleteInvestmentTransaction} saveTransaction={handleSaveTransaction} warrants={warrants} saveWarrant={handleSaveWarrant} deleteWarrant={handleDeleteWarrant} manualPrices={manualWarrantPrices} onManualPriceChange={handleManualWarrantPrice} prices={assetPrices} onOpenHoldingDetail={handleOpenHoldingDetail} holdingsOverview={holdingsOverview} onToggleAccountStatus={handleToggleAccountStatus} deleteAccount={handleDeleteAccount} transactions={transactions} onViewAccount={handleOpenAccountDetail} />;
       case 'Tasks': return <TasksPage tasks={tasks} saveTask={handleSaveTask} deleteTask={handleDeleteTask} taskOrder={taskOrder} setTaskOrder={setTaskOrder} />;
@@ -1505,11 +1576,14 @@ const App: React.FC = () => {
   return (
     <FinancialDataProvider categories={categoryContextValue} tags={tagsContextValue} budgets={budgetsContextValue} goals={goalsContextValue} schedule={scheduleContextValue} preferences={preferencesContextValue} accounts={accountsContextValue} transactions={transactionsContextValue} warrants={warrantsContextValue} invoices={invoicesContextValue} >
         <InsightsViewProvider accounts={accounts} financialGoals={financialGoals} defaultDuration={preferences.defaultPeriod}>
+             <a href="#main-content" className="sr-only focus:not-sr-only focus:absolute focus:left-4 focus:top-4 focus:z-[10000] focus:rounded-lg focus:bg-white focus:px-4 focus:py-2 focus:text-sm focus:font-semibold focus:text-primary-700 focus:shadow-lg">
+                Skip to Main Content
+             </a>
              <div className={`flex h-screen bg-light-bg dark:bg-dark-bg text-light-text dark:text-dark-text transition-colors duration-200 font-sans ${isPrivacyMode ? 'privacy-mode' : ''}`}>
                 <Sidebar currentPage={currentPage} setCurrentPage={setCurrentPage} isSidebarOpen={isSidebarOpen} setSidebarOpen={setSidebarOpen} theme={theme} setTheme={setTheme} isSidebarCollapsed={isSidebarCollapsed} setSidebarCollapsed={setSidebarCollapsed} onLogout={handleLogout} user={currentUser} isPrivacyMode={isPrivacyMode} togglePrivacyMode={() => setIsPrivacyMode(!isPrivacyMode)} />
                 <div className="flex-1 flex flex-col min-w-0 overflow-hidden relative">
                     <Header user={currentUser} setSidebarOpen={setSidebarOpen} theme={theme} setTheme={setTheme} currentPage={currentPage} isPrivacyMode={isPrivacyMode} togglePrivacyMode={() => setIsPrivacyMode(!isPrivacyMode)} />
-                    <main className="flex-1 overflow-y-auto p-4 md:p-6 lg:p-8 relative scroll-smooth focus:outline-none" id="main-content">
+                    <main className="flex-1 overflow-y-auto p-4 md:p-6 lg:p-8 relative scroll-smooth focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary-500 focus-visible:ring-inset" id="main-content" tabIndex={-1}>
                          <ErrorBoundary><Suspense fallback={<PageLoader />}>{renderPage()}</Suspense></ErrorBoundary>
                     </main>
                 </div>

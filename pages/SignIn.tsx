@@ -36,7 +36,7 @@ const SignIn: React.FC<SignInProps> = ({ onSignIn, onNavigateToSignUp, onEnterDe
           </div>
           <h1 className="text-4xl font-bold text-light-text dark:text-dark-text mb-3 tracking-tight">Sign In</h1>
           <p className="text-light-text-secondary dark:text-dark-text-secondary text-lg">
-            Secure entry with MFA and device trust so you can pick up where you left off.
+            Securely access your Crystal workspace and continue where you left off.
           </p>
         </div>
 
@@ -68,7 +68,7 @@ const SignIn: React.FC<SignInProps> = ({ onSignIn, onNavigateToSignUp, onEnterDe
           <div className="space-y-1.5">
             <div className="flex justify-between items-center">
                  <label htmlFor="password" className="block text-sm font-semibold text-light-text dark:text-dark-text">Password</label>
-                 <button type="button" className="text-xs font-medium text-primary-600 hover:text-primary-500">Forgot password?</button>
+                 <button type="button" className="text-xs font-medium text-primary-600 hover:text-primary-500">Forgot Password?</button>
             </div>
             <div className="relative">
                 <span className="material-symbols-outlined absolute left-3 top-1/2 -translate-y-1/2 text-gray-400">lock</span>
@@ -92,7 +92,7 @@ const SignIn: React.FC<SignInProps> = ({ onSignIn, onNavigateToSignUp, onEnterDe
                   <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
                   <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
                 </svg>
-                <span>Signing In...</span>
+                <span>Signing In…</span>
               </div>
             ) : 'Sign In'}
           </button>
@@ -107,14 +107,14 @@ const SignIn: React.FC<SignInProps> = ({ onSignIn, onNavigateToSignUp, onEnterDe
           </div>
         </div>
 
-        <button onClick={onEnterDemoMode} className={`${BTN_SECONDARY_STYLE} w-full !py-3.5 !text-base !rounded-xl flex items-center justify-center gap-2 group`}>
+        <button type="button" onClick={onEnterDemoMode} className={`${BTN_SECONDARY_STYLE} w-full !py-3.5 !text-base !rounded-xl flex items-center justify-center gap-2 group`}>
             <span className="material-symbols-outlined text-primary-500 group-hover:scale-110 transition-transform">science</span>
             Explore Demo Mode
         </button>
 
         <p className="text-center text-sm text-light-text-secondary dark:text-dark-text-secondary mt-8">
           Don't have an account?{' '}
-          <button onClick={onNavigateToSignUp} className="font-bold text-primary-600 hover:text-primary-500 transition-colors">
+          <button type="button" onClick={onNavigateToSignUp} className="font-bold text-primary-600 hover:text-primary-500 transition-colors">
             Sign up for free
           </button>
         </p>

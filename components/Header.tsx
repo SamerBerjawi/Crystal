@@ -21,10 +21,12 @@ const Header: React.FC<HeaderProps> = ({ user, setSidebarOpen, theme, setTheme, 
         <div className="flex items-center justify-between w-full px-6 md:px-8">
             <div className="flex items-center gap-4">
                 <button 
+                    type="button"
                     onClick={() => setSidebarOpen(true)} 
                     className="text-light-text-secondary dark:text-dark-text-secondary md:hidden p-2 -ml-2 rounded-lg hover:bg-black/5 dark:hover:bg-white/10 transition-colors"
+                    aria-label="Open navigation menu"
                 >
-                    <span className="material-symbols-outlined">menu</span>
+                    <span className="material-symbols-outlined" aria-hidden="true">menu</span>
                 </button>
                 <div>
                     <h1 className="text-2xl font-extrabold text-light-text dark:text-dark-text tracking-tight">
