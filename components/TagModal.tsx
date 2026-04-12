@@ -2,7 +2,7 @@
 import React, { useState, useEffect } from 'react';
 import Modal from './Modal';
 import { Tag } from '../types';
-import { INPUT_BASE_STYLE, BTN_PRIMARY_STYLE, BTN_SECONDARY_STYLE, CATEGORY_ICON_LIST } from '../constants';
+import { INPUT_BASE_STYLE, BTN_PRIMARY_STYLE, BTN_SECONDARY_STYLE, CATEGORY_ICON_LIST, CATEGORY_TAG_PRESET_COLORS } from '../constants';
 import IconPicker from './IconPicker';
 
 interface TagModalProps {
@@ -10,21 +10,6 @@ interface TagModalProps {
   onSave: (tag: Omit<Tag, 'id'> & { id?: string }) => void;
   tagToEdit?: Tag | null;
 }
-
-const PRESET_COLORS = [
-  '#EF4444', // Red
-  '#F97316', // Orange
-  '#F59E0B', // Amber
-  '#84CC16', // Lime
-  '#10B981', // Emerald
-  '#06B6D4', // Cyan
-  '#3B82F6', // Blue
-  '#6366F1', // Indigo
-  '#8B5CF6', // Violet
-  '#EC4899', // Pink
-  '#F43F5E', // Rose
-  '#64748B', // Slate
-];
 
 const TagModal: React.FC<TagModalProps> = ({ onClose, onSave, tagToEdit }) => {
   const isEditing = !!tagToEdit;
@@ -40,7 +25,7 @@ const TagModal: React.FC<TagModalProps> = ({ onClose, onSave, tagToEdit }) => {
       setIcon(tagToEdit.icon);
     } else {
       setName('');
-      setColor(PRESET_COLORS[Math.floor(Math.random() * PRESET_COLORS.length)]);
+      setColor(CATEGORY_TAG_PRESET_COLORS[Math.floor(Math.random() * CATEGORY_TAG_PRESET_COLORS.length)]);
       setIcon('label');
     }
   }, [tagToEdit]);
@@ -117,7 +102,7 @@ const TagModal: React.FC<TagModalProps> = ({ onClose, onSave, tagToEdit }) => {
 
                         {/* Color Grid */}
                         <div className="flex-1 grid grid-cols-6 sm:grid-cols-7 gap-2">
-                            {PRESET_COLORS.map((c) => (
+                            {CATEGORY_TAG_PRESET_COLORS.map((c) => (
                                 <button
                                     key={c}
                                     type="button"

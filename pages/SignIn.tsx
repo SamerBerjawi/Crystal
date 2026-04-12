@@ -103,7 +103,7 @@ const SignIn: React.FC<SignInProps> = ({ onSignIn, onNavigateToSignUp, onEnterDe
             <div className="w-full border-t border-gray-200 dark:border-gray-800"></div>
           </div>
           <div className="relative flex justify-center text-sm">
-            <span className="px-4 bg-light-card dark:bg-dark-card lg:bg-light-bg lg:dark:bg-dark-bg text-light-text-secondary dark:text-dark-text-secondary font-medium">Or continue with</span>
+            <span className="flex-shrink-0 px-4 text-sm text-gray-500 dark:text-gray-400 font-medium bg-transparent">Or continue with</span>
           </div>
         </div>
 

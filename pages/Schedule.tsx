@@ -1,12 +1,11 @@
 
 import React, { useState, useMemo } from 'react';
-// FIX: Import ScheduledItem from global types and remove local definition.
 import { RecurringTransaction, Account, Category, BillPayment, Currency, AccountType, RecurringTransactionOverride, ScheduledItem, Transaction, Tag, LoanPaymentOverrides } from '../types';
 import Card from '../components/Card';
 import { BTN_PRIMARY_STYLE, BTN_SECONDARY_STYLE, INPUT_BASE_STYLE, SELECT_WRAPPER_STYLE, SELECT_ARROW_STYLE, LIQUID_ACCOUNT_TYPES, ACCOUNT_TYPE_STYLES, ALL_ACCOUNT_TYPES, BTN_DANGER_STYLE } from '../constants';
-import { formatCurrency, convertToEur, generateSyntheticLoanPayments, generateSyntheticCreditCardPayments, generateSyntheticPropertyTransactions, parseLocalDate, fuzzySearch, toLocalISOString } from '../utils';
+import { formatCurrency, convertToEur, generateSyntheticLoanPayments, generateSyntheticCreditCardPayments, generateSyntheticPropertyTransactions, parseLocalDate, fuzzySearch, toLocalISOString, adjustDateForWeekend } from '../utils';
 import RecurringTransactionModal from '../components/RecurringTransactionModal';
-import Modal from '../components/Modal';
+import Modal from './Modal';
 import ScheduleHeatmap from '../components/ScheduleHeatmap';
 import EditRecurrenceModal from '../components/EditRecurrenceModal';
 import RecurringOverrideModal from '../components/RecurringOverrideModal';
@@ -16,107 +15,9 @@ import { useAccountsContext, useTransactionsContext } from '../contexts/DomainPr
 import { useCategoryContext, useScheduleContext, useTagsContext } from '../contexts/FinancialDataContext';
 import { Cell, Pie, PieChart, ResponsiveContainer, Tooltip as RechartsTooltip } from 'recharts';
 import PageHeader from '../components/PageHeader';
-
-// --- Item Row Component ---
-const ScheduledItemRow: React.FC<{
-    item: ScheduledItem;
-    accounts: Account[];
-    onEdit: (item: ScheduledItem) => void;
-    onDelete: (id: string, isRecurring: boolean) => void;
-    onPost: (item: ScheduledItem) => void;
-    isReadOnly?: boolean;
-    compact?: boolean;
-}> = ({ item, accounts, onEdit, onDelete, onPost, isReadOnly = false, compact = false }) => {
-    
-    const isIncome = item.type === 'income' || item.type === 'deposit';
-    const isTransfer = item.type === 'transfer';
-    
-    // Check overdue based on local ISO string comparison
-    const todayStr = toLocalISOString(new Date());
-    const isOverdue = !item.isRecurring && item.date < todayStr;
-    
-    const dueDate = parseLocalDate(item.date);
-    const day = dueDate.getDate();
-    const month = dueDate.toLocaleString('default', { month: 'short' }).toUpperCase();
-    const weekday = dueDate.toLocaleString('default', { weekday: 'long' });
-
-    // Determine status/frequency text
-    let subText = item.accountName;
-    if (item.isRecurring) {
-        const rt = item.originalItem as RecurringTransaction;
-        subText += ` • ${rt.frequency.charAt(0).toUpperCase() + rt.frequency.slice(1)}`;
-    } else {
-        subText += ` • One-time`;
-    }
-
-    const amountColor = isIncome 
-        ? 'text-emerald-600 dark:text-emerald-400' 
-        : isTransfer 
-            ? 'text-light-text dark:text-dark-text' 
-            : 'text-rose-600 dark:text-rose-400';
-    
-    return (
-      <div className={`group relative flex items-center gap-4 ${compact ? 'p-3' : 'p-4'} bg-white dark:bg-dark-card rounded-xl border border-black/5 dark:border-white/5 shadow-sm hover:shadow-md transition-all duration-200`}>
-        {/* Date Block */}
-        <div className={`flex-shrink-0 flex flex-col items-center justify-center ${compact ? 'w-10 h-10 rounded-lg' : 'w-14 h-14 rounded-xl'} border ${isOverdue ? 'bg-red-50 dark:bg-red-900/20 border-red-200 dark:border-red-800' : 'bg-gray-50 dark:bg-white/5 border-black/5 dark:border-white/10'}`}>
-            <span className={`${compact ? 'text-[8px]' : 'text-[10px]'} font-bold uppercase tracking-wider ${isOverdue ? 'text-red-500' : 'text-light-text-secondary dark:text-dark-text-secondary'}`}>{month}</span>
-            <span className={`${compact ? 'text-sm' : 'text-xl'} font-extrabold leading-none ${isOverdue ? 'text-red-600 dark:text-red-400' : 'text-light-text dark:text-dark-text'}`}>{day}</span>
-        </div>
-
-        {/* Content */}
-        <div className="flex-grow min-w-0">
-            <div className="flex items-center gap-2 mb-0.5">
-                <h4 className={`font-bold text-light-text dark:text-dark-text truncate ${compact ? 'text-sm' : 'text-base'}`}>{item.description}</h4>
-                {item.isOverride && (
-                    <span className="flex-shrink-0 px-1.5 py-0.5 rounded text-[10px] font-bold bg-amber-100 text-amber-700 dark:bg-amber-900/40 dark:text-amber-400 uppercase tracking-wide">Modified</span>
-                )}
-                 {isOverdue && (
-                    <span className="flex-shrink-0 px-1.5 py-0.5 rounded text-[10px] font-bold bg-red-100 text-red-700 dark:bg-red-900/40 dark:text-red-400 uppercase tracking-wide">Overdue</span>
-                )}
-            </div>
-            <div className="flex items-center gap-3 text-xs text-light-text-secondary dark:text-dark-text-secondary">
-                <span className="font-medium">{weekday}</span>
-                <span className="w-1 h-1 rounded-full bg-current opacity-40"></span>
-                <span className="flex items-center gap-1 truncate">
-                    <span className="material-symbols-outlined text-[14px]">{isTransfer ? 'swap_horiz' : (item.isRecurring ? 'repeat' : 'receipt')}</span>
-                    {subText}
-                </span>
-            </div>
-        </div>
-
-        {/* Amount & Actions */}
-        <div className="flex flex-col items-end gap-1">
-             <span className={`${compact ? 'text-sm' : 'text-base'} font-bold font-mono tracking-tight ${amountColor}`}>
-                {formatCurrency(item.amount, 'EUR')}
-             </span>
-             
-             <div className={`flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity duration-200 ${isReadOnly ? 'invisible' : ''}`}>
-                <button 
-                    onClick={(e) => { e.stopPropagation(); onPost(item); }}
-                    className="p-1 rounded-md bg-green-50 dark:bg-green-900/30 text-green-600 dark:text-green-400 hover:bg-green-100 dark:hover:bg-green-900/50 transition-colors" 
-                    title="Post Transaction"
-                >
-                    <span className="material-symbols-outlined text-[18px]">check</span>
-                </button>
-                <button 
-                    onClick={(e) => { e.stopPropagation(); onEdit(item); }}
-                    className="p-1 rounded-md text-light-text-secondary hover:bg-black/5 dark:hover:bg-white/10 transition-colors" 
-                    title="Edit"
-                >
-                    <span className="material-symbols-outlined text-[18px]">edit</span>
-                </button>
-                <button 
-                    onClick={(e) => { e.stopPropagation(); onDelete(item.originalItem.id, item.isRecurring); }}
-                    className="p-1 rounded-md text-light-text-secondary hover:text-red-500 hover:bg-red-50 dark:hover:bg-red-900/20 transition-colors" 
-                    title="Delete"
-                >
-                    <span className="material-symbols-outlined text-[18px]">delete</span>
-                </button>
-             </div>
-        </div>
-      </div>
-    );
-};
+import ScheduledItemRow from '../components/ScheduledItemRow';
+import ConfirmationModal from '../components/ConfirmationModal';
+import { v4 as uuidv4 } from 'uuid';
 
 // --- Summary Card Component ---
 const ScheduleSummaryCard: React.FC<{ title: string; value: number; type: 'income' | 'expense' | 'net'; count?: number }> = ({ title, value, type, count }) => {
@@ -135,7 +36,7 @@ const ScheduleSummaryCard: React.FC<{ title: string; value: number; type: 'incom
         icon = 'arrow_downward';
     } else if (isNet) {
         colorClass = value >= 0 ? 'text-blue-600 dark:text-blue-400' : 'text-orange-600 dark:text-orange-400';
-        bgClass = value >= 0 ? 'bg-blue-50 dark:bg-blue-900/10 border-blue-100 dark:border-blue-900/30' : 'bg-orange-50 dark:bg-orange-900/10 border-orange-100 dark:border-orange-900/30';
+        bgClass = value >= 0 ? 'bg-blue-50 dark:bg-blue-900/10 border-blue-100 dark:border-blue-800/30' : 'bg-orange-50 dark:bg-orange-900/10 border-orange-100 dark:border-orange-900/30';
         accentBg = value >= 0 ? 'bg-blue-500' : 'bg-orange-500';
         icon = 'account_balance_wallet';
     } else {
@@ -169,7 +70,7 @@ const ScheduleSummaryCard: React.FC<{ title: string; value: number; type: 'incom
 }
 
 // --- Collapsible Group Component ---
-const ScheduleGroup = ({ title, items, accounts, onEdit, onDelete, onPost, defaultOpen = true, totalAmount }: any) => {
+const ScheduleGroup = ({ title, items, accounts, onEdit, onDelete, onPost, onEndSeries, defaultOpen = true, totalAmount }: any) => {
     const [isOpen, setIsOpen] = useState(defaultOpen);
     
     return (
@@ -205,7 +106,8 @@ const ScheduleGroup = ({ title, items, accounts, onEdit, onDelete, onPost, defau
                             accounts={accounts} 
                             onEdit={onEdit} 
                             onDelete={onDelete} 
-                            onPost={onPost} 
+                            onPost={onPost}
+                            onEndSeries={onEndSeries} 
                             isReadOnly={item.isRecurring && item.originalItem.isSynthetic} 
                         />
                      ))}
@@ -217,9 +119,7 @@ const ScheduleGroup = ({ title, items, accounts, onEdit, onDelete, onPost, defau
 
 // --- Main Page Component ---
 
-interface ScheduleProps {}
-
-const SchedulePage: React.FC<ScheduleProps> = () => {
+const SchedulePage: React.FC = () => {
     const { accounts } = useAccountsContext();
     const { transactions, saveTransaction } = useTransactionsContext();
     const { incomeCategories, expenseCategories } = useCategoryContext();
@@ -231,7 +131,6 @@ const SchedulePage: React.FC<ScheduleProps> = () => {
         billsAndPayments,
         saveBillPayment,
         deleteBillPayment,
-        markBillAsPaid,
         recurringTransactionOverrides,
         saveRecurringOverride,
         deleteRecurringOverride,
@@ -248,6 +147,19 @@ const SchedulePage: React.FC<ScheduleProps> = () => {
     const [overrideModalItem, setOverrideModalItem] = useState<ScheduledItem | null>(null);
     const [isTransactionModalOpen, setIsTransactionModalOpen] = useState(false);
     const [itemToPost, setItemToPost] = useState<ScheduledItem | null>(null);
+
+    // Confirmation Modal State
+    const [confirmConfig, setConfirmConfig] = useState<{
+        isOpen: boolean;
+        title: string;
+        message: string;
+        onConfirm: () => void;
+    }>({
+        isOpen: false,
+        title: '',
+        message: '',
+        onConfirm: () => {},
+    });
 
     const accountMap = React.useMemo(() => accounts.reduce((acc, current) => {
         acc[current.id] = current.name;
@@ -290,32 +202,24 @@ const SchedulePage: React.FC<ScheduleProps> = () => {
         );
 
         // Prepare list for "List View" (Management)
-        // Group synthetic loan payments by account to avoid listing every month separately
         const processedRecurringList: RecurringTransaction[] = [];
         const processedLoanAccountIds = new Set<string>();
 
         allRecurringTransactions.forEach(rt => {
             if (rt.isSynthetic) {
-                 // Check if it is a loan or lending synthetic payment
-                 // We identify them by ID prefix or check if they correspond to a loan account
                  const isLoan = rt.id.startsWith('loan-pmt-');
                  if (isLoan) {
-                     // Group by account
                      if (!processedLoanAccountIds.has(rt.accountId)) {
                         processedLoanAccountIds.add(rt.accountId);
-                        // Create a representative item
                         processedRecurringList.push({
                             ...rt,
-                            id: `synthetic-group-${rt.accountId}`, // Unique group ID
+                            id: `synthetic-group-${rt.accountId}`, 
                             description: `${rt.type === 'transfer' ? 'Loan Repayment' : 'Payment'}: ${accountMap[rt.accountId] || 'Loan Account'}`,
-                            // Show grouped info, maybe sum or just one instance details
-                            // We use the current rt details as representative
                         });
                      }
-                     return; // Skip individual addition
+                     return; 
                  }
             }
-            // Add standard recurring and other synthetic types normally
             processedRecurringList.push(rt);
         });
 
@@ -345,7 +249,6 @@ const SchedulePage: React.FC<ScheduleProps> = () => {
                 const d = new Date(nextDate);
                 if (rt.frequency === 'monthly') {
                     d.setMonth(d.getMonth() + interval);
-                    // Keep original day or adjust
                 }
                 else if (rt.frequency === 'weekly') d.setDate(d.getDate() + (7 * interval));
                 else if (rt.frequency === 'daily') d.setDate(d.getDate() + interval);
@@ -354,42 +257,42 @@ const SchedulePage: React.FC<ScheduleProps> = () => {
             }
             
             while (nextDate <= forecastEndDate && (!endDateLocal || nextDate <= endDateLocal)) {
-                // Use ISO String splitting to get date string without local timezone offset
                 const originalDateStr = toLocalISOString(nextDate);
+                const adjustedDateStr = adjustDateForWeekend(originalDateStr, rt.weekendAdjustment);
+
                 const override = recurringOverrideMap.get(`${rt.id}-${originalDateStr}`);
 
-                if (!override?.isSkipped) {
-                    const itemDate = override?.date || originalDateStr;
-                    const itemAmount = override?.amount !== undefined ? override.amount : (rt.type === 'expense' ? -rt.amount : rt.amount);
-                    const itemDescription = override?.description || rt.description;
-                    const accountName = rt.accountId === 'external'
-                        ? 'External'
-                        : (rt.type === 'transfer'
-                            ? `${accountMap[rt.accountId] || 'Unknown'} → ${accountMap[rt.toAccountId ?? ''] || 'External'}`
-                            : accountMap[rt.accountId] || 'Unknown');
-
-                    allUpcomingItems.push({
-                        id: override ? `override-${rt.id}-${originalDateStr}` : `${rt.id}-${originalDateStr}`,
-                        isRecurring: true, 
-                        date: itemDate, 
-                        description: itemDescription,
-                        amount: itemAmount,
-                        accountName,
-                        type: rt.type, 
-                        originalItem: rt, 
-                        isTransfer: rt.type === 'transfer',
-                        isOverride: !!override,
-                        originalDateForOverride: originalDateStr,
-                    });
-                }
+                const itemDate = override?.date || adjustedDateStr;
+                const itemAmount = override?.amount !== undefined ? override.amount : (rt.type === 'expense' ? -rt.amount : rt.amount);
+                const itemDescription = override?.description || rt.description;
+                const accountName = rt.accountId === 'external'
+                    ? 'External'
+                    : (rt.type === 'transfer'
+                        ? `${accountMap[rt.accountId] || 'Unknown'} → ${accountMap[rt.toAccountId ?? ''] || 'External'}`
+                        : accountMap[rt.accountId] || 'Unknown');
                 
-                // Advance Date using local methods to align with device timezone
+                const isSkipped = !!override?.isSkipped;
+
+                allUpcomingItems.push({
+                    id: override ? `override-${rt.id}-${originalDateStr}` : `${rt.id}-${originalDateStr}`,
+                    isRecurring: true, 
+                    date: itemDate, 
+                    description: itemDescription,
+                    amount: itemAmount,
+                    accountName,
+                    type: rt.type, 
+                    originalItem: rt, 
+                    isTransfer: rt.type === 'transfer',
+                    isOverride: !!override,
+                    originalDateForOverride: originalDateStr,
+                    isSkipped: isSkipped,
+                });
+                
                 const interval = rt.frequencyInterval || 1;
                 const d = new Date(nextDate);
                 if (rt.frequency === 'monthly') {
                     const targetDay = rt.dueDateOfMonth || startDateLocal.getDate();
                     d.setMonth(d.getMonth() + interval);
-                    // Handle month length logic using local date
                     const year = d.getFullYear();
                     const month = d.getMonth();
                     const lastDayOfMonth = new Date(year, month + 1, 0).getDate();
@@ -411,7 +314,8 @@ const SchedulePage: React.FC<ScheduleProps> = () => {
                 amount: b.amount,
                 accountName: b.accountId ? accountMap[b.accountId] : 'External',
                 type: b.type,
-                originalItem: b
+                originalItem: b,
+                isSkipped: false,
             });
         });
 
@@ -427,10 +331,7 @@ const SchedulePage: React.FC<ScheduleProps> = () => {
         let maxOutflowItem: ScheduledItem | null = null;
         let maxInflowItem: ScheduledItem | null = null;
         
-        // Grouping for Timeline View
         const groups: Record<string, ScheduledItem[]> = {};
-        
-        // Filter by search query
         const filteredItems = allUpcomingItems.filter(item => 
             !searchQuery || 
             fuzzySearch(searchQuery, item.description) || 
@@ -441,8 +342,7 @@ const SchedulePage: React.FC<ScheduleProps> = () => {
             const itemDate = parseLocalDate(item.date);
             const isWithin30Days = itemDate >= todayMidnight && itemDate <= next30DaysEnd;
 
-            // Metrics Calculation (only if within 30 days)
-            if (isWithin30Days) {
+            if (isWithin30Days && !item.isSkipped) {
                 const amountEur = convertToEur(item.amount, (item.originalItem as any).currency);
                 
                 if (item.type === 'income' || item.type === 'deposit') {
@@ -472,9 +372,7 @@ const SchedulePage: React.FC<ScheduleProps> = () => {
                 }
             }
 
-            // Grouping Logic
-            // Use string comparison for consistency with TodayWidget
-            if (item.date < todayStr) {
+            if (item.date < todayStr && !item.isSkipped) {
                 if (!groups['Overdue']) groups['Overdue'] = [];
                 groups['Overdue'].push(item);
             } else if (item.date === todayStr) {
@@ -490,9 +388,7 @@ const SchedulePage: React.FC<ScheduleProps> = () => {
             }
         });
 
-        // Define custom sort order for group keys
         const monthKeys = Object.keys(groups).filter(k => k !== 'Overdue' && k !== 'Today' && k !== 'Next 7 Days');
-        // Sort month keys chronologically based on the date of the first item in each group
         monthKeys.sort((a, b) => {
              const dateA = parseLocalDate(groups[a][0].date);
              const dateB = parseLocalDate(groups[b][0].date);
@@ -510,12 +406,12 @@ const SchedulePage: React.FC<ScheduleProps> = () => {
         const categoryBreakdownData = Object.entries(categorySpending)
             .map(([name, value]) => ({ name, value }))
             .sort((a, b) => b.value - a.value)
-            .slice(0, 5); // Top 5
+            .slice(0, 5);
 
         return {
             groupedItems: groups,
             sortedGroupKeys,
-            allUpcomingForHeatmap: allUpcomingItems, // Use unfiltered for heatmap to show full picture
+            allUpcomingForHeatmap: allUpcomingItems.filter(i => !i.isSkipped), 
             summaryMetrics: {
                 income: totalIncome30d,
                 expense: totalExpense30d,
@@ -563,17 +459,69 @@ const SchedulePage: React.FC<ScheduleProps> = () => {
         handleOpenRecurringModal(editChoiceItem.originalItem as RecurringTransaction);
         setEditChoiceItem(null);
     };
+    
+    const handleEditFuture = () => {
+        if (!editChoiceItem) return;
+        const item = editChoiceItem;
+        const original = item.originalItem as RecurringTransaction;
+        
+        const occurrenceDate = parseLocalDate(item.originalDateForOverride || item.date);
+        const dayBefore = new Date(occurrenceDate);
+        dayBefore.setDate(dayBefore.getDate() - 1);
+        const endDateForOld = toLocalISOString(dayBefore);
+
+        const newSeriesStart = item.originalDateForOverride || item.date;
+        const newSeriesData: Omit<RecurringTransaction, 'id'> = {
+            ...original,
+            startDate: newSeriesStart,
+            nextDueDate: newSeriesStart,
+        };
+        
+        saveRecurringTransaction({ ...original, endDate: endDateForOld });
+
+        setEditingTransaction({ ...newSeriesData, id: '' } as RecurringTransaction); 
+        setEditChoiceItem(null);
+        setIsRecurringModalOpen(true);
+    };
 
     const handleDeleteItem = (id: string, isRecurring: boolean) => {
-        if (isRecurring) {
-            if (window.confirm('Delete this recurring series?')) {
-                deleteRecurringTransaction(id);
+        setConfirmConfig({
+            isOpen: true,
+            title: isRecurring ? 'Delete Recurring Series' : 'Delete Bill',
+            message: isRecurring 
+                ? 'Are you sure you want to delete this recurring series? This will remove all future occurrences from your schedule.'
+                : 'Are you sure you want to delete this bill?',
+            onConfirm: () => {
+                if (isRecurring) {
+                    deleteRecurringTransaction(id);
+                } else {
+                    deleteBillPayment(id);
+                }
+                setConfirmConfig(prev => ({ ...prev, isOpen: false }));
             }
-        } else {
-            if (window.confirm('Delete this bill?')) {
-                deleteBillPayment(id);
+        });
+    };
+    
+    const handleEndSeries = (item: ScheduledItem) => {
+        if (!item.isRecurring) return;
+        const originalId = (item.originalItem as RecurringTransaction).id;
+        const rt = recurringTransactions.find(t => t.id === originalId);
+        if (!rt) return;
+        
+        const occurrenceDate = parseLocalDate(item.originalDateForOverride || item.date);
+        const dayBefore = new Date(occurrenceDate);
+        dayBefore.setDate(dayBefore.getDate() - 1);
+        const endDate = toLocalISOString(dayBefore);
+        
+        setConfirmConfig({
+            isOpen: true,
+            title: 'End Recurring Series',
+            message: `Are you sure you want to end this series? It will stop repeating after ${endDate}.`,
+            onConfirm: () => {
+                saveRecurringTransaction({ ...rt, endDate });
+                setConfirmConfig(prev => ({ ...prev, isOpen: false }));
             }
-        }
+        });
     };
 
     const handleOpenPostModal = (item: ScheduledItem) => {
@@ -593,7 +541,6 @@ const SchedulePage: React.FC<ScheduleProps> = () => {
             const interval = rt.frequencyInterval || 1;
             const startDateLocal = parseLocalDate(rt.startDate);
 
-            // Simple advance logic
             switch (rt.frequency) {
                 case 'daily': nextDueDate.setDate(nextDueDate.getDate() + interval); break;
                 case 'weekly': nextDueDate.setDate(nextDueDate.getDate() + 7 * interval); break;
@@ -642,7 +589,7 @@ const SchedulePage: React.FC<ScheduleProps> = () => {
             } else {
                 from = rt.accountId;
             }
-        } else { // Bill
+        } else { 
             const bill = original as BillPayment;
             type = bill.type === 'deposit' ? 'income' : 'expense';
             category = type === 'income' ? 'Income' : 'Bills & Utilities';
@@ -671,7 +618,7 @@ const SchedulePage: React.FC<ScheduleProps> = () => {
         <div className="space-y-8 pb-8 animate-fade-in-up">
             {isRecurringModalOpen && <RecurringTransactionModal onClose={() => setIsRecurringModalOpen(false)} onSave={(data) => { saveRecurringTransaction(data); setIsRecurringModalOpen(false); }} accounts={accounts} incomeCategories={incomeCategories} expenseCategories={expenseCategories} recurringTransactionToEdit={editingTransaction} />}
             {isBillModalOpen && <BillPaymentModal onClose={() => setIsBillModalOpen(false)} onSave={(data) => { saveBillPayment(data); setIsBillModalOpen(false); }} bill={editingBill} accounts={accounts} />}
-            {editChoiceItem && <EditRecurrenceModal isOpen={!!editChoiceItem} onClose={() => setEditChoiceItem(null)} onEditSingle={handleEditSingle} onEditSeries={handleEditSeries} />}
+            {editChoiceItem && <EditRecurrenceModal isOpen={!!editChoiceItem} onClose={() => setEditChoiceItem(null)} onEditSingle={handleEditSingle} onEditSeries={handleEditSeries} onEditFuture={handleEditFuture} />}
             {overrideModalItem && <RecurringOverrideModal item={overrideModalItem} recurringTransactionOverrides={recurringTransactionOverrides} onClose={() => setOverrideModalItem(null)} onSave={saveRecurringOverride} onDelete={deleteRecurringOverride} />}
             {isTransactionModalOpen && itemToPost && (
                 <AddTransactionModal
@@ -688,6 +635,15 @@ const SchedulePage: React.FC<ScheduleProps> = () => {
                     initialDetails={initialModalData.initialDetails}
                 />
             )}
+            
+            <ConfirmationModal
+                isOpen={confirmConfig.isOpen}
+                onClose={() => setConfirmConfig(prev => ({ ...prev, isOpen: false }))}
+                onConfirm={confirmConfig.onConfirm}
+                title={confirmConfig.title}
+                message={confirmConfig.message}
+                confirmButtonText="Confirm"
+            />
             
             <PageHeader
                 markerIcon="calendar_month"
@@ -706,14 +662,10 @@ const SchedulePage: React.FC<ScheduleProps> = () => {
                 }
             />
 
-            {/* TOP SECTION: Visual Activity & Highlights */}
             <div className="space-y-6">
-                {/* 1. Heatmap */}
                 <ScheduleHeatmap items={allUpcomingForHeatmap} />
                 
-                {/* 2. Insights Row (Breakdown & Major Flows) */}
                 <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-                    {/* Expense Breakdown */}
                     <Card className="flex flex-col justify-between relative overflow-hidden">
                         <div className="flex justify-between items-start z-10 mb-4">
                             <h3 className="text-base font-bold text-light-text dark:text-dark-text">Expense Breakdown (30d)</h3>
@@ -744,7 +696,6 @@ const SchedulePage: React.FC<ScheduleProps> = () => {
                         </div>
                     </Card>
 
-                    {/* Next Major Inflow */}
                     <Card className="relative overflow-hidden bg-gradient-to-br from-emerald-50 to-teal-50 dark:from-emerald-900/20 dark:to-teal-900/20 border-emerald-100 dark:border-emerald-800/30">
                          <div className="absolute top-0 right-0 p-4 opacity-5 pointer-events-none">
                             <span className="material-symbols-outlined text-8xl text-emerald-500">savings</span>
@@ -770,7 +721,6 @@ const SchedulePage: React.FC<ScheduleProps> = () => {
                         </div>
                     </Card>
 
-                    {/* Next Major Outflow */}
                     <Card className="relative overflow-hidden bg-gradient-to-br from-rose-50 to-red-50 dark:from-rose-900/20 dark:to-red-900/20 border-rose-100 dark:border-rose-800/30">
                         <div className="absolute top-0 right-0 p-4 opacity-5 pointer-events-none">
                             <span className="material-symbols-outlined text-8xl text-rose-500">payments</span>
@@ -798,16 +748,13 @@ const SchedulePage: React.FC<ScheduleProps> = () => {
                 </div>
             </div>
 
-            {/* Summary Metrics - Middle Row (Moved from top) */}
             <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
                 <ScheduleSummaryCard title="Scheduled Income (30d)" value={summaryMetrics.income} type="income" count={summaryMetrics.incCount} />
                 <ScheduleSummaryCard title="Scheduled Expenses (30d)" value={summaryMetrics.expense} type="expense" count={summaryMetrics.expCount} />
                 <ScheduleSummaryCard title="Net Forecast (30d)" value={summaryMetrics.net} type="net" />
             </div>
 
-            {/* Main Content: Scheduled Items List */}
             <div className="space-y-6">
-                 {/* Controls & Tabs */}
                 <div className="flex flex-col sm:flex-row justify-between gap-4 bg-light-card dark:bg-dark-card p-2 rounded-xl shadow-sm border border-black/5 dark:border-white/5">
                         <div className="flex bg-light-fill dark:bg-dark-fill p-1 rounded-lg w-full sm:w-auto">
                         <button 
@@ -842,7 +789,7 @@ const SchedulePage: React.FC<ScheduleProps> = () => {
                         {sortedGroupKeys.map(groupKey => {
                             const items = groupedItems[groupKey];
                             if (!items || items.length === 0) return null;
-                            const groupTotal = items.reduce((sum, item) => {
+                            const groupTotal = items.filter(i => !i.isSkipped).reduce((sum, item) => {
                                 if (item.type === 'transfer') return sum;
                                 return sum + convertToEur(item.amount, (item.originalItem as any).currency);
                             }, 0);
@@ -856,8 +803,9 @@ const SchedulePage: React.FC<ScheduleProps> = () => {
                                     onEdit={handleEditItem} 
                                     onDelete={handleDeleteItem} 
                                     onPost={handleOpenPostModal}
+                                    onEndSeries={handleEndSeries}
                                     totalAmount={groupTotal}
-                                    defaultOpen={['Today', 'Next 7 Days'].includes(groupKey)}
+                                    defaultOpen={['Today', 'Next 7 Days', 'Overdue'].includes(groupKey)}
                                 />
                             );
                         })}

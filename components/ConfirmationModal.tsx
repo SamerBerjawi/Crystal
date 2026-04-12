@@ -28,7 +28,7 @@ const ConfirmationModal: React.FC<ConfirmationModalProps> = ({
     : BTN_PRIMARY_STYLE;
 
   return (
-    <Modal onClose={onClose} title={title} zIndexClass="z-[70]">
+    <Modal onClose={onClose} title={title}>
       <p className="text-light-text-secondary dark:text-dark-text-secondary">{message}</p>
 
       <div className="flex justify-end gap-4 pt-6 mt-4 border-t border-black/10 dark:border-white/10">

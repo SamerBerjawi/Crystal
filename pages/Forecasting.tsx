@@ -1,9 +1,7 @@
 
 import React, { useState, useMemo, useCallback, useEffect } from 'react';
 import {
-  Page,
   ContributionPlanStep,
-  ScheduledPayment,
   Account,
   RecurringTransaction,
   FinancialGoal,
@@ -11,6 +9,7 @@ import {
   LoanPaymentOverrides,
   BillPayment,
   ForecastDuration,
+  Currency,
 } from '../types';
 import { BTN_PRIMARY_STYLE, BTN_SECONDARY_STYLE, LIQUID_ACCOUNT_TYPES, CHECKBOX_STYLE, FORECAST_DURATION_OPTIONS } from '../constants';
 import { calculateForecastHorizon, formatCurrency, convertToEur, generateBalanceForecast, generateSyntheticLoanPayments, generateSyntheticCreditCardPayments, parseLocalDate, getPreferredTimeZone, generateSyntheticPropertyTransactions, toLocalISOString } from '../utils';
@@ -25,14 +24,13 @@ import ForecastDayModal from '../components/ForecastDayModal';
 import RecurringTransactionModal from '../components/RecurringTransactionModal';
 import BillPaymentModal from '../components/BillPaymentModal';
 import ForecastOverview from '../components/ForecastOverview';
-import { loadGenAiModule } from '../genAiLoader';
 import { useAccountsContext, usePreferencesContext, useTransactionsContext } from '../contexts/DomainProviders';
 import { useCategoryContext, useGoalsContext, useScheduleContext } from '../contexts/FinancialDataContext';
 import { useInsightsView } from '../contexts/InsightsViewContext';
 import PageHeader from '../components/PageHeader';
 import { v4 as uuidv4 } from 'uuid';
 
-// --- AI Planner Hook ---
+// --- Smart Goal Planner Hook (Deterministic) ---
 const useSmartGoalPlanner = (
     accounts: Account[],
     recurringTransactions: RecurringTransaction[],
@@ -47,82 +45,59 @@ const useSmartGoalPlanner = (
         setError(null);
         setPlan(null);
 
-        if (!process.env.API_KEY) {
-            setError("The AI Planner is not configured. An API key is required. Please see Settings > AI Assistant for configuration instructions.");
-            setIsLoading(false);
-            return;
-        }
-
         try {
-            const { GoogleGenAI, Type } = await loadGenAiModule();
-            const ai = new GoogleGenAI({ apiKey: process.env.API_KEY });
-            
+            // Simulate a brief calculation delay for UX consistency
+            await new Promise(resolve => setTimeout(resolve, 500));
+
             const liquidAccounts = accounts.filter(a => LIQUID_ACCOUNT_TYPES.includes(a.type));
-            const context = {
-                current_date: toLocalISOString(new Date()),
-                liquid_accounts: liquidAccounts.map(({ name, balance, currency }) => ({ name, balance, currency })),
-                recurring_transactions: recurringTransactions.map(({ description, amount, type, frequency, nextDueDate }) => ({ description, amount, type, frequency, nextDueDate })),
-                financial_goals: financialGoals.filter(g => g.projection).map(({ name, amount, currentAmount, date, projection }) => ({ name, target_amount: amount, current_amount: currentAmount, target_date: date, projected_status: projection?.status })),
-            };
-
-            const prompt = `You are a financial planner. Based on the user's financial data, create a smart contribution plan to help them achieve their goals. 
-            Prioritize goals that are "at-risk" or "off-track". Suggest an "Upfront Contribution" if there's enough cash in checking/savings accounts. 
-            For shortfalls, add a final step with accountName "Unfunded Shortfall" and notes explaining the situation.
+            const totalLiquidCash = liquidAccounts.reduce((sum, a) => sum + convertToEur(a.balance, a.currency), 0);
             
-            User's Data: ${JSON.stringify(context, null, 2)}`;
+            const planObject: Record<string, ContributionPlanStep[]> = {};
             
-            const responseSchema = {
-                type: Type.OBJECT,
-                properties: {
-                    plan: {
-                        type: Type.ARRAY,
-                        description: "The array of contribution plans for each goal.",
-                        items: {
-                            type: Type.OBJECT,
-                            properties: {
-                                goalName: { type: Type.STRING },
-                                steps: {
-                                    type: Type.ARRAY,
-                                    items: {
-                                        type: Type.OBJECT,
-                                        properties: {
-                                            date: { type: Type.STRING, description: "Contribution date (YYYY-MM) or 'Upfront Contribution'." },
-                                            amount: { type: Type.NUMBER },
-                                            accountName: { type: Type.STRING, description: "The name of the account to contribute from, or 'Unfunded Shortfall'." },
-                                            notes: { type: Type.STRING, description: "Optional notes or warnings." }
-                                        },
-                                        required: ['date', 'amount', 'accountName']
-                                    }
-                                }
-                            },
-                            required: ['goalName', 'steps']
-                        }
-                    }
-                },
-                required: ['plan']
-            };
-
-            const response = await ai.models.generateContent({
-                model: 'gemini-2.5-pro',
-                contents: prompt,
-                config: {
-                    responseMimeType: 'application/json',
-                    responseSchema
-                }
+            // Basic logic: prioritize goals based on date
+            // This replaces the GenAI logic with a deterministic distribution strategy.
+            const sortedGoals = [...financialGoals].sort((a, b) => {
+                if (!a.date) return 1;
+                if (!b.date) return -1;
+                return new Date(a.date).getTime() - new Date(b.date).getTime();
             });
-            
-            const parsedJson = JSON.parse(response.text);
-            
-            const planObject = parsedJson.plan.reduce((acc: any, goalPlan: {goalName: string, steps: any[]}) => {
-                acc[goalPlan.goalName] = goalPlan.steps;
-                return acc;
-            }, {} as Record<string, ContributionPlanStep[]>);
+
+            sortedGoals.forEach(goal => {
+                if (goal.currentAmount >= goal.amount) return; // Goal met
+                
+                const steps: ContributionPlanStep[] = [];
+                const remainingNeeded = goal.amount - goal.currentAmount;
+                const today = new Date();
+                const goalDate = goal.date ? new Date(goal.date) : new Date(today.getFullYear() + 1, today.getMonth(), today.getDate());
+                
+                // Calculate months remaining
+                const monthsDiff = (goalDate.getFullYear() - today.getFullYear()) * 12 + (goalDate.getMonth() - today.getMonth());
+                const months = Math.max(1, monthsDiff);
+                
+                const monthlyAmount = remainingNeeded / months;
+                
+                // Determine source account (simply pick the first liquid account with balance > 0, or default to first)
+                // In a real app, this would check free cash flow from the forecast engine.
+                const sourceAccount = liquidAccounts.find(a => a.balance > 0) || liquidAccounts[0];
+                const sourceName = sourceAccount ? sourceAccount.name : 'Unknown Account';
+                
+                // Generate step
+                steps.push({
+                    goalName: goal.name,
+                    date: `Monthly until ${goalDate.toLocaleDateString()}`,
+                    amount: parseFloat(monthlyAmount.toFixed(2)),
+                    accountName: sourceName,
+                    notes: `Calculated over ${months} months`
+                });
+
+                planObject[goal.name] = steps;
+            });
 
             setPlan(planObject);
 
         } catch (err: any) {
-            console.error("Error generating smart plan:", err);
-            setError(err.message || "An error occurred while generating the plan.");
+            console.error("Error generating plan:", err);
+            setError("An error occurred while generating the plan.");
         } finally {
             setIsLoading(false);
         }
@@ -190,7 +165,7 @@ const Forecasting: React.FC = () => {
         return accounts.filter(a => LIQUID_ACCOUNT_TYPES.includes(a.type)).map(a => a.id)
     });
     const [forecastDuration, setForecastDuration] = useState<ForecastDuration>(preferences.defaultForecastPeriod || '1Y');
-    const [filterGoalsByAccount, setFilterGoalsByAccount] = useState(false);
+    const [filterGoalsByAccount, setFilterGoalsByAccount] = useState(true);
     const [showIndividualLines, setShowIndividualLines] = useState(false);
     const [showGoalLines, setShowGoalLines] = useState(true);
 
@@ -202,7 +177,6 @@ const Forecasting: React.FC = () => {
       accounts.filter(a => selectedAccountIds.includes(a.id)),
     [accounts, selectedAccountIds]);
 
-    // Updated activeGoals to respect the account filter
     const activeGoals = useMemo(() => {
         let goals = financialGoals.filter(g => activeGoalIds.includes(g.id));
         if (filterGoalsByAccount) {
@@ -214,20 +188,18 @@ const Forecasting: React.FC = () => {
         return goals;
     }, [financialGoals, activeGoalIds, filterGoalsByAccount, selectedAccountIds]);
     
-    const { allRecurringItems, syntheticItemsOnly } = useMemo(() => {
+    const { allRecurringItems } = useMemo(() => {
         const syntheticLoanPayments = generateSyntheticLoanPayments(accounts, transactions, loanPaymentOverrides);
         const syntheticCreditCardPayments = generateSyntheticCreditCardPayments(accounts, transactions);
         const syntheticPropertyTransactions = generateSyntheticPropertyTransactions(accounts);
         
         const all = [...recurringTransactions, ...syntheticLoanPayments, ...syntheticCreditCardPayments, ...syntheticPropertyTransactions];
-        const synthetic = [...syntheticLoanPayments, ...syntheticCreditCardPayments, ...syntheticPropertyTransactions];
-        return { allRecurringItems: all, syntheticItemsOnly: synthetic };
+        return { allRecurringItems: all };
     }, [accounts, transactions, loanPaymentOverrides, recurringTransactions]);
 
-    // 1. Generate Full Forecast (2 Years) - This is the stable base for all views
     const fullForecast = useMemo(() => {
         const projectionEndDate = new Date();
-        projectionEndDate.setMonth(projectionEndDate.getMonth() + 24); // 2 years
+        projectionEndDate.setMonth(projectionEndDate.getMonth() + 24);
 
         return generateBalanceForecast(
             selectedAccounts,
@@ -239,13 +211,11 @@ const Forecasting: React.FC = () => {
         );
     }, [selectedAccounts, allRecurringItems, activeGoals, billsAndPayments, recurringTransactionOverrides]);
 
-    // 2. Calculate Horizon Data (Dashboard Style - 1M, 3M, 6M, 1Y)
     const lowestBalanceForecasts = useMemo(() => {
         return calculateForecastHorizon(fullForecast.chartData);
     }, [fullForecast]);
 
-    // 3. Derived Data for Chart and Table (Filtered by selected Duration)
-    const { forecastData, tableData, lowestPoint, goalsWithProjections, startBalance, endBalance } = useMemo(() => {
+    const { forecastData, tableData, lowestPoint, goalsWithProjections, startBalance, endBalance, combinedChartData } = useMemo(() => {
         const { chartData, tableData, lowestPoint } = fullForecast;
         
         const goalsWithProjections = financialGoals.map(goal => {
@@ -292,64 +262,117 @@ const Forecasting: React.FC = () => {
         const startBal = forecastDataForPeriod.length > 0 ? forecastDataForPeriod[0].value : 0;
         const endBal = forecastDataForPeriod.length > 0 ? forecastDataForPeriod[forecastDataForPeriod.length - 1].value : 0;
 
+        const historyData: typeof forecastDataForPeriod = [];
+        let currentHistoryBal = startBal;
+        const today = new Date();
+        const todayStr = toLocalISOString(today);
+
+        const txsByDate = new Map<string, number>();
+        transactions.forEach(tx => {
+             if (selectedAccountIds.includes(tx.accountId) && !tx.transferId) {
+                  const d = tx.date;
+                  txsByDate.set(d, (txsByDate.get(d) || 0) + convertToEur(tx.amount, tx.currency));
+             } else if (tx.transferId) {
+                 if (selectedAccountIds.includes(tx.accountId)) {
+                     const d = tx.date;
+                     txsByDate.set(d, (txsByDate.get(d) || 0) + convertToEur(tx.amount, tx.currency));
+                 }
+             }
+        });
+
+        for (let i = 0; i <= 10; i++) {
+             const d = new Date(today);
+             d.setDate(d.getDate() - i);
+             const dateStr = toLocalISOString(d);
+             
+             if (dateStr === todayStr) continue; 
+             
+             const dateForChangeLookup = new Date(today);
+             dateForChangeLookup.setDate(today.getDate() - i);
+             const lookupDateStr = toLocalISOString(dateForChangeLookup);
+             
+             const change = txsByDate.get(lookupDateStr) || 0;
+             currentHistoryBal -= change; 
+             
+             const dPrev = new Date(d);
+             dPrev.setDate(d.getDate() - 1);
+             
+             historyData.push({ 
+                 date: toLocalISOString(dPrev), 
+                 value: currentHistoryBal,
+                 dailySummary: [], 
+                 isHistory: true
+            });
+        }
+        
+        const sortedHistory = historyData.reverse();
+        const combinedChartData = [...sortedHistory, ...forecastDataForPeriod];
+
         return { 
             forecastData: forecastDataForPeriod, 
             tableData: tableDataForPeriod, 
             lowestPoint: lowestPointInPeriod, 
             goalsWithProjections,
             startBalance: startBal,
-            endBalance: endBal
+            endBalance: endBal,
+            combinedChartData
         };
-    }, [fullForecast, financialGoals, forecastDuration]);
+    }, [fullForecast, financialGoals, forecastDuration, transactions, selectedAccountIds]);
     
-    const majorUpcomingOutflows = useMemo(() => {
-        const endDate = new Date();
-        switch (forecastDuration) {
-            case '3M': endDate.setMonth(endDate.getMonth() + 3); break;
-            case '6M': endDate.setMonth(endDate.getMonth() + 6); break;
-            case 'EOY': endDate.setFullYear(endDate.getFullYear(), 11, 31); break;
-            case '1Y': endDate.setFullYear(endDate.getFullYear() + 1); break;
-        }
-        const today = parseLocalDate(toLocalISOString(new Date()));
+    const accountGoalSummary = useMemo(() => {
+        const summary: Record<string, { id: string; name: string; current: number; target: number; currency: Currency; goalsCount: number; type: 'income' | 'expense' }> = {};
+        
+        financialGoals.forEach(g => {
+            if (g.isBucket) return;
+            const isVisible = !filterGoalsByAccount || !g.paymentAccountId || selectedAccountIds.includes(g.paymentAccountId);
+            if (!isVisible) return;
 
-        const outflows: any[] = [];
+            const accId = g.paymentAccountId || 'unlinked';
+            const type = g.transactionType; 
+            const key = `${accId}_${type}`;
 
-        // 1. Recurring
-        allRecurringItems.forEach(rt => {
-            if (rt.type !== 'expense' && rt.type !== 'transfer') return;
-            if (selectedAccountIds.length > 0 && !selectedAccountIds.includes(rt.accountId)) return;
-            
-            const nextDue = parseLocalDate(rt.nextDueDate);
-            if (nextDue >= today && nextDue <= endDate) {
-                outflows.push({
-                    name: rt.description,
-                    amount: Math.abs(rt.amount),
-                    date: rt.nextDueDate,
-                    isRecurring: true
-                });
+            if (!summary[key]) {
+                 const acc = accounts.find(a => a.id === accId);
+                 summary[key] = {
+                     id: key,
+                     name: acc ? acc.name : 'General (Unlinked)',
+                     current: 0,
+                     target: 0,
+                     currency: acc?.currency || 'EUR',
+                     goalsCount: 0,
+                     type: type
+                 };
             }
-        });
-
-        // 2. Bills
-        billsAndPayments.forEach(bill => {
-            if (bill.status === 'paid') return;
-            if (bill.type !== 'payment') return;
-            if (selectedAccountIds.length > 0 && bill.accountId && !selectedAccountIds.includes(bill.accountId)) return;
-
-            const due = parseLocalDate(bill.dueDate);
-            if (due >= today && due <= endDate) {
-                 outflows.push({
-                    name: bill.description,
-                    amount: Math.abs(bill.amount),
-                    date: bill.dueDate,
-                    isRecurring: false
-                });
-            }
+            summary[key].current += g.currentAmount;
+            summary[key].target += g.amount;
+            summary[key].goalsCount += 1;
         });
         
-        return outflows.sort((a, b) => b.amount - a.amount).slice(0, 5);
+        return Object.values(summary).sort((a, b) => a.name.localeCompare(b.name));
+    }, [financialGoals, accounts, filterGoalsByAccount, selectedAccountIds]);
 
-    }, [forecastDuration, allRecurringItems, billsAndPayments, selectedAccountIds]);
+    const { totalIncomeGoalTarget, totalIncomeGoalCurrent, totalSavingsGoalTarget, totalSavingsGoalCurrent } = useMemo(() => {
+        let incTarget = 0, incCurrent = 0, savTarget = 0, savCurrent = 0;
+        goalsWithProjections.forEach(g => {
+            if (g.isBucket) return;
+            const isVisible = !filterGoalsByAccount || !g.paymentAccountId || selectedAccountIds.includes(g.paymentAccountId);
+            if (!isVisible) return;
+
+            if (g.transactionType === 'income') {
+                incTarget += g.amount;
+                incCurrent += g.currentAmount;
+            } else {
+                savTarget += g.amount;
+                savCurrent += g.currentAmount;
+            }
+        });
+        return { 
+            totalIncomeGoalTarget: incTarget, 
+            totalIncomeGoalCurrent: incCurrent, 
+            totalSavingsGoalTarget: savTarget, 
+            totalSavingsGoalCurrent: savCurrent 
+        };
+    }, [goalsWithProjections, filterGoalsByAccount, selectedAccountIds]);
 
     const plannerGoals = useMemo(() => {
         return goalsWithProjections.filter(g => {
@@ -392,19 +415,11 @@ const Forecasting: React.FC = () => {
     };
 
     const handleDuplicateGoal = (goal: FinancialGoal) => {
-        // Create a copy without the ID, let the context handler generate a new one
         const { id, ...rest } = goal;
-        
-        // If it's a bucket, do we duplicate children? 
-        // For simplicity, we just duplicate the top-level bucket/goal structure initially.
-        // A deep clone would require iterating children and recreating them with new IDs linked to new parent ID.
-        // Let's stick to shallow clone for now as per simple UI action.
-        
         const duplicatedGoal: Omit<FinancialGoal, 'id'> = {
             ...rest,
             name: `${goal.name} (Copy)`
         };
-
         saveFinancialGoal(duplicatedGoal);
     };
     
@@ -414,9 +429,10 @@ const Forecasting: React.FC = () => {
     };
 
     const handleConfirmDelete = () => {
-        if (!deletingGoal) return;
-        deleteFinancialGoal(deletingGoal.id);
-        setDeletingGoal(null);
+        if (deletingGoal) {
+            deleteFinancialGoal(deletingGoal.id);
+            setDeletingGoal(null);
+        }
     };
 
     const subGoalsOfDeleting = useMemo(() => {
@@ -446,21 +462,6 @@ const Forecasting: React.FC = () => {
         });
         return { topLevelGoals: topLevel, goalsByParentId: byParent, displayedGoals: visibleGoals };
     }, [goalsWithProjections, filterGoalsByAccount, selectedAccountIds]);
-
-    const areAllDisplayedSelected = useMemo(() => {
-        if (displayedGoals.length === 0) return false;
-        return displayedGoals.every(g => activeGoalIds.includes(g.id));
-    }, [displayedGoals, activeGoalIds]);
-
-    const handleToggleAllDisplayed = () => {
-        if (areAllDisplayedSelected) {
-            const visibleIds = new Set(displayedGoals.map(g => g.id));
-            setActiveGoalIds(prev => prev.filter(id => !visibleIds.has(id)));
-        } else {
-            const visibleIds = displayedGoals.map(g => g.id);
-            setActiveGoalIds(prev => [...new Set([...prev, ...visibleIds])]);
-        }
-    };
 
     const handleDateClick = (date: string) => {
         setSelectedForecastDate(date);
@@ -511,6 +512,21 @@ const Forecasting: React.FC = () => {
         });
     }, [accounts]);
 
+    const areAllDisplayedSelected = useMemo(() => {
+        if (displayedGoals.length === 0) return false;
+        return displayedGoals.every(g => activeGoalIds.includes(g.id));
+    }, [displayedGoals, activeGoalIds]);
+
+    const handleToggleAllDisplayed = () => {
+        if (areAllDisplayedSelected) {
+            const visibleIds = new Set(displayedGoals.map(g => g.id));
+            setActiveGoalIds(prev => prev.filter(id => !visibleIds.has(id)));
+        } else {
+            const visibleIds = displayedGoals.map(g => g.id);
+            setActiveGoalIds(prev => [...new Set([...prev, ...visibleIds])]);
+        }
+    };
+
     return (
         <div className="space-y-8 pb-12 animate-fade-in-up">
             {isModalOpen && <GoalScenarioModal onClose={() => setIsModalOpen(false)} onSave={(d) => { saveFinancialGoal(d); setIsModalOpen(false); }} goalToEdit={editingGoal} financialGoals={financialGoals} parentId={parentIdForNewGoal} accounts={accounts} />}
@@ -529,7 +545,6 @@ const Forecasting: React.FC = () => {
                 />
             )}
 
-            {/* Header */}
             <PageHeader
                 markerIcon="trending_up"
                 markerLabel="Forward View"
@@ -551,6 +566,15 @@ const Forecasting: React.FC = () => {
                              <button onClick={() => setShowIndividualLines(false)} className={`${segmentItemBase} ${!showIndividualLines ? segmentItemActive : segmentItemInactive}`}>Consolidated</button>
                              <button onClick={() => setShowIndividualLines(true)} className={`${segmentItemBase} ${showIndividualLines ? segmentItemActive : segmentItemInactive}`}>Individual</button>
                         </div>
+                        <div className="flex bg-light-fill dark:bg-dark-fill p-1 rounded-lg h-10 flex-shrink-0 w-full sm:w-auto">
+                             <button onClick={() => setShowGoalLines(true)} className={`${segmentItemBase} ${showGoalLines ? segmentItemActive : segmentItemInactive}`}>
+                                <span className="material-symbols-outlined text-lg mr-1.5">flag</span>
+                                Goals
+                             </button>
+                             <button onClick={() => setShowGoalLines(false)} className={`${segmentItemBase} ${!showGoalLines ? segmentItemActive : segmentItemInactive}`}>
+                                Hide
+                             </button>
+                        </div>
                         <button onClick={() => handleOpenModal()} className={`${BTN_PRIMARY_STYLE} flex-shrink-0 whitespace-nowrap w-full sm:w-auto h-10`}>
                             <span className="material-symbols-outlined text-xl mr-2">add</span>
                             Add Goal
@@ -559,7 +583,6 @@ const Forecasting: React.FC = () => {
                 }
             />
 
-            {/* Summary Metrics */}
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
                 <MetricCard 
                     title="Projected End Balance" 
@@ -601,10 +624,8 @@ const Forecasting: React.FC = () => {
                 </div>
             </div>
             
-            {/* Forecast Horizon */}
             <ForecastOverview forecasts={lowestBalanceForecasts} currency="EUR" />
 
-            {/* Main Chart */}
             <Card>
                 <div className="flex justify-between items-center mb-4">
                     <h3 className="text-xl font-semibold text-light-text dark:text-dark-text">Cash Flow Forecast</h3>
@@ -613,7 +634,7 @@ const Forecasting: React.FC = () => {
                     </div>
                 </div>
                 <ForecastChart 
-                    data={forecastData} 
+                    data={combinedChartData} 
                     lowestPoint={lowestPoint} 
                     oneTimeGoals={activeGoals.filter(g => g.type === 'one-time')} 
                     showIndividualLines={showIndividualLines}
@@ -623,7 +644,6 @@ const Forecasting: React.FC = () => {
                 />
             </Card>
             
-            {/* Goals Section (Full Width with 3 Cols) */}
              <div className="space-y-6">
                  <div className="bg-light-fill dark:bg-dark-fill p-4 rounded-2xl flex flex-wrap justify-between items-center gap-4">
                     <div className="flex items-center gap-2">
@@ -642,6 +662,89 @@ const Forecasting: React.FC = () => {
                             {areAllDisplayedSelected ? 'Deselect All' : 'Select All'}
                         </button>
                     </div>
+                </div>
+
+                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 animate-fade-in-up">
+                    <div className="bg-white dark:bg-dark-card rounded-xl p-4 border-2 border-emerald-500/20 shadow-sm relative overflow-hidden group">
+                        <div className="flex justify-between items-start mb-1 relative z-10">
+                             <p className="text-[10px] font-black text-emerald-600 dark:text-emerald-400 uppercase tracking-widest">GRAND TOTAL INCOME</p>
+                             <span className="text-[10px] font-black uppercase px-2 py-0.5 rounded-full bg-emerald-100 text-emerald-700 dark:bg-emerald-900/40 dark:text-emerald-300 border border-emerald-200 dark:border-emerald-800 shadow-sm">GLOBAL</span>
+                        </div>
+                        <div className="flex items-end justify-between relative z-10 mt-2">
+                            <div>
+                                <p className="text-2xl font-black text-emerald-700 dark:text-emerald-400 tracking-tight">{formatCurrency(totalIncomeGoalCurrent, 'EUR')}</p>
+                                <p className="text-[10px] font-bold text-light-text-secondary dark:text-dark-text-secondary uppercase mt-0.5">Total Earned</p>
+                            </div>
+                            <div className="text-right">
+                                <p className="text-sm font-bold text-light-text dark:text-dark-text opacity-60">{formatCurrency(totalIncomeGoalTarget, 'EUR')}</p>
+                                <p className="text-[10px] font-bold text-light-text-secondary dark:text-dark-text-secondary uppercase">Target <span className="text-emerald-600 dark:text-emerald-400 font-black ml-1">{totalIncomeGoalTarget > 0 ? ((totalIncomeGoalCurrent / totalIncomeGoalTarget) * 100).toFixed(0) : 0}%</span></p>
+                            </div>
+                        </div>
+                        <div className="w-full h-2 bg-gray-100 dark:bg-white/5 rounded-full mt-4 overflow-hidden relative z-10 border border-black/5 dark:border-white/5 shadow-inner">
+                            <div 
+                                className="h-full bg-gradient-to-r from-emerald-400 to-emerald-600 rounded-full transition-all duration-1000 ease-out"
+                                style={{ width: `${totalIncomeGoalTarget > 0 ? Math.min(100, (totalIncomeGoalCurrent / totalIncomeGoalTarget) * 100) : 0}%` }}
+                            ></div>
+                        </div>
+                        <div className="absolute top-0 right-0 p-2 opacity-[0.03] group-hover:opacity-[0.07] transition-opacity pointer-events-none">
+                            <span className="material-symbols-outlined text-7xl">monetization_on</span>
+                        </div>
+                    </div>
+
+                    <div className="bg-white dark:bg-dark-card rounded-xl p-4 border-2 border-rose-500/20 shadow-sm relative overflow-hidden group">
+                        <div className="flex justify-between items-start mb-1 relative z-10">
+                             <p className="text-[10px] font-black text-rose-600 dark:text-rose-400 uppercase tracking-widest">GRAND TOTAL SAVINGS</p>
+                             <span className="text-[10px] font-black uppercase px-2 py-0.5 rounded-full bg-rose-100 text-rose-700 dark:bg-rose-900/40 dark:text-rose-300 border border-rose-200 dark:border-rose-800 shadow-sm">GLOBAL</span>
+                        </div>
+                        <div className="flex items-end justify-between relative z-10 mt-2">
+                            <div>
+                                <p className="text-2xl font-black text-rose-700 dark:text-rose-400 tracking-tight">{formatCurrency(totalSavingsGoalCurrent, 'EUR')}</p>
+                                <p className="text-[10px] font-bold text-light-text-secondary dark:text-dark-text-secondary uppercase mt-0.5">Total Saved</p>
+                            </div>
+                            <div className="text-right">
+                                <p className="text-sm font-bold text-light-text dark:text-dark-text opacity-60">{formatCurrency(totalSavingsGoalTarget, 'EUR')}</p>
+                                <p className="text-[10px] font-bold text-light-text-secondary dark:text-dark-text-secondary uppercase">Target <span className="text-rose-600 dark:text-rose-400 font-black ml-1">{totalSavingsGoalTarget > 0 ? ((totalSavingsGoalCurrent / totalSavingsGoalTarget) * 100).toFixed(0) : 0}%</span></p>
+                            </div>
+                        </div>
+                        <div className="w-full h-2 bg-gray-100 dark:bg-white/5 rounded-full mt-4 overflow-hidden relative z-10 border border-black/5 dark:border-white/5 shadow-inner">
+                            <div 
+                                className="h-full bg-gradient-to-r from-rose-400 to-rose-600 rounded-full transition-all duration-1000 ease-out"
+                                style={{ width: `${totalSavingsGoalTarget > 0 ? Math.min(100, (totalSavingsGoalCurrent / totalSavingsGoalTarget) * 100) : 0}%` }}
+                            ></div>
+                        </div>
+                         <div className="absolute top-0 right-0 p-2 opacity-[0.03] group-hover:opacity-[0.07] transition-opacity pointer-events-none">
+                            <span className="material-symbols-outlined text-7xl">savings</span>
+                        </div>
+                    </div>
+
+                    {accountGoalSummary.map(summary => {
+                        const progress = Math.min(100, (summary.current / summary.target) * 100);
+                        return (
+                        <div key={summary.id} className="bg-white dark:bg-dark-card rounded-xl p-4 border border-black/5 dark:border-white/5 shadow-sm">
+                            <div className="flex justify-between items-start mb-1">
+                                 <p className="text-[10px] font-bold text-light-text-secondary dark:text-dark-text-secondary uppercase tracking-widest truncate max-w-[70%]">{summary.name}</p>
+                                 <span className={`text-[10px] font-bold uppercase px-1.5 py-0.5 rounded ${summary.type === 'income' ? 'bg-emerald-100 text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-400' : 'bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-400'}`}>
+                                     {summary.type === 'income' ? 'Earnings' : 'Savings'}
+                                 </span>
+                            </div>
+                            <div className="flex items-end justify-between mt-2">
+                                <div>
+                                    <p className="text-xl font-bold text-light-text dark:text-dark-text">{formatCurrency(summary.current, summary.currency)}</p>
+                                    <p className="text-[10px] font-bold text-light-text-secondary dark:text-dark-text-secondary uppercase mt-0.5">{summary.type === 'income' ? 'Earned' : 'Saved'}</p>
+                                </div>
+                                <div className="text-right">
+                                    <p className="text-sm font-semibold text-light-text dark:text-dark-text opacity-60">{formatCurrency(summary.target, summary.currency)}</p>
+                                    <p className="text-[10px] font-bold text-light-text-secondary dark:text-dark-text-secondary uppercase">Target <span className="font-black ml-1">{progress.toFixed(0)}%</span></p>
+                                </div>
+                            </div>
+                            <div className="w-full h-1.5 bg-gray-100 dark:bg-white/5 rounded-full mt-4 overflow-hidden border border-black/5 dark:border-white/5 shadow-inner">
+                                <div 
+                                    className={`h-full rounded-full ${summary.type === 'income' ? 'bg-emerald-500' : 'bg-primary-500'}`}
+                                    style={{ width: `${progress}%` }}
+                                ></div>
+                            </div>
+                        </div>
+                    )})}
                 </div>
                 
                 <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
@@ -680,7 +783,6 @@ const Forecasting: React.FC = () => {
                 </div>
             </div>
 
-            {/* Forecast Ledger (Redesigned) */}
             <div className="space-y-4">
                  <div className="flex flex-col sm:flex-row sm:justify-between sm:items-center gap-4">
                     <div className="flex items-center gap-3">
@@ -698,7 +800,7 @@ const Forecasting: React.FC = () => {
                     </div>
                 </div>
 
-                <Card className="overflow-hidden border-0 shadow-lg bg-white dark:bg-dark-card p-0">
+                <Card className="overflow-hidden border-0 shadow-lg bg-white dark:bg-dark-card !p-0">
                     <div className="overflow-x-auto max-h-[600px]">
                         <table className="w-full text-sm text-left border-collapse">
                              <thead className="sticky top-0 z-20 bg-white dark:bg-[#1E1E20] shadow-sm text-xs uppercase font-bold tracking-wider text-light-text-secondary dark:text-dark-text-secondary">
@@ -755,116 +857,13 @@ const Forecasting: React.FC = () => {
                                         </tr>
                                     );
                                 })}
-                                {tableData.length === 0 && (
-                                    <tr>
-                                        <td colSpan={6} className="px-6 py-16 text-center text-light-text-secondary dark:text-dark-text-secondary">
-                                            <span className="material-symbols-outlined text-4xl mb-2 opacity-30">event_busy</span>
-                                            <p className="text-sm">No forecast data available for the selected period.</p>
-                                        </td>
-                                    </tr>
-                                )}
                              </tbody>
                         </table>
                     </div>
                 </Card>
             </div>
-            
-            {/* Bottom Grid: Major Expenses & AI Planner */}
-            <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
-                 {/* Major Expenses (1/3) */}
-                 <div className="lg:col-span-1 space-y-6">
-                     <Card className="border-l-4 border-l-red-500 h-full flex flex-col">
-                        <div className="flex items-center justify-between mb-4">
-                            <h3 className="text-lg font-bold text-light-text dark:text-dark-text flex items-center gap-2">
-                                <span className="material-symbols-outlined text-red-500">payments</span>
-                                Major Outflows
-                            </h3>
-                            <span className="text-[10px] font-bold uppercase bg-red-50 dark:bg-red-900/20 text-red-600 dark:text-red-400 px-2 py-0.5 rounded-full">Next {forecastDuration}</span>
-                        </div>
-                         <div className="relative flex-grow">
-                            {/* Timeline Line */}
-                            <div className="absolute left-3.5 top-2 bottom-2 w-0.5 bg-gray-100 dark:bg-white/5"></div>
-                            
-                            <div className="space-y-4">
-                                {majorUpcomingOutflows.length > 0 ? majorUpcomingOutflows.map((item, idx) => {
-                                    const dateObj = parseLocalDate(item.date);
-                                    return (
-                                    <div key={`${item.name}-${item.date}-${item.amount}`} className="relative pl-10 flex items-center justify-between group">
-                                        {/* Dot */}
-                                        <div className="absolute left-1.5 top-1/2 -translate-y-1/2 w-4 h-4 rounded-full border-2 border-white dark:border-dark-card bg-red-400 z-10 shadow-sm"></div>
-                                        
-                                        <div className="min-w-0 pr-4">
-                                            <p className="font-bold text-sm text-light-text dark:text-dark-text truncate">{item.name}</p>
-                                            <p className="text-[10px] font-bold uppercase text-light-text-secondary dark:text-dark-text-secondary mt-0.5">
-                                                {dateObj.getDate()} {dateObj.toLocaleString('default', { month: 'short' })}
-                                            </p>
-                                        </div>
-                                        <span className="font-mono font-bold text-sm text-light-text dark:text-dark-text bg-gray-50 dark:bg-white/5 px-2 py-1 rounded border border-black/5 dark:border-white/5 whitespace-nowrap">
-                                            {formatCurrency(item.amount, 'EUR')}
-                                        </span>
-                                    </div>
-                                )}) : (
-                                    <div className="pl-10 py-6 text-sm text-light-text-secondary dark:text-dark-text-secondary italic">
-                                        No major expenses projected.
-                                    </div>
-                                )}
-                            </div>
-                         </div>
-                     </Card>
-                 </div>
-
-                 {/* AI Planner (2/3) */}
-                 <div className="lg:col-span-2">
-                     <div className="rounded-3xl p-1 bg-gradient-to-br from-indigo-500 via-purple-500 to-pink-500 h-full">
-                         <div className="bg-white dark:bg-dark-card rounded-[20px] p-5 h-full relative overflow-hidden flex flex-col">
-                             <div className="absolute top-0 right-0 p-4 opacity-5 pointer-events-none">
-                                 <span className="material-symbols-outlined text-8xl">psychology</span>
-                             </div>
-                             
-                             <div className="relative z-10 flex-grow">
-                                 <div className="flex items-center gap-3 mb-4">
-                                      <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-indigo-500 to-purple-600 flex items-center justify-center text-white shadow-lg">
-                                         <span className="material-symbols-outlined text-xl">auto_awesome</span>
-                                      </div>
-                                      <div>
-                                          <h3 className="text-lg font-bold text-gray-900 dark:text-white leading-tight">Smart Planner</h3>
-                                          <p className="text-[10px] uppercase font-bold tracking-wider text-indigo-500 dark:text-indigo-400">AI Powered</p>
-                                      </div>
-                                 </div>
-                                
-                                <p className="text-sm text-gray-600 dark:text-gray-300 mb-6 leading-relaxed">
-                                    Not sure how to reach your goals? I can analyze your cash flow and build a custom contribution strategy for you.
-                                </p>
-                                
-                                <button 
-                                    onClick={generatePlan} 
-                                    className="w-full py-3 rounded-xl bg-gray-900 dark:bg-white text-white dark:text-gray-900 font-bold text-sm shadow-lg hover:shadow-xl hover:-translate-y-0.5 transition-all flex items-center justify-center gap-2 disabled:opacity-70 disabled:cursor-not-allowed"
-                                    disabled={isPlanLoading}
-                                >
-                                    {isPlanLoading ? (
-                                        <>
-                                            <svg className="animate-spin h-4 w-4" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24"><circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle><path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path></svg>
-                                            Generating...
-                                        </>
-                                    ) : (
-                                        <>
-                                            <span>Create Plan</span>
-                                            <span className="material-symbols-outlined text-sm">arrow_forward</span>
-                                        </>
-                                    )}
-                                </button>
-                                
-                                <div className="mt-4 max-h-[300px] overflow-y-auto pr-1 custom-scrollbar">
-                                     <GoalContributionPlan plan={plan} isLoading={isPlanLoading} error={planError} />
-                                </div>
-                             </div>
-                         </div>
-                     </div>
-                </div>
-            </div>
-            
         </div>
     );
 };
 
-export default React.memo(Forecasting);
+export default Forecasting;

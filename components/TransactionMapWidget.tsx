@@ -16,6 +16,7 @@ const BoundsFitter: React.FC<{ coords: [number, number][] }> = ({ coords }) => {
         if (coords.length > 0) {
             const bounds = L.latLngBounds(coords);
             map.fitBounds(bounds, { padding: [30, 30], maxZoom: 13 });
+            map.invalidateSize(); // Ensure tiles render correctly after resize/fit
         }
     }, [coords, map]);
     return null;
@@ -27,6 +28,7 @@ const TransactionMapWidget: React.FC<TransactionMapWidgetProps> = ({ transaction
   useEffect(() => {
     const checkDarkMode = () => document.documentElement.classList.contains('dark');
     setIsDarkMode(checkDarkMode());
+    
     const observer = new MutationObserver(checkDarkMode);
     observer.observe(document.documentElement, { attributes: true, attributeFilter: ['class'] });
     return () => observer.disconnect();
@@ -82,7 +84,7 @@ const TransactionMapWidget: React.FC<TransactionMapWidgetProps> = ({ transaction
     });
   }, [transactions]);
 
-  const coords: [number, number][] = locations.map(l => [l.lat, l.lon]);
+  const coords: [number, number][] = useMemo(() => locations.map(l => [l.lat, l.lon]), [locations]);
 
   const maxDensity = useMemo(() => {
     return locations.reduce((max, loc) => Math.max(max, loc.count), 0) || 1;
@@ -108,7 +110,7 @@ const TransactionMapWidget: React.FC<TransactionMapWidgetProps> = ({ transaction
 
   if (locations.length === 0) {
     return (
-        <div className="h-full flex items-center justify-center text-light-text-secondary dark:text-dark-text-secondary">
+        <div className="h-full flex items-center justify-center text-light-text-secondary dark:text-dark-text-secondary min-h-[300px]">
             <div className="text-center">
                 <span className="material-symbols-outlined text-4xl mb-2 opacity-50">public_off</span>
                 <p>No location data found in recent transactions.</p>
@@ -118,7 +120,7 @@ const TransactionMapWidget: React.FC<TransactionMapWidgetProps> = ({ transaction
   }
 
   return (
-    <div className="h-full w-full overflow-hidden relative z-0 rounded-lg group">
+    <div className="h-full w-full overflow-hidden relative z-0 rounded-lg group min-h-[300px]">
         <MapContainer center={[20, 0]} zoom={2} style={{ height: '100%', width: '100%' }} className="z-0 bg-light-bg dark:bg-dark-bg" zoomControl={false}>
             <TileLayer
                 attribution={attribution}

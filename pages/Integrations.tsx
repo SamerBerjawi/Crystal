@@ -154,7 +154,8 @@ const Integrations: React.FC<IntegrationsProps> = ({
               <span className="material-symbols-outlined text-primary-500">api</span>
               <h3 className="text-lg font-bold text-light-text dark:text-dark-text">Data Services</h3>
           </div>
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+              
               <ApiKeyCard
                   title="Twelve Data"
                   description="Enables real-time stock, ETF, and crypto pricing updates for your investment portfolio."
@@ -169,7 +170,7 @@ const Integrations: React.FC<IntegrationsProps> = ({
               <ApiKeyCard
                   title="Brandfetch"
                   description="Automatically fetches high-quality logos for merchants and institutions based on transaction names."
-                  icon="collections" // 'image' or 'branding_watermark'
+                  icon="collections"
                   name="brandfetchClientId"
                   value={localApiKeys.brandfetchClientId}
                   onChange={(value) => handleLocalChange('brandfetchClientId', value)}

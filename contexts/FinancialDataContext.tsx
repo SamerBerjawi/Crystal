@@ -1,4 +1,3 @@
-
 import React, { createContext, useContext, useMemo, ReactNode } from 'react';
 import { Category, Tag, Budget, FinancialGoal, RecurringTransaction, RecurringTransactionOverride, LoanPaymentOverrides, BillPayment, ScheduledPayment, Membership } from '../types';
 import { AccountsContextValue, AccountsProvider, PreferencesContextValue, PreferencesProvider, TransactionsContextValue, TransactionsProvider, WarrantsContextValue, WarrantsProvider, InvoicesContextValue, InvoicesProvider } from './DomainProviders';
@@ -12,19 +11,18 @@ interface CategoryContextValue {
 
 interface TagsContextValue {
   tags: Tag[];
-  saveTag: (tag: Tag) => void;
+  saveTag: (tag: Omit<Tag, 'id'> & { id?: string }) => void;
   deleteTag: (tagId: string) => void;
 }
 
 interface BudgetsContextValue {
   budgets: Budget[];
-  saveBudget: (budget: Budget) => void;
+  saveBudget: (budget: Omit<Budget, 'id'> & { id?: string }) => void;
   deleteBudget: (budgetId: string) => void;
 }
 
 interface GoalsContextValue {
   financialGoals: FinancialGoal[];
-  // FIX: Updated the type to allow an optional 'id', aligning it with the data structure used when creating new goals.
   saveFinancialGoal: (goal: Omit<FinancialGoal, 'id'> & { id?: string }) => void;
   deleteFinancialGoal: (goalId: string) => void;
 }
@@ -35,14 +33,11 @@ interface ScheduleContextValue {
   loanPaymentOverrides: LoanPaymentOverrides;
   billsAndPayments: BillPayment[];
   memberships: Membership[];
-  // FIX: Updated the type to allow an optional 'id', aligning it with the data structure for new transactions.
   saveRecurringTransaction: (recurringData: Omit<RecurringTransaction, 'id'> & { id?: string }) => void;
   deleteRecurringTransaction: (recurringId: string) => void;
   saveRecurringOverride: (override: RecurringTransactionOverride) => void;
-  // FIX: Modified the signature to accept 'recurringTransactionId' and 'originalDate' to correctly identify and delete an override.
   deleteRecurringOverride: (recurringTransactionId: string, originalDate: string) => void;
   saveLoanPaymentOverrides: (accountId: string, overrides: Record<number, Partial<ScheduledPayment>>) => void;
-  // FIX: Updated the type to allow an optional 'id' for new bill payments.
   saveBillPayment: (bill: Omit<BillPayment, 'id'> & { id?: string }) => void;
   deleteBillPayment: (billId: string) => void;
   markBillAsPaid: (billId: string, paymentAccountId: string, paymentDate: string) => void;

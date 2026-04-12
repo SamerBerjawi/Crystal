@@ -2,6 +2,8 @@
 import React, { useMemo, useState } from 'react';
 import { Membership } from '../types';
 import { parseLocalDate } from '../utils';
+import { usePreferencesSelector } from '../contexts/DomainProviders';
+import { getMerchantLogoUrl } from '../utils/brandfetch';
 
 interface LoyaltyCardProps {
   membership: Membership;
@@ -11,6 +13,9 @@ interface LoyaltyCardProps {
 
 const LoyaltyCard: React.FC<LoyaltyCardProps> = ({ membership, onEdit, onDelete }) => {
   const [copied, setCopied] = useState(false);
+  const brandfetchClientId = usePreferencesSelector(p => (p.brandfetchClientId || '').trim());
+  const merchantLogoOverrides = usePreferencesSelector(p => p.merchantLogoOverrides || {});
+  const [logoError, setLogoError] = useState(false);
 
   const normalizeColor = (hexColor: string) => hexColor.replace('#', '');
 
@@ -55,17 +60,22 @@ const LoyaltyCard: React.FC<LoyaltyCardProps> = ({ membership, onEdit, onDelete 
       e.stopPropagation();
   };
 
+  const logoUrl = getMerchantLogoUrl(membership.provider, brandfetchClientId, merchantLogoOverrides, { fallback: 'lettermark', type: 'icon', width: 128, height: 128 });
+  const hasLogo = Boolean(logoUrl && !logoError);
+
   return (
     <div className="group relative w-full aspect-[1.586/1] rounded-2xl shadow-md hover:shadow-xl transition-all duration-300 hover:-translate-y-1 overflow-hidden border border-white/10 select-none bg-black">
       
       {/* Background Layer */}
       <div className="absolute inset-0 z-0" style={gradientBackground}></div>
       
-      {/* Texture & Watermark Icon */}
+      {/* Texture & Watermark Icon - Hide watermark if we have a real logo to avoid clutter */}
       <div className="absolute inset-0 z-0 bg-[url('https://www.transparenttextures.com/patterns/cubes.png')] opacity-10 mix-blend-overlay"></div>
-      <div className="absolute -right-4 -bottom-8 text-white opacity-10 z-0 pointer-events-none transform rotate-12">
-           <span className="material-symbols-outlined text-[140px] leading-none">{membership.icon || 'loyalty'}</span>
-      </div>
+      {!hasLogo && (
+        <div className="absolute -right-4 -bottom-8 text-white opacity-10 z-0 pointer-events-none transform rotate-12">
+             <span className="material-symbols-outlined text-[140px] leading-none">{membership.icon || 'loyalty'}</span>
+        </div>
+      )}
       
       {/* Actions Overlay (Top Right) */}
       <div className="absolute top-4 right-4 z-30 flex gap-2 opacity-0 group-hover:opacity-100 transition-opacity duration-200">
@@ -90,8 +100,20 @@ const LoyaltyCard: React.FC<LoyaltyCardProps> = ({ membership, onEdit, onDelete 
         
         {/* Top Row: Provider & Tier */}
         <div className="flex justify-between items-start pr-16"> {/* pr-16 to avoid overlap with actions */}
-             <div className="flex items-center gap-2">
-                <span className="material-symbols-outlined text-xl opacity-90">{membership.icon || 'loyalty'}</span>
+             <div className="flex items-center gap-3">
+                {hasLogo ? (
+                    <div className="w-10 h-10 rounded-lg bg-white shadow-sm flex items-center justify-center overflow-hidden">
+                        <img 
+                            src={logoUrl!} 
+                            alt={membership.provider} 
+                            className="w-full h-full object-cover" 
+                            onError={() => setLogoError(true)}
+                        />
+                    </div>
+                ) : (
+                    <span className="material-symbols-outlined text-xl opacity-90">{membership.icon || 'loyalty'}</span>
+                )}
+                
                 {membership.website ? (
                     <a 
                         href={membership.website} 

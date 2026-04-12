@@ -1,7 +1,7 @@
 
 import React, { useMemo } from 'react';
 import { AreaChart, Area, LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, ReferenceLine, Label, Legend } from 'recharts';
-import { formatCurrency, getPreferredTimeZone, parseLocalDate } from '../utils';
+import { formatCurrency, getPreferredTimeZone, parseLocalDate, toLocalISOString } from '../utils';
 import { FinancialGoal, Account } from '../types';
 import { ACCOUNT_TYPE_STYLES } from '../constants';
 
@@ -18,7 +18,8 @@ const getColorForAccount = (account: Account, index: number) => {
 interface ChartData {
   date: string;
   value: number; // Total
-  [key: string]: number | string | { description: string, amount: number, type: string }[]; // Dynamic keys for account IDs + dailySummary
+  isHistory?: boolean;
+  [key: string]: number | string | boolean | { description: string, amount: number, type: string }[] | undefined; // Dynamic keys for account IDs + dailySummary
 }
 
 interface ForecastChartProps {
@@ -37,6 +38,8 @@ interface ForecastChartProps {
 const CustomTooltip: React.FC<{ active?: boolean; payload?: any[]; label?: string, showIndividualLines?: boolean, accounts?: Account[] }> = ({ active, payload, label, showIndividualLines, accounts }) => {
     if (active && payload && payload.length && label) {
       let formattedDate = label;
+      let isHistory = false;
+
       try {
            const dateObj = parseLocalDate(label);
            formattedDate = dateObj.toLocaleDateString('en-US', { month: 'long', day: 'numeric', year: 'numeric' });
@@ -44,16 +47,21 @@ const CustomTooltip: React.FC<{ active?: boolean; payload?: any[]; label?: strin
           console.warn("Tooltip date parse error", e);
       }
       
+      const dataPoint = payload[0].payload;
+      isHistory = !!dataPoint.isHistory;
+
       // Sort payload by value descending for cleaner tooltip
       const sortedPayload = [...payload].sort((a, b) => b.value - a.value);
-      const dataPoint = payload[0].payload;
       const dailySummary = dataPoint.dailySummary as { description: string; amount: number; type: string }[] | undefined;
       const summaryToShow = dailySummary ? dailySummary.slice(0, 5) : [];
       const remainingCount = dailySummary ? dailySummary.length - 5 : 0;
 
       return (
         <div className="bg-white/95 dark:bg-gray-900/95 backdrop-blur-md p-4 rounded-xl shadow-xl border border-gray-200 dark:border-gray-700 text-sm max-w-[320px] z-50">
-          <p className="font-bold text-gray-900 dark:text-white mb-3 border-b border-gray-200 dark:border-gray-700 pb-2">{formattedDate}</p>
+          <div className="flex justify-between items-center mb-3 border-b border-gray-200 dark:border-gray-700 pb-2">
+              <p className="font-bold text-gray-900 dark:text-white">{formattedDate}</p>
+              {isHistory && <span className="text-[10px] uppercase font-bold bg-gray-100 dark:bg-gray-800 text-gray-500 px-2 py-0.5 rounded">History</span>}
+          </div>
           
           {showIndividualLines ? (
               <div className="space-y-1.5 max-h-60 overflow-y-auto custom-scrollbar pr-1">
@@ -75,7 +83,7 @@ const CustomTooltip: React.FC<{ active?: boolean; payload?: any[]; label?: strin
           ) : (
              <div className="mb-4">
                 <div className="flex justify-between items-end">
-                    <span className="text-xs text-gray-500 dark:text-gray-400 font-medium uppercase tracking-wide">Projected Balance</span>
+                    <span className="text-xs text-gray-500 dark:text-gray-400 font-medium uppercase tracking-wide">Balance</span>
                     <span className="text-lg font-bold text-indigo-600 dark:text-indigo-400 font-mono">{formatCurrency(payload[0].value, 'EUR')}</span>
                 </div>
              </div>
@@ -101,9 +109,11 @@ const CustomTooltip: React.FC<{ active?: boolean; payload?: any[]; label?: strin
                 </div>
             </div>
           )}
-          <div className="mt-3 text-[10px] text-gray-400 text-center font-medium">
-              Click point for details
-          </div>
+          {!isHistory && (
+              <div className="mt-3 text-[10px] text-gray-400 text-center font-medium">
+                  Click point for details
+              </div>
+          )}
         </div>
       );
     }
@@ -118,6 +128,21 @@ const yAxisTickFormatter = (value: number) => {
 
 const ForecastChart: React.FC<ForecastChartProps> = ({ data, oneTimeGoals, lowestPoint, showIndividualLines = false, accounts = [], showGoalLines = true, onDataPointClick }) => {
   
+  const todayStr = toLocalISOString(new Date());
+
+  // Group goals by date to handle overlapping labels
+  const goalsByDate = useMemo(() => {
+    const grouped: Record<string, FinancialGoal[]> = {};
+    if (!showGoalLines) return grouped;
+    
+    oneTimeGoals.forEach(goal => {
+      if (!goal.date) return;
+      if (!grouped[goal.date]) grouped[goal.date] = [];
+      grouped[goal.date].push(goal);
+    });
+    return grouped;
+  }, [oneTimeGoals, showGoalLines]);
+
   // Handle empty data gracefully
   if (!data || data.length === 0) {
     return (
@@ -192,13 +217,6 @@ const ForecastChart: React.FC<ForecastChartProps> = ({ data, oneTimeGoals, lowes
         return { ticks: undefined, tickFormatter: formatter };
     }
   }, [data]);
-
-  const lowestPointDateFormatted = lowestPoint?.date
-    ? parseLocalDate(lowestPoint.date).toLocaleDateString('en-US', {
-        month: 'short',
-        day: 'numeric',
-      })
-    : '';
   
   // Common Props
   const commonAxisProps = {
@@ -212,7 +230,11 @@ const ForecastChart: React.FC<ForecastChartProps> = ({ data, oneTimeGoals, lowes
   
   const handleChartClick = (state: any) => {
       if (state && state.activeLabel && onDataPointClick) {
-          onDataPointClick(state.activeLabel);
+          // Prevent clicking on history points for adding transactions (since history is read-only in this view)
+          const point = data.find(d => d.date === state.activeLabel);
+          if (point && !point.isHistory) {
+              onDataPointClick(state.activeLabel);
+          }
       }
   };
 
@@ -234,7 +256,7 @@ const ForecastChart: React.FC<ForecastChartProps> = ({ data, oneTimeGoals, lowes
                 />
                 
                 {/* Render a line for each account */}
-                {accounts.map((acc, idx) => (
+                {(accounts || []).map((acc, idx) => (
                     <Line 
                         key={acc.id}
                         type="monotone" 
@@ -247,20 +269,43 @@ const ForecastChart: React.FC<ForecastChartProps> = ({ data, oneTimeGoals, lowes
                         cursor="pointer"
                     />
                 ))}
+                
+                {/* Today Marker */}
+                <ReferenceLine x={todayStr} stroke="#6366F1" strokeDasharray="3 3" strokeWidth={2}>
+                    <Label 
+                        value="Today" 
+                        position="insideTopLeft" 
+                        fill="#6366F1" 
+                        fontSize={12} 
+                        fontWeight={700}
+                        dy={-10}
+                    />
+                </ReferenceLine>
 
-                {showGoalLines && oneTimeGoals.map(goal => (
-                    <ReferenceLine key={goal.id} x={goal.date} stroke="#F59E0B" strokeDasharray="3 3" strokeOpacity={0.8}>
-                        <Label 
-                            value={goal.name} 
-                            position="insideTopRight" 
-                            fill="#F59E0B" 
-                            fontSize={11} 
-                            fontWeight={600}
-                            angle={-90} 
-                            dx={10} 
-                            dy={20} 
-                        />
-                    </ReferenceLine>
+                {Object.entries(goalsByDate).map(([date, goals]) => (
+                    <ReferenceLine 
+                        key={date} 
+                        x={date} 
+                        stroke="#F59E0B" 
+                        strokeWidth={1.5}
+                        strokeDasharray="3 3"
+                        strokeOpacity={0.6}
+                    >
+                        {(goals as FinancialGoal[]).map((goal, index) => (
+                             <Label 
+                                 key={goal.id}
+                                 value={goal.name} 
+                                 position="insideTopRight" 
+                                 fill="#F59E0B" 
+                                 fontSize={10} 
+                                 fontWeight={800}
+                                 angle={-90} 
+                                 dx={14 + (index * 12)}
+                                 dy={20}
+                                 className="tracking-wide"
+                             />
+                        ))}
+                     </ReferenceLine>
                 ))}
              </LineChart>
         ) : (
@@ -273,6 +318,10 @@ const ForecastChart: React.FC<ForecastChartProps> = ({ data, oneTimeGoals, lowes
                 <linearGradient id="colorValue" x1="0" y1="0" x2="0" y2="1">
                     <stop offset="5%" stopColor="#6366F1" stopOpacity={0.4}/>
                     <stop offset="95%" stopColor="#6366F1" stopOpacity={0}/>
+                </linearGradient>
+                <linearGradient id="colorHistory" x1="0" y1="0" x2="0" y2="1">
+                    <stop offset="5%" stopColor="#9CA3AF" stopOpacity={0.2}/>
+                    <stop offset="95%" stopColor="#9CA3AF" stopOpacity={0}/>
                 </linearGradient>
               </defs>
               
@@ -300,19 +349,44 @@ const ForecastChart: React.FC<ForecastChartProps> = ({ data, oneTimeGoals, lowes
               />
               
               <ReferenceLine y={0} stroke="#9CA3AF" strokeDasharray="3 3" opacity={0.4} />
+
+              {/* Today Marker */}
+              <ReferenceLine x={todayStr} stroke="#6366F1" strokeDasharray="3 3" strokeWidth={2} opacity={0.8}>
+                 <Label 
+                    value="Today" 
+                    position="insideTopLeft" 
+                    fill="#6366F1" 
+                    fontSize={12} 
+                    fontWeight={700}
+                    dy={-10}
+                    dx={4}
+                 />
+              </ReferenceLine>
               
-              {showGoalLines && oneTimeGoals.map(goal => (
-                  <ReferenceLine key={goal.id} x={goal.date} stroke="#F59E0B" strokeDasharray="3 3" strokeWidth={1.5}>
-                      <Label 
-                        value={`Goal: ${goal.name}`} 
-                        position="insideTopRight" 
-                        fill="#F59E0B" 
-                        fontSize={11} 
-                        fontWeight={600}
-                        angle={-90} 
-                        dx={12} 
-                        dy={20}
-                      />
+              {/* Grouped Goal Markers */}
+              {Object.entries(goalsByDate).map(([date, goals]) => (
+                  <ReferenceLine 
+                    key={date} 
+                    x={date} 
+                    stroke="#F59E0B" 
+                    strokeWidth={1.5}
+                    strokeDasharray="3 3"
+                    strokeOpacity={0.7}
+                   >
+                      {(goals as FinancialGoal[]).map((goal, index) => (
+                          <Label 
+                            key={goal.id}
+                            value={goal.name} 
+                            position="insideTopRight" 
+                            fill="#F59E0B" 
+                            fontSize={11} 
+                            fontWeight={800}
+                            angle={-90} 
+                            dx={14 + (index * 14)} 
+                            dy={20}
+                            className="tracking-wide"
+                          />
+                      ))}
                   </ReferenceLine>
               ))}
 
@@ -326,7 +400,10 @@ const ForecastChart: React.FC<ForecastChartProps> = ({ data, oneTimeGoals, lowes
                   dot={false} 
                   activeDot={{ r: 6, strokeWidth: 4, stroke: '#fff', fill: '#6366F1' }} 
                   cursor="pointer"
+                  connectNulls
               />
+              
+              {/* Overlay Area for History to distinguish visual style if needed (Optional: currently handled by main area, but could split data) */}
 
               {data.length > 0 && lowestPoint && (
                   <ReferenceLine
@@ -343,7 +420,7 @@ const ForecastChart: React.FC<ForecastChartProps> = ({ data, oneTimeGoals, lowes
                         fontSize={11} 
                         fontWeight={700}
                         angle={-90} 
-                        dx={12} 
+                        dx={14} 
                         dy={40} 
                     />
                   </ReferenceLine>

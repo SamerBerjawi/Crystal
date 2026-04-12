@@ -75,7 +75,7 @@ const IconPicker: React.FC<IconPickerProps> = ({ onClose, onSelect, iconList }) 
   }, [searchTerm, iconList, localMatches, remoteIcons]);
 
   return (
-    <Modal onClose={onClose} title="Select Icon" zIndexClass="z-[60]" size="xl">
+    <Modal onClose={onClose} title="Select Icon" zIndexClass="z-[10000]" size="xl">
       <div className="flex flex-col h-[60vh] max-h-[600px]">
         {/* Search Bar */}
         <div className="mb-4 relative flex-shrink-0">

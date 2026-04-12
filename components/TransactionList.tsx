@@ -1,8 +1,9 @@
-
-import React, { useMemo, useEffect, useRef, useState } from 'react';
+import React, { useMemo, useEffect, useRef, useState, useCallback } from 'react';
 import { Category, DisplayTransaction } from '../types';
 import { formatCurrency, convertToEur, parseLocalDate } from '../utils';
 import { useThrottledCallback } from '../hooks/useThrottledCallback';
+import { usePreferencesSelector } from '../contexts/DomainProviders';
+import { getMerchantLogoUrl, normalizeMerchantKey } from '../utils/brandfetch';
 
 interface TransactionListProps {
   transactions: DisplayTransaction[];
@@ -10,28 +11,49 @@ interface TransactionListProps {
   onTransactionClick?: (transaction: DisplayTransaction) => void;
 }
 
-const findCategoryDetails = (name: string, categories: Category[]): { icon?: string; parentIcon?: string } => {
-    for (const cat of categories) {
-        if (cat.name === name) return { icon: cat.icon };
-        if (cat.subCategories.length > 0) {
-            const found = findCategoryDetails(name, cat.subCategories);
-            if (found.icon) return { icon: found.icon, parentIcon: cat.icon };
-        }
-    }
-    return {};
+const buildCategoryDetailsMap = (categories: Category[]) => {
+  const detailsMap = new Map<string, { icon?: string; parentIcon?: string; color?: string }>();
+
+  const walk = (nodes: Category[], parentIcon?: string, parentColor?: string) => {
+    nodes.forEach(node => {
+      detailsMap.set(node.name, { icon: node.icon, parentIcon, color: node.color || parentColor });
+      if (node.subCategories.length > 0) {
+        walk(node.subCategories, node.icon || parentIcon, node.color || parentColor);
+      }
+    });
+  };
+
+  walk(categories);
+  return detailsMap;
 };
 
 const TransactionList: React.FC<TransactionListProps> = ({ transactions, allCategories, onTransactionClick }) => {
+  const brandfetchClientId = usePreferencesSelector(p => (p.brandfetchClientId || '').trim());
+  const merchantLogoOverrides = usePreferencesSelector(p => p.merchantLogoOverrides || {});
+  const merchantRules = usePreferencesSelector(p => p.merchantRules || {});
+  const [logoLoadErrors, setLogoLoadErrors] = useState<Set<string>>(() => new Set());
 
-  const getIconForCategory = (categoryName: string) => {
-    if (categoryName === 'Transfer') return 'swap_horiz';
-    const { icon, parentIcon } = findCategoryDetails(categoryName, allCategories);
-    return icon || parentIcon || 'sell';
-  };
+  const effectiveMerchantLogoOverrides = useMemo(() => {
+    const ruleLogoOverrides = Object.entries(merchantRules).reduce((acc, [merchantKey, rule]) => {
+      if (rule?.logo) acc[merchantKey] = rule.logo;
+      return acc;
+    }, {} as Record<string, string>);
+
+    return {
+      ...merchantLogoOverrides,
+      ...ruleLogoOverrides,
+    };
+  }, [merchantLogoOverrides, merchantRules]);
+
+  const handleLogoError = useCallback((logoUrl: string) => {
+    setLogoLoadErrors(prev => (prev.has(logoUrl) ? prev : new Set(prev).add(logoUrl)));
+  }, []);
 
   const formatDate = (dateString: string) => {
     return parseLocalDate(dateString).toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
   };
+
+  const categoryDetailsMap = useMemo(() => buildCategoryDetailsMap(allCategories), [allCategories]);
 
   const preparedTransactions = useMemo(
     () =>
@@ -41,12 +63,32 @@ const TransactionList: React.FC<TransactionListProps> = ({ transactions, allCate
         const amountDisplay = isTransfer
           ? formatCurrency(tx.amount, tx.currency)
           : formatCurrency(convertToEur(tx.amount, tx.currency), 'EUR');
-        const icon = getIconForCategory(tx.category);
-        const formattedDate = formatDate(tx.date);
+        
+        const catDetails = categoryDetailsMap.get(tx.category) || {};
+        const icon = isTransfer ? 'swap_horiz' : (catDetails.icon || catDetails.parentIcon || 'sell');
+        const categoryColor = isTransfer ? '#64748B' : (catDetails.color || '#A0AEC0');
+        
+        const merchantKey = normalizeMerchantKey(tx.merchant);
+        const merchantLogoUrl = merchantKey ? getMerchantLogoUrl(tx.merchant, brandfetchClientId, effectiveMerchantLogoOverrides, { fallback: 'lettermark', type: 'icon', width: 80, height: 80 }) : null;
+        const merchantInitial = tx.merchant?.trim().charAt(0)?.toUpperCase();
 
-        return { tx, description, amountDisplay, icon, isTransfer, formattedDate };
+        const formattedDate = formatDate(tx.date);
+        const spareAmountEur = tx.spareChangeAmount ? formatCurrency(convertToEur(Math.abs(tx.spareChangeAmount), tx.currency), 'EUR') : null;
+
+        return { 
+          tx, 
+          description, 
+          amountDisplay, 
+          icon, 
+          categoryColor, 
+          isTransfer, 
+          formattedDate, 
+          spareAmountEur,
+          merchantLogoUrl,
+          merchantInitial
+        };
       }),
-    [transactions, allCategories]
+    [transactions, categoryDetailsMap, brandfetchClientId, effectiveMerchantLogoOverrides]
   );
 
   const containerRef = useRef<HTMLDivElement>(null);
@@ -81,38 +123,61 @@ const TransactionList: React.FC<TransactionListProps> = ({ transactions, allCate
   const visibleTransactions = preparedTransactions.slice(startIndex, endIndex);
 
   return (
-      <div ref={containerRef} className="space-y-2 h-full max-h-[32rem] overflow-y-auto relative" role="list">
+      <div ref={containerRef} className="space-y-2 h-full w-full overflow-y-auto relative p-2" role="list">
         <div style={{ height: preparedTransactions.length * ROW_HEIGHT }} aria-hidden />
         <ul className="absolute inset-0" style={{ transform: `translateY(${offsetY}px)` }}>
-          {visibleTransactions.map(({ tx, description, amountDisplay, icon, isTransfer, formattedDate }) => {
+          {visibleTransactions.map(({ tx, description, amountDisplay, icon, categoryColor, isTransfer, formattedDate, spareAmountEur, merchantLogoUrl, merchantInitial }) => {
+            const showMerchantLogo = Boolean(merchantLogoUrl && !logoLoadErrors.has(merchantLogoUrl));
             return (
               <li
                 key={tx.id}
                 className="flex items-center justify-between group cursor-pointer hover:bg-light-fill dark:hover:bg-dark-fill p-2 rounded-lg transition-all duration-200 hover:shadow-sm"
                 onClick={() => onTransactionClick?.(tx)}
               >
-                <div className="flex items-center">
-                  <div className="flex-shrink-0 h-10 w-10 rounded-full bg-light-fill dark:bg-dark-fill flex items-center justify-center">
-                    <span className={`material-symbols-outlined ${isTransfer ? 'text-light-text-secondary dark:text-dark-text-secondary' : 'text-primary-500'}`}>
-                      {isTransfer ? 'swap_horiz' : icon}
-                    </span>
+                <div className="flex items-center min-w-0">
+                  <div 
+                    className={`flex-shrink-0 h-10 w-10 rounded-xl flex items-center justify-center overflow-hidden shadow-sm ${showMerchantLogo ? 'bg-white dark:bg-dark-card' : 'border border-black/5 dark:border-white/10'}`}
+                    style={showMerchantLogo ? undefined : { backgroundColor: isTransfer ? undefined : categoryColor }}
+                  >
+                    {showMerchantLogo && merchantLogoUrl ? (
+                      <img
+                        src={merchantLogoUrl}
+                        alt=""
+                        className="w-full h-full object-cover"
+                        onError={() => handleLogoError(merchantLogoUrl)}
+                      />
+                    ) : merchantInitial && !isTransfer ? (
+                      <span className="text-sm font-bold text-white uppercase">{merchantInitial}</span>
+                    ) : (
+                      <span className={`material-symbols-outlined ${isTransfer ? 'text-light-text-secondary dark:text-dark-text-secondary' : 'text-white'}`}>
+                        {icon}
+                      </span>
+                    )}
                   </div>
-                  <div className="ml-4">
-                    <p className="text-base font-medium text-light-text dark:text-dark-text flex items-center gap-2">
+                  <div className="ml-4 min-w-0">
+                    <p className="text-base font-medium text-light-text dark:text-dark-text flex items-center gap-2 truncate">
                         {description}
-                        {tx.isMarketAdjustment && <span className="text-[10px] uppercase font-bold bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-300 px-1.5 py-0.5 rounded">Market</span>}
+                        {tx.isMarketAdjustment && <span className="text-[10px] uppercase font-bold bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-300 px-1.5 py-0.5 rounded shrink-0">Market</span>}
                     </p>
                     <p className="text-xs text-light-text-secondary dark:text-dark-text-secondary">{formattedDate}</p>
                   </div>
                 </div>
-                <div className="flex items-center gap-2">
-                  <p
-                    className={`text-base font-semibold privacy-blur ${
-                      isTransfer ? 'text-light-text dark:text-dark-text' : (tx.type === 'income' ? 'text-semantic-green' : 'text-semantic-red')
-                    }`}
-                  >
-                    {amountDisplay}
-                  </p>
+                <div className="flex items-center gap-2 text-right shrink-0">
+                  <div>
+                    <p
+                      className={`text-base font-semibold privacy-blur ${
+                        isTransfer ? 'text-light-text dark:text-dark-text' : (tx.type === 'income' ? 'text-semantic-green' : 'text-semantic-red')
+                      }`}
+                    >
+                      {amountDisplay}
+                    </p>
+                    {spareAmountEur && (
+                      <p className="text-[10px] font-bold text-light-text-secondary dark:text-dark-text-secondary flex items-center justify-end gap-0.5 opacity-80">
+                        <span className="material-symbols-outlined text-[12px]">savings</span>
+                        {spareAmountEur}
+                      </p>
+                    )}
+                  </div>
                   <span className="material-symbols-outlined text-light-text-secondary dark:text-dark-text-secondary opacity-0 group-hover:opacity-100 transition-opacity">
                     chevron_right
                   </span>

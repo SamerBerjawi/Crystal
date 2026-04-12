@@ -51,6 +51,7 @@ const EditAccountModal: React.FC<EditAccountModalProps> = ({ onClose, onSave, on
 
   // New detailed fields
   const [subType, setSubType] = useState<InvestmentSubType>(initialSubType);
+  const [symbol, setSymbol] = useState(account.symbol || '');
   const [otherAssetSubType, setOtherAssetSubType] = useState<OtherAssetSubType>(initialOtherAssetSubType);
   const [otherLiabilitySubType, setOtherLiabilitySubType] = useState<OtherLiabilitySubType>(initialOtherLiabilitySubType);
   const [expectedRetirementYear, setExpectedRetirementYear] = useState(account.expectedRetirementYear != null ? String(account.expectedRetirementYear) : '');
@@ -283,10 +284,12 @@ const EditAccountModal: React.FC<EditAccountModalProps> = ({ onClose, onSave, on
       cardholderName: hasCard && cardholderName ? cardholderName : undefined,
 
       // Conditionally add new fields
-      subType: type === 'Investment' ? subType : undefined,
-      expectedRetirementYear: type === 'Investment' && subType === 'Pension Fund' && expectedRetirementYear ? parseInt(expectedRetirementYear, 10) : undefined,
-      linkedAccountId: (type === 'Investment' && subType === 'Spare Change') || (type === 'Loan' || type === 'Lending') || (type === 'Property') ? linkedAccountId || undefined : undefined,
-
+      ...(type === 'Investment' && { 
+          subType,
+          symbol: symbol ? symbol.toUpperCase() : undefined,
+          expectedRetirementYear: subType === 'Pension Fund' && expectedRetirementYear ? parseInt(expectedRetirementYear, 10) : undefined,
+          linkedAccountId: subType === 'Spare Change' ? linkedAccountId : undefined,
+      }),
       ...(type === 'Other Assets' && { 
           otherSubType: otherAssetSubType,
           location: location || undefined,
@@ -297,6 +300,7 @@ const EditAccountModal: React.FC<EditAccountModalProps> = ({ onClose, onSave, on
           otherSubType: otherLiabilitySubType,
           counterparty: counterparty || undefined,
           interestRate: interestRate !== '' ? parseFloat(interestRate) : undefined,
+          // Reuse paymentDate logic for due date if needed, or add new field
        }),
 
       ...((type === 'Loan' || type === 'Lending') && { 
@@ -569,6 +573,13 @@ const EditAccountModal: React.FC<EditAccountModalProps> = ({ onClose, onSave, on
                         <div className={SELECT_ARROW_STYLE}><span className="material-symbols-outlined">expand_more</span></div>
                       </div>
                     </div>
+                    {/* Show Symbol input for standard investment types */}
+                    {['Stock', 'ETF', 'Crypto'].includes(subType) && (
+                        <div>
+                             <label htmlFor="symbol" className={labelStyle}>Ticker / Symbol</label>
+                             <input id="symbol" type="text" value={symbol} onChange={e => setSymbol(e.target.value)} className={`${INPUT_BASE_STYLE} uppercase`} placeholder="e.g. AAPL" />
+                        </div>
+                    )}
                     {subType === 'Pension Fund' && (
                          <div>
                             <label htmlFor="retirementYear" className={labelStyle}>Expected Retirement Year</label>
@@ -1036,15 +1047,15 @@ const EditAccountModal: React.FC<EditAccountModalProps> = ({ onClose, onSave, on
             )}
           </div>
 
-          <div className="p-4 bg-black/5 dark:bg-white/5 rounded-lg flex flex-col gap-4">
+          <div className="p-4 bg-black/5 dark:bg-white/5 rounded-xl flex flex-col gap-4">
               <button
                 type="button"
                 onClick={() => setIsPrimary(!isPrimary)}
                 className="flex justify-between items-center w-full group focus:outline-none p-2 rounded-lg hover:bg-black/5 dark:hover:bg-white/5 transition-colors"
               >
                   <div className="text-left">
-                      <p className="font-medium text-light-text dark:text-dark-text group-hover:text-primary-600 dark:group-hover:text-primary-400 transition-colors">Primary Account</p>
-                      <p className="text-sm text-light-text-secondary dark:text-dark-text-secondary">Set as the default account for this account type (e.g., default {type}).</p>
+                      <p className="font-bold text-sm text-light-text dark:text-dark-text group-hover:text-primary-600 dark:group-hover:text-primary-400 transition-colors">Primary Account</p>
+                      <p className="text-xs text-light-text-secondary dark:text-dark-text-secondary">Set as the default account for this type.</p>
                   </div>
                   <div
                     className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors ${isPrimary ? 'bg-primary-500' : 'bg-gray-300 dark:bg-gray-700'}`}
@@ -1059,17 +1070,16 @@ const EditAccountModal: React.FC<EditAccountModalProps> = ({ onClose, onSave, on
                 className="flex justify-between items-center w-full group focus:outline-none p-2 rounded-lg hover:bg-black/5 dark:hover:bg-white/5 transition-colors"
               >
                   <div className="text-left">
-                      <p className="font-medium text-light-text dark:text-dark-text group-hover:text-primary-600 dark:group-hover:text-primary-400 transition-colors">Include in Analytics</p>
-                      <p className="text-sm text-light-text-secondary dark:text-dark-text-secondary">Exclude this account from net worth and reporting when off.</p>
+                      <p className="font-bold text-sm text-light-text dark:text-dark-text group-hover:text-primary-600 dark:group-hover:text-primary-400 transition-colors">Include in Analytics</p>
+                      <p className="text-xs text-light-text-secondary dark:text-dark-text-secondary">Exclude this account from assets, liabilities, and reports when off.</p>
                   </div>
                   <div
                     className={`relative inline-flex h-6 w-11 items-center rounded-full transition-colors ${includeInAnalytics ? 'bg-primary-500' : 'bg-gray-300 dark:bg-gray-700'}`}
                   >
-                    <span className={`inline-block h-4 w-4 transform rounded-full bg-white shadow-sm transition-transform ${includeInAnalytics ? 'translate-x-6' : 'translate-x-0'}`} />
+                    <span className={`inline-block h-4 w-4 transform rounded-full bg-white shadow-sm transition-transform ${includeInAnalytics ? 'translate-x-6' : 'translate-x-1'}`} />
                   </div>
               </button>
           </div>
-
 
           <div className="flex flex-wrap items-center justify-between gap-4 pt-4 mt-4 border-t border-black/10 dark:border-white/10">
             <div>

@@ -1,4 +1,3 @@
-
 import React, { useMemo } from 'react';
 import { Account, MileageLog } from '../types';
 import { formatCurrency, parseLocalDate } from '../utils';
@@ -256,19 +255,19 @@ const VehicleAccountView: React.FC<VehicleAccountViewProps> = ({
              </Card>
 
             {/* Log History */}
-            <Card className="flex flex-col">
-                <div className="flex justify-between items-center mb-4">
-                <h3 className="text-base font-bold text-light-text dark:text-dark-text">Log History</h3>
-                <button onClick={onAddLog} className={`${BTN_SECONDARY_STYLE} !py-1 !px-2 text-xs font-bold rounded-full`}>+ Log</button>
+            <Card className="flex flex-col h-full max-h-[500px] !p-0">
+                <div className="flex justify-between items-center p-4 border-b border-black/5 dark:border-white/5 bg-gray-50/50 dark:bg-white/[0.02]">
+                    <h3 className="text-base font-bold text-light-text dark:text-dark-text">Log History</h3>
+                    <button onClick={onAddLog} className={`${BTN_SECONDARY_STYLE} !py-1 !px-2 text-xs font-bold rounded-full`}>+ Log</button>
                 </div>
-                <div className="flex-grow overflow-y-auto max-h-[350px] -mx-2 px-2">
+                <div className="flex-grow overflow-y-auto px-4 py-2">
                 {sortedMileageLogsDesc.length > 0 ? (
-                    <div className="space-y-2">
+                    <div className="divide-y divide-black/5 dark:divide-white/5">
                         {sortedMileageLogsDesc.map((log, index, arr) => {
                              const prevLog = arr[index + 1];
                              const diff = prevLog ? log.reading - prevLog.reading : 0;
                              return (
-                                <div key={log.id} className="group flex justify-between items-center p-3 rounded-lg bg-light-bg dark:bg-dark-bg/50 hover:bg-gray-100 dark:hover:bg-white/10 transition-colors border border-transparent hover:border-black/5 dark:hover:border-white/10">
+                                <div key={log.id} className="group flex justify-between items-center py-3 hover:bg-black/5 dark:hover:bg-white/5 transition-colors px-2 rounded-lg -mx-2">
                                     <div>
                                         <p className="font-bold text-sm text-light-text dark:text-dark-text">{parseLocalDate(log.date).toLocaleDateString()}</p>
                                         {diff > 0 && <p className="text-[10px] text-green-600 dark:text-green-400 font-medium">+{diff.toLocaleString()} km</p>}

@@ -12,13 +12,12 @@ Designed for data sovereignty, Crystal ensures your financial data remains yours
 * **Live Market Data:** Real-time stock, ETF, and crypto pricing via **Twelve Data**.
 * **Merchant Enrichment:** Automatically fetch merchant logos and branding via **Brandfetch**.
 
-### 🤖 AI Copilot (Gemini)
-* **Conversational Insights:** Chat naturally with your data (e.g., "How much did I spend on Uber last year vs this year?").
-* **Smart Planner:** Generates step-by-step contribution plans to fund your goals based on your projected free cash flow.
-* **Auto-Categorization:** Intelligent suggestions for transaction categories.
+### 🧠 Financial Intelligence
+* **Smart Planner:** Deterministic forecasting engine that generates step-by-step contribution plans to fund your goals based on your projected free cash flow.
+* **Auto-Categorization:** Intelligent suggestions for transaction categories based on merchant history and patterns.
+* **Smart Forecast:** 2-Year daily balance projections based on recurring income, bills, and goals.
 
 ### 📅 Forecasting & Time Travel
-* **2-Year Horizon:** Daily balance projections based on recurring income, bills, and goals.
 * **Synthetic Events:** The engine automatically generates future transactions for loans, credit card payments, and annual property taxes to give a realistic "Safe-to-Spend" number.
 * **Scenario Modeling:** Toggle goals and large expenses to simulate their impact on your runway.
 
@@ -96,7 +95,6 @@ Turn financial discipline into a game:
 * **Preferences:** Theme, currency, language, and regional formats.
 * **Integrations:** Manage API keys and external service connections.
 * **Merchant Logos:** Review detected merchants and customize their logos.
-* **AI Assistant:** Configure API keys and AI behaviors.
 * **Categories & Tags:** Manage income/expense categories and custom tags for filtering.
 * **Documentation:** Learn about features and usage.
 
@@ -106,7 +104,6 @@ Turn financial discipline into a game:
 * **Frontend:** React 19, TypeScript, Vite, Tailwind CSS.
 * **Visualization:** Recharts, Leaflet (Maps).
 * **State Management:** Context API + React Query.
-* **AI:** Google Gemini API (`@google/genai`).
 * **Backend:** Node.js/Express + PostgreSQL.
 * **Infrastructure:** Docker & Docker Compose.
 
@@ -114,7 +111,6 @@ Turn financial discipline into a game:
 
 ### Prerequisites
 * Docker & Docker Compose
-* (Optional) Google Gemini API Key
 * (Optional) Twelve Data API Key (for live stock prices)
 * (Optional) **Brandfetch API Key (for merchant logos)**
 * (Optional) Enable Banking Credentials (for bank sync)
@@ -123,7 +119,7 @@ Turn financial discipline into a game:
 
 1.  **Clone the repository:**
     ```bash
-    git clone [https://github.com/yourusername/crystal.git](https://github.com/yourusername/crystal.git)
+    git clone https://github.com/yourusername/crystal.git
     cd crystal
     ```
 
@@ -144,7 +140,6 @@ Turn financial discipline into a game:
 
     # Optional Integrations (Client-side)
     # These can also be set in the UI under Settings > Integrations
-    VITE_GEMINI_API_KEY=your_gemini_client_key
     VITE_BRANDFETCH_CLIENT_ID=your_brandfetch_client_id
     ```
 
@@ -157,9 +152,6 @@ Turn financial discipline into a game:
     Open `http://localhost:7157` in your browser.
 
 ## Configuration Guide
-
-### AI Assistant
-To enable the Chatbot and Smart Planner, go to **Settings > AI Assistant** and follow the link to get a free Google Gemini API key. Add it to your configuration.
 
 ### Enable Banking Integration (Beta)
 To sync real bank accounts:

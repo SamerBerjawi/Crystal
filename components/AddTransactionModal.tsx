@@ -1,4 +1,5 @@
 
+
 import React, { useState, useMemo, useEffect, useRef, useId } from 'react';
 import Modal from './Modal';
 import { Account, Category, Transaction, Tag, Currency } from '../types';
@@ -6,6 +7,8 @@ import { INPUT_BASE_STYLE, BTN_PRIMARY_STYLE, BTN_SECONDARY_STYLE, SELECT_WRAPPE
 import { v4 as uuidv4 } from 'uuid';
 import LocationAutocomplete from './LocationAutocomplete';
 import { toLocalISOString, formatCurrency } from '../utils';
+import { normalizeMerchantKey } from '../utils/brandfetch';
+import { usePreferencesSelector } from '../contexts/DomainProviders';
 
 interface AddTransactionModalProps {
   onClose: () => void;
@@ -75,6 +78,7 @@ const AccountOptions: React.FC<{ accounts: Account[] }> = ({ accounts }) => {
 
 const AddTransactionModal: React.FC<AddTransactionModalProps> = ({ onClose, onSave, accounts, incomeCategories, expenseCategories, transactions, transactionToEdit, initialType, initialFromAccountId, initialToAccountId, initialCategory, tags, initialDetails }) => {
   const isEditing = !!transactionToEdit;
+  const merchantRules = usePreferencesSelector(p => p.merchantRules || {});
 
   const defaultAccountId = useMemo(() => {
     const primary = accounts.find(a => a.isPrimary);
@@ -245,6 +249,37 @@ const AddTransactionModal: React.FC<AddTransactionModalProps> = ({ onClose, onSa
     setPrincipalPayment(newPrincipal.toFixed(2));
   };
 
+  const handleDescriptionBlur = () => {
+    if (!merchant && description) {
+        const potentialMerchant = description;
+        setMerchant(potentialMerchant);
+        
+        // Try to apply rules based on description if merchant field was empty
+        applyMerchantRules(potentialMerchant);
+    }
+  };
+
+  // Auto-apply merchant rules
+  const applyMerchantRules = (merchantName: string) => {
+      const key = normalizeMerchantKey(merchantName);
+      if (!key) return;
+
+      const rule = merchantRules[key];
+      if (rule) {
+          if (rule.category) setCategory(rule.category);
+          if (rule.defaultDescription) setDescription(rule.defaultDescription);
+      }
+  };
+
+  const handleMerchantChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+      const val = e.target.value;
+      setMerchant(val);
+      // Debounce or just check on significant change? For now, instant feedback is nice.
+      // But we check only if value length > 2 to avoid noise
+      if (val.length > 2) {
+          applyMerchantRules(val);
+      }
+  };
 
   useEffect(() => {
     if (isEditing && transactionToEdit) {
@@ -642,7 +677,7 @@ const AddTransactionModal: React.FC<AddTransactionModalProps> = ({ onClose, onSa
                                 id="tx-merchant"
                                 type="text"
                                 value={merchant}
-                                onChange={e => setMerchant(e.target.value)}
+                                onChange={handleMerchantChange}
                                 className={`${INPUT_BASE_STYLE} pl-10`}
                                 placeholder="Optional"
                                 list={merchantSuggestions.length > 0 ? merchantListId : undefined}
@@ -706,7 +741,16 @@ const AddTransactionModal: React.FC<AddTransactionModalProps> = ({ onClose, onSa
                              <label className={labelStyle}>Description</label>
                              <div className="relative">
                                 <span className="material-symbols-outlined absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 text-lg">description</span>
-                                <input id="tx-description" type="text" value={description} onChange={e => setDescription(e.target.value)} className={`${INPUT_BASE_STYLE} pl-10`} placeholder="What was this for?" required />
+                                <input 
+                                  id="tx-description" 
+                                  type="text" 
+                                  value={description} 
+                                  onChange={e => setDescription(e.target.value)} 
+                                  onBlur={handleDescriptionBlur} 
+                                  className={`${INPUT_BASE_STYLE} pl-10`} 
+                                  placeholder="What was this for?" 
+                                  required 
+                                />
                              </div>
                          </div>
                      </div>
@@ -715,7 +759,16 @@ const AddTransactionModal: React.FC<AddTransactionModalProps> = ({ onClose, onSa
                          <label className={labelStyle}>Description</label>
                          <div className="relative">
                             <span className="material-symbols-outlined absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 text-lg">description</span>
-                            <input id="tx-description" type="text" value={description} onChange={e => setDescription(e.target.value)} className={`${INPUT_BASE_STYLE} pl-10`} placeholder="Reason for transfer" required />
+                            <input 
+                              id="tx-description" 
+                              type="text" 
+                              value={description} 
+                              onChange={e => setDescription(e.target.value)} 
+                              onBlur={handleDescriptionBlur}
+                              className={`${INPUT_BASE_STYLE} pl-10`} 
+                              placeholder="Reason for transfer" 
+                              required 
+                            />
                          </div>
                      </div>
                  )}

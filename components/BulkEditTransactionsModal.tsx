@@ -1,4 +1,3 @@
-
 import React, { useState, useMemo, useRef, useEffect } from 'react';
 import Modal from './Modal';
 import { Transaction, Account, Category, Tag } from '../types';
@@ -179,7 +178,7 @@ const BulkEditTransactionsModal: React.FC<BulkEditTransactionsModalProps> = ({
   );
 
   return (
-    <Modal onClose={onClose} title={`Bulk Edit ${transactionsToEdit.length} Transactions`}>
+    <Modal onClose={onClose} title={`Bulk Edit ${transactionsToEdit.length} Transactions`} zIndexClass="z-[9999]">
         <form onSubmit={handleSubmit} className="space-y-2">
             <CheckboxField field="date" label="Change Date">
                 <input type="date" value={updatedValues.date} onChange={e => handleChange('date', e.target.value)} className={INPUT_BASE_STYLE} />

@@ -1,7 +1,6 @@
-
 import React, { useMemo } from 'react';
 import { Account, Transaction, DisplayTransaction, Category } from '../types';
-import { formatCurrency, parseLocalDate, convertToEur, getPreferredTimeZone } from '../utils';
+import { formatCurrency, parseLocalDate, convertToEur, getPreferredTimeZone, toLocalISOString } from '../utils';
 import Card from './Card';
 import TransactionList from './TransactionList';
 import { BTN_PRIMARY_STYLE, BTN_SECONDARY_STYLE } from '../constants';
@@ -234,8 +233,8 @@ const CashAccountView: React.FC<CashAccountViewProps> = ({
       </div>
 
       {/* Recent Ledger */}
-      <Card className="flex flex-col h-full max-h-[500px]">
-          <div className="flex justify-between items-center mb-4">
+      <Card className="flex flex-col h-full max-h-[500px] !p-0">
+          <div className="flex justify-between items-center p-4 border-b border-black/5 dark:border-white/5">
               <h3 className="text-lg font-semibold text-light-text dark:text-dark-text">Cash Ledger</h3>
           </div>
           <div className="flex-grow overflow-hidden">

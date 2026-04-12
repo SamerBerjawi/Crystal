@@ -7,10 +7,11 @@ import { BTN_PRIMARY_STYLE, BTN_SECONDARY_STYLE, BTN_DANGER_STYLE } from '../con
 import RecurringTransactionModal from '../components/RecurringTransactionModal';
 import MembershipModal from '../components/MembershipModal';
 import LoyaltyCard from '../components/LoyaltyCard';
-import useLocalStorage from '../hooks/useLocalStorage';
-import { useAccountsContext, useTransactionsContext } from '../contexts/DomainProviders';
+import { useLocalStorage } from '../hooks/useLocalStorage';
+import { useAccountsContext, usePreferencesSelector, useTransactionsContext } from '../contexts/DomainProviders';
 import { useScheduleContext, useCategoryContext } from '../contexts/FinancialDataContext';
 import PageHeader from '../components/PageHeader';
+import { getMerchantLogoUrl, normalizeMerchantKey } from '../utils/brandfetch';
 
 // --- Helper Types for Detection ---
 interface DetectedSubscription {
@@ -57,12 +58,15 @@ const Subscriptions: React.FC = () => {
         deleteMembership
     } = useScheduleContext();
     const { incomeCategories, expenseCategories } = useCategoryContext();
+    const brandfetchClientId = usePreferencesSelector(p => (p.brandfetchClientId || '').trim());
+    const merchantLogoOverrides = usePreferencesSelector(p => p.merchantLogoOverrides || {});
     
-    const [viewMode, setViewMode] = useState<'recurring' | 'loyalty'>('recurring');
-
     const [ignoredSubscriptions, setIgnoredSubscriptions] = useLocalStorage<string[]>('ignored-subscriptions', []);
     const [detectedSubscriptions, setDetectedSubscriptions] = useState<DetectedSubscription[]>([]);
+    const [logoLoadErrors, setLogoLoadErrors] = useState<Record<string, boolean>>({});
     
+    const [activeTab, setActiveTab] = useState<'recurring' | 'loyalty'>('recurring');
+
     const [isModalOpen, setIsModalOpen] = useState(false);
     const [subscriptionToEdit, setSubscriptionToEdit] = useState<(Omit<RecurringTransaction, 'id'> & { id?: string }) | null>(null);
 
@@ -124,7 +128,7 @@ const Subscriptions: React.FC = () => {
 
                     candidates.push({
                         key,
-                        merchant: lastTx.description, // Use the most recent description
+                        merchant: lastTx.merchant || lastTx.description, // Use the most recent description
                         amount: avgAmount,
                         frequency,
                         confidence,
@@ -145,19 +149,41 @@ const Subscriptions: React.FC = () => {
 
     // --- 2. Metrics Calculation ---
     const activeSubscriptions = useMemo(() => {
-        return recurringTransactions.filter(rt => rt.type === 'expense');
+        return recurringTransactions.filter(rt => rt.type === 'expense' && !rt.isSynthetic).sort((a, b) => {
+            return parseLocalDate(a.nextDueDate).getTime() - parseLocalDate(b.nextDueDate).getTime();
+        });
     }, [recurringTransactions]);
 
-    const { monthlySpend, yearlySpend, subscriptionCount } = useMemo(() => {
+    const { monthlySpend, yearlySpend, subscriptionCount, dueSoonCount } = useMemo(() => {
         let monthly = 0;
+        let dueSoon = 0;
+        const today = new Date();
+        const next7Days = new Date();
+        next7Days.setDate(today.getDate() + 7);
+
         activeSubscriptions.forEach(sub => {
             const amount = convertToEur(sub.amount, sub.currency);
             if (sub.frequency === 'monthly') monthly += amount;
             else if (sub.frequency === 'yearly') monthly += amount / 12;
             else if (sub.frequency === 'weekly') monthly += amount * 4.33;
             else if (sub.frequency === 'daily') monthly += amount * 30;
+
+            const nextDue = parseLocalDate(sub.nextDueDate);
+            if (nextDue >= today && nextDue <= next7Days) {
+                dueSoon++;
+            }
         });
-        return { monthlySpend: monthly, yearlySpend: monthly * 12, subscriptionCount: activeSubscriptions.length };
+        return { monthlySpend: monthly, yearlySpend: monthly * 12, subscriptionCount: activeSubscriptions.length, dueSoonCount: dueSoon };
+    }, [activeSubscriptions]);
+    
+    // Calculate which days of the month have subscriptions (1-31)
+    const subscriptionDays = useMemo(() => {
+        const days = new Set<number>();
+        activeSubscriptions.forEach(sub => {
+            const date = parseLocalDate(sub.nextDueDate);
+            days.add(date.getDate());
+        });
+        return days;
     }, [activeSubscriptions]);
     
     // Loyalty Metrics
@@ -190,6 +216,7 @@ const Subscriptions: React.FC = () => {
     // --- Handlers ---
     const handleIgnore = (key: string) => {
         setIgnoredSubscriptions(prev => [...prev, key]);
+        setDetectedSubscriptions(prev => prev.filter(s => s.key !== key));
     };
 
     const handleTrack = (candidate: DetectedSubscription) => {
@@ -203,10 +230,11 @@ const Subscriptions: React.FC = () => {
 
         const newSub: Omit<RecurringTransaction, 'id'> = {
             accountId: candidate.accountId,
-            description: candidate.merchant,
+            description: candidate.merchant, // Initial description is merchant name
+            merchant: candidate.merchant, // Pre-fill merchant field
             amount: candidate.amount,
             type: 'expense',
-            category: 'Entertainment', // Default assumption, user can change
+            category: 'Subscriptions', // Default assumption, user can change
             currency: candidate.currency || 'EUR',
             frequency: candidate.frequency,
             frequencyInterval: 1,
@@ -258,9 +286,7 @@ const Subscriptions: React.FC = () => {
         }
     };
 
-    const tabBaseClass = "px-6 py-2 font-semibold text-sm rounded-lg transition-all duration-200 focus:outline-none whitespace-nowrap flex-1 text-center";
-    const tabActiveClass = "bg-white dark:bg-dark-card text-primary-600 dark:text-primary-400 shadow-sm";
-    const tabInactiveClass = "text-light-text-secondary dark:text-dark-text-secondary hover:text-light-text dark:hover:text-dark-text hover:bg-black/5 dark:hover:bg-white/5";
+    const handleLogoError = (url: string) => setLogoLoadErrors(prev => ({ ...prev, [url]: true }));
 
     return (
         <div className="space-y-8 animate-fade-in-up pb-12">
@@ -285,182 +311,298 @@ const Subscriptions: React.FC = () => {
             <PageHeader
                 markerIcon="autorenew"
                 markerLabel="Recurring Center"
-                title="Subscriptions & Memberships"
-                subtitle="Monitor renewals, renegotiate dates, and spot overlapping services."
-                actions={(
-                    <div className="flex bg-light-fill dark:bg-dark-fill p-1 rounded-lg w-full md:w-auto">
-                        <button
-                            onClick={() => setViewMode('recurring')}
-                            className={`${tabBaseClass} ${viewMode === 'recurring' ? tabActiveClass : tabInactiveClass}`}
-                        >
-                            Recurring Payments
+                title="Subscriptions & Loyalty"
+                subtitle="Manage your recurring commitments and membership rewards in one place."
+                actions={
+                     activeTab === 'recurring' ? (
+                        <button onClick={() => { setSubscriptionToEdit(null); setIsModalOpen(true); }} className={`${BTN_PRIMARY_STYLE} flex items-center gap-2`}>
+                            <span className="material-symbols-outlined text-lg">add</span> Add
                         </button>
-                        <button
-                            onClick={() => setViewMode('loyalty')}
-                            className={`${tabBaseClass} ${viewMode === 'loyalty' ? tabActiveClass : tabInactiveClass}`}
-                        >
-                            Loyalty Wallet
+                     ) : (
+                        <button onClick={handleAddMembership} className={`${BTN_PRIMARY_STYLE} flex items-center gap-2`}>
+                             <span className="material-symbols-outlined text-lg">add</span> Add Card
                         </button>
-                    </div>
-                )}
+                     )
+                }
             />
+            
+            {/* View Toggle */}
+            <div className="flex justify-center">
+                 <div className="flex bg-gray-100 dark:bg-white/5 p-1 rounded-xl">
+                    <button
+                        onClick={() => setActiveTab('recurring')}
+                        className={`px-6 py-2 rounded-lg text-sm font-bold transition-all duration-200 ${activeTab === 'recurring' ? 'bg-white dark:bg-dark-card text-primary-600 dark:text-primary-400 shadow-sm' : 'text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-200'}`}
+                    >
+                        Recurring Payments
+                    </button>
+                    <button
+                        onClick={() => setActiveTab('loyalty')}
+                        className={`px-6 py-2 rounded-lg text-sm font-bold transition-all duration-200 ${activeTab === 'loyalty' ? 'bg-white dark:bg-dark-card text-primary-600 dark:text-primary-400 shadow-sm' : 'text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-200'}`}
+                    >
+                        Loyalty Wallet
+                    </button>
+                </div>
+            </div>
 
-            {viewMode === 'recurring' && (
+            {/* Recurring Payments Content */}
+            {activeTab === 'recurring' && (
                 <div className="space-y-8 animate-fade-in-up">
-                    {/* Metrics */}
-                    <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-                        <Card className="bg-gradient-to-br from-indigo-500 to-purple-600 text-white border-none relative overflow-hidden p-6">
-                            <div className="relative z-10">
-                                <p className="text-xs font-bold uppercase opacity-80 tracking-wider">Monthly Cost</p>
-                                <p className="text-3xl font-extrabold mt-1">{formatCurrency(monthlySpend, 'EUR')}</p>
-                                <p className="text-sm opacity-80 mt-2">≈ {formatCurrency(yearlySpend, 'EUR')} / year</p>
-                            </div>
-                            <div className="absolute -right-4 -bottom-8 text-white opacity-10">
-                                <span className="material-symbols-outlined text-9xl">calendar_month</span>
-                            </div>
-                        </Card>
-                        
-                         <Card className="flex flex-col justify-center p-6">
-                            <div className="flex justify-between items-center">
-                                <div>
-                                     <p className="text-xs font-bold uppercase text-light-text-secondary dark:text-dark-text-secondary tracking-wider mb-1">Active Subscriptions</p>
-                                     <p className="text-3xl font-extrabold text-light-text dark:text-dark-text">{subscriptionCount}</p>
-                                </div>
-                                <div className="w-12 h-12 rounded-full bg-green-100 dark:bg-green-900/30 text-green-600 dark:text-green-400 flex items-center justify-center">
-                                    <span className="material-symbols-outlined text-2xl">check_circle</span>
-                                </div>
-                            </div>
-                        </Card>
-        
-                        <Card className="flex flex-col justify-center p-6">
-                            <div className="flex justify-between items-center">
-                                <div>
-                                     <p className="text-xs font-bold uppercase text-light-text-secondary dark:text-dark-text-secondary tracking-wider mb-1">Detected Opportunities</p>
-                                     <p className="text-3xl font-extrabold text-light-text dark:text-dark-text">{detectedSubscriptions.length}</p>
-                                </div>
-                                <div className="w-12 h-12 rounded-full bg-yellow-100 dark:bg-yellow-900/30 text-yellow-600 dark:text-yellow-400 flex items-center justify-center animate-pulse">
-                                    <span className="material-symbols-outlined text-2xl">auto_awesome</span>
-                                </div>
-                            </div>
-                        </Card>
-                    </div>
-        
-                    {/* Detected Subscriptions Section */}
+                    {/* Detection Alert */}
                     {detectedSubscriptions.length > 0 && (
-                        <div className="space-y-4">
-                            <div className="flex items-center gap-2">
-                                <span className="material-symbols-outlined text-yellow-500">auto_awesome</span>
-                                <h2 className="text-lg font-bold text-light-text dark:text-dark-text">Detected for You</h2>
+                        <div className="bg-gradient-to-r from-indigo-50 to-purple-50 dark:from-indigo-900/10 dark:to-purple-900/10 p-6 rounded-2xl border border-indigo-100 dark:border-indigo-800/30">
+                            <div className="flex items-center gap-3 mb-4">
+                                <div className="p-2 bg-white dark:bg-white/10 rounded-full shadow-sm">
+                                    <span className="material-symbols-outlined text-indigo-500">auto_awesome</span>
+                                </div>
+                                <div>
+                                    <h2 className="text-lg font-bold text-light-text dark:text-dark-text">Detected Subscriptions</h2>
+                                    <p className="text-xs text-light-text-secondary dark:text-dark-text-secondary">We found {detectedSubscriptions.length} recurring charges in your transactions.</p>
+                                </div>
                             </div>
-                            <div className="grid grid-cols-1 lg:grid-cols-2 xl:grid-cols-3 gap-4">
-                                {detectedSubscriptions.map(sub => (
-                                    <div key={sub.key} className="bg-white dark:bg-dark-card border-2 border-yellow-400/30 dark:border-yellow-500/20 rounded-xl p-4 shadow-sm flex flex-col justify-between">
-                                        <div className="flex justify-between items-start mb-4">
-                                            <div>
-                                                <h3 className="font-bold text-light-text dark:text-dark-text truncate">{sub.merchant}</h3>
-                                                <p className="text-xs text-light-text-secondary dark:text-dark-text-secondary">Detected {sub.frequency} payment</p>
+                            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                                {detectedSubscriptions.map(sub => {
+                                    const logoUrl = getMerchantLogoUrl(sub.merchant, brandfetchClientId, merchantLogoOverrides, { fallback: 'lettermark', type: 'icon', width: 64, height: 64 });
+                                    const hasLogo = Boolean(logoUrl && !logoLoadErrors[logoUrl!]);
+                                    const initial = sub.merchant.charAt(0).toUpperCase();
+
+                                    return (
+                                        <div key={sub.key} className="bg-white dark:bg-dark-card rounded-xl p-4 shadow-sm border border-black/5 dark:border-white/5 flex flex-col justify-between hover:shadow-md transition-all">
+                                            <div className="flex justify-between items-start mb-3">
+                                                <div className="flex gap-3 min-w-0">
+                                                    <div className={`w-10 h-10 rounded-lg flex-shrink-0 flex items-center justify-center overflow-hidden border border-black/5 dark:border-white/10 shadow-sm ${hasLogo ? 'bg-white' : 'bg-gray-100 dark:bg-white/10'}`}>
+                                                        {hasLogo ? (
+                                                            <img 
+                                                                src={logoUrl!} 
+                                                                alt={sub.merchant} 
+                                                                className="w-full h-full object-cover block" 
+                                                                onError={() => handleLogoError(logoUrl!)}
+                                                            />
+                                                        ) : (
+                                                            <span className="text-lg font-bold text-gray-500 dark:text-gray-400">{initial}</span>
+                                                        )}
+                                                    </div>
+                                                    <div className="flex-1 min-w-0">
+                                                        <h3 className="font-bold text-light-text dark:text-dark-text truncate" title={sub.merchant}>{sub.merchant}</h3>
+                                                        <p className="text-xs text-light-text-secondary dark:text-dark-text-secondary flex items-center gap-1 mt-0.5">
+                                                            <span className="capitalize">{sub.frequency}</span>
+                                                            <span className="w-1 h-1 rounded-full bg-current opacity-50"></span>
+                                                            <span>~{sub.averageDay}{[1, 21, 31].includes(sub.averageDay) ? 'st' : [2, 22].includes(sub.averageDay) ? 'nd' : [3, 23].includes(sub.averageDay) ? 'rd' : 'th'}</span>
+                                                        </p>
+                                                    </div>
+                                                </div>
+                                                <div className="flex flex-col items-end flex-shrink-0">
+                                                        <span className="font-bold font-mono text-light-text dark:text-dark-text">{formatCurrency(sub.amount, sub.currency)}</span>
+                                                        <span className="text-[9px] bg-indigo-100 dark:bg-indigo-900/30 text-indigo-700 dark:text-indigo-300 px-1.5 py-0.5 rounded uppercase font-bold mt-1">Detected</span>
+                                                </div>
                                             </div>
-                                            <span className="bg-yellow-100 dark:bg-yellow-900/30 text-yellow-700 dark:text-yellow-300 text-[10px] font-bold px-2 py-1 rounded-full uppercase">
-                                                {sub.confidence} Confidence
-                                            </span>
+                                            
+                                            <div className="flex gap-2 mt-auto pt-3 border-t border-black/5 dark:border-white/5">
+                                                <button onClick={() => handleIgnore(sub.key)} className="flex-1 py-1.5 rounded-lg text-xs font-semibold text-light-text-secondary dark:text-dark-text-secondary hover:bg-black/5 dark:hover:bg-white/5 transition-colors">Ignore</button>
+                                                <button onClick={() => handleTrack(sub)} className="flex-1 py-1.5 rounded-lg text-xs font-semibold bg-indigo-600 hover:bg-indigo-700 text-white transition-colors shadow-sm">Track</button>
+                                            </div>
                                         </div>
-                                        
-                                        <div className="flex justify-between items-end">
-                                            <div>
-                                                <p className="text-2xl font-bold text-light-text dark:text-dark-text">{formatCurrency(sub.amount, sub.currency)}</p>
-                                                <p className="text-xs text-light-text-secondary dark:text-dark-text-secondary">Avg. based on {sub.occurrences} txs</p>
-                                            </div>
-                                            <div className="flex gap-2">
-                                                <button onClick={() => handleIgnore(sub.key)} className={`${BTN_SECONDARY_STYLE} !px-3 !py-1.5 text-xs`}>Ignore</button>
-                                                <button onClick={() => handleTrack(sub)} className={`${BTN_PRIMARY_STYLE} !px-3 !py-1.5 text-xs`}>Track</button>
-                                            </div>
-                                        </div>
-                                    </div>
-                                ))}
+                                    );
+                                })}
                             </div>
                         </div>
                     )}
-        
-                    {/* Active List */}
-                    <Card>
-                        <h2 className="text-lg font-bold text-light-text dark:text-dark-text mb-6">Your Subscriptions</h2>
-                        <div className="overflow-x-auto">
-                            <table className="w-full text-left border-collapse">
-                                <thead>
-                                    <tr className="text-xs font-bold text-light-text-secondary dark:text-dark-text-secondary uppercase tracking-wider border-b border-black/5 dark:border-white/5">
-                                        <th className="pb-4 pl-2">Service</th>
-                                        <th className="pb-4">Cost</th>
-                                        <th className="pb-4">Frequency</th>
-                                        <th className="pb-4">Next Due</th>
-                                        <th className="pb-4 text-right pr-2">Actions</th>
-                                    </tr>
-                                </thead>
-                                <tbody className="divide-y divide-black/5 dark:divide-white/5 text-sm">
-                                    {activeSubscriptions.map(sub => {
-                                        const nextDueDate = parseLocalDate(sub.nextDueDate);
-                                        const daysUntil = Math.ceil((nextDueDate.getTime() - new Date().getTime()) / (1000 * 60 * 60 * 24));
-                                        const isDueSoon = daysUntil >= 0 && daysUntil <= 3;
-        
-                                        return (
-                                            <tr key={sub.id} className="group hover:bg-black/5 dark:hover:bg-white/5 transition-colors">
-                                                <td className="py-4 pl-2 font-semibold text-light-text dark:text-dark-text">{sub.description}</td>
-                                                <td className="py-4 font-mono font-medium">{formatCurrency(sub.amount, sub.currency)}</td>
-                                                <td className="py-4 capitalize">
-                                                    <span className="bg-gray-100 dark:bg-white/10 px-2 py-1 rounded text-xs font-medium text-light-text dark:text-dark-text">
-                                                        {sub.frequency}
-                                                    </span>
-                                                </td>
-                                                <td className="py-4">
-                                                    <span className={isDueSoon ? 'text-orange-500 font-bold' : 'text-light-text-secondary dark:text-dark-text-secondary'}>
-                                                        {nextDueDate.toLocaleDateString()} 
-                                                        {isDueSoon && <span className="text-xs ml-2 bg-orange-100 dark:bg-orange-900/30 px-1.5 py-0.5 rounded">Due Soon</span>}
-                                                    </span>
-                                                </td>
-                                                <td className="py-4 text-right pr-2">
-                                                    <div className="flex justify-end gap-2 opacity-0 group-hover:opacity-100 transition-opacity">
-                                                        <button onClick={() => handleEditActive(sub)} className="p-1.5 text-light-text-secondary dark:text-dark-text-secondary hover:text-primary-500 transition-colors">
-                                                            <span className="material-symbols-outlined text-lg">edit</span>
-                                                        </button>
-                                                        <button onClick={() => handleDeleteActive(sub.id)} className="p-1.5 text-light-text-secondary dark:text-dark-text-secondary hover:text-red-500 transition-colors">
-                                                            <span className="material-symbols-outlined text-lg">delete</span>
-                                                        </button>
+                    
+                    {/* Hero Grid: Calendar & Stats */}
+                    <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+                        {/* Calendar Card */}
+                        <div className="lg:col-span-2 bg-white dark:bg-dark-card rounded-3xl p-6 border border-black/5 dark:border-white/5 shadow-sm">
+                            <div className="flex justify-between items-end mb-4">
+                                <div>
+                                    <h3 className="text-lg font-bold text-light-text dark:text-dark-text">Payment Cycle</h3>
+                                    <p className="text-xs text-light-text-secondary dark:text-dark-text-secondary">Distribution of recurring charges across the month</p>
+                                </div>
+                                <div className="flex items-center gap-2 text-xs">
+                                    <div className="flex items-center gap-1">
+                                        <div className="w-2 h-2 rounded-full bg-indigo-600"></div>
+                                        <span className="text-light-text-secondary dark:text-dark-text-secondary">Due Day</span>
+                                    </div>
+                                </div>
+                            </div>
+                            
+                            <div className="grid grid-cols-7 gap-y-3 gap-x-1 sm:gap-x-2 place-items-center mt-2">
+                                {Array.from({length: 31}).map((_, i) => {
+                                    const day = i + 1;
+                                    const isActive = subscriptionDays.has(day);
+                                    const isToday = new Date().getDate() === day;
+                                    
+                                    return (
+                                        <div 
+                                        key={i} 
+                                        className={`
+                                            w-8 h-8 flex items-center justify-center text-xs font-medium rounded-full transition-all duration-300 relative
+                                            ${isActive 
+                                                ? 'bg-indigo-600 text-white shadow-md shadow-indigo-500/20 scale-110 font-bold' 
+                                                : 'text-light-text-secondary/40 dark:text-dark-text-secondary/40 hover:bg-black/5 dark:hover:bg-white/5 hover:text-light-text dark:hover:text-dark-text'
+                                            }
+                                            ${isToday ? 'ring-2 ring-emerald-400 ring-offset-2 dark:ring-offset-dark-card z-10' : ''}
+                                        `}
+                                        >
+                                            {day}
+                                            {isActive && <div className="absolute -bottom-1 w-1 h-1 bg-white/60 rounded-full"></div>}
+                                        </div>
+                                    );
+                                })}
+                            </div>
+                        </div>
+
+                        {/* Metrics Column */}
+                        <div className="flex flex-col gap-4">
+                            <div className="flex-1 bg-gradient-to-br from-indigo-500 to-purple-600 rounded-2xl p-6 text-white relative overflow-hidden shadow-lg flex flex-col justify-between">
+                                <div className="absolute top-0 right-0 p-4 opacity-10">
+                                    <span className="material-symbols-outlined text-6xl">payments</span>
+                                </div>
+                                <div>
+                                    <p className="text-[10px] font-bold uppercase opacity-80 tracking-wider mb-1">Monthly Cost</p>
+                                    <p className="text-3xl font-black">{formatCurrency(monthlySpend, 'EUR')}</p>
+                                </div>
+                                <div className="mt-4 pt-4 border-t border-white/10">
+                                    <p className="text-xs font-medium opacity-90 flex justify-between">
+                                        <span>Annual Estimate</span>
+                                        <span className="font-bold">{formatCurrency(yearlySpend, 'EUR')}</span>
+                                    </p>
+                                </div>
+                            </div>
+
+                            <div className="bg-white dark:bg-dark-card rounded-2xl p-5 border border-black/5 dark:border-white/5 shadow-sm flex flex-col justify-center">
+                                <div className="flex justify-between items-start mb-2">
+                                    <p className="text-[10px] font-bold uppercase text-light-text-secondary dark:text-dark-text-secondary tracking-wider">Renewing Soon</p>
+                                    <span className="material-symbols-outlined text-orange-500 text-xl">event_upcoming</span>
+                                </div>
+                                <div className="flex items-baseline gap-2">
+                                     <p className="text-3xl font-black text-light-text dark:text-dark-text">{dueSoonCount}</p>
+                                     <span className="text-sm text-light-text-secondary dark:text-dark-text-secondary">items</span>
+                                </div>
+                                <p className="text-[10px] text-light-text-secondary dark:text-dark-text-secondary mt-1">Due in next 7 days</p>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    {/* Full Width List */}
+                    <Card className="p-0 overflow-hidden">
+                        <div className="divide-y divide-black/5 dark:divide-white/5">
+                            {activeSubscriptions.length === 0 ? (
+                                <div className="p-12 text-center text-light-text-secondary dark:text-dark-text-secondary italic">
+                                    No active subscriptions.
+                                </div>
+                            ) : (
+                                activeSubscriptions.map(sub => {
+                                    const nextDueDate = parseLocalDate(sub.nextDueDate);
+                                    const daysUntil = Math.ceil((nextDueDate.getTime() - new Date().getTime()) / (1000 * 60 * 60 * 24));
+                                    const isDueSoon = daysUntil >= 0 && daysUntil <= 7;
+                                    
+                                    const merchantName = sub.merchant || sub.description;
+                                    const logoUrl = getMerchantLogoUrl(merchantName, brandfetchClientId, merchantLogoOverrides, { fallback: 'lettermark', type: 'icon', width: 64, height: 64 });
+                                    const hasLogo = Boolean(logoUrl && !logoLoadErrors[logoUrl!]);
+                                    const initial = merchantName.charAt(0).toUpperCase();
+
+                                    // Calculate cycle progress (approximate)
+                                    let cycleLength = 30;
+                                    if (sub.frequency === 'weekly') cycleLength = 7;
+                                    if (sub.frequency === 'yearly') cycleLength = 365;
+                                    const daysElapsed = cycleLength - daysUntil;
+                                    const progress = Math.max(0, Math.min(100, (daysElapsed / cycleLength) * 100));
+
+                                    return (
+                                        <div key={sub.id} className="group p-4 sm:px-6 hover:bg-black/5 dark:hover:bg-white/5 transition-colors flex items-center gap-4">
+                                            {/* Logo */}
+                                            <div className={`w-12 h-12 rounded-2xl flex-shrink-0 flex items-center justify-center overflow-hidden shadow-sm border border-black/5 dark:border-white/10 ${hasLogo ? 'bg-white' : 'bg-gray-100 dark:bg-white/10'}`}>
+                                                {hasLogo ? (
+                                                    <img 
+                                                        src={logoUrl!} 
+                                                        alt={merchantName} 
+                                                        className="w-full h-full object-cover block" 
+                                                        onError={() => handleLogoError(logoUrl!)}
+                                                    />
+                                                ) : (
+                                                    <span className="text-xl font-bold text-gray-500 dark:text-gray-400">{initial}</span>
+                                                )}
+                                            </div>
+
+                                            {/* Info */}
+                                            <div className="flex-grow min-w-0 grid grid-cols-1 sm:grid-cols-2 gap-2">
+                                                <div>
+                                                    <div className="flex items-center gap-2 mb-1">
+                                                        <h4 className="font-bold text-base text-light-text dark:text-dark-text truncate">{sub.merchant || sub.description}</h4>
+                                                        <span className="text-[10px] font-bold uppercase bg-black/5 dark:bg-white/10 text-light-text-secondary dark:text-dark-text-secondary px-2 py-0.5 rounded">{sub.frequency}</span>
                                                     </div>
-                                                </td>
-                                            </tr>
-                                        );
-                                    })}
-                                    {activeSubscriptions.length === 0 && (
-                                        <tr>
-                                            <td colSpan={5} className="py-8 text-center text-light-text-secondary dark:text-dark-text-secondary">
-                                                No subscriptions tracked yet.
-                                            </td>
-                                        </tr>
-                                    )}
-                                </tbody>
-                            </table>
+                                                    <div className="text-xs text-light-text-secondary dark:text-dark-text-secondary truncate">
+                                                         {sub.description !== sub.merchant ? sub.description : accounts.find(a => a.id === sub.accountId)?.name}
+                                                    </div>
+                                                </div>
+                                                
+                                                <div className="flex flex-col justify-center gap-1 sm:pl-4">
+                                                    <div className="flex justify-between items-center text-xs">
+                                                        <span className={`font-medium ${isDueSoon ? 'text-orange-600 dark:text-orange-400' : 'text-light-text-secondary dark:text-dark-text-secondary'}`}>
+                                                            {isDueSoon ? `Due in ${daysUntil} days` : `Due ${nextDueDate.toLocaleDateString()}`}
+                                                        </span>
+                                                        <span className="text-[10px] text-light-text-secondary dark:text-dark-text-secondary opacity-60">Cycle</span>
+                                                    </div>
+                                                    <div className="w-full h-1.5 bg-gray-200 dark:bg-gray-700 rounded-full overflow-hidden">
+                                                        <div className={`h-full rounded-full ${isDueSoon ? 'bg-orange-500' : 'bg-primary-500'}`} style={{ width: `${progress}%` }}></div>
+                                                    </div>
+                                                </div>
+                                            </div>
+
+                                            {/* Amount & Actions */}
+                                            <div className="text-right flex-shrink-0 flex flex-col items-end gap-1 ml-2">
+                                                <span className="font-mono font-bold text-lg text-light-text dark:text-dark-text">{formatCurrency(sub.amount, sub.currency)}</span>
+                                                
+                                                <div className="flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+                                                    <button onClick={() => handleEditActive(sub)} className="p-1.5 rounded-md hover:bg-black/10 dark:hover:bg-white/10 text-light-text-secondary dark:text-dark-text-secondary hover:text-primary-500 transition-colors" title="Edit">
+                                                        <span className="material-symbols-outlined text-lg">edit</span>
+                                                    </button>
+                                                    <button onClick={() => handleDeleteActive(sub.id)} className="p-1.5 rounded-md hover:bg-red-50 dark:hover:bg-red-900/20 text-light-text-secondary dark:text-dark-text-secondary hover:text-red-500 transition-colors" title="Stop Tracking">
+                                                        <span className="material-symbols-outlined text-lg">delete</span>
+                                                    </button>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    );
+                                })
+                            )}
                         </div>
                     </Card>
                 </div>
             )}
-            
-            {viewMode === 'loyalty' && (
+
+            {/* Loyalty Wallet Content */}
+            {activeTab === 'loyalty' && (
                 <div className="space-y-8 animate-fade-in-up">
-                    <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-                        <Card className="flex flex-col justify-center p-6 border-l-4 border-blue-500">
-                             <p className="text-xs font-bold uppercase text-light-text-secondary dark:text-dark-text-secondary tracking-wider mb-1">Total Cards</p>
-                             <p className="text-3xl font-extrabold text-light-text dark:text-dark-text">{memberships.length}</p>
-                        </Card>
-                        <Card className="flex flex-col justify-center p-6 border-l-4 border-amber-500">
-                             <p className="text-xs font-bold uppercase text-light-text-secondary dark:text-dark-text-secondary tracking-wider mb-1">Expiring Soon</p>
-                             <p className="text-3xl font-extrabold text-light-text dark:text-dark-text">{expiringMemberships}</p>
-                        </Card>
-                        <button 
-                            onClick={handleAddMembership}
-                            className="bg-light-fill dark:bg-dark-fill hover:bg-black/10 dark:hover:bg-white/10 transition-colors rounded-2xl border-2 border-dashed border-light-text-secondary/30 dark:border-dark-text-secondary/30 flex flex-col items-center justify-center p-6 text-light-text-secondary dark:text-dark-text-secondary group"
-                        >
-                             <span className="material-symbols-outlined text-3xl mb-2 group-hover:scale-110 transition-transform">add_card</span>
-                             <span className="font-bold">Add Membership Card</span>
-                        </button>
+                    {/* Metrics Row */}
+                    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
+                         <div className="bg-white dark:bg-dark-card rounded-2xl p-5 border border-black/5 dark:border-white/5 shadow-sm flex items-center gap-4">
+                             <div className="w-12 h-12 rounded-xl bg-blue-100 dark:bg-blue-900/30 text-blue-600 dark:text-blue-400 flex items-center justify-center">
+                                 <span className="material-symbols-outlined text-2xl">style</span>
+                             </div>
+                             <div>
+                                 <p className="text-xs font-bold uppercase text-light-text-secondary dark:text-dark-text-secondary tracking-wider mb-0.5">Total Cards</p>
+                                 <p className="font-black text-2xl text-light-text dark:text-dark-text">{memberships.length}</p>
+                             </div>
+                        </div>
+                        <div className="bg-white dark:bg-dark-card rounded-2xl p-5 border border-black/5 dark:border-white/5 shadow-sm flex items-center gap-4">
+                             <div className="w-12 h-12 rounded-xl bg-amber-100 dark:bg-amber-900/30 text-amber-600 dark:text-amber-400 flex items-center justify-center">
+                                 <span className="material-symbols-outlined text-2xl">timer</span>
+                             </div>
+                             <div>
+                                 <p className="text-xs font-bold uppercase text-light-text-secondary dark:text-dark-text-secondary tracking-wider mb-0.5">Expiring Soon</p>
+                                 <p className="font-black text-2xl text-light-text dark:text-dark-text">{expiringMemberships}</p>
+                             </div>
+                        </div>
+                         {/* Placeholder metrics for future expansion */}
+                        <div className="bg-white dark:bg-dark-card rounded-2xl p-5 border border-black/5 dark:border-white/5 shadow-sm flex items-center gap-4 opacity-60">
+                             <div className="w-12 h-12 rounded-xl bg-gray-100 dark:bg-white/10 text-gray-500 flex items-center justify-center">
+                                 <span className="material-symbols-outlined text-2xl">stars</span>
+                             </div>
+                             <div>
+                                 <p className="text-xs font-bold uppercase text-light-text-secondary dark:text-dark-text-secondary tracking-wider mb-0.5">Total Points</p>
+                                 <p className="font-black text-2xl text-light-text dark:text-dark-text">—</p>
+                             </div>
+                        </div>
                     </div>
 
                     {memberships.length > 0 ? (
@@ -469,10 +611,11 @@ const Subscriptions: React.FC = () => {
                                 const cards = groupedMemberships[category];
                                 return (
                                     <div key={category}>
-                                        <h3 className="text-lg font-bold text-light-text dark:text-dark-text mb-4 border-b border-black/5 dark:border-white/5 pb-2">
-                                            {category} <span className="text-xs font-normal text-light-text-secondary dark:text-dark-text-secondary ml-2">({cards.length})</span>
-                                        </h3>
-                                        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
+                                        <h4 className="text-sm font-bold uppercase tracking-wider text-light-text-secondary dark:text-dark-text-secondary mb-4 pl-1 border-b border-black/5 dark:border-white/5 pb-2 flex justify-between">
+                                            <span>{category}</span>
+                                            <span className="opacity-60">{cards.length}</span>
+                                        </h4>
+                                        <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-6">
                                             {cards.map(m => (
                                                 <LoyaltyCard 
                                                     key={m.id}
@@ -487,11 +630,11 @@ const Subscriptions: React.FC = () => {
                             })}
                         </div>
                     ) : (
-                        <div className="flex flex-col items-center justify-center py-16 text-center">
+                         <div className="flex flex-col items-center justify-center py-20 text-center bg-light-card/50 dark:bg-dark-card/30 rounded-3xl border-2 border-dashed border-black/10 dark:border-white/10">
                              <span className="material-symbols-outlined text-6xl text-light-text-secondary dark:text-dark-text-secondary opacity-30 mb-4">loyalty</span>
                              <h3 className="text-xl font-bold text-light-text dark:text-dark-text">Wallet Empty</h3>
-                             <p className="text-light-text-secondary dark:text-dark-text-secondary max-w-sm mt-2 mb-6">
-                                 Add your frequent flyer numbers, hotel rewards, and store loyalty cards to keep them handy.
+                             <p className="text-sm text-light-text-secondary dark:text-dark-text-secondary max-w-xs mt-2 mb-6">
+                                 Keep your frequent flyer numbers, store cards, and reward programs handy.
                              </p>
                              <button onClick={handleAddMembership} className={BTN_PRIMARY_STYLE}>Add First Card</button>
                         </div>

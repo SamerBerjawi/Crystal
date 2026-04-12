@@ -66,6 +66,7 @@ const RecurringTransactionModal: React.FC<RecurringTransactionModalProps> = ({ o
     const [accountId, setAccountId] = useState(accounts.length > 0 ? accounts[0].id : ''); // From account
     const [toAccountId, setToAccountId] = useState(accounts.length > 1 ? accounts[1].id : ''); // To account (for transfers)
     const [description, setDescription] = useState('');
+    const [merchant, setMerchant] = useState('');
     const [amount, setAmount] = useState('');
     const [category, setCategory] = useState('');
     const [frequency, setFrequency] = useState<RecurrenceFrequency>('monthly');
@@ -84,6 +85,7 @@ const RecurringTransactionModal: React.FC<RecurringTransactionModalProps> = ({ o
                 setToAccountId(recurringTransactionToEdit.toAccountId || '');
             }
             setDescription(recurringTransactionToEdit.description);
+            setMerchant(recurringTransactionToEdit.merchant || '');
             setAmount(String(recurringTransactionToEdit.amount));
             setCategory(recurringTransactionToEdit.category || '');
             setFrequency(recurringTransactionToEdit.frequency);
@@ -98,6 +100,7 @@ const RecurringTransactionModal: React.FC<RecurringTransactionModalProps> = ({ o
             setAccountId(accounts.length > 0 ? accounts[0].id : '');
             setToAccountId(accounts.length > 1 ? accounts[1].id : '');
             setDescription('');
+            setMerchant('');
             setAmount('');
             setCategory('');
             setFrequency('monthly');
@@ -167,6 +170,7 @@ const RecurringTransactionModal: React.FC<RecurringTransactionModalProps> = ({ o
             accountId,
             toAccountId: isTransfer ? toAccountId : undefined,
             description,
+            merchant,
             amount: parseFloat(amount),
             category: isTransfer ? 'Transfer' : category,
             type,
@@ -238,11 +242,17 @@ const RecurringTransactionModal: React.FC<RecurringTransactionModalProps> = ({ o
                     )}
                 </div>
                 
-                {/* Description for non-transfers */}
+                {/* Description & Merchant for non-transfers */}
                 {type !== 'transfer' && (
-                    <div>
-                        <label htmlFor="rec-description" className={labelStyle}>Description</label>
-                        <input id="rec-description" type="text" value={description} onChange={e => setDescription(e.target.value)} className={INPUT_BASE_STYLE} placeholder="e.g., Netflix Subscription" required />
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                        <div>
+                            <label htmlFor="rec-merchant" className={labelStyle}>Merchant</label>
+                            <input id="rec-merchant" type="text" value={merchant} onChange={e => setMerchant(e.target.value)} className={INPUT_BASE_STYLE} placeholder="e.g., Netflix" />
+                        </div>
+                        <div>
+                            <label htmlFor="rec-description" className={labelStyle}>Description</label>
+                            <input id="rec-description" type="text" value={description} onChange={e => setDescription(e.target.value)} className={INPUT_BASE_STYLE} placeholder="e.g., Monthly Subscription" required />
+                        </div>
                     </div>
                 )}
                 

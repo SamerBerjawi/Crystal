@@ -14,7 +14,7 @@ import { v4 as uuidv4 } from 'uuid';
 import { arrayToCSV, downloadCSV, parseLocalDate, toLocalISOString } from '../utils';
 import PageHeader from '../components/PageHeader';
 
-interface DataManagementProps {
+interface DataImportExportProps {
   accounts: Account[];
   transactions: Transaction[];
   budgets: Budget[];
@@ -105,7 +105,7 @@ const StatCard: React.FC<{ title: string; value: string | number; icon: string; 
     </div>
 );
 
-const DataManagement: React.FC<DataManagementProps> = (props) => {
+const DataImportExportPage: React.FC<DataImportExportProps> = (props) => {
     const [isNewImportModalOpen, setNewImportModalOpen] = useState(false);
     
     // Updated state to handle export format
@@ -211,8 +211,7 @@ const DataManagement: React.FC<DataManagementProps> = (props) => {
                      exportData.tags = props.fullFinancialData.tags;
                  }
                  if (dataTypes.includes('preferences')) {
-                     const { brandfetchClientId, twelveDataApiKey, ...safePreferences } = props.fullFinancialData.preferences || {};
-                     exportData.preferences = safePreferences;
+                     exportData.preferences = props.fullFinancialData.preferences || {};
                  }
                  if (dataTypes.includes('userStats')) {
                      exportData.userStats = props.fullFinancialData.userStats;
@@ -554,4 +553,4 @@ const DataManagement: React.FC<DataManagementProps> = (props) => {
   );
 };
 
-export default DataManagement;
+export default DataImportExportPage;

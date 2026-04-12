@@ -5,7 +5,7 @@ import { UserStats, Account, Transaction, FinancialGoal, Currency, Category, Pre
 import { calculateAccountTotals, convertToEur, parseLocalDate, formatCurrency, generateAmortizationSchedule, toLocalISOString } from '../utils';
 import { LIQUID_ACCOUNT_TYPES, ASSET_TYPES, DEBT_TYPES, BTN_PRIMARY_STYLE, BTN_SECONDARY_STYLE } from '../constants';
 import { useBudgetsContext, useGoalsContext, useScheduleContext, useCategoryContext } from '../contexts/FinancialDataContext';
-import useLocalStorage from '../hooks/useLocalStorage';
+import { useLocalStorage } from '../hooks/useLocalStorage';
 import PredictionCard from '../components/PredictionCard';
 import PredictionModal from '../components/PredictionModal';
 import PageHeader from '../components/PageHeader';

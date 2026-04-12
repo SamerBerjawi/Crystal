@@ -1,8 +1,9 @@
 
+
 import React, { Dispatch, SetStateAction } from 'react';
 
-// FIX: Add 'AI Assistant' to Page type
-export type Page = 'Dashboard' | 'Accounts' | 'Transactions' | 'Budget' | 'Forecasting' | 'Settings' | 'Schedule & Bills' | 'Tasks' | 'Categories' | 'Tags' | 'Personal Info' | 'Data Management' | 'Preferences' | 'AccountDetail' | 'Investments' | 'HoldingDetail' | 'Documentation' | 'AI Assistant' | 'Subscriptions' | 'Quotes & Invoices' | 'Challenges' | 'Merchants' | 'Integrations' | 'EnableBankingCallback';
+// FIX: Remove 'AI Assistant' from Page type
+export type Page = 'Dashboard' | 'Accounts' | 'Transactions' | 'Budget' | 'Forecasting' | 'Settings' | 'Schedule & Bills' | 'Tasks' | 'Categories' | 'Tags' | 'Personal Info' | 'Data Management' | 'Preferences' | 'AccountDetail' | 'Investments' | 'HoldingDetail' | 'Documentation' | 'Subscriptions' | 'Quotes & Invoices' | 'Challenges' | 'Merchants' | 'Reports' | 'Integrations' | 'EnableBankingCallback';
 
 export type AccountType = 'Checking' | 'Savings' | 'Credit Card' | 'Investment' | 'Loan' | 'Property' | 'Vehicle' | 'Other Assets' | 'Other Liabilities' | 'Lending';
 
@@ -219,6 +220,7 @@ export interface RecurringTransaction {
   accountId: string; // from account for transfers
   toAccountId?: string; // to account for transfers
   description: string;
+  merchant?: string; // Explicit merchant name
   amount: number; // Always positive
   category?: string;
   type: 'income' | 'expense' | 'transfer';
@@ -231,6 +233,7 @@ export interface RecurringTransaction {
   dueDateOfMonth?: number; // Day of month (1-31) for monthly/yearly recurrences
   weekendAdjustment: WeekendAdjustment;
   isSynthetic?: boolean;
+  isSkipped?: boolean;
 }
 
 export interface RecurringTransactionOverride {
@@ -310,6 +313,7 @@ export interface HoldingDistribution {
   name: string;
   value: number;
   color: string;
+  [key: string]: any;
 }
 
 export interface HoldingsOverview {
@@ -432,6 +436,15 @@ export interface ImportExportHistoryItem {
 
 export type DefaultAccountOrder = 'manual' | 'name' | 'balance';
 
+export interface MerchantRule {
+  category?: string;
+  website?: string;
+  logo?: string; // Custom logo override (e.g. 'amazon.com')
+  notes?: string;
+  isHidden?: boolean;
+  defaultDescription?: string;
+}
+
 export interface AppPreferences {
   currency: string;
   language: string;
@@ -444,7 +457,9 @@ export interface AppPreferences {
   defaultForecastPeriod?: ForecastDuration;
   brandfetchClientId?: string;
   twelveDataApiKey?: string;
-  merchantLogoOverrides?: Record<string, string>;
+  merchantLogoOverrides?: Record<string, string>; // Deprecated in favor of merchantRules, kept for backward compat if needed
+  merchantRules?: Record<string, MerchantRule>; // Key is normalized merchant name
+  hiddenMerchants?: string[]; // Deprecated in favor of merchantRules[x].isHidden
 }
 
 // New types for Bills & Payments
@@ -587,6 +602,8 @@ export interface FinancialData {
     userStats?: UserStats;
     predictions?: Prediction[];
     enableBankingConnections?: EnableBankingConnection[];
+    lastUpdatedAt?: string;
+    userProfile?: User;
 }
 
 // New types for Tasks feature
@@ -660,4 +677,5 @@ export type ScheduledItem = {
     originalItem: RecurringTransaction | BillPayment;
     isOverride?: boolean;
     originalDateForOverride?: string;
+    isSkipped?: boolean; // New Property
 };

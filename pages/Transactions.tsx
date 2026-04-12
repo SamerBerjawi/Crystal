@@ -1,7 +1,7 @@
 
 import React, { useState, useMemo, useRef, useEffect, useCallback } from 'react';
-import { INPUT_BASE_STYLE, SELECT_WRAPPER_STYLE, SELECT_ARROW_STYLE, BTN_PRIMARY_STYLE, BTN_SECONDARY_STYLE, SELECT_STYLE, CHECKBOX_STYLE } from '../constants';
-import { Transaction, Account, DisplayTransaction, RecurringTransaction, Category } from '../types';
+import { INPUT_BASE_STYLE, SELECT_WRAPPER_STYLE, SELECT_ARROW_STYLE, BTN_PRIMARY_STYLE, BTN_SECONDARY_STYLE, SELECT_STYLE, CHECKBOX_STYLE, ALL_ACCOUNT_TYPES } from '../constants';
+import { Transaction, Account, DisplayTransaction, RecurringTransaction, Category, AccountType } from '../types';
 import Card from '../components/Card';
 import { formatCurrency, fuzzySearch, convertToEur, arrayToCSV, downloadCSV, parseLocalDate, toLocalISOString } from '../utils';
 import AddTransactionModal from '../components/AddTransactionModal';
@@ -27,8 +27,8 @@ interface TransactionsProps {
 
 const MetricCard = React.memo(function MetricCard({ label, value, colorClass = "text-light-text dark:text-dark-text", icon }: { label: string; value: string; colorClass?: string; icon: string }) {
     return (
-        <div className="bg-white dark:bg-dark-card p-4 rounded-xl shadow-sm border border-black/5 dark:border-white/5 flex items-center gap-4 transition-transform hover:scale-[1.02] duration-200 h-full">
-            <div className={`w-12 h-12 rounded-full flex items-center justify-center bg-light-bg dark:bg-white/5 text-light-text-secondary dark:text-dark-text-secondary flex-shrink-0`}>
+        <div className="bg-gray-50 dark:bg-dark-card p-4 rounded-xl shadow-sm border border-black/5 dark:border-white/5 flex items-center gap-4 transition-transform hover:scale-[1.02] duration-200 h-full">
+            <div className={`w-12 h-12 rounded-full flex items-center justify-center bg-white dark:bg-white/5 text-light-text-secondary dark:text-dark-text-secondary flex-shrink-0`}>
                 <span className="material-symbols-outlined text-2xl">{icon}</span>
             </div>
             <div>
@@ -93,7 +93,7 @@ const ColumnHeader = React.memo(function ColumnHeader({
                 className={`flex items-center gap-1.5 select-none cursor-pointer group/sort py-1 px-1.5 -ml-1.5 rounded-lg hover:bg-black/5 dark:hover:bg-white/5 transition-all duration-200`} 
                 onClick={handleSort}
             >
-                <span className={`text-[11px] font-bold uppercase tracking-wider transition-colors ${isSorted ? 'text-primary-600 dark:text-primary-400' : 'text-light-text-secondary dark:text-dark-text-secondary group-hover/sort:text-light-text dark:group-hover/sort:text-dark-text'}`}>
+                <span className={`text-[10px] font-black uppercase tracking-[0.1em] transition-colors ${isSorted ? 'text-primary-600 dark:text-primary-400' : 'text-light-text-secondary dark:text-dark-text-secondary group-hover/sort:text-light-text dark:group-hover/sort:text-dark-text'}`}>
                     {label}
                 </span>
                 
@@ -114,7 +114,7 @@ const ColumnHeader = React.memo(function ColumnHeader({
                         <span className={`material-symbols-outlined text-[14px] ${isFilterActive ? 'filled-icon' : ''}`}>filter_alt</span>
                     </button>
                     {isFilterOpen && (
-                        <div className={`absolute top-full mt-2 ${alignRight ? 'right-0' : 'left-0'} z-50 w-64 bg-white dark:bg-dark-card rounded-xl shadow-xl border border-black/5 dark:border-white/10 p-3 animate-fade-in-up cursor-default text-left normal-case font-normal text-light-text dark:text-dark-text`} onClick={e => e.stopPropagation()}>
+                        <div className={`absolute top-full mt-2 ${alignRight ? 'right-0' : 'left-0'} z-50 w-64 bg-white/90 dark:bg-dark-card/90 backdrop-blur-xl rounded-xl shadow-xl border border-black/5 dark:border-white/10 p-3 animate-fade-in-up cursor-default text-left normal-case font-normal text-light-text dark:text-dark-text`} onClick={e => e.stopPropagation()}>
                             {filterContent}
                         </div>
                     )}
@@ -132,14 +132,29 @@ const Transactions: React.FC<TransactionsProps> = ({ initialAccountFilter, initi
   const { saveRecurringTransaction } = useScheduleContext();
   const brandfetchClientId = usePreferencesSelector(p => (p.brandfetchClientId || '').trim());
   const merchantLogoOverrides = usePreferencesSelector(p => p.merchantLogoOverrides || {});
-  const [accountFilter, setAccountFilter] = useState<string | null>(initialAccountFilter ?? null);
-  const [tagFilter, setTagFilter] = useState<string | null>(initialTagFilter ?? null);
+  const merchantRules = usePreferencesSelector(p => p.merchantRules || {});
+  const appliedInitialFiltersRef = useRef<{ account: string | null; tag: string | null } | null>(null);
 
   useEffect(() => {
-    setAccountFilter(initialAccountFilter ?? null);
-    setTagFilter(initialTagFilter ?? null);
-    onClearInitialFilters?.();
-  }, [initialAccountFilter, initialTagFilter, onClearInitialFilters]);
+    const nextAccount = initialAccountFilter ?? null;
+    const nextTag = initialTagFilter ?? null;
+    const hasInitialFilters = Boolean(nextAccount || nextTag);
+    if (!hasInitialFilters) return;
+
+    const lastApplied = appliedInitialFiltersRef.current;
+    if (!lastApplied || lastApplied.account !== nextAccount || lastApplied.tag !== nextTag) {
+      if (nextAccount) {
+        const account = accounts.find(a => a.name === nextAccount);
+        if (account) setSelectedAccountIds([account.id]);
+      }
+      if (nextTag) {
+        setSelectedTagIds([nextTag]);
+      }
+
+      appliedInitialFiltersRef.current = { account: nextAccount, tag: nextTag };
+      onClearInitialFilters?.();
+    }
+  }, [accounts, initialAccountFilter, initialTagFilter, onClearInitialFilters]);
 
   const [searchTerm, setSearchTerm] = useState('');
   const debouncedSearchTerm = useDebounce(searchTerm, 300);
@@ -156,7 +171,7 @@ const Transactions: React.FC<TransactionsProps> = ({ initialAccountFilter, initi
   const [selectedCategoryNames, setSelectedCategoryNames] = useState<string[]>([]);
   const [selectedTagIds, setSelectedTagIds] = useState<string[]>([]);
 
-  const [isTransactionModalOpen, setIsTransactionModalOpen] = useState(false);
+  const [isTransactionModalOpen, setTransactionModalOpen] = useState(false);
   const [editingTransaction, setEditingTransaction] = useState<Transaction | null>(null);
   const [duplicateData, setDuplicateData] = useState<any>(null); // For duplication
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
@@ -180,23 +195,6 @@ const Transactions: React.FC<TransactionsProps> = ({ initialAccountFilter, initi
     setListHeight(measuredHeight > 0 ? measuredHeight : 600);
   }, 150);
 
-  // Sync with global filters from props
-  useEffect(() => {
-    if (accountFilter) {
-      const account = accounts.find(a => a.name === accountFilter);
-      if (account) setSelectedAccountIds([account.id]);
-    } else {
-      setSelectedAccountIds([]);
-    }
-  }, [accountFilter, accounts]);
-
-  useEffect(() => {
-    if (tagFilter) {
-      setSelectedTagIds([tagFilter]);
-    } else {
-      setSelectedTagIds([]);
-    }
-  }, [tagFilter]);
 
   useEffect(() => {
     const handleKeyDown = (event: KeyboardEvent) => {
@@ -269,16 +267,30 @@ const Transactions: React.FC<TransactionsProps> = ({ initialAccountFilter, initi
     return {};
   };
 
+  const effectiveMerchantLogoOverrides = useMemo(() => {
+    const ruleLogoOverrides = Object.entries(merchantRules).reduce((acc, [merchantKey, rule]) => {
+      if (rule?.logo) acc[merchantKey] = rule.logo;
+      return acc;
+    }, {} as Record<string, string>);
+
+    return {
+      ...merchantLogoOverrides,
+      ...ruleLogoOverrides,
+    };
+  }, [merchantLogoOverrides, merchantRules]);
+
+
+
   const merchantLogoUrls = useMemo(() => {
     if (!brandfetchClientId) return {} as Record<string, string>;
     return transactions.reduce((acc, tx) => {
       const key = normalizeMerchantKey(tx.merchant);
       if (!key || acc[key]) return acc;
-      const url = getMerchantLogoUrl(tx.merchant, brandfetchClientId, merchantLogoOverrides, { fallback: 'lettermark', type: 'icon', width: 96, height: 96 });
+      const url = getMerchantLogoUrl(tx.merchant, brandfetchClientId, effectiveMerchantLogoOverrides, { fallback: 'lettermark', type: 'icon', width: 96, height: 96 });
       if (url) acc[key] = url;
       return acc;
     }, {} as Record<string, string>);
-  }, [brandfetchClientId, merchantLogoOverrides, transactions]);
+  }, [brandfetchClientId, effectiveMerchantLogoOverrides, transactions]);
 
   const handleLogoError = useCallback((logoUrl: string) => {
     setLogoLoadErrors(prev => (prev[logoUrl] ? prev : { ...prev, [logoUrl]: true }));
@@ -308,15 +320,18 @@ const Transactions: React.FC<TransactionsProps> = ({ initialAccountFilter, initi
     const getSpareChangeKey = (accountId: string, date: string, description?: string, isTransfer?: boolean) =>
       `${accountId}|${date}|${normalizeDescription(description, isTransfer)}`;
 
+    // Store array of amounts for each key to handle multiple transactions with same description/date
     const spareChangeLookup = sortedTransactions.reduce((map, tx) => {
         if (!tx.transferId?.startsWith('spare-') || tx.amount >= 0) return map;
 
         const baseDescription = tx.description?.replace(/^Spare change (for|from)\s*/i, '').trim();
-        const key = getSpareChangeKey(tx.accountId, tx.date, baseDescription, tx.category === 'Transfer');
-        const currentAmount = map.get(key) || 0;
-        map.set(key, currentAmount + Math.abs(tx.amount));
+        const key = getSpareChangeKey(tx.accountId, tx.date, baseDescription, false);
+        
+        const currentAmounts = map.get(key) || [];
+        currentAmounts.push(Math.abs(tx.amount));
+        map.set(key, currentAmounts);
         return map;
-    }, new Map<string, number>());
+    }, new Map<string, number[]>());
 
     const transferLookup = sortedTransactions.reduce((map, tx) => {
         if (!tx.transferId || tx.transferId.startsWith('spare-')) return map;
@@ -330,6 +345,31 @@ const Transactions: React.FC<TransactionsProps> = ({ initialAccountFilter, initi
         return map;
     }, new Map<string, { income?: Transaction; expense?: Transaction }>());
 
+    const consumeSpareChange = (accountId: string, date: string, description?: string, isTransfer?: boolean, txAmount?: number) => {
+         const key = getSpareChangeKey(accountId, date, description, isTransfer);
+         const amounts = spareChangeLookup.get(key);
+         
+         if (!amounts || amounts.length === 0) return undefined;
+         
+         // Try to find a logical match based on standard round up
+         let bestIndex = 0;
+         if (txAmount !== undefined) {
+             const absAmt = Math.abs(txAmount);
+             const remainder = absAmt % 1;
+             // Default logic: 1.0 - remainder. If remainder 0, checking for 1.0 (unit)
+             const expected = parseFloat((remainder === 0 ? 1.00 : (1.00 - remainder)).toFixed(2));
+             
+             // Look for exact match to expected
+             const idx = amounts.findIndex(a => Math.abs(a - expected) < 0.005);
+             if (idx !== -1) bestIndex = idx;
+         }
+         
+         const amount = amounts[bestIndex];
+         amounts.splice(bestIndex, 1);
+         if (amounts.length === 0) spareChangeLookup.delete(key);
+         return amount;
+    };
+
     for (const tx of sortedTransactions) {
         if (tx.transferId?.startsWith('spare-')) continue; // Spare change handled separately
 
@@ -340,8 +380,7 @@ const Transactions: React.FC<TransactionsProps> = ({ initialAccountFilter, initi
             processedTransferIds.add(tx.transferId);
 
             if (pair?.expense && pair?.income) {
-                const spareKey = getSpareChangeKey(pair.expense.accountId, pair.expense.date, pair.expense.description, true);
-                const spareChangeAmount = spareChangeLookup.get(spareKey);
+                const spareChangeAmount = consumeSpareChange(pair.expense.accountId, pair.expense.date, pair.expense.description, true, pair.expense.amount);
 
                 result.push({
                     ...pair.expense,
@@ -361,12 +400,12 @@ const Transactions: React.FC<TransactionsProps> = ({ initialAccountFilter, initi
                     transferIncomeCurrency: pair.income.currency,
                 });
             } else {
-                const spareKey = getSpareChangeKey(tx.accountId, tx.date, tx.description, true);
-                result.push({ ...tx, accountName: accountMap[tx.accountId]?.name, spareChangeAmount: spareChangeLookup.get(spareKey) });
+                const spareChangeAmount = consumeSpareChange(tx.accountId, tx.date, tx.description, false, tx.amount);
+                result.push({ ...tx, accountName: accountMap[tx.accountId]?.name, spareChangeAmount });
             }
         } else {
-            const spareKey = getSpareChangeKey(tx.accountId, tx.date, tx.description, false);
-            result.push({ ...tx, accountName: accountMap[tx.accountId]?.name, spareChangeAmount: spareChangeLookup.get(spareKey) });
+            const spareChangeAmount = consumeSpareChange(tx.accountId, tx.date, tx.description, false, tx.amount);
+            result.push({ ...tx, accountName: accountMap[tx.accountId]?.name, spareChangeAmount });
         }
     }
     return result;
@@ -472,10 +511,6 @@ const Transactions: React.FC<TransactionsProps> = ({ initialAccountFilter, initi
         filteredTransactions.forEach(tx => {
             const dateStr = tx.date; // ISO string YYYY-MM-DD
             if (dateStr !== lastDate) {
-                // Calculate daily total for the header
-                // Note: This is expensive if done naively every row. Optimization:
-                // We could pre-calculate totals or just sum on the fly if lists are small.
-                // For virtualization, we just insert the header.
                 rows.push({ type: 'header', date: dateStr, total: 0 }); // Total calculated later if needed or skipped
                 lastDate = dateStr;
             }
@@ -521,18 +556,24 @@ const Transactions: React.FC<TransactionsProps> = ({ initialAccountFilter, initi
     return { totalIncome: income, totalExpense: expense, netFlow: income - expense };
   }, [filteredTransactions]);
   
-  const containsTransfer = useMemo(() => {
-    return Array.from(selectedIds).some((id: string) => id.startsWith('transfer-'));
-  }, [selectedIds]);
-
   const isAllSelected = useMemo(() => {
       if (filteredTransactions.length === 0) return false;
       return filteredTransactions.every(tx => selectedIds.has(tx.id));
   }, [filteredTransactions, selectedIds]);
   
     const selectedTransactions = useMemo(() => {
-        const regularTxIds = Array.from(selectedIds).filter((id: string) => !id.startsWith('transfer-'));
-        return transactions.filter(t => regularTxIds.includes(t.id));
+        const resolvedIds = new Set<string>();
+        selectedIds.forEach(id => {
+            if (id.startsWith('transfer-')) {
+                 const transferId = id.replace('transfer-', '');
+                 // Find the expense side transaction for this transfer (typically what is displayed)
+                 const tx = transactions.find(t => t.transferId === transferId && t.type === 'expense');
+                 if (tx) resolvedIds.add(tx.id);
+            } else {
+                 resolvedIds.add(id);
+            }
+        });
+        return transactions.filter(t => resolvedIds.has(t.id));
     }, [selectedIds, transactions]);
 
   const handleSelectAll = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -555,13 +596,12 @@ const Transactions: React.FC<TransactionsProps> = ({ initialAccountFilter, initi
   };
   
   const handleOpenCategorizeModal = () => {
-    if (containsTransfer) return;
     setIsCategorizeModalOpen(true);
   };
 
   const handleSaveBulkCategory = (newCategoryName: string) => {
       const transactionUpdates: (Omit<Transaction, 'id'> & { id: string })[] = [];
-      const selectedRegularTxIds = Array.from(selectedIds).filter((id: string) => !id.startsWith('transfer-'));
+      const idsToDelete: string[] = [];
 
       // Use recursive finder to handle sub-categories
       const categoryDetails = findCategoryByName(newCategoryName, allCategories);
@@ -573,8 +613,23 @@ const Transactions: React.FC<TransactionsProps> = ({ initialAccountFilter, initi
       
       const newType = categoryDetails.classification || 'expense';
 
-      for (const txId of selectedRegularTxIds) {
-          const originalTx = transactions.find(t => t.id === txId);
+      // Iterate through raw selectedIds to handle transfers properly
+      for (const selectedId of selectedIds) {
+          let originalTx: Transaction | undefined;
+          
+          if (selectedId.startsWith('transfer-')) {
+               const transferId = selectedId.replace('transfer-', '');
+               originalTx = transactions.find(t => t.transferId === transferId && t.type === 'expense');
+               
+               // If we are converting a transfer to a category, we need to delete the income side counterpart
+               if (originalTx) {
+                   const counterpart = transactions.find(t => t.transferId === transferId && t.id !== originalTx.id);
+                   if (counterpart) idsToDelete.push(counterpart.id);
+               }
+          } else {
+               originalTx = transactions.find(t => t.id === selectedId);
+          }
+
           if (originalTx) {
               const newAmount = newType === 'income' ? Math.abs(originalTx.amount) : -Math.abs(originalTx.amount);
               transactionUpdates.push({ 
@@ -582,12 +637,13 @@ const Transactions: React.FC<TransactionsProps> = ({ initialAccountFilter, initi
                   category: newCategoryName,
                   type: newType,
                   amount: newAmount,
+                  transferId: undefined // Remove transfer link if it was one
               });
           }
       }
       
       if (transactionUpdates.length > 0) {
-          saveTransaction(transactionUpdates, []);
+          saveTransaction(transactionUpdates, idsToDelete);
       }
       
       setIsCategorizeModalOpen(false);
@@ -627,7 +683,7 @@ const Transactions: React.FC<TransactionsProps> = ({ initialAccountFilter, initi
   const handleOpenAddModal = () => {
     setEditingTransaction(null);
     setDuplicateData(null);
-    setIsTransactionModalOpen(true);
+    setTransactionModalOpen(true);
   };
 
   const handleDuplicate = (tx: DisplayTransaction) => {
@@ -646,11 +702,11 @@ const Transactions: React.FC<TransactionsProps> = ({ initialAccountFilter, initi
         }
     });
     setEditingTransaction(null);
-    setIsTransactionModalOpen(true);
+    setTransactionModalOpen(true);
   };
 
   const handleCloseModal = () => {
-    setIsTransactionModalOpen(false);
+    setTransactionModalOpen(false);
     setEditingTransaction(null);
     setDuplicateData(null);
   };
@@ -747,7 +803,7 @@ const Transactions: React.FC<TransactionsProps> = ({ initialAccountFilter, initi
             currency: resolved.currency,
             category: rest.category,
             type: rest.isTransfer ? 'transfer' : rest.type,
-            account: rest.accountName || (rest.isTransfer ? `${rest.fromAccountName} -> ${rest.toAccountName}` : 'N/A'),
+            account: rest.accountName || (rest.isTransfer ? `${rest.fromAccountName} → ${rest.toAccountName}` : 'N/A'),
             tags: rest.tagIds?.map(tid => tags.find(t=>t.id === tid)?.name).join(' | ') || ''
         };
     });
@@ -757,10 +813,8 @@ const Transactions: React.FC<TransactionsProps> = ({ initialAccountFilter, initi
   
   const clearFilters = () => {
     setSearchTerm('');
-    setAccountFilter(null);
     setSelectedAccountIds([]);
     setSelectedCategoryNames([]);
-    setTagFilter(null);
     setSelectedTagIds([]);
     setTypeFilter('all');
     setStartDate('');
@@ -832,21 +886,51 @@ const Transactions: React.FC<TransactionsProps> = ({ initialAccountFilter, initi
       </div>
   ), [endDate, startDate]);
 
-  const accountFilterContent = useMemo(() => (
+  const accountFilterContent = useMemo(() => {
+    const open = accounts.filter(acc => acc.status !== 'closed');
+    const closed = accounts.filter(acc => acc.status === 'closed');
+    const groupedOpen: Record<string, Account[]> = {};
+    open.forEach(acc => {
+        if (!groupedOpen[acc.type]) groupedOpen[acc.type] = [];
+        groupedOpen[acc.type].push(acc);
+    });
+
+    return (
       <div className="space-y-2">
-           <div className="max-h-48 overflow-y-auto space-y-1 pr-1">
-              {accounts.map(acc => (
-                   <label key={acc.id} className="flex items-center gap-2 text-sm p-1.5 rounded hover:bg-black/5 dark:hover:bg-white/5 cursor-pointer">
-                       <input type="checkbox" checked={selectedAccountIds.includes(acc.id)} onChange={() => handleAccountToggle(acc.id)} className={CHECKBOX_STYLE} />
-                       <span className="truncate">{acc.name}</span>
-                   </label>
-              ))}
+           <div className="max-h-64 overflow-y-auto space-y-1 pr-1 custom-scrollbar">
+              {ALL_ACCOUNT_TYPES.map(type => {
+                  const group = groupedOpen[type];
+                  if (!group || group.length === 0) return null;
+                  return (
+                      <div key={type} className="mb-2">
+                          <h4 className="px-1.5 py-1 text-[10px] font-bold text-light-text-secondary dark:text-dark-text-secondary uppercase tracking-widest">{type}</h4>
+                          {group.map(acc => (
+                              <label key={acc.id} className="flex items-center gap-2 text-sm p-1.5 rounded hover:bg-black/5 dark:hover:bg-white/5 cursor-pointer">
+                                  <input type="checkbox" checked={selectedAccountIds.includes(acc.id)} onChange={() => handleAccountToggle(acc.id)} className={CHECKBOX_STYLE} />
+                                  <span className="truncate">{acc.name}</span>
+                              </label>
+                          ))}
+                      </div>
+                  );
+              })}
+              {closed.length > 0 && (
+                  <div className="mt-2 pt-2 border-t border-black/5 dark:border-white/5">
+                      <h4 className="px-1.5 py-1 text-[10px] font-bold text-light-text-secondary dark:text-dark-text-secondary uppercase tracking-widest">Closed</h4>
+                      {closed.map(acc => (
+                          <label key={acc.id} className="flex items-center gap-2 text-sm p-1.5 rounded hover:bg-black/5 dark:hover:bg-white/5 cursor-pointer">
+                              <input type="checkbox" checked={selectedAccountIds.includes(acc.id)} onChange={() => handleAccountToggle(acc.id)} className={CHECKBOX_STYLE} />
+                              <span className="truncate">{acc.name}</span>
+                          </label>
+                      ))}
+                  </div>
+              )}
           </div>
           {selectedAccountIds.length > 0 && (
               <button onClick={() => setSelectedAccountIds([])} className="text-xs text-red-500 w-full text-center hover:underline pt-1 border-t border-black/5 dark:border-white/5">Clear Selection</button>
           )}
       </div>
-  ), [accounts, handleAccountToggle, selectedAccountIds]);
+    );
+  }, [accounts, handleAccountToggle, selectedAccountIds]);
 
   const merchantFilterContent = useMemo(() => (
       <div className="space-y-2 p-1">
@@ -883,9 +967,9 @@ const Transactions: React.FC<TransactionsProps> = ({ initialAccountFilter, initi
           {tagOptions.length > 0 ? (
               <div className="max-h-48 overflow-y-auto space-y-1 pr-1">
                   {tagOptions.map(tag => (
-                      <label key={tag.value} className="flex items-center gap-2 text-sm p-1.5 rounded hover:bg-black/5 dark:hover:bg-white/5 cursor-pointer">
+                      <label key={tag.value} className="flex items-center gap-3 p-2 hover:bg-black/5 dark:hover:bg-white/5 cursor-pointer rounded-md">
                           <input type="checkbox" checked={selectedTagIds.includes(tag.value)} onChange={() => handleTagToggle(tag.value)} className={CHECKBOX_STYLE} />
-                          <span className="truncate">{tag.label}</span>
+                          <span className="text-sm font-medium">{tag.label}</span>
                       </label>
                   ))}
               </div>
@@ -992,9 +1076,9 @@ const Transactions: React.FC<TransactionsProps> = ({ initialAccountFilter, initi
             <div
                 ref={contextMenuRef}
                 style={{ top: contextMenu.y, left: contextMenu.x }}
-                className="fixed z-50 w-56 bg-light-card dark:bg-dark-card rounded-xl shadow-xl border border-black/10 dark:border-white/10 py-1.5 animate-fade-in-up overflow-hidden"
+                className="fixed z-50 w-56 bg-light-card/90 dark:bg-dark-card/90 backdrop-blur-xl rounded-xl shadow-xl border border-black/10 dark:border-white/10 py-1.5 animate-fade-in-up overflow-hidden"
             >
-                <button onClick={() => { setEditingTransaction(transactions.find(t => t.id === (contextMenu.transaction.isTransfer ? contextMenu.transaction.originalId : contextMenu.transaction.id)) || null); setIsTransactionModalOpen(true); setContextMenu(null); }} className="w-full text-left flex items-center gap-3 px-4 py-2.5 text-sm hover:bg-black/5 dark:hover:bg-white/10 transition-colors">
+                <button onClick={() => { setEditingTransaction(transactions.find(t => t.id === (contextMenu.transaction.isTransfer ? contextMenu.transaction.originalId : contextMenu.transaction.id)) || null); setTransactionModalOpen(true); setContextMenu(null); }} className="w-full text-left flex items-center gap-3 px-4 py-2.5 text-sm hover:bg-black/5 dark:hover:bg-white/10 transition-colors">
                     <span className="material-symbols-outlined text-lg text-blue-500">edit</span>
                     <span>Edit Transaction</span>
                 </button>
@@ -1059,7 +1143,7 @@ const Transactions: React.FC<TransactionsProps> = ({ initialAccountFilter, initi
       </div>
       
       {/* Filter Toolbar */}
-      <div className={`p-4 bg-white dark:bg-dark-card rounded-2xl border border-black/5 dark:border-white/5 shadow-sm transition-all duration-300`}>
+      <div className={`p-4 bg-gray-50 dark:bg-dark-card rounded-2xl border border-black/5 dark:border-white/5 shadow-sm transition-all duration-300`}>
           <div className="flex flex-col gap-4">
               {/* Main Row */}
               <div className="flex flex-col xl:flex-row gap-4 items-start xl:items-end">
@@ -1146,11 +1230,11 @@ const Transactions: React.FC<TransactionsProps> = ({ initialAccountFilter, initi
       
       {/* Transaction List Card */}
       <div className="flex-1 min-w-0 relative">
-        <Card className="p-0 h-full flex flex-col relative overflow-hidden border border-black/5 dark:border-white/5 shadow-sm">
+        <Card className="!p-0 h-full flex flex-col relative overflow-hidden border border-black/5 dark:border-white/5 shadow-sm rounded-2xl bg-gray-50 dark:bg-dark-card">
             <div className="overflow-x-auto">
               <div className="min-w-[900px] flex flex-col">
                 {selectedIds.size > 0 ? (
-                    <div className="bg-primary-600 dark:bg-primary-800 text-white px-6 flex justify-between items-center h-[60px] z-30 relative shadow-md pointer-events-auto">
+                    <div className="bg-primary-600 dark:bg-primary-800 text-white px-6 flex justify-between items-center h-[60px] z-[40] relative shadow-md pointer-events-auto">
                          <div className="flex items-center gap-4">
                              <button 
                                 onClick={() => setSelectedIds(new Set())} 
@@ -1162,28 +1246,27 @@ const Transactions: React.FC<TransactionsProps> = ({ initialAccountFilter, initi
                              <span className="font-bold text-sm">{selectedIds.size} selected</span>
                          </div>
                         <div className="flex gap-2">
-                            <button type="button" onClick={() => setBulkEditModalOpen(true)} className="bg-white/20 hover:bg-white/30 text-white py-1.5 px-3 rounded-lg text-xs font-semibold transition-colors backdrop-blur-sm" disabled={containsTransfer}>Edit</button>
-                            <button type="button" onClick={handleOpenCategorizeModal} className="bg-white/20 hover:bg-white/30 text-white py-1.5 px-3 rounded-lg text-xs font-semibold transition-colors backdrop-blur-sm" disabled={containsTransfer}>Categorize</button>
+                            <button type="button" onClick={() => setBulkEditModalOpen(true)} className="bg-white/20 hover:bg-white/30 text-white py-1.5 px-3 rounded-lg text-xs font-semibold transition-colors backdrop-blur-sm">Edit</button>
+                            <button type="button" onClick={handleOpenCategorizeModal} className="bg-white/20 hover:bg-white/30 text-white py-1.5 px-3 rounded-lg text-xs font-semibold transition-colors backdrop-blur-sm">Categorize</button>
                             <button type="button" onClick={() => handleMakeRecurring()} className="bg-white/20 hover:bg-white/30 text-white py-1.5 px-3 rounded-lg text-xs font-semibold transition-colors backdrop-blur-sm" disabled={selectedIds.size !== 1}>Recurring</button>
                             <button type="button" onClick={handleOpenDeleteModal} className="bg-red-500/80 hover:bg-red-500 text-white py-1.5 px-3 rounded-lg text-xs font-semibold transition-colors backdrop-blur-sm">Delete</button>
                         </div>
                     </div>
                 ) : (
-                    <div className="px-5 py-3 border-b border-black/5 dark:border-white/5 flex items-center gap-3 bg-white dark:bg-dark-card sticky top-0 z-10">
+                    <div className="px-5 py-3 border-b border-black/5 dark:border-white/5 flex items-center gap-3 bg-gray-50/50 dark:bg-white/[0.02] sticky top-0 z-[30] backdrop-blur-md">
                         <div className="flex items-center justify-center w-5">
                              <input type="checkbox" onChange={handleSelectAll} checked={isAllSelected} className={CHECKBOX_STYLE} aria-label="Select all transactions"/>
                         </div>
                         <div className="flex-1 grid grid-cols-12 gap-3 ml-3 items-center">
                             <div className="col-span-5">
                                 <ColumnHeader
-                                    label="Description"
+                                    label="Description & Merchant"
                                     currentSort={sortBy}
                                     onSort={setSortBy}
                                     isFilterActive={!!merchantFilter}
                                     filterContent={merchantFilterContent}
                                 />
                             </div>
-                            {/* Date Column Removed from Header */}
                             <div className="col-span-2">
                                  <ColumnHeader
                                     label="Account"
@@ -1205,7 +1288,7 @@ const Transactions: React.FC<TransactionsProps> = ({ initialAccountFilter, initi
                             </div>
                             <div className="col-span-2">
                                 <ColumnHeader
-                                    label="Tag"
+                                    label="Context Tags"
                                     currentSort={sortBy}
                                     onSort={setSortBy}
                                     isFilterActive={selectedTagIds.length > 0}
@@ -1214,7 +1297,7 @@ const Transactions: React.FC<TransactionsProps> = ({ initialAccountFilter, initi
                             </div>
                             <div className="col-span-1 text-right flex justify-end">
                                  <ColumnHeader
-                                    label="Amount"
+                                    label="Value"
                                     sortKey="amount"
                                     currentSort={sortBy}
                                     onSort={setSortBy}
@@ -1248,7 +1331,7 @@ const Transactions: React.FC<TransactionsProps> = ({ initialAccountFilter, initi
                         if (row.type === 'header') {
                             return (
                                 <div key={`header-${row.date}`} style={style} className="flex items-center px-4 py-2 bg-gray-50/80 dark:bg-black/20 border-y border-black/5 dark:border-white/5 sticky top-0 z-10 backdrop-blur-sm">
-                                    <span className="text-xs font-bold text-light-text-secondary dark:text-dark-text-secondary uppercase tracking-wider">
+                                    <span className="text-[10px] font-black text-light-text-secondary dark:text-dark-text-secondary uppercase tracking-[0.2em]">
                                         {parseLocalDate(row.date).toLocaleDateString(undefined, { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' })}
                                     </span>
                                 </div>
@@ -1288,7 +1371,7 @@ const Transactions: React.FC<TransactionsProps> = ({ initialAccountFilter, initi
                         ? formatCurrency(convertToEur(Math.abs(resolvedDisplay.amount), resolvedDisplay.currency), 'EUR')
                         : formatCurrency(convertToEur(resolvedDisplay.amount, resolvedDisplay.currency), 'EUR', { showPlusSign: true });
 
-                    const institutionLogoUrl = account?.financialInstitution ? getMerchantLogoUrl(account.financialInstitution, brandfetchClientId, merchantLogoOverrides, { fallback: 'lettermark', type: 'icon', width: 64, height: 64 }) : null;
+                    const institutionLogoUrl = account?.financialInstitution ? getMerchantLogoUrl(account.financialInstitution, brandfetchClientId, effectiveMerchantLogoOverrides, { fallback: 'lettermark', type: 'icon', width: 64, height: 64 }) : null;
                     const showInstitutionLogo = Boolean(institutionLogoUrl && !logoLoadErrors[institutionLogoUrl]);
 
                     return (
@@ -1308,7 +1391,7 @@ const Transactions: React.FC<TransactionsProps> = ({ initialAccountFilter, initi
                           {/* Column 1: Description (Expanded) */}
                             <div className="col-span-5 flex items-center gap-3 min-w-0">
                               <div
-                                className={`w-10 h-10 rounded-full flex items-center justify-center text-white shadow-sm shrink-0 overflow-hidden ${showMerchantLogo ? 'bg-white dark:bg-dark-card' : 'border border-black/5 dark:border-white/10'}`}
+                                className={`w-10 h-10 rounded-xl flex items-center justify-center text-white shadow-sm shrink-0 overflow-hidden ${showMerchantLogo ? 'bg-white dark:bg-dark-card' : ''}`}
                                 style={showMerchantLogo ? undefined : { backgroundColor: categoryColor }}
                               >
                                 {showMerchantLogo && merchantLogoUrl ? (
@@ -1337,7 +1420,7 @@ const Transactions: React.FC<TransactionsProps> = ({ initialAccountFilter, initi
                                         <img 
                                             src={institutionLogoUrl!} 
                                             alt={account?.financialInstitution || 'Bank'} 
-                                            className="w-10 h-10 object-contain rounded-full shadow-sm bg-white dark:bg-white/10" 
+                                            className="w-10 h-10 object-contain rounded-xl shadow-sm bg-white dark:bg-white/10" 
                                             onError={() => handleLogoError(institutionLogoUrl!)}
                                         />
                                    ) : (
@@ -1391,7 +1474,8 @@ const Transactions: React.FC<TransactionsProps> = ({ initialAccountFilter, initi
                                 {displayAmount}
                             </p>
                             {tx.spareChangeAmount ? (
-                                <p className="text-sm font-mono text-light-text-secondary dark:text-dark-text-secondary mt-0.5">
+                                <p className="text-[11px] font-mono font-bold text-light-text-secondary dark:text-dark-text-secondary mt-1 flex items-center justify-end gap-1">
+                                    <span className="material-symbols-outlined text-[12px] opacity-70">savings</span>
                                     {formatCurrency(convertToEur(Math.abs(tx.spareChangeAmount), tx.currency), 'EUR')}
                                 </p>
                             ) : null}

@@ -1,5 +1,3 @@
-
-
 import React, { useMemo } from 'react';
 import { Account, Transaction, DisplayTransaction, Category } from '../types';
 import { formatCurrency, parseLocalDate, convertToEur, getPreferredTimeZone, toLocalISOYearMonth } from '../utils';
@@ -265,79 +263,88 @@ const PensionAccountView: React.FC<PensionAccountViewProps> = ({
           </div>
       </div>
 
-      {/* Projection Chart */}
-      <Card className="h-[400px] flex flex-col">
-           <div className="flex justify-between items-center mb-6">
-                <div>
-                    <h3 className="text-lg font-bold text-light-text dark:text-dark-text">Growth Projection</h3>
-                    <p className="text-xs text-light-text-secondary dark:text-dark-text-secondary">Historical performance & future estimation</p>
-                </div>
-           </div>
-           <div className="flex-grow w-full min-h-0">
-                <ResponsiveContainer width="100%" height="100%">
-                    <ComposedChart data={chartData} margin={{ top: 10, right: 10, left: 0, bottom: 0 }}>
-                        <defs>
-                            <linearGradient id="colorBalancePension" x1="0" y1="0" x2="0" y2="1">
-                                <stop offset="5%" stopColor="#6366F1" stopOpacity={0.3}/>
-                                <stop offset="95%" stopColor="#6366F1" stopOpacity={0}/>
-                            </linearGradient>
-                        </defs>
-                        <CartesianGrid strokeDasharray="3 3" strokeOpacity={0.06} vertical={false} />
-                        <XAxis 
-                            dataKey="date" 
-                            axisLine={false} 
-                            tickLine={false} 
-                            tick={{ fill: 'currentColor', opacity: 0.6, fontSize: 12 }} 
-                            minTickGap={50}
-                            tickFormatter={(val) => val.split('-')[0]}
-                        />
-                        <YAxis 
-                            axisLine={false} 
-                            tickLine={false} 
-                            tick={{ fill: 'currentColor', opacity: 0.6, fontSize: 12 }} 
-                            tickFormatter={(val) => `${(val/1000).toFixed(0)}k`} 
-                            width={40}
-                        />
-                        <Tooltip 
-                            contentStyle={{ backgroundColor: 'var(--light-card)', borderColor: 'rgba(0,0,0,0.1)', borderRadius: '8px' }}
-                            formatter={(val: number, name: string) => [formatCurrency(val, account.currency), name]}
-                            labelFormatter={(label) => label}
-                        />
-                        <Legend />
-                        <Area 
-                            type="monotone" 
-                            dataKey="balance" 
-                            name="Total Value" 
-                            stroke="#6366F1" 
-                            fill="url(#colorBalancePension)" 
-                            strokeWidth={3} 
-                        />
-                        <Line 
-                            type="monotone" 
-                            dataKey="contributions" 
-                            name="Net Contributions" 
-                            stroke="#10B981" 
-                            strokeWidth={2} 
-                            dot={false}
-                            strokeDasharray="5 5"
-                        />
-                       <ReferenceLine x={toLocalISOYearMonth(new Date())} stroke="#F59E0B" strokeDasharray="3 3" label={{ value: "Today", position: "insideTopRight", fill: "#F59E0B", fontSize: 12 }} />
-                    </ComposedChart>
-                </ResponsiveContainer>
-           </div>
-      </Card>
+      {/* Projection Chart & History Grid */}
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+          {/* Projection Chart (2/3) */}
+          <div className="lg:col-span-2">
+              <Card className="h-[450px] flex flex-col">
+                   <div className="flex justify-between items-center mb-6">
+                        <div>
+                            <h3 className="text-lg font-bold text-light-text dark:text-dark-text">Growth Projection</h3>
+                            <p className="text-xs text-light-text-secondary dark:text-dark-text-secondary">Historical performance & future estimation</p>
+                        </div>
+                   </div>
+                   <div className="flex-grow w-full min-h-0">
+                        <ResponsiveContainer width="100%" height="100%">
+                            <ComposedChart data={chartData} margin={{ top: 10, right: 10, left: 0, bottom: 0 }}>
+                                <defs>
+                                    <linearGradient id="colorBalancePension" x1="0" y1="0" x2="0" y2="1">
+                                        <stop offset="5%" stopColor="#6366F1" stopOpacity={0.3}/>
+                                        <stop offset="95%" stopColor="#6366F1" stopOpacity={0}/>
+                                    </linearGradient>
+                                </defs>
+                                <CartesianGrid strokeDasharray="3 3" strokeOpacity={0.06} vertical={false} />
+                                <XAxis 
+                                    dataKey="date" 
+                                    axisLine={false} 
+                                    tickLine={false} 
+                                    tick={{ fill: 'currentColor', opacity: 0.6, fontSize: 12 }} 
+                                    minTickGap={50}
+                                    tickFormatter={(val) => val.split('-')[0]}
+                                />
+                                <YAxis 
+                                    axisLine={false} 
+                                    tickLine={false} 
+                                    tick={{ fill: 'currentColor', opacity: 0.6, fontSize: 12 }} 
+                                    tickFormatter={(val) => `${(val/1000).toFixed(0)}k`} 
+                                    width={40}
+                                />
+                                <Tooltip 
+                                    contentStyle={{ backgroundColor: 'var(--light-card)', borderColor: 'rgba(0,0,0,0.1)', borderRadius: '8px' }}
+                                    formatter={(val: number, name: string) => [formatCurrency(val, account.currency), name]}
+                                    labelFormatter={(label) => label}
+                                />
+                                <Legend />
+                                <Area 
+                                    type="monotone" 
+                                    dataKey="balance" 
+                                    name="Total Value" 
+                                    stroke="#6366F1" 
+                                    fill="url(#colorBalancePension)" 
+                                    strokeWidth={3} 
+                                />
+                                <Line 
+                                    type="monotone" 
+                                    dataKey="contributions" 
+                                    name="Net Contributions" 
+                                    stroke="#10B981" 
+                                    strokeWidth={2} 
+                                    dot={false}
+                                    strokeDasharray="5 5"
+                                />
+                               <ReferenceLine x={toLocalISOYearMonth(new Date())} stroke="#F59E0B" strokeDasharray="3 3" label={{ value: "Today", position: "insideTopRight", fill: "#F59E0B", fontSize: 12 }} />
+                            </ComposedChart>
+                        </ResponsiveContainer>
+                   </div>
+              </Card>
+          </div>
 
-      {/* Transaction History */}
-      <Card className="flex flex-col">
-            <h3 className="text-lg font-bold text-light-text dark:text-dark-text mb-4">Contribution History</h3>
-            <div className="flex-grow">
-                <TransactionList 
-                    transactions={displayTransactionsList.slice(0, 10)} 
-                    allCategories={allCategories} 
-                    onTransactionClick={onTransactionClick} 
-                />
-            </div>
-      </Card>
+          {/* Transaction History (1/3) */}
+          <div className="lg:col-span-1">
+              <Card className="flex flex-col h-full !p-0">
+                  <div className="flex justify-between items-center p-4 border-b border-black/5 dark:border-white/5">
+                      <h3 className="text-lg font-semibold text-light-text dark:text-dark-text">Contribution History</h3>
+                  </div>
+                  <div className="flex-grow overflow-hidden">
+                      <TransactionList
+                          transactions={displayTransactionsList}
+                          allCategories={allCategories}
+                          onTransactionClick={onTransactionClick}
+                      />
+                  </div>
+              </Card>
+          </div>
+      </div>
     </div>
   );
 };

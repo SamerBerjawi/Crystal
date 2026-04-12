@@ -1,4 +1,3 @@
-
 import React, { useMemo } from 'react';
 import { Account, DisplayTransaction, Category, Transaction, RecurringTransaction } from '../types';
 import { formatCurrency, parseLocalDate, generateSyntheticLoanPayments, generateSyntheticCreditCardPayments, generateBalanceForecast, convertToEur, generateSyntheticPropertyTransactions, calculateStatementPeriods, getCreditCardStatementDetails, getPreferredTimeZone, formatDateKey, toLocalISOString } from '../utils';
@@ -703,7 +702,7 @@ const GeneralAccountView: React.FC<GeneralAccountViewProps> = ({
                   <h3 className="text-lg font-semibold text-light-text dark:text-dark-text mb-4">Monthly Cash Flow (6 Months)</h3>
                   <div className="flex-grow w-full h-full">
                     <ResponsiveContainer width="100%" height="100%" minWidth={0} minHeight={0}>
-                        <BarChart data={cashFlowData} margin={{ top: 10, right: 10, left: 0, bottom: 0 }}>
+                        <BarChart data={cashFlowData} margin={{ top: 10, right: 10, left: 0, bottom: 0 }} barSize={32}>
                             <CartesianGrid strokeDasharray="3 3" strokeOpacity={0.1} vertical={false} />
                             <XAxis dataKey="month" axisLine={false} tickLine={false} tick={{ fill: 'currentColor', opacity: 0.6, fontSize: 12 }} />
                             <YAxis axisLine={false} tickLine={false} tick={{ fill: 'currentColor', opacity: 0.6, fontSize: 12 }} tickFormatter={(val) => `${val/1000}k`} width={30} />
@@ -859,8 +858,8 @@ const GeneralAccountView: React.FC<GeneralAccountViewProps> = ({
       )}
 
       {/* Grid 4: Recent Transactions */}
-      <Card className="h-full flex flex-col">
-        <div className="flex justify-between items-center mb-4">
+      <Card className="h-full flex flex-col !p-0">
+        <div className="flex justify-between items-center p-4 border-b border-black/5 dark:border-white/5">
             <h3 className="text-lg font-semibold text-light-text dark:text-dark-text">Recent Transactions</h3>
         </div>
         <div className="flex-grow overflow-hidden">

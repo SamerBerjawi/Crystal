@@ -1,3 +1,4 @@
+
 import express from 'express';
 import { db } from './database';
 import { authenticateToken, AuthRequest } from './middleware';
@@ -32,7 +33,8 @@ router.get('/', authenticateToken, async (req: AuthRequest, res) => {
 // Save all financial data for a user
 router.post('/', authenticateToken, async (req: AuthRequest, res) => {
     const userId = req.user?.id;
-    const data = req.body; // Data is already a JSON object from body-parser
+    const body = req.body || {}; // Data is already a JSON object from body-parser
+    const allowEmpty = Boolean(body.allowEmpty);
     
     // Use INSERT ... ON CONFLICT for an upsert operation in PostgreSQL
     const selectSql = `SELECT data FROM financial_data WHERE user_id = $1`;
@@ -46,10 +48,70 @@ router.post('/', authenticateToken, async (req: AuthRequest, res) => {
     try {
         const existing = await db.query(selectSql, [userId]);
         const currentData = existing.rows?.[0]?.data || {};
-        const mergedData = { ...currentData, ...data };
+        const isPartial = Boolean(body.partial);
+        const incomingData = isPartial ? (body.data || {}) : { ...body };
+        delete incomingData.partial;
+        delete incomingData.data;
+        delete incomingData.previousUpdatedAt;
+
+        delete incomingData.allowEmpty;
+        const previousUpdatedAt = body.previousUpdatedAt as string | undefined;
+        const currentUpdatedAt = currentData.lastUpdatedAt as string | undefined;
+        if (previousUpdatedAt && currentUpdatedAt && previousUpdatedAt !== currentUpdatedAt) {
+            return res.status(409).json({
+                message: 'Data conflict: your local copy is stale. Please refresh and try again.',
+                currentUpdatedAt,
+            });
+        }
+
+        const hasMaterialData = (data: Record<string, any>) => {
+            const arrayKeys = [
+                'accounts',
+                'transactions',
+                'investmentTransactions',
+                'recurringTransactions',
+                'recurringTransactionOverrides',
+                'financialGoals',
+                'budgets',
+                'tasks',
+                'warrants',
+                'memberships',
+                'importExportHistory',
+                'billsAndPayments',
+                'invoices',
+                'tags',
+                'predictions',
+                'enableBankingConnections',
+                'incomeCategories',
+                'expenseCategories',
+                'accountOrder',
+                'taskOrder',
+            ];
+
+            const objectKeys = ['loanPaymentOverrides', 'manualWarrantPrices', 'priceHistory', 'userStats'];
+
+            if (arrayKeys.some(key => Array.isArray(data[key]) && data[key].length > 0)) {
+                return true;
+            }
+
+            return objectKeys.some(key => {
+                const value = data[key];
+                return value && typeof value === 'object' && !Array.isArray(value) && Object.keys(value).length > 0;
+            });
+        };
+
+        if (!isPartial && !allowEmpty && hasMaterialData(currentData) && !hasMaterialData(incomingData)) {
+            return res.status(409).json({
+                message: 'Refusing to overwrite existing data with an empty payload.',
+                currentUpdatedAt,
+            });
+        }
+
+        const nextUpdatedAt = (body.lastUpdatedAt as string | undefined) || new Date().toISOString();
+        const mergedData = { ...currentData, ...incomingData, lastUpdatedAt: nextUpdatedAt };
         await db.query(upsertSql, [userId, mergedData]);
         // FIX: Replaced res.status(200).json() with res.json() as 200 is the default status.
-        res.json({ message: 'Data saved successfully' });
+        res.json({ message: 'Data saved successfully', lastUpdatedAt: nextUpdatedAt });
     } catch (err) {
         console.error(err);
         // FIX: Replaced res.status().json() with res.status() and res.json() to fix type error.

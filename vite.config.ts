@@ -47,8 +47,6 @@ export default defineConfig(({ mode }) => {
     ].filter(Boolean) as PluginOption[],
     define: {
       'process.env.NODE_ENV': JSON.stringify('production'),
-      'process.env.API_KEY': JSON.stringify(env.GEMINI_API_KEY),
-      'process.env.GEMINI_API_KEY': JSON.stringify(env.GEMINI_API_KEY),
     },
     build: {
       sourcemap: false,

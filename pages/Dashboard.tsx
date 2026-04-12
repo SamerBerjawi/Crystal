@@ -1,9 +1,8 @@
-
 import React, { useMemo, useState, useCallback, useEffect, useRef, Suspense, lazy } from 'react';
 import { User, Transaction, Account, Category, Duration, CategorySpending, Widget, WidgetConfig, DisplayTransaction, FinancialGoal, RecurringTransaction, BillPayment, Tag, Budget, RecurringTransactionOverride, LoanPaymentOverrides, AccountType, Task, ForecastDuration } from '../types';
-import { calculateForecastHorizon, formatCurrency, getDateRange, calculateAccountTotals, convertToEur, calculateStatementPeriods, generateBalanceForecast, parseLocalDate, getCreditCardStatementDetails, generateSyntheticLoanPayments, generateSyntheticCreditCardPayments, getPreferredTimeZone, formatDateKey, generateSyntheticPropertyTransactions, toLocalISOString } from '../utils';
+import { calculateForecastHorizon, formatCurrency, convertToEur, generateBalanceForecast, generateSyntheticLoanPayments, generateSyntheticCreditCardPayments, parseLocalDate, getPreferredTimeZone, generateSyntheticPropertyTransactions, toLocalISOString, getDateRange, calculateAccountTotals, calculateStatementPeriods, getCreditCardStatementDetails, formatDateKey } from '../utils';
 import AddTransactionModal from '../components/AddTransactionModal';
-import { BTN_PRIMARY_STYLE, BTN_SECONDARY_STYLE, LIQUID_ACCOUNT_TYPES, ASSET_TYPES, DEBT_TYPES, ACCOUNT_TYPE_STYLES, INVESTMENT_SUB_TYPE_STYLES, FORECAST_DURATION_OPTIONS, QUICK_CREATE_BUDGET_OPTIONS, CHECKBOX_STYLE } from '../constants';
+import { BTN_PRIMARY_STYLE, BTN_SECONDARY_STYLE, LIQUID_ACCOUNT_TYPES, ASSET_TYPES, DEBT_TYPES, ACCOUNT_TYPE_STYLES, INVESTMENT_SUB_TYPE_STYLES, FORECAST_DURATION_OPTIONS, QUICK_CREATE_BUDGET_OPTIONS, CHECKBOX_STYLE, SELECT_STYLE, SELECT_WRAPPER_STYLE, SELECT_ARROW_STYLE } from '../constants';
 import TransactionDetailModal from '../components/TransactionDetailModal';
 import WidgetWrapper from '../components/WidgetWrapper';
 import OutflowsChart from '../components/OutflowsChart';
@@ -14,7 +13,7 @@ import TransactionList from '../components/TransactionList';
 import MultiAccountFilter from '../components/MultiAccountFilter';
 import FinancialOverview from '../components/FinancialOverview';
 import ForecastOverview from '../components/ForecastOverview';
-import useLocalStorage from '../hooks/useLocalStorage';
+import { useLocalStorage } from '../hooks/useLocalStorage';
 import AddWidgetModal from '../components/AddWidgetModal';
 import { useTransactionMatcher } from '../hooks/useTransactionMatcher';
 import TransactionMatcherModal from '../components/TransactionMatcherModal';
@@ -33,17 +32,20 @@ import BillPaymentModal from '../components/BillPaymentModal';
 import GoalScenarioModal from '../components/GoalScenarioModal';
 import FinancialGoalCard from '../components/FinancialGoalCard';
 import ConfirmationModal from '../components/ConfirmationModal';
-import ForecastChart from '../components/ForecastChart';
 import GoalContributionPlan from '../components/GoalContributionPlan';
 import BulkCategorizeModal from '../components/BulkCategorizeModal';
 import BulkEditTransactionsModal from '../components/BulkEditTransactionsModal';
-import { loadGenAiModule } from '../genAiLoader';
 import AIBudgetSuggestionsModal from '../components/AIBudgetSuggestionsModal';
 import QuickBudgetModal from '../components/QuickBudgetModal';
 import BudgetProgressCard from '../components/BudgetProgressCard';
 import BudgetModal from '../components/BudgetModal';
 import MultiSelectFilter from '../components/MultiSelectFilter';
 import PageHeader from '../components/PageHeader';
+
+// Analysis widgets
+import MerchantParetoWidget from '../components/MerchantParetoWidget';
+import FinancialRunwayWidget from '../components/FinancialRunwayWidget';
+import WealthVelocityWidget from '../components/WealthVelocityWidget';
 
 const TransactionMapWidget = lazy(() => import('../components/TransactionMapWidget'));
 const CashflowSankey = lazy(() => import('../components/CashflowSankey'));
@@ -94,14 +96,14 @@ type EnrichedTransaction = Transaction & { convertedAmount: number; parsedDate: 
 type DashboardTab = 'overview' | 'analysis' | 'activity';
 
 const WIDGET_TABS: Record<DashboardTab, string[]> = {
-    overview: ['netWorthOverTime', 'outflowsByCategory', 'recentActivity', 'netWorthBreakdown'], // Removed 'todayWidget' as it's now hardcoded in the layout
-    analysis: [],
-    activity: ['transactionMap', 'outflowsByCategory', 'recentActivity', 'cashflowSankey']
+    overview: ['netWorthOverTime'],
+    analysis: [], // Using a structured layout for Analysis instead of dynamic widgets
+    activity: ['transactionMap', 'outflowsByCategory', 'netWorthBreakdown', 'recentActivity', 'cashflowSankey']
 };
 
 const AnalysisStatCard: React.FC<{ title: string; value: string; subtext: string; icon: string; colorClass: string }> = ({ title, value, subtext, icon, colorClass }) => (
-    <div className="bg-white dark:bg-dark-card p-6 rounded-2xl border border-black/5 dark:border-white/5 shadow-sm flex items-center gap-5 hover:shadow-md transition-all duration-200">
-        <div className={`w-14 h-14 rounded-xl flex items-center justify-center ${colorClass} shrink-0`}>
+    <div className="bg-white dark:bg-dark-card p-6 rounded-3xl border border-black/5 dark:border-white/5 shadow-sm flex items-center gap-5 hover:shadow-md transition-all duration-200">
+        <div className={`w-14 h-14 rounded-2xl flex items-center justify-center ${colorClass} shrink-0`}>
             <span className="material-symbols-outlined text-3xl">{icon}</span>
         </div>
         <div>
@@ -117,10 +119,42 @@ const Dashboard: React.FC<DashboardProps> = ({ user, tasks, saveTask }) => {
   const { accounts } = useAccountsContext();
   const { transactions, saveTransaction, deleteTransactions, digest: transactionsDigest } = useTransactionsContext();
   const { incomeCategories, expenseCategories } = useCategoryContext();
-  const { financialGoals } = useGoalsContext();
+  const { financialGoals, saveFinancialGoal } = useGoalsContext();
   const { recurringTransactions, recurringTransactionOverrides, loanPaymentOverrides, billsAndPayments, saveRecurringTransaction, saveBillPayment } = useScheduleContext();
   const { tags } = useTagsContext();
   const { budgets } = useBudgetsContext();
+  const { preferences } = usePreferencesContext();
+
+  // Dashboard Specific State
+  const [showForecast, setShowForecast] = useState(true);
+  const [showGoals, setShowGoals] = useState(true);
+  const [forecastDuration, setForecastDuration] = useState<ForecastDuration>(preferences.defaultForecastPeriod || '1Y');
+
+  // Sync Forecast Duration with Historical Duration by default
+  useEffect(() => {
+    let target: ForecastDuration = '1Y';
+    switch (duration) {
+        case 'TODAY':
+        case 'WTD':
+        case 'MTD':
+        case '30D':
+            target = '3M';
+            break;
+        case '60D':
+        case '90D':
+        case '6M':
+            target = '6M';
+            break;
+        case 'YTD':
+        case '1Y':
+        case 'ALL':
+        default:
+            target = '1Y';
+            break;
+    }
+    setForecastDuration(target);
+  }, [duration]);
+
   const transactionsKey = transactionsDigest;
   const aggregateCacheRef = useRef<Map<string, { filteredTransactions: Transaction[]; income: number; expenses: number }>>(new Map());
   const aggregateCacheMax = 25;
@@ -136,6 +170,16 @@ const Dashboard: React.FC<DashboardProps> = ({ user, tasks, saveTask }) => {
   const [isEditMode, setIsEditMode] = useState(false);
   const [isMatcherModalOpen, setIsMatcherModalOpen] = useState(false);
   const [activeTab, setActiveTab] = useState<DashboardTab>('overview');
+  
+  const [selectedForecastDate, setSelectedForecastDate] = useState<string | null>(null);
+
+  // States for Forecast Interaction Modals
+  const [isRecurringModalOpen, setIsRecurringModalOpen] = useState(false);
+  const [editingRecurring, setEditingRecurring] = useState<RecurringTransaction | null>(null);
+  const [isBillModalOpen, setIsBillModalOpen] = useState(false);
+  const [editingBill, setEditingBill] = useState<BillPayment | null>(null);
+  const [isGoalModalOpen, setIsGoalModalOpen] = useState(false);
+  const [editingGoal, setEditingGoal] = useState<FinancialGoal | null>(null);
 
   const { suggestions, confirmMatch, dismissSuggestion, confirmAllMatches, dismissAllSuggestions } = useTransactionMatcher(transactions, accounts, saveTransaction);
 
@@ -184,6 +228,72 @@ const Dashboard: React.FC<DashboardProps> = ({ user, tasks, saveTask }) => {
         const all = [...recurringTransactions, ...syntheticLoanPayments, ...syntheticCreditCardPayments, ...syntheticPropertyTransactions];
         return { allRecurringItems: all };
   }, [analyticsAccounts, analyticsTransactions, loanPaymentOverrides, recurringTransactions]);
+  
+  // Forecast Data for Widget (Used for Lowest Balance Cards & Net Worth Chart)
+  const { forecastChartData, lowestBalanceForecasts, lowestForecastPoint, forecastTableData } = useMemo(() => {
+        const projectionEndDate = new Date();
+        // Adjust duration based on filter
+        switch(forecastDuration) {
+            case '3M': projectionEndDate.setMonth(projectionEndDate.getMonth() + 3); break;
+            case '6M': projectionEndDate.setMonth(projectionEndDate.getMonth() + 6); break;
+            case 'EOY': projectionEndDate.setFullYear(projectionEndDate.getFullYear(), 11, 31); break;
+            case '1Y': projectionEndDate.setMonth(projectionEndDate.getMonth() + 12); break;
+            default: projectionEndDate.setMonth(projectionEndDate.getMonth() + 12); break;
+        }
+
+        // Use ALL accounts to generate synthetic items.
+        const syntheticLoanPayments = generateSyntheticLoanPayments(accounts, transactions, loanPaymentOverrides);
+        const syntheticCreditCardPayments = generateSyntheticCreditCardPayments(accounts, transactions);
+        const syntheticPropertyTransactions = generateSyntheticPropertyTransactions(accounts);
+        
+        const allRecurring = [...recurringTransactions, ...syntheticLoanPayments, ...syntheticCreditCardPayments, ...syntheticPropertyTransactions];
+        const activeGoals = financialGoals.filter(g => activeGoalIds.includes(g.id));
+
+        const { chartData, lowestPoint, tableData } = generateBalanceForecast(
+            selectedAccounts, // The engine will filter impacts based on these selected accounts
+            allRecurring,
+            activeGoals,
+            billsAndPayments,
+            projectionEndDate,
+            recurringTransactionOverrides
+        );
+
+        return {
+            forecastChartData: chartData,
+            lowestBalanceForecasts: calculateForecastHorizon(chartData),
+            lowestForecastPoint: lowestPoint,
+            forecastTableData: tableData
+        };
+
+    }, [accounts, selectedAccounts, transactions, loanPaymentOverrides, recurringTransactions, financialGoals, activeGoalIds, billsAndPayments, recurringTransactionOverrides, forecastDuration]);
+
+  const selectedDayItems = useMemo(() => {
+      if (!selectedForecastDate) return [];
+      return forecastTableData.filter(item => item.date === selectedForecastDate);
+  }, [selectedForecastDate, forecastTableData]);
+
+  const handleDateClick = (date: string) => {
+      setSelectedForecastDate(date);
+  };
+
+  const handleEditForecastItem = (item: any) => {
+      setSelectedForecastDate(null);
+      if (item.type === 'Financial Goal') {
+            setEditingGoal(item.originalItem);
+            setIsGoalModalOpen(true);
+      } else if (item.type === 'Recurring') {
+            setEditingRecurring(item.originalItem);
+            setIsRecurringModalOpen(true);
+      } else if (item.type === 'Bill/Payment') {
+            setEditingBill(item.originalItem);
+            setIsBillModalOpen(true);
+      }
+  };
+
+  const handleAddNewToDate = () => {
+      setEditingRecurring(null);
+      setIsRecurringModalOpen(true);
+  };
 
   const handleOpenTransactionModal = (tx?: Transaction) => {
     setEditingTransaction(tx || null);
@@ -210,10 +320,6 @@ const Dashboard: React.FC<DashboardProps> = ({ user, tasks, saveTask }) => {
           if ('frequency' in original) {
              // Recurring
              const rt = original as RecurringTransaction;
-             
-             // Only advance the date if it is NOT a synthetic transaction.
-             // Synthetic transactions (like loan payments) are auto-generated based on the schedule.
-             // Once a real payment is made, the schedule logic will see it and stop generating that specific instance.
              if (!rt.isSynthetic) {
                  const postedDate = parseLocalDate(transactionsToSave[0].date);
                  let nextDueDate = new Date(postedDate);
@@ -517,7 +623,7 @@ const Dashboard: React.FC<DashboardProps> = ({ user, tasks, saveTask }) => {
     const result: DisplayTransaction[] = [];
   
     for (const tx of sortedSourceTransactions) {
-      if (result.length >= 50) break; // Load more for activity view
+      if (result.length >= 10) break;
   
       if (tx.transferId) {
         if (processedTransferIds.has(tx.transferId)) continue;
@@ -546,7 +652,7 @@ const Dashboard: React.FC<DashboardProps> = ({ user, tasks, saveTask }) => {
         result.push({ ...tx, accountName: accountMap[tx.accountId] });
       }
     }
-    return result.slice(0, 30);
+    return result;
   }, [analyticsTransactions, analyticsSelectedAccountIds, accountMap, transferLookup]);
   
   const { incomeSparkline, expenseSparkline } = useMemo(() => {
@@ -755,7 +861,7 @@ const Dashboard: React.FC<DashboardProps> = ({ user, tasks, saveTask }) => {
         dailyChanges.set(dateStr, (dailyChanges.get(dateStr) || 0) + signedAmount);
     }
     
-    const data: { name: string, value: number }[] = [];
+    const data: { name: string, value?: number, forecast?: number }[] = [];
     let runningBalance = startingNetWorth;
     
     let currentDate = new Date(start);
@@ -772,15 +878,45 @@ const Dashboard: React.FC<DashboardProps> = ({ user, tasks, saveTask }) => {
     if (todayDataPoint) {
       todayDataPoint.value = parseFloat(currentNetWorth.toFixed(2));
     }
-
+    
+    // --- INTEGRATE FORECAST DATA ---
+    if (showForecast && forecastChartData && forecastChartData.length > 0) {
+        const currentForecastBase = forecastChartData[0].value;
+        const currentNetWorthVal = currentNetWorth;
+        
+        // Find today's index in history data to connect lines
+        const todayIndex = data.findIndex(d => d.name === todayStr);
+        
+        if (todayIndex !== -1) {
+            // Set the 'forecast' value for today to match 'value' so lines connect
+            data[todayIndex].forecast = data[todayIndex].value;
+            
+            // Append future points
+            forecastChartData.forEach(point => {
+                if (point.date > todayStr) {
+                    // Calculate relative change from forecast engine and apply to current Net Worth
+                    const predictedChange = point.value - currentForecastBase;
+                    const projectedNetWorth = currentNetWorthVal + predictedChange;
+                    
+                    data.push({
+                        name: point.date,
+                        value: undefined, // No actual value for future
+                        forecast: parseFloat(projectedNetWorth.toFixed(2))
+                    });
+                }
+            });
+        }
+    }
 
     return data;
-  }, [duration, transactions, analyticsSelectedAccountIds, netWorth]);
+  }, [duration, transactions, analyticsSelectedAccountIds, netWorth, forecastChartData, showForecast]);
 
   const netWorthTrendColor = useMemo(() => {
-    if (netWorthData.length < 2) return '#6366F1';
-    const startValue = netWorthData[0].value;
-    const endValue = netWorthData[netWorthData.length - 1].value;
+    // Check trend based on historical data only
+    const historyPoints = netWorthData.filter(d => d.value !== undefined);
+    if (historyPoints.length < 2) return '#6366F1';
+    const startValue = historyPoints[0].value!;
+    const endValue = historyPoints[historyPoints.length - 1].value!;
     return endValue >= startValue ? '#34C759' : '#FF3B30';
   }, [netWorthData]);
   
@@ -834,31 +970,7 @@ const Dashboard: React.FC<DashboardProps> = ({ user, tasks, saveTask }) => {
       });
   }, [configuredCreditCards, transactions]);
 
-    const lowestBalanceForecasts = useMemo(() => {
-        const projectionEndDate = new Date();
-        projectionEndDate.setMonth(projectionEndDate.getMonth() + 24);
-
-        const syntheticLoanPayments = generateSyntheticLoanPayments(accounts, transactions, loanPaymentOverrides);
-        const syntheticCreditCardPayments = generateSyntheticCreditCardPayments(accounts, transactions);
-        const syntheticPropertyTransactions = generateSyntheticPropertyTransactions(accounts);
-        const allRecurringTransactions = [...recurringTransactions, ...syntheticLoanPayments, ...syntheticCreditCardPayments, ...syntheticPropertyTransactions];
-
-        const activeGoals = financialGoals.filter(g => activeGoalIds.includes(g.id));
-
-        const { chartData } = generateBalanceForecast(
-            selectedAccounts,
-            allRecurringTransactions,
-            activeGoals,
-            billsAndPayments,
-            projectionEndDate,
-            recurringTransactionOverrides
-        );
-
-        return calculateForecastHorizon(chartData);
-
-    }, [accounts, activeGoalIds, billsAndPayments, financialGoals, loanPaymentOverrides, recurringTransactionOverrides, recurringTransactions, selectedAccounts, transactions]);
-
-  const handleBudgetClick = useCallback(() => {
+    const handleBudgetClick = useCallback(() => {
     if (typeof window === 'undefined') return;
     const targetPath = '/budget';
     window.history.pushState(null, '', targetPath);
@@ -883,7 +995,23 @@ const Dashboard: React.FC<DashboardProps> = ({ user, tasks, saveTask }) => {
             onProcessItem: handleProcessItem 
         } 
     },
-    { id: 'netWorthOverTime', name: 'Net Worth Over Time', defaultW: 4, defaultH: 2, component: NetWorthChart, props: { data: netWorthData, lineColor: netWorthTrendColor } },
+    // Updated props for Net Worth chart to support toggles
+    { 
+      id: 'netWorthOverTime', 
+      name: 'Net Worth Over Time', 
+      defaultW: 4, 
+      defaultH: 2, 
+      component: NetWorthChart, 
+      props: { 
+        data: netWorthData, 
+        lineColor: netWorthTrendColor, 
+        showForecast, 
+        showGoals, 
+        // Filter goals to only show those attached to selected accounts OR unlinked goals (which are global)
+        goals: financialGoals.filter(g => g.date && (!g.paymentAccountId || selectedAccountIds.includes(g.paymentAccountId)))
+      } 
+    },
+    // Removed forecastChart
     { id: 'outflowsByCategory', name: 'Outflows by Category', defaultW: 2, defaultH: 2, component: OutflowsChart, props: { data: outflowsByCategory, onCategoryClick: handleCategoryClick } },
     { id: 'netWorthBreakdown', name: 'Net Worth Breakdown', defaultW: 2, defaultH: 2, component: AssetDebtDonutChart, props: { assets: totalAssets, debt: totalDebt } },
     { id: 'recentActivity', name: 'Recent Activity', defaultW: 4, defaultH: 3, component: TransactionList, props: { transactions: recentTransactions, allCategories: allCategories, onTransactionClick: handleTransactionClick } },
@@ -891,31 +1019,51 @@ const Dashboard: React.FC<DashboardProps> = ({ user, tasks, saveTask }) => {
     { id: 'liabilityBreakdown', name: 'Liability Breakdown', defaultW: 2, defaultH: 2, component: AccountBreakdownCard, props: { title: 'Liabilities', totalValue: Math.abs(globalTotalDebt), breakdownData: globalDebtBreakdown } },
     { id: 'budgetOverview', name: 'Budget Overview', defaultW: 2, defaultH: 2, component: BudgetOverviewWidget, props: { budgets: budgets, transactions: transactions, expenseCategories: expenseCategories, accounts: accounts, duration: duration, onBudgetClick: handleBudgetClick } },
     { id: 'transactionMap', name: 'Transaction Map', defaultW: 2, defaultH: 2, component: TransactionMapWidget, props: { transactions: filteredTransactions } },
-    { id: 'cashflowSankey', name: 'Cash Flow Sankey', defaultW: 4, defaultH: 2, component: CashflowSankey, props: { transactions: filteredTransactions, incomeCategories, expenseCategories } }
-  ], [tasks, allRecurringItems, recurringTransactionOverrides, billsAndPayments, financialGoals, saveTask, netWorthData, netWorthTrendColor, outflowsByCategory, handleCategoryClick, totalAssets, totalDebt, recentTransactions, allCategories, handleTransactionClick, globalTotalAssets, globalAssetBreakdown, globalTotalDebt, globalDebtBreakdown, budgets, transactions, expenseCategories, accounts, duration, handleBudgetClick, filteredTransactions, incomeCategories]);
+    { id: 'cashflowSankey', name: 'Cash Flow Sankey', defaultW: 4, defaultH: 2, component: CashflowSankey, props: { transactions: filteredTransactions, incomeCategories, expenseCategories } },
+    
+    // ANALYSIS WIDGETS
+    { id: 'financialRunway', name: 'Financial Runway', defaultW: 2, defaultH: 2, component: FinancialRunwayWidget, props: { accounts, transactions: analyticsTransactions } },
+    { id: 'merchantPareto', name: 'Merchant Pareto', defaultW: 2, defaultH: 2, component: MerchantParetoWidget, props: { transactions: analyticsTransactions } },
+    { id: 'wealthVelocity', name: 'Wealth Velocity', defaultW: 2, defaultH: 2, component: WealthVelocityWidget, props: { transactions: analyticsTransactions, accounts } }
+  ], [tasks, allRecurringItems, recurringTransactionOverrides, billsAndPayments, financialGoals, saveTask, netWorthData, netWorthTrendColor, activeGoalIds, lowestForecastPoint, selectedAccounts, outflowsByCategory, handleCategoryClick, totalAssets, totalDebt, recentTransactions, allCategories, handleTransactionClick, globalTotalAssets, globalAssetBreakdown, globalTotalDebt, globalDebtBreakdown, budgets, transactions, expenseCategories, accounts, duration, handleBudgetClick, filteredTransactions, incomeCategories, showForecast, showGoals, selectedAccountIds, analyticsTransactions]);
 
   const [widgets, setWidgets] = useLocalStorage<WidgetConfig[]>('dashboard-layout', allWidgets.map(w => ({ id: w.id, title: w.name, w: w.defaultW, h: w.defaultH })));
 
   // Ensure activity dashboard always includes its required widgets (including Cash Flow Sankey)
   useEffect(() => {
-    const requiredActivityWidgets = WIDGET_TABS.activity;
+    const requiredWidgets = WIDGET_TABS[activeTab];
 
     setWidgets(prev => {
         const currentIds = new Set(prev.map(w => w.id));
-        const missing = requiredActivityWidgets.filter(id => !currentIds.has(id));
+        const missing = requiredWidgets.filter(id => !currentIds.has(id));
+        
+        // Filter out widgets that are NOT in the current tab's required list
+        // Note: This makes the tabs strictly enforce their own layouts
+        let newWidgets = prev.filter(w => requiredWidgets.includes(w.id));
+        
+        // Enforce Net Worth Width = 4
+        newWidgets = newWidgets.map(w => {
+            if (w.id === 'netWorthOverTime' && w.w !== 4) {
+                return { ...w, w: 4 };
+            }
+            return w;
+        });
 
-        if (!missing.length) return prev;
+        if (missing.length) {
+             const additions = missing
+                .map(id => {
+                    const widgetDef = allWidgets.find(w => w.id === id);
+                    return widgetDef ? { id: widgetDef.id, title: widgetDef.name, w: widgetDef.defaultW, h: widgetDef.defaultH } : null;
+                })
+                .filter(Boolean) as WidgetConfig[];
+             newWidgets = [...newWidgets, ...additions];
+        }
 
-        const additions = missing
-            .map(id => {
-                const widgetDef = allWidgets.find(w => w.id === id);
-                return widgetDef ? { id: widgetDef.id, title: widgetDef.name, w: widgetDef.defaultW, h: widgetDef.defaultH } : null;
-            })
-            .filter(Boolean) as WidgetConfig[];
-
-        return additions.length ? [...prev, ...additions] : prev;
+        // Check if anything actually changed to avoid infinite loop
+        const isDifferent = JSON.stringify(newWidgets) !== JSON.stringify(prev);
+        return isDifferent ? newWidgets : prev;
     });
-  }, [allWidgets, setWidgets]);
+  }, [allWidgets, setWidgets, activeTab]);
 
   const removeWidget = (widgetId: string) => {
     setWidgets(prev => prev.filter(w => w.id !== widgetId));
@@ -1019,6 +1167,7 @@ const Dashboard: React.FC<DashboardProps> = ({ user, tasks, saveTask }) => {
 
   return (
     <div className="space-y-6 pb-12 animate-fade-in-up">
+      {/* ... existing modals */}
       {isTransactionModalOpen && (
         <AddTransactionModal 
           onClose={handleCloseTransactionModal}
@@ -1061,6 +1210,47 @@ const Dashboard: React.FC<DashboardProps> = ({ user, tasks, saveTask }) => {
           />
       )}
       
+      {/* Forecast Interaction Modals */}
+      {isRecurringModalOpen && (
+        <RecurringTransactionModal
+            onClose={() => setIsRecurringModalOpen(false)}
+            onSave={(data) => {
+                saveRecurringTransaction(data);
+                setIsRecurringModalOpen(false);
+            }}
+            accounts={accounts}
+            incomeCategories={incomeCategories}
+            expenseCategories={expenseCategories}
+            recurringTransactionToEdit={editingRecurring}
+        />
+      )}
+      {isBillModalOpen && (
+        <BillPaymentModal
+            onClose={() => setIsBillModalOpen(false)}
+            onSave={(data) => {
+                saveBillPayment(data);
+                setIsBillModalOpen(false);
+            }}
+            bill={editingBill}
+            accounts={accounts}
+            initialDate={selectedForecastDate || undefined}
+        />
+      )}
+      {isGoalModalOpen && (
+          <GoalScenarioModal
+            onClose={() => setIsGoalModalOpen(false)}
+            onSave={(data) => {
+                saveFinancialGoal(data);
+                setIsGoalModalOpen(false);
+            }}
+            goalToEdit={editingGoal}
+            financialGoals={financialGoals}
+            accounts={accounts}
+          />
+      )}
+      
+      {selectedForecastDate && <ForecastDayModal isOpen={!!selectedForecastDate} onClose={() => setSelectedForecastDate(null)} date={selectedForecastDate} items={selectedDayItems} onEditItem={handleEditForecastItem} onAddTransaction={handleAddNewToDate} />}
+      
       {/* Header Section */}
       <PageHeader
         markerIcon="analytics"
@@ -1095,7 +1285,7 @@ const Dashboard: React.FC<DashboardProps> = ({ user, tasks, saveTask }) => {
       />
 
       {/* Controls Bar: Tabs & Filters */}
-      <div className="flex flex-col md:flex-row justify-between items-center gap-4 bg-white dark:bg-dark-card p-1.5 rounded-2xl border border-black/5 dark:border-white/5 shadow-sm">
+      <div className="flex flex-col xl:flex-row justify-between items-center gap-4 bg-white dark:bg-dark-card p-1.5 rounded-full border border-black/5 dark:border-white/5 shadow-sm">
            {/* Tabs */}
            <div className="bg-gray-100 dark:bg-white/5 p-1 rounded-full inline-flex shadow-inner overflow-x-auto no-scrollbar max-w-full">
             {tabs.map((tab) => (
@@ -1114,18 +1304,45 @@ const Dashboard: React.FC<DashboardProps> = ({ user, tasks, saveTask }) => {
           </div>
 
           {/* Filters */}
-          <div className="flex gap-3 w-full md:w-auto px-1 md:px-0">
-              <div className="flex-1 md:flex-none">
+          <div className="flex flex-wrap gap-3 w-full xl:w-auto px-1 xl:px-0 justify-end">
+              {/* Forecast Controls (Only visible in overview) */}
+              {activeTab === 'overview' && (
+                  <div className="flex items-center gap-2 bg-light-fill dark:bg-dark-fill p-1 rounded-2xl">
+                      <div className={SELECT_WRAPPER_STYLE}>
+                          <select 
+                            value={forecastDuration} 
+                            onChange={(e) => setForecastDuration(e.target.value as ForecastDuration)} 
+                            className={`${SELECT_STYLE} !py-1.5 !text-xs !h-8 w-24`}
+                          >
+                             {FORECAST_DURATION_OPTIONS.map(opt => (
+                                 <option key={opt.value} value={opt.value}>{opt.label}</option>
+                             ))}
+                          </select>
+                          <div className={SELECT_ARROW_STYLE}><span className="material-symbols-outlined text-sm">expand_more</span></div>
+                      </div>
+                      <div className="h-4 w-px bg-black/10 dark:bg-white/10 mx-1"></div>
+                      <label className="flex items-center gap-1.5 cursor-pointer px-2">
+                          <input type="checkbox" checked={showForecast} onChange={e => setShowForecast(e.target.checked)} className={CHECKBOX_STYLE} />
+                          <span className="text-xs font-medium text-light-text dark:text-dark-text">Forecast</span>
+                      </label>
+                      <label className="flex items-center gap-1.5 cursor-pointer px-2">
+                          <input type="checkbox" checked={showGoals} onChange={e => setShowGoals(e.target.checked)} className={CHECKBOX_STYLE} />
+                          <span className="text-xs font-medium text-light-text dark:text-dark-text">Goals</span>
+                      </label>
+                  </div>
+              )}
+
+              <div className="flex-1 sm:flex-none">
                   <MultiAccountFilter accounts={accounts} selectedAccountIds={selectedAccountIds} setSelectedAccountIds={setSelectedAccountIds} />
               </div>
-              <div className="flex-1 md:flex-none">
+              <div className="flex-1 sm:flex-none">
                    <DurationFilter selectedDuration={duration} onDurationChange={setDuration} />
               </div>
           </div>
       </div>
       
       {suggestions.length > 0 && (
-          <Card>
+          <Card className="rounded-3xl">
               <div className="flex flex-wrap justify-between items-center gap-4">
                   <div className="flex items-center gap-3">
                       <span className="material-symbols-outlined text-2xl text-primary-500">autorenew</span>
@@ -1154,11 +1371,13 @@ const Dashboard: React.FC<DashboardProps> = ({ user, tasks, saveTask }) => {
                         expenses={expenses}
                         incomeChange={incomeChange}
                         expenseChange={expenseChange}
+                        incomeSparkline={incomeSparkline}
+                        expenseSparkline={expenseSparkline}
                         currency="EUR"
                     />
                 </div>
                 <div className="xl:col-span-1 h-full">
-                     <Card className="h-full p-0 overflow-hidden border border-black/5 dark:border-white/5 shadow-sm">
+                     <Card className="h-full !p-0 overflow-hidden border border-black/5 dark:border-white/5 shadow-sm rounded-3xl">
                         <TodayWidget 
                             tasks={tasks} 
                             recurringTransactions={allRecurringItems} 
@@ -1171,7 +1390,8 @@ const Dashboard: React.FC<DashboardProps> = ({ user, tasks, saveTask }) => {
                      </Card>
                 </div>
             </div>
-            
+            {/* ... remaining content */}
+            {/* Display lowest balance forecasts based on the new forecast duration/logic */}
             {lowestBalanceForecasts && lowestBalanceForecasts.length > 0 && (
                 <div>
                     <ForecastOverview forecasts={lowestBalanceForecasts} currency="EUR" />
@@ -1232,7 +1452,43 @@ const Dashboard: React.FC<DashboardProps> = ({ user, tasks, saveTask }) => {
                   />
               </div>
 
-              <Card className="overflow-hidden">
+              {/* Dynamic widgets grid remains for any other widgets user might add in future, but WIDGET_TABS.analysis is currently empty */}
+              {widgets.filter(w => WIDGET_TABS.analysis.includes(w.id)).length > 0 && (
+                <div className="grid grid-cols-1 md:grid-cols-4 gap-6" style={{ gridAutoRows: 'minmax(200px, auto)' }}>
+                    {widgets
+                        .filter(widget => WIDGET_TABS.analysis.includes(widget.id))
+                        .map(widget => {
+                            const widgetDetails = allWidgets.find(w => w.id === widget.id);
+                            if (!widgetDetails) return null;
+                            const WidgetComponent = widgetDetails.component;
+
+                            return (
+                                <WidgetWrapper
+                                    key={widget.id}
+                                    title={widget.title}
+                                    w={widget.w}
+                                    h={widget.h}
+                                    onRemove={() => removeWidget(widget.id)}
+                                    onResize={(dim, change) => handleResize(widget.id, dim, change)}
+                                    isEditMode={isEditMode}
+                                    isBeingDragged={draggedWidgetId === widget.id}
+                                    isDragOver={dragOverWidgetId === widget.id}
+                                    onDragStart={e => handleDragStart(e, widget.id)}
+                                    onDragEnter={e => handleDragEnter(e, widget.id)}
+                                    onDragLeave={e => handleDragLeave(e, widget.id)}
+                                    onDrop={e => handleDrop(e, widget.id)}
+                                    onDragEnd={handleDragEnd}
+                                >
+                                    <Suspense fallback={<div className="p-4 text-center">Loading...</div>}>
+                                        <WidgetComponent {...widgetDetails.props as any} />
+                                    </Suspense>
+                                </WidgetWrapper>
+                            );
+                    })}
+                </div>
+              )}
+
+              <Card className="overflow-hidden rounded-3xl">
                   <div className="flex flex-col lg:flex-row gap-8">
                       <div className="lg:w-1/3 flex flex-col justify-center border-b lg:border-b-0 lg:border-r border-black/5 dark:border-white/5 pb-8 lg:pb-0 lg:pr-8">
                           <h3 className="text-lg font-bold text-light-text dark:text-dark-text mb-6 self-start">Asset Allocation</h3>
@@ -1260,11 +1516,11 @@ const Dashboard: React.FC<DashboardProps> = ({ user, tasks, saveTask }) => {
                               </div>
                           </div>
                           <div className="w-full mt-8 grid grid-cols-2 gap-4">
-                              <div className="p-3 rounded-xl bg-green-50 dark:bg-green-900/20 border border-green-100 dark:border-green-900/30 text-center">
+                              <div className="p-3 rounded-2xl bg-green-50 dark:bg-green-900/20 border border-green-100 dark:border-green-900/30 text-center">
                                   <p className="text-xs text-green-600 dark:text-green-400 font-semibold uppercase mb-1">Assets</p>
                                   <p className="text-lg font-bold text-green-700 dark:text-green-300 privacy-blur">{formatCurrency(globalTotalAssets, 'EUR')}</p>
                               </div>
-                              <div className="p-3 rounded-xl bg-red-50 dark:bg-red-900/20 border border-red-100 dark:border-red-900/30 text-center">
+                              <div className="p-3 rounded-2xl bg-red-50 dark:bg-red-900/20 border border-red-100 dark:border-red-900/30 text-center">
                                   <p className="text-xs text-red-600 dark:text-red-400 font-semibold uppercase mb-1">Liabilities</p>
                                   <p className="text-lg font-bold text-red-700 dark:text-red-300 privacy-blur">{formatCurrency(Math.abs(globalTotalDebt), 'EUR')}</p>
                               </div>
@@ -1337,15 +1593,26 @@ const Dashboard: React.FC<DashboardProps> = ({ user, tasks, saveTask }) => {
                   </div>
               </Card>
               
-              <Card className="min-h-[400px] flex flex-col">
-                    <div className="flex justify-between items-center mb-4">
-                        <h3 className="text-xl font-bold text-light-text dark:text-dark-text">Budget Performance</h3>
-                        <button onClick={() => handleBudgetClick()} className="text-sm text-primary-500 hover:underline">View Details</button>
-                    </div>
-                    <div className="flex-grow">
-                         <BudgetOverviewWidget budgets={budgets} transactions={transactions} expenseCategories={expenseCategories} accounts={accounts} duration={duration} onBudgetClick={handleBudgetClick} />
-                    </div>
-              </Card>
+              {/* Structured 3-Column Row: Budget, Runway, Velocity */}
+              <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+                  <Card className="min-h-[400px] flex flex-col rounded-3xl">
+                      <div className="flex justify-between items-center mb-4">
+                          <h3 className="text-xl font-bold text-light-text dark:text-dark-text">Budget Performance</h3>
+                          <button onClick={() => handleBudgetClick()} className="text-sm text-primary-500 hover:underline">View Details</button>
+                      </div>
+                      <div className="flex-grow">
+                          <BudgetOverviewWidget budgets={budgets} transactions={transactions} expenseCategories={expenseCategories} accounts={accounts} duration={duration} onBudgetClick={handleBudgetClick} />
+                      </div>
+                  </Card>
+                  
+                  <Card className="min-h-[400px] flex flex-col rounded-3xl">
+                      <FinancialRunwayWidget accounts={accounts} transactions={analyticsTransactions} />
+                  </Card>
+                  
+                  <Card className="min-h-[400px] flex flex-col rounded-3xl">
+                      <WealthVelocityWidget transactions={analyticsTransactions} accounts={accounts} />
+                  </Card>
+              </div>
           </div>
       )}
 

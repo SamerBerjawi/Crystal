@@ -1,4 +1,3 @@
-
 import React, { useMemo } from 'react';
 import { Account, Transaction, DisplayTransaction, Category } from '../types';
 import { formatCurrency, parseLocalDate, convertToEur, getPreferredTimeZone, toLocalISOString } from '../utils';
@@ -262,11 +261,11 @@ const SavingsAccountView: React.FC<SavingsAccountViewProps> = ({
                )}
 
                {/* Recent Transactions */}
-                <Card className="flex flex-col">
-                    <div className="flex justify-between items-center mb-4">
-                        <h3 className="text-lg font-bold text-light-text dark:text-dark-text">Recent Activity</h3>
+                <Card className="flex flex-col h-full max-h-[500px] !p-0">
+                    <div className="flex justify-between items-center p-4 border-b border-black/5 dark:border-white/5">
+                        <h3 className="text-lg font-semibold text-light-text dark:text-dark-text">Recent Activity</h3>
                     </div>
-                    <div className="flex-grow">
+                    <div className="flex-grow overflow-hidden">
                         <TransactionList
                             transactions={displayTransactionsList.slice(0, 10)}
                             allCategories={allCategories}
