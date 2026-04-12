@@ -1162,11 +1162,19 @@ const App: React.FC = () => {
     return undefined;
   }, []);
 
-  const mapProviderTransaction = useCallback((providerTx: any, linkedAccountId: string | undefined, providerAccountId: string, currency: Currency, connectionId: string): Transaction | null => {
+  const mapProviderTransaction = useCallback((
+    providerTx: any,
+    linkedAccountId: string | undefined,
+    providerAccountId: string,
+    currency: Currency,
+    connectionId: string,
+    accountDisplayName?: string,
+  ): Transaction | null => {
     const amountRaw = providerTx?.transaction_amount?.amount ?? providerTx?.amount?.amount ?? providerTx?.transactionAmount?.amount;
     if (amountRaw === undefined || amountRaw === null || !linkedAccountId) return null;
 
     const creditDebit = providerTx?.credit_debit_indicator || providerTx?.creditDebitIndicator;
+    const isCredit = creditDebit === 'CRDT';
     const signedAmount = Number(amountRaw) * (creditDebit === 'CRDT' ? 1 : -1);
     if (Number.isNaN(signedAmount)) return null;
 
@@ -1198,45 +1206,99 @@ const App: React.FC = () => {
     const sanitizeMerchant = (candidate?: string) => {
       if (!candidate) return undefined;
       const trimmed = candidate.trim();
+      const normalized = trimmed.toLowerCase();
+      const normalizedAccountName = accountDisplayName?.trim().toLowerCase();
       if (!trimmed || /^([A-Z]{2}\d{2}[A-Z0-9]{8,30}|\d{8,})$/i.test(trimmed)) return undefined;
+      if (normalizedAccountName && normalized === normalizedAccountName) return undefined;
       return trimmed;
     };
 
+    const pickJoinedText = (...values: any[]): string | undefined => {
+      const segments: string[] = [];
+      const visit = (value: any) => {
+        if (!value) return;
+        if (typeof value === 'string') {
+          const trimmed = value.trim();
+          if (trimmed && !segments.includes(trimmed)) segments.push(trimmed);
+          return;
+        }
+        if (Array.isArray(value)) {
+          value.forEach(visit);
+          return;
+        }
+        if (typeof value === 'object') {
+          visit(value?.remittance_line);
+          visit(value?.remittanceLine);
+          visit(value?.reference);
+        }
+      };
+      values.forEach(visit);
+      return segments.length > 0 ? segments.join(' / ') : undefined;
+    };
+
+    // Counterparty fields vary by bank. For outgoing payments prefer creditor-side fields;
+    // for incoming payments prefer debtor-side fields.
     const merchant = sanitizeMerchant(pickFirstText(
       providerTx?.merchant_name,
       providerTx?.merchantName,
       providerTx?.merchant?.name,
       providerTx?.merchant?.display_name,
       providerTx?.merchant?.displayName,
-      providerTx?.counterparty_name,
-      providerTx?.counterpartyName,
-      providerTx?.counterparty?.name,
-      providerTx?.creditor_name,
-      providerTx?.creditorName,
-      providerTx?.creditor?.name,
-      providerTx?.debtor_name,
-      providerTx?.debtorName,
-      providerTx?.debtor?.name,
-      providerTx?.ultimate_creditor,
-      providerTx?.ultimateCreditor,
-      providerTx?.ultimate_debtor,
-      providerTx?.ultimateDebtor,
       providerTx?.card_acceptor?.name,
       providerTx?.cardAcceptor?.name,
-      providerTx?.proprietary_bank_transaction_code?.description,
-      providerTx?.proprietaryBankTransactionCode?.description,
+      ...(isCredit
+        ? [
+            providerTx?.debtor_name,
+            providerTx?.debtorName,
+            providerTx?.debtor?.name,
+            providerTx?.ultimate_debtor,
+            providerTx?.ultimateDebtor,
+            providerTx?.counterparty_name,
+            providerTx?.counterpartyName,
+            providerTx?.counterparty?.name,
+            providerTx?.creditor_name,
+            providerTx?.creditorName,
+            providerTx?.creditor?.name,
+            providerTx?.ultimate_creditor,
+            providerTx?.ultimateCreditor,
+          ]
+        : [
+            providerTx?.creditor_name,
+            providerTx?.creditorName,
+            providerTx?.creditor?.name,
+            providerTx?.ultimate_creditor,
+            providerTx?.ultimateCreditor,
+            providerTx?.counterparty_name,
+            providerTx?.counterpartyName,
+            providerTx?.counterparty?.name,
+            providerTx?.debtor_name,
+            providerTx?.debtorName,
+            providerTx?.debtor?.name,
+            providerTx?.ultimate_debtor,
+            providerTx?.ultimateDebtor,
+          ]),
     ));
 
     const desc = pickFirstText(
-      providerTx?.remittance_information_unstructured,
-      providerTx?.remittanceInformationUnstructured,
-      providerTx?.remittance_information_unstructured_array,
-      providerTx?.remittanceInformationUnstructuredArray,
+      pickJoinedText(
+        providerTx?.remittance_information_unstructured,
+        providerTx?.remittanceInformationUnstructured,
+        providerTx?.remittance_information_unstructured_array,
+        providerTx?.remittanceInformationUnstructuredArray,
+        providerTx?.remittance_information_structured,
+        providerTx?.remittanceInformationStructured,
+        providerTx?.remittance_information_structured_array,
+        providerTx?.remittanceInformationStructuredArray,
+        providerTx?.remittance_information_reference,
+        providerTx?.remittanceInformationReference,
+      ),
       providerTx?.additional_information,
       providerTx?.additionalInformation,
       providerTx?.booking_text,
       providerTx?.bookingText,
       providerTx?.description,
+      providerTx?.proprietary_bank_transaction_code?.description,
+      providerTx?.proprietaryBankTransactionCode?.description,
       merchant,
     ) || 'Transaction';
 
@@ -1330,7 +1392,14 @@ const App: React.FC = () => {
 
             const bookedTransactions = txResponse?.transactions?.booked || txResponse?.booked || txResponse?.transactions || [];
             bookedTransactions.forEach((providerTx: any) => {
-              const mappedTx = mapProviderTransaction(providerTx, linkedAccountId, providerAccountId, currency, connectionId);
+              const mappedTx = mapProviderTransaction(
+                providerTx,
+                linkedAccountId,
+                providerAccountId,
+                currency,
+                connectionId,
+                details?.name || account?.name,
+              );
               if (mappedTx) importedTransactions.push(mappedTx);
             });
 
