@@ -1,6 +1,4 @@
-
-
-import express, { RequestHandler } from 'express';
+import express from 'express';
 import cors from 'cors';
 import authRouter from './auth';
 import dataRouter from './data';
@@ -8,7 +6,6 @@ import usersRouter from './users';
 import enableBankingRouter from './enableBanking';
 import smartFetcherRouter from './smartFetcher';
 import { initializeDatabase } from './database';
-// FIX: Import `exit` from the `process` module to correctly type and call the process exit function.
 import { exit } from 'process';
 
 const startServer = async () => {
@@ -18,15 +15,35 @@ const startServer = async () => {
         const app = express();
         const port = 3001;
 
-        // Honor reverse proxy headers (e.g., x-forwarded-proto) so generated URLs
-        // use the correct external protocol/host when running behind HTTPS.
         app.set('trust proxy', true);
 
-        app.use(cors());
+        const defaultOrigins = [
+            'http://localhost:5173',
+            'http://127.0.0.1:5173',
+            'http://localhost:3000',
+            'http://127.0.0.1:3000',
+        ];
+        const configuredOrigins = (process.env.CORS_ORIGIN || '')
+            .split(',')
+            .map(origin => origin.trim())
+            .filter(Boolean);
+        const allowAllOrigins = configuredOrigins.length === 0;
+        const allowedOrigins = new Set(configuredOrigins.length > 0 ? configuredOrigins : defaultOrigins);
+
+        app.use(cors({
+            origin: (origin, callback) => {
+                if (allowAllOrigins) {
+                    return callback(null, true);
+                }
+                if (!origin || allowedOrigins.has(origin)) {
+                    return callback(null, true);
+                }
+                return callback(new Error('Origin not allowed by CORS policy.'));
+            },
+            credentials: true,
+        }));
         const bodyLimit = process.env.API_BODY_LIMIT || '50mb';
-        // FIX: Removed the unnecessary cast to `RequestHandler` which was causing a type conflict and preventing correct overload resolution for `app.use`.
         app.use(express.json({ limit: bodyLimit }));
-        // FIX: Removed the unnecessary cast to `RequestHandler` which was causing a type conflict and preventing correct overload resolution for `app.use`.
         app.use(express.urlencoded({ limit: bodyLimit, extended: true }));
 
         app.get('/api', (req, res) => {
@@ -43,7 +60,7 @@ const startServer = async () => {
             console.log(`Server is running on http://localhost:${port}`);
         });
     } catch (error) {
-        console.error("Failed to start server:", error);
+        console.error('Failed to start server:', error);
         exit(1);
     }
 };

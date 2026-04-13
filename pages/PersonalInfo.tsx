@@ -23,12 +23,6 @@ const PersonalInfo: React.FC<PersonalInfoProps> = ({ user, setUser, onChangePass
     setFormData(prev => ({ ...prev, [name]: value }));
   };
   
-  const handle2FAToggle = () => {
-    const updatedUser = { ...formData, is2FAEnabled: !formData.is2FAEnabled };
-    setFormData(updatedUser);
-    setUser({ is2FAEnabled: updatedUser.is2FAEnabled });
-  };
-
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (file) {
@@ -219,17 +213,11 @@ const PersonalInfo: React.FC<PersonalInfoProps> = ({ user, setUser, onChangePass
                          <div className="flex items-center justify-between pt-4">
                             <div>
                                 <p className="font-semibold text-light-text dark:text-dark-text">Two-Factor Authentication</p>
-                                <p className="text-sm text-light-text-secondary dark:text-dark-text-secondary">Add an extra layer of security to your account.</p>
+                                <p className="text-sm text-light-text-secondary dark:text-dark-text-secondary">Enrollment is not available yet, so this control stays off until a full second-factor flow is shipped.</p>
                             </div>
-                            <button 
-                                type="button" 
-                                onClick={handle2FAToggle}
-                                className={`relative inline-flex h-6 w-11 flex-shrink-0 cursor-pointer rounded-full border-2 border-transparent transition-colors duration-200 ease-in-out focus:outline-none ${formData.is2FAEnabled ? 'bg-primary-500' : 'bg-gray-200 dark:bg-gray-700'}`}
-                                role="switch"
-                                aria-checked={formData.is2FAEnabled}
-                            >
-                                <span className={`pointer-events-none inline-block h-5 w-5 transform rounded-full bg-white shadow ring-0 transition duration-200 ease-in-out ${formData.is2FAEnabled ? 'translate-x-5' : 'translate-x-0'}`} />
-                            </button>
+                            <div className="inline-flex items-center rounded-full bg-amber-100 dark:bg-amber-900/30 px-3 py-1 text-xs font-semibold uppercase tracking-wide text-amber-700 dark:text-amber-300 border border-amber-200 dark:border-amber-800">
+                                Coming Soon
+                            </div>
                          </div>
                     </div>
                 </Card>
