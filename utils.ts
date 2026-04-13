@@ -570,7 +570,10 @@ export function generateSyntheticCreditCardPayments(accounts: Account[], allTran
             allTransactions
         );
 
-        const unpaidBalance = Math.abs(prevStatementBalance) - prevAmountPaid;
+        // Only statement debt should create a payment due.
+        // Positive statement balances represent net credits/refunds and must not be auto-debited.
+        const previousStatementDebt = prevStatementBalance < 0 ? Math.abs(prevStatementBalance) : 0;
+        const unpaidBalance = previousStatementDebt - prevAmountPaid;
 
         if (unpaidBalance > 0.005) { // Use a small epsilon to avoid floating point issues
             const dueDateStr = toLocalISOString(periods.previous.paymentDue);

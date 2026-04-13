@@ -33,7 +33,8 @@ const CreditCardStatementCard: React.FC<CreditCardStatementCardProps> = ({
     const progressBarColor = usedPercentage > 90 ? 'bg-red-500' : usedPercentage > 75 ? 'bg-orange-500' : 'bg-blue-500';
 
     const StatementBlock: React.FC<{ title: string; data: StatementInfo; isHighlight?: boolean }> = ({ title, data, isHighlight }) => {
-        const isPaid = (data.amountPaid || 0) >= Math.abs(data.previousStatementBalance || 0) && Math.abs(data.previousStatementBalance || 0) > 0;
+        const previousStatementDebt = (data.previousStatementBalance || 0) < 0 ? Math.abs(data.previousStatementBalance || 0) : 0;
+        const isPaid = (data.amountPaid || 0) >= previousStatementDebt && previousStatementDebt > 0;
         return (
             <div className={`p-4 rounded-xl border ${isHighlight ? 'bg-blue-50 dark:bg-blue-900/10 border-blue-100 dark:border-blue-800/30' : 'bg-gray-50 dark:bg-white/5 border-transparent'}`}>
                 <div className="flex justify-between items-center mb-3">
@@ -49,7 +50,7 @@ const CreditCardStatementCard: React.FC<CreditCardStatementCardProps> = ({
                         <span className={`text-sm font-semibold ${title.includes("Current") ? 'text-light-text dark:text-dark-text' : 'text-light-text-secondary dark:text-dark-text-secondary'}`}>{data.dueDate}</span>
                     </div>
                 </div>
-                {title.includes("Current") && (data.previousStatementBalance !== undefined && Math.abs(data.previousStatementBalance) > 0) && (
+                {title.includes("Current") && previousStatementDebt > 0 && (
                      <div className="mt-3 pt-2 border-t border-black/5 dark:border-white/5 flex justify-between items-center text-xs">
                         <div className="flex items-center gap-2">
                             <span className="text-light-text-secondary dark:text-dark-text-secondary">Prev. Bill</span>
@@ -59,7 +60,7 @@ const CreditCardStatementCard: React.FC<CreditCardStatementCardProps> = ({
                                 </span>
                             )}
                         </div>
-                        <span className="font-mono">{formatCurrency(Math.abs(data.previousStatementBalance), currency)}</span>
+                        <span className="font-mono">{formatCurrency(previousStatementDebt, currency)}</span>
                      </div>
                 )}
             </div>
