@@ -475,9 +475,10 @@ export function getCreditCardStatementDetails(
     let amountPaid = 0;
 
     for (const tx of transactionsInPeriod) {
-        // Check if this is a payment from the linked settlement account
+        // Exclude settlement-account transfers from statement spending:
+        // - income on card side = payment to card
+        // - expense on card side = refund/credit payout back to settlement
         if (
-            tx.type === 'income' &&
             tx.transferId &&
             creditCardAccount.settlementAccountId
         ) {
@@ -485,10 +486,12 @@ export function getCreditCardStatementDetails(
                 t => t.transferId === tx.transferId && t.id !== tx.id
             );
 
-            // If the counterpart is from the settlement account, it's a payment.
-            // We should not include it in the current statement balance.
+            // If the counterpart is from the settlement account, this transfer is
+            // between card and settlement account and should not affect statement spend.
             if (counterpart && counterpart.accountId === creditCardAccount.settlementAccountId) {
-                amountPaid += tx.amount;
+                if (tx.type === 'income') {
+                    amountPaid += tx.amount;
+                }
                 continue; // Skip this transaction
             }
         }
@@ -570,7 +573,10 @@ export function generateSyntheticCreditCardPayments(accounts: Account[], allTran
             allTransactions
         );
 
-        const unpaidBalance = Math.abs(prevStatementBalance) - prevAmountPaid;
+        // Only statement debt should create a payment due.
+        // Positive statement balances represent net credits/refunds and must not be auto-debited.
+        const previousStatementDebt = prevStatementBalance < 0 ? Math.abs(prevStatementBalance) : 0;
+        const unpaidBalance = previousStatementDebt - prevAmountPaid;
 
         if (unpaidBalance > 0.005) { // Use a small epsilon to avoid floating point issues
             const dueDateStr = toLocalISOString(periods.previous.paymentDue);
