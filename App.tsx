@@ -1092,6 +1092,12 @@ const App: React.FC = () => {
     let nextConnections: EnableBankingConnection[] = [];
     setEnableBankingConnections(prev => { nextConnections = existingConnection ? prev.map(conn => (conn.id === connectionId ? baseConnection : conn)) : [...prev, baseConnection]; return nextConnections; });
     persistPendingConnection(baseConnection);
+    fetchWithAuth('/api/enable-banking/pending', {
+      method: 'POST',
+      body: JSON.stringify({ connection: baseConnection }),
+    }).catch(error => {
+      console.warn('Failed to persist pending Enable Banking connection to server', error);
+    });
     if (!isDemoMode && isDataLoaded) { void savePartialDataWithRetry({ enableBankingConnections: nextConnections }); }
     try {
       const response = await fetchWithAuth('/api/enable-banking/authorize', { method: 'POST', body: JSON.stringify({ applicationId: baseConnection.applicationId, clientCertificate: baseConnection.clientCertificate, countryCode: baseConnection.countryCode, aspspName: payload.selectedBank, state: connectionId, }), });

@@ -1,6 +1,6 @@
 import React, { useEffect, useRef, useState } from 'react';
 import { EnableBankingConnection, EnableBankingSyncOptions, Page } from '../types';
-import { loadPendingConnection, removePendingConnection } from '../utils/enableBankingStorage';
+import { loadAllPendingConnections, loadPendingConnection, removePendingConnection } from '../utils/enableBankingStorage';
 
 interface EnableBankingCallbackProps {
   connections: EnableBankingConnection[];
@@ -26,22 +26,38 @@ const EnableBankingCallback: React.FC<EnableBankingCallbackProps> = ({
 
     if (!callbackParamsRef.current) {
       const params = new URLSearchParams(window.location.search);
+      const hashParams = new URLSearchParams(window.location.hash.replace(/^#/, ''));
       callbackParamsRef.current = {
-        code: params.get('code'),
-        state: params.get('state'),
+        code:
+          params.get('code')
+          || params.get('authorization_code')
+          || hashParams.get('code')
+          || hashParams.get('authorization_code'),
+        state:
+          params.get('state')
+          || params.get('connection_id')
+          || params.get('connectionId')
+          || hashParams.get('state')
+          || hashParams.get('connection_id')
+          || hashParams.get('connectionId'),
       };
     }
 
     const { code, state } = callbackParamsRef.current;
 
-    if (!code || !state) {
-      setError('Missing code or connection reference in callback.');
+    if (!code) {
+      setError('Missing authorization code in callback.');
       return;
     }
 
     const resolveConnection = async () => {
-      let connection: EnableBankingConnection | undefined = connections.find(c => c.id === state);
-      if (!connection) {
+      let connection: EnableBankingConnection | undefined;
+
+      if (state) {
+        connection = connections.find(c => c.id === state);
+      }
+
+      if (!connection && state) {
         const pendingConnection = loadPendingConnection(state);
         if (pendingConnection) {
           connection = pendingConnection;
@@ -49,7 +65,7 @@ const EnableBankingCallback: React.FC<EnableBankingCallbackProps> = ({
         }
       }
 
-      if (!connection) {
+      if (!connection && state) {
         try {
           const response = await fetch(`/api/enable-banking/pending/${encodeURIComponent(state)}`, {
             credentials: 'include',
@@ -70,7 +86,15 @@ const EnableBankingCallback: React.FC<EnableBankingCallbackProps> = ({
       }
 
       if (!connection) {
-        setError('Could not find a matching connection for this callback.');
+        const localPendingConnections = loadAllPendingConnections();
+        if (localPendingConnections.length === 1) {
+          connection = localPendingConnections[0];
+          setConnections(prev => prev.some(conn => conn.id === connection?.id) ? prev : [...prev, connection!]);
+        }
+      }
+
+      if (!connection) {
+        setError('Missing code or connection reference in callback.');
         return;
       }
 
