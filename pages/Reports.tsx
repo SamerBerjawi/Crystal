@@ -453,350 +453,346 @@ const Reports: React.FC = () => {
   return (
     <div className="space-y-6 pb-12 animate-fade-in-up">
       <PageHeader
-        title="Reports"
+        title="Financial Reports"
         icon="analytics"
-        description="Analyze your spending patterns and uncover insights."
+        description="Deep dive into your spending habits, budget performance, and automated financial insights."
       />
 
-      <Card className="space-y-3">
-        <h2 className="text-sm font-semibold uppercase tracking-wide text-light-text-secondary dark:text-dark-text-secondary">Filters</h2>
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-3">
-          <div>
-            <label className="block text-xs font-semibold uppercase tracking-wide mb-1 text-light-text-secondary dark:text-dark-text-secondary">Start date</label>
-            <input type="date" value={startDate} onChange={(e) => setStartDate(e.target.value)} className={INPUT_BASE_STYLE} />
+      {/* Hero Section: Key Metrics */}
+      <section className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+        <div className="relative overflow-hidden rounded-2xl bg-white dark:bg-[#1E1E20] p-6 shadow-sm border border-black/5 dark:border-white/10 group transition-all hover:shadow-md">
+          <div className="absolute top-0 right-0 p-3 opacity-10 group-hover:opacity-20 transition-opacity">
+            <span className="material-symbols-outlined text-6xl">payments</span>
           </div>
-          <div>
-            <label className="block text-xs font-semibold uppercase tracking-wide mb-1 text-light-text-secondary dark:text-dark-text-secondary">End date</label>
-            <input type="date" value={endDate} onChange={(e) => setEndDate(e.target.value)} className={INPUT_BASE_STYLE} />
+          <p className="text-xs font-bold uppercase tracking-widest text-light-text-secondary dark:text-dark-text-secondary mb-1">Total Spend</p>
+          <div className="flex items-baseline gap-2">
+            <h3 className="text-3xl font-black tracking-tight">€{totals.totalSpendEur.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</h3>
           </div>
-          <div>
-            <label className="block text-xs font-semibold uppercase tracking-wide mb-1 text-light-text-secondary dark:text-dark-text-secondary">Merchant contains</label>
-            <input type="text" value={merchantFilter} onChange={(e) => setMerchantFilter(e.target.value)} placeholder="e.g. Amazon" className={INPUT_BASE_STYLE} />
-          </div>
-          <div>
-            <label className="block text-xs font-semibold uppercase tracking-wide mb-1 text-light-text-secondary dark:text-dark-text-secondary">Category</label>
-            <select value={categoryFilter} onChange={(e) => setCategoryFilter(e.target.value)} className={INPUT_BASE_STYLE}>
-              <option value="all">All categories</option>
-              {categories.map(category => (
-                <option key={category} value={category}>{category}</option>
-              ))}
-            </select>
-          </div>
-          <div>
-            <label className="block text-xs font-semibold uppercase tracking-wide mb-1 text-light-text-secondary dark:text-dark-text-secondary">Group results by</label>
-            <select value={groupBy} onChange={(e) => setGroupBy(e.target.value as GroupBy)} className={INPUT_BASE_STYLE}>
-              <option value="merchant">Merchant</option>
-              <option value="category">Category</option>
-            </select>
+          <div className="mt-4 flex items-center gap-2">
+            <div className={`flex items-center px-2 py-0.5 rounded-full text-[10px] font-bold uppercase ${(totals.changePct ?? 0) <= 0 ? 'bg-emerald-100 dark:bg-emerald-900/30 text-emerald-700 dark:text-emerald-400' : 'bg-rose-100 dark:bg-rose-900/30 text-rose-700 dark:text-rose-400'}`}>
+              <span className="material-symbols-outlined text-[14px] mr-1">
+                {(totals.changePct ?? 0) <= 0 ? 'trending_down' : 'trending_up'}
+              </span>
+              {totals.changePct === null ? '0%' : `${Math.abs(totals.changePct).toFixed(1)}%`}
+            </div>
+            <span className="text-[10px] text-light-text-secondary dark:text-dark-text-secondary font-medium uppercase tracking-wider">vs last period</span>
           </div>
         </div>
 
-        <div className="grid grid-cols-1 md:grid-cols-[1fr_auto] gap-2">
-          <input type="text" value={reportName} onChange={(e) => setReportName(e.target.value)} className={INPUT_BASE_STYLE} placeholder="Save this filter set as..." />
-          <button onClick={handleSaveView} className={BTN_PRIMARY_STYLE}>Save Report View</button>
+        <div className="relative overflow-hidden rounded-2xl bg-white dark:bg-[#1E1E20] p-6 shadow-sm border border-black/5 dark:border-white/10 group transition-all hover:shadow-md">
+          <div className="absolute top-0 right-0 p-3 opacity-10 group-hover:opacity-20 transition-opacity">
+            <span className="material-symbols-outlined text-6xl">receipt_long</span>
+          </div>
+          <p className="text-xs font-bold uppercase tracking-widest text-light-text-secondary dark:text-dark-text-secondary mb-1">Transactions</p>
+          <h3 className="text-3xl font-black tracking-tight">{totals.transactionCount}</h3>
+          <p className="mt-4 text-[10px] text-light-text-secondary dark:text-dark-text-secondary font-medium uppercase tracking-wider">Processed in range</p>
         </div>
 
-        {savedViews.length > 0 && (
-          <div className="flex flex-wrap gap-2">
-            {savedViews.map(view => (
-              <div key={view.id} className="flex items-center gap-1 bg-light-fill dark:bg-dark-fill rounded-lg px-2 py-1">
-                <button onClick={() => applyView(view)} className="text-sm hover:underline">{view.name}</button>
-                <button onClick={() => deleteView(view.id)} className="text-xs text-red-500 hover:underline">Remove</button>
-              </div>
-            ))}
+        <div className="relative overflow-hidden rounded-2xl bg-white dark:bg-[#1E1E20] p-6 shadow-sm border border-black/5 dark:border-white/10 group transition-all hover:shadow-md">
+          <div className="absolute top-0 right-0 p-3 opacity-10 group-hover:opacity-20 transition-opacity">
+            <span className="material-symbols-outlined text-6xl">calculate</span>
           </div>
-        )}
-      </Card>
+          <p className="text-xs font-bold uppercase tracking-widest text-light-text-secondary dark:text-dark-text-secondary mb-1">Avg. Transaction</p>
+          <h3 className="text-3xl font-black tracking-tight">€{totals.averageEur.toFixed(2)}</h3>
+          <p className="mt-4 text-[10px] text-light-text-secondary dark:text-dark-text-secondary font-medium uppercase tracking-wider">Per expense item</p>
+        </div>
 
-      <section className="grid grid-cols-1 md:grid-cols-4 gap-4">
-        <Card>
-          <p className="text-xs font-semibold uppercase tracking-wide text-light-text-secondary dark:text-dark-text-secondary mb-1">Total spend ({defaultCurrency})</p>
-          <p className="text-2xl font-bold">€{totals.totalSpendEur.toFixed(2)}</p>
-        </Card>
-        <Card>
-          <p className="text-xs font-semibold uppercase tracking-wide text-light-text-secondary dark:text-dark-text-secondary mb-1">Transactions</p>
-          <p className="text-2xl font-bold">{totals.transactionCount}</p>
-        </Card>
-        <Card>
-          <p className="text-xs font-semibold uppercase tracking-wide text-light-text-secondary dark:text-dark-text-secondary mb-1">Average transaction (EUR)</p>
-          <p className="text-2xl font-bold">€{totals.averageEur.toFixed(2)}</p>
-        </Card>
-        <Card>
-          <p className="text-xs font-semibold uppercase tracking-wide text-light-text-secondary dark:text-dark-text-secondary mb-1">Vs previous period</p>
-          <p className={`text-2xl font-bold ${(totals.changePct ?? 0) <= 0 ? 'text-emerald-600' : 'text-rose-600'}`}>
-            {totals.changePct === null ? '—' : `${totals.changePct > 0 ? '+' : ''}${totals.changePct.toFixed(1)}%`}
-          </p>
-          <p className="text-xs text-light-text-secondary dark:text-dark-text-secondary mt-1">
-            Compared to {previousPeriodTotals.start} → {previousPeriodTotals.end}
-          </p>
-        </Card>
+        <div className="relative overflow-hidden rounded-2xl bg-white dark:bg-[#1E1E20] p-6 shadow-sm border border-black/5 dark:border-white/10 group transition-all hover:shadow-md">
+          <div className="absolute top-0 right-0 p-3 opacity-10 group-hover:opacity-20 transition-opacity">
+            <span className="material-symbols-outlined text-6xl">event_repeat</span>
+          </div>
+          <p className="text-xs font-bold uppercase tracking-widest text-light-text-secondary dark:text-dark-text-secondary mb-1">Recurring Impact</p>
+          <h3 className="text-3xl font-black tracking-tight">
+            €{(recurringCandidates.reduce((sum, c) => sum + c.estimatedMonthlyEur, 0)).toFixed(0)}
+          </h3>
+          <p className="mt-4 text-[10px] text-light-text-secondary dark:text-dark-text-secondary font-medium uppercase tracking-wider">Est. Monthly Total</p>
+        </div>
       </section>
 
-      <Card>
-        <h2 className="font-semibold mb-4 text-lg">Spend breakdown by {groupBy}</h2>
-        <div className="overflow-x-auto -mx-6 px-6">
-          <table className="w-full text-left border-collapse text-sm">
-            <thead>
-              <tr className="border-b border-black/5 dark:border-white/10">
-                <th className="py-3 pr-3 font-semibold text-xs uppercase tracking-wide text-light-text-secondary dark:text-dark-text-secondary">{groupBy}</th>
-                <th className="py-3 pr-3 font-semibold text-xs uppercase tracking-wide text-light-text-secondary dark:text-dark-text-secondary">Transactions</th>
-                <th className="py-3 pr-3 font-semibold text-xs uppercase tracking-wide text-light-text-secondary dark:text-dark-text-secondary">Total (EUR)</th>
-                <th className="py-3 pr-3 font-semibold text-xs uppercase tracking-wide text-light-text-secondary dark:text-dark-text-secondary">Share</th>
-              </tr>
-            </thead>
-            <tbody className="divide-y divide-black/5 dark:divide-white/5">
-              {groupedRows.map(row => {
-                const share = totals.totalSpendEur > 0 ? (row.totalEur / totals.totalSpendEur) * 100 : 0;
-                const category = findCategoryByName(row.label, allCategories);
-                const { merchantLogoUrl, showMerchantLogo, merchantInitial } = merchantVisual(row.label);
-                return (
-                  <tr key={row.label} className="group hover:bg-black/5 dark:hover:bg-white/5 transition-colors">
-                    <td className="py-3 pr-3">
-                      {groupBy === 'merchant' ? (
-                        <div className="flex items-center gap-2">
-                          <div className={`w-7 h-7 rounded-lg shrink-0 flex items-center justify-center overflow-hidden ${showMerchantLogo ? 'bg-white dark:bg-dark-card' : 'bg-primary-500/20 text-primary-700 dark:text-primary-300'}`}>
-                            {showMerchantLogo && merchantLogoUrl ? (
-                              <img
-                                src={merchantLogoUrl}
-                                alt={`${row.label} logo`}
-                                className="w-full h-full object-cover"
-                                onError={() => handleLogoError(merchantLogoUrl)}
-                              />
-                            ) : (
-                              <span className="text-xs font-semibold">{merchantInitial}</span>
-                            )}
-                          </div>
-                          <span>{row.label}</span>
-                        </div>
-                      ) : (
-                        <div className="flex items-center gap-2">
-                          <span className="material-symbols-outlined text-[18px] text-light-text-secondary dark:text-dark-text-secondary">
-                            {category?.icon || 'category'}
-                          </span>
-                          <span>{row.label}</span>
-                        </div>
-                      )}
-                    </td>
-                    <td className="py-3 pr-3">{row.count}</td>
-                    <td className="py-3 pr-3">€{row.totalEur.toFixed(2)}</td>
-                    <td className="py-3 pr-3">{share.toFixed(1)}%</td>
-                  </tr>
-                );
-              })}
-            </tbody>
-          </table>
-          {groupedRows.length === 0 && <p className="text-sm text-light-text-secondary dark:text-dark-text-secondary py-3">No matching expenses found for the selected filters.</p>}
-        </div>
-      </Card>
-
-      <Card>
-        <div className="flex items-center justify-between mb-4">
-          <h2 className="font-semibold text-lg">Budget vs Actual</h2>
-          <button
-            onClick={() => {
-              setCategoryFilter('all');
-              setMerchantFilter('');
-            }}
-            className={BTN_SECONDARY_STYLE}
-          >
-            Clear category/merchant filters
-          </button>
-        </div>
-        <div className="overflow-x-auto -mx-6 px-6">
-          <table className="w-full text-left border-collapse text-sm">
-            <thead>
-              <tr className="border-b border-black/5 dark:border-white/10">
-                <th className="py-3 pr-3 font-semibold text-xs uppercase tracking-wide text-light-text-secondary dark:text-dark-text-secondary">Category</th>
-                <th className="py-3 pr-3 font-semibold text-xs uppercase tracking-wide text-light-text-secondary dark:text-dark-text-secondary">Budget (EUR)</th>
-                <th className="py-3 pr-3 font-semibold text-xs uppercase tracking-wide text-light-text-secondary dark:text-dark-text-secondary">Actual (EUR)</th>
-                <th className="py-3 pr-3 font-semibold text-xs uppercase tracking-wide text-light-text-secondary dark:text-dark-text-secondary">Variance</th>
-              </tr>
-            </thead>
-            <tbody className="divide-y divide-black/5 dark:divide-white/5">
-              {budgetVsActual.map(row => (
-                <tr key={row.categoryName} className="group hover:bg-black/5 dark:hover:bg-white/5 transition-colors">
-                  <td className="py-3 pr-3">
-                    <div className="flex items-center gap-2">
-                      <span className="material-symbols-outlined text-[18px] text-light-text-secondary dark:text-dark-text-secondary">
-                        {findCategoryByName(row.categoryName, allCategories)?.icon || 'category'}
-                      </span>
-                      <span>{row.categoryName}</span>
-                    </div>
-                  </td>
-                  <td className="py-3 pr-3">€{row.budgetEur.toFixed(2)}</td>
-                  <td className="py-3 pr-3">€{row.actualEur.toFixed(2)}</td>
-                  <td className={`py-3 pr-3 font-medium ${row.varianceEur >= 0 ? 'text-emerald-600' : 'text-rose-600'}`}>
-                    {row.varianceEur >= 0 ? '+' : ''}€{row.varianceEur.toFixed(2)}
-                  </td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-          {budgetVsActual.length === 0 && <p className="text-sm text-light-text-secondary dark:text-dark-text-secondary py-3">No budgets configured yet. Create budgets to see budget vs actual reporting.</p>}
-        </div>
-      </Card>
-
-      <Card>
-        <h2 className="font-semibold mb-4 text-lg">Automated Insights</h2>
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
-          {insights.map(item => (
-            <div
-              key={item.id}
-              className={`rounded-lg px-3 py-2 text-sm border ${
-                item.tone === 'warning'
-                  ? 'border-amber-400/40 bg-amber-500/10'
-                  : item.tone === 'positive'
-                    ? 'border-emerald-400/40 bg-emerald-500/10'
-                    : 'border-black/10 dark:border-white/10 bg-light-fill dark:bg-dark-fill'
-              }`}
-            >
-              {item.text}
+      {/* Filters & Saved Views */}
+      <Card className="!p-0 overflow-hidden border-none shadow-sm">
+        <div className="bg-gray-50/50 dark:bg-white/5 p-4 border-b border-black/5 dark:border-white/10">
+          <div className="flex items-center justify-between mb-4">
+            <h2 className="text-xs font-bold uppercase tracking-widest text-light-text-secondary dark:text-dark-text-secondary">Report Configuration</h2>
+            {savedViews.length > 0 && (
+              <div className="flex flex-wrap gap-2">
+                {savedViews.map(view => (
+                  <div key={view.id} className="group flex items-center gap-1 bg-white dark:bg-dark-surface border border-black/5 dark:border-white/10 rounded-full pl-3 pr-1 py-1 shadow-sm transition-all hover:border-primary-500/50">
+                    <button onClick={() => applyView(view)} className="text-[10px] font-bold uppercase tracking-wider hover:text-primary-500">{view.name}</button>
+                    <button onClick={() => deleteView(view.id)} className="w-5 h-5 flex items-center justify-center rounded-full text-light-text-secondary hover:bg-rose-500 hover:text-white transition-colors">
+                      <span className="material-symbols-outlined text-[14px]">close</span>
+                    </button>
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-4">
+            <div className="space-y-1">
+              <label className="block text-[10px] font-bold uppercase tracking-widest text-light-text-secondary dark:text-dark-text-secondary">Start Date</label>
+              <input type="date" value={startDate} onChange={(e) => setStartDate(e.target.value)} className={`${INPUT_BASE_STYLE} !bg-white dark:!bg-dark-surface`} />
             </div>
-          ))}
-        </div>
-        {insights.length === 0 && (
-          <p className="text-sm text-light-text-secondary dark:text-dark-text-secondary">
-            Not enough data yet to generate insights for this filter selection.
-          </p>
-        )}
-      </Card>
-
-      <Card>
-        <h2 className="font-semibold mb-4 text-lg">Forecast (End of Month)</h2>
-        {forecast ? (
-          <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
-            <div className="rounded-xl border border-black/5 dark:border-white/10 p-4 bg-light-fill dark:bg-dark-fill">
-              <p className="text-xs font-semibold uppercase tracking-wide text-light-text-secondary dark:text-dark-text-secondary mb-1">Month window</p>
-              <p className="font-semibold">{forecast.monthStart} → {forecast.monthEnd}</p>
+            <div className="space-y-1">
+              <label className="block text-[10px] font-bold uppercase tracking-widest text-light-text-secondary dark:text-dark-text-secondary">End Date</label>
+              <input type="date" value={endDate} onChange={(e) => setEndDate(e.target.value)} className={`${INPUT_BASE_STYLE} !bg-white dark:!bg-dark-surface`} />
             </div>
-            <div className="rounded-xl border border-black/5 dark:border-white/10 p-4 bg-light-fill dark:bg-dark-fill">
-              <p className="text-xs font-semibold uppercase tracking-wide text-light-text-secondary dark:text-dark-text-secondary mb-1">MTD spend (EUR)</p>
-              <p className="font-semibold">€{forecast.mtdSpendEur.toFixed(2)}</p>
+            <div className="space-y-1">
+              <label className="block text-[10px] font-bold uppercase tracking-widest text-light-text-secondary dark:text-dark-text-secondary">Merchant</label>
+              <input type="text" value={merchantFilter} onChange={(e) => setMerchantFilter(e.target.value)} placeholder="Filter by name..." className={`${INPUT_BASE_STYLE} !bg-white dark:!bg-dark-surface`} />
             </div>
-            <div className="rounded-xl border border-black/5 dark:border-white/10 p-4 bg-light-fill dark:bg-dark-fill">
-              <p className="text-xs font-semibold uppercase tracking-wide text-light-text-secondary dark:text-dark-text-secondary mb-1">Daily average (EUR)</p>
-              <p className="font-semibold">€{forecast.dailyAverage.toFixed(2)}</p>
+            <div className="space-y-1">
+              <label className="block text-[10px] font-bold uppercase tracking-widest text-light-text-secondary dark:text-dark-text-secondary">Category</label>
+              <select value={categoryFilter} onChange={(e) => setCategoryFilter(e.target.value)} className={`${INPUT_BASE_STYLE} !bg-white dark:!bg-dark-surface`}>
+                <option value="all">All Categories</option>
+                {categories.map(category => (
+                  <option key={category} value={category}>{category}</option>
+                ))}
+              </select>
             </div>
-            <div className="rounded-xl border border-black/5 dark:border-white/10 p-4 bg-light-fill dark:bg-dark-fill">
-              <p className="text-xs font-semibold uppercase tracking-wide text-light-text-secondary dark:text-dark-text-secondary mb-1">Projected month-end (EUR)</p>
-              <p className="font-semibold">€{forecast.projectedMonthEnd.toFixed(2)}</p>
+            <div className="space-y-1">
+              <label className="block text-[10px] font-bold uppercase tracking-widest text-light-text-secondary dark:text-dark-text-secondary">Group By</label>
+              <select value={groupBy} onChange={(e) => setGroupBy(e.target.value as GroupBy)} className={`${INPUT_BASE_STYLE} !bg-white dark:!bg-dark-surface`}>
+                <option value="merchant">Merchant</option>
+                <option value="category">Category</option>
+              </select>
             </div>
           </div>
-        ) : (
-          <p className="text-sm text-light-text-secondary dark:text-dark-text-secondary">Forecast unavailable for current selection.</p>
-        )}
+        </div>
+        <div className="p-4 bg-white dark:bg-dark-card flex flex-col md:flex-row gap-3 items-center">
+          <div className="relative flex-1 w-full">
+            <span className="absolute left-3 top-1/2 -translate-y-1/2 material-symbols-outlined text-light-text-secondary text-[18px]">bookmark</span>
+            <input 
+              type="text" 
+              value={reportName} 
+              onChange={(e) => setReportName(e.target.value)} 
+              className={`${INPUT_BASE_STYLE} !pl-10`} 
+              placeholder="Name this report view to save it..." 
+            />
+          </div>
+          <button onClick={handleSaveView} className={`${BTN_PRIMARY_STYLE} w-full md:w-auto whitespace-nowrap`}>
+            <span className="material-symbols-outlined text-[18px] mr-2">save</span>
+            Save Report
+          </button>
+        </div>
       </Card>
 
-      <Card>
-        <h2 className="font-semibold mb-4 text-lg">Anomaly Detection (Large Outliers)</h2>
-        <div className="overflow-x-auto -mx-6 px-6">
-          <table className="w-full text-left border-collapse text-sm">
-            <thead>
-              <tr className="border-b border-black/5 dark:border-white/10">
-                <th className="py-3 pr-3 font-semibold text-xs uppercase tracking-wide text-light-text-secondary dark:text-dark-text-secondary">Date</th>
-                <th className="py-3 pr-3 font-semibold text-xs uppercase tracking-wide text-light-text-secondary dark:text-dark-text-secondary">Merchant</th>
-                <th className="py-3 pr-3 font-semibold text-xs uppercase tracking-wide text-light-text-secondary dark:text-dark-text-secondary">Category</th>
-                <th className="py-3 pr-3 font-semibold text-xs uppercase tracking-wide text-light-text-secondary dark:text-dark-text-secondary">Amount (EUR)</th>
-                <th className="py-3 pr-3 font-semibold text-xs uppercase tracking-wide text-light-text-secondary dark:text-dark-text-secondary">Outlier score</th>
-              </tr>
-            </thead>
-            <tbody className="divide-y divide-black/5 dark:divide-white/5">
+      {/* Main Content Grid */}
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+        {/* Left Column: Detailed Breakdowns */}
+        <div className="space-y-6">
+          <Card className="!p-0 overflow-hidden">
+            <div className="p-4 border-b border-black/5 dark:border-white/10 flex items-center justify-between bg-gray-50/30 dark:bg-white/5">
+              <h2 className="font-bold text-sm uppercase tracking-widest">Spend Breakdown</h2>
+              <span className="text-[10px] font-bold uppercase tracking-widest text-light-text-secondary">By {groupBy}</span>
+            </div>
+            <div className="overflow-x-auto">
+              <table className="w-full text-left border-collapse text-sm">
+                <thead>
+                  <tr className="border-b border-black/5 dark:border-white/10 bg-gray-50/50 dark:bg-white/5">
+                    <th className="py-3 px-4 font-bold text-[10px] uppercase tracking-widest text-light-text-secondary dark:text-dark-text-secondary">{groupBy}</th>
+                    <th className="py-3 px-4 font-bold text-[10px] uppercase tracking-widest text-light-text-secondary dark:text-dark-text-secondary text-right">Count</th>
+                    <th className="py-3 px-4 font-bold text-[10px] uppercase tracking-widest text-light-text-secondary dark:text-dark-text-secondary text-right">Total</th>
+                    <th className="py-3 px-4 font-bold text-[10px] uppercase tracking-widest text-light-text-secondary dark:text-dark-text-secondary text-right">Share</th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-black/5 dark:divide-white/5">
+                  {groupedRows.map(row => {
+                    const share = totals.totalSpendEur > 0 ? (row.totalEur / totals.totalSpendEur) * 100 : 0;
+                    const category = findCategoryByName(row.label, allCategories);
+                    const { merchantLogoUrl, showMerchantLogo, merchantInitial } = merchantVisual(row.label);
+                    return (
+                      <tr key={row.label} className="group hover:bg-black/5 dark:hover:bg-white/5 transition-colors">
+                        <td className="py-3 px-4">
+                          {groupBy === 'merchant' ? (
+                            <div className="flex items-center gap-3">
+                              <div className={`w-8 h-8 rounded-lg shrink-0 flex items-center justify-center overflow-hidden border border-black/5 dark:border-white/10 ${showMerchantLogo ? 'bg-white dark:bg-dark-card' : 'bg-primary-500/10 text-primary-600'}`}>
+                                {showMerchantLogo && merchantLogoUrl ? (
+                                  <img src={merchantLogoUrl} alt="" className="w-full h-full object-cover" referrerPolicy="no-referrer" onError={() => handleLogoError(merchantLogoUrl)} />
+                                ) : (
+                                  <span className="text-xs font-bold">{merchantInitial}</span>
+                                )}
+                              </div>
+                              <span className="font-medium truncate max-w-[150px]">{row.label}</span>
+                            </div>
+                          ) : (
+                            <div className="flex items-center gap-3">
+                              <div className="w-8 h-8 rounded-lg bg-gray-100 dark:bg-white/10 flex items-center justify-center text-light-text-secondary">
+                                <span className="material-symbols-outlined text-[18px]">{category?.icon || 'category'}</span>
+                              </div>
+                              <span className="font-medium">{row.label}</span>
+                            </div>
+                          )}
+                        </td>
+                        <td className="py-3 px-4 text-right font-mono text-xs text-light-text-secondary">{row.count}</td>
+                        <td className="py-3 px-4 text-right font-bold">€{row.totalEur.toLocaleString(undefined, { minimumFractionDigits: 2 })}</td>
+                        <td className="py-3 px-4 text-right">
+                          <div className="flex items-center justify-end gap-2">
+                            <div className="w-12 h-1.5 rounded-full bg-gray-100 dark:bg-white/10 overflow-hidden">
+                              <div className="h-full bg-primary-500" style={{ width: `${share}%` }} />
+                            </div>
+                            <span className="text-[10px] font-bold text-light-text-secondary w-8">{share.toFixed(0)}%</span>
+                          </div>
+                        </td>
+                      </tr>
+                    );
+                  })}
+                </tbody>
+              </table>
+              {groupedRows.length === 0 && <p className="text-sm text-light-text-secondary p-8 text-center">No transactions found for this period.</p>}
+            </div>
+          </Card>
+
+          <Card className="!p-0 overflow-hidden">
+            <div className="p-4 border-b border-black/5 dark:border-white/10 flex items-center justify-between bg-gray-50/30 dark:bg-white/5">
+              <h2 className="font-bold text-sm uppercase tracking-widest">Budget vs Actual</h2>
+              <button onClick={() => { setCategoryFilter('all'); setMerchantFilter(''); }} className="text-[10px] font-bold uppercase tracking-widest text-primary-500 hover:underline">Reset Filters</button>
+            </div>
+            <div className="overflow-x-auto">
+              <table className="w-full text-left border-collapse text-sm">
+                <thead>
+                  <tr className="border-b border-black/5 dark:border-white/10 bg-gray-50/50 dark:bg-white/5">
+                    <th className="py-3 px-4 font-bold text-[10px] uppercase tracking-widest text-light-text-secondary dark:text-dark-text-secondary">Category</th>
+                    <th className="py-3 px-4 font-bold text-[10px] uppercase tracking-widest text-light-text-secondary dark:text-dark-text-secondary text-right">Budget</th>
+                    <th className="py-3 px-4 font-bold text-[10px] uppercase tracking-widest text-light-text-secondary dark:text-dark-text-secondary text-right">Actual</th>
+                    <th className="py-3 px-4 font-bold text-[10px] uppercase tracking-widest text-light-text-secondary dark:text-dark-text-secondary text-right">Variance</th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-black/5 dark:divide-white/5">
+                  {budgetVsActual.map(row => (
+                    <tr key={row.categoryName} className="group hover:bg-black/5 dark:hover:bg-white/5 transition-colors">
+                      <td className="py-3 px-4">
+                        <div className="flex items-center gap-3">
+                          <span className="material-symbols-outlined text-[18px] text-light-text-secondary">
+                            {findCategoryByName(row.categoryName, allCategories)?.icon || 'category'}
+                          </span>
+                          <span className="font-medium">{row.categoryName}</span>
+                        </div>
+                      </td>
+                      <td className="py-3 px-4 text-right font-mono text-xs text-light-text-secondary">€{row.budgetEur.toFixed(0)}</td>
+                      <td className="py-3 px-4 text-right font-bold">€{row.actualEur.toFixed(0)}</td>
+                      <td className={`py-3 px-4 text-right font-bold ${row.varianceEur >= 0 ? 'text-emerald-600' : 'text-rose-600'}`}>
+                        {row.varianceEur >= 0 ? '+' : ''}€{row.varianceEur.toFixed(0)}
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+              {budgetVsActual.length === 0 && <p className="text-sm text-light-text-secondary p-8 text-center">No budgets configured.</p>}
+            </div>
+          </Card>
+        </div>
+
+        {/* Right Column: Insights & Forecasts */}
+        <div className="space-y-6">
+          <Card className="bg-primary-600 text-white border-none shadow-lg relative overflow-hidden">
+            <div className="absolute top-0 right-0 p-4 opacity-10">
+              <span className="material-symbols-outlined text-8xl">lightbulb</span>
+            </div>
+            <h2 className="font-bold text-sm uppercase tracking-widest mb-4 relative z-10">Smart Insights</h2>
+            <div className="space-y-3 relative z-10">
+              {insights.map(item => (
+                <div key={item.id} className="flex items-start gap-3 bg-white/10 backdrop-blur-sm rounded-xl p-3 border border-white/10">
+                  <span className="material-symbols-outlined text-[20px] shrink-0 mt-0.5">
+                    {item.tone === 'warning' ? 'warning' : item.tone === 'positive' ? 'check_circle' : 'info'}
+                  </span>
+                  <p className="text-sm font-medium leading-relaxed">{item.text}</p>
+                </div>
+              ))}
+              {insights.length === 0 && <p className="text-sm opacity-80 italic">Gathering more data to generate insights...</p>}
+            </div>
+          </Card>
+
+          <Card className="!p-0 overflow-hidden">
+            <div className="p-4 border-b border-black/5 dark:border-white/10 bg-gray-50/30 dark:bg-white/5">
+              <h2 className="font-bold text-sm uppercase tracking-widest">Month-End Forecast</h2>
+            </div>
+            <div className="p-6">
+              {forecast ? (
+                <div className="space-y-6">
+                  <div className="flex items-center justify-between">
+                    <div>
+                      <p className="text-[10px] font-bold uppercase tracking-widest text-light-text-secondary mb-1">Projected Total</p>
+                      <h4 className="text-3xl font-black tracking-tight">€{forecast.projectedMonthEnd.toLocaleString(undefined, { maximumFractionDigits: 0 })}</h4>
+                    </div>
+                    <div className="text-right">
+                      <p className="text-[10px] font-bold uppercase tracking-widest text-light-text-secondary mb-1">Daily Burn Rate</p>
+                      <p className="text-xl font-bold">€{forecast.dailyAverage.toFixed(0)}<span className="text-xs font-normal opacity-60">/day</span></p>
+                    </div>
+                  </div>
+                  
+                  <div className="space-y-2">
+                    <div className="flex justify-between text-[10px] font-bold uppercase tracking-widest">
+                      <span>MTD: €{forecast.mtdSpendEur.toFixed(0)}</span>
+                      <span>Remaining: €{(forecast.projectedMonthEnd - forecast.mtdSpendEur).toFixed(0)}</span>
+                    </div>
+                    <div className="h-3 rounded-full bg-gray-100 dark:bg-white/5 overflow-hidden flex">
+                      <div className="h-full bg-primary-500" style={{ width: `${(forecast.mtdSpendEur / forecast.projectedMonthEnd) * 100}%` }} />
+                    </div>
+                    <p className="text-[10px] text-center text-light-text-secondary font-medium uppercase tracking-wider">
+                      {forecast.remainingDays} days remaining in billing cycle
+                    </p>
+                  </div>
+                </div>
+              ) : (
+                <p className="text-sm text-light-text-secondary text-center py-4 italic">Forecast unavailable for current selection.</p>
+              )}
+            </div>
+          </Card>
+
+          <Card className="!p-0 overflow-hidden">
+            <div className="p-4 border-b border-black/5 dark:border-white/10 bg-gray-50/30 dark:bg-white/5">
+              <h2 className="font-bold text-sm uppercase tracking-widest">Anomalies & Outliers</h2>
+            </div>
+            <div className="p-4 space-y-3">
               {anomalyCandidates.map(row => (
-                <tr key={row.id} className="group hover:bg-black/5 dark:hover:bg-white/5 transition-colors">
-                  <td className="py-3 pr-3">{row.date}</td>
-                  <td className="py-3 pr-3">
-                    <div className="flex items-center gap-2">
-                      {(() => {
-                        const { merchantLogoUrl, showMerchantLogo, merchantInitial } = merchantVisual(row.merchant);
-                        return (
-                          <div className={`w-7 h-7 rounded-lg shrink-0 flex items-center justify-center overflow-hidden ${showMerchantLogo ? 'bg-white dark:bg-dark-card' : 'bg-primary-500/20 text-primary-700 dark:text-primary-300'}`}>
-                            {showMerchantLogo && merchantLogoUrl ? (
-                              <img
-                                src={merchantLogoUrl}
-                                alt={`${row.merchant} logo`}
-                                className="w-full h-full object-cover"
-                                onError={() => handleLogoError(merchantLogoUrl)}
-                              />
-                            ) : (
-                              <span className="text-xs font-semibold">{merchantInitial}</span>
-                            )}
-                          </div>
-                        );
-                      })()}
-                      <span>{row.merchant}</span>
+                <div key={row.id} className="flex items-center justify-between p-3 rounded-xl border border-black/5 dark:border-white/5 hover:bg-gray-50 dark:hover:bg-white/5 transition-colors">
+                  <div className="flex items-center gap-3">
+                    <div className="w-10 h-10 rounded-full bg-rose-500/10 text-rose-600 flex items-center justify-center shrink-0">
+                      <span className="material-symbols-outlined text-[20px]">warning</span>
                     </div>
-                  </td>
-                  <td className="py-3 pr-3">
-                    <div className="flex items-center gap-2">
-                      <span className="material-symbols-outlined text-[18px] text-light-text-secondary dark:text-dark-text-secondary">
-                        {findCategoryByName(row.category, allCategories)?.icon || 'category'}
-                      </span>
-                      <span>{row.category}</span>
+                    <div>
+                      <p className="text-sm font-bold truncate max-w-[120px]">{row.merchant}</p>
+                      <p className="text-[10px] text-light-text-secondary uppercase font-bold tracking-wider">{row.date}</p>
                     </div>
-                  </td>
-                  <td className="py-3 pr-3">€{row.amountEur.toFixed(2)}</td>
-                  <td className="py-3 pr-3">{row.zScore.toFixed(2)}σ</td>
-                </tr>
+                  </div>
+                  <div className="text-right">
+                    <p className="text-sm font-black">€{row.amountEur.toFixed(2)}</p>
+                    <p className="text-[10px] text-rose-500 font-bold uppercase tracking-widest">{row.zScore.toFixed(1)}σ Outlier</p>
+                  </div>
+                </div>
               ))}
-            </tbody>
-          </table>
-          {anomalyCandidates.length === 0 && (
-            <p className="text-sm text-light-text-secondary dark:text-dark-text-secondary py-3">
-              No significant outliers detected for the selected filters.
-            </p>
-          )}
-        </div>
-      </Card>
+              {anomalyCandidates.length === 0 && <p className="text-sm text-light-text-secondary text-center py-4 italic">No significant outliers detected.</p>}
+            </div>
+          </Card>
 
-      <Card>
-        <h2 className="font-semibold mb-4 text-lg">Recurring Spend Candidates</h2>
-        <div className="overflow-x-auto -mx-6 px-6">
-          <table className="w-full text-left border-collapse text-sm">
-            <thead>
-              <tr className="border-b border-black/5 dark:border-white/10">
-                <th className="py-3 pr-3 font-semibold text-xs uppercase tracking-wide text-light-text-secondary dark:text-dark-text-secondary">Merchant</th>
-                <th className="py-3 pr-3 font-semibold text-xs uppercase tracking-wide text-light-text-secondary dark:text-dark-text-secondary">Detected frequency</th>
-                <th className="py-3 pr-3 font-semibold text-xs uppercase tracking-wide text-light-text-secondary dark:text-dark-text-secondary">Occurrences</th>
-                <th className="py-3 pr-3 font-semibold text-xs uppercase tracking-wide text-light-text-secondary dark:text-dark-text-secondary">Avg amount (EUR)</th>
-                <th className="py-3 pr-3 font-semibold text-xs uppercase tracking-wide text-light-text-secondary dark:text-dark-text-secondary">Estimated monthly (EUR)</th>
-              </tr>
-            </thead>
-            <tbody className="divide-y divide-black/5 dark:divide-white/5">
-              {recurringCandidates.map(candidate => (
-                <tr key={candidate.merchant} className="group hover:bg-black/5 dark:hover:bg-white/5 transition-colors">
-                  <td className="py-3 pr-3">
-                    <div className="flex items-center gap-2">
-                      {(() => {
-                        const { merchantLogoUrl, showMerchantLogo, merchantInitial } = merchantVisual(candidate.merchant);
-                        return (
-                          <div className={`w-7 h-7 rounded-lg shrink-0 flex items-center justify-center overflow-hidden ${showMerchantLogo ? 'bg-white dark:bg-dark-card' : 'bg-primary-500/20 text-primary-700 dark:text-primary-300'}`}>
-                            {showMerchantLogo && merchantLogoUrl ? (
-                              <img
-                                src={merchantLogoUrl}
-                                alt={`${candidate.merchant} logo`}
-                                className="w-full h-full object-cover"
-                                onError={() => handleLogoError(merchantLogoUrl)}
-                              />
-                            ) : (
-                              <span className="text-xs font-semibold">{merchantInitial}</span>
-                            )}
-                          </div>
-                        );
-                      })()}
-                      <span>{candidate.merchant}</span>
+          <Card className="!p-0 overflow-hidden">
+            <div className="p-4 border-b border-black/5 dark:border-white/10 bg-gray-50/30 dark:bg-white/5">
+              <h2 className="font-bold text-sm uppercase tracking-widest">Recurring Patterns</h2>
+            </div>
+            <div className="p-4 space-y-4">
+              {recurringCandidates.slice(0, 5).map(candidate => (
+                <div key={candidate.merchant} className="flex items-center justify-between">
+                  <div className="flex items-center gap-3">
+                    <div className="w-8 h-8 rounded-lg bg-primary-500/10 text-primary-600 flex items-center justify-center shrink-0">
+                      <span className="material-symbols-outlined text-[18px]">event_repeat</span>
                     </div>
-                  </td>
-                  <td className="py-3 pr-3">{candidate.frequency}</td>
-                  <td className="py-3 pr-3">{candidate.occurrences}</td>
-                  <td className="py-3 pr-3">€{candidate.averageEur.toFixed(2)}</td>
-                  <td className="py-3 pr-3">€{candidate.estimatedMonthlyEur.toFixed(2)}</td>
-                </tr>
+                    <div>
+                      <p className="text-sm font-bold">{candidate.merchant}</p>
+                      <p className="text-[10px] text-light-text-secondary uppercase font-bold tracking-wider">{candidate.frequency}</p>
+                    </div>
+                  </div>
+                  <div className="text-right">
+                    <p className="text-sm font-black">€{candidate.estimatedMonthlyEur.toFixed(0)}<span className="text-[10px] font-normal opacity-60">/mo</span></p>
+                    <p className="text-[10px] text-light-text-secondary font-bold uppercase tracking-widest">{candidate.occurrences} hits</p>
+                  </div>
+                </div>
               ))}
-            </tbody>
-          </table>
-          {recurringCandidates.length === 0 && <p className="text-sm text-light-text-secondary dark:text-dark-text-secondary py-3">No recurring patterns detected for this filtered period.</p>}
+              {recurringCandidates.length === 0 && <p className="text-sm text-light-text-secondary text-center py-4 italic">No recurring patterns found.</p>}
+            </div>
+          </Card>
         </div>
-      </Card>
+      </div>
+
     </div>
   );
 };
