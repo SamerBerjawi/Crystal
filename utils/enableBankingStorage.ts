@@ -36,6 +36,19 @@ export const loadPendingConnection = (connectionId: string): EnableBankingConnec
   }
 };
 
+export const loadAllPendingConnections = (): EnableBankingConnection[] => {
+  if (typeof window === 'undefined') return [];
+
+  try {
+    const existingRaw = sessionStorage.getItem(PENDING_EB_CONNECTIONS_KEY);
+    const existing: EnableBankingConnection[] = existingRaw ? JSON.parse(existingRaw) : [];
+    return Array.isArray(existing) ? existing : [];
+  } catch (error) {
+    console.warn('Unable to load pending Enable Banking connections', error);
+    return [];
+  }
+};
+
 export const removePendingConnection = (connectionId: string) => {
   if (typeof window === 'undefined') return;
 
