@@ -21,7 +21,8 @@ interface EnableBankingIntegrationCardProps {
     applicationId: string;
     countryCode: string;
     clientCertificate: string;
-    selectedBank: string;
+    selectedBankId: string;
+    selectedBankName: string;
     connectionId?: string;
   }) => void;
   onFetchBanks: (payload: { applicationId: string; countryCode: string; clientCertificate: string }) => Promise<
@@ -143,7 +144,7 @@ const EnableBankingIntegrationCard: React.FC<EnableBankingIntegrationCardProps> 
         clientCertificate: formState.clientCertificate.trim(),
       });
       setBankOptions(options);
-      updateFormState(prev => ({ ...prev, selectedBank: options[0]?.name || '' }));
+      updateFormState(prev => ({ ...prev, selectedBank: options[0]?.id || '' }));
     } catch (error: any) {
       console.error('Failed to load banks', error);
       setBankOptions([]);
@@ -203,7 +204,8 @@ const EnableBankingIntegrationCard: React.FC<EnableBankingIntegrationCardProps> 
       applicationId: formState.applicationId,
       countryCode: formState.countryCode,
       clientCertificate: formState.clientCertificate,
-      selectedBank: formState.selectedBank,
+      selectedBankId: formState.selectedBank,
+      selectedBankName: bankOptions.find(option => option.id === formState.selectedBank)?.name || formState.selectedBank,
     });
 
   };
@@ -212,7 +214,8 @@ const EnableBankingIntegrationCard: React.FC<EnableBankingIntegrationCardProps> 
     const resolvedApplicationId = (connection.applicationId || formState.applicationId).trim();
     const resolvedCertificate = (connection.clientCertificate || formState.clientCertificate).trim();
     const resolvedCountry = (connection.countryCode || formState.countryCode).trim().toUpperCase();
-    const resolvedBank = connection.selectedBank || formState.selectedBank;
+    const resolvedBankId = (connection.selectedBankId || formState.selectedBank).trim();
+    const resolvedBankName = connection.selectedBank || bankOptions.find(option => option.id === resolvedBankId)?.name || '';
 
     if (!resolvedApplicationId || !resolvedCertificate) {
       alert('Application ID and client certificate are required to reauthorize this connection.');
@@ -224,14 +227,15 @@ const EnableBankingIntegrationCard: React.FC<EnableBankingIntegrationCardProps> 
       applicationId: resolvedApplicationId,
       clientCertificate: resolvedCertificate,
       countryCode: resolvedCountry,
-      selectedBank: resolvedBank || prev.selectedBank,
+      selectedBank: resolvedBankId || prev.selectedBank,
     }));
 
     onCreateConnection({
       applicationId: resolvedApplicationId,
       countryCode: resolvedCountry,
       clientCertificate: resolvedCertificate,
-      selectedBank: resolvedBank || connection.selectedBank || 'Enable Banking',
+      selectedBankId: resolvedBankId,
+      selectedBankName: resolvedBankName || connection.selectedBank || 'Enable Banking',
       connectionId: connection.id,
     });
   };
@@ -403,7 +407,7 @@ const EnableBankingIntegrationCard: React.FC<EnableBankingIntegrationCardProps> 
                         >
                             {bankOptions.length === 0 && <option value="">Load banks first...</option>}
                             {bankOptions.map(option => (
-                                <option key={option.id} value={option.name}>{option.name}{option.country ? ` (${option.country})` : ''}</option>
+                                <option key={option.id} value={option.id}>{option.name}{option.country ? ` (${option.country})` : ''}</option>
                             ))}
                         </select>
                         <button

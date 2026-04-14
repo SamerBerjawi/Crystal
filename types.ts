@@ -196,6 +196,7 @@ export interface EnableBankingConnection {
   clientCertificate: string;
   status: EnableBankingConnectionStatus;
   selectedBank?: string;
+  selectedBankId?: string;
   sessionId?: string;
   sessionExpiresAt?: string;
   authorizationId?: string;

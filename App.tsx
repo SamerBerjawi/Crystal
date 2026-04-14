@@ -1075,7 +1075,7 @@ const App: React.FC = () => {
     return items.map((item: any, index: number) => ({ id: item.id || item.aspsp_id || item.bank_id || item.name || `aspsp-${index}`, name: item.name || item.full_name || item.fullName || 'Bank', country: item.country || payload.countryCode, }));
   }, [fetchWithAuth, isAuthenticated]);
 
-  const handleCreateEnableBankingConnection = useCallback(async (payload: { applicationId: string; countryCode: string; clientCertificate: string; selectedBank: string; connectionId?: string; }) => {
+  const handleCreateEnableBankingConnection = useCallback(async (payload: { applicationId: string; countryCode: string; clientCertificate: string; selectedBankId: string; selectedBankName: string; connectionId?: string; }) => {
     if (!isAuthenticated) return;
     const connectionId = payload.connectionId || `eb-${uuidv4()}`;
     const existingConnection = payload.connectionId ? enableBankingConnections.find(conn => conn.id === payload.connectionId) : undefined;
@@ -1085,16 +1085,23 @@ const App: React.FC = () => {
           countryCode: payload.countryCode.trim().toUpperCase(),
           clientCertificate: payload.clientCertificate.trim(),
           status: 'pending',
-          selectedBank: payload.selectedBank,
+          selectedBank: payload.selectedBankName,
+          selectedBankId: payload.selectedBankId,
           accounts: existingConnection?.accounts || [],
           ...(existingConnection && { ...existingConnection })
     };
     let nextConnections: EnableBankingConnection[] = [];
     setEnableBankingConnections(prev => { nextConnections = existingConnection ? prev.map(conn => (conn.id === connectionId ? baseConnection : conn)) : [...prev, baseConnection]; return nextConnections; });
     persistPendingConnection(baseConnection);
+    fetchWithAuth('/api/enable-banking/pending', {
+      method: 'POST',
+      body: JSON.stringify({ connection: baseConnection }),
+    }).catch(error => {
+      console.warn('Failed to persist pending Enable Banking connection to server', error);
+    });
     if (!isDemoMode && isDataLoaded) { void savePartialDataWithRetry({ enableBankingConnections: nextConnections }); }
     try {
-      const response = await fetchWithAuth('/api/enable-banking/authorize', { method: 'POST', body: JSON.stringify({ applicationId: baseConnection.applicationId, clientCertificate: baseConnection.clientCertificate, countryCode: baseConnection.countryCode, aspspName: payload.selectedBank, state: connectionId, }), });
+      const response = await fetchWithAuth('/api/enable-banking/authorize', { method: 'POST', body: JSON.stringify({ applicationId: baseConnection.applicationId, clientCertificate: baseConnection.clientCertificate, countryCode: baseConnection.countryCode, aspspName: baseConnection.selectedBank, aspspId: baseConnection.selectedBankId, state: connectionId, }), });
       const data = await response.json();
       setEnableBankingConnections(prev => prev.map(conn => conn.id === connectionId ? { ...conn, authorizationId: data.authorizationId, lastError: undefined, } : conn));
       if (data.authorizationUrl) { window.location.href = data.authorizationUrl; }

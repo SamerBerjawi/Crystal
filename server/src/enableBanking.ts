@@ -74,15 +74,23 @@ class EnableBankingClient {
   }
 
   startAuthorization({
+    aspspId,
     aspspName,
     countryCode,
     redirectUrl,
     state,
-  }: { aspspName: string; countryCode: string; redirectUrl: string; state?: string }) {
+  }: { aspspId?: string; aspspName?: string; countryCode: string; redirectUrl: string; state?: string }) {
+    if (!aspspId && !aspspName) {
+      throw new Error('aspspId or aspspName is required');
+    }
     return this.request<{ url: string; authorization_id: string }>(`/auth`, {
       method: 'POST',
       body: JSON.stringify({
-        aspsp: { name: aspspName, country: countryCode },
+        aspsp: {
+          country: countryCode,
+          ...(aspspId ? { id: aspspId } : {}),
+          ...(aspspName ? { name: aspspName } : {}),
+        },
         redirect_url: redirectUrl,
         access: { valid_until: new Date(Date.now() + 1000 * 60 * 60 * 24 * 90).toISOString() },
         state,
@@ -170,9 +178,9 @@ router.post('/accounts/:accountId/details', authenticateToken, async (req: AuthR
 
 router.post('/authorize', authenticateToken, async (req: AuthRequest, res) => {
   try {
-    const { applicationId, clientCertificate, countryCode, aspspName, state } = req.body;
-    if (!applicationId || !clientCertificate || !countryCode || !aspspName) {
-      return res.status(400).json({ message: 'applicationId, clientCertificate, countryCode and aspspName are required' });
+    const { applicationId, clientCertificate, countryCode, aspspName, aspspId, state } = req.body;
+    if (!applicationId || !clientCertificate || !countryCode || (!aspspName && !aspspId)) {
+      return res.status(400).json({ message: 'applicationId, clientCertificate, countryCode and aspspId/aspspName are required' });
     }
     const client = new EnableBankingClient(applicationId, clientCertificate);
     const forwardedProto = (req.headers['x-forwarded-proto'] as string | undefined)?.split(',')[0]?.trim();
@@ -185,7 +193,7 @@ router.post('/authorize', authenticateToken, async (req: AuthRequest, res) => {
     if (!process.env.ENABLE_BANKING_REDIRECT_URL && !host) {
       console.warn('Enable Banking redirect URL falling back to default because host is missing');
     }
-    const data = await client.startAuthorization({ aspspName, countryCode, redirectUrl, state });
+    const data = await client.startAuthorization({ aspspId, aspspName, countryCode, redirectUrl, state });
     res.json({ authorizationUrl: data.url, authorizationId: data.authorization_id, redirectUrl });
   } catch (error: any) {
     console.error('Failed to start authorization', error);
