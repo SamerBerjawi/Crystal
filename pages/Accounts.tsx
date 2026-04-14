@@ -13,6 +13,7 @@ import { useLocalStorage } from '../hooks/useLocalStorage';
 import { useScheduleContext } from '../contexts/FinancialDataContext';
 import PageHeader from '../components/PageHeader';
 import { LineChart, Line, ResponsiveContainer, YAxis, AreaChart, Area } from 'recharts';
+import { motion, AnimatePresence } from 'motion/react';
 
 interface AccountsProps {
     accounts: Account[];
@@ -212,6 +213,24 @@ const Accounts: React.FC<AccountsProps> = ({ accounts, transactions, saveAccount
       return { totalValue, label, subLabel, details };
   }, [filteredAccounts, activeSegment, globalMetrics, analyticsTransactions, loanPaymentOverrides, accounts]);
 
+  const segmentValues = useMemo(() => {
+    const open = visibleAccounts.filter(acc => acc.status !== 'closed');
+    const cash = open.filter(acc => LIQUID_ACCOUNT_TYPES.includes(acc.type)).reduce((sum, acc) => sum + convertToEur(acc.balance, acc.currency), 0);
+    const invested = open.filter(acc => acc.type === 'Investment').reduce((sum, acc) => sum + convertToEur(acc.balance, acc.currency), 0);
+    const property = open.filter(acc => acc.type === 'Property' || acc.type === 'Vehicle' || acc.type === 'Other Assets').reduce((sum, acc) => sum + convertToEur(acc.balance, acc.currency), 0);
+    
+    const debtAccounts = open.filter(acc => DEBT_TYPES.includes(acc.type));
+    const { totalDebt } = calculateAccountTotals(debtAccounts, analyticsTransactions, loanPaymentOverrides);
+    
+    return {
+      all: globalMetrics.netWorth,
+      cash,
+      invested,
+      property,
+      debt: totalDebt
+    };
+  }, [visibleAccounts, analyticsTransactions, loanPaymentOverrides, globalMetrics.netWorth]);
+
   const transactionsByAccount = useMemo(() => transactions.reduce((acc, transaction) => {
     (acc[transaction.accountId] = acc[transaction.accountId] || []).push(transaction);
     return acc;
@@ -277,14 +296,14 @@ const Accounts: React.FC<AccountsProps> = ({ accounts, transactions, saveAccount
   ];
 
   const heroGradient = activeSegment === 'debt' 
-    ? 'from-red-500 to-rose-600' 
+    ? 'from-rose-500 via-rose-600 to-pink-700' 
     : activeSegment === 'cash' 
-        ? 'from-blue-500 to-cyan-600'
+        ? 'from-sky-500 via-blue-600 to-indigo-700'
         : activeSegment === 'invested'
-            ? 'from-purple-500 to-indigo-600'
+            ? 'from-emerald-500 via-teal-600 to-cyan-700'
             : activeSegment === 'property'
-                ? 'from-emerald-500 to-teal-600'
-                : 'from-primary-600 to-primary-800'; // Default/All
+                ? 'from-amber-500 via-orange-600 to-yellow-700'
+                : 'from-indigo-600 via-violet-700 to-purple-800'; // Default/All
 
   return (
     <div className="relative">
@@ -321,78 +340,150 @@ const Accounts: React.FC<AccountsProps> = ({ accounts, transactions, saveAccount
             actions={<button onClick={() => setAddModalOpen(true)} className={`${BTN_PRIMARY_STYLE} flex items-center gap-2`}><span className="material-symbols-outlined text-xl">add</span>Add Account</button>} 
         />
 
-        {/* --- Dynamic Wealth Console --- */}
-        <div className={`relative overflow-hidden rounded-3xl bg-gradient-to-br ${heroGradient} text-white shadow-xl`}>
-            <div className="absolute inset-0 bg-[url('https://www.transparenttextures.com/patterns/cubes.png')] opacity-10 pointer-events-none"></div>
-            
-            <div className="relative z-10 flex flex-col xl:flex-row">
-                {/* Main Total */}
-                <div className="p-8 flex flex-col justify-between flex-1">
-                    <div className="space-y-2">
-                        <div className="flex items-center gap-2 text-white/80 text-xs font-bold uppercase tracking-widest">
-                            <span className="material-symbols-outlined text-sm">
-                                {activeSegment === 'debt' ? 'trending_down' : 'trending_up'}
-                            </span>
-                            {segmentMetrics.subLabel}
+        {/* --- Bento Grid Wealth Console --- */}
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+            {/* Net Worth - The Main Anchor */}
+            <motion.div 
+                layout
+                onClick={() => setActiveSegment('all')}
+                className={`md:col-span-2 md:row-span-2 relative overflow-hidden rounded-[2.5rem] p-8 flex flex-col justify-between cursor-pointer transition-all duration-500 group border ${activeSegment === 'all' ? `bg-gradient-to-br ${heroGradient} text-white shadow-2xl border-white/20 scale-[1.02]` : 'bg-white dark:bg-dark-card text-light-text dark:text-dark-text border-black/5 dark:border-white/5 shadow-sm hover:shadow-md'}`}
+            >
+                <div className="relative z-10">
+                    <div className="flex items-center justify-between mb-6">
+                        <div className={`flex items-center gap-2 text-[10px] font-black uppercase tracking-[0.2em] ${activeSegment === 'all' ? 'text-white/70' : 'text-light-text-secondary dark:text-dark-text-secondary'}`}>
+                            <span className={`w-8 h-[1px] ${activeSegment === 'all' ? 'bg-white/30' : 'bg-black/10 dark:bg-white/10'}`}></span>
+                            Total Net Worth
                         </div>
-                        <div className="flex items-baseline gap-4">
-                            <h2 className="text-5xl font-black tracking-tighter privacy-blur">{formatCurrency(segmentMetrics.totalValue, 'EUR')}</h2>
+                        <div className={`w-10 h-10 rounded-full flex items-center justify-center ${activeSegment === 'all' ? 'bg-white/10 text-white' : 'bg-primary-500/10 text-primary-500'}`}>
+                            <span className="material-symbols-outlined text-xl">account_balance_wallet</span>
                         </div>
-                        <p className="text-white/60 text-sm font-medium">{segmentMetrics.label}</p>
                     </div>
                     
-                    {/* Sparkline */}
-                    <div className="w-full h-24 mt-6 opacity-60">
+                    <div className="space-y-1">
+                        <h2 className={`text-5xl md:text-6xl font-black tracking-tighter privacy-blur leading-none ${activeSegment === 'all' ? 'text-white' : 'text-light-text dark:text-dark-text'}`}>
+                            {formatCurrency(segmentValues.all, 'EUR')}
+                        </h2>
+                        <p className={`text-xs font-bold uppercase tracking-widest ml-1 ${activeSegment === 'all' ? 'text-white/50' : 'text-light-text-secondary dark:text-dark-text-secondary'}`}>Combined Portfolio Value</p>
+                    </div>
+                </div>
+
+                <div className="relative z-10 mt-8">
+                    <div className="w-full h-24 opacity-60">
                         <ResponsiveContainer width="100%" height="100%">
                             <AreaChart data={globalMetrics.trendData}>
                                 <defs>
-                                    <linearGradient id="colorTrend" x1="0" y1="0" x2="0" y2="1">
-                                    <stop offset="5%" stopColor="#ffffff" stopOpacity={0.4}/>
-                                    <stop offset="95%" stopColor="#ffffff" stopOpacity={0}/>
+                                    <linearGradient id="colorTrendAll" x1="0" y1="0" x2="0" y2="1">
+                                        <stop offset="5%" stopColor={activeSegment === 'all' ? "#ffffff" : "#6366f1"} stopOpacity={0.3}/>
+                                        <stop offset="95%" stopColor={activeSegment === 'all' ? "#ffffff" : "#6366f1"} stopOpacity={0}/>
                                     </linearGradient>
                                 </defs>
-                                <Area type="monotone" dataKey="value" stroke="#ffffff" strokeWidth={2} fillOpacity={1} fill="url(#colorTrend)" />
+                                <Area 
+                                    type="monotone" 
+                                    dataKey="value" 
+                                    stroke={activeSegment === 'all' ? "#ffffff" : "#6366f1"} 
+                                    strokeWidth={3} 
+                                    fillOpacity={1} 
+                                    fill="url(#colorTrendAll)" 
+                                    animationDuration={1500}
+                                />
                             </AreaChart>
                         </ResponsiveContainer>
                     </div>
                 </div>
 
-                {/* Detail Metrics */}
-                <div className="xl:w-1/3 p-6 bg-white/10 backdrop-blur-md border-t xl:border-t-0 xl:border-l border-white/10 flex flex-col justify-center gap-4">
-                    {segmentMetrics.details.map((detail, index) => (
-                        <div key={index} className="flex items-center gap-4 p-3 rounded-xl bg-black/10 hover:bg-black/20 transition-colors border border-white/5">
-                            <div className="w-10 h-10 rounded-full flex items-center justify-center bg-white/10 text-white">
-                                <span className="material-symbols-outlined text-lg">{detail.icon}</span>
+                {/* Background Decor for Active State */}
+                {activeSegment === 'all' && (
+                    <div className="absolute inset-0 overflow-hidden pointer-events-none">
+                        <motion.div 
+                            animate={{ scale: [1, 1.2, 1], rotate: [0, 90, 0], opacity: [0.1, 0.2, 0.1] }}
+                            transition={{ duration: 20, repeat: Infinity, ease: "linear" }}
+                            className="absolute -top-1/2 -left-1/4 w-full h-full bg-white/10 rounded-full blur-3xl"
+                        />
+                    </div>
+                )}
+            </motion.div>
+
+            {/* Segment Cards */}
+            {segments.filter(s => s.id !== 'all').map((seg) => {
+                const isActive = activeSegment === seg.id;
+                const value = segmentValues[seg.id as keyof typeof segmentValues];
+                const gradient = seg.id === 'debt' 
+                    ? 'from-rose-500 to-pink-600' 
+                    : seg.id === 'cash' 
+                        ? 'from-sky-500 to-blue-600'
+                        : seg.id === 'invested'
+                            ? 'from-emerald-500 to-teal-600'
+                            : 'from-amber-500 to-orange-600';
+
+                return (
+                    <motion.div
+                        key={seg.id}
+                        layout
+                        onClick={() => setActiveSegment(seg.id)}
+                        className={`relative overflow-hidden rounded-[2rem] p-6 flex flex-col justify-between cursor-pointer transition-all duration-500 border ${isActive ? `bg-gradient-to-br ${gradient} text-white shadow-xl border-white/20 scale-[1.02]` : 'bg-white dark:bg-dark-card text-light-text dark:text-dark-text border-black/5 dark:border-white/5 shadow-sm hover:shadow-md'}`}
+                    >
+                        <div className="relative z-10">
+                            <div className="flex items-center justify-between mb-4">
+                                <div className={`w-10 h-10 rounded-xl flex items-center justify-center ${isActive ? 'bg-white/10 text-white' : 'bg-gray-100 dark:bg-white/5 text-light-text-secondary dark:text-dark-text-secondary'}`}>
+                                    <span className="material-symbols-outlined text-xl">{seg.icon}</span>
+                                </div>
+                                {isActive && (
+                                    <motion.div initial={{ scale: 0 }} animate={{ scale: 1 }} className="w-2 h-2 rounded-full bg-white shadow-[0_0_10px_rgba(255,255,255,0.8)]" />
+                                )}
                             </div>
-                            <div>
-                                <p className="text-xs text-white/60 uppercase tracking-wider font-bold mb-0.5">{detail.label}</p>
-                                <p className="text-lg font-bold text-white privacy-blur">{detail.value}</p>
-                            </div>
+                            <p className={`text-[10px] font-black uppercase tracking-[0.15em] mb-1 ${isActive ? 'text-white/60' : 'text-light-text-secondary dark:text-dark-text-secondary'}`}>{seg.label}</p>
+                            <h3 className={`text-2xl font-black tracking-tight privacy-blur ${isActive ? 'text-white' : 'text-light-text dark:text-dark-text'}`}>
+                                {formatCurrency(value, 'EUR')}
+                            </h3>
                         </div>
-                    ))}
-                </div>
-            </div>
+
+                        <div className="mt-4 flex items-center justify-between">
+                            <span className={`text-[10px] font-bold uppercase tracking-widest ${isActive ? 'text-white/40' : 'text-light-text-secondary dark:text-dark-text-secondary'}`}>
+                                {visibleAccounts.filter(a => {
+                                    if (seg.id === 'cash') return LIQUID_ACCOUNT_TYPES.includes(a.type);
+                                    if (seg.id === 'invested') return a.type === 'Investment';
+                                    if (seg.id === 'property') return a.type === 'Property' || a.type === 'Vehicle' || a.type === 'Other Assets';
+                                    if (seg.id === 'debt') return DEBT_TYPES.includes(a.type);
+                                    return false;
+                                }).length} Accounts
+                            </span>
+                            <span className="material-symbols-outlined text-sm opacity-20">arrow_forward</span>
+                        </div>
+                    </motion.div>
+                );
+            })}
         </div>
 
-        {/* --- Segment Navigation & Controls --- */}
+        {/* --- Dynamic Segment Details Bar --- */}
+        <AnimatePresence mode="wait">
+            <motion.div 
+                key={`details-${activeSegment}`}
+                initial={{ opacity: 0, y: 10 }}
+                animate={{ opacity: 1, y: 0 }}
+                exit={{ opacity: 0, y: -10 }}
+                className="grid grid-cols-1 md:grid-cols-3 gap-4"
+            >
+                {segmentMetrics.details.map((detail, index) => (
+                    <Card key={index} className="flex items-center gap-4 !py-3 !px-4 border-none shadow-sm bg-white/50 dark:bg-white/5 backdrop-blur-sm">
+                        <div className="w-10 h-10 rounded-xl flex items-center justify-center bg-primary-500/10 text-primary-500">
+                            <span className="material-symbols-outlined text-lg">{detail.icon}</span>
+                        </div>
+                        <div>
+                            <p className="text-[10px] text-light-text-secondary dark:text-dark-text-secondary uppercase tracking-widest font-black mb-0.5">{detail.label}</p>
+                            <p className="text-lg font-black text-light-text dark:text-dark-text privacy-blur tracking-tight">{detail.value}</p>
+                        </div>
+                    </Card>
+                ))}
+            </motion.div>
+        </AnimatePresence>
+
+        {/* --- Controls Bar --- */}
         <div className="flex flex-col xl:flex-row justify-between items-center gap-4 bg-white dark:bg-dark-card p-2 rounded-2xl border border-black/5 dark:border-white/5 shadow-sm sticky top-4 z-20 backdrop-blur-md bg-opacity-90 dark:bg-opacity-90">
-            {/* Segment Pills */}
-            <div className="flex bg-light-fill dark:bg-dark-fill p-1 rounded-xl w-full xl:w-auto overflow-x-auto no-scrollbar">
-                    {segments.map(seg => (
-                        <button
-                            key={seg.id}
-                            onClick={() => setActiveSegment(seg.id)}
-                            className={`
-                                flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-bold transition-all duration-200 whitespace-nowrap
-                                ${activeSegment === seg.id 
-                                    ? 'bg-white dark:bg-dark-card shadow-sm text-primary-600 dark:text-primary-400 scale-105' 
-                                    : 'text-light-text-secondary dark:text-dark-text-secondary hover:text-light-text dark:hover:text-dark-text'}
-                            `}
-                        >
-                            <span className="material-symbols-outlined text-lg">{seg.icon}</span>
-                            {seg.label}
-                        </button>
-                    ))}
+            <div className="flex items-center gap-2 px-3">
+                <span className="material-symbols-outlined text-primary-500">filter_list</span>
+                <span className="text-xs font-bold uppercase tracking-widest text-light-text-secondary">
+                    Viewing: {segments.find(s => s.id === activeSegment)?.label}
+                </span>
             </div>
 
             {/* View & Sort Controls */}
