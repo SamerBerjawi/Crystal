@@ -165,7 +165,7 @@ const Forecasting: React.FC = () => {
         return accounts.filter(a => LIQUID_ACCOUNT_TYPES.includes(a.type)).map(a => a.id)
     });
     const [forecastDuration, setForecastDuration] = useState<ForecastDuration>(preferences.defaultForecastPeriod || '1Y');
-    const [filterGoalsByAccount, setFilterGoalsByAccount] = useState(true);
+    const [filterGoalsByAccount, setFilterGoalsByAccount] = useState(false);
     const [showIndividualLines, setShowIndividualLines] = useState(false);
     const [showGoalLines, setShowGoalLines] = useState(true);
 
