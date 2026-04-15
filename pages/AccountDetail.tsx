@@ -304,6 +304,9 @@ const AccountDetail: React.FC<{
                 return (
                     <VehicleAccountView 
                         {...commonProps}
+                        accounts={accounts}
+                        transactions={transactions}
+                        loanPaymentOverrides={loanPaymentOverrides}
                         onAddLog={() => handleOpenMileageModal()}
                         onEditLog={handleOpenMileageModal}
                         onDeleteLog={handleDeleteMileageLog}

@@ -50,16 +50,16 @@ const LoanAccountView: React.FC<LoanAccountViewProps> = ({
     const outstandingInterest = Math.max(0, totalScheduledInterest - totalPaidInterest);
     const totalOutstanding = outstandingPrincipal + outstandingInterest;
 
-    const linkedProperty = accounts.find(a => a.type === 'Property' && a.linkedLoanId === account.id);
+    const linkedAsset = accounts.find(a => a.id === account.linkedAssetId) || accounts.find(a => a.type === 'Property' && a.linkedLoanId === account.id);
     
     let ltv = 0;
     let marketEquity = 0;
     
-    if (linkedProperty) {
-      const propertyValue = linkedProperty.balance;
+    if (linkedAsset) {
+      const assetValue = linkedAsset.balance;
       const loanBalance = outstandingPrincipal;
-      if (propertyValue > 0) ltv = (loanBalance / propertyValue) * 100;
-      marketEquity = propertyValue - loanBalance;
+      if (assetValue > 0) ltv = (loanBalance / assetValue) * 100;
+      marketEquity = assetValue - loanBalance;
     }
     
     // Invested Equity: Principal Paid + Down Payment
@@ -75,7 +75,7 @@ const LoanAccountView: React.FC<LoanAccountViewProps> = ({
         outstandingPrincipal,
         outstandingInterest,
         totalOutstanding,
-        linkedProperty, 
+        linkedAsset, 
         ltv, 
         equity, 
         marketEquity, 
@@ -170,16 +170,17 @@ const LoanAccountView: React.FC<LoanAccountViewProps> = ({
               <div className="flex justify-between"><span className="text-light-text-secondary dark:text-dark-text-secondary">Term</span><span className="font-medium">{account.duration} months</span></div>
               <div className="flex justify-between"><span className="text-light-text-secondary dark:text-dark-text-secondary">Projected Payoff</span><span className="font-medium">{loanDetails.payoffDate ? loanDetails.payoffDate.toLocaleDateString() : 'N/A'}</span></div>
               {account.linkedAccountId && <div className="flex justify-between"><span className="text-light-text-secondary dark:text-dark-text-secondary">Linked Account</span><span className="font-medium text-right truncate max-w-[150px]">{accounts.find(a=>a.id===account.linkedAccountId)?.name}</span></div>}
+              {account.linkedAssetId && <div className="flex justify-between"><span className="text-light-text-secondary dark:text-dark-text-secondary">Associated Asset</span><span className="font-medium text-right truncate max-w-[150px]">{accounts.find(a=>a.id===account.linkedAssetId)?.name}</span></div>}
             </div>
           </Card>
           {!isLending && (
             <Card>
               <h3 className="text-base font-semibold text-light-text dark:text-dark-text mb-4">Equity & LTV</h3>
               <div className="space-y-3 text-sm">
-                {loanDetails.linkedProperty && (
+                {loanDetails.linkedAsset && (
                   <div className="flex justify-between items-center pb-2 border-b border-black/5 dark:border-white/5">
-                    <span className="text-light-text-secondary dark:text-dark-text-secondary">Property</span>
-                    <button onClick={() => setViewingAccountId(loanDetails.linkedProperty!.id)} className="text-primary-500 hover:underline font-medium truncate max-w-[150px]">{loanDetails.linkedProperty.name}</button>
+                    <span className="text-light-text-secondary dark:text-dark-text-secondary">{loanDetails.linkedAsset.type}</span>
+                    <button onClick={() => setViewingAccountId(loanDetails.linkedAsset!.id)} className="text-primary-500 hover:underline font-medium truncate max-w-[150px]">{loanDetails.linkedAsset.name}</button>
                   </div>
                 )}
                 <div className="flex justify-between"><span className="text-light-text-secondary dark:text-dark-text-secondary">LTV Ratio</span><span className={`font-bold ${loanDetails.ltv > 80 ? 'text-red-500' : 'text-green-500'}`}>{loanDetails.ltv.toFixed(1)}%</span></div>
@@ -189,7 +190,7 @@ const LoanAccountView: React.FC<LoanAccountViewProps> = ({
                 <div className="flex justify-between"><span className="text-light-text-secondary dark:text-dark-text-secondary font-semibold">Market Equity</span><span className="font-bold text-green-600 dark:text-green-400">{formatCurrency(loanDetails.marketEquity, account.currency)}</span></div>
                 <p className="text-xs text-light-text-secondary dark:text-dark-text-secondary italic mt-2">
                     Invested Equity = Down Payment + Principal Paid. <br/>
-                    Market Equity = Current Property Value - Outstanding Loan Principal.
+                    Market Equity = Current Asset Value - Outstanding Loan Principal.
                 </p>
               </div>
             </Card>

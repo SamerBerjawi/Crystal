@@ -5,7 +5,7 @@ import Card from '../components/Card';
 import { BTN_PRIMARY_STYLE, BTN_SECONDARY_STYLE, INPUT_BASE_STYLE, SELECT_WRAPPER_STYLE, SELECT_ARROW_STYLE, LIQUID_ACCOUNT_TYPES, ACCOUNT_TYPE_STYLES, ALL_ACCOUNT_TYPES, BTN_DANGER_STYLE } from '../constants';
 import { formatCurrency, convertToEur, generateSyntheticLoanPayments, generateSyntheticCreditCardPayments, generateSyntheticPropertyTransactions, parseLocalDate, fuzzySearch, toLocalISOString, adjustDateForWeekend } from '../utils';
 import RecurringTransactionModal from '../components/RecurringTransactionModal';
-import Modal from './Modal';
+import Modal from '../components/Modal';
 import ScheduleHeatmap from '../components/ScheduleHeatmap';
 import EditRecurrenceModal from '../components/EditRecurrenceModal';
 import RecurringOverrideModal from '../components/RecurringOverrideModal';

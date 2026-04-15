@@ -75,6 +75,7 @@ const EditAccountModal: React.FC<EditAccountModalProps> = ({ onClose, onSave, on
   const [propertyType, setPropertyType] = useState<PropertyType>(account.propertyType || 'Detached House');
   const [notes, setNotes] = useState(account.notes || '');
   const [linkedAccountId, setLinkedAccountId] = useState(account.linkedAccountId || '');
+  const [linkedAssetId, setLinkedAssetId] = useState(account.linkedAssetId || '');
   
   // Other Asset/Liability Specific
   const [counterparty, setCounterparty] = useState(account.counterparty || '');
@@ -221,6 +222,10 @@ const EditAccountModal: React.FC<EditAccountModalProps> = ({ onClose, onSave, on
     return groups;
   }, [accounts, linkedLoanId]);
 
+  const assetAccounts = useMemo(() => {
+    return accounts.filter(acc => acc.type === 'Property' || acc.type === 'Vehicle');
+  }, [accounts]);
+
   const isLoanForPropertyLinked = useMemo(() => type === 'Property' && !!linkedLoanId, [type, linkedLoanId]);
   
   useEffect(() => {
@@ -312,6 +317,7 @@ const EditAccountModal: React.FC<EditAccountModalProps> = ({ onClose, onSave, on
           loanStartDate,
           monthlyPayment: monthlyPayment !== '' ? parseFloat(monthlyPayment) : undefined,
           paymentDayOfMonth: paymentDayOfMonth !== '' ? parseInt(paymentDayOfMonth, 10) : undefined,
+          linkedAssetId: linkedAssetId || undefined,
       }),
       
       ...(type === 'Loan' && { downPayment: downPayment !== '' ? parseFloat(downPayment) : undefined }),
@@ -725,6 +731,20 @@ const EditAccountModal: React.FC<EditAccountModalProps> = ({ onClose, onSave, on
                             <div className={SELECT_ARROW_STYLE}><span className="material-symbols-outlined">expand_more</span></div>
                         </div>
                     </div>
+                    {type === 'Loan' && (
+                        <div className="mt-4">
+                            <label htmlFor="linkedAssetId" className={labelStyle}>Associated Asset (Property/Vehicle)</label>
+                            <div className={SELECT_WRAPPER_STYLE}>
+                                <select id="linkedAssetId" value={linkedAssetId} onChange={e => setLinkedAssetId(e.target.value)} className={INPUT_BASE_STYLE}>
+                                    <option value="">None</option>
+                                    {assetAccounts.map(acc => (
+                                        <option key={acc.id} value={acc.id}>{acc.name} ({acc.type})</option>
+                                    ))}
+                                </select>
+                                <div className={SELECT_ARROW_STYLE}><span className="material-symbols-outlined">expand_more</span></div>
+                            </div>
+                        </div>
+                    )}
                 </div>
             )}
              {type === 'Vehicle' && (

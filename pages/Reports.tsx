@@ -17,7 +17,7 @@ import {
 import { useTransactionSelector, usePreferencesSelector, useAccountSelector } from '../contexts/DomainProviders';
 import { useBudgetsContext, useCategoryContext } from '../contexts/FinancialDataContext';
 import { BTN_PRIMARY_STYLE, BTN_SECONDARY_STYLE, INPUT_BASE_STYLE } from '../constants';
-import { Category, Account } from '../types';
+import { Category, Account, MerchantRule } from '../types';
 import { convertToEur, parseLocalDate, toLocalISOString } from '../utils';
 import { getMerchantLogoUrl, normalizeMerchantKey } from '../utils/brandfetch';
 import Card from '../components/Card';
@@ -96,7 +96,7 @@ const Reports: React.FC = () => {
   const defaultCurrency = usePreferencesSelector(p => p.currency || 'EUR');
   const brandfetchClientId = usePreferencesSelector(p => p.brandfetchClientId);
   const merchantLogoOverrides = usePreferencesSelector(p => p.merchantLogoOverrides || {});
-  const merchantRules = usePreferencesSelector(p => p.merchantRules || {});
+  const merchantRules = usePreferencesSelector(p => p.merchantRules || {}) as Record<string, MerchantRule>;
   const { budgets } = useBudgetsContext();
   const { incomeCategories, expenseCategories } = useCategoryContext();
 

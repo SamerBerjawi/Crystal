@@ -1,5 +1,5 @@
 import React, { useMemo, useEffect, useRef, useState, useCallback } from 'react';
-import { Category, DisplayTransaction } from '../types';
+import { Category, DisplayTransaction, MerchantRule } from '../types';
 import { formatCurrency, convertToEur, parseLocalDate } from '../utils';
 import { useThrottledCallback } from '../hooks/useThrottledCallback';
 import { usePreferencesSelector } from '../contexts/DomainProviders';
@@ -30,7 +30,7 @@ const buildCategoryDetailsMap = (categories: Category[]) => {
 const TransactionList: React.FC<TransactionListProps> = ({ transactions, allCategories, onTransactionClick }) => {
   const brandfetchClientId = usePreferencesSelector(p => (p.brandfetchClientId || '').trim());
   const merchantLogoOverrides = usePreferencesSelector(p => p.merchantLogoOverrides || {});
-  const merchantRules = usePreferencesSelector(p => p.merchantRules || {});
+  const merchantRules = usePreferencesSelector(p => p.merchantRules || {}) as Record<string, MerchantRule>;
   const [logoLoadErrors, setLogoLoadErrors] = useState<Set<string>>(() => new Set());
 
   const effectiveMerchantLogoOverrides = useMemo(() => {

@@ -102,6 +102,7 @@ export interface Account {
   downPayment?: number;
   monthlyPayment?: number;
   paymentDayOfMonth?: number;
+  linkedAssetId?: string; // For Loans: link to Property or Vehicle
 
   // Vehicle specific
   make?: string;
@@ -125,6 +126,7 @@ export interface Account {
   // Mileage
   mileageLogs?: MileageLog[];
   imageUrl?: string;
+  priceHistory?: PriceHistoryEntry[];
 
   // Property specific
   address?: string;
@@ -475,6 +477,7 @@ export interface BillPayment {
     dueDate: string;
     status: BillPaymentStatus;
     accountId?: string; // The account it was paid from/to
+    warrantId?: string;
 }
 
 export interface AccountDetailProps {
@@ -628,6 +631,10 @@ export interface Warrant {
   grantDate: string;
   quantity: number;
   grantPrice: number;
+  taxType?: 'amount' | 'percentage';
+  taxValue?: number;
+  taxAmount?: number;
+  taxPayments?: PaymentTerm[];
 }
 
 // New types for Scraper feature

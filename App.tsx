@@ -839,32 +839,90 @@ const App: React.FC = () => {
 
   const handleSaveAccount = (accountData: Omit<Account, 'id'> & { id?: string }) => {
     const accountWithDefaults = { ...accountData, includeInAnalytics: accountData.includeInAnalytics ?? true } as Omit<Account, 'id'> & { id?: string };
+    
+    let finalAccountId: string;
+    let isNew = false;
+    
     if (accountData.id) {
-        setAccounts(prev => {
-            const intermediateAccounts = prev.map(acc => acc.id === accountData.id ? { ...acc, ...accountWithDefaults } as Account : acc);
-            if (accountWithDefaults.isPrimary) {
-                return intermediateAccounts.map(acc => {
-                    if (acc.type === accountWithDefaults.type && acc.id !== accountWithDefaults.id && acc.isPrimary) {
-                        return { ...acc, isPrimary: false };
-                    }
-                    return acc;
-                });
-            }
-            return intermediateAccounts;
-        });
+        finalAccountId = accountData.id;
     } else {
-        const newAccount = { ...accountWithDefaults, id: `acc-${uuidv4()}`, status: 'open' as const } as Account;
-        setAccounts(prev => {
-            let newAccounts = [...prev, newAccount];
-            if (newAccount.isPrimary) {
-                newAccounts = newAccounts.map(acc => {
-                    if (acc.type === newAccount.type && acc.id !== newAccount.id && acc.isPrimary) { return { ...acc, isPrimary: false }; }
-                    return acc;
-                });
-            }
-            return newAccounts;
-        });
+        finalAccountId = `acc-${uuidv4()}`;
+        isNew = true;
     }
+
+    const savedAccount = { ...accountWithDefaults, id: finalAccountId } as Account;
+    if (isNew) savedAccount.status = 'open';
+
+    setAccounts(prev => {
+        // 1. Update/Add the primary account
+        let nextAccounts: Account[];
+        if (isNew) {
+            nextAccounts = [...prev, savedAccount];
+        } else {
+            nextAccounts = prev.map(acc => acc.id === finalAccountId ? savedAccount : acc);
+        }
+
+        // 2. Handle Primary status logic
+        if (savedAccount.isPrimary) {
+            nextAccounts = nextAccounts.map(acc => {
+                if (acc.type === savedAccount.type && acc.id !== savedAccount.id && acc.isPrimary) {
+                    return { ...acc, isPrimary: false };
+                }
+                return acc;
+            });
+        }
+
+        // 3. Bidirectional Linking Logic
+        // If savedAccount is a Loan, link to its Asset
+        if (savedAccount.type === 'Loan' && savedAccount.linkedAssetId) {
+            nextAccounts = nextAccounts.map(acc => {
+                if (acc.id === savedAccount.linkedAssetId) {
+                    return { ...acc, linkedLoanId: savedAccount.id };
+                }
+                // Clear previous links if this asset was linked to another loan
+                if (acc.linkedLoanId === savedAccount.id && acc.id !== savedAccount.linkedAssetId) {
+                    return { ...acc, linkedLoanId: undefined };
+                }
+                return acc;
+            });
+        }
+        
+        // If savedAccount is an Asset (Property/Vehicle), link to its Loan
+        if ((savedAccount.type === 'Property' || savedAccount.type === 'Vehicle') && savedAccount.linkedLoanId) {
+            nextAccounts = nextAccounts.map(acc => {
+                if (acc.id === savedAccount.linkedLoanId) {
+                    return { ...acc, linkedAssetId: savedAccount.id };
+                }
+                // Clear previous links if this loan was linked to another asset
+                if (acc.linkedAssetId === savedAccount.id && acc.id !== savedAccount.linkedLoanId) {
+                    return { ...acc, linkedAssetId: undefined };
+                }
+                return acc;
+            });
+        }
+
+        // 4. Handle Link Removals
+        // If it's a Loan and linkedAssetId was removed
+        if (savedAccount.type === 'Loan' && !savedAccount.linkedAssetId) {
+             nextAccounts = nextAccounts.map(acc => {
+                if (acc.linkedLoanId === savedAccount.id) {
+                    return { ...acc, linkedLoanId: undefined };
+                }
+                return acc;
+            });
+        }
+        // If it's an Asset and linkedLoanId was removed
+        if ((savedAccount.type === 'Property' || savedAccount.type === 'Vehicle') && !savedAccount.linkedLoanId) {
+             nextAccounts = nextAccounts.map(acc => {
+                if (acc.linkedAssetId === savedAccount.id) {
+                    return { ...acc, linkedAssetId: undefined };
+                }
+                return acc;
+            });
+        }
+
+        return nextAccounts;
+    });
   };
 
   const handleToggleAccountStatus = (accountId: string) => {
@@ -875,7 +933,11 @@ const App: React.FC = () => {
     const accountToDelete = accounts.find(acc => acc.id === accountId);
     if (!accountToDelete) return;
     const impactedRecurringIds = new Set(recurringTransactions.filter(rt => rt.accountId === accountId || rt.toAccountId === accountId).map(rt => rt.id));
-    setAccounts(prev => prev.filter(acc => acc.id !== accountId));
+    setAccounts(prev => prev.filter(acc => acc.id !== accountId).map(acc => {
+        if (acc.linkedAssetId === accountId) return { ...acc, linkedAssetId: undefined };
+        if (acc.linkedLoanId === accountId) return { ...acc, linkedLoanId: undefined };
+        return acc;
+    }));
     setTransactions(prev => prev.filter(tx => tx.accountId !== accountId));
     setInvestmentTransactions(prev => prev.filter(tx => tx.symbol !== accountToDelete.symbol));
     setWarrants(prev => prev.filter(w => w.isin !== accountToDelete.symbol));
@@ -982,17 +1044,40 @@ const App: React.FC = () => {
   };
   const handleDeleteTask = (taskId: string) => { setTasks(prev => removeEntityById(prev, taskId)); };
   const handleSaveWarrant = (warrantData: Omit<Warrant, 'id'> & { id?: string }) => {
-    if (warrantData.id) { setWarrants(prev => prev.map(w => w.id === warrantData.id ? { ...w, ...warrantData } as Warrant : w)); } 
+    let warrantId = warrantData.id;
+    if (warrantData.id) { 
+        setWarrants(prev => prev.map(w => w.id === warrantData.id ? { ...w, ...warrantData } as Warrant : w)); 
+    } 
     else {
-        setWarrants(prev => [...prev, { ...warrantData, id: `warr-${uuidv4()}` } as Warrant]);
+        warrantId = `warr-${uuidv4()}`;
+        setWarrants(prev => [...prev, { ...warrantData, id: warrantId } as Warrant]);
         if (!accounts.some(acc => acc.symbol === warrantData.isin.toUpperCase())) {
             handleSaveAccount({ name: warrantData.name, type: 'Investment', subType: 'ETF', symbol: warrantData.isin.toUpperCase(), balance: 0, currency: 'EUR' });
         }
+    }
+
+    // Sync tax payments to billsAndPayments
+    if (warrantId) {
+        setBillsAndPayments(prev => {
+            const otherBills = prev.filter(b => b.warrantId !== warrantId);
+            const newBills: BillPayment[] = (warrantData.taxPayments || []).map((tp, index) => ({
+                id: `bill-tax-${warrantId}-${index}`,
+                description: `Tax Payment: ${warrantData.name} (${warrantData.isin})`,
+                amount: -tp.amount,
+                type: 'payment',
+                currency: 'EUR',
+                dueDate: tp.dueDate,
+                status: 'unpaid',
+                warrantId: warrantId
+            }));
+            return [...otherBills, ...newBills];
+        });
     }
   };
   const handleDeleteWarrant = (warrantId: string) => {
     const warrantToDelete = warrants.find(w => w.id === warrantId);
     setWarrants(prev => prev.filter(w => w.id !== warrantId));
+    setBillsAndPayments(prev => prev.filter(b => b.warrantId !== warrantId));
     if (warrantToDelete) {
       setManualWarrantPrices(prev => { const updated = { ...prev }; delete updated[warrantToDelete.isin]; return updated; });
     }

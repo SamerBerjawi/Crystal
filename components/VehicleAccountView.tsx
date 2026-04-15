@@ -1,32 +1,57 @@
 import React, { useMemo } from 'react';
-import { Account, MileageLog } from '../types';
-import { formatCurrency, parseLocalDate } from '../utils';
+import { Account, MileageLog, Transaction, LoanPaymentOverrides } from '../types';
+import { formatCurrency, parseLocalDate, generateAmortizationSchedule } from '../utils';
 import Card from './Card';
 import VehicleMileageChart from './VehicleMileageChart';
 import { BTN_PRIMARY_STYLE, BTN_SECONDARY_STYLE, ACCOUNT_TYPE_STYLES } from '../constants';
+import { ResponsiveContainer, AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip } from 'recharts';
 
 interface VehicleAccountViewProps {
   account: Account;
+  accounts: Account[];
+  transactions: Transaction[];
+  loanPaymentOverrides: LoanPaymentOverrides;
   onAddTransaction: () => void;
   onAddLog: () => void;
   onEditLog: (log: MileageLog) => void;
   onDeleteLog: (id: string) => void;
   onBack: () => void;
+  setViewingAccountId: (id: string | null) => void;
   onSyncLinkedAccount?: () => void;
   isLinkedToEnableBanking?: boolean;
 }
 
 const VehicleAccountView: React.FC<VehicleAccountViewProps> = ({
   account,
+  accounts,
+  transactions,
+  loanPaymentOverrides,
   onAddTransaction,
   onAddLog,
   onEditLog,
   onDeleteLog,
   onBack,
+  setViewingAccountId,
   onSyncLinkedAccount,
   isLinkedToEnableBanking,
 }) => {
   const isLeased = account.ownership === 'Leased';
+
+  const linkedLoan = accounts.find(a => a.type === 'Loan' && a.linkedAssetId === account.id);
+
+  // Calculate Outstanding Loan Balance if linked
+  let outstandingLoanBalance = 0;
+  if (linkedLoan) {
+      if (linkedLoan.principalAmount && linkedLoan.duration && linkedLoan.loanStartDate && linkedLoan.interestRate !== undefined) {
+          const overrides = loanPaymentOverrides[linkedLoan.id] || {};
+          const schedule = generateAmortizationSchedule(linkedLoan, transactions, overrides);
+          const totalScheduledPrincipal = schedule.reduce((sum, p) => sum + p.principal, 0);
+          const totalPaidPrincipal = schedule.reduce((acc, p) => p.status === 'Paid' ? acc + p.principal : acc, 0);
+          outstandingLoanBalance = Math.max(0, totalScheduledPrincipal - totalPaidPrincipal);
+      } else {
+          outstandingLoanBalance = Math.abs(linkedLoan.balance);
+      }
+  }
 
   const sortedMileageLogs = useMemo(() => {
     return [...(account.mileageLogs || [])].sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime());
@@ -221,10 +246,107 @@ const VehicleAccountView: React.FC<VehicleAccountViewProps> = ({
              <h3 className="text-lg font-semibold text-light-text dark:text-dark-text mb-4">Usage Trends</h3>
              <VehicleMileageChart logs={sortedMileageLogs} />
           </Card>
+
+          {/* Valuation History */}
+          <Card>
+              <div className="flex items-center justify-between mb-6">
+                  <h3 className="text-lg font-bold text-light-text dark:text-dark-text">Valuation History</h3>
+                  <div className="flex items-center gap-2 text-[10px] font-bold text-light-text-secondary dark:text-dark-text-secondary uppercase tracking-widest">
+                      <span className="w-3 h-3 rounded-full bg-cyan-500"></span>
+                      Market Value
+                  </div>
+              </div>
+              <div className="h-[300px] w-full">
+                  {account.priceHistory && account.priceHistory.length > 1 ? (
+                      <ResponsiveContainer width="100%" height="100%">
+                          <AreaChart data={account.priceHistory}>
+                              <defs>
+                                  <linearGradient id="colorValuationVehicle" x1="0" y1="0" x2="0" y2="1">
+                                      <stop offset="5%" stopColor="#06B6D4" stopOpacity={0.3}/>
+                                      <stop offset="95%" stopColor="#06B6D4" stopOpacity={0}/>
+                                  </linearGradient>
+                              </defs>
+                              <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="currentColor" opacity={0.1} />
+                              <XAxis 
+                                  dataKey="date" 
+                                  axisLine={false}
+                                  tickLine={false}
+                                  tick={{ fontSize: 10, fill: 'currentColor', opacity: 0.5 }}
+                              />
+                              <YAxis 
+                                  axisLine={false}
+                                  tickLine={false}
+                                  tick={{ fontSize: 10, fill: 'currentColor', opacity: 0.5 }}
+                                  tickFormatter={(val) => `€${val >= 1000 ? (val/1000).toFixed(0) + 'k' : val}`}
+                              />
+                              <Tooltip 
+                                  contentStyle={{ 
+                                      backgroundColor: 'rgba(255, 255, 255, 0.9)', 
+                                      borderRadius: '12px', 
+                                      border: 'none', 
+                                      boxShadow: '0 10px 15px -3px rgba(0, 0, 0, 0.1)',
+                                      color: '#1f2937'
+                                  }}
+                                  itemStyle={{ fontSize: '12px', fontWeight: 'bold' }}
+                                  labelStyle={{ fontSize: '10px', color: '#6b7280', marginBottom: '4px', textTransform: 'uppercase', letterSpacing: '0.05em' }}
+                                  formatter={(value: number) => [`€${value.toLocaleString()}`, 'Value']}
+                              />
+                              <Area 
+                                  type="monotone" 
+                                  dataKey="price" 
+                                  stroke="#06B6D4" 
+                                  strokeWidth={3}
+                                  fillOpacity={1} 
+                                  fill="url(#colorValuationVehicle)" 
+                                  animationDuration={1500}
+                              />
+                          </AreaChart>
+                      </ResponsiveContainer>
+                  ) : (
+                      <div className="h-full flex flex-col items-center justify-center text-center p-8 bg-gray-50 dark:bg-white/5 rounded-2xl border border-dashed border-black/10 dark:border-white/10">
+                          <span className="material-symbols-outlined text-4xl text-gray-300 dark:text-gray-600 mb-2">show_chart</span>
+                          <p className="text-sm font-medium text-light-text-secondary dark:text-dark-text-secondary">Not enough data to show trend</p>
+                          <p className="text-xs text-light-text-secondary/60 dark:text-dark-text-secondary/60 mt-1">Add more valuation points to see how your vehicle value changes over time.</p>
+                      </div>
+                  )}
+              </div>
+          </Card>
         </div>
 
         {/* Sidebar Info */}
         <div className="space-y-8">
+             {/* Linked Loan Card */}
+             {linkedLoan && (
+                 <Card className="bg-gradient-to-br from-gray-50 to-white dark:from-dark-card dark:to-black/20 border-l-4 border-l-red-500">
+                      <div className="flex justify-between items-start mb-4">
+                          <div>
+                              <h3 className="text-lg font-bold text-light-text dark:text-dark-text">Auto Loan</h3>
+                              <button onClick={() => setViewingAccountId(linkedLoan.id)} className="text-xs text-primary-500 hover:underline font-medium mt-1 flex items-center gap-1">
+                                  View Loan Details <span className="material-symbols-outlined text-[10px]">open_in_new</span>
+                              </button>
+                          </div>
+                          <div className="p-2 bg-red-100 dark:bg-red-900/30 rounded-lg text-red-600 dark:text-red-400">
+                              <span className="material-symbols-outlined text-xl">request_quote</span>
+                          </div>
+                      </div>
+                      <div className="space-y-3">
+                          <div className="flex justify-between items-center text-sm">
+                              <span className="text-light-text-secondary dark:text-dark-text-secondary">Outstanding Principal</span>
+                              <span className="font-bold text-red-600 dark:text-red-400">{formatCurrency(outstandingLoanBalance, linkedLoan.currency)}</span>
+                          </div>
+                          <div className="w-full h-px bg-black/5 dark:bg-white/5"></div>
+                          <div className="flex justify-between items-center text-sm">
+                              <span className="text-light-text-secondary dark:text-dark-text-secondary">Interest Rate</span>
+                              <span className="font-medium text-light-text dark:text-dark-text">{linkedLoan.interestRate}%</span>
+                          </div>
+                           <div className="flex justify-between items-center text-sm">
+                              <span className="text-light-text-secondary dark:text-dark-text-secondary">Monthly Payment</span>
+                              <span className="font-medium text-light-text dark:text-dark-text">{linkedLoan.monthlyPayment ? formatCurrency(linkedLoan.monthlyPayment, linkedLoan.currency) : 'N/A'}</span>
+                          </div>
+                      </div>
+                 </Card>
+             )}
+
              {/* Vehicle Details Card */}
              <Card>
                  <h3 className="text-sm font-bold uppercase tracking-wider text-light-text-secondary dark:text-dark-text-secondary mb-4 border-b border-black/5 dark:border-white/5 pb-2">Vehicle Details</h3>
