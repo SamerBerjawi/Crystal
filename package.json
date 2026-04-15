@@ -7,8 +7,7 @@
     "dev": "vite",
     "build": "vite build",
     "preview": "vite preview",
-    "analyze": "ANALYZE=true vite build --mode production",
-    "lint": "tsc --noEmit"
+    "analyze": "ANALYZE=true vite build --mode production"
   },
   "dependencies": {
     "@tanstack/react-query": "^5.66.7",
@@ -21,12 +20,6 @@
     "uuid": "^13.0.0"
   },
   "devDependencies": {
-    "@types/bcryptjs": "^2.4.6",
-    "@types/cors": "^2.8.19",
-    "@types/express": "^5.0.6",
-    "@types/jsonwebtoken": "^9.0.10",
-    "@types/node": "^25.6.0",
-    "@types/pg": "^8.20.0",
     "@vitejs/plugin-react": "^5.0.0",
     "typescript": "~5.8.2",
     "vite": "^6.2.0"
