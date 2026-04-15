@@ -738,7 +738,12 @@ export function generateBalanceForecast(
     financialGoals: FinancialGoal[],
     billsAndPayments: BillPayment[],
     forecastEndDate: Date,
-    recurringTransactionOverrides: RecurringTransactionOverride[] = []
+    recurringTransactionOverrides: RecurringTransactionOverride[] = [],
+    assumptions?: {
+        savingsRateAdjustment?: number;
+        marketReturn?: number;
+        inflationRate?: number;
+    }
 ): {
     chartData: ({ date: string; value: number; dailySummary: { description: string; amount: number; type: string }[]; [key: string]: any })[];
     tableData: {
@@ -826,6 +831,21 @@ export function generateBalanceForecast(
             
             const effectiveDate = override?.date || adjustedDateStr;
             let amount = override?.amount !== undefined ? override.amount : (rt.type === 'expense' ? -rt.amount : rt.amount);
+            
+            // Apply Assumptions
+            if (assumptions) {
+                // 1. Savings Boost (Apply to income or transfers to savings)
+                if (assumptions.savingsRateAdjustment && (rt.type === 'income' || (rt.type === 'transfer' && rt.toAccountId))) {
+                    amount *= (1 + assumptions.savingsRateAdjustment / 100);
+                }
+                
+                // 2. Inflation (Apply to expenses)
+                if (assumptions.inflationRate && rt.type === 'expense') {
+                    const yearsFromNow = (nextDate.getTime() - now.getTime()) / (1000 * 3600 * 24 * 365);
+                    amount *= Math.pow(1 + assumptions.inflationRate / 100, yearsFromNow);
+                }
+            }
+
             let accountName = 'N/A';
             const isSkipped = !!override?.isSkipped;
 
@@ -936,10 +956,27 @@ export function generateBalanceForecast(
     });
     
     let currentDate = new Date(startDate.getTime());
+    
+    // Market Return Calculation
+    const dailyMarketRate = assumptions?.marketReturn 
+        ? Math.pow(1 + assumptions.marketReturn / 100, 1/365) - 1 
+        : 0;
+
     while (currentDate <= forecastEndDate) {
         const dateStr = toLocalISOString(currentDate);
         const eventsForDay = dailyEvents.get(dateStr) || [];
         
+        // Apply Market Return to Investment Accounts
+        if (dailyMarketRate !== 0) {
+            accounts.forEach(acc => {
+                if (acc.type === 'Investment' && currentBalances[acc.id] !== undefined) {
+                    const growth = currentBalances[acc.id] * dailyMarketRate;
+                    currentBalances[acc.id] += growth;
+                    runningTotalBalance += growth;
+                }
+            });
+        }
+
         // Sort expenses first just for table display logic
         eventsForDay.sort((a,b) => a.amount - b.amount); 
         

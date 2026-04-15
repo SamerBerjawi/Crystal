@@ -1,3 +1,4 @@
+
 import React, { useState, useMemo, useEffect, useRef } from 'react';
 import { Account, Page, AccountType, Transaction, Warrant } from '../types';
 import AddAccountModal from '../components/AddAccountModal';

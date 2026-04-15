@@ -55,6 +55,21 @@ const FinancialGoalCard: React.FC<FinancialGoalCardProps> = ({ goal, subGoals, i
   const remainingAmount = Math.max(0, goalToDisplay.amount - goalToDisplay.currentAmount);
 
   const isIncomeGoal = goalToDisplay.transactionType === 'income';
+  
+  const timeRemaining = useMemo(() => {
+    if (!goalToDisplay.projection?.projectedDate || goalToDisplay.projection.projectedDate === 'Beyond forecast') return null;
+    const projDate = parseLocalDate(goalToDisplay.projection.projectedDate);
+    const today = new Date();
+    const diffTime = projDate.getTime() - today.getTime();
+    const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
+    
+    if (diffDays <= 0) return 'Due now';
+    if (diffDays < 30) return `${diffDays} days left`;
+    const diffMonths = Math.floor(diffDays / 30);
+    if (diffMonths < 12) return `${diffMonths} month${diffMonths > 1 ? 's' : ''} left`;
+    const diffYears = Math.floor(diffMonths / 12);
+    return `${diffYears} year${diffYears > 1 ? 's' : ''} left`;
+  }, [goalToDisplay.projection?.projectedDate]);
 
   // Determine bucket label
   const bucketTypeLabel = useMemo(() => {
@@ -109,16 +124,16 @@ const FinancialGoalCard: React.FC<FinancialGoalCardProps> = ({ goal, subGoals, i
   const cardBorder = isCompleted 
     ? 'border-green-500/50 bg-green-50/50 dark:bg-green-900/10' 
     : isActive 
-        ? 'border-primary-500/50 dark:border-primary-500/50 shadow-md' 
+        ? 'border-primary-500/30 dark:border-primary-500/30 shadow-lg shadow-primary-500/5' 
         : 'border-black/5 dark:border-white/5 opacity-80 hover:opacity-100';
 
   const iconColorClass = isCompleted 
     ? 'bg-green-100 text-green-600 dark:bg-green-900/30 dark:text-green-400' 
     : isBucket 
-        ? 'bg-indigo-100 text-indigo-600 dark:bg-indigo-900/30 dark:text-indigo-400' 
+        ? 'bg-indigo-500/10 text-indigo-600 dark:text-indigo-400' 
         : isIncomeGoal
-            ? 'bg-emerald-100 text-emerald-600 dark:bg-emerald-900/30 dark:text-emerald-400'
-            : 'bg-blue-100 text-blue-600 dark:bg-blue-900/30 dark:text-blue-400';
+            ? 'bg-emerald-500/10 text-emerald-600 dark:text-emerald-400'
+            : 'bg-primary-500/10 text-primary-600 dark:text-primary-400';
             
   const iconName = isCompleted 
     ? 'check_circle' 
@@ -274,10 +289,21 @@ const FinancialGoalCard: React.FC<FinancialGoalCardProps> = ({ goal, subGoals, i
             
             {/* Forecast Date */}
             {goalToDisplay.projection && isActive && !isCompleted && (
-                 <div className="mt-4 pt-3 border-t border-black/5 dark:border-white/5 flex items-center gap-2 text-xs">
-                     <span className="material-symbols-outlined text-sm text-primary-500">timeline</span>
-                     <span className="text-light-text-secondary dark:text-dark-text-secondary">Expected:</span>
-                     <span className="font-bold text-light-text dark:text-dark-text">{formatDate(goalToDisplay.projection.projectedDate)}</span>
+                 <div className="mt-4 pt-4 border-t border-black/5 dark:border-white/5 flex items-center justify-between">
+                     <div className="flex items-center gap-2">
+                        <div className={`w-6 h-6 rounded-full flex items-center justify-center ${statusStyle?.bg} ${statusStyle?.textCol}`}>
+                            <span className="material-symbols-outlined text-xs">timeline</span>
+                        </div>
+                        <div className="flex flex-col">
+                            <span className="text-[10px] font-black text-light-text-secondary dark:text-dark-text-secondary uppercase tracking-widest">Expected</span>
+                            <span className="text-xs font-bold text-light-text dark:text-dark-text">{formatDate(goalToDisplay.projection.projectedDate)}</span>
+                        </div>
+                     </div>
+                     {timeRemaining && (
+                         <div className={`px-2 py-1 rounded-lg text-[10px] font-black uppercase tracking-widest ${statusStyle?.bg} ${statusStyle?.textCol} border ${statusStyle?.border}`}>
+                             {timeRemaining}
+                         </div>
+                     )}
                  </div>
             )}
         </div>

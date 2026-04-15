@@ -1,12 +1,28 @@
 import React, { useMemo, useState, useCallback } from 'react';
-import { useTransactionSelector, usePreferencesSelector } from '../contexts/DomainProviders';
+import { 
+  ResponsiveContainer, 
+  AreaChart, 
+  Area, 
+  XAxis, 
+  YAxis, 
+  CartesianGrid, 
+  Tooltip, 
+  PieChart, 
+  Pie, 
+  Cell, 
+  BarChart, 
+  Bar,
+  Legend
+} from 'recharts';
+import { useTransactionSelector, usePreferencesSelector, useAccountSelector } from '../contexts/DomainProviders';
 import { useBudgetsContext, useCategoryContext } from '../contexts/FinancialDataContext';
 import { BTN_PRIMARY_STYLE, BTN_SECONDARY_STYLE, INPUT_BASE_STYLE } from '../constants';
-import { Category } from '../types';
+import { Category, Account } from '../types';
 import { convertToEur, parseLocalDate, toLocalISOString } from '../utils';
 import { getMerchantLogoUrl, normalizeMerchantKey } from '../utils/brandfetch';
 import Card from '../components/Card';
 import PageHeader from '../components/PageHeader';
+import { motion } from 'motion/react';
 
 const SAVED_REPORTS_KEY = 'reports.savedViews.v1';
 
@@ -25,6 +41,7 @@ type SavedReportView = {
   endDate: string;
   merchantFilter: string;
   categoryFilter: string;
+  accountFilter: string;
   groupBy: GroupBy;
 };
 
@@ -51,8 +68,31 @@ const writeSavedViews = (views: SavedReportView[]) => {
   window.localStorage.setItem(SAVED_REPORTS_KEY, JSON.stringify(views));
 };
 
+const ChartTooltip = ({ active, payload, label }: any) => {
+  if (active && payload && payload.length) {
+    return (
+      <div className="bg-white/90 dark:bg-neutral-900/90 border border-black/5 dark:border-white/10 p-3 rounded-xl shadow-xl backdrop-blur-md">
+        {label && <p className="text-[10px] font-black uppercase tracking-widest mb-2 opacity-50">{typeof label === 'number' ? `Day ${label}` : label}</p>}
+        <div className="space-y-1">
+          {payload.map((entry: any, index: number) => (
+            <div key={index} className="flex items-center justify-between gap-4">
+              <div className="flex items-center gap-2">
+                <div className="w-1.5 h-1.5 rounded-full" style={{ backgroundColor: entry.color || entry.fill }} />
+                <span className="text-[10px] font-bold uppercase tracking-wider opacity-70">{entry.name}:</span>
+              </div>
+              <span className="text-xs font-black">€{entry.value.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span>
+            </div>
+          ))}
+        </div>
+      </div>
+    );
+  }
+  return null;
+};
+
 const Reports: React.FC = () => {
   const transactions = useTransactionSelector(tx => tx);
+  const accounts = useAccountSelector(acc => acc);
   const defaultCurrency = usePreferencesSelector(p => p.currency || 'EUR');
   const brandfetchClientId = usePreferencesSelector(p => p.brandfetchClientId);
   const merchantLogoOverrides = usePreferencesSelector(p => p.merchantLogoOverrides || {});
@@ -64,6 +104,7 @@ const Reports: React.FC = () => {
   const [endDate, setEndDate] = useState(toLocalISOString(new Date()));
   const [merchantFilter, setMerchantFilter] = useState('');
   const [categoryFilter, setCategoryFilter] = useState('all');
+  const [accountFilter, setAccountFilter] = useState('all');
   const [groupBy, setGroupBy] = useState<GroupBy>('merchant');
   const [savedViews, setSavedViews] = useState<SavedReportView[]>(() => readSavedViews());
   const [reportName, setReportName] = useState('');
@@ -122,11 +163,6 @@ const Reports: React.FC = () => {
     return { merchantLogoUrl, showMerchantLogo, merchantInitial };
   }, [merchantLogoUrls, logoLoadErrors]);
 
-  const categories = useMemo(() => {
-    const unique = Array.from(new Set<string>(transactions.filter(tx => tx.type === 'expense').map(tx => tx.category || 'Uncategorized')));
-    return unique.sort((a, b) => a.localeCompare(b));
-  }, [transactions]);
-
   const rangeDays = useMemo(() => {
     const start = parseLocalDate(startDate);
     const end = parseLocalDate(endDate);
@@ -147,6 +183,8 @@ const Reports: React.FC = () => {
 
       if (categoryFilter !== 'all' && tx.category !== categoryFilter) return false;
 
+      if (accountFilter !== 'all' && tx.accountId !== accountFilter) return false;
+
       if (merchantQuery) {
         const merchant = (tx.merchant || tx.description || '').toLowerCase();
         if (!merchant.includes(merchantQuery)) return false;
@@ -154,7 +192,7 @@ const Reports: React.FC = () => {
 
       return true;
     });
-  }, [transactions, startDate, endDate, categoryFilter, merchantFilter]);
+  }, [transactions, startDate, endDate, categoryFilter, accountFilter, merchantFilter]);
 
   const previousPeriodTotals = useMemo(() => {
     const start = parseLocalDate(startDate);
@@ -169,6 +207,7 @@ const Reports: React.FC = () => {
     const totalSpendEur = transactions
       .filter(tx => tx.type === 'expense' && !tx.transferId)
       .filter(tx => {
+        if (accountFilter !== 'all' && tx.accountId !== accountFilter) return false;
         const txTs = parseLocalDate(tx.date).getTime();
         return txTs >= startTs && txTs <= endTs;
       })
@@ -179,7 +218,7 @@ const Reports: React.FC = () => {
       end: toLocalISOString(prevEnd),
       totalSpendEur,
     };
-  }, [transactions, startDate, rangeDays]);
+  }, [transactions, startDate, rangeDays, accountFilter]);
 
   const totals = useMemo(() => {
     const totalSpendEur = filteredExpenses.reduce((sum, tx) => sum + Math.abs(convertToEur(tx.amount, tx.currency)), 0);
@@ -320,6 +359,7 @@ const Reports: React.FC = () => {
     const mtdSpendEur = transactions
       .filter(tx => tx.type === 'expense' && !tx.transferId)
       .filter(tx => {
+        if (accountFilter !== 'all' && tx.accountId !== accountFilter) return false;
         const txDate = parseLocalDate(tx.date);
         return txDate >= monthStart && txDate <= end;
       })
@@ -336,7 +376,7 @@ const Reports: React.FC = () => {
       projectedMonthEnd,
       remainingDays,
     };
-  }, [transactions, endDate]);
+  }, [transactions, endDate, accountFilter]);
 
   const anomalyCandidates = useMemo(() => {
     const rows = filteredExpenses.map(tx => ({
@@ -363,6 +403,124 @@ const Reports: React.FC = () => {
       .filter(row => row.zScore >= 2)
       .sort((a, b) => b.zScore - a.zScore)
       .slice(0, 10);
+  }, [filteredExpenses]);
+
+  // --- NEW DATA PROCESSING FOR SUGGESTIONS ---
+
+  const incomeTotalEur = useMemo(() => {
+    const start = startDate ? parseLocalDate(startDate).getTime() : Number.NEGATIVE_INFINITY;
+    const end = endDate ? parseLocalDate(endDate).getTime() : Number.POSITIVE_INFINITY;
+    return transactions
+      .filter(tx => tx.type === 'income' && !tx.transferId)
+      .filter(tx => {
+        if (accountFilter !== 'all' && tx.accountId !== accountFilter) return false;
+        const txTime = parseLocalDate(tx.date).getTime();
+        return txTime >= start && txTime <= end;
+      })
+      .reduce((sum, tx) => sum + Math.abs(convertToEur(tx.amount, tx.currency)), 0);
+  }, [transactions, startDate, endDate, accountFilter]);
+
+  const savingsRate = useMemo(() => {
+    if (incomeTotalEur <= 0) return 0;
+    const savings = incomeTotalEur - totals.totalSpendEur;
+    return (savings / incomeTotalEur) * 100;
+  }, [incomeTotalEur, totals.totalSpendEur]);
+
+  const needsWantsData = useMemo(() => {
+    const needsCategories = ['Housing', 'Utilities', 'Groceries', 'Insurance', 'Transport', 'Health', 'Rent', 'Mortgage', 'Bills'];
+    const wantsCategories = ['Dining', 'Entertainment', 'Shopping', 'Travel', 'Hobbies', 'Gifts', 'Subscriptions'];
+    
+    let needs = 0;
+    let wants = 0;
+    let others = 0;
+
+    filteredExpenses.forEach(tx => {
+      const amount = Math.abs(convertToEur(tx.amount, tx.currency));
+      const cat = tx.category || '';
+      if (needsCategories.some(n => cat.includes(n))) needs += amount;
+      else if (wantsCategories.some(w => cat.includes(w))) wants += amount;
+      else others += amount;
+    });
+
+    const total = needs + wants + others;
+    if (total === 0) return [];
+
+    return [
+      { name: 'Needs', value: needs, color: '#10B981', target: 50 },
+      { name: 'Wants', value: wants, color: '#F59E0B', target: 30 },
+      { name: 'Others/Savings', value: others, color: '#6366F1', target: 20 }
+    ];
+  }, [filteredExpenses]);
+
+  const velocityData = useMemo(() => {
+    const dailyMap = new Map<string, number>();
+    const prevDailyMap = new Map<string, number>();
+
+    // Current Period
+    filteredExpenses.forEach(tx => {
+      const current = dailyMap.get(tx.date) || 0;
+      dailyMap.set(tx.date, current + Math.abs(convertToEur(tx.amount, tx.currency)));
+    });
+
+    // Previous Period (for comparison)
+    const start = parseLocalDate(startDate);
+    const prevStart = new Date(start);
+    prevStart.setDate(start.getDate() - rangeDays);
+    const prevEnd = new Date(start);
+    prevEnd.setDate(start.getDate() - 1);
+
+    const prevStartTs = prevStart.getTime();
+    const prevEndTs = prevEnd.getTime();
+
+    transactions
+      .filter(tx => tx.type === 'expense' && !tx.transferId)
+      .filter(tx => {
+        const txTs = parseLocalDate(tx.date).getTime();
+        return txTs >= prevStartTs && txTs <= prevEndTs;
+      })
+      .forEach(tx => {
+        // We need to "shift" the date to align it for comparison chart
+        const txDate = parseLocalDate(tx.date);
+        const diffDays = Math.floor((txDate.getTime() - prevStartTs) / (1000 * 3600 * 24));
+        const key = `day-${diffDays}`;
+        const current = prevDailyMap.get(key) || 0;
+        prevDailyMap.set(key, current + Math.abs(convertToEur(tx.amount, tx.currency)));
+      });
+
+    // Generate combined array
+    const result = [];
+    const currentStartTs = parseLocalDate(startDate).getTime();
+    for (let i = 0; i < rangeDays; i++) {
+      const date = new Date(currentStartTs + (i * 1000 * 3600 * 24));
+      const dateStr = toLocalISOString(date).split('T')[0];
+      result.push({
+        day: i + 1,
+        date: dateStr,
+        current: dailyMap.get(dateStr) || 0,
+        previous: prevDailyMap.get(`day-${i}`) || 0
+      });
+    }
+    return result;
+  }, [filteredExpenses, transactions, startDate, rangeDays]);
+
+  const merchantLoyalty = useMemo(() => {
+    const map = new Map<string, { label: string; totalEur: number; count: number }>();
+    filteredExpenses.forEach(tx => {
+      const key = tx.merchant?.trim() || tx.description || 'Unknown';
+      const current = map.get(key) || { label: key, totalEur: 0, count: 0 };
+      current.totalEur += Math.abs(convertToEur(tx.amount, tx.currency));
+      current.count += 1;
+      map.set(key, current);
+    });
+
+    return Array.from(map.values())
+      .map(m => ({
+        ...m,
+        avgPerVisit: m.totalEur / m.count,
+        loyaltyScore: (m.count * 0.7) + (m.totalEur * 0.001) // Simple heuristic
+      }))
+      .sort((a, b) => b.loyaltyScore - a.loyaltyScore)
+      .slice(0, 5);
   }, [filteredExpenses]);
 
   const insights = useMemo((): InsightItem[] => {
@@ -426,6 +584,7 @@ const Reports: React.FC = () => {
         endDate,
         merchantFilter,
         categoryFilter,
+        accountFilter,
         groupBy,
       },
       ...savedViews,
@@ -441,6 +600,7 @@ const Reports: React.FC = () => {
     setEndDate(view.endDate);
     setMerchantFilter(view.merchantFilter);
     setCategoryFilter(view.categoryFilter);
+    setAccountFilter(view.accountFilter || 'all');
     setGroupBy(view.groupBy);
   };
 
@@ -448,6 +608,42 @@ const Reports: React.FC = () => {
     const next = savedViews.filter(view => view.id !== id);
     setSavedViews(next);
     writeSavedViews(next);
+  };
+
+  const setPredefinedPeriod = (period: string) => {
+    const now = new Date();
+    let start = new Date();
+    let end = new Date();
+
+    switch (period) {
+      case 'last7':
+        start.setDate(now.getDate() - 7);
+        break;
+      case 'last30':
+        start.setDate(now.getDate() - 30);
+        break;
+      case 'thisMonth':
+        start = new Date(now.getFullYear(), now.getMonth(), 1);
+        end = new Date(now.getFullYear(), now.getMonth() + 1, 0);
+        break;
+      case 'lastMonth':
+        start = new Date(now.getFullYear(), now.getMonth() - 1, 1);
+        end = new Date(now.getFullYear(), now.getMonth(), 0);
+        break;
+      case 'thisYear':
+        start = new Date(now.getFullYear(), 0, 1);
+        end = new Date(now.getFullYear(), 11, 31);
+        break;
+      case 'lastYear':
+        start = new Date(now.getFullYear() - 1, 0, 1);
+        end = new Date(now.getFullYear() - 1, 11, 31);
+        break;
+      default:
+        return;
+    }
+
+    setStartDate(toLocalISOString(start));
+    setEndDate(toLocalISOString(end));
   };
 
   return (
@@ -459,8 +655,8 @@ const Reports: React.FC = () => {
       />
 
       {/* Hero Section: Key Metrics */}
-      <section className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-        <div className="relative overflow-hidden rounded-2xl bg-white dark:bg-[#1E1E20] p-6 shadow-sm border border-black/5 dark:border-white/10 group transition-all hover:shadow-md">
+      <section className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-4">
+        <div className="relative overflow-hidden rounded-2xl bg-white dark:bg-[#1E1E20] p-6 shadow-sm border border-black/5 dark:border-neutral-800 group transition-all hover:shadow-md">
           <div className="absolute top-0 right-0 p-3 opacity-10 group-hover:opacity-20 transition-opacity">
             <span className="material-symbols-outlined text-6xl">payments</span>
           </div>
@@ -479,7 +675,22 @@ const Reports: React.FC = () => {
           </div>
         </div>
 
-        <div className="relative overflow-hidden rounded-2xl bg-white dark:bg-[#1E1E20] p-6 shadow-sm border border-black/5 dark:border-white/10 group transition-all hover:shadow-md">
+        <div className="relative overflow-hidden rounded-2xl bg-white dark:bg-[#1E1E20] p-6 shadow-sm border border-black/5 dark:border-neutral-800 group transition-all hover:shadow-md">
+          <div className="absolute top-0 right-0 p-3 opacity-10 group-hover:opacity-20 transition-opacity">
+            <span className="material-symbols-outlined text-6xl">savings</span>
+          </div>
+          <p className="text-xs font-bold uppercase tracking-widest text-light-text-secondary dark:text-dark-text-secondary mb-1">Savings Rate</p>
+          <div className="flex items-baseline gap-2">
+            <h3 className={`text-3xl font-black tracking-tight ${savingsRate >= 20 ? 'text-emerald-500' : savingsRate > 0 ? 'text-primary-500' : 'text-rose-500'}`}>
+              {savingsRate.toFixed(1)}%
+            </h3>
+          </div>
+          <p className="mt-4 text-[10px] text-light-text-secondary dark:text-dark-text-secondary font-medium uppercase tracking-wider">
+            {savingsRate >= 20 ? 'Excellent saving habits' : 'Aim for 20% target'}
+          </p>
+        </div>
+
+        <div className="relative overflow-hidden rounded-2xl bg-white dark:bg-[#1E1E20] p-6 shadow-sm border border-black/5 dark:border-neutral-800 group transition-all hover:shadow-md">
           <div className="absolute top-0 right-0 p-3 opacity-10 group-hover:opacity-20 transition-opacity">
             <span className="material-symbols-outlined text-6xl">receipt_long</span>
           </div>
@@ -488,7 +699,7 @@ const Reports: React.FC = () => {
           <p className="mt-4 text-[10px] text-light-text-secondary dark:text-dark-text-secondary font-medium uppercase tracking-wider">Processed in range</p>
         </div>
 
-        <div className="relative overflow-hidden rounded-2xl bg-white dark:bg-[#1E1E20] p-6 shadow-sm border border-black/5 dark:border-white/10 group transition-all hover:shadow-md">
+        <div className="relative overflow-hidden rounded-2xl bg-white dark:bg-[#1E1E20] p-6 shadow-sm border border-black/5 dark:border-neutral-800 group transition-all hover:shadow-md">
           <div className="absolute top-0 right-0 p-3 opacity-10 group-hover:opacity-20 transition-opacity">
             <span className="material-symbols-outlined text-6xl">calculate</span>
           </div>
@@ -497,7 +708,7 @@ const Reports: React.FC = () => {
           <p className="mt-4 text-[10px] text-light-text-secondary dark:text-dark-text-secondary font-medium uppercase tracking-wider">Per expense item</p>
         </div>
 
-        <div className="relative overflow-hidden rounded-2xl bg-white dark:bg-[#1E1E20] p-6 shadow-sm border border-black/5 dark:border-white/10 group transition-all hover:shadow-md">
+        <div className="relative overflow-hidden rounded-2xl bg-white dark:bg-[#1E1E20] p-6 shadow-sm border border-black/5 dark:border-neutral-800 group transition-all hover:shadow-md">
           <div className="absolute top-0 right-0 p-3 opacity-10 group-hover:opacity-20 transition-opacity">
             <span className="material-symbols-outlined text-6xl">event_repeat</span>
           </div>
@@ -509,49 +720,259 @@ const Reports: React.FC = () => {
         </div>
       </section>
 
-      {/* Filters & Saved Views */}
-      <Card className="!p-0 overflow-hidden border-none shadow-sm">
-        <div className="bg-gray-50/50 dark:bg-white/5 p-4 border-b border-black/5 dark:border-white/10">
-          <div className="flex items-center justify-between mb-4">
-            <h2 className="text-xs font-bold uppercase tracking-widest text-light-text-secondary dark:text-dark-text-secondary">Report Configuration</h2>
-            {savedViews.length > 0 && (
-              <div className="flex flex-wrap gap-2">
-                {savedViews.map(view => (
-                  <div key={view.id} className="group flex items-center gap-1 bg-white dark:bg-dark-surface border border-black/5 dark:border-white/10 rounded-full pl-3 pr-1 py-1 shadow-sm transition-all hover:border-primary-500/50">
-                    <button onClick={() => applyView(view)} className="text-[10px] font-bold uppercase tracking-wider hover:text-primary-500">{view.name}</button>
-                    <button onClick={() => deleteView(view.id)} className="w-5 h-5 flex items-center justify-center rounded-full text-light-text-secondary hover:bg-rose-500 hover:text-white transition-colors">
-                      <span className="material-symbols-outlined text-[14px]">close</span>
-                    </button>
-                  </div>
-                ))}
+      {/* Visual Spending Dashboard */}
+      <section className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+        <Card className="lg:col-span-2 flex flex-col border border-black/5 dark:border-neutral-800">
+          <div className="flex items-center justify-between mb-6">
+            <div>
+              <h2 className="text-sm font-black uppercase tracking-widest">Spending Velocity</h2>
+              <p className="text-[10px] text-light-text-secondary dark:text-dark-text-secondary font-bold uppercase tracking-wider">Daily intensity vs previous period</p>
+            </div>
+            <div className="flex items-center gap-4">
+              <div className="flex items-center gap-1.5">
+                <div className="w-2 h-2 rounded-full bg-primary-500" />
+                <span className="text-[10px] font-bold uppercase tracking-wider opacity-60">Current</span>
               </div>
-            )}
+              <div className="flex items-center gap-1.5">
+                <div className="w-2 h-2 rounded-full bg-gray-300 dark:bg-white/20" />
+                <span className="text-[10px] font-bold uppercase tracking-wider opacity-60">Previous</span>
+              </div>
+            </div>
           </div>
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-4">
-            <div className="space-y-1">
-              <label className="block text-[10px] font-bold uppercase tracking-widest text-light-text-secondary dark:text-dark-text-secondary">Start Date</label>
-              <input type="date" value={startDate} onChange={(e) => setStartDate(e.target.value)} className={`${INPUT_BASE_STYLE} !bg-white dark:!bg-dark-surface`} />
+          <div className="h-[250px] w-full">
+            <ResponsiveContainer width="100%" height="100%">
+              <AreaChart data={velocityData}>
+                <defs>
+                  <linearGradient id="colorCurrent" x1="0" y1="0" x2="0" y2="1">
+                    <stop offset="5%" stopColor="#6366F1" stopOpacity={0.3}/>
+                    <stop offset="95%" stopColor="#6366F1" stopOpacity={0}/>
+                  </linearGradient>
+                </defs>
+                <CartesianGrid strokeDasharray="3 3" vertical={false} strokeOpacity={0.1} />
+                <XAxis 
+                  dataKey="day" 
+                  axisLine={false} 
+                  tickLine={false} 
+                  fontSize={10} 
+                  tickFormatter={(val) => `Day ${val}`}
+                  opacity={0.5}
+                />
+                <YAxis axisLine={false} tickLine={false} fontSize={10} opacity={0.5} tickFormatter={(val) => `€${val.toLocaleString(undefined, { minimumFractionDigits: 0, maximumFractionDigits: 0 })}`} />
+                <Tooltip content={<ChartTooltip />} />
+                <Area type="monotone" dataKey="previous" name="Previous Period" stroke="#94a3b8" fill="transparent" strokeDasharray="5 5" strokeWidth={1} />
+                <Area type="monotone" dataKey="current" name="Current Period" stroke="#6366F1" fillOpacity={1} fill="url(#colorCurrent)" strokeWidth={3} />
+              </AreaChart>
+            </ResponsiveContainer>
+          </div>
+        </Card>
+
+        <Card className="flex flex-col border border-black/5 dark:border-neutral-800">
+          <h2 className="text-sm font-black uppercase tracking-widest mb-1">Allocation</h2>
+          <p className="text-[10px] text-light-text-secondary dark:text-dark-text-secondary font-bold uppercase tracking-wider mb-6">Top categories by volume</p>
+          <div className="h-[250px] w-full relative">
+            <ResponsiveContainer width="100%" height="100%">
+              <PieChart>
+                <Pie
+                  data={categoryTotals.slice(0, 5)}
+                  cx="50%"
+                  cy="50%"
+                  innerRadius={60}
+                  outerRadius={80}
+                  paddingAngle={5}
+                  dataKey="totalEur"
+                  nameKey="category"
+                  stroke="none"
+                >
+                  {categoryTotals.slice(0, 5).map((entry, index) => (
+                    <Cell key={`cell-${index}`} fill={['#6366F1', '#10B981', '#F59E0B', '#EC4899', '#8B5CF6'][index % 5]} />
+                  ))}
+                </Pie>
+                <Tooltip content={<ChartTooltip />} />
+              </PieChart>
+            </ResponsiveContainer>
+            <div className="absolute inset-0 flex flex-col items-center justify-center pointer-events-none">
+              <span className="text-[10px] font-bold uppercase tracking-widest opacity-40">Total</span>
+              <span className="text-lg font-black tracking-tighter">€{totals.totalSpendEur.toFixed(0)}</span>
             </div>
-            <div className="space-y-1">
-              <label className="block text-[10px] font-bold uppercase tracking-widest text-light-text-secondary dark:text-dark-text-secondary">End Date</label>
-              <input type="date" value={endDate} onChange={(e) => setEndDate(e.target.value)} className={`${INPUT_BASE_STYLE} !bg-white dark:!bg-dark-surface`} />
+          </div>
+          <div className="mt-4 space-y-2">
+            {categoryTotals.slice(0, 3).map((cat, i) => (
+              <div key={cat.category} className="flex items-center justify-between text-[10px] font-bold uppercase tracking-wider">
+                <div className="flex items-center gap-2">
+                  <div className="w-2 h-2 rounded-full" style={{ backgroundColor: ['#6366F1', '#10B981', '#F59E0B'][i] }} />
+                  <span className="opacity-60">{cat.category}</span>
+                </div>
+                <span>€{cat.totalEur.toFixed(0)}</span>
+              </div>
+            ))}
+          </div>
+        </Card>
+      </section>
+
+      {/* Behavioral Insights & Merchant Loyalty */}
+      <section className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+        <Card className="flex flex-col border border-black/5 dark:border-neutral-800">
+          <div className="flex items-center justify-between mb-6">
+            <div>
+              <h2 className="text-sm font-black uppercase tracking-widest">Needs vs. Wants</h2>
+              <p className="text-[10px] text-light-text-secondary dark:text-dark-text-secondary font-bold uppercase tracking-wider">50/30/20 Rule Analysis</p>
             </div>
-            <div className="space-y-1">
-              <label className="block text-[10px] font-bold uppercase tracking-widest text-light-text-secondary dark:text-dark-text-secondary">Merchant</label>
-              <input type="text" value={merchantFilter} onChange={(e) => setMerchantFilter(e.target.value)} placeholder="Filter by name..." className={`${INPUT_BASE_STYLE} !bg-white dark:!bg-dark-surface`} />
+            <div className={`px-3 py-1 rounded-full text-[10px] font-black uppercase tracking-widest ${savingsRate >= 20 ? 'bg-emerald-500/10 text-emerald-600' : 'bg-rose-500/10 text-rose-600'}`}>
+              {savingsRate >= 20 ? 'Balanced' : 'Over-Spending'}
             </div>
+          </div>
+          <div className="space-y-6">
+            {needsWantsData.map(item => {
+              const share = totals.totalSpendEur > 0 ? (item.value / totals.totalSpendEur) * 100 : 0;
+              const isOver = share > item.target && item.name !== 'Others/Savings';
+              return (
+                <div key={item.name} className="space-y-2">
+                  <div className="flex justify-between items-end">
+                    <div>
+                      <span className="text-xs font-black uppercase tracking-widest">{item.name}</span>
+                      <p className="text-[10px] opacity-50 font-bold uppercase tracking-widest">Target: {item.target}%</p>
+                    </div>
+                    <div className="text-right">
+                      <span className={`text-sm font-black ${isOver ? 'text-rose-500' : 'text-light-text dark:text-dark-text'}`}>{share.toFixed(1)}%</span>
+                      <p className="text-[10px] opacity-50 font-bold uppercase tracking-widest">€{item.value.toFixed(0)}</p>
+                    </div>
+                  </div>
+                  <div className="h-2 w-full bg-gray-100 dark:bg-white/5 rounded-full overflow-hidden flex">
+                    <div 
+                      className="h-full transition-all duration-500" 
+                      style={{ width: `${share}%`, backgroundColor: item.color }} 
+                    />
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+          <div className="mt-8 p-4 bg-gray-50 dark:bg-white/5 rounded-xl border border-black/5 dark:border-white/5">
+            <p className="text-xs font-medium leading-relaxed opacity-80 italic">
+              "You are spending {needsWantsData.find(d => d.name === 'Wants')?.value ? ((needsWantsData.find(d => d.name === 'Wants')!.value / totals.totalSpendEur) * 100).toFixed(0) : 0}% on wants. Reducing this by 5% could add €{(totals.totalSpendEur * 0.05).toFixed(0)} to your monthly savings."
+            </p>
+          </div>
+        </Card>
+
+        <Card className="flex flex-col border border-black/5 dark:border-neutral-800">
+          <h2 className="text-sm font-black uppercase tracking-widest mb-1">Merchant Loyalty</h2>
+          <p className="text-[10px] text-light-text-secondary dark:text-dark-text-secondary font-bold uppercase tracking-wider mb-6">Frequency vs. Impact Leaderboard</p>
+          <div className="space-y-4">
+            {merchantLoyalty.map((m, i) => {
+              const { merchantLogoUrl, showMerchantLogo, merchantInitial } = merchantVisual(m.label);
+              return (
+                <div key={m.label} className="flex items-center justify-between group">
+                  <div className="flex items-center gap-4">
+                    <div className="text-lg font-black opacity-10 group-hover:opacity-30 transition-opacity w-4">{i + 1}</div>
+                    <div className={`w-10 h-10 rounded-xl shrink-0 flex items-center justify-center overflow-hidden border border-black/5 dark:border-white/10 ${showMerchantLogo ? 'bg-white dark:bg-dark-card' : 'bg-primary-500/10 text-primary-600'}`}>
+                      {showMerchantLogo && merchantLogoUrl ? (
+                        <img src={merchantLogoUrl} alt="" className="w-full h-full object-cover" referrerPolicy="no-referrer" onError={() => handleLogoError(merchantLogoUrl)} />
+                      ) : (
+                        <span className="text-sm font-bold">{merchantInitial}</span>
+                      )}
+                    </div>
+                    <div>
+                      <h4 className="text-sm font-bold truncate max-w-[150px]">{m.label}</h4>
+                      <div className="flex items-center gap-2">
+                        <span className="text-[10px] font-bold uppercase tracking-widest opacity-50">{m.count} visits</span>
+                        <span className="w-1 h-1 rounded-full bg-gray-300" />
+                        <span className="text-[10px] font-bold uppercase tracking-widest opacity-50">€{m.avgPerVisit.toFixed(0)} avg</span>
+                      </div>
+                    </div>
+                  </div>
+                  <div className="text-right">
+                    <div className="text-sm font-black tracking-tighter">€{m.totalEur.toFixed(0)}</div>
+                    <div className="text-[10px] font-black text-primary-500 uppercase tracking-widest">Score: {m.loyaltyScore.toFixed(0)}</div>
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+          <div className="mt-auto pt-6">
+            <button className="w-full py-2 rounded-xl border border-dashed border-black/10 dark:border-white/10 text-[10px] font-black uppercase tracking-widest opacity-60 hover:opacity-100 transition-opacity">
+              View All Merchant Insights
+            </button>
+          </div>
+        </Card>
+      </section>
+
+      {/* Filters & Saved Views */}
+      <Card className="!p-0 overflow-hidden border border-black/5 dark:border-neutral-800 shadow-sm">
+        <div className="bg-gray-50/50 dark:bg-white/5 p-4 border-b border-black/5 dark:border-white/10">
+          <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-4 mb-6">
+            <h2 className="text-xs font-bold uppercase tracking-widest text-light-text-secondary dark:text-dark-text-secondary">Report Configuration</h2>
+            <div className="flex flex-wrap gap-2">
+              {[
+                { label: 'Last 7 Days', value: 'last7' },
+                { label: 'Last 30 Days', value: 'last30' },
+                { label: 'This Month', value: 'thisMonth' },
+                { label: 'Last Month', value: 'lastMonth' },
+                { label: 'This Year', value: 'thisYear' },
+                { label: 'Last Year', value: 'lastYear' },
+              ].map(p => (
+                <button
+                  key={p.value}
+                  onClick={() => setPredefinedPeriod(p.value)}
+                  className="px-3 py-1 rounded-full bg-white dark:bg-dark-card border border-black/5 dark:border-white/10 text-[10px] font-bold uppercase tracking-wider hover:border-primary-500 transition-all"
+                >
+                  {p.label}
+                </button>
+              ))}
+            </div>
+          </div>
+          {savedViews.length > 0 && (
+            <div className="flex flex-wrap gap-2 mb-6">
+              {savedViews.map(view => (
+                <div key={view.id} className="group flex items-center gap-1 bg-white dark:bg-dark-card border border-black/5 dark:border-white/10 rounded-full pl-3 pr-1 py-1 shadow-sm transition-all hover:border-primary-500/50">
+                  <button onClick={() => applyView(view)} className="text-[10px] font-bold uppercase tracking-wider hover:text-primary-500">{view.name}</button>
+                  <button onClick={() => deleteView(view.id)} className="w-5 h-5 flex items-center justify-center rounded-full text-light-text-secondary hover:bg-rose-500 hover:text-white transition-colors">
+                    <span className="material-symbols-outlined text-[14px]">close</span>
+                  </button>
+                </div>
+              ))}
+            </div>
+          )}
+          <div className="grid grid-cols-1 md:grid-cols-3 lg:grid-cols-6 gap-4">
             <div className="space-y-1">
-              <label className="block text-[10px] font-bold uppercase tracking-widest text-light-text-secondary dark:text-dark-text-secondary">Category</label>
-              <select value={categoryFilter} onChange={(e) => setCategoryFilter(e.target.value)} className={`${INPUT_BASE_STYLE} !bg-white dark:!bg-dark-surface`}>
-                <option value="all">All Categories</option>
-                {categories.map(category => (
-                  <option key={category} value={category}>{category}</option>
+              <label className="block text-[10px] font-bold uppercase tracking-widest text-light-text-secondary dark:text-dark-text-secondary">Account</label>
+              <select value={accountFilter} onChange={(e) => setAccountFilter(e.target.value)} className={`${INPUT_BASE_STYLE} !bg-white dark:!bg-neutral-800`}>
+                <option value="all">All Accounts</option>
+                {accounts.map(acc => (
+                  <option key={acc.id} value={acc.id}>{acc.name}</option>
                 ))}
               </select>
             </div>
             <div className="space-y-1">
+              <label className="block text-[10px] font-bold uppercase tracking-widest text-light-text-secondary dark:text-dark-text-secondary">Start Date</label>
+              <input type="date" value={startDate} onChange={(e) => setStartDate(e.target.value)} className={`${INPUT_BASE_STYLE} !bg-white dark:!bg-neutral-800`} />
+            </div>
+            <div className="space-y-1">
+              <label className="block text-[10px] font-bold uppercase tracking-widest text-light-text-secondary dark:text-dark-text-secondary">End Date</label>
+              <input type="date" value={endDate} onChange={(e) => setEndDate(e.target.value)} className={`${INPUT_BASE_STYLE} !bg-white dark:!bg-neutral-800`} />
+            </div>
+            <div className="space-y-1">
+              <label className="block text-[10px] font-bold uppercase tracking-widest text-light-text-secondary dark:text-dark-text-secondary">Merchant</label>
+              <input type="text" value={merchantFilter} onChange={(e) => setMerchantFilter(e.target.value)} placeholder="Filter by name..." className={`${INPUT_BASE_STYLE} !bg-white dark:!bg-neutral-800`} />
+            </div>
+            <div className="space-y-1">
+              <label className="block text-[10px] font-bold uppercase tracking-widest text-light-text-secondary dark:text-dark-text-secondary">Category</label>
+              <select value={categoryFilter} onChange={(e) => setCategoryFilter(e.target.value)} className={`${INPUT_BASE_STYLE} !bg-white dark:!bg-neutral-800`}>
+                <option value="all">All Categories</option>
+                <optgroup label="Expenses">
+                  {expenseCategories.map(cat => (
+                    <option key={cat.id} value={cat.name}>{cat.name}</option>
+                  ))}
+                </optgroup>
+                <optgroup label="Income">
+                  {incomeCategories.map(cat => (
+                    <option key={cat.id} value={cat.name}>{cat.name}</option>
+                  ))}
+                </optgroup>
+              </select>
+            </div>
+            <div className="space-y-1">
               <label className="block text-[10px] font-bold uppercase tracking-widest text-light-text-secondary dark:text-dark-text-secondary">Group By</label>
-              <select value={groupBy} onChange={(e) => setGroupBy(e.target.value as GroupBy)} className={`${INPUT_BASE_STYLE} !bg-white dark:!bg-dark-surface`}>
+              <select value={groupBy} onChange={(e) => setGroupBy(e.target.value as GroupBy)} className={`${INPUT_BASE_STYLE} !bg-white dark:!bg-neutral-800`}>
                 <option value="merchant">Merchant</option>
                 <option value="category">Category</option>
               </select>
@@ -565,7 +986,7 @@ const Reports: React.FC = () => {
               type="text" 
               value={reportName} 
               onChange={(e) => setReportName(e.target.value)} 
-              className={`${INPUT_BASE_STYLE} !pl-10`} 
+              className={`${INPUT_BASE_STYLE} !pl-10 !bg-white dark:!bg-neutral-800`} 
               placeholder="Name this report view to save it..." 
             />
           </div>
@@ -580,7 +1001,7 @@ const Reports: React.FC = () => {
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
         {/* Left Column: Detailed Breakdowns */}
         <div className="space-y-6">
-          <Card className="!p-0 overflow-hidden">
+          <Card className="!p-0 overflow-hidden border border-black/5 dark:border-neutral-800">
             <div className="p-4 border-b border-black/5 dark:border-white/10 flex items-center justify-between bg-gray-50/30 dark:bg-white/5">
               <h2 className="font-bold text-sm uppercase tracking-widest">Spend Breakdown</h2>
               <span className="text-[10px] font-bold uppercase tracking-widest text-light-text-secondary">By {groupBy}</span>
@@ -642,7 +1063,7 @@ const Reports: React.FC = () => {
             </div>
           </Card>
 
-          <Card className="!p-0 overflow-hidden">
+          <Card className="!p-0 overflow-hidden border border-black/5 dark:border-neutral-800">
             <div className="p-4 border-b border-black/5 dark:border-white/10 flex items-center justify-between bg-gray-50/30 dark:bg-white/5">
               <h2 className="font-bold text-sm uppercase tracking-widest">Budget vs Actual</h2>
               <button onClick={() => { setCategoryFilter('all'); setMerchantFilter(''); }} className="text-[10px] font-bold uppercase tracking-widest text-primary-500 hover:underline">Reset Filters</button>
@@ -702,7 +1123,7 @@ const Reports: React.FC = () => {
             </div>
           </Card>
 
-          <Card className="!p-0 overflow-hidden">
+          <Card className="!p-0 overflow-hidden border border-black/5 dark:border-neutral-800">
             <div className="p-4 border-b border-black/5 dark:border-white/10 bg-gray-50/30 dark:bg-white/5">
               <h2 className="font-bold text-sm uppercase tracking-widest">Month-End Forecast</h2>
             </div>
@@ -739,7 +1160,7 @@ const Reports: React.FC = () => {
             </div>
           </Card>
 
-          <Card className="!p-0 overflow-hidden">
+          <Card className="!p-0 overflow-hidden border border-black/5 dark:border-neutral-800">
             <div className="p-4 border-b border-black/5 dark:border-white/10 bg-gray-50/30 dark:bg-white/5">
               <h2 className="font-bold text-sm uppercase tracking-widest">Anomalies & Outliers</h2>
             </div>
@@ -765,7 +1186,7 @@ const Reports: React.FC = () => {
             </div>
           </Card>
 
-          <Card className="!p-0 overflow-hidden">
+          <Card className="!p-0 overflow-hidden border border-black/5 dark:border-neutral-800">
             <div className="p-4 border-b border-black/5 dark:border-white/10 bg-gray-50/30 dark:bg-white/5">
               <h2 className="font-bold text-sm uppercase tracking-widest">Recurring Patterns</h2>
             </div>

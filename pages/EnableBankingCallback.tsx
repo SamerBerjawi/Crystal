@@ -182,7 +182,7 @@ const EnableBankingCallback: React.FC<EnableBankingCallbackProps> = ({
   }, [connections, onSync, setConnections, setCurrentPage]);
 
   return (
-    <div className="max-w-lg mx-auto mt-20 p-6 rounded-xl bg-white dark:bg-dark-surface shadow-lg text-center animate-fade-in-up">
+    <div className="max-w-lg mx-auto mt-20 p-6 rounded-xl bg-white dark:bg-dark-card shadow-lg text-center animate-fade-in-up">
       <div className="w-14 h-14 rounded-full bg-primary-100 dark:bg-primary-900/40 text-primary-600 dark:text-primary-300 flex items-center justify-center mx-auto mb-4">
         <span className="material-symbols-outlined text-3xl">sync</span>
       </div>

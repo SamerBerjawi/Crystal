@@ -29,6 +29,7 @@ import { useCategoryContext, useGoalsContext, useScheduleContext } from '../cont
 import { useInsightsView } from '../contexts/InsightsViewContext';
 import PageHeader from '../components/PageHeader';
 import { v4 as uuidv4 } from 'uuid';
+import { motion, AnimatePresence } from 'motion/react';
 
 // --- Smart Goal Planner Hook (Deterministic) ---
 const useSmartGoalPlanner = (
@@ -168,6 +169,14 @@ const Forecasting: React.FC = () => {
     const [filterGoalsByAccount, setFilterGoalsByAccount] = useState(false);
     const [showIndividualLines, setShowIndividualLines] = useState(false);
     const [showGoalLines, setShowGoalLines] = useState(true);
+    
+    // --- Global Assumptions State ---
+    const [assumptions, setAssumptions] = useState({
+        savingsRateAdjustment: 0, // % adjustment to recurring savings
+        marketReturn: 0, // % annual return for investment accounts
+        inflationRate: 2, // % annual inflation
+    });
+    const [isPlaygroundOpen, setIsPlaygroundOpen] = useState(false);
 
     useEffect(() => {
         setForecastDuration(preferences.defaultForecastPeriod || '1Y');
@@ -207,9 +216,10 @@ const Forecasting: React.FC = () => {
             activeGoals,
             billsAndPayments,
             projectionEndDate,
-            recurringTransactionOverrides
+            recurringTransactionOverrides,
+            assumptions
         );
-    }, [selectedAccounts, allRecurringItems, activeGoals, billsAndPayments, recurringTransactionOverrides]);
+    }, [selectedAccounts, allRecurringItems, activeGoals, billsAndPayments, recurringTransactionOverrides, assumptions]);
 
     const lowestBalanceForecasts = useMemo(() => {
         return calculateForecastHorizon(fullForecast.chartData);
@@ -552,6 +562,13 @@ const Forecasting: React.FC = () => {
                 subtitle="Projected cash, income, and obligations so you can plan moves weeks and months ahead."
                 actions={
                     <div className="flex flex-col sm:flex-row items-start sm:items-center gap-3 w-full xl:w-auto flex-wrap">
+                        <button 
+                            onClick={() => setIsPlaygroundOpen(!isPlaygroundOpen)} 
+                            className={`${BTN_SECONDARY_STYLE} flex items-center gap-2 ${isPlaygroundOpen ? 'bg-primary-500/10 text-primary-600 border-primary-500/30' : ''}`}
+                        >
+                            <span className="material-symbols-outlined text-xl">science</span>
+                            {isPlaygroundOpen ? 'Close Playground' : 'Scenario Playground'}
+                        </button>
                         <div className="w-full sm:w-auto">
                              <MultiAccountFilter accounts={accounts} selectedAccountIds={selectedAccountIds} setSelectedAccountIds={setSelectedAccountIds} />
                         </div>
@@ -562,19 +579,6 @@ const Forecasting: React.FC = () => {
                                 </button>
                             ))}
                         </div>
-                         <div className="flex bg-light-fill dark:bg-dark-fill p-1 rounded-lg h-10 flex-shrink-0 w-full sm:w-auto">
-                             <button onClick={() => setShowIndividualLines(false)} className={`${segmentItemBase} ${!showIndividualLines ? segmentItemActive : segmentItemInactive}`}>Consolidated</button>
-                             <button onClick={() => setShowIndividualLines(true)} className={`${segmentItemBase} ${showIndividualLines ? segmentItemActive : segmentItemInactive}`}>Individual</button>
-                        </div>
-                        <div className="flex bg-light-fill dark:bg-dark-fill p-1 rounded-lg h-10 flex-shrink-0 w-full sm:w-auto">
-                             <button onClick={() => setShowGoalLines(true)} className={`${segmentItemBase} ${showGoalLines ? segmentItemActive : segmentItemInactive}`}>
-                                <span className="material-symbols-outlined text-lg mr-1.5">flag</span>
-                                Goals
-                             </button>
-                             <button onClick={() => setShowGoalLines(false)} className={`${segmentItemBase} ${!showGoalLines ? segmentItemActive : segmentItemInactive}`}>
-                                Hide
-                             </button>
-                        </div>
                         <button onClick={() => handleOpenModal()} className={`${BTN_PRIMARY_STYLE} flex-shrink-0 whitespace-nowrap w-full sm:w-auto h-10`}>
                             <span className="material-symbols-outlined text-xl mr-2">add</span>
                             Add Goal
@@ -583,45 +587,206 @@ const Forecasting: React.FC = () => {
                 }
             />
 
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
-                <MetricCard 
-                    title="Projected End Balance" 
-                    value={formatCurrency(endBalance, 'EUR')} 
-                    subValue={forecastDuration === '1Y' ? 'In 1 Year' : `At end of ${forecastDuration}`}
-                    icon="flag"
-                    colorClass="text-blue-600 dark:text-blue-400 bg-blue-100 dark:bg-blue-900/30"
-                />
-                <MetricCard 
-                    title="Net Change" 
-                    value={`${netChange >= 0 ? '+' : ''}${formatCurrency(netChange, 'EUR')}`}
-                    subValue="Over selected period"
-                    icon="trending_up"
-                    trend={netChange >= 0 ? 'up' : 'down'}
-                    colorClass={netChange >= 0 ? "text-green-600 dark:text-green-400 bg-green-100 dark:bg-green-900/30" : "text-red-600 dark:text-red-400 bg-red-100 dark:bg-red-900/30"}
-                />
-                <MetricCard 
-                    title="Total Goal Progress" 
-                    value={`${goalProgress.toFixed(0)}%`} 
-                    subValue={`${formatCurrency(totalGoalSaved, 'EUR')} of ${formatCurrency(totalGoalTarget, 'EUR')}`}
-                    icon="track_changes"
-                    colorClass="text-purple-600 dark:text-purple-400 bg-purple-100 dark:bg-purple-900/30"
-                />
-                <div className="bg-white dark:bg-dark-card p-5 rounded-2xl border border-black/5 dark:border-white/5 shadow-sm flex flex-col justify-between h-full relative overflow-hidden group">
-                    <div className="flex justify-between items-start mb-2 relative z-10">
-                        <span className="text-xs font-bold uppercase tracking-wider text-light-text-secondary dark:text-dark-text-secondary">Safety Margin</span>
-                         <div className={`w-10 h-10 rounded-xl flex items-center justify-center bg-opacity-20 transition-transform duration-300 group-hover:scale-110 ${lowestPoint.value < 0 ? 'bg-red-100 text-red-600' : 'bg-orange-100 text-orange-600 dark:text-orange-400'}`}>
-                            <span className="material-symbols-outlined text-xl">shield</span>
+            {/* --- Scenario Playground --- */}
+            <AnimatePresence>
+                {isPlaygroundOpen && (
+                    <motion.div 
+                        initial={{ height: 0, opacity: 0 }}
+                        animate={{ height: 'auto', opacity: 1 }}
+                        exit={{ height: 0, opacity: 0 }}
+                        className="overflow-hidden"
+                    >
+                        <Card className="bg-primary-500/5 border-primary-500/20 mb-6">
+                            <div className="flex items-center gap-3 mb-6">
+                                <div className="w-10 h-10 rounded-xl bg-primary-500 text-white flex items-center justify-center">
+                                    <span className="material-symbols-outlined">science</span>
+                                </div>
+                                <div>
+                                    <h3 className="text-lg font-black text-light-text dark:text-dark-text">Scenario Playground</h3>
+                                    <p className="text-xs font-bold text-primary-600/70 uppercase tracking-widest">Adjust assumptions to see future impacts</p>
+                                </div>
+                            </div>
+                            
+                            <div className="grid grid-cols-1 md:grid-cols-3 gap-8">
+                                <div className="space-y-4">
+                                    <div className="flex justify-between items-center">
+                                        <label className="text-sm font-black text-light-text dark:text-dark-text uppercase tracking-wider">Savings Boost</label>
+                                        <span className="text-sm font-black text-primary-600">+{assumptions.savingsRateAdjustment}%</span>
+                                    </div>
+                                    <input 
+                                        type="range" min="0" max="50" step="5" 
+                                        value={assumptions.savingsRateAdjustment} 
+                                        onChange={(e) => setAssumptions(prev => ({ ...prev, savingsRateAdjustment: parseInt(e.target.value) }))}
+                                        className="w-full accent-primary-500"
+                                    />
+                                    <p className="text-[10px] text-light-text-secondary font-bold uppercase">Increase all recurring savings by this percentage.</p>
+                                </div>
+
+                                <div className="space-y-4">
+                                    <div className="flex justify-between items-center">
+                                        <label className="text-sm font-black text-light-text dark:text-dark-text uppercase tracking-wider">Market Return</label>
+                                        <span className="text-sm font-black text-emerald-600">{assumptions.marketReturn}%</span>
+                                    </div>
+                                    <input 
+                                        type="range" min="-10" max="15" step="1" 
+                                        value={assumptions.marketReturn} 
+                                        onChange={(e) => setAssumptions(prev => ({ ...prev, marketReturn: parseInt(e.target.value) }))}
+                                        className="w-full accent-emerald-500"
+                                    />
+                                    <p className="text-[10px] text-light-text-secondary font-bold uppercase">Estimated annual return on investment accounts.</p>
+                                </div>
+
+                                <div className="space-y-4">
+                                    <div className="flex justify-between items-center">
+                                        <label className="text-sm font-black text-light-text dark:text-dark-text uppercase tracking-wider">Inflation</label>
+                                        <span className="text-sm font-black text-rose-600">{assumptions.inflationRate}%</span>
+                                    </div>
+                                    <input 
+                                        type="range" min="0" max="10" step="0.5" 
+                                        value={assumptions.inflationRate} 
+                                        onChange={(e) => setAssumptions(prev => ({ ...prev, inflationRate: parseFloat(e.target.value) }))}
+                                        className="w-full accent-rose-500"
+                                    />
+                                    <p className="text-[10px] text-light-text-secondary font-bold uppercase">Annual inflation impact on expenses.</p>
+                                </div>
+                            </div>
+                        </Card>
+                    </motion.div>
+                )}
+            </AnimatePresence>
+
+            {/* --- Bento Grid Hero --- */}
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+                {/* Main Forecast Card */}
+                <motion.div 
+                    layout
+                    className="md:col-span-2 md:row-span-2 relative overflow-hidden rounded-[2.5rem] p-8 bg-gradient-to-br from-indigo-600 via-violet-700 to-purple-800 text-white shadow-2xl border border-white/10 flex flex-col justify-between"
+                >
+                    <div className="relative z-10">
+                        <div className="flex items-center justify-between mb-8">
+                            <div className="flex items-center gap-2 text-[10px] font-black uppercase tracking-[0.2em] text-white/70">
+                                <span className="w-8 h-[1px] bg-white/30"></span>
+                                Projected Wealth
+                            </div>
+                            <div className="w-10 h-10 rounded-full bg-white/10 flex items-center justify-center text-white">
+                                <span className="material-symbols-outlined text-xl">timeline</span>
+                            </div>
+                        </div>
+                        
+                        <div className="space-y-2">
+                            <h2 className="text-6xl font-black tracking-tighter privacy-blur leading-none">
+                                {formatCurrency(endBalance, 'EUR')}
+                            </h2>
+                            <p className="text-xs font-bold uppercase tracking-widest text-white/50 ml-1">
+                                Estimated Balance in {forecastDuration === '1Y' ? '1 Year' : forecastDuration}
+                            </p>
                         </div>
                     </div>
-                    <div className="relative z-10">
-                        <p className={`text-2xl font-extrabold tracking-tight ${lowestPoint.value < 0 ? 'text-red-600' : 'text-light-text dark:text-dark-text'}`}>
-                            {hasForecastData ? formatCurrency(lowestPoint.value, 'EUR') : '—'}
-                        </p>
-                        <p className="text-xs font-medium mt-1 opacity-80">
-                            {hasForecastData ? `Lowest on ${parseLocalDate(lowestPoint.date).toLocaleDateString()}` : 'No forecast data yet'}
+
+                    <div className="relative z-10 mt-12 flex items-center gap-6">
+                        <div className="flex-1 h-1.5 bg-white/10 rounded-full overflow-hidden">
+                            <motion.div 
+                                initial={{ width: 0 }}
+                                animate={{ width: `${Math.min(100, (endBalance / startBalance) * 100)}%` }}
+                                className="h-full bg-white shadow-[0_0_15px_rgba(255,255,255,0.5)]"
+                            />
+                        </div>
+                        <div className="text-right">
+                            <p className="text-2xl font-black tracking-tight">
+                                {((endBalance / startBalance - 1) * 100).toFixed(1)}%
+                            </p>
+                            <p className="text-[10px] font-black uppercase tracking-widest text-white/40">Total Growth</p>
+                        </div>
+                    </div>
+
+                    {/* Animated Background Elements */}
+                    <div className="absolute inset-0 overflow-hidden pointer-events-none">
+                        <motion.div 
+                            animate={{ scale: [1, 1.2, 1], rotate: [0, 90, 0], opacity: [0.1, 0.2, 0.1] }}
+                            transition={{ duration: 20, repeat: Infinity, ease: "linear" }}
+                            className="absolute -top-1/2 -left-1/4 w-full h-full bg-white/10 rounded-full blur-3xl"
+                        />
+                    </div>
+                </motion.div>
+
+                {/* Net Change Card */}
+                <Card className="relative overflow-hidden group flex flex-col justify-between !p-6 border-none shadow-sm bg-white dark:bg-dark-card">
+                    <div className="flex justify-between items-start">
+                        <div className="space-y-1">
+                            <p className="text-[10px] font-black text-light-text-secondary dark:text-dark-text-secondary uppercase tracking-widest">Net Change</p>
+                            <h3 className={`text-2xl font-black tracking-tight ${netChange >= 0 ? 'text-emerald-600' : 'text-rose-600'}`}>
+                                {netChange >= 0 ? '+' : ''}{formatCurrency(netChange, 'EUR')}
+                            </h3>
+                        </div>
+                        <div className={`w-10 h-10 rounded-xl flex items-center justify-center ${netChange >= 0 ? 'bg-emerald-500/10 text-emerald-500' : 'bg-rose-500/10 text-rose-500'}`}>
+                            <span className="material-symbols-outlined">{netChange >= 0 ? 'trending_up' : 'trending_down'}</span>
+                        </div>
+                    </div>
+                    <div className="mt-4 pt-4 border-t border-black/5 dark:border-white/5">
+                        <p className="text-[10px] font-bold text-light-text-secondary uppercase tracking-widest">Over {forecastDuration}</p>
+                    </div>
+                </Card>
+
+                {/* Goal Progress Card */}
+                <Card className="relative overflow-hidden group flex flex-col justify-between !p-6 border-none shadow-sm bg-white dark:bg-dark-card">
+                    <div className="flex justify-between items-start">
+                        <div className="space-y-1">
+                            <p className="text-[10px] font-black text-light-text-secondary dark:text-dark-text-secondary uppercase tracking-widest">Goal Progress</p>
+                            <h3 className="text-2xl font-black tracking-tight text-purple-600">
+                                {goalProgress.toFixed(0)}%
+                            </h3>
+                        </div>
+                        <div className="w-10 h-10 rounded-xl flex items-center justify-center bg-purple-500/10 text-purple-500">
+                            <span className="material-symbols-outlined">track_changes</span>
+                        </div>
+                    </div>
+                    <div className="mt-4 space-y-2">
+                        <div className="w-full h-1.5 bg-gray-100 dark:bg-white/5 rounded-full overflow-hidden">
+                            <div className="h-full bg-purple-500" style={{ width: `${goalProgress}%` }} />
+                        </div>
+                        <p className="text-[10px] font-bold text-light-text-secondary uppercase tracking-widest">
+                            {formatCurrency(totalGoalSaved, 'EUR')} Saved
                         </p>
                     </div>
-                </div>
+                </Card>
+
+                {/* Safety Margin Card */}
+                <Card className="relative overflow-hidden group flex flex-col justify-between !p-6 border-none shadow-sm bg-white dark:bg-dark-card">
+                    <div className="flex justify-between items-start">
+                        <div className="space-y-1">
+                            <p className="text-[10px] font-black text-light-text-secondary dark:text-dark-text-secondary uppercase tracking-widest">Safety Margin</p>
+                            <h3 className={`text-2xl font-black tracking-tight ${lowestPoint.value < 0 ? 'text-rose-600' : 'text-amber-600'}`}>
+                                {formatCurrency(lowestPoint.value, 'EUR')}
+                            </h3>
+                        </div>
+                        <div className={`w-10 h-10 rounded-xl flex items-center justify-center ${lowestPoint.value < 0 ? 'bg-rose-500/10 text-rose-500' : 'bg-amber-500/10 text-amber-500'}`}>
+                            <span className="material-symbols-outlined">shield</span>
+                        </div>
+                    </div>
+                    <div className="mt-4 pt-4 border-t border-black/5 dark:border-white/5">
+                        <p className="text-[10px] font-bold text-light-text-secondary uppercase tracking-widest">
+                            Lowest on {parseLocalDate(lowestPoint.date).toLocaleDateString()}
+                        </p>
+                    </div>
+                </Card>
+
+                {/* Savings Rate Card */}
+                <Card className="relative overflow-hidden group flex flex-col justify-between !p-6 border-none shadow-sm bg-white dark:bg-dark-card">
+                    <div className="flex justify-between items-start">
+                        <div className="space-y-1">
+                            <p className="text-[10px] font-black text-light-text-secondary dark:text-dark-text-secondary uppercase tracking-widest">Savings Rate</p>
+                            <h3 className="text-2xl font-black tracking-tight text-sky-600">
+                                {totalIncomeGoalTarget > 0 ? ((totalSavingsGoalTarget / totalIncomeGoalTarget) * 100).toFixed(1) : 0}%
+                            </h3>
+                        </div>
+                        <div className="w-10 h-10 rounded-xl flex items-center justify-center bg-sky-500/10 text-sky-500">
+                            <span className="material-symbols-outlined">savings</span>
+                        </div>
+                    </div>
+                    <div className="mt-4 pt-4 border-t border-black/5 dark:border-white/5">
+                        <p className="text-[10px] font-bold text-light-text-secondary uppercase tracking-widest">Target Monthly Savings</p>
+                    </div>
+                </Card>
             </div>
             
             <ForecastOverview forecasts={lowestBalanceForecasts} currency="EUR" />
