@@ -43,7 +43,13 @@ const CreditCardAccountView: React.FC<CreditCardAccountViewProps> = ({
               if (tx.type === 'expense') {
                   spent += Math.abs(convertedAmount);
               } else if (tx.type === 'income') {
-                  payments += convertedAmount;
+                  // Distinguish between refunds (negative spending) and payments (transfers)
+                  if (tx.transferId || tx.category.toLowerCase().includes('payment') || tx.category.toLowerCase().includes('transfer')) {
+                      payments += convertedAmount;
+                  } else {
+                      // It's a refund/surplus
+                      spent -= convertedAmount;
+                  }
               }
           }
       });
@@ -68,8 +74,18 @@ const CreditCardAccountView: React.FC<CreditCardAccountViewProps> = ({
         const endOfMonth = new Date(d.getFullYear(), d.getMonth() + 1, 0);
         
         const total = transactions
-            .filter(t => t.parsedDate >= startOfMonth && t.parsedDate <= endOfMonth && t.tx.type === 'expense')
-            .reduce((sum, t) => sum + Math.abs(t.convertedAmount), 0);
+            .filter(t => t.parsedDate >= startOfMonth && t.parsedDate <= endOfMonth)
+            .reduce((sum, t) => {
+                if (t.tx.type === 'expense') {
+                    return sum + Math.abs(t.convertedAmount);
+                } else if (t.tx.type === 'income') {
+                    // Include refunds in spending as negative values, exclude payments
+                    if (!(t.tx.transferId || t.tx.category.toLowerCase().includes('payment') || t.tx.category.toLowerCase().includes('transfer'))) {
+                        return sum - t.convertedAmount;
+                    }
+                }
+                return sum;
+            }, 0);
         
         data.push({ name: monthKey, value: total });
     }
@@ -193,9 +209,12 @@ const CreditCardAccountView: React.FC<CreditCardAccountViewProps> = ({
                                     contentStyle={{ backgroundColor: 'var(--light-card)', borderColor: 'rgba(0,0,0,0.05)', borderRadius: '12px' }}
                                     formatter={(value: number) => [formatCurrency(value, account.currency), 'Spent']}
                                 />
-                                <Bar dataKey="value" fill="#F97316" radius={[4, 4, 0, 0]} barSize={40}>
+                                <Bar dataKey="value" radius={[4, 4, 0, 0]} barSize={40}>
                                     {spendingHistory.map((entry, index) => (
-                                        <Cell key={`cell-${index}`} fill={index === spendingHistory.length - 1 ? '#EA580C' : '#F97316'} />
+                                        <Cell 
+                                            key={`cell-${index}`} 
+                                            fill={entry.value < 0 ? '#10B981' : (index === spendingHistory.length - 1 ? '#EA580C' : '#F97316')} 
+                                        />
                                     ))}
                                 </Bar>
                             </BarChart>

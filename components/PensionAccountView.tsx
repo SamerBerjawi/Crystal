@@ -84,9 +84,10 @@ const PensionAccountView: React.FC<PensionAccountViewProps> = ({
   const chartData = useMemo(() => {
     const history = [];
     const today = new Date();
-    // 5 Years history max
-    const startDate = new Date();
-    startDate.setFullYear(today.getFullYear() - 5);
+    
+    // Start from opening date if available, otherwise 5 years ago
+    const openingDate = account.openingDate ? parseLocalDate(account.openingDate) : new Date(today.getFullYear() - 5, today.getMonth(), 1);
+    const monthsToBackfill = (today.getFullYear() - openingDate.getFullYear()) * 12 + (today.getMonth() - openingDate.getMonth()) + 1;
 
     const sortedTxs = [...transactions].sort((a, b) => a.parsedDate.getTime() - b.parsedDate.getTime());
     
@@ -94,7 +95,7 @@ const PensionAccountView: React.FC<PensionAccountViewProps> = ({
     let runningBalance = 0;
     let runningContributions = 0;
     
-    // Find starting balance before the 5 year window if any
+    // Find starting balance before the backfill window if any
     // For simplicity in this view, we'll build forward from the first available transaction
     // or calculate backwards from current. Let's calculate backwards from current for accuracy.
     
@@ -105,7 +106,7 @@ const PensionAccountView: React.FC<PensionAccountViewProps> = ({
     let currentContrib = totalContributions;
     
     // Backfill history
-    for (let i = 0; i < 60; i++) { // Last 60 months
+    for (let i = 0; i < Math.max(1, monthsToBackfill); i++) {
         const d = new Date(today.getFullYear(), today.getMonth() - i, 1);
         const key = toLocalISOYearMonth(d); // YYYY-MM
         
@@ -167,7 +168,7 @@ const PensionAccountView: React.FC<PensionAccountViewProps> = ({
     }
     
     return [...historicalData, ...projectionData];
-  }, [transactions, account.balance, account.currency, account.apy, totalContributions, monthlyContributionAvg, yearsToRetirement]);
+  }, [transactions, account.balance, account.currency, account.apy, account.openingDate, totalContributions, monthlyContributionAvg, yearsToRetirement]);
 
   const projectedValueAtRetirement = chartData.length > 0 ? chartData[chartData.length - 1].balance : 0;
 

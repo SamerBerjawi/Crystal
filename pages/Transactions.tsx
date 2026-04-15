@@ -25,16 +25,30 @@ interface TransactionsProps {
   onClearInitialFilters?: () => void;
 }
 
-const MetricCard = React.memo(function MetricCard({ label, value, colorClass = "text-light-text dark:text-dark-text", icon }: { label: string; value: string; colorClass?: string; icon: string }) {
+const MetricCard = React.memo(function MetricCard({ label, value, colorClass = "text-light-text dark:text-dark-text", icon, subtitle }: { label: string; value: string; colorClass?: string; icon: string; subtitle?: string }) {
     return (
-        <div className="bg-gray-50 dark:bg-dark-card p-4 rounded-xl shadow-sm border border-black/5 dark:border-white/5 flex items-center gap-4 transition-transform hover:scale-[1.02] duration-200 h-full">
-            <div className={`w-12 h-12 rounded-full flex items-center justify-center bg-white dark:bg-white/5 text-light-text-secondary dark:text-dark-text-secondary flex-shrink-0`}>
-                <span className="material-symbols-outlined text-2xl">{icon}</span>
+        <div className="group relative bg-white dark:bg-dark-card p-5 rounded-2xl shadow-sm border border-black/5 dark:border-white/5 flex flex-col justify-between transition-all duration-300 hover:shadow-md hover:border-primary-500/20 overflow-hidden h-full">
+            {/* Background Accent */}
+            <div className={`absolute -right-4 -top-4 w-24 h-24 rounded-full opacity-[0.03] dark:opacity-[0.05] transition-transform group-hover:scale-110 duration-500 flex items-center justify-center`}>
+                <span className="material-symbols-outlined text-8xl">{icon}</span>
             </div>
-            <div>
-                <p className="text-xs font-bold uppercase tracking-wider text-light-text-secondary dark:text-dark-text-secondary mb-0.5">{label}</p>
-                <p className={`text-xl font-bold ${colorClass}`}>{value}</p>
+            
+            <div className="relative z-10">
+                <div className="flex items-center gap-2 mb-3">
+                    <div className="w-8 h-8 rounded-lg bg-gray-50 dark:bg-white/5 flex items-center justify-center text-light-text-secondary dark:text-dark-text-secondary">
+                        <span className="material-symbols-outlined text-lg">{icon}</span>
+                    </div>
+                    <p className="text-[10px] font-black uppercase tracking-[0.15em] text-light-text-secondary dark:text-dark-text-secondary">{label}</p>
+                </div>
+                
+                <div className="flex flex-col">
+                    <p className={`text-2xl font-mono font-bold tracking-tighter ${colorClass}`}>{value}</p>
+                    {subtitle && <p className="text-[10px] text-light-text-secondary dark:text-dark-text-secondary mt-1 font-medium">{subtitle}</p>}
+                </div>
             </div>
+            
+            {/* Bottom Accent Line */}
+            <div className="absolute bottom-0 left-0 w-full h-1 bg-gradient-to-r from-transparent via-primary-500/10 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300"></div>
         </div>
     );
 });
@@ -1127,19 +1141,50 @@ const Transactions: React.FC<TransactionsProps> = ({ initialAccountFilter, initi
 
       {/* Metrics Summary */}
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-        <Card className="bg-gradient-to-br from-blue-500 to-cyan-600 text-white border-none relative overflow-hidden p-5 flex flex-col justify-center h-full">
+        <div className="group relative bg-primary-600 dark:bg-primary-700 p-5 rounded-2xl shadow-lg shadow-primary-500/20 border-none text-white overflow-hidden flex flex-col justify-between h-full transition-all duration-300 hover:scale-[1.02]">
+            <div className="absolute inset-0 bg-gradient-to-br from-white/10 to-transparent pointer-events-none"></div>
+            {/* Texture Overlay */}
+            <div className="absolute inset-0 bg-[url('https://www.transparenttextures.com/patterns/cubes.png')] opacity-10 pointer-events-none"></div>
+            
             <div className="relative z-10">
-                <p className="text-xs font-bold uppercase opacity-80 tracking-wider">Total Transactions</p>
-                <p className="text-3xl font-extrabold mt-1">{filteredTransactions.length}</p>
-                <p className="text-sm opacity-80 mt-1">in selected period</p>
+                <div className="flex items-center gap-2 mb-3">
+                    <div className="w-8 h-8 rounded-lg bg-white/20 flex items-center justify-center text-white">
+                        <span className="material-symbols-outlined text-lg">receipt_long</span>
+                    </div>
+                    <p className="text-[10px] font-black uppercase tracking-[0.15em] text-white/80">Total Transactions</p>
+                </div>
+                
+                <div className="flex flex-col">
+                    <p className="text-3xl font-mono font-black tracking-tighter">{filteredTransactions.length}</p>
+                    <p className="text-[10px] text-white/70 mt-1 font-medium">in selected period</p>
+                </div>
             </div>
-            <div className="absolute -right-4 -bottom-6 text-white opacity-10">
+            
+            <div className="absolute -right-6 -bottom-6 text-white opacity-10 transition-transform group-hover:scale-110 duration-500">
                 <span className="material-symbols-outlined text-9xl">receipt_long</span>
             </div>
-        </Card>
-        <MetricCard label="Total Income" value={formatCurrency(totalIncome, 'EUR')} colorClass="text-green-600 dark:text-green-400" icon="arrow_downward" />
-        <MetricCard label="Total Expenses" value={formatCurrency(totalExpense, 'EUR')} colorClass="text-red-600 dark:text-red-400" icon="arrow_upward" />
-        <MetricCard label="Net Cash Flow" value={formatCurrency(netFlow, 'EUR', { showPlusSign: true })} colorClass={netFlow >= 0 ? 'text-green-600 dark:text-green-400' : 'text-red-600 dark:text-red-400'} icon="account_balance_wallet" />
+        </div>
+        <MetricCard 
+            label="Total Income" 
+            value={formatCurrency(totalIncome, 'EUR')} 
+            colorClass="text-green-600 dark:text-green-400" 
+            icon="arrow_downward" 
+            subtitle="Cash inflows"
+        />
+        <MetricCard 
+            label="Total Expenses" 
+            value={formatCurrency(totalExpense, 'EUR')} 
+            colorClass="text-red-600 dark:text-red-400" 
+            icon="arrow_upward" 
+            subtitle="Cash outflows"
+        />
+        <MetricCard 
+            label="Net Cash Flow" 
+            value={formatCurrency(netFlow, 'EUR', { showPlusSign: true })} 
+            colorClass={netFlow >= 0 ? 'text-green-600 dark:text-green-400' : 'text-red-600 dark:text-red-400'} 
+            icon="account_balance_wallet" 
+            subtitle="Net difference"
+        />
       </div>
       
       {/* Filter Toolbar */}
