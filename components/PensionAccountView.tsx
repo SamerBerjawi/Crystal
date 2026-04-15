@@ -1,10 +1,11 @@
 import React, { useMemo } from 'react';
 import { Account, Transaction, DisplayTransaction, Category } from '../types';
-import { formatCurrency, parseLocalDate, convertToEur, getPreferredTimeZone, toLocalISOYearMonth } from '../utils';
+import { formatCurrency, parseLocalDate, convertToEur, getPreferredTimeZone, toLocalISOYearMonth, convertFromEur, getPreferredCurrencyCode } from '../utils';
 import Card from './Card';
 import TransactionList from './TransactionList';
 import { BTN_PRIMARY_STYLE, BTN_SECONDARY_STYLE } from '../constants';
 import { ResponsiveContainer, AreaChart, Area, XAxis, YAxis, Tooltip, CartesianGrid, ReferenceLine, Legend, ComposedChart, Line } from 'recharts';
+import { usePreferencesContext } from '../contexts/AppPreferencesContext';
 
 interface PensionAccountViewProps {
   account: Account;
@@ -31,6 +32,11 @@ const PensionAccountView: React.FC<PensionAccountViewProps> = ({
   onSyncLinkedAccount,
   isLinkedToEnableBanking,
 }) => {
+  const { preferences } = usePreferencesContext();
+  const preferredCurrency = getPreferredCurrencyCode(preferences);
+  const currentBalanceInPreferred = convertFromEur(convertToEur(account.balance, account.currency), preferredCurrency);
+  const projectedValueInPreferred = convertFromEur(convertToEur(chartData.length > 0 ? chartData[chartData.length - 1].balance : 0, account.currency), preferredCurrency);
+
   const timeZone = getPreferredTimeZone();
   const currentYear = new Date().getFullYear();
   const retirementYear = account.expectedRetirementYear || (currentYear + 20);
@@ -223,10 +229,20 @@ const PensionAccountView: React.FC<PensionAccountViewProps> = ({
                     <div>
                          <p className="text-indigo-200 font-bold uppercase tracking-widest text-xs mb-2">Current Pot Value</p>
                          <h2 className="text-5xl font-extrabold tracking-tight drop-shadow-sm">{formatCurrency(account.balance, account.currency)}</h2>
+                         {account.currency !== preferredCurrency && (
+                             <p className="text-indigo-200 text-sm mt-1 opacity-80 font-medium">
+                                 ≈ {formatCurrency(currentBalanceInPreferred, preferredCurrency)}
+                             </p>
+                         )}
                     </div>
                     <div className="text-right">
                          <p className="text-indigo-200 font-bold uppercase tracking-widest text-xs mb-1">Projected at {retirementYear}</p>
                          <p className="text-2xl font-bold opacity-90">{formatCurrency(projectedValueAtRetirement, account.currency)}</p>
+                         {account.currency !== preferredCurrency && (
+                             <p className="text-indigo-200 text-xs mt-1 opacity-80 font-medium">
+                                 ≈ {formatCurrency(projectedValueInPreferred, preferredCurrency)}
+                             </p>
+                         )}
                          <p className="text-xs text-indigo-200 mt-1">Assuming {account.apy || 5}% growth</p>
                     </div>
                </div>

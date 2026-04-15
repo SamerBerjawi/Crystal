@@ -1,10 +1,11 @@
 
 import React from 'react';
 import { Account, Transaction, LoanPaymentOverrides } from '../types';
-import { formatCurrency, generateAmortizationSchedule } from '../utils';
+import { formatCurrency, generateAmortizationSchedule, convertToEur, convertFromEur, getPreferredCurrencyCode } from '../utils';
 import Card from './Card';
 import { BTN_PRIMARY_STYLE, BTN_SECONDARY_STYLE } from '../constants';
 import { ResponsiveContainer, AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip } from 'recharts';
+import { usePreferencesContext } from '../contexts/AppPreferencesContext';
 
 interface PropertyAccountViewProps {
   account: Account;
@@ -29,6 +30,9 @@ const PropertyAccountView: React.FC<PropertyAccountViewProps> = ({
   onSyncLinkedAccount,
   isLinkedToEnableBanking,
 }) => {
+  const { preferences } = usePreferencesContext();
+  const preferredCurrency = getPreferredCurrencyCode(preferences);
+  const currentMarketValueInPreferred = convertFromEur(convertToEur(account.balance, account.currency), preferredCurrency);
   const linkedLoan = accounts.find(a => a.id === account.linkedLoanId) || accounts.find(a => a.type === 'Loan' && a.linkedAssetId === account.id);
   
   // --- Financial Calculations ---
@@ -154,6 +158,11 @@ const PropertyAccountView: React.FC<PropertyAccountViewProps> = ({
                        <h2 className="text-5xl font-extrabold text-light-text dark:text-dark-text tracking-tight mb-6">
                            {formatCurrency(currentMarketValue, account.currency)}
                        </h2>
+                       {account.currency !== preferredCurrency && (
+                           <p className="text-light-text-secondary/70 dark:text-dark-text-secondary/70 font-medium text-lg -mt-4 mb-4">
+                               ≈ {formatCurrency(currentMarketValueInPreferred, preferredCurrency)}
+                           </p>
+                       )}
                        
                        {/* Equity Progress Bar */}
                        <div className="w-full h-4 bg-gray-200 dark:bg-black/30 rounded-full overflow-hidden shadow-inner relative flex">

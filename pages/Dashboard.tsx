@@ -1,6 +1,6 @@
 import React, { useMemo, useState, useCallback, useEffect, useRef, Suspense, lazy } from 'react';
 import { User, Transaction, Account, Category, Duration, CategorySpending, Widget, WidgetConfig, DisplayTransaction, FinancialGoal, RecurringTransaction, BillPayment, Tag, Budget, RecurringTransactionOverride, LoanPaymentOverrides, AccountType, Task, ForecastDuration } from '../types';
-import { calculateForecastHorizon, formatCurrency, convertToEur, generateBalanceForecast, generateSyntheticLoanPayments, generateSyntheticCreditCardPayments, parseLocalDate, getPreferredTimeZone, generateSyntheticPropertyTransactions, toLocalISOString, getDateRange, calculateAccountTotals, calculateStatementPeriods, getCreditCardStatementDetails, formatDateKey } from '../utils';
+import { calculateForecastHorizon, formatCurrency, convertToEur, convertFromEur, getPreferredCurrencyCode, generateBalanceForecast, generateSyntheticLoanPayments, generateSyntheticCreditCardPayments, parseLocalDate, getPreferredTimeZone, generateSyntheticPropertyTransactions, toLocalISOString, getDateRange, calculateAccountTotals, calculateStatementPeriods, getCreditCardStatementDetails, formatDateKey } from '../utils';
 import AddTransactionModal from '../components/AddTransactionModal';
 import { BTN_PRIMARY_STYLE, BTN_SECONDARY_STYLE, LIQUID_ACCOUNT_TYPES, ASSET_TYPES, DEBT_TYPES, ACCOUNT_TYPE_STYLES, INVESTMENT_SUB_TYPE_STYLES, FORECAST_DURATION_OPTIONS, QUICK_CREATE_BUDGET_OPTIONS, CHECKBOX_STYLE, SELECT_STYLE, SELECT_WRAPPER_STYLE, SELECT_ARROW_STYLE } from '../constants';
 import TransactionDetailModal from '../components/TransactionDetailModal';
@@ -124,6 +124,7 @@ const Dashboard: React.FC<DashboardProps> = ({ user, tasks, saveTask }) => {
   const { tags } = useTagsContext();
   const { budgets } = useBudgetsContext();
   const { preferences } = usePreferencesContext();
+  const preferredCurrency = getPreferredCurrencyCode(preferences.currency);
 
   // Dashboard Specific State
   const [showForecast, setShowForecast] = useState(true);
@@ -1366,14 +1367,14 @@ const Dashboard: React.FC<DashboardProps> = ({ user, tasks, saveTask }) => {
              <div className="grid grid-cols-1 xl:grid-cols-3 gap-6">
                 <div className="xl:col-span-2">
                     <FinancialOverview
-                        netWorth={netWorth}
-                        income={income}
-                        expenses={expenses}
+                        netWorth={convertFromEur(netWorth, preferredCurrency)}
+                        income={convertFromEur(income, preferredCurrency)}
+                        expenses={convertFromEur(expenses, preferredCurrency)}
                         incomeChange={incomeChange}
                         expenseChange={expenseChange}
-                        incomeSparkline={incomeSparkline}
-                        expenseSparkline={expenseSparkline}
-                        currency="EUR"
+                        incomeSparkline={incomeSparkline.map(s => ({ ...s, value: convertFromEur(s.value, preferredCurrency) }))}
+                        expenseSparkline={expenseSparkline.map(s => ({ ...s, value: convertFromEur(s.value, preferredCurrency) }))}
+                        currency={preferredCurrency}
                     />
                 </div>
                 <div className="xl:col-span-1 h-full">
@@ -1394,7 +1395,7 @@ const Dashboard: React.FC<DashboardProps> = ({ user, tasks, saveTask }) => {
             {/* Display lowest balance forecasts based on the new forecast duration/logic */}
             {lowestBalanceForecasts && lowestBalanceForecasts.length > 0 && (
                 <div>
-                    <ForecastOverview forecasts={lowestBalanceForecasts} currency="EUR" />
+                    <ForecastOverview forecasts={lowestBalanceForecasts.map(f => ({ ...f, balance: convertFromEur(f.balance, preferredCurrency) }))} currency={preferredCurrency} />
                 </div>
             )}
 

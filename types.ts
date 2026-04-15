@@ -606,6 +606,7 @@ export interface FinancialData {
     userStats?: UserStats;
     predictions?: Prediction[];
     enableBankingConnections?: EnableBankingConnection[];
+    conversionRates?: Record<string, number>;
     lastUpdatedAt?: string;
     userProfile?: User;
 }

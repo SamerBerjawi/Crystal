@@ -1,10 +1,11 @@
 import React, { useMemo } from 'react';
 import { Account, Transaction, DisplayTransaction, Category } from '../types';
-import { formatCurrency, parseLocalDate, convertToEur, getPreferredTimeZone, toLocalISOString } from '../utils';
+import { formatCurrency, parseLocalDate, convertToEur, convertFromEur, getPreferredCurrencyCode, getPreferredTimeZone, toLocalISOString } from '../utils';
 import Card from './Card';
 import TransactionList from './TransactionList';
 import { BTN_PRIMARY_STYLE, BTN_SECONDARY_STYLE } from '../constants';
 import { ResponsiveContainer, BarChart, CartesianGrid, XAxis, YAxis, Tooltip, Bar, Cell, ReferenceLine } from 'recharts';
+import { usePreferencesContext } from '../contexts/DomainProviders';
 
 interface CashAccountViewProps {
   account: Account;
@@ -31,6 +32,8 @@ const CashAccountView: React.FC<CashAccountViewProps> = ({
   onSyncLinkedAccount,
   isLinkedToEnableBanking,
 }) => {
+  const { preferences } = usePreferencesContext();
+  const preferredCurrency = getPreferredCurrencyCode(preferences.currency);
   const timeZone = getPreferredTimeZone();
 
   // --- Metrics ---
@@ -156,9 +159,16 @@ const CashAccountView: React.FC<CashAccountViewProps> = ({
                            <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse"></span>
                            Current Balance
                        </p>
-                       <h2 className="text-5xl font-extrabold tracking-tighter drop-shadow-sm">
-                           {formatCurrency(account.balance, account.currency)}
-                       </h2>
+                       <div className="flex flex-col">
+                           <h2 className="text-5xl font-extrabold tracking-tighter drop-shadow-sm">
+                               {formatCurrency(account.balance, account.currency)}
+                           </h2>
+                           {account.currency !== preferredCurrency && (
+                               <p className="text-emerald-100/70 font-medium text-lg mt-1">
+                                   ≈ {formatCurrency(convertFromEur(convertToEur(account.balance, account.currency), preferredCurrency), preferredCurrency)}
+                               </p>
+                           )}
+                       </div>
                        <p className="text-emerald-100/80 text-sm mt-2 font-medium bg-black/20 inline-block px-3 py-1 rounded-lg backdrop-blur-sm border border-white/10">
                            {burnRateMessage}
                        </p>

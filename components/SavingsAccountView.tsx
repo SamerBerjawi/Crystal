@@ -1,11 +1,12 @@
 import React, { useMemo } from 'react';
 import { Account, Transaction, DisplayTransaction, Category } from '../types';
-import { formatCurrency, parseLocalDate, convertToEur, getPreferredTimeZone, toLocalISOString } from '../utils';
+import { formatCurrency, parseLocalDate, convertToEur, getPreferredTimeZone, toLocalISOString, convertFromEur, getPreferredCurrencyCode } from '../utils';
 import Card from './Card';
 import TransactionList from './TransactionList';
 import { BTN_PRIMARY_STYLE, BTN_SECONDARY_STYLE } from '../constants';
 import { ResponsiveContainer, BarChart, CartesianGrid, XAxis, YAxis, Tooltip, Bar, AreaChart, Area } from 'recharts';
 import { useGoalsContext } from '../contexts/FinancialDataContext';
+import { usePreferencesContext } from '../contexts/AppPreferencesContext';
 
 interface SavingsAccountViewProps {
   account: Account;
@@ -30,6 +31,9 @@ const SavingsAccountView: React.FC<SavingsAccountViewProps> = ({
   onSyncLinkedAccount,
   isLinkedToEnableBanking,
 }) => {
+  const { preferences } = usePreferencesContext();
+  const preferredCurrency = getPreferredCurrencyCode(preferences);
+  const currentBalanceInPreferred = convertFromEur(convertToEur(account.balance, account.currency), preferredCurrency);
   const { financialGoals } = useGoalsContext();
   const timeZone = getPreferredTimeZone();
 
@@ -173,6 +177,11 @@ const SavingsAccountView: React.FC<SavingsAccountViewProps> = ({
                                  Total Savings
                              </p>
                              <h2 className="text-5xl font-extrabold tracking-tight drop-shadow-sm">{formatCurrency(account.balance, account.currency)}</h2>
+                             {account.currency !== preferredCurrency && (
+                                 <p className="text-blue-200 text-sm mt-1 opacity-80 font-medium">
+                                     ≈ {formatCurrency(currentBalanceInPreferred, preferredCurrency)}
+                                 </p>
+                             )}
                         </div>
                         {apy > 0 && (
                             <div className="bg-white/20 backdrop-blur-md border border-white/20 px-4 py-2 rounded-xl text-center">

@@ -1,12 +1,12 @@
 import React, { useMemo } from 'react';
 import { Account, DisplayTransaction, Category, Transaction, RecurringTransaction } from '../types';
-import { formatCurrency, parseLocalDate, generateSyntheticLoanPayments, generateSyntheticCreditCardPayments, generateBalanceForecast, convertToEur, generateSyntheticPropertyTransactions, calculateStatementPeriods, getCreditCardStatementDetails, getPreferredTimeZone, formatDateKey, toLocalISOString } from '../utils';
+import { formatCurrency, parseLocalDate, generateSyntheticLoanPayments, generateSyntheticCreditCardPayments, generateBalanceForecast, convertToEur, convertFromEur, getPreferredCurrencyCode, generateSyntheticPropertyTransactions, calculateStatementPeriods, getCreditCardStatementDetails, getPreferredTimeZone, formatDateKey, toLocalISOString } from '../utils';
 import Card from './Card';
 import TransactionList from './TransactionList';
 import { BTN_PRIMARY_STYLE, ACCOUNT_TYPE_STYLES, BTN_SECONDARY_STYLE } from '../constants';
 import { AreaChart, Area, XAxis, YAxis, Tooltip, ResponsiveContainer, CartesianGrid, BarChart, Bar, Cell, Legend, ReferenceLine } from 'recharts';
 import { useGoalsContext, useScheduleContext } from '../contexts/FinancialDataContext';
-import { useAccountsContext, useTransactionsContext } from '../contexts/DomainProviders';
+import { useAccountsContext, useTransactionsContext, usePreferencesContext } from '../contexts/DomainProviders';
 
 interface GeneralAccountViewProps {
   account: Account;
@@ -60,6 +60,8 @@ const GeneralAccountView: React.FC<GeneralAccountViewProps> = ({
   const { financialGoals } = useGoalsContext();
   const { accounts } = useAccountsContext();
   const { transactions: allTransactions } = useTransactionsContext();
+  const { preferences } = usePreferencesContext();
+  const preferredCurrency = getPreferredCurrencyCode(preferences.currency);
 
   // --- 1. Key Metrics Calculations ---
 
@@ -390,7 +392,14 @@ const GeneralAccountView: React.FC<GeneralAccountViewProps> = ({
                  <span className="material-symbols-outlined text-6xl">account_balance_wallet</span>
             </div>
             <p className="text-xs font-medium uppercase text-light-text-secondary dark:text-dark-text-secondary tracking-wider mb-1">Current Balance</p>
-            <p className="text-2xl font-bold text-light-text dark:text-dark-text">{formatCurrency(account.balance, account.currency)}</p>
+            <div className="flex flex-col">
+                <p className="text-2xl font-bold text-light-text dark:text-dark-text">{formatCurrency(account.balance, account.currency)}</p>
+                {account.currency !== preferredCurrency && (
+                    <p className="text-sm font-medium text-light-text-secondary dark:text-dark-text-secondary opacity-70">
+                        ≈ {formatCurrency(convertFromEur(convertToEur(account.balance, account.currency), preferredCurrency), preferredCurrency)}
+                    </p>
+                )}
+            </div>
         </Card>
 
         {/* Safe To Spend */}

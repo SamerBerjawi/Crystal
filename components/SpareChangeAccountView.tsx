@@ -1,11 +1,11 @@
 import React, { useMemo } from 'react';
 import { Account, Transaction, DisplayTransaction, Category } from '../types';
-import { formatCurrency, parseLocalDate, convertToEur, getPreferredTimeZone } from '../utils';
+import { formatCurrency, parseLocalDate, convertToEur, convertFromEur, getPreferredCurrencyCode, getPreferredTimeZone } from '../utils';
 import Card from './Card';
 import TransactionList from './TransactionList';
 import { BTN_PRIMARY_STYLE, BTN_SECONDARY_STYLE } from '../constants';
 import { ResponsiveContainer, BarChart, CartesianGrid, XAxis, YAxis, Tooltip, Bar, Cell } from 'recharts';
-import { useAccountsContext } from '../contexts/DomainProviders';
+import { useAccountsContext, usePreferencesContext } from '../contexts/DomainProviders';
 
 interface SpareChangeAccountViewProps {
   account: Account;
@@ -33,6 +33,9 @@ const SpareChangeAccountView: React.FC<SpareChangeAccountViewProps> = ({
   isLinkedToEnableBanking,
 }) => {
   const { accounts } = useAccountsContext();
+  const { preferences } = usePreferencesContext();
+  const preferredCurrency = getPreferredCurrencyCode(preferences.currency);
+  const currentBalanceInPreferred = convertFromEur(convertToEur(account.balance, account.currency), preferredCurrency);
   const timeZone = getPreferredTimeZone();
 
   // Find linked source account name
@@ -155,6 +158,11 @@ const SpareChangeAccountView: React.FC<SpareChangeAccountViewProps> = ({
                <div className="relative z-10">
                     <p className="text-cyan-100 font-bold uppercase tracking-widest text-xs mb-2">Total Accumulated</p>
                     <h2 className="text-5xl font-extrabold tracking-tight drop-shadow-sm">{formatCurrency(account.balance, account.currency)}</h2>
+                    {account.currency !== preferredCurrency && (
+                        <p className="text-cyan-100/70 font-medium text-lg mt-1">
+                            ≈ {formatCurrency(currentBalanceInPreferred, preferredCurrency)}
+                        </p>
+                    )}
                     <p className="text-cyan-50 text-sm mt-2 font-medium bg-black/10 inline-block px-3 py-1 rounded-lg backdrop-blur-sm">
                         {totalRoundUps} round-ups collected
                     </p>

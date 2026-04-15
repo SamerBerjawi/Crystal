@@ -1,10 +1,11 @@
 import React, { useMemo } from 'react';
 import { Account, Transaction, DisplayTransaction, Category } from '../types';
-import { formatCurrency, calculateStatementPeriods, getCreditCardStatementDetails, getPreferredTimeZone } from '../utils';
+import { formatCurrency, calculateStatementPeriods, getCreditCardStatementDetails, getPreferredTimeZone, convertToEur, convertFromEur, getPreferredCurrencyCode } from '../utils';
 import Card from './Card';
 import TransactionList from './TransactionList';
 import { BTN_PRIMARY_STYLE, BTN_SECONDARY_STYLE } from '../constants';
 import { ResponsiveContainer, BarChart, CartesianGrid, XAxis, YAxis, Tooltip, Bar, Cell } from 'recharts';
+import { usePreferencesContext } from '../contexts/AppPreferencesContext';
 
 interface CreditCardAccountViewProps {
   account: Account;
@@ -29,6 +30,10 @@ const CreditCardAccountView: React.FC<CreditCardAccountViewProps> = ({
   onSyncLinkedAccount,
   isLinkedToEnableBanking,
 }) => {
+  const { preferences } = usePreferencesContext();
+  const preferredCurrency = getPreferredCurrencyCode(preferences);
+  const currentBalanceInPreferred = convertFromEur(convertToEur(account.balance, account.currency), preferredCurrency);
+  const availableCreditInPreferred = convertFromEur(convertToEur(availableCredit || 0, account.currency), preferredCurrency);
   const timeZone = getPreferredTimeZone();
 
   // --- Metrics ---
@@ -140,11 +145,21 @@ const CreditCardAccountView: React.FC<CreditCardAccountViewProps> = ({
                     <div>
                          <p className="text-orange-100 font-bold uppercase tracking-widest text-xs mb-2">Current Balance</p>
                          <h2 className="text-5xl font-extrabold tracking-tight drop-shadow-sm">{formatCurrency(account.balance, account.currency)}</h2>
+                         {account.currency !== preferredCurrency && (
+                             <p className="text-orange-100/70 font-medium text-lg mt-1">
+                                 ≈ {formatCurrency(currentBalanceInPreferred, preferredCurrency)}
+                             </p>
+                         )}
                     </div>
                     {account.creditLimit && (
                         <div className="text-right">
                              <p className="text-orange-100 font-bold uppercase tracking-widest text-xs mb-1">Available</p>
                              <p className="text-2xl font-bold opacity-90">{formatCurrency(availableCredit, account.currency)}</p>
+                             {account.currency !== preferredCurrency && (
+                                 <p className="text-orange-100/70 font-medium text-sm mt-0.5">
+                                     ≈ {formatCurrency(availableCreditInPreferred, preferredCurrency)}
+                                 </p>
+                             )}
                         </div>
                     )}
                </div>

@@ -3,7 +3,7 @@ import React, { useState, useMemo, useRef, useEffect, useCallback } from 'react'
 import { INPUT_BASE_STYLE, SELECT_WRAPPER_STYLE, SELECT_ARROW_STYLE, BTN_PRIMARY_STYLE, BTN_SECONDARY_STYLE, SELECT_STYLE, CHECKBOX_STYLE, ALL_ACCOUNT_TYPES } from '../constants';
 import { Transaction, Account, DisplayTransaction, RecurringTransaction, Category, AccountType, MerchantRule } from '../types';
 import Card from '../components/Card';
-import { formatCurrency, fuzzySearch, convertToEur, arrayToCSV, downloadCSV, parseLocalDate, toLocalISOString } from '../utils';
+import { formatCurrency, fuzzySearch, convertToEur, convertFromEur, getPreferredCurrencyCode, arrayToCSV, downloadCSV, parseLocalDate, toLocalISOString } from '../utils';
 import AddTransactionModal from '../components/AddTransactionModal';
 import BulkCategorizeModal from '../components/BulkCategorizeModal';
 import BulkEditTransactionsModal from '../components/BulkEditTransactionsModal';
@@ -147,6 +147,8 @@ const Transactions: React.FC<TransactionsProps> = ({ initialAccountFilter, initi
   const brandfetchClientId = usePreferencesSelector(p => (p.brandfetchClientId || '').trim());
   const merchantLogoOverrides = usePreferencesSelector(p => p.merchantLogoOverrides || {});
   const merchantRules = usePreferencesSelector(p => p.merchantRules || {}) as Record<string, MerchantRule>;
+  const preferredCurrencyPref = usePreferencesSelector(p => p.currency);
+  const preferredCurrency = getPreferredCurrencyCode(preferredCurrencyPref);
   const appliedInitialFiltersRef = useRef<{ account: string | null; tag: string | null } | null>(null);
 
   useEffect(() => {
@@ -1166,21 +1168,21 @@ const Transactions: React.FC<TransactionsProps> = ({ initialAccountFilter, initi
         </div>
         <MetricCard 
             label="Total Income" 
-            value={formatCurrency(totalIncome, 'EUR')} 
+            value={formatCurrency(convertFromEur(totalIncome, preferredCurrency), preferredCurrency)} 
             colorClass="text-green-600 dark:text-green-400" 
             icon="arrow_downward" 
             subtitle="Cash inflows"
         />
         <MetricCard 
             label="Total Expenses" 
-            value={formatCurrency(totalExpense, 'EUR')} 
+            value={formatCurrency(convertFromEur(totalExpense, preferredCurrency), preferredCurrency)} 
             colorClass="text-red-600 dark:text-red-400" 
             icon="arrow_upward" 
             subtitle="Cash outflows"
         />
         <MetricCard 
             label="Net Cash Flow" 
-            value={formatCurrency(netFlow, 'EUR', { showPlusSign: true })} 
+            value={formatCurrency(convertFromEur(netFlow, preferredCurrency), preferredCurrency, { showPlusSign: true })} 
             colorClass={netFlow >= 0 ? 'text-green-600 dark:text-green-400' : 'text-red-600 dark:text-red-400'} 
             icon="account_balance_wallet" 
             subtitle="Net difference"
