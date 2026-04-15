@@ -29,7 +29,7 @@ const CreditCardStatementCard: React.FC<CreditCardStatementCardProps> = ({
     currentStatement, 
     nextStatement 
 }) => {
-    const usedPercentage = creditLimit && creditLimit > 0 ? (Math.abs(accountBalance) / creditLimit) * 100 : 0;
+    const usedPercentage = creditLimit && creditLimit > 0 ? ((-accountBalance) / creditLimit) * 100 : 0;
     const progressBarColor = usedPercentage > 90 ? 'bg-red-500' : usedPercentage > 75 ? 'bg-orange-500' : 'bg-blue-500';
 
     const StatementBlock: React.FC<{ title: string; data: StatementInfo; isHighlight?: boolean }> = ({ title, data, isHighlight }) => {
@@ -95,7 +95,7 @@ const CreditCardStatementCard: React.FC<CreditCardStatementCardProps> = ({
                                 <div className={`h-full rounded-full ${progressBarColor}`} style={{ width: `${Math.min(usedPercentage, 100)}%` }}></div>
                             </div>
                             <p className="text-[10px] text-light-text-secondary dark:text-dark-text-secondary text-right">
-                                {formatCurrency(creditLimit - Math.abs(accountBalance), currency)} available
+                                {formatCurrency(creditLimit + accountBalance, currency)} available
                             </p>
                         </div>
                     )}

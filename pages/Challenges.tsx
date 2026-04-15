@@ -666,7 +666,7 @@ const Challenges: React.FC<ChallengesProps> = ({ userStats, accounts, transactio
   const bosses = useMemo(() => {
       const activeBosses: Boss[] = [];
       analyticsAccounts.filter(a => DEBT_TYPES.includes(a.type) && a.status !== 'closed').forEach(acc => {
-          let outstanding = Math.abs(acc.balance);
+          let outstanding = acc.balance < 0 ? Math.abs(acc.balance) : 0;
           let maxHp = acc.creditLimit || (acc.totalAmount || outstanding * 1.2);
           let paidPrincipal = 0; let paidInterest = 0;
 

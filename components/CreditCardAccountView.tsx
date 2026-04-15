@@ -49,9 +49,9 @@ const CreditCardAccountView: React.FC<CreditCardAccountViewProps> = ({
       });
       
       const creditLimit = account.creditLimit || 0;
-      const balance = Math.abs(account.balance);
-      const util = creditLimit > 0 ? (balance / creditLimit) * 100 : 0;
-      const available = Math.max(0, creditLimit - balance);
+      const balanceOwed = -account.balance;
+      const util = creditLimit > 0 ? (balanceOwed / creditLimit) * 100 : 0;
+      const available = creditLimit - balanceOwed;
 
       return { totalSpent: spent, totalPayments: payments, utilization: util, availableCredit: available };
   }, [transactions, account.balance, account.creditLimit]);

@@ -201,7 +201,7 @@ const Accounts: React.FC<AccountsProps> = ({ accounts, transactions, saveAccount
            label = 'Total Liabilities';
            subLabel = 'Outstanding Balance';
 
-           const ccDebt = accountsToSum.filter(a => a.type === 'Credit Card').reduce((sum, a) => sum + Math.abs(convertToEur(a.balance, a.currency)), 0);
+           const ccDebt = accountsToSum.filter(a => a.type === 'Credit Card').reduce((sum, a) => sum - convertToEur(a.balance, a.currency), 0);
            const loanDebt = totalDebt - ccDebt;
 
            details = [
