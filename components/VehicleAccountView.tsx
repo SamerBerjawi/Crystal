@@ -1,11 +1,10 @@
 import React, { useMemo } from 'react';
 import { Account, MileageLog, Transaction, LoanPaymentOverrides } from '../types';
-import { formatCurrency, parseLocalDate, generateAmortizationSchedule, convertToEur, convertFromEur, getPreferredCurrencyCode } from '../utils';
+import { formatCurrency, parseLocalDate, generateAmortizationSchedule } from '../utils';
 import Card from './Card';
 import VehicleMileageChart from './VehicleMileageChart';
 import { BTN_PRIMARY_STYLE, BTN_SECONDARY_STYLE, ACCOUNT_TYPE_STYLES } from '../constants';
 import { ResponsiveContainer, AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip } from 'recharts';
-import { usePreferencesContext } from '../contexts/AppPreferencesContext';
 
 interface VehicleAccountViewProps {
   account: Account;
@@ -36,9 +35,6 @@ const VehicleAccountView: React.FC<VehicleAccountViewProps> = ({
   onSyncLinkedAccount,
   isLinkedToEnableBanking,
 }) => {
-  const { preferences } = usePreferencesContext();
-  const preferredCurrency = getPreferredCurrencyCode(preferences);
-  const currentBalanceInPreferred = convertFromEur(convertToEur(account.balance, account.currency), preferredCurrency);
   const isLeased = account.ownership === 'Leased';
 
   const linkedLoan = accounts.find(a => a.type === 'Loan' && a.linkedAssetId === account.id);

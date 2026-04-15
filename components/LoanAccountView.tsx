@@ -1,12 +1,11 @@
 
 import React, { useMemo } from 'react';
 import { Account, Transaction, ScheduledPayment } from '../types';
-import { formatCurrency, generateAmortizationSchedule, parseLocalDate, convertToEur, convertFromEur, getPreferredCurrencyCode } from '../utils';
+import { formatCurrency, generateAmortizationSchedule, parseLocalDate } from '../utils';
 import Card from './Card';
 import MortgageAmortizationChart from './MortgageAmortizationChart';
 import PaymentPlanTable from './PaymentPlanTable';
 import { BTN_PRIMARY_STYLE, BTN_SECONDARY_STYLE } from '../constants';
-import { usePreferencesContext } from '../contexts/AppPreferencesContext';
 
 interface LoanAccountViewProps {
   account: Account;
@@ -35,8 +34,6 @@ const LoanAccountView: React.FC<LoanAccountViewProps> = ({
   onSyncLinkedAccount,
   isLinkedToEnableBanking,
 }) => {
-  const { preferences } = usePreferencesContext();
-  const preferredCurrency = getPreferredCurrencyCode(preferences);
   const isLending = account.type === 'Lending';
 
   const loanDetails = useMemo(() => {
@@ -126,11 +123,6 @@ const LoanAccountView: React.FC<LoanAccountViewProps> = ({
               <div className="relative z-10">
                   <p className="text-xs font-bold uppercase opacity-80 tracking-wider mb-1">{isLending ? 'Total Receivable' : 'Total Payoff Amount'}</p>
                   <p className="text-3xl font-extrabold mt-1">{formatCurrency(loanDetails.totalOutstanding, account.currency)}</p>
-                  {account.currency !== preferredCurrency && (
-                      <p className="text-white/70 font-medium text-sm mt-1">
-                          ≈ {formatCurrency(convertFromEur(convertToEur(loanDetails.totalOutstanding, account.currency), preferredCurrency), preferredCurrency)}
-                      </p>
-                  )}
                   <p className="text-sm opacity-80 mt-2">Principal + Remaining Interest</p>
               </div>
                <div className="absolute -right-4 -bottom-6 text-white opacity-10">
