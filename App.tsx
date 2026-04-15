@@ -61,7 +61,7 @@ import { Page, Theme, Category, User, Transaction, Account, RecurringTransaction
 import { MOCK_INCOME_CATEGORIES, MOCK_EXPENSE_CATEGORIES, LIQUID_ACCOUNT_TYPES } from './constants';
 import { createDemoUser, emptyFinancialData, initialFinancialData } from './demoData';
 import { v4 as uuidv4 } from 'uuid';
-import { convertToEur, CONVERSION_RATES, setGlobalConversionRates, arrayToCSV, downloadCSV, parseLocalDate, toLocalISOString, toLocalDateTimeString } from './utils';
+import { convertToEur, CONVERSION_RATES, arrayToCSV, downloadCSV, parseLocalDate, toLocalISOString, toLocalDateTimeString } from './utils';
 import { buildHoldingsOverview } from './utils/investments';
 import { upsertEntity, removeEntityById } from './utils/collection';
 import { useDebounce } from './hooks/useDebounce';
@@ -347,7 +347,6 @@ const App: React.FC = () => {
   const [userStats, setUserStats] = useState<UserStats>(emptyFinancialData.userStats || { currentStreak: 0, longestStreak: 0, lastLogDate: '' });
   const [predictions, setPredictions] = useState<Prediction[]>(emptyFinancialData.predictions || []);
   const [enableBankingConnections, setEnableBankingConnections] = useState<EnableBankingConnection[]>(emptyFinancialData.enableBankingConnections || []);
-  const [conversionRates, setConversionRates] = useState<Record<string, number>>(emptyFinancialData.conversionRates || {});
 
   const latestDataRef = useRef<FinancialData>(emptyFinancialData);
   const lastUpdatedAtRef = useRef<string | null>(null);
@@ -364,54 +363,6 @@ const App: React.FC = () => {
   const [manualWarrantPrices, setManualWarrantPrices] = useState<Record<string, number | undefined>>(emptyFinancialData.manualWarrantPrices || {});
   const [priceHistory, setPriceHistory] = useState<Record<string, PriceHistoryEntry[]>>(emptyFinancialData.priceHistory || {});
   const [lastUpdated, setLastUpdated] = useState<Date | null>(null);
-
-  const fetchFxRates = useCallback(async () => {
-    const apiKey = preferences.twelveDataApiKey;
-    if (!apiKey) return;
-
-    try {
-      const symbols = ['USD/EUR', 'GBP/EUR', 'BTC/EUR', 'RON/EUR'].join(',');
-      const response = await fetch(`https://api.twelvedata.com/exchange_rate?symbol=${symbols}&apikey=${apiKey}`);
-      const data = await response.json();
-
-      if (data.status === 'error') {
-        console.error('TwelveData FX Error:', data.message);
-        return;
-      }
-
-      const newRates: Record<string, number> = {};
-      
-      // Handle both single and multiple symbol responses
-      if (data.symbol && data.rate) {
-        const currency = data.symbol.split('/')[0];
-        newRates[currency] = parseFloat(data.rate);
-      } else {
-        Object.entries(data).forEach(([symbol, info]: [string, any]) => {
-          const currency = symbol.split('/')[0];
-          if (info && info.rate) {
-            newRates[currency] = parseFloat(info.rate);
-          }
-        });
-      }
-
-      if (Object.keys(newRates).length > 0) {
-        setConversionRates(prev => ({ ...prev, ...newRates }));
-        setGlobalConversionRates(newRates);
-        setLastUpdated(new Date());
-      }
-    } catch (error) {
-      console.error('Failed to fetch FX rates:', error);
-    }
-  }, [preferences.twelveDataApiKey]);
-
-  useEffect(() => {
-    if (isDataLoaded && preferences.twelveDataApiKey) {
-      fetchFxRates();
-      // Refresh every hour
-      const interval = setInterval(fetchFxRates, 3600000);
-      return () => clearInterval(interval);
-    }
-  }, [isDataLoaded, preferences.twelveDataApiKey, fetchFxRates]);
 
   const markSliceDirty = useCallback((slice: keyof FinancialData) => {
     const pending = new Set(dirtySlicesRef.current);
@@ -634,10 +585,6 @@ const App: React.FC = () => {
       setExpenseCategories(dataToLoad.expenseCategories && dataToLoad.expenseCategories.length > 0 ? dataToLoad.expenseCategories : MOCK_EXPENSE_CATEGORIES);
       if (dataToLoad.userStats) { setUserStats(dataToLoad.userStats); } 
       else { setUserStats(emptyFinancialData.userStats!); }
-      if (dataToLoad.conversionRates) {
-          setConversionRates(dataToLoad.conversionRates);
-          setGlobalConversionRates(dataToLoad.conversionRates);
-      }
       streakUpdatedRef.current = false;
       setEnableBankingConnections(dataToLoad.enableBankingConnections || []);
       setPreferences(loadedPrefs);
@@ -689,11 +636,11 @@ const App: React.FC = () => {
     accounts, transactions, investmentTransactions, recurringTransactions,
     recurringTransactionOverrides, loanPaymentOverrides, financialGoals, budgets, tasks, warrants, memberships, importExportHistory, incomeCategories,
     expenseCategories, preferences, billsAndPayments, accountOrder, taskOrder, tags, manualWarrantPrices, priceHistory, invoices, userStats, predictions,
-    enableBankingConnections, conversionRates, userProfile: currentUser || undefined
+    enableBankingConnections, userProfile: currentUser || undefined
   }), [
     accounts, transactions, investmentTransactions,
     recurringTransactions, recurringTransactionOverrides, loanPaymentOverrides, financialGoals, budgets, tasks, warrants, memberships, importExportHistory,
-    incomeCategories, expenseCategories, preferences, billsAndPayments, accountOrder, taskOrder, tags, manualWarrantPrices, priceHistory, invoices, userStats, predictions, enableBankingConnections, conversionRates, currentUser
+    incomeCategories, expenseCategories, preferences, billsAndPayments, accountOrder, taskOrder, tags, manualWarrantPrices, priceHistory, invoices, userStats, predictions, enableBankingConnections, currentUser
   ]);
 
   const debouncedDirtySignal = useDebounce(dirtySignal, 900);
@@ -725,7 +672,6 @@ const App: React.FC = () => {
   useEffect(() => { if (!isDataLoaded || restoreInProgressRef.current) return; markSliceDirty('userStats'); }, [userStats, isDataLoaded, markSliceDirty]);
   useEffect(() => { if (!isDataLoaded || restoreInProgressRef.current) return; markSliceDirty('predictions'); }, [predictions, isDataLoaded, markSliceDirty]);
   useEffect(() => { if (!isDataLoaded || restoreInProgressRef.current) return; markSliceDirty('enableBankingConnections'); }, [enableBankingConnections, isDataLoaded, markSliceDirty]);
-  useEffect(() => { if (!isDataLoaded || restoreInProgressRef.current) return; markSliceDirty('conversionRates'); }, [conversionRates, isDataLoaded, markSliceDirty]);
 
   const postData = useCallback(
     async (payload: Record<string, unknown>, options?: { keepalive?: boolean; suppressErrors?: boolean }): Promise<boolean> => {

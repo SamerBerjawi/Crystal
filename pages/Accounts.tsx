@@ -4,14 +4,13 @@ import { Account, Page, AccountType, Transaction, Warrant } from '../types';
 import AddAccountModal from '../components/AddAccountModal';
 import EditAccountModal from '../components/EditAccountModal';
 import { ASSET_TYPES, DEBT_TYPES, BTN_PRIMARY_STYLE, ACCOUNT_TYPE_STYLES, BTN_SECONDARY_STYLE, SELECT_WRAPPER_STYLE, SELECT_ARROW_STYLE, SELECT_STYLE, LIQUID_ACCOUNT_TYPES } from '../constants';
-import { calculateAccountTotals, convertToEur, convertFromEur, getPreferredCurrencyCode, formatCurrency, parseLocalDate, toLocalISOString } from '../utils';
+import { calculateAccountTotals, convertToEur, formatCurrency, parseLocalDate, toLocalISOString } from '../utils';
 import AccountsListSection from '../components/AccountsListSection';
 import BalanceAdjustmentModal from '../components/BalanceAdjustmentModal';
 import FinalConfirmationModal from '../components/FinalConfirmationModal';
 import Card from '../components/Card';
 import { useLocalStorage } from '../hooks/useLocalStorage';
 import { useScheduleContext } from '../contexts/FinancialDataContext';
-import { usePreferencesContext } from '../contexts/DomainProviders';
 import PageHeader from '../components/PageHeader';
 import { LineChart, Line, ResponsiveContainer, YAxis, AreaChart, Area } from 'recharts';
 import { motion, AnimatePresence } from 'motion/react';
@@ -48,8 +47,6 @@ const Accounts: React.FC<AccountsProps> = ({ accounts, transactions, saveAccount
   const [layoutMode, setLayoutMode] = useLocalStorage<'stacked' | 'columns'>('crystal_accounts_section_layout', 'columns');
   const [sortBy, setSortBy] = useState<'name' | 'balance' | 'manual'>(initialSortBy);
   const { loanPaymentOverrides } = useScheduleContext();
-  const { preferences } = usePreferencesContext();
-  const preferredCurrency = getPreferredCurrencyCode(preferences.currency);
   
   // New State for Segmentation
   const [activeSegment, setActiveSegment] = useState<AccountSegment>('all');
@@ -145,9 +142,9 @@ const Accounts: React.FC<AccountsProps> = ({ accounts, transactions, saveAccount
       if (activeSegment === 'all') {
           totalValue = globalMetrics.netWorth;
           details = [
-              { label: 'Total Assets', value: formatCurrency(convertFromEur(globalMetrics.totalAssets, preferredCurrency), preferredCurrency), icon: 'account_balance' },
-              { label: 'Total Liabilities', value: formatCurrency(convertFromEur(globalMetrics.totalDebt, preferredCurrency), preferredCurrency), icon: 'money_off' },
-              { label: 'Liquid Cash', value: formatCurrency(convertFromEur(globalMetrics.liquidCash, preferredCurrency), preferredCurrency), icon: 'savings' },
+              { label: 'Total Assets', value: formatCurrency(globalMetrics.totalAssets, 'EUR'), icon: 'account_balance' },
+              { label: 'Total Liabilities', value: formatCurrency(globalMetrics.totalDebt, 'EUR'), icon: 'money_off' },
+              { label: 'Liquid Cash', value: formatCurrency(globalMetrics.liquidCash, 'EUR'), icon: 'savings' },
           ];
       } else if (activeSegment === 'cash') {
           totalValue = accountsToSum.reduce((sum, acc) => sum + convertToEur(acc.balance, acc.currency), 0);
@@ -165,9 +162,9 @@ const Accounts: React.FC<AccountsProps> = ({ accounts, transactions, saveAccount
             .reduce((sum, t) => sum + convertToEur(t.amount, t.currency), 0);
 
           details = [
-              { label: 'Checking', value: formatCurrency(convertFromEur(checking, preferredCurrency), preferredCurrency), icon: 'payments' },
-              { label: 'Savings', value: formatCurrency(convertFromEur(savings, preferredCurrency), preferredCurrency), icon: 'savings' },
-              { label: '30d Net Flow', value: (netFlow >= 0 ? '+' : '') + formatCurrency(convertFromEur(netFlow, preferredCurrency), preferredCurrency), icon: 'show_chart' },
+              { label: 'Checking', value: formatCurrency(checking, 'EUR'), icon: 'payments' },
+              { label: 'Savings', value: formatCurrency(savings, 'EUR'), icon: 'savings' },
+              { label: '30d Net Flow', value: (netFlow >= 0 ? '+' : '') + formatCurrency(netFlow, 'EUR'), icon: 'show_chart' },
           ];
       } else if (activeSegment === 'invested') {
           totalValue = accountsToSum.reduce((sum, acc) => sum + convertToEur(acc.balance, acc.currency), 0);
@@ -178,8 +175,8 @@ const Accounts: React.FC<AccountsProps> = ({ accounts, transactions, saveAccount
           const stocks = accountsToSum.filter(a => ['Stock', 'ETF'].includes(a.subType || '')).reduce((s, a) => s + convertToEur(a.balance, a.currency), 0);
 
           details = [
-               { label: 'Stocks & ETFs', value: formatCurrency(convertFromEur(stocks, preferredCurrency), preferredCurrency), icon: 'candlestick_chart' },
-               { label: 'Crypto', value: formatCurrency(convertFromEur(crypto, preferredCurrency), preferredCurrency), icon: 'currency_bitcoin' },
+               { label: 'Stocks & ETFs', value: formatCurrency(stocks, 'EUR'), icon: 'candlestick_chart' },
+               { label: 'Crypto', value: formatCurrency(crypto, 'EUR'), icon: 'currency_bitcoin' },
                { label: 'Count', value: accountsToSum.length.toString(), icon: 'format_list_numbered' },
           ];
       } else if (activeSegment === 'property') {
@@ -194,8 +191,8 @@ const Accounts: React.FC<AccountsProps> = ({ accounts, transactions, saveAccount
           const equity = totalValue - totalDebt;
 
           details = [
-              { label: 'Total Equity', value: formatCurrency(convertFromEur(equity, preferredCurrency), preferredCurrency), icon: 'pie_chart' },
-              { label: 'Linked Debt', value: formatCurrency(convertFromEur(totalDebt, preferredCurrency), preferredCurrency), icon: 'link' },
+              { label: 'Total Equity', value: formatCurrency(equity, 'EUR'), icon: 'pie_chart' },
+              { label: 'Linked Debt', value: formatCurrency(totalDebt, 'EUR'), icon: 'link' },
               { label: 'Assets', value: accountsToSum.length.toString(), icon: 'home' },
           ];
       } else if (activeSegment === 'debt') {
@@ -208,8 +205,8 @@ const Accounts: React.FC<AccountsProps> = ({ accounts, transactions, saveAccount
            const loanDebt = totalDebt - ccDebt;
 
            details = [
-               { label: 'Credit Cards', value: formatCurrency(convertFromEur(ccDebt, preferredCurrency), preferredCurrency), icon: 'credit_card' },
-               { label: 'Loans', value: formatCurrency(convertFromEur(loanDebt, preferredCurrency), preferredCurrency), icon: 'real_estate_agent' },
+               { label: 'Credit Cards', value: formatCurrency(ccDebt, 'EUR'), icon: 'credit_card' },
+               { label: 'Loans', value: formatCurrency(loanDebt, 'EUR'), icon: 'real_estate_agent' },
                { label: 'Count', value: accountsToSum.length.toString(), icon: 'format_list_numbered' },
            ];
       }
@@ -364,7 +361,7 @@ const Accounts: React.FC<AccountsProps> = ({ accounts, transactions, saveAccount
                     
                     <div className="space-y-1">
                         <h2 className={`text-5xl md:text-6xl font-black tracking-tighter privacy-blur leading-none ${activeSegment === 'all' ? 'text-white' : 'text-light-text dark:text-dark-text'}`}>
-                            {formatCurrency(convertFromEur(segmentValues.all, preferredCurrency), preferredCurrency)}
+                            {formatCurrency(segmentValues.all, 'EUR')}
                         </h2>
                         <p className={`text-xs font-bold uppercase tracking-widest ml-1 ${activeSegment === 'all' ? 'text-white/50' : 'text-light-text-secondary dark:text-dark-text-secondary'}`}>Combined Portfolio Value</p>
                     </div>
@@ -436,7 +433,7 @@ const Accounts: React.FC<AccountsProps> = ({ accounts, transactions, saveAccount
                             </div>
                             <p className={`text-[10px] font-black uppercase tracking-[0.15em] mb-1 ${isActive ? 'text-white/60' : 'text-light-text-secondary dark:text-dark-text-secondary'}`}>{seg.label}</p>
                             <h3 className={`text-2xl font-black tracking-tight privacy-blur ${isActive ? 'text-white' : 'text-light-text dark:text-dark-text'}`}>
-                                {formatCurrency(convertFromEur(value, preferredCurrency), preferredCurrency)}
+                                {formatCurrency(value, 'EUR')}
                             </h3>
                         </div>
 

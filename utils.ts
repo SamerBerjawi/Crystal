@@ -37,25 +37,13 @@ export function formatCurrency(amount: number, currency: Currency, options?: { s
   return `${sign}${symbol} ${formatter.format(Math.abs(amount))}`;
 }
 
-export let CONVERSION_RATES: { [key in Currency]?: number } = {
+export const CONVERSION_RATES: { [key in Currency]?: number } = {
     'USD': 0.93, 'GBP': 1.18, 'BTC': 65000, 'EUR': 1, 'RON': 0.20
-};
-
-export const setGlobalConversionRates = (rates: Record<string, number>) => {
-    CONVERSION_RATES = { ...CONVERSION_RATES, ...rates };
 };
 
 export const convertToEur = (balance: number, currency: Currency): number => {
     return balance * (CONVERSION_RATES[currency] || 1);
 }
-
-export const convertFromEur = (amountEur: number, targetCurrency: Currency): number => {
-    return amountEur / (CONVERSION_RATES[targetCurrency] || 1);
-}
-
-export const getPreferredCurrencyCode = (currencyPref: string): Currency => {
-    return currencyPref.substring(0, 3) as Currency;
-};
 
 export const getPreferredTimeZone = (fallback?: string): string => {
     // Always prefer the device's local timezone to avoid date shift confusion
