@@ -139,7 +139,7 @@ const SchedulePage: React.FC = () => {
         loanPaymentOverrides,
     } = useScheduleContext();
 
-    const [viewMode, setViewMode] = useState<'timeline' | 'list' | 'calendar'>('timeline');
+    const [viewMode, setViewMode] = useState<'timeline' | 'list' | 'calendar'>('calendar');
     const [searchQuery, setSearchQuery] = useState('');
     const [isRecurringModalOpen, setIsRecurringModalOpen] = useState(false);
     const [isBillModalOpen, setIsBillModalOpen] = useState(false);
@@ -760,18 +760,18 @@ const SchedulePage: React.FC = () => {
                 <div className="flex flex-col sm:flex-row justify-between gap-4 bg-light-card dark:bg-dark-card p-2 rounded-xl shadow-sm border border-black/5 dark:border-white/5">
                         <div className="flex bg-light-fill dark:bg-dark-fill p-1 rounded-lg w-full sm:w-auto">
                         <button 
-                            onClick={() => setViewMode('timeline')} 
-                            className={`flex-1 sm:flex-none px-4 py-2 rounded-md text-sm font-semibold transition-all duration-200 flex items-center justify-center gap-2 ${viewMode === 'timeline' ? 'bg-white dark:bg-dark-card text-primary-600 dark:text-primary-400 shadow-sm' : 'text-light-text-secondary dark:text-dark-text-secondary hover:text-light-text dark:hover:text-dark-text'}`}
-                        >
-                            <span className="material-symbols-outlined text-base">calendar_view_day</span>
-                            Timeline
-                        </button>
-                        <button 
                             onClick={() => setViewMode('calendar')} 
                             className={`flex-1 sm:flex-none px-4 py-2 rounded-md text-sm font-semibold transition-all duration-200 flex items-center justify-center gap-2 ${viewMode === 'calendar' ? 'bg-white dark:bg-dark-card text-primary-600 dark:text-primary-400 shadow-sm' : 'text-light-text-secondary dark:text-dark-text-secondary hover:text-light-text dark:hover:text-dark-text'}`}
                         >
                             <span className="material-symbols-outlined text-base">calendar_month</span>
                             Calendar
+                        </button>
+                        <button 
+                            onClick={() => setViewMode('timeline')} 
+                            className={`flex-1 sm:flex-none px-4 py-2 rounded-md text-sm font-semibold transition-all duration-200 flex items-center justify-center gap-2 ${viewMode === 'timeline' ? 'bg-white dark:bg-dark-card text-primary-600 dark:text-primary-400 shadow-sm' : 'text-light-text-secondary dark:text-dark-text-secondary hover:text-light-text dark:hover:text-dark-text'}`}
+                        >
+                            <span className="material-symbols-outlined text-base">calendar_view_day</span>
+                            Timeline
                         </button>
                         <button 
                             onClick={() => setViewMode('list')} 
