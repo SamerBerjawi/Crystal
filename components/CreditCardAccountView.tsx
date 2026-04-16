@@ -206,8 +206,19 @@ const CreditCardAccountView: React.FC<CreditCardAccountViewProps> = ({
                                 <YAxis axisLine={false} tickLine={false} tick={{ fill: 'currentColor', opacity: 0.6, fontSize: 12 }} tickFormatter={(val) => `${val}`} />
                                 <Tooltip 
                                     cursor={{ fill: 'rgba(128, 128, 128, 0.05)', radius: 4 }}
-                                    contentStyle={{ backgroundColor: 'var(--light-card)', borderColor: 'rgba(0,0,0,0.05)', borderRadius: '12px' }}
-                                    formatter={(value: number) => [formatCurrency(value, account.currency), 'Spent']}
+                                    content={({ active, payload, label }) => {
+                                        if (active && payload && payload.length) {
+                                            return (
+                                                <div className="bg-white dark:bg-dark-card border border-black/5 dark:border-white/10 p-3 rounded-xl shadow-xl backdrop-blur-md">
+                                                    <p className="text-xs font-bold text-light-text-secondary dark:text-dark-text-secondary mb-1 uppercase tracking-wider">{label}</p>
+                                                    <p className="text-sm font-extrabold text-light-text dark:text-dark-text">
+                                                        {formatCurrency(payload[0].value as number, account.currency)}
+                                                    </p>
+                                                </div>
+                                            );
+                                        }
+                                        return null;
+                                    }}
                                 />
                                 <Bar dataKey="value" radius={[4, 4, 0, 0]} barSize={40}>
                                     {spendingHistory.map((entry, index) => (

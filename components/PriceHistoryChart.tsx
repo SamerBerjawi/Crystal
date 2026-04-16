@@ -25,11 +25,11 @@ const PriceHistoryChart: React.FC<PriceHistoryChartProps> = ({ history }) => {
         if (active && payload && payload.length) {
             const date = parseLocalDate(label);
             return (
-                <div className="bg-light-card dark:bg-dark-card p-3 rounded-lg shadow-lg border border-black/5 dark:border-white/5">
-                    <p className="label font-semibold text-light-text dark:text-dark-text mb-1">
-                        {date.toLocaleDateString('en-US', { day: 'numeric', month: 'long', year: 'numeric' })}
+                <div className="bg-white dark:bg-dark-card p-3 rounded-xl shadow-xl border border-black/5 dark:border-white/10 backdrop-blur-md">
+                    <p className="font-black text-light-text-secondary dark:text-dark-text-secondary mb-2 uppercase tracking-widest text-[10px] opacity-60">
+                        {date.toLocaleDateString('en-US', { day: 'numeric', month: 'short', year: 'numeric' })}
                     </p>
-                    <p className="text-primary-500 font-mono font-bold">
+                    <p className="text-primary-500 font-mono font-black text-lg tracking-tighter">
                         {formatCurrency(payload[0].value, 'EUR')}
                     </p>
                 </div>

@@ -18,9 +18,9 @@ const CustomTooltip = ({ active, payload, label }: any) => {
     if (active && payload && payload.length) {
       const color = payload?.[0]?.payload?.color || '#8884d8';
       return (
-        <div className="bg-light-card dark:bg-dark-card p-3 rounded-lg shadow-lg border border-black/5 dark:border-white/5">
-          <p className="label font-semibold text-light-text dark:text-dark-text mb-1">{label}</p>
-          <p style={{ color: color }}>{`Total: ${formatCurrency(payload[0].value, 'EUR')}`}</p>
+        <div className="bg-white dark:bg-dark-card p-3 rounded-xl shadow-xl border border-black/5 dark:border-white/10 backdrop-blur-md">
+          <p className="font-black text-light-text-secondary dark:text-dark-text-secondary mb-2 uppercase tracking-widest text-[10px] opacity-60">{label}</p>
+          <p className="font-black font-mono text-sm" style={{ color: color }}>{formatCurrency(payload[0].value, 'EUR')}</p>
         </div>
       );
     }

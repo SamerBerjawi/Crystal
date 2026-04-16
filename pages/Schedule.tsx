@@ -12,11 +12,12 @@ import RecurringOverrideModal from '../components/RecurringOverrideModal';
 import AddTransactionModal from '../components/AddTransactionModal';
 import BillPaymentModal from '../components/BillPaymentModal';
 import { useAccountsContext, useTransactionsContext } from '../contexts/DomainProviders';
-import { useCategoryContext, useScheduleContext, useTagsContext } from '../contexts/FinancialDataContext';
+import { useCategoryContext, useScheduleContext, useTagsContext, useGoalsContext } from '../contexts/FinancialDataContext';
 import { Cell, Pie, PieChart, ResponsiveContainer, Tooltip as RechartsTooltip } from 'recharts';
 import PageHeader from '../components/PageHeader';
 import ScheduledItemRow from '../components/ScheduledItemRow';
 import ConfirmationModal from '../components/ConfirmationModal';
+import CalendarView from '../components/CalendarView';
 import { v4 as uuidv4 } from 'uuid';
 
 // --- Summary Card Component ---
@@ -124,6 +125,7 @@ const SchedulePage: React.FC = () => {
     const { transactions, saveTransaction } = useTransactionsContext();
     const { incomeCategories, expenseCategories } = useCategoryContext();
     const { tags } = useTagsContext();
+    const { financialGoals } = useGoalsContext();
     const {
         recurringTransactions,
         saveRecurringTransaction,
@@ -137,7 +139,7 @@ const SchedulePage: React.FC = () => {
         loanPaymentOverrides,
     } = useScheduleContext();
 
-    const [viewMode, setViewMode] = useState<'timeline' | 'list'>('timeline');
+    const [viewMode, setViewMode] = useState<'timeline' | 'list' | 'calendar'>('timeline');
     const [searchQuery, setSearchQuery] = useState('');
     const [isRecurringModalOpen, setIsRecurringModalOpen] = useState(false);
     const [isBillModalOpen, setIsBillModalOpen] = useState(false);
@@ -765,6 +767,13 @@ const SchedulePage: React.FC = () => {
                             Timeline
                         </button>
                         <button 
+                            onClick={() => setViewMode('calendar')} 
+                            className={`flex-1 sm:flex-none px-4 py-2 rounded-md text-sm font-semibold transition-all duration-200 flex items-center justify-center gap-2 ${viewMode === 'calendar' ? 'bg-white dark:bg-dark-card text-primary-600 dark:text-primary-400 shadow-sm' : 'text-light-text-secondary dark:text-dark-text-secondary hover:text-light-text dark:hover:text-dark-text'}`}
+                        >
+                            <span className="material-symbols-outlined text-base">calendar_month</span>
+                            Calendar
+                        </button>
+                        <button 
                             onClick={() => setViewMode('list')} 
                             className={`flex-1 sm:flex-none px-4 py-2 rounded-md text-sm font-semibold transition-all duration-200 flex items-center justify-center gap-2 ${viewMode === 'list' ? 'bg-white dark:bg-dark-card text-primary-600 dark:text-primary-400 shadow-sm' : 'text-light-text-secondary dark:text-dark-text-secondary hover:text-light-text dark:hover:text-dark-text'}`}
                         >
@@ -817,6 +826,14 @@ const SchedulePage: React.FC = () => {
                                 </div>
                         )}
                     </div>
+                ) : viewMode === 'calendar' ? (
+                    <CalendarView 
+                        items={allUpcomingForHeatmap} 
+                        goals={financialGoals} 
+                        accounts={accounts} 
+                        onEditItem={handleEditItem} 
+                        onPostItem={handleOpenPostModal} 
+                    />
                 ) : (
                     <div className="space-y-4">
                             {recurringList.map((rt) => (

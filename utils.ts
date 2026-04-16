@@ -41,8 +41,27 @@ export const CONVERSION_RATES: { [key in Currency]?: number } = {
     'USD': 0.93, 'GBP': 1.18, 'BTC': 65000, 'EUR': 1, 'RON': 0.20
 };
 
-export const convertToEur = (balance: number, currency: Currency): number => {
-    return balance * (CONVERSION_RATES[currency] || 1);
+let dynamicRates: Record<string, number> = { ...CONVERSION_RATES };
+
+export const updateConversionRates = (rates: Record<string, number>) => {
+    dynamicRates = { ...dynamicRates, ...rates };
+};
+
+export const convertToEur = (balance: number, currency: Currency, rates?: Record<string, number>): number => {
+    const activeRates = rates || dynamicRates;
+    return balance * (activeRates[currency] || 1);
+}
+
+export const convertCurrency = (amount: number, from: Currency, to: Currency, rates?: Record<string, number>): number => {
+    const activeRates = rates || dynamicRates;
+    if (from === to) return amount;
+    
+    // Convert from 'from' to EUR
+    const amountInEur = amount * (activeRates[from] || 1);
+    
+    // Convert from EUR to 'to'
+    const rateTo = activeRates[to] || 1;
+    return amountInEur / rateTo;
 }
 
 export const getPreferredTimeZone = (fallback?: string): string => {

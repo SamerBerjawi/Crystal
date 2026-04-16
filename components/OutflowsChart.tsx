@@ -12,9 +12,9 @@ interface OutflowsChartProps {
 const CustomTooltip = ({ active, payload, label }: any) => {
     if (active && payload && payload.length) {
       return (
-        <div className="bg-light-card/90 dark:bg-dark-card/90 backdrop-blur-sm p-3 rounded-lg shadow-xl border border-white/10 text-sm">
-          <p className="label font-bold text-light-text dark:text-dark-text mb-1">{label}</p>
-          <p style={{ color: payload[0].payload.color }} className="font-mono">{`Spent: ${formatCurrency(payload[0].value, 'EUR')}`}</p>
+        <div className="bg-white dark:bg-dark-card p-3 rounded-xl shadow-xl border border-black/5 dark:border-white/10 backdrop-blur-md text-sm">
+          <p className="font-black text-light-text dark:text-dark-text mb-2 uppercase tracking-widest text-[10px] opacity-60">{label}</p>
+          <p style={{ color: payload[0].payload.color }} className="font-black font-mono">{formatCurrency(payload[0].value, 'EUR')}</p>
         </div>
       );
     }

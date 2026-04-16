@@ -57,10 +57,10 @@ const CustomTooltip: React.FC<{ active?: boolean; payload?: any[]; label?: strin
       const remainingCount = dailySummary ? dailySummary.length - 5 : 0;
 
       return (
-        <div className="bg-white/95 dark:bg-gray-900/95 backdrop-blur-md p-4 rounded-xl shadow-xl border border-gray-200 dark:border-gray-700 text-sm max-w-[320px] z-50">
-          <div className="flex justify-between items-center mb-3 border-b border-gray-200 dark:border-gray-700 pb-2">
-              <p className="font-bold text-gray-900 dark:text-white">{formattedDate}</p>
-              {isHistory && <span className="text-[10px] uppercase font-bold bg-gray-100 dark:bg-gray-800 text-gray-500 px-2 py-0.5 rounded">History</span>}
+        <div className="bg-white dark:bg-dark-card p-4 rounded-xl shadow-xl border border-black/5 dark:border-white/10 backdrop-blur-md text-sm max-w-[320px] z-50">
+          <div className="flex justify-between items-center mb-3 border-b border-black/5 dark:border-white/10 pb-2">
+              <p className="font-bold text-light-text dark:text-dark-text">{formattedDate}</p>
+              {isHistory && <span className="text-[10px] uppercase font-black bg-gray-100 dark:bg-white/10 text-light-text-secondary dark:text-dark-text-secondary px-2 py-0.5 rounded">History</span>}
           </div>
           
           {showIndividualLines ? (
@@ -73,9 +73,9 @@ const CustomTooltip: React.FC<{ active?: boolean; payload?: any[]; label?: strin
                           <div key={entry.dataKey} className="flex justify-between gap-6 text-xs">
                               <div className="flex items-center gap-2">
                                 <div className="w-2 h-2 rounded-full" style={{ backgroundColor: entry.color }}></div>
-                                <span className="text-gray-600 dark:text-gray-300 font-medium truncate max-w-[140px]">{name}</span>
+                                <span className="text-light-text-secondary dark:text-dark-text-secondary font-bold truncate max-w-[140px] uppercase tracking-wider text-[10px]">{name}</span>
                               </div>
-                              <span className="font-mono font-semibold text-gray-900 dark:text-white">{formatCurrency(entry.value, 'EUR')}</span>
+                              <span className="font-mono font-black text-light-text dark:text-dark-text">{formatCurrency(entry.value, 'EUR')}</span>
                           </div>
                       );
                   })}
@@ -83,26 +83,26 @@ const CustomTooltip: React.FC<{ active?: boolean; payload?: any[]; label?: strin
           ) : (
              <div className="mb-4">
                 <div className="flex justify-between items-end">
-                    <span className="text-xs text-gray-500 dark:text-gray-400 font-medium uppercase tracking-wide">Balance</span>
-                    <span className="text-lg font-bold text-indigo-600 dark:text-indigo-400 font-mono">{formatCurrency(payload[0].value, 'EUR')}</span>
+                    <span className="text-[10px] text-light-text-secondary dark:text-dark-text-secondary font-black uppercase tracking-widest">Balance</span>
+                    <span className="text-lg font-black text-primary-500 font-mono tracking-tighter">{formatCurrency(payload[0].value, 'EUR')}</span>
                 </div>
              </div>
           )}
           
           {dailySummary && dailySummary.length > 0 && (
-            <div className="mt-3 pt-3 border-t border-gray-200 dark:border-gray-700">
-                <p className="text-[10px] font-bold text-gray-500 dark:text-gray-400 uppercase tracking-wider mb-2">Transactions</p>
+            <div className="mt-3 pt-3 border-t border-black/5 dark:border-white/10">
+                <p className="text-[10px] font-black text-light-text-secondary dark:text-dark-text-secondary uppercase tracking-widest mb-2">Transactions</p>
                 <div className="space-y-2">
                     {summaryToShow.map((item, idx) => (
                         <div key={idx} className="flex justify-between items-start text-xs gap-3">
-                            <span className="text-gray-700 dark:text-gray-300 leading-tight line-clamp-1">{item.description}</span>
-                            <span className={`font-mono font-medium whitespace-nowrap ${item.amount >= 0 ? 'text-emerald-600 dark:text-emerald-400' : 'text-rose-600 dark:text-rose-400'}`}>
+                            <span className="text-light-text-secondary dark:text-dark-text-secondary leading-tight line-clamp-1 font-medium">{item.description}</span>
+                            <span className={`font-mono font-black whitespace-nowrap ${item.amount >= 0 ? 'text-emerald-500' : 'text-rose-500'}`}>
                                 {formatCurrency(item.amount, 'EUR')}
                             </span>
                         </div>
                     ))}
                     {remainingCount > 0 && (
-                        <p className="text-xs text-indigo-500 dark:text-indigo-400 font-medium text-center mt-2">
+                        <p className="text-[10px] text-primary-500 font-black uppercase tracking-widest text-center mt-2">
                             + {remainingCount} more
                         </p>
                     )}
@@ -110,7 +110,7 @@ const CustomTooltip: React.FC<{ active?: boolean; payload?: any[]; label?: strin
             </div>
           )}
           {!isHistory && (
-              <div className="mt-3 text-[10px] text-gray-400 text-center font-medium">
+              <div className="mt-3 text-[10px] text-light-text-secondary dark:text-dark-text-secondary text-center font-black uppercase tracking-widest opacity-40">
                   Click point for details
               </div>
           )}

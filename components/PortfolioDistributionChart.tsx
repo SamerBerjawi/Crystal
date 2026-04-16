@@ -20,10 +20,12 @@ const PortfolioDistributionChart: React.FC<PortfolioDistributionChartProps> = ({
   const CustomTooltip = ({ active, payload }: any) => {
     if (active && payload && payload.length) {
       return (
-        <div className="bg-light-card dark:bg-dark-card p-3 rounded-lg shadow-lg border border-black/5 dark:border-white/5">
-          <p className="font-semibold">{`${payload[0].name}`}</p>
-          <p style={{ color: payload[0].payload.fill }}>{`Value: ${formatCurrency(payload[0].value, 'EUR')}`}</p>
-          <p className="text-sm text-light-text-secondary dark:text-dark-text-secondary">{`(${(payload[0].percent * 100).toFixed(1)}%)`}</p>
+        <div className="bg-white dark:bg-dark-card p-3 rounded-xl shadow-xl border border-black/5 dark:border-white/10 backdrop-blur-md">
+          <p className="font-black text-light-text dark:text-dark-text mb-2 uppercase tracking-widest text-[10px] opacity-60">{`${payload[0].name}`}</p>
+          <div className="flex items-center justify-between gap-6">
+            <span className="text-xs font-black" style={{ color: payload[0].payload.fill }}>{formatCurrency(payload[0].value, 'EUR')}</span>
+            <span className="text-[10px] font-black text-light-text-secondary dark:text-dark-text-secondary uppercase tracking-widest">{`(${(payload[0].percent * 100).toFixed(1)}%)`}</span>
+          </div>
         </div>
       );
     }

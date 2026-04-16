@@ -161,8 +161,7 @@ router.post('/accounts/:accountId/details', authenticateToken, async (req: AuthR
       clientCertificate?: string;
       sessionId?: string;
     };
-    const { accountId } = req.params;
-
+    const { accountId } = req.params as { accountId: string };
     if (!applicationId || !clientCertificate || !sessionId) {
       return res.status(400).json({ message: 'applicationId, clientCertificate and sessionId are required' });
     }
@@ -183,9 +182,9 @@ router.post('/authorize', authenticateToken, async (req: AuthRequest, res) => {
       return res.status(400).json({ message: 'applicationId, clientCertificate, countryCode and aspspId/aspspName are required' });
     }
     const client = new EnableBankingClient(applicationId, clientCertificate);
-    const forwardedProto = (req.headers['x-forwarded-proto'] as string | undefined)?.split(',')[0]?.trim();
+    const forwardedProto = (Array.isArray(req.headers['x-forwarded-proto']) ? req.headers['x-forwarded-proto'][0] : req.headers['x-forwarded-proto'] as string | undefined)?.split(',')[0]?.trim();
     const protocol = forwardedProto || req.protocol;
-    const forwardedHost = (req.headers['x-forwarded-host'] as string | undefined)?.split(',')[0]?.trim();
+    const forwardedHost = (Array.isArray(req.headers['x-forwarded-host']) ? req.headers['x-forwarded-host'][0] : req.headers['x-forwarded-host'] as string | undefined)?.split(',')[0]?.trim();
     const host = forwardedHost || req.get('host');
     const redirectUrl =
       process.env.ENABLE_BANKING_REDIRECT_URL ||
@@ -238,7 +237,7 @@ router.post('/accounts/:accountId/balances', authenticateToken, async (req: Auth
       clientCertificate?: string;
       sessionId?: string;
     };
-    const { accountId } = req.params;
+    const { accountId } = req.params as { accountId: string };
     if (!applicationId || !clientCertificate || !sessionId) {
       return res.status(400).json({ message: 'applicationId, clientCertificate and sessionId are required' });
     }
@@ -260,7 +259,7 @@ router.post('/accounts/:accountId/transactions', authenticateToken, async (req: 
       continuationKey?: string;
       sessionId?: string;
     };
-    const { accountId } = req.params;
+    const { accountId } = req.params as { accountId: string };
     if (!applicationId || !clientCertificate || !sessionId) {
       return res.status(400).json({ message: 'applicationId, clientCertificate and sessionId are required' });
     }
@@ -307,7 +306,7 @@ router.post('/pending', authenticateToken, async (req: AuthRequest, res) => {
 router.get('/pending/:connectionId', authenticateToken, async (req: AuthRequest, res) => {
   try {
     const userId = req.user?.id;
-    const { connectionId } = req.params;
+    const { connectionId } = req.params as { connectionId: string };
     if (!userId || !connectionId) {
       return res.status(400).json({ message: 'connectionId is required' });
     }
@@ -332,7 +331,7 @@ router.get('/pending/:connectionId', authenticateToken, async (req: AuthRequest,
 router.delete('/pending/:connectionId', authenticateToken, async (req: AuthRequest, res) => {
   try {
     const userId = req.user?.id;
-    const { connectionId } = req.params;
+    const { connectionId } = req.params as { connectionId: string };
     if (!userId || !connectionId) {
       return res.status(400).json({ message: 'connectionId is required' });
     }

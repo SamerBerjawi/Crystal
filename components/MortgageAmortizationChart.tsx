@@ -39,13 +39,20 @@ const MortgageAmortizationChart: React.FC<MortgageAmortizationChartProps> = ({ s
   const CustomTooltip = ({ active, payload, label }: any) => {
     if (active && payload && payload.length) {
       return (
-        <div className="bg-light-card dark:bg-dark-card p-3 rounded-lg shadow-lg border border-black/5 dark:border-white/5 text-sm">
-          <p className="font-bold text-light-text dark:text-dark-text mb-2">{label}</p>
-          <div className="space-y-1">
-            <p className="text-primary-500">{isLending ? 'Principal' : 'Principal'}: {formatCurrency(payload[0].value, currency)}</p>
-            <p className="text-red-500">{isLending ? 'Interest' : 'Interest'}: {formatCurrency(payload[1].value, currency)}</p>
-            <div className="border-t border-black/10 dark:border-white/10 pt-1 mt-1">
-                <p className="text-light-text-secondary dark:text-dark-text-secondary">Balance: {formatCurrency(payload[0].payload.balance, currency)}</p>
+        <div className="bg-white dark:bg-dark-card p-3 rounded-xl shadow-xl border border-black/5 dark:border-white/10 backdrop-blur-md text-sm">
+          <p className="font-black text-light-text dark:text-dark-text mb-2 uppercase tracking-widest text-[10px] opacity-60">{label}</p>
+          <div className="space-y-1.5">
+            <div className="flex items-center justify-between gap-4">
+                <span className="text-[10px] font-black uppercase tracking-wider text-light-text-secondary dark:text-dark-text-secondary">Principal</span>
+                <span className="font-mono font-black text-primary-500">{formatCurrency(payload[0].value, currency)}</span>
+            </div>
+            <div className="flex items-center justify-between gap-4">
+                <span className="text-[10px] font-black uppercase tracking-wider text-light-text-secondary dark:text-dark-text-secondary">Interest</span>
+                <span className="font-mono font-black text-rose-500">{formatCurrency(payload[1].value, currency)}</span>
+            </div>
+            <div className="border-t border-black/5 dark:border-white/5 pt-1.5 mt-1.5 flex items-center justify-between gap-4">
+                <span className="text-[10px] font-black uppercase tracking-wider text-light-text-secondary dark:text-dark-text-secondary opacity-60">Balance</span>
+                <span className="font-mono font-black text-light-text dark:text-dark-text opacity-80">{formatCurrency(payload[0].payload.balance, currency)}</span>
             </div>
           </div>
         </div>

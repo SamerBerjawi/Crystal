@@ -158,7 +158,7 @@ const Integrations: React.FC<IntegrationsProps> = ({
               
               <ApiKeyCard
                   title="Twelve Data"
-                  description="Enables real-time stock, ETF, and crypto pricing updates for your investment portfolio."
+                  description="Enables real-time stock, ETF, crypto, and FX rate updates for accurate currency conversions across your accounts."
                   icon="candlestick_chart"
                   name="twelveDataApiKey"
                   value={localApiKeys.twelveDataApiKey}

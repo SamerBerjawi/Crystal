@@ -61,7 +61,7 @@ import { Page, Theme, Category, User, Transaction, Account, RecurringTransaction
 import { MOCK_INCOME_CATEGORIES, MOCK_EXPENSE_CATEGORIES, LIQUID_ACCOUNT_TYPES } from './constants';
 import { createDemoUser, emptyFinancialData, initialFinancialData } from './demoData';
 import { v4 as uuidv4 } from 'uuid';
-import { convertToEur, CONVERSION_RATES, arrayToCSV, downloadCSV, parseLocalDate, toLocalISOString, toLocalDateTimeString } from './utils';
+import { convertToEur, CONVERSION_RATES, updateConversionRates, arrayToCSV, downloadCSV, parseLocalDate, toLocalISOString, toLocalDateTimeString } from './utils';
 import { buildHoldingsOverview } from './utils/investments';
 import { upsertEntity, removeEntityById } from './utils/collection';
 import { useDebounce } from './hooks/useDebounce';
@@ -72,6 +72,7 @@ import { FinancialDataProvider } from './contexts/FinancialDataContext';
 import { AccountsProvider, PreferencesProvider, TransactionsProvider, WarrantsProvider, InvoicesProvider } from './contexts/DomainProviders';
 import { InsightsViewProvider } from './contexts/InsightsViewContext';
 import { persistPendingConnection, removePendingConnection } from './utils/enableBankingStorage';
+import { fetchAllExchangeRates } from './src/services/twelveDataService';
 
 const IBAN_REGEX = /^[A-Z]{2}[0-9]{2}[A-Z0-9]{9,30}$/i;
 
@@ -588,6 +589,9 @@ const App: React.FC = () => {
       streakUpdatedRef.current = false;
       setEnableBankingConnections(dataToLoad.enableBankingConnections || []);
       setPreferences(loadedPrefs);
+      if (loadedPrefs.conversionRates) {
+        updateConversionRates(loadedPrefs.conversionRates);
+      }
       setAccountOrder(dataToLoad.accountOrder || []);
       setTaskOrder(dataToLoad.taskOrder || []);
       dirtySlicesRef.current.clear();
@@ -597,6 +601,35 @@ const App: React.FC = () => {
     });
     latestDataRef.current = dataToLoad;
   }, [setAccountOrder, setTaskOrder]);
+
+  // FX Rates Auto-update
+  useEffect(() => {
+    if (!preferences.twelveDataApiKey || !isDataLoaded) return;
+
+    const fetchRates = async () => {
+      try {
+        const targets: Currency[] = ['USD', 'GBP', 'BTC', 'RON', 'EUR'];
+        const rates = await fetchAllExchangeRates('EUR', targets, preferences.twelveDataApiKey!);
+        
+        setPreferences(prev => {
+          const hasChanged = JSON.stringify(prev.conversionRates) !== JSON.stringify(rates);
+          if (!hasChanged) return prev;
+          updateConversionRates(rates);
+          return { ...prev, conversionRates: rates };
+        });
+        markSliceDirty('preferences');
+      } catch (error) {
+        console.error('Failed to fetch FX rates:', error);
+      }
+    };
+
+    // Fetch on load
+    fetchRates();
+    
+    // Refresh every 4 hours
+    const interval = setInterval(fetchRates, 4 * 60 * 60 * 1000);
+    return () => clearInterval(interval);
+  }, [preferences.twelveDataApiKey, isDataLoaded, markSliceDirty]);
   
   const handleEnterDemoMode = () => {
     loadAllFinancialData(null, { useDemoDefaults: true });

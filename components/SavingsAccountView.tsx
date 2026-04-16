@@ -208,9 +208,21 @@ const SavingsAccountView: React.FC<SavingsAccountViewProps> = ({
                                 </linearGradient>
                             </defs>
                             <Tooltip 
-                                contentStyle={{ backgroundColor: 'var(--light-card)', borderColor: 'rgba(0,0,0,0.1)', borderRadius: '8px', fontSize: '12px' }}
-                                formatter={(val: number) => [formatCurrency(val, account.currency), 'Balance']}
-                                labelFormatter={(label) => new Date(label).toLocaleDateString()}
+                                content={({ active, payload, label }) => {
+                                    if (active && payload && payload.length) {
+                                        return (
+                                            <div className="bg-white dark:bg-dark-card border border-black/5 dark:border-white/10 p-2 rounded-lg shadow-lg backdrop-blur-md">
+                                                <p className="text-[10px] font-bold text-light-text-secondary dark:text-dark-text-secondary mb-1 uppercase tracking-wider">
+                                                    {new Date(label).toLocaleDateString()}
+                                                </p>
+                                                <p className="text-xs font-extrabold text-light-text dark:text-dark-text">
+                                                    {formatCurrency(payload[0].value as number, account.currency)}
+                                                </p>
+                                            </div>
+                                        );
+                                    }
+                                    return null;
+                                }}
                             />
                             <Area 
                                 type="monotone" 
@@ -250,8 +262,19 @@ const SavingsAccountView: React.FC<SavingsAccountViewProps> = ({
                                     <YAxis axisLine={false} tickLine={false} tick={{ fill: 'currentColor', opacity: 0.6, fontSize: 12 }} tickFormatter={(val) => `${val}`} />
                                     <Tooltip 
                                         cursor={{ fill: 'rgba(128, 128, 128, 0.05)', radius: 4 }}
-                                        contentStyle={{ backgroundColor: 'var(--light-card)', borderColor: 'rgba(0,0,0,0.05)', borderRadius: '12px' }}
-                                        formatter={(value: number) => [formatCurrency(value, account.currency), 'Interest']}
+                                        content={({ active, payload, label }) => {
+                                            if (active && payload && payload.length) {
+                                                return (
+                                                    <div className="bg-white dark:bg-dark-card border border-black/5 dark:border-white/10 p-3 rounded-xl shadow-xl backdrop-blur-md">
+                                                        <p className="text-xs font-bold text-light-text-secondary dark:text-dark-text-secondary mb-1 uppercase tracking-wider">{label}</p>
+                                                        <p className="text-sm font-extrabold text-light-text dark:text-dark-text">
+                                                            {formatCurrency(payload[0].value as number, account.currency)}
+                                                        </p>
+                                                    </div>
+                                                );
+                                            }
+                                            return null;
+                                        }}
                                     />
                                     <Bar dataKey="value" fill="#10B981" radius={[4, 4, 0, 0]} barSize={32} />
                                 </BarChart>

@@ -174,7 +174,7 @@ const Forecasting: React.FC = () => {
     const [assumptions, setAssumptions] = useState({
         savingsRateAdjustment: 0, // % adjustment to recurring savings
         marketReturn: 0, // % annual return for investment accounts
-        inflationRate: 2, // % annual inflation
+        inflationRate: 0, // % annual inflation
     });
     const [isPlaygroundOpen, setIsPlaygroundOpen] = useState(false);
 

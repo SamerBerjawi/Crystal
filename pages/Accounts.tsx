@@ -4,13 +4,14 @@ import { Account, Page, AccountType, Transaction, Warrant } from '../types';
 import AddAccountModal from '../components/AddAccountModal';
 import EditAccountModal from '../components/EditAccountModal';
 import { ASSET_TYPES, DEBT_TYPES, BTN_PRIMARY_STYLE, ACCOUNT_TYPE_STYLES, BTN_SECONDARY_STYLE, SELECT_WRAPPER_STYLE, SELECT_ARROW_STYLE, SELECT_STYLE, LIQUID_ACCOUNT_TYPES } from '../constants';
-import { calculateAccountTotals, convertToEur, formatCurrency, parseLocalDate, toLocalISOString } from '../utils';
+import { calculateAccountTotals, convertCurrency, convertToEur, formatCurrency, parseLocalDate, toLocalISOString } from '../utils';
 import AccountsListSection from '../components/AccountsListSection';
 import BalanceAdjustmentModal from '../components/BalanceAdjustmentModal';
 import FinalConfirmationModal from '../components/FinalConfirmationModal';
 import Card from '../components/Card';
 import { useLocalStorage } from '../hooks/useLocalStorage';
 import { useScheduleContext } from '../contexts/FinancialDataContext';
+import { usePreferencesSelector } from '../contexts/DomainProviders';
 import PageHeader from '../components/PageHeader';
 import { LineChart, Line, ResponsiveContainer, YAxis, AreaChart, Area } from 'recharts';
 import { motion, AnimatePresence } from 'motion/react';
@@ -47,6 +48,8 @@ const Accounts: React.FC<AccountsProps> = ({ accounts, transactions, saveAccount
   const [layoutMode, setLayoutMode] = useLocalStorage<'stacked' | 'columns'>('crystal_accounts_section_layout', 'columns');
   const [sortBy, setSortBy] = useState<'name' | 'balance' | 'manual'>(initialSortBy);
   const { loanPaymentOverrides } = useScheduleContext();
+  const preferredCurrency = usePreferencesSelector(p => (p.currency || 'EUR') as any);
+  const conversionRates = usePreferencesSelector(p => p.conversionRates);
   
   // New State for Segmentation
   const [activeSegment, setActiveSegment] = useState<AccountSegment>('all');
@@ -142,9 +145,9 @@ const Accounts: React.FC<AccountsProps> = ({ accounts, transactions, saveAccount
       if (activeSegment === 'all') {
           totalValue = globalMetrics.netWorth;
           details = [
-              { label: 'Total Assets', value: formatCurrency(globalMetrics.totalAssets, 'EUR'), icon: 'account_balance' },
-              { label: 'Total Liabilities', value: formatCurrency(globalMetrics.totalDebt, 'EUR'), icon: 'money_off' },
-              { label: 'Liquid Cash', value: formatCurrency(globalMetrics.liquidCash, 'EUR'), icon: 'savings' },
+              { label: 'Total Assets', value: formatCurrency(convertCurrency(globalMetrics.totalAssets, 'EUR', preferredCurrency, conversionRates), preferredCurrency), icon: 'account_balance' },
+              { label: 'Total Liabilities', value: formatCurrency(convertCurrency(globalMetrics.totalDebt, 'EUR', preferredCurrency, conversionRates), preferredCurrency), icon: 'money_off' },
+              { label: 'Liquid Cash', value: formatCurrency(convertCurrency(globalMetrics.liquidCash, 'EUR', preferredCurrency, conversionRates), preferredCurrency), icon: 'savings' },
           ];
       } else if (activeSegment === 'cash') {
           totalValue = accountsToSum.reduce((sum, acc) => sum + convertToEur(acc.balance, acc.currency), 0);
@@ -162,9 +165,9 @@ const Accounts: React.FC<AccountsProps> = ({ accounts, transactions, saveAccount
             .reduce((sum, t) => sum + convertToEur(t.amount, t.currency), 0);
 
           details = [
-              { label: 'Checking', value: formatCurrency(checking, 'EUR'), icon: 'payments' },
-              { label: 'Savings', value: formatCurrency(savings, 'EUR'), icon: 'savings' },
-              { label: '30d Net Flow', value: (netFlow >= 0 ? '+' : '') + formatCurrency(netFlow, 'EUR'), icon: 'show_chart' },
+              { label: 'Checking', value: formatCurrency(convertCurrency(checking, 'EUR', preferredCurrency, conversionRates), preferredCurrency), icon: 'payments' },
+              { label: 'Savings', value: formatCurrency(convertCurrency(savings, 'EUR', preferredCurrency, conversionRates), preferredCurrency), icon: 'savings' },
+              { label: '30d Net Flow', value: (netFlow >= 0 ? '+' : '') + formatCurrency(convertCurrency(netFlow, 'EUR', preferredCurrency, conversionRates), preferredCurrency), icon: 'show_chart' },
           ];
       } else if (activeSegment === 'invested') {
           totalValue = accountsToSum.reduce((sum, acc) => sum + convertToEur(acc.balance, acc.currency), 0);
@@ -175,8 +178,8 @@ const Accounts: React.FC<AccountsProps> = ({ accounts, transactions, saveAccount
           const stocks = accountsToSum.filter(a => ['Stock', 'ETF'].includes(a.subType || '')).reduce((s, a) => s + convertToEur(a.balance, a.currency), 0);
 
           details = [
-               { label: 'Stocks & ETFs', value: formatCurrency(stocks, 'EUR'), icon: 'candlestick_chart' },
-               { label: 'Crypto', value: formatCurrency(crypto, 'EUR'), icon: 'currency_bitcoin' },
+               { label: 'Stocks & ETFs', value: formatCurrency(convertCurrency(stocks, 'EUR', preferredCurrency, conversionRates), preferredCurrency), icon: 'candlestick_chart' },
+               { label: 'Crypto', value: formatCurrency(convertCurrency(crypto, 'EUR', preferredCurrency, conversionRates), preferredCurrency), icon: 'currency_bitcoin' },
                { label: 'Count', value: accountsToSum.length.toString(), icon: 'format_list_numbered' },
           ];
       } else if (activeSegment === 'property') {
@@ -191,8 +194,8 @@ const Accounts: React.FC<AccountsProps> = ({ accounts, transactions, saveAccount
           const equity = totalValue - totalDebt;
 
           details = [
-              { label: 'Total Equity', value: formatCurrency(equity, 'EUR'), icon: 'pie_chart' },
-              { label: 'Linked Debt', value: formatCurrency(totalDebt, 'EUR'), icon: 'link' },
+              { label: 'Total Equity', value: formatCurrency(convertCurrency(equity, 'EUR', preferredCurrency, conversionRates), preferredCurrency), icon: 'pie_chart' },
+              { label: 'Linked Debt', value: formatCurrency(convertCurrency(totalDebt, 'EUR', preferredCurrency, conversionRates), preferredCurrency), icon: 'link' },
               { label: 'Assets', value: accountsToSum.length.toString(), icon: 'home' },
           ];
       } else if (activeSegment === 'debt') {
@@ -205,13 +208,15 @@ const Accounts: React.FC<AccountsProps> = ({ accounts, transactions, saveAccount
            const loanDebt = totalDebt - ccDebt;
 
            details = [
-               { label: 'Credit Cards', value: formatCurrency(ccDebt, 'EUR'), icon: 'credit_card' },
-               { label: 'Loans', value: formatCurrency(loanDebt, 'EUR'), icon: 'real_estate_agent' },
+               { label: 'Credit Cards', value: formatCurrency(convertCurrency(ccDebt, 'EUR', preferredCurrency, conversionRates), preferredCurrency), icon: 'credit_card' },
+               { label: 'Loans', value: formatCurrency(convertCurrency(loanDebt, 'EUR', preferredCurrency, conversionRates), preferredCurrency), icon: 'real_estate_agent' },
                { label: 'Count', value: accountsToSum.length.toString(), icon: 'format_list_numbered' },
            ];
       }
-      return { totalValue, label, subLabel, details };
-  }, [filteredAccounts, activeSegment, globalMetrics, analyticsTransactions, loanPaymentOverrides, accounts]);
+      
+      const finalValue = convertCurrency(totalValue, 'EUR', preferredCurrency, conversionRates);
+      return { totalValue: finalValue, label, subLabel, details };
+  }, [filteredAccounts, activeSegment, globalMetrics, analyticsTransactions, loanPaymentOverrides, accounts, preferredCurrency, conversionRates]);
 
   const segmentValues = useMemo(() => {
     const open = visibleAccounts.filter(acc => acc.status !== 'closed');
@@ -223,13 +228,13 @@ const Accounts: React.FC<AccountsProps> = ({ accounts, transactions, saveAccount
     const { totalDebt } = calculateAccountTotals(debtAccounts, analyticsTransactions, loanPaymentOverrides);
     
     return {
-      all: globalMetrics.netWorth,
-      cash,
-      invested,
-      property,
-      debt: totalDebt
+      all: convertCurrency(globalMetrics.netWorth, 'EUR', preferredCurrency, conversionRates),
+      cash: convertCurrency(cash, 'EUR', preferredCurrency, conversionRates),
+      invested: convertCurrency(invested, 'EUR', preferredCurrency, conversionRates),
+      property: convertCurrency(property, 'EUR', preferredCurrency, conversionRates),
+      debt: convertCurrency(totalDebt, 'EUR', preferredCurrency, conversionRates)
     };
-  }, [visibleAccounts, analyticsTransactions, loanPaymentOverrides, globalMetrics.netWorth]);
+  }, [visibleAccounts, analyticsTransactions, loanPaymentOverrides, globalMetrics.netWorth, preferredCurrency, conversionRates]);
 
   const transactionsByAccount = useMemo(() => transactions.reduce((acc, transaction) => {
     (acc[transaction.accountId] = acc[transaction.accountId] || []).push(transaction);

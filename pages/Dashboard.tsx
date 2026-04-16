@@ -1,6 +1,6 @@
 import React, { useMemo, useState, useCallback, useEffect, useRef, Suspense, lazy } from 'react';
-import { User, Transaction, Account, Category, Duration, CategorySpending, Widget, WidgetConfig, DisplayTransaction, FinancialGoal, RecurringTransaction, BillPayment, Tag, Budget, RecurringTransactionOverride, LoanPaymentOverrides, AccountType, Task, ForecastDuration } from '../types';
-import { calculateForecastHorizon, formatCurrency, convertToEur, generateBalanceForecast, generateSyntheticLoanPayments, generateSyntheticCreditCardPayments, parseLocalDate, getPreferredTimeZone, generateSyntheticPropertyTransactions, toLocalISOString, getDateRange, calculateAccountTotals, calculateStatementPeriods, getCreditCardStatementDetails, formatDateKey } from '../utils';
+import { User, Transaction, Account, Category, Duration, CategorySpending, Widget, WidgetConfig, DisplayTransaction, FinancialGoal, RecurringTransaction, BillPayment, Tag, Budget, RecurringTransactionOverride, LoanPaymentOverrides, AccountType, Task, ForecastDuration, Currency } from '../types';
+import { calculateForecastHorizon, formatCurrency, convertCurrency, convertToEur, generateBalanceForecast, generateSyntheticLoanPayments, generateSyntheticCreditCardPayments, parseLocalDate, getPreferredTimeZone, generateSyntheticPropertyTransactions, toLocalISOString, getDateRange, calculateAccountTotals, calculateStatementPeriods, getCreditCardStatementDetails, formatDateKey } from '../utils';
 import AddTransactionModal from '../components/AddTransactionModal';
 import { BTN_PRIMARY_STYLE, BTN_SECONDARY_STYLE, LIQUID_ACCOUNT_TYPES, ASSET_TYPES, DEBT_TYPES, ACCOUNT_TYPE_STYLES, INVESTMENT_SUB_TYPE_STYLES, FORECAST_DURATION_OPTIONS, QUICK_CREATE_BUDGET_OPTIONS, CHECKBOX_STYLE, SELECT_STYLE, SELECT_WRAPPER_STYLE, SELECT_ARROW_STYLE } from '../constants';
 import TransactionDetailModal from '../components/TransactionDetailModal';
@@ -22,7 +22,7 @@ import CreditCardStatementCard from '../components/CreditCardStatementCard';
 import BudgetOverviewWidget from '../components/BudgetOverviewWidget';
 import AccountBreakdownCard from '../components/AccountBreakdownCard';
 import TodayWidget from '../components/TodayWidget';
-import { useAccountsContext, usePreferencesContext, useTransactionsContext } from '../contexts/DomainProviders';
+import { useAccountsContext, usePreferencesContext, useTransactionsContext, usePreferencesSelector } from '../contexts/DomainProviders';
 import { useBudgetsContext, useCategoryContext, useGoalsContext, useScheduleContext, useTagsContext } from '../contexts/FinancialDataContext';
 import { useInsightsView } from '../contexts/InsightsViewContext';
 import { AreaChart, Area, LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, ReferenceLine, Label, Legend, BarChart, Bar, PieChart, Pie, Cell } from 'recharts';
@@ -124,6 +124,8 @@ const Dashboard: React.FC<DashboardProps> = ({ user, tasks, saveTask }) => {
   const { tags } = useTagsContext();
   const { budgets } = useBudgetsContext();
   const { preferences } = usePreferencesContext();
+  const preferredCurrency = usePreferencesSelector(p => (p.currency || 'EUR') as Currency);
+  const conversionRates = usePreferencesSelector(p => p.conversionRates);
 
   // Dashboard Specific State
   const [showForecast, setShowForecast] = useState(true);
@@ -1512,17 +1514,17 @@ const Dashboard: React.FC<DashboardProps> = ({ user, tasks, saveTask }) => {
                               </ResponsiveContainer>
                               <div className="absolute inset-0 flex flex-col items-center justify-center pointer-events-none">
                                   <span className="text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">Net Worth</span>
-                                  <span className="text-2xl font-bold text-gray-900 dark:text-white privacy-blur">{formatCurrency(globalTotalAssets - Math.abs(globalTotalDebt), 'EUR')}</span>
+                                  <span className="text-2xl font-bold text-gray-900 dark:text-white privacy-blur">{formatCurrency(convertCurrency(globalTotalAssets - Math.abs(globalTotalDebt), 'EUR', preferredCurrency, conversionRates), preferredCurrency)}</span>
                               </div>
                           </div>
                           <div className="w-full mt-8 grid grid-cols-2 gap-4">
                               <div className="p-3 rounded-2xl bg-green-50 dark:bg-green-900/20 border border-green-100 dark:border-green-900/30 text-center">
                                   <p className="text-xs text-green-600 dark:text-green-400 font-semibold uppercase mb-1">Assets</p>
-                                  <p className="text-lg font-bold text-green-700 dark:text-green-300 privacy-blur">{formatCurrency(globalTotalAssets, 'EUR')}</p>
+                                  <p className="text-lg font-bold text-green-700 dark:text-green-300 privacy-blur">{formatCurrency(convertCurrency(globalTotalAssets, 'EUR', preferredCurrency, conversionRates), preferredCurrency)}</p>
                               </div>
                               <div className="p-3 rounded-2xl bg-red-50 dark:bg-red-900/20 border border-red-100 dark:border-red-900/30 text-center">
                                   <p className="text-xs text-red-600 dark:text-red-400 font-semibold uppercase mb-1">Liabilities</p>
-                                  <p className="text-lg font-bold text-red-700 dark:text-red-300 privacy-blur">{formatCurrency(Math.abs(globalTotalDebt), 'EUR')}</p>
+                                  <p className="text-lg font-bold text-red-700 dark:text-red-300 privacy-blur">{formatCurrency(convertCurrency(Math.abs(globalTotalDebt), 'EUR', preferredCurrency, conversionRates), preferredCurrency)}</p>
                               </div>
                           </div>
                       </div>
@@ -1542,7 +1544,7 @@ const Dashboard: React.FC<DashboardProps> = ({ user, tasks, saveTask }) => {
                                                     </div>
                                                     <span className="font-medium text-gray-700 dark:text-gray-200">{name}</span>
                                                 </div>
-                                                <span className="font-mono font-medium text-gray-900 dark:text-white privacy-blur">{formatCurrency(group.value, 'EUR')}</span>
+                                                <span className="font-mono font-medium text-gray-900 dark:text-white privacy-blur">{formatCurrency(convertCurrency(group.value, 'EUR', preferredCurrency, conversionRates), preferredCurrency)}</span>
                                             </div>
                                             <div className="w-full bg-gray-100 dark:bg-white/10 rounded-full h-2 overflow-hidden">
                                                 <div className="h-full rounded-full" style={{ width: `${(group.value / globalTotalAssets) * 100}%`, backgroundColor: group.color }}></div>
@@ -1571,7 +1573,7 @@ const Dashboard: React.FC<DashboardProps> = ({ user, tasks, saveTask }) => {
                                                         </div>
                                                         <span className="font-medium text-gray-700 dark:text-gray-200">{name}</span>
                                                     </div>
-                                                  <span className="font-mono font-medium text-gray-900 dark:text-white privacy-blur">{formatCurrency(group.value, 'EUR')}</span>
+                                                  <span className="font-mono font-medium text-gray-900 dark:text-white privacy-blur">{formatCurrency(convertCurrency(group.value, 'EUR', preferredCurrency, conversionRates), preferredCurrency)}</span>
                                               </div>
                                               <div className="w-full bg-gray-100 dark:bg-white/10 rounded-full h-2 overflow-hidden">
                                                   <div className="h-full rounded-full" style={{ width: `${(group.value / Math.abs(globalTotalDebt)) * 100}%`, backgroundColor: group.color }}></div>

@@ -1,10 +1,11 @@
 
 import React, { useMemo } from 'react';
-import { Account, OtherAssetSubType, OtherLiabilitySubType } from '../types';
+import { Account, OtherAssetSubType, OtherLiabilitySubType, Currency } from '../types';
 import Card from './Card';
-import { convertToEur, formatCurrency } from '../utils';
+import { convertCurrency, formatCurrency } from '../utils';
 import { LineChart, Line, ResponsiveContainer } from 'recharts';
 import { ACCOUNT_TYPE_STYLES, OTHER_ASSET_SUB_TYPE_STYLES, OTHER_LIABILITY_SUB_TYPE_STYLES, INVESTMENT_SUB_TYPE_STYLES } from '../constants';
+import { usePreferencesSelector } from '../contexts/DomainProviders';
 
 interface AccountCardProps {
     account: Account;
@@ -34,6 +35,9 @@ const AccountCard: React.FC<AccountCardProps> = ({
     onDrop,
     onDragEnd
 }) => {
+    const preferredCurrency = usePreferencesSelector(p => (p.currency || 'EUR') as Currency);
+    const conversionRates = usePreferencesSelector(p => p.conversionRates);
+    
     const handleEditClick = (e: React.MouseEvent) => {
         e.stopPropagation(); // Prevent card's onClick from firing
         onEdit();
@@ -123,9 +127,9 @@ const AccountCard: React.FC<AccountCardProps> = ({
                     </div>
                     <div className="text-right shrink-0 w-32">
                         <p className={`font-bold text-xl ${isAsset ? 'text-light-text dark:text-dark-text' : 'text-red-500'}`}>
-                            {formatCurrency(convertToEur(account.balance, account.currency), 'EUR')}
+                            {formatCurrency(convertCurrency(account.balance, account.currency, preferredCurrency, conversionRates), preferredCurrency)}
                         </p>
-                         {account.currency !== 'EUR' && (
+                         {account.currency !== preferredCurrency && (
                             <p className="text-xs text-light-text-secondary dark:text-dark-text-secondary">
                                 {formatCurrency(account.balance, account.currency)}
                             </p>

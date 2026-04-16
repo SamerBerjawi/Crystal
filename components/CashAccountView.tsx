@@ -219,8 +219,26 @@ const CashAccountView: React.FC<CashAccountViewProps> = ({
                                 <YAxis axisLine={false} tickLine={false} tick={{ fill: 'currentColor', opacity: 0.6, fontSize: 12 }} tickFormatter={(val) => `${val}`} />
                                 <Tooltip 
                                     cursor={{ fill: 'rgba(128, 128, 128, 0.05)', radius: 4 }}
-                                    contentStyle={{ backgroundColor: 'var(--light-card)', borderColor: 'rgba(0,0,0,0.05)', borderRadius: '12px', boxShadow: '0 10px 15px -3px rgba(0, 0, 0, 0.1)', color: 'var(--light-text)' }}
-                                    formatter={(value: number) => [formatCurrency(value, account.currency), 'Amount']}
+                                    content={({ active, payload, label }) => {
+                                        if (active && payload && payload.length) {
+                                            return (
+                                                <div className="bg-white dark:bg-dark-card border border-black/5 dark:border-white/10 p-3 rounded-xl shadow-xl backdrop-blur-md">
+                                                    <p className="text-xs font-bold text-light-text-secondary dark:text-dark-text-secondary mb-1 uppercase tracking-wider">{label}</p>
+                                                    <div className="space-y-1">
+                                                        {payload.map((entry, idx) => (
+                                                            <div key={idx} className="flex items-center justify-between gap-4">
+                                                                <span className="text-xs font-medium" style={{ color: entry.fill }}>{entry.name}:</span>
+                                                                <span className="text-xs font-bold text-light-text dark:text-dark-text">
+                                                                    {formatCurrency(entry.value as number, account.currency)}
+                                                                </span>
+                                                            </div>
+                                                        ))}
+                                                    </div>
+                                                </div>
+                                            );
+                                        }
+                                        return null;
+                                    }}
                                 />
                                 <ReferenceLine y={0} stroke="#E5E7EB" />
                                 <Bar dataKey="income" name="Replenish" stackId="a" fill="#10B981" radius={[0, 0, 4, 4]} />

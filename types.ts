@@ -460,6 +460,7 @@ export interface AppPreferences {
   defaultForecastPeriod?: ForecastDuration;
   brandfetchClientId?: string;
   twelveDataApiKey?: string;
+  conversionRates?: Record<string, number>;
   merchantLogoOverrides?: Record<string, string>; // Deprecated in favor of merchantRules, kept for backward compat if needed
   merchantRules?: Record<string, MerchantRule>; // Key is normalized merchant name
   hiddenMerchants?: string[]; // Deprecated in favor of merchantRules[x].isHidden

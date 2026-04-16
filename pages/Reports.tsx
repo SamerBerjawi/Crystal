@@ -71,16 +71,22 @@ const writeSavedViews = (views: SavedReportView[]) => {
 const ChartTooltip = ({ active, payload, label }: any) => {
   if (active && payload && payload.length) {
     return (
-      <div className="bg-white/90 dark:bg-neutral-900/90 border border-black/5 dark:border-white/10 p-3 rounded-xl shadow-xl backdrop-blur-md">
-        {label && <p className="text-[10px] font-black uppercase tracking-widest mb-2 opacity-50">{typeof label === 'number' ? `Day ${label}` : label}</p>}
-        <div className="space-y-1">
+      <div className="bg-white dark:bg-dark-card p-3 rounded-xl shadow-xl border border-black/5 dark:border-white/10 backdrop-blur-md">
+        {label && (
+          <p className="text-[10px] font-black uppercase tracking-widest mb-2 text-light-text-secondary dark:text-dark-text-secondary">
+            {typeof label === 'number' ? `Day ${label}` : label}
+          </p>
+        )}
+        <div className="space-y-1.5">
           {payload.map((entry: any, index: number) => (
-            <div key={index} className="flex items-center justify-between gap-4">
+            <div key={index} className="flex items-center justify-between gap-6">
               <div className="flex items-center gap-2">
-                <div className="w-1.5 h-1.5 rounded-full" style={{ backgroundColor: entry.color || entry.fill }} />
-                <span className="text-[10px] font-bold uppercase tracking-wider opacity-70">{entry.name}:</span>
+                <div className="w-2 h-2 rounded-full" style={{ backgroundColor: entry.color || entry.fill }} />
+                <span className="text-[10px] font-bold uppercase tracking-wider text-light-text dark:text-dark-text opacity-80">{entry.name}:</span>
               </div>
-              <span className="text-xs font-black">€{entry.value.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span>
+              <span className="text-xs font-black text-light-text dark:text-dark-text">
+                €{entry.value.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+              </span>
             </div>
           ))}
         </div>
@@ -437,8 +443,8 @@ const Reports: React.FC = () => {
     filteredExpenses.forEach(tx => {
       const amount = Math.abs(convertToEur(tx.amount, tx.currency));
       const cat = tx.category || '';
-      if (needsCategories.some(n => cat.includes(n))) needs += amount;
-      else if (wantsCategories.some(w => cat.includes(w))) wants += amount;
+      if (needsCategories.some(n => cat.toLowerCase().includes(n.toLowerCase()))) needs += amount;
+      else if (wantsCategories.some(w => cat.toLowerCase().includes(w.toLowerCase()))) wants += amount;
       else others += amount;
     });
 
@@ -446,9 +452,9 @@ const Reports: React.FC = () => {
     if (total === 0) return [];
 
     return [
-      { name: 'Needs', value: needs, color: '#10B981', target: 50 },
-      { name: 'Wants', value: wants, color: '#F59E0B', target: 30 },
-      { name: 'Others/Savings', value: others, color: '#6366F1', target: 20 }
+      { name: 'Needs', value: needs, color: '#10B981', target: 50, description: 'Essentials: Housing, Groceries, Bills' },
+      { name: 'Wants', value: wants, color: '#F59E0B', target: 30, description: 'Lifestyle: Dining, Travel, Shopping' },
+      { name: 'Others', value: others, color: '#6366F1', target: 20, description: 'Uncategorized & Miscellaneous' }
     ];
   }, [filteredExpenses]);
 
@@ -824,12 +830,19 @@ const Reports: React.FC = () => {
           <div className="space-y-6">
             {needsWantsData.map(item => {
               const share = totals.totalSpendEur > 0 ? (item.value / totals.totalSpendEur) * 100 : 0;
-              const isOver = share > item.target && item.name !== 'Others/Savings';
+              const isOver = share > item.target && item.name !== 'Others';
               return (
-                <div key={item.name} className="space-y-2">
+                <div key={item.name} className="space-y-2 group/item">
                   <div className="flex justify-between items-end">
                     <div>
-                      <span className="text-xs font-black uppercase tracking-widest">{item.name}</span>
+                      <div className="flex items-center gap-2">
+                        <span className="text-xs font-black uppercase tracking-widest">{item.name}</span>
+                        <div className="opacity-0 group-hover/item:opacity-100 transition-opacity">
+                          <span className="text-[9px] font-bold text-light-text-secondary dark:text-dark-text-secondary bg-black/5 dark:bg-white/5 px-1.5 py-0.5 rounded">
+                            {(item as any).description}
+                          </span>
+                        </div>
+                      </div>
                       <p className="text-[10px] opacity-50 font-bold uppercase tracking-widest">Target: {item.target}%</p>
                     </div>
                     <div className="text-right">
@@ -849,7 +862,23 @@ const Reports: React.FC = () => {
           </div>
           <div className="mt-8 p-4 bg-gray-50 dark:bg-white/5 rounded-xl border border-black/5 dark:border-white/5">
             <p className="text-xs font-medium leading-relaxed opacity-80 italic">
-              "You are spending {needsWantsData.find(d => d.name === 'Wants')?.value ? ((needsWantsData.find(d => d.name === 'Wants')!.value / totals.totalSpendEur) * 100).toFixed(0) : 0}% on wants. Reducing this by 5% could add €{(totals.totalSpendEur * 0.05).toFixed(0)} to your monthly savings."
+              {(() => {
+                const wants = needsWantsData.find(d => d.name === 'Wants');
+                const wantsShare = wants ? (wants.value / totals.totalSpendEur) * 100 : 0;
+                const needs = needsWantsData.find(d => d.name === 'Needs');
+                const needsShare = needs ? (needs.value / totals.totalSpendEur) * 100 : 0;
+
+                if (wantsShare > 30) {
+                  const targetValue = totals.totalSpendEur * 0.3;
+                  const potentialSavings = wants!.value - targetValue;
+                  return `Your "Wants" spending is ${wantsShare.toFixed(1)}%, which is above the 30% target. Reducing this to the target level could save you €${potentialSavings.toFixed(0)} per month.`;
+                } else if (needsShare > 50) {
+                  return `Your "Needs" are ${needsShare.toFixed(1)}% of your expenses. Since these are often fixed costs, consider reviewing your recurring bills or subscriptions to bring this closer to the 50% benchmark.`;
+                } else if (totals.totalSpendEur > 0) {
+                  return `Great job! Your spending is well-balanced according to the 50/30/20 rule. You're maintaining a healthy ratio between essentials and lifestyle choices.`;
+                }
+                return "Start tracking your expenses to see your personalized 50/30/20 rule analysis.";
+              })()}
             </p>
           </div>
         </Card>

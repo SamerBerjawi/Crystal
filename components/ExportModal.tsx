@@ -84,13 +84,13 @@ const ExportModal: React.FC<ExportModalProps> = ({ onClose, onExport, accounts, 
                 <div className="flex bg-light-fill dark:bg-dark-fill p-1 rounded-lg">
                     <button 
                         onClick={() => setFormat('csv')} 
-                        className={`flex-1 py-2 rounded-md text-sm font-bold transition-all flex items-center justify-center gap-2 ${format === 'csv' ? 'bg-white dark:bg-dark-card shadow-sm text-primary-600' : 'text-light-text-secondary hover:text-light-text'}`}
+                        className={`flex-1 py-2 rounded-md text-sm font-bold transition-all flex items-center justify-center gap-2 ${format === 'csv' ? 'bg-white dark:bg-dark-card shadow-sm text-primary-600 dark:text-primary-400' : 'text-light-text-secondary dark:text-dark-text-secondary hover:text-light-text dark:hover:text-dark-text'}`}
                     >
                         <span className="material-symbols-outlined text-lg">table_view</span> CSV (Spreadsheet)
                     </button>
                     <button 
                         onClick={() => setFormat('json')} 
-                        className={`flex-1 py-2 rounded-md text-sm font-bold transition-all flex items-center justify-center gap-2 ${format === 'json' ? 'bg-white dark:bg-dark-card shadow-sm text-purple-600' : 'text-light-text-secondary hover:text-light-text'}`}
+                        className={`flex-1 py-2 rounded-md text-sm font-bold transition-all flex items-center justify-center gap-2 ${format === 'json' ? 'bg-white dark:bg-dark-card shadow-sm text-purple-600 dark:text-purple-400' : 'text-light-text-secondary dark:text-dark-text-secondary hover:text-light-text dark:hover:text-dark-text'}`}
                     >
                         <span className="material-symbols-outlined text-lg">code</span> JSON (Backup)
                     </button>
@@ -115,8 +115,8 @@ const ExportModal: React.FC<ExportModalProps> = ({ onClose, onExport, accounts, 
                             <label key={type.id} className={`flex items-center gap-3 p-3 rounded-lg border cursor-pointer transition-all ${selectedTypes.includes(type.id) ? 'bg-primary-50 dark:bg-primary-900/20 border-primary-200 dark:border-primary-800' : 'bg-light-bg dark:bg-dark-bg border-transparent hover:bg-black/5 dark:hover:bg-white/5'}`}>
                                 <input type="checkbox" checked={selectedTypes.includes(type.id)} onChange={() => toggleType(type.id)} className={CHECKBOX_STYLE} />
                                 <div className="flex items-center gap-2">
-                                     <span className="material-symbols-outlined text-lg opacity-70">{type.icon}</span>
-                                     <span className="font-medium text-sm">{type.label}</span>
+                                     <span className={`material-symbols-outlined text-lg ${selectedTypes.includes(type.id) ? 'text-primary-600 dark:text-primary-400 filled-icon' : 'text-light-text-secondary dark:text-dark-text-secondary'}`}>{type.icon}</span>
+                                     <span className="font-medium text-sm text-light-text dark:text-dark-text">{type.label}</span>
                                 </div>
                             </label>
                         ))}
@@ -130,24 +130,24 @@ const ExportModal: React.FC<ExportModalProps> = ({ onClose, onExport, accounts, 
                          
                          <div className="grid grid-cols-2 gap-4">
                              <div>
-                                 <label className="block text-xs font-medium mb-1">Start Date</label>
+                                 <label className="block text-xs font-medium mb-1 text-light-text-secondary dark:text-dark-text-secondary">Start Date</label>
                                  <input type="date" value={startDate} onChange={e => setStartDate(e.target.value)} className={INPUT_BASE_STYLE} />
                              </div>
                              <div>
-                                 <label className="block text-xs font-medium mb-1">End Date</label>
+                                 <label className="block text-xs font-medium mb-1 text-light-text-secondary dark:text-dark-text-secondary">End Date</label>
                                  <input type="date" value={endDate} onChange={e => setEndDate(e.target.value)} className={INPUT_BASE_STYLE} />
                              </div>
                          </div>
 
                          <div>
-                             <label className="block text-xs font-medium mb-2">Filter by Account (Optional)</label>
+                             <label className="block text-xs font-medium mb-2 text-light-text-secondary dark:text-dark-text-secondary">Filter by Account (Optional)</label>
                              <div className="max-h-32 overflow-y-auto space-y-1 p-1">
-                                 <label className="flex items-center gap-2 text-sm cursor-pointer p-1 hover:bg-black/5 rounded">
+                                 <label className="flex items-center gap-2 text-sm cursor-pointer p-1 hover:bg-black/5 dark:hover:bg-white/5 rounded">
                                      <input type="checkbox" checked={accountIds.length === 0} onChange={selectAllAccounts} className={CHECKBOX_STYLE} />
-                                     <span className="font-bold">All Accounts</span>
+                                     <span className="font-bold text-light-text dark:text-dark-text">All Accounts</span>
                                  </label>
                                  {accounts.map(acc => (
-                                     <label key={acc.id} className="flex items-center gap-2 text-sm cursor-pointer p-1 hover:bg-black/5 rounded">
+                                     <label key={acc.id} className="flex items-center gap-2 text-sm cursor-pointer p-1 hover:bg-black/5 dark:hover:bg-white/5 rounded">
                                          <input 
                                             type="checkbox" 
                                             checked={accountIds.includes(acc.id)} 
@@ -155,7 +155,7 @@ const ExportModal: React.FC<ExportModalProps> = ({ onClose, onExport, accounts, 
                                             // Uncheck "All" implies filtering, so if All is selected, clicking one selects just that one
                                             className={CHECKBOX_STYLE} 
                                         />
-                                         <span className="truncate">{acc.name}</span>
+                                         <span className="truncate text-light-text dark:text-dark-text">{acc.name}</span>
                                      </label>
                                  ))}
                              </div>

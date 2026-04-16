@@ -12,9 +12,14 @@ const CustomTooltip = ({ active, payload, label }: any) => {
     if (active && payload && payload.length) {
       const date = parseLocalDate(label);
       return (
-        <div className="bg-light-card dark:bg-dark-card p-3 rounded-lg shadow-lg border border-black/5 dark:border-white/5">
-          <p className="label font-semibold text-light-text dark:text-dark-text mb-1">{date.toLocaleDateString('en-US', { day: 'numeric', month: 'long', year: 'numeric' })}</p>
-          <p className="text-primary-500">{`Odometer: ${payload[0].value.toLocaleString()} km`}</p>
+        <div className="bg-white dark:bg-dark-card p-3 rounded-xl shadow-xl border border-black/5 dark:border-white/10 backdrop-blur-md">
+          <p className="font-black text-light-text-secondary dark:text-dark-text-secondary mb-2 uppercase tracking-widest text-[10px] opacity-60">
+            {date.toLocaleDateString('en-US', { day: 'numeric', month: 'short', year: 'numeric' })}
+          </p>
+          <div className="flex items-center gap-2">
+            <div className="w-2 h-2 rounded-full bg-primary-500" />
+            <p className="text-light-text dark:text-dark-text font-black font-mono">{payload[0].value.toLocaleString()} km</p>
+          </div>
         </div>
       );
     }
