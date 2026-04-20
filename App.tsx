@@ -1291,6 +1291,7 @@ const App: React.FC = () => {
     currency: Currency,
     connectionId: string,
     accountDisplayName?: string,
+    ownPartyNames: string[] = [],
   ): Transaction | null => {
     const amountRaw = providerTx?.transaction_amount?.amount ?? providerTx?.amount?.amount ?? providerTx?.transactionAmount?.amount;
     if (amountRaw === undefined || amountRaw === null || !linkedAccountId) return null;
@@ -1325,13 +1326,29 @@ const App: React.FC = () => {
       return `fallback-${Math.abs(hash)}`;
     };
 
+    const normalizeCounterpartyName = (value: string) => value
+      .toLowerCase()
+      .normalize('NFKD')
+      .replace(/[\u0300-\u036f]/g, '')
+      .replace(/[^a-z0-9]+/g, ' ')
+      .trim();
+
+    const ownNameSet = new Set(
+      [accountDisplayName, ...ownPartyNames]
+        .filter((value): value is string => typeof value === 'string' && value.trim().length > 0)
+        .map(normalizeCounterpartyName)
+        .filter(Boolean),
+    );
+
     const sanitizeMerchant = (candidate?: string) => {
       if (!candidate) return undefined;
       const trimmed = candidate.trim();
       const normalized = trimmed.toLowerCase();
+      const normalizedCounterparty = normalizeCounterpartyName(trimmed);
       const normalizedAccountName = accountDisplayName?.trim().toLowerCase();
       if (!trimmed || /^([A-Z]{2}\d{2}[A-Z0-9]{8,30}|\d{8,})$/i.test(trimmed)) return undefined;
       if (normalizedAccountName && normalized === normalizedAccountName) return undefined;
+      if (normalizedCounterparty && ownNameSet.has(normalizedCounterparty)) return undefined;
       return trimmed;
     };
 
@@ -1358,8 +1375,54 @@ const App: React.FC = () => {
       return segments.length > 0 ? segments.join(' / ') : undefined;
     };
 
-    // Counterparty fields vary by bank. For outgoing payments prefer creditor-side fields;
-    // for incoming payments prefer debtor-side fields.
+    // Counterparty fields vary by bank. For outgoing payments (expenses), prefer merchant/creditor.
+    // For incoming payments (income), prefer debtor/payer.
+    const primaryCounterpartyFields = isCredit
+      ? [
+          providerTx?.debtor_name,
+          providerTx?.debtorName,
+          providerTx?.debtor?.name,
+          providerTx?.ultimate_debtor,
+          providerTx?.ultimateDebtor,
+          providerTx?.debtor_account?.name,
+          providerTx?.debtorAccount?.name,
+          providerTx?.debtor_account?.owner_name,
+          providerTx?.debtorAccount?.ownerName,
+          providerTx?.counterparty_name,
+          providerTx?.counterpartyName,
+          providerTx?.counterparty?.name,
+        ]
+      : [
+          providerTx?.creditor_name,
+          providerTx?.creditorName,
+          providerTx?.creditor?.name,
+          providerTx?.ultimate_creditor,
+          providerTx?.ultimateCreditor,
+          providerTx?.creditor_account?.name,
+          providerTx?.creditorAccount?.name,
+          providerTx?.creditor_account?.owner_name,
+          providerTx?.creditorAccount?.ownerName,
+          providerTx?.counterparty_name,
+          providerTx?.counterpartyName,
+          providerTx?.counterparty?.name,
+        ];
+
+    const secondaryCounterpartyFields = isCredit
+      ? [
+          providerTx?.creditor_name,
+          providerTx?.creditorName,
+          providerTx?.creditor?.name,
+          providerTx?.ultimate_creditor,
+          providerTx?.ultimateCreditor,
+        ]
+      : [
+          providerTx?.debtor_name,
+          providerTx?.debtorName,
+          providerTx?.debtor?.name,
+          providerTx?.ultimate_debtor,
+          providerTx?.ultimateDebtor,
+        ];
+
     const merchant = sanitizeMerchant(pickFirstText(
       providerTx?.merchant_name,
       providerTx?.merchantName,
@@ -1368,37 +1431,8 @@ const App: React.FC = () => {
       providerTx?.merchant?.displayName,
       providerTx?.card_acceptor?.name,
       providerTx?.cardAcceptor?.name,
-      ...(isCredit
-        ? [
-            providerTx?.debtor_name,
-            providerTx?.debtorName,
-            providerTx?.debtor?.name,
-            providerTx?.ultimate_debtor,
-            providerTx?.ultimateDebtor,
-            providerTx?.counterparty_name,
-            providerTx?.counterpartyName,
-            providerTx?.counterparty?.name,
-            providerTx?.creditor_name,
-            providerTx?.creditorName,
-            providerTx?.creditor?.name,
-            providerTx?.ultimate_creditor,
-            providerTx?.ultimateCreditor,
-          ]
-        : [
-            providerTx?.creditor_name,
-            providerTx?.creditorName,
-            providerTx?.creditor?.name,
-            providerTx?.ultimate_creditor,
-            providerTx?.ultimateCreditor,
-            providerTx?.counterparty_name,
-            providerTx?.counterpartyName,
-            providerTx?.counterparty?.name,
-            providerTx?.debtor_name,
-            providerTx?.debtorName,
-            providerTx?.debtor?.name,
-            providerTx?.ultimate_debtor,
-            providerTx?.ultimateDebtor,
-          ]),
+      ...primaryCounterpartyFields,
+      ...secondaryCounterpartyFields,
     ));
 
     const desc = pickFirstText(
@@ -1521,6 +1555,15 @@ const App: React.FC = () => {
                 currency,
                 connectionId,
                 details?.name || account?.name,
+                [
+                  details?.owner_name,
+                  details?.ownerName,
+                  details?.account?.owner_name,
+                  details?.account?.ownerName,
+                  account?.owner_name,
+                  account?.ownerName,
+                  account?.name,
+                ],
               );
               if (mappedTx) importedTransactions.push(mappedTx);
             });
