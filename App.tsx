@@ -1291,6 +1291,7 @@ const App: React.FC = () => {
     currency: Currency,
     connectionId: string,
     accountDisplayName?: string,
+    ownerName?: string,
   ): Transaction | null => {
     const amountRaw = providerTx?.transaction_amount?.amount ?? providerTx?.amount?.amount ?? providerTx?.transactionAmount?.amount;
     if (amountRaw === undefined || amountRaw === null || !linkedAccountId) return null;
@@ -1329,9 +1330,25 @@ const App: React.FC = () => {
       if (!candidate) return undefined;
       const trimmed = candidate.trim();
       const normalized = trimmed.toLowerCase();
-      const normalizedAccountName = accountDisplayName?.trim().toLowerCase();
+      
+      const identities = [
+        accountDisplayName?.trim().toLowerCase(),
+        ownerName?.trim().toLowerCase(),
+        user?.name?.trim().toLowerCase(),
+        demoUser?.name?.trim().toLowerCase(),
+      ].filter(Boolean) as string[];
+
       if (!trimmed || /^([A-Z]{2}\d{2}[A-Z0-9]{8,30}|\d{8,})$/i.test(trimmed)) return undefined;
-      if (normalizedAccountName && normalized === normalizedAccountName) return undefined;
+
+      for (const identity of identities) {
+        if (normalized === identity) return undefined;
+        // Fuzzy match: if transaction party name is very similar to account holder name, ignore it.
+        // We only do this if the identity is long enough to avoid false positives (e.g. filtering "Nike" if user name is "Nike" - unlikely but possible).
+        if (identity.length > 3 && (normalized.includes(identity) || identity.includes(normalized))) {
+          return undefined;
+        }
+      }
+
       return trimmed;
     };
 
@@ -1359,7 +1376,7 @@ const App: React.FC = () => {
     };
 
     // Counterparty fields vary by bank. For outgoing payments prefer creditor-side fields;
-    // for incoming payments prefer debtor-side fields.
+    // for incoming payments (income/refunds) prefer debtor-side fields.
     const merchant = sanitizeMerchant(pickFirstText(
       providerTx?.merchant_name,
       providerTx?.merchantName,
@@ -1449,7 +1466,7 @@ const App: React.FC = () => {
       currency,
       importId: `enable-banking-${connectionId}-${linkedAccountId}`,
     };
-  }, [pickFirstText]);
+  }, [pickFirstText, user, demoUser]);
 
   const handleSyncEnableBankingConnection = useCallback(async (connectionId: string, connectionOverride?: EnableBankingConnection, syncOptions?: EnableBankingSyncOptions) => {
     if (!isAuthenticated) return;
@@ -1521,6 +1538,7 @@ const App: React.FC = () => {
                 currency,
                 connectionId,
                 details?.name || account?.name,
+                details?.owner_name || details?.ownerName,
               );
               if (mappedTx) importedTransactions.push(mappedTx);
             });
@@ -1582,7 +1600,7 @@ const App: React.FC = () => {
     } catch (error: any) {
       setEnableBankingConnections(prev => prev.map(conn => conn.id === connectionId ? { ...conn, status: 'requires_update', lastError: error?.message || 'Sync failed', } : conn));
     }
-  }, [enableBankingConnections, fetchWithAuth, handleSaveTransaction, mapProviderTransaction, resolveBalanceAmount, resolveProviderAccountId, isAuthenticated, transactions]);
+  }, [enableBankingConnections, fetchWithAuth, handleSaveTransaction, mapProviderTransaction, resolveBalanceAmount, resolveProviderAccountId, isAuthenticated, transactions, user, demoUser]);
 
   const handleDeleteEnableBankingConnection = useCallback((connectionId: string) => {
     setEnableBankingConnections(prev => prev.filter(conn => conn.id !== connectionId));
