@@ -1347,6 +1347,15 @@ const App: React.FC = () => {
         if (identity.length > 3 && (normalized.includes(identity) || identity.includes(normalized))) {
           return undefined;
         }
+        
+        // Advanced fuzzy match to catch inverted names (e.g., "BERJAWI SAMER" instead of "Samer Berjawi")
+        const nameParts = identity.split(/\s+/).filter(p => p.length > 2);
+        if (nameParts.length >= 2) {
+          const hasAllParts = nameParts.every(part => normalized.includes(part));
+          if (hasAllParts && normalized.length < identity.length + 5) {
+            return undefined;
+          }
+        }
       }
 
       return trimmed;
@@ -1375,9 +1384,25 @@ const App: React.FC = () => {
       return segments.length > 0 ? segments.join(' / ') : undefined;
     };
 
+    const pickFirstValidMerchant = (...values: any[]): string | undefined => {
+      for (const value of values) {
+        if (!value) continue;
+        if (typeof value === 'string') {
+          const sanitized = sanitizeMerchant(value);
+          if (sanitized) return sanitized;
+        }
+        if (Array.isArray(value)) {
+          const nested = pickFirstValidMerchant(...value);
+          if (nested) return nested;
+        }
+      }
+      return undefined;
+    };
+
     // Counterparty fields vary by bank. For outgoing payments prefer creditor-side fields;
     // for incoming payments (income/refunds) prefer debtor-side fields.
-    const merchant = sanitizeMerchant(pickFirstText(
+    // Explicitly doing NOT fallback to the other side (which would be our own account holder's name).
+    const merchant = pickFirstValidMerchant(
       providerTx?.merchant_name,
       providerTx?.merchantName,
       providerTx?.merchant?.name,
@@ -1395,11 +1420,6 @@ const App: React.FC = () => {
             providerTx?.counterparty_name,
             providerTx?.counterpartyName,
             providerTx?.counterparty?.name,
-            providerTx?.creditor_name,
-            providerTx?.creditorName,
-            providerTx?.creditor?.name,
-            providerTx?.ultimate_creditor,
-            providerTx?.ultimateCreditor,
           ]
         : [
             providerTx?.creditor_name,
@@ -1410,13 +1430,8 @@ const App: React.FC = () => {
             providerTx?.counterparty_name,
             providerTx?.counterpartyName,
             providerTx?.counterparty?.name,
-            providerTx?.debtor_name,
-            providerTx?.debtorName,
-            providerTx?.debtor?.name,
-            providerTx?.ultimate_debtor,
-            providerTx?.ultimateDebtor,
           ]),
-    ));
+    );
 
     const desc = pickFirstText(
       pickJoinedText(
@@ -1556,31 +1571,43 @@ const App: React.FC = () => {
       }
 
       if (importedTransactions.length > 0) {
-        const existingIds = new Set(transactions.map(tx => tx.id));
-        const existingProviderIds = new Set(
-          transactions
-            .filter(tx => tx.importId?.startsWith(`enable-banking-${connectionId}-`) && tx.sureId)
-            .map(tx => tx.sureId as string)
+        const existingTxMapCountId = new Map<string, Transaction>(transactions.map(tx => [tx.id, tx]));
+        const existingTxMapSureId = new Map<string, Transaction>(
+          transactions.filter(tx => tx.importId?.startsWith(`enable-banking-${connectionId}-`) && tx.sureId).map(tx => [tx.sureId as string, tx])
         );
-        const existingFingerprints = new Set(
-          transactions
+        const existingFingerprints = new Map<string, Transaction>(
+           transactions
             .filter(tx => tx.importId?.startsWith(`enable-banking-${connectionId}-`))
-            .map(tx => `${tx.accountId}|${tx.date}|${tx.amount}|${(tx.description || '').trim().toLowerCase()}|${(tx.merchant || '').trim().toLowerCase()}`)
+            .map(tx => [`${tx.accountId}|${tx.date}|${tx.amount}|${(tx.description || '').trim().toLowerCase()}|${(tx.merchant || '').trim().toLowerCase()}`, tx])
         );
 
-        const deduped = importedTransactions.filter(tx => {
+        const deduped: Transaction[] = [];
+        const toUpdate: Transaction[] = [];
+
+        for (const tx of importedTransactions) {
           const fingerprint = `${tx.accountId}|${tx.date}|${tx.amount}|${(tx.description || '').trim().toLowerCase()}|${(tx.merchant || '').trim().toLowerCase()}`;
-          if (existingIds.has(tx.id)) return false;
-          if (tx.sureId && existingProviderIds.has(tx.sureId)) return false;
-          if (existingFingerprints.has(fingerprint)) return false;
-          existingIds.add(tx.id);
-          if (tx.sureId) existingProviderIds.add(tx.sureId);
-          existingFingerprints.add(fingerprint);
-          return true;
-        });
+          const existing = existingTxMapCountId.get(tx.id) || (tx.sureId ? existingTxMapSureId.get(tx.sureId) : undefined) || existingFingerprints.get(fingerprint);
+
+          if (existing) {
+             // If our new mapping found a different merchant or description than what we stored, we will patch it.
+             // We do NOT override category, amount, or custom user tags.
+             if (tx.merchant !== existing.merchant || tx.description !== existing.description) {
+                const updatedTx = { ...existing, merchant: tx.merchant, description: tx.description };
+                toUpdate.push(updatedTx);
+             }
+          } else {
+             deduped.push(tx);
+             existingTxMapCountId.set(tx.id, tx);
+             if (tx.sureId) existingTxMapSureId.set(tx.sureId, tx);
+             existingFingerprints.set(fingerprint, tx);
+          }
+        }
 
         if (deduped.length > 0) {
           handleSaveTransaction(deduped);
+        }
+        if (toUpdate.length > 0) {
+          handleSaveTransaction(toUpdate); // Updates existing txs with improved names
         }
       }
 
