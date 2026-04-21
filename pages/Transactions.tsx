@@ -1374,9 +1374,25 @@ const Transactions: React.FC<TransactionsProps> = ({ initialAccountFilter, initi
                         const row = virtualRows[index];
                         
                         if (row.type === 'header') {
+                            const dateTransactions = virtualRows.filter(r => r.type === 'transaction' && (r as {type: 'transaction', transaction: DisplayTransaction}).transaction.date === row.date);
+                            const allSelected = dateTransactions.length > 0 && dateTransactions.every(r => selectedIds.has((r as {type: 'transaction', transaction: DisplayTransaction}).transaction.id));
+                            const handleSelectDay = (e: React.ChangeEvent<HTMLInputElement>) => {
+                                 e.stopPropagation();
+                                 const nextIds = new Set(selectedIds);
+                                 if (allSelected) {
+                                     dateTransactions.forEach(r => nextIds.delete((r as {type: 'transaction', transaction: DisplayTransaction}).transaction.id));
+                                 } else {
+                                     dateTransactions.forEach(r => nextIds.add((r as {type: 'transaction', transaction: DisplayTransaction}).transaction.id));
+                                 }
+                                 setSelectedIds(nextIds);
+                            };
+
                             return (
                                 <div key={`header-${row.date}`} style={style} className="flex items-center px-4 py-2 bg-gray-50/80 dark:bg-black/20 border-y border-black/5 dark:border-white/5 sticky top-0 z-10 backdrop-blur-sm">
-                                    <span className="text-[10px] font-black text-light-text-secondary dark:text-dark-text-secondary uppercase tracking-[0.2em]">
+                                    <div className="flex items-center justify-center w-5">
+                                        <input type="checkbox" className={CHECKBOX_STYLE} checked={allSelected} onChange={handleSelectDay} aria-label={`Select all for ${row.date}`} onClick={e => e.stopPropagation()} />
+                                    </div>
+                                    <span className="text-[10px] font-black text-light-text-secondary dark:text-dark-text-secondary uppercase tracking-[0.2em] ml-3">
                                         {parseLocalDate(row.date).toLocaleDateString(undefined, { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' })}
                                     </span>
                                 </div>
@@ -1425,6 +1441,10 @@ const Transactions: React.FC<TransactionsProps> = ({ initialAccountFilter, initi
                         style={style}
                         className="flex items-center group hover:bg-gray-50 dark:hover:bg-white/5 transition-colors px-4 py-3 cursor-default relative border-b border-black/5 dark:border-white/5"
                         onClick={() => { /* handle row click if needed */ }}
+                        onDoubleClick={() => {
+                          setEditingTransaction(transactions.find(t => t.id === (tx.isTransfer ? tx.originalId : tx.id)) || null);
+                          setTransactionModalOpen(true);
+                        }}
                         onContextMenu={(e) => openContextMenu(e, tx)}
                       >
                         <div className="flex items-center gap-4">

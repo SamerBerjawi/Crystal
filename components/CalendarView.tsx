@@ -22,9 +22,13 @@ const CalendarView: React.FC<CalendarViewProps> = ({ items, goals, accounts, onE
     const monthStart = new Date(currentDate.getFullYear(), currentDate.getMonth(), 1);
     const monthEnd = new Date(currentDate.getFullYear(), currentDate.getMonth() + 1, 0);
     const startDate = new Date(monthStart);
-    startDate.setDate(startDate.getDate() - startDate.getDay()); // Start from Sunday
+    // Adjust logic so week starts on Monday
+    const startDayOfWeek = startDate.getDay() === 0 ? 6 : startDate.getDay() - 1; 
+    startDate.setDate(startDate.getDate() - startDayOfWeek);
+
     const endDate = new Date(monthEnd);
-    endDate.setDate(endDate.getDate() + (6 - endDate.getDay())); // End on Saturday
+    const endDayOfWeek = endDate.getDay() === 0 ? 6 : endDate.getDay() - 1;
+    endDate.setDate(endDate.getDate() + (6 - endDayOfWeek));
 
     const calendarDays = useMemo(() => {
         const days = [];
@@ -132,7 +136,7 @@ const CalendarView: React.FC<CalendarViewProps> = ({ items, goals, accounts, onE
             </div>
 
             <div className="grid grid-cols-7 bg-gray-100 dark:bg-white/5 gap-px">
-                {['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'].map(day => (
+                {['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'].map(day => (
                     <div key={day} className="bg-gray-50 dark:bg-dark-card p-3 text-center">
                         <span className="text-[10px] font-black uppercase tracking-[0.2em] text-light-text-secondary dark:text-dark-text-secondary">
                             {day}
