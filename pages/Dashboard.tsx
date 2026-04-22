@@ -41,6 +41,9 @@ import BudgetProgressCard from '../components/BudgetProgressCard';
 import BudgetModal from '../components/BudgetModal';
 import MultiSelectFilter from '../components/MultiSelectFilter';
 import PageHeader from '../components/PageHeader';
+import { Responsive, WidthProvider } from 'react-grid-layout';
+
+const ResponsiveGridLayout = WidthProvider(Responsive);
 
 // Analysis widgets
 import MerchantParetoWidget from '../components/MerchantParetoWidget';
@@ -60,6 +63,7 @@ interface DashboardProps {
   loanPaymentOverrides: LoanPaymentOverrides;
   tasks: Task[];
   saveTask: (task: Omit<Task, 'id'> & { id?: string }) => void;
+  onTogglePrivacyMode?: () => void;
 }
 
 // Define the AssetGroup type to fix type errors
@@ -96,25 +100,34 @@ type EnrichedTransaction = Transaction & { convertedAmount: number; parsedDate: 
 type DashboardTab = 'overview' | 'analysis' | 'activity';
 
 const WIDGET_TABS: Record<DashboardTab, string[]> = {
-    overview: ['netWorthOverTime'],
-    analysis: [], // Using a structured layout for Analysis instead of dynamic widgets
+    overview: ['financialOverview', 'todayWidget', 'netWorthOverTime'],
+    analysis: ['budgetOverview', 'financialRunway', 'wealthVelocity'],
     activity: ['transactionMap', 'outflowsByCategory', 'netWorthBreakdown', 'recentActivity', 'cashflowSankey']
 };
 
 const AnalysisStatCard: React.FC<{ title: string; value: string; subtext: string; icon: string; colorClass: string }> = ({ title, value, subtext, icon, colorClass }) => (
-    <div className="bg-white dark:bg-dark-card p-6 rounded-3xl border border-black/5 dark:border-white/5 shadow-sm flex items-center gap-5 hover:shadow-md transition-all duration-200">
-        <div className={`w-14 h-14 rounded-2xl flex items-center justify-center ${colorClass} shrink-0`}>
-            <span className="material-symbols-outlined text-3xl">{icon}</span>
+    <div className="bg-white/40 dark:bg-dark-card/20 backdrop-blur-xl p-6 rounded-[2rem] border border-black/5 dark:border-white/5 shadow-2xl shadow-black/5 flex items-center gap-6 group hover:shadow-primary-500/10 transition-all duration-500">
+        <div className={`w-16 h-16 rounded-2xl flex items-center justify-center ${colorClass} shrink-0 shadow-lg border border-black/5 dark:border-white/5 transition-transform duration-500 group-hover:scale-110 group-hover:rotate-3`}>
+            <span className="material-symbols-outlined text-3xl filled-icon">{icon}</span>
         </div>
         <div>
-            <p className="text-xs font-bold uppercase text-light-text-secondary dark:text-dark-text-secondary tracking-wider mb-1">{title}</p>
-            <p className="text-2xl font-extrabold text-light-text dark:text-dark-text privacy-blur">{value}</p>
-            <p className="text-xs text-light-text-secondary dark:text-dark-text-secondary mt-1 font-medium">{subtext}</p>
+            <p className="text-[9px] font-black uppercase tracking-[0.25em] text-light-text-secondary dark:text-dark-text-secondary mb-2 opacity-50 group-hover:opacity-100 transition-opacity">
+                {title}
+            </p>
+            <div className="flex items-baseline gap-2">
+                <p className="text-3xl font-black text-light-text dark:text-dark-text tracking-tighter privacy-blur leading-none">
+                    {value}
+                </p>
+                <div className="w-1.5 h-1.5 rounded-full bg-primary-500 opacity-0 group-hover:opacity-100 animate-pulse"></div>
+            </div>
+            <p className="text-[10px] text-light-text-secondary dark:text-dark-text-secondary mt-2 font-mono uppercase tracking-widest opacity-40 group-hover:opacity-60 transition-opacity">
+                {subtext}
+            </p>
         </div>
     </div>
 );
 
-const Dashboard: React.FC<DashboardProps> = ({ user, tasks, saveTask }) => {
+const Dashboard: React.FC<DashboardProps> = ({ user, tasks, saveTask, onTogglePrivacyMode }) => {
   const { activeGoalIds, setActiveGoalIds, dashboardAccountIds: selectedAccountIds, setDashboardAccountIds: setSelectedAccountIds, dashboardDuration: duration, setDashboardDuration: setDuration } = useInsightsView();
   const { accounts } = useAccountsContext();
   const { transactions, saveTransaction, deleteTransactions, digest: transactionsDigest } = useTransactionsContext();
@@ -123,7 +136,7 @@ const Dashboard: React.FC<DashboardProps> = ({ user, tasks, saveTask }) => {
   const { recurringTransactions, recurringTransactionOverrides, loanPaymentOverrides, billsAndPayments, saveRecurringTransaction, saveBillPayment } = useScheduleContext();
   const { tags } = useTagsContext();
   const { budgets } = useBudgetsContext();
-  const { preferences } = usePreferencesContext();
+  const { preferences, setPreferences } = usePreferencesContext();
   const preferredCurrency = usePreferencesSelector(p => (p.currency || 'EUR') as Currency);
   const conversionRates = usePreferencesSelector(p => p.conversionRates);
 
@@ -131,6 +144,7 @@ const Dashboard: React.FC<DashboardProps> = ({ user, tasks, saveTask }) => {
   const [showForecast, setShowForecast] = useState(true);
   const [showGoals, setShowGoals] = useState(true);
   const [forecastDuration, setForecastDuration] = useState<ForecastDuration>(preferences.defaultForecastPeriod || '1Y');
+  const [activeTab, setActiveTab] = useState<DashboardTab>('overview');
 
   // Sync Forecast Duration with Historical Duration by default
   useEffect(() => {
@@ -171,7 +185,6 @@ const Dashboard: React.FC<DashboardProps> = ({ user, tasks, saveTask }) => {
   const [isAddWidgetModalOpen, setIsAddWidgetModalOpen] = useState(false);
   const [isEditMode, setIsEditMode] = useState(false);
   const [isMatcherModalOpen, setIsMatcherModalOpen] = useState(false);
-  const [activeTab, setActiveTab] = useState<DashboardTab>('overview');
   
   const [selectedForecastDate, setSelectedForecastDate] = useState<string | null>(null);
 
@@ -981,11 +994,28 @@ const Dashboard: React.FC<DashboardProps> = ({ user, tasks, saveTask }) => {
 
   // --- Widget Management ---
   const allWidgets: Widget[] = useMemo(() => [
+    {
+      id: 'financialOverview',
+      name: 'Financial Overview',
+      defaultW: 6,
+      defaultH: 3,
+      component: FinancialOverview,
+      props: {
+        netWorth,
+        income,
+        expenses,
+        incomeChange,
+        expenseChange,
+        incomeSparkline,
+        expenseSparkline,
+        currency: 'EUR'
+      }
+    },
     { 
         id: 'todayWidget', 
         name: 'Today\'s Agenda', 
-        defaultW: 2, 
-        defaultH: 2, 
+        defaultW: 6, 
+        defaultH: 3, 
         component: TodayWidget, 
         props: { 
             tasks: tasks, 
@@ -1001,8 +1031,8 @@ const Dashboard: React.FC<DashboardProps> = ({ user, tasks, saveTask }) => {
     { 
       id: 'netWorthOverTime', 
       name: 'Net Worth Over Time', 
-      defaultW: 4, 
-      defaultH: 2, 
+      defaultW: 12, 
+      defaultH: 4, 
       component: NetWorthChart, 
       props: { 
         data: netWorthData, 
@@ -1014,81 +1044,108 @@ const Dashboard: React.FC<DashboardProps> = ({ user, tasks, saveTask }) => {
       } 
     },
     // Removed forecastChart
-    { id: 'outflowsByCategory', name: 'Outflows by Category', defaultW: 2, defaultH: 2, component: OutflowsChart, props: { data: outflowsByCategory, onCategoryClick: handleCategoryClick } },
-    { id: 'netWorthBreakdown', name: 'Net Worth Breakdown', defaultW: 2, defaultH: 2, component: AssetDebtDonutChart, props: { assets: totalAssets, debt: totalDebt } },
-    { id: 'recentActivity', name: 'Recent Activity', defaultW: 4, defaultH: 3, component: TransactionList, props: { transactions: recentTransactions, allCategories: allCategories, onTransactionClick: handleTransactionClick } },
-    { id: 'assetBreakdown', name: 'Asset Breakdown', defaultW: 2, defaultH: 2, component: AccountBreakdownCard, props: { title: 'Assets', totalValue: globalTotalAssets, breakdownData: globalAssetBreakdown } },
-    { id: 'liabilityBreakdown', name: 'Liability Breakdown', defaultW: 2, defaultH: 2, component: AccountBreakdownCard, props: { title: 'Liabilities', totalValue: Math.abs(globalTotalDebt), breakdownData: globalDebtBreakdown } },
-    { id: 'budgetOverview', name: 'Budget Overview', defaultW: 2, defaultH: 2, component: BudgetOverviewWidget, props: { budgets: budgets, transactions: transactions, expenseCategories: expenseCategories, accounts: accounts, duration: duration, onBudgetClick: handleBudgetClick } },
-    { id: 'transactionMap', name: 'Transaction Map', defaultW: 2, defaultH: 2, component: TransactionMapWidget, props: { transactions: filteredTransactions } },
-    { id: 'cashflowSankey', name: 'Cash Flow Sankey', defaultW: 4, defaultH: 2, component: CashflowSankey, props: { transactions: filteredTransactions, incomeCategories, expenseCategories } },
+    { id: 'outflowsByCategory', name: 'Outflows by Category', defaultW: 6, defaultH: 3, component: OutflowsChart, props: { data: outflowsByCategory, onCategoryClick: handleCategoryClick } },
+    { id: 'netWorthBreakdown', name: 'Net Worth Breakdown', defaultW: 6, defaultH: 3, component: AssetDebtDonutChart, props: { assets: totalAssets, debt: totalDebt } },
+    { id: 'recentActivity', name: 'Recent Activity', defaultW: 12, defaultH: 4, component: TransactionList, props: { transactions: recentTransactions, allCategories: allCategories, onTransactionClick: handleTransactionClick } },
+    { id: 'assetBreakdown', name: 'Asset Breakdown', defaultW: 6, defaultH: 3, component: AccountBreakdownCard, props: { title: 'Assets', totalValue: globalTotalAssets, breakdownData: globalAssetBreakdown } },
+    { id: 'liabilityBreakdown', name: 'Liability Breakdown', defaultW: 6, defaultH: 3, component: AccountBreakdownCard, props: { title: 'Liabilities', totalValue: Math.abs(globalTotalDebt), breakdownData: globalDebtBreakdown } },
+    { id: 'budgetOverview', name: 'Budget Overview', defaultW: 6, defaultH: 3, component: BudgetOverviewWidget, props: { budgets: budgets, transactions: transactions, expenseCategories: expenseCategories, accounts: accounts, duration: duration, onBudgetClick: handleBudgetClick } },
+    { id: 'transactionMap', name: 'Transaction Map', defaultW: 6, defaultH: 3, component: TransactionMapWidget, props: { transactions: filteredTransactions } },
+    { id: 'cashflowSankey', name: 'Cash Flow Sankey', defaultW: 12, defaultH: 4, component: CashflowSankey, props: { transactions: filteredTransactions, incomeCategories, expenseCategories } },
     
     // ANALYSIS WIDGETS
-    { id: 'financialRunway', name: 'Financial Runway', defaultW: 2, defaultH: 2, component: FinancialRunwayWidget, props: { accounts, transactions: analyticsTransactions } },
-    { id: 'merchantPareto', name: 'Merchant Pareto', defaultW: 2, defaultH: 2, component: MerchantParetoWidget, props: { transactions: analyticsTransactions } },
-    { id: 'wealthVelocity', name: 'Wealth Velocity', defaultW: 2, defaultH: 2, component: WealthVelocityWidget, props: { transactions: analyticsTransactions, accounts } }
+    { id: 'financialRunway', name: 'Financial Runway', defaultW: 6, defaultH: 3, component: FinancialRunwayWidget, props: { accounts, transactions: analyticsTransactions } },
+    { id: 'merchantPareto', name: 'Merchant Pareto', defaultW: 6, defaultH: 3, component: MerchantParetoWidget, props: { transactions: analyticsTransactions } },
+    { id: 'wealthVelocity', name: 'Wealth Velocity', defaultW: 6, defaultH: 3, component: WealthVelocityWidget, props: { transactions: analyticsTransactions, accounts } }
   ], [tasks, allRecurringItems, recurringTransactionOverrides, billsAndPayments, financialGoals, saveTask, netWorthData, netWorthTrendColor, activeGoalIds, lowestForecastPoint, selectedAccounts, outflowsByCategory, handleCategoryClick, totalAssets, totalDebt, recentTransactions, allCategories, handleTransactionClick, globalTotalAssets, globalAssetBreakdown, globalTotalDebt, globalDebtBreakdown, budgets, transactions, expenseCategories, accounts, duration, handleBudgetClick, filteredTransactions, incomeCategories, showForecast, showGoals, selectedAccountIds, analyticsTransactions]);
 
-  const [widgets, setWidgets] = useLocalStorage<WidgetConfig[]>('dashboard-layout', allWidgets.map(w => ({ id: w.id, title: w.name, w: w.defaultW, h: w.defaultH })));
+  const initialLayouts = useMemo(() => {
+    return allWidgets.map((w, index) => ({ 
+      id: w.id, 
+      title: w.name, 
+      x: (index % 2) * 6, 
+      y: Math.floor(index / 2) * 3, 
+      w: w.defaultW, 
+      h: w.defaultH 
+    }));
+  }, [allWidgets]);
+
+  const widgets = useMemo(() => {
+    return preferences.dashboardLayouts?.[activeTab] || initialLayouts.filter(w => WIDGET_TABS[activeTab].includes(w.id));
+  }, [preferences.dashboardLayouts, activeTab, initialLayouts]);
+
+  const saveLayouts = useCallback((newWidgets: WidgetConfig[]) => {
+    setPreferences(prev => ({
+      ...prev,
+      dashboardLayouts: {
+        ...(prev.dashboardLayouts || {}),
+        [activeTab]: newWidgets
+      }
+    }));
+  }, [activeTab, setPreferences]);
 
   // Ensure activity dashboard always includes its required widgets (including Cash Flow Sankey)
   useEffect(() => {
     const requiredWidgets = WIDGET_TABS[activeTab];
+    const currentIds = new Set(widgets.map(w => w.id));
+    const missing = requiredWidgets.filter(id => !currentIds.has(id));
+    
+    let newWidgets = widgets.filter(w => requiredWidgets.includes(w.id));
+    let changed = false;
 
-    setWidgets(prev => {
-        const currentIds = new Set(prev.map(w => w.id));
-        const missing = requiredWidgets.filter(id => !currentIds.has(id));
-        
-        // Filter out widgets that are NOT in the current tab's required list
-        // Note: This makes the tabs strictly enforce their own layouts
-        let newWidgets = prev.filter(w => requiredWidgets.includes(w.id));
-        
-        // Enforce Net Worth Width = 4
-        newWidgets = newWidgets.map(w => {
-            if (w.id === 'netWorthOverTime' && w.w !== 4) {
-                return { ...w, w: 4 };
-            }
-            return w;
-        });
-
-        if (missing.length) {
-             const additions = missing
-                .map(id => {
-                    const widgetDef = allWidgets.find(w => w.id === id);
-                    return widgetDef ? { id: widgetDef.id, title: widgetDef.name, w: widgetDef.defaultW, h: widgetDef.defaultH } : null;
-                })
-                .filter(Boolean) as WidgetConfig[];
-             newWidgets = [...newWidgets, ...additions];
+    if (newWidgets.length !== widgets.length) changed = true;
+    
+    newWidgets = newWidgets.map(w => {
+        if (w.id === 'netWorthOverTime' && w.w !== 12) {
+            changed = true;
+            return { ...w, w: 12 };
         }
-
-        // Check if anything actually changed to avoid infinite loop
-        const isDifferent = JSON.stringify(newWidgets) !== JSON.stringify(prev);
-        return isDifferent ? newWidgets : prev;
+        return w;
     });
-  }, [allWidgets, setWidgets, activeTab]);
+
+    if (missing.length) {
+         changed = true;
+         const additions = missing
+            .map((id, index) => {
+                const widgetDef = allWidgets.find(w => w.id === id);
+                const yOffset = Math.max(0, ...newWidgets.map(w => w.y + w.h));
+                return widgetDef ? { id: widgetDef.id, title: widgetDef.name, x: (index % 2) * 2, y: yOffset + index, w: widgetDef.defaultW, h: widgetDef.defaultH } : null;
+            })
+            .filter(Boolean) as WidgetConfig[];
+         newWidgets = [...newWidgets, ...additions];
+    }
+
+    if (changed) {
+        saveLayouts(newWidgets);
+    }
+  }, [activeTab, allWidgets, widgets, saveLayouts]);
 
   const removeWidget = (widgetId: string) => {
-    setWidgets(prev => prev.filter(w => w.id !== widgetId));
+    saveLayouts(widgets.filter(w => w.id !== widgetId));
   };
 
   const addWidget = (widgetId: string) => {
     const widgetToAdd = allWidgets.find(w => w.id === widgetId);
     if (widgetToAdd) {
-        setWidgets(prev => [...prev, { id: widgetToAdd.id, title: widgetToAdd.name, w: widgetToAdd.defaultW, h: widgetToAdd.defaultH }]);
+        const yOffset = Math.max(0, ...widgets.map(w => w.y + w.h));
+        const newWidget = { id: widgetToAdd.id, title: widgetToAdd.name, x: 0, y: yOffset, w: widgetToAdd.defaultW, h: widgetToAdd.defaultH };
+        saveLayouts([...widgets, newWidget]);
     }
     setIsAddWidgetModalOpen(false);
   };
   
-  const handleResize = (widgetId: string, dimension: 'w' | 'h', change: 1 | -1) => {
-    setWidgets(prev => prev.map(w => {
-      if (w.id === widgetId) {
-        const newDim = w[dimension] + change;
-        if (dimension === 'w' && (newDim < 1 || newDim > 4)) return w;
-        if (dimension === 'h' && (newDim < 1 || newDim > 3)) return w;
-        return { ...w, [dimension]: newDim };
+  const handleLayoutChange = (currentLayout: any[]) => {
+      const updated = widgets.map(w => {
+          const layoutItem = currentLayout.find(l => l.i === w.id);
+          if (layoutItem) {
+              return { ...w, x: layoutItem.x, y: layoutItem.y, w: layoutItem.w, h: layoutItem.h };
+          }
+          return w;
+      });
+      const isDifferent = JSON.stringify(updated) !== JSON.stringify(widgets);
+      if (isDifferent) {
+        saveLayouts(updated);
       }
-      return w;
-    }));
   };
 
   const availableWidgetsToAdd = useMemo(() => {
@@ -1096,29 +1153,6 @@ const Dashboard: React.FC<DashboardProps> = ({ user, tasks, saveTask }) => {
     const allowedWidgets = WIDGET_TABS[activeTab];
     return allWidgets.filter(w => !currentWidgetIds.includes(w.id) && allowedWidgets.includes(w.id));
   }, [widgets, allWidgets, activeTab]);
-
-  const [draggedWidgetId, setDraggedWidgetId] = useState<string | null>(null);
-  const [dragOverWidgetId, setDragOverWidgetId] = useState<string | null>(null);
-
-  const handleDragStart = (e: React.DragEvent, widgetId: string) => { setDraggedWidgetId(widgetId); e.dataTransfer.effectAllowed = 'move'; };
-  const handleDragEnter = (e: React.DragEvent, widgetId: string) => { e.preventDefault(); if (widgetId !== draggedWidgetId) setDragOverWidgetId(widgetId); };
-  const handleDragLeave = (e: React.DragEvent, widgetId: string) => { e.preventDefault(); setDragOverWidgetId(null); };
-  const handleDrop = (e: React.DragEvent, targetWidgetId: string) => {
-    e.preventDefault();
-    if (!draggedWidgetId || draggedWidgetId === targetWidgetId) return;
-
-    setWidgets(prevWidgets => {
-        const draggedIndex = prevWidgets.findIndex(w => w.id === draggedWidgetId);
-        const targetIndex = prevWidgets.findIndex(w => w.id === targetWidgetId);
-        if (draggedIndex === -1 || targetIndex === -1) return prevWidgets;
-
-        const newWidgets = [...prevWidgets];
-        const [draggedItem] = newWidgets.splice(draggedIndex, 1);
-        newWidgets.splice(targetIndex, 0, draggedItem);
-        return newWidgets;
-    });
-  };
-  const handleDragEnd = () => { setDraggedWidgetId(null); setDragOverWidgetId(null); };
 
   const { liquidityRatio, savingsRate } = useMemo(() => {
       const openAccounts = analyticsAccounts.filter(acc => acc.status !== 'closed');
@@ -1254,93 +1288,141 @@ const Dashboard: React.FC<DashboardProps> = ({ user, tasks, saveTask }) => {
       {selectedForecastDate && <ForecastDayModal isOpen={!!selectedForecastDate} onClose={() => setSelectedForecastDate(null)} date={selectedForecastDate} items={selectedDayItems} onEditItem={handleEditForecastItem} onAddTransaction={handleAddNewToDate} />}
       
       {/* Header Section */}
-      <PageHeader
-        markerIcon="analytics"
-        markerLabel="Command Center"
-        title="Dashboard"
-        subtitle="A pulse view of your cash, investments, and commitments with quick jumps to what matters today."
-        actions={
-          <div className="flex gap-3 w-full lg:w-auto">
-            {isEditMode ? (
-              <>
-                <button onClick={() => setIsAddWidgetModalOpen(true)} className={`${BTN_SECONDARY_STYLE} flex-1 lg:flex-none justify-center`}>
-                  <span className="material-symbols-outlined text-lg mr-2">add_circle</span>
-                  <span className="whitespace-nowrap">Add Widget</span>
-                </button>
-                <button onClick={() => setIsEditMode(false)} className={`${BTN_PRIMARY_STYLE} flex-1 lg:flex-none justify-center px-6`}>
-                  Done
-                </button>
-              </>
-            ) : (
-              <button onClick={() => setIsEditMode(true)} className={`${BTN_SECONDARY_STYLE} flex-1 lg:flex-none justify-center`}>
-                <span className="material-symbols-outlined text-lg mr-2">dashboard_customize</span>
-                <span className="whitespace-nowrap">Edit Layout</span>
-              </button>
-            )}
+      <div className="mb-8 mt-4 md:mt-0">
+        <PageHeader
+          markerIcon="analytics"
+          markerLabel="Command Center"
+          title="Dashboard"
+          subtitle="A pulse view of your cash, investments, and commitments with quick jumps to what matters today."
+          actions={
+            <div className="flex items-center p-1 bg-white/50 dark:bg-dark-card/30 backdrop-blur-md rounded-2xl border border-black/5 dark:border-white/5 shadow-sm overflow-hidden">
+                {/* Global Controls Group */}
+                <div className="flex items-center gap-1 pr-2 mr-2 border-r border-black/5 dark:border-white/10 ml-1">
+                    <button 
+                        onClick={() => setIsEditMode(!isEditMode)}
+                        className={`w-9 h-9 flex items-center justify-center rounded-xl transition-all group ${isEditMode ? 'bg-primary-500 text-white' : 'text-light-text-secondary dark:text-dark-text-secondary hover:bg-black/5 dark:hover:bg-white/5'}`}
+                        title={isEditMode ? "Finish Editing" : "Edit Layout"}
+                    >
+                        <span className="material-symbols-outlined text-xl">{isEditMode ? 'done' : 'dashboard_customize'}</span>
+                    </button>
 
-            <button onClick={() => handleOpenTransactionModal()} className={`${BTN_PRIMARY_STYLE} flex-1 lg:flex-none justify-center whitespace-nowrap`}>
-              <span className="material-symbols-outlined text-lg mr-2">add</span>
-              Add Transaction
-            </button>
-          </div>
-        }
-      />
+                    <button 
+                        onClick={() => window.dispatchEvent(new KeyboardEvent('keydown', { key: 'k', metaKey: true }))}
+                        className="w-9 h-9 flex items-center justify-center text-light-text-secondary dark:text-dark-text-secondary hover:bg-black/5 dark:hover:bg-white/5 rounded-xl transition-all group"
+                        title="Command Center"
+                    >
+                        <span className="material-symbols-outlined text-xl group-hover:text-blue-500">terminal</span>
+                    </button>
+                </div>
+
+                {/* Main Actions Group */}
+                <div className="flex items-center gap-1">
+                    {isEditMode && (
+                        <button 
+                            onClick={() => setIsAddWidgetModalOpen(true)}
+                            className="h-9 px-4 flex items-center gap-2 bg-black/5 dark:bg-white/5 text-xs font-black uppercase tracking-widest text-light-text-secondary dark:text-dark-text-secondary hover:bg-black/10 dark:hover:bg-white/10 rounded-xl transition-all"
+                        >
+                            <span className="material-symbols-outlined text-lg">add_circle</span>
+                            <span className="hidden sm:inline">Add Widget</span>
+                        </button>
+                    )}
+
+                    <button 
+                        onClick={() => {
+                            const syncBtn = document.querySelector('[data-eb-sync-all]');
+                            if (syncBtn) (syncBtn as HTMLElement).click();
+                        }}
+                        className="h-9 px-4 flex items-center gap-2 text-xs font-black uppercase tracking-widest text-emerald-600 dark:text-emerald-400 bg-emerald-500/10 hover:bg-emerald-500/20 rounded-xl transition-all border border-emerald-500/10"
+                        title="Sync Banks"
+                    >
+                        <span className="material-symbols-outlined text-lg">sync</span>
+                        <span className="hidden sm:inline">Sync Banks</span>
+                    </button>
+
+                    <button 
+                        onClick={() => handleOpenTransactionModal()}
+                        className="h-9 px-5 flex items-center gap-2 bg-primary-500 text-white text-xs font-black uppercase tracking-widest rounded-xl hover:scale-[1.02] active:scale-[0.98] transition-all shadow-lg shadow-primary-500/10"
+                    >
+                        <span className="material-symbols-outlined text-lg">add</span>
+                        <span className="hidden sm:inline">Add Transaction</span>
+                    </button>
+                </div>
+            </div>
+          }
+        />
+      </div>
 
       {/* Controls Bar: Tabs & Filters */}
-      <div className="flex flex-col xl:flex-row justify-between items-center gap-4 bg-white dark:bg-dark-card p-1.5 rounded-full border border-black/5 dark:border-white/5 shadow-sm">
-           {/* Tabs */}
-           <div className="bg-gray-100 dark:bg-white/5 p-1 rounded-full inline-flex shadow-inner overflow-x-auto no-scrollbar max-w-full">
+      <div className="mb-8">
+        <div className="flex flex-col lg:flex-row justify-between items-center gap-4 bg-white/50 dark:bg-dark-card/30 backdrop-blur-md px-4 py-3 rounded-2xl border border-black/5 dark:border-white/5 shadow-sm">
+             {/* Tabs */}
+             <div className="flex items-center gap-1 bg-black/5 dark:bg-white/5 p-1 rounded-xl">
             {tabs.map((tab) => (
                 <button
                     key={tab}
                     onClick={() => setActiveTab(tab)}
-                    className={`px-6 py-2 rounded-full text-sm font-bold capitalize transition-all duration-200 whitespace-nowrap ${
+                    className={`px-4 py-2 rounded-lg text-xs font-black uppercase tracking-widest transition-all duration-300 flex items-center gap-2 ${
                         activeTab === tab
-                        ? 'bg-white dark:bg-gray-700 shadow-sm text-primary-600 dark:text-primary-400 scale-105'
-                        : 'text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200'
+                        ? 'bg-white dark:bg-gray-700 shadow-md text-primary-600 dark:text-primary-400 translate-y-[-1px]'
+                        : 'text-gray-500 hover:text-gray-900 dark:text-gray-400 dark:hover:text-white hover:bg-black/5 dark:hover:bg-white/5'
                     }`}
                 >
-                    {tab}
+                    <span className="material-symbols-outlined text-lg leading-none">
+                        {tab === 'overview' ? 'grid_view' : tab === 'analysis' ? 'monitoring' : 'history'}
+                    </span>
+                    <span className="hidden sm:inline">{tab}</span>
                 </button>
             ))}
           </div>
 
           {/* Filters */}
-          <div className="flex flex-wrap gap-3 w-full xl:w-auto px-1 xl:px-0 justify-end">
+          <div className="flex flex-wrap items-center gap-3 w-full lg:w-auto justify-end">
               {/* Forecast Controls (Only visible in overview) */}
               {activeTab === 'overview' && (
-                  <div className="flex items-center gap-2 bg-light-fill dark:bg-dark-fill p-1 rounded-2xl">
-                      <div className={SELECT_WRAPPER_STYLE}>
+                  <div className="flex items-center gap-1 bg-black/5 dark:bg-white/5 p-1 rounded-xl border border-black/5 dark:border-white/5">
+                      <div className="relative group">
                           <select 
                             value={forecastDuration} 
                             onChange={(e) => setForecastDuration(e.target.value as ForecastDuration)} 
-                            className={`${SELECT_STYLE} !py-1.5 !text-xs !h-8 w-24`}
+                            className="appearance-none bg-transparent pl-3 pr-8 py-1.5 text-[10px] font-black uppercase tracking-widest text-light-text dark:text-dark-text focus:outline-none cursor-pointer"
                           >
                              {FORECAST_DURATION_OPTIONS.map(opt => (
-                                 <option key={opt.value} value={opt.value}>{opt.label}</option>
+                                 <option key={opt.value} value={opt.value} className="bg-white dark:bg-dark-card">{opt.label}</option>
                              ))}
                           </select>
-                          <div className={SELECT_ARROW_STYLE}><span className="material-symbols-outlined text-sm">expand_more</span></div>
+                          <div className="absolute right-2 top-1/2 -translate-y-1/2 pointer-events-none opacity-50">
+                            <span className="material-symbols-outlined text-sm">expand_more</span>
+                          </div>
                       </div>
-                      <div className="h-4 w-px bg-black/10 dark:bg-white/10 mx-1"></div>
-                      <label className="flex items-center gap-1.5 cursor-pointer px-2">
-                          <input type="checkbox" checked={showForecast} onChange={e => setShowForecast(e.target.checked)} className={CHECKBOX_STYLE} />
-                          <span className="text-xs font-medium text-light-text dark:text-dark-text">Forecast</span>
-                      </label>
-                      <label className="flex items-center gap-1.5 cursor-pointer px-2">
-                          <input type="checkbox" checked={showGoals} onChange={e => setShowGoals(e.target.checked)} className={CHECKBOX_STYLE} />
-                          <span className="text-xs font-medium text-light-text dark:text-dark-text">Goals</span>
-                      </label>
+                      
+                      <div className="w-px h-4 bg-black/10 dark:bg-white/10 mx-1"></div>
+                      
+                      <button 
+                        onClick={() => setShowForecast(!showForecast)}
+                        className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg transition-all ${showForecast ? 'bg-primary-500/10 text-primary-600 dark:text-primary-400' : 'text-gray-400 hover:text-gray-600'}`}
+                      >
+                         <span className={`material-symbols-outlined text-sm ${showForecast ? 'filled-icon' : ''}`}>show_chart</span>
+                         <span className="text-[10px] font-black uppercase tracking-widest">Forecast</span>
+                      </button>
+
+                      <button 
+                        onClick={() => setShowGoals(!showGoals)}
+                        className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg transition-all ${showGoals ? 'bg-primary-500/10 text-primary-600 dark:text-primary-400' : 'text-gray-400 hover:text-gray-600'}`}
+                      >
+                         <span className={`material-symbols-outlined text-sm ${showGoals ? 'filled-icon' : ''}`}>flag</span>
+                         <span className="text-[10px] font-black uppercase tracking-widest">Goals</span>
+                      </button>
                   </div>
               )}
 
-              <div className="flex-1 sm:flex-none">
+              <div className="h-8 w-px bg-black/5 dark:bg-white/5 mx-1 hidden lg:block"></div>
+
+              <div className="flex items-center gap-2">
                   <MultiAccountFilter accounts={accounts} selectedAccountIds={selectedAccountIds} setSelectedAccountIds={setSelectedAccountIds} />
-              </div>
-              <div className="flex-1 sm:flex-none">
-                   <DurationFilter selectedDuration={duration} onDurationChange={setDuration} />
+                  <DurationFilter selectedDuration={duration} onDurationChange={setDuration} />
               </div>
           </div>
+        </div>
       </div>
       
       {suggestions.length > 0 && (
@@ -1365,37 +1447,9 @@ const Dashboard: React.FC<DashboardProps> = ({ user, tasks, saveTask }) => {
 
       {activeTab === 'overview' && (
         <>
-             <div className="grid grid-cols-1 xl:grid-cols-3 gap-6">
-                <div className="xl:col-span-2">
-                    <FinancialOverview
-                        netWorth={netWorth}
-                        income={income}
-                        expenses={expenses}
-                        incomeChange={incomeChange}
-                        expenseChange={expenseChange}
-                        incomeSparkline={incomeSparkline}
-                        expenseSparkline={expenseSparkline}
-                        currency="EUR"
-                    />
-                </div>
-                <div className="xl:col-span-1 h-full">
-                     <Card className="h-full !p-0 overflow-hidden border border-black/5 dark:border-white/5 shadow-sm rounded-3xl">
-                        <TodayWidget 
-                            tasks={tasks} 
-                            recurringTransactions={allRecurringItems} 
-                            bills={billsAndPayments} 
-                            goals={financialGoals}
-                            overrides={recurringTransactionOverrides}
-                            onTaskUpdate={saveTask} 
-                            onProcessItem={handleProcessItem} 
-                        />
-                     </Card>
-                </div>
-            </div>
-            {/* ... remaining content */}
             {/* Display lowest balance forecasts based on the new forecast duration/logic */}
             {lowestBalanceForecasts && lowestBalanceForecasts.length > 0 && (
-                <div>
+                <div className="mb-6">
                     <ForecastOverview forecasts={lowestBalanceForecasts} currency="EUR" />
                 </div>
             )}
@@ -1454,9 +1508,21 @@ const Dashboard: React.FC<DashboardProps> = ({ user, tasks, saveTask }) => {
                   />
               </div>
 
-              {/* Dynamic widgets grid remains for any other widgets user might add in future, but WIDGET_TABS.analysis is currently empty */}
-              {widgets.filter(w => WIDGET_TABS.analysis.includes(w.id)).length > 0 && (
-                <div className="grid grid-cols-1 md:grid-cols-4 gap-6" style={{ gridAutoRows: 'minmax(200px, auto)' }}>
+              {/* Dynamic widgets grid */}
+               {widgets.filter(w => WIDGET_TABS.analysis.includes(w.id)).length > 0 && (
+                <ResponsiveGridLayout
+                    className="layout"
+                    layouts={{ lg: widgets.filter(w => WIDGET_TABS.analysis.includes(w.id)).map(w => ({ i: w.id, x: w.x, y: w.y, w: w.w, h: w.h })) }}
+                    breakpoints={{ lg: 1200, md: 996, sm: 768, xs: 480, xxs: 0 }}
+                    cols={{ lg: 4, md: 4, sm: 2, xs: 1, xxs: 1 }}
+                    rowHeight={180}
+                    isDraggable={isEditMode}
+                    isResizable={isEditMode}
+                    onLayoutChange={handleLayoutChange}
+                    draggableHandle=".drag-handle"
+                    margin={[24, 24]}
+                    containerPadding={[0, 0]}
+                >
                     {widgets
                         .filter(widget => WIDGET_TABS.analysis.includes(widget.id))
                         .map(widget => {
@@ -1465,29 +1531,21 @@ const Dashboard: React.FC<DashboardProps> = ({ user, tasks, saveTask }) => {
                             const WidgetComponent = widgetDetails.component;
 
                             return (
-                                <WidgetWrapper
-                                    key={widget.id}
-                                    title={widget.title}
-                                    w={widget.w}
-                                    h={widget.h}
-                                    onRemove={() => removeWidget(widget.id)}
-                                    onResize={(dim, change) => handleResize(widget.id, dim, change)}
-                                    isEditMode={isEditMode}
-                                    isBeingDragged={draggedWidgetId === widget.id}
-                                    isDragOver={dragOverWidgetId === widget.id}
-                                    onDragStart={e => handleDragStart(e, widget.id)}
-                                    onDragEnter={e => handleDragEnter(e, widget.id)}
-                                    onDragLeave={e => handleDragLeave(e, widget.id)}
-                                    onDrop={e => handleDrop(e, widget.id)}
-                                    onDragEnd={handleDragEnd}
-                                >
-                                    <Suspense fallback={<div className="p-4 text-center">Loading...</div>}>
-                                        <WidgetComponent {...widgetDetails.props as any} />
-                                    </Suspense>
-                                </WidgetWrapper>
+                                <div key={widget.id}>
+                                    <WidgetWrapper
+                                        title={widget.title}
+                                        onRemove={() => removeWidget(widget.id)}
+                                        isEditMode={isEditMode}
+                                        className="h-full"
+                                    >
+                                        <Suspense fallback={<div className="p-4 text-center">Loading...</div>}>
+                                            <WidgetComponent {...widgetDetails.props as any} />
+                                        </Suspense>
+                                    </WidgetWrapper>
+                                </div>
                             );
                     })}
-                </div>
+                </ResponsiveGridLayout>
               )}
 
               <Card className="overflow-hidden rounded-3xl">
@@ -1594,66 +1652,51 @@ const Dashboard: React.FC<DashboardProps> = ({ user, tasks, saveTask }) => {
                       </div>
                   </div>
               </Card>
-              
-              {/* Structured 3-Column Row: Budget, Runway, Velocity */}
-              <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-                  <Card className="min-h-[400px] flex flex-col rounded-3xl">
-                      <div className="flex justify-between items-center mb-4">
-                          <h3 className="text-xl font-bold text-light-text dark:text-dark-text">Budget Performance</h3>
-                          <button onClick={() => handleBudgetClick()} className="text-sm text-primary-500 hover:underline">View Details</button>
-                      </div>
-                      <div className="flex-grow">
-                          <BudgetOverviewWidget budgets={budgets} transactions={transactions} expenseCategories={expenseCategories} accounts={accounts} duration={duration} onBudgetClick={handleBudgetClick} />
-                      </div>
-                  </Card>
-                  
-                  <Card className="min-h-[400px] flex flex-col rounded-3xl">
-                      <FinancialRunwayWidget accounts={accounts} transactions={analyticsTransactions} />
-                  </Card>
-                  
-                  <Card className="min-h-[400px] flex flex-col rounded-3xl">
-                      <WealthVelocityWidget transactions={analyticsTransactions} accounts={accounts} />
-                  </Card>
-              </div>
           </div>
       )}
 
       {(activeTab === 'overview' || activeTab === 'activity') && (
-        <div className="grid grid-cols-1 md:grid-cols-4 gap-6" style={{ gridAutoRows: 'minmax(200px, auto)' }}>
-            {widgets
-                .filter(widget => WIDGET_TABS[activeTab].includes(widget.id))
-                .map(widget => {
-                    const widgetDetails = allWidgets.find(w => w.id === widget.id);
-                    if (!widgetDetails) return null;
-                    const WidgetComponent = widgetDetails.component;
+        <div className="animate-fade-in-up">
+            <ResponsiveGridLayout
+                className="layout"
+                layouts={{ lg: widgets.filter(w => WIDGET_TABS[activeTab].includes(w.id)).map(w => ({ i: w.id, x: w.x, y: w.y, w: w.w, h: w.h })) }}
+                breakpoints={{ lg: 1200, md: 996, sm: 768, xs: 480, xxs: 0 }}
+                cols={{ lg: 12, md: 10, sm: 6, xs: 1, xxs: 1 }}
+                rowHeight={120}
+                isDraggable={isEditMode}
+                isResizable={isEditMode}
+                onLayoutChange={handleLayoutChange}
+                draggableHandle=".drag-handle"
+                margin={[24, 24]}
+                containerPadding={[0, 0]}
+            >
+                {widgets
+                    .filter(widget => WIDGET_TABS[activeTab].includes(widget.id))
+                    .map(widget => {
+                        const widgetDetails = allWidgets.find(w => w.id === widget.id);
+                        if (!widgetDetails) return null;
+                        const WidgetComponent = widgetDetails.component;
 
-                    return (
-                        <WidgetWrapper
-                            key={widget.id}
-                            title={widget.title}
-                            w={widget.w}
-                            h={widget.h}
-                            onRemove={() => removeWidget(widget.id)}
-                            onResize={(dim, change) => handleResize(widget.id, dim, change)}
-                            isEditMode={isEditMode}
-                            isBeingDragged={draggedWidgetId === widget.id}
-                            isDragOver={dragOverWidgetId === widget.id}
-                            onDragStart={e => handleDragStart(e, widget.id)}
-                            onDragEnter={e => handleDragEnter(e, widget.id)}
-                            onDragLeave={e => handleDragLeave(e, widget.id)}
-                            onDrop={e => handleDrop(e, widget.id)}
-                            onDragEnd={handleDragEnd}
-                        >
-                            <Suspense fallback={(
-                              <div className="p-4 text-sm text-light-text-secondary dark:text-dark-text-secondary text-center">
-                                Loading widget...
-                              </div>
-                            )}>
-                              <WidgetComponent {...widgetDetails.props as any} />
-                            </Suspense>
-                        </WidgetWrapper>
-                    );
-            })}
+                        return (
+                            <div key={widget.id}>
+                                <WidgetWrapper
+                                    title={widget.title}
+                                    onRemove={() => removeWidget(widget.id)}
+                                    isEditMode={isEditMode}
+                                    className="h-full"
+                                >
+                                    <Suspense fallback={(
+                                      <div className="p-4 text-sm text-light-text-secondary dark:text-dark-text-secondary text-center">
+                                        Loading widget...
+                                      </div>
+                                    )}>
+                                      <WidgetComponent {...widgetDetails.props as any} />
+                                    </Suspense>
+                                </WidgetWrapper>
+                            </div>
+                        );
+                })}
+            </ResponsiveGridLayout>
         </div>
       )}
     </div>

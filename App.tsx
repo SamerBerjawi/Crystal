@@ -1,6 +1,7 @@
 // FIX: Import `useMemo` from React to resolve the 'Cannot find name' error.
 import React, { useState, useEffect, useMemo, useCallback, Suspense, lazy, useRef, Component, ErrorInfo, startTransition } from 'react';
 import Sidebar from './components/Sidebar';
+import CommandCenter from './components/CommandCenter';
 const SignIn = lazy(() => import('./pages/SignIn'));
 const SignUp = lazy(() => import('./pages/SignUp'));
 const pageRegistry = {
@@ -348,6 +349,7 @@ const App: React.FC = () => {
   const [userStats, setUserStats] = useState<UserStats>(emptyFinancialData.userStats || { currentStreak: 0, longestStreak: 0, lastLogDate: '' });
   const [predictions, setPredictions] = useState<Prediction[]>(emptyFinancialData.predictions || []);
   const [enableBankingConnections, setEnableBankingConnections] = useState<EnableBankingConnection[]>(emptyFinancialData.enableBankingConnections || []);
+  const [isCommandCenterOpen, setIsCommandCenterOpen] = useState(false);
 
   const latestDataRef = useRef<FinancialData>(emptyFinancialData);
   const lastUpdatedAtRef = useRef<string | null>(null);
@@ -1298,7 +1300,7 @@ const App: React.FC = () => {
 
     const creditDebit = providerTx?.credit_debit_indicator || providerTx?.creditDebitIndicator;
     const isCredit = creditDebit === 'CRDT';
-    const signedAmount = Number(amountRaw) * (creditDebit === 'CRDT' ? 1 : -1);
+    const signedAmount = Math.abs(Number(amountRaw)) * (isCredit ? 1 : -1);
     if (Number.isNaN(signedAmount)) return null;
 
     const resolveTransactionDate = () => {
@@ -1311,6 +1313,7 @@ const App: React.FC = () => {
         providerTx?.bookingDate,
         providerTx?.booking_date_time,
         providerTx?.bookingDateTime,
+        providerTx?.date,
       );
       if (!candidate) return toLocalISOString(new Date());
       return candidate.includes('T') ? candidate.slice(0, 10) : candidate;
@@ -1338,7 +1341,11 @@ const App: React.FC = () => {
         demoUser?.name?.trim().toLowerCase(),
       ].filter(Boolean) as string[];
 
-      if (!trimmed || /^([A-Z]{2}\d{2}[A-Z0-9]{8,30}|\d{8,})$/i.test(trimmed)) return undefined;
+      if (!trimmed) return undefined;
+      
+      // Filter out raw IBANs and numeric IDs
+      const cleanedForIbanCheck = trimmed.replace(/\s+/g, '');
+      if (/^([A-Z]{2}\d{2}[A-Z0-9]{8,30}|\d{8,})$/i.test(cleanedForIbanCheck)) return undefined;
 
       for (const identity of identities) {
         if (normalized === identity) return undefined;
@@ -1401,7 +1408,6 @@ const App: React.FC = () => {
 
     // Counterparty fields vary by bank. For outgoing payments prefer creditor-side fields;
     // for incoming payments (income/refunds) prefer debtor-side fields.
-    // Explicitly doing NOT fallback to the other side (which would be our own account holder's name).
     const merchant = pickFirstValidMerchant(
       providerTx?.merchant_name,
       providerTx?.merchantName,
@@ -1410,26 +1416,35 @@ const App: React.FC = () => {
       providerTx?.merchant?.displayName,
       providerTx?.card_acceptor?.name,
       providerTx?.cardAcceptor?.name,
+      providerTx?.counterparty_name,
+      providerTx?.counterpartyName,
+      providerTx?.counterparty?.name,
       ...(isCredit
         ? [
             providerTx?.debtor_name,
             providerTx?.debtorName,
             providerTx?.debtor?.name,
+            providerTx?.debtor?.account?.name,
+            providerTx?.debtorAccount?.name,
             providerTx?.ultimate_debtor,
             providerTx?.ultimateDebtor,
-            providerTx?.counterparty_name,
-            providerTx?.counterpartyName,
-            providerTx?.counterparty?.name,
+            // Fallbacks in case debtor is empty
+            providerTx?.creditor_name,
+            providerTx?.creditorName,
+            providerTx?.creditor?.name,
           ]
         : [
             providerTx?.creditor_name,
             providerTx?.creditorName,
             providerTx?.creditor?.name,
+            providerTx?.creditor?.account?.name,
+            providerTx?.creditorAccount?.name,
             providerTx?.ultimate_creditor,
             providerTx?.ultimateCreditor,
-            providerTx?.counterparty_name,
-            providerTx?.counterpartyName,
-            providerTx?.counterparty?.name,
+            // Fallbacks in case creditor is empty
+            providerTx?.debtor_name,
+            providerTx?.debtorName,
+            providerTx?.debtor?.name,
           ]),
     );
 
@@ -1695,7 +1710,7 @@ const App: React.FC = () => {
       return <PageLoader label="Loading account..." />;
     }
     switch (currentPage) {
-      case 'Dashboard': return <Dashboard user={currentUser!} incomeCategories={incomeCategories} expenseCategories={expenseCategories} financialGoals={financialGoals} recurringTransactions={recurringTransactions} recurringTransactionOverrides={recurringTransactionOverrides} loanPaymentOverrides={loanPaymentOverrides} tasks={tasks} saveTask={handleSaveTask} />;
+      case 'Dashboard': return <Dashboard user={currentUser!} incomeCategories={incomeCategories} expenseCategories={expenseCategories} financialGoals={financialGoals} recurringTransactions={recurringTransactions} recurringTransactionOverrides={recurringTransactionOverrides} loanPaymentOverrides={loanPaymentOverrides} tasks={tasks} saveTask={handleSaveTask} onTogglePrivacyMode={() => setIsPrivacyMode(!isPrivacyMode)} />;
       case 'Accounts': return <Accounts accounts={accounts} transactions={transactions} saveAccount={handleSaveAccount} deleteAccount={handleDeleteAccount} setCurrentPage={setCurrentPage} setViewingAccountId={setViewingAccountId} onViewAccount={handleOpenAccountDetail} saveTransaction={handleSaveTransaction} accountOrder={accountOrder} setAccountOrder={setAccountOrder} initialSortBy={preferences.defaultAccountOrder} warrants={warrants} onToggleAccountStatus={handleToggleAccountStatus} onNavigateToTransactions={navigateToTransactions} linkedEnableBankingAccountIds={linkedEnableBankingAccountIds} />;
       case 'Transactions': return <Transactions initialAccountFilter={transactionsViewFilters.current.accountName ?? null} initialTagFilter={transactionsViewFilters.current.tagId ?? null} onClearInitialFilters={clearPendingTransactionFilters} />;
       case 'Reports': return <ReportsPage />;
@@ -1720,6 +1735,17 @@ const App: React.FC = () => {
       default: return <div>Page not found</div>;
     }
   };
+
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      if ((e.metaKey || e.ctrlKey) && e.key === 'k') {
+        e.preventDefault();
+        setIsCommandCenterOpen(prev => !prev);
+      }
+    };
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, []);
 
   const preferencesContextValue = useMemo(() => ({ preferences, setPreferences }), [preferences]);
   const accountsContextValue = useMemo(() => ({ accounts, accountOrder, setAccountOrder, saveAccount: handleSaveAccount }), [accounts, accountOrder, handleSaveAccount]);
@@ -1758,6 +1784,18 @@ const App: React.FC = () => {
                     </main>
                 </div>
                 {isOnboardingOpen && <OnboardingModal isOpen={isOnboardingOpen} onClose={handleOnboardingFinish} user={currentUser} saveAccount={handleSaveAccount} saveFinancialGoal={handleSaveFinancialGoal} saveRecurringTransaction={handleSaveRecurringTransaction} preferences={preferences} setPreferences={setPreferences} accounts={accounts} incomeCategories={incomeCategories} expenseCategories={expenseCategories} />}
+                <CommandCenter 
+                    isOpen={isCommandCenterOpen} 
+                    onClose={() => setIsCommandCenterOpen(false)} 
+                    setCurrentPage={setCurrentPage} 
+                    accounts={accounts} 
+                    transactions={transactions} 
+                    onOpenAccount={handleOpenAccountDetail} 
+                    togglePrivacyMode={() => setIsPrivacyMode(!isPrivacyMode)} 
+                    isPrivacyMode={isPrivacyMode} 
+                    theme={theme} 
+                    setTheme={setTheme} 
+                />
              </div>
         </InsightsViewProvider>
     </FinancialDataProvider>

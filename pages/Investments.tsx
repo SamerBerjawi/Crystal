@@ -408,12 +408,12 @@ const Investments: React.FC<InvestmentsProps> = ({
                     <div className="relative z-10 flex flex-col h-full justify-between">
                         <div>
                             <p className="text-white/70 font-bold uppercase tracking-wider text-sm mb-2">Total Portfolio Value</p>
-                            <h2 className="text-5xl font-bold tracking-tight">{formatCurrency(totalValue, 'EUR')}</h2>
+                            <h2 className="text-5xl font-bold tracking-tight privacy-blur">{formatCurrency(totalValue, 'EUR')}</h2>
                         </div>
                         <div className="mt-8 flex flex-wrap gap-8">
                             <div>
                                 <p className="text-white/70 text-xs font-bold uppercase mb-1">Total Return</p>
-                                <p className="text-2xl font-semibold flex items-center gap-2">
+                                <p className="text-2xl font-semibold flex items-center gap-2 privacy-blur">
                                     {totalGainLoss >= 0 ? '+' : ''}{formatCurrency(totalGainLoss, 'EUR')}
                                     <span className={`text-sm px-2 py-0.5 rounded-full bg-white/20 backdrop-blur-md font-bold ${totalGainLoss >= 0 ? 'text-green-300' : 'text-red-300'}`}>
                                         {totalGainLoss >= 0 ? '▲' : '▼'} {Math.abs(totalGainLossPercent).toFixed(2)}%
@@ -422,11 +422,11 @@ const Investments: React.FC<InvestmentsProps> = ({
                             </div>
                             <div>
                                 <p className="text-white/70 text-xs font-bold uppercase mb-1">Invested</p>
-                                <p className="text-2xl font-semibold opacity-90">{formatCurrency(investedCapital, 'EUR')}</p>
+                                <p className="text-2xl font-semibold opacity-90 privacy-blur">{formatCurrency(investedCapital, 'EUR')}</p>
                             </div>
                             <div>
                                 <p className="text-white/70 text-xs font-bold uppercase mb-1">Granted</p>
-                                <p className="text-2xl font-semibold opacity-90">{formatCurrency(grantedCapital, 'EUR')}</p>
+                                <p className="text-2xl font-semibold opacity-90 privacy-blur">{formatCurrency(grantedCapital, 'EUR')}</p>
                             </div>
                         </div>
                     </div>
@@ -542,16 +542,16 @@ const Investments: React.FC<InvestmentsProps> = ({
                                                     </div>
                                                 </td>
                                                 <td className="py-4 text-right">
-                                                    <div className="font-medium text-light-text dark:text-dark-text">{formatCurrency(holding.currentPrice, 'EUR')}</div>
+                                                    <div className="font-medium text-light-text dark:text-dark-text privacy-blur">{formatCurrency(holding.currentPrice, 'EUR')}</div>
                                                 </td>
                                                 <td className="py-4 text-right">
                                                     <div className="font-medium text-light-text dark:text-dark-text">{holding.quantity.toLocaleString(undefined, { maximumFractionDigits: 4 })}</div>
                                                 </td>
                                                 <td className="py-4 text-right">
-                                                    <div className="font-bold text-light-text dark:text-dark-text">{formatCurrency(holding.currentValue, 'EUR')}</div>
+                                                    <div className="font-bold text-light-text dark:text-dark-text privacy-blur">{formatCurrency(holding.currentValue, 'EUR')}</div>
                                                 </td>
                                                 <td className="py-4 text-right">
-                                                    <div className={`font-bold ${isPositive ? 'text-green-600 dark:text-green-400' : 'text-red-600 dark:text-red-400'}`}>
+                                                    <div className={`font-bold privacy-blur ${isPositive ? 'text-green-600 dark:text-green-400' : 'text-red-600 dark:text-red-400'}`}>
                                                         {isPositive ? '+' : ''}{formatCurrency(gainLoss, 'EUR')}
                                                     </div>
                                                     <div className={`text-xs ${isPositive ? 'text-green-600 dark:text-green-400' : 'text-red-600 dark:text-red-400'}`}>
@@ -627,9 +627,9 @@ const Investments: React.FC<InvestmentsProps> = ({
                                         </div>
                                         <div className="flex items-center gap-3">
                                             <div className="text-right">
-                                                <p className="font-bold text-light-text dark:text-dark-text">{formatCurrency(item.quantity * item.price, 'EUR')}</p>
+                                                <p className="font-bold text-light-text dark:text-dark-text privacy-blur">{formatCurrency(item.quantity * item.price, 'EUR')}</p>
                                                 <p className="text-[11px] text-light-text-secondary dark:text-dark-text-secondary">{amountLabel}</p>
-                                                <p className="text-xs text-light-text-secondary dark:text-dark-text-secondary">{item.quantity} @ {formatCurrency(item.price, 'EUR')}</p>
+                                                <p className="text-xs text-light-text-secondary dark:text-dark-text-secondary privacy-blur">{item.quantity} @ {formatCurrency(item.price, 'EUR')}</p>
                                             </div>
                                             <button
                                                 onClick={(event) => {

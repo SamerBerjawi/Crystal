@@ -6,83 +6,67 @@ interface WidgetWrapperProps {
   children: React.ReactNode;
   title: string;
   onRemove: () => void;
-  w: number;
-  h: number;
   isEditMode: boolean;
-  onResize: (dimension: 'w' | 'h', change: 1 | -1) => void;
-  isBeingDragged?: boolean;
-  isDragOver?: boolean;
-  onDragStart?: (e: React.DragEvent) => void;
-  onDragEnter?: (e: React.DragEvent) => void;
-  onDragLeave?: (e: React.DragEvent) => void;
-  onDrop?: (e: React.DragEvent) => void;
-  onDragEnd?: (e: React.DragEvent) => void;
+  className?: string;
+  style?: React.CSSProperties;
+  onMouseDown?: React.MouseEventHandler;
+  onMouseUp?: React.MouseEventHandler;
+  onTouchEnd?: React.TouchEventHandler;
 }
 
 const WidgetWrapper: React.FC<WidgetWrapperProps> = ({ 
     children, 
     title, 
     onRemove, 
-    w,
-    h,
     isEditMode,
-    onResize,
-    isBeingDragged,
-    isDragOver,
-    onDragStart,
-    onDragEnter,
-    onDragLeave,
-    onDrop,
-    onDragEnd
+    className,
+    style,
+    onMouseDown,
+    onMouseUp,
+    onTouchEnd
 }) => {
-  const colSpanClasses: { [key: number]: string } = {
-    1: 'md:col-span-1',
-    2: 'md:col-span-2',
-    3: 'md:col-span-3',
-    4: 'md:col-span-4',
-  };
-  const rowSpanClasses: { [key: number]: string } = {
-    1: 'md:row-span-1',
-    2: 'md:row-span-2',
-    3: 'md:row-span-3',
-  };
-
-  const dragClasses = isBeingDragged ? 'opacity-30' : '';
-  const dragOverClasses = isDragOver ? 'outline-2 outline-dashed outline-primary-500 bg-primary-500/5' : '';
-  
   return (
     <div 
-        className={`${colSpanClasses[w] || 'md:col-span-1'} ${rowSpanClasses[h] || 'md:row-span-1'} ${dragClasses} transition-opacity duration-300 relative h-full`}
-        draggable={isEditMode}
-        onDragStart={onDragStart}
-        onDragEnter={onDragEnter}
-        onDragLeave={onDragLeave}
-        onDragOver={(e) => e.preventDefault()} // Necessary for onDrop to fire
-        onDrop={onDrop}
-        onDragEnd={onDragEnd}
+        className={`${className} group/widget`}
+        style={style}
+        onMouseDown={onMouseDown}
+        onMouseUp={onMouseUp}
+        onTouchEnd={onTouchEnd}
     >
-      <Card className={`flex flex-col h-full ${dragOverClasses} transition-all duration-200 ${isEditMode ? 'border-dashed border-primary-500/50' : ''}`}>
-        <header className={`flex items-center justify-between mb-4 -mt-2 ${isEditMode ? 'cursor-move' : ''}`}>
-          <h3 className="text-xl font-semibold text-light-text dark:text-dark-text">{title}</h3>
+      <div className={`flex flex-col h-full bg-white/40 dark:bg-dark-card/20 backdrop-blur-xl border rounded-[2rem] transition-all duration-500 overflow-hidden ${
+        isEditMode 
+        ? 'border-primary-500/50 shadow-[0_0_20px_rgba(59,130,246,0.2)] scale-[0.98]' 
+        : 'border-black/5 dark:border-white/5 shadow-2xl shadow-black/5'
+      }`}>
+        <header className={`px-6 pt-5 pb-3 flex items-center justify-between drag-handle relative z-10 ${isEditMode ? 'cursor-move bg-primary-500/5' : ''}`}>
+          <div className="flex items-center gap-2 overflow-hidden">
+             {isEditMode && <span className="material-symbols-outlined text-primary-500 text-sm animate-pulse">drag_indicator</span>}
+             <h3 className="text-[10px] font-black uppercase tracking-[0.25em] text-light-text dark:text-dark-text truncate pr-2 opacity-60 group-hover/widget:opacity-100 transition-opacity">
+                {title}
+             </h3>
+          </div>
+          
           {isEditMode && (
-            <button onClick={onRemove} className="text-light-text-secondary dark:text-dark-text-secondary p-1.5 rounded-full hover:bg-black/5 dark:hover:bg-white/5 transition-colors cursor-pointer" title="Remove widget">
-              <span className="material-symbols-outlined text-base">close</span>
+            <button 
+              onMouseDown={(e) => e.stopPropagation()} 
+              onClick={(e) => { e.stopPropagation(); onRemove(); }} 
+              className="text-rose-500 p-1 rounded-lg hover:bg-rose-500/10 transition-colors cursor-pointer shrink-0" 
+              title="Decommission node"
+            >
+              <span className="material-symbols-outlined text-sm">close</span>
             </button>
           )}
         </header>
-        <div className="flex-grow min-h-0">
+
+        <div className="flex-grow min-h-0 overflow-hidden px-6 pb-6 relative z-10">
           {children}
         </div>
-        {isEditMode && (
-          <div className="absolute bottom-2 right-2 flex gap-1 bg-light-card dark:bg-dark-card/80 backdrop-blur-sm p-1 rounded-md shadow-lg border border-black/5 dark:border-white/10 z-10">
-            <button onClick={(e) => { e.stopPropagation(); onResize('w', -1); }} disabled={w <= 1} className="p-1 rounded disabled:opacity-30 hover:bg-black/5 dark:hover:bg-white/5"><span className="material-symbols-outlined text-sm">west</span></button>
-            <button onClick={(e) => { e.stopPropagation(); onResize('w', 1); }} disabled={w >= 4} className="p-1 rounded disabled:opacity-30 hover:bg-black/5 dark:hover:bg-white/5"><span className="material-symbols-outlined text-sm">east</span></button>
-            <div className="w-px bg-gray-200 dark:bg-gray-700 mx-1"></div>
-            <button onClick={(e) => { e.stopPropagation(); onResize('h', -1); }} disabled={h <= 1} className="p-1 rounded disabled:opacity-30 hover:bg-black/5 dark:hover:bg-white/5"><span className="material-symbols-outlined text-sm">north</span></button>
-            <button onClick={(e) => { e.stopPropagation(); onResize('h', 1); }} disabled={h >= 3} className="p-1 rounded disabled:opacity-30 hover:bg-black/5 dark:hover:bg-white/5"><span className="material-symbols-outlined text-sm">south</span></button>
-          </div>
-        )}
-      </Card>
+
+        {/* Decorative corner accent */}
+        <div className={`absolute top-0 right-0 w-12 h-12 bg-gradient-to-bl pointer-events-none opacity-0 transition-opacity duration-500 group-hover/widget:opacity-100 ${
+            isEditMode ? 'from-primary-500/10' : 'from-black/5 dark:from-white/5'
+        }`}></div>
+      </div>
     </div>
   );
 };

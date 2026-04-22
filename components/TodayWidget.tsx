@@ -146,43 +146,62 @@ const TodayWidget: React.FC<TodayWidgetProps> = ({
 
     if (agendaItems.length === 0) {
         return (
-            <div className="h-full flex flex-col items-center justify-center text-center p-6 bg-gradient-to-br from-blue-50 to-indigo-50 dark:from-blue-900/20 dark:to-indigo-900/20 border-blue-100 dark:border-blue-800/30">
-                <div className="w-16 h-16 bg-white dark:bg-white/10 rounded-full flex items-center justify-center mb-4 shadow-sm">
-                    <span className="material-symbols-outlined text-4xl text-blue-500">wb_sunny</span>
+            <div className="h-full flex flex-col items-center justify-center text-center p-8 bg-white/40 dark:bg-dark-card/20 backdrop-blur-xl border border-black/5 dark:border-white/5 rounded-[2rem] relative overflow-hidden group">
+                <div className="absolute -right-20 -bottom-20 w-64 h-64 rounded-full bg-primary-500/5 blur-[100px] pointer-events-none group-hover:bg-primary-500/10 transition-all duration-700"></div>
+                
+                <div className="relative z-10">
+                    <div className="w-20 h-20 bg-white/50 dark:bg-white/5 rounded-[2rem] flex items-center justify-center mb-6 shadow-xl border border-white/20">
+                        <span className="material-symbols-outlined text-5xl text-primary-500 animate-pulse">wb_sunny</span>
+                    </div>
+                    <h3 className="text-sm font-black text-light-text dark:text-dark-text uppercase tracking-[0.3em] mb-2 leading-none">Status: Clear</h3>
+                    <p className="text-[10px] font-bold text-light-text-secondary dark:text-dark-text-secondary uppercase tracking-widest opacity-40">
+                        All systems operational. No items due today.
+                    </p>
                 </div>
-                <h3 className="text-lg font-bold text-blue-900 dark:text-blue-100">Nothing Due Today</h3>
-                <p className="text-sm text-blue-700/70 dark:text-blue-300/70 mt-1">
-                    You have no tasks or payments scheduled for today.
-                </p>
             </div>
         );
     }
 
     return (
-        <div className="h-full flex flex-col p-0 overflow-hidden bg-white dark:bg-dark-card">
-            <div className="p-4 border-b border-black/5 dark:border-white/5 flex justify-between items-center bg-gray-50/50 dark:bg-white/[0.02]">
-                <h3 className="font-bold text-light-text dark:text-dark-text flex items-center gap-2">
-                    <span className="material-symbols-outlined text-primary-500">today</span>
-                    Today's Agenda
-                </h3>
-                <span className="bg-primary-100 dark:bg-primary-900/30 text-primary-700 dark:text-primary-300 text-xs font-bold px-2 py-0.5 rounded-full">
-                    {agendaItems.length}
-                </span>
+        <div className="h-full flex flex-col p-6 bg-white/40 dark:bg-dark-card/20 backdrop-blur-xl border border-black/5 dark:border-white/5 rounded-[2rem] relative overflow-hidden">
+            <div className="absolute -left-20 -top-20 w-64 h-64 rounded-full bg-primary-500/5 blur-[100px] pointer-events-none"></div>
+
+            <div className="mb-6 flex justify-between items-center relative z-10">
+                <div className="flex items-center gap-3">
+                    <div className="w-8 h-8 rounded-xl bg-primary-500 text-white flex items-center justify-center shadow-lg shadow-primary-500/30">
+                        <span className="material-symbols-outlined text-lg filled-icon">today</span>
+                    </div>
+                    <div>
+                        <h3 className="text-xs font-black uppercase tracking-[0.2em] text-light-text dark:text-dark-text leading-tight">Agenda</h3>
+                        <div className="flex items-center gap-1.5 mt-0.5">
+                            <span className="w-1 h-1 rounded-full bg-primary-500 animate-pulse"></span>
+                            <span className="text-[9px] font-bold text-light-text-secondary dark:text-dark-text-secondary uppercase tracking-widest opacity-40">Real-time sync</span>
+                        </div>
+                    </div>
+                </div>
+                <div className="px-3 py-1 rounded-full bg-black/5 dark:bg-white/5 border border-black/5 dark:border-white/10 flex items-center gap-2">
+                    <span className="text-[10px] font-black font-mono text-primary-500">{agendaItems.length}</span>
+                    <span className="text-[8px] font-black uppercase tracking-widest opacity-40">Nodes</span>
+                </div>
             </div>
-            <div className="flex-1 overflow-y-auto p-2 space-y-2 custom-scrollbar">
+
+            <div className="flex-1 overflow-y-auto space-y-3 custom-scrollbar pr-1 relative z-10">
                 {agendaItems.map((item) => {
                     if (item.type === 'task') {
                         return (
-                            <div key={`task-${item.data.id}`} className="flex items-center p-3 rounded-xl hover:bg-black/5 dark:hover:bg-white/5 transition-colors group border border-transparent hover:border-black/5 dark:hover:border-white/10">
+                            <div key={`task-${item.data.id}`} className="flex items-center p-4 rounded-2xl bg-white/50 dark:bg-white/5 border border-black/5 dark:border-white/5 hover:border-primary-500/30 hover:bg-white/80 dark:hover:bg-white/10 transition-all duration-300 group">
                                 <button 
                                     onClick={() => handleTaskToggle(item.data)}
-                                    className="w-5 h-5 rounded border-2 border-gray-400 dark:border-gray-500 mr-3 flex items-center justify-center hover:border-primary-500 hover:bg-primary-50 dark:hover:bg-primary-900/20 transition-colors"
-                                />
+                                    className="w-6 h-6 rounded-lg border-2 border-black/10 dark:border-white/10 mr-4 flex items-center justify-center hover:border-primary-500 hover:bg-primary-500/10 transition-all duration-300 group-hover:scale-110"
+                                >
+                                    <span className="material-symbols-outlined text-primary-500 text-sm opacity-0 hover:opacity-100">check</span>
+                                </button>
                                 <div className="flex-1 min-w-0">
-                                    <p className="text-sm font-semibold text-light-text dark:text-dark-text truncate">{item.data.title}</p>
-                                    <p className="text-xs text-light-text-secondary dark:text-dark-text-secondary flex items-center gap-1">
-                                        <span className="material-symbols-outlined text-[10px]">check_circle</span> Task
-                                    </p>
+                                    <p className="text-[11px] font-black text-light-text dark:text-dark-text uppercase tracking-widest truncate leading-tight mb-1">{item.data.title}</p>
+                                    <div className="flex items-center gap-1.5">
+                                        <div className="w-1 h-1 rounded-full bg-emerald-500"></div>
+                                        <p className="text-[8px] font-black text-light-text-secondary dark:text-dark-text-secondary uppercase tracking-widest opacity-40">Active Task Node</p>
+                                    </div>
                                 </div>
                             </div>
                         );
@@ -193,40 +212,44 @@ const TodayWidget: React.FC<TodayWidgetProps> = ({
                         const data = item.data as (BillPayment | RecurringTransaction);
                         const amount = Math.abs(data.amount);
                         const currency = (data as any).currency || 'EUR';
-                        const description = data.description;
                         
                         return (
-                            <div key={`${item.type}-${data.id}`} className="flex items-center p-3 rounded-xl hover:bg-black/5 dark:hover:bg-white/5 transition-colors group border border-transparent hover:border-black/5 dark:hover:border-white/10">
-                                <div className={`w-8 h-8 rounded-lg flex items-center justify-center mr-3 shrink-0 ${isBill ? 'bg-orange-100 text-orange-600 dark:bg-orange-900/30 dark:text-orange-400' : 'bg-blue-100 text-blue-600 dark:bg-blue-900/30 dark:text-blue-400'}`}>
-                                    <span className="material-symbols-outlined text-lg">{isBill ? 'receipt' : 'update'}</span>
+                            <div key={`${item.type}-${data.id}`} className="flex items-center p-4 rounded-2xl bg-white/50 dark:bg-white/5 border border-black/5 dark:border-white/5 hover:border-amber-500/30 hover:bg-white/80 dark:hover:bg-white/10 transition-all duration-300 group">
+                                <div className={`w-10 h-10 rounded-xl flex items-center justify-center mr-4 shrink-0 shadow-sm ${isBill ? 'bg-amber-500/10 text-amber-600 border border-amber-500/20' : 'bg-primary-500/10 text-primary-600 border border-primary-500/20'}`}>
+                                    <span className="material-symbols-outlined text-xl filled-icon">{isBill ? 'receipt' : 'update'}</span>
                                 </div>
                                 <div className="flex-1 min-w-0">
-                                    <p className="text-sm font-semibold text-light-text dark:text-dark-text truncate">{description}</p>
-                                    <p className="text-xs text-light-text-secondary dark:text-dark-text-secondary flex items-center gap-1">
-                                        {formatCurrency(amount, currency)}
-                                    </p>
+                                    <p className="text-[11px] font-black text-light-text dark:text-dark-text uppercase tracking-widest truncate leading-tight mb-1">{data.description}</p>
+                                    <div className="flex items-center gap-2">
+                                        <p className="text-[10px] font-black text-light-text dark:text-dark-text font-mono tracking-tighter opacity-80">
+                                            {formatCurrency(amount, currency)}
+                                        </p>
+                                        <span className="w-3 h-px bg-black/10 dark:bg-white/10"></span>
+                                        <p className="text-[8px] font-black text-light-text-secondary dark:text-dark-text-secondary uppercase tracking-[0.15em] opacity-40">{isBill ? 'Invoice' : 'Recurring'}</p>
+                                    </div>
                                 </div>
-                                <div className="flex flex-col items-end gap-1">
-                                     <button 
-                                        onClick={() => onProcessItem(data)}
-                                        className="opacity-0 group-hover:opacity-100 transition-opacity text-xs bg-primary-500 text-white px-2 py-1 rounded hover:bg-primary-600"
-                                    >
-                                        {isBill ? 'Pay' : 'Post'}
-                                    </button>
-                                </div>
+                                <button 
+                                    onClick={() => onProcessItem(data)}
+                                    className="opacity-0 group-hover:opacity-100 transform translate-x-2 group-hover:translate-x-0 transition-all duration-300 text-[9px] font-black uppercase tracking-widest bg-primary-500 text-white px-3 py-1.5 rounded-full shadow-lg shadow-primary-500/30 hover:bg-primary-600"
+                                >
+                                    {isBill ? 'Execute' : 'Commit'}
+                                </button>
                             </div>
                         );
                     }
 
                     if (item.type === 'goal') {
                         return (
-                            <div key={`goal-${item.data.id}`} className="flex items-center p-3 rounded-xl bg-yellow-50 dark:bg-yellow-900/10 border border-yellow-200 dark:border-yellow-800/50">
-                                 <div className="w-8 h-8 rounded-lg flex items-center justify-center mr-3 shrink-0 bg-yellow-100 text-yellow-600 dark:bg-yellow-900/30 dark:text-yellow-400">
-                                    <span className="material-symbols-outlined text-lg">flag</span>
+                            <div key={`goal-${item.data.id}`} className="flex items-center p-4 rounded-2xl bg-emerald-500/5 dark:bg-emerald-500/10 border border-emerald-500/20 group">
+                                 <div className="w-10 h-10 rounded-xl flex items-center justify-center mr-4 shrink-0 bg-emerald-500 text-white shadow-lg shadow-emerald-500/30">
+                                    <span className="material-symbols-outlined text-xl filled-icon">flag</span>
                                 </div>
                                 <div className="flex-1 min-w-0">
-                                    <p className="text-sm font-semibold text-light-text dark:text-dark-text truncate">{item.data.name}</p>
-                                    <p className="text-xs text-light-text-secondary dark:text-dark-text-secondary">Goal Target Date</p>
+                                    <p className="text-[11px] font-black text-light-text dark:text-dark-text uppercase tracking-widest truncate leading-tight mb-1">{item.data.name}</p>
+                                    <div className="flex items-center gap-1.5">
+                                        <span className="w-1 h-1 rounded-full bg-emerald-500 animate-pulse"></span>
+                                        <p className="text-[8px] font-black text-emerald-600 dark:text-emerald-400 uppercase tracking-widest">Milestone Target Met</p>
+                                    </div>
                                 </div>
                             </div>
                         );

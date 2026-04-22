@@ -363,6 +363,8 @@ export interface Widget {
 export interface WidgetConfig {
   id: string;
   title: string;
+  x: number;
+  y: number;
   w: number;
   h: number;
 }
@@ -464,6 +466,8 @@ export interface AppPreferences {
   merchantLogoOverrides?: Record<string, string>; // Deprecated in favor of merchantRules, kept for backward compat if needed
   merchantRules?: Record<string, MerchantRule>; // Key is normalized merchant name
   hiddenMerchants?: string[]; // Deprecated in favor of merchantRules[x].isHidden
+  isPrivacyMode?: boolean;
+  dashboardLayouts?: Record<string, WidgetConfig[]>;
 }
 
 // New types for Bills & Payments

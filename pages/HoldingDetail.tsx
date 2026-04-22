@@ -248,7 +248,7 @@ const HoldingDetail: React.FC<HoldingDetailProps> = ({
                      <div className="relative z-10 flex flex-col h-full justify-between">
                          <div>
                             <p className="text-xs font-bold uppercase tracking-wider text-indigo-200 mb-1">Current Value</p>
-                            <h2 className="text-4xl font-black tracking-tight">{formatCurrency(holding.currentValue, 'EUR')}</h2>
+                            <h2 className="text-4xl font-black tracking-tight privacy-blur">{formatCurrency(holding.currentValue, 'EUR')}</h2>
                          </div>
                          <div className="mt-4 inline-flex items-center gap-2 bg-white/10 backdrop-blur-sm px-3 py-1.5 rounded-lg border border-white/10 w-fit">
                              <span className="material-symbols-outlined text-sm">layers</span>
@@ -265,7 +265,7 @@ const HoldingDetail: React.FC<HoldingDetailProps> = ({
                      
                      <div>
                         <p className="text-xs font-bold uppercase tracking-wider text-light-text-secondary dark:text-dark-text-secondary mb-1">Total Return</p>
-                        <p className={`text-3xl font-black tracking-tight ${isPositive ? 'text-green-600 dark:text-green-400' : 'text-red-600 dark:text-red-400'}`}>
+                        <p className={`text-3xl font-black tracking-tight privacy-blur ${isPositive ? 'text-green-600 dark:text-green-400' : 'text-red-600 dark:text-red-400'}`}>
                             {isPositive ? '+' : ''}{formatCurrency(gainLoss, 'EUR')}
                         </p>
                      </div>
@@ -282,7 +282,7 @@ const HoldingDetail: React.FC<HoldingDetailProps> = ({
                 <div className="bg-white dark:bg-dark-card p-6 rounded-2xl border border-black/5 dark:border-white/5 shadow-sm flex items-center justify-between">
                     <div>
                         <p className="text-xs font-bold uppercase tracking-wider text-light-text-secondary dark:text-dark-text-secondary mb-1">Avg Cost</p>
-                        <p className="text-2xl font-bold text-light-text dark:text-dark-text">{formatCurrency(averageCost, 'EUR')}</p>
+                        <p className="text-2xl font-bold text-light-text dark:text-dark-text privacy-blur">{formatCurrency(averageCost, 'EUR')}</p>
                         <p className="text-xs text-light-text-secondary dark:text-dark-text-secondary mt-1 font-medium">Per Unit</p>
                     </div>
                     <div className="w-12 h-12 rounded-xl bg-orange-100 dark:bg-orange-900/30 text-orange-600 dark:text-orange-400 flex items-center justify-center">
@@ -294,7 +294,7 @@ const HoldingDetail: React.FC<HoldingDetailProps> = ({
                  <div className="bg-white dark:bg-dark-card p-6 rounded-2xl border border-black/5 dark:border-white/5 shadow-sm flex items-center justify-between">
                     <div>
                         <p className="text-xs font-bold uppercase tracking-wider text-light-text-secondary dark:text-dark-text-secondary mb-1">Market Price</p>
-                        <p className="text-2xl font-bold text-light-text dark:text-dark-text">{formatCurrency(holding.currentPrice, 'EUR')}</p>
+                        <p className="text-2xl font-bold text-light-text dark:text-dark-text privacy-blur">{formatCurrency(holding.currentPrice, 'EUR')}</p>
                         <p className="text-xs text-light-text-secondary dark:text-dark-text-secondary mt-1 font-medium">Last Logged</p>
                     </div>
                     <div className="w-12 h-12 rounded-xl bg-blue-100 dark:bg-blue-900/30 text-blue-600 dark:text-blue-400 flex items-center justify-center">
@@ -352,7 +352,7 @@ const HoldingDetail: React.FC<HoldingDetailProps> = ({
                                         </div>
                                         <div className="flex items-center gap-3">
                                             <div className="text-right">
-                                                <p className="font-mono font-bold text-sm text-light-text dark:text-dark-text">
+                                                <p className="font-mono font-bold text-sm text-light-text dark:text-dark-text privacy-blur">
                                                     {formatCurrency(item.amount, 'EUR')}
                                                 </p>
                                                 <p className="text-xs text-light-text-secondary dark:text-dark-text-secondary">
@@ -413,7 +413,7 @@ const HoldingDetail: React.FC<HoldingDetailProps> = ({
                                          </div>
                                          
                                          <div className="flex items-center gap-4">
-                                             <span className="font-mono font-bold text-sm text-light-text dark:text-dark-text">
+                                             <span className="font-mono font-bold text-sm text-light-text dark:text-dark-text privacy-blur">
                                                  {formatCurrency(entry.price, 'EUR')}
                                              </span>
                                              <div className="flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity">

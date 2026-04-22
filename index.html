@@ -32,6 +32,66 @@
       .perspective-1000 { perspective: 1000px; }
       .transform-style-3d { transform-style: preserve-3d; }
       .backface-hidden { backface-visibility: hidden; }
+      /* react-grid-layout styles */
+      .react-grid-layout {
+        position: relative;
+        transition: height 200ms ease;
+      }
+      .react-grid-item {
+        transition: all 200ms ease;
+        transition-property: left, top;
+      }
+      .react-grid-item.cssTransforms {
+        transition-property: transform;
+      }
+      .react-grid-item.resizing {
+        z-index: 1;
+        will-change: width, height;
+      }
+      .react-grid-item.react-draggable-dragging {
+        transition: none;
+        z-index: 3;
+        will-change: transform;
+      }
+      .react-grid-item.dropping {
+        visibility: hidden;
+      }
+      .react-grid-placeholder {
+        background: rgba(0,0,0,0.1);
+        border-radius: 24px;
+        transition-duration: 100ms;
+        z-index: 2;
+        -webkit-user-select: none;
+        -moz-user-select: none;
+        -ms-user-select: none;
+        -o-user-select: none;
+        user-select: none;
+      }
+      .dark .react-grid-placeholder {
+        background: rgba(255,255,255,0.05);
+      }
+      .react-grid-item > .react-resizable-handle {
+        position: absolute;
+        width: 20px;
+        height: 20px;
+        bottom: 0;
+        right: 0;
+        cursor: se-resize;
+      }
+      .react-grid-item > .react-resizable-handle::after {
+        content: "";
+        position: absolute;
+        right: 8px;
+        bottom: 8px;
+        width: 5px;
+        height: 5px;
+        border-right: 2px solid rgba(0,0,0,0.4);
+        border-bottom: 2px solid rgba(0,0,0,0.4);
+      }
+      .dark .react-grid-item > .react-resizable-handle::after {
+        border-right-color: rgba(255,255,255,0.4);
+        border-bottom-color: rgba(255,255,255,0.4);
+      }
     </style>
     <script>
       tailwind.config = {

@@ -84,7 +84,7 @@ const ChartTooltip = ({ active, payload, label }: any) => {
                 <div className="w-2 h-2 rounded-full" style={{ backgroundColor: entry.color || entry.fill }} />
                 <span className="text-[10px] font-bold uppercase tracking-wider text-light-text dark:text-dark-text opacity-80">{entry.name}:</span>
               </div>
-              <span className="text-xs font-black text-light-text dark:text-dark-text">
+              <span className="text-xs font-black text-light-text dark:text-dark-text privacy-blur">
                 €{entry.value.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
               </span>
             </div>
@@ -1074,7 +1074,7 @@ const Reports: React.FC = () => {
                           )}
                         </td>
                         <td className="py-3 px-4 text-right font-mono text-xs text-light-text-secondary">{row.count}</td>
-                        <td className="py-3 px-4 text-right font-bold">€{row.totalEur.toLocaleString(undefined, { minimumFractionDigits: 2 })}</td>
+                        <td className="py-3 px-4 text-right font-bold privacy-blur">€{row.totalEur.toLocaleString(undefined, { minimumFractionDigits: 2 })}</td>
                         <td className="py-3 px-4 text-right">
                           <div className="flex items-center justify-end gap-2">
                             <div className="w-12 h-1.5 rounded-full bg-gray-100 dark:bg-white/10 overflow-hidden">
@@ -1145,7 +1145,7 @@ const Reports: React.FC = () => {
                   <span className="material-symbols-outlined text-[20px] shrink-0 mt-0.5">
                     {item.tone === 'warning' ? 'warning' : item.tone === 'positive' ? 'check_circle' : 'info'}
                   </span>
-                  <p className="text-sm font-medium leading-relaxed">{item.text}</p>
+                  <p className="text-sm font-medium leading-relaxed privacy-blur">{item.text}</p>
                 </div>
               ))}
               {insights.length === 0 && <p className="text-sm opacity-80 italic">Gathering more data to generate insights...</p>}
@@ -1162,16 +1162,16 @@ const Reports: React.FC = () => {
                   <div className="flex items-center justify-between">
                     <div>
                       <p className="text-[10px] font-bold uppercase tracking-widest text-light-text-secondary mb-1">Projected Total</p>
-                      <h4 className="text-3xl font-black tracking-tight">€{forecast.projectedMonthEnd.toLocaleString(undefined, { maximumFractionDigits: 0 })}</h4>
+                      <h4 className="text-3xl font-black tracking-tight privacy-blur">€{forecast.projectedMonthEnd.toLocaleString(undefined, { maximumFractionDigits: 0 })}</h4>
                     </div>
                     <div className="text-right">
                       <p className="text-[10px] font-bold uppercase tracking-widest text-light-text-secondary mb-1">Daily Burn Rate</p>
-                      <p className="text-xl font-bold">€{forecast.dailyAverage.toFixed(0)}<span className="text-xs font-normal opacity-60">/day</span></p>
+                      <p className="text-xl font-bold privacy-blur">€{forecast.dailyAverage.toFixed(0)}<span className="text-xs font-normal opacity-60">/day</span></p>
                     </div>
                   </div>
                   
                   <div className="space-y-2">
-                    <div className="flex justify-between text-[10px] font-bold uppercase tracking-widest">
+                    <div className="flex justify-between text-[10px] font-bold uppercase tracking-widest privacy-blur">
                       <span>MTD: €{forecast.mtdSpendEur.toFixed(0)}</span>
                       <span>Remaining: €{(forecast.projectedMonthEnd - forecast.mtdSpendEur).toFixed(0)}</span>
                     </div>
@@ -1206,7 +1206,7 @@ const Reports: React.FC = () => {
                     </div>
                   </div>
                   <div className="text-right">
-                    <p className="text-sm font-black">€{row.amountEur.toFixed(2)}</p>
+                    <p className="text-sm font-black privacy-blur">€{row.amountEur.toFixed(2)}</p>
                     <p className="text-[10px] text-rose-500 font-bold uppercase tracking-widest">{row.zScore.toFixed(1)}σ Outlier</p>
                   </div>
                 </div>
@@ -1232,7 +1232,7 @@ const Reports: React.FC = () => {
                     </div>
                   </div>
                   <div className="text-right">
-                    <p className="text-sm font-black">€{candidate.estimatedMonthlyEur.toFixed(0)}<span className="text-[10px] font-normal opacity-60">/mo</span></p>
+                    <p className="text-sm font-black privacy-blur">€{candidate.estimatedMonthlyEur.toFixed(0)}<span className="text-[10px] font-normal opacity-60">/mo</span></p>
                     <p className="text-[10px] text-light-text-secondary font-bold uppercase tracking-widest">{candidate.occurrences} hits</p>
                   </div>
                 </div>

@@ -107,7 +107,7 @@ const Preferences: React.FC<PreferencesProps> = ({ preferences, setPreferences, 
         {/* Left Column */}
         <div className="space-y-8">
           <Card>
-            <SectionHeader title="Regional Settings" icon="public" description="Set your region, currency, and formatting preferences." />
+            <SectionHeader title="Regional Settings" icon="public" description="Set your primary currency and local preferences." />
             <div className="space-y-2">
               <SettingRow label="Primary Currency" description="The default currency used for dashboard summaries and reports.">
                 <div className={SELECT_WRAPPER_STYLE}>
@@ -118,45 +118,14 @@ const Preferences: React.FC<PreferencesProps> = ({ preferences, setPreferences, 
                 </div>
               </SettingRow>
 
-              <SettingRow label="Language" description="Select your preferred display language.">
-                <div className={SELECT_WRAPPER_STYLE}>
-                  <select name="language" value={preferences.language} onChange={handleChange} className={INPUT_BASE_STYLE}>
-                    <option>English (en)</option>
-                    <option>Français (fr)</option>
-                    <option>Español (es)</option>
-                  </select>
-                  <div className={SELECT_ARROW_STYLE}><span className="material-symbols-outlined">expand_more</span></div>
-                </div>
-              </SettingRow>
-
-              <SettingRow label="Country" description="Used for regional defaults like date formats.">
-                <div className={SELECT_WRAPPER_STYLE}>
-                  <select name="country" value={preferences.country} onChange={handleChange} className={INPUT_BASE_STYLE}>
-                    {COUNTRY_OPTIONS.map(c => <option key={c} value={c}>{c}</option>)}
-                  </select>
-                  <div className={SELECT_ARROW_STYLE}><span className="material-symbols-outlined">expand_more</span></div>
-                </div>
-              </SettingRow>
-
-              <SettingRow label="Timezone" description="Ensure transaction times are recorded accurately.">
-                 <div className={SELECT_WRAPPER_STYLE}>
-                  <select name="timezone" value={preferences.timezone} onChange={handleChange} className={INPUT_BASE_STYLE}>
-                    {TIMEZONE_OPTIONS.map(tz => <option key={tz} value={tz}>{tz.replace(/_/g, ' ')}</option>)}
-                  </select>
-                  <div className={SELECT_ARROW_STYLE}><span className="material-symbols-outlined">expand_more</span></div>
-                </div>
-              </SettingRow>
-
-              <SettingRow label="Date Format" description="Choose how dates are displayed throughout the app.">
-                 <div className={SELECT_WRAPPER_STYLE}>
-                  <select name="dateFormat" value={preferences.dateFormat} onChange={handleChange} className={INPUT_BASE_STYLE}>
-                    <option>DD/MM/YYYY</option>
-                    <option>MM/DD/YYYY</option>
-                    <option>YYYY-MM-DD</option>
-                  </select>
-                  <div className={SELECT_ARROW_STYLE}><span className="material-symbols-outlined">expand_more</span></div>
-                </div>
-              </SettingRow>
+              <div className="p-4 bg-primary-50/50 dark:bg-primary-900/10 rounded-xl mt-4 border border-primary-100 dark:border-primary-800/30">
+                  <div className="flex gap-3">
+                      <span className="material-symbols-outlined text-primary-600 dark:text-primary-400">info</span>
+                      <p className="text-xs text-primary-700 dark:text-primary-300 leading-relaxed">
+                          Crystal automatically uses your device's local settings for language, dates, and timezones to ensure maximum accuracy and zero-shift date recording.
+                      </p>
+                  </div>
+              </div>
             </div>
           </Card>
         </div>

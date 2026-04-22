@@ -131,13 +131,14 @@ const TransactionList: React.FC<TransactionListProps> = ({ transactions, allCate
             return (
               <li
                 key={tx.id}
-                className="flex items-center justify-between group cursor-pointer hover:bg-light-fill dark:hover:bg-dark-fill p-2 rounded-lg transition-all duration-200 hover:shadow-sm"
+                className="flex items-center justify-between group cursor-pointer hover:bg-black/5 dark:hover:bg-white/5 p-4 rounded-2xl transition-all duration-300 border border-transparent hover:border-black/5 dark:hover:border-white/5 mb-1"
                 onClick={() => onTransactionClick?.(tx)}
+                style={{ height: ROW_HEIGHT - 8 }}
               >
                 <div className="flex items-center min-w-0">
                   <div 
-                    className={`flex-shrink-0 h-10 w-10 rounded-xl flex items-center justify-center overflow-hidden shadow-sm ${showMerchantLogo ? 'bg-white dark:bg-dark-card' : 'border border-black/5 dark:border-white/10'}`}
-                    style={showMerchantLogo ? undefined : { backgroundColor: isTransfer ? undefined : categoryColor }}
+                    className={`flex-shrink-0 h-10 w-10 rounded-xl flex items-center justify-center overflow-hidden shadow-lg transition-transform duration-500 group-hover:scale-110 ${showMerchantLogo ? 'bg-white dark:bg-dark-card border border-black/5' : 'border border-black/5 dark:border-white/10'}`}
+                    style={showMerchantLogo ? undefined : { backgroundColor: isTransfer ? undefined : `${categoryColor}22` }}
                   >
                     {showMerchantLogo && merchantLogoUrl ? (
                       <img
@@ -145,45 +146,51 @@ const TransactionList: React.FC<TransactionListProps> = ({ transactions, allCate
                         alt=""
                         className="w-full h-full object-cover"
                         onError={() => handleLogoError(merchantLogoUrl)}
+                        referrerPolicy="no-referrer"
                       />
-                    ) : merchantInitial && !isTransfer ? (
-                      <span className="text-sm font-bold text-white uppercase">{merchantInitial}</span>
                     ) : (
-                      <span className={`material-symbols-outlined ${isTransfer ? 'text-light-text-secondary dark:text-dark-text-secondary' : 'text-white'}`}>
+                      <span 
+                        className={`material-symbols-outlined text-xl ${isTransfer ? 'text-light-text-secondary dark:text-dark-text-secondary' : ''}`}
+                        style={isTransfer ? undefined : { color: categoryColor }}
+                      >
                         {icon}
                       </span>
                     )}
                   </div>
                   <div className="ml-4 min-w-0">
-                    <p className="text-base font-medium text-light-text dark:text-dark-text flex items-center gap-2 truncate">
+                    <p className="text-[11px] font-black uppercase tracking-[0.1em] text-light-text dark:text-dark-text flex items-center gap-2 truncate opacity-80 group-hover:opacity-100 transition-opacity">
                         {description}
-                        {tx.isMarketAdjustment && <span className="text-[10px] uppercase font-bold bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-300 px-1.5 py-0.5 rounded shrink-0">Market</span>}
+                        {tx.isMarketAdjustment && <span className="text-[8px] uppercase font-black bg-blue-500/10 text-blue-500 px-1.5 py-0.5 rounded-lg border border-blue-500/20 shrink-0">Node Delta</span>}
                     </p>
-                    <p className="text-xs text-light-text-secondary dark:text-dark-text-secondary">{formattedDate}</p>
+                    <div className="flex items-center gap-2 mt-0.5">
+                        <p className="text-[9px] font-mono font-bold text-light-text-secondary dark:text-dark-text-secondary opacity-40">{formattedDate}</p>
+                        <div className="w-1 h-1 rounded-full bg-black/10 dark:bg-white/10"></div>
+                        <p className="text-[9px] font-mono font-black uppercase tracking-tighter opacity-20">{tx.category || 'System Node'}</p>
+                    </div>
                   </div>
                 </div>
-                <div className="flex items-center gap-2 text-right shrink-0">
-                  <div>
+                <div className="flex items-center gap-4 text-right shrink-0">
+                  <div className="flex flex-col items-end">
                     <p
-                      className={`text-base font-semibold privacy-blur ${
-                        isTransfer ? 'text-light-text dark:text-dark-text' : (tx.type === 'income' ? 'text-semantic-green' : 'text-semantic-red')
+                      className={`text-sm font-black font-mono tracking-tighter privacy-blur ${
+                        isTransfer ? 'text-light-text dark:text-dark-text' : (tx.type === 'income' ? 'text-emerald-500' : 'text-rose-500')
                       }`}
                     >
-                      {amountDisplay}
+                      {tx.type === 'income' && !isTransfer ? '+' : ''}{amountDisplay}
                     </p>
                     {spareAmountEur && (
-                      <p className="text-[10px] font-bold text-light-text-secondary dark:text-dark-text-secondary flex items-center justify-end gap-0.5 opacity-80">
-                        <span className="material-symbols-outlined text-[12px]">savings</span>
-                        {spareAmountEur}
-                      </p>
+                      <div className="flex items-center gap-1 opacity-20 group-hover:opacity-40 transition-opacity">
+                        <span className="material-symbols-outlined text-[10px]">bolt</span>
+                        <span className="text-[8px] font-black font-mono uppercase">{spareAmountEur} Harvest</span>
+                      </div>
                     )}
                   </div>
-                  <span className="material-symbols-outlined text-light-text-secondary dark:text-dark-text-secondary opacity-0 group-hover:opacity-100 transition-opacity">
-                    chevron_right
+                  <span className="material-symbols-outlined text-sm text-light-text-secondary dark:text-dark-text-secondary opacity-0 group-hover:opacity-30 transition-all translate-x-2 group-hover:translate-x-0">
+                    arrow_forward_ios
                   </span>
                 </div>
               </li>
-            )
+            );
           })}
         </ul>
       </div>

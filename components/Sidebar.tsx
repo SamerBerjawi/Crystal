@@ -33,8 +33,8 @@ const NAV_GROUPS = [
     items: ['Schedule & Bills', 'Subscriptions', 'Quotes & Invoices', 'Tasks']
   },
   {
-    title: 'Extras',
-    items: ['Challenges', 'Settings']
+    title: 'Configuration',
+    items: ['Categories', 'Tags', 'Merchants', 'Settings']
   }
 ];
 
