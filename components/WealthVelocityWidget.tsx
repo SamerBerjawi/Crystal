@@ -17,7 +17,7 @@ const WealthVelocityWidget: React.FC<WealthVelocityWidgetProps> = ({ transaction
     
     for (let i = months - 1; i >= 0; i--) {
       const d = new Date(today.getFullYear(), today.getMonth() - i, 1);
-      const monthKey = d.toLocaleString('default', { month: 'short' }).toUpperCase();
+      const monthKey = d.toLocaleString('default', { month: 'short' });
       const start = new Date(d.getFullYear(), d.getMonth(), 1);
       const end = new Date(d.getFullYear(), d.getMonth() + 1, 0, 23, 59, 59);
 
@@ -28,6 +28,7 @@ const WealthVelocityWidget: React.FC<WealthVelocityWidgetProps> = ({ transaction
       data.push({ month: monthKey, delta: monthlyDelta });
     }
 
+    // Calculate 3-month moving average for the line
     return data.map((item, idx, arr) => {
       const startIdx = Math.max(0, idx - 2);
       const window = arr.slice(startIdx, idx + 1);
@@ -40,81 +41,42 @@ const WealthVelocityWidget: React.FC<WealthVelocityWidgetProps> = ({ transaction
   const isAccelerating = currentDelta > (chartData[chartData.length - 1]?.avg || 0);
 
   return (
-    <div className="flex flex-col h-full space-y-6 !bg-transparent !p-0">
-      <div className="flex justify-between items-end px-1">
+    <div className="flex flex-col h-full space-y-4">
+      <div className="flex justify-between items-center px-1">
         <div>
-          <p className="text-[9px] font-black uppercase tracking-[0.2em] text-light-text-secondary dark:text-dark-text-secondary opacity-40 mb-1">Growth Momentum Index</p>
-          <div className="flex items-center gap-3">
-            <h3 className={`text-2xl font-black tracking-tighter font-mono ${currentDelta >= 0 ? 'text-emerald-500' : 'text-rose-500'}`}>
+          <p className="text-[10px] font-black uppercase tracking-widest text-light-text-secondary opacity-60">Growth Momentum</p>
+          <div className="flex items-center gap-2">
+            <h3 className={`text-2xl font-black ${currentDelta >= 0 ? 'text-emerald-500' : 'text-rose-500'}`}>
               {currentDelta >= 0 ? '+' : ''}{formatCurrency(currentDelta, 'EUR')}
             </h3>
-            <div className={`flex items-center gap-1.5 px-2.5 py-1 rounded-lg border text-[8px] font-black uppercase tracking-widest ${
-                isAccelerating 
-                ? 'bg-emerald-500/10 text-emerald-500 border-emerald-500/20 shadow-lg shadow-emerald-500/5' 
-                : 'bg-black/5 dark:bg-white/5 text-light-text-secondary border-black/5'
-            }`}>
-              {isAccelerating && <div className="w-1 h-1 rounded-full bg-emerald-500 animate-ping"></div>}
+            <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full ${isAccelerating ? 'bg-emerald-100 text-emerald-700' : 'bg-gray-100 text-gray-600'}`}>
               {isAccelerating ? 'Accelerating' : 'Stabilizing'}
-            </div>
+            </span>
           </div>
         </div>
       </div>
 
-      <div className="flex-grow min-h-[140px]">
+      <div className="flex-grow">
         <ResponsiveContainer width="100%" height="100%">
-          <ComposedChart data={chartData} margin={{ left: -30, right: 0, top: 10, bottom: 5 }}>
-            <CartesianGrid strokeDasharray="4 4" vertical={false} strokeOpacity={0.03} />
-            <XAxis 
-                dataKey="month" 
-                axisLine={false} 
-                tickLine={false} 
-                fontSize={9} 
-                tick={{ fill: 'currentColor', opacity: 0.3 }} 
-                className="font-black uppercase tracking-[0.2em]"
-            />
+          <ComposedChart data={chartData} margin={{ left: -30, right: 0, top: 10, bottom: 0 }}>
+            <CartesianGrid strokeDasharray="3 3" vertical={false} strokeOpacity={0.05} />
+            <XAxis dataKey="month" axisLine={false} tickLine={false} fontSize={10} tick={{ fill: 'currentColor', opacity: 0.5 }} />
             <YAxis axisLine={false} tickLine={false} hide />
             <Tooltip 
-              contentStyle={{ 
-                borderRadius: '2rem', 
-                border: 'none', 
-                backgroundColor: 'rgba(255,255,255,0.9)', 
-                backdropFilter: 'blur(16px)',
-                boxShadow: '0 25px 50px -12px rgba(0,0,0,0.1)' 
-              }}
-              labelStyle={{ fontSize: '10px', fontWeight: '900', textTransform: 'uppercase', letterSpacing: '0.2em', marginBottom: '8px', opacity: 0.4 }}
-              itemStyle={{ fontSize: '14px', fontWeight: '900', fontFamily: 'monospace' }}
+              contentStyle={{ backgroundColor: 'var(--light-card)', backdropFilter: 'blur(10px)', border: 'none', borderRadius: '16px', boxShadow: '0 10px 15px -3px rgba(0,0,0,0.1)' }}
               formatter={(value: number) => [formatCurrency(value, 'EUR'), 'Net Change']}
             />
-            <Area type="monotone" dataKey="delta" fill="#6366F1" stroke="none" fillOpacity={0.05} />
-            <Line 
-                type="monotone" 
-                dataKey="avg" 
-                stroke="currentColor" 
-                strokeOpacity={0.1}
-                strokeWidth={1} 
-                dot={false} 
-                strokeDasharray="4 4" 
-                name="3M Average" 
-            />
-            <Line 
-                type="monotone" 
-                dataKey="delta" 
-                stroke="#6366F1" 
-                strokeWidth={3} 
-                dot={{ r: 4, fill: '#6366F1', strokeWidth: 0 }} 
-                activeDot={{ r: 6 }} 
-                name="Actual Delta" 
-            />
+            {/* Using 'natural' type for extreme curves */}
+            <Area type="natural" dataKey="delta" fill="#6366F1" stroke="none" fillOpacity={0.1} />
+            <Line type="natural" dataKey="avg" stroke="#94A3B8" strokeWidth={2} dot={false} strokeDasharray="5 5" name="Moving Average" />
+            <Line type="natural" dataKey="delta" stroke="#6366F1" strokeWidth={3} dot={{ r: 4, fill: '#6366F1', strokeWidth: 0 }} activeDot={{ r: 6 }} name="Actual Delta" />
           </ComposedChart>
         </ResponsiveContainer>
       </div>
       
-      <div className="flex items-center justify-center gap-2 px-4 py-2 bg-black/5 dark:bg-white/5 rounded-2xl border border-black/5">
-        <span className="material-symbols-outlined text-[10px] opacity-20">insights</span>
-        <p className="text-[8px] font-black uppercase tracking-[0.3em] text-light-text-secondary opacity-30 text-center leading-none">
-            Node velocity reflects 3-month trailing growth trajectory
-        </p>
-      </div>
+      <p className="text-[10px] italic text-light-text-secondary opacity-60 text-center">
+        Dashed line represents your 3-month trailing growth average.
+      </p>
     </div>
   );
 };

@@ -100,68 +100,23 @@ type EnrichedTransaction = Transaction & { convertedAmount: number; parsedDate: 
 type DashboardTab = 'overview' | 'analysis' | 'activity';
 
 const WIDGET_TABS: Record<DashboardTab, string[]> = {
-    overview: ['financialOverview', 'todayWidget', 'forecastOverview', 'creditCardStatements', 'netWorthOverTime'],
+    overview: ['financialOverview', 'todayWidget', 'netWorthOverTime'],
     analysis: ['budgetOverview', 'financialRunway', 'wealthVelocity'],
     activity: ['transactionMap', 'outflowsByCategory', 'netWorthBreakdown', 'recentActivity', 'cashflowSankey']
 };
 
 const AnalysisStatCard: React.FC<{ title: string; value: string; subtext: string; icon: string; colorClass: string }> = ({ title, value, subtext, icon, colorClass }) => (
-    <div className="bg-white/40 dark:bg-dark-card/20 backdrop-blur-xl p-6 rounded-[2rem] border border-black/5 dark:border-white/5 shadow-2xl shadow-black/5 flex items-center gap-6 group hover:shadow-primary-500/10 transition-all duration-500">
-        <div className={`w-16 h-16 rounded-2xl flex items-center justify-center ${colorClass} shrink-0 shadow-lg border border-black/5 dark:border-white/5 transition-transform duration-500 group-hover:scale-110 group-hover:rotate-3`}>
-            <span className="material-symbols-outlined text-3xl filled-icon">{icon}</span>
+    <div className="bg-white dark:bg-dark-card p-6 rounded-3xl border border-black/5 dark:border-white/5 shadow-sm flex items-center gap-5 hover:shadow-md transition-all duration-200">
+        <div className={`w-14 h-14 rounded-2xl flex items-center justify-center ${colorClass} shrink-0`}>
+            <span className="material-symbols-outlined text-3xl">{icon}</span>
         </div>
         <div>
-            <p className="text-[9px] font-black uppercase tracking-[0.25em] text-light-text-secondary dark:text-dark-text-secondary mb-2 opacity-50 group-hover:opacity-100 transition-opacity">
-                {title}
-            </p>
-            <div className="flex items-baseline gap-2">
-                <p className="text-3xl font-black text-light-text dark:text-dark-text tracking-tighter privacy-blur leading-none">
-                    {value}
-                </p>
-                <div className="w-1.5 h-1.5 rounded-full bg-primary-500 opacity-0 group-hover:opacity-100 animate-pulse"></div>
-            </div>
-            <p className="text-[10px] text-light-text-secondary dark:text-dark-text-secondary mt-2 font-mono uppercase tracking-widest opacity-40 group-hover:opacity-60 transition-opacity">
-                {subtext}
-            </p>
+            <p className="text-xs font-bold uppercase text-light-text-secondary dark:text-dark-text-secondary tracking-wider mb-1">{title}</p>
+            <p className="text-2xl font-extrabold text-light-text dark:text-dark-text privacy-blur">{value}</p>
+            <p className="text-xs text-light-text-secondary dark:text-dark-text-secondary mt-1 font-medium">{subtext}</p>
         </div>
     </div>
 );
-
-const CreditCardWidget: React.FC<{ statements: any[] }> = ({ statements }) => {
-    if (statements.length === 0) {
-        return (
-            <div className="h-full flex flex-col items-center justify-center text-center p-8 bg-black/5 dark:bg-white/5 rounded-[2rem] border border-dashed border-black/10">
-                <span className="material-symbols-outlined text-4xl mb-4 opacity-20">credit_score</span>
-                <p className="text-xs font-black uppercase tracking-widest opacity-40">No Active Credit Pipelines</p>
-            </div>
-        );
-    }
-    return (
-        <div className="space-y-6">
-            {statements.map(statement => (
-                <CreditCardStatementCard
-                    key={statement.accountId}
-                    accountName={statement.accountName}
-                    accountBalance={statement.accountBalance}
-                    creditLimit={statement.creditLimit}
-                    currency={statement.currency}
-                    currentStatement={{
-                        period: statement.current.period,
-                        balance: statement.current.balance,
-                        dueDate: statement.current.paymentDue,
-                        amountPaid: statement.current.amountPaid,
-                        previousStatementBalance: statement.current.previousStatementBalance
-                    }}
-                    nextStatement={{
-                        period: statement.future.period,
-                        balance: statement.future.balance,
-                        dueDate: statement.future.paymentDue
-                    }}
-                />
-            ))}
-        </div>
-    );
-};
 
 const Dashboard: React.FC<DashboardProps> = ({ user, tasks, saveTask, onTogglePrivacyMode }) => {
   const { activeGoalIds, setActiveGoalIds, dashboardAccountIds: selectedAccountIds, setDashboardAccountIds: setSelectedAccountIds, dashboardDuration: duration, setDashboardDuration: setDuration } = useInsightsView();
@@ -1033,8 +988,8 @@ const Dashboard: React.FC<DashboardProps> = ({ user, tasks, saveTask, onTogglePr
     {
       id: 'financialOverview',
       name: 'Financial Overview',
-      defaultW: 8,
-      defaultH: 3,
+      defaultW: 2,
+      defaultH: 2,
       component: FinancialOverview,
       props: {
         netWorth,
@@ -1050,8 +1005,8 @@ const Dashboard: React.FC<DashboardProps> = ({ user, tasks, saveTask, onTogglePr
     { 
         id: 'todayWidget', 
         name: 'Today\'s Agenda', 
-        defaultW: 4, 
-        defaultH: 3, 
+        defaultW: 2, 
+        defaultH: 2, 
         component: TodayWidget, 
         props: { 
             tasks: tasks, 
@@ -1063,34 +1018,12 @@ const Dashboard: React.FC<DashboardProps> = ({ user, tasks, saveTask, onTogglePr
             onProcessItem: handleProcessItem 
         } 
     },
-    {
-      id: 'forecastOverview',
-      name: 'Forecast Horizon',
-      defaultW: 12,
-      defaultH: 3,
-      component: ForecastOverview,
-      props: {
-        forecasts: lowestBalanceForecasts,
-        currency: 'EUR'
-      },
-      hideHeader: true,
-      className: "!bg-transparent !border-none !shadow-none !p-0" // So it looks like it's outside the glass
-    },
-    {
-      id: 'creditCardStatements',
-      name: 'Credit Card Settlements',
-      defaultW: 12,
-      defaultH: 4,
-      component: CreditCardWidget,
-      props: {
-          statements: creditCardStatements
-      }
-    },
+    // Updated props for Net Worth chart to support toggles
     { 
       id: 'netWorthOverTime', 
       name: 'Net Worth Over Time', 
-      defaultW: 12, 
-      defaultH: 4, 
+      defaultW: 4, 
+      defaultH: 2, 
       component: NetWorthChart, 
       props: { 
         data: netWorthData, 
@@ -1102,67 +1035,35 @@ const Dashboard: React.FC<DashboardProps> = ({ user, tasks, saveTask, onTogglePr
       } 
     },
     // Removed forecastChart
-    { id: 'outflowsByCategory', name: 'Outflows by Category', defaultW: 6, defaultH: 3, component: OutflowsChart, props: { data: outflowsByCategory, onCategoryClick: handleCategoryClick } },
-    { id: 'netWorthBreakdown', name: 'Net Worth Breakdown', defaultW: 6, defaultH: 3, component: AssetDebtDonutChart, props: { assets: totalAssets, debt: totalDebt } },
-    { id: 'recentActivity', name: 'Recent Activity', defaultW: 12, defaultH: 4, component: TransactionList, props: { transactions: recentTransactions, allCategories: allCategories, onTransactionClick: handleTransactionClick } },
-    { id: 'assetBreakdown', name: 'Asset Breakdown', defaultW: 6, defaultH: 3, component: AccountBreakdownCard, props: { title: 'Assets', totalValue: globalTotalAssets, breakdownData: globalAssetBreakdown } },
-    { id: 'liabilityBreakdown', name: 'Liability Breakdown', defaultW: 6, defaultH: 3, component: AccountBreakdownCard, props: { title: 'Liabilities', totalValue: Math.abs(globalTotalDebt), breakdownData: globalDebtBreakdown } },
-    { id: 'budgetOverview', name: 'Budget Overview', defaultW: 6, defaultH: 3, component: BudgetOverviewWidget, props: { budgets: budgets, transactions: transactions, expenseCategories: expenseCategories, accounts: accounts, duration: duration, onBudgetClick: handleBudgetClick } },
-    { id: 'transactionMap', name: 'Transaction Map', defaultW: 6, defaultH: 3, component: TransactionMapWidget, props: { transactions: filteredTransactions } },
-    { id: 'cashflowSankey', name: 'Cash Flow Sankey', defaultW: 12, defaultH: 4, component: CashflowSankey, props: { transactions: filteredTransactions, incomeCategories, expenseCategories } },
+    { id: 'outflowsByCategory', name: 'Outflows by Category', defaultW: 2, defaultH: 2, component: OutflowsChart, props: { data: outflowsByCategory, onCategoryClick: handleCategoryClick } },
+    { id: 'netWorthBreakdown', name: 'Net Worth Breakdown', defaultW: 2, defaultH: 2, component: AssetDebtDonutChart, props: { assets: totalAssets, debt: totalDebt } },
+    { id: 'recentActivity', name: 'Recent Activity', defaultW: 4, defaultH: 3, component: TransactionList, props: { transactions: recentTransactions, allCategories: allCategories, onTransactionClick: handleTransactionClick } },
+    { id: 'assetBreakdown', name: 'Asset Breakdown', defaultW: 2, defaultH: 2, component: AccountBreakdownCard, props: { title: 'Assets', totalValue: globalTotalAssets, breakdownData: globalAssetBreakdown } },
+    { id: 'liabilityBreakdown', name: 'Liability Breakdown', defaultW: 2, defaultH: 2, component: AccountBreakdownCard, props: { title: 'Liabilities', totalValue: Math.abs(globalTotalDebt), breakdownData: globalDebtBreakdown } },
+    { id: 'budgetOverview', name: 'Budget Overview', defaultW: 2, defaultH: 2, component: BudgetOverviewWidget, props: { budgets: budgets, transactions: transactions, expenseCategories: expenseCategories, accounts: accounts, duration: duration, onBudgetClick: handleBudgetClick } },
+    { id: 'transactionMap', name: 'Transaction Map', defaultW: 2, defaultH: 2, component: TransactionMapWidget, props: { transactions: filteredTransactions } },
+    { id: 'cashflowSankey', name: 'Cash Flow Sankey', defaultW: 4, defaultH: 2, component: CashflowSankey, props: { transactions: filteredTransactions, incomeCategories, expenseCategories } },
     
     // ANALYSIS WIDGETS
-    { id: 'financialRunway', name: 'Financial Runway', defaultW: 6, defaultH: 3, component: FinancialRunwayWidget, props: { accounts, transactions: analyticsTransactions } },
-    { id: 'merchantPareto', name: 'Merchant Pareto', defaultW: 6, defaultH: 3, component: MerchantParetoWidget, props: { transactions: analyticsTransactions } },
-    { id: 'wealthVelocity', name: 'Wealth Velocity', defaultW: 6, defaultH: 3, component: WealthVelocityWidget, props: { transactions: analyticsTransactions, accounts } }
+    { id: 'financialRunway', name: 'Financial Runway', defaultW: 2, defaultH: 2, component: FinancialRunwayWidget, props: { accounts, transactions: analyticsTransactions } },
+    { id: 'merchantPareto', name: 'Merchant Pareto', defaultW: 2, defaultH: 2, component: MerchantParetoWidget, props: { transactions: analyticsTransactions } },
+    { id: 'wealthVelocity', name: 'Wealth Velocity', defaultW: 2, defaultH: 2, component: WealthVelocityWidget, props: { transactions: analyticsTransactions, accounts } }
   ], [tasks, allRecurringItems, recurringTransactionOverrides, billsAndPayments, financialGoals, saveTask, netWorthData, netWorthTrendColor, activeGoalIds, lowestForecastPoint, selectedAccounts, outflowsByCategory, handleCategoryClick, totalAssets, totalDebt, recentTransactions, allCategories, handleTransactionClick, globalTotalAssets, globalAssetBreakdown, globalTotalDebt, globalDebtBreakdown, budgets, transactions, expenseCategories, accounts, duration, handleBudgetClick, filteredTransactions, incomeCategories, showForecast, showGoals, selectedAccountIds, analyticsTransactions]);
 
-  const currentWidgetTabs = useMemo(() => {
-    const tabs = { ...WIDGET_TABS };
-    if (creditCardStatements.length === 0) {
-        tabs.overview = tabs.overview.filter(id => id !== 'creditCardStatements');
-    }
-    return tabs;
-  }, [creditCardStatements.length]);
-
   const initialLayouts = useMemo(() => {
-    return allWidgets.map((w, index) => {
-      // Custom positioning logic for the grid
-      let x = 0;
-      let y = index * 4;
-      let width = w.defaultW;
-      let height = w.defaultH;
-
-      if (w.id === 'financialOverview') { x = 0; y = 0; width = 8; }
-      else if (w.id === 'todayWidget') { x = 8; y = 0; width = 4; }
-      else if (w.id === 'forecastOverview') { x = 0; y = 3; width = 12; }
-      else if (w.id === 'creditCardStatements') { x = 0; y = 6; width = 12; height = creditCardStatements.length > 1 ? 8 : 4; }
-      else if (w.id === 'netWorthOverTime') {
-          // Dynamic Y based on CC presence
-          const ccExists = creditCardStatements.length > 0;
-          x = 0; 
-          y = ccExists ? (creditCardStatements.length > 1 ? 14 : 10) : 6; 
-          width = 12; 
-      }
-      else if (activeTab === 'overview') {
-          // Push others down further
-          y = index + 20;
-      }
-
-      return { 
-        id: w.id, 
-        title: w.name, 
-        x: x, 
-        y: y, 
-        w: width, 
-        h: height 
-      };
-    });
-  }, [allWidgets, activeTab, creditCardStatements.length]);
+    return allWidgets.map((w, index) => ({ 
+      id: w.id, 
+      title: w.name, 
+      x: (index % 2) * 2, 
+      y: Math.floor(index / 2) * 2, 
+      w: w.defaultW, 
+      h: w.defaultH 
+    }));
+  }, [allWidgets]);
 
   const widgets = useMemo(() => {
-    return preferences.dashboardLayouts?.[activeTab] || initialLayouts.filter(w => currentWidgetTabs[activeTab].includes(w.id));
-  }, [preferences.dashboardLayouts, activeTab, initialLayouts, currentWidgetTabs]);
+    return preferences.dashboardLayouts?.[activeTab] || initialLayouts.filter(w => WIDGET_TABS[activeTab].includes(w.id));
+  }, [preferences.dashboardLayouts, activeTab, initialLayouts]);
 
   const saveLayouts = useCallback((newWidgets: WidgetConfig[]) => {
     setPreferences(prev => ({
@@ -1186,9 +1087,9 @@ const Dashboard: React.FC<DashboardProps> = ({ user, tasks, saveTask, onTogglePr
     if (newWidgets.length !== widgets.length) changed = true;
     
     newWidgets = newWidgets.map(w => {
-        if (w.id === 'netWorthOverTime' && w.w !== 12) {
+        if (w.id === 'netWorthOverTime' && w.w !== 4) {
             changed = true;
-            return { ...w, w: 12 };
+            return { ...w, w: 4 };
         }
         return w;
     });
@@ -1442,92 +1343,77 @@ const Dashboard: React.FC<DashboardProps> = ({ user, tasks, saveTask, onTogglePr
         />
       </div>
 
+      {/* Controls Bar: Tabs & Filters */}
+      <div className="mb-8">
+        <div className="flex flex-col lg:flex-row justify-between items-center gap-4 bg-white/50 dark:bg-dark-card/30 backdrop-blur-md px-4 py-3 rounded-2xl border border-black/5 dark:border-white/5 shadow-sm">
+             {/* Tabs */}
+             <div className="flex items-center gap-1 bg-black/5 dark:bg-white/5 p-1 rounded-xl">
+            {tabs.map((tab) => (
+                <button
+                    key={tab}
+                    onClick={() => setActiveTab(tab)}
+                    className={`px-4 py-2 rounded-lg text-xs font-black uppercase tracking-widest transition-all duration-300 flex items-center gap-2 ${
+                        activeTab === tab
+                        ? 'bg-white dark:bg-gray-700 shadow-md text-primary-600 dark:text-primary-400 translate-y-[-1px]'
+                        : 'text-gray-500 hover:text-gray-900 dark:text-gray-400 dark:hover:text-white hover:bg-black/5 dark:hover:bg-white/5'
+                    }`}
+                >
+                    <span className="material-symbols-outlined text-lg leading-none">
+                        {tab === 'overview' ? 'grid_view' : tab === 'analysis' ? 'monitoring' : 'history'}
+                    </span>
+                    <span className="hidden sm:inline">{tab}</span>
+                </button>
+            ))}
+          </div>
 
-      {/* Unified Command Control - Combined Account Matrix, Tabs, and Filters */}
-      <div className="mb-8 animate-fade-in relative z-[70]">
-          <div className="bg-white/40 dark:bg-dark-card/20 backdrop-blur-xl rounded-[2rem] border border-black/5 dark:border-white/5 shadow-2xl shadow-black/5 p-2 overflow-visible">
-              {/* Row 1: Account Matrix & Navigation */}
-              <div className="flex flex-col lg:flex-row items-center justify-between gap-4 p-4 lg:px-6">
-                  {/* Left: Accounts */}
-                  <div className="flex items-center gap-3 w-full lg:w-auto">
-                      <div className="w-10 h-10 rounded-xl bg-primary-500/10 flex items-center justify-center text-primary-500">
-                          <span className="material-symbols-outlined filled-icon text-xl">account_balance_wallet</span>
-                      </div>
-                      <div className="flex-grow lg:flex-grow-0">
-                          <p className="text-[8px] font-black uppercase tracking-[0.2em] opacity-40 text-light-text-secondary dark:text-dark-text-secondary mb-1">Active Account Matrix</p>
-                          <MultiAccountFilter accounts={accounts} selectedAccountIds={selectedAccountIds} setSelectedAccountIds={setSelectedAccountIds} />
-                      </div>
-                  </div>
-
-                  {/* Center: Main Tabs */}
-                  <div className="flex items-center gap-1 bg-black/5 dark:bg-white/5 p-1 rounded-xl w-full lg:w-auto justify-center">
-                    {tabs.map((tab) => (
-                        <button
-                            key={tab}
-                            onClick={() => setActiveTab(tab)}
-                            className={`px-4 py-2 rounded-lg text-xs font-black uppercase tracking-widest transition-all duration-300 flex items-center gap-2 ${
-                                activeTab === tab
-                                ? 'bg-white dark:bg-gray-700 shadow-md text-primary-600 dark:text-primary-400 translate-y-[-1px]'
-                                : 'text-gray-500 hover:text-gray-900 dark:text-gray-400 dark:hover:text-white hover:bg-black/5 dark:hover:bg-white/5'
-                            }`}
-                        >
-                            <span className="material-symbols-outlined text-lg leading-none">
-                                {tab === 'overview' ? 'grid_view' : tab === 'analysis' ? 'monitoring' : 'history'}
-                            </span>
-                            <span className="hidden sm:inline">{tab}</span>
-                        </button>
-                    ))}
-                  </div>
-
-                  {/* Right: Chrono Filter */}
-                  <div className="flex items-center gap-4 w-full lg:w-auto justify-between lg:justify-end">
-                      <div className="flex flex-col">
-                          <p className="text-[8px] font-black uppercase tracking-[0.2em] opacity-40 text-light-text-secondary dark:text-dark-text-secondary mb-1 lg:text-right">Temporal Range</p>
-                          <DurationFilter selectedDuration={duration} onDurationChange={setDuration} />
-                      </div>
-                  </div>
-              </div>
-
-              {/* Row 2: Secondary View Controls (Only visible in overview) */}
+          {/* Filters */}
+          <div className="flex flex-wrap items-center gap-3 w-full lg:w-auto justify-end">
+              {/* Forecast Controls (Only visible in overview) */}
               {activeTab === 'overview' && (
-                  <div className="border-t border-black/5 dark:border-white/5 px-6 py-3 flex flex-wrap items-center justify-end gap-3 bg-black/5 dark:bg-white/5">
-                      <div className="flex items-center gap-1 bg-white/50 dark:bg-dark-card/30 p-1 rounded-xl border border-black/5 dark:border-white/5">
-                          <div className="relative group">
-                              <select 
-                                value={forecastDuration} 
-                                onChange={(e) => setForecastDuration(e.target.value as ForecastDuration)} 
-                                className="appearance-none bg-transparent pl-3 pr-8 py-1.5 text-[10px] font-black uppercase tracking-widest text-light-text dark:text-dark-text focus:outline-none cursor-pointer"
-                              >
-                                 {FORECAST_DURATION_OPTIONS.map(opt => (
-                                     <option key={opt.value} value={opt.value} className="bg-white dark:bg-dark-card">{opt.label}</option>
-                                 ))}
-                              </select>
-                              <div className="absolute right-2 top-1/2 -translate-y-1/2 pointer-events-none opacity-50">
-                                <span className="material-symbols-outlined text-sm">expand_more</span>
-                              </div>
+                  <div className="flex items-center gap-1 bg-black/5 dark:bg-white/5 p-1 rounded-xl border border-black/5 dark:border-white/5">
+                      <div className="relative group">
+                          <select 
+                            value={forecastDuration} 
+                            onChange={(e) => setForecastDuration(e.target.value as ForecastDuration)} 
+                            className="appearance-none bg-transparent pl-3 pr-8 py-1.5 text-[10px] font-black uppercase tracking-widest text-light-text dark:text-dark-text focus:outline-none cursor-pointer"
+                          >
+                             {FORECAST_DURATION_OPTIONS.map(opt => (
+                                 <option key={opt.value} value={opt.value} className="bg-white dark:bg-dark-card">{opt.label}</option>
+                             ))}
+                          </select>
+                          <div className="absolute right-2 top-1/2 -translate-y-1/2 pointer-events-none opacity-50">
+                            <span className="material-symbols-outlined text-sm">expand_more</span>
                           </div>
-                          
-                          <div className="w-px h-4 bg-black/10 dark:bg-white/10 mx-1"></div>
-                          
-                          <button 
-                            onClick={() => setShowForecast(!showForecast)}
-                            className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg transition-all ${showForecast ? 'bg-primary-500/10 text-primary-600 dark:text-primary-400' : 'text-gray-400 hover:text-gray-600'}`}
-                          >
-                             <span className={`material-symbols-outlined text-sm ${showForecast ? 'filled-icon' : ''}`}>show_chart</span>
-                             <span className="text-[10px] font-black uppercase tracking-widest">Forecast</span>
-                          </button>
-     
-                          <button 
-                            onClick={() => setShowGoals(!showGoals)}
-                            className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg transition-all ${showGoals ? 'bg-primary-500/10 text-primary-600 dark:text-primary-400' : 'text-gray-400 hover:text-gray-600'}`}
-                          >
-                             <span className={`material-symbols-outlined text-sm ${showGoals ? 'filled-icon' : ''}`}>flag</span>
-                             <span className="text-[10px] font-black uppercase tracking-widest">Goals</span>
-                          </button>
                       </div>
+                      
+                      <div className="w-px h-4 bg-black/10 dark:bg-white/10 mx-1"></div>
+                      
+                      <button 
+                        onClick={() => setShowForecast(!showForecast)}
+                        className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg transition-all ${showForecast ? 'bg-primary-500/10 text-primary-600 dark:text-primary-400' : 'text-gray-400 hover:text-gray-600'}`}
+                      >
+                         <span className={`material-symbols-outlined text-sm ${showForecast ? 'filled-icon' : ''}`}>show_chart</span>
+                         <span className="text-[10px] font-black uppercase tracking-widest">Forecast</span>
+                      </button>
+
+                      <button 
+                        onClick={() => setShowGoals(!showGoals)}
+                        className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg transition-all ${showGoals ? 'bg-primary-500/10 text-primary-600 dark:text-primary-400' : 'text-gray-400 hover:text-gray-600'}`}
+                      >
+                         <span className={`material-symbols-outlined text-sm ${showGoals ? 'filled-icon' : ''}`}>flag</span>
+                         <span className="text-[10px] font-black uppercase tracking-widest">Goals</span>
+                      </button>
                   </div>
               )}
+
+              <div className="h-8 w-px bg-black/5 dark:bg-white/5 mx-1 hidden lg:block"></div>
+
+              <div className="flex items-center gap-2">
+                  <MultiAccountFilter accounts={accounts} selectedAccountIds={selectedAccountIds} setSelectedAccountIds={setSelectedAccountIds} />
+                  <DurationFilter selectedDuration={duration} onDurationChange={setDuration} />
+              </div>
           </div>
+        </div>
       </div>
       
       {suggestions.length > 0 && (
@@ -1551,8 +1437,40 @@ const Dashboard: React.FC<DashboardProps> = ({ user, tasks, saveTask, onTogglePr
       )}
 
       {activeTab === 'overview' && (
-        <div className="mb-0">
-        </div>
+        <>
+            {/* Display lowest balance forecasts based on the new forecast duration/logic */}
+            {lowestBalanceForecasts && lowestBalanceForecasts.length > 0 && (
+                <div className="mb-6">
+                    <ForecastOverview forecasts={lowestBalanceForecasts} currency="EUR" />
+                </div>
+            )}
+
+            {creditCardStatements.length > 0 && (
+                <div className="space-y-6">
+                    {creditCardStatements.map(statement => (
+                        <CreditCardStatementCard
+                            key={statement.accountId}
+                            accountName={statement.accountName}
+                            accountBalance={statement.accountBalance}
+                            creditLimit={statement.creditLimit}
+                            currency={statement.currency}
+                            currentStatement={{
+                                period: statement.current.period,
+                                balance: statement.current.balance,
+                                dueDate: statement.current.paymentDue,
+                                amountPaid: statement.current.amountPaid,
+                                previousStatementBalance: statement.current.previousStatementBalance
+                            }}
+                            nextStatement={{
+                                period: statement.future.period,
+                                balance: statement.future.balance,
+                                dueDate: statement.future.paymentDue
+                            }}
+                        />
+                    ))}
+                </div>
+            )}
+        </>
       )}
 
       {activeTab === 'analysis' && (
@@ -1581,137 +1499,14 @@ const Dashboard: React.FC<DashboardProps> = ({ user, tasks, saveTask, onTogglePr
                   />
               </div>
 
-              <div className="bg-white/40 dark:bg-dark-card/20 backdrop-blur-xl p-8 rounded-[2rem] border border-black/5 dark:border-white/5 shadow-2xl shadow-black/5 overflow-hidden">
-                  <div className="flex flex-col lg:flex-row gap-8">
-                      <div className="lg:w-1/3 flex flex-col justify-center border-b lg:border-b-0 lg:border-r border-black/5 dark:border-white/5 pb-8 lg:pb-0 lg:pr-8">
-                          <div className="flex flex-col gap-1 mb-6">
-                            <span className="text-[10px] font-black uppercase tracking-[0.25em] text-light-text-secondary dark:text-dark-text-secondary opacity-50">Node Distribution</span>
-                            <h3 className="text-xl font-black text-light-text dark:text-dark-text uppercase tracking-tight">Asset Allocation</h3>
-                          </div>
-                          <div className="h-64 w-full relative">
-                              <ResponsiveContainer width="100%" height="100%">
-                                  <PieChart>
-                                      <Pie
-                                          data={assetAllocationData}
-                                          cx="50%"
-                                          cy="50%"
-                                          innerRadius={65}
-                                          outerRadius={85}
-                                          paddingAngle={8}
-                                          dataKey="value"
-                                          animationDuration={1000}
-                                          stroke="none"
-                                      >
-                                          {assetAllocationData.map((entry: any, index: number) => (
-                                              <Cell 
-                                                key={`cell-${index}`} 
-                                                fill={entry.color} 
-                                                className="hover:opacity-80 transition-opacity duration-300 cursor-pointer"
-                                                style={{ filter: `drop-shadow(0 0 10px ${entry.color}33)` }}
-                                              />
-                                          ))}
-                                      </Pie>
-                                  </PieChart>
-                              </ResponsiveContainer>
-                              <div className="absolute inset-0 flex flex-col items-center justify-center pointer-events-none p-4 text-center">
-                                  <span className="text-[9px] font-black text-gray-500 dark:text-gray-400 uppercase tracking-[0.3em] opacity-40">Total Value</span>
-                                  <span className="text-lg sm:text-xl font-black text-gray-900 dark:text-white privacy-blur font-mono tracking-tighter leading-tight break-all">
-                                      {formatCurrency(convertCurrency(globalTotalAssets - Math.abs(globalTotalDebt), 'EUR', preferredCurrency, conversionRates), preferredCurrency)}
-                                  </span>
-                                  <div className="mt-2 text-[8px] font-black uppercase tracking-widest px-2 py-0.5 rounded-full bg-primary-500/10 text-primary-500 border border-primary-500/20">
-                                      Net Equity
-                                  </div>
-                              </div>
-                          </div>
-                          <div className="w-full mt-8 grid grid-cols-2 gap-4">
-                              <div className="p-4 rounded-2xl bg-black/5 dark:bg-white/5 border border-black/5 text-center group hover:bg-emerald-500/10 transition-colors duration-500">
-                                  <p className="text-[9px] text-emerald-600 dark:text-emerald-400 font-black uppercase tracking-widest mb-1 opacity-60">Capital Assets</p>
-                                  <p className="text-lg font-black text-emerald-700 dark:text-emerald-300 privacy-blur font-mono tracking-tighter">{formatCurrency(convertCurrency(globalTotalAssets, 'EUR', preferredCurrency, conversionRates), preferredCurrency)}</p>
-                              </div>
-                              <div className="p-4 rounded-2xl bg-black/5 dark:bg-white/5 border border-black/5 text-center group hover:bg-rose-500/10 transition-colors duration-500">
-                                  <p className="text-[9px] text-rose-600 dark:text-rose-400 font-black uppercase tracking-widest mb-1 opacity-60">Liabilities</p>
-                                  <p className="text-lg font-black text-rose-700 dark:text-rose-300 privacy-blur font-mono tracking-tighter">{formatCurrency(convertCurrency(Math.abs(globalTotalDebt), 'EUR', preferredCurrency, conversionRates), preferredCurrency)}</p>
-                              </div>
-                          </div>
-                      </div>
-
-                      <div className="lg:w-2/3 grid grid-cols-1 sm:grid-cols-2 gap-8 py-4">
-                          <div>
-                              <div className="flex items-center gap-2 mb-6">
-                                <span className="w-1 h-1 rounded-full bg-emerald-500"></span>
-                                <h4 className="text-[10px] font-black text-light-text-secondary dark:text-dark-text-secondary uppercase tracking-[0.25em] opacity-40">Assets Topology</h4>
-                              </div>
-                              <div className="space-y-6">
-                                  {Object.entries(assetGroups as Record<string, { value: number; color: string; icon: string }>).map(([name, group]) => {
-                                      if (group.value === 0) return null;
-                                      return (
-                                        <div key={name} className="group">
-                                            <div className="flex justify-between text-xs mb-2">
-                                                <div className="flex items-center gap-3">
-                                                    <div className="w-8 h-8 rounded-xl flex items-center justify-center text-white shadow-xl transition-transform duration-500 group-hover:scale-110" style={{ backgroundColor: group.color }}>
-                                                        <span className="material-symbols-outlined text-lg filled-icon">{group.icon}</span>
-                                                    </div>
-                                                    <span className="font-black uppercase tracking-widest text-[10px] text-gray-700 dark:text-gray-200 opacity-60 group-hover:opacity-100 transition-opacity">{name}</span>
-                                                </div>
-                                                <span className="font-mono font-black text-gray-900 dark:text-white privacy-blur tracking-tighter">{formatCurrency(convertCurrency(group.value, 'EUR', preferredCurrency, conversionRates), preferredCurrency)}</span>
-                                            </div>
-                                            <div className="w-full bg-black/5 dark:bg-white/5 rounded-full h-1.5 overflow-hidden p-0.5 border border-black/5">
-                                                <div className="h-full rounded-full transition-all duration-1000" style={{ width: `${(group.value / globalTotalAssets) * 100}%`, backgroundColor: group.color, boxShadow: `0 0 10px ${group.color}66` }}></div>
-                                            </div>
-                                        </div>
-                                      );
-                                  })}
-                                  {globalTotalAssets === 0 && <p className="text-[10px] text-light-text-secondary dark:text-dark-text-secondary italic uppercase tracking-widest opacity-40">No asset nodes detected.</p>}
-                              </div>
-                          </div>
-
-                          <div>
-                              <div className="flex items-center gap-2 mb-6">
-                                <span className="w-1 h-1 rounded-full bg-rose-500"></span>
-                                <h4 className="text-[10px] font-black text-light-text-secondary dark:text-dark-text-secondary uppercase tracking-[0.25em] opacity-40">Liability Matrix</h4>
-                              </div>
-                              <div className="space-y-6">
-                                  {Object.entries(liabilityGroups as Record<string, { value: number; color: string; icon: string }>).map(([name, group]) => {
-                                      if (group.value === 0) return null;
-                                      return (
-                                          <div key={name} className="group">
-                                              <div className="flex justify-between text-xs mb-2">
-                                                   <div className="flex items-center gap-3">
-                                                        <div className="w-8 h-8 rounded-xl flex items-center justify-center text-white shadow-xl transition-transform duration-500 group-hover:scale-110" style={{ backgroundColor: group.color }}>
-                                                            <span className="material-symbols-outlined text-lg filled-icon">{group.icon}</span>
-                                                        </div>
-                                                        <span className="font-black uppercase tracking-widest text-[10px] text-gray-700 dark:text-gray-200 opacity-60 group-hover:opacity-100 transition-opacity">{name}</span>
-                                                    </div>
-                                                  <span className="font-mono font-black text-gray-900 dark:text-white privacy-blur tracking-tighter">{formatCurrency(convertCurrency(group.value, 'EUR', preferredCurrency, conversionRates), preferredCurrency)}</span>
-                                              </div>
-                                              <div className="w-full bg-black/5 dark:bg-white/5 rounded-full h-1.5 overflow-hidden p-0.5 border border-black/5">
-                                                  <div className="h-full rounded-full transition-all duration-1000" style={{ width: `${(group.value / Math.abs(globalTotalDebt)) * 100}%`, backgroundColor: group.color, boxShadow: `0 0 10px ${group.color}66` }}></div>
-                                              </div>
-                                          </div>
-                                      );
-                                  })}
-                                  {globalTotalDebt === 0 && (
-                                      <div className="p-8 text-center text-[10px] font-black uppercase tracking-[0.3em] text-gray-400 opacity-40 bg-black/5 dark:bg-white/5 rounded-3xl border border-dashed border-black/10">
-                                          Zero Liability State
-                                      </div>
-                                  )}
-                              </div>
-                          </div>
-                      </div>
-                  </div>
-              </div>
-
               {/* Dynamic widgets grid */}
-               {widgets.filter(w => currentWidgetTabs.analysis.includes(w.id)).length > 0 && (
+               {widgets.filter(w => WIDGET_TABS.analysis.includes(w.id)).length > 0 && (
                 <ResponsiveGridLayout
                     className="layout"
-                    layouts={{ 
-                        lg: widgets.filter(w => currentWidgetTabs.analysis.includes(w.id)).map(w => ({ i: w.id, x: w.x, y: w.y, w: w.w, h: w.h })),
-                        md: widgets.filter(w => currentWidgetTabs.analysis.includes(w.id)).map(w => ({ i: w.id, x: 0, y: w.y, w: 10, h: w.h })),
-                    }}
+                    layouts={{ lg: widgets.filter(w => WIDGET_TABS.analysis.includes(w.id)).map(w => ({ i: w.id, x: w.x, y: w.y, w: w.w, h: w.h })) }}
                     breakpoints={{ lg: 1200, md: 996, sm: 768, xs: 480, xxs: 0 }}
-                    cols={{ lg: 12, md: 10, sm: 6, xs: 1, xxs: 1 }}
-                    rowHeight={120}
+                    cols={{ lg: 4, md: 4, sm: 2, xs: 1, xxs: 1 }}
+                    rowHeight={180}
                     isDraggable={isEditMode}
                     isResizable={isEditMode}
                     onLayoutChange={handleLayoutChange}
@@ -1720,7 +1515,7 @@ const Dashboard: React.FC<DashboardProps> = ({ user, tasks, saveTask, onTogglePr
                     containerPadding={[0, 0]}
                 >
                     {widgets
-                        .filter(widget => currentWidgetTabs.analysis.includes(widget.id))
+                        .filter(widget => WIDGET_TABS.analysis.includes(widget.id))
                         .map(widget => {
                             const widgetDetails = allWidgets.find(w => w.id === widget.id);
                             if (!widgetDetails) return null;
@@ -1732,10 +1527,9 @@ const Dashboard: React.FC<DashboardProps> = ({ user, tasks, saveTask, onTogglePr
                                         title={widget.title}
                                         onRemove={() => removeWidget(widget.id)}
                                         isEditMode={isEditMode}
-                                        className={`${widgetDetails.className || "h-full"} ${widget.id === 'creditCardStatements' ? '!overflow-visible' : ''}`}
-                                        hideHeader={widgetDetails.hideHeader}
+                                        className="h-full"
                                     >
-                                        <Suspense fallback={<div className="p-4 text-center text-xs font-black uppercase tracking-widest opacity-40">Initializing node...</div>}>
+                                        <Suspense fallback={<div className="p-4 text-center">Loading...</div>}>
                                             <WidgetComponent {...widgetDetails.props as any} />
                                         </Suspense>
                                     </WidgetWrapper>
@@ -1744,6 +1538,111 @@ const Dashboard: React.FC<DashboardProps> = ({ user, tasks, saveTask, onTogglePr
                     })}
                 </ResponsiveGridLayout>
               )}
+
+              <Card className="overflow-hidden rounded-3xl">
+                  <div className="flex flex-col lg:flex-row gap-8">
+                      <div className="lg:w-1/3 flex flex-col justify-center border-b lg:border-b-0 lg:border-r border-black/5 dark:border-white/5 pb-8 lg:pb-0 lg:pr-8">
+                          <h3 className="text-lg font-bold text-light-text dark:text-dark-text mb-6 self-start">Asset Allocation</h3>
+                          <div className="h-64 w-full relative">
+                              <ResponsiveContainer width="100%" height="100%">
+                                  <PieChart>
+                                      <Pie
+                                          data={assetAllocationData}
+                                          cx="50%"
+                                          cy="50%"
+                                          innerRadius={60}
+                                          outerRadius={80}
+                                          paddingAngle={5}
+                                          dataKey="value"
+                                      >
+                                          {assetAllocationData.map((entry: any, index: number) => (
+                                              <Cell key={`cell-${index}`} fill={entry.color} stroke="none" />
+                                          ))}
+                                      </Pie>
+                                  </PieChart>
+                              </ResponsiveContainer>
+                              <div className="absolute inset-0 flex flex-col items-center justify-center pointer-events-none">
+                                  <span className="text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">Net Worth</span>
+                                  <span className="text-2xl font-bold text-gray-900 dark:text-white privacy-blur">{formatCurrency(convertCurrency(globalTotalAssets - Math.abs(globalTotalDebt), 'EUR', preferredCurrency, conversionRates), preferredCurrency)}</span>
+                              </div>
+                          </div>
+                          <div className="w-full mt-8 grid grid-cols-2 gap-4">
+                              <div className="p-3 rounded-2xl bg-green-50 dark:bg-green-900/20 border border-green-100 dark:border-green-900/30 text-center">
+                                  <p className="text-xs text-green-600 dark:text-green-400 font-semibold uppercase mb-1">Assets</p>
+                                  <p className="text-lg font-bold text-green-700 dark:text-green-300 privacy-blur">{formatCurrency(convertCurrency(globalTotalAssets, 'EUR', preferredCurrency, conversionRates), preferredCurrency)}</p>
+                              </div>
+                              <div className="p-3 rounded-2xl bg-red-50 dark:bg-red-900/20 border border-red-100 dark:border-red-900/30 text-center">
+                                  <p className="text-xs text-red-600 dark:text-red-400 font-semibold uppercase mb-1">Liabilities</p>
+                                  <p className="text-lg font-bold text-red-700 dark:text-red-300 privacy-blur">{formatCurrency(convertCurrency(Math.abs(globalTotalDebt), 'EUR', preferredCurrency, conversionRates), preferredCurrency)}</p>
+                              </div>
+                          </div>
+                      </div>
+
+                      <div className="lg:w-2/3 grid grid-cols-1 sm:grid-cols-2 gap-8">
+                          <div>
+                              <h4 className="text-sm font-bold text-light-text-secondary dark:text-dark-text-secondary uppercase tracking-wider mb-4">Assets Breakdown</h4>
+                              <div className="space-y-4">
+                                  {Object.entries(assetGroups as Record<string, { value: number; color: string; icon: string }>).map(([name, group]) => {
+                                      if (group.value === 0) return null;
+                                      return (
+                                        <div key={name} className="group">
+                                            <div className="flex justify-between text-sm mb-1.5">
+                                                <div className="flex items-center gap-2">
+                                                    <div className="w-6 h-6 rounded-md flex items-center justify-center text-white shadow-sm" style={{ backgroundColor: group.color }}>
+                                                        <span className="material-symbols-outlined text-[14px]">{group.icon}</span>
+                                                    </div>
+                                                    <span className="font-medium text-gray-700 dark:text-gray-200">{name}</span>
+                                                </div>
+                                                <span className="font-mono font-medium text-gray-900 dark:text-white privacy-blur">{formatCurrency(convertCurrency(group.value, 'EUR', preferredCurrency, conversionRates), preferredCurrency)}</span>
+                                            </div>
+                                            <div className="w-full bg-gray-100 dark:bg-white/10 rounded-full h-2 overflow-hidden">
+                                                <div className="h-full rounded-full" style={{ width: `${(group.value / globalTotalAssets) * 100}%`, backgroundColor: group.color }}></div>
+                                            </div>
+                                            <p className="text-[10px] text-right text-gray-400 mt-1 opacity-0 group-hover:opacity-100 transition-opacity">
+                                                {((group.value / globalTotalAssets) * 100).toFixed(1)}%
+                                            </p>
+                                        </div>
+                                      );
+                                  })}
+                                  {globalTotalAssets === 0 && <p className="text-sm text-light-text-secondary dark:text-dark-text-secondary italic">No assets found.</p>}
+                              </div>
+                          </div>
+
+                          <div>
+                              <h4 className="text-sm font-bold text-light-text-secondary dark:text-dark-text-secondary uppercase tracking-wider mb-4">Liabilities Breakdown</h4>
+                              <div className="space-y-4">
+                                  {Object.entries(liabilityGroups as Record<string, { value: number; color: string; icon: string }>).map(([name, group]) => {
+                                      if (group.value === 0) return null;
+                                      return (
+                                          <div key={name} className="group">
+                                              <div className="flex justify-between text-sm mb-1.5">
+                                                   <div className="flex items-center gap-2">
+                                                        <div className="w-6 h-6 rounded-md flex items-center justify-center text-white shadow-sm" style={{ backgroundColor: group.color }}>
+                                                            <span className="material-symbols-outlined text-[14px]">{group.icon}</span>
+                                                        </div>
+                                                        <span className="font-medium text-gray-700 dark:text-gray-200">{name}</span>
+                                                    </div>
+                                                  <span className="font-mono font-medium text-gray-900 dark:text-white privacy-blur">{formatCurrency(convertCurrency(group.value, 'EUR', preferredCurrency, conversionRates), preferredCurrency)}</span>
+                                              </div>
+                                              <div className="w-full bg-gray-100 dark:bg-white/10 rounded-full h-2 overflow-hidden">
+                                                  <div className="h-full rounded-full" style={{ width: `${(group.value / Math.abs(globalTotalDebt)) * 100}%`, backgroundColor: group.color }}></div>
+                                              </div>
+                                              <p className="text-[10px] text-right text-gray-400 mt-1 opacity-0 group-hover:opacity-100 transition-opacity">
+                                                  {((group.value / Math.abs(globalTotalDebt)) * 100).toFixed(1)}%
+                                              </p>
+                                          </div>
+                                      );
+                                  })}
+                                  {globalTotalDebt === 0 && (
+                                      <div className="p-4 text-center text-sm text-gray-400 italic bg-gray-50 dark:bg-gray-800/50 rounded-lg">
+                                          No liabilities recorded.
+                                      </div>
+                                  )}
+                              </div>
+                          </div>
+                      </div>
+                  </div>
+              </Card>
           </div>
       )}
 
@@ -1751,32 +1650,10 @@ const Dashboard: React.FC<DashboardProps> = ({ user, tasks, saveTask, onTogglePr
         <div className="animate-fade-in-up">
             <ResponsiveGridLayout
                 className="layout"
-                layouts={{ 
-                    lg: widgets.filter(w => currentWidgetTabs[activeTab].includes(w.id)).map(w => ({ 
-                        i: w.id, 
-                        x: w.x, 
-                        y: w.y, 
-                        w: w.id === 'forecastOverview' ? 12 : w.w, 
-                        h: w.h 
-                    })),
-                    md: widgets.filter(w => currentWidgetTabs[activeTab].includes(w.id)).map(w => ({ 
-                        i: w.id, 
-                        x: w.x === 8 ? 6 : w.x, // Adjust agenda if overlapping
-                        y: w.y, 
-                        w: w.id === 'forecastOverview' ? 10 : Math.min(w.w, 10), 
-                        h: w.h 
-                    })),
-                    sm: widgets.filter(w => currentWidgetTabs[activeTab].includes(w.id)).map(w => ({ 
-                        i: w.id, 
-                        x: 0, 
-                        y: w.y * 2, // stack 
-                        w: 6, // full width for sm
-                        h: w.h 
-                    })),
-                }}
+                layouts={{ lg: widgets.filter(w => WIDGET_TABS[activeTab].includes(w.id)).map(w => ({ i: w.id, x: w.x, y: w.y, w: w.w, h: w.h })) }}
                 breakpoints={{ lg: 1200, md: 996, sm: 768, xs: 480, xxs: 0 }}
-                cols={{ lg: 12, md: 10, sm: 6, xs: 1, xxs: 1 }}
-                rowHeight={120}
+                cols={{ lg: 4, md: 4, sm: 2, xs: 1, xxs: 1 }}
+                rowHeight={180}
                 isDraggable={isEditMode}
                 isResizable={isEditMode}
                 onLayoutChange={handleLayoutChange}
@@ -1785,7 +1662,7 @@ const Dashboard: React.FC<DashboardProps> = ({ user, tasks, saveTask, onTogglePr
                 containerPadding={[0, 0]}
             >
                 {widgets
-                    .filter(widget => currentWidgetTabs[activeTab].includes(widget.id))
+                    .filter(widget => WIDGET_TABS[activeTab].includes(widget.id))
                     .map(widget => {
                         const widgetDetails = allWidgets.find(w => w.id === widget.id);
                         if (!widgetDetails) return null;
@@ -1797,12 +1674,11 @@ const Dashboard: React.FC<DashboardProps> = ({ user, tasks, saveTask, onTogglePr
                                     title={widget.title}
                                     onRemove={() => removeWidget(widget.id)}
                                     isEditMode={isEditMode}
-                                    className={`${widgetDetails.className || "h-full"} ${widget.id === 'creditCardStatements' ? '!overflow-visible' : ''}`}
-                                    hideHeader={widgetDetails.hideHeader}
+                                    className="h-full"
                                 >
                                     <Suspense fallback={(
-                                      <div className="p-4 text-xs font-black uppercase tracking-widest opacity-40 text-center">
-                                        Loading node...
+                                      <div className="p-4 text-sm text-light-text-secondary dark:text-dark-text-secondary text-center">
+                                        Loading widget...
                                       </div>
                                     )}>
                                       <WidgetComponent {...widgetDetails.props as any} />

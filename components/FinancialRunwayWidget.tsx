@@ -27,9 +27,9 @@ const FinancialRunwayWidget: React.FC<FinancialRunwayWidgetProps> = ({ accounts,
     const burn = expenses / 3;
     const months = burn > 0 ? liquid / burn : 99; // 99 as infinity fallback
 
-    let runwayStatus = { label: 'Operational', color: 'blue', icon: 'shield' };
-    if (months < 3) runwayStatus = { label: 'Critical', color: 'rose', icon: 'warning' };
-    else if (months > 12) runwayStatus = { label: 'Infinity', color: 'emerald', icon: 'all_inclusive' };
+    let runwayStatus: { label: string; color: string; icon: string } = { label: 'Stable', color: 'text-blue-500 bg-blue-100 dark:bg-blue-900/30', icon: 'check_circle' };
+    if (months < 3) runwayStatus = { label: 'Critical', color: 'text-red-500 bg-red-100 dark:bg-red-900/30', icon: 'warning' };
+    else if (months > 12) runwayStatus = { label: 'Anti-fragile', color: 'text-emerald-500 bg-emerald-100 dark:bg-emerald-900/30', icon: 'shield_with_heart' };
 
     return { 
       runway: months, 
@@ -40,52 +40,49 @@ const FinancialRunwayWidget: React.FC<FinancialRunwayWidgetProps> = ({ accounts,
   }, [accounts, transactions]);
 
   return (
-    <div className="flex flex-col h-full justify-between !bg-transparent !p-0">
-      <div className="flex justify-between items-start mb-6">
+    <div className="flex flex-col h-full justify-between">
+      <div className="flex justify-between items-start mb-4">
         <div>
-          <span className="text-[9px] font-black uppercase tracking-[0.2em] text-light-text-secondary dark:text-dark-text-secondary opacity-40">System Survival Runway</span>
-          <h2 className="text-4xl font-black text-light-text dark:text-dark-text mt-2 font-mono tracking-tighter">
-            {runway >= 99 ? '∞' : runway.toFixed(1)} <span className="text-base font-black opacity-20 uppercase tracking-widest ml-1">Cycles</span>
+          <span className="text-[10px] font-black uppercase tracking-widest text-light-text-secondary opacity-60">Survival Runway</span>
+          <h2 className="text-4xl font-black text-light-text dark:text-dark-text mt-1">
+            {runway >= 99 ? '∞' : runway.toFixed(1)} <span className="text-lg font-bold opacity-40">Months</span>
           </h2>
         </div>
-        <div className={`px-3 py-1.5 rounded-xl text-[9px] font-black uppercase tracking-widest flex items-center gap-2 border bg-${status.color}-500/10 text-${status.color}-500 border-${status.color}-500/20 shadow-lg shadow-${status.color}-500/5`}>
-          <span className="material-symbols-outlined text-[12px] filled-icon bg-transparent">{status.icon}</span>
+        <div className={`px-2.5 py-1 rounded-full text-[10px] font-black uppercase tracking-wider flex items-center gap-1.5 ${status.color}`}>
+          <span className="material-symbols-outlined text-sm">{status.icon}</span>
           {status.label}
         </div>
       </div>
 
-      <div className="space-y-5">
-        <div className="grid grid-cols-2 gap-3">
-          <div className="bg-black/5 dark:bg-white/5 rounded-2xl p-4 border border-black/5 flex flex-col gap-1 transition-all duration-300 hover:bg-black/10">
-            <span className="text-[8px] font-black uppercase tracking-[0.2em] opacity-40">Monthly Burn</span>
-            <span className="text-sm font-black font-mono text-rose-500 tracking-tighter">{formatCurrency(monthlyBurn, 'EUR')}</span>
+      <div className="space-y-3">
+        <div className="bg-light-fill dark:bg-dark-fill rounded-2xl p-4 border border-black/5 dark:border-white/5">
+          <div className="flex justify-between text-xs mb-1">
+            <span className="text-light-text-secondary">Avg. Monthly Burn</span>
+            <span className="font-bold text-rose-500">{formatCurrency(monthlyBurn, 'EUR')}</span>
           </div>
-          <div className="bg-black/5 dark:bg-white/5 rounded-2xl p-4 border border-black/5 flex flex-col gap-1 transition-all duration-300 hover:bg-black/10">
-            <span className="text-[8px] font-black uppercase tracking-[0.2em] opacity-40">Liquid Nodes</span>
-            <span className="text-sm font-black font-mono text-emerald-500 tracking-tighter">{formatCurrency(liquidAssets, 'EUR')}</span>
+          <div className="flex justify-between text-xs">
+            <span className="text-light-text-secondary">Liquid Assets</span>
+            <span className="font-bold text-emerald-500">{formatCurrency(liquidAssets, 'EUR')}</span>
           </div>
         </div>
 
-        <div className="relative pt-2 px-1">
-          <div className="overflow-hidden h-1.5 mb-2 flex rounded-full bg-black/5 dark:bg-white/5 p-0.5 border border-black/5">
+        <div className="relative pt-1 px-1">
+          <div className="overflow-hidden h-3 mb-1 text-xs flex rounded-full bg-gray-200 dark:bg-gray-800 shadow-inner">
             <div 
               style={{ width: `${Math.min((runway / 12) * 100, 100)}%` }} 
-              className="shadow-3xl flex flex-col text-center whitespace-nowrap text-white justify-center bg-primary-500 transition-all duration-1000 rounded-full"
+              className="shadow-none flex flex-col text-center whitespace-nowrap text-white justify-center bg-primary-500 transition-all duration-1000 rounded-full"
             ></div>
           </div>
-          <div className="flex justify-between text-[8px] font-black uppercase tracking-[0.2em] text-light-text-secondary opacity-30">
-            <span>Terminal (0C)</span>
-            <span>Sustainable (12C+)</span>
+          <div className="flex justify-between text-[9px] font-bold uppercase text-gray-400">
+            <span>Critical (0m)</span>
+            <span>Stable (12m+)</span>
           </div>
         </div>
       </div>
       
-      <div className="mt-6 flex items-center gap-3 opacity-30 group-hover:opacity-60 transition-opacity">
-         <span className="material-symbols-outlined text-sm">database</span>
-         <p className="text-[9px] leading-tight font-medium uppercase tracking-widest text-light-text-secondary">
-           Projected maintenance based on 90-cycle expenditure velocity
-         </p>
-      </div>
+      <p className="text-[10px] leading-tight text-light-text-secondary opacity-60 mt-4">
+        Based on your current burn rate, this is how long you can maintain your lifestyle without any new income.
+      </p>
     </div>
   );
 };

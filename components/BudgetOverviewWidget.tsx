@@ -53,68 +53,41 @@ const BudgetOverviewWidget: React.FC<BudgetOverviewWidgetProps> = ({ budgets, tr
                 spent,
                 progress
             };
-        }).sort((a, b) => b.progress - a.progress); 
+        }).sort((a, b) => b.progress - a.progress); // Show most spent budgets first
     }, [budgets, spendingByCategory]);
 
     if (budgetData.length === 0) {
         return (
-            <div className="flex items-center justify-center h-full flex-col gap-4 py-8">
-                <div className="w-16 h-16 rounded-[2rem] bg-black/5 dark:bg-white/5 flex items-center justify-center animate-pulse">
-                    <span className="material-symbols-outlined text-3xl opacity-20">inventory_2</span>
-                </div>
-                <p className="text-[10px] font-black uppercase tracking-[0.3em] opacity-40">No budget nodes active</p>
+            <div className="flex items-center justify-center h-full text-light-text-secondary dark:text-dark-text-secondary">
+                <p>No budgets set up.</p>
             </div>
         );
     }
 
     return (
-        <div className="space-y-6 h-full overflow-y-auto pr-3 scrollbar-hide py-2">
-            {budgetData.slice(0, 5).map(budget => {
+        <div className="space-y-4 h-full overflow-y-auto pr-2 -mr-4">
+            {budgetData.slice(0, 4).map(budget => {
                 const remaining = budget.amount - budget.spent;
 
-                let progressColorClass = 'text-primary-500';
-                let progressBgClass = 'bg-primary-500';
-                let shadowClass = 'shadow-primary-500/20';
-                
-                if (budget.progress > 100) {
-                    progressColorClass = 'text-rose-500';
-                    progressBgClass = 'bg-rose-500';
-                    shadowClass = 'shadow-rose-500/20';
-                } else if (budget.progress > 85) {
-                    progressColorClass = 'text-amber-500';
-                    progressBgClass = 'bg-amber-500';
-                    shadowClass = 'shadow-amber-500/20';
-                }
+                let progressBarColor = 'bg-primary-500';
+                if (budget.progress > 100) progressBarColor = 'bg-red-500';
+                else if (budget.progress > 80) progressBarColor = 'bg-yellow-500';
                 
                 return (
-                    <div key={budget.id} onClick={onBudgetClick} className="cursor-pointer group">
-                        <div className="flex justify-between items-end mb-2 px-1">
-                            <div className="flex flex-col gap-0.5">
-                                <span className="font-black text-[9px] uppercase tracking-[0.2em] text-light-text-secondary dark:text-dark-text-secondary opacity-60 group-hover:opacity-100 transition-opacity">
-                                    Budget Node: {budget.categoryName}
-                                </span>
-                                <span className="text-[8px] font-black font-mono tracking-tighter opacity-30 uppercase tracking-[0.1em]">
-                                    Delta: {formatCurrency(Math.abs(remaining), 'EUR')} {remaining >= 0 ? 'Surplus' : 'Deficit'}
-                                </span>
-                            </div>
-                            <span className={`text-base font-black font-mono tracking-tighter ${progressColorClass}`}>
-                                {budget.progress.toFixed(0)}%
-                            </span>
+                    <div key={budget.id} onClick={onBudgetClick} className="cursor-pointer">
+                        <div className="flex justify-between items-center mb-1">
+                            <span className="font-semibold text-sm">{budget.categoryName}</span>
+                            <span className="text-sm font-semibold">{budget.progress.toFixed(0)}%</span>
                         </div>
-                        
-                        <div className="relative h-2 w-full bg-black/5 dark:bg-white/5 rounded-full overflow-hidden p-0.5 border border-black/5 dark:border-white/5">
+                        <div className="w-full bg-light-fill dark:bg-dark-fill rounded-full h-2.5 shadow-inner">
                             <div
-                                className={`${progressBgClass} h-full rounded-full transition-all duration-1000 ease-out shadow-lg ${shadowClass}`}
+                                className={`${progressBarColor} h-2.5 rounded-full transition-all duration-500`}
                                 style={{ width: `${Math.min(budget.progress, 100)}%` }}
                             ></div>
                         </div>
-
-                        <div className="flex justify-between px-1 mt-2">
-                             <div className="flex items-center gap-1.5 opacity-40 group-hover:opacity-80 transition-opacity">
-                                <div className={`w-1 h-1 rounded-full ${progressBgClass}`}></div>
-                                <span className="text-[9px] font-black font-mono">{formatCurrency(budget.spent, 'EUR')} Utilized</span>
-                             </div>
-                             <span className="text-[9px] font-black tracking-widest text-light-text-secondary dark:text-dark-text-secondary opacity-20 uppercase">Core Asset Flow</span>
+                         <div className="flex justify-between text-xs mt-1 text-light-text-secondary dark:text-dark-text-secondary">
+                            <span>{formatCurrency(budget.spent, 'EUR')} spent</span>
+                            <span>{formatCurrency(remaining, 'EUR')} {remaining >= 0 ? 'left' : 'over'}</span>
                         </div>
                     </div>
                 );
