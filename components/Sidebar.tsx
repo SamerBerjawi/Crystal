@@ -26,7 +26,7 @@ const NAV_GROUPS = [
   },
   {
     title: 'Planning',
-    items: ['Budget', 'Forecasting', 'Investments']
+    items: ['Budget', 'Forecasting', 'Investments', 'Challenges']
   },
   {
     title: 'Management',
@@ -34,7 +34,7 @@ const NAV_GROUPS = [
   },
   {
     title: 'Configuration',
-    items: ['Categories', 'Tags', 'Merchants', 'Settings']
+    items: ['Settings']
   }
 ];
 

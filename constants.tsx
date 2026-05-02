@@ -126,6 +126,12 @@ export const NAV_ITEMS: NavItem[] = [
   { name: 'Quotes & Invoices', icon: 'description' },
   { name: 'Tasks', icon: 'task_alt' },
   { name: 'Challenges', icon: 'emoji_events' },
+  { name: 'Categories', icon: 'category' },
+  { name: 'Tags', icon: 'sell' },
+  { name: 'Merchants', icon: 'storefront' },
+  { name: 'Integrations', icon: 'api' },
+  { name: 'Data Management', icon: 'database' },
+  { name: 'Documentation', icon: 'auto_stories' },
   { name: 'Settings', icon: 'settings' },
 ];
 

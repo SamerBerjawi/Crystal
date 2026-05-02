@@ -12,7 +12,7 @@ import {
   Currency,
 } from '../types';
 import { BTN_PRIMARY_STYLE, BTN_SECONDARY_STYLE, LIQUID_ACCOUNT_TYPES, CHECKBOX_STYLE, FORECAST_DURATION_OPTIONS } from '../constants';
-import { calculateForecastHorizon, formatCurrency, convertToEur, generateBalanceForecast, generateSyntheticLoanPayments, generateSyntheticCreditCardPayments, parseLocalDate, getPreferredTimeZone, generateSyntheticPropertyTransactions, toLocalISOString } from '../utils';
+import { calculateForecastHorizon, formatCurrency, convertToEur, generateBalanceForecast, generateSyntheticLoanPayments, generateSyntheticCreditCardPayments, parseLocalDate, getPreferredTimeZone, generateSyntheticPropertyTransactions, toLocalISOString, toLocalISOYearMonth } from '../utils';
 import Card from '../components/Card';
 import MultiAccountFilter from '../components/MultiAccountFilter';
 import FinancialGoalCard from '../components/FinancialGoalCard';
@@ -537,6 +537,30 @@ const Forecasting: React.FC = () => {
         }
     };
 
+    const groupedTableData = useMemo(() => {
+        const monthGroups: Record<string, typeof tableData> = {};
+        
+        tableData.forEach(row => {
+            const date = parseLocalDate(row.date);
+            const monthKey = toLocalISOYearMonth(date);
+            if (!monthGroups[monthKey]) {
+                monthGroups[monthKey] = [];
+            }
+            monthGroups[monthKey].push(row);
+        });
+
+        return Object.keys(monthGroups).sort().map(key => {
+            const [year, month] = key.split('-').map(Number);
+            const date = new Date(year, month - 1, 1);
+            return {
+                monthName: date.toLocaleDateString('default', { month: 'long' }),
+                year: year.toString(),
+                monthKey: key,
+                rows: monthGroups[key]
+            };
+        });
+    }, [tableData]);
+
     return (
         <div className="space-y-8 pb-12 animate-fade-in-up">
             {isModalOpen && <GoalScenarioModal onClose={() => setIsModalOpen(false)} onSave={(d) => { saveFinancialGoal(d); setIsModalOpen(false); }} goalToEdit={editingGoal} financialGoals={financialGoals} parentId={parentIdForNewGoal} accounts={accounts} />}
@@ -965,63 +989,107 @@ const Forecasting: React.FC = () => {
                     </div>
                 </div>
 
-                <Card className="overflow-hidden border-0 shadow-lg bg-white dark:bg-dark-card !p-0">
-                    <div className="overflow-x-auto max-h-[600px]">
+                <Card className="overflow-hidden border-0 shadow-xl bg-white dark:bg-dark-card !p-0">
+                    <div className="overflow-x-auto max-h-[700px] no-scrollbar">
                         <table className="w-full text-sm text-left border-collapse">
-                             <thead className="sticky top-0 z-20 bg-white dark:bg-[#1E1E20] shadow-sm text-xs uppercase font-bold tracking-wider text-light-text-secondary dark:text-dark-text-secondary">
+                             <thead className="sticky top-0 z-30 bg-white/95 dark:bg-[#1E1E20]/95 backdrop-blur-md shadow-sm text-[11px] uppercase font-black tracking-widest text-light-text-secondary dark:text-dark-text-secondary border-b border-black/5 dark:border-white/5">
                                 <tr>
-                                    <th className="px-6 py-4 border-b border-black/5 dark:border-white/5">Date</th>
-                                    <th className="px-6 py-4 border-b border-black/5 dark:border-white/5">Account</th>
-                                    <th className="px-6 py-4 border-b border-black/5 dark:border-white/5">Description</th>
-                                    <th className="px-6 py-4 border-b border-black/5 dark:border-white/5 text-right">Amount</th>
-                                    <th className="px-6 py-4 border-b border-black/5 dark:border-white/5 text-right">Run. Bal.</th>
-                                    <th className="px-6 py-4 border-b border-black/5 dark:border-white/5 text-center">Type</th>
+                                    <th className="px-6 py-5">Date</th>
+                                    <th className="px-6 py-5">Origin/Account</th>
+                                    <th className="px-6 py-5">Description</th>
+                                    <th className="px-6 py-5 text-right">Amount</th>
+                                    <th className="px-6 py-5 text-right">Proj. Bal.</th>
+                                    <th className="px-6 py-5 text-center">Source</th>
                                 </tr>
                              </thead>
                              <tbody className="divide-y divide-black/5 dark:divide-white/5 bg-white dark:bg-dark-card">
-                                {tableData.map(row => {
-                                    const isLowest = hasForecastData && row.balance.toFixed(2) === lowestPoint.value.toFixed(2);
-                                    
-                                    let rowClass = 'hover:bg-gray-50 dark:hover:bg-white/5 transition-colors group cursor-pointer';
-                                    if (isLowest) rowClass += ' bg-red-50/50 dark:bg-red-900/10 hover:!bg-red-100/50 dark:hover:!bg-red-900/20 border-l-4 border-l-red-500';
-
-                                    const amountClass = row.amount >= 0 
-                                        ? 'text-emerald-600 dark:text-emerald-400 font-bold' 
-                                        : 'text-light-text dark:text-dark-text font-medium';
-
-                                    return (
-                                        <tr 
-                                            key={row.id} 
-                                            className={rowClass}
-                                            onClick={() => handleEditForecastItem(row)}
-                                        >
-                                            <td className="px-6 py-4 whitespace-nowrap font-mono text-xs text-light-text-secondary dark:text-dark-text-secondary group-hover:text-light-text dark:group-hover:text-dark-text">
-                                                {parseLocalDate(row.date).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric', timeZone })}
-                                            </td>
-                                            <td className="px-6 py-4">
-                                                <span className="font-semibold text-light-text dark:text-dark-text truncate block max-w-[140px]">{row.accountName}</span>
-                                            </td>
-                                            <td className="px-6 py-4">
-                                                <span className="truncate block max-w-[220px] text-light-text-secondary dark:text-dark-text-secondary group-hover:text-light-text dark:group-hover:text-dark-text">{row.description}</span>
-                                            </td>
-                                            <td className={`px-6 py-4 text-right font-mono ${amountClass}`}>
-                                                {formatCurrency(row.amount, 'EUR')}
-                                            </td>
-                                            <td className={`px-6 py-4 text-right font-mono font-bold ${isLowest ? 'text-red-600 dark:text-red-400' : 'text-light-text dark:text-dark-text'}`}>
-                                                {formatCurrency(row.balance, 'EUR')}
-                                            </td>
-                                            <td className="px-6 py-4 text-center">
-                                                 <span className={`inline-flex items-center px-2 py-0.5 rounded text-[10px] font-bold uppercase tracking-wide border ${
-                                                    row.type === 'Financial Goal' ? 'bg-amber-50 text-amber-700 border-amber-200 dark:bg-amber-900/20 dark:text-amber-400 dark:border-amber-800' :
-                                                    row.type === 'Bill/Payment' ? 'bg-orange-50 text-orange-700 border-orange-200 dark:bg-orange-900/20 dark:text-orange-400 dark:border-orange-800' :
-                                                    'bg-blue-50 text-blue-700 border-blue-200 dark:bg-blue-900/20 dark:text-blue-400 dark:border-blue-800'
-                                                }`}>
-                                                    {row.type === 'Financial Goal' ? 'Goal' : row.type === 'Bill/Payment' ? 'Bill' : 'Recurring'}
-                                                </span>
+                                {groupedTableData.map((group) => (
+                                    <React.Fragment key={group.monthKey}>
+                                        <tr className="bg-light-fill/50 dark:bg-dark-fill/30 sticky top-[53px] z-20 backdrop-blur-sm">
+                                            <td colSpan={6} className="px-6 py-3">
+                                                <div className="flex items-center gap-3">
+                                                    <span className="text-[15px] font-black text-primary-600 dark:text-primary-400 uppercase tracking-tighter">
+                                                        {group.monthName} {group.year}
+                                                    </span>
+                                                    <div className="h-px flex-1 bg-gradient-to-r from-primary-500/20 to-transparent"></div>
+                                                    <span className="text-[11px] font-bold text-light-text-secondary dark:text-dark-text-secondary uppercase tracking-widest">
+                                                        {group.rows.length} Events
+                                                    </span>
+                                                </div>
                                             </td>
                                         </tr>
-                                    );
-                                })}
+                                        {group.rows.map(row => {
+                                            const isLowest = hasForecastData && row.balance.toFixed(2) === lowestPoint.value.toFixed(2);
+                                            
+                                            let rowClass = 'hover:bg-gray-50/80 dark:hover:bg-white/5 transition-all duration-150 group cursor-pointer relative';
+                                            if (isLowest) rowClass += ' bg-red-500/[0.03] hover:!bg-red-500/[0.06]';
+
+                                            const amountClass = row.amount >= 0 
+                                                ? 'text-emerald-600 dark:text-emerald-400 font-black' 
+                                                : 'text-light-text dark:text-dark-text font-bold opacity-80';
+
+                                            const getIcon = (type: string) => {
+                                                switch (type) {
+                                                    case 'Financial Goal': return 'flag';
+                                                    case 'Bill/Payment': return 'receipt_long';
+                                                    default: return 'repeat';
+                                                };
+                                            }
+
+                                            return (
+                                                <tr 
+                                                    key={row.id} 
+                                                    className={rowClass}
+                                                    onClick={() => handleEditForecastItem(row)}
+                                                >
+                                                    <td className="px-6 py-4 whitespace-nowrap">
+                                                        <div className="flex flex-col">
+                                                            <span className="font-mono text-[12px] font-bold text-light-text dark:text-dark-text">
+                                                                {parseLocalDate(row.date).toLocaleDateString('en-US', { day: 'numeric', month: 'short' })}
+                                                            </span>
+                                                            <span className="text-[10px] font-bold text-light-text-secondary dark:text-dark-text-secondary uppercase tracking-tighter">
+                                                                {parseLocalDate(row.date).toLocaleDateString('en-US', { weekday: 'short' })}
+                                                            </span>
+                                                        </div>
+                                                    </td>
+                                                    <td className="px-6 py-4">
+                                                        <div className="flex items-center gap-2">
+                                                            <div className={`p-1.5 rounded-lg border flex items-center justify-center shrink-0 ${
+                                                                row.type === 'Financial Goal' ? 'bg-amber-500/10 text-amber-500 border-amber-500/20' :
+                                                                row.type === 'Bill/Payment' ? 'bg-rose-500/10 text-rose-500 border-rose-500/20' :
+                                                                'bg-indigo-500/10 text-indigo-500 border-indigo-500/20'
+                                                            }`}>
+                                                                <span className="material-symbols-outlined text-sm">{getIcon(row.type)}</span>
+                                                            </div>
+                                                            <span className="font-bold text-[13px] text-light-text dark:text-dark-text truncate block max-w-[140px] tracking-tight">{row.accountName}</span>
+                                                        </div>
+                                                    </td>
+                                                    <td className="px-6 py-4">
+                                                        <span className="truncate block max-w-[280px] text-[13px] font-medium text-light-text-secondary dark:text-dark-text-secondary group-hover:text-light-text dark:group-hover:text-dark-text transition-colors">{row.description}</span>
+                                                    </td>
+                                                    <td className={`px-6 py-4 text-right font-mono text-[13px] ${amountClass}`}>
+                                                        {formatCurrency(row.amount, 'EUR', { showPlusSign: true })}
+                                                    </td>
+                                                    <td className={`px-6 py-4 text-right font-mono text-[13px] ${isLowest ? 'text-red-600 dark:text-red-400 font-black' : 'font-bold text-light-text dark:text-dark-text'}`}>
+                                                        {formatCurrency(row.balance, 'EUR')}
+                                                        {isLowest && (
+                                                            <div className="absolute top-0 right-0 h-full w-[3px] bg-red-500"></div>
+                                                        )}
+                                                    </td>
+                                                    <td className="px-6 py-4 text-center">
+                                                         <span className={`inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-black uppercase tracking-wider border ${
+                                                            row.type === 'Financial Goal' ? 'bg-amber-50 text-amber-700 border-amber-200 dark:bg-amber-900/40 dark:text-amber-400 dark:border-amber-800' :
+                                                            row.type === 'Bill/Payment' ? 'bg-rose-50 text-rose-700 border-rose-200 dark:bg-rose-900/40 dark:text-rose-400 dark:border-rose-800' :
+                                                            'bg-indigo-50 text-indigo-700 border-indigo-200 dark:bg-indigo-900/40 dark:text-indigo-400 dark:border-indigo-800'
+                                                        }`}>
+                                                            {row.type === 'Financial Goal' ? 'Goal' : row.type === 'Bill/Payment' ? 'Bill' : 'Recurring'}
+                                                        </span>
+                                                    </td>
+                                                </tr>
+                                            );
+                                        })}
+                                    </React.Fragment>
+                                ))}
                              </tbody>
                         </table>
                     </div>
