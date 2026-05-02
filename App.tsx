@@ -1644,6 +1644,13 @@ const App: React.FC = () => {
     }
   }, [enableBankingConnections, fetchWithAuth, handleSaveTransaction, mapProviderTransaction, resolveBalanceAmount, resolveProviderAccountId, isAuthenticated, transactions, user, demoUser]);
 
+  const handleSyncAllEnableBankingConnections = useCallback(async () => {
+    const activeConnections = enableBankingConnections.filter(c => c.sessionId && c.status !== 'pending');
+    for (const connection of activeConnections) {
+      await handleSyncEnableBankingConnection(connection.id, connection);
+    }
+  }, [enableBankingConnections, handleSyncEnableBankingConnection]);
+
   const handleDeleteEnableBankingConnection = useCallback((connectionId: string) => {
     setEnableBankingConnections(prev => prev.filter(conn => conn.id !== connectionId));
     removePendingConnection(connectionId);
@@ -1710,7 +1717,7 @@ const App: React.FC = () => {
       return <PageLoader label="Loading account..." />;
     }
     switch (currentPage) {
-      case 'Dashboard': return <Dashboard user={currentUser!} incomeCategories={incomeCategories} expenseCategories={expenseCategories} financialGoals={financialGoals} recurringTransactions={recurringTransactions} recurringTransactionOverrides={recurringTransactionOverrides} loanPaymentOverrides={loanPaymentOverrides} tasks={tasks} saveTask={handleSaveTask} onTogglePrivacyMode={() => setIsPrivacyMode(!isPrivacyMode)} />;
+      case 'Dashboard': return <Dashboard user={currentUser!} incomeCategories={incomeCategories} expenseCategories={expenseCategories} financialGoals={financialGoals} recurringTransactions={recurringTransactions} recurringTransactionOverrides={recurringTransactionOverrides} loanPaymentOverrides={loanPaymentOverrides} tasks={tasks} saveTask={handleSaveTask} onTogglePrivacyMode={() => setIsPrivacyMode(!isPrivacyMode)} onSyncBanks={handleSyncAllEnableBankingConnections} />;
       case 'Accounts': return <Accounts accounts={accounts} transactions={transactions} saveAccount={handleSaveAccount} deleteAccount={handleDeleteAccount} setCurrentPage={setCurrentPage} setViewingAccountId={setViewingAccountId} onViewAccount={handleOpenAccountDetail} saveTransaction={handleSaveTransaction} accountOrder={accountOrder} setAccountOrder={setAccountOrder} initialSortBy={preferences.defaultAccountOrder} warrants={warrants} onToggleAccountStatus={handleToggleAccountStatus} onNavigateToTransactions={navigateToTransactions} linkedEnableBankingAccountIds={linkedEnableBankingAccountIds} />;
       case 'Transactions': return <Transactions initialAccountFilter={transactionsViewFilters.current.accountName ?? null} initialTagFilter={transactionsViewFilters.current.tagId ?? null} onClearInitialFilters={clearPendingTransactionFilters} />;
       case 'Reports': return <ReportsPage />;

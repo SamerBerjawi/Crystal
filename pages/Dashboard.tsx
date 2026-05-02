@@ -64,6 +64,7 @@ interface DashboardProps {
   tasks: Task[];
   saveTask: (task: Omit<Task, 'id'> & { id?: string }) => void;
   onTogglePrivacyMode?: () => void;
+  onSyncBanks?: () => void | Promise<void>;
 }
 
 // Define the AssetGroup type to fix type errors
@@ -118,7 +119,7 @@ const AnalysisStatCard: React.FC<{ title: string; value: string; subtext: string
     </div>
 );
 
-const Dashboard: React.FC<DashboardProps> = ({ user, tasks, saveTask, onTogglePrivacyMode }) => {
+const Dashboard: React.FC<DashboardProps> = ({ user, tasks, saveTask, onTogglePrivacyMode, onSyncBanks }) => {
   const { activeGoalIds, setActiveGoalIds, dashboardAccountIds: selectedAccountIds, setDashboardAccountIds: setSelectedAccountIds, dashboardDuration: duration, setDashboardDuration: setDuration } = useInsightsView();
   const { accounts } = useAccountsContext();
   const { transactions, saveTransaction, deleteTransactions, digest: transactionsDigest } = useTransactionsContext();
@@ -1320,8 +1321,12 @@ const Dashboard: React.FC<DashboardProps> = ({ user, tasks, saveTask, onTogglePr
 
                     <button 
                         onClick={() => {
-                            const syncBtn = document.querySelector('[data-eb-sync-all]');
-                            if (syncBtn) (syncBtn as HTMLElement).click();
+                            if (onSyncBanks) {
+                                onSyncBanks();
+                            } else {
+                                const syncBtn = document.querySelector('[data-eb-sync-all]');
+                                if (syncBtn) (syncBtn as HTMLElement).click();
+                            }
                         }}
                         className="h-9 px-4 flex items-center gap-2 text-xs font-black uppercase tracking-widest text-emerald-600 dark:text-emerald-400 bg-emerald-500/10 hover:bg-emerald-500/20 rounded-xl transition-all border border-emerald-500/10"
                         title="Sync Banks"

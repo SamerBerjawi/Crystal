@@ -992,7 +992,7 @@ const Forecasting: React.FC = () => {
                 <Card className="overflow-hidden border-0 shadow-xl bg-white dark:bg-dark-card !p-0">
                     <div className="overflow-x-auto max-h-[700px] no-scrollbar">
                         <table className="w-full text-sm text-left border-collapse">
-                             <thead className="sticky top-0 z-30 bg-white/95 dark:bg-[#1E1E20]/95 backdrop-blur-md shadow-sm text-[11px] uppercase font-black tracking-widest text-light-text-secondary dark:text-dark-text-secondary border-b border-black/5 dark:border-white/5">
+                             <thead className="sticky top-0 z-30 bg-white/95 dark:bg-[#1E1E20]/95 backdrop-blur-md shadow-sm text-[12px] uppercase font-black tracking-widest text-light-text-secondary dark:text-dark-text-secondary border-b border-black/5 dark:border-white/5">
                                 <tr>
                                     <th className="px-6 py-5">Date</th>
                                     <th className="px-6 py-5">Origin/Account</th>
@@ -1008,11 +1008,11 @@ const Forecasting: React.FC = () => {
                                         <tr className="bg-light-fill/50 dark:bg-dark-fill/30 sticky top-[53px] z-20 backdrop-blur-sm">
                                             <td colSpan={6} className="px-6 py-3">
                                                 <div className="flex items-center gap-3">
-                                                    <span className="text-[15px] font-black text-primary-600 dark:text-primary-400 uppercase tracking-tighter">
+                                                    <span className="text-[17px] font-black text-primary-600 dark:text-primary-400 uppercase tracking-tighter">
                                                         {group.monthName} {group.year}
                                                     </span>
                                                     <div className="h-px flex-1 bg-gradient-to-r from-primary-500/20 to-transparent"></div>
-                                                    <span className="text-[11px] font-bold text-light-text-secondary dark:text-dark-text-secondary uppercase tracking-widest">
+                                                    <span className="text-[12px] font-bold text-light-text-secondary dark:text-dark-text-secondary uppercase tracking-widest">
                                                         {group.rows.length} Events
                                                     </span>
                                                 </div>
@@ -1044,10 +1044,10 @@ const Forecasting: React.FC = () => {
                                                 >
                                                     <td className="px-6 py-4 whitespace-nowrap">
                                                         <div className="flex flex-col">
-                                                            <span className="font-mono text-[12px] font-bold text-light-text dark:text-dark-text">
+                                                            <span className="font-mono text-[14px] font-bold text-light-text dark:text-dark-text">
                                                                 {parseLocalDate(row.date).toLocaleDateString('en-US', { day: 'numeric', month: 'short' })}
                                                             </span>
-                                                            <span className="text-[10px] font-bold text-light-text-secondary dark:text-dark-text-secondary uppercase tracking-tighter">
+                                                            <span className="text-[11px] font-bold text-light-text-secondary dark:text-dark-text-secondary uppercase tracking-tighter">
                                                                 {parseLocalDate(row.date).toLocaleDateString('en-US', { weekday: 'short' })}
                                                             </span>
                                                         </div>
@@ -1061,23 +1061,23 @@ const Forecasting: React.FC = () => {
                                                             }`}>
                                                                 <span className="material-symbols-outlined text-sm">{getIcon(row.type)}</span>
                                                             </div>
-                                                            <span className="font-bold text-[13px] text-light-text dark:text-dark-text truncate block max-w-[140px] tracking-tight">{row.accountName}</span>
+                                                            <span className="font-bold text-[14px] text-light-text dark:text-dark-text truncate block max-w-[140px] tracking-tight">{row.accountName}</span>
                                                         </div>
                                                     </td>
                                                     <td className="px-6 py-4">
-                                                        <span className="truncate block max-w-[280px] text-[13px] font-medium text-light-text-secondary dark:text-dark-text-secondary group-hover:text-light-text dark:group-hover:text-dark-text transition-colors">{row.description}</span>
+                                                        <span className="truncate block max-w-[280px] text-[14px] font-medium text-light-text-secondary dark:text-dark-text-secondary group-hover:text-light-text dark:group-hover:text-dark-text transition-colors">{row.description}</span>
                                                     </td>
-                                                    <td className={`px-6 py-4 text-right font-mono text-[13px] ${amountClass}`}>
+                                                    <td className={`px-6 py-4 text-right font-mono text-[14px] ${amountClass}`}>
                                                         {formatCurrency(row.amount, 'EUR', { showPlusSign: true })}
                                                     </td>
-                                                    <td className={`px-6 py-4 text-right font-mono text-[13px] ${isLowest ? 'text-red-600 dark:text-red-400 font-black' : 'font-bold text-light-text dark:text-dark-text'}`}>
+                                                    <td className={`px-6 py-4 text-right font-mono text-[14px] ${isLowest ? 'text-red-600 dark:text-red-400 font-black' : 'font-bold text-light-text dark:text-dark-text'}`}>
                                                         {formatCurrency(row.balance, 'EUR')}
                                                         {isLowest && (
                                                             <div className="absolute top-0 right-0 h-full w-[3px] bg-red-500"></div>
                                                         )}
                                                     </td>
                                                     <td className="px-6 py-4 text-center">
-                                                         <span className={`inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-black uppercase tracking-wider border ${
+                                                         <span className={`inline-flex items-center px-2 py-0.5 rounded-full text-[11px] font-black uppercase tracking-wider border ${
                                                             row.type === 'Financial Goal' ? 'bg-amber-50 text-amber-700 border-amber-200 dark:bg-amber-900/40 dark:text-amber-400 dark:border-amber-800' :
                                                             row.type === 'Bill/Payment' ? 'bg-rose-50 text-rose-700 border-rose-200 dark:bg-rose-900/40 dark:text-rose-400 dark:border-rose-800' :
                                                             'bg-indigo-50 text-indigo-700 border-indigo-200 dark:bg-indigo-900/40 dark:text-indigo-400 dark:border-indigo-800'
