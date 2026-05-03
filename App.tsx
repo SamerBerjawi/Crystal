@@ -1566,6 +1566,48 @@ const App: React.FC = () => {
       return undefined;
     };
 
+    const technicalCardCounterpartyPattern = /^(?:CARD|CB|POS|TPP)[-_:/ ]?[A-Z0-9]{2,}$/i;
+    const isTechnicalCounterparty = (candidate?: string): boolean => {
+      if (!candidate) return false;
+      const trimmed = candidate.trim();
+      if (!trimmed) return false;
+      if (technicalCardCounterpartyPattern.test(trimmed)) return true;
+      if (/^CARD-[A-Z0-9-]+$/i.test(trimmed)) return true;
+      return false;
+    };
+
+    const counterpartyNameRaw = pickFirstText(
+      providerTx?.counterparty_name,
+      providerTx?.counterpartyName,
+      providerTx?.counterparty?.name,
+      ...(isCredit
+        ? [
+            providerTx?.debtor_name,
+            providerTx?.debtorName,
+            providerTx?.debtor?.name,
+            providerTx?.debtor?.account?.name,
+            providerTx?.debtorAccount?.name,
+            providerTx?.ultimate_debtor,
+            providerTx?.ultimateDebtor,
+            providerTx?.creditor_name,
+            providerTx?.creditorName,
+            providerTx?.creditor?.name,
+          ]
+        : [
+            providerTx?.creditor_name,
+            providerTx?.creditorName,
+            providerTx?.creditor?.name,
+            providerTx?.creditor?.account?.name,
+            providerTx?.creditorAccount?.name,
+            providerTx?.ultimate_creditor,
+            providerTx?.ultimateCreditor,
+            providerTx?.debtor_name,
+            providerTx?.debtorName,
+            providerTx?.debtor?.name,
+          ]),
+    );
+    const technicalCounterparty = isTechnicalCounterparty(counterpartyNameRaw);
+
     // Counterparty fields vary by bank. For outgoing payments prefer creditor-side fields;
     // for incoming payments (income/refunds) prefer debtor-side fields.
     
@@ -1574,7 +1616,7 @@ const App: React.FC = () => {
       extractMerchantFromRemittance(providerTx?.remittanceInformationUnstructured);
 
     const merchant = pickFirstValidMerchant(
-      unstructuredMerchant,
+      ...(technicalCounterparty ? [unstructuredMerchant] : []),
       providerTx?.merchant_name,
       providerTx?.merchantName,
       providerTx?.merchant?.name,
@@ -1582,9 +1624,7 @@ const App: React.FC = () => {
       providerTx?.merchant?.displayName,
       providerTx?.card_acceptor?.name,
       providerTx?.cardAcceptor?.name,
-      providerTx?.counterparty_name,
-      providerTx?.counterpartyName,
-      providerTx?.counterparty?.name,
+      ...(technicalCounterparty ? [] : [counterpartyNameRaw]),
       ...(isCredit
         ? [
             providerTx?.debtor_name,
@@ -1612,6 +1652,8 @@ const App: React.FC = () => {
             providerTx?.debtorName,
             providerTx?.debtor?.name,
           ]),
+      ...(technicalCounterparty ? [counterpartyNameRaw] : []),
+      unstructuredMerchant,
       providerTx?.remittance_information_unstructured,
       providerTx?.remittanceInformationUnstructured,
       providerTx?.remittance_information_unstructured_array,
