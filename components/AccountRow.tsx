@@ -233,10 +233,15 @@ const AccountRow: React.FC<AccountRowProps> = ({ account, transactions, warrants
                             </p>
                         </div>
                     </div>
-                    <div className="flex items-start gap-1">
-                        {isLinkedToEnableBanking && (
-                            <span className="material-symbols-outlined text-base text-emerald-500" title="Live Sync Active">link</span>
-                        )}
+                        <div className="flex items-start gap-1">
+                            {account.status === 'closed' && (
+                                <span className="px-2 py-0.5 rounded bg-gray-100 text-gray-700 dark:bg-gray-800 dark:text-gray-300 text-[8px] font-black uppercase tracking-widest border border-black/5 dark:border-white/5" title="Account Closed">
+                                    Closed
+                                </span>
+                            )}
+                            {isLinkedToEnableBanking && (
+                                <span className="material-symbols-outlined text-base text-emerald-500" title="Live Sync Active">link</span>
+                            )}
                         {isIncludedInAnalytics ? (
                              <span className="material-symbols-outlined text-base text-blue-400 dark:text-blue-500 opacity-70" title="Included in Analytics">bar_chart</span>
                         ) : (

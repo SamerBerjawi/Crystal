@@ -1,6 +1,6 @@
 
 import React, { useMemo, useState, Suspense } from 'react';
-import { Account, Transaction, DisplayTransaction, ScheduledPayment, MileageLog, EnableBankingConnection, EnableBankingAccount, EnableBankingSyncOptions } from '../types';
+import { Account, Transaction, DisplayTransaction, ScheduledPayment, MileageLog, EnableBankingConnection, EnableBankingAccount, EnableBankingSyncOptions, AssetClosureDetails } from '../types';
 import { convertToEur, parseLocalDate, toLocalISOString } from '../utils';
 import AddTransactionModal from '../components/AddTransactionModal';
 import TransactionDetailModal from '../components/TransactionDetailModal';
@@ -8,6 +8,7 @@ import AddMileageLogModal from '../components/AddMileageLogModal';
 import ConfirmationModal from '../components/ConfirmationModal';
 import BalanceAdjustmentModal from '../components/BalanceAdjustmentModal';
 import PropertyValuationModal from '../components/PropertyValuationModal';
+import CloseAssetModal from '../components/CloseAssetModal';
 import { v4 as uuidv4 } from 'uuid';
 import { useAccountsContext, useTransactionsContext } from '../contexts/DomainProviders';
 import { useCategoryContext, useScheduleContext, useTagsContext } from '../contexts/FinancialDataContext';
@@ -31,7 +32,9 @@ const AccountDetail: React.FC<{
     saveAccount: (account: Omit<Account, 'id'> & { id?: string }) => void;
     enableBankingLink?: { connection: EnableBankingConnection; account: EnableBankingAccount };
     onTriggerEnableBankingSync?: (connectionId: string, connectionOverride?: EnableBankingConnection, options?: EnableBankingSyncOptions) => void | Promise<void>;
-}> = ({ account, setCurrentPage, setViewingAccountId, saveAccount, enableBankingLink, onTriggerEnableBankingSync }) => {
+    onCloseAsset?: (accountId: string, details: AssetClosureDetails) => void;
+    onRevertClosure?: (accountId: string) => void;
+}> = ({ account, setCurrentPage, setViewingAccountId, saveAccount, enableBankingLink, onTriggerEnableBankingSync, onCloseAsset, onRevertClosure }) => {
     const { accounts } = useAccountsContext();
     const { transactions, saveTransaction, deleteTransactions } = useTransactionsContext();
     const { incomeCategories, expenseCategories } = useCategoryContext();
@@ -78,6 +81,7 @@ const AccountDetail: React.FC<{
     const [deletingLogId, setDeletingLogId] = useState<string | null>(null);
     const [isAdjustModalOpen, setAdjustModalOpen] = useState(false);
     const [isValuationModalOpen, setValuationModalOpen] = useState(false);
+    const [isCloseModalOpen, setCloseModalOpen] = useState(false);
     const [transactionToDelete, setTransactionToDelete] = useState<Transaction | null>(null);
     const [syncPrompt, setSyncPrompt] = useState<{
         connectionId: string;
@@ -114,6 +118,10 @@ const AccountDetail: React.FC<{
 
     const handleOpenValuationModal = () => {
         setValuationModalOpen(true);
+    };
+
+    const handleOpenCloseModal = () => {
+        setCloseModalOpen(true);
     };
 
     const handleSaveValuation = (newValue: number, date: string) => {
@@ -289,6 +297,8 @@ const AccountDetail: React.FC<{
         onBack: () => { setViewingAccountId(null); setCurrentPage('Accounts'); },
         onSyncLinkedAccount: enableBankingLink ? handleOpenSyncPrompt : undefined,
         isLinkedToEnableBanking: Boolean(enableBankingLink),
+        onCloseAsset: handleOpenCloseModal,
+        onRevertClosure: onRevertClosure ? () => onRevertClosure(account.id) : undefined,
     };
 
     const renderContent = () => {
@@ -445,6 +455,19 @@ const AccountDetail: React.FC<{
                     onClose={() => setValuationModalOpen(false)}
                     onSave={handleSaveValuation}
                     account={account}
+                />
+            )}
+
+            {isCloseModalOpen && onCloseAsset && (
+                <CloseAssetModal
+                    isOpen={isCloseModalOpen}
+                    onClose={() => setCloseModalOpen(false)}
+                    account={account}
+                    accounts={accounts}
+                    onConfirm={(details) => {
+                        onCloseAsset(account.id, details);
+                        setCloseModalOpen(false);
+                    }}
                 />
             )}
 

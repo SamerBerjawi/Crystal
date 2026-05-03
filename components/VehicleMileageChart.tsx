@@ -33,8 +33,9 @@ const VehicleMileageChart: React.FC<VehicleMileageChartProps> = ({ logs }) => {
     
   if (sortedLogs.length < 2) {
     return (
-        <div className="flex items-center justify-center h-40 text-light-text-secondary dark:text-dark-text-secondary">
-            <p>Add at least two mileage logs to see a history chart.</p>
+        <div className="flex flex-col items-center justify-center h-full text-light-text-secondary dark:text-dark-text-secondary opacity-40 p-8 text-center">
+             <span className="material-symbols-outlined text-3xl mb-2">analytics</span>
+            <p className="text-xs font-bold uppercase tracking-widest">Awaiting Log Data</p>
         </div>
     );
   }
@@ -45,28 +46,31 @@ const VehicleMileageChart: React.FC<VehicleMileageChartProps> = ({ logs }) => {
   };
 
   return (
-      <div className="flex-grow" style={{ width: '100%', height: '200px' }}>
-        <ResponsiveContainer minWidth={0} minHeight={0} debounce={50}>
-          <LineChart data={sortedLogs} margin={{ top: 20, right: 20, left: 10, bottom: 5 }}>
-             <CartesianGrid strokeDasharray="3 3" stroke="var(--light-separator, #E5E7EB)" opacity={0.5} vertical={false} />
+      <div className="flex-grow w-full h-full">
+        <ResponsiveContainer width="100%" height="100%">
+          <LineChart data={sortedLogs} margin={{ top: 20, right: 10, left: 0, bottom: 0 }}>
+             <CartesianGrid strokeDasharray="3 3" stroke="currentColor" opacity={0.05} vertical={false} />
             <XAxis 
                 dataKey="date" 
                 axisLine={false} 
                 tickLine={false}
                 tickFormatter={tickFormatter}
-                tick={{ fill: 'currentColor', opacity: 0.6, fontSize: 12 }}
+                tick={{ fill: 'currentColor', opacity: 0.4, fontSize: 10, fontWeight: 700 }}
+                dy={10}
             />
             <YAxis 
-                axisLine={false} 
-                tickLine={false}
-                tickFormatter={(value) => `${(value / 1000).toFixed(0)}k`}
-                tick={{ fill: 'currentColor', opacity: 0.6, fontSize: 12 }}
-                width={40}
-            >
-                <Label value="km" position="top" offset={10} style={{ fill: 'currentColor', opacity: 0.6, fontSize: 12 }} />
-            </YAxis>
-            <Tooltip content={<CustomTooltip />} cursor={{ fill: 'rgba(128, 128, 128, 0.1)' }} />
-            <Line type="monotone" dataKey="reading" stroke="#3B82F6" strokeWidth={2.5} dot={false} activeDot={{ r: 5 }} />
+                hide
+            />
+            <Tooltip content={<CustomTooltip />} cursor={{ stroke: 'rgba(59, 130, 246, 0.2)', strokeWidth: 2 }} />
+            <Line 
+                type="monotone" 
+                dataKey="reading" 
+                stroke="#3B82F6" 
+                strokeWidth={4} 
+                dot={false} 
+                activeDot={{ r: 6, fill: '#3B82F6', strokeWidth: 0 }}
+                animationDuration={2000}
+            />
           </LineChart>
         </ResponsiveContainer>
       </div>

@@ -1,10 +1,11 @@
 
 import React from 'react';
 import { Account, Transaction, LoanPaymentOverrides } from '../types';
-import { formatCurrency, generateAmortizationSchedule } from '../utils';
+import { formatCurrency, generateAmortizationSchedule, parseLocalDate } from '../utils';
 import Card from './Card';
 import { BTN_PRIMARY_STYLE, BTN_SECONDARY_STYLE } from '../constants';
 import { ResponsiveContainer, AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip } from 'recharts';
+import { motion } from 'motion/react';
 
 interface PropertyAccountViewProps {
   account: Account;
@@ -17,6 +18,8 @@ interface PropertyAccountViewProps {
   onBack: () => void;
   onSyncLinkedAccount?: () => void;
   isLinkedToEnableBanking?: boolean;
+  onCloseAsset?: () => void;
+  onRevertClosure?: () => void;
 }
 
 const PropertyAccountView: React.FC<PropertyAccountViewProps> = ({
@@ -30,7 +33,10 @@ const PropertyAccountView: React.FC<PropertyAccountViewProps> = ({
   onBack,
   onSyncLinkedAccount,
   isLinkedToEnableBanking,
+  onCloseAsset,
+  onRevertClosure,
 }) => {
+  const isClosed = account.status === 'closed';
   const linkedLoan = accounts.find(a => a.id === account.linkedLoanId) || accounts.find(a => a.type === 'Loan' && a.linkedAssetId === account.id);
   
   // --- Financial Calculations ---
@@ -102,6 +108,38 @@ const PropertyAccountView: React.FC<PropertyAccountViewProps> = ({
 
   return (
     <div className="space-y-8 animate-fade-in-up pb-12">
+      {/* Closure Details Banner */}
+      {isClosed && account.closureDetails && (
+        <motion.div 
+           initial={{ opacity: 0, y: 20 }}
+           animate={{ opacity: 1, y: 0 }}
+           className="bg-red-50 dark:bg-red-900/10 border border-red-200 dark:border-red-800/40 rounded-[2rem] p-8 shadow-sm"
+        >
+          <div className="flex items-start gap-4">
+            <div className="w-12 h-12 rounded-2xl bg-red-500 flex items-center justify-center text-white shrink-0">
+              <span className="material-symbols-outlined">info</span>
+            </div>
+            <div>
+              <h3 className="text-lg font-black text-red-900 dark:text-red-100 mb-1">Property Sold / Closed</h3>
+              <p className="text-sm text-red-700/80 dark:text-red-300/60 mb-4 font-medium leading-relaxed">
+                This asset was recorded as <strong className="text-red-900 dark:text-red-100">{account.closureDetails.closureType}</strong> on {parseLocalDate(account.closureDetails.date).toLocaleDateString(undefined, { dateStyle: 'long' })}. 
+              </p>
+              {account.closureDetails.notes && (
+                <div className="bg-white/50 dark:bg-black/20 p-4 rounded-xl mb-4 border border-red-200/50 dark:border-red-800/20 italic text-sm text-red-800 dark:text-red-200">
+                  "{account.closureDetails.notes}"
+                </div>
+              )}
+              {account.closureDetails.closureType === 'Sold' && account.closureDetails.incomeAccountId && (
+                <div className="flex items-center gap-2 text-xs font-bold text-red-800 dark:text-red-200 uppercase tracking-wider">
+                  <span className="material-symbols-outlined text-sm">payments</span>
+                  Sale proceeds deposited to {accounts.find(a => a.id === account.closureDetails?.incomeAccountId)?.name}
+                </div>
+              )}
+            </div>
+          </div>
+        </motion.div>
+      )}
+
       {/* Navigation Header */}
       <header className="flex items-center justify-between">
           <div className="flex items-center gap-4">
@@ -120,10 +158,24 @@ const PropertyAccountView: React.FC<PropertyAccountViewProps> = ({
               {isLinkedToEnableBanking && onSyncLinkedAccount && (
                   <button onClick={onSyncLinkedAccount} className={BTN_SECONDARY_STYLE}>Sync</button>
               )}
-              <button onClick={onUpdateValuation || onAddTransaction} className={BTN_PRIMARY_STYLE}>
-                  <span className="material-symbols-outlined mr-2 text-lg">add</span>
-                  Update Value
-              </button>
+              {isClosed && onRevertClosure && (
+                  <button onClick={onRevertClosure} className={BTN_SECONDARY_STYLE}>
+                    <span className="material-symbols-outlined mr-2 text-lg">settings_backup_restore</span>
+                    Revert Closure
+                  </button>
+              )}
+              {!isClosed && (
+                <button onClick={onUpdateValuation || onAddTransaction} className={BTN_PRIMARY_STYLE}>
+                    <span className="material-symbols-outlined mr-2 text-lg">add</span>
+                    Update Value
+                </button>
+              )}
+              {!isClosed && onCloseAsset && (
+                <button onClick={onCloseAsset} className="flex items-center gap-2 px-6 py-3 rounded-2xl bg-red-500/10 text-red-600 hover:bg-red-500 hover:text-white font-black text-xs uppercase tracking-widest transition-all shadow-lg shadow-red-500/5">
+                   <span className="material-symbols-outlined text-sm">no_accounts</span>
+                   Sell Property
+                </button>
+              )}
           </div>
       </header>
 
@@ -141,9 +193,17 @@ const PropertyAccountView: React.FC<PropertyAccountViewProps> = ({
                
                <div className="relative z-10 p-8 flex flex-col h-full justify-between">
                    <div className="flex justify-between items-start">
-                       <span className="px-3 py-1 rounded-full bg-white/80 dark:bg-black/40 backdrop-blur-md text-xs font-bold uppercase tracking-wider shadow-sm border border-black/5 dark:border-white/10">
-                           {account.propertyType || 'Property'}
-                       </span>
+                        <div className="flex items-center gap-3">
+                            <span className="px-3 py-1 rounded-full bg-white/80 dark:bg-black/40 backdrop-blur-md text-xs font-bold uppercase tracking-wider shadow-sm border border-black/5 dark:border-white/10">
+                                {account.propertyType || 'Property'}
+                            </span>
+                            {isClosed && (
+                              <span className="px-3 py-1 rounded-full bg-gray-100 text-gray-700 dark:bg-gray-800 dark:text-gray-300 text-xs font-bold uppercase tracking-wider shadow-sm flex items-center gap-1 border border-black/5 dark:border-white/5">
+                                  <span className="material-symbols-outlined text-sm">lock</span>
+                                  Account Closed
+                              </span>
+                            )}
+                        </div>
                        {/* LTV Indicator */}
                        <div className="text-right">
                            <p className="text-xs font-bold uppercase text-light-text-secondary dark:text-dark-text-secondary mb-1">Ownership</p>
@@ -152,9 +212,11 @@ const PropertyAccountView: React.FC<PropertyAccountViewProps> = ({
                    </div>
 
                    <div className="mt-auto">
-                       <p className="text-sm font-bold uppercase text-light-text-secondary dark:text-dark-text-secondary mb-1">Market Value</p>
+                       <p className="text-sm font-bold uppercase text-light-text-secondary dark:text-dark-text-secondary mb-1">
+                         {isClosed ? 'Value at Closure' : 'Market Value'}
+                       </p>
                        <h2 className="text-5xl font-extrabold text-light-text dark:text-dark-text tracking-tight mb-6">
-                           {formatCurrency(currentMarketValue, account.currency)}
+                           {formatCurrency(isClosed ? (account.closureDetails?.value || 0) : currentMarketValue, account.currency)}
                        </h2>
                        
                        {/* Equity Progress Bar */}

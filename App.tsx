@@ -775,10 +775,38 @@ const App: React.FC = () => {
   const handleRestoreData = useCallback((data: FinancialData) => {
       restoreInProgressRef.current = true;
       skipNextSaveRef.current = true;
+
+      // Create restoration summary
+      const summaryParts: string[] = [];
+      if (data.accounts?.length) summaryParts.push(`${data.accounts.length} accounts`);
+      if (data.transactions?.length) summaryParts.push(`${data.transactions.length} transactions`);
+      if (data.budgets?.length) summaryParts.push(`${data.budgets.length} budgets`);
+      if (data.recurringTransactions?.length) summaryParts.push(`${data.recurringTransactions.length} repeating items`);
+      if (data.financialGoals?.length) summaryParts.push(`${data.financialGoals.length} goals`);
+      
+      const summaryText = summaryParts.length > 0 
+        ? `Restored: ${summaryParts.join(', ')}`
+        : 'Restored full system snapshot';
+
+      const historyItem: ImportExportHistoryItem = {
+        id: `restore-${uuidv4()}`,
+        type: 'restore',
+        dataType: 'snapshot',
+        fileName: 'Cloud Snapshot',
+        date: new Date().toISOString(),
+        status: 'Complete',
+        itemCount: summaryParts.length,
+        details: summaryText
+      };
+
+      // Add to history
+      const updatedHistory = [historyItem, ...(data.importExportHistory || [])];
+      const dataWithHistory = { ...data, importExportHistory: updatedHistory };
+
       if (data.userProfile) { handleSetUser(data.userProfile); }
-      loadAllFinancialData(data);
+      loadAllFinancialData(dataWithHistory);
       if (!isDemoMode && isAuthenticated) {
-           saveData(data, { suppressErrors: true })
+           saveData(dataWithHistory, { suppressErrors: true })
             .catch(console.error)
             .finally(() => { restoreInProgressRef.current = false; skipNextSaveRef.current = false; });
       } else {
@@ -961,8 +989,80 @@ const App: React.FC = () => {
   };
 
   const handleToggleAccountStatus = (accountId: string) => {
-    setAccounts(prev => prev.map(acc => acc.id === accountId ? { ...acc, status: acc.status === 'closed' ? 'open' : 'closed' } : acc));
+    setAccounts(prev => prev.map(acc => acc.id === accountId ? { ...acc, status: acc.status === 'closed' ? 'open' : 'closed', closureDetails: undefined } : acc));
   };
+
+  const handleCloseAsset = useCallback((accountId: string, details: AssetClosureDetails) => {
+    const account = accounts.find(a => a.id === accountId);
+    if (!account) return;
+
+    let incomeTx: Transaction | undefined;
+    // If sold, we create a transaction and potentially update the destination account's balance
+    if (details.closureType === 'Sold' && details.incomeAccountId) {
+      incomeTx = {
+        id: `tx-${uuidv4()}`,
+        accountId: details.incomeAccountId,
+        date: details.date,
+        description: `Sale of ${account.name}`,
+        amount: details.value,
+        category: 'Other Income',
+        type: 'income',
+        currency: account.currency
+      };
+      
+      setTransactions(txs => [incomeTx!, ...txs]);
+    }
+
+    setAccounts(prev => {
+      return prev.map(acc => {
+        if (acc.id === accountId) {
+          return { 
+            ...acc, 
+            status: 'closed' as const, 
+            closureDetails: incomeTx ? { ...details, transactionId: incomeTx.id } : details,
+            balance: 0 
+          };
+        }
+        if (incomeTx && acc.id === details.incomeAccountId) {
+          return { ...acc, balance: acc.balance + details.value };
+        }
+        return acc;
+      });
+    });
+
+    setViewingAccountId(null);
+    setCurrentPageState('Accounts');
+    navigateToPath('/accounts');
+  }, [accounts, navigateToPath]);
+
+  const handleRevertAccountClosure = useCallback((accountId: string) => {
+    const account = accounts.find(a => a.id === accountId);
+    if (!account || !account.closureDetails) return;
+
+    const details = account.closureDetails;
+    const transactionId = details.transactionId;
+
+    if (transactionId) {
+      setTransactions(txs => txs.filter(tx => tx.id !== transactionId));
+    }
+
+    setAccounts(prev => {
+      return prev.map(acc => {
+        if (acc.id === accountId) {
+          return { 
+            ...acc, 
+            status: 'open' as const, 
+            closureDetails: undefined,
+            balance: details.value
+          };
+        }
+        if (details.closureType === 'Sold' && details.incomeAccountId && acc.id === details.incomeAccountId) {
+          return { ...acc, balance: acc.balance - details.value };
+        }
+        return acc;
+      });
+    });
+  }, [accounts]);
 
   const handleDeleteAccount = useCallback((accountId: string) => {
     const accountToDelete = accounts.find(acc => acc.id === accountId);
@@ -1686,7 +1786,35 @@ const App: React.FC = () => {
       if (newAccountsArg) { newAccountsArg.forEach(acc => handleSaveAccount(acc)); }
       if (dataType === 'accounts') { items.forEach(acc => handleSaveAccount(acc)); } 
       else if (dataType === 'transactions') { handleSaveTransaction(items.map(t => ({ ...t, importId }))); }
-      setImportExportHistory(prev => [...prev, { id: importId, type: 'import', dataType, fileName, date: toLocalDateTimeString(new Date()), status: Object.keys(errors).length > 0 ? 'Failed' : 'Complete', itemCount: items.length, importedData: originalData, errors, }]);
+      
+      const details = `Imported ${items.length} ${dataType}${newAccountsArg?.length ? ` and created ${newAccountsArg.length} new accounts` : ''}.`;
+
+      setImportExportHistory(prev => [{ 
+        id: importId, 
+        type: 'import', 
+        dataType, 
+        fileName, 
+        date: toLocalDateTimeString(new Date()), 
+        status: Object.keys(errors).length > 0 ? 'Failed' : 'Complete', 
+        itemCount: items.length, 
+        details,
+        importedData: originalData, 
+        errors, 
+      }, ...prev]);
+  };
+
+  const handleLogExport = (dataType: ImportDataType, format: 'csv' | 'json', itemCount: number) => {
+    const exportId = `exp-${uuidv4()}`;
+    setImportExportHistory(prev => [{
+      id: exportId,
+      type: 'export',
+      dataType,
+      fileName: `Export (${format.toUpperCase()})`,
+      date: new Date().toISOString(),
+      status: 'Complete',
+      itemCount,
+      details: `Exported ${itemCount} items as ${format.toUpperCase()}.`
+    }, ...prev]);
   };
   
   const handleDeleteHistoryItem = (id: string) => { setImportExportHistory(prev => prev.filter(item => item.id !== id)); };
@@ -1724,7 +1852,7 @@ const App: React.FC = () => {
       return <PageLoader label="Loading holding..." />;
     }
     if (viewingAccountId) {
-      if (viewingAccount) return <AccountDetail account={viewingAccount} setCurrentPage={setCurrentPage} setViewingAccountId={setViewingAccountId} saveAccount={handleSaveAccount} enableBankingLink={enableBankingLinkMap.get(viewingAccount.id)} onTriggerEnableBankingSync={handleSyncEnableBankingConnection} />;
+      if (viewingAccount) return <AccountDetail account={viewingAccount} setCurrentPage={setCurrentPage} setViewingAccountId={setViewingAccountId} saveAccount={handleSaveAccount} enableBankingLink={enableBankingLinkMap.get(viewingAccount.id)} onTriggerEnableBankingSync={handleSyncEnableBankingConnection} onCloseAsset={handleCloseAsset} onRevertClosure={handleRevertAccountClosure} />;
       return <PageLoader label="Loading account..." />;
     }
     switch (currentPage) {
@@ -1740,7 +1868,7 @@ const App: React.FC = () => {
       case 'Categories': return <CategoriesPage incomeCategories={incomeCategories} setIncomeCategories={setIncomeCategories} expenseCategories={expenseCategories} setExpenseCategories={setExpenseCategories} setCurrentPage={setCurrentPage} />;
       case 'Tags': return <TagsPage tags={tags} transactions={transactions} saveTag={handleSaveTag} deleteTag={handleDeleteTag} setCurrentPage={setCurrentPage} onNavigateToTransactions={navigateToTransactions} />;
       case 'Personal Info': return <PersonalInfoPage user={currentUser!} setUser={handleSetUser} onChangePassword={changePassword} setCurrentPage={setCurrentPage} />;
-      case 'Data Management': return <DataImportExportPage accounts={accounts} transactions={transactions} budgets={budgets} recurringTransactions={recurringTransactions} allCategories={[...incomeCategories, ...expenseCategories]} history={importExportHistory} onPublishImport={handlePublishImport} onDeleteHistoryItem={handleDeleteHistoryItem} onDeleteImportedTransactions={handleDeleteImportedTransactions} onResetAccount={handleResetAccount} setCurrentPage={setCurrentPage} onRestoreData={handleRestoreData} fullFinancialData={dataToSave} />;
+      case 'Data Management': return <DataImportExportPage accounts={accounts} transactions={transactions} budgets={budgets} recurringTransactions={recurringTransactions} allCategories={[...incomeCategories, ...expenseCategories]} history={importExportHistory} onPublishImport={handlePublishImport} onDeleteHistoryItem={handleDeleteHistoryItem} onDeleteImportedTransactions={handleDeleteImportedTransactions} onResetAccount={handleResetAccount} setCurrentPage={setCurrentPage} onRestoreData={handleRestoreData} onLogExport={handleLogExport} fullFinancialData={dataToSave} />;
       case 'Preferences': return <PreferencesPage preferences={preferences} setPreferences={setPreferences} theme={theme} setTheme={setTheme} setCurrentPage={setCurrentPage} />;
       case 'EnableBankingCallback': return <EnableBankingCallbackPage connections={enableBankingConnections} setConnections={setEnableBankingConnections} onSync={handleSyncEnableBankingConnection} setCurrentPage={setCurrentPage} />;
       case 'Integrations': return <IntegrationsPage preferences={preferences} setPreferences={setPreferences} setCurrentPage={setCurrentPage} enableBankingConnections={enableBankingConnections} accounts={accounts} onCreateConnection={handleCreateEnableBankingConnection} onFetchBanks={handleFetchEnableBankingBanks} onDeleteConnection={handleDeleteEnableBankingConnection} onLinkAccount={handleLinkEnableBankingAccount} onTriggerSync={handleSyncEnableBankingConnection} />;

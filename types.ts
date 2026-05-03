@@ -40,6 +40,15 @@ export type OtherLiabilitySubType = 'Tax' | 'Private Debt' | 'Legal Settlement' 
 export type FuelType = 'Gasoline' | 'Diesel' | 'Electric' | 'Hybrid' | 'LPG';
 export type VehicleOwnership = 'Owned' | 'Leased';
 
+export interface AssetClosureDetails {
+  closureType: 'Sold' | 'Returned' | 'Gifted' | 'Written Off';
+  date: string;
+  value: number;
+  incomeAccountId?: string; // Where the money goes if sold
+  notes?: string;
+  transactionId?: string; // Linked income transaction
+}
+
 export interface MileageLog {
     id: string;
     date: string;
@@ -172,6 +181,7 @@ export interface Account {
   includeInAnalytics?: boolean;
   sureId?: string;
   status?: 'open' | 'closed';
+  closureDetails?: AssetClosureDetails;
 }
 
 export type RecurrenceFrequency = 'daily' | 'weekly' | 'monthly' | 'yearly';
@@ -425,9 +435,9 @@ export interface BudgetSuggestion {
     suggestedBudget: number;
 }
 
-export type HistoryType = 'import' | 'export';
+export type HistoryType = 'import' | 'export' | 'restore';
 export type HistoryStatus = 'Complete' | 'Failed' | 'In Progress';
-export type ImportDataType = 'transactions' | 'accounts' | 'categories' | 'tags' | 'budgets' | 'schedule' | 'investments' | 'mint' | 'all';
+export type ImportDataType = 'transactions' | 'accounts' | 'categories' | 'tags' | 'budgets' | 'schedule' | 'investments' | 'mint' | 'all' | 'snapshot';
 
 export interface ImportExportHistoryItem {
   id: string;
@@ -437,6 +447,7 @@ export interface ImportExportHistoryItem {
   date: string;
   status: HistoryStatus;
   itemCount: number;
+  details?: string; // Summary of changes (e.g. "Restored 15 accounts, 200 transactions")
   importedData?: Record<string, any>[];
   errors?: Record<number, Record<string, string>>;
 }

@@ -27,6 +27,7 @@ interface DataImportExportProps {
   onResetAccount: () => void;
   setCurrentPage: (page: Page) => void;
   onRestoreData: (data: FinancialData) => void;
+  onLogExport?: (dataType: ImportDataType, format: 'csv' | 'json', itemCount: number) => void;
   fullFinancialData: FinancialData; 
 }
 
@@ -46,8 +47,18 @@ const StatusBadge: React.FC<{ status: HistoryStatus }> = ({ status }) => {
     );
 };
 
-const TypeBadge: React.FC<{ type: 'import' | 'export' }> = ({ type }) => {
+const TypeBadge: React.FC<{ type: 'import' | 'export' | 'restore' }> = ({ type }) => {
     const isImport = type === 'import';
+    const isRestore = type === 'restore';
+    
+    if (isRestore) {
+        return (
+            <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-md text-xs font-bold uppercase tracking-wide bg-emerald-100 text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-300">
+                Restore
+            </span>
+        );
+    }
+    
     return (
         <span className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-md text-xs font-bold uppercase tracking-wide ${isImport ? 'bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-300' : 'bg-purple-100 text-purple-700 dark:bg-purple-900/30 dark:text-purple-300'}`}>
             {isImport ? 'Import' : 'Export'}
@@ -127,10 +138,11 @@ const DataImportExportPage: React.FC<DataImportExportProps> = (props) => {
     const stats = useMemo(() => {
         const imports = sortedHistory.filter(h => h.type === 'import').length;
         const exports = sortedHistory.filter(h => h.type === 'export').length;
+        const restores = sortedHistory.filter(h => h.type === 'restore').length;
         const lastActivity = sortedHistory.length > 0 
             ? new Date(sortedHistory[0].date).toLocaleDateString(undefined, { month: 'short', day: 'numeric' }) 
             : 'None';
-        return { imports, exports, lastActivity };
+        return { imports, exports, restores, lastActivity };
     }, [sortedHistory]);
 
     const handleSelectImportType = (type: ImportDataType) => {
@@ -218,6 +230,8 @@ const DataImportExportPage: React.FC<DataImportExportProps> = (props) => {
                  }
             }
             
+            props.onLogExport?.('snapshot', 'json', Object.keys(exportData).length);
+            
             const blob = new Blob([JSON.stringify(exportData, null, 2)], { type: 'application/json' });
             const url = URL.createObjectURL(blob);
             const a = document.createElement('a');
@@ -259,6 +273,7 @@ const DataImportExportPage: React.FC<DataImportExportProps> = (props) => {
                 }
 
                 if (data.length > 0) {
+                     props.onLogExport?.(type, 'csv', data.length);
                      const csv = arrayToCSV(data);
                      downloadCSV(csv, filename);
                 }
@@ -407,9 +422,10 @@ const DataImportExportPage: React.FC<DataImportExportProps> = (props) => {
       </header>
       
       {/* Stats Overview */}
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
           <StatCard title="Total Imports" value={stats.imports} icon="cloud_upload" colorClass="bg-blue-100 text-blue-600 dark:bg-blue-900/30 dark:text-blue-400" />
           <StatCard title="Total Exports" value={stats.exports} icon="cloud_download" colorClass="bg-purple-100 text-purple-600 dark:bg-purple-900/30 dark:text-purple-400" />
+          <StatCard title="Total Restores" value={stats.restores} icon="settings_backup_restore" colorClass="bg-emerald-100 text-emerald-600 dark:bg-emerald-900/30 dark:text-emerald-400" />
           <StatCard title="Last Activity" value={stats.lastActivity} icon="history" colorClass="bg-orange-100 text-orange-600 dark:bg-orange-900/30 dark:text-orange-400" />
       </div>
 
@@ -490,7 +506,14 @@ const DataImportExportPage: React.FC<DataImportExportProps> = (props) => {
                                 </td>
                                 <td className="px-6 py-4">
                                     <p className="font-medium text-light-text dark:text-dark-text">{item.fileName}</p>
-                                    <p className="text-xs text-light-text-secondary dark:text-dark-text-secondary capitalize">{item.dataType}</p>
+                                    <p className="text-xs text-light-text-secondary dark:text-dark-text-secondary capitalize">
+                                        {item.dataType}
+                                        {item.details && (
+                                            <span className="ml-2 px-1.5 py-0.5 bg-black/5 dark:bg-white/5 rounded text-[10px] font-bold normal-case">
+                                                {item.details}
+                                            </span>
+                                        )}
+                                    </p>
                                 </td>
                                 <td className="px-6 py-4 text-light-text-secondary dark:text-dark-text-secondary font-mono text-xs">
                                     {new Date(item.date).toLocaleString()}
