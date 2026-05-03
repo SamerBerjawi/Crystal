@@ -1476,7 +1476,29 @@ const App: React.FC = () => {
         }
       }
 
-      return trimmed;
+      // Clean the Name: Remove junk strings like "BE-", "PURCHASE", "WWW.", transaction IDs, or date stamps
+      let cleaned = trimmed;
+      // Remove prefixes like "WWW.", "BE-", "PURCHASE"
+      cleaned = cleaned.replace(/^(BE-|PURCHASE\s*|WWW\.|HTTP[S]?:\/\/)/i, '');
+      // Remove specific bank routing text like "RETAIL BRUSSELS BE "
+      cleaned = cleaned.replace(/RETAIL\s+[A-Z]+\s+[A-Z]{2}\s+/i, '');
+      // Remove trailing info separated by * (e.g., AMZN MKTP*29384 -> AMZN MKTP)
+      cleaned = cleaned.replace(/\*[A-Z0-9_\-\s]+$/i, '');
+      // Remove generic TLDs at the end
+      cleaned = cleaned.replace(/\.(COM|NET|ORG|BE|EU|CO\.UK|FR|DE|IT|ES)$/i, '');
+      // Remove generic dates
+      cleaned = cleaned.replace(/\b\d{4}-\d{2}-\d{2}\b/g, ''); 
+      cleaned = cleaned.replace(/\b\d{2}\/\d{2}\/\d{4}\b/g, '');
+      // Remove obvious long alphanumeric transaction IDs
+      cleaned = cleaned.replace(/\b(?:[A-Z0-9]{10,})\b/g, '');
+      
+      cleaned = cleaned.trim();
+
+      if (cleaned.match(/^AMZN\s*MKTP/i)) {
+        cleaned = 'Amazon';
+      }
+
+      return cleaned || undefined;
     };
 
     const pickJoinedText = (...values: any[]): string | undefined => {
@@ -1557,6 +1579,12 @@ const App: React.FC = () => {
             providerTx?.debtorName,
             providerTx?.debtor?.name,
           ]),
+      providerTx?.remittance_information_unstructured,
+      providerTx?.remittanceInformationUnstructured,
+      providerTx?.remittance_information_unstructured_array,
+      providerTx?.remittanceInformationUnstructuredArray,
+      providerTx?.remittance_information_structured,
+      providerTx?.remittanceInformationStructured,
     );
 
     const desc = pickFirstText(
