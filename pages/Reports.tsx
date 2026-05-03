@@ -655,9 +655,10 @@ const Reports: React.FC = () => {
   return (
     <div className="space-y-6 pb-12 animate-fade-in-up">
       <PageHeader
+        markerIcon="analytics"
+        markerLabel="Insights"
         title="Financial Reports"
-        icon="analytics"
-        description="Deep dive into your spending habits, budget performance, and automated financial insights."
+        subtitle="Deep dive into your spending habits, budget performance, and automated financial insights."
       />
 
       {/* Hero Section: Key Metrics */}

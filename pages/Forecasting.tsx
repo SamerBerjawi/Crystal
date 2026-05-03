@@ -552,11 +552,15 @@ const Forecasting: React.FC = () => {
         return Object.keys(monthGroups).sort().map(key => {
             const [year, month] = key.split('-').map(Number);
             const date = new Date(year, month - 1, 1);
+            const rows = monthGroups[key];
+            const minBalance = rows.length > 0 ? Math.min(...rows.map(r => r.balance)) : 0;
+            
             return {
                 monthName: date.toLocaleDateString('default', { month: 'long' }),
                 year: year.toString(),
                 monthKey: key,
-                rows: monthGroups[key]
+                rows: rows,
+                minBalance: minBalance
             };
         });
     }, [tableData]);
@@ -983,9 +987,15 @@ const Forecasting: React.FC = () => {
                             <p className="text-xs font-medium text-light-text-secondary dark:text-dark-text-secondary uppercase tracking-wider">Daily Projections</p>
                         </div>
                     </div>
-                     <div className="flex items-center gap-2 text-xs font-bold bg-red-50 dark:bg-red-900/20 text-red-600 dark:text-red-400 px-3 py-1.5 rounded-full border border-red-100 dark:border-red-900/30 self-start sm:self-auto">
-                        <span className="w-1.5 h-1.5 rounded-full bg-red-500 animate-pulse"></span>
-                        Lowest Balance Highlighted
+                     <div className="flex flex-wrap items-center gap-3 self-start sm:self-auto">
+                         <div className="flex items-center gap-2 text-[11px] font-bold bg-red-50 dark:bg-red-900/20 text-red-600 dark:text-red-400 px-3 py-1.5 rounded-full border border-red-100 dark:border-red-900/30">
+                            <span className="w-1.5 h-1.5 rounded-full bg-red-500 animate-pulse"></span>
+                            Global Lowest
+                        </div>
+                        <div className="flex items-center gap-2 text-[11px] font-bold bg-amber-50 dark:bg-amber-900/20 text-amber-600 dark:text-amber-400 px-3 py-1.5 rounded-full border border-amber-100 dark:border-amber-900/30">
+                            <span className="w-1.5 h-1.5 rounded-full bg-amber-500"></span>
+                            Monthly Lowest
+                        </div>
                     </div>
                 </div>
 
@@ -1020,9 +1030,11 @@ const Forecasting: React.FC = () => {
                                         </tr>
                                         {group.rows.map(row => {
                                             const isLowest = hasForecastData && row.balance.toFixed(2) === lowestPoint.value.toFixed(2);
+                                            const isMonthlyLowest = row.balance.toFixed(2) === group.minBalance.toFixed(2);
                                             
                                             let rowClass = 'hover:bg-gray-50/80 dark:hover:bg-white/5 transition-all duration-150 group cursor-pointer relative';
                                             if (isLowest) rowClass += ' bg-red-500/[0.03] hover:!bg-red-500/[0.06]';
+                                            else if (isMonthlyLowest) rowClass += ' bg-amber-500/[0.02]';
 
                                             const amountClass = row.amount >= 0 
                                                 ? 'text-emerald-600 dark:text-emerald-400 font-black' 
@@ -1070,10 +1082,18 @@ const Forecasting: React.FC = () => {
                                                     <td className={`px-6 py-4 text-right font-mono text-[14px] ${amountClass}`}>
                                                         {formatCurrency(row.amount, 'EUR', { showPlusSign: true })}
                                                     </td>
-                                                    <td className={`px-6 py-4 text-right font-mono text-[14px] ${isLowest ? 'text-red-600 dark:text-red-400 font-black' : 'font-bold text-light-text dark:text-dark-text'}`}>
-                                                        {formatCurrency(row.balance, 'EUR')}
+                                                    <td className={`px-6 py-4 text-right font-mono text-[14px] ${isLowest ? 'text-red-600 dark:text-red-400 font-black' : isMonthlyLowest ? 'text-amber-600 dark:text-amber-400 font-bold' : 'font-bold text-light-text dark:text-dark-text'}`}>
+                                                        <div className="flex items-center justify-end gap-1.5">
+                                                            {isMonthlyLowest && !isLowest && (
+                                                                <span className="material-symbols-outlined text-[14px] text-amber-500 font-bold" title="Monthly Lowest Balance">arrow_downward</span>
+                                                            )}
+                                                            {formatCurrency(row.balance, 'EUR')}
+                                                        </div>
                                                         {isLowest && (
                                                             <div className="absolute top-0 right-0 h-full w-[3px] bg-red-500"></div>
+                                                        )}
+                                                        {isMonthlyLowest && !isLowest && (
+                                                            <div className="absolute top-0 right-0 h-full w-[2px] bg-amber-500/40"></div>
                                                         )}
                                                     </td>
                                                     <td className="px-6 py-4 text-center">

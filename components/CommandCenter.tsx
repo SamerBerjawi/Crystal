@@ -62,12 +62,12 @@ const CommandCenter: React.FC<CommandCenterProps> = ({
 
     // Accounts
     accounts.forEach(acc => {
-      if (!q || acc.name.toLowerCase().includes(q) || acc.bankName?.toLowerCase().includes(q)) {
+      if (!q || acc.name.toLowerCase().includes(q) || acc.financialInstitution?.toLowerCase().includes(q)) {
         items.push({
           type: 'account',
           id: `acc-${acc.id}`,
           title: acc.name,
-          subtitle: acc.bankName || acc.type,
+          subtitle: acc.financialInstitution || acc.type,
           icon: 'account_balance',
           action: () => { onOpenAccount(acc.id); onClose(); }
         });

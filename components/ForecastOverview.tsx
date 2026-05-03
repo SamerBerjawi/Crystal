@@ -13,9 +13,10 @@ interface ForecastItem {
 interface ForecastOverviewProps {
     forecasts: ForecastItem[];
     currency?: Currency;
+    noCard?: boolean;
 }
 
-const ForecastOverview: React.FC<ForecastOverviewProps> = ({ forecasts, currency = 'EUR' }) => {
+const ForecastOverview: React.FC<ForecastOverviewProps> = ({ forecasts, currency = 'EUR', noCard = false }) => {
     const timeZone = getPreferredTimeZone();
 
     const sortedForecasts = [...forecasts].sort((a, b) => {
@@ -24,20 +25,9 @@ const ForecastOverview: React.FC<ForecastOverviewProps> = ({ forecasts, currency
          return 0; 
     });
     
-    return (
-        <Card className="bg-gradient-to-b from-white to-gray-50 dark:from-dark-card dark:to-black/20 border border-black/5 dark:border-white/5 shadow-sm">
-            <div className="flex items-center gap-2 mb-6">
-                <div className="p-2 rounded-lg bg-indigo-100 dark:bg-indigo-900/30 text-indigo-600 dark:text-indigo-400">
-                    <span className="material-symbols-outlined text-xl">query_stats</span>
-                </div>
-                <div>
-                    <h3 className="text-lg font-bold text-light-text dark:text-dark-text">Forecast Horizon</h3>
-                    <p className="text-xs text-light-text-secondary dark:text-dark-text-secondary">Projected lowest balance for upcoming periods</p>
-                </div>
-            </div>
-
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-                {sortedForecasts.map((item) => {
+    const content = (
+        <div className={`grid grid-cols-[repeat(auto-fit,minmax(min(100%,180px),1fr))] gap-3`}>
+            {sortedForecasts.map((item) => {
                     const isLow = item.lowestBalance < 0;
                     
                     let statusColor = 'bg-gray-100 dark:bg-gray-800 text-light-text dark:text-dark-text';
@@ -63,9 +53,9 @@ const ForecastOverview: React.FC<ForecastOverviewProps> = ({ forecasts, currency
                     return (
                         <div 
                             key={item.period} 
-                            className={`relative p-4 rounded-xl transition-all duration-300 ${statusColor}`}
+                            className={`relative p-3 rounded-xl transition-all duration-300 ${statusColor}`}
                         >
-                            <div className="flex justify-between items-start mb-3">
+                            <div className="flex justify-between items-start mb-1.5">
                                 <span className="text-xs font-bold uppercase tracking-wider opacity-70">{item.period}</span>
                                 <span className={`material-symbols-outlined text-lg ${isLow ? 'text-red-500' : 'opacity-30'}`}>{icon}</span>
                             </div>
@@ -74,14 +64,23 @@ const ForecastOverview: React.FC<ForecastOverviewProps> = ({ forecasts, currency
                                 {formatCurrency(item.lowestBalance, currency as Currency)}
                             </p>
                             
-                            <div className="mt-3 pt-3 border-t border-black/5 dark:border-white/5 flex items-center gap-1.5 text-xs opacity-70">
+                            <div className="mt-2 pt-2 border-t border-black/5 dark:border-white/5 flex items-center gap-1.5 text-xs opacity-70">
                                 <span className="material-symbols-outlined text-[14px]">event</span>
                                 <span>On {formattedDate}</span>
                             </div>
                         </div>
                     );
                 })}
-            </div>
+        </div>
+    );
+
+    if (noCard) {
+        return content;
+    }
+
+    return (
+        <Card className="bg-gradient-to-b from-white to-gray-50 dark:from-dark-card dark:to-black/20 border border-black/5 dark:border-white/5 shadow-sm">
+            {content}
         </Card>
     );
 };

@@ -12,6 +12,7 @@ interface VehicleAccountViewProps {
   transactions: Transaction[];
   loanPaymentOverrides: LoanPaymentOverrides;
   onAddTransaction: () => void;
+  onUpdateValuation?: () => void;
   onAddLog: () => void;
   onEditLog: (log: MileageLog) => void;
   onDeleteLog: (id: string) => void;
@@ -27,6 +28,7 @@ const VehicleAccountView: React.FC<VehicleAccountViewProps> = ({
   transactions,
   loanPaymentOverrides,
   onAddTransaction,
+  onUpdateValuation,
   onAddLog,
   onEditLog,
   onDeleteLog,
@@ -107,6 +109,7 @@ const VehicleAccountView: React.FC<VehicleAccountViewProps> = ({
              {isLinkedToEnableBanking && onSyncLinkedAccount && (
                <button onClick={onSyncLinkedAccount} className={BTN_SECONDARY_STYLE}>Sync</button>
              )}
+             <button onClick={onUpdateValuation || onAddTransaction} className={BTN_SECONDARY_STYLE}>Update Value</button>
              <button onClick={onAddTransaction} className={BTN_PRIMARY_STYLE}>Add Transaction</button>
            </div>
       </header>

@@ -358,6 +358,8 @@ export interface Widget {
     defaultH: number;
     // FIX: Add props property to the Widget interface to fix type errors in Dashboard.tsx and AccountDetail.tsx
     props: any;
+    icon?: string;
+    description?: string;
 }
 
 export interface WidgetConfig {

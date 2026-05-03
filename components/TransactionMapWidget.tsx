@@ -22,6 +22,11 @@ const BoundsFitter: React.FC<{ coords: [number, number][] }> = ({ coords }) => {
     return null;
 };
 
+const MapContainerAny = MapContainer as any;
+const TileLayerAny = TileLayer as any;
+const CircleMarkerAny = CircleMarker as any;
+const TooltipAny = Tooltip as any;
+
 const TransactionMapWidget: React.FC<TransactionMapWidgetProps> = ({ transactions }) => {
   const [isDarkMode, setIsDarkMode] = useState(false);
 
@@ -121,8 +126,8 @@ const TransactionMapWidget: React.FC<TransactionMapWidgetProps> = ({ transaction
 
   return (
     <div className="h-full w-full overflow-hidden relative z-0 rounded-lg group min-h-[300px]">
-        <MapContainer center={[20, 0]} zoom={2} style={{ height: '100%', width: '100%' }} className="z-0 bg-light-bg dark:bg-dark-bg" zoomControl={false}>
-            <TileLayer
+        <MapContainerAny center={[20, 0]} zoom={2} style={{ height: '100%', width: '100%' }} className="z-0 bg-light-bg dark:bg-dark-bg" zoomControl={false}>
+            <TileLayerAny
                 attribution={attribution}
                 url={tileLayerUrl}
             />
@@ -132,9 +137,9 @@ const TransactionMapWidget: React.FC<TransactionMapWidgetProps> = ({ transaction
                 // Visualize density with radius that scales slightly with count
                 const radius = Math.min(Math.max(6 + Math.log1p(loc.count) * 2, 6), 16);
                 const locationLabel = [loc.city, loc.country].filter(Boolean).join(', ') || 'Unknown location';
-
+ 
                 return (
-                    <CircleMarker
+                    <CircleMarkerAny
                         key={loc.id}
                         center={[loc.lat, loc.lon]}
                         radius={radius}
@@ -145,18 +150,18 @@ const TransactionMapWidget: React.FC<TransactionMapWidgetProps> = ({ transaction
                             fillOpacity: 0.8,
                         }}
                     >
-                        <Tooltip direction="top" offset={[0, -8]} opacity={1} className="custom-map-tooltip">
+                        <TooltipAny direction="top" offset={[0, -8]} opacity={1} className="custom-map-tooltip">
                             <div className="text-center space-y-1 min-w-[120px]">
                                 <p className="font-bold text-sm">{locationLabel}</p>
                                 <p className="text-xs opacity-70">{loc.count} transactions</p>
                                 <p className="font-mono font-semibold text-green-600 dark:text-green-400">{formatCurrency(Math.abs(loc.amountTotal), loc.currency)}</p>
                                 <p className="text-[10px] opacity-60 mt-1 border-t border-gray-200 dark:border-gray-700 pt-1">Latest: {loc.description}</p>
                             </div>
-                        </Tooltip>
-                    </CircleMarker>
+                        </TooltipAny>
+                    </CircleMarkerAny>
                 );
             })}
-        </MapContainer>
+        </MapContainerAny>
         
         {/* Stats Overlay */}
         <div className="absolute bottom-4 left-4 z-[1000] bg-white/80 dark:bg-black/60 backdrop-blur-md p-3 rounded-xl shadow-lg border border-white/20 flex flex-col gap-1 min-w-[140px] animate-fade-in-up">

@@ -7,6 +7,7 @@ import TransactionDetailModal from '../components/TransactionDetailModal';
 import AddMileageLogModal from '../components/AddMileageLogModal';
 import ConfirmationModal from '../components/ConfirmationModal';
 import BalanceAdjustmentModal from '../components/BalanceAdjustmentModal';
+import PropertyValuationModal from '../components/PropertyValuationModal';
 import { v4 as uuidv4 } from 'uuid';
 import { useAccountsContext, useTransactionsContext } from '../contexts/DomainProviders';
 import { useCategoryContext, useScheduleContext, useTagsContext } from '../contexts/FinancialDataContext';
@@ -76,6 +77,7 @@ const AccountDetail: React.FC<{
     const [editingLog, setEditingLog] = useState<MileageLog | null>(null);
     const [deletingLogId, setDeletingLogId] = useState<string | null>(null);
     const [isAdjustModalOpen, setAdjustModalOpen] = useState(false);
+    const [isValuationModalOpen, setValuationModalOpen] = useState(false);
     const [transactionToDelete, setTransactionToDelete] = useState<Transaction | null>(null);
     const [syncPrompt, setSyncPrompt] = useState<{
         connectionId: string;
@@ -108,6 +110,31 @@ const AccountDetail: React.FC<{
     
     const handleOpenAdjustModal = () => {
         setAdjustModalOpen(true);
+    };
+
+    const handleOpenValuationModal = () => {
+        setValuationModalOpen(true);
+    };
+
+    const handleSaveValuation = (newValue: number, date: string) => {
+        const historyEntry = { date, price: newValue };
+        const updatedHistory = [...(account.priceHistory || [])];
+        
+        // Add or update entry for this date
+        const existingIdx = updatedHistory.findIndex(h => h.date === date);
+        if (existingIdx >= 0) {
+            updatedHistory[existingIdx] = historyEntry;
+        } else {
+            updatedHistory.push(historyEntry);
+            updatedHistory.sort((a, b) => a.date.localeCompare(b.date));
+        }
+
+        saveAccount({
+            ...account,
+            balance: newValue,
+            priceHistory: updatedHistory
+        });
+        setValuationModalOpen(false);
     };
 
     const handleSaveAdjustment = (adjustmentAmount: number, date: string, notes: string, isMarketAdjustment?: boolean) => {
@@ -283,6 +310,7 @@ const AccountDetail: React.FC<{
                 return (
                     <PropertyAccountView 
                         {...commonProps}
+                        onUpdateValuation={handleOpenValuationModal}
                         accounts={accounts}
                         transactions={transactions}
                         loanPaymentOverrides={loanPaymentOverrides}
@@ -304,6 +332,7 @@ const AccountDetail: React.FC<{
                 return (
                     <VehicleAccountView 
                         {...commonProps}
+                        onUpdateValuation={handleOpenValuationModal}
                         accounts={accounts}
                         transactions={transactions}
                         loanPaymentOverrides={loanPaymentOverrides}
@@ -407,6 +436,14 @@ const AccountDetail: React.FC<{
                 <BalanceAdjustmentModal
                     onClose={() => setAdjustModalOpen(false)}
                     onSave={handleSaveAdjustment}
+                    account={account}
+                />
+            )}
+
+            {isValuationModalOpen && (
+                <PropertyValuationModal
+                    onClose={() => setValuationModalOpen(false)}
+                    onSave={handleSaveValuation}
                     account={account}
                 />
             )}

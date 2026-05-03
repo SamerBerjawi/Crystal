@@ -1195,8 +1195,19 @@ const App: React.FC = () => {
     return items.map((item: any, index: number) => ({ id: item.id || item.aspsp_id || item.bank_id || item.name || `aspsp-${index}`, name: item.name || item.full_name || item.fullName || 'Bank', country: item.country || payload.countryCode, }));
   }, [fetchWithAuth, isAuthenticated]);
 
-  const handleCreateEnableBankingConnection = useCallback(async (payload: { applicationId: string; countryCode: string; clientCertificate: string; selectedBankId: string; selectedBankName: string; connectionId?: string; }) => {
+  const handleCreateEnableBankingConnection = useCallback(async (payload: { applicationId: string; countryCode: string; clientCertificate: string; selectedBank: string; connectionId?: string; }) => {
     if (!isAuthenticated) return;
+    
+    let selectedBankId = '';
+    let selectedBankName = '';
+    try {
+        const bankData = JSON.parse(payload.selectedBank);
+        selectedBankId = bankData.id;
+        selectedBankName = bankData.name;
+    } catch (e) {
+        selectedBankName = payload.selectedBank;
+    }
+
     const connectionId = payload.connectionId || `eb-${uuidv4()}`;
     const existingConnection = payload.connectionId ? enableBankingConnections.find(conn => conn.id === payload.connectionId) : undefined;
     const baseConnection: EnableBankingConnection = {
@@ -1205,8 +1216,8 @@ const App: React.FC = () => {
           countryCode: payload.countryCode.trim().toUpperCase(),
           clientCertificate: payload.clientCertificate.trim(),
           status: 'pending',
-          selectedBank: payload.selectedBankName,
-          selectedBankId: payload.selectedBankId,
+          selectedBank: selectedBankName,
+          selectedBankId: selectedBankId,
           accounts: existingConnection?.accounts || [],
           ...(existingConnection && { ...existingConnection })
     };
@@ -1337,8 +1348,8 @@ const App: React.FC = () => {
       const identities = [
         accountDisplayName?.trim().toLowerCase(),
         ownerName?.trim().toLowerCase(),
-        user?.name?.trim().toLowerCase(),
-        demoUser?.name?.trim().toLowerCase(),
+        user ? `${user.firstName} ${user.lastName}`.trim().toLowerCase() : undefined,
+        demoUser ? `${demoUser.firstName} ${demoUser.lastName}`.trim().toLowerCase() : undefined,
       ].filter(Boolean) as string[];
 
       if (!trimmed) return undefined;

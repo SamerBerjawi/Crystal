@@ -2,8 +2,6 @@
 export type LogoType = 'icon' | 'logo' | 'symbol';
 export type LogoFallback = 'brandfetch' | 'transparent' | 'lettermark' | '404';
 
-const ALLOWED_TLDS = ['.com', '.net', '.org', '.co.uk', '.be', '.de', '.fr'];
-
 export const normalizeMerchantKey = (merchant?: string | null) => merchant?.trim().toLowerCase() || null;
 
 export const buildMerchantIdentifier = (
@@ -16,12 +14,12 @@ export const buildMerchantIdentifier = (
   const override = normalizedKey ? overrides?.[normalizedKey] : undefined;
 
   if (override !== undefined) {
-    const trimmed = override.trim();
+    const trimmed = override.trim().toLowerCase();
     // If the user explicitly clears it or sets a name without a dot (e.g. "Amazon"), 
     // we return null to force the Lettermark/Icon fallback.
-    // If they set "amazon.com", we use it.
     if (trimmed.includes('.') && trimmed.length > 3) {
-        return trimmed;
+        // Strip protocols and www if present in override
+        return trimmed.replace(/^(https?:\/\/)?(www\.)?/, '').replace(/\/$/, '');
     }
     return null;
   }
@@ -29,16 +27,30 @@ export const buildMerchantIdentifier = (
   const base = normalizedKey;
   if (!base) return null;
 
-  // 2. Sanitize: Remove special chars but keep dots and hyphens for domains
-  const sanitized = base.replace(/[^a-z0-9.-]/g, '');
-  if (!sanitized) return null;
+  // 2. Support searching for domains within the merchant name
+  // Split by common separators to find something that looks like a domain
+  const chunks = base.split(/[\s*|/]/);
+  for (const chunk of chunks) {
+      // Basic sanitization for the chunk
+      const sanitized = chunk.replace(/[^a-z0-9.-]/g, '');
+      if (sanitized.length < 4) continue;
 
-  // 3. Strict Check: Only return if it ends with a known TLD.
-  // This prevents "Joe's" from becoming a domain, but allows "amazon.de" or "slack.com".
-  const hasAllowedTLD = ALLOWED_TLDS.some(tld => sanitized.endsWith(tld));
+      const parts = sanitized.split('.');
+      if (parts.length > 1) {
+          const lastPart = parts[parts.length - 1];
+          // Check if it looks like a valid TLD (2-12 characters)
+          if (/^[a-z]{2,12}$/.test(lastPart)) {
+              return sanitized;
+          }
+      }
+  }
 
-  if (hasAllowedTLD) {
-     return sanitized;
+  // 3. Fallback: Entire sanitized name if it looks like it could be a domain 
+  // (though the loop above usually catches it)
+  const sanitizedAll = base.replace(/^(https?:\/\/)?(www\.)?/, '').split('/')[0].replace(/[^a-z0-9.-]/g, '');
+  const partsAll = sanitizedAll.split('.');
+  if (partsAll.length > 1 && /^[a-z]{2,12}$/.test(partsAll[partsAll.length - 1])) {
+      return sanitizedAll;
   }
 
   return null;
@@ -59,12 +71,14 @@ export const getMerchantLogoUrl = (
   const type = options?.type ?? 'icon';
   const fallback = options?.fallback ?? 'lettermark';
 
+  const today = new Date().toISOString().split('T')[0];
   const params = new URLSearchParams({
     c: clientId,
     type,
     fallback,
     h: String(height),
     w: String(width),
+    v: today,
   });
 
   return `https://cdn.brandfetch.io/${encodeURIComponent(identifier)}?${params.toString()}`;

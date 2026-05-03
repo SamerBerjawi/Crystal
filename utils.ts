@@ -32,9 +32,11 @@ export function formatCurrency(amount: number, currency: Currency, options?: { s
     sign = '+';
   }
 
-  const symbol = symbolMap[currency] || currency;
+  // Handle both "EUR" and "EUR (€)" formats
+  const cleanCurrency = currency.split(' ')[0] as Currency;
+  const symbol = symbolMap[cleanCurrency] || cleanCurrency;
 
-  return `${sign}${symbol} ${formatter.format(Math.abs(amount))}`;
+  return `${sign}${symbol}${formatter.format(Math.abs(amount))}`;
 }
 
 export const CONVERSION_RATES: { [key in Currency]?: number } = {

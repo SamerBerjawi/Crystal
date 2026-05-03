@@ -100,8 +100,38 @@ const findCategoryById = (id: string, categories: Category[]): Category | undefi
 type EnrichedTransaction = Transaction & { convertedAmount: number; parsedDate: Date };
 type DashboardTab = 'overview' | 'analysis' | 'activity';
 
+const CreditCardStatementsWidget: React.FC<{ statements: any[] }> = ({ statements }) => {
+    if (statements.length === 0) return null;
+    return (
+        <div className="grid grid-cols-[repeat(auto-fit,minmax(min(100%,320px),1fr))] gap-3">
+            {statements.map(statement => (
+                <CreditCardStatementCard
+                    key={statement.accountId}
+                    noCard={true}
+                    accountName={statement.accountName}
+                    accountBalance={statement.accountBalance}
+                    creditLimit={statement.creditLimit}
+                    currency={statement.currency}
+                    currentStatement={{
+                        period: statement.current.period,
+                        balance: statement.current.balance,
+                        dueDate: statement.current.paymentDue,
+                        amountPaid: statement.current.amountPaid,
+                        previousStatementBalance: statement.current.previousStatementBalance
+                    }}
+                    nextStatement={{
+                        period: statement.future.period,
+                        balance: statement.future.balance,
+                        dueDate: statement.future.paymentDue
+                    }}
+                />
+            ))}
+        </div>
+    );
+};
+
 const WIDGET_TABS: Record<DashboardTab, string[]> = {
-    overview: ['financialOverview', 'todayWidget', 'netWorthOverTime'],
+    overview: ['financialOverview', 'todayWidget', 'netWorthOverTime', 'forecastHorizon', 'creditCardStatements'],
     analysis: ['budgetOverview', 'financialRunway', 'wealthVelocity'],
     activity: ['transactionMap', 'outflowsByCategory', 'netWorthBreakdown', 'recentActivity', 'cashflowSankey']
 };
@@ -112,7 +142,7 @@ const AnalysisStatCard: React.FC<{ title: string; value: string; subtext: string
             <span className="material-symbols-outlined text-3xl">{icon}</span>
         </div>
         <div>
-            <p className="text-xs font-bold uppercase text-light-text-secondary dark:text-dark-text-secondary tracking-wider mb-1">{title}</p>
+            <p className="text-[11px] font-semibold text-light-text-secondary dark:text-dark-text-secondary mb-1">{title}</p>
             <p className="text-2xl font-extrabold text-light-text dark:text-dark-text privacy-blur">{value}</p>
             <p className="text-xs text-light-text-secondary dark:text-dark-text-secondary mt-1 font-medium">{subtext}</p>
         </div>
@@ -989,6 +1019,8 @@ const Dashboard: React.FC<DashboardProps> = ({ user, tasks, saveTask, onTogglePr
     {
       id: 'financialOverview',
       name: 'Financial Overview',
+      icon: 'insights',
+      description: 'Key performance indicators',
       defaultW: 2,
       defaultH: 2,
       component: FinancialOverview,
@@ -1006,6 +1038,8 @@ const Dashboard: React.FC<DashboardProps> = ({ user, tasks, saveTask, onTogglePr
     { 
         id: 'todayWidget', 
         name: 'Today\'s Agenda', 
+        icon: 'today',
+        description: 'Upcoming tasks and payments',
         defaultW: 2, 
         defaultH: 2, 
         component: TodayWidget, 
@@ -1019,10 +1053,32 @@ const Dashboard: React.FC<DashboardProps> = ({ user, tasks, saveTask, onTogglePr
             onProcessItem: handleProcessItem 
         } 
     },
+    { 
+      id: 'forecastHorizon', 
+      name: 'Forecast Horizon', 
+      icon: 'timeline',
+      description: 'Projected liquidity trends',
+      defaultW: 2, 
+      defaultH: 2, 
+      component: ForecastOverview, 
+      props: { forecasts: lowestBalanceForecasts, currency: preferredCurrency, noCard: true } 
+    },
+    { 
+      id: 'creditCardStatements', 
+      name: 'Credit Card Statements', 
+      icon: 'credit_card',
+      description: 'Recent and upcoming bills',
+      defaultW: 2, 
+      defaultH: 2, 
+      component: CreditCardStatementsWidget, 
+      props: { statements: creditCardStatements } 
+    },
     // Updated props for Net Worth chart to support toggles
     { 
       id: 'netWorthOverTime', 
       name: 'Net Worth Over Time', 
+      icon: 'show_chart',
+      description: 'Historical wealth progression',
       defaultW: 4, 
       defaultH: 2, 
       component: NetWorthChart, 
@@ -1036,19 +1092,19 @@ const Dashboard: React.FC<DashboardProps> = ({ user, tasks, saveTask, onTogglePr
       } 
     },
     // Removed forecastChart
-    { id: 'outflowsByCategory', name: 'Outflows by Category', defaultW: 2, defaultH: 2, component: OutflowsChart, props: { data: outflowsByCategory, onCategoryClick: handleCategoryClick } },
-    { id: 'netWorthBreakdown', name: 'Net Worth Breakdown', defaultW: 2, defaultH: 2, component: AssetDebtDonutChart, props: { assets: totalAssets, debt: totalDebt } },
-    { id: 'recentActivity', name: 'Recent Activity', defaultW: 4, defaultH: 3, component: TransactionList, props: { transactions: recentTransactions, allCategories: allCategories, onTransactionClick: handleTransactionClick } },
-    { id: 'assetBreakdown', name: 'Asset Breakdown', defaultW: 2, defaultH: 2, component: AccountBreakdownCard, props: { title: 'Assets', totalValue: globalTotalAssets, breakdownData: globalAssetBreakdown } },
-    { id: 'liabilityBreakdown', name: 'Liability Breakdown', defaultW: 2, defaultH: 2, component: AccountBreakdownCard, props: { title: 'Liabilities', totalValue: Math.abs(globalTotalDebt), breakdownData: globalDebtBreakdown } },
-    { id: 'budgetOverview', name: 'Budget Overview', defaultW: 2, defaultH: 2, component: BudgetOverviewWidget, props: { budgets: budgets, transactions: transactions, expenseCategories: expenseCategories, accounts: accounts, duration: duration, onBudgetClick: handleBudgetClick } },
-    { id: 'transactionMap', name: 'Transaction Map', defaultW: 2, defaultH: 2, component: TransactionMapWidget, props: { transactions: filteredTransactions } },
-    { id: 'cashflowSankey', name: 'Cash Flow Sankey', defaultW: 4, defaultH: 2, component: CashflowSankey, props: { transactions: filteredTransactions, incomeCategories, expenseCategories } },
+    { id: 'outflowsByCategory', name: 'Outflows by Category', icon: 'pie_chart', description: 'Spending distribution', defaultW: 2, defaultH: 2, component: OutflowsChart, props: { data: outflowsByCategory, onCategoryClick: handleCategoryClick } },
+    { id: 'netWorthBreakdown', name: 'Net Worth Breakdown', icon: 'donut_large', description: 'Assets vs Liabilities', defaultW: 2, defaultH: 2, component: AssetDebtDonutChart, props: { assets: totalAssets, debt: totalDebt } },
+    { id: 'recentActivity', name: 'Recent Activity', icon: 'list_alt', description: 'Latest transactions', defaultW: 4, defaultH: 3, component: TransactionList, props: { transactions: recentTransactions, allCategories: allCategories, onTransactionClick: handleTransactionClick } },
+    { id: 'assetBreakdown', name: 'Asset Breakdown', icon: 'account_balance', description: 'Categorized asset values', defaultW: 2, defaultH: 2, component: AccountBreakdownCard, props: { title: 'Assets', totalValue: globalTotalAssets, breakdownData: globalAssetBreakdown } },
+    { id: 'liabilityBreakdown', name: 'Liability Breakdown', icon: 'payments', description: 'Categorized debt values', defaultW: 2, defaultH: 2, component: AccountBreakdownCard, props: { title: 'Liabilities', totalValue: Math.abs(globalTotalDebt), breakdownData: globalDebtBreakdown } },
+    { id: 'budgetOverview', name: 'Budget Overview', icon: 'ad_group', description: 'Spending against limits', defaultW: 2, defaultH: 2, component: BudgetOverviewWidget, props: { budgets: budgets, transactions: transactions, expenseCategories: expenseCategories, accounts: accounts, duration: duration, onBudgetClick: handleBudgetClick } },
+    { id: 'transactionMap', name: 'Transaction Map', icon: 'map', description: 'Geographic spend patterns', defaultW: 2, defaultH: 2, component: TransactionMapWidget, props: { transactions: filteredTransactions } },
+    { id: 'cashflowSankey', name: 'Cash Flow Sankey', icon: 'account_tree', description: 'Money movement visualizer', defaultW: 4, defaultH: 2, component: CashflowSankey, props: { transactions: filteredTransactions, incomeCategories, expenseCategories } },
     
     // ANALYSIS WIDGETS
-    { id: 'financialRunway', name: 'Financial Runway', defaultW: 2, defaultH: 2, component: FinancialRunwayWidget, props: { accounts, transactions: analyticsTransactions } },
-    { id: 'merchantPareto', name: 'Merchant Pareto', defaultW: 2, defaultH: 2, component: MerchantParetoWidget, props: { transactions: analyticsTransactions } },
-    { id: 'wealthVelocity', name: 'Wealth Velocity', defaultW: 2, defaultH: 2, component: WealthVelocityWidget, props: { transactions: analyticsTransactions, accounts } }
+    { id: 'financialRunway', name: 'Financial Runway', icon: 'flight_takeoff', description: 'Days until zero balance', defaultW: 2, defaultH: 2, component: FinancialRunwayWidget, props: { accounts, transactions: analyticsTransactions } },
+    { id: 'merchantPareto', name: 'Merchant Pareto', icon: 'bar_chart', description: 'Top spending destinations', defaultW: 2, defaultH: 2, component: MerchantParetoWidget, props: { transactions: analyticsTransactions } },
+    { id: 'wealthVelocity', name: 'Wealth Velocity', icon: 'speed', description: 'Accumulation rate insights', defaultW: 2, defaultH: 2, component: WealthVelocityWidget, props: { transactions: analyticsTransactions, accounts } }
   ], [tasks, allRecurringItems, recurringTransactionOverrides, billsAndPayments, financialGoals, saveTask, netWorthData, netWorthTrendColor, activeGoalIds, lowestForecastPoint, selectedAccounts, outflowsByCategory, handleCategoryClick, totalAssets, totalDebt, recentTransactions, allCategories, handleTransactionClick, globalTotalAssets, globalAssetBreakdown, globalTotalDebt, globalDebtBreakdown, budgets, transactions, expenseCategories, accounts, duration, handleBudgetClick, filteredTransactions, incomeCategories, showForecast, showGoals, selectedAccountIds, analyticsTransactions]);
 
   const initialLayouts = useMemo(() => {
@@ -1312,7 +1368,7 @@ const Dashboard: React.FC<DashboardProps> = ({ user, tasks, saveTask, onTogglePr
                     {isEditMode && (
                         <button 
                             onClick={() => setIsAddWidgetModalOpen(true)}
-                            className="h-9 px-4 flex items-center gap-2 bg-black/5 dark:bg-white/5 text-xs font-black uppercase tracking-widest text-light-text-secondary dark:text-dark-text-secondary hover:bg-black/10 dark:hover:bg-white/10 rounded-xl transition-all"
+                            className="h-9 px-4 flex items-center gap-2 bg-black/5 dark:bg-white/5 text-xs font-semibold text-light-text-secondary dark:text-dark-text-secondary hover:bg-black/10 dark:hover:bg-white/10 rounded-xl transition-all"
                         >
                             <span className="material-symbols-outlined text-lg">add_circle</span>
                             <span className="hidden sm:inline">Add Widget</span>
@@ -1328,7 +1384,7 @@ const Dashboard: React.FC<DashboardProps> = ({ user, tasks, saveTask, onTogglePr
                                 if (syncBtn) (syncBtn as HTMLElement).click();
                             }
                         }}
-                        className="h-9 px-4 flex items-center gap-2 text-xs font-black uppercase tracking-widest text-emerald-600 dark:text-emerald-400 bg-emerald-500/10 hover:bg-emerald-500/20 rounded-xl transition-all border border-emerald-500/10"
+                        className="h-9 px-4 flex items-center gap-2 text-xs font-semibold text-emerald-600 dark:text-emerald-400 bg-emerald-500/10 hover:bg-emerald-500/20 rounded-xl transition-all border border-emerald-500/10"
                         title="Sync Banks"
                     >
                         <span className="material-symbols-outlined text-lg">sync</span>
@@ -1337,7 +1393,7 @@ const Dashboard: React.FC<DashboardProps> = ({ user, tasks, saveTask, onTogglePr
 
                     <button 
                         onClick={() => handleOpenTransactionModal()}
-                        className="h-9 px-5 flex items-center gap-2 bg-primary-500 text-white text-xs font-black uppercase tracking-widest rounded-xl hover:scale-[1.02] active:scale-[0.98] transition-all shadow-lg shadow-primary-500/10"
+                        className="h-9 px-5 flex items-center gap-2 bg-primary-500 text-white text-xs font-semibold rounded-xl hover:scale-[1.02] active:scale-[0.98] transition-all shadow-lg shadow-primary-500/10"
                     >
                         <span className="material-symbols-outlined text-lg">add</span>
                         <span className="hidden sm:inline">Add Transaction</span>
@@ -1350,14 +1406,14 @@ const Dashboard: React.FC<DashboardProps> = ({ user, tasks, saveTask, onTogglePr
 
       {/* Controls Bar: Tabs & Filters */}
       <div className="mb-8">
-        <div className="flex flex-col lg:flex-row justify-between items-center gap-4 bg-white/50 dark:bg-dark-card/30 backdrop-blur-md px-4 py-3 rounded-2xl border border-black/5 dark:border-white/5 shadow-sm">
+        <div className="flex flex-col lg:flex-row justify-between items-center gap-4 bg-white/50 dark:bg-dark-card/30 backdrop-blur-md px-4 py-3 rounded-2xl border border-black/5 dark:border-white/5 shadow-sm relative z-[60]">
              {/* Tabs */}
              <div className="flex items-center gap-1 bg-black/5 dark:bg-white/5 p-1 rounded-xl">
             {tabs.map((tab) => (
                 <button
                     key={tab}
                     onClick={() => setActiveTab(tab)}
-                    className={`px-4 py-2 rounded-lg text-xs font-black uppercase tracking-widest transition-all duration-300 flex items-center gap-2 ${
+                    className={`px-4 py-2 rounded-lg text-sm font-semibold transition-all duration-300 flex items-center gap-2 ${
                         activeTab === tab
                         ? 'bg-white dark:bg-gray-700 shadow-md text-primary-600 dark:text-primary-400 translate-y-[-1px]'
                         : 'text-gray-500 hover:text-gray-900 dark:text-gray-400 dark:hover:text-white hover:bg-black/5 dark:hover:bg-white/5'
@@ -1366,7 +1422,7 @@ const Dashboard: React.FC<DashboardProps> = ({ user, tasks, saveTask, onTogglePr
                     <span className="material-symbols-outlined text-lg leading-none">
                         {tab === 'overview' ? 'grid_view' : tab === 'analysis' ? 'monitoring' : 'history'}
                     </span>
-                    <span className="hidden sm:inline">{tab}</span>
+                    <span className="hidden sm:inline">{tab.charAt(0).toUpperCase() + tab.slice(1)}</span>
                 </button>
             ))}
           </div>
@@ -1380,7 +1436,7 @@ const Dashboard: React.FC<DashboardProps> = ({ user, tasks, saveTask, onTogglePr
                           <select 
                             value={forecastDuration} 
                             onChange={(e) => setForecastDuration(e.target.value as ForecastDuration)} 
-                            className="appearance-none bg-transparent pl-3 pr-8 py-1.5 text-[10px] font-black uppercase tracking-widest text-light-text dark:text-dark-text focus:outline-none cursor-pointer"
+                            className="appearance-none bg-transparent pl-3 pr-8 py-1.5 text-xs font-semibold text-light-text dark:text-dark-text focus:outline-none cursor-pointer"
                           >
                              {FORECAST_DURATION_OPTIONS.map(opt => (
                                  <option key={opt.value} value={opt.value} className="bg-white dark:bg-dark-card">{opt.label}</option>
@@ -1393,12 +1449,12 @@ const Dashboard: React.FC<DashboardProps> = ({ user, tasks, saveTask, onTogglePr
                       
                       <div className="w-px h-4 bg-black/10 dark:bg-white/10 mx-1"></div>
                       
-                      <button 
+                       <button 
                         onClick={() => setShowForecast(!showForecast)}
                         className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg transition-all ${showForecast ? 'bg-primary-500/10 text-primary-600 dark:text-primary-400' : 'text-gray-400 hover:text-gray-600'}`}
                       >
                          <span className={`material-symbols-outlined text-sm ${showForecast ? 'filled-icon' : ''}`}>show_chart</span>
-                         <span className="text-[10px] font-black uppercase tracking-widest">Forecast</span>
+                         <span className="text-xs font-semibold">Forecast</span>
                       </button>
 
                       <button 
@@ -1406,7 +1462,7 @@ const Dashboard: React.FC<DashboardProps> = ({ user, tasks, saveTask, onTogglePr
                         className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg transition-all ${showGoals ? 'bg-primary-500/10 text-primary-600 dark:text-primary-400' : 'text-gray-400 hover:text-gray-600'}`}
                       >
                          <span className={`material-symbols-outlined text-sm ${showGoals ? 'filled-icon' : ''}`}>flag</span>
-                         <span className="text-[10px] font-black uppercase tracking-widest">Goals</span>
+                         <span className="text-xs font-semibold">Goals</span>
                       </button>
                   </div>
               )}
@@ -1441,43 +1497,6 @@ const Dashboard: React.FC<DashboardProps> = ({ user, tasks, saveTask, onTogglePr
           </Card>
       )}
 
-      {activeTab === 'overview' && (
-        <>
-            {/* Display lowest balance forecasts based on the new forecast duration/logic */}
-            {lowestBalanceForecasts && lowestBalanceForecasts.length > 0 && (
-                <div className="mb-6">
-                    <ForecastOverview forecasts={lowestBalanceForecasts} currency="EUR" />
-                </div>
-            )}
-
-            {creditCardStatements.length > 0 && (
-                <div className="space-y-6">
-                    {creditCardStatements.map(statement => (
-                        <CreditCardStatementCard
-                            key={statement.accountId}
-                            accountName={statement.accountName}
-                            accountBalance={statement.accountBalance}
-                            creditLimit={statement.creditLimit}
-                            currency={statement.currency}
-                            currentStatement={{
-                                period: statement.current.period,
-                                balance: statement.current.balance,
-                                dueDate: statement.current.paymentDue,
-                                amountPaid: statement.current.amountPaid,
-                                previousStatementBalance: statement.current.previousStatementBalance
-                            }}
-                            nextStatement={{
-                                period: statement.future.period,
-                                balance: statement.future.balance,
-                                dueDate: statement.future.paymentDue
-                            }}
-                        />
-                    ))}
-                </div>
-            )}
-        </>
-      )}
-
       {activeTab === 'analysis' && (
           <div className="space-y-8 animate-fade-in-up">
               <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
@@ -1508,7 +1527,14 @@ const Dashboard: React.FC<DashboardProps> = ({ user, tasks, saveTask, onTogglePr
                {widgets.filter(w => WIDGET_TABS.analysis.includes(w.id)).length > 0 && (
                 <ResponsiveGridLayout
                     className="layout"
-                    layouts={{ lg: widgets.filter(w => WIDGET_TABS.analysis.includes(w.id)).map(w => ({ i: w.id, x: w.x, y: w.y, w: w.w, h: w.h })) }}
+                    layouts={{ lg: widgets.filter(w => WIDGET_TABS.analysis.includes(w.id)).map(w => ({ 
+                    i: w.id, 
+                    x: w.x, 
+                    y: w.y, 
+                    w: w.w, 
+                    h: w.h,
+                    isResizable: true
+                })) }}
                     breakpoints={{ lg: 1200, md: 996, sm: 768, xs: 480, xxs: 0 }}
                     cols={{ lg: 4, md: 4, sm: 2, xs: 1, xxs: 1 }}
                     rowHeight={180}
@@ -1525,13 +1551,17 @@ const Dashboard: React.FC<DashboardProps> = ({ user, tasks, saveTask, onTogglePr
                             const widgetDetails = allWidgets.find(w => w.id === widget.id);
                             if (!widgetDetails) return null;
                             const WidgetComponent = widgetDetails.component;
+                            const isCompactValue = ['forecastHorizon', 'creditCardStatements'].includes(widget.id);
 
                             return (
                                 <div key={widget.id}>
                                     <WidgetWrapper
                                         title={widget.title}
+                                        subtitle={widgetDetails.description}
+                                        icon={widgetDetails.icon}
                                         onRemove={() => removeWidget(widget.id)}
                                         isEditMode={isEditMode}
+                                        isCompact={isCompactValue}
                                         className="h-full"
                                     >
                                         <Suspense fallback={<div className="p-4 text-center">Loading...</div>}>
@@ -1567,17 +1597,17 @@ const Dashboard: React.FC<DashboardProps> = ({ user, tasks, saveTask, onTogglePr
                                   </PieChart>
                               </ResponsiveContainer>
                               <div className="absolute inset-0 flex flex-col items-center justify-center pointer-events-none">
-                                  <span className="text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">Net Worth</span>
+                                  <span className="text-[10px] font-medium text-gray-500 dark:text-gray-400">Net Worth</span>
                                   <span className="text-2xl font-bold text-gray-900 dark:text-white privacy-blur">{formatCurrency(convertCurrency(globalTotalAssets - Math.abs(globalTotalDebt), 'EUR', preferredCurrency, conversionRates), preferredCurrency)}</span>
                               </div>
                           </div>
                           <div className="w-full mt-8 grid grid-cols-2 gap-4">
                               <div className="p-3 rounded-2xl bg-green-50 dark:bg-green-900/20 border border-green-100 dark:border-green-900/30 text-center">
-                                  <p className="text-xs text-green-600 dark:text-green-400 font-semibold uppercase mb-1">Assets</p>
+                                  <p className="text-[11px] text-green-600 dark:text-green-400 font-semibold mb-1">Assets</p>
                                   <p className="text-lg font-bold text-green-700 dark:text-green-300 privacy-blur">{formatCurrency(convertCurrency(globalTotalAssets, 'EUR', preferredCurrency, conversionRates), preferredCurrency)}</p>
                               </div>
                               <div className="p-3 rounded-2xl bg-red-50 dark:bg-red-900/20 border border-red-100 dark:border-red-900/30 text-center">
-                                  <p className="text-xs text-red-600 dark:text-red-400 font-semibold uppercase mb-1">Liabilities</p>
+                                  <p className="text-[11px] text-red-600 dark:text-red-400 font-semibold mb-1">Liabilities</p>
                                   <p className="text-lg font-bold text-red-700 dark:text-red-300 privacy-blur">{formatCurrency(convertCurrency(Math.abs(globalTotalDebt), 'EUR', preferredCurrency, conversionRates), preferredCurrency)}</p>
                               </div>
                           </div>
@@ -1585,7 +1615,7 @@ const Dashboard: React.FC<DashboardProps> = ({ user, tasks, saveTask, onTogglePr
 
                       <div className="lg:w-2/3 grid grid-cols-1 sm:grid-cols-2 gap-8">
                           <div>
-                              <h4 className="text-sm font-bold text-light-text-secondary dark:text-dark-text-secondary uppercase tracking-wider mb-4">Assets Breakdown</h4>
+                              <h4 className="text-[13px] font-bold text-light-text-secondary dark:text-dark-text-secondary mb-4">Assets Breakdown</h4>
                               <div className="space-y-4">
                                   {Object.entries(assetGroups as Record<string, { value: number; color: string; icon: string }>).map(([name, group]) => {
                                       if (group.value === 0) return null;
@@ -1614,7 +1644,7 @@ const Dashboard: React.FC<DashboardProps> = ({ user, tasks, saveTask, onTogglePr
                           </div>
 
                           <div>
-                              <h4 className="text-sm font-bold text-light-text-secondary dark:text-dark-text-secondary uppercase tracking-wider mb-4">Liabilities Breakdown</h4>
+                              <h4 className="text-[13px] font-bold text-light-text-secondary dark:text-dark-text-secondary mb-4">Liabilities Breakdown</h4>
                               <div className="space-y-4">
                                   {Object.entries(liabilityGroups as Record<string, { value: number; color: string; icon: string }>).map(([name, group]) => {
                                       if (group.value === 0) return null;
@@ -1655,7 +1685,14 @@ const Dashboard: React.FC<DashboardProps> = ({ user, tasks, saveTask, onTogglePr
         <div className="animate-fade-in-up">
             <ResponsiveGridLayout
                 className="layout"
-                layouts={{ lg: widgets.filter(w => WIDGET_TABS[activeTab].includes(w.id)).map(w => ({ i: w.id, x: w.x, y: w.y, w: w.w, h: w.h })) }}
+                layouts={{ lg: widgets.filter(w => WIDGET_TABS[activeTab].includes(w.id)).map(w => ({ 
+                    i: w.id, 
+                    x: w.x, 
+                    y: w.y, 
+                    w: w.w, 
+                    h: w.h,
+                    isResizable: true
+                })) }}
                 breakpoints={{ lg: 1200, md: 996, sm: 768, xs: 480, xxs: 0 }}
                 cols={{ lg: 4, md: 4, sm: 2, xs: 1, xxs: 1 }}
                 rowHeight={180}
@@ -1673,12 +1710,16 @@ const Dashboard: React.FC<DashboardProps> = ({ user, tasks, saveTask, onTogglePr
                         if (!widgetDetails) return null;
                         const WidgetComponent = widgetDetails.component;
 
+                        const isCompactValue = ['forecastHorizon', 'creditCardStatements'].includes(widget.id);
                         return (
                             <div key={widget.id}>
                                 <WidgetWrapper
                                     title={widget.title}
+                                    subtitle={widgetDetails.description}
+                                    icon={widgetDetails.icon}
                                     onRemove={() => removeWidget(widget.id)}
                                     isEditMode={isEditMode}
+                                    isCompact={isCompactValue}
                                     className="h-full"
                                 >
                                     <Suspense fallback={(

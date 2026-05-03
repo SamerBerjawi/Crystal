@@ -21,8 +21,7 @@ interface EnableBankingIntegrationCardProps {
     applicationId: string;
     countryCode: string;
     clientCertificate: string;
-    selectedBankId: string;
-    selectedBankName: string;
+    selectedBank: string;
     connectionId?: string;
   }) => void;
   onFetchBanks: (payload: { applicationId: string; countryCode: string; clientCertificate: string }) => Promise<
@@ -204,8 +203,10 @@ const EnableBankingIntegrationCard: React.FC<EnableBankingIntegrationCardProps> 
       applicationId: formState.applicationId,
       countryCode: formState.countryCode,
       clientCertificate: formState.clientCertificate,
-      selectedBankId: formState.selectedBank,
-      selectedBankName: bankOptions.find(option => option.id === formState.selectedBank)?.name || formState.selectedBank,
+      selectedBank: JSON.stringify({
+          id: formState.selectedBank,
+          name: bankOptions.find(option => option.id === formState.selectedBank)?.name || formState.selectedBank
+      }),
     });
 
   };
@@ -234,8 +235,10 @@ const EnableBankingIntegrationCard: React.FC<EnableBankingIntegrationCardProps> 
       applicationId: resolvedApplicationId,
       countryCode: resolvedCountry,
       clientCertificate: resolvedCertificate,
-      selectedBankId: resolvedBankId,
-      selectedBankName: resolvedBankName || connection.selectedBank || 'Enable Banking',
+      selectedBank: JSON.stringify({
+          id: resolvedBankId,
+          name: resolvedBankName || connection.selectedBank || 'Enable Banking'
+      }),
       connectionId: connection.id,
     });
   };

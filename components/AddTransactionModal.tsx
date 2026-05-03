@@ -29,6 +29,10 @@ interface AddTransactionModalProps {
     principal?: string;
     interest?: string;
     description?: string;
+    merchant?: string;
+    tagIds?: string[];
+    locationString?: string;
+    locationData?: { city?: string; country?: string; lat?: number; lon?: number };
   };
 }
 
@@ -370,22 +374,29 @@ const AddTransactionModal: React.FC<AddTransactionModalProps> = ({ onClose, onSa
         setFromAccountId(initialFromAccountId || defaultAccountId);
         setToAccountId(initialToAccountId || defaultAccountId);
         setDescription(initialDetails?.description || '');
-        setMerchant('');
+        setMerchant(initialDetails?.merchant || '');
         setAmount(initialDetails?.amount || '');
         setCategory(initialCategory || '');
         setPrincipalPayment(initialDetails?.principal || '');
         setInterestPayment(initialDetails?.interest || '');
         setUseAutoLoanSplit(!(initialDetails?.principal || initialDetails?.interest));
-        setTagIds([]);
-        setLocationString('');
-        setLocationData({});
+        setTagIds(initialDetails?.tagIds || []);
+        setLocationString(initialDetails?.locationString || '');
+        setLocationData(initialDetails?.locationData || {});
         setEnableRoundUp(false);
         setExistingRoundUpTransaction(null);
         setRoundUpBehavior('skip');
         setRoundUpMultiplier('1');
-        setShowDetails(false);
+        setShowDetails(!!(initialDetails?.tagIds?.length || initialDetails?.locationString));
     }
   }, [transactionToEdit, isEditing, accounts, transactions, initialType, initialFromAccountId, initialToAccountId, initialDetails, defaultAccountId, initialCategory]);
+
+  // Auto-enable round up when a linked spare change account is detected
+  useEffect(() => {
+    if (linkedSpareChangeAccount && !isEditing) {
+      setEnableRoundUp(true);
+    }
+  }, [linkedSpareChangeAccount, isEditing]);
   
   const availableAccounts = useMemo(() => {
     return accounts.filter(acc => acc.status !== 'closed' || acc.id === fromAccountId || acc.id === toAccountId);

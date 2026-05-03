@@ -109,8 +109,8 @@ const NetWorthChart: React.FC<NetWorthChartProps> = ({
   const forecastGradientId = `colorForecast-${lineColor.replace('#', '')}`;
 
   return (
-    <div className="flex-grow relative" style={{ width: '100%', height: '300px' }}>
-      <ResponsiveContainer minWidth={0} minHeight={0} debounce={50}>
+    <div className="flex-grow relative h-full w-full min-h-[250px]">
+      <ResponsiveContainer width="100%" height="100%" minWidth={0} minHeight={0} debounce={50}>
         <AreaChart
           data={chartData}
           margin={{ top: 20, right: 10, left: -20, bottom: 0 }}

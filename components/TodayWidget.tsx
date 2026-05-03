@@ -159,17 +159,8 @@ const TodayWidget: React.FC<TodayWidgetProps> = ({
     }
 
     return (
-        <div className="h-full flex flex-col p-0 overflow-hidden bg-white dark:bg-dark-card">
-            <div className="p-4 border-b border-black/5 dark:border-white/5 flex justify-between items-center bg-gray-50/50 dark:bg-white/[0.02]">
-                <h3 className="font-bold text-light-text dark:text-dark-text flex items-center gap-2">
-                    <span className="material-symbols-outlined text-primary-500">today</span>
-                    Today's Agenda
-                </h3>
-                <span className="bg-primary-100 dark:bg-primary-900/30 text-primary-700 dark:text-primary-300 text-xs font-bold px-2 py-0.5 rounded-full">
-                    {agendaItems.length}
-                </span>
-            </div>
-            <div className="flex-1 overflow-y-auto p-2 space-y-2 custom-scrollbar">
+        <div className="h-full flex flex-col p-0 overflow-hidden bg-transparent">
+            <div className="flex-1 overflow-y-auto p-4 space-y-2 custom-scrollbar">
                 {agendaItems.map((item) => {
                     if (item.type === 'task') {
                         return (

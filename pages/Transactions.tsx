@@ -704,15 +704,39 @@ const Transactions: React.FC<TransactionsProps> = ({ initialAccountFilter, initi
     const original = transactions.find(t => t.id === (tx.isTransfer ? tx.originalId : tx.id));
     if (!original) return;
 
+    let initialFromAccountId: string | undefined = original.accountId;
+    let initialToAccountId: string | undefined = undefined;
+    let initialType: 'expense' | 'income' | 'transfer' = original.type as any;
+
+    if (tx.isTransfer) {
+        initialType = 'transfer';
+        const incomePart = transactions.find(t => t.transferId === original.transferId && t.id !== original.id);
+        if (incomePart) {
+            initialToAccountId = incomePart.accountId;
+        }
+    } else if (original.type === 'income') {
+        initialToAccountId = original.accountId;
+        initialFromAccountId = undefined;
+    }
+
     setDuplicateData({
-        initialType: original.type,
-        initialFromAccountId: original.accountId,
+        initialType,
+        initialFromAccountId,
+        initialToAccountId,
         initialCategory: original.category,
         initialDetails: {
             date: original.date,
             amount: String(Math.abs(original.amount)),
             description: original.description,
-            merchant: original.merchant
+            merchant: original.merchant,
+            tagIds: original.tagIds,
+            locationString: [original.city, original.country].filter(Boolean).join(', '),
+            locationData: {
+                city: original.city,
+                country: original.country,
+                lat: original.latitude,
+                lon: original.longitude
+            }
         }
     });
     setEditingTransaction(null);

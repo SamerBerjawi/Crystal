@@ -32,7 +32,7 @@ const FinancialOverview: React.FC<FinancialOverviewProps> = ({
     const flowIntensity = income > 0 ? (expenses / income) * 100 : 0;
 
     return (
-        <Card className="!p-0 overflow-hidden border border-black/5 dark:border-white/10 shadow-2xl bg-white dark:bg-dark-card/40 backdrop-blur-3xl group h-full">
+        <div className="!p-0 overflow-hidden group h-full">
             <div className="flex flex-col lg:flex-row h-full">
                 
                 {/* --- LEFT: POSITION & WEALTH --- */}
@@ -192,7 +192,7 @@ const FinancialOverview: React.FC<FinancialOverviewProps> = ({
                     </div>
                 </div>
             </div>
-        </Card>
+        </div>
     );
 };
 
