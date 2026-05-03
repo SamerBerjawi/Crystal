@@ -1479,9 +1479,9 @@ const App: React.FC = () => {
       // Clean the Name: Remove junk strings like "BE-", "PURCHASE", "WWW.", transaction IDs, or date stamps
       let cleaned = trimmed;
       // Remove prefixes like "WWW.", "BE-", "PURCHASE"
-      cleaned = cleaned.replace(/^(BE-|PURCHASE\s*|WWW\.|HTTP[S]?:\/\/)/i, '');
+      cleaned = cleaned.replace(/^(BE-|PURCHASE\s*|AANKOOP\s*|PAIEMENT\s*|WWW\.|HTTP[S]?:\/\/)/i, '');
       // Remove specific bank routing text like "RETAIL BRUSSELS BE "
-      cleaned = cleaned.replace(/RETAIL\s+[A-Z]+\s+[A-Z]{2}\s+/i, '');
+      cleaned = cleaned.replace(/RETAIL\s+[a-zA-Z\s]+\s+[A-Z]{2}\s+/i, '');
       // Remove trailing info separated by * (e.g., AMZN MKTP*29384 -> AMZN MKTP)
       cleaned = cleaned.replace(/\*[A-Z0-9_\-\s]+$/i, '');
       // Remove generic TLDs at the end
@@ -1541,7 +1541,25 @@ const App: React.FC = () => {
 
     // Counterparty fields vary by bank. For outgoing payments prefer creditor-side fields;
     // for incoming payments (income/refunds) prefer debtor-side fields.
+    
+    // Try to extract a clean merchant from unstructured remittance first, as some banks (like KBC)
+    // put the user's name or generic text in the creditor/debtor field and the actual merchant in the remittance.
+    const extractMerchantFromRemittance = (remStr: string | undefined): string | undefined => {
+      if (!remStr) return undefined;
+      const upper = remStr.toUpperCase();
+      // Look for common "card purchase" prefixes
+      if (upper.includes('RETAIL ') || upper.startsWith('PURCHASE ') || upper.startsWith('AANKOOP') || upper.startsWith('PAIEMENT')) {
+         return sanitizeMerchant(remStr);
+      }
+      return undefined;
+    };
+    
+    const unstructuredMerchant = 
+      extractMerchantFromRemittance(providerTx?.remittance_information_unstructured) ||
+      extractMerchantFromRemittance(providerTx?.remittanceInformationUnstructured);
+
     const merchant = pickFirstValidMerchant(
+      unstructuredMerchant,
       providerTx?.merchant_name,
       providerTx?.merchantName,
       providerTx?.merchant?.name,
@@ -1743,10 +1761,16 @@ const App: React.FC = () => {
           const existing = existingTxMapCountId.get(tx.id) || (tx.sureId ? existingTxMapSureId.get(tx.sureId) : undefined) || existingFingerprints.get(fingerprint);
 
           if (existing) {
-             // If our new mapping found a different merchant or description than what we stored, we will patch it.
-             // We do NOT override category, amount, or custom user tags.
-             if (tx.merchant !== existing.merchant || tx.description !== existing.description) {
-                const updatedTx = { ...existing, merchant: tx.merchant, description: tx.description };
+             // We ONLY update existing transactions if they do not already have a merchant/description,
+             // or if we're certain the original was automatically generated and the new one is better.
+             // Crucially, we avoid overriding manual edits by checking if they were deeply modified, 
+             // but to be safe we will just preserve existing merchant entirely unless it is empty.
+             if ((!existing.merchant && tx.merchant) || (!existing.description && tx.description)) {
+                const updatedTx = { 
+                  ...existing, 
+                  merchant: existing.merchant || tx.merchant, 
+                  description: existing.description || tx.description 
+                };
                 toUpdate.push(updatedTx);
              }
           } else {
