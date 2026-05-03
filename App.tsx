@@ -1492,13 +1492,40 @@ const App: React.FC = () => {
       // Remove obvious long alphanumeric transaction IDs
       cleaned = cleaned.replace(/\b(?:[A-Z0-9]{10,})\b/g, '');
       
-      cleaned = cleaned.trim();
+      cleaned = cleaned.replace(/\s{2,}/g, ' ').trim();
 
       if (cleaned.match(/^AMZN\s*MKTP/i)) {
         cleaned = 'Amazon';
       }
 
       return cleaned || undefined;
+    };
+
+    const extractMerchantFromRemittance = (remittance?: string): string | undefined => {
+      if (!remittance) return undefined;
+      const trimmed = remittance.trim();
+      if (!trimmed) return undefined;
+
+      // Typical traditional-bank card labels:
+      // "RETAIL BRUSSELS BE CARREFOUR EXPRESS"
+      // "AANKOOP ... DELHAIZE"
+      // "PAIEMENT ... WWW.UBER.COM"
+      const suffixPatterns = [
+        /^RETAIL\s+.+?\s+[A-Z]{2}\s+(.+)$/i,
+        /^PURCHASE\s+.+?\s+[A-Z]{2}\s+(.+)$/i,
+        /^AANKOOP\s+.+?\s+[A-Z]{2}\s+(.+)$/i,
+        /^PAIEMENT\s+.+?\s+[A-Z]{2}\s+(.+)$/i,
+      ];
+
+      for (const pattern of suffixPatterns) {
+        const match = trimmed.match(pattern);
+        const rawCandidate = match?.[1];
+        const cleaned = sanitizeMerchant(rawCandidate || trimmed);
+        if (cleaned) return cleaned;
+      }
+
+      // Fallback to full remittance text if no known prefix pattern matched.
+      return sanitizeMerchant(trimmed);
     };
 
     const pickJoinedText = (...values: any[]): string | undefined => {
@@ -1541,18 +1568,6 @@ const App: React.FC = () => {
 
     // Counterparty fields vary by bank. For outgoing payments prefer creditor-side fields;
     // for incoming payments (income/refunds) prefer debtor-side fields.
-    
-    // Try to extract a clean merchant from unstructured remittance first, as some banks (like KBC)
-    // put the user's name or generic text in the creditor/debtor field and the actual merchant in the remittance.
-    const extractMerchantFromRemittance = (remStr: string | undefined): string | undefined => {
-      if (!remStr) return undefined;
-      const upper = remStr.toUpperCase();
-      // Look for common "card purchase" prefixes
-      if (upper.includes('RETAIL ') || upper.startsWith('PURCHASE ') || upper.startsWith('AANKOOP') || upper.startsWith('PAIEMENT')) {
-         return sanitizeMerchant(remStr);
-      }
-      return undefined;
-    };
     
     const unstructuredMerchant = 
       extractMerchantFromRemittance(providerTx?.remittance_information_unstructured) ||
