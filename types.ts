@@ -480,6 +480,7 @@ export interface AppPreferences {
   merchantRules?: Record<string, MerchantRule>; // Key is normalized merchant name
   hiddenMerchants?: string[]; // Deprecated in favor of merchantRules[x].isHidden
   isPrivacyMode?: boolean;
+  excludeTransfersFromAnalytics?: boolean;
   dashboardLayouts?: Record<string, WidgetConfig[]>;
 }
 

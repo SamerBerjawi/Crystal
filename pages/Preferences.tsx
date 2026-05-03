@@ -2,7 +2,7 @@
 import React from 'react';
 import { AppPreferences, Theme, Page } from '../types';
 import Card from '../components/Card';
-import { SELECT_WRAPPER_STYLE, INPUT_BASE_STYLE, SELECT_ARROW_STYLE, CURRENCY_OPTIONS, TIMEZONE_OPTIONS, COUNTRY_OPTIONS, DURATION_OPTIONS, DEFAULT_ACCOUNT_ORDER_OPTIONS, QUICK_CREATE_BUDGET_OPTIONS, FORECAST_DURATION_OPTIONS } from '../constants';
+import { SELECT_WRAPPER_STYLE, INPUT_BASE_STYLE, SELECT_ARROW_STYLE, CURRENCY_OPTIONS, TIMEZONE_OPTIONS, COUNTRY_OPTIONS, DURATION_OPTIONS, DEFAULT_ACCOUNT_ORDER_OPTIONS, QUICK_CREATE_BUDGET_OPTIONS, FORECAST_DURATION_OPTIONS, CHECKBOX_STYLE } from '../constants';
 import PageHeader from '../components/PageHeader';
 
 interface PreferencesProps {
@@ -183,6 +183,19 @@ const Preferences: React.FC<PreferencesProps> = ({ preferences, setPreferences, 
                       </select>
                       <div className={SELECT_ARROW_STYLE}><span className="material-symbols-outlined">expand_more</span></div>
                   </div>
+                </SettingRow>
+
+                <SettingRow label="Analytics Transfers" description="Hide transfers to unselected accounts from Dashboards.">
+                   <div className="flex items-center gap-2">
+                      <input 
+                        type="checkbox" 
+                        name="excludeTransfersFromAnalytics" 
+                        checked={!!preferences.excludeTransfersFromAnalytics} 
+                        onChange={(e) => setPreferences({ ...preferences, excludeTransfersFromAnalytics: e.target.checked })}
+                        className={CHECKBOX_STYLE}
+                      />
+                      <span className="text-xs text-light-text-secondary dark:text-dark-text-secondary">Exclude from charts & totals</span>
+                   </div>
                 </SettingRow>
             </div>
           </Card>

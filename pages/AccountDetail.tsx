@@ -460,7 +460,6 @@ const AccountDetail: React.FC<{
 
             {isCloseModalOpen && onCloseAsset && (
                 <CloseAssetModal
-                    isOpen={isCloseModalOpen}
                     onClose={() => setCloseModalOpen(false)}
                     account={account}
                     accounts={accounts}

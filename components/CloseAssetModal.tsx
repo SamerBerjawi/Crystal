@@ -5,7 +5,6 @@ import { BTN_PRIMARY_STYLE, BTN_SECONDARY_STYLE, INPUT_BASE_STYLE, SELECT_STYLE,
 import { formatCurrency } from '../utils';
 
 interface CloseAssetModalProps {
-  isOpen: boolean;
   onClose: () => void;
   account: Account;
   accounts: Account[];
@@ -13,7 +12,6 @@ interface CloseAssetModalProps {
 }
 
 const CloseAssetModal: React.FC<CloseAssetModalProps> = ({
-  isOpen,
   onClose,
   account,
   accounts,
@@ -41,7 +39,7 @@ const CloseAssetModal: React.FC<CloseAssetModalProps> = ({
   };
 
   return (
-    <Modal isOpen={isOpen} onClose={onClose} title={`Close ${account.type}: ${account.name}`}>
+    <Modal onClose={onClose} title={`Close ${account.type}: ${account.name}`}>
       <form onSubmit={handleSubmit} className="space-y-6">
         <div className="grid grid-cols-2 gap-4">
           <div className="col-span-2">

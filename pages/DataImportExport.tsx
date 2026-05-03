@@ -273,7 +273,7 @@ const DataImportExportPage: React.FC<DataImportExportProps> = (props) => {
                 }
 
                 if (data.length > 0) {
-                     props.onLogExport?.(type, 'csv', data.length);
+                     props.onLogExport?.(type as ImportDataType, 'csv', data.length);
                      const csv = arrayToCSV(data);
                      downloadCSV(csv, filename);
                 }

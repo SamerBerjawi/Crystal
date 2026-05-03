@@ -359,6 +359,7 @@ export const initialFinancialData: FinancialData = {
         twelveDataApiKey: '',
         merchantLogoOverrides: {},
         merchantRules: {},
+        excludeTransfersFromAnalytics: false,
     },
 };
 

@@ -497,6 +497,8 @@ const Dashboard: React.FC<DashboardProps> = ({ user, tasks, saveTask, onTogglePr
 
                 // If counterpart is NOT selected, this is a real in/outflow for the selected group.
                 if (!counterpartSelected) {
+                    if (preferences.excludeTransfersFromAnalytics) return;
+                    
                     if (tx.type === 'income') {
                         calculatedIncome += convertedAmount;
                     } else {
@@ -562,6 +564,7 @@ const Dashboard: React.FC<DashboardProps> = ({ user, tasks, saveTask, onTogglePr
         const counterpart = transferLookup.get(tx.transferId)?.find(t => t.id !== tx.id);
         processedTransferIds.add(tx.transferId);
         if (counterpart && !analyticsSelectedAccountIds.includes(counterpart.accountId)) {
+          if (preferences.excludeTransfersFromAnalytics) return;
           if (tx.type === 'income') prevIncome += convertedAmount;
           else prevExpenses += Math.abs(convertedAmount);
         }
@@ -605,7 +608,9 @@ const Dashboard: React.FC<DashboardProps> = ({ user, tasks, saveTask, onTogglePr
             
             // This is an outflow only if its counterpart is NOT selected.
             if (counterpart && !analyticsSelectedAccountIds.includes(counterpart.accountId)) {
-                const name = 'Transfers Out';
+                if (preferences.excludeTransfersFromAnalytics) return;
+
+                const name = `Transfer to ${accountLookup.get(counterpart.accountId)?.name || 'Unknown'}`;
                 if (!spending[name]) {
                     spending[name] = { name, value: 0, color: '#A0AEC0', icon: 'arrow_upward' };
                 }
@@ -626,15 +631,18 @@ const Dashboard: React.FC<DashboardProps> = ({ user, tasks, saveTask, onTogglePr
     });
 
     return Object.values(spending).sort((a: CategorySpending, b: CategorySpending) => b.value - a.value);
-  }, [enrichedTransactions, analyticsSelectedAccountIds, expenseCategories, transferLookup]);
+  }, [enrichedTransactions, analyticsSelectedAccountIds, expenseCategories, transferLookup, preferences.excludeTransfersFromAnalytics, accountLookup]);
   
   const handleCategoryClick = useCallback((categoryName: string) => {
     const expenseCats = expenseCategories;
     const txs = filteredTransactions.filter(tx => {
-        if (categoryName === 'Transfers Out') {
+        if (categoryName.startsWith('Transfer to ')) {
             if (!tx.transferId || tx.type !== 'expense') return false;
             const counterpart = transferLookup.get(tx.transferId)?.find(t => t.id !== tx.id);
-            return counterpart && !analyticsSelectedAccountIds.includes(counterpart.accountId);
+            if (!counterpart) return false;
+            
+            const destName = `Transfer to ${accountLookup.get(counterpart.accountId)?.name || 'Unknown'}`;
+            return destName === categoryName && !analyticsSelectedAccountIds.includes(counterpart.accountId);
         }
         
         const category = findCategoryDetails(tx.category, expenseCats);
@@ -647,7 +655,7 @@ const Dashboard: React.FC<DashboardProps> = ({ user, tasks, saveTask, onTogglePr
     setModalTransactions(txs);
     setModalTitle(`Transactions for ${categoryName}`);
     setDetailModalOpen(true);
-  }, [filteredTransactions, analyticsSelectedAccountIds, expenseCategories, transferLookup]);
+  }, [filteredTransactions, analyticsSelectedAccountIds, expenseCategories, transferLookup, accountLookup]);
   
   const accountMap = useMemo(() => accounts.reduce((map, acc) => { map[acc.id] = acc.name; return map; }, {} as Record<string, string>), [accounts]);
 
