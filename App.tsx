@@ -74,6 +74,7 @@ import { AccountsProvider, PreferencesProvider, TransactionsProvider, WarrantsPr
 import { InsightsViewProvider } from './contexts/InsightsViewContext';
 import { persistPendingConnection, removePendingConnection } from './utils/enableBankingStorage';
 import { fetchAllExchangeRates } from './src/services/twelveDataService';
+import { enrichTransactionsWithAI } from './src/services/geminiService';
 
 const IBAN_REGEX = /^[A-Z]{2}[0-9]{2}[A-Z0-9]{9,30}$/i;
 
@@ -1084,7 +1085,60 @@ const App: React.FC = () => {
     if (viewingHoldingSymbol === accountToDelete.symbol) { setViewingHoldingSymbol(null); setCurrentPage('Investments'); }
   }, [accounts, recurringTransactions, viewingAccountId, viewingHoldingSymbol, setCurrentPage]);
 
-  const handleSaveTransaction = useCallback((transactionDataArray: (Omit<Transaction, 'id'> & { id?: string })[], transactionIdsToDelete: string[] = []) => {
+  const handleSaveTransaction = useCallback((transactionDataArray: (Omit<Transaction, 'id'> & { id?: string })[], transactionIdsToDelete: string[] = [], options?: { autoSpareChange?: boolean }) => {
+    const finalTxArray = [...transactionDataArray];
+    
+    // Automatic Spare Change Logic
+    if (options?.autoSpareChange) {
+      transactionDataArray.forEach(tx => {
+        if (tx.id) return; // Only for brand new transactions
+        if (tx.transferId?.startsWith('spare-')) return; // Avoid recursive spare change
+        if (tx.type !== 'expense') return; // Only for outflows (spending or outgoing transfer side)
+        
+        const linkedSpareChangeAccount = accounts.find(a => 
+          a.type === 'Investment' && 
+          a.subType === 'Spare Change' && 
+          a.linkedAccountId === tx.accountId
+        );
+        
+        if (linkedSpareChangeAccount) {
+          const absVal = Math.abs(tx.amount);
+          const remainder = absVal % 1;
+          const cleanRemainder = parseFloat(remainder.toFixed(2));
+          const spareAmount = cleanRemainder === 0 ? 0 : parseFloat((1.00 - cleanRemainder).toFixed(2));
+          
+          if (spareAmount > 0) {
+            const spareTransferId = `spare-${uuidv4()}`;
+            const sourceAcc = accounts.find(a => a.id === tx.accountId);
+            if (sourceAcc) {
+              finalTxArray.push({
+                accountId: tx.accountId,
+                date: tx.date,
+                description: `Spare change for ${tx.description || 'Synced Transaction'}`,
+                merchant: 'Round Up',
+                amount: -spareAmount,
+                category: 'Transfer',
+                type: 'expense',
+                currency: sourceAcc.currency,
+                transferId: spareTransferId,
+              });
+              finalTxArray.push({
+                accountId: linkedSpareChangeAccount.id,
+                date: tx.date,
+                description: `Spare change from ${tx.description || 'Synced Transaction'}`,
+                merchant: 'Round Up',
+                amount: spareAmount,
+                category: 'Transfer',
+                type: 'income',
+                currency: linkedSpareChangeAccount.currency,
+                transferId: spareTransferId,
+              });
+            }
+          }
+        }
+      });
+    }
+
     const balanceChanges: Record<string, number> = {};
     const transactionsToUpdate: Transaction[] = [];
     const transactionsToAdd: Transaction[] = [];
@@ -1097,7 +1151,7 @@ const App: React.FC = () => {
             balanceChanges[tx.accountId] = (balanceChanges[tx.accountId] || 0) - convertToEur(changeAmount, tx.currency);
         });
     }
-    transactionDataArray.forEach(transactionData => {
+    finalTxArray.forEach(transactionData => {
         if (transactionData.id && transactions.some(t => t.id === transactionData.id)) {
             const updatedTx = { ...transactions.find(t => t.id === transactionData.id), ...transactionData } as Transaction;
             const originalTx = transactions.find(t => t.id === updatedTx.id);
@@ -1761,10 +1815,6 @@ const App: React.FC = () => {
           const existing = existingTxMapCountId.get(tx.id) || (tx.sureId ? existingTxMapSureId.get(tx.sureId) : undefined) || existingFingerprints.get(fingerprint);
 
           if (existing) {
-             // We ONLY update existing transactions if they do not already have a merchant/description,
-             // or if we're certain the original was automatically generated and the new one is better.
-             // Crucially, we avoid overriding manual edits by checking if they were deeply modified, 
-             // but to be safe we will just preserve existing merchant entirely unless it is empty.
              if ((!existing.merchant && tx.merchant) || (!existing.description && tx.description)) {
                 const updatedTx = { 
                   ...existing, 
@@ -1781,11 +1831,40 @@ const App: React.FC = () => {
           }
         }
 
+        const allCategories = [...MOCK_INCOME_CATEGORIES, ...MOCK_EXPENSE_CATEGORIES, ...incomeCategories, ...expenseCategories];
+
         if (deduped.length > 0) {
-          handleSaveTransaction(deduped);
+          // AI Enrichment for new transactions
+          const enrichmentResults = await enrichTransactionsWithAI(deduped, allCategories);
+          const enrichedDeduped = deduped.map(tx => {
+            const result = enrichmentResults.find(r => r.id === tx.id);
+            if (result) {
+              return {
+                ...tx,
+                merchant: result.merchant || tx.merchant,
+                category: (result.category && result.category !== 'Uncategorized') ? result.category : tx.category
+              };
+            }
+            return tx;
+          });
+          handleSaveTransaction(enrichedDeduped, [], { autoSpareChange: true });
         }
+
         if (toUpdate.length > 0) {
-          handleSaveTransaction(toUpdate); // Updates existing txs with improved names
+          // enrichment for updated transactions if they lack clean merchant/category
+          const enrichmentResults = await enrichTransactionsWithAI(toUpdate, allCategories);
+          const enrichedToUpdate = toUpdate.map(tx => {
+            const result = enrichmentResults.find(r => r.id === tx.id);
+            if (result) {
+              return {
+                ...tx,
+                merchant: tx.merchant || result.merchant,
+                category: (tx.category === 'Uncategorized' && result.category !== 'Uncategorized') ? result.category : tx.category
+              };
+            }
+            return tx;
+          });
+          handleSaveTransaction(enrichedToUpdate);
         }
       }
 
@@ -1805,7 +1884,7 @@ const App: React.FC = () => {
     } catch (error: any) {
       setEnableBankingConnections(prev => prev.map(conn => conn.id === connectionId ? { ...conn, status: 'requires_update', lastError: error?.message || 'Sync failed', } : conn));
     }
-  }, [enableBankingConnections, fetchWithAuth, handleSaveTransaction, mapProviderTransaction, resolveBalanceAmount, resolveProviderAccountId, isAuthenticated, transactions, user, demoUser]);
+  }, [enableBankingConnections, fetchWithAuth, handleSaveTransaction, mapProviderTransaction, resolveBalanceAmount, resolveProviderAccountId, isAuthenticated, transactions, user, demoUser, incomeCategories, expenseCategories]);
 
   const handleSyncAllEnableBankingConnections = useCallback(async () => {
     const activeConnections = enableBankingConnections.filter(c => c.sessionId && c.status !== 'pending');
@@ -1833,11 +1912,30 @@ const App: React.FC = () => {
       }));
     }, [handleSaveAccount]);
 
-  const handlePublishImport = (items: any[], dataType: ImportDataType, fileName: string, originalData: Record<string, any>[], errors: Record<number, Record<string, string>>, newAccountsArg?: Account[]) => {
+  const handlePublishImport = async (items: any[], dataType: ImportDataType, fileName: string, originalData: Record<string, any>[], errors: Record<number, Record<string, string>>, newAccountsArg?: Account[]) => {
       const importId = `imp-${uuidv4()}`;
       if (newAccountsArg) { newAccountsArg.forEach(acc => handleSaveAccount(acc)); }
       if (dataType === 'accounts') { items.forEach(acc => handleSaveAccount(acc)); } 
-      else if (dataType === 'transactions') { handleSaveTransaction(items.map(t => ({ ...t, importId }))); }
+      else if (dataType === 'transactions') { 
+        const allCategories = [...MOCK_INCOME_CATEGORIES, ...MOCK_EXPENSE_CATEGORIES, ...incomeCategories, ...expenseCategories];
+        const txsWithImportId = items.map(t => ({ ...t, importId }));
+        
+        // Enrich with AI
+        const enrichmentResults = await enrichTransactionsWithAI(txsWithImportId, allCategories);
+        const enrichedItems = txsWithImportId.map((t, idx) => {
+          const res = enrichmentResults.find(r => r.id === (t.id || `temp-${idx}`));
+          if (res) {
+            return {
+              ...t,
+              merchant: t.merchant || res.merchant,
+              category: (t.category === 'Uncategorized' && res.category !== 'Uncategorized') ? res.category : t.category
+            };
+          }
+          return t;
+        });
+
+        handleSaveTransaction(enrichedItems, [], { autoSpareChange: true }); 
+      }
       
       const details = `Imported ${items.length} ${dataType}${newAccountsArg?.length ? ` and created ${newAccountsArg.length} new accounts` : ''}.`;
 

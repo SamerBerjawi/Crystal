@@ -1302,85 +1302,112 @@ const Transactions: React.FC<TransactionsProps> = ({ initialAccountFilter, initi
         <Card className="!p-0 h-full flex flex-col relative overflow-hidden border border-black/5 dark:border-white/5 shadow-sm rounded-2xl bg-gray-50 dark:bg-dark-card">
             <div className="overflow-x-auto">
               <div className="min-w-[900px] flex flex-col">
-                {selectedIds.size > 0 ? (
-                    <div className="bg-primary-600 dark:bg-primary-800 text-white px-6 flex justify-between items-center h-[60px] z-[40] relative shadow-md pointer-events-auto">
-                         <div className="flex items-center gap-4">
+                <div className={`${selectedIds.size > 0 ? 'bg-primary-600 dark:bg-primary-800 text-white' : 'bg-gray-100 dark:bg-white/5 text-light-text-secondary dark:text-dark-text-secondary'} px-6 flex justify-between items-center h-[60px] z-[40] relative shadow-sm transition-colors duration-300 pointer-events-auto`}>
+                     <div className="flex items-center gap-4">
+                         <div className="flex items-center gap-3">
+                             <input type="checkbox" onChange={handleSelectAll} checked={isAllSelected} className={CHECKBOX_STYLE} aria-label="Select all transactions"/>
+                             <span className="font-bold text-sm tracking-tight">{selectedIds.size} selected</span>
+                         </div>
+                         {selectedIds.size > 0 && (
                              <button 
                                 onClick={() => setSelectedIds(new Set())} 
-                                className="p-1 rounded-full hover:bg-white/20 transition-colors text-white"
+                                className={`p-1 rounded-full ${selectedIds.size > 0 ? 'hover:bg-white/20 text-white' : 'hover:bg-black/5 text-gray-400'} transition-colors`}
                                 aria-label="Deselect all"
                              >
                                  <span className="material-symbols-outlined text-lg">close</span>
                              </button>
-                             <span className="font-bold text-sm">{selectedIds.size} selected</span>
-                         </div>
-                        <div className="flex gap-2">
-                            <button type="button" onClick={() => setBulkEditModalOpen(true)} className="bg-white/20 hover:bg-white/30 text-white py-1.5 px-3 rounded-lg text-xs font-semibold transition-colors backdrop-blur-sm">Edit</button>
-                            <button type="button" onClick={handleOpenCategorizeModal} className="bg-white/20 hover:bg-white/30 text-white py-1.5 px-3 rounded-lg text-xs font-semibold transition-colors backdrop-blur-sm">Categorize</button>
-                            <button type="button" onClick={() => handleMakeRecurring()} className="bg-white/20 hover:bg-white/30 text-white py-1.5 px-3 rounded-lg text-xs font-semibold transition-colors backdrop-blur-sm" disabled={selectedIds.size !== 1}>Recurring</button>
-                            <button type="button" onClick={handleOpenDeleteModal} className="bg-red-500/80 hover:bg-red-500 text-white py-1.5 px-3 rounded-lg text-xs font-semibold transition-colors backdrop-blur-sm">Delete</button>
-                        </div>
+                         )}
+                     </div>
+                    <div className="flex gap-2">
+                        <button 
+                            type="button" 
+                            onClick={() => setBulkEditModalOpen(true)} 
+                            disabled={selectedIds.size === 0}
+                            className={`py-1.5 px-3 rounded-lg text-xs font-semibold transition-all backdrop-blur-sm ${selectedIds.size > 0 ? 'bg-white/20 hover:bg-white/30 text-white' : 'bg-gray-200 dark:bg-white/10 text-gray-400 dark:text-gray-500 cursor-not-allowed opacity-50'}`}
+                        >
+                            Edit
+                        </button>
+                        <button 
+                            type="button" 
+                            onClick={handleOpenCategorizeModal} 
+                            disabled={selectedIds.size === 0}
+                            className={`py-1.5 px-3 rounded-lg text-xs font-semibold transition-all backdrop-blur-sm ${selectedIds.size > 0 ? 'bg-white/20 hover:bg-white/30 text-white' : 'bg-gray-200 dark:bg-white/10 text-gray-400 dark:text-gray-500 cursor-not-allowed opacity-50'}`}
+                        >
+                            Categorize
+                        </button>
+                        <button 
+                            type="button" 
+                            onClick={() => handleMakeRecurring()} 
+                            disabled={selectedIds.size !== 1}
+                            className={`py-1.5 px-3 rounded-lg text-xs font-semibold transition-all backdrop-blur-sm ${selectedIds.size === 1 ? 'bg-white/20 hover:bg-white/30 text-white' : 'bg-gray-200 dark:bg-white/10 text-gray-400 dark:text-gray-500 cursor-not-allowed opacity-50'}`}
+                        >
+                            Recurring
+                        </button>
+                        <button 
+                            type="button" 
+                            onClick={handleOpenDeleteModal} 
+                            disabled={selectedIds.size === 0}
+                            className={`py-1.5 px-3 rounded-lg text-xs font-semibold transition-all backdrop-blur-sm ${selectedIds.size > 0 ? 'bg-red-500/80 hover:bg-red-500 text-white' : 'bg-gray-200 dark:bg-white/10 text-gray-400 dark:text-gray-500 cursor-not-allowed opacity-50'}`}
+                        >
+                            Delete
+                        </button>
                     </div>
-                ) : (
-                    <div className="px-5 py-3 border-b border-black/5 dark:border-white/5 flex items-center gap-3 bg-gray-50/50 dark:bg-white/[0.02] sticky top-0 z-[30] backdrop-blur-md">
-                        <div className="flex items-center justify-center w-5">
-                             <input type="checkbox" onChange={handleSelectAll} checked={isAllSelected} className={CHECKBOX_STYLE} aria-label="Select all transactions"/>
-                        </div>
-                        <div className="flex-1 grid grid-cols-12 gap-3 ml-3 items-center">
-                            <div className="col-span-5">
-                                <ColumnHeader
-                                    label="Description & Merchant"
-                                    currentSort={sortBy}
-                                    onSort={setSortBy}
-                                    isFilterActive={!!merchantFilter}
-                                    filterContent={merchantFilterContent}
-                                />
-                            </div>
-                            <div className="col-span-2">
-                                 <ColumnHeader
-                                    label="Account"
-                                    isFilterActive={selectedAccountIds.length > 0}
-                                    currentSort={sortBy}
-                                    onSort={setSortBy}
-                                    filterContent={accountFilterContent}
-                                 />
-                            </div>
-                            <div className="col-span-2">
-                                <ColumnHeader
-                                    label="Category"
-                                    sortKey="category"
-                                    currentSort={sortBy}
-                                    onSort={setSortBy}
-                                    isFilterActive={selectedCategoryNames.length > 0}
-                                    filterContent={categoryFilterContent}
-                                />
-                            </div>
-                            <div className="col-span-2">
-                                <ColumnHeader
-                                    label="Context Tags"
-                                    currentSort={sortBy}
-                                    onSort={setSortBy}
-                                    isFilterActive={selectedTagIds.length > 0}
-                                    filterContent={tagFilterContent}
-                                />
-                            </div>
-                            <div className="col-span-1 text-right flex justify-end">
-                                 <ColumnHeader
-                                    label="Value"
-                                    sortKey="amount"
-                                    currentSort={sortBy}
-                                    onSort={setSortBy}
-                                    alignRight
-                                    isFilterActive={!!minAmount || !!maxAmount}
-                                    filterContent={amountFilterContent}
-                                />
-                            </div>
-                        </div>
-                        <div className="w-8"></div>
-                    </div>
-                )}
+                </div>
                 
-
+                <div className="px-5 py-3 border-b border-black/5 dark:border-white/5 flex items-center gap-3 bg-gray-50/50 dark:bg-white/[0.02] sticky top-0 z-[30] backdrop-blur-md">
+                    <div className="flex items-center justify-center w-5"></div>
+                    <div className="flex-1 grid grid-cols-12 gap-3 ml-3 items-center">
+                        <div className="col-span-5">
+                            <ColumnHeader
+                                label="Description & Merchant"
+                                currentSort={sortBy}
+                                onSort={setSortBy}
+                                isFilterActive={!!merchantFilter}
+                                filterContent={merchantFilterContent}
+                            />
+                        </div>
+                        <div className="col-span-2">
+                             <ColumnHeader
+                                label="Account"
+                                isFilterActive={selectedAccountIds.length > 0}
+                                currentSort={sortBy}
+                                onSort={setSortBy}
+                                filterContent={accountFilterContent}
+                             />
+                        </div>
+                        <div className="col-span-2">
+                            <ColumnHeader
+                                label="Category"
+                                sortKey="category"
+                                currentSort={sortBy}
+                                onSort={setSortBy}
+                                isFilterActive={selectedCategoryNames.length > 0}
+                                filterContent={categoryFilterContent}
+                            />
+                        </div>
+                        <div className="col-span-2">
+                            <ColumnHeader
+                                label="Context Tags"
+                                currentSort={sortBy}
+                                onSort={setSortBy}
+                                isFilterActive={selectedTagIds.length > 0}
+                                filterContent={tagFilterContent}
+                            />
+                        </div>
+                        <div className="col-span-1 text-right flex justify-end">
+                             <ColumnHeader
+                                label="Value"
+                                sortKey="amount"
+                                currentSort={sortBy}
+                                onSort={setSortBy}
+                                alignRight
+                                isFilterActive={!!minAmount || !!maxAmount}
+                                filterContent={amountFilterContent}
+                            />
+                        </div>
+                    </div>
+                    <div className="w-8"></div>
+                </div>
                 <div
                   ref={listContainerRef}
                   className="flex-grow bg-white dark:bg-dark-card"

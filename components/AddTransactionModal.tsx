@@ -6,7 +6,7 @@ import { Account, Category, Transaction, Tag, Currency } from '../types';
 import { INPUT_BASE_STYLE, BTN_PRIMARY_STYLE, BTN_SECONDARY_STYLE, SELECT_WRAPPER_STYLE, SELECT_ARROW_STYLE, CHECKBOX_STYLE, ALL_ACCOUNT_TYPES } from '../constants';
 import { v4 as uuidv4 } from 'uuid';
 import LocationAutocomplete from './LocationAutocomplete';
-import { toLocalISOString, formatCurrency } from '../utils';
+import { toLocalISOString, formatCurrency, fuzzySearch } from '../utils';
 import { normalizeMerchantKey } from '../utils/brandfetch';
 import { usePreferencesSelector } from '../contexts/DomainProviders';
 
@@ -116,6 +116,12 @@ const AddTransactionModal: React.FC<AddTransactionModalProps> = ({ onClose, onSa
   const [existingRoundUpTransaction, setExistingRoundUpTransaction] = useState<Transaction | null>(null);
   const [roundUpBehavior, setRoundUpBehavior] = useState<'skip' | 'unit'>('skip');
   const [roundUpMultiplier, setRoundUpMultiplier] = useState('1');
+  
+  // Custom Merchant Autocomplete State
+  const [showMerchantSuggestions, setShowMerchantSuggestions] = useState(false);
+  const [activeSuggestionIndex, setActiveSuggestionIndex] = useState(-1);
+  const merchantContainerRef = useRef<HTMLDivElement>(null);
+  
   const merchantListId = useId();
 
   const merchantSuggestions = useMemo(() => {
@@ -133,6 +139,29 @@ const AddTransactionModal: React.FC<AddTransactionModalProps> = ({ onClose, onSa
       .sort((a, b) => b[1] - a[1])
       .map(([name]) => name);
   }, [transactions]);
+
+  const filteredSuggestions = useMemo(() => {
+    if (!merchant.trim() || !showMerchantSuggestions) return [];
+    const normalized = merchant.toLowerCase().trim();
+    
+    // 1. Prioritize exact matches (case insensitive)
+    const exactMatches = merchantSuggestions.filter(name => name.toLowerCase() === normalized);
+    
+    // 2. Prefix matches
+    const prefixMatches = merchantSuggestions.filter(name => 
+        name.toLowerCase().startsWith(normalized) && 
+        !exactMatches.includes(name)
+    );
+    
+    // 3. Fuzzy matches
+    const otherMatches = merchantSuggestions.filter(name => 
+        (name.toLowerCase().includes(normalized) || fuzzySearch(normalized, name)) &&
+        !exactMatches.includes(name) &&
+        !prefixMatches.includes(name)
+    );
+    
+    return [...exactMatches, ...prefixMatches, ...otherMatches].slice(0, 8);
+  }, [merchant, merchantSuggestions, showMerchantSuggestions]);
 
   const activeAccount = useMemo(() => {
     const accId = type === 'income' ? toAccountId : fromAccountId;
@@ -407,6 +436,9 @@ const AddTransactionModal: React.FC<AddTransactionModalProps> = ({ onClose, onSa
       if (tagSelectorRef.current && !tagSelectorRef.current.contains(event.target as Node)) {
         setIsTagSelectorOpen(false);
       }
+      if (merchantContainerRef.current && !merchantContainerRef.current.contains(event.target as Node)) {
+        setShowMerchantSuggestions(false);
+      }
     };
     document.addEventListener("mousedown", handleClickOutside);
     return () => document.removeEventListener("mousedown", handleClickOutside);
@@ -659,6 +691,8 @@ const AddTransactionModal: React.FC<AddTransactionModalProps> = ({ onClose, onSa
                     placeholder="0.00" 
                     autoFocus
                     required 
+                    inputMode="decimal"
+                    autoComplete="off"
                 />
             </div>
              {isLoanPayment && (
@@ -683,26 +717,44 @@ const AddTransactionModal: React.FC<AddTransactionModalProps> = ({ onClose, onSa
                             <input id="tx-date" type="date" value={date} onChange={e => setDate(e.target.value)} className={`${INPUT_BASE_STYLE} pl-10 h-11`} required />
                         </div>
                      </div>
-                     <div>
+                     <div ref={merchantContainerRef}>
                         <label className={labelStyle}>Merchant / Payee</label>
                         <div className="relative group">
                             <span className="material-symbols-outlined absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 text-lg transition-colors group-focus-within:text-primary-500">store</span>
-                            <input
-                                id="tx-merchant"
-                                type="text"
-                                value={merchant}
-                                onChange={handleMerchantChange}
-                                className={`${INPUT_BASE_STYLE} pl-10 h-11`}
-                                placeholder="Where did you spend?"
-                                list={merchantSuggestions.length > 0 ? merchantListId : undefined}
-                            />
-                            {merchantSuggestions.length > 0 && (
-                                <datalist id={merchantListId}>
-                                    {merchantSuggestions.map(name => (
-                                        <option key={name} value={name} />
-                                    ))}
-                                </datalist>
-                            )}
+                            <div className="relative">
+                                <input
+                                    id="tx-merchant"
+                                    type="text"
+                                    value={merchant}
+                                    onChange={handleMerchantChange}
+                                    onFocus={() => setShowMerchantSuggestions(true)}
+                                    className={`${INPUT_BASE_STYLE} pl-10 h-11`}
+                                    placeholder="Where did you spend?"
+                                    autoComplete="off"
+                                    autoCorrect="off"
+                                    spellCheck="false"
+                                    inputMode="text"
+                                />
+                                {showMerchantSuggestions && filteredSuggestions.length > 0 && (
+                                    <div className="absolute left-0 right-0 top-full mt-1 bg-white dark:bg-gray-800 border border-black/10 dark:border-white/10 rounded-xl shadow-xl z-[60] max-h-60 overflow-y-auto animate-fade-in-up py-1">
+                                        {filteredSuggestions.map((name, index) => (
+                                            <button
+                                                key={name}
+                                                type="button"
+                                                onClick={() => {
+                                                    setMerchant(name);
+                                                    applyMerchantRules(name);
+                                                    setShowMerchantSuggestions(false);
+                                                }}
+                                                className="w-full text-left px-4 py-3 text-sm hover:bg-primary-50 dark:hover:bg-primary-900/20 text-light-text dark:text-dark-text flex items-center gap-3 transition-colors"
+                                            >
+                                                <span className="material-symbols-outlined text-gray-400 text-lg">history</span>
+                                                <span className="truncate font-medium">{name}</span>
+                                            </button>
+                                        ))}
+                                    </div>
+                                )}
+                            </div>
                         </div>
                      </div>
 
