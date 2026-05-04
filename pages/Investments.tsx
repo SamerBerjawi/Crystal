@@ -15,6 +15,11 @@ import PageHeader from '../components/PageHeader';
 import AccountsListSection from '../components/AccountsListSection';
 import { usePreferencesSelector } from '../contexts/DomainProviders';
 import { getInvestmentAnalysis } from '../src/services/geminiService';
+import { RefreshCw } from 'lucide-react';
+
+const CACHE_KEYS = {
+  INVESTMENT_INSIGHTS: 'crystal_investment_insights'
+};
 
 interface InvestmentInsight {
     sentiment: 'Positive' | 'Neutral' | 'Negative';
@@ -23,6 +28,7 @@ interface InvestmentInsight {
     marketContext: string;
     keyRisks: string[];
     opportunities: string[];
+    updatedAt?: string;
 }
 
 interface InvestmentsProps {
@@ -98,7 +104,10 @@ const Investments: React.FC<InvestmentsProps> = ({
     const [isAccountModalOpen, setAccountModalOpen] = useState(false);
     const [contextMenu, setContextMenu] = useState<{ x: number, y: number, account: Account } | null>(null);
     const [isUpdatingAllPrices, setIsUpdatingAllPrices] = useState(false);
-    const [investmentInsights, setInvestmentInsights] = useState<InvestmentInsight | null>(null);
+    const [investmentInsights, setInvestmentInsights] = useState<InvestmentInsight | null>(() => {
+        const cached = localStorage.getItem(CACHE_KEYS.INVESTMENT_INSIGHTS);
+        return cached ? JSON.parse(cached) : null;
+    });
     const [isInsightsLoading, setIsInsightsLoading] = useState(false);
     const [insightsError, setInsightsError] = useState<string | null>(null);
     const twelveDataApiKey = usePreferencesSelector(p => p.twelveDataApiKey || '');
@@ -115,26 +124,32 @@ const Investments: React.FC<InvestmentsProps> = ({
     const activeOverview = useMemo(() => buildHoldingsOverview(activeInvestmentAccounts, investmentTransactions, warrants, prices), [activeInvestmentAccounts, investmentTransactions, warrants, prices]);
     const { holdings: activeHoldings, totalValue, totalCostBasis, investedCapital, grantedCapital, distributionData, typeBreakdown } = activeOverview;
 
-    useEffect(() => {
-        const fetchInsights = async () => {
-            if (activeHoldings.length > 0 && !investmentInsights && !isInsightsLoading) {
-                setIsInsightsLoading(true);
-                setInsightsError(null);
-                try {
-                    const result = await getInvestmentAnalysis(activeHoldings);
-                    if (result) {
-                        setInvestmentInsights(result as unknown as InvestmentInsight);
-                    }
-                } catch (err) {
-                    console.error('Failed to fetch investment insights:', err);
-                    setInsightsError('Could not load AI investment analysis.');
-                } finally {
-                    setIsInsightsLoading(false);
-                }
+    const fetchInsights = useCallback(async (force = false) => {
+        if (activeHoldings.length === 0 || isInsightsLoading) return;
+        if (investmentInsights && !force) return;
+
+        setIsInsightsLoading(true);
+        setInsightsError(null);
+        try {
+            const result = await getInvestmentAnalysis(activeHoldings);
+            if (result) {
+                const dataWithTimestamp = { ...result, updatedAt: new Date().toISOString() };
+                setInvestmentInsights(dataWithTimestamp as unknown as InvestmentInsight);
+                localStorage.setItem(CACHE_KEYS.INVESTMENT_INSIGHTS, JSON.stringify(dataWithTimestamp));
             }
-        };
-        fetchInsights();
+        } catch (err) {
+            console.error('Failed to fetch investment insights:', err);
+            setInsightsError('Could not load AI investment analysis.');
+        } finally {
+            setIsInsightsLoading(false);
+        }
     }, [activeHoldings, investmentInsights, isInsightsLoading]);
+
+    useEffect(() => {
+        if (!investmentInsights) {
+            fetchInsights();
+        }
+    }, [fetchInsights, investmentInsights]);
 
     const displayHoldings = useMemo(
         () => {
@@ -497,12 +512,28 @@ const Investments: React.FC<InvestmentsProps> = ({
                 {/* AI Sentiment Analysis Sidebar */}
                 <div className="xl:col-span-1 space-y-6">
                     <Card className="relative overflow-hidden bg-gradient-to-br from-indigo-500/5 to-purple-500/5 border-primary-500/20 shadow-lg">
-                        <div className="flex items-center gap-2 mb-6">
-                            <div className="w-8 h-8 rounded-lg bg-primary-500 flex items-center justify-center text-white">
-                                <span className="material-symbols-outlined text-[20px] animate-pulse">auto_awesome</span>
+                        <div className="flex items-center justify-between mb-6">
+                            <div className="flex items-center gap-2">
+                                <div className="w-8 h-8 rounded-lg bg-primary-500 flex items-center justify-center text-white">
+                                    <span className="material-symbols-outlined text-[20px] animate-pulse">auto_awesome</span>
+                                </div>
+                                <h3 className="font-bold text-lg text-light-text dark:text-dark-text">AI Investment Analyst</h3>
                             </div>
-                            <h3 className="font-bold text-lg text-light-text dark:text-dark-text">AI Investment Analyst</h3>
+                            <button 
+                                onClick={() => fetchInsights(true)}
+                                disabled={isInsightsLoading}
+                                className="p-1.5 rounded-lg hover:bg-black/5 dark:hover:bg-white/5 text-light-text-secondary dark:text-dark-text-secondary transition-colors"
+                                title="Refresh Analysis"
+                            >
+                                <RefreshCw className={`w-4 h-4 ${isInsightsLoading ? 'animate-spin text-primary-500' : ''}`} />
+                            </button>
                         </div>
+
+                        {investmentInsights?.updatedAt && (
+                            <div className="text-[10px] text-gray-400 font-medium mb-4 -mt-4">
+                                Last updated {new Date(investmentInsights.updatedAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                            </div>
+                        )}
 
                         {isInsightsLoading ? (
                              <div className="space-y-6 animate-pulse">

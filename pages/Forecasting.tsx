@@ -31,6 +31,11 @@ import PageHeader from '../components/PageHeader';
 import { v4 as uuidv4 } from 'uuid';
 import { motion, AnimatePresence } from 'motion/react';
 import { getPredictiveInsights } from '../src/services/geminiService';
+import { RefreshCw } from 'lucide-react';
+
+const CACHE_KEYS = {
+  PREDICTIVE_INSIGHTS: 'crystal_forecasting_insights'
+};
 
 // --- Smart Goal Planner Hook (Deterministic) ---
 const useSmartGoalPlanner = (
@@ -139,28 +144,38 @@ const Forecasting: React.FC = () => {
     predictedBalance30d: number;
     confidenceScore: number;
     insight: string;
-  } | null>(null);
+    updatedAt?: string;
+  } | null>(() => {
+    const cached = localStorage.getItem(CACHE_KEYS.PREDICTIVE_INSIGHTS);
+    return cached ? JSON.parse(cached) : null;
+  });
   const [isPredictiveLoading, setIsPredictiveLoading] = useState(false);
   const [predictiveError, setPredictiveError] = useState<string | null>(null);
 
-  useEffect(() => {
-    const fetchPredictiveInsights = async () => {
-      if (transactions.length > 0 && !predictiveInsights && !isPredictiveLoading) {
-        setIsPredictiveLoading(true);
-        setPredictiveError(null);
-        try {
-          const result = await getPredictiveInsights({ transactions, accounts });
-          setPredictiveInsights(result);
-        } catch (err) {
-          console.error('Failed to fetch predictive insights:', err);
-          setPredictiveError('Could not generate AI predictive insights.');
-        } finally {
-          setIsPredictiveLoading(false);
-        }
-      }
-    };
-    fetchPredictiveInsights();
+  const fetchPredictiveInsights = useCallback(async (force = false) => {
+    if (transactions.length === 0 || isPredictiveLoading) return;
+    if (predictiveInsights && !force) return;
+
+    setIsPredictiveLoading(true);
+    setPredictiveError(null);
+    try {
+      const result = await getPredictiveInsights({ transactions, accounts });
+      const dataWithTimestamp = { ...result, updatedAt: new Date().toISOString() };
+      setPredictiveInsights(dataWithTimestamp);
+      localStorage.setItem(CACHE_KEYS.PREDICTIVE_INSIGHTS, JSON.stringify(dataWithTimestamp));
+    } catch (err) {
+      console.error('Failed to fetch predictive insights:', err);
+      setPredictiveError('Could not generate AI predictive insights.');
+    } finally {
+      setIsPredictiveLoading(false);
+    }
   }, [transactions, accounts, predictiveInsights, isPredictiveLoading]);
+
+  useEffect(() => {
+    if (!predictiveInsights) {
+      fetchPredictiveInsights();
+    }
+  }, [fetchPredictiveInsights, predictiveInsights]);
   const { financialGoals, saveFinancialGoal, deleteFinancialGoal } = useGoalsContext();
   const { expenseCategories, incomeCategories } = useCategoryContext();
   const {
@@ -603,10 +618,17 @@ const Forecasting: React.FC = () => {
                         <div className="flex-1 space-y-4">
                             <div className="flex items-center gap-2">
                                 <span className="material-symbols-outlined text-primary-500">auto_awesome</span>
-                                <h3 className="font-bold text-light-text dark:text-dark-text">Crystal Insights</h3>
+                                 <h3 className="font-bold text-light-text dark:text-dark-text">Crystal Insights</h3>
                                 {predictiveInsights && (
-                                    <div className="ml-auto px-2 py-0.5 rounded-full bg-white/50 dark:bg-black/20 text-[10px] font-bold text-primary-600 dark:text-primary-400">
-                                        Confidence: {Math.round(predictiveInsights.confidenceScore * 100)}%
+                                    <div className="ml-auto flex items-center gap-3">
+                                        {predictiveInsights.updatedAt && (
+                                            <span className="text-[10px] text-gray-400 font-medium">
+                                                Updated {new Date(predictiveInsights.updatedAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                                            </span>
+                                        )}
+                                        <div className="px-2 py-0.5 rounded-full bg-white/50 dark:bg-black/20 text-[10px] font-bold text-primary-600 dark:text-primary-400">
+                                            Confidence: {Math.round(predictiveInsights.confidenceScore * 100)}%
+                                        </div>
                                     </div>
                                 )}
                             </div>
@@ -654,11 +676,11 @@ const Forecasting: React.FC = () => {
                             )}
                             <div className="mt-4 flex items-center gap-2">
                                 <button 
-                                    onClick={() => { setPredictiveInsights(null); }}
+                                    onClick={() => fetchPredictiveInsights(true)}
                                     disabled={isPredictiveLoading}
-                                    className="text-[10px] font-bold text-primary-500 hover:underline uppercase tracking-widest flex items-center gap-1"
+                                    className="text-[10px] font-bold text-primary-500 hover:underline uppercase tracking-widest flex items-center gap-1 group"
                                 >
-                                    <span className="material-symbols-outlined text-[14px]">refresh</span>
+                                    <RefreshCw className={`w-3.5 h-3.5 ${isPredictiveLoading ? 'animate-spin' : 'group-hover:rotate-180 transition-all duration-500'}`} />
                                     Recalculate
                                 </button>
                             </div>

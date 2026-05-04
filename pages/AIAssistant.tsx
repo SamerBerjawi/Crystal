@@ -1,6 +1,12 @@
 import React, { useState, useRef, useEffect } from 'react';
 import { motion, AnimatePresence } from 'motion/react';
-import { Bot, User, Send, Sparkles, TrendingUp, AlertTriangle, Target, Briefcase } from 'lucide-react';
+import { Bot, User, Send, Sparkles, TrendingUp, AlertTriangle, Target, Briefcase, RefreshCw } from 'lucide-react';
+
+const CACHE_KEYS = {
+  INSIGHTS: 'crystal_ai_insights',
+  HEALTH: 'crystal_ai_health',
+  SUBSCRIPTIONS: 'crystal_ai_subscriptions'
+};
 import { Transaction, Account, Budget, RecurringTransaction } from '../types';
 import Markdown from 'react-markdown';
 import { getFinancialAssistantResponse, getPredictiveInsights, getFinancialHealthScore, getSubscriptionAudit } from '../src/services/geminiService';
@@ -19,10 +25,12 @@ interface FinancialHealth {
   breakdown: { liquidity: number; savings: number; discipline: number };
   summary: string;
   improvements: string[];
+  updatedAt?: string;
 }
 
 interface SubscriptionAudit {
   subscriptions: { name: string; amount: number; frequency: string; riskLevel: 'Low' | 'Medium' | 'High'; insight: string }[];
+  updatedAt?: string;
 }
 
 interface Message {
@@ -43,10 +51,20 @@ const AIAssistant: React.FC<AIAssistantProps> = ({ accounts, transactions, budge
   ]);
   const [input, setInput] = useState('');
   const [isLoading, setIsLoading] = useState(false);
-  const [insights, setInsights] = useState<any>(null);
-  const [health, setHealth] = useState<FinancialHealth | null>(null);
+  const [insights, setInsights] = useState<any>(() => {
+    const cached = localStorage.getItem(CACHE_KEYS.INSIGHTS);
+    return cached ? JSON.parse(cached) : null;
+  });
+  const [health, setHealth] = useState<FinancialHealth | null>(() => {
+    const cached = localStorage.getItem(CACHE_KEYS.HEALTH);
+    return cached ? JSON.parse(cached) : null;
+  });
   const [isHealthLoading, setIsHealthLoading] = useState(false);
-  const [audit, setAudit] = useState<SubscriptionAudit | null>(null);
+  const [isInsightsLoading, setIsInsightsLoading] = useState(false);
+  const [audit, setAudit] = useState<SubscriptionAudit | null>(() => {
+    const cached = localStorage.getItem(CACHE_KEYS.SUBSCRIPTIONS);
+    return cached ? JSON.parse(cached) : null;
+  });
   const [isAuditLoading, setIsAuditLoading] = useState(false);
   const chatEndRef = useRef<HTMLDivElement>(null);
 
@@ -58,23 +76,34 @@ const AIAssistant: React.FC<AIAssistantProps> = ({ accounts, transactions, budge
     scrollToBottom();
   }, [messages, isLoading]);
 
+  const fetchPredictiveInsights = async (force = false) => {
+    if (insights && !force && !isInsightsLoading) return;
+    setIsInsightsLoading(true);
+    try {
+      const res = await getPredictiveInsights({ transactions, accounts });
+      const dataWithTimestamp = { ...res, updatedAt: new Date().toISOString() };
+      setInsights(dataWithTimestamp);
+      localStorage.setItem(CACHE_KEYS.INSIGHTS, JSON.stringify(dataWithTimestamp));
+    } catch (err) {
+      console.error('Failed to fetch predictive insights', err);
+    } finally {
+      setIsInsightsLoading(false);
+    }
+  };
+
   useEffect(() => {
-    const fetchPredictiveInsights = async () => {
-      try {
-        const res = await getPredictiveInsights({ transactions, accounts });
-        setInsights(res);
-      } catch (err) {
-        console.error('Failed to fetch predictive insights', err);
-      }
-    };
-    fetchPredictiveInsights();
-  }, [transactions, accounts]);
+    if (!insights) {
+      fetchPredictiveInsights();
+    }
+  }, [transactions, accounts, insights]);
 
   const runHealthDiagnostic = async () => {
     setIsHealthLoading(true);
     try {
       const res = await getFinancialHealthScore({ transactions, accounts, budgets });
-      setHealth(res);
+      const dataWithTimestamp = { ...res, updatedAt: new Date().toISOString() };
+      setHealth(dataWithTimestamp);
+      localStorage.setItem(CACHE_KEYS.HEALTH, JSON.stringify(dataWithTimestamp));
     } catch (err) {
       console.error('Health audit failed', err);
     } finally {
@@ -86,7 +115,9 @@ const AIAssistant: React.FC<AIAssistantProps> = ({ accounts, transactions, budge
     setIsAuditLoading(true);
     try {
       const res = await getSubscriptionAudit(transactions);
-      setAudit(res);
+      const dataWithTimestamp = { ...res, updatedAt: new Date().toISOString() };
+      setAudit(dataWithTimestamp);
+      localStorage.setItem(CACHE_KEYS.SUBSCRIPTIONS, JSON.stringify(dataWithTimestamp));
     } catch (err) {
       console.error('Subscription audit failed', err);
     } finally {
@@ -145,17 +176,34 @@ const AIAssistant: React.FC<AIAssistantProps> = ({ accounts, transactions, budge
     <div className="flex flex-col lg:flex-row gap-6 h-[calc(100vh-140px)]">
       {/* Sidebar Insights */}
       <div className="w-full lg:w-80 flex flex-col gap-4 overflow-y-auto pr-2">
-        <h2 className="text-xl font-bold flex items-center gap-2 mb-2">
-          <Sparkles className="w-5 h-5 text-primary-500" />
-          AI Insights
-        </h2>
+        <div className="flex justify-between items-center mb-2">
+          <h2 className="text-xl font-bold flex items-center gap-2">
+            <Sparkles className="w-5 h-5 text-primary-500" />
+            AI Insights
+          </h2>
+          <button 
+            onClick={() => fetchPredictiveInsights(true)}
+            disabled={isInsightsLoading}
+            className="p-1.5 rounded-lg hover:bg-gray-100 dark:hover:bg-white/5 text-light-text-secondary dark:text-dark-text-secondary transition-colors"
+            title="Refresh Insights"
+          >
+            <RefreshCw className={`w-4 h-4 ${isInsightsLoading ? 'animate-spin text-primary-500' : ''}`} />
+          </button>
+        </div>
 
         {insights ? (
           <>
             <Card className="bg-gradient-to-br from-primary-500/10 to-transparent border-primary-200 dark:border-primary-800">
-              <div className="flex items-center gap-2 mb-2 text-primary-600 dark:text-primary-400">
-                <TrendingUp className="w-4 h-4" />
-                <span className="text-sm font-bold">30d Forecast</span>
+              <div className="flex justify-between items-start mb-2">
+                <div className="flex items-center gap-2 text-primary-600 dark:text-primary-400">
+                  <TrendingUp className="w-4 h-4" />
+                  <span className="text-sm font-bold">30d Forecast</span>
+                </div>
+                {insights.updatedAt && (
+                   <span className="text-[9px] text-light-text-secondary dark:text-dark-text-secondary opacity-50">
+                     Updated {new Date(insights.updatedAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                   </span>
+                )}
               </div>
               <p className="text-2xl font-bold mb-1">
                 ${insights.predictedBalance30d.toLocaleString(undefined, { minimumFractionDigits: 2 })}
@@ -198,8 +246,16 @@ const AIAssistant: React.FC<AIAssistantProps> = ({ accounts, transactions, budge
               {health ? (
                 <Card className="border-primary-500/30">
                   <div className="flex justify-between items-center mb-3">
-                    <span className="text-xs font-bold uppercase text-gray-500">Health Score</span>
-                    <span className="text-2xl font-black text-primary-500">{health.score}</span>
+                    <div className="flex flex-col">
+                      <span className="text-xs font-bold uppercase text-gray-500">Health Score</span>
+                      {health.updatedAt && <span className="text-[8px] text-gray-400">Updated {new Date(health.updatedAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</span>}
+                    </div>
+                    <div className="flex items-center gap-2">
+                      <button onClick={runHealthDiagnostic} disabled={isHealthLoading} className="p-1 hover:bg-gray-100 dark:hover:bg-white/10 rounded">
+                        <RefreshCw className={`w-3 h-3 text-primary-500 ${isHealthLoading ? 'animate-spin' : ''}`} />
+                      </button>
+                      <span className="text-2xl font-black text-primary-500">{health.score}</span>
+                    </div>
                   </div>
                   <div className="space-y-1 mb-3">
                      {[
@@ -236,10 +292,16 @@ const AIAssistant: React.FC<AIAssistantProps> = ({ accounts, transactions, budge
               {/* Subscription Audit */}
               {audit ? (
                 <Card className="border-indigo-500/30">
-                  <h4 className="text-xs font-bold text-indigo-500 mb-3 flex items-center gap-2">
-                    <Sparkles className="w-3 h-3" />
-                    Subscription Audit
-                  </h4>
+                  <div className="flex justify-between items-start mb-3">
+                    <h4 className="text-xs font-bold text-indigo-500 flex items-center gap-2">
+                      <Sparkles className="w-3 h-3" />
+                      Subscription Audit
+                    </h4>
+                    <button onClick={runSubscriptionAudit} disabled={isAuditLoading} className="p-1 hover:bg-gray-100 dark:hover:bg-white/10 rounded">
+                      <RefreshCw className={`w-3 h-3 text-indigo-500 ${isAuditLoading ? 'animate-spin' : ''}`} />
+                    </button>
+                  </div>
+                  {audit.updatedAt && <div className="text-[8px] text-gray-400 mb-2 -mt-2">Last updated {new Date(audit.updatedAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</div>}
                   <div className="flex flex-col gap-2">
                     {audit.subscriptions.map((sub, i) => (
                       <div key={i} className="text-[10px] flex justify-between border-b border-black/5 dark:border-white/5 pb-1">
@@ -253,7 +315,6 @@ const AIAssistant: React.FC<AIAssistantProps> = ({ accounts, transactions, budge
                       </div>
                     ))}
                   </div>
-                  <button onClick={() => setAudit(null)} className="mt-3 text-[10px] text-primary-500 font-bold hover:underline">Recalculate Audit</button>
                 </Card>
               ) : (
                 <button 

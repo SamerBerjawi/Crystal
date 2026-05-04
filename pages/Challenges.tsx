@@ -10,6 +10,11 @@ import PredictionCard from '../components/PredictionCard';
 import PredictionModal from '../components/PredictionModal';
 import { getPersonalizedChallenges } from '../src/services/geminiService';
 import PageHeader from '../components/PageHeader';
+import { RefreshCw, Sparkles } from 'lucide-react';
+
+const CACHE_KEYS = {
+  AI_CHALLENGES: 'crystal_ai_challenges'
+};
 
 interface ChallengesProps {
     userStats: UserStats;
@@ -32,6 +37,7 @@ interface AIChallenge {
     category: string;
     potentialSavings: number;
     actionPlan: string[];
+    updatedAt?: string;
 }
 
 // --- Visual Components ---
@@ -506,30 +512,38 @@ const Challenges: React.FC<ChallengesProps> = ({ userStats, accounts, transactio
   const [activeSection, setActiveSection] = useState<ChallengeSection>('score');
   const [activeSprints, setActiveSprints] = useLocalStorage<ActiveSprint[]>('crystal_active_sprints', []);
   const [isPredictionModalOpen, setPredictionModalOpen] = useState(false);
-  const [aiChallenges, setAiChallenges] = useState<AIChallenge[]>([]);
+  const [aiChallenges, setAiChallenges] = useState<AIChallenge[]>(() => {
+    const cached = localStorage.getItem(CACHE_KEYS.AI_CHALLENGES);
+    return cached ? JSON.parse(cached) : [];
+  });
   const [isAiLoading, setIsAiLoading] = useState(false);
   const [aiError, setAiError] = useState<string | null>(null);
+
+  const fetchAIChallenges = async (force = false) => {
+    if (aiChallenges.length > 0 && !force && !isAiLoading) return;
+    
+    setIsAiLoading(true);
+    setAiError(null);
+    try {
+      const result = await getPersonalizedChallenges(transactions, accounts, budgets);
+      if (result && result.challenges) {
+        const dataWithTimestamp = result.challenges.map((c: any) => ({ ...c, updatedAt: new Date().toISOString() }));
+        setAiChallenges(dataWithTimestamp as unknown as AIChallenge[]);
+        localStorage.setItem(CACHE_KEYS.AI_CHALLENGES, JSON.stringify(dataWithTimestamp));
+      }
+    } catch (err) {
+      console.error('Failed to fetch AI challenges:', err);
+      setAiError('Failed to generate personalized challenges. Please try again later.');
+    } finally {
+      setIsAiLoading(false);
+    }
+  };
   
   useEffect(() => {
-    const fetchAIChallenges = async () => {
-      if (activeSection === 'ai-challenges' && aiChallenges.length === 0) {
-        setIsAiLoading(true);
-        setAiError(null);
-        try {
-          const result = await getPersonalizedChallenges(transactions, accounts, budgets);
-          if (result && result.challenges) {
-            setAiChallenges(result.challenges as unknown as AIChallenge[]);
-          }
-        } catch (err) {
-          console.error('Failed to fetch AI challenges:', err);
-          setAiError('Failed to generate personalized challenges. Please try again later.');
-        } finally {
-          setIsAiLoading(false);
-        }
-      }
-    };
-    fetchAIChallenges();
-  }, [activeSection, accounts, transactions, budgets, aiChallenges.length]);
+    if (activeSection === 'ai-challenges' && aiChallenges.length === 0) {
+      fetchAIChallenges();
+    }
+  }, [activeSection, aiChallenges.length]);
 
   const analyticsAccounts = useMemo(() => accounts.filter(acc => acc.includeInAnalytics ?? true), [accounts]);
   const analyticsAccountIds = useMemo(() => new Set(analyticsAccounts.map(acc => acc.id)), [analyticsAccounts]);
@@ -1099,14 +1113,19 @@ const Challenges: React.FC<ChallengesProps> = ({ userStats, accounts, transactio
                               AI-Powered Savings Challenges
                           </h3>
                           <p className="text-sm text-light-text-secondary dark:text-dark-text-secondary">Custom challenges generated based on your spending habits and financial goals.</p>
+                               {aiChallenges.length > 0 && aiChallenges[0].updatedAt && (
+                                   <span className="text-[10px] text-gray-400 font-medium mt-1">
+                                       Last suggested {new Date(aiChallenges[0].updatedAt).toLocaleDateString()} at {new Date(aiChallenges[0].updatedAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                                   </span>
+                               )}
                       </div>
                       <button 
-                        onClick={() => { setAiChallenges([]); setActiveSection('ai-challenges'); }}
+                        onClick={() => fetchAIChallenges(true)}
                         disabled={isAiLoading}
-                        className={`${BTN_SECONDARY_STYLE} flex items-center gap-2`}
+                        className={`${BTN_SECONDARY_STYLE} flex items-center gap-2 group`}
                       >
-                        <span className={`material-symbols-outlined text-sm ${isAiLoading ? 'animate-spin' : ''}`}>refresh</span>
-                        Regenerate
+                        <RefreshCw className={`w-4 h-4 ${isAiLoading ? 'animate-spin' : 'group-hover:rotate-180 transition-transform duration-500'}`} />
+                        Refresh Suggestions
                       </button>
                   </div>
 
