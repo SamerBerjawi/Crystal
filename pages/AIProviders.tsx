@@ -20,21 +20,37 @@ const AIProviders: React.FC<AIProvidersProps> = ({ config, onUpdateConfig }) => 
             id: 'gemini',
             name: 'Google Gemini',
             description: 'Native high-performance models (Google AI Studio). No configuration needed by default.',
-            models: ['gemini-1.5-flash', 'gemini-1.5-pro', 'gemini-2.0-flash-exp'],
+            models: ['gemini-2.0-flash', 'gemini-2.0-flash-lite', 'gemini-1.5-pro', 'gemini-1.5-flash'],
             hasKey: false
         },
         {
             id: 'groq',
             name: 'Groq (Free/Paid)',
             description: 'Ultra-fast inference for open-source models like Llama 3, Gemma 2, and Mixtral.',
-            models: ['llama-3.3-70b-versatile', 'llama-3.1-8b-instant', 'gemma2-9b-it', 'mixtral-8x7b-32768'],
+            models: [
+                'llama-3.3-70b-versatile', 
+                'llama-3.1-8b-instant', 
+                'gemma2-9b-it', 
+                'mixtral-8x7b-32768',
+                'deepseek-r1-distill-llama-70b',
+                'deepseek-r1-distill-qwen-32b',
+                'deepseek-r1-distill-llama-8b'
+            ],
             hasKey: true
         },
         {
             id: 'openrouter',
             name: 'OpenRouter',
             description: 'Unified API for any model. Great for comparing different providers.',
-            models: ['meta-llama/llama-3.1-405b', 'google/gemma-2-27b-it', 'anthropic/claude-3.5-sonnet'],
+            models: [
+                'meta-llama/llama-3.3-70b-instruct',
+                'anthropic/claude-3.5-sonnet', 
+                'deepseek/deepseek-r1',
+                'deepseek/deepseek-v3',
+                'openai/gpt-4o',
+                'google/gemini-pro-1.5',
+                'google/gemma-2-27b-it'
+            ],
             hasKey: true
         }
     ];
@@ -64,11 +80,7 @@ const AIProviders: React.FC<AIProvidersProps> = ({ config, onUpdateConfig }) => 
                                     key={p.id}
                                     onClick={() => {
                                         setProvider(p.id);
-                                        if (p.id === 'gemini') {
-                                             setModel(p.models[0]);
-                                        } else if (p.id === 'groq') {
-                                             setModel(p.models[0]);
-                                        }
+                                        setModel(p.models[0]);
                                     }}
                                     className={`p-6 rounded-2xl border-2 transition-all cursor-pointer ${
                                         provider === p.id 

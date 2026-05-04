@@ -53,17 +53,24 @@ const callAI = async (params: {
         { role: 'user', content: params.prompt }
     ];
 
-    const response = await fetch(endpoint, {
+    const response = await fetch('/api/ai/proxy', {
         method: 'POST',
         headers: {
             'Content-Type': 'application/json',
-            'Authorization': `Bearer ${config.apiKey}`,
-            ...(config.provider === 'openrouter' ? { 'HTTP-Referer': window.location.origin, 'X-Title': 'Crystal Finance' } : {})
         },
         body: JSON.stringify({
-            model: config.model,
-            messages,
-            response_format: params.responseMimeType === 'application/json' ? { type: 'json_object' } : undefined
+            endpoint,
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'Authorization': `Bearer ${config.apiKey}`,
+                ...(config.provider === 'openrouter' ? { 'HTTP-Referer': window.location.origin, 'X-Title': 'Crystal Finance' } : {})
+            },
+            body: {
+                model: config.model,
+                messages,
+                response_format: params.responseMimeType === 'application/json' ? { type: 'json_object' } : undefined
+            }
         })
     });
 
