@@ -159,7 +159,17 @@ const TransactionList: React.FC<TransactionListProps> = ({ transactions, allCate
                         {description}
                         {tx.isMarketAdjustment && <span className="text-[10px] uppercase font-bold bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-300 px-1.5 py-0.5 rounded shrink-0">Market</span>}
                     </p>
-                    <p className="text-xs text-light-text-secondary dark:text-dark-text-secondary">{formattedDate}</p>
+                    <p className="text-xs text-light-text-secondary dark:text-dark-text-secondary flex items-center gap-1.5">
+                        <span>{formattedDate}</span>
+                        <span className="w-1 h-1 rounded-full bg-gray-300 dark:bg-white/20"></span>
+                        <span className="truncate">{tx.category}</span>
+                        {tx.tagIds && tx.tagIds.length > 0 && (
+                            <span className="text-[10px] bg-primary-500/10 text-primary-600 dark:text-primary-400 px-1 rounded font-bold">
+                                {tx.tagIds.length} tags
+                            </span>
+                        )}
+                        {tx.notes && <span className="material-symbols-outlined text-[14px] text-primary-500">notes</span>}
+                    </p>
                   </div>
                 </div>
                 <div className="flex items-center gap-2 text-right shrink-0">

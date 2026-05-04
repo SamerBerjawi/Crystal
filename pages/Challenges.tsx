@@ -8,6 +8,7 @@ import { useBudgetsContext, useGoalsContext, useScheduleContext, useCategoryCont
 import { useLocalStorage } from '../hooks/useLocalStorage';
 import PredictionCard from '../components/PredictionCard';
 import PredictionModal from '../components/PredictionModal';
+import { getPersonalizedChallenges } from '../src/services/geminiService';
 import PageHeader from '../components/PageHeader';
 
 interface ChallengesProps {
@@ -21,6 +22,16 @@ interface ChallengesProps {
     investmentTransactions: InvestmentTransaction[];
     warrants: Warrant[];
     assetPrices: Record<string, number | null>;
+}
+
+interface AIChallenge {
+    id: string;
+    title: string;
+    description: string;
+    difficulty: 'Easy' | 'Medium' | 'Hard';
+    category: string;
+    potentialSavings: number;
+    actionPlan: string[];
 }
 
 // --- Visual Components ---
@@ -483,7 +494,7 @@ const SAVINGS_SPRINTS: SprintDefinition[] = [
 
 interface ActiveSprint { id: string; startDate: string; }
 
-type ChallengeSection = 'score' | 'battles' | 'badges' | 'mastery' | 'sprints' | 'prediction' | 'personal-best';
+type ChallengeSection = 'score' | 'battles' | 'badges' | 'mastery' | 'sprints' | 'prediction' | 'personal-best' | 'ai-challenges';
 
 const Challenges: React.FC<ChallengesProps> = ({ userStats, accounts, transactions, predictions, savePrediction, deletePrediction, saveUserStats, investmentTransactions, warrants, assetPrices }) => {
   const { currentStreak, longestStreak } = userStats;
@@ -495,6 +506,30 @@ const Challenges: React.FC<ChallengesProps> = ({ userStats, accounts, transactio
   const [activeSection, setActiveSection] = useState<ChallengeSection>('score');
   const [activeSprints, setActiveSprints] = useLocalStorage<ActiveSprint[]>('crystal_active_sprints', []);
   const [isPredictionModalOpen, setPredictionModalOpen] = useState(false);
+  const [aiChallenges, setAiChallenges] = useState<AIChallenge[]>([]);
+  const [isAiLoading, setIsAiLoading] = useState(false);
+  const [aiError, setAiError] = useState<string | null>(null);
+  
+  useEffect(() => {
+    const fetchAIChallenges = async () => {
+      if (activeSection === 'ai-challenges' && aiChallenges.length === 0) {
+        setIsAiLoading(true);
+        setAiError(null);
+        try {
+          const result = await getPersonalizedChallenges(transactions, accounts, budgets);
+          if (result && result.challenges) {
+            setAiChallenges(result.challenges as unknown as AIChallenge[]);
+          }
+        } catch (err) {
+          console.error('Failed to fetch AI challenges:', err);
+          setAiError('Failed to generate personalized challenges. Please try again later.');
+        } finally {
+          setIsAiLoading(false);
+        }
+      }
+    };
+    fetchAIChallenges();
+  }, [activeSection, accounts, transactions, budgets, aiChallenges.length]);
 
   const analyticsAccounts = useMemo(() => accounts.filter(acc => acc.includeInAnalytics ?? true), [accounts]);
   const analyticsAccountIds = useMemo(() => new Set(analyticsAccounts.map(acc => acc.id)), [analyticsAccounts]);
@@ -891,6 +926,7 @@ const Challenges: React.FC<ChallengesProps> = ({ userStats, accounts, transactio
       { id: 'badges', label: 'Badges', icon: 'stars' },
       { id: 'mastery', label: 'Mastery', icon: 'workspace_premium' },
       { id: 'sprints', label: 'Sprints', icon: 'timer' },
+      { id: 'ai-challenges', label: 'AI Insights', icon: 'auto_awesome' },
       { id: 'prediction', label: 'Predictions', icon: 'psychology' },
       { id: 'personal-best', label: 'Records', icon: 'podium' },
   ];
@@ -1054,6 +1090,107 @@ const Challenges: React.FC<ChallengesProps> = ({ userStats, accounts, transactio
                </div>
           )}
           
+          {activeSection === 'ai-challenges' && (
+              <div className="space-y-6 animate-fade-in-up">
+                  <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
+                      <div>
+                          <h3 className="text-xl font-bold text-light-text dark:text-dark-text flex items-center gap-2">
+                              <span className="material-symbols-outlined text-primary-500">auto_awesome</span>
+                              AI-Powered Savings Challenges
+                          </h3>
+                          <p className="text-sm text-light-text-secondary dark:text-dark-text-secondary">Custom challenges generated based on your spending habits and financial goals.</p>
+                      </div>
+                      <button 
+                        onClick={() => { setAiChallenges([]); setActiveSection('ai-challenges'); }}
+                        disabled={isAiLoading}
+                        className={`${BTN_SECONDARY_STYLE} flex items-center gap-2`}
+                      >
+                        <span className={`material-symbols-outlined text-sm ${isAiLoading ? 'animate-spin' : ''}`}>refresh</span>
+                        Regenerate
+                      </button>
+                  </div>
+
+                  {isAiLoading ? (
+                      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                          {[1, 2, 3].map(i => (
+                              <div key={i} className="animate-pulse bg-white dark:bg-dark-card rounded-3xl p-6 h-64 border border-black/5 dark:border-white/5 shadow-sm">
+                                  <div className="h-12 w-12 bg-gray-200 dark:bg-gray-800 rounded-xl mb-4"></div>
+                                  <div className="h-4 bg-gray-200 dark:bg-gray-800 rounded w-3/4 mb-2"></div>
+                                  <div className="h-4 bg-gray-200 dark:bg-gray-800 rounded w-1/2 mb-4"></div>
+                                  <div className="space-y-2">
+                                      <div className="h-2 bg-gray-200 dark:bg-gray-800 rounded"></div>
+                                      <div className="h-2 bg-gray-200 dark:bg-gray-800 rounded"></div>
+                                      <div className="h-2 bg-gray-200 dark:bg-gray-800 rounded w-5/6"></div>
+                                  </div>
+                              </div>
+                          ))}
+                      </div>
+                  ) : aiError ? (
+                      <Card className="text-center py-12 border-dashed">
+                          <span className="material-symbols-outlined text-4xl text-red-500 mb-2">error</span>
+                          <p className="text-light-text dark:text-dark-text font-medium">{aiError}</p>
+                      </Card>
+                  ) : (
+                      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                          {aiChallenges.map((challenge, idx) => (
+                              <Card key={challenge.id || idx} className="group relative overflow-hidden border border-black/5 dark:border-white/5 hover:shadow-xl transition-all duration-300 transform hover:-translate-y-1">
+                                  <div className={`absolute top-0 right-0 p-4 opacity-5 group-hover:opacity-10 transition-opacity`}>
+                                      <span className="material-symbols-outlined text-6xl">savings</span>
+                                  </div>
+                                  
+                                  <div className="flex justify-between items-start mb-4">
+                                      <div className={`px-3 py-1 rounded-full text-[10px] font-bold uppercase tracking-wider
+                                          ${challenge.difficulty === 'Easy' ? 'bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400' : 
+                                            challenge.difficulty === 'Medium' ? 'bg-amber-100 text-amber-700 dark:bg-amber-900/30 dark:text-amber-400' : 
+                                            'bg-rose-100 text-rose-700 dark:bg-rose-900/30 dark:text-rose-400'}`}
+                                      >
+                                          {challenge.difficulty}
+                                      </div>
+                                      <div className="text-primary-500 font-bold text-sm">
+                                          Est. Save: {formatCurrency(challenge.potentialSavings, 'EUR')}
+                                      </div>
+                                  </div>
+
+                                  <h4 className="text-lg font-bold text-light-text dark:text-dark-text mb-2 group-hover:text-primary-500 transition-colors">
+                                      {challenge.title}
+                                  </h4>
+                                  <p className="text-sm text-light-text-secondary dark:text-dark-text-secondary mb-4 line-clamp-3">
+                                      {challenge.description}
+                                  </p>
+
+                                  <div className="space-y-2 mb-6">
+                                      <p className="text-[10px] font-bold text-gray-400 uppercase tracking-widest">Key Actions</p>
+                                      {challenge.actionPlan.map((action, i) => (
+                                          <div key={i} className="flex items-start gap-2 text-xs text-light-text dark:text-dark-text">
+                                              <span className="material-symbols-outlined text-primary-500 text-sm flex-shrink-0 mt-0.5">check_circle</span>
+                                              <span>{action}</span>
+                                          </div>
+                                      ))}
+                                  </div>
+
+                                  <button className={`w-full ${BTN_PRIMARY_STYLE} !py-2.5 !h-auto text-sm`}>
+                                      Accept Challenge
+                                  </button>
+                              </Card>
+                          ))}
+                          
+                          {aiChallenges.length === 0 && !isAiLoading && (
+                               <Card className="col-span-full py-12 text-center border-dashed">
+                                  <span className="material-symbols-outlined text-4xl opacity-30 mb-2">auto_awesome_motion</span>
+                                  <p className="text-light-text-secondary dark:text-dark-text-secondary">No AI challenges generated yet.</p>
+                                  <button 
+                                      onClick={() => setActiveSection('ai-challenges')} 
+                                      className="mt-4 text-primary-500 font-bold hover:underline"
+                                  >
+                                      Generate Now
+                                  </button>
+                              </Card>
+                          )}
+                      </div>
+                  )}
+              </div>
+          )}
+
           {activeSection === 'prediction' && (
                <div className="space-y-8 animate-fade-in-up">
                    <div className="flex justify-between items-center">
@@ -1081,6 +1218,16 @@ const Challenges: React.FC<ChallengesProps> = ({ userStats, accounts, transactio
                        </div>
                    )}
                </div>
+          )}
+          {isPredictionModalOpen && (
+              <PredictionModal
+                  onClose={() => setPredictionModalOpen(false)}
+                  onSave={savePrediction}
+                  accounts={accounts}
+                  expenseCategories={expenseCategories}
+                  investmentTransactions={investmentTransactions}
+                  warrants={warrants}
+              />
           )}
       </div>
     </div>

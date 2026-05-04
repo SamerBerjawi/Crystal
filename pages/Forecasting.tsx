@@ -30,6 +30,7 @@ import { useInsightsView } from '../contexts/InsightsViewContext';
 import PageHeader from '../components/PageHeader';
 import { v4 as uuidv4 } from 'uuid';
 import { motion, AnimatePresence } from 'motion/react';
+import { getPredictiveInsights } from '../src/services/geminiService';
 
 // --- Smart Goal Planner Hook (Deterministic) ---
 const useSmartGoalPlanner = (
@@ -132,6 +133,34 @@ const Forecasting: React.FC = () => {
   const { activeGoalIds, setActiveGoalIds } = useInsightsView();
   const { accounts } = useAccountsContext();
   const { transactions } = useTransactionsContext();
+  
+  const [predictiveInsights, setPredictiveInsights] = useState<{
+    anomalies: any[];
+    predictedBalance30d: number;
+    confidenceScore: number;
+    insight: string;
+  } | null>(null);
+  const [isPredictiveLoading, setIsPredictiveLoading] = useState(false);
+  const [predictiveError, setPredictiveError] = useState<string | null>(null);
+
+  useEffect(() => {
+    const fetchPredictiveInsights = async () => {
+      if (transactions.length > 0 && !predictiveInsights && !isPredictiveLoading) {
+        setIsPredictiveLoading(true);
+        setPredictiveError(null);
+        try {
+          const result = await getPredictiveInsights({ transactions, accounts });
+          setPredictiveInsights(result);
+        } catch (err) {
+          console.error('Failed to fetch predictive insights:', err);
+          setPredictiveError('Could not generate AI predictive insights.');
+        } finally {
+          setIsPredictiveLoading(false);
+        }
+      }
+    };
+    fetchPredictiveInsights();
+  }, [transactions, accounts, predictiveInsights, isPredictiveLoading]);
   const { financialGoals, saveFinancialGoal, deleteFinancialGoal } = useGoalsContext();
   const { expenseCategories, incomeCategories } = useCategoryContext();
   const {
@@ -567,6 +596,77 @@ const Forecasting: React.FC = () => {
 
     return (
         <div className="space-y-8 pb-12 animate-fade-in-up">
+            {/* AI Predictive Insights Section */}
+            {(predictiveInsights || isPredictiveLoading) && (
+                <div className={`${isPredictiveLoading ? 'animate-pulse' : 'animate-fade-in-up'} bg-gradient-to-br from-primary-50 to-indigo-50 dark:from-primary-900/10 dark:to-indigo-900/10 border border-primary-100 dark:border-primary-900/20 rounded-3xl p-6`}>
+                    <div className="flex flex-col md:flex-row gap-6">
+                        <div className="flex-1 space-y-4">
+                            <div className="flex items-center gap-2">
+                                <span className="material-symbols-outlined text-primary-500">auto_awesome</span>
+                                <h3 className="font-bold text-light-text dark:text-dark-text">Crystal Insights</h3>
+                                {predictiveInsights && (
+                                    <div className="ml-auto px-2 py-0.5 rounded-full bg-white/50 dark:bg-black/20 text-[10px] font-bold text-primary-600 dark:text-primary-400">
+                                        Confidence: {Math.round(predictiveInsights.confidenceScore * 100)}%
+                                    </div>
+                                )}
+                            </div>
+                            
+                            {isPredictiveLoading ? (
+                                <div className="space-y-2">
+                                    <div className="h-4 bg-gray-200 dark:bg-gray-800 rounded w-3/4"></div>
+                                    <div className="h-4 bg-gray-200 dark:bg-gray-800 rounded w-1/2"></div>
+                                </div>
+                            ) : predictiveInsights ? (
+                                <div className="text-sm text-light-text dark:text-dark-text leading-relaxed">
+                                    {predictiveInsights.insight}
+                                </div>
+                            ) : null}
+
+                            {!isPredictiveLoading && predictiveInsights?.anomalies.length > 0 && (
+                                <div className="space-y-2">
+                                    <div className="text-[10px] font-bold text-primary-500 uppercase tracking-widest flex items-center gap-1">
+                                        <span className="material-symbols-outlined text-[14px]">warning</span>
+                                        Detected Anomalies
+                                    </div>
+                                    <div className="flex flex-wrap gap-2">
+                                        {predictiveInsights.anomalies.map((anomaly, idx) => (
+                                            <div key={idx} className="px-3 py-2 rounded-xl bg-white dark:bg-dark-card border border-black/5 dark:border-white/5 shadow-sm text-xs group hover:border-primary-500/30 transition-colors">
+                                                <div className="font-bold text-light-text dark:text-dark-text">{anomaly.description}</div>
+                                                <div className="flex justify-between items-center gap-4 mt-1 opacity-70">
+                                                    <span>{anomaly.date}</span>
+                                                    <span className="text-red-500 font-bold">-{formatCurrency(Math.abs(anomaly.amount), 'EUR')}</span>
+                                                </div>
+                                            </div>
+                                        ))}
+                                    </div>
+                                </div>
+                            ) }
+                        </div>
+
+                        <div className="w-full md:w-64 flex flex-col justify-center items-center p-4 bg-white dark:bg-dark-card rounded-2xl border border-black/5 dark:border-white/5 shadow-sm">
+                            <span className="text-[10px] font-bold text-gray-400 uppercase tracking-widest mb-1">Predicted Balance (30d)</span>
+                            {isPredictiveLoading ? (
+                                <div className="h-8 w-32 bg-gray-200 dark:bg-gray-800 animate-pulse rounded"></div>
+                            ) : (
+                                <div className="text-2xl font-black text-primary-500 tracking-tight">
+                                    {formatCurrency(predictiveInsights?.predictedBalance30d || 0, 'EUR')}
+                                </div>
+                            )}
+                            <div className="mt-4 flex items-center gap-2">
+                                <button 
+                                    onClick={() => { setPredictiveInsights(null); }}
+                                    disabled={isPredictiveLoading}
+                                    className="text-[10px] font-bold text-primary-500 hover:underline uppercase tracking-widest flex items-center gap-1"
+                                >
+                                    <span className="material-symbols-outlined text-[14px]">refresh</span>
+                                    Recalculate
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            )}
+
             {isModalOpen && <GoalScenarioModal onClose={() => setIsModalOpen(false)} onSave={(d) => { saveFinancialGoal(d); setIsModalOpen(false); }} goalToEdit={editingGoal} financialGoals={financialGoals} parentId={parentIdForNewGoal} accounts={accounts} />}
             {isRecurringModalOpen && <RecurringTransactionModal onClose={() => setIsRecurringModalOpen(false)} onSave={(d) => { saveRecurringTransaction(d); setIsRecurringModalOpen(false); }} accounts={accounts} incomeCategories={incomeCategories} expenseCategories={expenseCategories} recurringTransactionToEdit={editingRecurring} />}
             {isBillModalOpen && <BillPaymentModal onClose={() => setIsBillModalOpen(false)} onSave={(d) => { saveBillPayment(d); setIsBillModalOpen(false); }} bill={editingBill} accounts={accounts} initialDate={selectedForecastDate || undefined} />}

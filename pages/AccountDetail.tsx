@@ -438,6 +438,7 @@ const AccountDetail: React.FC<{
                 title={modalTitle}
                 transactions={modalTransactions}
                 accounts={accounts}
+                tags={tags}
                 onEdit={handleEditTransaction}
                 onDelete={handleDeleteTransaction}
             />

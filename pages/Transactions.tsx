@@ -8,6 +8,7 @@ import AddTransactionModal from '../components/AddTransactionModal';
 import BulkCategorizeModal from '../components/BulkCategorizeModal';
 import BulkEditTransactionsModal from '../components/BulkEditTransactionsModal';
 import RecurringTransactionModal from '../components/RecurringTransactionModal';
+import SplitTransactionModal from '../components/SplitTransactionModal';
 import ConfirmationModal from '../components/ConfirmationModal';
 import MultiSelectFilter from '../components/MultiSelectFilter';
 import MultiAccountFilter from '../components/MultiAccountFilter';
@@ -191,6 +192,8 @@ const Transactions: React.FC<TransactionsProps> = ({ initialAccountFilter, initi
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
   const [isCategorizeModalOpen, setIsCategorizeModalOpen] = useState(false);
   const [isBulkEditModalOpen, setBulkEditModalOpen] = useState(false);
+  const [isSplitModalOpen, setIsSplitModalOpen] = useState(false);
+  const [transactionToSplit, setTransactionToSplit] = useState<Transaction | null>(null);
   const [isDeleteConfirmOpen, setIsDeleteConfirmOpen] = useState(false);
   const [isRecurringModalOpen, setIsRecurringModalOpen] = useState(false);
   const [transactionToMakeRecurring, setTransactionToMakeRecurring] = useState<(Omit<RecurringTransaction, 'id'> & { id?: string }) | null>(null);
@@ -611,6 +614,30 @@ const Transactions: React.FC<TransactionsProps> = ({ initialAccountFilter, initi
   
   const handleOpenCategorizeModal = () => {
     setIsCategorizeModalOpen(true);
+  };
+  
+  const handleOpenSplitModal = () => {
+    if (selectedIds.size !== 1) return;
+    const selectedId = Array.from(selectedIds)[0];
+    const displayTx = displayTransactions.find(tx => tx.id === selectedId);
+    if (!displayTx || displayTx.isTransfer) return;
+    
+    const original = transactions.find(t => t.id === displayTx.id);
+    if (original) {
+      setTransactionToSplit(original);
+      setIsSplitModalOpen(true);
+    }
+  };
+
+  const handleSaveSplits = (splits: Partial<Transaction>[]) => {
+    if (!transactionToSplit) return;
+    
+    // We want to delete the original and add the new ones
+    saveTransaction(splits as any, [transactionToSplit.id]);
+    
+    setIsSplitModalOpen(false);
+    setTransactionToSplit(null);
+    setSelectedIds(new Set());
   };
 
   const handleSaveBulkCategory = (newCategoryName: string) => {
@@ -1089,6 +1116,15 @@ const Transactions: React.FC<TransactionsProps> = ({ initialAccountFilter, initi
               expenseCategories={expenseCategories}
           />
       )}
+      {isSplitModalOpen && transactionToSplit && (
+          <SplitTransactionModal
+              onClose={() => { setIsSplitModalOpen(false); setTransactionToSplit(null); }}
+              onSave={handleSaveSplits}
+              transaction={transactionToSplit}
+              incomeCategories={incomeCategories}
+              expenseCategories={expenseCategories}
+          />
+      )}
        {isBulkEditModalOpen && (
           <BulkEditTransactionsModal
             isOpen={isBulkEditModalOpen}
@@ -1302,7 +1338,8 @@ const Transactions: React.FC<TransactionsProps> = ({ initialAccountFilter, initi
         <Card className="!p-0 h-full flex flex-col relative overflow-hidden border border-black/5 dark:border-white/5 shadow-sm rounded-2xl bg-gray-50 dark:bg-dark-card">
             <div className="overflow-x-auto">
               <div className="min-w-[900px] flex flex-col">
-                <div className={`${selectedIds.size > 0 ? 'bg-primary-600 dark:bg-primary-800 text-white' : 'bg-gray-100 dark:bg-white/5 text-light-text-secondary dark:text-dark-text-secondary'} px-6 flex justify-between items-center h-[60px] z-[40] relative shadow-sm transition-colors duration-300 pointer-events-auto`}>
+                <div className={`transition-all duration-300 ease-in-out overflow-hidden ${selectedIds.size > 0 ? 'h-[60px] opacity-100' : 'h-0 opacity-0 pointer-events-none'}`}>
+                  <div className={`${selectedIds.size > 0 ? 'bg-primary-600 dark:bg-primary-800 text-white' : 'bg-gray-100 dark:bg-white/5 text-light-text-secondary dark:text-dark-text-secondary'} px-6 flex justify-between items-center h-[60px] z-[40] relative shadow-sm transition-colors duration-300 pointer-events-auto`}>
                      <div className="flex items-center gap-4">
                          <div className="flex items-center gap-3">
                              <input type="checkbox" onChange={handleSelectAll} checked={isAllSelected} className={CHECKBOX_STYLE} aria-label="Select all transactions"/>
@@ -1337,6 +1374,14 @@ const Transactions: React.FC<TransactionsProps> = ({ initialAccountFilter, initi
                         </button>
                         <button 
                             type="button" 
+                            onClick={handleOpenSplitModal} 
+                            disabled={selectedIds.size !== 1}
+                            className={`py-1.5 px-3 rounded-lg text-xs font-semibold transition-all backdrop-blur-sm ${selectedIds.size === 1 ? 'bg-white/20 hover:bg-white/30 text-white' : 'bg-gray-200 dark:bg-white/10 text-gray-400 dark:text-gray-500 cursor-not-allowed opacity-50'}`}
+                        >
+                            Split
+                        </button>
+                        <button 
+                            type="button" 
                             onClick={() => handleMakeRecurring()} 
                             disabled={selectedIds.size !== 1}
                             className={`py-1.5 px-3 rounded-lg text-xs font-semibold transition-all backdrop-blur-sm ${selectedIds.size === 1 ? 'bg-white/20 hover:bg-white/30 text-white' : 'bg-gray-200 dark:bg-white/10 text-gray-400 dark:text-gray-500 cursor-not-allowed opacity-50'}`}
@@ -1353,6 +1398,7 @@ const Transactions: React.FC<TransactionsProps> = ({ initialAccountFilter, initi
                         </button>
                     </div>
                 </div>
+              </div>
                 
                 <div className="px-5 py-3 border-b border-black/5 dark:border-white/5 flex items-center gap-3 bg-gray-50/50 dark:bg-white/[0.02] sticky top-0 z-[30] backdrop-blur-md">
                     <div className="flex items-center justify-center w-5"></div>
@@ -1525,7 +1571,10 @@ const Transactions: React.FC<TransactionsProps> = ({ initialAccountFilter, initi
                               </div>
                             <div className="min-w-0">
                               <p className="font-bold text-base text-light-text dark:text-dark-text truncate max-w-[30ch] lg:max-w-[40ch]">{tx.description}</p>
-                              <p className="text-sm text-light-text-secondary dark:text-dark-text-secondary truncate">{tx.merchant || (tx.isTransfer ? 'Transfer' : '—')}</p>
+                              <p className="text-sm text-light-text-secondary dark:text-dark-text-secondary flex items-center gap-2 truncate whitespace-nowrap">
+                                  <span className="truncate">{tx.merchant || (tx.isTransfer ? 'Transfer' : '—')}</span>
+                                  {tx.notes && <span className="material-symbols-outlined text-[14px] text-primary-500 shrink-0" title="Has notes">notes</span>}
+                              </p>
                             </div>
                           </div>
 

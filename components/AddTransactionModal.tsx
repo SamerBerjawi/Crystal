@@ -33,6 +33,7 @@ interface AddTransactionModalProps {
     tagIds?: string[];
     locationString?: string;
     locationData?: { city?: string; country?: string; lat?: number; lon?: number };
+    notes?: string;
   };
 }
 
@@ -97,6 +98,7 @@ const AddTransactionModal: React.FC<AddTransactionModalProps> = ({ onClose, onSa
   const [merchant, setMerchant] = useState('');
   const [amount, setAmount] = useState('');
   const [category, setCategory] = useState('');
+  const [notes, setNotes] = useState('');
   const [tagIds, setTagIds] = useState<string[]>([]);
   const [isTagSelectorOpen, setIsTagSelectorOpen] = useState(false);
   const tagSelectorRef = useRef<HTMLDivElement>(null);
@@ -363,6 +365,7 @@ const AddTransactionModal: React.FC<AddTransactionModalProps> = ({ onClose, onSa
             setDescription(transactionToEdit.description);
             setCategory(transactionToEdit.category);
             setMerchant(transactionToEdit.merchant || '');
+            setNotes(transactionToEdit.notes || '');
             principal = String(transactionToEdit.principalAmount || '');
             interest = String(transactionToEdit.interestAmount || '');
         }
@@ -406,6 +409,7 @@ const AddTransactionModal: React.FC<AddTransactionModalProps> = ({ onClose, onSa
         setMerchant(initialDetails?.merchant || '');
         setAmount(initialDetails?.amount || '');
         setCategory(initialCategory || '');
+        setNotes(initialDetails?.notes || '');
         setPrincipalPayment(initialDetails?.principal || '');
         setInterestPayment(initialDetails?.interest || '');
         setUseAutoLoanSplit(!(initialDetails?.principal || initialDetails?.interest));
@@ -512,6 +516,7 @@ const AddTransactionModal: React.FC<AddTransactionModalProps> = ({ onClose, onSa
             currency: fromAcc.currency,
             transferId,
             tagIds,
+            notes,
             ...locationProps
         };
 
@@ -526,6 +531,7 @@ const AddTransactionModal: React.FC<AddTransactionModalProps> = ({ onClose, onSa
             currency: toAcc.currency,
             transferId,
             tagIds,
+            notes,
             ...locationProps
         };
         
@@ -568,6 +574,7 @@ const AddTransactionModal: React.FC<AddTransactionModalProps> = ({ onClose, onSa
             type,
             currency: selectedAccount.currency,
             tagIds,
+            notes,
             ...locationProps
         };
         
@@ -818,6 +825,16 @@ const AddTransactionModal: React.FC<AddTransactionModalProps> = ({ onClose, onSa
                               required 
                             />
                         </div>
+                     </div>
+
+                     <div className="sm:col-span-2">
+                        <label className={labelStyle}>Detailed Notes</label>
+                        <textarea
+                            value={notes}
+                            onChange={e => setNotes(e.target.value)}
+                            className={`${INPUT_BASE_STYLE} min-h-[80px] py-3 resize-none`}
+                            placeholder="Add any extra details or context about this transaction..."
+                        />
                      </div>
                  </div>
 

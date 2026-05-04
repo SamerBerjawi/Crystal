@@ -1,5 +1,5 @@
 
-import React, { useState, useMemo, useCallback } from 'react';
+import React, { useState, useMemo, useCallback, useEffect } from 'react';
 import { Account, InvestmentTransaction, Transaction, Warrant, InvestmentSubType, HoldingsOverview } from '../types';
 import { BTN_PRIMARY_STYLE, BRAND_COLORS, BTN_SECONDARY_STYLE, INVESTMENT_SUB_TYPE_STYLES } from '../constants';
 import Card from '../components/Card';
@@ -14,6 +14,16 @@ import { buildHoldingsOverview } from '../utils/investments';
 import PageHeader from '../components/PageHeader';
 import AccountsListSection from '../components/AccountsListSection';
 import { usePreferencesSelector } from '../contexts/DomainProviders';
+import { getInvestmentAnalysis } from '../src/services/geminiService';
+
+interface InvestmentInsight {
+    sentiment: 'Positive' | 'Neutral' | 'Negative';
+    score: number;
+    summary: string;
+    marketContext: string;
+    keyRisks: string[];
+    opportunities: string[];
+}
 
 interface InvestmentsProps {
     accounts: Account[];
@@ -88,6 +98,9 @@ const Investments: React.FC<InvestmentsProps> = ({
     const [isAccountModalOpen, setAccountModalOpen] = useState(false);
     const [contextMenu, setContextMenu] = useState<{ x: number, y: number, account: Account } | null>(null);
     const [isUpdatingAllPrices, setIsUpdatingAllPrices] = useState(false);
+    const [investmentInsights, setInvestmentInsights] = useState<InvestmentInsight | null>(null);
+    const [isInsightsLoading, setIsInsightsLoading] = useState(false);
+    const [insightsError, setInsightsError] = useState<string | null>(null);
     const twelveDataApiKey = usePreferencesSelector(p => p.twelveDataApiKey || '');
 
     // Include only Stocks, ETFs, Crypto for the Investments page
@@ -99,12 +112,29 @@ const Investments: React.FC<InvestmentsProps> = ({
     const closedInvestmentAccounts = useMemo(() => investmentAccounts.filter(a => a.status === 'closed'), [investmentAccounts]);
     const [showInactiveHoldings, setShowInactiveHoldings] = useState(false);
 
-    const activeOverview = useMemo(
-        () => buildHoldingsOverview(activeInvestmentAccounts, investmentTransactions, warrants, prices),
-        [activeInvestmentAccounts, investmentTransactions, warrants, prices]
-    );
-
+    const activeOverview = useMemo(() => buildHoldingsOverview(activeInvestmentAccounts, investmentTransactions, warrants, prices), [activeInvestmentAccounts, investmentTransactions, warrants, prices]);
     const { holdings: activeHoldings, totalValue, totalCostBasis, investedCapital, grantedCapital, distributionData, typeBreakdown } = activeOverview;
+
+    useEffect(() => {
+        const fetchInsights = async () => {
+            if (activeHoldings.length > 0 && !investmentInsights && !isInsightsLoading) {
+                setIsInsightsLoading(true);
+                setInsightsError(null);
+                try {
+                    const result = await getInvestmentAnalysis(activeHoldings);
+                    if (result) {
+                        setInvestmentInsights(result as unknown as InvestmentInsight);
+                    }
+                } catch (err) {
+                    console.error('Failed to fetch investment insights:', err);
+                    setInsightsError('Could not load AI investment analysis.');
+                } finally {
+                    setIsInsightsLoading(false);
+                }
+            }
+        };
+        fetchInsights();
+    }, [activeHoldings, investmentInsights, isInsightsLoading]);
 
     const displayHoldings = useMemo(
         () => {
@@ -462,10 +492,149 @@ const Investments: React.FC<InvestmentsProps> = ({
                 </div>
             </div>
 
-            {/* Main Content Grid */}
-            <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
-                {/* Left Column: Holdings Table */}
-                <div className="lg:col-span-2 space-y-8">
+            {/* AI Insights & Main Content Split */}
+            <div className="grid grid-cols-1 xl:grid-cols-4 gap-8">
+                {/* AI Sentiment Analysis Sidebar */}
+                <div className="xl:col-span-1 space-y-6">
+                    <Card className="relative overflow-hidden bg-gradient-to-br from-indigo-500/5 to-purple-500/5 border-primary-500/20 shadow-lg">
+                        <div className="flex items-center gap-2 mb-6">
+                            <div className="w-8 h-8 rounded-lg bg-primary-500 flex items-center justify-center text-white">
+                                <span className="material-symbols-outlined text-[20px] animate-pulse">auto_awesome</span>
+                            </div>
+                            <h3 className="font-bold text-lg text-light-text dark:text-dark-text">AI Investment Analyst</h3>
+                        </div>
+
+                        {isInsightsLoading ? (
+                             <div className="space-y-6 animate-pulse">
+                                 <div className="h-4 bg-black/10 dark:bg-white/10 rounded w-3/4"></div>
+                                 <div className="h-20 bg-black/10 dark:bg-white/10 rounded"></div>
+                                 <div className="h-24 bg-black/10 dark:bg-white/10 rounded"></div>
+                             </div>
+                        ) : insightsError ? (
+                            <div className="text-center py-8">
+                                <span className="material-symbols-outlined text-4xl text-red-500/50 mb-2">sentiment_dissatisfied</span>
+                                <p className="text-sm text-light-text-secondary dark:text-dark-text-secondary">{insightsError}</p>
+                                <button onClick={() => setInvestmentInsights(null)} className="mt-4 text-xs font-bold text-primary-500 hover:underline">Retry Analysis</button>
+                            </div>
+                        ) : investmentInsights ? (
+                            <div className="space-y-6">
+                                {/* Sentiment Score */}
+                                <div>
+                                    <div className="flex justify-between items-end mb-2">
+                                        <span className="text-xs font-bold uppercase text-gray-500 dark:text-gray-400">Portfolio Sentiment</span>
+                                        <span className={`text-sm font-black ${
+                                            investmentInsights.sentiment === 'Positive' ? 'text-green-500' : 
+                                            investmentInsights.sentiment === 'Negative' ? 'text-red-500' : 'text-blue-500'
+                                        }`}>
+                                            {investmentInsights.sentiment} ({investmentInsights.score}/100)
+                                        </span>
+                                    </div>
+                                    <div className="w-full h-2 bg-black/10 dark:bg-white/10 rounded-full overflow-hidden">
+                                        <div 
+                                            className={`h-full transition-all duration-1000 ${
+                                                investmentInsights.sentiment === 'Positive' ? 'bg-green-500' : 
+                                                investmentInsights.sentiment === 'Negative' ? 'bg-red-500' : 'bg-blue-500'
+                                            }`}
+                                            style={{ width: `${investmentInsights.score}%` }}
+                                        ></div>
+                                    </div>
+                                </div>
+
+                                {/* Summary */}
+                                <div className="p-3 rounded-xl bg-primary-500/5 border border-primary-500/10">
+                                    <p className="text-sm leading-relaxed text-light-text dark:text-dark-text italic font-medium">
+                                        "{investmentInsights.summary}"
+                                    </p>
+                                </div>
+
+                                {/* Market Context */}
+                                <div className="space-y-2">
+                                    <p className="text-[10px] font-bold text-gray-400 uppercase tracking-widest">Market Context</p>
+                                    <p className="text-xs text-light-text-secondary dark:text-dark-text-secondary leading-relaxed">
+                                        {investmentInsights.marketContext}
+                                    </p>
+                                </div>
+
+                                {/* Opportunity/Risk */}
+                                <div className="grid grid-cols-1 gap-4">
+                                    <div className="space-y-2">
+                                        <p className="text-[10px] font-bold text-green-500 uppercase tracking-widest flex items-center gap-1">
+                                            <span className="material-symbols-outlined text-[12px]">trending_up</span>
+                                            Top Opportunities
+                                        </p>
+                                        <ul className="space-y-1">
+                                            {investmentInsights.opportunities.map((opt, i) => (
+                                                <li key={i} className="text-[11px] text-light-text dark:text-dark-text flex items-start gap-2">
+                                                    <span className="w-1 h-1 rounded-full bg-green-500 mt-1.5 flex-shrink-0"></span>
+                                                    {opt}
+                                                </li>
+                                            ))}
+                                        </ul>
+                                    </div>
+                                    <div className="space-y-2">
+                                        <p className="text-[10px] font-bold text-red-500 uppercase tracking-widest flex items-center gap-1">
+                                            <span className="material-symbols-outlined text-[12px]">warning</span>
+                                            Key Risks
+                                        </p>
+                                        <ul className="space-y-1">
+                                            {investmentInsights.keyRisks.map((risk, i) => (
+                                                <li key={i} className="text-[11px] text-light-text dark:text-dark-text flex items-start gap-2">
+                                                    <span className="w-1 h-1 rounded-full bg-red-500 mt-1.5 flex-shrink-0"></span>
+                                                    {risk}
+                                                </li>
+                                            ))}
+                                        </ul>
+                                    </div>
+                                </div>
+                                
+                                <p className="text-[10px] text-gray-400 italic pt-2 border-t border-black/5 dark:border-white/5">
+                                    AI analysis is based on your current holdings and real-time market sentiment. Not financial advice.
+                                </p>
+                            </div>
+                        ) : (
+                            <div className="text-center py-8">
+                                <p className="text-sm text-light-text-secondary dark:text-dark-text-secondary mb-4">No analysis available.</p>
+                                <button 
+                                    onClick={() => setInvestmentInsights(null)}
+                                    className={BTN_SECONDARY_STYLE}
+                                >
+                                    Analyze Portfolio
+                                </button>
+                            </div>
+                        )}
+                    </Card>
+
+                    {/* Distribution Small View */}
+                    <Card className="hidden xl:block">
+                        <h4 className="font-bold text-sm text-light-text dark:text-dark-text mb-4">Allocation</h4>
+                        <div className="h-48">
+                            <ResponsiveContainer width="100%" height="100%">
+                                <PieChart>
+                                    <Pie data={distributionData} cx="50%" cy="50%" innerRadius={40} outerRadius={60} paddingAngle={5} dataKey="value">
+                                        {distributionData.map((entry, index) => (
+                                            <Cell key={`cell-${index}`} fill={entry.color} />
+                                        ))}
+                                    </Pie>
+                                    <Tooltip contentStyle={{ backgroundColor: 'transparent', border: 'none', borderRadius: '12px' }} itemStyle={{ fontSize: '12px', fontWeight: 'bold' }} />
+                                </PieChart>
+                            </ResponsiveContainer>
+                        </div>
+                        <div className="space-y-2 mt-4">
+                            {distributionData.slice(0, 4).map((entry, idx) => (
+                                <div key={idx} className="flex items-center justify-between text-xs">
+                                    <div className="flex items-center gap-2">
+                                        <div className="w-2 h-2 rounded-full" style={{ backgroundColor: entry.color }}></div>
+                                        <span className="text-light-text-secondary dark:text-dark-text-secondary truncate max-w-[100px]">{entry.name}</span>
+                                    </div>
+                                    <span className="font-bold text-light-text dark:text-dark-text">{formatPercent(entry.value, 1)}%</span>
+                                </div>
+                            ))}
+                        </div>
+                    </Card>
+                </div>
+
+                {/* Right Column: Holdings Table & Charts */}
+                <div className="xl:col-span-3 space-y-8">
                     <Card className="overflow-hidden">
                         <div className="flex flex-wrap justify-between items-center mb-6 gap-3">
                              <h3 className="text-lg font-bold text-light-text dark:text-dark-text">Your Holdings</h3>

@@ -29,6 +29,7 @@ const pageRegistry = {
   Subscriptions: { path: '/subscriptions', loader: () => import('./pages/Subscriptions') },
   'Quotes & Invoices': { path: '/invoices', loader: () => import('./pages/Invoices') },
   Merchants: { path: '/merchants', loader: () => import('./pages/Merchants') },
+  'AI Providers': { path: '/ai-providers', loader: () => import('./pages/AIProviders') },
 } as const;
 
 const Dashboard = lazy(pageRegistry.Dashboard.loader);
@@ -55,10 +56,11 @@ const Documentation = lazy(pageRegistry.Documentation.loader);
 const SubscriptionsPage = lazy(pageRegistry.Subscriptions.loader);
 const InvoicesPage = lazy(pageRegistry['Quotes & Invoices'].loader);
 const MerchantsPage = lazy(pageRegistry.Merchants.loader);
+const AIProvidersPage = lazy(pageRegistry['AI Providers'].loader);
 
 const pagePreloaders = Object.values(pageRegistry).map(entry => entry.loader);
 
-import { Page, Theme, Category, User, Transaction, Account, RecurringTransaction, RecurringTransactionOverride, WeekendAdjustment, FinancialGoal, Budget, ImportExportHistoryItem, AppPreferences, AccountType, InvestmentTransaction, Task, Warrant, ImportDataType, FinancialData, Currency, BillPayment, BillPaymentStatus, Duration, InvestmentSubType, Tag, LoanPaymentOverrides, ScheduledPayment, Membership, Invoice, UserStats, Prediction, PriceHistoryEntry, EnableBankingConnection, EnableBankingAccount, EnableBankingLinkPayload, EnableBankingSyncOptions, AssetClosureDetails } from './types';
+import { Page, Theme, Category, User, Transaction, Account, RecurringTransaction, RecurringTransactionOverride, WeekendAdjustment, FinancialGoal, Budget, ImportExportHistoryItem, AppPreferences, AccountType, InvestmentTransaction, Task, Warrant, ImportDataType, FinancialData, Currency, BillPayment, BillPaymentStatus, Duration, InvestmentSubType, Tag, LoanPaymentOverrides, ScheduledPayment, Membership, Invoice, UserStats, Prediction, PriceHistoryEntry, EnableBankingConnection, EnableBankingAccount, EnableBankingLinkPayload, EnableBankingSyncOptions, AssetClosureDetails, AIConfig } from './types';
 import { MOCK_INCOME_CATEGORIES, MOCK_EXPENSE_CATEGORIES, LIQUID_ACCOUNT_TYPES } from './constants';
 import { createDemoUser, emptyFinancialData, initialFinancialData } from './demoData';
 import { v4 as uuidv4 } from 'uuid';
@@ -74,6 +76,7 @@ import { AccountsProvider, PreferencesProvider, TransactionsProvider, WarrantsPr
 import { InsightsViewProvider } from './contexts/InsightsViewContext';
 import { persistPendingConnection, removePendingConnection } from './utils/enableBankingStorage';
 import { fetchAllExchangeRates } from './src/services/twelveDataService';
+import AIAssistant from './pages/AIAssistant';
 import { enrichTransactionsWithAI } from './src/services/geminiService';
 
 const IBAN_REGEX = /^[A-Z]{2}[0-9]{2}[A-Z0-9]{9,30}$/i;
@@ -346,6 +349,7 @@ const App: React.FC = () => {
   const [importExportHistory, setImportExportHistory] = useState<ImportExportHistoryItem[]>(emptyFinancialData.importExportHistory);
   const [billsAndPayments, setBillsAndPayments] = useState<BillPayment[]>(emptyFinancialData.billsAndPayments);
   const [invoices, setInvoices] = useState<Invoice[]>(emptyFinancialData.invoices || []);
+  const [aiConfig, setAiConfig] = useLocalStorage<AIConfig>('crystal_ai_config', { provider: 'gemini', model: 'gemini-1.5-flash' });
   const [tags, setTags] = useState<Tag[]>(emptyFinancialData.tags || []);
   const [userStats, setUserStats] = useState<UserStats>(emptyFinancialData.userStats || { currentStreak: 0, longestStreak: 0, lastLogDate: '' });
   const [predictions, setPredictions] = useState<Prediction[]>(emptyFinancialData.predictions || []);
@@ -1460,24 +1464,35 @@ const App: React.FC = () => {
     accountDisplayName?: string,
     ownerName?: string,
   ): Transaction | null => {
-    const amountRaw = providerTx?.transaction_amount?.amount ?? providerTx?.amount?.amount ?? providerTx?.transactionAmount?.amount;
+    const amountRaw = 
+      providerTx?.transaction_amount?.amount ?? 
+      providerTx?.transaction_amount?.value ?? 
+      providerTx?.amount?.amount ?? 
+      providerTx?.amount?.value ?? 
+      providerTx?.transactionAmount?.amount ?? 
+      providerTx?.transactionAmount?.value;
     if (amountRaw === undefined || amountRaw === null || !linkedAccountId) return null;
 
     const creditDebit = providerTx?.credit_debit_indicator || providerTx?.creditDebitIndicator;
-    const isCredit = creditDebit === 'CRDT';
+    const isCredit = creditDebit === 'CRDT' || (typeof amountRaw === 'string' && !amountRaw.startsWith('-') && creditDebit !== 'DBIT');
     const signedAmount = Math.abs(Number(amountRaw)) * (isCredit ? 1 : -1);
-    if (Number.isNaN(signedAmount)) return null;
+    // Support negative strings directly if no indicator
+    const finalAmount = (signedAmount === Math.abs(Number(amountRaw)) && typeof amountRaw === 'string' && amountRaw.startsWith('-')) 
+      ? Number(amountRaw) 
+      : signedAmount;
+
+    if (Number.isNaN(finalAmount)) return null;
 
     const resolveTransactionDate = () => {
       const candidate = pickFirstText(
-        providerTx?.transaction_date,
-        providerTx?.transactionDate,
-        providerTx?.value_date,
-        providerTx?.valueDate,
         providerTx?.booking_date,
         providerTx?.bookingDate,
+        providerTx?.transaction_date,
+        providerTx?.transactionDate,
         providerTx?.booking_date_time,
         providerTx?.bookingDateTime,
+        providerTx?.value_date,
+        providerTx?.valueDate,
         providerTx?.date,
       );
       if (!candidate) return toLocalISOString(new Date());
@@ -1610,7 +1625,8 @@ const App: React.FC = () => {
     
     const unstructuredMerchant = 
       extractMerchantFromRemittance(providerTx?.remittance_information_unstructured) ||
-      extractMerchantFromRemittance(providerTx?.remittanceInformationUnstructured);
+      extractMerchantFromRemittance(providerTx?.remittanceInformationUnstructured) ||
+      extractMerchantFromRemittance(providerTx?.remittance_information);
 
     const merchant = pickFirstValidMerchant(
       unstructuredMerchant,
@@ -1653,6 +1669,7 @@ const App: React.FC = () => {
           ]),
       providerTx?.remittance_information_unstructured,
       providerTx?.remittanceInformationUnstructured,
+      providerTx?.remittance_information,
       providerTx?.remittance_information_unstructured_array,
       providerTx?.remittanceInformationUnstructuredArray,
       providerTx?.remittance_information_structured,
@@ -1663,6 +1680,7 @@ const App: React.FC = () => {
       pickJoinedText(
         providerTx?.remittance_information_unstructured,
         providerTx?.remittanceInformationUnstructured,
+        providerTx?.remittance_information,
         providerTx?.remittance_information_unstructured_array,
         providerTx?.remittanceInformationUnstructuredArray,
         providerTx?.remittance_information_structured,
@@ -1701,9 +1719,9 @@ const App: React.FC = () => {
       date,
       description: desc,
       merchant,
-      amount: signedAmount,
+      amount: finalAmount,
       category: 'Uncategorized',
-      type: signedAmount >= 0 ? 'income' : 'expense',
+      type: finalAmount >= 0 ? 'income' : 'expense',
       currency,
       importId: `enable-banking-${connectionId}-${linkedAccountId}`,
     };
@@ -2010,6 +2028,7 @@ const App: React.FC = () => {
       case 'Accounts': return <Accounts accounts={accounts} transactions={transactions} saveAccount={handleSaveAccount} deleteAccount={handleDeleteAccount} setCurrentPage={setCurrentPage} setViewingAccountId={setViewingAccountId} onViewAccount={handleOpenAccountDetail} saveTransaction={handleSaveTransaction} accountOrder={accountOrder} setAccountOrder={setAccountOrder} initialSortBy={preferences.defaultAccountOrder} warrants={warrants} onToggleAccountStatus={handleToggleAccountStatus} onNavigateToTransactions={navigateToTransactions} linkedEnableBankingAccountIds={linkedEnableBankingAccountIds} />;
       case 'Transactions': return <Transactions initialAccountFilter={transactionsViewFilters.current.accountName ?? null} initialTagFilter={transactionsViewFilters.current.tagId ?? null} onClearInitialFilters={clearPendingTransactionFilters} />;
       case 'Reports': return <ReportsPage />;
+      case 'AI Assistant': return <AIAssistant accounts={accounts} transactions={transactions} budgets={budgets} recurring={recurringTransactions} />;
       case 'Budget': return <Budgeting budgets={budgets} transactions={transactions} expenseCategories={expenseCategories} saveBudget={handleSaveBudget} deleteBudget={handleDeleteBudget} accounts={accounts} preferences={preferences} />;
       case 'Forecasting': return <Forecasting />;
       case 'Challenges': return <ChallengesPage userStats={userStats} accounts={accounts} transactions={transactions} predictions={predictions} savePrediction={handleSavePrediction} deletePrediction={handleDeletePrediction} saveUserStats={setUserStats} investmentTransactions={investmentTransactions} warrants={warrants} assetPrices={assetPrices} />;
@@ -2028,6 +2047,7 @@ const App: React.FC = () => {
       case 'Subscriptions': return <SubscriptionsPage />;
       case 'Quotes & Invoices': return <InvoicesPage />;
       case 'Merchants': return <MerchantsPage setCurrentPage={setCurrentPage} />;
+      case 'AI Providers': return <AIProvidersPage config={aiConfig} onUpdateConfig={setAiConfig} />;
       default: return <div>Page not found</div>;
     }
   };

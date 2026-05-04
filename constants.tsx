@@ -118,6 +118,7 @@ export const NAV_ITEMS: NavItem[] = [
   { name: 'Accounts', icon: 'wallet' },
   { name: 'Transactions', icon: 'receipt_long' },
   { name: 'Reports', icon: 'analytics' },
+  { name: 'AI Assistant', icon: 'smart_toy' },
   { name: 'Budget', icon: 'pie_chart' },
   { name: 'Forecasting', icon: 'show_chart' },
   { name: 'Investments', icon: 'candlestick_chart' },
@@ -131,6 +132,7 @@ export const NAV_ITEMS: NavItem[] = [
   { name: 'Merchants', icon: 'storefront' },
   { name: 'Integrations', icon: 'api' },
   { name: 'Data Management', icon: 'database' },
+  { name: 'AI Providers', icon: 'psychology' },
   { name: 'Documentation', icon: 'auto_stories' },
   { name: 'Settings', icon: 'settings' },
 ];

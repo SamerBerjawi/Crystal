@@ -26,11 +26,11 @@ const NAV_GROUPS = [
   },
   {
     title: 'Planning',
-    items: ['Budget', 'Forecasting', 'Investments', 'Challenges']
+    items: ['AI Assistant', 'Budget', 'Forecasting', 'Investments', 'Challenges']
   },
   {
     title: 'Management',
-    items: ['Schedule & Bills', 'Subscriptions', 'Quotes & Invoices', 'Tasks']
+    items: ['Schedule & Bills', 'Subscriptions', 'Quotes & Invoices', 'Tasks', 'AI Providers']
   },
   {
     title: 'Configuration',

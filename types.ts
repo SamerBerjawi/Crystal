@@ -3,7 +3,15 @@
 import React, { Dispatch, SetStateAction } from 'react';
 
 // FIX: Remove 'AI Assistant' from Page type
-export type Page = 'Dashboard' | 'Accounts' | 'Transactions' | 'Budget' | 'Forecasting' | 'Settings' | 'Schedule & Bills' | 'Tasks' | 'Categories' | 'Tags' | 'Personal Info' | 'Data Management' | 'Preferences' | 'AccountDetail' | 'Investments' | 'HoldingDetail' | 'Documentation' | 'Subscriptions' | 'Quotes & Invoices' | 'Challenges' | 'Merchants' | 'Reports' | 'Integrations' | 'EnableBankingCallback';
+export type Page = 'Dashboard' | 'Accounts' | 'Transactions' | 'Budget' | 'Forecasting' | 'Settings' | 'Schedule & Bills' | 'Tasks' | 'Categories' | 'Tags' | 'Personal Info' | 'Data Management' | 'Preferences' | 'AccountDetail' | 'Investments' | 'HoldingDetail' | 'Documentation' | 'Subscriptions' | 'Quotes & Invoices' | 'Challenges' | 'Merchants' | 'Reports' | 'Integrations' | 'EnableBankingCallback' | 'AI Assistant' | 'AI Providers';
+
+export type AIProvider = 'gemini' | 'groq' | 'openrouter';
+
+export interface AIConfig {
+    provider: AIProvider;
+    apiKey?: string;
+    model?: string;
+}
 
 export type AccountType = 'Checking' | 'Savings' | 'Credit Card' | 'Investment' | 'Loan' | 'Property' | 'Vehicle' | 'Other Assets' | 'Other Liabilities' | 'Lending';
 
@@ -277,6 +285,7 @@ export interface Transaction {
   principalAmount?: number;
   interestAmount?: number;
   tagIds?: string[];
+  notes?: string;
   // Location data
   city?: string;
   country?: string;

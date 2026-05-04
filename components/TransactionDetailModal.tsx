@@ -1,7 +1,7 @@
 
 import React from 'react';
 import Modal from './Modal';
-import { Transaction, Account } from '../types';
+import { Transaction, Account, Tag } from '../types';
 import { formatCurrency, parseLocalDate } from '../utils';
 
 interface TransactionDetailModalProps {
@@ -10,11 +10,12 @@ interface TransactionDetailModalProps {
   title: string;
   transactions: Transaction[];
   accounts: Account[];
+  tags: Tag[];
   onEdit?: (transaction: Transaction) => void;
   onDelete?: (transaction: Transaction) => void;
 }
 
-const TransactionDetailModal: React.FC<TransactionDetailModalProps> = ({ isOpen, onClose, title, transactions, accounts, onEdit, onDelete }) => {
+const TransactionDetailModal: React.FC<TransactionDetailModalProps> = ({ isOpen, onClose, title, transactions, accounts, tags, onEdit, onDelete }) => {
   if (!isOpen) return null;
 
   const formatDate = (dateString: string) => {
@@ -69,6 +70,25 @@ const TransactionDetailModal: React.FC<TransactionDetailModalProps> = ({ isOpen,
             <DetailRow label="Category" value={tx.category} />
             <DetailRow label="Account" value={account?.name || 'Unknown'} />
             <DetailRow label="Type" value={<span className="capitalize">{tx.type}</span>} />
+            {tx.tagIds && tx.tagIds.length > 0 && (
+                <DetailRow 
+                    label="Tags" 
+                    value={
+                        <div className="flex flex-wrap gap-1 justify-end">
+                            {tx.tagIds.map(id => {
+                                const tag = tags.find(t => t.id === id);
+                                if (!tag) return null;
+                                return (
+                                    <span key={id} className="px-2 py-0.5 rounded text-[10px] font-bold text-white shadow-sm" style={{ backgroundColor: tag.color }}>
+                                        {tag.name}
+                                    </span>
+                                );
+                            })}
+                        </div>
+                    } 
+                />
+            )}
+            {tx.notes && <DetailRow label="Notes" value={<div className="text-left text-xs bg-gray-50 dark:bg-white/5 p-3 rounded-lg border border-black/5 dark:border-white/5 mt-1 whitespace-pre-wrap">{tx.notes}</div>} />}
              {tx.transferId && <DetailRow label="Transfer ID" value={<span className="font-mono text-xs">{tx.transferId}</span>} />}
         </div>
       </Modal>

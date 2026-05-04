@@ -1285,6 +1285,7 @@ const Dashboard: React.FC<DashboardProps> = ({ user, tasks, saveTask, onTogglePr
         title={modalTitle}
         transactions={modalTransactions}
         accounts={accounts}
+        tags={tags}
         onEdit={handleEditTransaction}
         onDelete={handleDeleteTransaction}
       />
