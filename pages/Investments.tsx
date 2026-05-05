@@ -14,6 +14,7 @@ import PageHeader from '../components/PageHeader';
 import AccountsListSection from '../components/AccountsListSection';
 import { usePreferencesSelector } from '../contexts/DomainProviders';
 import ConfirmationModal from '../components/ConfirmationModal';
+import Modal from '../components/Modal';
 
 const CACHE_KEYS = {
   INVESTMENT_INSIGHTS: 'crystal_investment_insights'
@@ -73,6 +74,8 @@ const Investments: React.FC<InvestmentsProps> = ({
     const [contextMenu, setContextMenu] = useState<{ x: number, y: number, account: Account } | null>(null);
     const [isWatchlistModalOpen, setIsWatchlistModalOpen] = useState(false);
     const [accountToDelete, setAccountToDelete] = useState<Account | null>(null);
+    const [itemToDelete, setItemToDelete] = useState<{ id: string; isWarrant: boolean } | null>(null);
+    const [isUpdatingAllPrices, setIsUpdatingAllPrices] = useState(false);
 
     const twelveDataApiKey = usePreferencesSelector(p => p.twelveDataApiKey || '');
 
