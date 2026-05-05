@@ -29,8 +29,6 @@ const pageRegistry = {
   Subscriptions: { path: '/subscriptions', loader: () => import('./pages/Subscriptions') },
   'Quotes & Invoices': { path: '/invoices', loader: () => import('./pages/Invoices') },
   Merchants: { path: '/merchants', loader: () => import('./pages/Merchants') },
-  'AI Providers': { path: '/ai-providers', loader: () => import('./pages/AIProviders') },
-  'Predictive Cash Flow': { path: '/predictive-cashflow', loader: () => import('./pages/PredictiveCashFlow') },
 } as const;
 
 const Dashboard = lazy(pageRegistry.Dashboard.loader);
@@ -57,12 +55,10 @@ const Documentation = lazy(pageRegistry.Documentation.loader);
 const SubscriptionsPage = lazy(pageRegistry.Subscriptions.loader);
 const InvoicesPage = lazy(pageRegistry['Quotes & Invoices'].loader);
 const MerchantsPage = lazy(pageRegistry.Merchants.loader);
-const AIProvidersPage = lazy(pageRegistry['AI Providers'].loader);
-const PredictiveCashFlowPage = lazy(pageRegistry['Predictive Cash Flow'].loader);
 
 const pagePreloaders = Object.values(pageRegistry).map(entry => entry.loader);
 
-import { Page, Theme, Category, User, Transaction, Account, RecurringTransaction, RecurringTransactionOverride, WeekendAdjustment, FinancialGoal, Budget, ImportExportHistoryItem, AppPreferences, AccountType, InvestmentTransaction, Task, Warrant, ImportDataType, FinancialData, Currency, BillPayment, BillPaymentStatus, Duration, InvestmentSubType, Tag, LoanPaymentOverrides, ScheduledPayment, Membership, Invoice, UserStats, Prediction, PriceHistoryEntry, EnableBankingConnection, EnableBankingAccount, EnableBankingLinkPayload, EnableBankingSyncOptions, AssetClosureDetails, AIConfig } from './types';
+import { Page, Theme, Category, User, Transaction, Account, RecurringTransaction, RecurringTransactionOverride, WeekendAdjustment, FinancialGoal, Budget, ImportExportHistoryItem, AppPreferences, AccountType, InvestmentTransaction, Task, Warrant, ImportDataType, FinancialData, Currency, BillPayment, BillPaymentStatus, Duration, InvestmentSubType, Tag, LoanPaymentOverrides, ScheduledPayment, Membership, Invoice, UserStats, Prediction, PriceHistoryEntry, EnableBankingConnection, EnableBankingAccount, EnableBankingLinkPayload, EnableBankingSyncOptions, AssetClosureDetails } from './types';
 import { MOCK_INCOME_CATEGORIES, MOCK_EXPENSE_CATEGORIES, LIQUID_ACCOUNT_TYPES } from './constants';
 import { createDemoUser, emptyFinancialData, initialFinancialData } from './demoData';
 import { v4 as uuidv4 } from 'uuid';
@@ -78,8 +74,6 @@ import { AccountsProvider, PreferencesProvider, TransactionsProvider, WarrantsPr
 import { InsightsViewProvider } from './contexts/InsightsViewContext';
 import { persistPendingConnection, removePendingConnection } from './utils/enableBankingStorage';
 import { fetchAllExchangeRates } from './src/services/twelveDataService';
-import AIAssistant from './pages/AIAssistant';
-import { enrichTransactionsWithAI } from './src/services/geminiService';
 
 const IBAN_REGEX = /^[A-Z]{2}[0-9]{2}[A-Z0-9]{9,30}$/i;
 
@@ -351,7 +345,6 @@ const App: React.FC = () => {
   const [importExportHistory, setImportExportHistory] = useState<ImportExportHistoryItem[]>(emptyFinancialData.importExportHistory);
   const [billsAndPayments, setBillsAndPayments] = useState<BillPayment[]>(emptyFinancialData.billsAndPayments);
   const [invoices, setInvoices] = useState<Invoice[]>(emptyFinancialData.invoices || []);
-  const [aiConfig, setAiConfig] = useLocalStorage<AIConfig>('crystal_ai_config', { provider: 'gemini', model: 'gemini-1.5-flash' });
   const [tags, setTags] = useState<Tag[]>(emptyFinancialData.tags || []);
   const [userStats, setUserStats] = useState<UserStats>(emptyFinancialData.userStats || { currentStreak: 0, longestStreak: 0, lastLogDate: '' });
   const [predictions, setPredictions] = useState<Prediction[]>(emptyFinancialData.predictions || []);
@@ -1858,37 +1851,11 @@ const App: React.FC = () => {
         const allCategories = [...MOCK_INCOME_CATEGORIES, ...MOCK_EXPENSE_CATEGORIES, ...incomeCategories, ...expenseCategories];
 
         if (deduped.length > 0) {
-          // AI Enrichment for new transactions
-          const enrichmentResults = await enrichTransactionsWithAI(deduped, allCategories);
-          const enrichedDeduped = deduped.map(tx => {
-            const result = enrichmentResults.find(r => r.id === tx.id);
-            if (result) {
-              return {
-                ...tx,
-                merchant: result.merchant || tx.merchant,
-                category: (result.category && result.category !== 'Uncategorized') ? result.category : tx.category
-              };
-            }
-            return tx;
-          });
-          handleSaveTransaction(enrichedDeduped, [], { autoSpareChange: true });
+          handleSaveTransaction(deduped, [], { autoSpareChange: true });
         }
 
         if (toUpdate.length > 0) {
-          // enrichment for updated transactions if they lack clean merchant/category
-          const enrichmentResults = await enrichTransactionsWithAI(toUpdate, allCategories);
-          const enrichedToUpdate = toUpdate.map(tx => {
-            const result = enrichmentResults.find(r => r.id === tx.id);
-            if (result) {
-              return {
-                ...tx,
-                merchant: tx.merchant || result.merchant,
-                category: (tx.category === 'Uncategorized' && result.category !== 'Uncategorized') ? result.category : tx.category
-              };
-            }
-            return tx;
-          });
-          handleSaveTransaction(enrichedToUpdate);
+          handleSaveTransaction(toUpdate);
         }
       }
 
@@ -1943,22 +1910,7 @@ const App: React.FC = () => {
       else if (dataType === 'transactions') { 
         const allCategories = [...MOCK_INCOME_CATEGORIES, ...MOCK_EXPENSE_CATEGORIES, ...incomeCategories, ...expenseCategories];
         const txsWithImportId = items.map(t => ({ ...t, importId }));
-        
-        // Enrich with AI
-        const enrichmentResults = await enrichTransactionsWithAI(txsWithImportId, allCategories);
-        const enrichedItems = txsWithImportId.map((t, idx) => {
-          const res = enrichmentResults.find(r => r.id === (t.id || `temp-${idx}`));
-          if (res) {
-            return {
-              ...t,
-              merchant: t.merchant || res.merchant,
-              category: (t.category === 'Uncategorized' && res.category !== 'Uncategorized') ? res.category : t.category
-            };
-          }
-          return t;
-        });
-
-        handleSaveTransaction(enrichedItems, [], { autoSpareChange: true }); 
+        handleSaveTransaction(txsWithImportId, [], { autoSpareChange: true }); 
       }
       
       const details = `Imported ${items.length} ${dataType}${newAccountsArg?.length ? ` and created ${newAccountsArg.length} new accounts` : ''}.`;
@@ -2034,7 +1986,6 @@ const App: React.FC = () => {
       case 'Accounts': return <Accounts accounts={accounts} transactions={transactions} saveAccount={handleSaveAccount} deleteAccount={handleDeleteAccount} setCurrentPage={setCurrentPage} setViewingAccountId={setViewingAccountId} onViewAccount={handleOpenAccountDetail} saveTransaction={handleSaveTransaction} accountOrder={accountOrder} setAccountOrder={setAccountOrder} initialSortBy={preferences.defaultAccountOrder} warrants={warrants} onToggleAccountStatus={handleToggleAccountStatus} onNavigateToTransactions={navigateToTransactions} linkedEnableBankingAccountIds={linkedEnableBankingAccountIds} />;
       case 'Transactions': return <Transactions initialAccountFilter={transactionsViewFilters.current.accountName ?? null} initialTagFilter={transactionsViewFilters.current.tagId ?? null} onClearInitialFilters={clearPendingTransactionFilters} />;
       case 'Reports': return <ReportsPage />;
-      case 'AI Assistant': return <AIAssistant accounts={accounts} transactions={transactions} budgets={budgets} recurring={recurringTransactions} setCurrentPage={setCurrentPage} />;
       case 'Budget': return <Budgeting budgets={budgets} transactions={transactions} expenseCategories={expenseCategories} saveBudget={handleSaveBudget} deleteBudget={handleDeleteBudget} accounts={accounts} preferences={preferences} />;
       case 'Forecasting': return <Forecasting />;
       case 'Challenges': return <ChallengesPage userStats={userStats} accounts={accounts} transactions={transactions} predictions={predictions} savePrediction={handleSavePrediction} deletePrediction={handleDeletePrediction} saveUserStats={setUserStats} investmentTransactions={investmentTransactions} warrants={warrants} assetPrices={assetPrices} />;
@@ -2053,8 +2004,6 @@ const App: React.FC = () => {
       case 'Subscriptions': return <SubscriptionsPage />;
       case 'Quotes & Invoices': return <InvoicesPage />;
       case 'Merchants': return <MerchantsPage setCurrentPage={setCurrentPage} />;
-      case 'AI Providers': return <AIProvidersPage config={aiConfig} onUpdateConfig={setAiConfig} />;
-      case 'Predictive Cash Flow': return <PredictiveCashFlowPage transactions={transactions} accounts={accounts} recurringTransactions={recurringTransactions} />;
       default: return <div>Page not found</div>;
     }
   };

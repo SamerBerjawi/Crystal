@@ -119,9 +119,9 @@ const sections: Section[] = [
                 </p>
                 <ul className="space-y-3">
                     <li className="flex gap-3">
-                        <span className="material-symbols-outlined text-primary-500">auto_awesome</span>
+                        <span className="material-symbols-outlined text-primary-500">bolt</span>
                         <div>
-                            <strong>Auto Suggestions:</strong> Tap the "Auto-Calculate" button to analyze your last 3 months of spending and auto-generate realistic budget limits for each category.
+                            <strong>Quick Budgeting:</strong> Tap the "Quick Budget" button to analyze your last 3 months of spending and generate budget limits based on your history.
                         </div>
                     </li>
                     <li className="flex gap-3">

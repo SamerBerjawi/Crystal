@@ -5,7 +5,6 @@ import Card from '../components/Card';
 import { formatCurrency, convertToEur } from '../utils';
 import BudgetProgressCard from '../components/BudgetProgressCard';
 import BudgetModal from '../components/BudgetModal';
-import BudgetSuggestionsModal from '../components/AIBudgetSuggestionsModal';
 import QuickBudgetModal from '../components/QuickBudgetModal';
 import PageHeader from '../components/PageHeader';
 import { PieChart, Pie, Cell, ResponsiveContainer, Tooltip as RechartsTooltip, Legend } from 'recharts';
@@ -34,16 +33,6 @@ const Budgeting: React.FC<BudgetingProps> = ({ budgets, transactions, expenseCat
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [editingBudget, setEditingBudget] = useState<Budget | null>(null);
   const [categoryNameToCreate, setCategoryNameToCreate] = useState<string | undefined>();
-
-  // State for budget suggestions
-  const [isSuggestionModalOpen, setSuggestionModalOpen] = useState(false);
-  const [isGeneratingSuggestions, setIsGeneratingSuggestions] = useState(false);
-  const [suggestions, setSuggestions] = useState<BudgetSuggestion[]>(() => {
-    const cached = localStorage.getItem('crystal_budget_suggestions');
-    return cached ? JSON.parse(cached) : [];
-  });
-  const [suggestionError, setSuggestionError] = useState<string | null>(null);
-  const [lastSuggestedAt, setLastSuggestedAt] = useState<string | null>(() => localStorage.getItem('crystal_budget_suggestions_at'));
   const [isQuickBudgetModalOpen, setQuickBudgetModalOpen] = useState(false);
 
   const handleMonthChange = (offset: number) => {
@@ -54,78 +43,6 @@ const Budgeting: React.FC<BudgetingProps> = ({ budgets, transactions, expenseCat
     });
   };
   
-  const handleGenerateSuggestions = async () => {
-    setIsGeneratingSuggestions(true);
-    setSuggestionError(null);
-
-    try {
-        const threeMonthsAgo = new Date();
-        threeMonthsAgo.setMonth(threeMonthsAgo.getMonth() - 3);
-
-        const liquidAccountIds = new Set(
-            accounts.filter(acc => LIQUID_ACCOUNT_TYPES.includes(acc.type)).map(acc => acc.id)
-        );
-
-        const relevantTransactions = transactions.filter(t => {
-            const txDate = new Date(t.date);
-            return txDate >= threeMonthsAgo && t.type === 'expense' && !t.transferId && liquidAccountIds.has(t.accountId);
-        });
-        
-        const spendingByCategory: Record<string, number> = {};
-        for (const tx of relevantTransactions) {
-            const parentCategory = findParentCategory(tx.category, expenseCategories);
-            if (parentCategory) {
-                spendingByCategory[parentCategory.name] = (spendingByCategory[parentCategory.name] || 0) + Math.abs(convertToEur(tx.amount, tx.currency));
-            }
-        }
-        
-        const calculatedSuggestions = Object.entries(spendingByCategory).map(([categoryName, total]) => {
-            const avg = total / 3;
-            // Simple heuristic: Suggest budget slightly higher (10%) than average spending to account for variance
-            // rounded to nearest 5
-            const suggested = Math.ceil((avg * 1.1) / 5) * 5;
-            
-            return {
-                categoryName: categoryName,
-                averageSpending: parseFloat(avg.toFixed(2)),
-                suggestedBudget: suggested
-            };
-        }).filter(item => item.averageSpending > 0);
-
-        if (calculatedSuggestions.length === 0) {
-            setSuggestionError("Not enough spending data from the last 3 months to generate suggestions.");
-        } else {
-            const now = new Date().toISOString();
-            setSuggestions(calculatedSuggestions);
-            setLastSuggestedAt(now);
-            localStorage.setItem('crystal_budget_suggestions', JSON.stringify(calculatedSuggestions));
-            localStorage.setItem('crystal_budget_suggestions_at', now);
-        }
-
-    } catch (err: any) {
-        console.error("Error generating budget suggestions:", err);
-        setSuggestionError(err.message || "An error occurred while generating suggestions. Please try again.");
-    } finally {
-        setIsGeneratingSuggestions(false);
-        setSuggestionModalOpen(true);
-    }
-  };
-
-  const handleApplySuggestions = (selectedSuggestions: BudgetSuggestion[]) => {
-      selectedSuggestions.forEach(suggestion => {
-          const existingBudget = budgets.find(b => b.categoryName === suggestion.categoryName);
-          const budgetData = {
-              id: existingBudget?.id,
-              categoryName: suggestion.categoryName,
-              amount: suggestion.suggestedBudget,
-              period: 'monthly' as const,
-              currency: 'EUR' as const,
-          };
-          saveBudget(budgetData);
-      });
-      setSuggestionModalOpen(false);
-  };
-
   const handleApplyQuickBudget = (periodInMonths: number) => {
     const today = new Date();
     const endDate = new Date(today.getFullYear(), today.getMonth(), 0);
@@ -271,17 +188,6 @@ const Budgeting: React.FC<BudgetingProps> = ({ budgets, transactions, expenseCat
           expenseCategories={expenseCategories.filter(c => !c.parentId)}
         />
       )}
-      {isSuggestionModalOpen && (
-          <BudgetSuggestionsModal
-            isOpen={isSuggestionModalOpen}
-            onClose={() => setSuggestionModalOpen(false)}
-            suggestions={suggestions}
-            onApply={handleApplySuggestions}
-            isLoading={isGeneratingSuggestions}
-            error={suggestionError}
-            existingBudgets={budgets}
-          />
-      )}
       {isQuickBudgetModalOpen && (
         <QuickBudgetModal
           isOpen={isQuickBudgetModalOpen}
@@ -321,7 +227,7 @@ const Budgeting: React.FC<BudgetingProps> = ({ budgets, transactions, expenseCat
                         className={`${BTN_SECONDARY_STYLE} flex items-center gap-2 rounded-r-none !bg-transparent border-none hover:bg-black/5 dark:hover:bg-white/5 !px-3`}
                         title={`Create/update budgets based on the ${defaultQuickCreateOption.label}`}
                     >
-                        <span className="material-symbols-outlined text-lg text-primary-500">auto_awesome</span>
+                        <span className="material-symbols-outlined text-lg text-primary-500">bolt</span>
                         <span className="whitespace-nowrap">Quick Budget</span>
                     </button>
                     <div className="w-px bg-black/5 dark:bg-white/10 my-2"></div>
@@ -333,15 +239,6 @@ const Budgeting: React.FC<BudgetingProps> = ({ budgets, transactions, expenseCat
                         <span className="material-symbols-outlined text-lg">expand_more</span>
                     </button>
                 </div>
-                <button onClick={handleGenerateSuggestions} className={`${BTN_SECONDARY_STYLE} flex flex-col items-center !py-1 !px-3 gap-0.5 whitespace-nowrap`} disabled={isGeneratingSuggestions}>
-                    <div className="flex items-center gap-2">
-                        <span className="material-symbols-outlined text-lg text-purple-500">calculate</span>
-                        <span className="text-sm font-bold">{isGeneratingSuggestions ? 'Calculating...' : (suggestions.length > 0 ? 'Review Suggestions' : 'Auto-Calculate')}</span>
-                    </div>
-                    {lastSuggestedAt && !isGeneratingSuggestions && (
-                        <span className="text-[9px] opacity-60">Last updated {new Date(lastSuggestedAt).toLocaleDateString()}</span>
-                    )}
-                </button>
            </div>
       </div>
 

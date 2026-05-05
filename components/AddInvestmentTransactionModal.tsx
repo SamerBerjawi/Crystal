@@ -1,9 +1,12 @@
 
-import React, { useState, useEffect, useMemo } from 'react';
+import React, { useState, useEffect, useMemo, useCallback } from 'react';
 import Modal from './Modal';
-import { Account, InvestmentTransaction, Transaction, InvestmentSubType } from '../types';
+import { Account, InvestmentTransaction, Transaction, InvestmentSubType, HoldingSummary } from '../types';
 import { INPUT_BASE_STYLE, BTN_PRIMARY_STYLE, BTN_SECONDARY_STYLE, SELECT_WRAPPER_STYLE, SELECT_ARROW_STYLE, INVESTMENT_SUB_TYPES, ALL_ACCOUNT_TYPES } from '../constants';
 import { formatCurrency, toLocalISOString } from '../utils';
+import { usePreferencesSelector } from '../contexts/DomainProviders';
+import { fetchSymbolMetadata } from '../src/services/twelveDataService';
+import { useDebounce } from '../hooks/useDebounce';
 
 interface AddInvestmentTransactionModalProps {
   onClose: () => void;
@@ -11,10 +14,12 @@ interface AddInvestmentTransactionModalProps {
   accounts: Account[];
   cashAccounts: Account[];
   transactionToEdit?: InvestmentTransaction | null;
+  holdings?: HoldingSummary[];
 }
 
-const AddInvestmentTransactionModal: React.FC<AddInvestmentTransactionModalProps> = ({ onClose, onSave, accounts, cashAccounts, transactionToEdit }) => {
+const AddInvestmentTransactionModal: React.FC<AddInvestmentTransactionModalProps> = ({ onClose, onSave, accounts, cashAccounts, transactionToEdit, holdings }) => {
     const isEditing = !!transactionToEdit;
+    const twelveDataApiKey = usePreferencesSelector(p => p.twelveDataApiKey || '');
     
     const [type, setType] = useState<'buy' | 'sell'>(isEditing ? transactionToEdit.type : 'buy');
     const [symbol, setSymbol] = useState(isEditing ? transactionToEdit.symbol : '');
@@ -25,11 +30,30 @@ const AddInvestmentTransactionModal: React.FC<AddInvestmentTransactionModalProps
     const [createCashTx, setCreateCashTx] = useState(!isEditing);
     const [cashAccountId, setCashAccountId] = useState(cashAccounts.length > 0 ? cashAccounts[0].id : '');
     const [newAccountSubType, setNewAccountSubType] = useState<InvestmentSubType>('Stock');
+    const [isFetchingMetadata, setIsFetchingMetadata] = useState(false);
+    const [showSuggestions, setShowSuggestions] = useState(false);
+
+    const debouncedSymbol = useDebounce(symbol, 600);
+
+    const investmentAccounts = useMemo(() => 
+        accounts.filter(a => a.type === 'Investment' && a.symbol), 
+    [accounts]);
+
+    const activeHolding = useMemo(() => {
+        if (!symbol) return null;
+        if (holdings) {
+            const h = holdings.find(h => h.symbol?.toUpperCase() === symbol.toUpperCase());
+            if (h) return h;
+        }
+        return investmentAccounts.find(acc => acc.symbol?.toUpperCase() === symbol.toUpperCase());
+    }, [symbol, investmentAccounts, holdings]);
+
+    const currentQuantity = activeHolding ? (activeHolding.quantity ?? 0) : 0;
 
     const isNewSymbol = useMemo(() => {
         if (isEditing || !symbol) return false;
-        return !(accounts || []).some(acc => acc.symbol?.toUpperCase() === symbol.toUpperCase());
-    }, [symbol, accounts, isEditing]);
+        return !activeHolding;
+    }, [symbol, activeHolding, isEditing]);
 
     const groupedCashAccounts = useMemo(() => {
         const groups: Record<string, Account[]> = {};
@@ -40,17 +64,63 @@ const AddInvestmentTransactionModal: React.FC<AddInvestmentTransactionModalProps
         return groups;
     }, [cashAccounts]);
 
+    const filteredSuggestions = useMemo(() => {
+        if (!symbol || !showSuggestions) return [];
+        return investmentAccounts.filter(acc => 
+            acc.symbol?.toLowerCase().includes(symbol.toLowerCase()) || 
+            acc.name.toLowerCase().includes(symbol.toLowerCase())
+        ).slice(0, 5);
+    }, [symbol, investmentAccounts, showSuggestions]);
+
+    const mapTwelveDataType = (twType: string): InvestmentSubType => {
+        const t = twType.toLowerCase();
+        if (t.includes('etf')) return 'ETF';
+        if (t.includes('crypto')) return 'Crypto';
+        return 'Stock';
+    };
+
+    const fetchMetadata = useCallback(async (sym: string) => {
+        if (!sym || !twelveDataApiKey || isEditing) return;
+        
+        setIsFetchingMetadata(true);
+        try {
+            const metadata = await fetchSymbolMetadata(sym, twelveDataApiKey);
+            if (metadata) {
+                if (!name) setName(metadata.name);
+                setNewAccountSubType(mapTwelveDataType(metadata.type));
+            }
+        } catch (err) {
+            console.error('Failed to fetch symbol metadata', err);
+        } finally {
+            setIsFetchingMetadata(false);
+        }
+    }, [twelveDataApiKey, isEditing, name]);
+
+    useEffect(() => {
+        if (debouncedSymbol && isNewSymbol) {
+            fetchMetadata(debouncedSymbol);
+        }
+    }, [debouncedSymbol, isNewSymbol, fetchMetadata]);
+
     useEffect(() => {
         if (!isEditing && symbol && accounts) {
             const existingAccount = accounts.find(acc => acc.symbol?.toUpperCase() === symbol.toUpperCase());
             if (existingAccount) {
                 setName(existingAccount.name);
+                setNewAccountSubType(existingAccount.subType as InvestmentSubType || 'Stock');
             }
         }
     }, [symbol, accounts, isEditing]);
 
     const handleSubmit = (e: React.FormEvent) => {
         e.preventDefault();
+
+        const q = parseFloat(quantity);
+        if (type === 'sell' && activeHolding && q > currentQuantity) {
+            if (!window.confirm(`You are trying to sell ${q} units but you only have ${currentQuantity} units. Proceed anyway?`)) {
+                return;
+            }
+        }
         
         const invTxData: Omit<InvestmentTransaction, 'id'> & { id?: string } = {
             id: isEditing ? transactionToEdit.id : undefined,
@@ -143,7 +213,7 @@ const AddInvestmentTransactionModal: React.FC<AddInvestmentTransactionModalProps
                         <div className="absolute -top-3 left-6 px-2 bg-light-card dark:bg-dark-card text-[10px] font-bold text-gray-400 uppercase tracking-[0.2em] border border-black/5 dark:border-white/5 rounded-md">Asset Details</div>
 
                         {/* Symbol */}
-                        <div className="md:col-span-1">
+                        <div className="md:col-span-1 relative">
                             <label htmlFor="inv-symbol" className={labelStyle}>Symbol / Ticker</label>
                             <div className="relative group">
                                 <span className="material-symbols-outlined absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 text-lg group-focus-within:text-primary-500">search</span>
@@ -151,13 +221,46 @@ const AddInvestmentTransactionModal: React.FC<AddInvestmentTransactionModalProps
                                     id="inv-symbol" 
                                     type="text" 
                                     value={symbol} 
-                                    onChange={e => setSymbol(e.target.value)} 
+                                    onChange={e => {
+                                        setSymbol(e.target.value);
+                                        setShowSuggestions(true);
+                                    }} 
+                                    onFocus={() => setShowSuggestions(true)}
+                                    onBlur={() => setTimeout(() => setShowSuggestions(false), 200)}
                                     className={`${INPUT_BASE_STYLE} uppercase pl-10 font-mono h-11 tracking-widest`} 
                                     placeholder="Ticker..." 
                                     required 
                                     autoFocus 
                                 />
+                                {isFetchingMetadata && (
+                                    <div className="absolute right-3 top-1/2 -translate-y-1/2">
+                                        <div className="w-4 h-4 border-2 border-primary-500 border-t-transparent rounded-full animate-spin"></div>
+                                    </div>
+                                )}
                             </div>
+                            
+                            {/* Suggestions Dropdown */}
+                            {showSuggestions && filteredSuggestions.length > 0 && (
+                                <div className="absolute z-[100] w-full mt-1 bg-white/95 dark:bg-[#1E1E1E]/95 backdrop-blur-xl border border-black/10 dark:border-white/10 rounded-xl shadow-2xl overflow-hidden py-1">
+                                    <div className="px-3 py-1.5 text-[10px] font-bold text-gray-400 uppercase tracking-widest bg-gray-50/50 dark:bg-white/5">Your Holdings</div>
+                                    {filteredSuggestions.map(acc => (
+                                        <button
+                                            key={acc.id}
+                                            type="button"
+                                            className="w-full text-left px-4 py-2 hover:bg-primary-50 dark:hover:bg-primary-900/40 flex flex-col transition-colors group"
+                                            onClick={() => {
+                                                setSymbol(acc.symbol || '');
+                                                setName(acc.name);
+                                                setNewAccountSubType(acc.subType as InvestmentSubType || 'Stock');
+                                                setShowSuggestions(false);
+                                            }}
+                                        >
+                                            <span className="font-bold text-sm text-light-text dark:text-dark-text group-hover:text-primary-600 dark:group-hover:text-primary-400">{acc.symbol}</span>
+                                            <span className="text-xs text-light-text-secondary dark:text-dark-text-secondary truncate">{acc.name}</span>
+                                        </button>
+                                    ))}
+                                </div>
+                            )}
                         </div>
 
                         {/* Date */}
@@ -168,6 +271,45 @@ const AddInvestmentTransactionModal: React.FC<AddInvestmentTransactionModalProps
                                 <input id="inv-date" type="date" value={date} onChange={e => setDate(e.target.value)} className={`${INPUT_BASE_STYLE} pl-10 h-11`} required />
                             </div>
                         </div>
+
+                        {/* Balance Info for Sell */}
+                        {activeHolding && type === 'sell' && (
+                            <div className="md:col-span-2 p-4 bg-orange-50 dark:bg-orange-900/10 border border-orange-100 dark:border-orange-800/20 rounded-xl animate-fade-in-up">
+                                <div className="flex justify-between items-center">
+                                    <div className="flex items-center gap-2">
+                                        <span className="material-symbols-outlined text-orange-600 dark:text-orange-400 text-lg">inventory_2</span>
+                                        <span className="text-sm font-bold text-orange-800 dark:text-orange-300">Available Balance</span>
+                                    </div>
+                                    <div className="text-right">
+                                        <span className="text-lg font-bold text-orange-900 dark:text-orange-200">{currentQuantity.toLocaleString()}</span>
+                                        <span className="text-xs ml-1 text-orange-700 dark:text-orange-400 uppercase font-bold tracking-tight">Units</span>
+                                    </div>
+                                </div>
+                                <div className="mt-2 flex gap-2">
+                                    <button 
+                                        type="button" 
+                                        onClick={() => setQuantity(String(currentQuantity / 4))}
+                                        className="flex-1 py-1 text-[10px] font-bold bg-orange-100 dark:bg-orange-800/30 text-orange-700 dark:text-orange-300 rounded hover:bg-orange-200 dark:hover:bg-orange-800/50 transition-colors"
+                                    >
+                                        25%
+                                    </button>
+                                    <button 
+                                        type="button" 
+                                        onClick={() => setQuantity(String(currentQuantity / 2))}
+                                        className="flex-1 py-1 text-[10px] font-bold bg-orange-100 dark:bg-orange-800/30 text-orange-700 dark:text-orange-300 rounded hover:bg-orange-200 dark:hover:bg-orange-800/50 transition-colors"
+                                    >
+                                        50%
+                                    </button>
+                                    <button 
+                                        type="button" 
+                                        onClick={() => setQuantity(String(currentQuantity))}
+                                        className="flex-1 py-1 text-[10px] font-bold bg-orange-100 dark:bg-orange-800/30 text-orange-700 dark:text-orange-300 rounded hover:bg-orange-200 dark:hover:bg-orange-800/50 transition-colors"
+                                    >
+                                        100%
+                                    </button>
+                                </div>
+                            </div>
+                        )}
 
                         {/* New Asset Info */}
                         {isNewSymbol && (

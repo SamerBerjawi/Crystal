@@ -257,7 +257,7 @@ const BulkEditTransactionsModal: React.FC<BulkEditTransactionsModalProps> = ({
                         <span className="material-symbols-outlined ml-auto text-gray-400 text-lg pr-2 pointer-events-none">label_important</span>
                     </div>
                     {isTagSelectorOpen && (
-                        <div className="absolute bottom-full mb-2 left-0 w-full bg-light-card dark:bg-dark-card rounded-xl shadow-2xl border border-black/10 dark:border-white/10 z-[100] max-h-60 overflow-y-auto p-2">
+                        <div className="absolute bottom-full mb-2 left-0 w-full bg-white/95 dark:bg-[#1E1E1E]/95 backdrop-blur-xl rounded-xl shadow-2xl border border-black/10 dark:border-white/10 z-[100] max-h-60 overflow-y-auto p-2">
                             {tags.length > 0 ? tags.map(tag => (
                                 <label key={tag.id} className="flex items-center gap-3 p-2.5 rounded-lg hover:bg-black/5 dark:hover:bg-white/5 cursor-pointer transition-colors group">
                                     <input
@@ -267,12 +267,12 @@ const BulkEditTransactionsModal: React.FC<BulkEditTransactionsModalProps> = ({
                                         className={CHECKBOX_STYLE}
                                     />
                                     <div className="flex-1 flex justify-between items-center">
-                                       <span className="text-sm font-semibold group-hover:text-primary-600 transition-colors uppercase tracking-tight">{tag.name}</span>
+                                       <span className="text-sm font-semibold text-light-text dark:text-dark-text group-hover:text-primary-600 dark:group-hover:text-primary-400 transition-colors uppercase tracking-tight">{tag.name}</span>
                                        <div className="w-3 h-3 rounded-full shadow-sm" style={{ backgroundColor: tag.color }} />
                                     </div>
                                 </label>
                             )) : (
-                              <div className="p-4 text-center text-xs font-bold text-gray-400 uppercase tracking-widest">No tags found.</div>
+                              <div className="p-4 text-center text-xs font-bold text-gray-400 uppercase tracking-widest leading-loose">No tags found.<br/>Create one in Settings first.</div>
                             )}
                         </div>
                     )}

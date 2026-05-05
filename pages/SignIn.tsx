@@ -133,23 +133,23 @@ const SignIn: React.FC<SignInProps> = ({ onSignIn, onNavigateToSignUp, onEnterDe
                     <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-green-400 opacity-75"></span>
                     <span className="relative inline-flex rounded-full h-2 w-2 bg-green-500"></span>
                 </span>
-                Live AI Insights
+                Automated Insights
             </div>
             <h2 className="text-5xl font-bold mb-6 leading-tight">Clarity for your <br/><span className="text-transparent bg-clip-text bg-gradient-to-r from-primary-400 to-purple-400">Financial Future.</span></h2>
             <p className="text-lg text-gray-300 mb-10 leading-relaxed">
-                Stop guessing where your money goes. Crystal combines powerful tracking with AI forecasting to give you a clear vision of your wealth.
+                Stop guessing where your money goes. Crystal combines powerful tracking with granular forecasting to give you a clear vision of your wealth.
             </p>
             
             <div className="grid grid-cols-2 gap-6">
                 <div className="p-4 rounded-2xl bg-white/5 border border-white/10 backdrop-blur-sm">
                     <span className="material-symbols-outlined text-3xl text-primary-400 mb-2">show_chart</span>
-                    <h3 className="font-bold text-lg mb-1">Smart Forecasting</h3>
+                    <h3 className="font-bold text-lg mb-1">Advanced Forecasting</h3>
                     <p className="text-sm text-gray-400">Predict future balances based on recurring habits.</p>
                 </div>
                 <div className="p-4 rounded-2xl bg-white/5 border border-white/10 backdrop-blur-sm">
-                    <span className="material-symbols-outlined text-3xl text-purple-400 mb-2">smart_toy</span>
-                    <h3 className="font-bold text-lg mb-1">AI Assistant</h3>
-                    <p className="text-sm text-gray-400">Chat with your data to get instant financial answers.</p>
+                    <span className="material-symbols-outlined text-3xl text-purple-400 mb-2">account_balance</span>
+                    <h3 className="font-bold text-lg mb-1">Bank Connectivity</h3>
+                    <p className="text-sm text-gray-400">Sync with 2,500+ banks across Europe instantly.</p>
                 </div>
             </div>
         </div>

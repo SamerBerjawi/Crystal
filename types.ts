@@ -2,17 +2,13 @@
 
 import React, { Dispatch, SetStateAction } from 'react';
 
-// FIX: Remove 'AI Assistant' from Page type
-export type Page = 'Dashboard' | 'Accounts' | 'Transactions' | 'Budget' | 'Forecasting' | 'Predictive Cash Flow' | 'Settings' | 'Schedule & Bills' | 'Tasks' | 'Categories' | 'Tags' | 'Personal Info' | 'Data Management' | 'Preferences' | 'AccountDetail' | 'Investments' | 'HoldingDetail' | 'Documentation' | 'Subscriptions' | 'Quotes & Invoices' | 'Challenges' | 'Merchants' | 'Reports' | 'Integrations' | 'EnableBankingCallback' | 'AI Assistant' | 'AI Providers';
+// Financial data and page definitions
+export type Page = 'Dashboard' | 'Accounts' | 'Transactions' | 'Budget' | 'Forecasting' | 'Settings' | 'Schedule & Bills' | 'Tasks' | 'Categories' | 'Tags' | 'Personal Info' | 'Data Management' | 'Preferences' | 'AccountDetail' | 'Investments' | 'HoldingDetail' | 'Documentation' | 'Subscriptions' | 'Quotes & Invoices' | 'Challenges' | 'Merchants' | 'Reports' | 'Integrations' | 'EnableBankingCallback';
 
-export type AIProvider = 'gemini' | 'groq' | 'openrouter' | 'together';
-
-export interface AIConfig {
-    enabled?: boolean;
-    provider: AIProvider;
-    apiKey?: string; // Active API key (deprecated in favor of providerKeys)
-    model?: string;
-    providerKeys?: Record<AIProvider, string>; // Store keys for each provider
+export interface AccountTypeItem {
+    type: AccountType;
+    icon: string;
+    color: string;
 }
 
 export type AccountType = 'Checking' | 'Savings' | 'Credit Card' | 'Investment' | 'Loan' | 'Property' | 'Vehicle' | 'Other Assets' | 'Other Liabilities' | 'Lending';

@@ -31,17 +31,31 @@ export const buildHoldingsOverview = (
     [...investmentTransactions]
         .sort((a, b) => parseLocalDate(a.date).getTime() - parseLocalDate(b.date).getTime())
         .forEach(tx => {
+            if (!holdingsMap[tx.symbol]) {
+                holdingsMap[tx.symbol] = {
+                    symbol: tx.symbol,
+                    name: tx.symbol, // Use symbol as name if account not found
+                    quantity: 0,
+                    totalCost: 0,
+                    currentValue: 0,
+                    currentPrice: 0,
+                    type: 'Standard',
+                    subType: 'Stock'
+                };
+            }
             const holding = holdingsMap[tx.symbol];
-            if (!holding) return;
+            
+            const q = Number(tx.quantity) || 0;
+            const p = Number(tx.price) || 0;
 
             if (tx.type === 'buy') {
-                holding.quantity += tx.quantity;
-                holding.totalCost += tx.quantity * tx.price;
+                holding.quantity += q;
+                holding.totalCost += q * p;
             } else {
                 const avgCost = holding.quantity > 0 ? holding.totalCost / holding.quantity : 0;
-                holding.totalCost -= tx.quantity * avgCost;
-                holding.quantity -= tx.quantity;
-                if (holding.quantity < 0) {
+                holding.totalCost -= q * avgCost;
+                holding.quantity -= q;
+                if (holding.quantity < 0.000001) {
                     holding.quantity = 0;
                     holding.totalCost = 0;
                 } else if (holding.totalCost < 0) {
@@ -78,7 +92,8 @@ export const buildHoldingsOverview = (
         h.currentValue = h.quantity * price;
     });
 
-    const filteredHoldings = Object.values(holdingsMap).filter(h => h.quantity > 0.000001);
+    const holdings = Object.values(holdingsMap);
+    const filteredHoldings = holdings.filter(h => h.quantity > 0.000001 || h.type === 'Warrant');
     const totalValue = filteredHoldings.reduce((sum, h) => sum + h.currentValue, 0);
 
     let investedCapital = 0;
@@ -122,7 +137,7 @@ export const buildHoldingsOverview = (
         .sort((a, b) => b.value - a.value);
 
     return {
-        holdings: filteredHoldings,
+        holdings,
         totalValue,
         totalCostBasis,
         investedCapital,

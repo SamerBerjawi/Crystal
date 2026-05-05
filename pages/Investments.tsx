@@ -1,12 +1,11 @@
 
-import React, { useState, useMemo, useCallback, useEffect } from 'react';
+import React, { useMemo, useState, useCallback, useEffect } from 'react';
 import { Account, InvestmentTransaction, Transaction, Warrant, InvestmentSubType, HoldingsOverview } from '../types';
-import { BTN_PRIMARY_STYLE, BRAND_COLORS, BTN_SECONDARY_STYLE, INVESTMENT_SUB_TYPE_STYLES } from '../constants';
+import { BTN_PRIMARY_STYLE, BTN_SECONDARY_STYLE, INVESTMENT_SUB_TYPE_STYLES } from '../constants';
 import Card from '../components/Card';
 import { formatCurrency, parseLocalDate, toLocalISOString } from '../utils';
 import AddInvestmentTransactionModal from '../components/AddInvestmentTransactionModal';
 import EditAccountModal from '../components/EditAccountModal';
-import PortfolioDistributionChart from '../components/PortfolioDistributionChart';
 import WarrantModal from '../components/WarrantModal';
 import WarrantPriceModal from '../components/WarrantPriceModal';
 import { PieChart, Pie, Cell, ResponsiveContainer, Tooltip } from 'recharts';
@@ -14,22 +13,11 @@ import { buildHoldingsOverview } from '../utils/investments';
 import PageHeader from '../components/PageHeader';
 import AccountsListSection from '../components/AccountsListSection';
 import { usePreferencesSelector } from '../contexts/DomainProviders';
-import { getInvestmentAnalysis } from '../src/services/geminiService';
-import { RefreshCw } from 'lucide-react';
+import ConfirmationModal from '../components/ConfirmationModal';
 
 const CACHE_KEYS = {
   INVESTMENT_INSIGHTS: 'crystal_investment_insights'
 };
-
-interface InvestmentInsight {
-    sentiment: 'Positive' | 'Neutral' | 'Negative';
-    score: number;
-    summary: string;
-    marketContext: string;
-    keyRisks: string[];
-    opportunities: string[];
-    updatedAt?: string;
-}
 
 interface InvestmentsProps {
     accounts: Account[];
@@ -53,27 +41,7 @@ interface InvestmentsProps {
     onViewAccount?: (accountId: string) => void;
 }
 
-// Helper components for the redesign
-const MetricCard: React.FC<{ label: string; value: string; subValue?: string; subLabel?: string; trend?: 'up' | 'down' | 'neutral'; icon?: string; colorClass?: string }> = ({ label, value, subValue, subLabel, trend, icon, colorClass = "bg-white dark:bg-dark-card" }) => (
-    <div className={`p-5 rounded-2xl shadow-sm border border-black/5 dark:border-white/5 flex flex-col justify-between ${colorClass}`}>
-        <div className="flex justify-between items-start mb-2">
-            <span className="text-xs font-bold uppercase tracking-wider opacity-70">{label}</span>
-            {icon && <span className="material-symbols-outlined opacity-80">{icon}</span>}
-        </div>
-        <div>
-            <div className="text-2xl font-bold tracking-tight">{value}</div>
-            {subValue && (
-                <div className={`text-sm font-medium mt-1 flex items-center gap-1 ${trend === 'up' ? 'text-green-600 dark:text-green-400' : trend === 'down' ? 'text-red-600 dark:text-red-400' : 'opacity-70'}`}>
-                    {trend === 'up' && <span className="material-symbols-outlined text-xs">trending_up</span>}
-                    {trend === 'down' && <span className="material-symbols-outlined text-xs">trending_down</span>}
-                    <span>{subValue}</span>
-                    {subLabel && <span className="text-xs opacity-70 ml-1 text-light-text dark:text-dark-text font-normal">{subLabel}</span>}
-                </div>
-            )}
-        </div>
-    </div>
-);
-
+// Investments main component
 const Investments: React.FC<InvestmentsProps> = ({
     accounts,
     cashAccounts,
@@ -103,13 +71,9 @@ const Investments: React.FC<InvestmentsProps> = ({
     const [editingPriceItem, setEditingPriceItem] = useState<{ symbol: string; name: string; currentPrice: number | null } | null>(null);
     const [isAccountModalOpen, setAccountModalOpen] = useState(false);
     const [contextMenu, setContextMenu] = useState<{ x: number, y: number, account: Account } | null>(null);
-    const [isUpdatingAllPrices, setIsUpdatingAllPrices] = useState(false);
-    const [investmentInsights, setInvestmentInsights] = useState<InvestmentInsight | null>(() => {
-        const cached = localStorage.getItem(CACHE_KEYS.INVESTMENT_INSIGHTS);
-        return cached ? JSON.parse(cached) : null;
-    });
-    const [isInsightsLoading, setIsInsightsLoading] = useState(false);
-    const [insightsError, setInsightsError] = useState<string | null>(null);
+    const [isWatchlistModalOpen, setIsWatchlistModalOpen] = useState(false);
+    const [accountToDelete, setAccountToDelete] = useState<Account | null>(null);
+
     const twelveDataApiKey = usePreferencesSelector(p => p.twelveDataApiKey || '');
 
     // Include only Stocks, ETFs, Crypto for the Investments page
@@ -122,45 +86,19 @@ const Investments: React.FC<InvestmentsProps> = ({
     const [showInactiveHoldings, setShowInactiveHoldings] = useState(false);
 
     const activeOverview = useMemo(() => buildHoldingsOverview(activeInvestmentAccounts, investmentTransactions, warrants, prices), [activeInvestmentAccounts, investmentTransactions, warrants, prices]);
-    const { holdings: activeHoldings, totalValue, totalCostBasis, investedCapital, grantedCapital, distributionData, typeBreakdown } = activeOverview;
-
-    const fetchInsights = useCallback(async (force = false) => {
-        if (activeHoldings.length === 0 || isInsightsLoading) return;
-        if (investmentInsights && !force) return;
-
-        setIsInsightsLoading(true);
-        setInsightsError(null);
-        try {
-            const result = await getInvestmentAnalysis(activeHoldings);
-            if (result) {
-                const dataWithTimestamp = { ...result, updatedAt: new Date().toISOString() };
-                setInvestmentInsights(dataWithTimestamp as unknown as InvestmentInsight);
-                localStorage.setItem(CACHE_KEYS.INVESTMENT_INSIGHTS, JSON.stringify(dataWithTimestamp));
-            }
-        } catch (err) {
-            console.error('Failed to fetch investment insights:', err);
-            setInsightsError('Could not load AI investment analysis.');
-        } finally {
-            setIsInsightsLoading(false);
-        }
-    }, [activeHoldings, investmentInsights, isInsightsLoading]);
-
-    useEffect(() => {
-        if (!investmentInsights) {
-            fetchInsights();
-        }
-    }, [fetchInsights, investmentInsights]);
+    const { holdings: allActiveHoldings, totalValue, totalCostBasis, investedCapital, grantedCapital, distributionData, typeBreakdown } = activeOverview;
+    const activeHoldings = useMemo(() => allActiveHoldings.filter(h => h.quantity > 0.000001 || h.type === 'Warrant'), [allActiveHoldings]);
 
     const displayHoldings = useMemo(
         () => {
-            const holdings = buildHoldingsOverview(investmentAccounts, investmentTransactions, warrants, prices).holdings;
+            const allHoldings = buildHoldingsOverview(investmentAccounts, investmentTransactions, warrants, prices).holdings;
             if (showInactiveHoldings) {
-                return holdings;
+                return allHoldings;
             }
-            const activeSymbols = new Set(activeInvestmentAccounts.map(account => account.symbol));
-            return holdings.filter(holding => activeSymbols.has(holding.symbol));
+            // By default only show things we currently own or are active warrants
+            return allHoldings.filter(h => h.quantity > 0.000001 || h.type === 'Warrant');
         },
-        [activeInvestmentAccounts, investmentAccounts, investmentTransactions, warrants, prices, showInactiveHoldings]
+        [investmentAccounts, investmentTransactions, warrants, prices, showInactiveHoldings]
     );
 
     const accountBySymbol = useMemo(() => {
@@ -389,6 +327,7 @@ const Investments: React.FC<InvestmentsProps> = ({
                     accounts={accounts}
                     cashAccounts={cashAccounts}
                     transactionToEdit={editingTransaction}
+                    holdings={activeHoldings}
                 />
             )}
             {isWarrantModalOpen && (
@@ -403,10 +342,8 @@ const Investments: React.FC<InvestmentsProps> = ({
                     onClose={() => setAccountModalOpen(false)}
                     onSave={(account) => { saveAccount(account); setAccountModalOpen(false); }}
                     onDelete={(accountId) => {
-                        const account = accounts.find(acc => acc.id === accountId);
-                        if (account && window.confirm(`Are you sure you want to delete ${account.name}? This will remove all associated data.`)) {
-                            deleteAccount(accountId);
-                        }
+                        const acc = accounts.find(a => a.id === accountId);
+                        if (acc) setAccountToDelete(acc);
                         setAccountModalOpen(false);
                     }}
                     account={editingAccount}
@@ -424,453 +361,272 @@ const Investments: React.FC<InvestmentsProps> = ({
                     manualPrice={manualPrices[editingPriceItem.symbol]}
                 />
             )}
+
+            <ConfirmationModal
+                isOpen={!!accountToDelete}
+                onClose={() => setAccountToDelete(null)}
+                onConfirm={() => {
+                    if (accountToDelete) {
+                        deleteAccount(accountToDelete.id);
+                        setAccountToDelete(null);
+                    }
+                }}
+                title="Delete Account"
+                message={`Are you sure you want to delete ${accountToDelete?.name}? This will remove all associated transactions and data. This action cannot be undone.`}
+                confirmButtonText="Delete Account"
+            />
+            
+            <ConfirmationModal
+                isOpen={!!itemToDelete}
+                onClose={() => setItemToDelete(null)}
+                onConfirm={() => {
+                    if (itemToDelete) {
+                        if (itemToDelete.isWarrant) {
+                            deleteWarrant(itemToDelete.id);
+                        } else {
+                            deleteInvestmentTransaction(itemToDelete.id);
+                        }
+                        setItemToDelete(null);
+                    }
+                }}
+                title="Delete Activity"
+                message="Are you sure you want to delete this activity? This will recalculate your holdings basis."
+                confirmButtonText="Delete"
+            />
+
+            {isWatchlistModalOpen && (
+                <Modal onClose={() => setIsWatchlistModalOpen(false)} title="Manage Watchlist" size="lg">
+                    <div className="p-8 text-center space-y-4">
+                        <div className="w-16 h-16 bg-primary-100 dark:bg-primary-900/30 text-primary-600 dark:text-primary-400 rounded-full flex items-center justify-center mx-auto">
+                            <span className="material-symbols-outlined text-3xl">visibility</span>
+                        </div>
+                        <h3 className="text-xl font-bold dark:text-white">Watchlist feature coming soon</h3>
+                        <p className="text-light-text-secondary dark:text-dark-text-secondary max-w-sm mx-auto">
+                            We're building a powerful watchlist with real-time alerts and research integration. Stay tuned!
+                        </p>
+                        <button onClick={() => setIsWatchlistModalOpen(false)} className={`${BTN_PRIMARY_STYLE} px-8`}>Close</button>
+                    </div>
+                </Modal>
+            )}
             
             <PageHeader
                 markerIcon="finance_chip"
-                markerLabel="Portfolio Lab"
-                title="Investments"
-                subtitle="Performance, risk, and allocation snapshots with drill-downs into holdings and transactions. Values shown in EUR."
+                markerLabel="Investment Dashboard"
+                title="Portfolio"
+                subtitle="High-density overview of your holdings, performance metrics, and market exposure."
                 actions={
                     <div className="flex gap-3">
+                        <button onClick={() => handleUpdateAllPrices()} disabled={isUpdatingAllPrices} className={`${BTN_SECONDARY_STYLE} flex items-center gap-2`}>
+                             <span className={`material-symbols-outlined text-lg ${isUpdatingAllPrices ? 'animate-spin' : ''}`}>sync</span>
+                             Update Prices
+                        </button>
                         <button onClick={() => handleOpenWarrantModal()} className={`${BTN_SECONDARY_STYLE} flex items-center gap-2`}>
                              <span className="material-symbols-outlined text-lg">card_membership</span>
                              Add Grant
                         </button>
                         <button onClick={() => handleOpenModal()} className={`${BTN_PRIMARY_STYLE} flex items-center gap-2`}>
                             <span className="material-symbols-outlined text-lg">add</span>
-                            Add Transaction
+                            Trade
                         </button>
                     </div>
                 }
             />
 
-            {/* Hero Metrics Section */}
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-                <div className="md:col-span-2 bg-gradient-to-br from-primary-600 to-primary-800 dark:from-primary-800 dark:to-primary-900 rounded-3xl p-8 text-white shadow-xl relative overflow-hidden">
-                    <div className="absolute top-0 right-0 p-8 opacity-10 pointer-events-none">
-                        <span className="material-symbols-outlined text-9xl">monitoring</span>
+            {/* Performance Bar */}
+            <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
+                <Card className="!p-4 border-l-4 border-primary-500">
+                    <p className="text-[10px] font-bold text-gray-400 uppercase tracking-widest mb-1">Portfolio Value</p>
+                    <div className="flex items-baseline gap-2">
+                        <h4 className="text-2xl font-bold dark:text-white privacy-blur">{formatCurrency(totalValue, 'EUR')}</h4>
+                        <span className={`text-[10px] font-bold px-1.5 py-0.5 rounded ${totalGainLoss >= 0 ? 'bg-green-100 text-green-700 dark:bg-green-900/40 dark:text-green-300' : 'bg-red-100 text-red-700 dark:bg-red-900/40 dark:text-red-300'}`}>
+                            {totalGainLossPercent >= 0 ? '+' : ''}{totalGainLossPercent.toFixed(1)}%
+                        </span>
                     </div>
-                    <div className="relative z-10 flex flex-col h-full justify-between">
-                        <div>
-                            <p className="text-white/70 font-bold uppercase tracking-wider text-sm mb-2">Total Portfolio Value</p>
-                            <h2 className="text-5xl font-bold tracking-tight privacy-blur">{formatCurrency(totalValue, 'EUR')}</h2>
-                        </div>
-                        <div className="mt-8 flex flex-wrap gap-8">
-                            <div>
-                                <p className="text-white/70 text-xs font-bold uppercase mb-1">Total Return</p>
-                                <p className="text-2xl font-semibold flex items-center gap-2 privacy-blur">
-                                    {totalGainLoss >= 0 ? '+' : ''}{formatCurrency(totalGainLoss, 'EUR')}
-                                    <span className={`text-sm px-2 py-0.5 rounded-full bg-white/20 backdrop-blur-md font-bold ${totalGainLoss >= 0 ? 'text-green-300' : 'text-red-300'}`}>
-                                        {totalGainLoss >= 0 ? '▲' : '▼'} {Math.abs(totalGainLossPercent).toFixed(2)}%
-                                    </span>
-                                </p>
-                            </div>
-                            <div>
-                                <p className="text-white/70 text-xs font-bold uppercase mb-1">Invested</p>
-                                <p className="text-2xl font-semibold opacity-90 privacy-blur">{formatCurrency(investedCapital, 'EUR')}</p>
-                            </div>
-                            <div>
-                                <p className="text-white/70 text-xs font-bold uppercase mb-1">Granted</p>
-                                <p className="text-2xl font-semibold opacity-90 privacy-blur">{formatCurrency(grantedCapital, 'EUR')}</p>
-                            </div>
-                        </div>
+                </Card>
+                <Card className="!p-4 overflow-hidden">
+                    <p className="text-[10px] font-bold text-gray-400 uppercase tracking-widest mb-1">Net Flow / PnL</p>
+                    <h4 className={`text-2xl font-bold privacy-blur ${totalGainLoss >= 0 ? 'text-green-600 dark:text-green-400' : 'text-red-600 dark:text-red-400'}`}>
+                        {totalGainLoss >= 0 ? '+' : ''}{formatCurrency(totalGainLoss, 'EUR')}
+                    </h4>
+                </Card>
+                <Card className="!p-4">
+                    <p className="text-[10px] font-bold text-gray-400 uppercase tracking-widest mb-1">Invested Capital</p>
+                    <h4 className="text-2xl font-bold dark:text-white privacy-blur">{formatCurrency(investedCapital, 'EUR')}</h4>
+                </Card>
+                <Card className="!p-4">
+                    <div className="flex justify-between items-center mb-1">
+                        <p className="text-[10px] font-bold text-gray-400 uppercase tracking-widest">Holdings</p>
+                        <span className="material-symbols-outlined text-sm text-primary-500">data_thresholding</span>
                     </div>
-                </div>
-
-                <div className="flex flex-col gap-6">
-                    <Card className="flex-1 flex flex-col justify-center relative overflow-hidden">
-                         <div className="flex items-center justify-between">
-                            <div>
-                                <p className="text-light-text-secondary dark:text-dark-text-secondary font-bold text-xs uppercase tracking-wider mb-1">Top Asset Class</p>
-                                <p className="text-2xl font-bold text-light-text dark:text-dark-text">{typeBreakdown[0]?.name || '—'}</p>
-                                <p className="text-sm text-light-text-secondary dark:text-dark-text-secondary mt-1">
-                                    {typeBreakdown[0] ? `${formatPercent(typeBreakdown[0].value, 1)}% of Portfolio` : ''}
-                                </p>
-                            </div>
-                             <div className="w-12 h-12 rounded-full bg-blue-100 dark:bg-blue-900/30 text-blue-600 dark:text-blue-400 flex items-center justify-center">
-                                <span className="material-symbols-outlined text-2xl">pie_chart</span>
-                            </div>
-                         </div>
-                    </Card>
-                     <Card className="flex-1 flex flex-col justify-center relative overflow-hidden">
-                         <div className="flex items-center justify-between">
-                            <div>
-                                <p className="text-light-text-secondary dark:text-dark-text-secondary font-bold text-xs uppercase tracking-wider mb-1">Total Holdings</p>
-                                <p className="text-2xl font-bold text-light-text dark:text-dark-text">{activeHoldings.length}</p>
-                                <p className="text-sm text-light-text-secondary dark:text-dark-text-secondary mt-1">Active positions</p>
-                            </div>
-                            <div className="w-12 h-12 rounded-full bg-purple-100 dark:bg-purple-900/30 text-purple-600 dark:text-purple-400 flex items-center justify-center">
-                                <span className="material-symbols-outlined text-2xl">layers</span>
-                            </div>
-                         </div>
-                    </Card>
-                </div>
+                    <div className="flex items-center gap-2">
+                        <h4 className="text-2xl font-bold dark:text-white">{activeHoldings.length}</h4>
+                        <span className="text-[10px] text-gray-500 uppercase font-bold tracking-tight">Active positions</span>
+                    </div>
+                </Card>
             </div>
 
-            {/* AI Insights & Main Content Split */}
-            <div className="grid grid-cols-1 xl:grid-cols-4 gap-8">
-                {/* AI Sentiment Analysis Sidebar */}
-                <div className="xl:col-span-1 space-y-6">
-                    <Card className="relative overflow-hidden bg-gradient-to-br from-indigo-500/5 to-purple-500/5 border-primary-500/20 shadow-lg">
-                        <div className="flex items-center justify-between mb-6">
-                            <div className="flex items-center gap-2">
-                                <div className="w-8 h-8 rounded-lg bg-primary-500 flex items-center justify-center text-white">
-                                    <span className="material-symbols-outlined text-[20px] animate-pulse">auto_awesome</span>
-                                </div>
-                                <h3 className="font-bold text-lg text-light-text dark:text-dark-text">AI Investment Analyst</h3>
+            <div className="grid grid-cols-1 xl:grid-cols-12 gap-8 items-start">
+                {/* Main Table Column */}
+                <div className="xl:col-span-8 space-y-8">
+                    <Card className="!p-0 overflow-hidden border-none shadow-sm">
+                        <div className="px-6 py-5 flex justify-between items-center border-b border-black/5 dark:border-white/5 bg-gray-50/50 dark:bg-white/5">
+                            <div className="flex items-center gap-3">
+                                <span className="material-symbols-outlined text-primary-500">list_alt</span>
+                                <h3 className="font-bold text-light-text dark:text-dark-text">Assets & Holdings</h3>
                             </div>
-                            <button 
-                                onClick={() => fetchInsights(true)}
-                                disabled={isInsightsLoading}
-                                className="p-1.5 rounded-lg hover:bg-black/5 dark:hover:bg-white/5 text-light-text-secondary dark:text-dark-text-secondary transition-colors"
-                                title="Refresh Analysis"
-                            >
-                                <RefreshCw className={`w-4 h-4 ${isInsightsLoading ? 'animate-spin text-primary-500' : ''}`} />
-                            </button>
+                            <label className="flex items-center gap-2 text-[10px] font-bold uppercase tracking-widest text-light-text-secondary dark:text-dark-text-secondary cursor-pointer hover:opacity-80">
+                                <input
+                                    type="checkbox"
+                                    checked={showInactiveHoldings}
+                                    onChange={(event) => setShowInactiveHoldings(event.target.checked)}
+                                    className="rounded border-gray-300 text-primary-600 focus:ring-primary-500"
+                                />
+                                Show inactive
+                            </label>
                         </div>
-
-                        {investmentInsights?.updatedAt && (
-                            <div className="text-[10px] text-gray-400 font-medium mb-4 -mt-4">
-                                Last updated {new Date(investmentInsights.updatedAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
-                            </div>
-                        )}
-
-                        {isInsightsLoading ? (
-                             <div className="space-y-6 animate-pulse">
-                                 <div className="h-4 bg-black/10 dark:bg-white/10 rounded w-3/4"></div>
-                                 <div className="h-20 bg-black/10 dark:bg-white/10 rounded"></div>
-                                 <div className="h-24 bg-black/10 dark:bg-white/10 rounded"></div>
-                             </div>
-                        ) : insightsError ? (
-                            <div className="text-center py-8">
-                                <span className="material-symbols-outlined text-4xl text-red-500/50 mb-2">sentiment_dissatisfied</span>
-                                <p className="text-sm text-light-text-secondary dark:text-dark-text-secondary">{insightsError}</p>
-                                <button onClick={() => setInvestmentInsights(null)} className="mt-4 text-xs font-bold text-primary-500 hover:underline">Retry Analysis</button>
-                            </div>
-                        ) : investmentInsights ? (
-                            <div className="space-y-6">
-                                {/* Sentiment Score */}
-                                <div>
-                                    <div className="flex justify-between items-end mb-2">
-                                        <span className="text-xs font-bold uppercase text-gray-500 dark:text-gray-400">Portfolio Sentiment</span>
-                                        <span className={`text-sm font-black ${
-                                            investmentInsights.sentiment === 'Positive' ? 'text-green-500' : 
-                                            investmentInsights.sentiment === 'Negative' ? 'text-red-500' : 'text-blue-500'
-                                        }`}>
-                                            {investmentInsights.sentiment} ({investmentInsights.score}/100)
-                                        </span>
-                                    </div>
-                                    <div className="w-full h-2 bg-black/10 dark:bg-white/10 rounded-full overflow-hidden">
-                                        <div 
-                                            className={`h-full transition-all duration-1000 ${
-                                                investmentInsights.sentiment === 'Positive' ? 'bg-green-500' : 
-                                                investmentInsights.sentiment === 'Negative' ? 'bg-red-500' : 'bg-blue-500'
-                                            }`}
-                                            style={{ width: `${investmentInsights.score}%` }}
-                                        ></div>
-                                    </div>
-                                </div>
-
-                                {/* Summary */}
-                                <div className="p-3 rounded-xl bg-primary-500/5 border border-primary-500/10">
-                                    <p className="text-sm leading-relaxed text-light-text dark:text-dark-text italic font-medium">
-                                        "{investmentInsights.summary}"
-                                    </p>
-                                </div>
-
-                                {/* Market Context */}
-                                <div className="space-y-2">
-                                    <p className="text-[10px] font-bold text-gray-400 uppercase tracking-widest">Market Context</p>
-                                    <p className="text-xs text-light-text-secondary dark:text-dark-text-secondary leading-relaxed">
-                                        {investmentInsights.marketContext}
-                                    </p>
-                                </div>
-
-                                {/* Opportunity/Risk */}
-                                <div className="grid grid-cols-1 gap-4">
-                                    <div className="space-y-2">
-                                        <p className="text-[10px] font-bold text-green-500 uppercase tracking-widest flex items-center gap-1">
-                                            <span className="material-symbols-outlined text-[12px]">trending_up</span>
-                                            Top Opportunities
-                                        </p>
-                                        <ul className="space-y-1">
-                                            {investmentInsights.opportunities.map((opt, i) => (
-                                                <li key={i} className="text-[11px] text-light-text dark:text-dark-text flex items-start gap-2">
-                                                    <span className="w-1 h-1 rounded-full bg-green-500 mt-1.5 flex-shrink-0"></span>
-                                                    {opt}
-                                                </li>
-                                            ))}
-                                        </ul>
-                                    </div>
-                                    <div className="space-y-2">
-                                        <p className="text-[10px] font-bold text-red-500 uppercase tracking-widest flex items-center gap-1">
-                                            <span className="material-symbols-outlined text-[12px]">warning</span>
-                                            Key Risks
-                                        </p>
-                                        <ul className="space-y-1">
-                                            {investmentInsights.keyRisks.map((risk, i) => (
-                                                <li key={i} className="text-[11px] text-light-text dark:text-dark-text flex items-start gap-2">
-                                                    <span className="w-1 h-1 rounded-full bg-red-500 mt-1.5 flex-shrink-0"></span>
-                                                    {risk}
-                                                </li>
-                                            ))}
-                                        </ul>
-                                    </div>
-                                </div>
-                                
-                                <p className="text-[10px] text-gray-400 italic pt-2 border-t border-black/5 dark:border-white/5">
-                                    AI analysis is based on your current holdings and real-time market sentiment. Not financial advice.
-                                </p>
-                            </div>
-                        ) : (
-                            <div className="text-center py-8">
-                                <p className="text-sm text-light-text-secondary dark:text-dark-text-secondary mb-4">No analysis available.</p>
-                                <button 
-                                    onClick={() => setInvestmentInsights(null)}
-                                    className={BTN_SECONDARY_STYLE}
-                                >
-                                    Analyze Portfolio
-                                </button>
-                            </div>
-                        )}
-                    </Card>
-
-                    {/* Distribution Small View */}
-                    <Card className="hidden xl:block">
-                        <h4 className="font-bold text-sm text-light-text dark:text-dark-text mb-4">Allocation</h4>
-                        <div className="h-48">
-                            <ResponsiveContainer width="100%" height="100%">
-                                <PieChart>
-                                    <Pie data={distributionData} cx="50%" cy="50%" innerRadius={40} outerRadius={60} paddingAngle={5} dataKey="value">
-                                        {distributionData.map((entry, index) => (
-                                            <Cell key={`cell-${index}`} fill={entry.color} />
-                                        ))}
-                                    </Pie>
-                                    <Tooltip contentStyle={{ backgroundColor: 'transparent', border: 'none', borderRadius: '12px' }} itemStyle={{ fontSize: '12px', fontWeight: 'bold' }} />
-                                </PieChart>
-                            </ResponsiveContainer>
-                        </div>
-                        <div className="space-y-2 mt-4">
-                            {distributionData.slice(0, 4).map((entry, idx) => (
-                                <div key={idx} className="flex items-center justify-between text-xs">
-                                    <div className="flex items-center gap-2">
-                                        <div className="w-2 h-2 rounded-full" style={{ backgroundColor: entry.color }}></div>
-                                        <span className="text-light-text-secondary dark:text-dark-text-secondary truncate max-w-[100px]">{entry.name}</span>
-                                    </div>
-                                    <span className="font-bold text-light-text dark:text-dark-text">{formatPercent(entry.value, 1)}%</span>
-                                </div>
-                            ))}
-                        </div>
-                    </Card>
-                </div>
-
-                {/* Right Column: Holdings Table & Charts */}
-                <div className="xl:col-span-3 space-y-8">
-                    <Card className="overflow-hidden">
-                        <div className="flex flex-wrap justify-between items-center mb-6 gap-3">
-                             <h3 className="text-lg font-bold text-light-text dark:text-dark-text">Your Holdings</h3>
-                             <div className="flex items-center gap-4">
-                                <button
-                                    onClick={handleUpdateAllPrices}
-                                    disabled={isUpdatingAllPrices || displayHoldings.length === 0}
-                                    className={`${BTN_SECONDARY_STYLE} !py-2 !px-3 text-xs font-semibold disabled:opacity-60 disabled:cursor-not-allowed`}
-                                >
-                                    {isUpdatingAllPrices ? 'Updating…' : 'Update Prices'}
-                                </button>
-                                <label className="flex items-center gap-2 text-xs font-semibold uppercase tracking-wide text-light-text-secondary dark:text-dark-text-secondary">
-                                    <input
-                                        type="checkbox"
-                                        checked={showInactiveHoldings}
-                                        onChange={(event) => setShowInactiveHoldings(event.target.checked)}
-                                        className="rounded border-gray-300 text-primary-600 focus:ring-primary-500"
-                                    />
-                                    Show inactive
-                                </label>
-                             </div>
-                        </div>
-                        <div className="overflow-x-auto -mx-6 px-6">
+                        <div className="overflow-x-auto">
                             <table className="w-full text-left border-collapse">
-                                <thead>
-                                    <tr className="text-xs font-bold text-light-text-secondary dark:text-dark-text-secondary uppercase tracking-wider border-b border-black/5 dark:border-white/5">
-                                        <th className="pb-3 pl-2">Asset</th>
-                                        <th className="pb-3 text-right">Price</th>
-                                        <th className="pb-3 text-right">Quantity</th>
-                                        <th className="pb-3 text-right">Value</th>
-                                        <th className="pb-3 text-right">Return</th>
-                                        <th className="pb-3 w-10"></th>
+                                <thead className="bg-white dark:bg-dark-card">
+                                    <tr className="text-[10px] font-bold text-gray-400 uppercase tracking-[0.2em] border-b border-black/5 dark:border-white/5">
+                                        <th className="py-4 pl-6">Instrument</th>
+                                        <th className="py-4 text-right">Last Price</th>
+                                        <th className="py-4 text-right">Quantity</th>
+                                        <th className="py-4 text-right">Cost Basis</th>
+                                        <th className="py-4 text-right">Market Value</th>
+                                        <th className="py-4 text-right pr-6">Gain/Loss</th>
                                     </tr>
                                 </thead>
-                                <tbody className="divide-y divide-black/5 dark:divide-white/5">
-                                    {holdingsByType.flatMap(([typeName, holdings]) => ([
-                                        <tr key={`group-${typeName}`} className="bg-black/[0.03] dark:bg-white/[0.03]">
-                                            <td colSpan={6} className="py-2 pl-2 pr-2 text-xs font-bold uppercase tracking-wide text-light-text-secondary dark:text-dark-text-secondary">
-                                                {typeName} ({holdings.length})
-                                            </td>
-                                        </tr>,
-                                        ...holdings.map(holding => {
-                                        const holdingAccount = accountBySymbol.get(holding.symbol);
-                                        const gainLoss = holding.currentValue - holding.totalCost;
-                                        const gainLossPercent = holding.totalCost > 0 ? (gainLoss / holding.totalCost) * 100 : 0;
-                                        const isPositive = gainLoss >= 0;
-                                        const isClosed = holdingAccount?.status === 'closed';
-                                        const typeStyle = holding.type === 'Warrant' 
-                                            ? { bg: 'bg-purple-100 dark:bg-purple-900/40', text: 'text-purple-700 dark:text-purple-300', icon: 'card_membership' }
-                                            : INVESTMENT_SUB_TYPE_STYLES[holding.subType || 'Stock'] 
-                                                ? { bg: INVESTMENT_SUB_TYPE_STYLES[holding.subType || 'Stock'].color.replace('text-', 'bg-').replace('500', '100'), text: INVESTMENT_SUB_TYPE_STYLES[holding.subType || 'Stock'].color, icon: INVESTMENT_SUB_TYPE_STYLES[holding.subType || 'Stock'].icon }
-                                                : { bg: 'bg-gray-100', text: 'text-gray-600', icon: 'category' };
-                                        
-                                        return (
-                                            <tr
-                                                key={`${typeName}-${holding.symbol}`}
-                                                className={`group hover:bg-black/5 dark:hover:bg-white/5 transition-colors cursor-pointer ${isClosed ? 'opacity-60' : ''}`}
-                                                onClick={() => onOpenHoldingDetail(holding.symbol)}
-                                            >
-                                                <td className="py-4 pl-2">
-                                                    <div className="flex items-center gap-3">
-                                                        <div className={`w-10 h-10 rounded-lg flex items-center justify-center ${typeStyle.bg} ${typeStyle.text} bg-opacity-20`}>
-                                                            <span className="material-symbols-outlined">{typeStyle.icon}</span>
-                                                        </div>
-                                                        <div>
-                                                            <div className="font-bold text-light-text dark:text-dark-text">{holding.symbol}</div>
-                                                            <div className="text-xs text-light-text-secondary dark:text-dark-text-secondary flex items-center gap-2">
-                                                                <span>{holding.name}</span>
-                                                                {isClosed && (
-                                                                    <span className="px-2 py-0.5 rounded-full bg-gray-200 text-gray-700 dark:bg-gray-800 dark:text-gray-200 text-[10px] font-semibold uppercase tracking-wide">Inactive</span>
-                                                                )}
-                                                            </div>
-                                                        </div>
-                                                    </div>
-                                                </td>
-                                                <td className="py-4 text-right">
-                                                    <div className="font-medium text-light-text dark:text-dark-text privacy-blur">{formatCurrency(holding.currentPrice, 'EUR')}</div>
-                                                </td>
-                                                <td className="py-4 text-right">
-                                                    <div className="font-medium text-light-text dark:text-dark-text">{holding.quantity.toLocaleString(undefined, { maximumFractionDigits: 4 })}</div>
-                                                </td>
-                                                <td className="py-4 text-right">
-                                                    <div className="font-bold text-light-text dark:text-dark-text privacy-blur">{formatCurrency(holding.currentValue, 'EUR')}</div>
-                                                </td>
-                                                <td className="py-4 text-right">
-                                                    <div className={`font-bold privacy-blur ${isPositive ? 'text-green-600 dark:text-green-400' : 'text-red-600 dark:text-red-400'}`}>
-                                                        {isPositive ? '+' : ''}{formatCurrency(gainLoss, 'EUR')}
-                                                    </div>
-                                                    <div className={`text-xs ${isPositive ? 'text-green-600 dark:text-green-400' : 'text-red-600 dark:text-red-400'}`}>
-                                                        {isPositive ? '▲' : '▼'} {Math.abs(gainLossPercent).toFixed(2)}%
-                                                    </div>
-                                                </td>
-                                                <td className="py-4 text-right">
-                                                    <div className="flex justify-end gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
-                                                        <button
-                                                            onClick={(e) => { e.stopPropagation(); handleOpenPriceModal(holding.symbol, holding.name, holding.currentPrice); }}
-                                                            className="p-1.5 rounded-md text-light-text-secondary dark:text-dark-text-secondary hover:bg-black/10 dark:hover:bg-white/10"
-                                                            title="Update Price"
-                                                        >
-                                                            <span className="material-symbols-outlined text-lg">edit_note</span>
-                                                        </button>
-                                                        {holdingAccount && (
-                                                            <button
-                                                                onClick={(e) => {
-                                                                    e.stopPropagation();
-                                                                    handleOpenAccountModal(holdingAccount);
-                                                                }}
-                                                                className="p-1.5 rounded-md text-light-text-secondary dark:text-dark-text-secondary hover:bg-black/10 dark:hover:bg-white/10"
-                                                                title="Edit Account"
-                                                            >
-                                                                <span className="material-symbols-outlined text-lg">manage_accounts</span>
-                                                            </button>
-                                                        )}
-                                                    </div>
-                                                </td>
-                                            </tr>
-                                        );
-                                    })
-                                    ]))}
-                                    {displayHoldings.length === 0 && (
+                                <tbody className="divide-y divide-black/5 dark:divide-white/5 bg-white dark:bg-dark-card">
+                                    {holdingsByType.length === 0 ? (
                                         <tr>
-                                            <td colSpan={6} className="py-8 text-center text-light-text-secondary dark:text-dark-text-secondary">
-                                                No investments found. Add a transaction to get started.
+                                            <td colSpan={6} className="py-12 text-center text-gray-400 italic">
+                                                No active holdings found. Start by adding a transaction.
                                             </td>
                                         </tr>
+                                    ) : (
+                                        holdingsByType.flatMap(([typeName, holdings]) => ([
+                                            <tr key={`group-${typeName}`} className="bg-gray-50/80 dark:bg-white/[0.02]">
+                                                <td colSpan={6} className="py-2 pl-6 text-[10px] font-black uppercase tracking-widest text-primary-600 dark:text-primary-400">
+                                                    {typeName}
+                                                </td>
+                                            </tr>,
+                                            ...holdings.map(holding => {
+                                                const gainLoss = holding.currentValue - holding.totalCost;
+                                                const gainLossPercent = holding.totalCost > 0 ? (gainLoss / holding.totalCost) * 100 : 0;
+                                                const isPositive = gainLoss >= 0;
+                                                const holdingAccount = accountBySymbol.get(holding.symbol);
+                                                const isClosed = holdingAccount?.status === 'closed';
+
+                                                return (
+                                                    <tr 
+                                                        key={holding.symbol} 
+                                                        className={`group hover:bg-primary-50/30 dark:hover:bg-primary-900/10 transition-colors cursor-pointer ${isClosed ? 'opacity-50' : ''}`}
+                                                        onClick={() => onOpenHoldingDetail(holding.symbol)}
+                                                    >
+                                                        <td className="py-4 pl-6">
+                                                            <div className="flex items-center gap-3">
+                                                                <div className={`w-8 h-8 rounded flex items-center justify-center font-bold text-xs ${holding.type === 'Warrant' ? 'bg-purple-100 text-purple-700 dark:bg-purple-900/30 dark:text-purple-400' : 'bg-primary-100 text-primary-700 dark:bg-primary-900/30 dark:text-primary-400'}`}>
+                                                                    {holding.symbol.substring(0, 2)}
+                                                                </div>
+                                                                <div className="min-w-0">
+                                                                    <p className="font-bold text-sm text-light-text dark:text-dark-text truncate max-w-[120px]">{holding.symbol}</p>
+                                                                    <p className="text-[10px] text-gray-400 truncate max-w-[120px] font-medium">{holding.name}</p>
+                                                                </div>
+                                                            </div>
+                                                        </td>
+                                                        <td className="py-4 text-right">
+                                                            <span className="text-sm font-mono dark:text-white privacy-blur">{formatCurrency(holding.currentPrice, 'EUR')}</span>
+                                                        </td>
+                                                        <td className="py-4 text-right">
+                                                            <span className="text-sm font-medium dark:text-gray-300">{holding.quantity.toLocaleString(undefined, { maximumFractionDigits: 4 })}</span>
+                                                        </td>
+                                                        <td className="py-4 text-right">
+                                                            <span className="text-sm font-mono text-gray-500 privacy-blur">{formatCurrency(holding.totalCost, 'EUR')}</span>
+                                                        </td>
+                                                        <td className="py-4 text-right">
+                                                            <span className="text-sm font-bold dark:text-white privacy-blur">{formatCurrency(holding.currentValue, 'EUR')}</span>
+                                                        </td>
+                                                        <td className="py-4 text-right pr-6">
+                                                            <div className={`text-sm font-bold privacy-blur ${isPositive ? 'text-green-600 dark:text-green-400' : 'text-red-600 dark:text-red-400'}`}>
+                                                                {isPositive ? '+' : ''}{gainLossPercent.toFixed(1)}%
+                                                            </div>
+                                                            <div className="text-[10px] text-gray-400 privacy-blur">
+                                                                {isPositive ? '+' : ''}{formatCurrency(gainLoss, 'EUR')}
+                                                            </div>
+                                                        </td>
+                                                    </tr>
+                                                );
+                                            })
+                                        ]))
                                     )}
                                 </tbody>
                             </table>
                         </div>
                     </Card>
 
-                    <Card>
-                         <h3 className="text-lg font-bold text-light-text dark:text-dark-text mb-4">Recent Activity</h3>
-                         <div className="space-y-4">
-                            {recentActivity.slice(0, 5).map(item => {
-                                const isBuy = item.type === 'BUY';
-                                const isGrant = item.type === 'GRANT';
-                                const badgeClass = isGrant 
-                                    ? 'bg-purple-100 text-purple-700 dark:bg-purple-900/30 dark:text-purple-400'
-                                    : isBuy 
-                                        ? 'bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400' 
-                                        : 'bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-400';
-                                const amountLabel = isGrant ? 'Grant value' : isBuy ? 'Cost' : 'Proceeds';
-                                
-                                return (
-                                    <div 
-                                        key={`${item.isWarrant ? 'grant' : 'tx'}-${item.id}`} 
-                                        className="flex items-center justify-between p-3 rounded-lg hover:bg-black/5 dark:hover:bg-white/5 transition-colors cursor-pointer border border-transparent hover:border-black/5 dark:hover:border-white/10" 
-                                        onClick={() => item.isWarrant ? handleOpenWarrantModal(item.data as Warrant) : handleOpenModal(item.data as InvestmentTransaction)}
-                                    >
-                                        <div className="flex items-center gap-4">
-                                            <div className={`w-12 h-10 rounded-full flex items-center justify-center font-bold text-xs px-2 ${badgeClass}`}>
-                                                {item.type}
-                                            </div>
-                                            <div>
-                                                <p className="font-bold text-light-text dark:text-dark-text">{item.symbol}</p>
-                                                <p className="text-xs text-light-text-secondary dark:text-dark-text-secondary">{parseLocalDate(item.date).toLocaleDateString()}</p>
-                                            </div>
+                    <Card className="!p-0 overflow-hidden">
+                        <div className="px-6 py-5 border-b border-black/5 dark:border-white/5 bg-gray-50/50 dark:bg-white/5">
+                            <h3 className="font-bold text-light-text dark:text-dark-text flex items-center gap-3">
+                                <span className="material-symbols-outlined text-primary-500">history</span>
+                                Activity Log
+                            </h3>
+                        </div>
+                        <div className="divide-y divide-black/5 dark:divide-white/5">
+                            {recentActivity.slice(0, 10).map(item => (
+                                <div 
+                                    key={item.id} 
+                                    className="px-6 py-4 flex items-center justify-between hover:bg-gray-50 dark:hover:bg-white/[0.02] transition-colors cursor-pointer group"
+                                    onClick={() => item.isWarrant ? handleOpenWarrantModal(item.data as Warrant) : handleOpenModal(item.data as InvestmentTransaction)}
+                                >
+                                    <div className="flex items-center gap-4">
+                                        <div className={`w-8 h-8 rounded-full flex items-center justify-center text-[10px] font-black ${item.type === 'BUY' ? 'bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400' : item.type === 'SELL' ? 'bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-400' : 'bg-purple-100 text-purple-700 dark:bg-purple-900/30 dark:text-purple-400'}`}>
+                                            {item.type.substring(0, 1)}
                                         </div>
-                                        <div className="flex items-center gap-3">
-                                            <div className="text-right">
-                                                <p className="font-bold text-light-text dark:text-dark-text privacy-blur">{formatCurrency(item.quantity * item.price, 'EUR')}</p>
-                                                <p className="text-[11px] text-light-text-secondary dark:text-dark-text-secondary">{amountLabel}</p>
-                                                <p className="text-xs text-light-text-secondary dark:text-dark-text-secondary privacy-blur">{item.quantity} @ {formatCurrency(item.price, 'EUR')}</p>
-                                            </div>
-                                            <button
-                                                onClick={(event) => {
-                                                    event.stopPropagation();
-                                                    if (item.isWarrant) {
-                                                        handleOpenWarrantModal(item.data as Warrant);
-                                                    } else {
-                                                        handleOpenModal(item.data as InvestmentTransaction);
-                                                    }
-                                                }}
-                                                className="p-1.5 rounded-md text-light-text-secondary dark:text-dark-text-secondary hover:bg-black/10 dark:hover:bg-white/10"
-                                                title={item.isWarrant ? 'Edit Grant' : 'Edit Transaction'}
+                                        <div>
+                                            <p className="text-sm font-bold dark:text-white uppercase tracking-tight">{item.symbol}</p>
+                                            <p className="text-[10px] text-gray-400 font-bold uppercase tracking-widest">{item.type} • {parseLocalDate(item.date).toLocaleDateString()}</p>
+                                        </div>
+                                    </div>
+                                    <div className="text-right flex items-center gap-6">
+                                        <div className="hidden sm:block">
+                                            <p className="text-sm font-medium dark:text-gray-300 privacy-blur">{item.quantity} units @ {formatCurrency(item.price, 'EUR')}</p>
+                                        </div>
+                                        <div className="min-w-[100px]">
+                                            <p className="text-sm font-bold dark:text-white privacy-blur">{formatCurrency(item.quantity * item.price, 'EUR')}</p>
+                                        </div>
+                                        <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+                                            <button 
+                                                onClick={(e) => { e.stopPropagation(); setItemToDelete({ id: item.id, isWarrant: item.isWarrant }); }}
+                                                className="p-1 text-gray-400 hover:text-red-500"
                                             >
-                                                <span className="material-symbols-outlined text-lg">
-                                                    {item.isWarrant ? 'card_membership' : 'edit_note'}
-                                                </span>
+                                                <span className="material-symbols-outlined text-lg">delete</span>
                                             </button>
                                         </div>
                                     </div>
-                                );
-                            })}
-                            {recentActivity.length === 0 && <p className="text-center text-light-text-secondary dark:text-dark-text-secondary py-4">No recent activity.</p>}
-                         </div>
+                                </div>
+                            ))}
+                        </div>
                     </Card>
                 </div>
 
-                {/* Right Column: Analysis & Charts */}
-                <div className="space-y-8">
-                     {/* Asset Allocation */}
-                    <Card>
-                        <h3 className="text-lg font-bold text-light-text dark:text-dark-text mb-6">Allocation</h3>
-                        <div className="h-64 relative">
-                            <ResponsiveContainer width="100%" height="100%" minWidth={0} minHeight={0}>
+                {/* Sidebar Column */}
+                <div className="xl:col-span-4 space-y-8">
+                     {/* Exposure Chart */}
+                    <Card className="bg-gray-900 text-white border-none shadow-xl">
+                        <div className="flex justify-between items-center mb-6">
+                            <h3 className="text-sm font-bold uppercase tracking-[0.2em] text-gray-400">Exposure Breakdown</h3>
+                            <button className="text-[10px] font-bold text-primary-400 uppercase tracking-widest hover:underline">Analysis</button>
+                        </div>
+                        <div className="h-48 relative mb-6">
+                            <ResponsiveContainer width="100%" height="100%">
                                 <PieChart>
                                     <Pie
                                         data={distributionData}
                                         cx="50%"
                                         cy="50%"
-                                        innerRadius={60}
-                                        outerRadius={80}
-                                        paddingAngle={5}
+                                        innerRadius={50}
+                                        outerRadius={70}
+                                        paddingAngle={4}
                                         dataKey="value"
                                         stroke="none"
                                     >
@@ -879,53 +635,73 @@ const Investments: React.FC<InvestmentsProps> = ({
                                         ))}
                                     </Pie>
                                     <Tooltip 
-                                        formatter={(value: number) => formatCurrency(value, 'EUR')}
-                                        contentStyle={{ backgroundColor: 'var(--light-card)', borderColor: 'rgba(0,0,0,0.1)', borderRadius: '8px' }}
-                                        itemStyle={{ color: 'var(--light-text)' }}
+                                        contentStyle={{ backgroundColor: '#111827', borderColor: '#374151', borderRadius: '12px' }}
+                                        itemStyle={{ color: '#fff', fontSize: '12px' }}
                                     />
                                 </PieChart>
                             </ResponsiveContainer>
                             <div className="absolute inset-0 flex flex-col items-center justify-center pointer-events-none">
-                                <span className="text-xs text-light-text-secondary dark:text-dark-text-secondary uppercase">Total</span>
-                                <span className="text-xl font-bold text-light-text dark:text-dark-text">{formatCurrency(totalValue, 'EUR')}</span>
+                                <span className="text-[10px] text-gray-500 uppercase font-bold tracking-widest">Total</span>
+                                <span className="text-lg font-bold privacy-blur">{formatCurrency(totalValue, 'EUR')}</span>
                             </div>
                         </div>
-                        <div className="mt-6 space-y-3">
-                            {distributionData.slice(0, 5).map(item => (
-                                <div key={item.name} className="flex items-center justify-between text-sm">
-                                    <div className="flex items-center gap-2">
-                                        <div className="w-3 h-3 rounded-full" style={{ backgroundColor: item.color }}></div>
-                                        <span className="font-medium text-light-text dark:text-dark-text">{item.name}</span>
+                        <div className="space-y-3">
+                            {distributionData.slice(0, 4).map(item => (
+                                <div key={item.name} className="flex items-center justify-between group">
+                                    <div className="flex items-center gap-3">
+                                        <div className="w-2 h-2 rounded-full" style={{ backgroundColor: item.color }}></div>
+                                        <span className="text-xs font-bold text-gray-300 group-hover:text-white transition-colors">{item.name}</span>
                                     </div>
-                                    <div className="flex items-center gap-4">
-                                        <span className="text-light-text dark:text-dark-text">{formatCurrency(item.value, 'EUR')}</span>
-                                        <span className="text-light-text-secondary dark:text-dark-text-secondary w-10 text-right">{formatPercent(item.value, 0)}%</span>
+                                    <div className="text-right">
+                                        <p className="text-xs font-bold privacy-blur">{formatPercent(item.value, 0)}%</p>
                                     </div>
                                 </div>
                             ))}
                         </div>
                     </Card>
 
-                    {/* Asset Type Breakdown */}
+                    {/* Performance Rankings */}
                     <Card>
-                        <h3 className="text-lg font-bold text-light-text dark:text-dark-text mb-6">By Type</h3>
-                         <div className="space-y-4">
-                            {typeBreakdown.map(type => (
-                                <div key={type.name}>
-                                    <div className="flex justify-between text-sm mb-1">
-                                        <span className="font-medium text-light-text dark:text-dark-text">{type.name}</span>
-                                        <span className="text-light-text-secondary dark:text-dark-text-secondary">{formatPercent(type.value, 1)}%</span>
+                        <h3 className="text-xs font-bold uppercase tracking-[0.2em] text-gray-400 mb-6">Relative Performance</h3>
+                        <div className="space-y-4">
+                            {displayHoldings
+                                .map(h => ({ ...h, gain: h.totalCost > 0 ? ((h.currentValue - h.totalCost) / h.totalCost) * 100 : 0 }))
+                                .sort((a, b) => b.gain - a.gain)
+                                .slice(0, 5)
+                                .map((h, i) => (
+                                    <div key={h.symbol} className="flex items-center justify-between">
+                                        <div className="flex items-center gap-3">
+                                            <span className="text-[10px] font-black text-gray-300 w-4">{i + 1}</span>
+                                            <div>
+                                                <p className="text-xs font-bold dark:text-white">{h.symbol}</p>
+                                                <p className="text-[10px] text-gray-400 font-medium">{h.name}</p>
+                                            </div>
+                                        </div>
+                                        <div className={`text-xs font-black ${h.gain >= 0 ? 'text-green-600 dark:text-green-400' : 'text-red-600 dark:text-red-400'}`}>
+                                            {h.gain >= 0 ? '▲' : '▼'} {Math.abs(h.gain).toFixed(1)}%
+                                        </div>
                                     </div>
-                                    <div className="w-full bg-gray-100 dark:bg-white/10 rounded-full h-2 overflow-hidden">
-                                        <div className="h-full rounded-full" style={{ width: `${formatPercent(type.value, 2)}%`, backgroundColor: type.color }}></div>
-                                    </div>
-                                </div>
-                            ))}
-                         </div>
+                                ))}
+                        </div>
+                    </Card>
+
+                    {/* Watchlist */}
+                    <Card className="bg-primary-50/30 dark:bg-primary-900/5 border-dashed border-primary-200/50 dark:border-primary-800/30">
+                        <div className="flex justify-between items-center mb-4">
+                            <h3 className="text-[10px] font-bold text-primary-600 dark:text-primary-400 uppercase tracking-[0.2em] flex items-center gap-2">
+                                <span className="material-symbols-outlined text-sm">visibility</span>
+                                Watchlist
+                            </h3>
+                            <button onClick={() => setIsWatchlistModalOpen(true)} className="text-[10px] font-bold text-primary-600 dark:text-primary-400 uppercase tracking-widest hover:underline">Manage</button>
+                        </div>
+                        <div className="p-6 text-center border-t border-black/5 dark:border-white/5 mt-2">
+                            <span className="material-symbols-outlined text-primary-200 dark:text-primary-800 text-3xl">add_circle</span>
+                            <p className="text-[10px] text-gray-400 font-bold uppercase tracking-widest mt-2">No items observed</p>
+                        </div>
                     </Card>
                 </div>
             </div>
-            
+
             {/* Closed Accounts Section */}
             {closedInvestmentAccounts.length > 0 && (
                 <div className="opacity-60 hover:opacity-100 transition-opacity duration-300 mt-12 pt-8 border-t border-black/5 dark:border-white/5">
@@ -934,13 +710,12 @@ const Investments: React.FC<InvestmentsProps> = ({
                         accounts={closedInvestmentAccounts}
                         transactionsByAccount={transactionsByAccount}
                         warrants={warrants}
-                        linkedEnableBankingAccountIds={new Set(accounts.filter(a => !!a.linkedAccountId).map(a => a.id))} // Assuming simple check for now or pass actual set
+                        linkedEnableBankingAccountIds={new Set(accounts.filter(a => !!a.linkedAccountId).map(a => a.id))}
                         onAccountClick={handleAccountClick}
                         onEditClick={handleOpenAccountModal}
-                        onAdjustBalanceClick={() => {/* Balance adjust on closed account? Maybe allow reopening first */}}
+                        onAdjustBalanceClick={() => {}}
                         sortBy="name"
                         accountOrder={[]}
-                        // setAccountOrder is optional in the interface now or ignored for non-manual sort
                         onContextMenu={handleContextMenu}
                         isCollapsible={true}
                         defaultExpanded={false}

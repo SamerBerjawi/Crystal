@@ -25,6 +25,39 @@ export async function fetchExchangeRate(from: Currency, to: Currency, apiKey: st
     return data.rate;
 }
 
+export interface SymbolMetadata {
+    symbol: string;
+    name: string;
+    type: string;
+    currency: string;
+    exchange: string;
+}
+
+export async function fetchSymbolMetadata(symbol: string, apiKey: string): Promise<SymbolMetadata | null> {
+    if (!apiKey || !symbol) return null;
+
+    const url = `https://api.twelvedata.com/quote?symbol=${symbol}&apikey=${apiKey}`;
+    
+    try {
+        const response = await fetch(url);
+        if (!response.ok) return null;
+        
+        const data = await response.json();
+        if (data.status === 'error' || !data.name) return null;
+
+        return {
+            symbol: data.symbol,
+            name: data.name,
+            type: data.type,
+            currency: data.currency,
+            exchange: data.exchange
+        };
+    } catch (error) {
+        console.error('Error fetching symbol metadata:', error);
+        return null;
+    }
+}
+
 export async function fetchAllExchangeRates(base: Currency, targets: Currency[], apiKey: string): Promise<Record<string, number>> {
     const rates: Record<string, number> = { [base]: 1 };
     

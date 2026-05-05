@@ -30,87 +30,9 @@ import { useInsightsView } from '../contexts/InsightsViewContext';
 import PageHeader from '../components/PageHeader';
 import { v4 as uuidv4 } from 'uuid';
 import { motion, AnimatePresence } from 'motion/react';
-import { getPredictiveInsights, getAIConfig } from '../src/services/geminiService';
-import { RefreshCw, Bot } from 'lucide-react';
 
 const CACHE_KEYS = {
   PREDICTIVE_INSIGHTS: 'crystal_forecasting_insights'
-};
-
-// --- Smart Goal Planner Hook (Deterministic) ---
-const useSmartGoalPlanner = (
-    accounts: Account[],
-    recurringTransactions: RecurringTransaction[],
-    financialGoals: FinancialGoal[]
-) => {
-    const [plan, setPlan] = useState<Record<string, ContributionPlanStep[]> | null>(null);
-    const [isLoading, setIsLoading] = useState(false);
-    const [error, setError] = useState<string | null>(null);
-
-    const generatePlan = useCallback(async () => {
-        setIsLoading(true);
-        setError(null);
-        setPlan(null);
-
-        try {
-            // Simulate a brief calculation delay for UX consistency
-            await new Promise(resolve => setTimeout(resolve, 500));
-
-            const liquidAccounts = accounts.filter(a => LIQUID_ACCOUNT_TYPES.includes(a.type));
-            const totalLiquidCash = liquidAccounts.reduce((sum, a) => sum + convertToEur(a.balance, a.currency), 0);
-            
-            const planObject: Record<string, ContributionPlanStep[]> = {};
-            
-            // Basic logic: prioritize goals based on date
-            // This replaces the GenAI logic with a deterministic distribution strategy.
-            const sortedGoals = [...financialGoals].sort((a, b) => {
-                if (!a.date) return 1;
-                if (!b.date) return -1;
-                return new Date(a.date).getTime() - new Date(b.date).getTime();
-            });
-
-            sortedGoals.forEach(goal => {
-                if (goal.currentAmount >= goal.amount) return; // Goal met
-                
-                const steps: ContributionPlanStep[] = [];
-                const remainingNeeded = goal.amount - goal.currentAmount;
-                const today = new Date();
-                const goalDate = goal.date ? new Date(goal.date) : new Date(today.getFullYear() + 1, today.getMonth(), today.getDate());
-                
-                // Calculate months remaining
-                const monthsDiff = (goalDate.getFullYear() - today.getFullYear()) * 12 + (goalDate.getMonth() - today.getMonth());
-                const months = Math.max(1, monthsDiff);
-                
-                const monthlyAmount = remainingNeeded / months;
-                
-                // Determine source account (simply pick the first liquid account with balance > 0, or default to first)
-                // In a real app, this would check free cash flow from the forecast engine.
-                const sourceAccount = liquidAccounts.find(a => a.balance > 0) || liquidAccounts[0];
-                const sourceName = sourceAccount ? sourceAccount.name : 'Unknown Account';
-                
-                // Generate step
-                steps.push({
-                    goalName: goal.name,
-                    date: `Monthly until ${goalDate.toLocaleDateString()}`,
-                    amount: parseFloat(monthlyAmount.toFixed(2)),
-                    accountName: sourceName,
-                    notes: `Calculated over ${months} months`
-                });
-
-                planObject[goal.name] = steps;
-            });
-
-            setPlan(planObject);
-
-        } catch (err: any) {
-            console.error("Error generating plan:", err);
-            setError("An error occurred while generating the plan.");
-        } finally {
-            setIsLoading(false);
-        }
-    }, [accounts, recurringTransactions, financialGoals]);
-    
-    return { generatePlan, plan, isLoading, error };
 };
 
 const MetricCard: React.FC<{ title: string; value: string; subValue?: string; icon: string; colorClass: string; trend?: 'up' | 'down' | 'neutral' }> = ({ title, value, subValue, icon, colorClass, trend }) => (
@@ -139,46 +61,6 @@ const Forecasting: React.FC = () => {
   const { accounts } = useAccountsContext();
   const { transactions } = useTransactionsContext();
   
-  const [predictiveInsights, setPredictiveInsights] = useState<{
-    anomalies: any[];
-    predictedBalance30d: number;
-    confidenceScore: number;
-    insight: string;
-    updatedAt?: string;
-  } | null>(() => {
-    const cached = localStorage.getItem(CACHE_KEYS.PREDICTIVE_INSIGHTS);
-    return cached ? JSON.parse(cached) : null;
-  });
-  const [isPredictiveLoading, setIsPredictiveLoading] = useState(false);
-  const [predictiveError, setPredictiveError] = useState<string | null>(null);
-
-  const aiConfig = getAIConfig();
-  const isAIEnabled = aiConfig.enabled !== false;
-
-  const fetchPredictiveInsights = useCallback(async (force = false) => {
-    if (!isAIEnabled || transactions.length === 0 || isPredictiveLoading) return;
-    if (predictiveInsights && !force) return;
-
-    setIsPredictiveLoading(true);
-    setPredictiveError(null);
-    try {
-      const result = await getPredictiveInsights({ transactions, accounts });
-      const dataWithTimestamp = { ...result, updatedAt: new Date().toISOString() };
-      setPredictiveInsights(dataWithTimestamp);
-      localStorage.setItem(CACHE_KEYS.PREDICTIVE_INSIGHTS, JSON.stringify(dataWithTimestamp));
-    } catch (err) {
-      console.error('Failed to fetch predictive insights:', err);
-      setPredictiveError('Could not generate AI predictive insights.');
-    } finally {
-      setIsPredictiveLoading(false);
-    }
-  }, [transactions, accounts, predictiveInsights, isPredictiveLoading]);
-
-  useEffect(() => {
-    if (!predictiveInsights) {
-      fetchPredictiveInsights();
-    }
-  }, [fetchPredictiveInsights, predictiveInsights]);
   const { financialGoals, saveFinancialGoal, deleteFinancialGoal } = useGoalsContext();
   const { expenseCategories, incomeCategories } = useCategoryContext();
   const {
@@ -441,8 +323,6 @@ const Forecasting: React.FC = () => {
         });
     }, [goalsWithProjections, activeGoalIds, filterGoalsByAccount, selectedAccountIds]);
 
-    const { generatePlan, plan, isLoading: isPlanLoading, error: planError } = useSmartGoalPlanner(selectedAccounts, recurringTransactions, plannerGoals);
-
     const handleToggleGoal = (id: string) => {
         const goal = financialGoals.find(g => g.id === id);
         if (!goal) return;
@@ -612,98 +492,8 @@ const Forecasting: React.FC = () => {
         });
     }, [tableData]);
 
-    return (
+     return (
         <div className="space-y-8 pb-12 animate-fade-in-up">
-            {/* AI Predictive Insights Section */}
-            {!isAIEnabled ? (
-                <div className="bg-gray-50 dark:bg-white/5 border border-dashed border-black/10 dark:border-white/10 rounded-3xl p-6 text-center">
-                    <div className="flex flex-col items-center gap-3">
-                        <Bot className="w-10 h-10 text-gray-300 dark:text-gray-700" />
-                        <div>
-                            <h3 className="font-bold text-light-text dark:text-dark-text">AI Insights Disabled</h3>
-                            <p className="text-sm text-light-text-secondary dark:text-dark-text-secondary">
-                                Enable AI features in settings to see automated anomalies and predictive balances.
-                            </p>
-                        </div>
-                    </div>
-                </div>
-            ) : (predictiveInsights || isPredictiveLoading) && (
-                <div className={`${isPredictiveLoading ? 'animate-pulse' : 'animate-fade-in-up'} bg-gradient-to-br from-primary-50 to-indigo-50 dark:from-primary-900/10 dark:to-indigo-900/10 border border-primary-100 dark:border-primary-900/20 rounded-3xl p-6`}>
-                    <div className="flex flex-col md:flex-row gap-6">
-                        <div className="flex-1 space-y-4">
-                            <div className="flex items-center gap-2">
-                                <span className="material-symbols-outlined text-primary-500">auto_awesome</span>
-                                 <h3 className="font-bold text-light-text dark:text-dark-text">Crystal Insights</h3>
-                                {predictiveInsights && (
-                                    <div className="ml-auto flex items-center gap-3">
-                                        {predictiveInsights.updatedAt && (
-                                            <span className="text-[10px] text-gray-400 font-medium">
-                                                Updated {new Date(predictiveInsights.updatedAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
-                                            </span>
-                                        )}
-                                        <div className="px-2 py-0.5 rounded-full bg-white/50 dark:bg-black/20 text-[10px] font-bold text-primary-600 dark:text-primary-400">
-                                            Confidence: {Math.round(predictiveInsights.confidenceScore * 100)}%
-                                        </div>
-                                    </div>
-                                )}
-                            </div>
-                            
-                            {isPredictiveLoading ? (
-                                <div className="space-y-2">
-                                    <div className="h-4 bg-gray-200 dark:bg-gray-800 rounded w-3/4"></div>
-                                    <div className="h-4 bg-gray-200 dark:bg-gray-800 rounded w-1/2"></div>
-                                </div>
-                            ) : predictiveInsights ? (
-                                <div className="text-sm text-light-text dark:text-dark-text leading-relaxed">
-                                    {predictiveInsights.insight}
-                                </div>
-                            ) : null}
-
-                            {!isPredictiveLoading && predictiveInsights?.anomalies.length > 0 && (
-                                <div className="space-y-2">
-                                    <div className="text-[10px] font-bold text-primary-500 uppercase tracking-widest flex items-center gap-1">
-                                        <span className="material-symbols-outlined text-[14px]">warning</span>
-                                        Detected Anomalies
-                                    </div>
-                                    <div className="flex flex-wrap gap-2">
-                                        {predictiveInsights.anomalies.map((anomaly, idx) => (
-                                            <div key={idx} className="px-3 py-2 rounded-xl bg-white dark:bg-dark-card border border-black/5 dark:border-white/5 shadow-sm text-xs group hover:border-primary-500/30 transition-colors">
-                                                <div className="font-bold text-light-text dark:text-dark-text">{anomaly.description}</div>
-                                                <div className="flex justify-between items-center gap-4 mt-1 opacity-70">
-                                                    <span>{anomaly.date}</span>
-                                                    <span className="text-red-500 font-bold">-{formatCurrency(Math.abs(anomaly.amount), 'EUR')}</span>
-                                                </div>
-                                            </div>
-                                        ))}
-                                    </div>
-                                </div>
-                            ) }
-                        </div>
-
-                        <div className="w-full md:w-64 flex flex-col justify-center items-center p-4 bg-white dark:bg-dark-card rounded-2xl border border-black/5 dark:border-white/5 shadow-sm">
-                            <span className="text-[10px] font-bold text-gray-400 uppercase tracking-widest mb-1">Predicted Balance (30d)</span>
-                            {isPredictiveLoading ? (
-                                <div className="h-8 w-32 bg-gray-200 dark:bg-gray-800 animate-pulse rounded"></div>
-                            ) : (
-                                <div className="text-2xl font-black text-primary-500 tracking-tight">
-                                    {formatCurrency(predictiveInsights?.predictedBalance30d || 0, 'EUR')}
-                                </div>
-                            )}
-                            <div className="mt-4 flex items-center gap-2">
-                                <button 
-                                    onClick={() => fetchPredictiveInsights(true)}
-                                    disabled={isPredictiveLoading}
-                                    className="text-[10px] font-bold text-primary-500 hover:underline uppercase tracking-widest flex items-center gap-1 group"
-                                >
-                                    <RefreshCw className={`w-3.5 h-3.5 ${isPredictiveLoading ? 'animate-spin' : 'group-hover:rotate-180 transition-all duration-500'}`} />
-                                    Recalculate
-                                </button>
-                            </div>
-                        </div>
-                    </div>
-                </div>
-            )}
-
             {isModalOpen && <GoalScenarioModal onClose={() => setIsModalOpen(false)} onSave={(d) => { saveFinancialGoal(d); setIsModalOpen(false); }} goalToEdit={editingGoal} financialGoals={financialGoals} parentId={parentIdForNewGoal} accounts={accounts} />}
             {isRecurringModalOpen && <RecurringTransactionModal onClose={() => setIsRecurringModalOpen(false)} onSave={(d) => { saveRecurringTransaction(d); setIsRecurringModalOpen(false); }} accounts={accounts} incomeCategories={incomeCategories} expenseCategories={expenseCategories} recurringTransactionToEdit={editingRecurring} />}
             {isBillModalOpen && <BillPaymentModal onClose={() => setIsBillModalOpen(false)} onSave={(d) => { saveBillPayment(d); setIsBillModalOpen(false); }} bill={editingBill} accounts={accounts} initialDate={selectedForecastDate || undefined} />}

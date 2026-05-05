@@ -352,7 +352,7 @@ const Subscriptions: React.FC = () => {
                         <div className="bg-gradient-to-r from-indigo-50 to-purple-50 dark:from-indigo-900/10 dark:to-purple-900/10 p-6 rounded-2xl border border-indigo-100 dark:border-indigo-800/30">
                             <div className="flex items-center gap-3 mb-4">
                                 <div className="p-2 bg-white dark:bg-white/10 rounded-full shadow-sm">
-                                    <span className="material-symbols-outlined text-indigo-500">auto_awesome</span>
+                                    <span className="material-symbols-outlined text-indigo-500">rule</span>
                                 </div>
                                 <div>
                                     <h2 className="text-lg font-bold text-light-text dark:text-dark-text">Detected Subscriptions</h2>
