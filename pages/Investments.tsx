@@ -72,7 +72,6 @@ const Investments: React.FC<InvestmentsProps> = ({
     const [editingPriceItem, setEditingPriceItem] = useState<{ symbol: string; name: string; currentPrice: number | null } | null>(null);
     const [isAccountModalOpen, setAccountModalOpen] = useState(false);
     const [contextMenu, setContextMenu] = useState<{ x: number, y: number, account: Account } | null>(null);
-    const [isWatchlistModalOpen, setIsWatchlistModalOpen] = useState(false);
     const [accountToDelete, setAccountToDelete] = useState<Account | null>(null);
     const [itemToDelete, setItemToDelete] = useState<{ id: string; isWarrant: boolean } | null>(null);
     const [isUpdatingAllPrices, setIsUpdatingAllPrices] = useState(false);
@@ -397,21 +396,6 @@ const Investments: React.FC<InvestmentsProps> = ({
                 confirmButtonText="Delete"
             />
 
-            {isWatchlistModalOpen && (
-                <Modal onClose={() => setIsWatchlistModalOpen(false)} title="Manage Watchlist" size="lg">
-                    <div className="p-8 text-center space-y-4">
-                        <div className="w-16 h-16 bg-primary-100 dark:bg-primary-900/30 text-primary-600 dark:text-primary-400 rounded-full flex items-center justify-center mx-auto">
-                            <span className="material-symbols-outlined text-3xl">visibility</span>
-                        </div>
-                        <h3 className="text-xl font-bold dark:text-white">Watchlist feature coming soon</h3>
-                        <p className="text-light-text-secondary dark:text-dark-text-secondary max-w-sm mx-auto">
-                            We're building a powerful watchlist with real-time alerts and research integration. Stay tuned!
-                        </p>
-                        <button onClick={() => setIsWatchlistModalOpen(false)} className={`${BTN_PRIMARY_STYLE} px-8`}>Close</button>
-                    </div>
-                </Modal>
-            )}
-            
             <PageHeader
                 markerIcon="finance_chip"
                 markerLabel="Investment Dashboard"
@@ -707,21 +691,6 @@ const Investments: React.FC<InvestmentsProps> = ({
                                         </div>
                                     </div>
                                 ))}
-                        </div>
-                    </Card>
-
-                    {/* Watchlist */}
-                    <Card className="bg-primary-50/30 dark:bg-primary-900/5 border-dashed border-primary-200/50 dark:border-primary-800/30">
-                        <div className="flex justify-between items-center mb-4">
-                            <h3 className="text-[10px] font-bold text-primary-600 dark:text-primary-400 uppercase tracking-[0.2em] flex items-center gap-2">
-                                <span className="material-symbols-outlined text-sm">visibility</span>
-                                Watchlist
-                            </h3>
-                            <button onClick={() => setIsWatchlistModalOpen(true)} className="text-[10px] font-bold text-primary-600 dark:text-primary-400 uppercase tracking-widest hover:underline">Manage</button>
-                        </div>
-                        <div className="p-6 text-center border-t border-black/5 dark:border-white/5 mt-2">
-                            <span className="material-symbols-outlined text-primary-200 dark:text-primary-800 text-3xl">add_circle</span>
-                            <p className="text-[10px] text-gray-400 font-bold uppercase tracking-widest mt-2">No items observed</p>
                         </div>
                     </Card>
                 </div>
