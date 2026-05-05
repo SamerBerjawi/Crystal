@@ -38,8 +38,12 @@ const Budgeting: React.FC<BudgetingProps> = ({ budgets, transactions, expenseCat
   // State for budget suggestions
   const [isSuggestionModalOpen, setSuggestionModalOpen] = useState(false);
   const [isGeneratingSuggestions, setIsGeneratingSuggestions] = useState(false);
-  const [suggestions, setSuggestions] = useState<BudgetSuggestion[]>([]);
+  const [suggestions, setSuggestions] = useState<BudgetSuggestion[]>(() => {
+    const cached = localStorage.getItem('crystal_budget_suggestions');
+    return cached ? JSON.parse(cached) : [];
+  });
   const [suggestionError, setSuggestionError] = useState<string | null>(null);
+  const [lastSuggestedAt, setLastSuggestedAt] = useState<string | null>(() => localStorage.getItem('crystal_budget_suggestions_at'));
   const [isQuickBudgetModalOpen, setQuickBudgetModalOpen] = useState(false);
 
   const handleMonthChange = (offset: number) => {
@@ -53,7 +57,6 @@ const Budgeting: React.FC<BudgetingProps> = ({ budgets, transactions, expenseCat
   const handleGenerateSuggestions = async () => {
     setIsGeneratingSuggestions(true);
     setSuggestionError(null);
-    setSuggestions([]);
 
     try {
         const threeMonthsAgo = new Date();
@@ -92,7 +95,11 @@ const Budgeting: React.FC<BudgetingProps> = ({ budgets, transactions, expenseCat
         if (calculatedSuggestions.length === 0) {
             setSuggestionError("Not enough spending data from the last 3 months to generate suggestions.");
         } else {
+            const now = new Date().toISOString();
             setSuggestions(calculatedSuggestions);
+            setLastSuggestedAt(now);
+            localStorage.setItem('crystal_budget_suggestions', JSON.stringify(calculatedSuggestions));
+            localStorage.setItem('crystal_budget_suggestions_at', now);
         }
 
     } catch (err: any) {
@@ -326,9 +333,14 @@ const Budgeting: React.FC<BudgetingProps> = ({ budgets, transactions, expenseCat
                         <span className="material-symbols-outlined text-lg">expand_more</span>
                     </button>
                 </div>
-                <button onClick={handleGenerateSuggestions} className={`${BTN_SECONDARY_STYLE} flex items-center gap-2 whitespace-nowrap`} disabled={isGeneratingSuggestions}>
-                    <span className="material-symbols-outlined text-lg text-purple-500">calculate</span>
-                    {isGeneratingSuggestions ? 'Calculating...' : 'Auto-Calculate'}
+                <button onClick={handleGenerateSuggestions} className={`${BTN_SECONDARY_STYLE} flex flex-col items-center !py-1 !px-3 gap-0.5 whitespace-nowrap`} disabled={isGeneratingSuggestions}>
+                    <div className="flex items-center gap-2">
+                        <span className="material-symbols-outlined text-lg text-purple-500">calculate</span>
+                        <span className="text-sm font-bold">{isGeneratingSuggestions ? 'Calculating...' : (suggestions.length > 0 ? 'Review Suggestions' : 'Auto-Calculate')}</span>
+                    </div>
+                    {lastSuggestedAt && !isGeneratingSuggestions && (
+                        <span className="text-[9px] opacity-60">Last updated {new Date(lastSuggestedAt).toLocaleDateString()}</span>
+                    )}
                 </button>
            </div>
       </div>

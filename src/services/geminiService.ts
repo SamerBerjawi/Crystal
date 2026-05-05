@@ -76,11 +76,64 @@ const callAI = async (params: {
 
     if (!response.ok) {
         const error = await response.json();
-        throw new Error(error.error?.message || 'AI Provider Error');
+        console.error(`AI Provider Error [${config.provider}]:`, error);
+        
+        // Specific error for Groq if key is missing or invalid
+        if (config.provider === 'groq' && (response.status === 401 || response.status === 403)) {
+            throw new Error('Groq API Key is invalid or missing. Please check your AI Provider settings.');
+        }
+
+        throw new Error(error.error?.message || `AI Provider Error (${response.status})`);
     }
 
     const result = await response.json();
+    
+    if (result.error) {
+        console.error(`AI Provider Error [${config.provider}]:`, result.error);
+        throw new Error(result.error.message || 'AI Provider Error');
+    }
+
+    if (!result.choices || !result.choices[0] || !result.choices[0].message) {
+        console.error('Unexpected AI Response Format:', result);
+        throw new Error('Unexpected response format from AI provider');
+    }
+
     return result.choices[0].message.content;
+};
+
+export const getPredictiveCashFlow = async (context: {
+  transactions: Transaction[];
+  accounts: Account[];
+  recurring: RecurringTransaction[];
+}) => {
+  const systemInstruction = `
+    You are a predictive financial engine. Analyze the user's transactions, accounts and recurring items.
+    Generate a 30-60 day balance forecast.
+    
+    Return JSON: {
+      forecast: Array<{ date: string, balance: number, type: 'actual' | 'predicted' }>,
+      anomalies: Array<{ date: string, description: string, amount: number, riskLevel: 'low' | 'medium' | 'high' }>,
+      runwayDays: number,
+      shortfallDetected: boolean,
+      nextMajorExpense: { date: string, description: string, amount: number } | null,
+      insight: string
+    }
+  `;
+
+  // Provide essential context but keep token usage low
+  const contextSummary = {
+    currentBalances: context.accounts.map(a => ({ name: a.name, balance: a.balance, type: a.type })),
+    recurringBills: context.recurring.map(r => ({ desc: r.description, amount: r.amount, freq: r.frequency, nextDate: r.nextDueDate })),
+    recentTx: context.transactions.slice(0, 30).map(t => ({ date: t.date, amount: t.amount, merchant: t.merchant }))
+  };
+
+  const text = await callAI({
+    systemInstruction,
+    prompt: `Context: ${JSON.stringify(contextSummary)}. Forecast next 30 days starting from today.`,
+    responseMimeType: "application/json"
+  });
+
+  return JSON.parse(text || '{}');
 };
 
 interface EnrichmentResult {

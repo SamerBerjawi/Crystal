@@ -121,6 +121,7 @@ export const NAV_ITEMS: NavItem[] = [
   { name: 'AI Assistant', icon: 'smart_toy' },
   { name: 'Budget', icon: 'pie_chart' },
   { name: 'Forecasting', icon: 'show_chart' },
+  { name: 'Predictive Cash Flow', icon: 'timeline' },
   { name: 'Investments', icon: 'candlestick_chart' },
   { name: 'Schedule & Bills', icon: 'calendar_month' },
   { name: 'Subscriptions', icon: 'loyalty' },

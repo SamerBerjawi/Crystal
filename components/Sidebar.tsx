@@ -26,7 +26,7 @@ const NAV_GROUPS = [
   },
   {
     title: 'Planning',
-    items: ['AI Assistant', 'Budget', 'Forecasting', 'Investments', 'Challenges']
+    items: ['AI Assistant', 'Budget', 'Forecasting', 'Predictive Cash Flow', 'Investments', 'Challenges']
   },
   {
     title: 'Management',

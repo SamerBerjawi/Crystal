@@ -29,14 +29,15 @@ const ScheduledItemRow: React.FC<ScheduledItemRowProps> = ({ item, accounts, onE
     
     const dueDate = parseLocalDate(item.date);
     const day = dueDate.getDate();
-    const month = dueDate.toLocaleString('default', { month: 'short' }).toUpperCase();
+    const month = (dueDate.toLocaleString('default', { month: 'short' }) || '').toUpperCase();
     const weekday = dueDate.toLocaleString('default', { weekday: 'long' });
 
     // Determine status/frequency text
     let subText = item.accountName;
     if (item.isRecurring) {
         const rt = item.originalItem as RecurringTransaction;
-        subText += ` • ${rt.frequency.charAt(0).toUpperCase() + rt.frequency.slice(1)}`;
+        const freq = rt.frequency || 'recurring';
+        subText += ` • ${freq.charAt(0).toUpperCase() + freq.slice(1)}`;
     } else {
         subText += ` • One-time`;
     }

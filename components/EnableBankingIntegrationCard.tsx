@@ -139,7 +139,7 @@ const EnableBankingIntegrationCard: React.FC<EnableBankingIntegrationCardProps> 
     try {
       const options = await onFetchBanks({
         applicationId: formState.applicationId.trim(),
-        countryCode: formState.countryCode.trim().toUpperCase(),
+        countryCode: (formState.countryCode || '').trim().toUpperCase(),
         clientCertificate: formState.clientCertificate.trim(),
       });
       setBankOptions(options);
@@ -212,10 +212,10 @@ const EnableBankingIntegrationCard: React.FC<EnableBankingIntegrationCardProps> 
   };
 
   const handleReauthorize = (connection: EnableBankingConnection) => {
-    const resolvedApplicationId = (connection.applicationId || formState.applicationId).trim();
-    const resolvedCertificate = (connection.clientCertificate || formState.clientCertificate).trim();
-    const resolvedCountry = (connection.countryCode || formState.countryCode).trim().toUpperCase();
-    const resolvedBankId = (connection.selectedBankId || formState.selectedBank).trim();
+    const resolvedApplicationId = (connection.applicationId || formState.applicationId || '').trim();
+    const resolvedCertificate = (connection.clientCertificate || formState.clientCertificate || '').trim();
+    const resolvedCountry = (connection.countryCode || formState.countryCode || '').trim().toUpperCase();
+    const resolvedBankId = (connection.selectedBankId || formState.selectedBank || '').trim();
     const resolvedBankName = connection.selectedBank || bankOptions.find(option => option.id === resolvedBankId)?.name || '';
 
     if (!resolvedApplicationId || !resolvedCertificate) {

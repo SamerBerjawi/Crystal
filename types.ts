@@ -3,7 +3,7 @@
 import React, { Dispatch, SetStateAction } from 'react';
 
 // FIX: Remove 'AI Assistant' from Page type
-export type Page = 'Dashboard' | 'Accounts' | 'Transactions' | 'Budget' | 'Forecasting' | 'Settings' | 'Schedule & Bills' | 'Tasks' | 'Categories' | 'Tags' | 'Personal Info' | 'Data Management' | 'Preferences' | 'AccountDetail' | 'Investments' | 'HoldingDetail' | 'Documentation' | 'Subscriptions' | 'Quotes & Invoices' | 'Challenges' | 'Merchants' | 'Reports' | 'Integrations' | 'EnableBankingCallback' | 'AI Assistant' | 'AI Providers';
+export type Page = 'Dashboard' | 'Accounts' | 'Transactions' | 'Budget' | 'Forecasting' | 'Predictive Cash Flow' | 'Settings' | 'Schedule & Bills' | 'Tasks' | 'Categories' | 'Tags' | 'Personal Info' | 'Data Management' | 'Preferences' | 'AccountDetail' | 'Investments' | 'HoldingDetail' | 'Documentation' | 'Subscriptions' | 'Quotes & Invoices' | 'Challenges' | 'Merchants' | 'Reports' | 'Integrations' | 'EnableBankingCallback' | 'AI Assistant' | 'AI Providers';
 
 export type AIProvider = 'gemini' | 'groq' | 'openrouter';
 

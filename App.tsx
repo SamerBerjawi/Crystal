@@ -30,6 +30,7 @@ const pageRegistry = {
   'Quotes & Invoices': { path: '/invoices', loader: () => import('./pages/Invoices') },
   Merchants: { path: '/merchants', loader: () => import('./pages/Merchants') },
   'AI Providers': { path: '/ai-providers', loader: () => import('./pages/AIProviders') },
+  'Predictive Cash Flow': { path: '/predictive-cashflow', loader: () => import('./pages/PredictiveCashFlow') },
 } as const;
 
 const Dashboard = lazy(pageRegistry.Dashboard.loader);
@@ -57,6 +58,7 @@ const SubscriptionsPage = lazy(pageRegistry.Subscriptions.loader);
 const InvoicesPage = lazy(pageRegistry['Quotes & Invoices'].loader);
 const MerchantsPage = lazy(pageRegistry.Merchants.loader);
 const AIProvidersPage = lazy(pageRegistry['AI Providers'].loader);
+const PredictiveCashFlowPage = lazy(pageRegistry['Predictive Cash Flow'].loader);
 
 const pagePreloaders = Object.values(pageRegistry).map(entry => entry.loader);
 
@@ -1244,8 +1246,8 @@ const App: React.FC = () => {
     else {
         warrantId = `warr-${uuidv4()}`;
         setWarrants(prev => [...prev, { ...warrantData, id: warrantId } as Warrant]);
-        if (!accounts.some(acc => acc.symbol === warrantData.isin.toUpperCase())) {
-            handleSaveAccount({ name: warrantData.name, type: 'Investment', subType: 'ETF', symbol: warrantData.isin.toUpperCase(), balance: 0, currency: 'EUR' });
+        if (warrantData.isin && !accounts.some(acc => acc.symbol === warrantData.isin.toUpperCase())) {
+            handleSaveAccount({ name: warrantData.name || 'Warrant', type: 'Investment', subType: 'ETF', symbol: warrantData.isin.toUpperCase(), balance: 0, currency: 'EUR' });
         }
     }
 
@@ -1370,9 +1372,9 @@ const App: React.FC = () => {
     const existingConnection = payload.connectionId ? enableBankingConnections.find(conn => conn.id === payload.connectionId) : undefined;
     const baseConnection: EnableBankingConnection = {
           id: connectionId,
-          applicationId: payload.applicationId.trim(),
-          countryCode: payload.countryCode.trim().toUpperCase(),
-          clientCertificate: payload.clientCertificate.trim(),
+          applicationId: (payload.applicationId || '').trim(),
+          countryCode: (payload.countryCode || '').trim().toUpperCase(),
+          clientCertificate: (payload.clientCertificate || '').trim(),
           status: 'pending',
           selectedBank: selectedBankName,
           selectedBankId: selectedBankId,
@@ -1613,12 +1615,16 @@ const App: React.FC = () => {
     
     // Try to extract a clean merchant from unstructured remittance first, as some banks (like KBC)
     // put the user's name or generic text in the creditor/debtor field and the actual merchant in the remittance.
-    const extractMerchantFromRemittance = (remStr: string | undefined): string | undefined => {
+    const extractMerchantFromRemittance = (remStr: any): string | undefined => {
       if (!remStr) return undefined;
-      const upper = remStr.toUpperCase();
+      // Handle case where it might be an array (common in Enable Banking)
+      const actualStr = Array.isArray(remStr) ? remStr[0] : remStr;
+      if (typeof actualStr !== 'string') return undefined;
+      
+      const upper = actualStr.toUpperCase();
       // Look for common "card purchase" prefixes
       if (upper.includes('RETAIL ') || upper.startsWith('PURCHASE ') || upper.startsWith('AANKOOP') || upper.startsWith('PAIEMENT')) {
-         return sanitizeMerchant(remStr);
+         return sanitizeMerchant(actualStr);
       }
       return undefined;
     };
@@ -2048,6 +2054,7 @@ const App: React.FC = () => {
       case 'Quotes & Invoices': return <InvoicesPage />;
       case 'Merchants': return <MerchantsPage setCurrentPage={setCurrentPage} />;
       case 'AI Providers': return <AIProvidersPage config={aiConfig} onUpdateConfig={setAiConfig} />;
+      case 'Predictive Cash Flow': return <PredictiveCashFlowPage transactions={transactions} accounts={accounts} recurringTransactions={recurringTransactions} />;
       default: return <div>Page not found</div>;
     }
   };
