@@ -14,6 +14,7 @@ import PageHeader from '../components/PageHeader';
 import AccountsListSection from '../components/AccountsListSection';
 import { usePreferencesSelector } from '../contexts/DomainProviders';
 import ConfirmationModal from '../components/ConfirmationModal';
+import Modal from '../components/Modal';
 
 const CACHE_KEYS = {
   INVESTMENT_INSIGHTS: 'crystal_investment_insights'
@@ -73,6 +74,8 @@ const Investments: React.FC<InvestmentsProps> = ({
     const [contextMenu, setContextMenu] = useState<{ x: number, y: number, account: Account } | null>(null);
     const [isWatchlistModalOpen, setIsWatchlistModalOpen] = useState(false);
     const [accountToDelete, setAccountToDelete] = useState<Account | null>(null);
+    const [itemToDelete, setItemToDelete] = useState<{ id: string; isWarrant: boolean } | null>(null);
+    const [isUpdatingAllPrices, setIsUpdatingAllPrices] = useState(false);
 
     const twelveDataApiKey = usePreferencesSelector(p => p.twelveDataApiKey || '');
 
@@ -528,9 +531,39 @@ const Investments: React.FC<InvestmentsProps> = ({
                                                                 <div className={`w-8 h-8 rounded flex items-center justify-center font-bold text-xs ${holding.type === 'Warrant' ? 'bg-purple-100 text-purple-700 dark:bg-purple-900/30 dark:text-purple-400' : 'bg-primary-100 text-primary-700 dark:bg-primary-900/30 dark:text-primary-400'}`}>
                                                                     {holding.symbol.substring(0, 2)}
                                                                 </div>
-                                                                <div className="min-w-0">
-                                                                    <p className="font-bold text-sm text-light-text dark:text-dark-text truncate max-w-[120px]">{holding.symbol}</p>
-                                                                    <p className="text-[10px] text-gray-400 truncate max-w-[120px] font-medium">{holding.name}</p>
+                                                                <div className="min-w-0 flex-1">
+                                                                    <p className="font-bold text-sm text-light-text dark:text-dark-text truncate">{holding.symbol}</p>
+                                                                    <p className="text-[10px] text-gray-400 truncate font-medium">{holding.name}</p>
+                                                                </div>
+                                                                <div className="hidden md:flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+                                                                    <button
+                                                                        onClick={(event) => { event.stopPropagation(); handleOpenPriceModal(holding.symbol, holding.name, holding.currentPrice); }}
+                                                                        className="p-1.5 rounded text-gray-500 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-white/10 hover:text-primary-600 dark:hover:text-primary-400"
+                                                                        title="Update price"
+                                                                        aria-label={`Update price for ${holding.symbol}`}
+                                                                    >
+                                                                        <span className="material-symbols-outlined text-base">payments</span>
+                                                                    </button>
+                                                                    {holdingAccount && (
+                                                                        <>
+                                                                            <button
+                                                                                onClick={(event) => { event.stopPropagation(); handleAccountClick(holdingAccount.id); }}
+                                                                                className="p-1.5 rounded text-gray-500 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-white/10 hover:text-primary-600 dark:hover:text-primary-400"
+                                                                                title="Manage account"
+                                                                                aria-label={`Manage ${holding.symbol} account`}
+                                                                            >
+                                                                                <span className="material-symbols-outlined text-base">manage_accounts</span>
+                                                                            </button>
+                                                                            <button
+                                                                                onClick={(event) => { event.stopPropagation(); handleOpenAccountModal(holdingAccount); }}
+                                                                                className="p-1.5 rounded text-gray-500 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-white/10 hover:text-primary-600 dark:hover:text-primary-400"
+                                                                                title="Edit account"
+                                                                                aria-label={`Edit ${holding.symbol} account`}
+                                                                            >
+                                                                                <span className="material-symbols-outlined text-base">edit</span>
+                                                                            </button>
+                                                                        </>
+                                                                    )}
                                                                 </div>
                                                             </div>
                                                         </td>
