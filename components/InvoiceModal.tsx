@@ -151,7 +151,7 @@ const InvoiceModal: React.FC<InvoiceModalProps> = ({ isOpen, onClose, onSave, in
             <form onSubmit={handleSubmit} className="space-y-8">
                 
                 {/* Top Controls: Type, Status, Currency */}
-                <div className="flex flex-col sm:flex-row gap-4 justify-between bg-gray-50 dark:bg-white/5 p-4 rounded-xl border border-black/5 dark:border-white/5">
+                <div className="flex flex-col sm:flex-row gap-4 justify-between bg-gradient-to-r from-slate-100 to-white dark:from-white/5 dark:to-white/10 p-4 rounded-2xl border border-black/5 dark:border-white/10 shadow-sm">
                     <div className="flex items-center gap-4">
                         <div className={`p-2 rounded-lg ${type === 'invoice' ? 'bg-blue-100 text-blue-600 dark:bg-blue-900/30 dark:text-blue-400' : 'bg-purple-100 text-purple-600 dark:bg-purple-900/30 dark:text-purple-400'}`}>
                             <span className="material-symbols-outlined text-xl">{type === 'invoice' ? 'description' : 'request_quote'}</span>
@@ -180,7 +180,7 @@ const InvoiceModal: React.FC<InvoiceModalProps> = ({ isOpen, onClose, onSave, in
 
                 {/* Header: Document Info & Client */}
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
-                    <div className="space-y-4">
+                    <div className="space-y-4 bg-slate-50/60 dark:bg-white/5 rounded-2xl p-4 border border-black/5 dark:border-white/10">
                         <h4 className="text-sm font-bold text-light-text dark:text-dark-text border-b border-black/5 dark:border-white/5 pb-2">Document Details</h4>
                         <div className="grid grid-cols-2 gap-4">
                             <div>
@@ -198,7 +198,7 @@ const InvoiceModal: React.FC<InvoiceModalProps> = ({ isOpen, onClose, onSave, in
                         </div>
                     </div>
 
-                    <div className="space-y-4">
+                    <div className="space-y-4 bg-slate-50/60 dark:bg-white/5 rounded-2xl p-4 border border-black/5 dark:border-white/10">
                         <h4 className="text-sm font-bold text-light-text dark:text-dark-text border-b border-black/5 dark:border-white/5 pb-2 flex justify-between">
                             <span>Client / Entity</span>
                             {showLogo && <img src={clientLogo!} alt="logo" className="w-5 h-5 object-contain rounded" onError={() => setLogoLoadError(true)} />}
@@ -231,7 +231,10 @@ const InvoiceModal: React.FC<InvoiceModalProps> = ({ isOpen, onClose, onSave, in
 
                 {/* Line Items */}
                 <div>
-                    <h4 className="text-sm font-bold text-light-text dark:text-dark-text mb-3">Line Items</h4>
+                    <div className="flex items-end justify-between mb-3">
+                        <h4 className="text-sm font-bold text-light-text dark:text-dark-text">Line Items</h4>
+                        <p className="text-xs text-light-text-secondary dark:text-dark-text-secondary">Add services, products, and discounts per line.</p>
+                    </div>
                     <div className="border border-black/10 dark:border-white/10 rounded-lg overflow-hidden">
                         <table className="w-full text-left text-xs sm:text-sm">
                             <thead className="bg-gray-50 dark:bg-white/5 border-b border-black/10 dark:border-white/10">
@@ -349,7 +352,7 @@ const InvoiceModal: React.FC<InvoiceModalProps> = ({ isOpen, onClose, onSave, in
                     </div>
                 </div>
 
-                <div className="flex justify-end gap-3 pt-6 border-t border-black/10 dark:border-white/10">
+                <div className="sticky bottom-0 bg-white/95 dark:bg-dark-card/95 backdrop-blur flex justify-end gap-3 pt-6 border-t border-black/10 dark:border-white/10">
                     <button type="button" onClick={onClose} className={BTN_SECONDARY_STYLE}>Cancel</button>
                     <button type="submit" className={BTN_PRIMARY_STYLE}>Save Document</button>
                 </div>

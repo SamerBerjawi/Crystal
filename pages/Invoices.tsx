@@ -92,7 +92,7 @@ const InvoicesPage: React.FC = () => {
     const handleLogoError = (url: string) => setLogoLoadErrors(prev => ({ ...prev, [url]: true }));
 
     const MetricCard = ({ title, value, colorClass, icon }: { title: string, value: number, colorClass: string, icon: string }) => (
-        <div className="bg-white dark:bg-dark-card p-4 rounded-xl border border-black/5 dark:border-white/5 shadow-sm flex flex-col justify-between h-full">
+        <div className="bg-white/90 dark:bg-dark-card p-5 rounded-2xl border border-black/5 dark:border-white/10 shadow-sm flex flex-col justify-between h-full backdrop-blur">
             <div className="flex justify-between items-start mb-2">
                 <span className="text-[10px] font-bold uppercase text-light-text-secondary dark:text-dark-text-secondary tracking-wider">{title}</span>
                 <span className={`material-symbols-outlined text-xl ${colorClass.split(' ')[0]}`}>{icon}</span>
@@ -126,9 +126,9 @@ const InvoicesPage: React.FC = () => {
                 markerIcon="request_quote"
                 markerLabel="Billing Desk"
                 title="Quotes & Invoices"
-                subtitle="Draft, send, and track receivables with status, due dates, and follow-up nudges."
+                subtitle="Built from the ground up for fast billing operations, quick edits, and cleaner cashflow visibility."
                 actions={(
-                    <div className="flex gap-3">
+                    <div className="flex gap-2 rounded-2xl bg-white/80 dark:bg-white/5 p-1.5 border border-black/5 dark:border-white/10 shadow-sm">
                         <button onClick={() => handleOpenEditor('quote')} className={BTN_SECONDARY_STYLE}>
                             <span className="material-symbols-outlined text-lg mr-2">add</span>
                             Quote
@@ -142,19 +142,21 @@ const InvoicesPage: React.FC = () => {
             />
             
             {/* Stats Overview */}
+            <section className="rounded-3xl border border-black/5 dark:border-white/10 bg-gradient-to-br from-slate-50 to-white dark:from-dark-card dark:to-dark-card/70 p-5">
             <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
                 <MetricCard title="Overdue" value={metrics.overdue} colorClass="text-red-600 dark:text-red-400" icon="warning" />
                 <MetricCard title="Outstanding" value={metrics.outstanding} colorClass="text-blue-600 dark:text-blue-400" icon="pending" />
                 <MetricCard title="Draft Value" value={metrics.draft} colorClass="text-gray-600 dark:text-gray-400" icon="edit_note" />
                 <MetricCard title="Paid (Month)" value={metrics.paidMonth} colorClass="text-green-600 dark:text-green-400" icon="payments" />
             </div>
+            </section>
 
             {/* Main Content Area */}
             <div className="flex flex-col space-y-4">
                 {/* Controls Bar */}
-                <div className="flex flex-col md:flex-row justify-between items-center gap-4 bg-white dark:bg-dark-card p-2 rounded-2xl border border-black/5 dark:border-white/5 shadow-sm">
+                <div className="flex flex-col md:flex-row justify-between items-center gap-4 bg-white dark:bg-dark-card p-4 rounded-3xl border border-black/5 dark:border-white/10 shadow-sm">
                     {/* Tab Switcher */}
-                    <div className="flex bg-gray-100 dark:bg-white/10 p-1 rounded-xl w-full md:w-auto">
+                    <div className="flex bg-slate-100 dark:bg-white/10 p-1 rounded-2xl w-full md:w-auto">
                         <button 
                             onClick={() => setActiveTab('invoices')} 
                             className={`flex-1 md:flex-none px-6 py-2 rounded-lg text-sm font-bold transition-all ${activeTab === 'invoices' ? 'bg-white dark:bg-dark-card shadow text-primary-600 dark:text-primary-400' : 'text-gray-500 hover:text-gray-700 dark:hover:text-gray-300'}`}
@@ -209,7 +211,7 @@ const InvoicesPage: React.FC = () => {
                                 <div 
                                     key={doc.id} 
                                     onClick={() => handleOpenEditor(doc.type, doc)}
-                                    className="group bg-white dark:bg-dark-card p-4 rounded-xl border border-black/5 dark:border-white/5 shadow-sm hover:shadow-md transition-all cursor-pointer flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4"
+                                    className="group bg-white dark:bg-dark-card p-5 rounded-3xl border border-black/5 dark:border-white/10 shadow-sm hover:shadow-lg hover:-translate-y-1 transition-all cursor-pointer flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4"
                                 >
                                     <div className="flex items-center gap-4 min-w-0">
                                         {/* Status Strip & Icon */}

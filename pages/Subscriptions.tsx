@@ -312,7 +312,7 @@ const Subscriptions: React.FC = () => {
                 markerIcon="autorenew"
                 markerLabel="Recurring Center"
                 title="Subscriptions & Loyalty"
-                subtitle="Manage your recurring commitments and membership rewards in one place."
+                subtitle="Rebuilt from the ground up for recurring operations, renewal awareness, and loyalty management."
                 actions={
                      activeTab === 'recurring' ? (
                         <button onClick={() => { setSubscriptionToEdit(null); setIsModalOpen(true); }} className={`${BTN_PRIMARY_STYLE} flex items-center gap-2`}>
@@ -328,7 +328,7 @@ const Subscriptions: React.FC = () => {
             
             {/* View Toggle */}
             <div className="flex justify-center">
-                 <div className="flex bg-gray-100 dark:bg-white/5 p-1 rounded-xl">
+                 <div className="flex bg-slate-100 dark:bg-white/5 p-1.5 rounded-2xl border border-black/5 dark:border-white/10 shadow-sm">
                     <button
                         onClick={() => setActiveTab('recurring')}
                         className={`px-6 py-2 rounded-lg text-sm font-bold transition-all duration-200 ${activeTab === 'recurring' ? 'bg-white dark:bg-dark-card text-primary-600 dark:text-primary-400 shadow-sm' : 'text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-200'}`}
@@ -349,7 +349,7 @@ const Subscriptions: React.FC = () => {
                 <div className="space-y-8 animate-fade-in-up">
                     {/* Detection Alert */}
                     {detectedSubscriptions.length > 0 && (
-                        <div className="bg-gradient-to-r from-indigo-50 to-purple-50 dark:from-indigo-900/10 dark:to-purple-900/10 p-6 rounded-2xl border border-indigo-100 dark:border-indigo-800/30">
+                        <div className="bg-gradient-to-r from-indigo-50 via-violet-50 to-purple-50 dark:from-indigo-900/10 dark:to-purple-900/10 p-6 rounded-3xl border border-indigo-100 dark:border-indigo-800/30 shadow-sm">
                             <div className="flex items-center gap-3 mb-4">
                                 <div className="p-2 bg-white dark:bg-white/10 rounded-full shadow-sm">
                                     <span className="material-symbols-outlined text-indigo-500">rule</span>
@@ -410,7 +410,7 @@ const Subscriptions: React.FC = () => {
                     {/* Hero Grid: Calendar & Stats */}
                     <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
                         {/* Calendar Card */}
-                        <div className="lg:col-span-2 bg-white dark:bg-dark-card rounded-3xl p-6 border border-black/5 dark:border-white/5 shadow-sm">
+                        <div className="lg:col-span-2 bg-white dark:bg-dark-card rounded-3xl p-6 border border-black/5 dark:border-white/10 shadow-sm">
                             <div className="flex justify-between items-end mb-4">
                                 <div>
                                     <h3 className="text-lg font-bold text-light-text dark:text-dark-text">Payment Cycle</h3>
@@ -483,7 +483,7 @@ const Subscriptions: React.FC = () => {
                     </div>
                     
                     {/* Full Width List */}
-                    <Card className="p-0 overflow-hidden">
+                    <Card className="p-0 overflow-hidden rounded-3xl border border-black/5 dark:border-white/10">
                         <div className="divide-y divide-black/5 dark:divide-white/5">
                             {activeSubscriptions.length === 0 ? (
                                 <div className="p-12 text-center text-light-text-secondary dark:text-dark-text-secondary italic">

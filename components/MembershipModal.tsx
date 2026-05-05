@@ -96,7 +96,7 @@ const MembershipModal: React.FC<MembershipModalProps> = ({ onClose, onSave, memb
         <form onSubmit={handleSubmit} className="space-y-6">
           
           {/* Header Section: Icon, Color, Provider Name */}
-          <div className="flex items-center gap-5">
+          <div className="flex items-center gap-5 bg-gradient-to-r from-slate-50 to-white dark:from-white/5 dark:to-white/10 p-4 rounded-2xl border border-black/5 dark:border-white/10">
                <div className="relative group">
                     <button
                         type="button"
@@ -134,7 +134,7 @@ const MembershipModal: React.FC<MembershipModalProps> = ({ onClose, onSave, memb
           </div>
 
           {/* Core Info Grid */}
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4 bg-white dark:bg-dark-card rounded-2xl p-4 border border-black/5 dark:border-white/10">
               <div>
                 <label htmlFor="category" className={labelStyle}>Category</label>
                 <div className={SELECT_WRAPPER_STYLE}>
@@ -153,7 +153,7 @@ const MembershipModal: React.FC<MembershipModalProps> = ({ onClose, onSave, memb
           </div>
 
           {/* Additional Details */}
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-4 bg-white dark:bg-dark-card rounded-2xl p-4 border border-black/5 dark:border-white/10">
                <div className="md:col-span-2">
                   <label htmlFor="holderName" className={labelStyle}>Card Holder Name</label>
                   <input id="holderName" type="text" value={holderName} onChange={e => setHolderName(e.target.value)} className={INPUT_BASE_STYLE} placeholder="Name on card" />
@@ -164,7 +164,7 @@ const MembershipModal: React.FC<MembershipModalProps> = ({ onClose, onSave, memb
                </div>
           </div>
           
-          <div className="grid grid-cols-3 gap-4">
+          <div className="grid grid-cols-3 gap-4 bg-white dark:bg-dark-card rounded-2xl p-4 border border-black/5 dark:border-white/10">
                <div>
                   <label htmlFor="points" className={labelStyle}>Balance / Points</label>
                   <input id="points" type="text" value={points} onChange={e => setPoints(e.target.value)} className={INPUT_BASE_STYLE} placeholder="500 pts" />
@@ -180,7 +180,7 @@ const MembershipModal: React.FC<MembershipModalProps> = ({ onClose, onSave, memb
           </div>
 
           {/* Additional Info Section */}
-          <div className="bg-gray-50 dark:bg-white/5 p-4 rounded-xl border border-black/5 dark:border-white/5 space-y-4">
+          <div className="bg-gray-50 dark:bg-white/5 p-4 rounded-2xl border border-black/5 dark:border-white/10 space-y-4">
               <div>
                 <label htmlFor="website" className={labelStyle}>Website</label>
                 <div className="relative">
