@@ -1,18 +1,34 @@
 import { GoogleGenAI, Type } from "@google/genai";
 import { Transaction, Category, Account, Budget, RecurringTransaction, AIConfig } from "../../types";
 
-const getAIConfig = (): AIConfig => {
+export const getAIConfig = (): AIConfig => {
   try {
     const config = localStorage.getItem('crystal_ai_config');
-    return config ? JSON.parse(config) : { provider: 'gemini', model: 'gemini-1.5-flash' };
+    const parsed = config ? JSON.parse(config) : { enabled: true, provider: 'gemini', model: 'gemini-1.5-flash' };
+    
+    // Ensure default values if missing
+    if (parsed.enabled === undefined) parsed.enabled = true;
+    if (!parsed.provider) parsed.provider = 'gemini';
+    if (!parsed.model) parsed.model = 'gemini-1.5-flash';
+    
+    return parsed;
   } catch {
-    return { provider: 'gemini', model: 'gemini-1.5-flash' };
+    return { enabled: true, provider: 'gemini', model: 'gemini-1.5-flash' };
   }
 };
 
-const ai = new GoogleGenAI({ 
-  apiKey: process.env.GEMINI_API_KEY || '' 
-});
+const getEffectiveApiKey = (config: AIConfig): string => {
+    // Priority: 1. Key in providerKeys map, 2. legacy config.apiKey, 3. env var (for gemini)
+    if (config.providerKeys && config.providerKeys[config.provider]) {
+        return config.providerKeys[config.provider];
+    }
+    if (config.apiKey) return config.apiKey;
+    
+    if (config.provider === 'gemini') {
+        return process.env.GEMINI_API_KEY || '';
+    }
+    return '';
+};
 
 const callAI = async (params: {
     systemInstruction: string;
@@ -23,8 +39,15 @@ const callAI = async (params: {
 }) => {
     const config = getAIConfig();
     
+    if (config.enabled === false) {
+        throw new Error('AI features are currently disabled in settings.');
+    }
+    
+    const apiKey = getEffectiveApiKey(config);
+    
     if (config.provider === 'gemini') {
-        const response = await ai.models.generateContent({
+        const genAI = new GoogleGenAI({ apiKey });
+        const response = await genAI.models.generateContent({
             model: config.model || "gemini-1.5-flash",
             contents: [
                 ...(params.chatHistory || []),
@@ -39,13 +62,27 @@ const callAI = async (params: {
         return response.text;
     }
 
-    // For Groq/OpenRouter (OpenAI Compatible)
-    const endpoint = config.provider === 'groq' 
-        ? 'https://api.groq.com/openai/v1/chat/completions'
-        : 'https://openrouter.ai/api/v1/chat/completions';
+    // For OpenAI Compatible providers
+    const endpoints: Record<string, string> = {
+        'groq': 'https://api.groq.com/openai/v1/chat/completions',
+        'openrouter': 'https://openrouter.ai/api/v1/chat/completions',
+        'together': 'https://api.together.xyz/v1/chat/completions'
+    };
+    
+    const endpoint = endpoints[config.provider] || endpoints.openrouter;
+
+    // Prepare messages
+    let systemContent = params.systemInstruction;
+    
+    // If responseSchema is provided, append the schema description 
+    // to the system instruction to guide the model (since OpenAI-compatible providers
+    // in this implementation don't use direct schema objects).
+    if (params.responseSchema) {
+        systemContent += `\n\nExpected JSON Schema:\n${JSON.stringify(params.responseSchema, null, 2)}`;
+    }
 
     const messages = [
-        { role: 'system', content: params.systemInstruction },
+        { role: 'system', content: systemContent },
         ...(params.chatHistory || []).map(h => ({ 
             role: h.role === 'model' ? 'assistant' : 'user', 
             content: h.parts[0].text 
@@ -53,52 +90,83 @@ const callAI = async (params: {
         { role: 'user', content: params.prompt }
     ];
 
-    const response = await fetch('/api/ai/proxy', {
-        method: 'POST',
-        headers: {
-            'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-            endpoint,
+    // For Groq, if we want JSON, we MUST ensure "json" is in the prompt/messages
+    const isJsonRequested = params.responseMimeType === 'application/json';
+    if (config.provider === 'groq' && isJsonRequested) {
+        const hasJsonKeyword = messages.some(m => m.content.toLowerCase().includes('json'));
+        if (!hasJsonKeyword) {
+            messages[messages.length - 1].content += " (Respond in valid JSON format)";
+        }
+    }
+
+    const executeRequest = async (retryCount = 0): Promise<string> => {
+        const response = await fetch('/api/ai/proxy', {
             method: 'POST',
             headers: {
                 'Content-Type': 'application/json',
-                'Authorization': `Bearer ${config.apiKey}`,
-                ...(config.provider === 'openrouter' ? { 'HTTP-Referer': window.location.origin, 'X-Title': 'Crystal Finance' } : {})
             },
-            body: {
-                model: config.model,
-                messages,
-                response_format: params.responseMimeType === 'application/json' ? { type: 'json_object' } : undefined
-            }
-        })
-    });
+            body: JSON.stringify({
+                endpoint,
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'Authorization': `Bearer ${apiKey}`,
+                    ...(config.provider === 'openrouter' ? { 'HTTP-Referer': window.location.origin, 'X-Title': 'Crystal Finance' } : {})
+                },
+                body: {
+                    model: config.model,
+                    messages,
+                    response_format: isJsonRequested ? { type: 'json_object' } : undefined,
+                    temperature: 0.1 // Kept low for deterministic financial tasks
+                }
+            })
+        });
 
-    if (!response.ok) {
-        const error = await response.json();
-        console.error(`AI Provider Error [${config.provider}]:`, error);
-        
-        // Specific error for Groq if key is missing or invalid
-        if (config.provider === 'groq' && (response.status === 401 || response.status === 403)) {
-            throw new Error('Groq API Key is invalid or missing. Please check your AI Provider settings.');
+        if (!response.ok) {
+            const errorData = await response.json().catch(() => ({}));
+            
+            // Handle Rate Limiting (429)
+            if (response.status === 429 && retryCount < 2) {
+                const delay = Math.pow(2, retryCount) * 2000;
+                console.warn(`AI Provider rate limited. Retrying in ${delay}ms...`);
+                await new Promise(resolve => setTimeout(resolve, delay));
+                return executeRequest(retryCount + 1);
+            }
+
+            console.error(`AI Provider Error [${config.provider}]:`, errorData);
+            
+            if (config.provider === 'groq' && (response.status === 401 || response.status === 403)) {
+                throw new Error('Groq API Key is invalid or missing. Please check your AI Provider settings.');
+            }
+
+            const errorMsg = errorData.error?.message || errorData.message || `AI Provider Error (${response.status})`;
+            throw new Error(errorMsg);
         }
 
-        throw new Error(error.error?.message || `AI Provider Error (${response.status})`);
-    }
+        const result = await response.json();
+        
+        if (result.error) {
+            console.error(`AI Provider Error [${config.provider}]:`, result.error);
+            throw new Error(result.error.message || 'AI Provider Error');
+        }
 
-    const result = await response.json();
-    
-    if (result.error) {
-        console.error(`AI Provider Error [${config.provider}]:`, result.error);
-        throw new Error(result.error.message || 'AI Provider Error');
-    }
+        if (!result.choices || !result.choices[0] || !result.choices[0].message) {
+            console.error('Unexpected AI Response Format:', result);
+            throw new Error('Unexpected response format from AI provider');
+        }
 
-    if (!result.choices || !result.choices[0] || !result.choices[0].message) {
-        console.error('Unexpected AI Response Format:', result);
-        throw new Error('Unexpected response format from AI provider');
-    }
+        let content = result.choices[0].message.content;
 
-    return result.choices[0].message.content;
+        // Special handling for DeepSeek R1 and other "thinking" models
+        // They might include <think>...</think> or <thought>...</thought> tags even if specifically asked for JSON
+        if (config.model.includes('r1') || content.includes('<think>') || content.includes('<thought>')) {
+            content = content.replace(/<(think|thought)>[\s\S]*?<\/(think|thought)>/gi, '').trim();
+        }
+
+        return content;
+    };
+
+    return await executeRequest();
 };
 
 export const getPredictiveCashFlow = async (context: {

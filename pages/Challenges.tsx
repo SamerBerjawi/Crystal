@@ -8,9 +8,9 @@ import { useBudgetsContext, useGoalsContext, useScheduleContext, useCategoryCont
 import { useLocalStorage } from '../hooks/useLocalStorage';
 import PredictionCard from '../components/PredictionCard';
 import PredictionModal from '../components/PredictionModal';
-import { getPersonalizedChallenges } from '../src/services/geminiService';
+import { getPersonalizedChallenges, getAIConfig } from '../src/services/geminiService';
 import PageHeader from '../components/PageHeader';
-import { RefreshCw, Sparkles } from 'lucide-react';
+import { RefreshCw, Sparkles, Bot } from 'lucide-react';
 
 const CACHE_KEYS = {
   AI_CHALLENGES: 'crystal_ai_challenges'
@@ -519,8 +519,11 @@ const Challenges: React.FC<ChallengesProps> = ({ userStats, accounts, transactio
   const [isAiLoading, setIsAiLoading] = useState(false);
   const [aiError, setAiError] = useState<string | null>(null);
 
+  const aiConfig = getAIConfig();
+  const isAIEnabled = aiConfig.enabled !== false;
+
   const fetchAIChallenges = async (force = false) => {
-    if (aiChallenges.length > 0 && !force && !isAiLoading) return;
+    if (!isAIEnabled || (aiChallenges.length > 0 && !force && !isAiLoading)) return;
     
     setIsAiLoading(true);
     setAiError(null);
@@ -1106,106 +1109,124 @@ const Challenges: React.FC<ChallengesProps> = ({ userStats, accounts, transactio
           
           {activeSection === 'ai-challenges' && (
               <div className="space-y-6 animate-fade-in-up">
-                  <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
-                      <div>
-                          <h3 className="text-xl font-bold text-light-text dark:text-dark-text flex items-center gap-2">
-                              <span className="material-symbols-outlined text-primary-500">auto_awesome</span>
-                              AI-Powered Savings Challenges
-                          </h3>
-                          <p className="text-sm text-light-text-secondary dark:text-dark-text-secondary">Custom challenges generated based on your spending habits and financial goals.</p>
-                               {aiChallenges.length > 0 && aiChallenges[0].updatedAt && (
-                                   <span className="text-[10px] text-gray-400 font-medium mt-1">
-                                       Last suggested {new Date(aiChallenges[0].updatedAt).toLocaleDateString()} at {new Date(aiChallenges[0].updatedAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
-                                   </span>
-                               )}
-                      </div>
-                      <button 
-                        onClick={() => fetchAIChallenges(true)}
-                        disabled={isAiLoading}
-                        className={`${BTN_SECONDARY_STYLE} flex items-center gap-2 group`}
-                      >
-                        <RefreshCw className={`w-4 h-4 ${isAiLoading ? 'animate-spin' : 'group-hover:rotate-180 transition-transform duration-500'}`} />
-                        Refresh Suggestions
-                      </button>
-                  </div>
-
-                  {isAiLoading ? (
-                      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-                          {[1, 2, 3].map(i => (
-                              <div key={i} className="animate-pulse bg-white dark:bg-dark-card rounded-3xl p-6 h-64 border border-black/5 dark:border-white/5 shadow-sm">
-                                  <div className="h-12 w-12 bg-gray-200 dark:bg-gray-800 rounded-xl mb-4"></div>
-                                  <div className="h-4 bg-gray-200 dark:bg-gray-800 rounded w-3/4 mb-2"></div>
-                                  <div className="h-4 bg-gray-200 dark:bg-gray-800 rounded w-1/2 mb-4"></div>
-                                  <div className="space-y-2">
-                                      <div className="h-2 bg-gray-200 dark:bg-gray-800 rounded"></div>
-                                      <div className="h-2 bg-gray-200 dark:bg-gray-800 rounded"></div>
-                                      <div className="h-2 bg-gray-200 dark:bg-gray-800 rounded w-5/6"></div>
-                                  </div>
+                  {!isAIEnabled ? (
+                      <div className="bg-gray-50 dark:bg-white/5 border border-dashed border-black/10 dark:border-white/10 rounded-3xl p-12 text-center">
+                          <div className="flex flex-col items-center gap-4">
+                              <div className="w-16 h-16 bg-gray-100 dark:bg-white/5 rounded-2xl flex items-center justify-center">
+                                  <Bot className="w-10 h-10 text-gray-300 dark:text-gray-700" />
                               </div>
-                          ))}
-                      </div>
-                  ) : aiError ? (
-                      <Card className="text-center py-12 border-dashed">
-                          <span className="material-symbols-outlined text-4xl text-red-500 mb-2">error</span>
-                          <p className="text-light-text dark:text-dark-text font-medium">{aiError}</p>
-                      </Card>
-                  ) : (
-                      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-                          {aiChallenges.map((challenge, idx) => (
-                              <Card key={challenge.id || idx} className="group relative overflow-hidden border border-black/5 dark:border-white/5 hover:shadow-xl transition-all duration-300 transform hover:-translate-y-1">
-                                  <div className={`absolute top-0 right-0 p-4 opacity-5 group-hover:opacity-10 transition-opacity`}>
-                                      <span className="material-symbols-outlined text-6xl">savings</span>
-                                  </div>
-                                  
-                                  <div className="flex justify-between items-start mb-4">
-                                      <div className={`px-3 py-1 rounded-full text-[10px] font-bold uppercase tracking-wider
-                                          ${challenge.difficulty === 'Easy' ? 'bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400' : 
-                                            challenge.difficulty === 'Medium' ? 'bg-amber-100 text-amber-700 dark:bg-amber-900/30 dark:text-amber-400' : 
-                                            'bg-rose-100 text-rose-700 dark:bg-rose-900/30 dark:text-rose-400'}`}
-                                      >
-                                          {challenge.difficulty}
-                                      </div>
-                                      <div className="text-primary-500 font-bold text-sm">
-                                          Est. Save: {formatCurrency(challenge.potentialSavings, 'EUR')}
-                                      </div>
-                                  </div>
-
-                                  <h4 className="text-lg font-bold text-light-text dark:text-dark-text mb-2 group-hover:text-primary-500 transition-colors">
-                                      {challenge.title}
-                                  </h4>
-                                  <p className="text-sm text-light-text-secondary dark:text-dark-text-secondary mb-4 line-clamp-3">
-                                      {challenge.description}
+                              <div className="max-w-md">
+                                  <h3 className="text-xl font-bold text-light-text dark:text-dark-text mb-2">AI Challenges are Disabled</h3>
+                                  <p className="text-sm text-light-text-secondary dark:text-dark-text-secondary mb-6">
+                                      Enable AI features in settings to get personalized challenges based on your spending patterns and financial behavior.
                                   </p>
-
-                                  <div className="space-y-2 mb-6">
-                                      <p className="text-[10px] font-bold text-gray-400 uppercase tracking-widest">Key Actions</p>
-                                      {challenge.actionPlan.map((action, i) => (
-                                          <div key={i} className="flex items-start gap-2 text-xs text-light-text dark:text-dark-text">
-                                              <span className="material-symbols-outlined text-primary-500 text-sm flex-shrink-0 mt-0.5">check_circle</span>
-                                              <span>{action}</span>
-                                          </div>
-                                      ))}
-                                  </div>
-
-                                  <button className={`w-full ${BTN_PRIMARY_STYLE} !py-2.5 !h-auto text-sm`}>
-                                      Accept Challenge
-                                  </button>
-                              </Card>
-                          ))}
-                          
-                          {aiChallenges.length === 0 && !isAiLoading && (
-                               <Card className="col-span-full py-12 text-center border-dashed">
-                                  <span className="material-symbols-outlined text-4xl opacity-30 mb-2">auto_awesome_motion</span>
-                                  <p className="text-light-text-secondary dark:text-dark-text-secondary">No AI challenges generated yet.</p>
-                                  <button 
-                                      onClick={() => setActiveSection('ai-challenges')} 
-                                      className="mt-4 text-primary-500 font-bold hover:underline"
-                                  >
-                                      Generate Now
-                                  </button>
-                              </Card>
-                          )}
+                              </div>
+                          </div>
                       </div>
+                  ) : (
+                      <>
+                          <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
+                              <div>
+                                  <h3 className="text-xl font-bold text-light-text dark:text-dark-text flex items-center gap-2">
+                                      <span className="material-symbols-outlined text-primary-500">auto_awesome</span>
+                                      AI-Powered Savings Challenges
+                                  </h3>
+                                  <p className="text-sm text-light-text-secondary dark:text-dark-text-secondary">Custom challenges generated based on your spending habits and financial goals.</p>
+                                       {aiChallenges.length > 0 && aiChallenges[0].updatedAt && (
+                                           <span className="text-[10px] text-gray-400 font-medium mt-1">
+                                               Last suggested {new Date(aiChallenges[0].updatedAt).toLocaleDateString()} at {new Date(aiChallenges[0].updatedAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
+                                           </span>
+                                       )}
+                              </div>
+                              <button 
+                                onClick={() => fetchAIChallenges(true)}
+                                disabled={isAiLoading}
+                                className={`${BTN_SECONDARY_STYLE} flex items-center gap-2 group`}
+                              >
+                                <RefreshCw className={`w-4 h-4 ${isAiLoading ? 'animate-spin' : 'group-hover:rotate-180 transition-transform duration-500'}`} />
+                                Refresh Suggestions
+                              </button>
+                          </div>
+
+                          {isAiLoading ? (
+                              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                                  {[1, 2, 3].map(i => (
+                                      <div key={i} className="animate-pulse bg-white dark:bg-dark-card rounded-3xl p-6 h-64 border border-black/5 dark:border-white/5 shadow-sm">
+                                          <div className="h-12 w-12 bg-gray-200 dark:bg-gray-800 rounded-xl mb-4"></div>
+                                          <div className="h-4 bg-gray-200 dark:bg-gray-800 rounded w-3/4 mb-2"></div>
+                                          <div className="h-4 bg-gray-200 dark:bg-gray-800 rounded w-1/2 mb-4"></div>
+                                          <div className="space-y-2">
+                                              <div className="h-2 bg-gray-200 dark:bg-gray-800 rounded"></div>
+                                              <div className="h-2 bg-gray-200 dark:bg-gray-800 rounded"></div>
+                                              <div className="h-2 bg-gray-200 dark:bg-gray-800 rounded w-5/6"></div>
+                                          </div>
+                                      </div>
+                                  ))}
+                              </div>
+                          ) : aiError ? (
+                              <Card className="text-center py-12 border-dashed">
+                                  <span className="material-symbols-outlined text-4xl text-red-500 mb-2">error</span>
+                                  <p className="text-light-text dark:text-dark-text font-medium">{aiError}</p>
+                              </Card>
+                          ) : (
+                              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                                  {aiChallenges.map((challenge, idx) => (
+                                      <Card key={challenge.id || idx} className="group relative overflow-hidden border border-black/5 dark:border-white/5 hover:shadow-xl transition-all duration-300 transform hover:-translate-y-1">
+                                          <div className={`absolute top-0 right-0 p-4 opacity-5 group-hover:opacity-10 transition-opacity`}>
+                                              <span className="material-symbols-outlined text-6xl">savings</span>
+                                          </div>
+                                          
+                                          <div className="flex justify-between items-start mb-4">
+                                              <div className={`px-3 py-1 rounded-full text-[10px] font-bold uppercase tracking-wider
+                                                  ${challenge.difficulty === 'Easy' ? 'bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-400' : 
+                                                    challenge.difficulty === 'Medium' ? 'bg-amber-100 text-amber-700 dark:bg-amber-900/30 dark:text-amber-400' : 
+                                                    'bg-rose-100 text-rose-700 dark:bg-rose-900/30 dark:text-rose-400'}`}
+                                              >
+                                                  {challenge.difficulty}
+                                              </div>
+                                              <div className="text-primary-500 font-bold text-sm">
+                                                  Est. Save: {formatCurrency(challenge.potentialSavings, 'EUR')}
+                                              </div>
+                                          </div>
+
+                                          <h4 className="text-lg font-bold text-light-text dark:text-dark-text mb-2 group-hover:text-primary-500 transition-colors">
+                                              {challenge.title}
+                                          </h4>
+                                          <p className="text-sm text-light-text-secondary dark:text-dark-text-secondary mb-4 line-clamp-3">
+                                              {challenge.description}
+                                          </p>
+
+                                          <div className="space-y-2 mb-6">
+                                              <p className="text-[10px] font-bold text-gray-400 uppercase tracking-widest">Key Actions</p>
+                                              {challenge.actionPlan.map((action, i) => (
+                                                  <div key={i} className="flex items-start gap-2 text-xs text-light-text dark:text-dark-text">
+                                                      <span className="material-symbols-outlined text-primary-500 text-sm flex-shrink-0 mt-0.5">check_circle</span>
+                                                      <span>{action}</span>
+                                                  </div>
+                                              ))}
+                                          </div>
+
+                                          <button className={`w-full ${BTN_PRIMARY_STYLE} !py-2.5 !h-auto text-sm`}>
+                                              Accept Challenge
+                                          </button>
+                                      </Card>
+                                  ))}
+                                  
+                                  {aiChallenges.length === 0 && !isAiLoading && (
+                                       <Card className="col-span-full py-12 text-center border-dashed">
+                                          <span className="material-symbols-outlined text-4xl opacity-30 mb-2">auto_awesome_motion</span>
+                                          <p className="text-light-text-secondary dark:text-dark-text-secondary">No AI challenges generated yet.</p>
+                                          <button 
+                                              onClick={() => fetchAIChallenges(true)} 
+                                              className="mt-4 text-primary-500 font-bold hover:underline"
+                                          >
+                                              Generate Now
+                                          </button>
+                                      </Card>
+                                  )}
+                              </div>
+                          )}
+                      </>
                   )}
               </div>
           )}

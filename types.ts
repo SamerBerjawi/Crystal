@@ -5,12 +5,14 @@ import React, { Dispatch, SetStateAction } from 'react';
 // FIX: Remove 'AI Assistant' from Page type
 export type Page = 'Dashboard' | 'Accounts' | 'Transactions' | 'Budget' | 'Forecasting' | 'Predictive Cash Flow' | 'Settings' | 'Schedule & Bills' | 'Tasks' | 'Categories' | 'Tags' | 'Personal Info' | 'Data Management' | 'Preferences' | 'AccountDetail' | 'Investments' | 'HoldingDetail' | 'Documentation' | 'Subscriptions' | 'Quotes & Invoices' | 'Challenges' | 'Merchants' | 'Reports' | 'Integrations' | 'EnableBankingCallback' | 'AI Assistant' | 'AI Providers';
 
-export type AIProvider = 'gemini' | 'groq' | 'openrouter';
+export type AIProvider = 'gemini' | 'groq' | 'openrouter' | 'together';
 
 export interface AIConfig {
+    enabled?: boolean;
     provider: AIProvider;
-    apiKey?: string;
+    apiKey?: string; // Active API key (deprecated in favor of providerKeys)
     model?: string;
+    providerKeys?: Record<AIProvider, string>; // Store keys for each provider
 }
 
 export type AccountType = 'Checking' | 'Savings' | 'Credit Card' | 'Investment' | 'Loan' | 'Property' | 'Vehicle' | 'Other Assets' | 'Other Liabilities' | 'Lending';

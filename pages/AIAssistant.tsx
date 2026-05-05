@@ -9,7 +9,7 @@ const CACHE_KEYS = {
 };
 import { Transaction, Account, Budget, RecurringTransaction } from '../types';
 import Markdown from 'react-markdown';
-import { getFinancialAssistantResponse, getPredictiveInsights, getFinancialHealthScore, getSubscriptionAudit } from '../src/services/geminiService';
+import { getFinancialAssistantResponse, getPredictiveInsights, getFinancialHealthScore, getSubscriptionAudit, getAIConfig } from '../src/services/geminiService';
 import Card from '../components/Card';
 import { BTN_PRIMARY_STYLE, BTN_SECONDARY_STYLE, INPUT_BASE_STYLE } from '../constants';
 
@@ -18,6 +18,7 @@ interface AIAssistantProps {
   transactions: Transaction[];
   budgets: Budget[];
   recurring: RecurringTransaction[];
+  setCurrentPage?: (page: any) => void;
 }
 
 interface FinancialHealth {
@@ -40,12 +41,17 @@ interface Message {
   timestamp: Date;
 }
 
-const AIAssistant: React.FC<AIAssistantProps> = ({ accounts, transactions, budgets, recurring }) => {
+const AIAssistant: React.FC<AIAssistantProps> = ({ accounts, transactions, budgets, recurring, setCurrentPage }) => {
+  const aiConfig = getAIConfig();
+  const isEnabled = aiConfig.enabled !== false;
+
   const [messages, setMessages] = useState<Message[]>([
     {
       id: 'welcome',
       role: 'model',
-      text: 'Hello! I am **Crystal AI**, your personal financial assistant. How can I help you today? I can analyze your spending, predict future balances, or suggest ways to save.',
+      text: isEnabled 
+        ? 'Hello! I am **Crystal AI**, your personal financial assistant. How can I help you today? I can analyze your spending, predict future balances, or suggest ways to save.'
+        : 'Crystal AI features are currently **disabled**. You can enable them in the AI Providers settings to start using the financial assistant.',
       timestamp: new Date()
     }
   ]);
@@ -77,6 +83,7 @@ const AIAssistant: React.FC<AIAssistantProps> = ({ accounts, transactions, budge
   }, [messages, isLoading]);
 
   const fetchPredictiveInsights = async (force = false) => {
+    if (!isEnabled) return;
     if (insights && !force && !isInsightsLoading) return;
     setIsInsightsLoading(true);
     try {
@@ -126,6 +133,7 @@ const AIAssistant: React.FC<AIAssistantProps> = ({ accounts, transactions, budge
   };
 
   const handleSend = async () => {
+    if (!isEnabled) return;
     if (!input.trim() || isLoading) return;
 
     const userMessage: Message = {
@@ -181,17 +189,29 @@ const AIAssistant: React.FC<AIAssistantProps> = ({ accounts, transactions, budge
             <Sparkles className="w-5 h-5 text-primary-500" />
             AI Insights
           </h2>
-          <button 
-            onClick={() => fetchPredictiveInsights(true)}
-            disabled={isInsightsLoading}
-            className="p-1.5 rounded-lg hover:bg-gray-100 dark:hover:bg-white/5 text-light-text-secondary dark:text-dark-text-secondary transition-colors"
-            title="Refresh Insights"
-          >
-            <RefreshCw className={`w-4 h-4 ${isInsightsLoading ? 'animate-spin text-primary-500' : ''}`} />
-          </button>
+          {isEnabled && (
+            <button 
+              onClick={() => fetchPredictiveInsights(true)}
+              disabled={isInsightsLoading}
+              className="p-1.5 rounded-lg hover:bg-gray-100 dark:hover:bg-white/5 text-light-text-secondary dark:text-dark-text-secondary transition-colors"
+              title="Refresh Insights"
+            >
+              <RefreshCw className={`w-4 h-4 ${isInsightsLoading ? 'animate-spin text-primary-500' : ''}`} />
+            </button>
+          )}
         </div>
 
-        {insights ? (
+        {!isEnabled ? (
+          <div className="flex flex-col items-center justify-center py-10 px-4 text-center bg-gray-50 dark:bg-white/5 rounded-3xl border border-dashed border-black/10 dark:border-white/10">
+            <Bot className="w-10 h-10 text-gray-300 dark:text-gray-700 mb-3" />
+            <p className="text-sm font-medium text-light-text-secondary dark:text-dark-text-secondary">
+              Insights are currently disabled.
+            </p>
+            <p className="text-xs text-light-text-secondary dark:text-dark-text-secondary opacity-60 mt-1">
+              Enable AI features in settings to get automated financial analysis.
+            </p>
+          </div>
+        ) : insights ? (
           <>
             <Card className="bg-gradient-to-br from-primary-500/10 to-transparent border-primary-200 dark:border-primary-800">
               <div className="flex justify-between items-start mb-2">
@@ -409,20 +429,20 @@ const AIAssistant: React.FC<AIAssistantProps> = ({ accounts, transactions, budge
               type="text"
               value={input}
               onChange={(e) => setInput(e.target.value)}
-              placeholder="Ask anything about your finances..."
+              placeholder={isEnabled ? "Ask anything about your finances..." : "AI Features Disabled"}
               className={`${INPUT_BASE_STYLE} flex-1`}
-              disabled={isLoading}
+              disabled={isLoading || !isEnabled}
             />
             <button
               type="submit"
-              disabled={isLoading || !input.trim()}
-              className={`${BTN_PRIMARY_STYLE} !w-12 !h-12 !p-0 rounded-2xl flex items-center justify-center`}
+              disabled={isLoading || !input.trim() || !isEnabled}
+              className={`${BTN_PRIMARY_STYLE} !w-12 !h-12 !p-0 rounded-2xl flex items-center justify-center ${!isEnabled ? 'opacity-50 grayscale cursor-not-allowed' : ''}`}
             >
               <Send className="w-5 h-5 text-white" />
             </button>
           </form>
           <div className="flex gap-2 mt-3 overflow-x-auto pb-1 no-scrollbar">
-            {['How much did I spend this month?', 'Can I afford a new car?', 'Show me anomalies'].map((suggestion) => (
+            {isEnabled && ['How much did I spend this month?', 'Can I afford a new car?', 'Show me anomalies'].map((suggestion) => (
               <button
                 key={suggestion}
                 type="button"
@@ -432,6 +452,15 @@ const AIAssistant: React.FC<AIAssistantProps> = ({ accounts, transactions, budge
                 {suggestion}
               </button>
             ))}
+            {!isEnabled && (
+              <button
+                type="button"
+                onClick={() => setCurrentPage?.('AI Providers')}
+                className="whitespace-nowrap px-3 py-1.5 rounded-full bg-primary-500 text-white text-[11px] font-medium hover:bg-primary-600 transition-all"
+              >
+                Go to AI Settings
+              </button>
+            )}
           </div>
         </div>
       </Card>

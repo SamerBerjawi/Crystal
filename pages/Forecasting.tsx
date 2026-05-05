@@ -30,8 +30,8 @@ import { useInsightsView } from '../contexts/InsightsViewContext';
 import PageHeader from '../components/PageHeader';
 import { v4 as uuidv4 } from 'uuid';
 import { motion, AnimatePresence } from 'motion/react';
-import { getPredictiveInsights } from '../src/services/geminiService';
-import { RefreshCw } from 'lucide-react';
+import { getPredictiveInsights, getAIConfig } from '../src/services/geminiService';
+import { RefreshCw, Bot } from 'lucide-react';
 
 const CACHE_KEYS = {
   PREDICTIVE_INSIGHTS: 'crystal_forecasting_insights'
@@ -152,8 +152,11 @@ const Forecasting: React.FC = () => {
   const [isPredictiveLoading, setIsPredictiveLoading] = useState(false);
   const [predictiveError, setPredictiveError] = useState<string | null>(null);
 
+  const aiConfig = getAIConfig();
+  const isAIEnabled = aiConfig.enabled !== false;
+
   const fetchPredictiveInsights = useCallback(async (force = false) => {
-    if (transactions.length === 0 || isPredictiveLoading) return;
+    if (!isAIEnabled || transactions.length === 0 || isPredictiveLoading) return;
     if (predictiveInsights && !force) return;
 
     setIsPredictiveLoading(true);
@@ -612,7 +615,19 @@ const Forecasting: React.FC = () => {
     return (
         <div className="space-y-8 pb-12 animate-fade-in-up">
             {/* AI Predictive Insights Section */}
-            {(predictiveInsights || isPredictiveLoading) && (
+            {!isAIEnabled ? (
+                <div className="bg-gray-50 dark:bg-white/5 border border-dashed border-black/10 dark:border-white/10 rounded-3xl p-6 text-center">
+                    <div className="flex flex-col items-center gap-3">
+                        <Bot className="w-10 h-10 text-gray-300 dark:text-gray-700" />
+                        <div>
+                            <h3 className="font-bold text-light-text dark:text-dark-text">AI Insights Disabled</h3>
+                            <p className="text-sm text-light-text-secondary dark:text-dark-text-secondary">
+                                Enable AI features in settings to see automated anomalies and predictive balances.
+                            </p>
+                        </div>
+                    </div>
+                </div>
+            ) : (predictiveInsights || isPredictiveLoading) && (
                 <div className={`${isPredictiveLoading ? 'animate-pulse' : 'animate-fade-in-up'} bg-gradient-to-br from-primary-50 to-indigo-50 dark:from-primary-900/10 dark:to-indigo-900/10 border border-primary-100 dark:border-primary-900/20 rounded-3xl p-6`}>
                     <div className="flex flex-col md:flex-row gap-6">
                         <div className="flex-1 space-y-4">

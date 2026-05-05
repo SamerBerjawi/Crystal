@@ -4,12 +4,12 @@ import { Transaction, Account, RecurringTransaction } from '../types';
 import { BTN_PRIMARY_STYLE, BTN_SECONDARY_STYLE } from '../constants';
 import Card from '../components/Card';
 import { formatCurrency } from '../utils';
-import { getPredictiveCashFlow } from '../src/services/geminiService';
+import { getPredictiveCashFlow, getAIConfig } from '../src/services/geminiService';
 import PageHeader from '../components/PageHeader';
 import { 
   AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, ReferenceLine 
 } from 'recharts';
-import { RefreshCw, AlertTriangle, TrendingDown, TrendingUp, Calendar } from 'lucide-react';
+import { RefreshCw, AlertTriangle, TrendingDown, TrendingUp, Calendar, Bot } from 'lucide-react';
 
 interface PredictiveCashFlowProps {
   transactions: Transaction[];
@@ -39,8 +39,11 @@ const PredictiveCashFlow: React.FC<PredictiveCashFlowProps> = ({
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
+  const aiConfig = getAIConfig();
+  const isAIEnabled = aiConfig.enabled !== false;
+
   const fetchData = async (force = false) => {
-    if (isLoading) return;
+    if (!isAIEnabled || isLoading) return;
     if (forecast && !force) return;
 
     setIsLoading(true);
@@ -87,18 +90,37 @@ const PredictiveCashFlow: React.FC<PredictiveCashFlowProps> = ({
         title="Predictive Cash Flow" 
         subtitle="AI-driven balance forecasting based on recurring bills, upcoming expenses, and historical spending patterns."
         actions={
-          <button 
-            onClick={() => fetchData(true)}
-            disabled={isLoading}
-            className={`${BTN_SECONDARY_STYLE} flex items-center gap-2`}
-          >
-            <RefreshCw className={`w-4 h-4 ${isLoading ? 'animate-spin' : ''}`} />
-            Recalculate Forecast
-          </button>
+          isAIEnabled && (
+            <button 
+              onClick={() => fetchData(true)}
+              disabled={isLoading}
+              className={`${BTN_SECONDARY_STYLE} flex items-center gap-2`}
+            >
+              <RefreshCw className={`w-4 h-4 ${isLoading ? 'animate-spin' : ''}`} />
+              Recalculate Forecast
+            </button>
+          )
         }
       />
 
-      <div className="grid grid-cols-1 lg:grid-cols-4 gap-8">
+      {!isAIEnabled && (
+          <div className="bg-gray-50 dark:bg-white/5 border border-dashed border-black/10 dark:border-white/10 rounded-3xl p-12 text-center">
+              <div className="flex flex-col items-center gap-4">
+                  <div className="w-16 h-16 bg-gray-100 dark:bg-white/5 rounded-2xl flex items-center justify-center">
+                      <Bot className="w-10 h-10 text-gray-300 dark:text-gray-700" />
+                  </div>
+                  <div className="max-w-md">
+                      <h3 className="text-xl font-bold text-light-text dark:text-dark-text mb-2">Predictive Cash Flow Disabled</h3>
+                      <p className="text-sm text-light-text-secondary dark:text-dark-text-secondary mb-6">
+                          Enable AI features in settings to unlock deep cash flow forecasting and anomaly detection.
+                      </p>
+                  </div>
+              </div>
+          </div>
+      )}
+
+      {isAIEnabled && (
+        <div className="grid grid-cols-1 lg:grid-cols-4 gap-8">
         <div className="lg:col-span-3 space-y-8">
           {/* Main Forecast Chart */}
           <Card className="p-6 h-[400px]">
@@ -251,8 +273,9 @@ const PredictiveCashFlow: React.FC<PredictiveCashFlowProps> = ({
           )}
         </div>
       </div>
-    </div>
-  );
+    )}
+  </div>
+);
 };
 
 export default PredictiveCashFlow;
