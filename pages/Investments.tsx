@@ -532,8 +532,38 @@ const Investments: React.FC<InvestmentsProps> = ({
                                                                     {holding.symbol.substring(0, 2)}
                                                                 </div>
                                                                 <div className="min-w-0 flex-1">
-                                                                    <p className="font-bold text-sm text-light-text dark:text-dark-text truncate max-w-[120px]">{holding.symbol}</p>
-                                                                    <p className="text-[10px] text-gray-400 truncate max-w-[120px] font-medium">{holding.name}</p>
+                                                                    <p className="font-bold text-sm text-light-text dark:text-dark-text truncate">{holding.symbol}</p>
+                                                                    <p className="text-[10px] text-gray-400 truncate font-medium">{holding.name}</p>
+                                                                </div>
+                                                                <div className="hidden md:flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+                                                                    <button
+                                                                        onClick={(event) => { event.stopPropagation(); handleOpenPriceModal(holding.symbol, holding.name, holding.currentPrice); }}
+                                                                        className="p-1.5 rounded text-gray-500 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-white/10 hover:text-primary-600 dark:hover:text-primary-400"
+                                                                        title="Update price"
+                                                                        aria-label={`Update price for ${holding.symbol}`}
+                                                                    >
+                                                                        <span className="material-symbols-outlined text-base">payments</span>
+                                                                    </button>
+                                                                    {holdingAccount && (
+                                                                        <>
+                                                                            <button
+                                                                                onClick={(event) => { event.stopPropagation(); handleAccountClick(holdingAccount.id); }}
+                                                                                className="p-1.5 rounded text-gray-500 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-white/10 hover:text-primary-600 dark:hover:text-primary-400"
+                                                                                title="Manage account"
+                                                                                aria-label={`Manage ${holding.symbol} account`}
+                                                                            >
+                                                                                <span className="material-symbols-outlined text-base">manage_accounts</span>
+                                                                            </button>
+                                                                            <button
+                                                                                onClick={(event) => { event.stopPropagation(); handleOpenAccountModal(holdingAccount); }}
+                                                                                className="p-1.5 rounded text-gray-500 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-white/10 hover:text-primary-600 dark:hover:text-primary-400"
+                                                                                title="Edit account"
+                                                                                aria-label={`Edit ${holding.symbol} account`}
+                                                                            >
+                                                                                <span className="material-symbols-outlined text-base">edit</span>
+                                                                            </button>
+                                                                        </>
+                                                                    )}
                                                                 </div>
                                                                 {holdingAccount && (
                                                                     <div className="hidden md:flex items-center gap-2 opacity-0 group-hover:opacity-100 transition-opacity">
