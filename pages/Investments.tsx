@@ -14,6 +14,7 @@ import PageHeader from '../components/PageHeader';
 import AccountsListSection from '../components/AccountsListSection';
 import { usePreferencesSelector } from '../contexts/DomainProviders';
 import ConfirmationModal from '../components/ConfirmationModal';
+import Modal from '../components/Modal';
 
 const CACHE_KEYS = {
   INVESTMENT_INSIGHTS: 'crystal_investment_insights'
@@ -73,6 +74,8 @@ const Investments: React.FC<InvestmentsProps> = ({
     const [contextMenu, setContextMenu] = useState<{ x: number, y: number, account: Account } | null>(null);
     const [isWatchlistModalOpen, setIsWatchlistModalOpen] = useState(false);
     const [accountToDelete, setAccountToDelete] = useState<Account | null>(null);
+    const [itemToDelete, setItemToDelete] = useState<{ id: string; isWarrant: boolean } | null>(null);
+    const [isUpdatingAllPrices, setIsUpdatingAllPrices] = useState(false);
 
     const twelveDataApiKey = usePreferencesSelector(p => p.twelveDataApiKey || '');
 
@@ -528,10 +531,26 @@ const Investments: React.FC<InvestmentsProps> = ({
                                                                 <div className={`w-8 h-8 rounded flex items-center justify-center font-bold text-xs ${holding.type === 'Warrant' ? 'bg-purple-100 text-purple-700 dark:bg-purple-900/30 dark:text-purple-400' : 'bg-primary-100 text-primary-700 dark:bg-primary-900/30 dark:text-primary-400'}`}>
                                                                     {holding.symbol.substring(0, 2)}
                                                                 </div>
-                                                                <div className="min-w-0">
+                                                                <div className="min-w-0 flex-1">
                                                                     <p className="font-bold text-sm text-light-text dark:text-dark-text truncate max-w-[120px]">{holding.symbol}</p>
                                                                     <p className="text-[10px] text-gray-400 truncate max-w-[120px] font-medium">{holding.name}</p>
                                                                 </div>
+                                                                {holdingAccount && (
+                                                                    <div className="hidden md:flex items-center gap-2 opacity-0 group-hover:opacity-100 transition-opacity">
+                                                                        <button
+                                                                            onClick={(event) => { event.stopPropagation(); handleAccountClick(holdingAccount.id); }}
+                                                                            className="text-[10px] font-bold uppercase tracking-widest text-primary-600 dark:text-primary-400 hover:underline"
+                                                                        >
+                                                                            Manage
+                                                                        </button>
+                                                                        <button
+                                                                            onClick={(event) => { event.stopPropagation(); handleOpenAccountModal(holdingAccount); }}
+                                                                            className="text-[10px] font-bold uppercase tracking-widest text-gray-500 dark:text-gray-400 hover:underline"
+                                                                        >
+                                                                            Edit
+                                                                        </button>
+                                                                    </div>
+                                                                )}
                                                             </div>
                                                         </td>
                                                         <td className="py-4 text-right">
