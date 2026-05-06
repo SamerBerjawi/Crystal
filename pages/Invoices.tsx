@@ -92,12 +92,16 @@ const InvoicesPage: React.FC = () => {
     const handleLogoError = (url: string) => setLogoLoadErrors(prev => ({ ...prev, [url]: true }));
 
     const MetricCard = ({ title, value, colorClass, icon }: { title: string, value: number, colorClass: string, icon: string }) => (
-        <div className="bg-white dark:bg-dark-card p-4 rounded-xl border border-black/5 dark:border-white/5 shadow-sm flex flex-col justify-between h-full">
-            <div className="flex justify-between items-start mb-2">
-                <span className="text-[10px] font-bold uppercase text-light-text-secondary dark:text-dark-text-secondary tracking-wider">{title}</span>
-                <span className={`material-symbols-outlined text-xl ${colorClass.split(' ')[0]}`}>{icon}</span>
+        <div className="bg-white dark:bg-dark-card p-6 rounded-2xl border border-black/5 dark:border-white/5 shadow-sm flex flex-col justify-between h-full group hover:shadow-md transition-all">
+            <div className="flex justify-between items-start mb-4">
+                <div className={`p-2 rounded-xl bg-gray-50 dark:bg-white/5 border border-black/5 dark:border-white/5 transition-colors ${colorClass.replace('text-', 'text-opacity-80 group-hover:bg-opacity-100 group-hover:').replace('600', '50').replace('400', '900/30')}`}>
+                    <span className={`material-symbols-outlined text-[20px] ${colorClass}`}>{icon}</span>
+                </div>
+                <div className="text-right">
+                    <span className="text-[10px] font-black uppercase text-light-text-secondary dark:text-dark-text-secondary tracking-[0.1em] opacity-60">{title}</span>
+                </div>
             </div>
-            <p className={`text-2xl font-bold ${colorClass.split(' ')[0]}`}>{formatCurrency(value, metrics.baseCurrency)}</p>
+            <p className={`text-3xl font-black tracking-tight ${colorClass}`}>{formatCurrency(value, metrics.baseCurrency)}</p>
         </div>
     );
 
@@ -209,57 +213,57 @@ const InvoicesPage: React.FC = () => {
                                 <div 
                                     key={doc.id} 
                                     onClick={() => handleOpenEditor(doc.type, doc)}
-                                    className="group bg-white dark:bg-dark-card p-4 rounded-xl border border-black/5 dark:border-white/5 shadow-sm hover:shadow-md transition-all cursor-pointer flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4"
+                                    className="group bg-white dark:bg-dark-card p-5 rounded-2xl border border-black/5 dark:border-white/5 shadow-sm hover:shadow-xl hover:border-primary-500/20 transition-all cursor-pointer flex flex-col sm:flex-row items-start sm:items-center justify-between gap-5"
                                 >
-                                    <div className="flex items-center gap-4 min-w-0">
-                                        {/* Status Strip & Icon */}
-                                        <div className={`w-12 h-12 rounded-xl flex items-center justify-center flex-shrink-0 border border-black/5 dark:border-white/10 overflow-hidden ${hasLogo ? 'bg-white' : 'bg-gray-100 dark:bg-white/10 text-gray-500'}`}>
+                                    <div className="flex items-center gap-5 min-w-0">
+                                        {/* Logo Column */}
+                                        <div className={`w-14 h-14 rounded-2xl flex items-center justify-center flex-shrink-0 border border-black/5 dark:border-white/10 overflow-hidden shadow-inner ${hasLogo ? 'bg-white' : 'bg-gray-100 dark:bg-white/10 text-gray-500'}`}>
                                              {hasLogo ? (
                                                 <img 
                                                     src={logoUrl!} 
                                                     alt={doc.entityName} 
-                                                    className="w-full h-full object-contain" 
+                                                    className="w-full h-full object-contain p-2" 
                                                     onError={() => handleLogoError(logoUrl!)}
                                                 />
                                             ) : (
-                                                <span className="font-bold text-lg">{initial}</span>
+                                                <span className="font-black text-xl opacity-40">{initial}</span>
                                             )}
                                         </div>
                                         
                                         <div className="min-w-0">
-                                            <div className="flex items-center gap-2 mb-0.5">
-                                                <h4 className="font-bold text-light-text dark:text-dark-text text-base truncate">{doc.entityName}</h4>
-                                                <span className="text-xs text-light-text-secondary dark:text-dark-text-secondary font-mono bg-black/5 dark:bg-white/10 px-1.5 py-0.5 rounded">{doc.number}</span>
+                                            <div className="flex items-center gap-3 mb-1">
+                                                <h4 className="font-black text-light-text dark:text-dark-text text-lg truncate tracking-tight">{doc.entityName}</h4>
+                                                <span className="text-[10px] text-light-text-secondary dark:text-dark-text-secondary font-black tracking-widest bg-black/[0.03] dark:bg-white/5 px-2 py-0.5 rounded-full border border-black/5 dark:border-white/5">{doc.number}</span>
                                             </div>
-                                            <div className="flex items-center gap-3 text-xs text-light-text-secondary dark:text-dark-text-secondary">
-                                                <span className="flex items-center gap-1">
-                                                    <span className="material-symbols-outlined text-[14px]">calendar_today</span>
-                                                    {parseLocalDate(doc.date).toLocaleDateString()}
+                                            <div className="flex items-center gap-4 text-xs font-bold text-light-text-secondary dark:text-dark-text-secondary opacity-60">
+                                                <span className="flex items-center gap-1.5">
+                                                    <span className="material-symbols-outlined text-[16px]">calendar_today</span>
+                                                    {parseLocalDate(doc.date).toLocaleDateString('en-US', { day: 'numeric', month: 'short', year: 'numeric' })}
                                                 </span>
                                                 {doc.dueDate && (
-                                                    <span className={`flex items-center gap-1 ${doc.status === 'overdue' ? 'text-red-500 font-bold' : ''}`}>
-                                                        <span className="material-symbols-outlined text-[14px]">event_busy</span>
-                                                        Due {parseLocalDate(doc.dueDate).toLocaleDateString()}
+                                                    <span className={`flex items-center gap-1.5 ${doc.status === 'overdue' ? 'text-rose-500 opacity-100' : ''}`}>
+                                                        <span className="material-symbols-outlined text-[16px]">timer</span>
+                                                        Due {parseLocalDate(doc.dueDate).toLocaleDateString('en-US', { day: 'numeric', month: 'short' })}
                                                     </span>
                                                 )}
                                             </div>
                                         </div>
                                     </div>
 
-                                    <div className="flex items-center gap-6 w-full sm:w-auto justify-between sm:justify-end">
+                                    <div className="flex items-center gap-8 w-full sm:w-auto justify-between sm:justify-end">
                                          <div className="text-right">
-                                             <span className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-md text-[10px] font-bold uppercase tracking-wider mb-1 ${statusStyle.bg} ${statusStyle.text}`}>
-                                                <span className="material-symbols-outlined text-[12px]">{statusStyle.icon}</span>
+                                             <span className={`inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-[10px] font-black uppercase tracking-widest mb-2 border ${statusStyle.bg} ${statusStyle.text} border-current border-opacity-10 shadow-sm`}>
+                                                <span className="material-symbols-outlined text-[14px]">{statusStyle.icon}</span>
                                                 {doc.status}
                                              </span>
-                                             <p className="font-mono font-bold text-lg text-light-text dark:text-dark-text">{formatCurrency(doc.total, doc.currency)}</p>
+                                             <p className="font-mono font-black text-xl text-light-text dark:text-dark-text tracking-tighter">{formatCurrency(doc.total, doc.currency)}</p>
                                          </div>
                                          
-                                         <div className="flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+                                         <div className="flex gap-2">
                                              {doc.type === 'quote' && (
                                                 <button 
                                                     onClick={(e) => { e.stopPropagation(); handleConvertToInvoice(doc); }}
-                                                    className="p-2 rounded-lg hover:bg-green-50 dark:hover:bg-green-900/20 text-green-600 dark:text-green-400"
+                                                    className="w-10 h-10 rounded-xl bg-gray-50 dark:bg-white/5 flex items-center justify-center text-emerald-600 dark:text-emerald-400 hover:bg-emerald-500/10 transition-all"
                                                     title="Convert to Invoice"
                                                 >
                                                     <span className="material-symbols-outlined text-xl">transform</span>
@@ -267,7 +271,7 @@ const InvoicesPage: React.FC = () => {
                                              )}
                                              <button 
                                                 onClick={(e) => { e.stopPropagation(); setDeletingId(doc.id); }}
-                                                className="p-2 rounded-lg hover:bg-red-50 dark:hover:bg-red-900/20 text-red-500"
+                                                className="w-10 h-10 rounded-xl bg-gray-50 dark:bg-white/5 flex items-center justify-center text-light-text-secondary dark:text-dark-text-secondary hover:text-rose-500 hover:bg-rose-500/10 transition-all"
                                                 title="Delete"
                                              >
                                                  <span className="material-symbols-outlined text-xl">delete</span>

@@ -152,21 +152,26 @@ const FinancialGoalCard: React.FC<FinancialGoalCardProps> = ({ goal, subGoals, i
         : 'bg-gray-400';
 
   return (
-    <div className={`relative group flex flex-col bg-white dark:bg-dark-card rounded-2xl shadow-sm border transition-all duration-300 self-start w-full ${cardBorder}`}>
+    <div className={`relative group flex flex-col bg-white dark:bg-dark-card rounded-[2.5rem] shadow-sm border transition-all duration-300 self-start w-full ${cardBorder}`}>
         {isCompleted && (
-            <div className="absolute top-0 right-0 p-4 opacity-10 pointer-events-none">
+            <div className="absolute top-0 right-0 p-6 opacity-10 pointer-events-none">
                 <span className="material-symbols-outlined text-8xl text-green-500">emoji_events</span>
             </div>
         )}
 
-        <div className="p-5 flex flex-col h-full relative z-0">
+        <div className="p-4 sm:p-5 flex flex-col h-full relative z-0">
             {/* Header - Aligned Row */}
             <div className="flex justify-between items-center mb-3">
                 <div className="flex items-center gap-3 min-w-0 pr-2">
-                     <div className={`w-10 h-10 rounded-xl flex-shrink-0 flex items-center justify-center ${iconColorClass}`}>
+                     <div className={`w-10 h-10 rounded-xl flex-shrink-0 flex items-center justify-center ${iconColorClass} border border-black/5 dark:border-white/10`}>
                         <span className="material-symbols-outlined text-xl">{iconName}</span>
                     </div>
-                    <h4 className="font-bold text-lg text-light-text dark:text-dark-text truncate" title={goal.name}>{goal.name}</h4>
+                    <div>
+                        <h4 className="font-bold text-base text-light-text dark:text-dark-text tracking-tight truncate leading-tight" title={goal.name}>{goal.name}</h4>
+                        {paymentAccountName && (
+                            <p className="text-[10px] font-bold uppercase text-primary-500 tracking-wider opacity-80 leading-none">{paymentAccountName}</p>
+                        )}
+                    </div>
                 </div>
 
                 <div className="flex items-center gap-2 flex-shrink-0">
@@ -251,12 +256,6 @@ const FinancialGoalCard: React.FC<FinancialGoalCardProps> = ({ goal, subGoals, i
                     <div className="inline-flex items-center gap-1 px-2 py-0.5 rounded-md text-[10px] font-medium bg-gray-100 text-gray-600 dark:bg-gray-800 dark:text-gray-400 border border-gray-200 dark:border-gray-700">
                         <span className="material-symbols-outlined text-[12px]">event</span>
                         {formatDate(goalToDisplay.date)}
-                        {paymentAccountName && (
-                            <>
-                                <span className="mx-1 opacity-50">|</span>
-                                <span className="truncate max-w-[100px] text-primary-600 dark:text-primary-400 font-semibold">{paymentAccountName}</span>
-                            </>
-                        )}
                     </div>
                 )}
             </div>
@@ -266,22 +265,22 @@ const FinancialGoalCard: React.FC<FinancialGoalCardProps> = ({ goal, subGoals, i
                 <div className="flex justify-between items-end mb-2">
                     <div>
                         <span className="text-[10px] font-bold text-light-text-secondary dark:text-dark-text-secondary uppercase mb-0.5 block">{bucketTypeLabel}</span>
-                        <span className="text-2xl font-bold text-light-text dark:text-dark-text tracking-tight">{formatCurrency(goalToDisplay.currentAmount, 'EUR')}</span>
+                        <span className="text-xl font-bold text-light-text dark:text-dark-text tracking-tight">{formatCurrency(goalToDisplay.currentAmount, 'EUR')}</span>
                     </div>
                     <div className="text-right">
-                        <span className="text-xs font-semibold text-light-text-secondary dark:text-dark-text-secondary uppercase">Target</span>
-                        <span className="block font-medium text-light-text dark:text-dark-text">{formatCurrency(goalToDisplay.amount, 'EUR')}</span>
+                        <span className="text-[10px] font-bold text-light-text-secondary dark:text-dark-text-secondary uppercase">Target</span>
+                        <span className="block font-medium text-sm text-light-text dark:text-dark-text">{formatCurrency(goalToDisplay.amount, 'EUR')}</span>
                     </div>
                 </div>
 
                 {/* Progress Bar */}
-                <div className="relative w-full h-2.5 bg-gray-100 dark:bg-gray-800 rounded-full overflow-hidden">
+                <div className="relative w-full h-2 bg-gray-100 dark:bg-gray-800 rounded-full overflow-hidden">
                      <div 
                         className={`absolute top-0 left-0 h-full rounded-full transition-all duration-1000 ease-out ${progressBarClass}`}
                         style={{ width: `${Math.min(progress, 100)}%` }}
                      ></div>
                 </div>
-                <div className="flex justify-between mt-1.5 text-[10px] font-bold text-light-text-secondary dark:text-dark-text-secondary uppercase tracking-wide">
+                <div className="flex justify-between mt-1.5 text-[9px] font-bold text-light-text-secondary dark:text-dark-text-secondary uppercase tracking-wide">
                     <span>{progress.toFixed(0)}% Complete</span>
                     {remainingAmount > 0 && <span>{formatCurrency(remainingAmount, goalToDisplay.currency)} Left</span>}
                 </div>
@@ -289,18 +288,18 @@ const FinancialGoalCard: React.FC<FinancialGoalCardProps> = ({ goal, subGoals, i
             
             {/* Forecast Date */}
             {goalToDisplay.projection && isActive && !isCompleted && (
-                 <div className="mt-4 pt-4 border-t border-black/5 dark:border-white/5 flex items-center justify-between">
+                 <div className="mt-3 pt-3 border-t border-black/5 dark:border-white/5 flex items-center justify-between">
                      <div className="flex items-center gap-2">
-                        <div className={`w-6 h-6 rounded-full flex items-center justify-center ${statusStyle?.bg} ${statusStyle?.textCol}`}>
-                            <span className="material-symbols-outlined text-xs">timeline</span>
+                        <div className={`w-5 h-5 rounded-full flex items-center justify-center ${statusStyle?.bg} ${statusStyle?.textCol}`}>
+                            <span className="material-symbols-outlined text-[10px]">timeline</span>
                         </div>
                         <div className="flex flex-col">
-                            <span className="text-[10px] font-black text-light-text-secondary dark:text-dark-text-secondary uppercase tracking-widest">Expected</span>
-                            <span className="text-xs font-bold text-light-text dark:text-dark-text">{formatDate(goalToDisplay.projection.projectedDate)}</span>
+                            <span className="text-[9px] font-bold text-light-text-secondary dark:text-dark-text-secondary uppercase tracking-wider">Expected</span>
+                            <span className="text-[11px] font-bold text-light-text dark:text-dark-text">{formatDate(goalToDisplay.projection.projectedDate)}</span>
                         </div>
                      </div>
                      {timeRemaining && (
-                         <div className={`px-2 py-1 rounded-lg text-[10px] font-black uppercase tracking-widest ${statusStyle?.bg} ${statusStyle?.textCol} border ${statusStyle?.border}`}>
+                         <div className={`px-1.5 py-0.5 rounded-md text-[9px] font-bold uppercase tracking-wider ${statusStyle?.bg} ${statusStyle?.textCol} border ${statusStyle?.border}`}>
                              {timeRemaining}
                          </div>
                      )}

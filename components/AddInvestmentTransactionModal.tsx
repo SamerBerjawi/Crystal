@@ -48,7 +48,7 @@ const AddInvestmentTransactionModal: React.FC<AddInvestmentTransactionModalProps
         return investmentAccounts.find(acc => acc.symbol?.toUpperCase() === symbol.toUpperCase());
     }, [symbol, investmentAccounts, holdings]);
 
-    const currentQuantity = activeHolding ? (activeHolding.quantity ?? 0) : 0;
+    const currentQuantity = activeHolding && 'quantity' in activeHolding ? (activeHolding.quantity ?? 0) : 0;
 
     const isNewSymbol = useMemo(() => {
         if (isEditing || !symbol) return false;

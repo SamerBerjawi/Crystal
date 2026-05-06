@@ -621,10 +621,10 @@ const Investments: React.FC<InvestmentsProps> = ({
                 {/* Sidebar Column */}
                 <div className="xl:col-span-4 space-y-8">
                      {/* Exposure Chart */}
-                    <Card className="bg-gray-900 text-white border-none shadow-xl">
+                    <Card className="bg-white dark:bg-dark-card border-black/5 dark:border-white/5 shadow-sm">
                         <div className="flex justify-between items-center mb-6">
-                            <h3 className="text-sm font-bold uppercase tracking-[0.2em] text-gray-400">Exposure Breakdown</h3>
-                            <button className="text-[10px] font-bold text-primary-400 uppercase tracking-widest hover:underline">Analysis</button>
+                            <h3 className="text-xs font-bold uppercase tracking-[0.2em] text-light-text-secondary dark:text-dark-text-secondary">Exposure Breakdown</h3>
+                            <button className="text-[10px] font-bold text-primary-500 uppercase tracking-widest hover:underline">Analysis</button>
                         </div>
                         <div className="h-48 relative mb-6">
                             <ResponsiveContainer width="100%" height="100%">
@@ -644,14 +644,21 @@ const Investments: React.FC<InvestmentsProps> = ({
                                         ))}
                                     </Pie>
                                     <Tooltip 
-                                        contentStyle={{ backgroundColor: '#111827', borderColor: '#374151', borderRadius: '12px' }}
-                                        itemStyle={{ color: '#fff', fontSize: '12px' }}
+                                        contentStyle={{ 
+                                            backgroundColor: 'var(--tooltip-bg, rgba(0,0,0,0.8))', 
+                                            borderColor: 'transparent', 
+                                            borderRadius: '12px', 
+                                            border: 'none', 
+                                            color: 'var(--tooltip-text, #fff)',
+                                            boxShadow: '0 10px 15px -3px rgba(0, 0, 0, 0.1)'
+                                        }}
+                                        itemStyle={{ fontSize: '12px' }}
                                     />
                                 </PieChart>
                             </ResponsiveContainer>
                             <div className="absolute inset-0 flex flex-col items-center justify-center pointer-events-none">
-                                <span className="text-[10px] text-gray-500 uppercase font-bold tracking-widest">Total</span>
-                                <span className="text-lg font-bold privacy-blur">{formatCurrency(totalValue, 'EUR')}</span>
+                                <span className="text-[10px] text-light-text-secondary dark:text-dark-text-secondary uppercase font-bold tracking-widest">Total</span>
+                                <span className="text-lg font-bold text-light-text dark:text-dark-text privacy-blur">{formatCurrency(totalValue, 'EUR')}</span>
                             </div>
                         </div>
                         <div className="space-y-3">
@@ -659,10 +666,10 @@ const Investments: React.FC<InvestmentsProps> = ({
                                 <div key={item.name} className="flex items-center justify-between group">
                                     <div className="flex items-center gap-3">
                                         <div className="w-2 h-2 rounded-full" style={{ backgroundColor: item.color }}></div>
-                                        <span className="text-xs font-bold text-gray-300 group-hover:text-white transition-colors">{item.name}</span>
+                                        <span className="text-xs font-bold text-light-text-secondary dark:text-dark-text-secondary group-hover:text-light-text dark:group-hover:text-dark-text transition-colors">{item.name}</span>
                                     </div>
                                     <div className="text-right">
-                                        <p className="text-xs font-bold privacy-blur">{formatPercent(item.value, 0)}%</p>
+                                        <p className="text-xs font-bold text-light-text dark:text-dark-text privacy-blur">{formatPercent(item.value, 0)}%</p>
                                     </div>
                                 </div>
                             ))}

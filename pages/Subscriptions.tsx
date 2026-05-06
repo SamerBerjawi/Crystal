@@ -452,32 +452,43 @@ const Subscriptions: React.FC = () => {
 
                         {/* Metrics Column */}
                         <div className="flex flex-col gap-4">
-                            <div className="flex-1 bg-gradient-to-br from-indigo-500 to-purple-600 rounded-2xl p-6 text-white relative overflow-hidden shadow-lg flex flex-col justify-between">
-                                <div className="absolute top-0 right-0 p-4 opacity-10">
-                                    <span className="material-symbols-outlined text-6xl">payments</span>
+                            <div className="flex-1 bg-[#0A0A0B] rounded-3xl p-6 text-white relative overflow-hidden shadow-xl flex flex-col justify-between border border-white/5">
+                                <div className="absolute top-[-20%] right-[-10%] w-[80%] h-[120%] bg-primary-500/20 blur-[80px] rounded-full -z-1 opacity-60" />
+                                <div className="relative z-10">
+                                    <div className="flex items-center gap-2 mb-6 opacity-60">
+                                        <div className="p-1.5 bg-white/10 rounded-lg border border-white/10">
+                                            <span className="material-symbols-outlined text-[14px]">payments</span>
+                                        </div>
+                                        <p className="text-[10px] font-black uppercase tracking-wider">Commitment</p>
+                                    </div>
+                                    <p className="text-[10px] font-bold uppercase opacity-40 tracking-wider mb-1">Monthly Cash Out</p>
+                                    <p className="text-4xl font-black tracking-tighter">{formatCurrency(monthlySpend, 'EUR')}</p>
                                 </div>
-                                <div>
-                                    <p className="text-[10px] font-bold uppercase opacity-80 tracking-wider mb-1">Monthly Cost</p>
-                                    <p className="text-3xl font-black">{formatCurrency(monthlySpend, 'EUR')}</p>
-                                </div>
-                                <div className="mt-4 pt-4 border-t border-white/10">
-                                    <p className="text-xs font-medium opacity-90 flex justify-between">
-                                        <span>Annual Estimate</span>
-                                        <span className="font-bold">{formatCurrency(yearlySpend, 'EUR')}</span>
-                                    </p>
+                                <div className="relative z-10 mt-6 pt-4 border-t border-white/5">
+                                    <div className="flex justify-between items-center">
+                                        <p className="text-xs font-bold text-gray-400">Yearly Projection</p>
+                                        <span className="text-sm font-black text-primary-400">{formatCurrency(yearlySpend, 'EUR')}</span>
+                                    </div>
                                 </div>
                             </div>
 
-                            <div className="bg-white dark:bg-dark-card rounded-2xl p-5 border border-black/5 dark:border-white/5 shadow-sm flex flex-col justify-center">
-                                <div className="flex justify-between items-start mb-2">
-                                    <p className="text-[10px] font-bold uppercase text-light-text-secondary dark:text-dark-text-secondary tracking-wider">Renewing Soon</p>
-                                    <span className="material-symbols-outlined text-orange-500 text-xl">event_upcoming</span>
+                            <div className="bg-white dark:bg-dark-card rounded-3xl p-6 border border-black/5 dark:border-white/5 shadow-sm flex flex-col justify-center gap-1">
+                                <div className="flex justify-between items-start">
+                                    <div className="space-y-1">
+                                        <p className="text-[10px] font-black uppercase text-light-text-secondary dark:text-dark-text-secondary tracking-wider">Renewing Soon</p>
+                                        <div className="flex items-baseline gap-2">
+                                             <p className="text-3xl font-black text-light-text dark:text-dark-text">{dueSoonCount}</p>
+                                             <span className="text-xs font-bold text-light-text-secondary dark:text-dark-text-secondary opacity-60">Items</span>
+                                        </div>
+                                    </div>
+                                    <div className="w-10 h-10 rounded-xl bg-orange-500/10 text-orange-600 dark:text-orange-400 flex items-center justify-center border border-orange-500/20">
+                                        <span className="material-symbols-outlined text-xl">event_upcoming</span>
+                                    </div>
                                 </div>
-                                <div className="flex items-baseline gap-2">
-                                     <p className="text-3xl font-black text-light-text dark:text-dark-text">{dueSoonCount}</p>
-                                     <span className="text-sm text-light-text-secondary dark:text-dark-text-secondary">items</span>
-                                </div>
-                                <p className="text-[10px] text-light-text-secondary dark:text-dark-text-secondary mt-1">Due in next 7 days</p>
+                                <p className="text-[10px] font-bold text-orange-600/60 dark:text-orange-400/60 uppercase tracking-widest mt-2 flex items-center gap-1">
+                                    <span className="w-1 h-1 rounded-full bg-current"></span>
+                                    Next 7 Days
+                                </p>
                             </div>
                         </div>
                     </div>
@@ -508,9 +519,12 @@ const Subscriptions: React.FC = () => {
                                     const progress = Math.max(0, Math.min(100, (daysElapsed / cycleLength) * 100));
 
                                     return (
-                                        <div key={sub.id} className="group p-4 sm:px-6 hover:bg-black/5 dark:hover:bg-white/5 transition-colors flex items-center gap-4">
+                                        <div key={sub.id} className="group p-5 sm:px-8 hover:bg-black/[0.02] dark:hover:bg-white/[0.02] transition-all flex items-center gap-6 border-b border-black/5 dark:border-white/5 last:border-0 relative">
+                                            {/* Progress indicator strip */}
+                                            <div className="absolute left-0 top-0 bottom-0 w-1 bg-primary-500 opacity-0 group-hover:opacity-100 transition-opacity"></div>
+                                            
                                             {/* Logo */}
-                                            <div className={`w-12 h-12 rounded-2xl flex-shrink-0 flex items-center justify-center overflow-hidden shadow-sm border border-black/5 dark:border-white/10 ${hasLogo ? 'bg-white' : 'bg-gray-100 dark:bg-white/10'}`}>
+                                            <div className={`w-14 h-14 rounded-2xl flex-shrink-0 flex items-center justify-center overflow-hidden shadow-sm border border-black/5 dark:border-white/10 ${hasLogo ? 'bg-white' : 'bg-gray-100 dark:bg-white/10'}`}>
                                                 {hasLogo ? (
                                                     <img 
                                                         src={logoUrl!} 
@@ -519,44 +533,45 @@ const Subscriptions: React.FC = () => {
                                                         onError={() => handleLogoError(logoUrl!)}
                                                     />
                                                 ) : (
-                                                    <span className="text-xl font-bold text-gray-500 dark:text-gray-400">{initial}</span>
+                                                    <span className="text-xl font-bold text-gray-400 dark:text-gray-500">{initial}</span>
                                                 )}
                                             </div>
 
                                             {/* Info */}
-                                            <div className="flex-grow min-w-0 grid grid-cols-1 sm:grid-cols-2 gap-2">
-                                                <div>
-                                                    <div className="flex items-center gap-2 mb-1">
-                                                        <h4 className="font-bold text-base text-light-text dark:text-dark-text truncate">{sub.merchant || sub.description}</h4>
-                                                        <span className="text-[10px] font-bold uppercase bg-black/5 dark:bg-white/10 text-light-text-secondary dark:text-dark-text-secondary px-2 py-0.5 rounded">{sub.frequency}</span>
+                                            <div className="flex-grow min-w-0 grid grid-cols-1 lg:grid-cols-2 gap-4">
+                                                <div className="space-y-1">
+                                                    <div className="flex items-center gap-3">
+                                                        <h4 className="font-black text-lg text-light-text dark:text-dark-text truncate tracking-tight">{sub.merchant || sub.description}</h4>
+                                                        <span className="text-[9px] font-black uppercase tracking-widest bg-primary-500/10 text-primary-600 dark:text-primary-400 px-2 py-0.5 rounded-full border border-primary-500/20">{sub.frequency}</span>
                                                     </div>
-                                                    <div className="text-xs text-light-text-secondary dark:text-dark-text-secondary truncate">
-                                                         {sub.description !== sub.merchant ? sub.description : accounts.find(a => a.id === sub.accountId)?.name}
+                                                    <div className="text-xs font-medium text-light-text-secondary dark:text-dark-text-secondary truncate flex items-center gap-2">
+                                                         <span className="opacity-60">{sub.description !== sub.merchant ? sub.description : accounts.find(a => a.id === sub.accountId)?.name}</span>
+                                                         {isDueSoon && <span className="w-1.5 h-1.5 rounded-full bg-orange-500 animate-pulse"></span>}
                                                     </div>
                                                 </div>
                                                 
-                                                <div className="flex flex-col justify-center gap-1 sm:pl-4">
-                                                    <div className="flex justify-between items-center text-xs">
-                                                        <span className={`font-medium ${isDueSoon ? 'text-orange-600 dark:text-orange-400' : 'text-light-text-secondary dark:text-dark-text-secondary'}`}>
-                                                            {isDueSoon ? `Due in ${daysUntil} days` : `Due ${nextDueDate.toLocaleDateString()}`}
+                                                <div className="flex flex-col justify-center gap-1.5">
+                                                    <div className="flex justify-between items-center text-[10px] font-black uppercase tracking-widest">
+                                                        <span className={isDueSoon ? 'text-orange-600 dark:text-orange-400' : 'text-light-text-secondary dark:text-dark-text-secondary opacity-40'}>
+                                                            {isDueSoon ? `Action Required: Due In ${daysUntil}d` : `Scheduled: ${nextDueDate.toLocaleDateString()}`}
                                                         </span>
-                                                        <span className="text-[10px] text-light-text-secondary dark:text-dark-text-secondary opacity-60">Cycle</span>
+                                                        <span className="text-light-text-secondary dark:text-dark-text-secondary opacity-40">Progress</span>
                                                     </div>
-                                                    <div className="w-full h-1.5 bg-gray-200 dark:bg-gray-700 rounded-full overflow-hidden">
-                                                        <div className={`h-full rounded-full ${isDueSoon ? 'bg-orange-500' : 'bg-primary-500'}`} style={{ width: `${progress}%` }}></div>
+                                                    <div className="w-full h-1.5 bg-gray-100 dark:bg-white/5 rounded-full overflow-hidden shadow-inner">
+                                                        <div className={`h-full rounded-full transition-all duration-1000 ${isDueSoon ? 'bg-gradient-to-r from-orange-400 to-orange-600' : 'bg-gradient-to-r from-primary-400 to-primary-600'}`} style={{ width: `${progress}%` }}></div>
                                                     </div>
                                                 </div>
                                             </div>
 
                                             {/* Amount & Actions */}
-                                            <div className="text-right flex-shrink-0 flex flex-col items-end gap-1 ml-2">
-                                                <span className="font-mono font-bold text-lg text-light-text dark:text-dark-text">{formatCurrency(sub.amount, sub.currency)}</span>
+                                            <div className="text-right flex-shrink-0 flex flex-col items-end gap-2 ml-4">
+                                                <span className="font-mono font-black text-xl text-light-text dark:text-dark-text tracking-tighter">{formatCurrency(sub.amount, sub.currency)}</span>
                                                 
-                                                <div className="flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
-                                                    <button onClick={() => handleEditActive(sub)} className="p-1.5 rounded-md hover:bg-black/10 dark:hover:bg-white/10 text-light-text-secondary dark:text-dark-text-secondary hover:text-primary-500 transition-colors" title="Edit">
-                                                        <span className="material-symbols-outlined text-lg">edit</span>
+                                                <div className="flex gap-2">
+                                                    <button onClick={() => handleEditActive(sub)} className="w-8 h-8 rounded-lg bg-gray-50 dark:bg-white/5 flex items-center justify-center text-light-text-secondary dark:text-dark-text-secondary hover:text-primary-500 hover:bg-primary-500/10 transition-all" title="Edit">
+                                                        <span className="material-symbols-outlined text-lg">edit_square</span>
                                                     </button>
-                                                    <button onClick={() => handleDeleteActive(sub.id)} className="p-1.5 rounded-md hover:bg-red-50 dark:hover:bg-red-900/20 text-light-text-secondary dark:text-dark-text-secondary hover:text-red-500 transition-colors" title="Stop Tracking">
+                                                    <button onClick={() => handleDeleteActive(sub.id)} className="w-8 h-8 rounded-lg bg-gray-50 dark:bg-white/5 flex items-center justify-center text-light-text-secondary dark:text-dark-text-secondary hover:text-rose-500 hover:bg-rose-500/10 transition-all" title="Delete">
                                                         <span className="material-symbols-outlined text-lg">delete</span>
                                                     </button>
                                                 </div>

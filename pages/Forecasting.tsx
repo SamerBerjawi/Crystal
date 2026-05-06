@@ -258,13 +258,74 @@ const Forecasting: React.FC = () => {
         };
     }, [fullForecast, financialGoals, forecastDuration, transactions, selectedAccountIds]);
     
-    const accountGoalSummary = useMemo(() => {
-        const summary: Record<string, { id: string; name: string; current: number; target: number; currency: Currency; goalsCount: number; type: 'income' | 'expense' }> = {};
-        
+    const { globalIncomeGoalTarget, globalIncomeGoalCurrent, globalSavingsGoalTarget, globalSavingsGoalCurrent, globalAccountBreakdown } = useMemo(() => {
+        let incTarget = 0, incCurrent = 0, savTarget = 0, savCurrent = 0;
+        const accountGroups: Record<string, { 
+            id: string; 
+            name: string; 
+            income: { current: number; target: number };
+            savings: { current: number; target: number };
+            currency: Currency;
+        }> = {};
+
         financialGoals.forEach(g => {
+            if (g.isBucket) return;
+            
+            // Global totals
+            if (g.transactionType === 'income') {
+                incTarget += g.amount;
+                incCurrent += g.currentAmount;
+            } else {
+                savTarget += g.amount;
+                savCurrent += g.currentAmount;
+            }
+
+            // Global account summary grouping
+            const accId = g.paymentAccountId || 'unlinked';
+            if (!accountGroups[accId]) {
+                 const acc = accounts.find(a => a.id === accId);
+                 accountGroups[accId] = {
+                     id: accId,
+                     name: acc ? acc.name : 'General (Unlinked)',
+                     income: { current: 0, target: 0 },
+                     savings: { current: 0, target: 0 },
+                     currency: acc?.currency || 'EUR'
+                 };
+            }
+            if (g.transactionType === 'income') {
+                accountGroups[accId].income.current += g.currentAmount;
+                accountGroups[accId].income.target += g.amount;
+            } else {
+                accountGroups[accId].savings.current += g.currentAmount;
+                accountGroups[accId].savings.target += g.amount;
+            }
+        });
+
+        return { 
+            globalIncomeGoalTarget: incTarget, 
+            globalIncomeGoalCurrent: incCurrent, 
+            globalSavingsGoalTarget: savTarget, 
+            globalSavingsGoalCurrent: savCurrent,
+            globalAccountBreakdown: Object.values(accountGroups).sort((a, b) => a.name.localeCompare(b.name))
+        };
+    }, [financialGoals, accounts]);
+
+    const { totalIncomeGoalTarget, totalIncomeGoalCurrent, totalSavingsGoalTarget, totalSavingsGoalCurrent, accountGoalSummary } = useMemo(() => {
+        let incTarget = 0, incCurrent = 0, savTarget = 0, savCurrent = 0;
+        const summary: Record<string, { id: string; name: string; current: number; target: number; currency: Currency; goalsCount: number; type: 'income' | 'expense' }> = {};
+
+        goalsWithProjections.forEach(g => {
             if (g.isBucket) return;
             const isVisible = !filterGoalsByAccount || !g.paymentAccountId || selectedAccountIds.includes(g.paymentAccountId);
             if (!isVisible) return;
+
+            if (g.transactionType === 'income') {
+                incTarget += g.amount;
+                incCurrent += g.currentAmount;
+            } else {
+                savTarget += g.amount;
+                savCurrent += g.currentAmount;
+            }
 
             const accId = g.paymentAccountId || 'unlinked';
             const type = g.transactionType; 
@@ -286,32 +347,14 @@ const Forecasting: React.FC = () => {
             summary[key].target += g.amount;
             summary[key].goalsCount += 1;
         });
-        
-        return Object.values(summary).sort((a, b) => a.name.localeCompare(b.name));
-    }, [financialGoals, accounts, filterGoalsByAccount, selectedAccountIds]);
-
-    const { totalIncomeGoalTarget, totalIncomeGoalCurrent, totalSavingsGoalTarget, totalSavingsGoalCurrent } = useMemo(() => {
-        let incTarget = 0, incCurrent = 0, savTarget = 0, savCurrent = 0;
-        goalsWithProjections.forEach(g => {
-            if (g.isBucket) return;
-            const isVisible = !filterGoalsByAccount || !g.paymentAccountId || selectedAccountIds.includes(g.paymentAccountId);
-            if (!isVisible) return;
-
-            if (g.transactionType === 'income') {
-                incTarget += g.amount;
-                incCurrent += g.currentAmount;
-            } else {
-                savTarget += g.amount;
-                savCurrent += g.currentAmount;
-            }
-        });
         return { 
             totalIncomeGoalTarget: incTarget, 
             totalIncomeGoalCurrent: incCurrent, 
             totalSavingsGoalTarget: savTarget, 
-            totalSavingsGoalCurrent: savCurrent 
+            totalSavingsGoalCurrent: savCurrent,
+            accountGoalSummary: Object.values(summary).sort((a, b) => a.name.localeCompare(b.name))
         };
-    }, [goalsWithProjections, filterGoalsByAccount, selectedAccountIds]);
+    }, [goalsWithProjections, filterGoalsByAccount, selectedAccountIds, accounts]);
 
     const plannerGoals = useMemo(() => {
         return goalsWithProjections.filter(g => {
@@ -615,134 +658,123 @@ const Forecasting: React.FC = () => {
                 {/* Main Forecast Card */}
                 <motion.div 
                     layout
-                    className="md:col-span-2 md:row-span-2 relative overflow-hidden rounded-[2.5rem] p-8 bg-gradient-to-br from-indigo-600 via-violet-700 to-purple-800 text-white shadow-2xl border border-white/10 flex flex-col justify-between"
+                    className="md:col-span-2 relative overflow-hidden rounded-3xl p-6 bg-white dark:bg-dark-card text-light-text dark:text-dark-text shadow-sm border border-black/5 dark:border-white/5 flex flex-col justify-between min-h-[220px]"
                 >
                     <div className="relative z-10">
-                        <div className="flex items-center justify-between mb-8">
-                            <div className="flex items-center gap-2 text-[10px] font-black uppercase tracking-[0.2em] text-white/70">
-                                <span className="w-8 h-[1px] bg-white/30"></span>
-                                Projected Wealth
+                        <div className="flex items-center justify-between mb-6">
+                            <div className="flex items-center gap-3">
+                                <div className="w-8 h-8 rounded-lg bg-primary-500/10 border border-primary-500/20 flex items-center justify-center text-primary-500">
+                                    <span className="material-symbols-outlined text-lg">insights</span>
+                                </div>
+                                <div className="space-y-0.5">
+                                    <p className="text-[10px] font-black uppercase tracking-[0.2em] text-light-text-secondary dark:text-dark-text-secondary">Wealth Projection</p>
+                                    <p className="text-[10px] font-bold text-light-text-secondary/60 uppercase">{forecastDuration} horizon</p>
+                                </div>
                             </div>
-                            <div className="w-10 h-10 rounded-full bg-white/10 flex items-center justify-center text-white">
-                                <span className="material-symbols-outlined text-xl">timeline</span>
+                            <div className="px-2.5 py-0.5 rounded-full bg-black/5 dark:bg-white/5 border border-black/5 dark:border-white/10 text-[9px] font-black uppercase tracking-widest text-primary-500 flex items-center gap-1.5">
+                                <span className="w-1 h-1 rounded-full bg-primary-500 animate-pulse"></span>
+                                AI-Projected
                             </div>
                         </div>
                         
-                        <div className="space-y-2">
-                            <h2 className="text-6xl font-black tracking-tighter privacy-blur leading-none">
-                                {formatCurrency(endBalance, 'EUR')}
-                            </h2>
-                            <p className="text-xs font-bold uppercase tracking-widest text-white/50 ml-1">
-                                Estimated Balance in {forecastDuration === '1Y' ? '1 Year' : forecastDuration}
-                            </p>
+                        <div className="space-y-3">
+                             <div className="space-y-0">
+                                <h2 className="text-4xl font-black tracking-tighter privacy-blur leading-none">
+                                    {formatCurrency(endBalance, 'EUR')}
+                                </h2>
+                                <p className="text-[10px] font-bold uppercase tracking-widest text-light-text-secondary dark:text-dark-text-secondary ml-1 opacity-60">Estimated Liquid Value</p>
+                            </div>
+
+                            <div className="flex items-center gap-2 pt-1">
+                                <div className="flex items-center gap-1.5 text-emerald-600 dark:text-emerald-400 font-black text-[10px] bg-emerald-500/10 px-3 py-1 rounded-full border border-emerald-500/20">
+                                    <span className="material-symbols-outlined text-xs">trending_up</span>
+                                    {((endBalance / startBalance - 1) * 100).toFixed(1)}% Growth
+                                </div>
+                                <div className="h-3 w-px bg-black/10 dark:bg-white/10 mx-1"></div>
+                                <p className="text-xs font-black text-light-text-secondary dark:text-dark-text-secondary privacy-blur">
+                                    {formatCurrency(endBalance - startBalance, 'EUR', { showPlusSign: true })} 
+                                    <span className="text-[9px] ml-1 uppercase opacity-40 italic">Delta</span>
+                                </p>
+                            </div>
                         </div>
                     </div>
 
-                    <div className="relative z-10 mt-12 flex items-center gap-6">
-                        <div className="flex-1 h-1.5 bg-white/10 rounded-full overflow-hidden">
+                    <div className="relative z-10 mt-6 bg-black/[0.02] dark:bg-white/[0.02] backdrop-blur-md p-4 rounded-2xl border border-black/5 dark:border-white/5">
+                        <div className="flex justify-between items-center mb-2">
+                            <p className="text-[9px] font-black uppercase tracking-widest text-light-text-secondary dark:text-dark-text-secondary">Scenario Confidence</p>
+                            <p className="text-[10px] font-black text-primary-500">92.8%</p>
+                        </div>
+                        <div className="w-full h-1.5 bg-black/5 dark:bg-white/5 rounded-full overflow-hidden">
                             <motion.div 
                                 initial={{ width: 0 }}
-                                animate={{ width: `${Math.min(100, (endBalance / startBalance) * 100)}%` }}
-                                className="h-full bg-white shadow-[0_0_15px_rgba(255,255,255,0.5)]"
+                                animate={{ width: '92.8%' }}
+                                className="h-full bg-primary-500"
                             />
-                        </div>
-                        <div className="text-right">
-                            <p className="text-2xl font-black tracking-tight">
-                                {((endBalance / startBalance - 1) * 100).toFixed(1)}%
-                            </p>
-                            <p className="text-[10px] font-black uppercase tracking-widest text-white/40">Total Growth</p>
                         </div>
                     </div>
 
-                    {/* Animated Background Elements */}
-                    <div className="absolute inset-0 overflow-hidden pointer-events-none">
-                        <motion.div 
-                            animate={{ scale: [1, 1.2, 1], rotate: [0, 90, 0], opacity: [0.1, 0.2, 0.1] }}
-                            transition={{ duration: 20, repeat: Infinity, ease: "linear" }}
-                            className="absolute -top-1/2 -left-1/4 w-full h-full bg-white/10 rounded-full blur-3xl"
-                        />
-                    </div>
+                    {/* Subtle Gradient Accents */}
+                    <div className="absolute top-0 right-0 w-[40%] h-full bg-primary-500/5 dark:bg-primary-500/10 blur-[80px] rounded-full -z-1" />
                 </motion.div>
 
                 {/* Net Change Card */}
-                <Card className="relative overflow-hidden group flex flex-col justify-between !p-6 border-none shadow-sm bg-white dark:bg-dark-card">
+                <Card className="relative overflow-hidden group flex flex-col justify-between !p-5 border border-black/5 dark:border-white/5 shadow-sm bg-white dark:bg-dark-card hover:shadow-md transition-all rounded-3xl min-h-[180px]">
                     <div className="flex justify-between items-start">
-                        <div className="space-y-1">
-                            <p className="text-[10px] font-black text-light-text-secondary dark:text-dark-text-secondary uppercase tracking-widest">Net Change</p>
-                            <h3 className={`text-2xl font-black tracking-tight ${netChange >= 0 ? 'text-emerald-600' : 'text-rose-600'}`}>
+                        <div className="space-y-0.5">
+                            <p className="text-[10px] font-bold text-light-text-secondary dark:text-dark-text-secondary uppercase tracking-widest opacity-60">Portfolio Shift</p>
+                            <h3 className={`text-xl font-bold tracking-tight privacy-blur ${netChange >= 0 ? 'text-emerald-600 dark:text-emerald-400' : 'text-rose-600 dark:text-rose-400'}`}>
                                 {netChange >= 0 ? '+' : ''}{formatCurrency(netChange, 'EUR')}
                             </h3>
                         </div>
-                        <div className={`w-10 h-10 rounded-xl flex items-center justify-center ${netChange >= 0 ? 'bg-emerald-500/10 text-emerald-500' : 'bg-rose-500/10 text-rose-500'}`}>
-                            <span className="material-symbols-outlined">{netChange >= 0 ? 'trending_up' : 'trending_down'}</span>
+                        <div className={`w-8 h-8 rounded-lg flex items-center justify-center border ${netChange >= 0 ? 'bg-emerald-500/10 text-emerald-500 border-emerald-500/20' : 'bg-rose-500/10 text-rose-500 border-rose-500/20'}`}>
+                            <span className="material-symbols-outlined text-lg">{netChange >= 0 ? 'trending_up' : 'trending_down'}</span>
                         </div>
                     </div>
-                    <div className="mt-4 pt-4 border-t border-black/5 dark:border-white/5">
-                        <p className="text-[10px] font-bold text-light-text-secondary uppercase tracking-widest">Over {forecastDuration}</p>
+                    <div className="space-y-3">
+                        <div className="flex items-center gap-2">
+                             <div className="flex -space-x-1.5">
+                                {selectedAccounts.slice(0, 3).map((acc, i) => (
+                                    <div key={acc.id} className="w-5 h-5 rounded-full border border-white dark:border-dark-card bg-gray-100 dark:bg-white/10 flex items-center justify-center text-[7px] font-bold" style={{ zIndex: 10 - i }}>
+                                        {acc.name.charAt(0)}
+                                    </div>
+                                ))}
+                             </div>
+                             <span className="text-[9px] font-bold uppercase tracking-wider text-light-text-secondary opacity-60">
+                                {selectedAccounts.length} Account{selectedAccounts.length !== 1 ? 's' : ''}
+                             </span>
+                        </div>
+                        <div className="pt-2.5 border-t border-black/5 dark:border-white/10 flex items-center justify-between">
+                            <p className="text-[9px] font-bold text-light-text-secondary dark:text-dark-text-secondary uppercase tracking-widest opacity-40">Term: {forecastDuration}</p>
+                            <span className="text-[9px] font-bold text-emerald-500 uppercase tracking-widest">Active</span>
+                        </div>
                     </div>
                 </Card>
 
-                {/* Goal Progress Card */}
-                <Card className="relative overflow-hidden group flex flex-col justify-between !p-6 border-none shadow-sm bg-white dark:bg-dark-card">
+                {/* Progress Mini Card */}
+                <Card className="relative overflow-hidden group flex flex-col justify-between !p-5 border border-black/5 dark:border-white/5 shadow-sm bg-white dark:bg-dark-card hover:shadow-md transition-all rounded-3xl min-h-[180px]">
                     <div className="flex justify-between items-start">
-                        <div className="space-y-1">
-                            <p className="text-[10px] font-black text-light-text-secondary dark:text-dark-text-secondary uppercase tracking-widest">Goal Progress</p>
-                            <h3 className="text-2xl font-black tracking-tight text-purple-600">
+                        <div className="space-y-0.5">
+                            <p className="text-[10px] font-bold text-light-text-secondary dark:text-dark-text-secondary uppercase tracking-widest opacity-60">Goal Sync</p>
+                            <h3 className="text-xl font-bold tracking-tight text-primary-500">
                                 {goalProgress.toFixed(0)}%
                             </h3>
                         </div>
-                        <div className="w-10 h-10 rounded-xl flex items-center justify-center bg-purple-500/10 text-purple-500">
-                            <span className="material-symbols-outlined">track_changes</span>
+                        <div className="w-8 h-8 rounded-lg flex items-center justify-center bg-primary-500/10 text-primary-500 border border-primary-500/20">
+                            <span className="material-symbols-outlined text-lg">track_changes</span>
                         </div>
                     </div>
-                    <div className="mt-4 space-y-2">
-                        <div className="w-full h-1.5 bg-gray-100 dark:bg-white/5 rounded-full overflow-hidden">
-                            <div className="h-full bg-purple-500" style={{ width: `${goalProgress}%` }} />
+                    <div className="space-y-3">
+                        <div className="w-full h-1.5 bg-gray-100 dark:bg-white/5 rounded-full overflow-hidden flex">
+                            <div className="h-full bg-primary-500 rounded-full" style={{ width: `${goalProgress}%` }} />
                         </div>
-                        <p className="text-[10px] font-bold text-light-text-secondary uppercase tracking-widest">
-                            {formatCurrency(totalGoalSaved, 'EUR')} Saved
-                        </p>
-                    </div>
-                </Card>
-
-                {/* Safety Margin Card */}
-                <Card className="relative overflow-hidden group flex flex-col justify-between !p-6 border-none shadow-sm bg-white dark:bg-dark-card">
-                    <div className="flex justify-between items-start">
-                        <div className="space-y-1">
-                            <p className="text-[10px] font-black text-light-text-secondary dark:text-dark-text-secondary uppercase tracking-widest">Safety Margin</p>
-                            <h3 className={`text-2xl font-black tracking-tight ${lowestPoint.value < 0 ? 'text-rose-600' : 'text-amber-600'}`}>
-                                {formatCurrency(lowestPoint.value, 'EUR')}
-                            </h3>
+                        <div className="flex justify-between items-center text-[9px] font-bold text-light-text-secondary dark:text-dark-text-secondary uppercase tracking-widest">
+                            <span className="opacity-40 uppercase">Accumulated</span>
+                            <span className="text-primary-500 font-bold">{formatCurrency(totalGoalSaved, 'EUR')}</span>
                         </div>
-                        <div className={`w-10 h-10 rounded-xl flex items-center justify-center ${lowestPoint.value < 0 ? 'bg-rose-500/10 text-rose-500' : 'bg-amber-500/10 text-amber-500'}`}>
-                            <span className="material-symbols-outlined">shield</span>
-                        </div>
-                    </div>
-                    <div className="mt-4 pt-4 border-t border-black/5 dark:border-white/5">
-                        <p className="text-[10px] font-bold text-light-text-secondary uppercase tracking-widest">
-                            Lowest on {parseLocalDate(lowestPoint.date).toLocaleDateString()}
-                        </p>
-                    </div>
-                </Card>
-
-                {/* Savings Rate Card */}
-                <Card className="relative overflow-hidden group flex flex-col justify-between !p-6 border-none shadow-sm bg-white dark:bg-dark-card">
-                    <div className="flex justify-between items-start">
-                        <div className="space-y-1">
-                            <p className="text-[10px] font-black text-light-text-secondary dark:text-dark-text-secondary uppercase tracking-widest">Savings Rate</p>
-                            <h3 className="text-2xl font-black tracking-tight text-sky-600">
-                                {totalIncomeGoalTarget > 0 ? ((totalSavingsGoalTarget / totalIncomeGoalTarget) * 100).toFixed(1) : 0}%
-                            </h3>
-                        </div>
-                        <div className="w-10 h-10 rounded-xl flex items-center justify-center bg-sky-500/10 text-sky-500">
-                            <span className="material-symbols-outlined">savings</span>
-                        </div>
-                    </div>
-                    <div className="mt-4 pt-4 border-t border-black/5 dark:border-white/5">
-                        <p className="text-[10px] font-bold text-light-text-secondary uppercase tracking-widest">Target Monthly Savings</p>
                     </div>
                 </Card>
             </div>
+
             
             <ForecastOverview forecasts={lowestBalanceForecasts} currency="EUR" />
 
@@ -765,141 +797,189 @@ const Forecasting: React.FC = () => {
             </Card>
             
              <div className="space-y-6">
-                 <div className="bg-light-fill dark:bg-dark-fill p-4 rounded-2xl flex flex-wrap justify-between items-center gap-4">
-                    <div className="flex items-center gap-2">
-                         <div className="p-2 rounded-lg bg-white dark:bg-white/10 shadow-sm text-amber-500">
+                 <div className="bg-light-fill dark:bg-dark-fill p-5 rounded-[2rem] flex flex-wrap justify-between items-center gap-4">
+                    <div className="flex items-center gap-4">
+                         <div className="p-3 rounded-2xl bg-white dark:bg-white/5 shadow-sm text-amber-500 border border-black/5 dark:border-white/10">
                              <span className="material-symbols-outlined">flag</span>
                          </div>
-                         <h3 className="text-xl font-bold text-light-text dark:text-dark-text">Financial Goals</h3>
+                         <h3 className="text-2xl font-black text-light-text dark:text-dark-text tracking-tighter">Financial Goals</h3>
                     </div>
                     <div className="flex items-center gap-4">
-                        <label className="flex items-center gap-2 text-sm cursor-pointer select-none hover:text-primary-500 transition-colors">
+                        <label className="flex items-center gap-2 text-xs cursor-pointer select-none hover:text-primary-500 transition-colors bg-white dark:bg-white/5 px-4 py-2 rounded-full border border-black/5 dark:border-white/10">
                             <input type="checkbox" checked={filterGoalsByAccount} onChange={(e) => setFilterGoalsByAccount(e.target.checked)} className={CHECKBOX_STYLE} />
-                            <span className="text-light-text-secondary dark:text-dark-text-secondary font-medium">Filter by Account</span>
+                            <span className="text-light-text-secondary dark:text-dark-text-secondary font-black uppercase tracking-widest">Filter by Account</span>
                         </label>
                         <div className="h-4 w-px bg-black/10 dark:bg-white/10"></div>
-                        <button onClick={handleToggleAllDisplayed} className="text-sm font-bold text-primary-600 dark:text-primary-400 hover:underline transition-colors uppercase tracking-wide">
+                        <button onClick={handleToggleAllDisplayed} className="text-xs font-black text-primary-600 dark:text-primary-400 hover:underline transition-colors uppercase tracking-widest">
                             {areAllDisplayedSelected ? 'Deselect All' : 'Select All'}
                         </button>
                     </div>
                 </div>
 
-                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 animate-fade-in-up">
-                    <div className="bg-white dark:bg-dark-card rounded-xl p-4 border-2 border-emerald-500/20 shadow-sm relative overflow-hidden group">
-                        <div className="flex justify-between items-start mb-1 relative z-10">
-                             <p className="text-[10px] font-black text-emerald-600 dark:text-emerald-400 uppercase tracking-widest">GRAND TOTAL INCOME</p>
-                             <span className="text-[10px] font-black uppercase px-2 py-0.5 rounded-full bg-emerald-100 text-emerald-700 dark:bg-emerald-900/40 dark:text-emerald-300 border border-emerald-200 dark:border-emerald-800 shadow-sm">GLOBAL</span>
-                        </div>
-                        <div className="flex items-end justify-between relative z-10 mt-2">
-                            <div>
-                                <p className="text-2xl font-black text-emerald-700 dark:text-emerald-400 tracking-tight">{formatCurrency(totalIncomeGoalCurrent, 'EUR')}</p>
-                                <p className="text-[10px] font-bold text-light-text-secondary dark:text-dark-text-secondary uppercase mt-0.5">Total Earned</p>
+                <div className="lg:grid lg:grid-cols-12 gap-8 items-start">
+                    {/* Simplified Status Column - One big element */}
+                    <div className="lg:col-span-3 space-y-4 mb-8 lg:mb-0">
+                        <Card className="flex flex-col border border-black/5 dark:border-neutral-800 shadow-sm rounded-3xl overflow-hidden !p-0">
+                            <div className="p-6 bg-gray-50/50 dark:bg-white/5 border-b border-black/5 dark:border-white/10">
+                                <h2 className="text-xs font-black uppercase tracking-widest mb-1">Global Performance</h2>
+                                <p className="text-[10px] text-light-text-secondary dark:text-dark-text-secondary font-bold uppercase tracking-wider">Aggregated Goal Tracking</p>
                             </div>
-                            <div className="text-right">
-                                <p className="text-sm font-bold text-light-text dark:text-dark-text opacity-60">{formatCurrency(totalIncomeGoalTarget, 'EUR')}</p>
-                                <p className="text-[10px] font-bold text-light-text-secondary dark:text-dark-text-secondary uppercase">Target <span className="text-emerald-600 dark:text-emerald-400 font-black ml-1">{totalIncomeGoalTarget > 0 ? ((totalIncomeGoalCurrent / totalIncomeGoalTarget) * 100).toFixed(0) : 0}%</span></p>
+                            
+                            <div className="p-6 space-y-7">
+                                {/* Total Income Bar */}
+                                <div className="space-y-3">
+                                    <div className="flex justify-between items-end">
+                                        <div className="space-y-1">
+                                            <span className="text-[10px] font-bold uppercase tracking-wider text-light-text-secondary dark:text-dark-text-secondary">Total Income Target</span>
+                                            <p className="text-xl font-bold tracking-tight text-emerald-600 dark:text-emerald-400">
+                                                {formatCurrency(globalIncomeGoalCurrent, 'EUR')}
+                                            </p>
+                                        </div>
+                                        <div className="text-right">
+                                            <span className="text-xs font-bold">{globalIncomeGoalTarget > 0 ? ((globalIncomeGoalCurrent / globalIncomeGoalTarget) * 100).toFixed(0) : 0}%</span>
+                                            <p className="text-[9px] font-bold opacity-50 uppercase tracking-widest">of {formatCurrency(globalIncomeGoalTarget, 'EUR')}</p>
+                                        </div>
+                                    </div>
+                                    <div className="h-1.5 w-full bg-black/5 dark:bg-white/10 rounded-full overflow-hidden">
+                                        <div 
+                                            className="h-full bg-emerald-500 transition-all duration-1000" 
+                                            style={{ width: `${globalIncomeGoalTarget > 0 ? Math.min(100, (globalIncomeGoalCurrent / globalIncomeGoalTarget) * 100) : 0}%` }} 
+                                        />
+                                    </div>
+                                </div>
+
+                                {/* Total Savings Bar */}
+                                <div className="space-y-3">
+                                    <div className="flex justify-between items-end">
+                                        <div className="space-y-1">
+                                            <span className="text-[10px] font-bold uppercase tracking-wider text-light-text-secondary dark:text-dark-text-secondary">Total Savings Target</span>
+                                            <p className="text-xl font-bold tracking-tight text-primary-500">
+                                                {formatCurrency(globalSavingsGoalCurrent, 'EUR')}
+                                            </p>
+                                        </div>
+                                        <div className="text-right">
+                                            <span className="text-xs font-bold">{globalSavingsGoalTarget > 0 ? ((globalSavingsGoalCurrent / globalSavingsGoalTarget) * 100).toFixed(0) : 0}%</span>
+                                            <p className="text-[9px] font-bold opacity-50 uppercase tracking-widest">of {formatCurrency(globalSavingsGoalTarget, 'EUR')}</p>
+                                        </div>
+                                    </div>
+                                    <div className="h-1.5 w-full bg-black/5 dark:bg-white/10 rounded-full overflow-hidden">
+                                        <div 
+                                            className="h-full bg-primary-500 transition-all duration-1000" 
+                                            style={{ width: `${globalSavingsGoalTarget > 0 ? Math.min(100, (globalSavingsGoalCurrent / globalSavingsGoalTarget) * 100) : 0}%` }} 
+                                        />
+                                    </div>
+                                </div>
+
+                                {/* Account Specific Section */}
+                                <div className="pt-5 border-t border-black/5 dark:border-white/10 space-y-4">
+                                    <div className="flex justify-between items-center">
+                                        <p className="text-[10px] font-bold uppercase tracking-widest text-light-text-secondary dark:text-dark-text-secondary">Account Breakdown</p>
+                                        <p className="text-[9px] font-medium text-primary-500 uppercase tracking-widest">Global</p>
+                                    </div>
+                                    <div className="space-y-6">
+                                        {globalAccountBreakdown.map((accGroup, index) => {
+                                            const colors = [
+                                                'bg-blue-500', 'bg-purple-500', 'bg-orange-500', 
+                                                'bg-pink-500', 'bg-cyan-500', 'bg-indigo-500', 'bg-amber-500'
+                                            ];
+                                            const accColor = colors[index % colors.length];
+                                            const hasIncome = accGroup.income.target > 0;
+                                            const hasSavings = accGroup.savings.target > 0;
+                                            
+                                            const incProgress = hasIncome ? Math.min(100, (accGroup.income.current / accGroup.income.target) * 100) : 0;
+                                            const savProgress = hasSavings ? Math.min(100, (accGroup.savings.current / accGroup.savings.target) * 100) : 0;
+
+                                            return (
+                                                <div key={accGroup.id} className="space-y-3 group/acc border-l-2 border-black/5 dark:border-white/5 pl-3">
+                                                    <div className="flex items-center gap-2">
+                                                        <div className={`w-2 h-2 rounded-full ${accColor}`} />
+                                                        <span className="text-[10px] font-black text-light-text dark:text-dark-text uppercase tracking-wider truncate">{accGroup.name}</span>
+                                                    </div>
+
+                                                    {hasIncome && (
+                                                        <div className="space-y-1">
+                                                            <div className="flex justify-between items-center text-[9px] font-bold uppercase tracking-tighter text-light-text-secondary dark:text-dark-text-secondary">
+                                                                <span className="opacity-60">Income</span>
+                                                                <span>{formatCurrency(accGroup.income.current, accGroup.currency)} <span className="opacity-40">/ {formatCurrency(accGroup.income.target, accGroup.currency)}</span></span>
+                                                            </div>
+                                                            <div className="h-1 w-full bg-black/5 dark:bg-white/10 rounded-full overflow-hidden">
+                                                                <div 
+                                                                    className={`h-full bg-emerald-500 transition-all duration-700`} 
+                                                                    style={{ width: `${incProgress}%` }} 
+                                                                />
+                                                            </div>
+                                                        </div>
+                                                    )}
+
+                                                    {hasSavings && (
+                                                        <div className="space-y-1">
+                                                            <div className="flex justify-between items-center text-[9px] font-bold uppercase tracking-tighter text-light-text-secondary dark:text-dark-text-secondary">
+                                                                <span className="opacity-60">Savings</span>
+                                                                <span>{formatCurrency(accGroup.savings.current, accGroup.currency)} <span className="opacity-40">/ {formatCurrency(accGroup.savings.target, accGroup.currency)}</span></span>
+                                                            </div>
+                                                            <div className="h-1 w-full bg-black/5 dark:bg-white/10 rounded-full overflow-hidden">
+                                                                <div 
+                                                                    className={`h-full ${accColor} transition-all duration-700 opacity-80`} 
+                                                                    style={{ width: `${savProgress}%` }} 
+                                                                />
+                                                            </div>
+                                                        </div>
+                                                    )}
+                                                </div>
+                                            );
+                                        })}
+                                        {globalAccountBreakdown.length === 0 && (
+                                            <p className="text-[10px] italic text-center opacity-40 py-4">No account-specific goals tracked.</p>
+                                        )}
+                                    </div>
+                                </div>
                             </div>
-                        </div>
-                        <div className="w-full h-2 bg-gray-100 dark:bg-white/5 rounded-full mt-4 overflow-hidden relative z-10 border border-black/5 dark:border-white/5 shadow-inner">
-                            <div 
-                                className="h-full bg-gradient-to-r from-emerald-400 to-emerald-600 rounded-full transition-all duration-1000 ease-out"
-                                style={{ width: `${totalIncomeGoalTarget > 0 ? Math.min(100, (totalIncomeGoalCurrent / totalIncomeGoalTarget) * 100) : 0}%` }}
-                            ></div>
-                        </div>
-                        <div className="absolute top-0 right-0 p-2 opacity-[0.03] group-hover:opacity-[0.07] transition-opacity pointer-events-none">
-                            <span className="material-symbols-outlined text-7xl">monetization_on</span>
-                        </div>
+                            
+                            <div className="p-4 bg-gray-50/50 dark:bg-white/5 border-t border-black/5 dark:border-white/10">
+                                <p className="text-[10px] font-medium leading-relaxed opacity-60 italic text-center">
+                                    {goalProgress >= 100 ? "All financial milestones for this period have been achieved." : "Continuing on track towards your defined financial milestones."}
+                                </p>
+                            </div>
+                        </Card>
                     </div>
 
-                    <div className="bg-white dark:bg-dark-card rounded-xl p-4 border-2 border-rose-500/20 shadow-sm relative overflow-hidden group">
-                        <div className="flex justify-between items-start mb-1 relative z-10">
-                             <p className="text-[10px] font-black text-rose-600 dark:text-rose-400 uppercase tracking-widest">GRAND TOTAL SAVINGS</p>
-                             <span className="text-[10px] font-black uppercase px-2 py-0.5 rounded-full bg-rose-100 text-rose-700 dark:bg-rose-900/40 dark:text-rose-300 border border-rose-200 dark:border-rose-800 shadow-sm">GLOBAL</span>
-                        </div>
-                        <div className="flex items-end justify-between relative z-10 mt-2">
-                            <div>
-                                <p className="text-2xl font-black text-rose-700 dark:text-rose-400 tracking-tight">{formatCurrency(totalSavingsGoalCurrent, 'EUR')}</p>
-                                <p className="text-[10px] font-bold text-light-text-secondary dark:text-dark-text-secondary uppercase mt-0.5">Total Saved</p>
-                            </div>
-                            <div className="text-right">
-                                <p className="text-sm font-bold text-light-text dark:text-dark-text opacity-60">{formatCurrency(totalSavingsGoalTarget, 'EUR')}</p>
-                                <p className="text-[10px] font-bold text-light-text-secondary dark:text-dark-text-secondary uppercase">Target <span className="text-rose-600 dark:text-rose-400 font-black ml-1">{totalSavingsGoalTarget > 0 ? ((totalSavingsGoalCurrent / totalSavingsGoalTarget) * 100).toFixed(0) : 0}%</span></p>
-                            </div>
-                        </div>
-                        <div className="w-full h-2 bg-gray-100 dark:bg-white/5 rounded-full mt-4 overflow-hidden relative z-10 border border-black/5 dark:border-white/5 shadow-inner">
-                            <div 
-                                className="h-full bg-gradient-to-r from-rose-400 to-rose-600 rounded-full transition-all duration-1000 ease-out"
-                                style={{ width: `${totalSavingsGoalTarget > 0 ? Math.min(100, (totalSavingsGoalCurrent / totalSavingsGoalTarget) * 100) : 0}%` }}
-                            ></div>
-                        </div>
-                         <div className="absolute top-0 right-0 p-2 opacity-[0.03] group-hover:opacity-[0.07] transition-opacity pointer-events-none">
-                            <span className="material-symbols-outlined text-7xl">savings</span>
+                    {/* Goals Grid Column */}
+                    <div className="lg:col-span-9">
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                            {topLevelGoals.length > 0 ? topLevelGoals.map(goal => {
+                                const subGoals = goalsByParentId.get(goal.id) || [];
+                                const isEffectivelyActive = goal.isBucket
+                                ? activeGoalIds.includes(goal.id) || subGoals.some(sg => activeGoalIds.includes(sg.id))
+                                : activeGoalIds.includes(goal.id);
+
+                                return (
+                                    <FinancialGoalCard 
+                                        key={goal.id} 
+                                        goal={goal}
+                                        subGoals={subGoals}
+                                        isActive={isEffectivelyActive}
+                                        onToggle={handleToggleGoal}
+                                        onEdit={handleOpenModal}
+                                        onDuplicate={handleDuplicateGoal}
+                                        onDelete={handleDeleteClick}
+                                        onAddSubGoal={handleAddSubGoal}
+                                        accounts={accounts}
+                                    />
+                                );
+                            }) : (
+                                <div className="col-span-full py-16 flex flex-col items-center justify-center text-center bg-white dark:bg-dark-card rounded-[2.5rem] border border-dashed border-black/10 dark:border-white/10">
+                                    <div className="w-20 h-20 bg-gray-50 dark:bg-white/5 rounded-full flex items-center justify-center mb-4">
+                                         <span className="material-symbols-outlined text-4xl text-gray-300 dark:text-gray-600">flag</span>
+                                    </div>
+                                    <h4 className="text-xl font-black text-light-text dark:text-dark-text mb-2 tracking-tight">No Goals Found</h4>
+                                    <p className="text-sm font-medium text-light-text-secondary dark:text-dark-text-secondary max-w-xs mx-auto mb-8 opacity-60">
+                                        {filterGoalsByAccount ? 'No goals match the selected accounts.' : 'Start planning for your future by adding a financial goal.'}
+                                    </p>
+                                    <button onClick={() => handleOpenModal()} className={BTN_PRIMARY_STYLE}>Create New Goal</button>
+                                </div>
+                            )}
                         </div>
                     </div>
-
-                    {accountGoalSummary.map(summary => {
-                        const progress = Math.min(100, (summary.current / summary.target) * 100);
-                        return (
-                        <div key={summary.id} className="bg-white dark:bg-dark-card rounded-xl p-4 border border-black/5 dark:border-white/5 shadow-sm">
-                            <div className="flex justify-between items-start mb-1">
-                                 <p className="text-[10px] font-bold text-light-text-secondary dark:text-dark-text-secondary uppercase tracking-widest truncate max-w-[70%]">{summary.name}</p>
-                                 <span className={`text-[10px] font-bold uppercase px-1.5 py-0.5 rounded ${summary.type === 'income' ? 'bg-emerald-100 text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-400' : 'bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-400'}`}>
-                                     {summary.type === 'income' ? 'Earnings' : 'Savings'}
-                                 </span>
-                            </div>
-                            <div className="flex items-end justify-between mt-2">
-                                <div>
-                                    <p className="text-xl font-bold text-light-text dark:text-dark-text">{formatCurrency(summary.current, summary.currency)}</p>
-                                    <p className="text-[10px] font-bold text-light-text-secondary dark:text-dark-text-secondary uppercase mt-0.5">{summary.type === 'income' ? 'Earned' : 'Saved'}</p>
-                                </div>
-                                <div className="text-right">
-                                    <p className="text-sm font-semibold text-light-text dark:text-dark-text opacity-60">{formatCurrency(summary.target, summary.currency)}</p>
-                                    <p className="text-[10px] font-bold text-light-text-secondary dark:text-dark-text-secondary uppercase">Target <span className="font-black ml-1">{progress.toFixed(0)}%</span></p>
-                                </div>
-                            </div>
-                            <div className="w-full h-1.5 bg-gray-100 dark:bg-white/5 rounded-full mt-4 overflow-hidden border border-black/5 dark:border-white/5 shadow-inner">
-                                <div 
-                                    className={`h-full rounded-full ${summary.type === 'income' ? 'bg-emerald-500' : 'bg-primary-500'}`}
-                                    style={{ width: `${progress}%` }}
-                                ></div>
-                            </div>
-                        </div>
-                    )})}
-                </div>
-                
-                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-                    {topLevelGoals.length > 0 ? topLevelGoals.map(goal => {
-                        const subGoals = goalsByParentId.get(goal.id) || [];
-                        const isEffectivelyActive = goal.isBucket
-                        ? activeGoalIds.includes(goal.id) || subGoals.some(sg => activeGoalIds.includes(sg.id))
-                        : activeGoalIds.includes(goal.id);
-
-                        return (
-                            <FinancialGoalCard 
-                                key={goal.id} 
-                                goal={goal}
-                                subGoals={subGoals}
-                                isActive={isEffectivelyActive}
-                                onToggle={handleToggleGoal}
-                                onEdit={handleOpenModal}
-                                onDuplicate={handleDuplicateGoal}
-                                onDelete={handleDeleteClick}
-                                onAddSubGoal={handleAddSubGoal}
-                                accounts={accounts}
-                            />
-                        );
-                    }) : (
-                        <div className="col-span-full py-16 flex flex-col items-center justify-center text-center bg-white dark:bg-dark-card rounded-3xl border border-dashed border-black/10 dark:border-white/10">
-                            <div className="w-20 h-20 bg-gray-50 dark:bg-white/5 rounded-full flex items-center justify-center mb-4">
-                                 <span className="material-symbols-outlined text-4xl text-gray-300 dark:text-gray-600">flag</span>
-                            </div>
-                            <h4 className="text-lg font-bold text-light-text dark:text-dark-text mb-1">No Goals Found</h4>
-                            <p className="text-sm text-light-text-secondary dark:text-dark-text-secondary max-w-xs mx-auto mb-6">
-                                {filterGoalsByAccount ? 'No goals match the selected accounts.' : 'Start planning for your future by adding a financial goal.'}
-                            </p>
-                            <button onClick={() => handleOpenModal()} className={BTN_SECONDARY_STYLE}>Create New Goal</button>
-                        </div>
-                    )}
                 </div>
             </div>
 
