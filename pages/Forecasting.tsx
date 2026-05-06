@@ -671,20 +671,6 @@ const Forecasting: React.FC = () => {
                                     <p className="text-[10px] font-bold text-light-text-secondary/60 uppercase">{forecastDuration} horizon</p>
                                 </div>
                             </div>
-                            <div className="px-2.5 py-0.5 rounded-full bg-black/5 dark:bg-white/5 border border-black/5 dark:border-white/10 text-[9px] font-black uppercase tracking-widest text-primary-500 flex items-center gap-1.5">
-                                <span className="w-1 h-1 rounded-full bg-primary-500 animate-pulse"></span>
-                                AI-Projected
-                            </div>
-                        </div>
-                        
-                        <div className="space-y-3">
-                             <div className="space-y-0">
-                                <h2 className="text-4xl font-black tracking-tighter privacy-blur leading-none">
-                                    {formatCurrency(endBalance, 'EUR')}
-                                </h2>
-                                <p className="text-[10px] font-bold uppercase tracking-widest text-light-text-secondary dark:text-dark-text-secondary ml-1 opacity-60">Estimated Liquid Value</p>
-                            </div>
-
                             <div className="flex items-center gap-2 pt-1">
                                 <div className="flex items-center gap-1.5 text-emerald-600 dark:text-emerald-400 font-black text-[10px] bg-emerald-500/10 px-3 py-1 rounded-full border border-emerald-500/20">
                                     <span className="material-symbols-outlined text-xs">trending_up</span>
@@ -695,6 +681,15 @@ const Forecasting: React.FC = () => {
                                     {formatCurrency(endBalance - startBalance, 'EUR', { showPlusSign: true })} 
                                     <span className="text-[9px] ml-1 uppercase opacity-40 italic">Delta</span>
                                 </p>
+                            </div>
+                        </div>
+                        
+                        <div className="space-y-3">
+                             <div className="space-y-0">
+                                <h2 className="text-4xl font-black tracking-tighter privacy-blur leading-none">
+                                    {formatCurrency(endBalance, 'EUR')}
+                                </h2>
+                                <p className="text-[10px] font-bold uppercase tracking-widest text-light-text-secondary dark:text-dark-text-secondary ml-1 opacity-60">Estimated Liquid Value</p>
                             </div>
                         </div>
                     </div>
