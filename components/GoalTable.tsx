@@ -17,7 +17,7 @@ type SortOrder = 'asc' | 'desc';
 const GoalTable: React.FC<GoalTableProps> = ({ goals, accounts, onGoalClick, onEdit, onDelete }) => {
   const [sortField, setSortField] = useState<SortField>('date');
   const [sortOrder, setSortOrder] = useState<SortOrder>('asc');
-  const [groupByBucket, setGroupByBucket] = useState(true);
+  const [groupByBucket, setGroupByBucket] = useState(false);
 
   const getAccountName = (id?: string) => {
     if (!id) return '-';
@@ -176,16 +176,16 @@ const GoalTable: React.FC<GoalTableProps> = ({ goals, accounts, onGoalClick, onE
     <div className="space-y-4">
       <div className="flex items-center gap-4 bg-light-fill dark:bg-dark-fill p-2 rounded-xl border border-black/5 dark:border-white/5 self-start inline-flex">
           <button 
-            onClick={() => setGroupByBucket(true)}
-            className={`px-3 py-1.5 rounded-lg text-xs font-bold transition-all ${groupByBucket ? 'bg-white dark:bg-white/10 shadow-sm text-primary-500' : 'text-light-text-secondary dark:text-neutral-300'}`}
-          >
-            Group by Bucket
-          </button>
-          <button 
             onClick={() => setGroupByBucket(false)}
             className={`px-3 py-1.5 rounded-lg text-xs font-bold transition-all ${!groupByBucket ? 'bg-white dark:bg-white/10 shadow-sm text-primary-500' : 'text-light-text-secondary dark:text-neutral-300'}`}
           >
             List All
+          </button>
+          <button 
+            onClick={() => setGroupByBucket(true)}
+            className={`px-3 py-1.5 rounded-lg text-xs font-bold transition-all ${groupByBucket ? 'bg-white dark:bg-white/10 shadow-sm text-primary-500' : 'text-light-text-secondary dark:text-neutral-300'}`}
+          >
+            Group by Bucket
           </button>
       </div>
 

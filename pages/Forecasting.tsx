@@ -186,6 +186,24 @@ const Forecasting: React.FC = () => {
         const { chartData, tableData, lowestPoint } = fullForecast;
         
         const startBalanceValue = chartData.length > 0 ? chartData[0].value : 0;
+
+        // Generate per-account forecasts for accurate projection calculation based on goal account assignment
+        const projectionEndDate = new Date();
+        projectionEndDate.setMonth(projectionEndDate.getMonth() + 24);
+
+        const perAccountForecasts = accounts.reduce((acc, account) => {
+            const accountForecast = generateBalanceForecast(
+                [account],
+                allRecurringItems,
+                activeGoals,
+                billsAndPayments,
+                projectionEndDate,
+                recurringTransactionOverrides,
+                assumptions
+            );
+            acc[account.id] = accountForecast.chartData;
+            return acc;
+        }, {} as Record<string, typeof chartData>);
         
         const goalsWithProjections = financialGoals.map(goal => {
             if (goal.isBucket) return { ...goal, projection: undefined };
@@ -200,9 +218,24 @@ const Forecasting: React.FC = () => {
             const isExpense = category === 'expense';
             const remainingToTarget = goal.amount - goal.currentAmount;
 
+            // Use the specific account's start balance and forecast if assigned
+            const targetAccountId = goal.paymentAccountId;
+            const targetAccount = targetAccountId ? accounts.find(a => a.id === targetAccountId) : null;
+            
+            // Current liquid balance for the projection reference
+            // If goal is linked to an account, use THAT account's balance
+            // Otherwise, use the total start balance of the currently selected accounts (current behavior for unlinked)
+            const referenceStartBalance = targetAccount 
+                ? convertToEur(targetAccount.balance, targetAccount.currency)
+                : startBalanceValue;
+
+            const referenceChartData = (targetAccountId && perAccountForecasts[targetAccountId]) 
+                ? perAccountForecasts[targetAccountId] 
+                : chartData;
+
             // 1. Check if target already reached / Ready to execute
             if (isSavings) {
-                if (startBalanceValue >= goal.amount) {
+                if (referenceStartBalance >= goal.amount) {
                     projectedDate = 'Goal reached';
                     status = 'on-track';
                     return { ...goal, projection: { projectedDate, status } };
@@ -212,7 +245,7 @@ const Forecasting: React.FC = () => {
                     projectedDate = 'Goal reached';
                     status = 'on-track';
                     return { ...goal, projection: { projectedDate, status } };
-                } else if (startBalanceValue >= remainingToTarget) {
+                } else if (referenceStartBalance >= remainingToTarget) {
                     // Ready to spend today (funded)
                     projectedDate = toLocalISOString(new Date());
                     status = 'on-track';
@@ -223,7 +256,7 @@ const Forecasting: React.FC = () => {
                     projectedDate = 'Goal reached';
                     status = 'on-track';
                     return { ...goal, projection: { projectedDate, status } };
-                } else if (startBalanceValue >= goal.amount) {
+                } else if (referenceStartBalance >= goal.amount) {
                     // If balance exceeds target amount, we consider it "funded" or on-track
                     projectedDate = toLocalISOString(new Date());
                     status = 'on-track';
@@ -249,7 +282,7 @@ const Forecasting: React.FC = () => {
                     ? Math.max(0, goal.amount - goal.currentAmount)
                     : goal.amount); // For income, reach target balance as fallback
 
-            for (const point of chartData) {
+            for (const point of referenceChartData) {
                 if (point.value >= targetBalanceNeeded) {
                     const forecastProjDate = point.date;
                     if (projectedDate === 'Beyond forecast' || parseLocalDate(forecastProjDate) < parseLocalDate(projectedDate)) {
@@ -353,7 +386,7 @@ const Forecasting: React.FC = () => {
         };
     }, [fullForecast, financialGoals, forecastDuration, transactions, selectedAccountIds]);
     
-    const { globalIncomeGoalTarget, globalIncomeGoalCurrent, globalSavingsGoalTarget, globalSavingsGoalCurrent, globalExpenseGoalTarget, globalExpenseGoalCurrent, globalAccountBreakdown } = useMemo(() => {
+    const { globalIncomeGoalTarget, globalIncomeGoalCurrent, globalSavingsGoalTarget, globalSavingsGoalCurrent, globalExpenseGoalTarget, globalExpenseGoalCurrent, globalAccountBreakdown, monthlyPaymentBreakdown } = useMemo(() => {
         let incTarget = 0, incCurrent = 0, savTarget = 0, savCurrent = 0, expTarget = 0, expCurrent = 0;
         const accountGroups: Record<string, { 
             id: string; 
@@ -364,9 +397,15 @@ const Forecasting: React.FC = () => {
             currency: Currency;
         }> = {};
 
+        const monthlyAccountAggregates: Record<string, { 
+            id: string; 
+            name: string; 
+            currency: Currency;
+            months: Record<string, { income: number; savings: number; expense: number }>;
+        }> = {};
+
         financialGoals.forEach(g => {
             if (g.isBucket) return;
-            
             const category = g.goalCategory || (g.transactionType === 'income' ? 'income' : 'savings');
 
             // Global totals
@@ -387,7 +426,7 @@ const Forecasting: React.FC = () => {
                  const acc = accounts.find(a => a.id === accId);
                  accountGroups[accId] = {
                      id: accId,
-                     name: acc ? acc.name : 'General (Unlinked)',
+                     name: acc ? acc.name : 'Unassigned Account',
                      income: { current: 0, target: 0 },
                      savings: { current: 0, target: 0 },
                      expense: { current: 0, target: 0 },
@@ -405,6 +444,52 @@ const Forecasting: React.FC = () => {
                 accountGroups[accId].savings.current += g.currentAmount;
                 accountGroups[accId].savings.target += g.amount;
             }
+
+            const remaining = g.amount - g.currentAmount;
+            if (remaining <= 0) return;
+
+            if (!monthlyAccountAggregates[accId]) {
+                const acc = accounts.find(a => a.id === accId);
+                monthlyAccountAggregates[accId] = {
+                    id: accId,
+                    name: acc ? acc.name : 'Unassigned Account',
+                    currency: acc?.currency || 'EUR',
+                    months: {}
+                };
+            }
+
+            const addAmount = (mKey: string, amt: number) => {
+                if (!monthlyAccountAggregates[accId].months[mKey]) {
+                    monthlyAccountAggregates[accId].months[mKey] = { income: 0, savings: 0, expense: 0 };
+                }
+                if (category === 'income') monthlyAccountAggregates[accId].months[mKey].income += amt;
+                else if (category === 'expense') monthlyAccountAggregates[accId].months[mKey].expense += amt;
+                else monthlyAccountAggregates[accId].months[mKey].savings += amt;
+            };
+
+            // Group by target month
+            if (g.date) {
+                const dateObj = parseLocalDate(g.date);
+                const monthKey = toLocalISOYearMonth(dateObj);
+                addAmount(monthKey, remaining);
+            } else if (g.frequency === 'monthly' || g.monthlyContribution) {
+                const contribution = Number(g.monthlyContribution || 0);
+                if (contribution > 0) {
+                    const today = new Date();
+                    for (let i = 0; i < 6; i++) {
+                        const m = new Date(today.getFullYear(), today.getMonth() + i, 1);
+                        const monthKey = toLocalISOYearMonth(m);
+                        addAmount(monthKey, contribution);
+                    }
+                }
+            }
+        });
+
+        const outputAggregates = Object.values(monthlyAccountAggregates).map(acc => {
+            const sortedMonthKeys = Object.keys(acc.months).sort();
+            const sortedMonths: Record<string, { income: number; savings: number; expense: number }> = {};
+            sortedMonthKeys.forEach(k => { sortedMonths[k] = acc.months[k]; });
+            return { ...acc, months: sortedMonths };
         });
 
         return { 
@@ -414,7 +499,8 @@ const Forecasting: React.FC = () => {
             globalSavingsGoalCurrent: savCurrent,
             globalExpenseGoalTarget: expTarget,
             globalExpenseGoalCurrent: expCurrent,
-            globalAccountBreakdown: Object.values(accountGroups).sort((a, b) => a.name.localeCompare(b.name))
+            globalAccountBreakdown: Object.values(accountGroups).sort((a, b) => a.name.localeCompare(b.name)),
+            monthlyPaymentBreakdown: outputAggregates.sort((a, b) => a.name.localeCompare(b.name))
         };
     }, [financialGoals, accounts]);
 
@@ -1048,9 +1134,8 @@ const Forecasting: React.FC = () => {
                     {/* Simplified Status Column - One big element */}
                     <div className="lg:col-span-3 space-y-4 mb-8 lg:mb-0">
                         <Card className="flex flex-col border border-black/5 dark:border-neutral-800 shadow-sm rounded-3xl overflow-hidden !p-0">
-                            <div className="p-6 bg-gray-50/50 dark:bg-white/5 border-b border-black/5 dark:border-white/10">
+                            <div className="p-4 bg-gray-50/50 dark:bg-white/5 border-b border-black/5 dark:border-white/10">
                                 <h2 className="text-xs font-black uppercase tracking-widest mb-1">Global Performance</h2>
-                                <p className="text-[10px] text-light-text-secondary dark:text-dark-text-secondary font-bold uppercase tracking-wider">Aggregated Goal Tracking</p>
                             </div>
                             
                             <div className="p-6 space-y-7">
@@ -1201,11 +1286,69 @@ const Forecasting: React.FC = () => {
                                     </div>
                                 </div>
                             </div>
+                        </Card>
+
+                        {/* Monthly Target Schedule Summary */}
+                        <Card className="flex flex-col border border-black/5 dark:border-neutral-800 shadow-sm rounded-3xl overflow-hidden !p-0">
+                            <div className="p-4 bg-gray-50/50 dark:bg-white/5 border-b border-black/5 dark:border-white/10">
+                                <h2 className="text-xs font-black uppercase tracking-widest mb-1 text-primary-500">Monthly Target Schedule</h2>
+                            </div>
                             
-                            <div className="p-4 bg-gray-50/50 dark:bg-white/5 border-t border-black/5 dark:border-white/10">
-                                <p className="text-[10px] font-medium leading-relaxed opacity-60 italic text-center">
-                                    {goalProgress >= 100 ? "All financial milestones for this period have been achieved." : "Continuing on track towards your defined financial milestones."}
-                                </p>
+                            <div className="p-6 space-y-6">
+                                <div className="space-y-6">
+                                    {monthlyPaymentBreakdown.map((account, index) => {
+                                        const colors = [
+                                            'bg-blue-500', 'bg-purple-500', 'bg-orange-500', 
+                                            'bg-pink-500', 'bg-cyan-500', 'bg-indigo-500', 'bg-amber-500'
+                                        ];
+                                        const accColor = colors[index % colors.length];
+                                        return (
+                                            <div key={account.id} className="space-y-3 group/account">
+                                                <div className="flex items-center gap-2">
+                                                    <div className={`w-1.5 h-1.5 rounded-full ${accColor}`} />
+                                                    <p className="text-[10px] font-black uppercase tracking-tight text-light-text dark:text-dark-text truncate">{account.name}</p>
+                                                </div>
+                                                
+                                                <div className="grid grid-cols-2 gap-3">
+                                                    {Object.entries(account.months).map(([monthKey, breakdown]) => {
+                                                        const date = new Date(monthKey + '-02');
+                                                        const monthName = date.toLocaleDateString('default', { month: 'long', year: 'numeric' });
+                                                        return (
+                                                            <div key={monthKey} className="bg-black/[0.02] dark:bg-white/[0.02] p-3 rounded-2xl border border-black/5 dark:border-white/5 hover:border-black/10 transition-all space-y-2">
+                                                                <p className="text-[9px] font-black uppercase tracking-widest text-light-text-secondary dark:text-neutral-300">{monthName}</p>
+                                                                <div className="space-y-1.5">
+                                                                {breakdown.income > 0 && (
+                                                                    <div className="flex justify-between items-center bg-emerald-500/5 px-2 py-1 rounded-lg">
+                                                                        <span className="text-[8px] font-bold uppercase text-emerald-500">Income</span>
+                                                                        <span className="text-[11px] font-black text-emerald-500 tracking-tighter">{formatCurrency(breakdown.income, account.currency)}</span>
+                                                                    </div>
+                                                                )}
+                                                                {breakdown.savings > 0 && (
+                                                                    <div className="flex justify-between items-center bg-primary-500/5 px-2 py-1 rounded-lg">
+                                                                        <span className="text-[8px] font-bold uppercase text-primary-500">Savings</span>
+                                                                        <span className="text-[11px] font-black text-primary-500 tracking-tighter">{formatCurrency(breakdown.savings, account.currency)}</span>
+                                                                    </div>
+                                                                )}
+                                                                {breakdown.expense > 0 && (
+                                                                    <div className="flex justify-between items-center bg-rose-500/5 px-2 py-1 rounded-lg">
+                                                                        <span className="text-[8px] font-bold uppercase text-rose-500">Expense</span>
+                                                                        <span className="text-[11px] font-black text-rose-500 tracking-tighter">{formatCurrency(breakdown.expense, account.currency)}</span>
+                                                                    </div>
+                                                                )}
+                                                            </div>
+                                                        </div>
+                                                    );
+                                                })}
+                                            </div>
+                                        </div>
+                                    );
+                                })}
+                                    {monthlyPaymentBreakdown.length === 0 && (
+                                        <div className="py-6 text-center">
+                                            <p className="text-[10px] italic opacity-40 text-light-text-secondary">No upcoming goal targets found for the selected accounts.</p>
+                                        </div>
+                                    )}
+                                </div>
                             </div>
                         </Card>
                     </div>
@@ -1295,12 +1438,12 @@ const Forecasting: React.FC = () => {
                         <table className="w-full text-sm text-left border-collapse">
                              <thead className="sticky top-0 z-30 bg-white/95 dark:bg-[#1E1E20]/95 backdrop-blur-md shadow-sm text-[12px] uppercase font-black tracking-widest text-light-text-secondary dark:text-dark-text-secondary border-b border-black/5 dark:border-white/5">
                                 <tr>
-                                    <th className="px-6 py-5">Date</th>
-                                    <th className="px-6 py-5">Origin/Account</th>
-                                    <th className="px-6 py-5">Description</th>
-                                    <th className="px-6 py-5 text-right">Amount</th>
-                                    <th className="px-6 py-5 text-right">Proj. Bal.</th>
-                                    <th className="px-6 py-5 text-center">Source</th>
+                                    <th className="px-6 py-4">Date</th>
+                                    <th className="px-6 py-4">Origin/Account</th>
+                                    <th className="px-6 py-4">Description</th>
+                                    <th className="px-6 py-4 text-right">Amount</th>
+                                    <th className="px-6 py-4 text-right">Proj. Bal.</th>
+                                    <th className="px-6 py-4 text-center">Source</th>
                                 </tr>
                              </thead>
                              <tbody className="divide-y divide-black/5 dark:divide-white/5 bg-white dark:bg-dark-card">
@@ -1309,7 +1452,7 @@ const Forecasting: React.FC = () => {
                                         <tr className="bg-light-fill/50 dark:bg-dark-fill/30 sticky top-[53px] z-20 backdrop-blur-sm">
                                             <td colSpan={6} className="px-6 py-3">
                                                 <div className="flex items-center gap-3">
-                                                    <span className="text-[17px] font-black text-primary-600 dark:text-primary-400 uppercase tracking-tighter">
+                                                    <span className="text-[14px] font-black text-primary-600 dark:text-primary-400 uppercase tracking-tighter">
                                                         {group.monthName} {group.year}
                                                     </span>
                                                     <div className="h-px flex-1 bg-gradient-to-r from-primary-500/20 to-transparent"></div>
@@ -1345,9 +1488,9 @@ const Forecasting: React.FC = () => {
                                                     className={rowClass}
                                                     onClick={() => handleEditForecastItem(row)}
                                                 >
-                                                    <td className="px-6 py-4 whitespace-nowrap">
+                                                    <td className="px-6 py-2 whitespace-nowrap">
                                                         <div className="flex flex-col">
-                                                            <span className="font-mono text-[14px] font-bold text-light-text dark:text-dark-text">
+                                                            <span className="font-mono text-[12px] font-bold text-light-text dark:text-dark-text">
                                                                 {parseLocalDate(row.date).toLocaleDateString('en-US', { day: 'numeric', month: 'short' })}
                                                             </span>
                                                             <span className="text-[11px] font-bold text-light-text-secondary dark:text-dark-text-secondary uppercase tracking-tighter">
@@ -1355,7 +1498,7 @@ const Forecasting: React.FC = () => {
                                                             </span>
                                                         </div>
                                                     </td>
-                                                    <td className="px-6 py-4">
+                                                    <td className="px-6 py-2">
                                                         <div className="flex items-center gap-2">
                                                             <div className={`p-1.5 rounded-lg border flex items-center justify-center shrink-0 ${
                                                                 row.type === 'Financial Goal' ? 'bg-amber-500/10 text-amber-500 border-amber-500/20' :
@@ -1364,16 +1507,16 @@ const Forecasting: React.FC = () => {
                                                             }`}>
                                                                 <span className="material-symbols-outlined text-sm">{getIcon(row.type)}</span>
                                                             </div>
-                                                            <span className="font-bold text-[14px] text-light-text dark:text-dark-text truncate block max-w-[140px] tracking-tight">{row.accountName}</span>
+                                                            <span className="font-bold text-[12px] text-light-text dark:text-dark-text truncate block max-w-[140px] tracking-tight">{row.accountName}</span>
                                                         </div>
                                                     </td>
-                                                    <td className="px-6 py-4">
-                                                        <span className="truncate block max-w-[280px] text-[14px] font-medium text-light-text-secondary dark:text-dark-text-secondary group-hover:text-light-text dark:group-hover:text-dark-text transition-colors">{row.description}</span>
+                                                    <td className="px-6 py-2">
+                                                        <span className="truncate block max-w-[280px] text-[12px] font-medium text-light-text-secondary dark:text-dark-text-secondary group-hover:text-light-text dark:group-hover:text-dark-text transition-colors">{row.description}</span>
                                                     </td>
-                                                    <td className={`px-6 py-4 text-right font-mono text-[14px] ${amountClass}`}>
+                                                    <td className={`px-6 py-2 text-right font-mono text-[12px] ${amountClass}`}>
                                                         {formatCurrency(row.amount, 'EUR', { showPlusSign: true })}
                                                     </td>
-                                                    <td className={`px-6 py-4 text-right font-mono text-[14px] ${isLowest ? 'text-red-600 dark:text-red-400 font-black' : isMonthlyLowest ? 'text-amber-600 dark:text-amber-400 font-bold' : 'font-bold text-light-text dark:text-dark-text'}`}>
+                                                    <td className={`px-6 py-2 text-right font-mono text-[12px] ${isLowest ? 'text-red-600 dark:text-red-400 font-black' : isMonthlyLowest ? 'text-amber-600 dark:text-amber-400 font-bold' : 'font-bold text-light-text dark:text-dark-text'}`}>
                                                         <div className="flex items-center justify-end gap-1.5">
                                                             {isMonthlyLowest && !isLowest && (
                                                                 <span className="material-symbols-outlined text-[14px] text-amber-500 font-bold" title="Monthly Lowest Balance">arrow_downward</span>
@@ -1387,8 +1530,8 @@ const Forecasting: React.FC = () => {
                                                             <div className="absolute top-0 right-0 h-full w-[2px] bg-amber-500/40"></div>
                                                         )}
                                                     </td>
-                                                    <td className="px-6 py-4 text-center">
-                                                         <span className={`inline-flex items-center px-2 py-0.5 rounded-full text-[11px] font-black uppercase tracking-wider border ${
+                                                    <td className="px-6 py-2 text-center">
+                                                         <span className={`inline-flex items-center px-2 py-0.5 rounded-full text-[10px] font-black uppercase tracking-wider border ${
                                                             row.type === 'Financial Goal' ? 'bg-amber-50 text-amber-700 border-amber-200 dark:bg-amber-900/40 dark:text-amber-400 dark:border-amber-800' :
                                                             row.type === 'Bill/Payment' ? 'bg-rose-50 text-rose-700 border-rose-200 dark:bg-rose-900/40 dark:text-rose-400 dark:border-rose-800' :
                                                             'bg-indigo-50 text-indigo-700 border-indigo-200 dark:bg-indigo-900/40 dark:text-indigo-400 dark:border-indigo-800'

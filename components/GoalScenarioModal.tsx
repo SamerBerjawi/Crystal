@@ -93,7 +93,7 @@ const GoalScenarioModal: React.FC<GoalScenarioModalProps> = ({ onClose, onSave, 
             date: isBucket ? undefined : type === 'one-time' ? date : undefined,
             frequency: isBucket ? undefined : type === 'recurring' ? frequency : undefined,
             startDate: isBucket ? undefined : type === 'recurring' ? startDate : undefined,
-            monthlyContribution: isBucket ? undefined : type === 'recurring' && monthlyContribution ? parseFloat(monthlyContribution) : undefined,
+            monthlyContribution: isBucket ? undefined : monthlyContribution ? parseFloat(monthlyContribution) : undefined,
             dueDateOfMonth: isBucket ? undefined : type === 'recurring' && (frequency === 'monthly' || frequency === 'yearly') && dueDateOfMonth ? parseInt(dueDateOfMonth) : undefined,
             isBucket,
             parentId: isBucket ? undefined : parentId,
@@ -213,56 +213,61 @@ const GoalScenarioModal: React.FC<GoalScenarioModalProps> = ({ onClose, onSave, 
                         </div>
                     </div>
 
-                    {/* Schedule Section */}
-                    {type === 'one-time' ? (
-                        <div>
-                            <label htmlFor="goal-date" className={labelStyle}>Target Date</label>
-                            <input id="goal-date" type="date" value={date} onChange={e => setDate(e.target.value)} className={INPUT_BASE_STYLE} required />
-                        </div>
-                    ) : (
-                        <div className="bg-gray-50 dark:bg-white/5 p-4 rounded-xl border border-black/5 dark:border-white/5 space-y-4">
-                            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                                <div>
-                                    <label htmlFor="goal-frequency" className={labelStyle}>Frequency</label>
-                                    <div className={SELECT_WRAPPER_STYLE}>
-                                        <select id="goal-frequency" value={frequency} onChange={e => setFrequency(e.target.value as RecurrenceFrequency)} className={INPUT_BASE_STYLE}>
-                                            {FREQUENCIES.map(f => <option key={f.value} value={f.value}>{f.label}</option>)}
-                                        </select>
-                                        <div className={SELECT_ARROW_STYLE}><span className="material-symbols-outlined">expand_more</span></div>
-                                    </div>
-                                </div>
-                                <div>
-                                    <label htmlFor="goal-start-date" className={labelStyle}>Start Date</label>
-                                    <input id="goal-start-date" type="date" value={startDate} onChange={e => setStartDate(e.target.value)} className={INPUT_BASE_STYLE} required />
-                                </div>
+                    <div className="bg-gray-50 dark:bg-white/5 rounded-xl border border-black/5 dark:border-white/5 overflow-hidden">
+                        {type === 'one-time' ? (
+                            <div className="p-4 border-b border-black/5 dark:border-white/5">
+                                <label htmlFor="goal-date" className={labelStyle}>Target Date</label>
+                                <input id="goal-date" type="date" value={date} onChange={e => setDate(e.target.value)} className={INPUT_BASE_STYLE} required />
                             </div>
-                            
-                            {type === 'recurring' && (
-                                <div>
-                                    <label htmlFor="monthly-contribution" className={labelStyle}>Contribution Amount</label>
-                                    <div className="relative">
-                                        <span className="absolute left-3 top-1/2 -translate-y-1/2 text-light-text-secondary dark:text-dark-text-secondary">€</span>
-                                        <input 
-                                            id="monthly-contribution" 
-                                            type="number" 
-                                            step="0.01" 
-                                            value={monthlyContribution} 
-                                            onChange={e => setMonthlyContribution(e.target.value)} 
-                                            className={`${INPUT_BASE_STYLE} pl-8`} 
-                                            placeholder="e.g., 250" 
-                                        />
+                        ) : (
+                            <div className="p-4 border-b border-black/5 dark:border-white/5">
+                                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                                    <div>
+                                        <label htmlFor="goal-frequency" className={labelStyle}>Frequency</label>
+                                        <div className={SELECT_WRAPPER_STYLE}>
+                                            <select id="goal-frequency" value={frequency} onChange={e => setFrequency(e.target.value as RecurrenceFrequency)} className={INPUT_BASE_STYLE}>
+                                                {FREQUENCIES.map(f => <option key={f.value} value={f.value}>{f.label}</option>)}
+                                            </select>
+                                            <div className={SELECT_ARROW_STYLE}><span className="material-symbols-outlined">expand_more</span></div>
+                                        </div>
+                                    </div>
+                                    <div>
+                                        <label htmlFor="goal-start-date" className={labelStyle}>Start Date</label>
+                                        <input id="goal-start-date" type="date" value={startDate} onChange={e => setStartDate(e.target.value)} className={INPUT_BASE_STYLE} required />
                                     </div>
                                 </div>
-                            )}
-
-                            {(frequency === 'monthly' || frequency === 'yearly') && (
-                                <div>
-                                    <label htmlFor="goal-due-date" className={labelStyle}>Day of Month (Optional)</label>
-                                    <input id="goal-due-date" type="number" min="1" max="31" value={dueDateOfMonth} onChange={e => setDueDateOfMonth(e.target.value)} className={INPUT_BASE_STYLE} placeholder="Uses start date's day" />
-                                </div>
-                            )}
+                                {(frequency === 'monthly' || frequency === 'yearly') && (
+                                    <div className="mt-4">
+                                        <label htmlFor="goal-due-date" className={labelStyle}>Day of Month (Optional)</label>
+                                        <input id="goal-due-date" type="number" min="1" max="31" value={dueDateOfMonth} onChange={e => setDueDateOfMonth(e.target.value)} className={INPUT_BASE_STYLE} placeholder="Uses start date's day" />
+                                    </div>
+                                )}
+                            </div>
+                        )}
+                        
+                        <div className="p-4">
+                            <label htmlFor="monthly-contribution" className={labelStyle}>
+                                {type === 'one-time' ? 'Monthly Savings/Payment Plan' : 'Contribution Amount'}
+                            </label>
+                            <div className="relative">
+                                <span className="absolute left-3 top-1/2 -translate-y-1/2 text-light-text-secondary dark:text-dark-text-secondary">€</span>
+                                <input 
+                                    id="monthly-contribution" 
+                                    type="number" 
+                                    step="0.01" 
+                                    value={monthlyContribution} 
+                                    onChange={e => setMonthlyContribution(e.target.value)} 
+                                    className={`${INPUT_BASE_STYLE} pl-8`} 
+                                    placeholder={type === 'one-time' ? "e.g., 250 (Optional)" : "e.g., 250"} 
+                                />
+                            </div>
+                            <p className="text-[10px] text-light-text-secondary dark:text-dark-text-secondary mt-1 opacity-60">
+                                {type === 'one-time' 
+                                    ? "Determines how fast you'll reach the goal in the forecast." 
+                                    : "Amount applied every recurrence period."}
+                            </p>
                         </div>
-                    )}
+                    </div>
                     
                     {/* Linking */}
                     <div className="pt-2 border-t border-black/10 dark:border-white/10 space-y-4">
