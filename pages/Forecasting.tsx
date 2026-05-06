@@ -100,6 +100,7 @@ const Forecasting: React.FC = () => {
     const [deletingGoal, setDeletingGoal] = useState<FinancialGoal | null>(null);
 
     const [viewMode, setViewMode] = useState<'grid' | 'table'>('table');
+    const [scheduleMode, setScheduleMode] = useState<'account' | 'date'>('account');
 
     const sensors = useSensors(
         useSensor(PointerSensor),
@@ -386,7 +387,7 @@ const Forecasting: React.FC = () => {
         };
     }, [fullForecast, financialGoals, forecastDuration, transactions, selectedAccountIds]);
     
-    const { globalIncomeGoalTarget, globalIncomeGoalCurrent, globalSavingsGoalTarget, globalSavingsGoalCurrent, globalExpenseGoalTarget, globalExpenseGoalCurrent, globalAccountBreakdown, monthlyPaymentBreakdown } = useMemo(() => {
+    const { globalIncomeGoalTarget, globalIncomeGoalCurrent, globalSavingsGoalTarget, globalSavingsGoalCurrent, globalExpenseGoalTarget, globalExpenseGoalCurrent, globalAccountBreakdown, monthlyPaymentBreakdown, monthlyDateBreakdown } = useMemo(() => {
         let incTarget = 0, incCurrent = 0, savTarget = 0, savCurrent = 0, expTarget = 0, expCurrent = 0;
         const accountGroups: Record<string, { 
             id: string; 
@@ -492,6 +493,26 @@ const Forecasting: React.FC = () => {
             return { ...acc, months: sortedMonths };
         });
 
+        // Derive Date Breakdown
+        const dateMap: Record<string, Array<{ id: string; name: string; currency: Currency; income: number; savings: number; expense: number }>> = {};
+        Object.values(monthlyAccountAggregates).forEach(acc => {
+            Object.entries(acc.months).forEach(([monthKey, breakdown]) => {
+                if (!dateMap[monthKey]) dateMap[monthKey] = [];
+                dateMap[monthKey].push({
+                    id: acc.id,
+                    name: acc.name,
+                    currency: acc.currency,
+                    ...breakdown
+                });
+            });
+        });
+
+        const monthlyDateBreakdown = Object.entries(dateMap).sort(([a], [b]) => a.localeCompare(b)).map(([monthKey, items]) => ({
+            monthKey,
+            monthName: new Date(monthKey + '-02').toLocaleDateString('default', { month: 'long', year: 'numeric' }),
+            accounts: items.sort((a,b) => a.name.localeCompare(b.name))
+        }));
+
         return { 
             globalIncomeGoalTarget: incTarget, 
             globalIncomeGoalCurrent: incCurrent, 
@@ -500,7 +521,8 @@ const Forecasting: React.FC = () => {
             globalExpenseGoalTarget: expTarget,
             globalExpenseGoalCurrent: expCurrent,
             globalAccountBreakdown: Object.values(accountGroups).sort((a, b) => a.name.localeCompare(b.name)),
-            monthlyPaymentBreakdown: outputAggregates.sort((a, b) => a.name.localeCompare(b.name))
+            monthlyPaymentBreakdown: outputAggregates.sort((a, b) => a.name.localeCompare(b.name)),
+            monthlyDateBreakdown
         };
     }, [financialGoals, accounts]);
 
@@ -1290,59 +1312,112 @@ const Forecasting: React.FC = () => {
 
                         {/* Monthly Target Schedule Summary */}
                         <Card className="flex flex-col border border-black/5 dark:border-neutral-800 shadow-sm rounded-3xl overflow-hidden !p-0">
-                            <div className="p-4 bg-gray-50/50 dark:bg-white/5 border-b border-black/5 dark:border-white/10">
-                                <h2 className="text-xs font-black uppercase tracking-widest mb-1 text-primary-500">Monthly Target Schedule</h2>
+                            <div className="p-4 bg-gray-50/50 dark:bg-white/5 border-b border-black/5 dark:border-white/10 flex justify-between items-center">
+                                <h2 className="text-xs font-black uppercase tracking-widest text-primary-500">Monthly Target Schedule</h2>
+                                <div className="flex bg-black/5 dark:bg-white/5 p-0.5 rounded-lg">
+                                    <button 
+                                        onClick={() => setScheduleMode('account')}
+                                        className={`px-2 py-1 text-[10px] font-bold rounded-md transition-all ${scheduleMode === 'account' ? 'bg-white dark:bg-white/10 shadow-sm text-primary-500' : 'text-light-text-secondary opacity-60'}`}
+                                    >
+                                        Account
+                                    </button>
+                                    <button 
+                                        onClick={() => setScheduleMode('date')}
+                                        className={`px-2 py-1 text-[10px] font-bold rounded-md transition-all ${scheduleMode === 'date' ? 'bg-white dark:bg-white/10 shadow-sm text-primary-500' : 'text-light-text-secondary opacity-60'}`}
+                                    >
+                                        Date
+                                    </button>
+                                </div>
                             </div>
                             
                             <div className="p-6 space-y-6">
                                 <div className="space-y-6">
-                                    {monthlyPaymentBreakdown.map((account, index) => {
-                                        const colors = [
-                                            'bg-blue-500', 'bg-purple-500', 'bg-orange-500', 
-                                            'bg-pink-500', 'bg-cyan-500', 'bg-indigo-500', 'bg-amber-500'
-                                        ];
-                                        const accColor = colors[index % colors.length];
-                                        return (
-                                            <div key={account.id} className="space-y-3 group/account">
-                                                <div className="flex items-center gap-2">
-                                                    <div className={`w-1.5 h-1.5 rounded-full ${accColor}`} />
-                                                    <p className="text-[10px] font-black uppercase tracking-tight text-light-text dark:text-dark-text truncate">{account.name}</p>
-                                                </div>
-                                                
-                                                <div className="grid grid-cols-2 gap-3">
-                                                    {Object.entries(account.months).map(([monthKey, breakdown]) => {
-                                                        const date = new Date(monthKey + '-02');
-                                                        const monthName = date.toLocaleDateString('default', { month: 'long', year: 'numeric' });
-                                                        return (
-                                                            <div key={monthKey} className="bg-black/[0.02] dark:bg-white/[0.02] p-3 rounded-2xl border border-black/5 dark:border-white/5 hover:border-black/10 transition-all space-y-2">
-                                                                <p className="text-[9px] font-black uppercase tracking-widest text-light-text-secondary dark:text-neutral-300">{monthName}</p>
-                                                                <div className="space-y-1.5">
-                                                                {breakdown.income > 0 && (
-                                                                    <div className="flex justify-between items-center bg-emerald-500/5 px-2 py-1 rounded-lg">
-                                                                        <span className="text-[8px] font-bold uppercase text-emerald-500">Income</span>
-                                                                        <span className="text-[11px] font-black text-emerald-500 tracking-tighter">{formatCurrency(breakdown.income, account.currency)}</span>
-                                                                    </div>
-                                                                )}
-                                                                {breakdown.savings > 0 && (
-                                                                    <div className="flex justify-between items-center bg-primary-500/5 px-2 py-1 rounded-lg">
-                                                                        <span className="text-[8px] font-bold uppercase text-primary-500">Savings</span>
-                                                                        <span className="text-[11px] font-black text-primary-500 tracking-tighter">{formatCurrency(breakdown.savings, account.currency)}</span>
-                                                                    </div>
-                                                                )}
-                                                                {breakdown.expense > 0 && (
-                                                                    <div className="flex justify-between items-center bg-rose-500/5 px-2 py-1 rounded-lg">
-                                                                        <span className="text-[8px] font-bold uppercase text-rose-500">Expense</span>
-                                                                        <span className="text-[11px] font-black text-rose-500 tracking-tighter">{formatCurrency(breakdown.expense, account.currency)}</span>
-                                                                    </div>
-                                                                )}
+                                    {scheduleMode === 'account' ? (
+                                        monthlyPaymentBreakdown.map((account, index) => {
+                                            const colors = [
+                                                'bg-blue-500', 'bg-purple-500', 'bg-orange-500', 
+                                                'bg-pink-500', 'bg-cyan-500', 'bg-indigo-500', 'bg-amber-500'
+                                            ];
+                                            const accColor = colors[index % colors.length];
+                                            return (
+                                                <div key={account.id} className="space-y-3 group/account text-left">
+                                                    <div className="flex items-center gap-2">
+                                                        <div className={`w-1.5 h-1.5 rounded-full ${accColor}`} />
+                                                        <p className="text-[10px] font-black uppercase tracking-tight text-light-text dark:text-dark-text truncate">{account.name}</p>
+                                                    </div>
+                                                    
+                                                    <div className="grid grid-cols-2 gap-3">
+                                                        {Object.entries(account.months).map(([monthKey, breakdown]) => {
+                                                            const date = new Date(monthKey + '-02');
+                                                            const monthName = date.toLocaleDateString('default', { month: 'long', year: 'numeric' });
+                                                            return (
+                                                                <div key={monthKey} className="bg-black/[0.02] dark:bg-white/[0.02] p-3 rounded-2xl border border-black/5 dark:border-white/5 hover:border-black/10 transition-all space-y-2">
+                                                                    <p className="text-[9px] font-black uppercase tracking-widest text-light-text-secondary dark:text-neutral-300">{monthName}</p>
+                                                                    <div className="space-y-1.5">
+                                                                    {breakdown.income > 0 && (
+                                                                        <div className="flex justify-between items-center bg-emerald-500/5 px-2 py-1 rounded-lg">
+                                                                            <span className="text-[8px] font-bold uppercase text-emerald-500">Income</span>
+                                                                            <span className="text-[11px] font-black text-emerald-500 tracking-tighter">{formatCurrency(breakdown.income, account.currency)}</span>
+                                                                        </div>
+                                                                    )}
+                                                                    {breakdown.savings > 0 && (
+                                                                        <div className="flex justify-between items-center bg-primary-500/5 px-2 py-1 rounded-lg">
+                                                                            <span className="text-[8px] font-bold uppercase text-primary-500">Savings</span>
+                                                                            <span className="text-[11px] font-black text-primary-500 tracking-tighter">{formatCurrency(breakdown.savings, account.currency)}</span>
+                                                                        </div>
+                                                                    )}
+                                                                    {breakdown.expense > 0 && (
+                                                                        <div className="flex justify-between items-center bg-rose-500/5 px-2 py-1 rounded-lg">
+                                                                            <span className="text-[8px] font-bold uppercase text-rose-500">Expense</span>
+                                                                            <span className="text-[11px] font-black text-rose-500 tracking-tighter">{formatCurrency(breakdown.expense, account.currency)}</span>
+                                                                        </div>
+                                                                    )}
+                                                                </div>
                                                             </div>
+                                                        );
+                                                    })}
+                                                </div>
+                                            </div>
+                                        );
+                                    })
+                                ) : (
+                                    monthlyDateBreakdown.map((month) => (
+                                        <div key={month.monthKey} className="space-y-3 group/date text-left">
+                                            <div className="flex items-center gap-2">
+                                                <div className="w-1.5 h-1.5 rounded-full bg-light-text-secondary opacity-20" />
+                                                <p className="text-[10px] font-black uppercase tracking-tight text-light-text dark:text-dark-text truncate">{month.monthName}</p>
+                                            </div>
+                                            
+                                            <div className="grid grid-cols-2 gap-3">
+                                                {month.accounts.map((account) => (
+                                                    <div key={account.id} className="bg-black/[0.02] dark:bg-white/[0.02] p-3 rounded-2xl border border-black/5 dark:border-white/5 hover:border-black/10 transition-all space-y-2">
+                                                        <p className="text-[9px] font-black uppercase tracking-widest text-light-text-secondary dark:text-neutral-300">{account.name}</p>
+                                                        <div className="space-y-1.5">
+                                                            {account.income > 0 && (
+                                                                <div className="flex justify-between items-center bg-emerald-500/5 px-2 py-1 rounded-lg">
+                                                                    <span className="text-[8px] font-bold uppercase text-emerald-500">Income</span>
+                                                                    <span className="text-[11px] font-black text-emerald-500 tracking-tighter">{formatCurrency(account.income, account.currency)}</span>
+                                                                </div>
+                                                            )}
+                                                            {account.savings > 0 && (
+                                                                <div className="flex justify-between items-center bg-primary-500/5 px-2 py-1 rounded-lg">
+                                                                    <span className="text-[8px] font-bold uppercase text-primary-500">Savings</span>
+                                                                    <span className="text-[11px] font-black text-primary-500 tracking-tighter">{formatCurrency(account.savings, account.currency)}</span>
+                                                                </div>
+                                                            )}
+                                                            {account.expense > 0 && (
+                                                                <div className="flex justify-between items-center bg-rose-500/5 px-2 py-1 rounded-lg">
+                                                                    <span className="text-[8px] font-bold uppercase text-rose-500">Expense</span>
+                                                                    <span className="text-[11px] font-black text-rose-500 tracking-tighter">{formatCurrency(account.expense, account.currency)}</span>
+                                                                </div>
+                                                            )}
                                                         </div>
-                                                    );
-                                                })}
+                                                    </div>
+                                                ))}
                                             </div>
                                         </div>
-                                    );
-                                })}
+                                    ))
+                                )}
                                     {monthlyPaymentBreakdown.length === 0 && (
                                         <div className="py-6 text-center">
                                             <p className="text-[10px] italic opacity-40 text-light-text-secondary">No upcoming goal targets found for the selected accounts.</p>
