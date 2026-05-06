@@ -24,12 +24,30 @@ import ForecastDayModal from '../components/ForecastDayModal';
 import RecurringTransactionModal from '../components/RecurringTransactionModal';
 import BillPaymentModal from '../components/BillPaymentModal';
 import ForecastOverview from '../components/ForecastOverview';
+import GoalTable from '../components/GoalTable';
 import { useAccountsContext, usePreferencesContext, useTransactionsContext } from '../contexts/DomainProviders';
 import { useCategoryContext, useGoalsContext, useScheduleContext } from '../contexts/FinancialDataContext';
 import { useInsightsView } from '../contexts/InsightsViewContext';
 import PageHeader from '../components/PageHeader';
 import { v4 as uuidv4 } from 'uuid';
-import { motion, AnimatePresence } from 'motion/react';
+import { motion, AnimatePresence, Reorder } from 'motion/react';
+import {
+    DndContext,
+    closestCenter,
+    KeyboardSensor,
+    PointerSensor,
+    useSensor,
+    useSensors,
+    DragEndEvent,
+} from '@dnd-kit/core';
+import {
+    arrayMove,
+    SortableContext,
+    sortableKeyboardCoordinates,
+    verticalListSortingStrategy,
+    useSortable,
+} from '@dnd-kit/sortable';
+import { CSS } from '@dnd-kit/utilities';
 
 const CACHE_KEYS = {
   PREDICTIVE_INSIGHTS: 'crystal_forecasting_insights'
@@ -61,7 +79,7 @@ const Forecasting: React.FC = () => {
   const { accounts } = useAccountsContext();
   const { transactions } = useTransactionsContext();
   
-  const { financialGoals, saveFinancialGoal, deleteFinancialGoal } = useGoalsContext();
+  const { financialGoals, goalOrder, setGoalOrder, saveFinancialGoal, deleteFinancialGoal } = useGoalsContext();
   const { expenseCategories, incomeCategories } = useCategoryContext();
   const {
     recurringTransactions,
@@ -79,6 +97,15 @@ const Forecasting: React.FC = () => {
     const [editingGoal, setEditingGoal] = useState<FinancialGoal | null>(null);
     const [parentIdForNewGoal, setParentIdForNewGoal] = useState<string | undefined>();
     const [deletingGoal, setDeletingGoal] = useState<FinancialGoal | null>(null);
+
+    const [viewMode, setViewMode] = useState<'grid' | 'table'>('table');
+
+    const sensors = useSensors(
+        useSensor(PointerSensor),
+        useSensor(KeyboardSensor, {
+            coordinateGetter: sortableKeyboardCoordinates,
+        })
+    );
 
     // State for interactivity
     const [selectedForecastDate, setSelectedForecastDate] = useState<string | null>(null);
@@ -157,6 +184,8 @@ const Forecasting: React.FC = () => {
     const { forecastData, tableData, lowestPoint, goalsWithProjections, startBalance, endBalance, combinedChartData } = useMemo(() => {
         const { chartData, tableData, lowestPoint } = fullForecast;
         
+        const startBalanceValue = chartData.length > 0 ? chartData[0].value : 0;
+        
         const goalsWithProjections = financialGoals.map(goal => {
             if (goal.isBucket) return { ...goal, projection: undefined };
             
@@ -164,21 +193,48 @@ const Forecasting: React.FC = () => {
             let projectedDate = 'Beyond forecast';
             let status: 'on-track' | 'at-risk' | 'off-track' = 'off-track';
 
+            // 1. Check if balance already meets goal
+            if (startBalanceValue >= goal.amount) {
+                projectedDate = 'Goal reached';
+                status = 'on-track';
+                return { ...goal, projection: { projectedDate, status } };
+            }
+
+            // 2. Check forecast with monthly contributions integration
+            const remaining = goal.amount - goal.currentAmount;
+            if (goal.monthlyContribution && goal.monthlyContribution > 0) {
+                const monthsToGoal = remaining / goal.monthlyContribution;
+                const estimatedDate = new Date();
+                estimatedDate.setMonth(estimatedDate.getMonth() + Math.ceil(monthsToGoal));
+                projectedDate = toLocalISOString(estimatedDate);
+            }
+
+            // 3. Fallback: Check when portfolio balance reaches target
             for (const point of chartData) {
                 if (point.value >= goal.amount) {
-                    projectedDate = point.date;
-                    if (goalDate) {
-                        const projDate = parseLocalDate(projectedDate);
-                        if (projDate <= goalDate) {
-                            status = 'on-track';
-                        } else {
-                            const diffDays = (projDate.getTime() - goalDate.getTime()) / (1000 * 3600 * 24);
-                            status = diffDays <= 90 ? 'at-risk' : 'off-track';
-                        }
+                    const forecastProjDate = point.date;
+                    if (projectedDate === 'Beyond forecast' || parseLocalDate(forecastProjDate) < parseLocalDate(projectedDate)) {
+                        projectedDate = forecastProjDate;
                     }
                     break;
                 }
             }
+
+            // 4. Status normalization
+            if (goalDate && projectedDate !== 'Beyond forecast' && projectedDate !== 'Goal reached') {
+                const projDate = parseLocalDate(projectedDate);
+                if (projDate <= goalDate) {
+                    status = 'on-track';
+                } else {
+                    const diffDays = (projDate.getTime() - goalDate.getTime()) / (1000 * 3600 * 24);
+                    status = diffDays <= 60 ? 'at-risk' : 'off-track';
+                }
+            } else if (projectedDate === 'Goal reached') {
+                status = 'on-track';
+            } else if (goalDate && projectedDate === 'Beyond forecast') {
+                status = 'off-track';
+            }
+
             return { ...goal, projection: { projectedDate, status } };
         });
 
@@ -198,11 +254,11 @@ const Forecasting: React.FC = () => {
             lowestPointInPeriod = forecastDataForPeriod.reduce((min, p) => p.value < min.value ? { value: p.value, date: p.date } : min, { value: forecastDataForPeriod[0].value, date: forecastDataForPeriod[0].date });
         }
         
-        const startBal = forecastDataForPeriod.length > 0 ? forecastDataForPeriod[0].value : 0;
-        const endBal = forecastDataForPeriod.length > 0 ? forecastDataForPeriod[forecastDataForPeriod.length - 1].value : 0;
+        const periodStartBalance = forecastDataForPeriod.length > 0 ? forecastDataForPeriod[0].value : 0;
+        const periodEndBalance = forecastDataForPeriod.length > 0 ? forecastDataForPeriod[forecastDataForPeriod.length - 1].value : 0;
 
         const historyData: typeof forecastDataForPeriod = [];
-        let currentHistoryBal = startBal;
+        let currentHistoryBal = periodStartBalance;
         const today = new Date();
         const todayStr = toLocalISOString(today);
 
@@ -252,8 +308,8 @@ const Forecasting: React.FC = () => {
             tableData: tableDataForPeriod, 
             lowestPoint: lowestPointInPeriod, 
             goalsWithProjections,
-            startBalance: startBal,
-            endBalance: endBal,
+            startBalance: periodStartBalance,
+            endBalance: periodEndBalance,
             combinedChartData
         };
     }, [fullForecast, financialGoals, forecastDuration, transactions, selectedAccountIds]);
@@ -427,7 +483,7 @@ const Forecasting: React.FC = () => {
             selectedAccountIds.includes(g.paymentAccountId)
         );
 
-        const topLevel: FinancialGoal[] = [];
+        let topLevel: FinancialGoal[] = [];
         const byParent = new Map<string, FinancialGoal[]>();
         
         visibleGoals.forEach(g => {
@@ -440,8 +496,76 @@ const Forecasting: React.FC = () => {
                 topLevel.push(g);
             }
         });
+
+        // Apply ordering if available
+        if (goalOrder && goalOrder.length > 0) {
+            topLevel.sort((a, b) => {
+                const idxA = goalOrder.indexOf(a.id);
+                const idxB = goalOrder.indexOf(b.id);
+                if (idxA === -1 && idxB === -1) return 0;
+                if (idxA === -1) return 1;
+                if (idxB === -1) return -1;
+                return idxA - idxB;
+            });
+        }
+
         return { topLevelGoals: topLevel, goalsByParentId: byParent, displayedGoals: visibleGoals };
-    }, [goalsWithProjections, filterGoalsByAccount, selectedAccountIds]);
+    }, [goalsWithProjections, filterGoalsByAccount, selectedAccountIds, goalOrder]);
+
+    const handleDragEnd = (event: DragEndEvent) => {
+        const { active, over } = event;
+        if (over && active.id !== over.id) {
+            const oldIndex = topLevelGoals.findIndex((g) => g.id === active.id);
+            const newIndex = topLevelGoals.findIndex((g) => g.id === over.id);
+            const newOrder = arrayMove(topLevelGoals.map(g => g.id), oldIndex, newIndex);
+            
+            // Handle merging with existing goalOrder if it contains non-visible goals
+            const baseOrder = goalOrder || [];
+            const otherIds = baseOrder.filter(id => !topLevelGoals.some(g => g.id === id));
+            setGoalOrder([...newOrder, ...otherIds]);
+        }
+    };
+
+    const SortableGoal = ({ goal, subGoals, isActive, accounts }: { goal: FinancialGoal; subGoals: FinancialGoal[]; isActive: boolean; accounts: Account[] }) => {
+        const {
+            attributes,
+            listeners,
+            setNodeRef,
+            transform,
+            transition,
+            isDragging
+        } = useSortable({ id: goal.id });
+
+        const style = {
+            transform: CSS.Transform.toString(transform),
+            transition,
+            zIndex: isDragging ? 50 : undefined,
+            opacity: isDragging ? 0.5 : 1,
+        };
+
+        return (
+            <div ref={setNodeRef} style={style}>
+                 <div className="relative group/drag">
+                    {goal.isBucket && (
+                        <div {...attributes} {...listeners} className="absolute -top-2 -left-2 z-10 w-8 h-8 rounded-full bg-white dark:bg-gray-800 border border-black/5 dark:border-white/10 shadow-sm flex items-center justify-center opacity-0 group-hover/drag:opacity-100 cursor-grab active:cursor-grabbing transition-opacity">
+                            <span className="material-symbols-outlined text-sm text-gray-400">drag_indicator</span>
+                        </div>
+                    )}
+                    <FinancialGoalCard
+                        goal={goal}
+                        subGoals={subGoals}
+                        isActive={isActive}
+                        onToggle={handleToggleGoal}
+                        onEdit={handleOpenModal}
+                        onDuplicate={handleDuplicateGoal}
+                        onDelete={handleDeleteClick}
+                        onAddSubGoal={handleAddSubGoal}
+                        accounts={accounts}
+                    />
+                 </div>
+            </div>
+        );
+    };
 
     const handleDateClick = (date: string) => {
         setSelectedForecastDate(date);
@@ -808,6 +932,22 @@ const Forecasting: React.FC = () => {
                         <button onClick={handleToggleAllDisplayed} className="text-xs font-black text-primary-600 dark:text-primary-400 hover:underline transition-colors uppercase tracking-widest">
                             {areAllDisplayedSelected ? 'Deselect All' : 'Select All'}
                         </button>
+                        <div className="flex items-center gap-2 p-1 bg-black/5 dark:bg-white/5 rounded-xl">
+                            <button 
+                                onClick={() => setViewMode('grid')}
+                                className={`p-2 rounded-lg flex items-center gap-2 transition-all ${viewMode === 'grid' ? 'bg-white dark:bg-dark-card shadow-sm text-primary-500' : 'text-light-text-secondary hover:text-light-text dark:text-neutral-300'}`}
+                            >
+                                <span className="material-symbols-outlined text-xl">grid_view</span>
+                                <span className="text-xs font-bold uppercase tracking-wider">Grid</span>
+                            </button>
+                            <button 
+                                onClick={() => setViewMode('table')}
+                                className={`p-2 rounded-lg flex items-center gap-2 transition-all ${viewMode === 'table' ? 'bg-white dark:bg-dark-card shadow-sm text-primary-500' : 'text-light-text-secondary hover:text-light-text dark:text-neutral-300'}`}
+                            >
+                                <span className="material-symbols-outlined text-xl">table_rows</span>
+                                <span className="text-xs font-bold uppercase tracking-wider">Table</span>
+                            </button>
+                        </div>
                     </div>
                 </div>
 
@@ -939,41 +1079,58 @@ const Forecasting: React.FC = () => {
                     </div>
 
                     {/* Goals Grid Column */}
-                    <div className="lg:col-span-9">
-                        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                            {topLevelGoals.length > 0 ? topLevelGoals.map(goal => {
-                                const subGoals = goalsByParentId.get(goal.id) || [];
-                                const isEffectivelyActive = goal.isBucket
-                                ? activeGoalIds.includes(goal.id) || subGoals.some(sg => activeGoalIds.includes(sg.id))
-                                : activeGoalIds.includes(goal.id);
+                    <div className="lg:col-span-9 space-y-6">
+                        {viewMode === 'grid' ? (
+                            <DndContext 
+                                sensors={sensors}
+                                collisionDetection={closestCenter}
+                                onDragEnd={handleDragEnd}
+                            >
+                                <SortableContext 
+                                    items={topLevelGoals.map(g => g.id)}
+                                    strategy={verticalListSortingStrategy}
+                                >
+                                    <div className="columns-1 md:columns-2 gap-6 space-y-6">
+                                        {topLevelGoals.length > 0 ? topLevelGoals.map(goal => {
+                                            const subGoals = goalsByParentId.get(goal.id) || [];
+                                            const isEffectivelyActive = goal.isBucket
+                                            ? activeGoalIds.includes(goal.id) || subGoals.some(sg => activeGoalIds.includes(sg.id))
+                                            : activeGoalIds.includes(goal.id);
 
-                                return (
-                                    <FinancialGoalCard 
-                                        key={goal.id} 
-                                        goal={goal}
-                                        subGoals={subGoals}
-                                        isActive={isEffectivelyActive}
-                                        onToggle={handleToggleGoal}
-                                        onEdit={handleOpenModal}
-                                        onDuplicate={handleDuplicateGoal}
-                                        onDelete={handleDeleteClick}
-                                        onAddSubGoal={handleAddSubGoal}
-                                        accounts={accounts}
-                                    />
-                                );
-                            }) : (
-                                <div className="col-span-full py-16 flex flex-col items-center justify-center text-center bg-white dark:bg-dark-card rounded-[2.5rem] border border-dashed border-black/10 dark:border-white/10">
-                                    <div className="w-20 h-20 bg-gray-50 dark:bg-white/5 rounded-full flex items-center justify-center mb-4">
-                                         <span className="material-symbols-outlined text-4xl text-gray-300 dark:text-gray-600">flag</span>
+                                            return (
+                                                <div key={goal.id} className="break-inside-avoid mb-6">
+                                                    <SortableGoal
+                                                        goal={goal}
+                                                        subGoals={subGoals}
+                                                        isActive={isEffectivelyActive}
+                                                        accounts={accounts}
+                                                    />
+                                                </div>
+                                            );
+                                        }) : (
+                                            <div className="col-span-full py-16 flex flex-col items-center justify-center text-center bg-white dark:bg-dark-card rounded-[2.5rem] border border-dashed border-black/10 dark:border-white/10">
+                                                <div className="w-20 h-20 bg-gray-50 dark:bg-white/5 rounded-full flex items-center justify-center mb-4">
+                                                     <span className="material-symbols-outlined text-4xl text-gray-300 dark:text-gray-600">flag</span>
+                                                </div>
+                                                <h4 className="text-xl font-black text-light-text dark:text-dark-text mb-2 tracking-tight">No Goals Found</h4>
+                                                <p className="text-sm font-medium text-light-text-secondary dark:text-dark-text-secondary max-w-xs mx-auto mb-8 opacity-60">
+                                                    {filterGoalsByAccount ? 'No goals match the selected accounts.' : 'Start planning for your future by adding a financial goal.'}
+                                                </p>
+                                                <button onClick={() => handleOpenModal()} className={BTN_PRIMARY_STYLE}>Create New Goal</button>
+                                            </div>
+                                        )}
                                     </div>
-                                    <h4 className="text-xl font-black text-light-text dark:text-dark-text mb-2 tracking-tight">No Goals Found</h4>
-                                    <p className="text-sm font-medium text-light-text-secondary dark:text-dark-text-secondary max-w-xs mx-auto mb-8 opacity-60">
-                                        {filterGoalsByAccount ? 'No goals match the selected accounts.' : 'Start planning for your future by adding a financial goal.'}
-                                    </p>
-                                    <button onClick={() => handleOpenModal()} className={BTN_PRIMARY_STYLE}>Create New Goal</button>
-                                </div>
-                            )}
-                        </div>
+                                </SortableContext>
+                            </DndContext>
+                        ) : (
+                            <GoalTable 
+                                goals={goalsWithProjections}
+                                accounts={accounts}
+                                onGoalClick={handleOpenModal}
+                                onEdit={handleOpenModal}
+                                onDelete={handleDeleteClick}
+                            />
+                        )}
                     </div>
                 </div>
             </div>

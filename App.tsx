@@ -362,6 +362,7 @@ const App: React.FC = () => {
   const [dirtySignal, setDirtySignal] = useState(0);
   const [accountOrder, setAccountOrder] = useLocalStorage<string[]>('crystal-account-order', []);
   const [taskOrder, setTaskOrder] = useLocalStorage<string[]>('crystal-task-order', []);
+  const [goalOrder, setGoalOrderState] = useState<string[]>(emptyFinancialData.goalOrder || []);
   const transactionsViewFilters = useRef<{ accountName?: string | null; tagId?: string | null }>({});
   const streakUpdatedRef = useRef(false);
   const [manualWarrantPrices, setManualWarrantPrices] = useState<Record<string, number | undefined>>(emptyFinancialData.manualWarrantPrices || {});
@@ -597,6 +598,7 @@ const App: React.FC = () => {
       }
       setAccountOrder(dataToLoad.accountOrder || []);
       setTaskOrder(dataToLoad.taskOrder || []);
+      setGoalOrderState(dataToLoad.goalOrder || []);
       dirtySlicesRef.current.clear();
       setDirtySignal(0);
       lastSavedSignatureRef.current = dataSignature;
@@ -670,12 +672,12 @@ const App: React.FC = () => {
 
   const dataToSave: FinancialData = useMemo(() => ({
     accounts, transactions, investmentTransactions, recurringTransactions,
-    recurringTransactionOverrides, loanPaymentOverrides, financialGoals, budgets, tasks, warrants, memberships, importExportHistory, incomeCategories,
+    recurringTransactionOverrides, loanPaymentOverrides, financialGoals, goalOrder, budgets, tasks, warrants, memberships, importExportHistory, incomeCategories,
     expenseCategories, preferences, billsAndPayments, accountOrder, taskOrder, tags, manualWarrantPrices, priceHistory, invoices, userStats, predictions,
     enableBankingConnections, userProfile: currentUser || undefined
   }), [
     accounts, transactions, investmentTransactions,
-    recurringTransactions, recurringTransactionOverrides, loanPaymentOverrides, financialGoals, budgets, tasks, warrants, memberships, importExportHistory,
+    recurringTransactions, recurringTransactionOverrides, loanPaymentOverrides, financialGoals, goalOrder, budgets, tasks, warrants, memberships, importExportHistory,
     incomeCategories, expenseCategories, preferences, billsAndPayments, accountOrder, taskOrder, tags, manualWarrantPrices, priceHistory, invoices, userStats, predictions, enableBankingConnections, currentUser
   ]);
 
@@ -2034,7 +2036,16 @@ const App: React.FC = () => {
   const categoryContextValue = useMemo(() => ({ incomeCategories, expenseCategories, setIncomeCategories, setExpenseCategories }), [expenseCategories, incomeCategories]);
   const tagsContextValue = useMemo(() => ({ tags, saveTag: handleSaveTag, deleteTag: handleDeleteTag }), [tags, handleSaveTag, handleDeleteTag]);
   const budgetsContextValue = useMemo(() => ({ budgets, saveBudget: handleSaveBudget, deleteBudget: handleDeleteBudget }), [budgets, handleDeleteBudget, handleSaveBudget]);
-  const goalsContextValue = useMemo(() => ({ financialGoals, saveFinancialGoal: handleSaveFinancialGoal, deleteFinancialGoal: handleDeleteFinancialGoal }), [financialGoals, handleDeleteFinancialGoal, handleSaveFinancialGoal]);
+  const goalsContextValue = useMemo(() => ({ 
+    financialGoals, 
+    goalOrder,
+    saveFinancialGoal: handleSaveFinancialGoal, 
+    deleteFinancialGoal: handleDeleteFinancialGoal,
+    setGoalOrder: (order: string[]) => {
+      setGoalOrderState(order);
+      markSliceDirty('goalOrder');
+    }
+  }), [financialGoals, goalOrder, handleDeleteFinancialGoal, handleSaveFinancialGoal, markSliceDirty]);
   const scheduleContextValue = useMemo(() => ({ recurringTransactions, recurringTransactionOverrides, loanPaymentOverrides, billsAndPayments, memberships, saveRecurringTransaction: handleSaveRecurringTransaction, deleteRecurringTransaction: handleDeleteRecurringTransaction, saveRecurringOverride: handleSaveRecurringOverride, deleteRecurringOverride: handleDeleteRecurringOverride, saveLoanPaymentOverrides: handleSaveLoanPaymentOverrides, saveBillPayment: handleSaveBillPayment, deleteBillPayment: handleDeleteBillPayment, markBillAsPaid: handleMarkBillAsPaid, saveMembership: handleSaveMembership, deleteMembership: handleDeleteMembership, }), [billsAndPayments, memberships, handleDeleteBillPayment, handleDeleteRecurringOverride, handleDeleteRecurringTransaction, handleMarkBillAsPaid, handleSaveBillPayment, handleSaveLoanPaymentOverrides, handleSaveRecurringOverride, handleSaveRecurringTransaction, loanPaymentOverrides, recurringTransactionOverrides, recurringTransactions, ]);
 
   if (isAuthLoading || !isDataLoaded) return <div className="flex items-center justify-center min-h-screen bg-gradient-to-br from-gray-50 to-gray-200 dark:from-black dark:to-[#171717]"><svg className="animate-spin h-10 w-10 text-primary-500" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24"><circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle><path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 0 1 8-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 0 1 4 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path></svg></div>;

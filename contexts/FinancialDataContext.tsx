@@ -23,8 +23,10 @@ interface BudgetsContextValue {
 
 interface GoalsContextValue {
   financialGoals: FinancialGoal[];
+  goalOrder: string[];
   saveFinancialGoal: (goal: Omit<FinancialGoal, 'id'> & { id?: string }) => void;
   deleteFinancialGoal: (goalId: string) => void;
+  setGoalOrder: (order: string[]) => void;
 }
 
 interface ScheduleContextValue {

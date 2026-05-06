@@ -614,6 +614,7 @@ export interface FinancialData {
     recurringTransactionOverrides?: RecurringTransactionOverride[];
     loanPaymentOverrides?: LoanPaymentOverrides;
     financialGoals: FinancialGoal[];
+    goalOrder?: string[];
     budgets: Budget[];
     tasks: Task[];
     taskOrder?: string[];

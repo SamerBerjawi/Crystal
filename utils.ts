@@ -946,12 +946,51 @@ export function generateBalanceForecast(
             return;
         }
 
+        const isIncomeGoal = goal.transactionType === 'income';
+
         if (goal.type === 'one-time' && goal.date) {
             const goalDate = parseLocalDate(goal.date);
             if (goalDate >= startDate && goalDate <= forecastEndDate) {
-                const amount = goal.transactionType === 'expense' ? -(goal.amount - goal.currentAmount) : (goal.amount - goal.currentAmount);
-                if (amount === 0) return;
+                const amount = isIncomeGoal ? (goal.amount - goal.currentAmount) : -(goal.amount - goal.currentAmount);
+                if (Math.abs(amount) < 0.01) return;
                 addEvent(goal.date, { amount, currency: goal.currency, description: goal.name, accountName: goal.paymentAccountId ? accountMap.get(goal.paymentAccountId) || 'Unknown' : 'External', accountId: goal.paymentAccountId, type: 'Financial Goal', isGoal: true, originalItem: goal });
+            }
+        }
+
+        // Add monthly contributions to the forecast if applicable
+        if (goal.monthlyContribution && goal.monthlyContribution > 0) {
+            let nextContribDate = new Date(startDate);
+            // If it's a specific day of month, set it
+            const dayOfMonth = goal.dueDateOfMonth || 1;
+            nextContribDate.setDate(dayOfMonth);
+            if (nextContribDate < startDate) {
+                nextContribDate.setMonth(nextContribDate.getMonth() + 1);
+            }
+
+            const contributionEndLocal = goal.date ? parseLocalDate(goal.date) : forecastEndDate;
+            const effectiveEnd = contributionEndLocal < forecastEndDate ? contributionEndLocal : forecastEndDate;
+
+            while (nextContribDate <= effectiveEnd) {
+                const dateStr = toLocalISOString(nextContribDate);
+                const amount = isIncomeGoal ? goal.monthlyContribution : -goal.monthlyContribution;
+                
+                addEvent(dateStr, { 
+                    amount, 
+                    currency: goal.currency, 
+                    description: `Goal Contrib: ${goal.name}`, 
+                    accountName: goal.paymentAccountId ? accountMap.get(goal.paymentAccountId) || 'Unknown' : 'External', 
+                    accountId: goal.paymentAccountId, 
+                    type: 'Financial Goal', 
+                    isGoal: true, 
+                    originalItem: goal 
+                });
+
+                nextContribDate.setMonth(nextContribDate.getMonth() + 1);
+                // Handle month overflow
+                const year = nextContribDate.getFullYear();
+                const month = nextContribDate.getMonth();
+                const lastDay = new Date(year, month + 1, 0).getDate();
+                nextContribDate.setDate(Math.min(dayOfMonth, lastDay));
             }
         }
     });
