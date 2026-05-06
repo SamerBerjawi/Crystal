@@ -64,6 +64,7 @@ interface DashboardProps {
   saveTask: (task: Omit<Task, 'id'> & { id?: string }) => void;
   onTogglePrivacyMode?: () => void;
   onSyncBanks?: () => void | Promise<void>;
+  isSyncingBanks?: boolean;
 }
 
 // Define the AssetGroup type to fix type errors
@@ -148,7 +149,7 @@ const AnalysisStatCard: React.FC<{ title: string; value: string; subtext: string
     </div>
 );
 
-const Dashboard: React.FC<DashboardProps> = ({ user, tasks, saveTask, onTogglePrivacyMode, onSyncBanks }) => {
+const Dashboard: React.FC<DashboardProps> = ({ user, tasks, saveTask, onTogglePrivacyMode, onSyncBanks, isSyncingBanks }) => {
   const { activeGoalIds, setActiveGoalIds, dashboardAccountIds: selectedAccountIds, setDashboardAccountIds: setSelectedAccountIds, dashboardDuration: duration, setDashboardDuration: setDuration } = useInsightsView();
   const { accounts } = useAccountsContext();
   const { transactions, saveTransaction, deleteTransactions, digest: transactionsDigest } = useTransactionsContext();
@@ -1395,8 +1396,8 @@ const Dashboard: React.FC<DashboardProps> = ({ user, tasks, saveTask, onTogglePr
                         className="h-9 px-4 flex items-center gap-2 text-xs font-semibold text-emerald-600 dark:text-emerald-400 bg-emerald-500/10 hover:bg-emerald-500/20 rounded-xl transition-all border border-emerald-500/10"
                         title="Sync Banks"
                     >
-                        <span className="material-symbols-outlined text-lg">sync</span>
-                        <span className="hidden sm:inline">Sync Banks</span>
+                        <span className={`material-symbols-outlined text-lg ${isSyncingBanks ? 'animate-spin' : ''}`}>sync</span>
+                        <span className="hidden sm:inline">{isSyncingBanks ? 'Syncing...' : 'Sync Banks'}</span>
                     </button>
 
                     <button 
@@ -1541,7 +1542,7 @@ const Dashboard: React.FC<DashboardProps> = ({ user, tasks, saveTask, onTogglePr
                     y: w.y, 
                     w: w.w, 
                     h: w.h,
-                    isResizable: true
+                    isResizable: isEditMode
                 })) }}
                     breakpoints={{ lg: 1200, md: 996, sm: 768, xs: 480, xxs: 0 }}
                     cols={{ lg: 4, md: 4, sm: 2, xs: 1, xxs: 1 }}
@@ -1699,7 +1700,7 @@ const Dashboard: React.FC<DashboardProps> = ({ user, tasks, saveTask, onTogglePr
                     y: w.y, 
                     w: w.w, 
                     h: w.h,
-                    isResizable: true
+                    isResizable: isEditMode
                 })) }}
                 breakpoints={{ lg: 1200, md: 996, sm: 768, xs: 480, xxs: 0 }}
                 cols={{ lg: 4, md: 4, sm: 2, xs: 1, xxs: 1 }}

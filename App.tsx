@@ -316,6 +316,7 @@ const App: React.FC = () => {
   const [demoUser, setDemoUser] = useState<User | null>(null);
   const [isDataLoaded, setIsDataLoaded] = useState(false);
   const [isPrivacyMode, setIsPrivacyMode] = useState(false);
+  const [isSyncingBanks, setIsSyncingBanks] = useState(false);
 
   const [currentPath, setCurrentPath] = useState(initialPath);
   const [currentPage, setCurrentPageState] = useState<Page>(initialRoute.page);
@@ -1530,7 +1531,6 @@ const App: React.FC = () => {
           return undefined;
         }
         
-        // Advanced fuzzy match to catch inverted names (e.g., "BERJAWI SAMER" instead of "Samer Berjawi")
         const nameParts = identity.split(/\s+/).filter(p => p.length > 2);
         if (nameParts.length >= 2) {
           const hasAllParts = nameParts.every(part => normalized.includes(part));
@@ -1879,8 +1879,15 @@ const App: React.FC = () => {
 
   const handleSyncAllEnableBankingConnections = useCallback(async () => {
     const activeConnections = enableBankingConnections.filter(c => c.sessionId && c.status !== 'pending');
-    for (const connection of activeConnections) {
-      await handleSyncEnableBankingConnection(connection.id, connection);
+    if (activeConnections.length === 0) return;
+    
+    setIsSyncingBanks(true);
+    try {
+      for (const connection of activeConnections) {
+        await handleSyncEnableBankingConnection(connection.id, connection, { transactionMode: 'incremental' });
+      }
+    } finally {
+      setIsSyncingBanks(false);
     }
   }, [enableBankingConnections, handleSyncEnableBankingConnection]);
 
@@ -1982,7 +1989,7 @@ const App: React.FC = () => {
       return <PageLoader label="Loading account..." />;
     }
     switch (currentPage) {
-      case 'Dashboard': return <Dashboard user={currentUser!} incomeCategories={incomeCategories} expenseCategories={expenseCategories} financialGoals={financialGoals} recurringTransactions={recurringTransactions} recurringTransactionOverrides={recurringTransactionOverrides} loanPaymentOverrides={loanPaymentOverrides} tasks={tasks} saveTask={handleSaveTask} onTogglePrivacyMode={() => setIsPrivacyMode(!isPrivacyMode)} onSyncBanks={handleSyncAllEnableBankingConnections} />;
+      case 'Dashboard': return <Dashboard user={currentUser!} incomeCategories={incomeCategories} expenseCategories={expenseCategories} financialGoals={financialGoals} recurringTransactions={recurringTransactions} recurringTransactionOverrides={recurringTransactionOverrides} loanPaymentOverrides={loanPaymentOverrides} tasks={tasks} saveTask={handleSaveTask} onTogglePrivacyMode={() => setIsPrivacyMode(!isPrivacyMode)} onSyncBanks={handleSyncAllEnableBankingConnections} isSyncingBanks={isSyncingBanks} />;
       case 'Accounts': return <Accounts accounts={accounts} transactions={transactions} saveAccount={handleSaveAccount} deleteAccount={handleDeleteAccount} setCurrentPage={setCurrentPage} setViewingAccountId={setViewingAccountId} onViewAccount={handleOpenAccountDetail} saveTransaction={handleSaveTransaction} accountOrder={accountOrder} setAccountOrder={setAccountOrder} initialSortBy={preferences.defaultAccountOrder} warrants={warrants} onToggleAccountStatus={handleToggleAccountStatus} onNavigateToTransactions={navigateToTransactions} linkedEnableBankingAccountIds={linkedEnableBankingAccountIds} />;
       case 'Transactions': return <Transactions initialAccountFilter={transactionsViewFilters.current.accountName ?? null} initialTagFilter={transactionsViewFilters.current.tagId ?? null} onClearInitialFilters={clearPendingTransactionFilters} />;
       case 'Reports': return <ReportsPage />;
