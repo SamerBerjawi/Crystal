@@ -196,41 +196,66 @@ const Forecasting: React.FC = () => {
 
             const category = goal.goalCategory || (goal.transactionType === 'income' ? 'income' : 'savings');
             const isSavings = category === 'savings';
+            const isIncome = category === 'income';
+            const isExpense = category === 'expense';
+            const remainingToTarget = goal.amount - goal.currentAmount;
 
-            // 1. Check if target already reached
+            // 1. Check if target already reached / Ready to execute
             if (isSavings) {
                 if (startBalanceValue >= goal.amount) {
                     projectedDate = 'Goal reached';
                     status = 'on-track';
                     return { ...goal, projection: { projectedDate, status } };
                 }
-            } else {
-                if (goal.currentAmount >= goal.amount) {
+            } else if (isExpense) {
+                if (remainingToTarget <= 0) {
                     projectedDate = 'Goal reached';
                     status = 'on-track';
                     return { ...goal, projection: { projectedDate, status } };
+                } else if (startBalanceValue >= remainingToTarget) {
+                    // Ready to spend today (funded)
+                    projectedDate = toLocalISOString(new Date());
+                    status = 'on-track';
+                }
+            } else {
+                // Income
+                if (remainingToTarget <= 0) {
+                    projectedDate = 'Goal reached';
+                    status = 'on-track';
+                    return { ...goal, projection: { projectedDate, status } };
+                } else if (startBalanceValue >= goal.amount) {
+                    // If balance exceeds target amount, we consider it "funded" or on-track
+                    projectedDate = toLocalISOString(new Date());
+                    status = 'on-track';
                 }
             }
 
             // 2. Check forecast with monthly contributions integration
-            const remaining = goal.amount - goal.currentAmount;
             if (goal.monthlyContribution && goal.monthlyContribution > 0) {
-                const monthsToGoal = remaining / goal.monthlyContribution;
+                const monthsToGoal = Math.max(0, remainingToTarget) / goal.monthlyContribution;
                 const estimatedDate = new Date();
                 estimatedDate.setMonth(estimatedDate.getMonth() + Math.ceil(monthsToGoal));
-                projectedDate = toLocalISOString(estimatedDate);
+                const estimatedDateStr = toLocalISOString(estimatedDate);
+                
+                if (projectedDate === 'Beyond forecast' || parseLocalDate(estimatedDateStr) < parseLocalDate(projectedDate)) {
+                    projectedDate = estimatedDateStr;
+                }
             }
 
-            // 3. Fallback for Savings: Check when portfolio balance reaches target
-            if (isSavings) {
-                for (const point of chartData) {
-                    if (point.value >= goal.amount) {
-                        const forecastProjDate = point.date;
-                        if (projectedDate === 'Beyond forecast' || parseLocalDate(forecastProjDate) < parseLocalDate(projectedDate)) {
-                            projectedDate = forecastProjDate;
-                        }
-                        break;
+            // 3. Fallback: Check when portfolio balance reaches target/funding level
+            const targetBalanceNeeded = isSavings 
+                ? goal.amount 
+                : (isExpense 
+                    ? Math.max(0, goal.amount - goal.currentAmount)
+                    : goal.amount); // For income, reach target balance as fallback
+
+            for (const point of chartData) {
+                if (point.value >= targetBalanceNeeded) {
+                    const forecastProjDate = point.date;
+                    if (projectedDate === 'Beyond forecast' || parseLocalDate(forecastProjDate) < parseLocalDate(projectedDate)) {
+                        projectedDate = forecastProjDate;
                     }
+                    break;
                 }
             }
 
