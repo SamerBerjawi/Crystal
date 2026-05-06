@@ -81,17 +81,38 @@ const GoalTable: React.FC<GoalTableProps> = ({ goals, accounts, onGoalClick, onE
     const progress = goal.amount > 0 ? (goal.currentAmount / goal.amount) * 100 : 0;
     const status = getStatusLabel(goal.projection?.status || '');
     const isCompleted = progress >= 100;
+    const category = goal.goalCategory || (goal.transactionType === 'income' ? 'income' : 'savings');
+
+    const getGoalIcon = () => {
+      switch (category) {
+        case 'expense': return 'shopping_cart';
+        case 'income': return 'monetization_on';
+        default: return 'savings';
+      }
+    };
+
+    const getGoalColor = () => {
+      switch (category) {
+        case 'expense': return 'bg-rose-500/10 text-rose-500';
+        case 'income': return 'bg-emerald-500/10 text-emerald-500';
+        default: return 'bg-primary-500/10 text-primary-500';
+      }
+    };
 
     return (
       <tr key={goal.id} className="border-b border-black/5 dark:border-white/5 hover:bg-black/[0.02] dark:hover:bg-white/[0.02] transition-colors group">
         <td className="py-4 px-4">
           <div className="flex items-center gap-3">
-            <div className={`w-8 h-8 rounded-lg flex items-center justify-center ${goal.transactionType === 'income' ? 'bg-emerald-500/10 text-emerald-500' : 'bg-primary-500/10 text-primary-500'}`}>
-              <span className="material-symbols-outlined text-base">{goal.transactionType === 'income' ? 'monetization_on' : 'flag'}</span>
+            <div className={`w-8 h-8 rounded-lg flex items-center justify-center ${getGoalColor()}`}>
+              <span className="material-symbols-outlined text-base">{getGoalIcon()}</span>
             </div>
             <div>
               <p className="font-bold text-sm text-light-text dark:text-dark-text group-hover:text-primary-500 transition-colors cursor-pointer" onClick={() => onGoalClick(goal)}>{goal.name}</p>
-              <p className="text-[10px] text-light-text-secondary dark:text-dark-text-secondary uppercase font-bold">{getAccountName(goal.paymentAccountId)}</p>
+              <div className="flex items-center gap-2">
+                <p className="text-[10px] text-light-text-secondary dark:text-dark-text-secondary uppercase font-bold">{getAccountName(goal.paymentAccountId)}</p>
+                <span className="w-1 h-1 rounded-full bg-black/10 dark:bg-white/10" />
+                <p className="text-[10px] text-light-text-secondary dark:text-dark-text-secondary uppercase font-bold">{category === 'savings' ? 'Saving' : category === 'expense' ? 'Expense' : 'Income'}</p>
+              </div>
             </div>
           </div>
         </td>

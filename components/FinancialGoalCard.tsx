@@ -55,6 +55,7 @@ const FinancialGoalCard: React.FC<FinancialGoalCardProps> = ({ goal, subGoals, i
   const remainingAmount = Math.max(0, goalToDisplay.amount - goalToDisplay.currentAmount);
 
   const isIncomeGoal = goalToDisplay.transactionType === 'income';
+  const category = goalToDisplay.goalCategory || (isIncomeGoal ? 'income' : 'savings');
   
   const timeRemaining = useMemo(() => {
     if (!goalToDisplay.projection?.projectedDate || goalToDisplay.projection.projectedDate === 'Beyond forecast') return null;
@@ -73,15 +74,21 @@ const FinancialGoalCard: React.FC<FinancialGoalCardProps> = ({ goal, subGoals, i
 
   // Determine bucket label
   const bucketTypeLabel = useMemo(() => {
-      if (!isBucket) return isIncomeGoal ? 'Earned' : 'Saved';
+      if (!isBucket) {
+          switch (category) {
+              case 'expense': return 'Spent';
+              case 'income': return 'Earned';
+              default: return 'Saved';
+          }
+      }
       
-      const hasIncome = subGoals.some(sg => sg.transactionType === 'income');
-      const hasExpense = subGoals.some(sg => sg.transactionType === 'expense');
+      const hasIncome = subGoals.some(sg => (sg.goalCategory || (sg.transactionType === 'income' ? 'income' : 'savings')) === 'income');
+      const hasExpense = subGoals.some(sg => (sg.goalCategory || (sg.transactionType === 'expense' ? 'expense' : 'savings')) === 'expense');
 
       if (hasIncome && hasExpense) return 'Mixed';
       if (hasIncome) return 'Earned';
       return 'Saved';
-  }, [isBucket, isIncomeGoal, subGoals]);
+  }, [isBucket, category, subGoals]);
 
   const formatDate = (dateString?: string) => {
     if (!dateString || dateString === 'Beyond forecast') return 'Beyond forecast';
@@ -131,24 +138,30 @@ const FinancialGoalCard: React.FC<FinancialGoalCardProps> = ({ goal, subGoals, i
     ? 'bg-green-100 text-green-600 dark:bg-green-900/30 dark:text-green-400' 
     : isBucket 
         ? 'bg-indigo-500/10 text-indigo-600 dark:text-indigo-400' 
-        : isIncomeGoal
-            ? 'bg-emerald-500/10 text-emerald-600 dark:text-emerald-400'
-            : 'bg-primary-500/10 text-primary-600 dark:text-primary-400';
+        : category === 'expense'
+            ? 'bg-rose-500/10 text-rose-600 dark:text-rose-400'
+            : category === 'income'
+                ? 'bg-emerald-500/10 text-emerald-600 dark:text-emerald-400'
+                : 'bg-primary-500/10 text-primary-600 dark:text-primary-400';
             
   const iconName = isCompleted 
     ? 'check_circle' 
     : isBucket 
         ? 'folder_open' 
-        : isIncomeGoal 
-            ? 'monetization_on' 
-            : 'flag';
+        : category === 'expense'
+            ? 'shopping_cart'
+            : category === 'income' 
+                ? 'monetization_on' 
+                : 'savings';
 
   const progressBarClass = isCompleted 
     ? 'bg-green-500' 
     : isActive 
-        ? isIncomeGoal 
+        ? category === 'income' 
             ? 'bg-gradient-to-r from-emerald-500 to-teal-500' 
-            : 'bg-gradient-to-r from-primary-500 to-indigo-500'
+            : category === 'expense'
+                ? 'bg-gradient-to-r from-rose-500 to-orange-500'
+                : 'bg-gradient-to-r from-primary-500 to-indigo-500'
         : 'bg-gray-400';
 
   return (
@@ -235,8 +248,8 @@ const FinancialGoalCard: React.FC<FinancialGoalCardProps> = ({ goal, subGoals, i
             <div className="flex flex-wrap gap-2 mb-4">
                  {/* Type Badge - Only if NOT bucket */}
                  {!isBucket && (
-                     <span className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-md text-[10px] font-bold uppercase tracking-wider border ${isIncomeGoal ? 'bg-emerald-50 text-emerald-700 border-emerald-200 dark:bg-emerald-900/20 dark:text-emerald-400 dark:border-emerald-800' : 'bg-blue-50 text-blue-700 border-blue-200 dark:bg-blue-900/20 dark:text-blue-400 dark:border-blue-800'}`}>
-                        {isIncomeGoal ? 'Earning' : 'Saving'}
+                     <span className={`inline-flex items-center gap-1 px-2 py-0.5 rounded-md text-[10px] font-bold uppercase tracking-wider border ${category === 'income' ? 'bg-emerald-50 text-emerald-700 border-emerald-200 dark:bg-emerald-900/20 dark:text-emerald-400 dark:border-emerald-800' : category === 'expense' ? 'bg-rose-50 text-rose-700 border-rose-200 dark:bg-rose-900/20 dark:text-rose-400 dark:border-rose-800' : 'bg-blue-50 text-blue-700 border-blue-200 dark:bg-blue-900/20 dark:text-blue-400 dark:border-blue-800'}`}>
+                        {category === 'savings' ? 'Saving' : category === 'expense' ? 'Expense' : 'Earning'}
                     </span>
                  )}
 
@@ -323,7 +336,7 @@ const FinancialGoalCard: React.FC<FinancialGoalCardProps> = ({ goal, subGoals, i
                          {subGoals.map(sg => {
                              const subProgress = sg.amount > 0 ? (sg.currentAmount / sg.amount) * 100 : 0;
                              const isSubComplete = subProgress >= 100;
-                             const sgIsIncome = sg.transactionType === 'income';
+                             const sgCategory = sg.goalCategory || (sg.transactionType === 'income' ? 'income' : 'savings');
                              const sgAccountName = accounts.find(a => a.id === sg.paymentAccountId)?.name;
                              
                              return (
@@ -332,8 +345,8 @@ const FinancialGoalCard: React.FC<FinancialGoalCardProps> = ({ goal, subGoals, i
                                      <div className="flex items-center gap-2">
                                          <span className="font-medium text-light-text dark:text-dark-text">{sg.name}</span>
                                          {/* Type Badge for Subgoal */}
-                                         <span className={`text-[9px] font-bold uppercase px-1.5 py-0.5 rounded ${sgIsIncome ? 'bg-emerald-100 text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-400' : 'bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-400'}`}>
-                                            {sgIsIncome ? 'Earn' : 'Save'}
+                                         <span className={`text-[9px] font-bold uppercase px-1.5 py-0.5 rounded ${sgCategory === 'income' ? 'bg-emerald-100 text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-400' : sgCategory === 'expense' ? 'bg-rose-100 text-rose-700 dark:bg-rose-900/30 dark:text-rose-400' : 'bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-400'}`}>
+                                            {sgCategory === 'savings' ? 'Save' : sgCategory === 'expense' ? 'Spend' : 'Earn'}
                                          </span>
                                          {isSubComplete && <span className="material-symbols-outlined text-[14px] text-green-600 dark:text-green-400">check_circle</span>}
                                      </div>

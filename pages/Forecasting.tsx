@@ -10,6 +10,7 @@ import {
   BillPayment,
   ForecastDuration,
   Currency,
+  GoalCategory,
 } from '../types';
 import { BTN_PRIMARY_STYLE, BTN_SECONDARY_STYLE, LIQUID_ACCOUNT_TYPES, CHECKBOX_STYLE, FORECAST_DURATION_OPTIONS } from '../constants';
 import { calculateForecastHorizon, formatCurrency, convertToEur, generateBalanceForecast, generateSyntheticLoanPayments, generateSyntheticCreditCardPayments, parseLocalDate, getPreferredTimeZone, generateSyntheticPropertyTransactions, toLocalISOString, toLocalISOYearMonth } from '../utils';
@@ -193,11 +194,22 @@ const Forecasting: React.FC = () => {
             let projectedDate = 'Beyond forecast';
             let status: 'on-track' | 'at-risk' | 'off-track' = 'off-track';
 
-            // 1. Check if balance already meets goal
-            if (startBalanceValue >= goal.amount) {
-                projectedDate = 'Goal reached';
-                status = 'on-track';
-                return { ...goal, projection: { projectedDate, status } };
+            const category = goal.goalCategory || (goal.transactionType === 'income' ? 'income' : 'savings');
+            const isSavings = category === 'savings';
+
+            // 1. Check if target already reached
+            if (isSavings) {
+                if (startBalanceValue >= goal.amount) {
+                    projectedDate = 'Goal reached';
+                    status = 'on-track';
+                    return { ...goal, projection: { projectedDate, status } };
+                }
+            } else {
+                if (goal.currentAmount >= goal.amount) {
+                    projectedDate = 'Goal reached';
+                    status = 'on-track';
+                    return { ...goal, projection: { projectedDate, status } };
+                }
             }
 
             // 2. Check forecast with monthly contributions integration
@@ -209,14 +221,16 @@ const Forecasting: React.FC = () => {
                 projectedDate = toLocalISOString(estimatedDate);
             }
 
-            // 3. Fallback: Check when portfolio balance reaches target
-            for (const point of chartData) {
-                if (point.value >= goal.amount) {
-                    const forecastProjDate = point.date;
-                    if (projectedDate === 'Beyond forecast' || parseLocalDate(forecastProjDate) < parseLocalDate(projectedDate)) {
-                        projectedDate = forecastProjDate;
+            // 3. Fallback for Savings: Check when portfolio balance reaches target
+            if (isSavings) {
+                for (const point of chartData) {
+                    if (point.value >= goal.amount) {
+                        const forecastProjDate = point.date;
+                        if (projectedDate === 'Beyond forecast' || parseLocalDate(forecastProjDate) < parseLocalDate(projectedDate)) {
+                            projectedDate = forecastProjDate;
+                        }
+                        break;
                     }
-                    break;
                 }
             }
 
@@ -314,23 +328,29 @@ const Forecasting: React.FC = () => {
         };
     }, [fullForecast, financialGoals, forecastDuration, transactions, selectedAccountIds]);
     
-    const { globalIncomeGoalTarget, globalIncomeGoalCurrent, globalSavingsGoalTarget, globalSavingsGoalCurrent, globalAccountBreakdown } = useMemo(() => {
-        let incTarget = 0, incCurrent = 0, savTarget = 0, savCurrent = 0;
+    const { globalIncomeGoalTarget, globalIncomeGoalCurrent, globalSavingsGoalTarget, globalSavingsGoalCurrent, globalExpenseGoalTarget, globalExpenseGoalCurrent, globalAccountBreakdown } = useMemo(() => {
+        let incTarget = 0, incCurrent = 0, savTarget = 0, savCurrent = 0, expTarget = 0, expCurrent = 0;
         const accountGroups: Record<string, { 
             id: string; 
             name: string; 
             income: { current: number; target: number };
             savings: { current: number; target: number };
+            expense: { current: number; target: number };
             currency: Currency;
         }> = {};
 
         financialGoals.forEach(g => {
             if (g.isBucket) return;
             
+            const category = g.goalCategory || (g.transactionType === 'income' ? 'income' : 'savings');
+
             // Global totals
-            if (g.transactionType === 'income') {
+            if (category === 'income') {
                 incTarget += g.amount;
                 incCurrent += g.currentAmount;
+            } else if (category === 'expense') {
+                expTarget += g.amount;
+                expCurrent += g.currentAmount;
             } else {
                 savTarget += g.amount;
                 savCurrent += g.currentAmount;
@@ -345,12 +365,17 @@ const Forecasting: React.FC = () => {
                      name: acc ? acc.name : 'General (Unlinked)',
                      income: { current: 0, target: 0 },
                      savings: { current: 0, target: 0 },
+                     expense: { current: 0, target: 0 },
                      currency: acc?.currency || 'EUR'
                  };
             }
-            if (g.transactionType === 'income') {
+            
+            if (category === 'income') {
                 accountGroups[accId].income.current += g.currentAmount;
                 accountGroups[accId].income.target += g.amount;
+            } else if (category === 'expense') {
+                accountGroups[accId].expense.current += g.currentAmount;
+                accountGroups[accId].expense.target += g.amount;
             } else {
                 accountGroups[accId].savings.current += g.currentAmount;
                 accountGroups[accId].savings.target += g.amount;
@@ -362,30 +387,36 @@ const Forecasting: React.FC = () => {
             globalIncomeGoalCurrent: incCurrent, 
             globalSavingsGoalTarget: savTarget, 
             globalSavingsGoalCurrent: savCurrent,
+            globalExpenseGoalTarget: expTarget,
+            globalExpenseGoalCurrent: expCurrent,
             globalAccountBreakdown: Object.values(accountGroups).sort((a, b) => a.name.localeCompare(b.name))
         };
     }, [financialGoals, accounts]);
 
-    const { totalIncomeGoalTarget, totalIncomeGoalCurrent, totalSavingsGoalTarget, totalSavingsGoalCurrent, accountGoalSummary } = useMemo(() => {
-        let incTarget = 0, incCurrent = 0, savTarget = 0, savCurrent = 0;
-        const summary: Record<string, { id: string; name: string; current: number; target: number; currency: Currency; goalsCount: number; type: 'income' | 'expense' }> = {};
+    const { totalIncomeGoalTarget, totalIncomeGoalCurrent, totalSavingsGoalTarget, totalSavingsGoalCurrent, totalExpenseGoalTarget, totalExpenseGoalCurrent, accountGoalSummary } = useMemo(() => {
+        let incTarget = 0, incCurrent = 0, savTarget = 0, savCurrent = 0, expTarget = 0, expCurrent = 0;
+        const summary: Record<string, { id: string; name: string; current: number; target: number; currency: Currency; goalsCount: number; type: GoalCategory }> = {};
 
         goalsWithProjections.forEach(g => {
             if (g.isBucket) return;
             const isVisible = !filterGoalsByAccount || !g.paymentAccountId || selectedAccountIds.includes(g.paymentAccountId);
             if (!isVisible) return;
 
-            if (g.transactionType === 'income') {
+            const category = g.goalCategory || (g.transactionType === 'income' ? 'income' : 'savings');
+
+            if (category === 'income') {
                 incTarget += g.amount;
                 incCurrent += g.currentAmount;
+            } else if (category === 'expense') {
+                expTarget += g.amount;
+                expCurrent += g.currentAmount;
             } else {
                 savTarget += g.amount;
                 savCurrent += g.currentAmount;
             }
 
             const accId = g.paymentAccountId || 'unlinked';
-            const type = g.transactionType; 
-            const key = `${accId}_${type}`;
+            const key = `${accId}_${category}`;
 
             if (!summary[key]) {
                  const acc = accounts.find(a => a.id === accId);
@@ -396,7 +427,7 @@ const Forecasting: React.FC = () => {
                      target: 0,
                      currency: acc?.currency || 'EUR',
                      goalsCount: 0,
-                     type: type
+                     type: category
                  };
             }
             summary[key].current += g.currentAmount;
@@ -408,6 +439,8 @@ const Forecasting: React.FC = () => {
             totalIncomeGoalCurrent: incCurrent, 
             totalSavingsGoalTarget: savTarget, 
             totalSavingsGoalCurrent: savCurrent,
+            totalExpenseGoalTarget: expTarget,
+            totalExpenseGoalCurrent: expCurrent,
             accountGoalSummary: Object.values(summary).sort((a, b) => a.name.localeCompare(b.name))
         };
     }, [goalsWithProjections, filterGoalsByAccount, selectedAccountIds, accounts]);
@@ -600,9 +633,18 @@ const Forecasting: React.FC = () => {
     const segmentItemInactive = "text-light-text-secondary dark:text-dark-text-secondary hover:text-light-text dark:hover:text-dark-text";
 
     const netChange = endBalance - startBalance;
-    const totalGoalTarget = displayedGoals.reduce((sum, g) => sum + (g.isBucket ? 0 : g.amount), 0);
-    const totalGoalSaved = displayedGoals.reduce((sum, g) => sum + (g.isBucket ? 0 : g.currentAmount), 0);
-    const goalProgress = totalGoalTarget > 0 ? (totalGoalSaved / totalGoalTarget) * 100 : 0;
+    
+    // Separate stats per category
+    const incomeProgress = totalIncomeGoalTarget > 0 ? (totalIncomeGoalCurrent / totalIncomeGoalTarget) * 100 : 0;
+    const expenseProgress = totalExpenseGoalTarget > 0 ? (totalExpenseGoalCurrent / totalExpenseGoalTarget) * 100 : 0;
+    const savingsProgress = totalSavingsGoalTarget > 0 ? (totalSavingsGoalCurrent / totalSavingsGoalTarget) * 100 : 0;
+    
+    const goalProgress = (totalIncomeGoalTarget + totalSavingsGoalTarget + totalExpenseGoalTarget) > 0 
+        ? ((totalIncomeGoalCurrent + totalSavingsGoalCurrent + totalExpenseGoalCurrent) / (totalIncomeGoalTarget + totalSavingsGoalTarget + totalExpenseGoalTarget)) * 100 
+        : 0;
+        
+    const totalGoalSaved = totalIncomeGoalCurrent + totalSavingsGoalCurrent + totalExpenseGoalCurrent;
+    const totalGoalTarget = totalIncomeGoalTarget + totalSavingsGoalTarget + totalExpenseGoalTarget;
     const hasForecastData = forecastData.length > 0;
 
     useEffect(() => {
@@ -873,22 +915,48 @@ const Forecasting: React.FC = () => {
                 <Card className="relative overflow-hidden group flex flex-col justify-between !p-5 border border-black/5 dark:border-white/5 shadow-sm bg-white dark:bg-dark-card hover:shadow-md transition-all rounded-3xl min-h-[180px]">
                     <div className="flex justify-between items-start">
                         <div className="space-y-0.5">
-                            <p className="text-[10px] font-bold text-light-text-secondary dark:text-dark-text-secondary uppercase tracking-widest opacity-60">Goal Sync</p>
-                            <h2 className="text-4xl font-bold tracking-tight text-primary-500">
+                            <p className="text-[10px] font-bold text-light-text-secondary dark:text-dark-text-secondary uppercase tracking-widest opacity-60">Global Performance</p>
+                            <h2 className="text-3xl font-black tracking-tight text-primary-500">
                                 {goalProgress.toFixed(0)}%
                             </h2>
                         </div>
                         <div className="w-8 h-8 rounded-lg flex items-center justify-center bg-primary-500/10 text-primary-500 border border-primary-500/20">
-                            <span className="material-symbols-outlined text-lg">track_changes</span>
+                            <span className="material-symbols-outlined text-lg">donut_large</span>
                         </div>
                     </div>
-                    <div className="space-y-3">
-                        <div className="w-full h-1.5 bg-gray-100 dark:bg-white/5 rounded-full overflow-hidden flex">
-                            <div className="h-full bg-primary-500 rounded-full" style={{ width: `${goalProgress}%` }} />
+                    
+                    <div className="space-y-2 mt-4">
+                        {/* Savings Progress */}
+                        <div className="space-y-1">
+                            <div className="flex justify-between items-center text-[8px] font-black uppercase tracking-wider">
+                                <span className="text-primary-500">Savings</span>
+                                <span className="text-light-text dark:text-dark-text">{savingsProgress.toFixed(0)}%</span>
+                            </div>
+                            <div className="w-full h-1 bg-gray-100 dark:bg-white/5 rounded-full overflow-hidden">
+                                <div className="h-full bg-primary-500 rounded-full" style={{ width: `${savingsProgress}%` }} />
+                            </div>
                         </div>
-                        <div className="flex justify-between items-center text-[9px] font-bold text-light-text-secondary dark:text-dark-text-secondary uppercase tracking-widest">
-                            <span className="opacity-40 uppercase">Accumulated</span>
-                            <span className="text-primary-500 font-bold">{formatCurrency(totalGoalSaved, 'EUR')}</span>
+
+                        {/* Income Progress */}
+                        <div className="space-y-1">
+                            <div className="flex justify-between items-center text-[8px] font-black uppercase tracking-wider">
+                                <span className="text-emerald-500">Income</span>
+                                <span className="text-light-text dark:text-dark-text">{incomeProgress.toFixed(0)}%</span>
+                            </div>
+                            <div className="w-full h-1 bg-gray-100 dark:bg-white/5 rounded-full overflow-hidden">
+                                <div className="h-full bg-emerald-500 rounded-full" style={{ width: `${incomeProgress}%` }} />
+                            </div>
+                        </div>
+
+                        {/* Expense Progress */}
+                        <div className="space-y-1">
+                            <div className="flex justify-between items-center text-[8px] font-black uppercase tracking-wider">
+                                <span className="text-rose-500">Expenses</span>
+                                <span className="text-light-text dark:text-dark-text">{expenseProgress.toFixed(0)}%</span>
+                            </div>
+                            <div className="w-full h-1 bg-gray-100 dark:bg-white/5 rounded-full overflow-hidden">
+                                <div className="h-full bg-rose-500 rounded-full" style={{ width: `${expenseProgress}%` }} />
+                            </div>
                         </div>
                     </div>
                 </Card>
@@ -1005,6 +1073,28 @@ const Forecasting: React.FC = () => {
                                     </div>
                                 </div>
 
+                                {/* Total Expense Bar */}
+                                <div className="space-y-3">
+                                    <div className="flex justify-between items-end">
+                                        <div className="space-y-1">
+                                            <span className="text-[10px] font-bold uppercase tracking-wider text-light-text-secondary dark:text-dark-text-secondary">Total Expense Target</span>
+                                            <p className="text-xl font-bold tracking-tight text-rose-600 dark:text-rose-400">
+                                                {formatCurrency(globalExpenseGoalCurrent, 'EUR')}
+                                            </p>
+                                        </div>
+                                        <div className="text-right">
+                                            <span className="text-xs font-bold">{globalExpenseGoalTarget > 0 ? ((globalExpenseGoalCurrent / globalExpenseGoalTarget) * 100).toFixed(0) : 0}%</span>
+                                            <p className="text-[9px] font-bold opacity-50 uppercase tracking-widest">of {formatCurrency(globalExpenseGoalTarget, 'EUR')}</p>
+                                        </div>
+                                    </div>
+                                    <div className="h-1.5 w-full bg-black/5 dark:bg-white/10 rounded-full overflow-hidden">
+                                        <div 
+                                            className="h-full bg-rose-500 transition-all duration-1000" 
+                                            style={{ width: `${globalExpenseGoalTarget > 0 ? Math.min(100, (globalExpenseGoalCurrent / globalExpenseGoalTarget) * 100) : 0}%` }} 
+                                        />
+                                    </div>
+                                </div>
+
                                 {/* Account Specific Section */}
                                 <div className="pt-5 border-t border-black/5 dark:border-white/10 space-y-4">
                                     <div className="flex justify-between items-center">
@@ -1020,9 +1110,11 @@ const Forecasting: React.FC = () => {
                                             const accColor = colors[index % colors.length];
                                             const hasIncome = accGroup.income.target > 0;
                                             const hasSavings = accGroup.savings.target > 0;
+                                            const hasExpense = accGroup.expense.target > 0;
                                             
                                             const incProgress = hasIncome ? Math.min(100, (accGroup.income.current / accGroup.income.target) * 100) : 0;
                                             const savProgress = hasSavings ? Math.min(100, (accGroup.savings.current / accGroup.savings.target) * 100) : 0;
+                                            const expProgress = hasExpense ? Math.min(100, (accGroup.expense.current / accGroup.expense.target) * 100) : 0;
 
                                             return (
                                                 <div key={accGroup.id} className="space-y-3 group/acc border-l-2 border-black/5 dark:border-white/5 pl-3">
@@ -1054,8 +1146,23 @@ const Forecasting: React.FC = () => {
                                                             </div>
                                                             <div className="h-1 w-full bg-black/5 dark:bg-white/10 rounded-full overflow-hidden">
                                                                 <div 
-                                                                    className={`h-full ${accColor} transition-all duration-700 opacity-80`} 
+                                                                    className={`h-full bg-primary-500 transition-all duration-700 opacity-80`} 
                                                                     style={{ width: `${savProgress}%` }} 
+                                                                />
+                                                            </div>
+                                                        </div>
+                                                    )}
+
+                                                    {hasExpense && (
+                                                        <div className="space-y-1">
+                                                            <div className="flex justify-between items-center text-[9px] font-bold uppercase tracking-tighter text-light-text-secondary dark:text-dark-text-secondary">
+                                                                <span className="opacity-60">Expenses</span>
+                                                                <span>{formatCurrency(accGroup.expense.current, accGroup.currency)} <span className="opacity-40">/ {formatCurrency(accGroup.expense.target, accGroup.currency)}</span></span>
+                                                            </div>
+                                                            <div className="h-1 w-full bg-black/5 dark:bg-white/10 rounded-full overflow-hidden">
+                                                                <div 
+                                                                    className={`h-full bg-rose-500 transition-all duration-700 opacity-80`} 
+                                                                    style={{ width: `${expProgress}%` }} 
                                                                 />
                                                             </div>
                                                         </div>

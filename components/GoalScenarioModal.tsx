@@ -1,7 +1,7 @@
 
 import React, { useState, useEffect, useMemo } from 'react';
 import Modal from './Modal';
-import { FinancialGoal, GoalType, RecurrenceFrequency, Account } from '../types';
+import { FinancialGoal, GoalType, GoalCategory, RecurrenceFrequency, Account } from '../types';
 import { INPUT_BASE_STYLE, BTN_PRIMARY_STYLE, BTN_SECONDARY_STYLE, SELECT_WRAPPER_STYLE, SELECT_ARROW_STYLE, FREQUENCIES, ALL_ACCOUNT_TYPES } from '../constants';
 import { toLocalISOString } from '../utils';
 
@@ -19,6 +19,7 @@ const GoalScenarioModal: React.FC<GoalScenarioModalProps> = ({ onClose, onSave, 
 
     const [name, setName] = useState('');
     const [type, setType] = useState<GoalType>('one-time');
+    const [goalCategory, setGoalCategory] = useState<GoalCategory>('savings');
     const [transactionType, setTransactionType] = useState<'income' | 'expense'>('expense');
     const [amount, setAmount] = useState('');
     const [currentAmount, setCurrentAmount] = useState('0');
@@ -48,6 +49,7 @@ const GoalScenarioModal: React.FC<GoalScenarioModalProps> = ({ onClose, onSave, 
         if (isEditing && goalToEdit) {
             setName(goalToEdit.name);
             setType(goalToEdit.type);
+            setGoalCategory(goalToEdit.goalCategory || (goalToEdit.transactionType === 'income' ? 'income' : 'savings'));
             setTransactionType(goalToEdit.transactionType);
             setAmount(String(goalToEdit.amount));
             setCurrentAmount(String(goalToEdit.currentAmount || 0));
@@ -62,6 +64,7 @@ const GoalScenarioModal: React.FC<GoalScenarioModalProps> = ({ onClose, onSave, 
         } else {
             setName('');
             setType('one-time');
+            setGoalCategory('savings');
             setTransactionType('expense');
             setAmount('');
             setCurrentAmount('0');
@@ -82,7 +85,8 @@ const GoalScenarioModal: React.FC<GoalScenarioModalProps> = ({ onClose, onSave, 
             id: isEditing ? goalToEdit.id : undefined,
             name,
             type: isBucket ? 'one-time' : type,
-            transactionType: isBucket ? 'expense' : transactionType,
+            goalCategory: isBucket ? 'savings' : goalCategory,
+            transactionType: (isBucket ? 'expense' : (goalCategory === 'income' ? 'income' : 'expense')) as 'income' | 'expense',
             amount: isBucket ? 0 : parseFloat(amount),
             currentAmount: isBucket ? 0 : parseFloat(currentAmount),
             currency: 'EUR' as const,
@@ -102,6 +106,15 @@ const GoalScenarioModal: React.FC<GoalScenarioModalProps> = ({ onClose, onSave, 
     const isSubGoal = !!parentId;
     const labelStyle = "block text-xs font-bold text-light-text-secondary dark:text-dark-text-secondary uppercase tracking-wider mb-1.5";
     const modalTitle = isEditing ? 'Edit Goal' : (isSubGoal ? 'Add Item to Goal' : 'New Goal');
+
+    const getAmountLabels = () => {
+        switch (goalCategory) {
+            case 'expense': return { target: 'Target Budget', current: 'Spent So Far' };
+            case 'income': return { target: 'Target Income', current: 'Earned So Far' };
+            default: return { target: 'Target Amount', current: 'Saved So Far' };
+        }
+    };
+    const amountLabels = getAmountLabels();
 
     return (
         <Modal onClose={onClose} title={modalTitle} size="xl">
@@ -153,7 +166,7 @@ const GoalScenarioModal: React.FC<GoalScenarioModalProps> = ({ onClose, onSave, 
                 <>
                     {/* Hero Amount Input */}
                     <div className="flex flex-col items-center justify-center py-4 bg-gray-50 dark:bg-white/5 rounded-2xl border border-black/5 dark:border-white/5">
-                        <label htmlFor="goal-amount" className="text-sm font-semibold text-light-text-secondary dark:text-dark-text-secondary mb-1">Target Amount</label>
+                        <label htmlFor="goal-amount" className="text-sm font-semibold text-light-text-secondary dark:text-dark-text-secondary mb-1">{amountLabels.target}</label>
                         <div className="relative w-full max-w-[200px]">
                             <span className={`absolute left-0 top-1/2 -translate-y-1/2 text-3xl font-medium text-light-text-secondary dark:text-dark-text-secondary pointer-events-none transition-opacity duration-200 ${amount ? 'opacity-100' : 'opacity-50'}`}>
                                 €
@@ -173,7 +186,7 @@ const GoalScenarioModal: React.FC<GoalScenarioModalProps> = ({ onClose, onSave, 
 
                     <div className="grid grid-cols-2 gap-6">
                         <div>
-                             <label htmlFor="goal-current-amount" className={labelStyle}>Saved So Far</label>
+                             <label htmlFor="goal-current-amount" className={labelStyle}>{amountLabels.current}</label>
                              <div className="relative">
                                  <span className="absolute left-3 top-1/2 -translate-y-1/2 text-light-text-secondary dark:text-dark-text-secondary">€</span>
                                  <input 
@@ -190,9 +203,10 @@ const GoalScenarioModal: React.FC<GoalScenarioModalProps> = ({ onClose, onSave, 
                          <div>
                              <label className={labelStyle}>Goal Type</label>
                              <div className={SELECT_WRAPPER_STYLE}>
-                                 <select value={transactionType} onChange={e => setTransactionType(e.target.value as 'income' | 'expense')} className={INPUT_BASE_STYLE}>
-                                     <option value="expense">Saving up (Expense)</option>
-                                     <option value="income">Earning goal (Income)</option>
+                                 <select value={goalCategory} onChange={e => setGoalCategory(e.target.value as GoalCategory)} className={INPUT_BASE_STYLE}>
+                                     <option value="savings">Saving goal</option>
+                                     <option value="expense">Spending target</option>
+                                     <option value="income">Income target</option>
                                  </select>
                                  <div className={SELECT_ARROW_STYLE}><span className="material-symbols-outlined">expand_more</span></div>
                              </div>

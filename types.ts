@@ -390,6 +390,8 @@ export interface WidgetConfig {
 
 export type GoalType = 'one-time' | 'recurring';
 
+export type GoalCategory = 'savings' | 'expense' | 'income';
+
 export type GoalProjectionStatus = 'on-track' | 'at-risk' | 'off-track';
 
 export interface GoalProjection {
@@ -401,6 +403,7 @@ export interface FinancialGoal {
   id: string;
   name: string;
   type: GoalType;
+  goalCategory?: GoalCategory;
   transactionType: 'income' | 'expense';
   amount: number; // This is the TARGET amount
   currentAmount: number; // This is the current saved amount
