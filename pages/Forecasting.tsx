@@ -722,9 +722,9 @@ const Forecasting: React.FC = () => {
                     <div className="flex justify-between items-start">
                         <div className="space-y-0.5">
                             <p className="text-[10px] font-bold text-light-text-secondary dark:text-dark-text-secondary uppercase tracking-widest opacity-60">Portfolio Shift</p>
-                            <h3 className={`text-xl font-bold tracking-tight privacy-blur ${netChange >= 0 ? 'text-emerald-600 dark:text-emerald-400' : 'text-rose-600 dark:text-rose-400'}`}>
+                            <h2 className={`text-4xl font-bold tracking-tight privacy-blur ${netChange >= 0 ? 'text-emerald-600 dark:text-emerald-400' : 'text-rose-600 dark:text-rose-400'}`}>
                                 {netChange >= 0 ? '+' : ''}{formatCurrency(netChange, 'EUR')}
-                            </h3>
+                            </h2>
                         </div>
                         <div className={`w-8 h-8 rounded-lg flex items-center justify-center border ${netChange >= 0 ? 'bg-emerald-500/10 text-emerald-500 border-emerald-500/20' : 'bg-rose-500/10 text-rose-500 border-rose-500/20'}`}>
                             <span className="material-symbols-outlined text-lg">{netChange >= 0 ? 'trending_up' : 'trending_down'}</span>
@@ -755,9 +755,9 @@ const Forecasting: React.FC = () => {
                     <div className="flex justify-between items-start">
                         <div className="space-y-0.5">
                             <p className="text-[10px] font-bold text-light-text-secondary dark:text-dark-text-secondary uppercase tracking-widest opacity-60">Goal Sync</p>
-                            <h3 className="text-xl font-bold tracking-tight text-primary-500">
+                            <h2 className="text-4xl font-bold tracking-tight text-primary-500">
                                 {goalProgress.toFixed(0)}%
-                            </h3>
+                            </h2>
                         </div>
                         <div className="w-8 h-8 rounded-lg flex items-center justify-center bg-primary-500/10 text-primary-500 border border-primary-500/20">
                             <span className="material-symbols-outlined text-lg">track_changes</span>

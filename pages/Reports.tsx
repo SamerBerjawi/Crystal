@@ -433,8 +433,18 @@ const Reports: React.FC = () => {
   }, [incomeTotalEur, totals.totalSpendEur]);
 
   const needsWantsData = useMemo(() => {
-    const needsCategories = ['Housing', 'Utilities', 'Groceries', 'Insurance', 'Transport', 'Health', 'Rent', 'Mortgage', 'Bills'];
-    const wantsCategories = ['Dining', 'Entertainment', 'Shopping', 'Travel', 'Hobbies', 'Gifts', 'Subscriptions'];
+    const needsCategories = [
+      'Housing', 'Bills & Utilities', 'Utilities', 'Groceries', 'Supermarket', 
+      'Transportation', 'Public Transport', 'Transport', 'Insurance', 'Health', 
+      'Rent', 'Mortgage', 'Medical', 'Pharmacy', 'Childcare', 'School Fees', 
+      'Tuition', 'Taxes', 'Maintenance', 'Repair'
+    ];
+    const wantsCategories = [
+      'Dining', 'Cafes', 'Takeaway', 'Entertainment', 'Shopping', 'Lifestyle', 
+      'Travel', 'Flights', 'Accommodation', 'Hobbies', 'Gifts', 'Subscriptions', 
+      'Streaming', 'Fitness', 'Gym', 'Beauty', 'Electronics', 'Clothing', 
+      'Concert', 'Sports', 'Activities'
+    ];
     
     let needs = 0;
     let wants = 0;
@@ -452,11 +462,11 @@ const Reports: React.FC = () => {
     if (total === 0) return [];
 
     return [
-      { name: 'Needs', value: needs, color: '#10B981', target: 50, description: 'Essentials: Housing, Groceries, Bills' },
-      { name: 'Wants', value: wants, color: '#F59E0B', target: 30, description: 'Lifestyle: Dining, Travel, Shopping' },
-      { name: 'Others', value: others, color: '#6366F1', target: 20, description: 'Uncategorized & Miscellaneous' }
+      { name: 'Needs', value: needs, color: '#10B981', target: 50, description: 'Essentials: Housing, Groceries, Utilities, Health' },
+      { name: 'Wants', value: wants, color: '#F59E0B', target: 30, description: 'Lifestyle: Dining, Travel, Shopping, Entertainment' },
+      { name: 'Others', value: others, color: '#6366F1', target: 20, description: 'Uncategorized, Investments & Miscellaneous' }
     ];
-  }, [filteredExpenses]);
+  }, [filteredExpenses, convertToEur]);
 
   const velocityData = useMemo(() => {
     const dailyMap = new Map<string, number>();
@@ -727,6 +737,107 @@ const Reports: React.FC = () => {
         </div>
       </section>
 
+      {/* Filters & Saved Views */}
+      <Card className="!p-0 overflow-hidden border border-black/5 dark:border-neutral-800 shadow-sm">
+        <div className="bg-gray-50/50 dark:bg-white/5 p-4 border-b border-black/5 dark:border-white/10">
+          <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-4 mb-6">
+            <h2 className="text-xs font-bold uppercase tracking-widest text-light-text-secondary dark:text-dark-text-secondary">Report Configuration</h2>
+            <div className="flex flex-wrap gap-2">
+              {[
+                { label: 'Last 7 Days', value: 'last7' },
+                { label: 'Last 30 Days', value: 'last30' },
+                { label: 'This Month', value: 'thisMonth' },
+                { label: 'Last Month', value: 'lastMonth' },
+                { label: 'This Year', value: 'thisYear' },
+                { label: 'Last Year', value: 'lastYear' },
+              ].map(p => (
+                <button
+                  key={p.value}
+                  onClick={() => setPredefinedPeriod(p.value)}
+                  className="px-3 py-1 rounded-full bg-white dark:bg-dark-card border border-black/5 dark:border-white/10 text-[10px] font-bold uppercase tracking-wider hover:border-primary-500 transition-all"
+                >
+                  {p.label}
+                </button>
+              ))}
+            </div>
+          </div>
+          {savedViews.length > 0 && (
+            <div className="flex flex-wrap gap-2 mb-6">
+              {savedViews.map(view => (
+                <div key={view.id} className="group flex items-center gap-1 bg-white dark:bg-dark-card border border-black/5 dark:border-white/10 rounded-full pl-3 pr-1 py-1 shadow-sm transition-all hover:border-primary-500/50">
+                  <button onClick={() => applyView(view)} className="text-[10px] font-bold uppercase tracking-wider hover:text-primary-500">{view.name}</button>
+                  <button onClick={() => deleteView(view.id)} className="w-5 h-5 flex items-center justify-center rounded-full text-light-text-secondary hover:bg-rose-500 hover:text-white transition-colors">
+                    <span className="material-symbols-outlined text-[14px]">close</span>
+                  </button>
+                </div>
+              ))}
+            </div>
+          )}
+          <div className="grid grid-cols-1 md:grid-cols-3 lg:grid-cols-6 gap-4">
+            <div className="space-y-1">
+              <label className="block text-[10px] font-bold uppercase tracking-widest text-light-text-secondary dark:text-dark-text-secondary">Account</label>
+              <select value={accountFilter} onChange={(e) => setAccountFilter(e.target.value)} className={`${INPUT_BASE_STYLE} !bg-white dark:!bg-neutral-800`}>
+                <option value="all">All Accounts</option>
+                {accounts.map(acc => (
+                  <option key={acc.id} value={acc.id}>{acc.name}</option>
+                ))}
+              </select>
+            </div>
+            <div className="space-y-1">
+              <label className="block text-[10px] font-bold uppercase tracking-widest text-light-text-secondary dark:text-dark-text-secondary">Start Date</label>
+              <input type="date" value={startDate} onChange={(e) => setStartDate(e.target.value)} className={`${INPUT_BASE_STYLE} !bg-white dark:!bg-neutral-800`} />
+            </div>
+            <div className="space-y-1">
+              <label className="block text-[10px] font-bold uppercase tracking-widest text-light-text-secondary dark:text-dark-text-secondary">End Date</label>
+              <input type="date" value={endDate} onChange={(e) => setEndDate(e.target.value)} className={`${INPUT_BASE_STYLE} !bg-white dark:!bg-neutral-800`} />
+            </div>
+            <div className="space-y-1">
+              <label className="block text-[10px] font-bold uppercase tracking-widest text-light-text-secondary dark:text-dark-text-secondary">Merchant</label>
+              <input type="text" value={merchantFilter} onChange={(e) => setMerchantFilter(e.target.value)} placeholder="Filter by name..." className={`${INPUT_BASE_STYLE} !bg-white dark:!bg-neutral-800`} />
+            </div>
+            <div className="space-y-1">
+              <label className="block text-[10px] font-bold uppercase tracking-widest text-light-text-secondary dark:text-dark-text-secondary">Category</label>
+              <select value={categoryFilter} onChange={(e) => setCategoryFilter(e.target.value)} className={`${INPUT_BASE_STYLE} !bg-white dark:!bg-neutral-800`}>
+                <option value="all">All Categories</option>
+                <optgroup label="Expenses">
+                  {expenseCategories.map(cat => (
+                    <option key={cat.id} value={cat.name}>{cat.name}</option>
+                  ))}
+                </optgroup>
+                <optgroup label="Income">
+                  {incomeCategories.map(cat => (
+                    <option key={cat.id} value={cat.name}>{cat.name}</option>
+                  ))}
+                </optgroup>
+              </select>
+            </div>
+            <div className="space-y-1">
+              <label className="block text-[10px] font-bold uppercase tracking-widest text-light-text-secondary dark:text-dark-text-secondary">Group By</label>
+              <select value={groupBy} onChange={(e) => setGroupBy(e.target.value as GroupBy)} className={`${INPUT_BASE_STYLE} !bg-white dark:!bg-neutral-800`}>
+                <option value="merchant">Merchant</option>
+                <option value="category">Category</option>
+              </select>
+            </div>
+          </div>
+        </div>
+        <div className="p-4 bg-white dark:bg-dark-card flex flex-col md:flex-row gap-3 items-center">
+          <div className="relative flex-1 w-full">
+            <span className="absolute left-3 top-1/2 -translate-y-1/2 material-symbols-outlined text-light-text-secondary text-[18px]">bookmark</span>
+            <input 
+              type="text" 
+              value={reportName} 
+              onChange={(e) => setReportName(e.target.value)} 
+              className={`${INPUT_BASE_STYLE} !pl-10 !bg-white dark:!bg-neutral-800`} 
+              placeholder="Name this report view to save it..." 
+            />
+          </div>
+          <button onClick={handleSaveView} className={`${BTN_PRIMARY_STYLE} w-full md:w-auto whitespace-nowrap`}>
+            <span className="material-symbols-outlined text-[18px] mr-2">save</span>
+            Save Report
+          </button>
+        </div>
+      </Card>
+
       {/* Visual Spending Dashboard */}
       <section className="grid grid-cols-1 lg:grid-cols-3 gap-6">
         <Card className="lg:col-span-2 flex flex-col border border-black/5 dark:border-neutral-800">
@@ -746,9 +857,9 @@ const Reports: React.FC = () => {
               </div>
             </div>
           </div>
-          <div className="h-[250px] w-full">
+          <div className="h-[250px] w-full flex-1">
             <ResponsiveContainer width="100%" height="100%">
-              <AreaChart data={velocityData}>
+              <AreaChart data={velocityData} margin={{ top: 0, right: 0, left: 0, bottom: 0 }}>
                 <defs>
                   <linearGradient id="colorCurrent" x1="0" y1="0" x2="0" y2="1">
                     <stop offset="5%" stopColor="#6366F1" stopOpacity={0.3}/>
@@ -926,106 +1037,7 @@ const Reports: React.FC = () => {
         </Card>
       </section>
 
-      {/* Filters & Saved Views */}
-      <Card className="!p-0 overflow-hidden border border-black/5 dark:border-neutral-800 shadow-sm">
-        <div className="bg-gray-50/50 dark:bg-white/5 p-4 border-b border-black/5 dark:border-white/10">
-          <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-4 mb-6">
-            <h2 className="text-xs font-bold uppercase tracking-widest text-light-text-secondary dark:text-dark-text-secondary">Report Configuration</h2>
-            <div className="flex flex-wrap gap-2">
-              {[
-                { label: 'Last 7 Days', value: 'last7' },
-                { label: 'Last 30 Days', value: 'last30' },
-                { label: 'This Month', value: 'thisMonth' },
-                { label: 'Last Month', value: 'lastMonth' },
-                { label: 'This Year', value: 'thisYear' },
-                { label: 'Last Year', value: 'lastYear' },
-              ].map(p => (
-                <button
-                  key={p.value}
-                  onClick={() => setPredefinedPeriod(p.value)}
-                  className="px-3 py-1 rounded-full bg-white dark:bg-dark-card border border-black/5 dark:border-white/10 text-[10px] font-bold uppercase tracking-wider hover:border-primary-500 transition-all"
-                >
-                  {p.label}
-                </button>
-              ))}
-            </div>
-          </div>
-          {savedViews.length > 0 && (
-            <div className="flex flex-wrap gap-2 mb-6">
-              {savedViews.map(view => (
-                <div key={view.id} className="group flex items-center gap-1 bg-white dark:bg-dark-card border border-black/5 dark:border-white/10 rounded-full pl-3 pr-1 py-1 shadow-sm transition-all hover:border-primary-500/50">
-                  <button onClick={() => applyView(view)} className="text-[10px] font-bold uppercase tracking-wider hover:text-primary-500">{view.name}</button>
-                  <button onClick={() => deleteView(view.id)} className="w-5 h-5 flex items-center justify-center rounded-full text-light-text-secondary hover:bg-rose-500 hover:text-white transition-colors">
-                    <span className="material-symbols-outlined text-[14px]">close</span>
-                  </button>
-                </div>
-              ))}
-            </div>
-          )}
-          <div className="grid grid-cols-1 md:grid-cols-3 lg:grid-cols-6 gap-4">
-            <div className="space-y-1">
-              <label className="block text-[10px] font-bold uppercase tracking-widest text-light-text-secondary dark:text-dark-text-secondary">Account</label>
-              <select value={accountFilter} onChange={(e) => setAccountFilter(e.target.value)} className={`${INPUT_BASE_STYLE} !bg-white dark:!bg-neutral-800`}>
-                <option value="all">All Accounts</option>
-                {accounts.map(acc => (
-                  <option key={acc.id} value={acc.id}>{acc.name}</option>
-                ))}
-              </select>
-            </div>
-            <div className="space-y-1">
-              <label className="block text-[10px] font-bold uppercase tracking-widest text-light-text-secondary dark:text-dark-text-secondary">Start Date</label>
-              <input type="date" value={startDate} onChange={(e) => setStartDate(e.target.value)} className={`${INPUT_BASE_STYLE} !bg-white dark:!bg-neutral-800`} />
-            </div>
-            <div className="space-y-1">
-              <label className="block text-[10px] font-bold uppercase tracking-widest text-light-text-secondary dark:text-dark-text-secondary">End Date</label>
-              <input type="date" value={endDate} onChange={(e) => setEndDate(e.target.value)} className={`${INPUT_BASE_STYLE} !bg-white dark:!bg-neutral-800`} />
-            </div>
-            <div className="space-y-1">
-              <label className="block text-[10px] font-bold uppercase tracking-widest text-light-text-secondary dark:text-dark-text-secondary">Merchant</label>
-              <input type="text" value={merchantFilter} onChange={(e) => setMerchantFilter(e.target.value)} placeholder="Filter by name..." className={`${INPUT_BASE_STYLE} !bg-white dark:!bg-neutral-800`} />
-            </div>
-            <div className="space-y-1">
-              <label className="block text-[10px] font-bold uppercase tracking-widest text-light-text-secondary dark:text-dark-text-secondary">Category</label>
-              <select value={categoryFilter} onChange={(e) => setCategoryFilter(e.target.value)} className={`${INPUT_BASE_STYLE} !bg-white dark:!bg-neutral-800`}>
-                <option value="all">All Categories</option>
-                <optgroup label="Expenses">
-                  {expenseCategories.map(cat => (
-                    <option key={cat.id} value={cat.name}>{cat.name}</option>
-                  ))}
-                </optgroup>
-                <optgroup label="Income">
-                  {incomeCategories.map(cat => (
-                    <option key={cat.id} value={cat.name}>{cat.name}</option>
-                  ))}
-                </optgroup>
-              </select>
-            </div>
-            <div className="space-y-1">
-              <label className="block text-[10px] font-bold uppercase tracking-widest text-light-text-secondary dark:text-dark-text-secondary">Group By</label>
-              <select value={groupBy} onChange={(e) => setGroupBy(e.target.value as GroupBy)} className={`${INPUT_BASE_STYLE} !bg-white dark:!bg-neutral-800`}>
-                <option value="merchant">Merchant</option>
-                <option value="category">Category</option>
-              </select>
-            </div>
-          </div>
-        </div>
-        <div className="p-4 bg-white dark:bg-dark-card flex flex-col md:flex-row gap-3 items-center">
-          <div className="relative flex-1 w-full">
-            <span className="absolute left-3 top-1/2 -translate-y-1/2 material-symbols-outlined text-light-text-secondary text-[18px]">bookmark</span>
-            <input 
-              type="text" 
-              value={reportName} 
-              onChange={(e) => setReportName(e.target.value)} 
-              className={`${INPUT_BASE_STYLE} !pl-10 !bg-white dark:!bg-neutral-800`} 
-              placeholder="Name this report view to save it..." 
-            />
-          </div>
-          <button onClick={handleSaveView} className={`${BTN_PRIMARY_STYLE} w-full md:w-auto whitespace-nowrap`}>
-            <span className="material-symbols-outlined text-[18px] mr-2">save</span>
-            Save Report
-          </button>
-        </div>
-      </Card>
+
 
       {/* Main Content Grid */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
@@ -1090,45 +1102,6 @@ const Reports: React.FC = () => {
                 </tbody>
               </table>
               {groupedRows.length === 0 && <p className="text-sm text-light-text-secondary p-8 text-center">No transactions found for this period.</p>}
-            </div>
-          </Card>
-
-          <Card className="!p-0 overflow-hidden border border-black/5 dark:border-neutral-800">
-            <div className="p-4 border-b border-black/5 dark:border-white/10 flex items-center justify-between bg-gray-50/30 dark:bg-white/5">
-              <h2 className="font-bold text-sm uppercase tracking-widest">Budget vs Actual</h2>
-              <button onClick={() => { setCategoryFilter('all'); setMerchantFilter(''); }} className="text-[10px] font-bold uppercase tracking-widest text-primary-500 hover:underline">Reset Filters</button>
-            </div>
-            <div className="overflow-x-auto">
-              <table className="w-full text-left border-collapse text-sm">
-                <thead>
-                  <tr className="border-b border-black/5 dark:border-white/10 bg-gray-50/50 dark:bg-white/5">
-                    <th className="py-3 px-4 font-bold text-[10px] uppercase tracking-widest text-light-text-secondary dark:text-dark-text-secondary">Category</th>
-                    <th className="py-3 px-4 font-bold text-[10px] uppercase tracking-widest text-light-text-secondary dark:text-dark-text-secondary text-right">Budget</th>
-                    <th className="py-3 px-4 font-bold text-[10px] uppercase tracking-widest text-light-text-secondary dark:text-dark-text-secondary text-right">Actual</th>
-                    <th className="py-3 px-4 font-bold text-[10px] uppercase tracking-widest text-light-text-secondary dark:text-dark-text-secondary text-right">Variance</th>
-                  </tr>
-                </thead>
-                <tbody className="divide-y divide-black/5 dark:divide-white/5">
-                  {budgetVsActual.map(row => (
-                    <tr key={row.categoryName} className="group hover:bg-black/5 dark:hover:bg-white/5 transition-colors">
-                      <td className="py-3 px-4">
-                        <div className="flex items-center gap-3">
-                          <span className="material-symbols-outlined text-[18px] text-light-text-secondary">
-                            {findCategoryByName(row.categoryName, allCategories)?.icon || 'category'}
-                          </span>
-                          <span className="font-medium">{row.categoryName}</span>
-                        </div>
-                      </td>
-                      <td className="py-3 px-4 text-right font-mono text-xs text-light-text-secondary">€{row.budgetEur.toFixed(0)}</td>
-                      <td className="py-3 px-4 text-right font-bold">€{row.actualEur.toFixed(0)}</td>
-                      <td className={`py-3 px-4 text-right font-bold ${row.varianceEur >= 0 ? 'text-emerald-600' : 'text-rose-600'}`}>
-                        {row.varianceEur >= 0 ? '+' : ''}€{row.varianceEur.toFixed(0)}
-                      </td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-              {budgetVsActual.length === 0 && <p className="text-sm text-light-text-secondary p-8 text-center">No budgets configured.</p>}
             </div>
           </Card>
         </div>
@@ -1239,6 +1212,44 @@ const Reports: React.FC = () => {
                 </div>
               ))}
               {recurringCandidates.length === 0 && <p className="text-sm text-light-text-secondary text-center py-4 italic">No recurring patterns found.</p>}
+            </div>
+          </Card>
+          <Card className="!p-0 overflow-hidden border border-black/5 dark:border-neutral-800">
+            <div className="p-4 border-b border-black/5 dark:border-white/10 flex items-center justify-between bg-gray-50/30 dark:bg-white/5">
+              <h2 className="font-bold text-sm uppercase tracking-widest">Budget vs Actual</h2>
+              <button onClick={() => { setCategoryFilter('all'); setMerchantFilter(''); }} className="text-[10px] font-bold uppercase tracking-widest text-primary-500 hover:underline">Reset Filters</button>
+            </div>
+            <div className="overflow-x-auto">
+              <table className="w-full text-left border-collapse text-sm">
+                <thead>
+                  <tr className="border-b border-black/5 dark:border-white/10 bg-gray-50/50 dark:bg-white/5">
+                    <th className="py-3 px-4 font-bold text-[10px] uppercase tracking-widest text-light-text-secondary dark:text-dark-text-secondary">Category</th>
+                    <th className="py-3 px-4 font-bold text-[10px] uppercase tracking-widest text-light-text-secondary dark:text-dark-text-secondary text-right">Budget</th>
+                    <th className="py-3 px-4 font-bold text-[10px] uppercase tracking-widest text-light-text-secondary dark:text-dark-text-secondary text-right">Actual</th>
+                    <th className="py-3 px-4 font-bold text-[10px] uppercase tracking-widest text-light-text-secondary dark:text-dark-text-secondary text-right">Variance</th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-black/5 dark:divide-white/5">
+                  {budgetVsActual.map(row => (
+                    <tr key={row.categoryName} className="group hover:bg-black/5 dark:hover:bg-white/5 transition-colors">
+                      <td className="py-3 px-4">
+                        <div className="flex items-center gap-3">
+                          <span className="material-symbols-outlined text-[18px] text-light-text-secondary">
+                            {findCategoryByName(row.categoryName, allCategories)?.icon || 'category'}
+                          </span>
+                          <span className="font-medium">{row.categoryName}</span>
+                        </div>
+                      </td>
+                      <td className="py-3 px-4 text-right font-mono text-xs text-light-text-secondary">€{row.budgetEur.toFixed(0)}</td>
+                      <td className="py-3 px-4 text-right font-bold">€{row.actualEur.toFixed(0)}</td>
+                      <td className={`py-3 px-4 text-right font-bold ${row.varianceEur >= 0 ? 'text-emerald-600' : 'text-rose-600'}`}>
+                        {row.varianceEur >= 0 ? '+' : ''}€{row.varianceEur.toFixed(0)}
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+              {budgetVsActual.length === 0 && <p className="text-sm text-light-text-secondary p-8 text-center">No budgets configured.</p>}
             </div>
           </Card>
         </div>

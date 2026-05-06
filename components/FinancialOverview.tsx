@@ -37,31 +37,15 @@ const FinancialOverview: React.FC<FinancialOverviewProps> = ({
                 
                 {/* --- LEFT: POSITION & WEALTH --- */}
                 <div className="lg:w-2/5 p-4 sm:p-6 relative overflow-hidden border-b lg:border-b-0 lg:border-r border-black/5 dark:border-white/10 flex flex-col justify-between shrink-0">
-                    {/* Background Visual */}
-                    <div className="absolute inset-0 z-0 opacity-5 dark:opacity-10 pointer-events-none translate-y-12">
-                        <ResponsiveContainer width="100%" height="100%">
-                            <AreaChart data={[{v: 30}, {v: 45}, {v: 40}, {v: 60}, {v: 55}, {v: 75}]}>
-                                <Area 
-                                    type="monotone" 
-                                    dataKey="v" 
-                                    stroke="#fa9a1d" 
-                                    fill="#fa9a1d" 
-                                    strokeWidth={4}
-                                />
-                            </AreaChart>
-                        </ResponsiveContainer>
-                    </div>
-
                     <div className="relative z-10">
                         <div className="flex items-center gap-2 mb-2 sm:mb-4">
                             <div className="w-8 h-8 rounded-xl bg-primary-500 text-white flex items-center justify-center shadow-lg shadow-primary-500/30">
                                 <span className="material-symbols-outlined text-lg filled-icon">account_balance</span>
                             </div>
                             <div>
-                                <span className="text-[9px] font-black uppercase tracking-[0.2em] text-light-text-secondary dark:text-dark-text-secondary block leading-none">
-                                    Current Wealth
+                                <span className="text-[12px] font-black uppercase tracking-[0.2em] text-light-text-secondary dark:text-dark-text-secondary block leading-none">
+                                    Net Worth
                                 </span>
-                                <span className="text-[8px] font-bold text-primary-600 dark:text-primary-400 uppercase tracking-widest mt-0.5 block opacity-80">Net Worth</span>
                             </div>
                         </div>
 
@@ -145,10 +129,10 @@ const FinancialOverview: React.FC<FinancialOverviewProps> = ({
                              <div className="flex justify-between items-start mb-2 relative z-10">
                                 <div className="flex items-center gap-1.5">
                                     <span className="material-symbols-outlined text-emerald-500 text-[10px] font-black">south_east</span>
-                                    <span className="text-[8px] font-black text-light-text-secondary dark:text-dark-text-secondary uppercase tracking-widest">Revenue</span>
+                                    <span className="text-[10px] font-black text-light-text-secondary dark:text-dark-text-secondary uppercase tracking-widest">Revenue</span>
                                 </div>
                                 {incomeChange && (
-                                    <span className={`text-[8px] font-black px-1 py-0.5 rounded ${incomeChange.startsWith('+') ? 'bg-emerald-100 text-emerald-700 dark:bg-emerald-900/30' : 'bg-rose-100 text-rose-700 dark:bg-rose-900/30'}`}>
+                                    <span className={`text-[10px] font-black px-1 py-0.5 rounded ${incomeChange.startsWith('+') ? 'bg-emerald-100 text-emerald-700 dark:bg-emerald-900/30' : 'bg-rose-100 text-rose-700 dark:bg-rose-900/30'}`}>
                                         {incomeChange}
                                     </span>
                                 )}
