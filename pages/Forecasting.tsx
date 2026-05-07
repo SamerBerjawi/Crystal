@@ -1155,6 +1155,122 @@ const Forecasting: React.FC = () => {
                 <div className="lg:grid lg:grid-cols-12 gap-8 items-start">
                     {/* Simplified Status Column - One big element */}
                     <div className="lg:col-span-3 space-y-4 mb-8 lg:mb-0">
+                        {/* Monthly Target Schedule Summary */}
+                        <Card className="flex flex-col border border-black/5 dark:border-neutral-800 shadow-sm rounded-3xl overflow-hidden !p-0">
+                            <div className="p-4 bg-gray-50/50 dark:bg-white/5 border-b border-black/5 dark:border-white/10 flex justify-between items-center">
+                                <h2 className="text-xs font-black uppercase tracking-widest text-primary-500">Monthly Target Schedule</h2>
+                                <div className="flex bg-black/5 dark:bg-white/5 p-0.5 rounded-lg">
+                                    <button 
+                                        onClick={() => setScheduleMode('account')}
+                                        className={`px-2 py-1 text-[10px] font-bold rounded-md transition-all ${scheduleMode === 'account' ? 'bg-white dark:bg-white/10 shadow-sm text-primary-500' : 'text-light-text-secondary dark:text-neutral-300'}`}
+                                    >
+                                        Account
+                                    </button>
+                                    <button 
+                                        onClick={() => setScheduleMode('date')}
+                                        className={`px-2 py-1 text-[10px] font-bold rounded-md transition-all ${scheduleMode === 'date' ? 'bg-white dark:bg-white/10 shadow-sm text-primary-500' : 'text-light-text-secondary dark:text-neutral-300'}`}
+                                    >
+                                        Date
+                                    </button>
+                                </div>
+                            </div>
+                            
+                            <div className="p-6 space-y-8">
+                                <div className="space-y-8">
+                                    {scheduleMode === 'account' ? (
+                                        monthlyPaymentBreakdown.map((account, index) => {
+                                            const colors = [
+                                                'bg-blue-500', 'bg-purple-500', 'bg-orange-500', 
+                                                'bg-pink-500', 'bg-cyan-500', 'bg-indigo-500', 'bg-amber-500'
+                                            ];
+                                            const accColor = colors[index % colors.length];
+                                            return (
+                                                <div key={account.id} className="space-y-3 group/account text-left border-l-2 border-black/5 dark:border-white/5 pl-4 transition-colors hover:border-primary-500/30">
+                                                    <div className="flex items-center gap-2 mb-2">
+                                                        <div className={`w-1.5 h-1.5 rounded-full ${accColor}`} />
+                                                        <p className="text-[10px] font-black uppercase tracking-widest text-light-text dark:text-dark-text opacity-80 group-hover/account:opacity-100 transition-opacity">{account.name}</p>
+                                                    </div>
+                                                    
+                                                    <div className="space-y-1">
+                                                        {Object.entries(account.months).map(([monthKey, breakdown]) => {
+                                                            const date = new Date(monthKey + '-02');
+                                                            const monthName = date.toLocaleDateString('default', { month: 'short', year: 'numeric' });
+                                                            return (
+                                                                <div key={monthKey} className="flex justify-between items-center py-2 px-3 rounded-xl hover:bg-black/[0.02] dark:hover:bg-white/[0.02] transition-all group/item border border-transparent hover:border-black/5 dark:hover:border-white/5">
+                                                                    <span className="text-[10px] font-bold uppercase tracking-widest text-light-text-secondary dark:text-neutral-300 opacity-70 group-hover/item:opacity-100 transition-opacity">{monthName}</span>
+                                                                    <div className="flex items-center gap-4">
+                                                                        {breakdown.income > 0 && (
+                                                                            <div className="flex flex-col items-end">
+                                                                                <span className="text-[7px] font-bold text-emerald-500/60 uppercase leading-none mb-0.5">Income</span>
+                                                                                <span className="text-[11px] font-black text-emerald-500 tracking-tighter">{formatCurrency(breakdown.income, account.currency)}</span>
+                                                                            </div>
+                                                                        )}
+                                                                        {breakdown.savings > 0 && (
+                                                                            <div className="flex flex-col items-end">
+                                                                                <span className="text-[7px] font-bold text-primary-500/60 uppercase leading-none mb-0.5">Savings</span>
+                                                                                <span className="text-[11px] font-black text-primary-500 tracking-tighter">{formatCurrency(breakdown.savings, account.currency)}</span>
+                                                                            </div>
+                                                                        )}
+                                                                        {breakdown.expense > 0 && (
+                                                                            <div className="flex flex-col items-end">
+                                                                                <span className="text-[7px] font-bold text-rose-500/60 uppercase leading-none mb-0.5">Expense</span>
+                                                                                <span className="text-[11px] font-black text-rose-500 tracking-tighter">{formatCurrency(breakdown.expense, account.currency)}</span>
+                                                                            </div>
+                                                                        )}
+                                                                    </div>
+                                                                </div>
+                                                            );
+                                                        })}
+                                                    </div>
+                                                </div>
+                                            );
+                                        })
+                                    ) : (
+                                        monthlyDateBreakdown.map((month) => (
+                                            <div key={month.monthKey} className="space-y-3 group/date text-left border-l-2 border-black/5 dark:border-white/5 pl-4 transition-colors hover:border-primary-500/30">
+                                                <div className="flex items-center gap-2 mb-2">
+                                                    <div className="w-1.5 h-1.5 rounded-full bg-primary-500 opacity-30" />
+                                                    <p className="text-[10px] font-black uppercase tracking-widest text-light-text dark:text-dark-text opacity-80 group-hover/date:opacity-100 transition-opacity">{month.monthName}</p>
+                                                </div>
+                                                
+                                                <div className="space-y-1">
+                                                    {month.accounts.map((account) => (
+                                                        <div key={account.id} className="flex justify-between items-center py-2 px-3 rounded-xl hover:bg-black/[0.02] dark:hover:bg-white/[0.02] transition-all group/item border border-transparent hover:border-black/5 dark:hover:border-white/5">
+                                                            <span className="text-[10px] font-bold uppercase tracking-widest text-light-text-secondary dark:text-neutral-300 opacity-70 group-hover/item:opacity-100 transition-opacity">{account.name}</span>
+                                                            <div className="flex items-center gap-4">
+                                                                {account.income > 0 && (
+                                                                    <div className="flex flex-col items-end">
+                                                                        <span className="text-[7px] font-bold text-emerald-500/60 uppercase leading-none mb-0.5">Income</span>
+                                                                        <span className="text-[11px] font-black text-emerald-500 tracking-tighter">{formatCurrency(account.income, account.currency)}</span>
+                                                                    </div>
+                                                                )}
+                                                                {account.savings > 0 && (
+                                                                    <div className="flex flex-col items-end">
+                                                                        <span className="text-[7px] font-bold text-primary-500/60 uppercase leading-none mb-0.5">Savings</span>
+                                                                        <span className="text-[11px] font-black text-primary-500 tracking-tighter">{formatCurrency(account.savings, account.currency)}</span>
+                                                                    </div>
+                                                                )}
+                                                                {account.expense > 0 && (
+                                                                    <div className="flex flex-col items-end">
+                                                                        <span className="text-[7px] font-bold text-rose-500/60 uppercase leading-none mb-0.5">Expense</span>
+                                                                        <span className="text-[11px] font-black text-rose-500 tracking-tighter">{formatCurrency(account.expense, account.currency)}</span>
+                                                                    </div>
+                                                                )}
+                                                            </div>
+                                                        </div>
+                                                    ))}
+                                                </div>
+                                            </div>
+                                        ))
+                                    )}
+                                    {monthlyPaymentBreakdown.length === 0 && (
+                                        <div className="py-6 text-center">
+                                            <p className="text-[10px] italic opacity-40 text-light-text-secondary">No upcoming goal targets found for the selected accounts.</p>
+                                        </div>
+                                    )}
+                                </div>
+                            </div>
+                        </Card>
                         <Card className="flex flex-col border border-black/5 dark:border-neutral-800 shadow-sm rounded-3xl overflow-hidden !p-0">
                             <div className="p-4 bg-gray-50/50 dark:bg-white/5 border-b border-black/5 dark:border-white/10">
                                 <h2 className="text-xs font-black uppercase tracking-widest mb-1">Global Performance</h2>
@@ -1165,7 +1281,7 @@ const Forecasting: React.FC = () => {
                                 <div className="space-y-3">
                                     <div className="flex justify-between items-end">
                                         <div className="space-y-1">
-                                            <span className="text-[10px] font-bold uppercase tracking-wider text-light-text-secondary dark:text-dark-text-secondary">Total Income Target</span>
+                                            <span className="text-[10px] font-bold uppercase tracking-wider text-light-text dark:text-dark-text">Total Income Target</span>
                                             <p className="text-xl font-bold tracking-tight text-emerald-600 dark:text-emerald-400">
                                                 {formatCurrency(globalIncomeGoalCurrent, 'EUR')}
                                             </p>
@@ -1187,7 +1303,7 @@ const Forecasting: React.FC = () => {
                                 <div className="space-y-3">
                                     <div className="flex justify-between items-end">
                                         <div className="space-y-1">
-                                            <span className="text-[10px] font-bold uppercase tracking-wider text-light-text-secondary dark:text-dark-text-secondary">Total Savings Target</span>
+                                            <span className="text-[10px] font-bold uppercase tracking-wider text-light-text dark:text-dark-text">Total Savings Target</span>
                                             <p className="text-xl font-bold tracking-tight text-primary-500">
                                                 {formatCurrency(globalSavingsGoalCurrent, 'EUR')}
                                             </p>
@@ -1209,7 +1325,7 @@ const Forecasting: React.FC = () => {
                                 <div className="space-y-3">
                                     <div className="flex justify-between items-end">
                                         <div className="space-y-1">
-                                            <span className="text-[10px] font-bold uppercase tracking-wider text-light-text-secondary dark:text-dark-text-secondary">Total Expense Target</span>
+                                            <span className="text-[10px] font-bold uppercase tracking-wider text-light-text dark:text-dark-text">Total Expense Target</span>
                                             <p className="text-xl font-bold tracking-tight text-rose-600 dark:text-rose-400">
                                                 {formatCurrency(globalExpenseGoalCurrent, 'EUR')}
                                             </p>
@@ -1230,7 +1346,7 @@ const Forecasting: React.FC = () => {
                                 {/* Account Specific Section */}
                                 <div className="pt-5 border-t border-black/5 dark:border-white/10 space-y-4">
                                     <div className="flex justify-between items-center">
-                                        <p className="text-[10px] font-bold uppercase tracking-widest text-light-text-secondary dark:text-dark-text-secondary">Account Breakdown</p>
+                                        <p className="text-[10px] font-bold uppercase tracking-widest text-light-text dark:text-dark-text">Account Breakdown</p>
                                         <p className="text-[9px] font-medium text-primary-500 uppercase tracking-widest">Global</p>
                                     </div>
                                     <div className="space-y-6">
@@ -1306,123 +1422,6 @@ const Forecasting: React.FC = () => {
                                             <p className="text-[10px] italic text-center opacity-40 py-4">No account-specific goals tracked.</p>
                                         )}
                                     </div>
-                                </div>
-                            </div>
-                        </Card>
-
-                        {/* Monthly Target Schedule Summary */}
-                        <Card className="flex flex-col border border-black/5 dark:border-neutral-800 shadow-sm rounded-3xl overflow-hidden !p-0">
-                            <div className="p-4 bg-gray-50/50 dark:bg-white/5 border-b border-black/5 dark:border-white/10 flex justify-between items-center">
-                                <h2 className="text-xs font-black uppercase tracking-widest text-primary-500">Monthly Target Schedule</h2>
-                                <div className="flex bg-black/5 dark:bg-white/5 p-0.5 rounded-lg">
-                                    <button 
-                                        onClick={() => setScheduleMode('account')}
-                                        className={`px-2 py-1 text-[10px] font-bold rounded-md transition-all ${scheduleMode === 'account' ? 'bg-white dark:bg-white/10 shadow-sm text-primary-500' : 'text-light-text-secondary opacity-60'}`}
-                                    >
-                                        Account
-                                    </button>
-                                    <button 
-                                        onClick={() => setScheduleMode('date')}
-                                        className={`px-2 py-1 text-[10px] font-bold rounded-md transition-all ${scheduleMode === 'date' ? 'bg-white dark:bg-white/10 shadow-sm text-primary-500' : 'text-light-text-secondary opacity-60'}`}
-                                    >
-                                        Date
-                                    </button>
-                                </div>
-                            </div>
-                            
-                            <div className="p-6 space-y-6">
-                                <div className="space-y-6">
-                                    {scheduleMode === 'account' ? (
-                                        monthlyPaymentBreakdown.map((account, index) => {
-                                            const colors = [
-                                                'bg-blue-500', 'bg-purple-500', 'bg-orange-500', 
-                                                'bg-pink-500', 'bg-cyan-500', 'bg-indigo-500', 'bg-amber-500'
-                                            ];
-                                            const accColor = colors[index % colors.length];
-                                            return (
-                                                <div key={account.id} className="space-y-3 group/account text-left">
-                                                    <div className="flex items-center gap-2">
-                                                        <div className={`w-1.5 h-1.5 rounded-full ${accColor}`} />
-                                                        <p className="text-[10px] font-black uppercase tracking-tight text-light-text dark:text-dark-text truncate">{account.name}</p>
-                                                    </div>
-                                                    
-                                                    <div className="grid grid-cols-2 gap-3">
-                                                        {Object.entries(account.months).map(([monthKey, breakdown]) => {
-                                                            const date = new Date(monthKey + '-02');
-                                                            const monthName = date.toLocaleDateString('default', { month: 'long', year: 'numeric' });
-                                                            return (
-                                                                <div key={monthKey} className="bg-black/[0.02] dark:bg-white/[0.02] p-3 rounded-2xl border border-black/5 dark:border-white/5 hover:border-black/10 transition-all space-y-2">
-                                                                    <p className="text-[9px] font-black uppercase tracking-widest text-light-text-secondary dark:text-neutral-300">{monthName}</p>
-                                                                    <div className="space-y-1.5">
-                                                                    {breakdown.income > 0 && (
-                                                                        <div className="flex justify-between items-center bg-emerald-500/5 px-2 py-1 rounded-lg">
-                                                                            <span className="text-[8px] font-bold uppercase text-emerald-500">Income</span>
-                                                                            <span className="text-[11px] font-black text-emerald-500 tracking-tighter">{formatCurrency(breakdown.income, account.currency)}</span>
-                                                                        </div>
-                                                                    )}
-                                                                    {breakdown.savings > 0 && (
-                                                                        <div className="flex justify-between items-center bg-primary-500/5 px-2 py-1 rounded-lg">
-                                                                            <span className="text-[8px] font-bold uppercase text-primary-500">Savings</span>
-                                                                            <span className="text-[11px] font-black text-primary-500 tracking-tighter">{formatCurrency(breakdown.savings, account.currency)}</span>
-                                                                        </div>
-                                                                    )}
-                                                                    {breakdown.expense > 0 && (
-                                                                        <div className="flex justify-between items-center bg-rose-500/5 px-2 py-1 rounded-lg">
-                                                                            <span className="text-[8px] font-bold uppercase text-rose-500">Expense</span>
-                                                                            <span className="text-[11px] font-black text-rose-500 tracking-tighter">{formatCurrency(breakdown.expense, account.currency)}</span>
-                                                                        </div>
-                                                                    )}
-                                                                </div>
-                                                            </div>
-                                                        );
-                                                    })}
-                                                </div>
-                                            </div>
-                                        );
-                                    })
-                                ) : (
-                                    monthlyDateBreakdown.map((month) => (
-                                        <div key={month.monthKey} className="space-y-3 group/date text-left">
-                                            <div className="flex items-center gap-2">
-                                                <div className="w-1.5 h-1.5 rounded-full bg-light-text-secondary opacity-20" />
-                                                <p className="text-[10px] font-black uppercase tracking-tight text-light-text dark:text-dark-text truncate">{month.monthName}</p>
-                                            </div>
-                                            
-                                            <div className="grid grid-cols-2 gap-3">
-                                                {month.accounts.map((account) => (
-                                                    <div key={account.id} className="bg-black/[0.02] dark:bg-white/[0.02] p-3 rounded-2xl border border-black/5 dark:border-white/5 hover:border-black/10 transition-all space-y-2">
-                                                        <p className="text-[9px] font-black uppercase tracking-widest text-light-text-secondary dark:text-neutral-300">{account.name}</p>
-                                                        <div className="space-y-1.5">
-                                                            {account.income > 0 && (
-                                                                <div className="flex justify-between items-center bg-emerald-500/5 px-2 py-1 rounded-lg">
-                                                                    <span className="text-[8px] font-bold uppercase text-emerald-500">Income</span>
-                                                                    <span className="text-[11px] font-black text-emerald-500 tracking-tighter">{formatCurrency(account.income, account.currency)}</span>
-                                                                </div>
-                                                            )}
-                                                            {account.savings > 0 && (
-                                                                <div className="flex justify-between items-center bg-primary-500/5 px-2 py-1 rounded-lg">
-                                                                    <span className="text-[8px] font-bold uppercase text-primary-500">Savings</span>
-                                                                    <span className="text-[11px] font-black text-primary-500 tracking-tighter">{formatCurrency(account.savings, account.currency)}</span>
-                                                                </div>
-                                                            )}
-                                                            {account.expense > 0 && (
-                                                                <div className="flex justify-between items-center bg-rose-500/5 px-2 py-1 rounded-lg">
-                                                                    <span className="text-[8px] font-bold uppercase text-rose-500">Expense</span>
-                                                                    <span className="text-[11px] font-black text-rose-500 tracking-tighter">{formatCurrency(account.expense, account.currency)}</span>
-                                                                </div>
-                                                            )}
-                                                        </div>
-                                                    </div>
-                                                ))}
-                                            </div>
-                                        </div>
-                                    ))
-                                )}
-                                    {monthlyPaymentBreakdown.length === 0 && (
-                                        <div className="py-6 text-center">
-                                            <p className="text-[10px] italic opacity-40 text-light-text-secondary">No upcoming goal targets found for the selected accounts.</p>
-                                        </div>
-                                    )}
                                 </div>
                             </div>
                         </Card>
@@ -1566,10 +1565,7 @@ const Forecasting: React.FC = () => {
                                                     <td className="px-6 py-2 whitespace-nowrap">
                                                         <div className="flex flex-col">
                                                             <span className="font-mono text-[12px] font-bold text-light-text dark:text-dark-text">
-                                                                {parseLocalDate(row.date).toLocaleDateString('en-US', { day: 'numeric', month: 'short' })}
-                                                            </span>
-                                                            <span className="text-[11px] font-bold text-light-text-secondary dark:text-dark-text-secondary uppercase tracking-tighter">
-                                                                {parseLocalDate(row.date).toLocaleDateString('en-US', { weekday: 'short' })}
+                                                                {parseLocalDate(row.date).toLocaleDateString('en-US', { weekday: 'short', day: 'numeric', month: 'short' })}
                                                             </span>
                                                         </div>
                                                     </td>
