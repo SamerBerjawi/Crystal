@@ -241,6 +241,7 @@ const AddAccountModal: React.FC<AddAccountModalProps> = ({ onClose, onAdd, accou
       routingNumber: routingNumber || undefined,
       apy: apy !== '' ? parseFloat(apy) : undefined,
       openingDate: openingDate || undefined,
+      showCard: hasCard,
       // Card details
       expirationDate: hasCard && expirationDate ? expirationDate : undefined,
       cardNetwork: hasCard && cardNetwork ? cardNetwork : undefined,

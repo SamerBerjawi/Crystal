@@ -1,15 +1,17 @@
 import React, { useMemo } from 'react';
-import { Account, DisplayTransaction, Category, Transaction, RecurringTransaction } from '../types';
-import { formatCurrency, parseLocalDate, generateSyntheticLoanPayments, generateSyntheticCreditCardPayments, generateBalanceForecast, convertToEur, generateSyntheticPropertyTransactions, calculateStatementPeriods, getCreditCardStatementDetails, getPreferredTimeZone, formatDateKey, toLocalISOString } from '../utils';
+import { Account, DisplayTransaction, Category, Transaction } from '../types';
+import { formatCurrency, parseLocalDate, generateSyntheticLoanPayments, generateSyntheticCreditCardPayments, generateBalanceForecast, convertToEur, generateSyntheticPropertyTransactions, toLocalISOString, formatDateKey } from '../utils';
 import Card from './Card';
-import BankCard from './BankCard';
 import TransactionList from './TransactionList';
-import { AreaChart, Area, XAxis, YAxis, Tooltip, ResponsiveContainer, CartesianGrid, BarChart, Bar, Cell, Legend, ReferenceLine } from 'recharts';
+import { BTN_PRIMARY_STYLE, ACCOUNT_TYPE_STYLES, BTN_SECONDARY_STYLE } from '../constants';
+import PageHeader from './PageHeader';
+import BankCard from './BankCard';
 import { useGoalsContext, useScheduleContext } from '../contexts/FinancialDataContext';
 import { useAccountsContext, useTransactionsContext } from '../contexts/DomainProviders';
+import { ResponsiveContainer, AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip, BarChart, Bar, Legend } from 'recharts';
 import { motion } from 'motion/react';
 
-interface GeneralAccountViewProps {
+interface CheckingAccountViewProps {
   account: Account;
   displayTransactionsList: DisplayTransaction[];
   transactions: { tx: Transaction; parsedDate: Date; convertedAmount: number }[];
@@ -22,30 +24,7 @@ interface GeneralAccountViewProps {
   isLinkedToEnableBanking?: boolean;
 }
 
-const getCardGradient = (id: string) => {
-    const gradients = [
-        "from-emerald-500 to-teal-500",
-        "from-blue-600 to-indigo-600",
-        "from-orange-500 to-amber-500",
-        "from-purple-600 to-fuchsia-600",
-        "from-cyan-500 to-blue-500",
-        "from-rose-500 to-pink-500",
-        "from-violet-600 to-purple-600",
-        "from-teal-400 to-emerald-600",
-        "from-fuchsia-600 to-pink-600",
-        "from-indigo-500 to-blue-500",
-        "from-yellow-400 to-orange-500",
-        "from-lime-500 to-green-600"
-    ];
-    let hash = 0;
-    for (let i = 0; i < id.length; i++) {
-        hash = id.charCodeAt(i) + ((hash << 5) - hash);
-    }
-    const index = Math.abs(hash) % gradients.length;
-    return `bg-gradient-to-br ${gradients[index]}`;
-};
-
-const GeneralAccountView: React.FC<GeneralAccountViewProps> = ({
+const CheckingAccountView: React.FC<CheckingAccountViewProps> = ({
   account,
   displayTransactionsList,
   transactions,
@@ -62,69 +41,61 @@ const GeneralAccountView: React.FC<GeneralAccountViewProps> = ({
   const { accounts } = useAccountsContext();
   const { transactions: allTransactions } = useTransactionsContext();
 
-  // --- 1. Key Metrics Calculations ---
-
-  // Helper: Get transactions for specific timeframes
-  const getTransactionsInDateRange = (startDate: Date, endDate: Date) => {
-    return transactions.filter(t => t.parsedDate >= startDate && t.parsedDate <= endDate);
-  };
+  const cashFlowData = useMemo(() => {
+      const data: { month: string; income: number; expense: number }[] = [];
+      const today = new Date();
+      for (let i = 5; i >= 0; i--) {
+          const d = new Date(today.getFullYear(), today.getMonth() - i, 1);
+          const monthKey = d.toLocaleString('default', { month: 'short' });
+          const startOfMonth = new Date(d.getFullYear(), d.getMonth(), 1);
+          const endOfMonth = new Date(d.getFullYear(), d.getMonth() + 1, 0);
+          const txs = transactions.filter(t => t.parsedDate >= startOfMonth && t.parsedDate <= endOfMonth);
+          let inc = 0; let exp = 0;
+          txs.forEach(({ tx }) => {
+             if (tx.amount > 0) inc += tx.amount;
+             else exp += Math.abs(tx.amount);
+          });
+          data.push({ month: monthKey, income: inc, expense: exp });
+      }
+      return data;
+  }, [transactions]);
 
   const metrics = useMemo(() => {
     const now = new Date();
-    // Normalize "Today" to end of day for inclusion, but keep 'now' for future checks
     const todayStart = new Date(now.getFullYear(), now.getMonth(), now.getDate());
 
-    // 1. Sort transactions descending (Newest -> Oldest)
     const sortedTxsDesc = [...transactions].sort((a, b) => b.parsedDate.getTime() - a.parsedDate.getTime());
-
-    // 2. Calculate "Real Today Balance"
-    // Start with the account's current balance (source of truth).
-    // If there are transactions dated in the future included in this balance, 
-    // we must reverse them to find the actual balance available *right now*.
     let realTodayBalance = account.balance;
     
     sortedTxsDesc.forEach(({ tx, parsedDate }) => {
         if (parsedDate > now) {
-             // Reverse future transaction:
-             // If it was income (+), we subtract it. If expense (-), we add it.
              realTodayBalance -= tx.amount;
         }
     });
 
-    // --- A. Average Monthly Spend (Last 3 Months) ---
     const threeMonthsAgo = new Date(todayStart);
     threeMonthsAgo.setMonth(threeMonthsAgo.getMonth() - 3);
-    threeMonthsAgo.setDate(1); // Start of 3 months ago
+    threeMonthsAgo.setDate(1);
     const endOfLastMonth = new Date(todayStart.getFullYear(), todayStart.getMonth(), 0);
     
-    const last3MonthsTxs = getTransactionsInDateRange(threeMonthsAgo, endOfLastMonth);
+    const last3MonthsTxs = transactions.filter(t => t.parsedDate >= threeMonthsAgo && t.parsedDate <= endOfLastMonth);
     const totalSpend3Months = last3MonthsTxs.reduce((sum, { tx }) => {
         if (tx.amount < 0 && !tx.transferId) return sum + Math.abs(tx.amount);
         return sum;
     }, 0);
     const avgMonthlySpend = totalSpend3Months / 3;
 
-
-    // --- B. Prepare Recurring Items for Forecast (Safe-to-Spend & Lowest Balance) ---
-    // Generate synthetic payments (loans, credit cards, properties)
-    const syntheticLoans = generateSyntheticLoanPayments(accounts, allTransactions, loanPaymentOverrides);
-    const syntheticCC = generateSyntheticCreditCardPayments(accounts, allTransactions);
-    const syntheticProperty = generateSyntheticPropertyTransactions(accounts);
-    
     const allRecurringItems = [
         ...recurringTransactions, 
-        ...syntheticLoans, 
-        ...syntheticCC, 
-        ...syntheticProperty
+        ...generateSyntheticLoanPayments(accounts, allTransactions, loanPaymentOverrides), 
+        ...generateSyntheticCreditCardPayments(accounts, allTransactions), 
+        ...generateSyntheticPropertyTransactions(accounts)
     ];
 
-    // --- C. Safe to Spend (Real Today Balance - Upcoming Payments in next 7 days) ---
     const next7Days = new Date(todayStart);
     next7Days.setDate(next7Days.getDate() + 7);
     
     let upcomingOutflows = 0;
-
-    // 1. Recurring Check (Simple check for Safe-to-Spend)
     const relevantRecurringForSafeSpend = allRecurringItems.filter(rt => 
         rt.accountId === account.id && (rt.type === 'expense' || rt.type === 'transfer')
     );
@@ -132,15 +103,10 @@ const GeneralAccountView: React.FC<GeneralAccountViewProps> = ({
     relevantRecurringForSafeSpend.forEach(rt => {
         let nextDue = parseLocalDate(rt.nextDueDate);
         const interval = rt.frequencyInterval || 1;
-        
-        // Check occurrences within next 7 days
         let safety = 0;
         while (nextDue <= next7Days && safety < 50) { 
              safety++;
-             if (nextDue >= todayStart) {
-                 upcomingOutflows += rt.amount;
-             }
-             // Advance
+             if (nextDue >= todayStart) upcomingOutflows += rt.amount;
              const d = new Date(nextDue);
              if (rt.frequency === 'monthly') d.setMonth(d.getMonth() + interval);
              else if (rt.frequency === 'weekly') d.setDate(d.getDate() + (7 * interval));
@@ -150,28 +116,19 @@ const GeneralAccountView: React.FC<GeneralAccountViewProps> = ({
         }
     });
 
-    // 2. Bills
     billsAndPayments.forEach(bill => {
         if (bill.accountId === account.id && bill.status === 'unpaid' && bill.type === 'payment') {
             const due = parseLocalDate(bill.dueDate);
-            if (due >= todayStart && due <= next7Days) {
-                upcomingOutflows += Math.abs(bill.amount);
-            }
+            if (due >= todayStart && due <= next7Days) upcomingOutflows += Math.abs(bill.amount);
         }
     });
 
     const safeToSpend = realTodayBalance - upcomingOutflows;
-
-    // --- D. Forecast Lowest Balance (Next 30 Days) ---
     const forecastEndDate = new Date(todayStart);
     forecastEndDate.setDate(forecastEndDate.getDate() + 30);
 
-    // Create a temporary account object with the "Real Today Balance"
-    // This ensures the forecast engine starts from the correct effective funds available now.
-    const accountForForecast = { ...account, balance: realTodayBalance };
-
     const { lowestPoint } = generateBalanceForecast(
-        [accountForForecast],
+        [{ ...account, balance: realTodayBalance }],
         allRecurringItems,
         financialGoals,
         billsAndPayments,
@@ -179,80 +136,43 @@ const GeneralAccountView: React.FC<GeneralAccountViewProps> = ({
         recurringTransactionOverrides
     );
     
-    // `generateBalanceForecast` works in EUR. Convert the result back to the account's currency.
-    // If account currency is same as base (EUR), rate is 1.
     const conversionRate = convertToEur(1, account.currency);
     const lowestBalanceForecast = lowestPoint.value / (conversionRate || 1);
 
-    return { lowestBalanceForecast, avgMonthlySpend, safeToSpend, realTodayBalance };
-  }, [account, transactions, recurringTransactions, billsAndPayments, accounts, allTransactions, loanPaymentOverrides, financialGoals, recurringTransactionOverrides]);
+    return { 
+        lowestBalanceForecast, 
+        avgMonthlySpend, 
+        safeToSpend, 
+        realTodayBalance,
+        monthlyIncome: cashFlowData[cashFlowData.length - 1]?.income || 0,
+        monthlyExpense: cashFlowData[cashFlowData.length - 1]?.expense || 0
+    };
+  }, [account, transactions, recurringTransactions, billsAndPayments, accounts, allTransactions, loanPaymentOverrides, cashFlowData]);
 
+  const balanceHistory = useMemo(() => {
+    const data = [];
+    let currentBalance = account.balance;
+    const today = new Date();
+    const endDate = new Date(today.getFullYear(), today.getMonth(), today.getDate());
+    const sortedTxs = [...transactions].sort((a, b) => b.parsedDate.getTime() - a.parsedDate.getTime());
+    const dailyChanges: Record<string, number> = {};
+    
+    sortedTxs.forEach(({ tx, parsedDate }) => {
+         if (parsedDate > today) return;
+         const dateStr = toLocalISOString(parsedDate);
+         dailyChanges[dateStr] = (dailyChanges[dateStr] || 0) + tx.amount;
+    });
 
-  // --- 2. Chart Data ---
-  
-  // Cash Flow Trend (Last 6 Months)
-  const cashFlowData = useMemo(() => {
-      const data: { month: string; income: number; expense: number }[] = [];
-      const today = new Date();
-      
-      for (let i = 5; i >= 0; i--) {
-          const d = new Date(today.getFullYear(), today.getMonth() - i, 1);
-          const monthKey = d.toLocaleString('default', { month: 'short' });
-          
-          const startOfMonth = new Date(d.getFullYear(), d.getMonth(), 1);
-          const endOfMonth = new Date(d.getFullYear(), d.getMonth() + 1, 0);
-          
-          const txs = transactions.filter(t => t.parsedDate >= startOfMonth && t.parsedDate <= endOfMonth);
-          
-          let inc = 0;
-          let exp = 0;
-          txs.forEach(({ tx }) => {
-             if (tx.amount > 0) inc += tx.amount;
-             else exp += Math.abs(tx.amount);
-          });
-          
-          data.push({ month: monthKey, income: inc, expense: exp });
-      }
-      return data;
-  }, [transactions]);
+    let iterDate = new Date(endDate);
+    for (let i = 0; i <= 30; i++) {
+        const dateStr = toLocalISOString(iterDate);
+        data.push({ date: dateStr, value: currentBalance });
+        currentBalance -= (dailyChanges[dateStr] || 0);
+        iterDate.setDate(iterDate.getDate() - 1);
+    }
+    return data.reverse();
+  }, [account.balance, transactions]);
 
-  // Top Spending Categories (Last 30 Days)
-  const topCategories = useMemo(() => {
-      const thirtyDaysAgo = new Date();
-      thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
-      
-      const spending: Record<string, number> = {};
-      let totalSpent = 0;
-      
-      transactions.forEach(({ tx, parsedDate }) => {
-          if (parsedDate >= thirtyDaysAgo && tx.amount < 0 && !tx.transferId) {
-             // Find parent category
-             const category = allCategories.find(c => c.name === tx.category);
-             let parentName = category ? category.name : tx.category;
-             
-             if (category && category.parentId) {
-                 const parent = allCategories.find(c => c.id === category.parentId);
-                 if (parent) {
-                     parentName = parent.name;
-                 }
-             }
-             
-             spending[parentName] = (spending[parentName] || 0) + Math.abs(tx.amount);
-             totalSpent += Math.abs(tx.amount);
-          }
-      });
-      
-      return Object.entries(spending)
-        .map(([name, value]) => {
-             // Re-find color
-             const cat = allCategories.find(c => c.name === name);
-             return { name, value, color: cat?.color || '#cbd5e1' };
-        })
-        .sort((a, b) => b.value - a.value)
-        .slice(0, 5);
-  }, [transactions, allCategories]);
-
-  // Upcoming Payments List (Next 14 Days)
   const upcomingPayments = useMemo(() => {
       const list: { date: string; description: string; amount: number; isRecurring: boolean }[] = [];
       const now = new Date();
@@ -260,31 +180,21 @@ const GeneralAccountView: React.FC<GeneralAccountViewProps> = ({
       const horizon = new Date(todayLocal);
       horizon.setDate(horizon.getDate() + 14);
 
-      // Recurring
-      const relevantRecurring = recurringTransactions.filter(rt => 
-        rt.accountId === account.id && (rt.type === 'expense' || rt.type === 'transfer')
-      );
-      // Synthetic
-      const syntheticLoans = generateSyntheticLoanPayments(accounts, allTransactions, loanPaymentOverrides).filter(rt => rt.accountId === account.id);
-      const syntheticCC = generateSyntheticCreditCardPayments(accounts, allTransactions).filter(rt => rt.accountId === account.id);
-      
-      [...relevantRecurring, ...syntheticLoans, ...syntheticCC].forEach(rt => {
+      const allRecurring = [
+          ...recurringTransactions.filter(rt => rt.accountId === account.id && (rt.type === 'expense' || rt.type === 'transfer')),
+          ...generateSyntheticLoanPayments(accounts, allTransactions, loanPaymentOverrides).filter(rt => rt.accountId === account.id),
+          ...generateSyntheticCreditCardPayments(accounts, allTransactions).filter(rt => rt.accountId === account.id)
+      ];
+
+      allRecurring.forEach(rt => {
           let nextDue = parseLocalDate(rt.nextDueDate);
           const interval = rt.frequencyInterval || 1;
-          
-          // Find occurrences in window
           let safety = 0;
           while (nextDue <= horizon && safety < 100) {
              safety++;
              if (nextDue >= todayLocal) {
-                 list.push({
-                     date: toLocalISOString(nextDue),
-                     description: rt.description,
-                     amount: Math.abs(rt.amount),
-                     isRecurring: true
-                 });
+                 list.push({ date: toLocalISOString(nextDue), description: rt.description, amount: Math.abs(rt.amount), isRecurring: true });
              }
-             // Advance logic
              const d = new Date(nextDue);
              if (rt.frequency === 'monthly') d.setMonth(d.getMonth() + interval);
              else if (rt.frequency === 'weekly') d.setDate(d.getDate() + (7 * interval));
@@ -294,17 +204,11 @@ const GeneralAccountView: React.FC<GeneralAccountViewProps> = ({
           }
       });
 
-      // Bills
       billsAndPayments.forEach(bill => {
         if (bill.accountId === account.id && bill.status === 'unpaid' && bill.type === 'payment') {
              const due = parseLocalDate(bill.dueDate);
              if (due >= todayLocal && due <= horizon) {
-                 list.push({
-                     date: bill.dueDate,
-                     description: bill.description,
-                     amount: Math.abs(bill.amount),
-                     isRecurring: false
-                 });
+                 list.push({ date: bill.dueDate, description: bill.description, amount: Math.abs(bill.amount), isRecurring: false });
              }
         }
       });
@@ -312,136 +216,17 @@ const GeneralAccountView: React.FC<GeneralAccountViewProps> = ({
       return list.sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime()).slice(0, 5);
   }, [recurringTransactions, billsAndPayments, accounts, account.id, allTransactions, loanPaymentOverrides]);
 
-  // Balance History (30 Days)
-  const balanceHistory = useMemo(() => {
-    const data = [];
-    // Use the calculated "Real Today Balance" so future transactions don't skew the history chart
-    let currentBalance = metrics.realTodayBalance;
-    
-    const today = new Date();
-    const endDate = new Date(today.getFullYear(), today.getMonth(), today.getDate());
-    const sortedTxs = [...transactions].sort((a, b) => b.parsedDate.getTime() - a.parsedDate.getTime());
-    const dailyChanges: Record<string, number> = {};
-    
-    sortedTxs.forEach(({ tx, parsedDate }) => {
-         if (parsedDate > today) return; // Ignore future
-        const dateStr = toLocalISOString(parsedDate);
-         dailyChanges[dateStr] = (dailyChanges[dateStr] || 0) + tx.amount;
-    });
+  const expenseIntensity = metrics.monthlyIncome > 0 ? (metrics.monthlyExpense / metrics.monthlyIncome) * 100 : (metrics.monthlyExpense > 0 ? 100 : 0);
 
-    let iterDate = new Date(endDate);
-    for (let i = 0; i <= 30; i++) {
-        const dateStr = toLocalISOString(iterDate);
-        data.push({ date: dateStr, value: currentBalance });
-        const change = dailyChanges[dateStr] || 0;
-        currentBalance -= change;
-        iterDate.setDate(iterDate.getDate() - 1);
-    }
-    return data.reverse();
-  }, [metrics.realTodayBalance, transactions]);
-
-  // Find credit cards linked to this account (where settlementAccountId === this account.id)
-  const linkedCreditCards = useMemo(() => {
-    return accounts.filter(acc => 
-      acc.type === 'Credit Card' && 
-      acc.settlementAccountId === account.id
-    );
-  }, [accounts, account.id]);
-  
-  // Find Linked Goals
-  const linkedGoals = useMemo(() => {
-      return financialGoals.filter(g => g.paymentAccountId === account.id);
+  const relevantGoals = useMemo(() => {
+    return financialGoals.filter(goal => goal.paymentAccountId === account.id);
   }, [financialGoals, account.id]);
 
-  const hasCardDetails = account.cardNetwork || account.last4 || account.expirationDate || account.cardholderName;
-  const showVirtualCard = (account.type === 'Checking' || account.type === 'Savings') || hasCardDetails;
-  const showInvestmentDetails = account.type === 'Investment';
-  
-  const showBankingDetails = useMemo(() => {
-      const hasDetails = !!(account.accountNumber || account.routingNumber || account.apy || account.openingDate || account.expirationDate || account.cardNetwork || account.cardholderName || account.last4);
-      const hasLinkedCards = linkedCreditCards.length > 0;
-      if (showVirtualCard) {
-          // If showing virtual card, check if there are ANY details that are NOT on the card OR if there are linked cards
-          return !!(account.accountNumber || account.routingNumber || account.apy || account.openingDate) || hasLinkedCards;
-      }
-      return hasDetails || hasLinkedCards;
-  }, [account, showVirtualCard, linkedCreditCards.length]);
-  
-  // Show "Other" specific details if applicable
-  const showOtherDetails = (account.type === 'Other Assets' || account.type === 'Other Liabilities');
+  const linkedAccounts = useMemo(() => {
+    return accounts.filter(acc => acc.linkedAccountId === account.id || acc.settlementAccountId === account.id);
+  }, [accounts, account.id]);
 
-  const NetworkLogo = () => {
-      const network = account.cardNetwork?.toLowerCase() || '';
-      if (network.includes('visa')) return <span className="font-bold text-2xl italic text-white">VISA</span>;
-      if (network.includes('master')) return (
-          <div className="flex">
-              <div className="w-6 h-6 rounded-full bg-red-500/90"></div>
-              <div className="w-6 h-6 rounded-full bg-yellow-500/90 -ml-3"></div>
-          </div>
-      );
-      if (network.includes('amex') || network.includes('american')) return <span className="font-bold text-lg text-blue-300 tracking-tighter border-2 border-blue-300 px-1 rounded">AMEX</span>;
-      return <span className="font-bold text-xl text-white tracking-widest opacity-60">DEBIT</span>;
-  };
-
-  const metricsCards = (
-    <>
-        {/* Current Balance */}
-        <Card className="relative overflow-hidden">
-             <div className="absolute right-0 top-0 p-4 opacity-10 pointer-events-none">
-                 <span className="material-symbols-outlined text-6xl">account_balance_wallet</span>
-            </div>
-            <p className="text-xs font-medium uppercase text-light-text-secondary dark:text-dark-text-secondary tracking-wider mb-1">Current Balance</p>
-            <p className="text-2xl font-bold text-light-text dark:text-dark-text">{formatCurrency(account.balance, account.currency)}</p>
-        </Card>
-
-        {/* Safe To Spend */}
-        <Card>
-            <div className="flex justify-between items-start">
-                <div>
-                    <p className="text-xs font-medium uppercase text-light-text-secondary dark:text-dark-text-secondary tracking-wider mb-1">Safe to Spend (7d)</p>
-                    <p className={`text-2xl font-bold ${metrics.safeToSpend < 0 ? 'text-red-500' : 'text-green-500'}`}>
-                        {formatCurrency(metrics.safeToSpend, account.currency)}
-                    </p>
-                </div>
-                <div className={`w-8 h-8 rounded-full flex items-center justify-center ${metrics.safeToSpend < 0 ? 'bg-red-100 text-red-600' : 'bg-green-100 text-green-600'}`}>
-                    <span className="material-symbols-outlined text-lg">
-                        {metrics.safeToSpend < 0 ? 'warning' : 'verified'}
-                    </span>
-                </div>
-            </div>
-        </Card>
-
-        {/* Avg Monthly Spend */}
-        <Card>
-            <p className="text-xs font-medium uppercase text-light-text-secondary dark:text-dark-text-secondary tracking-wider mb-1">Avg Monthly Spend</p>
-            <p className="text-2xl font-bold text-light-text dark:text-dark-text">{formatCurrency(metrics.avgMonthlySpend, account.currency)}</p>
-        </Card>
-
-        {/* Lowest Forecast */}
-        <Card>
-            <div className="flex justify-between items-start">
-                <div>
-                    <p className="text-xs font-medium uppercase text-light-text-secondary dark:text-dark-text-secondary tracking-wider mb-1">Lowest Forecast (30d)</p>
-                    <p className={`text-2xl font-bold ${metrics.lowestBalanceForecast < 0 ? 'text-red-500' : 'text-light-text dark:text-dark-text'}`}>
-                        {formatCurrency(metrics.lowestBalanceForecast, account.currency)}
-                    </p>
-                </div>
-                 {metrics.lowestBalanceForecast < 0 ? (
-                    <div className="w-8 h-8 rounded-full flex items-center justify-center bg-red-100 text-red-600" title="Projected overdraft">
-                        <span className="material-symbols-outlined text-lg">trending_down</span>
-                    </div>
-                ) : (
-                     <div className="w-8 h-8 rounded-full flex items-center justify-center bg-primary-100 dark:bg-primary-900/50 text-primary-600 dark:text-primary-400">
-                        <span className="material-symbols-outlined text-lg">timeline</span>
-                    </div>
-                )}
-            </div>
-             <p className="text-xs text-light-text-secondary dark:text-dark-text-secondary mt-1">
-                Minimum projected balance
-            </p>
-        </Card>
-    </>
-  );
+    const showVirtualCard = (account.type === 'Checking' || account.type === 'Savings') || !!(account.cardNetwork || account.last4 || account.expirationDate || account.cardholderName);
 
   return (
     <div className="space-y-6 animate-fade-in-up pb-12">
@@ -461,7 +246,7 @@ const GeneralAccountView: React.FC<GeneralAccountViewProps> = ({
                 </div>
                 <p className="text-[10px] font-bold text-light-text-secondary dark:text-dark-text-secondary uppercase tracking-[0.2em] opacity-60 flex items-center gap-1">
                     <span className="material-symbols-outlined text-xs">account_balance_wallet</span>
-                    {account.financialInstitution || 'General Account'}
+                    {account.financialInstitution || 'Checking Account'}
                 </p>
             </div>
         </div>
@@ -492,7 +277,7 @@ const GeneralAccountView: React.FC<GeneralAccountViewProps> = ({
                         currency={account.currency}
                         last4={account.last4}
                         institution={account.financialInstitution}
-                        type={account.type}
+                        type="Checking"
                         color="primary"
                     />
                 )}
@@ -502,22 +287,26 @@ const GeneralAccountView: React.FC<GeneralAccountViewProps> = ({
                      <div className="p-5 rounded-[2rem] bg-white dark:bg-white/[0.03] border border-black/5 dark:border-white/5 flex flex-col justify-between">
                          <div>
                             <span className="material-symbols-outlined text-indigo-500 mb-3 bg-indigo-500/10 p-2 rounded-xl">monitoring</span>
-                            <p className="text-[10px] font-bold text-light-text-secondary dark:text-dark-text-secondary tracking-widest mb-1">Safe to Spend</p>
+                            <p className="text-[10px] font-bold text-light-text-secondary dark:text-dark-text-secondary uppercase tracking-widest mb-1">Monthly Flow</p>
                             <h4 className="text-xl font-black text-light-text dark:text-dark-text tracking-tighter leading-none">
-                                {formatCurrency(metrics.safeToSpend, account.currency, { compact: true })}
+                                {formatCurrency(metrics.monthlyIncome, account.currency, { compact: true })}
                             </h4>
                          </div>
-                         <p className="text-[9px] font-bold text-emerald-500 mt-2 flex items-center gap-1">Liquidity</p>
+                         <p className="text-[9px] font-bold text-emerald-500 mt-2 flex items-center gap-1">
+                             Total Inbound
+                         </p>
                      </div>
                      <div className="p-5 rounded-[2rem] bg-white dark:bg-white/[0.03] border border-black/5 dark:border-white/5 flex flex-col justify-between">
                          <div>
                             <span className="material-symbols-outlined text-rose-500 mb-3 bg-rose-500/10 p-2 rounded-xl">outbound</span>
-                            <p className="text-[10px] font-bold text-light-text-secondary dark:text-dark-text-secondary tracking-widest mb-1">Avg Outbound</p>
+                            <p className="text-[10px] font-bold text-light-text-secondary dark:text-dark-text-secondary uppercase tracking-widest mb-1">Avg Outbound</p>
                             <h4 className="text-xl font-black text-light-text dark:text-dark-text tracking-tighter leading-none">
                                 {formatCurrency(metrics.avgMonthlySpend, account.currency, { compact: true })}
                             </h4>
                          </div>
-                         <p className="text-[9px] font-bold text-rose-500 mt-2 flex items-center gap-1">Run Rate</p>
+                         <p className="text-[9px] font-bold text-rose-500 mt-2 flex items-center gap-1">
+                             Expected Burn
+                         </p>
                      </div>
                      <div className={`${account.showCard ? 'col-span-2' : 'col-span-2'} p-5 rounded-[2rem] bg-white dark:bg-white/[0.03] border border-black/5 dark:border-white/5 flex items-center justify-between`}>
                          <div className="flex items-center gap-4">
@@ -525,27 +314,28 @@ const GeneralAccountView: React.FC<GeneralAccountViewProps> = ({
                                 <span className="material-symbols-outlined text-2xl">{metrics.lowestBalanceForecast < 0 ? 'warning' : 'verified_user'}</span>
                             </div>
                             <div>
-                                <p className="text-[10px] font-bold text-light-text-secondary dark:text-dark-text-secondary tracking-widest mb-0.5">30d Safety Floor</p>
+                                <p className="text-[10px] font-bold text-light-text-secondary dark:text-dark-text-secondary uppercase tracking-widest mb-0.5">30d Safety Floor</p>
                                 <p className={`text-xl font-black tracking-tighter leading-none ${metrics.lowestBalanceForecast < 0 ? 'text-rose-500' : 'text-light-text dark:text-dark-text'}`}>
                                     {formatCurrency(metrics.lowestBalanceForecast, account.currency)}
                                 </p>
                             </div>
                          </div>
+                         <span className="material-symbols-outlined text-light-text-secondary/20">chevron_right</span>
                      </div>
                 </div>
             </div>
 
             {/* BALANCE HISTORY CHART */}
             <Card className="!p-6 overflow-hidden">
-                <div className="flex justify-between items-center mb-6">
+                <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-2 mb-6">
                     <div>
-                        <h3 className="text-sm font-bold text-light-text dark:text-dark-text tracking-tight">Balance Progression</h3>
-                        <p className="text-[10px] font-bold text-light-text-secondary opacity-40 tracking-widest">Last 30 Days Trajectory</p>
+                        <h3 className="text-lg font-bold text-light-text dark:text-dark-text tracking-tight">Balance History</h3>
+                        <p className="text-[10px] font-bold text-light-text-secondary dark:text-dark-text-secondary uppercase tracking-widest opacity-60">Trailing 30 Day Progression</p>
                     </div>
                 </div>
                 <div className="h-[280px] w-full">
                     <ResponsiveContainer width="100%" height="100%">
-                         <AreaChart data={balanceHistory} margin={{ top: 0, right: 0, left: -20, bottom: 0 }}>
+                        <AreaChart data={balanceHistory} margin={{ top: 10, right: 0, left: -20, bottom: 0 }}>
                             <defs>
                                 <linearGradient id="colorBalance" x1="0" y1="0" x2="0" y2="1">
                                     <stop offset="5%" stopColor="#3b82f6" stopOpacity={0.2}/>
@@ -558,7 +348,10 @@ const GeneralAccountView: React.FC<GeneralAccountViewProps> = ({
                                 axisLine={false} 
                                 tickLine={false} 
                                 tick={{ fill: 'currentColor', opacity: 0.4, fontSize: 10, fontWeight: 700 }}
-                                tickFormatter={(val) => new Date(val).getDate().toString()}
+                                tickFormatter={(val) => {
+                                    const d = new Date(val);
+                                    return d.getDate().toString();
+                                }}
                             />
                             <YAxis 
                                 hide={false}
@@ -592,12 +385,12 @@ const GeneralAccountView: React.FC<GeneralAccountViewProps> = ({
                 <Card className="!p-6">
                     <div className="flex justify-between items-center mb-4">
                         <h3 className="text-sm font-bold text-light-text dark:text-dark-text tracking-tight flex items-center gap-2">
-                            <span className="material-symbols-outlined text-indigo-500 text-lg">flag</span>
+                            <span className="material-symbols-outlined text-indigo-500">target</span>
                             Financial Goals
                         </h3>
                     </div>
                     <div className="space-y-4">
-                        {linkedGoals.length > 0 ? linkedGoals.map(goal => (
+                        {relevantGoals.length > 0 ? relevantGoals.map(goal => (
                             <div key={goal.id} className="p-3 rounded-2xl bg-black/5 dark:bg-white/[0.02] border border-black/5 dark:border-white/5">
                                 <div className="flex justify-between items-center mb-2">
                                     <span className="text-xs font-bold text-light-text dark:text-dark-text">{goal.name}</span>
@@ -616,24 +409,24 @@ const GeneralAccountView: React.FC<GeneralAccountViewProps> = ({
                     </div>
                 </Card>
 
-                {/* LINKED ACCOUNTS */}
+                {/* LINKED CARDS / ACCOUNTS */}
                 <Card className="!p-6">
                     <div className="flex justify-between items-center mb-4">
                         <h3 className="text-sm font-bold text-light-text dark:text-dark-text tracking-tight flex items-center gap-2">
-                            <span className="material-symbols-outlined text-primary-500 text-lg">link</span>
+                            <span className="material-symbols-outlined text-primary-500">link</span>
                             Linked Products
                         </h3>
                     </div>
                     <div className="space-y-3">
-                        {linkedCreditCards.length > 0 ? linkedCreditCards.map(acc => (
+                        {linkedAccounts.length > 0 ? linkedAccounts.map(acc => (
                             <div key={acc.id} onClick={() => setViewingAccountId(acc.id)} className="p-3 rounded-2xl bg-black/5 dark:bg-white/[0.02] border border-black/5 dark:border-white/5 flex items-center justify-between cursor-pointer hover:bg-black/10 transition-all">
                                 <div className="flex items-center gap-3">
                                     <div className="w-8 h-8 rounded-lg bg-white dark:bg-white/10 flex items-center justify-center border border-black/5 dark:border-white/10 shrink-0 text-primary-500">
-                                        <span className="material-symbols-outlined text-lg">credit_card</span>
+                                        <span className="material-symbols-outlined text-lg">{ACCOUNT_TYPE_STYLES[acc.type].icon}</span>
                                     </div>
                                     <div>
                                         <p className="text-xs font-bold text-light-text dark:text-dark-text leading-tight">{acc.name}</p>
-                                        <p className="text-[9px] font-bold text-light-text-secondary dark:text-dark-text-secondary uppercase">Satellite Card</p>
+                                        <p className="text-[9px] font-bold text-light-text-secondary dark:text-dark-text-secondary uppercase">{acc.type}</p>
                                     </div>
                                 </div>
                                 <span className="material-symbols-outlined text-light-text-secondary/30 text-sm">chevron_right</span>
@@ -641,7 +434,7 @@ const GeneralAccountView: React.FC<GeneralAccountViewProps> = ({
                         )) : (
                             <div className="py-8 flex flex-col items-center justify-center text-center opacity-30">
                                 <span className="material-symbols-outlined text-4xl mb-2">link_off</span>
-                                <p className="text-[10px] font-bold uppercase tracking-widest">No satellites</p>
+                                <p className="text-[10px] font-bold uppercase tracking-widest">No linked products</p>
                             </div>
                         )}
                     </div>
@@ -649,14 +442,15 @@ const GeneralAccountView: React.FC<GeneralAccountViewProps> = ({
             </div>
         </div>
 
-        {/* RIGHT COLUMN: RECENT & METADATA */}
+        {/* RIGHT COLUMN: RECENT & UPCOMING */}
         <div className="xl:col-span-4 space-y-6">
              {/* ACCOUNT LEDGER */}
              <Card className="!p-0 overflow-hidden flex flex-col h-[400px]">
                  <div className="p-6 border-b border-black/5 dark:border-white/5 bg-gray-50/50 dark:bg-white/[0.01]">
                     <div className="flex justify-between items-center mb-1">
-                        <h3 className="text-md font-bold text-light-text dark:text-dark-text tracking-tight uppercase">Direct Activity</h3>
-                     </div>
+                        <h3 className="text-md font-bold text-light-text dark:text-dark-text tracking-tight">Recent Activity</h3>
+                        <span className="text-[8px] font-bold text-light-text-secondary dark:text-dark-text-secondary uppercase tracking-widest opacity-40">Newest First</span>
+                    </div>
                  </div>
                  <div className="flex-grow overflow-y-auto overflow-x-hidden p-2">
                     <TransactionList 
@@ -675,19 +469,57 @@ const GeneralAccountView: React.FC<GeneralAccountViewProps> = ({
                  </div>
              </Card>
 
+             {/* UPCOMING OBLIGATIONS */}
+             <Card className="!p-6 overflow-hidden border-primary-500/10 h-min">
+                 <div className="flex items-center gap-2 mb-4">
+                     <div className="w-8 h-8 rounded-lg bg-primary-500/10 text-primary-500 flex items-center justify-center">
+                         <span className="material-symbols-outlined text-lg font-bold">calendar_month</span>
+                     </div>
+                     <h3 className="text-md font-bold text-light-text dark:text-dark-text tracking-tight">Upcoming Payments</h3>
+                 </div>
+                 
+                 <div className="space-y-3">
+                    {upcomingPayments.length > 0 ? upcomingPayments.map((item, idx) => (
+                        <div key={idx} className="group p-3 rounded-2xl bg-black/5 dark:bg-white/[0.02] border border-transparent hover:border-primary-500/10 transition-all flex items-center justify-between">
+                            <div className="flex items-center gap-3 min-w-0">
+                                <div className="w-9 h-9 rounded-xl bg-white dark:bg-white/5 flex flex-col items-center justify-center border border-black/5 dark:border-white/10 shrink-0">
+                                    <span className="text-[10px] font-bold text-primary-500 leading-none">{parseLocalDate(item.date).getDate()}</span>
+                                    <span className="text-[7px] font-bold text-light-text-secondary dark:text-dark-text-secondary uppercase opacity-60 leading-none mt-0.5">{parseLocalDate(item.date).toLocaleString('default', { month: 'short' })}</span>
+                                </div>
+                                <div className="min-w-0">
+                                    <p className="text-xs font-bold text-light-text dark:text-dark-text truncate leading-tight group-hover:text-primary-500 transition-colors uppercase tracking-tight">{item.description}</p>
+                                    <div className="flex items-center gap-1.5 mt-0.5">
+                                        <span className={`w-1 h-1 rounded-full ${item.isRecurring ? 'bg-indigo-500' : 'bg-amber-500'}`}></span>
+                                        <p className="text-[8px] font-bold text-light-text-secondary dark:text-dark-text-secondary uppercase tracking-widest opacity-40">{item.isRecurring ? 'Recurring' : 'One-time'}</p>
+                                    </div>
+                                </div>
+                            </div>
+                            <p className="text-xs font-bold text-light-text dark:text-dark-text whitespace-nowrap ml-2">
+                                {formatCurrency(item.amount, account.currency)}
+                            </p>
+                        </div>
+                    )) : (
+                        <div className="py-8 flex flex-col items-center justify-center text-center opacity-30">
+                            <span className="material-symbols-outlined text-4xl mb-2">event_available</span>
+                            <p className="text-[10px] font-bold uppercase tracking-widest">No due payments</p>
+                        </div>
+                    )}
+                 </div>
+             </Card>
+
              {/* BANKING DETAILS PANEL */}
              <Card className="!p-6 bg-primary-500/[0.02] border-primary-500/10 h-min">
-                 <h3 className="text-[10px] font-bold text-primary-500 uppercase tracking-[0.2em] mb-4">Account Registry</h3>
+                 <h3 className="text-[10px] font-bold text-primary-500 uppercase tracking-[0.2em] mb-4">Account Metadata</h3>
                  <div className="space-y-4">
                      {account.openingDate && (
                         <div className="flex justify-between items-center bg-black/5 dark:bg-white/5 p-2.5 rounded-xl border border-black/5 dark:border-white/5">
-                             <p className="text-[9px] font-bold text-light-text-secondary dark:text-dark-text-secondary uppercase tracking-widest opacity-60">Created At</p>
+                             <p className="text-[9px] font-bold text-light-text-secondary dark:text-dark-text-secondary uppercase tracking-widest opacity-60">Opened On</p>
                              <p className="text-xs font-bold text-light-text dark:text-dark-text uppercase tracking-tight">{account.openingDate}</p>
                         </div>
                      )}
                      {account.accountNumber && (
                         <div>
-                             <p className="text-[9px] font-bold text-light-text-secondary dark:text-dark-text-secondary uppercase tracking-widest opacity-60 mb-1">Identity / IBAN</p>
+                             <p className="text-[9px] font-bold text-light-text-secondary dark:text-dark-text-secondary uppercase tracking-widest opacity-60 mb-1">Account / IBAN</p>
                              <div className="flex items-center justify-between p-2 rounded-lg bg-black/5 dark:bg-white/5 border border-black/5 dark:border-white/5 group">
                                   <p className="font-mono text-[10px] font-bold text-light-text dark:text-dark-text break-all truncate mr-2">{account.accountNumber}</p>
                                   <button className="text-light-text-secondary hover:text-primary-500 transition-colors opacity-0 group-hover:opacity-100"><span className="material-symbols-outlined text-sm">content_copy</span></button>
@@ -696,7 +528,7 @@ const GeneralAccountView: React.FC<GeneralAccountViewProps> = ({
                      )}
                      {account.routingNumber && (
                         <div>
-                             <p className="text-[9px] font-bold text-light-text-secondary dark:text-dark-text-secondary uppercase tracking-widest opacity-60 mb-1">BIC / Protocol</p>
+                             <p className="text-[9px] font-bold text-light-text-secondary dark:text-dark-text-secondary uppercase tracking-widest opacity-60 mb-1">BIC / Routing</p>
                              <div className="flex items-center justify-between p-2 rounded-lg bg-black/5 dark:bg-white/5 border border-black/5 dark:border-white/5 group">
                                   <p className="font-mono text-[10px] font-bold text-light-text dark:text-dark-text">{account.routingNumber}</p>
                                   <button className="text-light-text-secondary hover:text-primary-500 transition-colors opacity-0 group-hover:opacity-100"><span className="material-symbols-outlined text-sm">content_copy</span></button>
@@ -710,12 +542,6 @@ const GeneralAccountView: React.FC<GeneralAccountViewProps> = ({
                         </div>
                      )}
                  </div>
-                 {account.notes && (
-                    <div className="mt-4 pt-4 border-t border-black/5 dark:border-white/5">
-                        <p className="text-[9px] font-bold text-light-text-secondary uppercase tracking-widest opacity-60 mb-1">Notes</p>
-                        <p className="text-[10px] text-light-text dark:text-dark-text italic opacity-80 leading-relaxed font-bold">{account.notes}</p>
-                    </div>
-                )}
              </Card>
         </div>
       </div>
@@ -723,4 +549,4 @@ const GeneralAccountView: React.FC<GeneralAccountViewProps> = ({
   );
 };
 
-export default GeneralAccountView;
+export default CheckingAccountView;

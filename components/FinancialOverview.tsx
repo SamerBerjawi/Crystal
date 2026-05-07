@@ -132,10 +132,10 @@ const FinancialOverview: React.FC<FinancialOverviewProps> = ({
                          </div>
                          <span className="text-[8px] font-bold text-light-text-secondary/40 uppercase tracking-widest">Relative to Income</span>
                     </div>
-                    <div className="h-2 w-full bg-black/5 dark:bg-black/20 rounded-full overflow-hidden flex border border-black/5 dark:border-white/5 p-0.5">
+                    <div className="h-3 w-full bg-black/5 dark:bg-black/20 rounded-full overflow-hidden flex border border-black/5 dark:border-white/5 p-0.5">
                         <div 
-                            className={`h-full rounded-full transition-all duration-1000 ease-out shadow-sm ${isPositiveNet ? 'bg-gradient-to-r from-primary-600 to-primary-400' : 'bg-gradient-to-r from-rose-600 to-rose-400'}`} 
-                            style={{ width: `${Math.max(Math.min(flowIntensity, 100), flowIntensity > 0 ? 2 : 0)}%` }}
+                            className={`h-full rounded-full transition-all duration-1000 ease-out shadow-sm ${isPositiveNet ? 'bg-gradient-to-r from-emerald-600 to-emerald-400' : 'bg-gradient-to-r from-rose-600 to-rose-400'}`} 
+                            style={{ width: `${Math.max(Math.min(flowIntensity, 100), flowIntensity > 0 ? 5 : 0)}%` }}
                         ></div>
                     </div>
                 </div>

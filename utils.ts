@@ -35,7 +35,7 @@ export function formatCurrency(amount: number, currency: Currency, options?: { s
   }
 
   // Handle both "EUR" and "EUR (€)" formats
-  const cleanCurrency = currency.split(' ')[0] as Currency;
+  const cleanCurrency = (currency || 'EUR').split(' ')[0] as Currency;
   const symbol = symbolMap[cleanCurrency] || cleanCurrency;
 
   return `${sign}${symbol}${formatter.format(Math.abs(amount))}`;

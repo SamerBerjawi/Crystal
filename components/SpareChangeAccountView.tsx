@@ -1,11 +1,13 @@
 import React, { useMemo } from 'react';
 import { Account, Transaction, DisplayTransaction, Category } from '../types';
-import { formatCurrency, parseLocalDate, convertToEur, getPreferredTimeZone } from '../utils';
+import { formatCurrency, convertToEur, getPreferredTimeZone } from '../utils';
 import Card from './Card';
+import PageHeader from './PageHeader';
+import BankCard from './BankCard';
 import TransactionList from './TransactionList';
-import { BTN_PRIMARY_STYLE, BTN_SECONDARY_STYLE } from '../constants';
 import { ResponsiveContainer, BarChart, CartesianGrid, XAxis, YAxis, Tooltip, Bar, Cell } from 'recharts';
 import { useAccountsContext } from '../contexts/DomainProviders';
+import { motion } from 'motion/react';
 
 interface SpareChangeAccountViewProps {
   account: Account;
@@ -52,7 +54,6 @@ const SpareChangeAccountView: React.FC<SpareChangeAccountViewProps> = ({
 
       transactions.forEach(({ tx, parsedDate, convertedAmount }) => {
           if (tx.type === 'income') {
-              // Only count actual deposits/transfers, ignore market gains
                if (!tx.isMarketAdjustment) {
                    saved += convertedAmount;
                    count++;
@@ -78,161 +79,203 @@ const SpareChangeAccountView: React.FC<SpareChangeAccountViewProps> = ({
   const monthlyData = useMemo(() => {
     const data = [];
     const today = new Date();
-    // 6 months
     for (let i = 5; i >= 0; i--) {
         const d = new Date(today.getFullYear(), today.getMonth() - i, 1);
         const monthKey = d.toLocaleString('default', { month: 'short' });
-        
         const startOfMonth = new Date(d.getFullYear(), d.getMonth(), 1);
         const endOfMonth = new Date(d.getFullYear(), d.getMonth() + 1, 0);
-        
         const total = transactions
             .filter(t => t.parsedDate >= startOfMonth && t.parsedDate <= endOfMonth && t.tx.type === 'income' && !t.tx.isMarketAdjustment)
             .reduce((sum, t) => sum + t.convertedAmount, 0);
-        
         data.push({ name: monthKey, value: total });
     }
     return data;
   }, [transactions]);
   
-  // "Coffee Index" - fun metric
-  const coffeesSaved = Math.floor(totalSaved / 4.50); // Assuming €4.50 per fancy coffee
+  const coffeesSaved = Math.floor(totalSaved / 4.50);
 
   return (
-    <div className="space-y-8 animate-fade-in-up">
-      {/* Header */}
-      <header className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
-        <div className="flex items-center gap-4 w-full">
-          <button onClick={onBack} className="text-light-text-secondary dark:text-dark-text-secondary p-2 rounded-full hover:bg-black/5 dark:hover:bg-white/5 flex-shrink-0 -ml-2">
-            <span className="material-symbols-outlined">arrow_back</span>
-          </button>
-          <div className="flex items-center gap-4">
-            <div className="w-16 h-16 rounded-2xl flex items-center justify-center bg-cyan-100 dark:bg-cyan-900/30 text-cyan-600 dark:text-cyan-400 border border-cyan-200 dark:border-cyan-800">
-              <span className="material-symbols-outlined text-4xl">{account.icon || 'savings'}</span>
-            </div>
-            <div>
-              <h1 className="text-3xl font-bold text-light-text dark:text-dark-text tracking-tight">{account.name}</h1>
-              <div className="flex items-center gap-2 text-sm text-light-text-secondary dark:text-dark-text-secondary font-medium">
-                <span>Spare Change</span>
-                {sourceAccount && (
-                    <>
-                        <span>•</span>
-                        <span className="flex items-center gap-1">
-                            Source: <span className="text-light-text dark:text-dark-text">{sourceAccount.name}</span>
-                        </span>
-                    </>
-                )}
-              </div>
-            </div>
-          </div>
-        </div>
-        <div className="flex gap-3 flex-shrink-0 ml-auto md:ml-0">
-             {isLinkedToEnableBanking && onSyncLinkedAccount && (
-                 <button onClick={onSyncLinkedAccount} className={`${BTN_SECONDARY_STYLE}`}>Sync</button>
-             )}
-             {onAdjustBalance && (
-                 <button onClick={onAdjustBalance} className={`${BTN_SECONDARY_STYLE}`}>
-                     <span className="material-symbols-outlined text-lg mr-2">tune</span>
-                     Adjust
-                 </button>
-             )}
-            <button onClick={onAddTransaction} className={`${BTN_PRIMARY_STYLE}`}>
-                <span className="material-symbols-outlined text-lg mr-2">add</span>
-                Add Cash
+    <div className="space-y-10 animate-fade-in-up pb-12">
+      <PageHeader 
+        markerIcon="savings"
+        markerLabel="Micro-saving engine • Spare Change"
+        title={account.name}
+        subtitle="Automated change round-up tracking with accumulation velocity and impact analysis."
+        className="mb-8"
+        actions={
+          <div className="flex items-center gap-2">
+            <button 
+                onClick={onBack} 
+                className="w-10 h-10 rounded-xl bg-black/5 dark:bg-white/5 flex items-center justify-center hover:bg-black/10 dark:hover:bg-white/10 transition-all group"
+                title="Back to All Accounts"
+            >
+                <span className="material-symbols-outlined text-xl">arrow_back</span>
             </button>
-        </div>
-      </header>
-
-      {/* Hero Section */}
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-          
-          {/* Piggy Bank Card */}
-          <div className="lg:col-span-2 bg-gradient-to-br from-cyan-500 to-blue-600 text-white rounded-3xl p-8 shadow-xl relative overflow-hidden flex flex-col justify-between min-h-[240px]">
-               <div className="absolute top-0 right-0 p-8 opacity-20 pointer-events-none">
-                   <span className="material-symbols-outlined text-9xl">savings</span>
-               </div>
-               
-               <div className="relative z-10">
-                    <p className="text-cyan-100 font-bold uppercase tracking-widest text-xs mb-2">Total Accumulated</p>
-                    <h2 className="text-5xl font-extrabold tracking-tight drop-shadow-sm">{formatCurrency(account.balance, account.currency)}</h2>
-                    <p className="text-cyan-50 text-sm mt-2 font-medium bg-black/10 inline-block px-3 py-1 rounded-lg backdrop-blur-sm">
-                        {totalRoundUps} round-ups collected
-                    </p>
-               </div>
-
-               <div className="relative z-10 mt-8 pt-6 border-t border-white/20 grid grid-cols-2 gap-8">
-                    <div>
-                        <p className="text-cyan-100 text-xs font-bold uppercase mb-1">Average Round-up</p>
-                        <p className="text-xl font-bold">{formatCurrency(avgRoundUp, account.currency)}</p>
-                    </div>
-                    <div>
-                        <p className="text-cyan-100 text-xs font-bold uppercase mb-1">This Month</p>
-                        <p className="text-xl font-bold">+{formatCurrency(thisMonthSaved, account.currency)}</p>
-                    </div>
-               </div>
+             {onAdjustBalance && (
+                <button onClick={onAdjustBalance} className="flex items-center gap-2 px-4 py-2.5 bg-black/5 dark:bg-white/5 text-light-text dark:text-dark-text rounded-xl font-bold text-sm hover:bg-black/10 dark:hover:bg-white/10 transition-all border border-black/5 dark:border-white/5">
+                    <span className="material-symbols-outlined text-sm font-black">tune</span>
+                    <span className="hidden sm:inline">Reconcile</span>
+                </button>
+             )}
+            <button onClick={onAddTransaction} className="flex items-center gap-2 px-5 py-2.5 bg-cyan-600 text-white rounded-xl font-bold text-sm shadow-lg shadow-cyan-600/25 hover:bg-cyan-700 transition-all">
+                <span className="material-symbols-outlined text-sm font-black">add</span>
+                <span className="hidden sm:inline">Manual Fill</span>
+            </button>
           </div>
+        }
+      />
 
-          {/* Fun Fact Card */}
-          <Card className="flex flex-col justify-center items-center text-center bg-orange-50 dark:bg-orange-900/10 border-orange-100 dark:border-orange-800/30">
-               <div className="w-16 h-16 bg-white dark:bg-white/10 rounded-full flex items-center justify-center shadow-sm mb-4 text-orange-500 text-3xl">
-                   ☕
-               </div>
-               <h3 className="text-lg font-bold text-orange-800 dark:text-orange-200">The Coffee Index</h3>
-               <p className="text-sm text-orange-700/80 dark:text-orange-300/80 mt-1 mb-4 px-4">
-                   Your spare change has saved you the equivalent of...
-               </p>
-               <p className="text-4xl font-extrabold text-orange-600 dark:text-orange-400">{coffeesSaved}</p>
-               <p className="text-xs font-bold uppercase tracking-widest text-orange-500 mt-1">Coffees</p>
-          </Card>
-      </div>
+      <div className="grid grid-cols-1 lg:grid-cols-12 gap-8">
+        {/* Left Column: Bank Card & Summary Pulse */}
+        <div className="lg:col-span-4 space-y-8">
+            <BankCard 
+                name={account.name}
+                balance={account.balance}
+                currency={account.currency}
+                last4={account.last4}
+                institution={account.financialInstitution}
+                type="Spare Change"
+                color="cyan"
+            />
 
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
-          {/* Left Column: Monthly Trends */}
-          <div className="lg:col-span-2">
-               <Card className="h-[350px] flex flex-col">
-                    <div className="flex justify-between items-center mb-6">
+            <Card className="p-8 !rounded-[2.5rem] bg-cyan-600 text-white shadow-2xl shadow-cyan-600/20 relative overflow-hidden group">
+                 <div className="absolute top-0 right-0 p-8 opacity-10 pointer-events-none group-hover:scale-110 transition-transform duration-700">
+                     <span className="material-symbols-outlined text-9xl">savings</span>
+                 </div>
+                 <div className="relative z-10 text-center">
+                     <p className="text-[10px] font-black uppercase tracking-widest opacity-60 mb-8 leading-none">Coffee Index Impact</p>
+                     <div className="w-24 h-24 bg-white/10 backdrop-blur-md rounded-full flex items-center justify-center mx-auto mb-6 text-5xl shadow-xl">
+                        ☕
+                     </div>
+                     <h3 className="text-6xl font-black tracking-tightest mb-2 privacy-blur">{coffeesSaved}</h3>
+                     <p className="text-[10px] font-black uppercase tracking-[0.2em] opacity-60">Cappuccinos Accumulated</p>
+                 </div>
+            </Card>
+
+            <div className="grid grid-cols-1 gap-4">
+                <Card className="p-8 !rounded-[2.5rem] border-cyan-500/10">
+                    <div className="flex justify-between items-start mb-6">
                         <div>
-                            <h3 className="text-lg font-bold text-light-text dark:text-dark-text">Accumulation Velocity</h3>
-                            <p className="text-xs text-light-text-secondary dark:text-dark-text-secondary mt-1">Monthly savings from round-ups</p>
+                            <p className="text-[10px] font-black uppercase tracking-widest text-light-text-secondary opacity-40 mb-1">Lifetime Rounds</p>
+                            <p className="text-3xl font-black text-light-text dark:text-dark-text tracking-tightest">{totalRoundUps}</p>
+                        </div>
+                        <div className="w-12 h-12 rounded-2xl bg-cyan-500/10 text-cyan-500 flex items-center justify-center">
+                            <span className="material-symbols-outlined">restart_alt</span>
                         </div>
                     </div>
-                    <div className="flex-grow w-full">
-                         <ResponsiveContainer width="100%" height="100%">
-                            <BarChart data={monthlyData} margin={{ top: 10, right: 0, left: -20, bottom: 0 }}>
-                                <CartesianGrid strokeDasharray="3 3" strokeOpacity={0.06} vertical={false} />
-                                <XAxis dataKey="name" axisLine={false} tickLine={false} tick={{ fill: 'currentColor', opacity: 0.6, fontSize: 12 }} />
-                                <YAxis axisLine={false} tickLine={false} tick={{ fill: 'currentColor', opacity: 0.6, fontSize: 12 }} tickFormatter={(val) => `${val}`} />
-                                <Tooltip 
-                                    cursor={{ fill: 'rgba(128, 128, 128, 0.05)', radius: 4 }}
-                                    contentStyle={{ backgroundColor: 'var(--light-card)', borderColor: 'rgba(0,0,0,0.05)', borderRadius: '12px' }}
-                                    formatter={(value: number) => [formatCurrency(value, account.currency), 'Saved']}
-                                />
-                                <Bar dataKey="value" fill="#06B6D4" radius={[4, 4, 0, 0]} barSize={40}>
-                                    {monthlyData.map((entry, index) => (
-                                        <Cell key={`cell-${index}`} fill={index === monthlyData.length - 1 ? '#0891B2' : '#06B6D4'} />
-                                    ))}
-                                </Bar>
-                            </BarChart>
-                        </ResponsiveContainer>
-                    </div>
-               </Card>
-          </div>
-
-          {/* Right Column: Recent List */}
-          <div className="space-y-8">
-               <Card className="flex flex-col h-full max-h-[350px] !p-0">
-                    <div className="flex justify-between items-center p-4 border-b border-black/5 dark:border-white/5">
-                        <h3 className="text-lg font-semibold text-light-text dark:text-dark-text">Recent Round-ups</h3>
-                    </div>
-                    <div className="flex-grow overflow-hidden">
-                        <TransactionList 
-                            transactions={displayTransactionsList.slice(0, 8)} 
-                            allCategories={allCategories} 
-                            onTransactionClick={onTransactionClick} 
-                        />
-                    </div>
+                    <p className="text-[10px] font-bold text-light-text-secondary opacity-60 uppercase tracking-widest leading-relaxed">
+                        Total number of micro-transactions processed
+                    </p>
                 </Card>
-          </div>
+
+                <Card className="p-8 !rounded-[2.5rem] border-cyan-500/10">
+                    <div className="flex justify-between items-start mb-6">
+                        <div>
+                            <p className="text-[10px] font-black uppercase tracking-widest text-light-text-secondary opacity-40 mb-1">Average Lift</p>
+                            <p className="text-3xl font-black text-light-text dark:text-dark-text tracking-tightest privacy-blur">{formatCurrency(avgRoundUp, account.currency)}</p>
+                        </div>
+                        <div className="w-12 h-12 rounded-2xl bg-cyan-500/10 text-cyan-500 flex items-center justify-center">
+                            <span className="material-symbols-outlined">analytics</span>
+                        </div>
+                    </div>
+                    <p className="text-[10px] font-bold text-light-text-secondary opacity-60 uppercase tracking-widest leading-relaxed">
+                        The average amount saved per transaction
+                    </p>
+                </Card>
+            </div>
+        </div>
+
+        {/* Right Column: Analytics & List */}
+        <div className="lg:col-span-8 space-y-8">
+            <Card className="p-8 !rounded-[2.5rem] border-black/5 dark:border-white/5 shadow-sm bg-white dark:bg-dark-card flex flex-col h-[450px]">
+                <div className="flex items-center justify-between mb-10">
+                    <div className="flex items-center gap-4">
+                        <div className="w-12 h-12 rounded-2xl bg-black/5 dark:bg-white/5 flex items-center justify-center">
+                            <span className="material-symbols-outlined text-cyan-500">bar_chart_4_bars</span>
+                        </div>
+                        <div>
+                            <h3 className="text-sm font-black uppercase tracking-widest text-light-text dark:text-dark-text leading-none mb-1">Accumulation Intensity</h3>
+                            <p className="text-[10px] font-bold text-light-text-secondary opacity-40 uppercase tracking-widest leading-none">Last 6 Months Velocity</p>
+                        </div>
+                    </div>
+                    {sourceAccount && (
+                        <div className="flex flex-col items-end">
+                            <span className="text-[9px] font-black uppercase tracking-widest opacity-40">Source Account</span>
+                            <span className="text-xs font-black text-light-text dark:text-dark-text">{sourceAccount.name}</span>
+                        </div>
+                    )}
+                </div>
+
+                <div className="flex-grow w-full min-h-0">
+                    <ResponsiveContainer width="100%" height="100%">
+                         <BarChart data={monthlyData} margin={{ top: 0, right: 0, left: -20, bottom: 0 }}>
+                            <CartesianGrid strokeDasharray="3 3" strokeOpacity={0.05} vertical={false} stroke="currentColor" />
+                            <XAxis 
+                                dataKey="name" 
+                                axisLine={false} 
+                                tickLine={false} 
+                                tick={{ fill: 'currentColor', opacity: 0.4, fontSize: 10, fontWeight: 900 }} 
+                            />
+                            <YAxis 
+                                axisLine={false} 
+                                tickLine={false} 
+                                tick={{ fill: 'currentColor', opacity: 0.4, fontSize: 10, fontWeight: 900 }} 
+                                tickFormatter={(val) => `${val}`} 
+                            />
+                            <Tooltip 
+                                cursor={{ fill: 'currentColor', opacity: 0.05, radius: 8 }}
+                                content={({ active, payload, label }) => {
+                                    if (active && payload && payload.length) {
+                                        return (
+                                            <div className="bg-white dark:bg-dark-card p-4 rounded-3xl shadow-2xl border border-black/5 dark:border-white/10 min-w-[140px]">
+                                                <p className="text-[10px] font-black uppercase tracking-[0.2em] mb-2 opacity-40">{label}</p>
+                                                <div className="flex flex-col">
+                                                    <span className="text-xs font-black text-light-text dark:text-dark-text">
+                                                        {formatCurrency(payload[0].value as number, account.currency)}
+                                                    </span>
+                                                    <span className="text-[9px] font-bold uppercase tracking-widest opacity-40 mt-1">Saved</span>
+                                                </div>
+                                            </div>
+                                        );
+                                    }
+                                    return null;
+                                }}
+                            />
+                            <Bar dataKey="value" radius={[8, 8, 8, 8]} barSize={40}>
+                                {monthlyData.map((entry, index) => (
+                                    <Cell 
+                                        key={`cell-${index}`} 
+                                        fill={index === monthlyData.length - 1 ? '#0891B2' : 'currentColor'} 
+                                        className={index === monthlyData.length - 1 ? 'opacity-100' : 'opacity-10'}
+                                    />
+                                ))}
+                            </Bar>
+                        </BarChart>
+                    </ResponsiveContainer>
+                </div>
+            </Card>
+
+            <div className="bg-white dark:bg-dark-card rounded-[2.5rem] border border-black/5 dark:border-white/5 shadow-sm overflow-hidden flex flex-col h-full max-h-[500px]">
+                <div className="flex items-center justify-between p-8 border-b border-black/5 dark:border-white/10">
+                    <div className="flex items-center gap-4">
+                        <div className="w-10 h-10 rounded-xl bg-black/5 dark:bg-white/5 flex items-center justify-center">
+                            <span className="material-symbols-outlined text-light-text-secondary">history</span>
+                        </div>
+                        <h3 className="text-sm font-black uppercase tracking-widest text-light-text dark:text-dark-text">Micro Journal</h3>
+                    </div>
+                    <div className="flex items-center gap-2">
+                        <span className="text-[10px] font-black text-emerald-500 uppercase tracking-widest bg-emerald-500/10 px-2 py-1 rounded">Accumulating</span>
+                    </div>
+                </div>
+                <div className="flex-grow overflow-hidden">
+                    <TransactionList 
+                        transactions={displayTransactionsList.slice(0, 15)} 
+                        allCategories={allCategories} 
+                        onTransactionClick={onTransactionClick} 
+                    />
+                </div>
+            </div>
+        </div>
       </div>
     </div>
   );

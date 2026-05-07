@@ -114,7 +114,7 @@ const AccountsListSection: React.FC<AccountsListSectionProps> = ({
     // 'columns' mode is treated as the primary responsive grid.
     // 'stacked' mode is treated as a list or single column for density.
     const gridClasses = layoutMode === 'columns' 
-        ? 'grid-cols-[repeat(auto-fill,minmax(332px,1fr))]' 
+        ? 'grid-cols-[repeat(auto-fill,minmax(320px,1fr))]' 
         : 'grid-cols-1 xl:grid-cols-2';
 
     return (

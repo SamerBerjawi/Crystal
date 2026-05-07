@@ -24,6 +24,7 @@ const CashAccountView = React.lazy(() => import('../components/CashAccountView')
 const SavingsAccountView = React.lazy(() => import('../components/SavingsAccountView'));
 const PensionAccountView = React.lazy(() => import('../components/PensionAccountView'));
 const SpareChangeAccountView = React.lazy(() => import('../components/SpareChangeAccountView'));
+const CheckingAccountView = React.lazy(() => import('../components/CheckingAccountView'));
 
 const AccountDetail: React.FC<{
     account: Account;
@@ -364,6 +365,16 @@ const AccountDetail: React.FC<{
             case 'Savings':
                 return (
                     <SavingsAccountView
+                        {...commonProps}
+                        displayTransactionsList={displayTransactionsList}
+                        transactions={accountTransactions}
+                        allCategories={allCategories}
+                        onTransactionClick={handleTransactionClick}
+                    />
+                );
+            case 'Checking':
+                return (
+                    <CheckingAccountView
                         {...commonProps}
                         displayTransactionsList={displayTransactionsList}
                         transactions={accountTransactions}

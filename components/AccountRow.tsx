@@ -73,11 +73,11 @@ const AccountRow: React.FC<AccountRowProps> = ({ account, transactions, warrants
     }, [account, transactions, loanPaymentOverrides]);
 
     const { sparklineData, trend, isPositiveTrend } = useMemo(() => {
-        const NUM_POINTS = 20;
+        const NUM_POINTS = 90;
         const today = new Date();
         const endDate = new Date(today.getFullYear(), today.getMonth(), today.getDate());
         const startDate = new Date(endDate);
-        startDate.setDate(endDate.getDate() - 30);
+        startDate.setDate(endDate.getDate() - 90);
 
         const sortedTransactions = [...transactions].sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime());
         let currentBal = convertToEur(displayBalance, account.currency);
@@ -166,159 +166,151 @@ const AccountRow: React.FC<AccountRowProps> = ({ account, transactions, warrants
     const isIncludedInAnalytics = account.includeInAnalytics ?? true;
 
     // Background Gradient Logic based on Type
-    let bgGradient = "bg-white dark:bg-dark-card"; // Default
-    if (account.type === 'Checking' || account.type === 'Savings') {
-        bgGradient = "bg-gradient-to-br from-white to-blue-50/50 dark:from-dark-card dark:to-blue-900/10";
+    let bgGradient = "bg-white dark:bg-dark-card";
+    let cardTheme = "white"; // Default white theme
+    
+    if (account.type === 'Checking') {
+        bgGradient = "bg-gradient-to-br from-indigo-500 to-indigo-700 text-white";
+        cardTheme = "colored";
+    } else if (account.type === 'Savings') {
+        bgGradient = "bg-gradient-to-br from-emerald-500 to-emerald-700 text-white";
+        cardTheme = "colored";
+    } else if (account.type === 'Credit Card') {
+        bgGradient = "bg-gradient-to-br from-rose-500 to-rose-700 text-white";
+        cardTheme = "colored";
     } else if (account.type === 'Investment') {
-        bgGradient = "bg-gradient-to-br from-white to-purple-50/50 dark:from-dark-card dark:to-purple-900/10";
-    } else if (account.type === 'Credit Card' || account.type === 'Loan') {
-        bgGradient = "bg-gradient-to-br from-white to-red-50/30 dark:from-dark-card dark:to-red-900/10";
+        bgGradient = "bg-gradient-to-br from-indigo-600 to-primary-700 text-white";
+        cardTheme = "colored";
     }
 
     const logoUrl = account.financialInstitution ? getMerchantLogoUrl(account.financialInstitution, brandfetchClientId, merchantLogoOverrides, { type: 'icon', fallback: 'lettermark', width: 64, height: 64 }) : null;
     const showLogo = !!logoUrl && !logoError;
 
+    const colorConfig: Record<string, { bg: string, text: string, border: string, icon: string }> = {
+        Checking: { bg: 'bg-blue-500/10', text: 'text-blue-600 dark:text-blue-400', border: 'border-blue-500/20', icon: 'payments' },
+        Savings: { bg: 'bg-emerald-500/10', text: 'text-emerald-600 dark:text-emerald-400', border: 'border-emerald-500/20', icon: 'savings' },
+        'Credit Card': { bg: 'bg-rose-500/10', text: 'text-rose-600 dark:text-rose-400', border: 'border-rose-500/20', icon: 'credit_card' },
+        Investment: { bg: 'bg-violet-500/10', text: 'text-violet-600 dark:text-violet-400', border: 'border-violet-500/20', icon: 'trending_up' },
+        Loan: { bg: 'bg-amber-500/10', text: 'text-amber-600 dark:text-amber-400', border: 'border-amber-500/20', icon: 'account_balance' },
+        Property: { bg: 'bg-sky-500/10', text: 'text-sky-600 dark:text-sky-400', border: 'border-sky-500/20', icon: 'location_on' },
+        Vehicle: { bg: 'bg-slate-500/10', text: 'text-slate-600 dark:text-slate-400', border: 'border-slate-500/20', icon: 'directions_car' },
+        'Other Assets': { bg: 'bg-orange-500/10', text: 'text-orange-600 dark:text-orange-400', border: 'border-orange-500/20', icon: 'category' },
+        'Other Liabilities': { bg: 'bg-red-500/10', text: 'text-red-600 dark:text-red-400', border: 'border-red-500/20', icon: 'warning' },
+    };
+
+    const currentConfig = colorConfig[account.type] || colorConfig['Other Assets'];
+
     return (
         <div 
             draggable={isDraggable}
-            onDragStart={(e) => onDragStart(e)}
-            onDragOver={(e) => onDragOver(e)}
+            onDragStart={onDragStart}
+            onDragOver={onDragOver}
             onDragLeave={onDragLeave}
-            onDrop={(e) => onDrop(e)}
+            onDrop={onDrop}
             onDragEnd={onDragEnd}
             onContextMenu={onContextMenu}
             onClick={onClick}
             className={`
-                relative group overflow-hidden
-                ${bgGradient}
-                rounded-2xl border border-black/5 dark:border-white/10
-                shadow-sm hover:shadow-xl hover:-translate-y-1
-                transition-all duration-300 ease-out
-                w-full h-[210px] p-5 flex flex-col justify-between
-                ${cursorClass} ${dragClasses} ${dragOverClasses}
+                relative group cursor-pointer
+                w-full bg-white dark:bg-dark-card rounded-[2rem] border-l-4 border-y border-r border-black/5 dark:border-white/5
+                p-6 flex flex-col justify-between h-[210px]
+                shadow-sm hover:shadow-xl hover:-translate-y-1 transition-all duration-300
                 ${account.status === 'closed' ? 'opacity-60 grayscale' : ''}
+                ${dragClasses} ${dragOverClasses}
             `}
+            style={{ borderLeftColor: currentConfig.text.includes('blue') ? '#3b82f6' : 
+                                       currentConfig.text.includes('emerald') ? '#10b981' :
+                                       currentConfig.text.includes('rose') ? '#f43f5e' :
+                                       currentConfig.text.includes('violet') ? '#8b5cf6' :
+                                       currentConfig.text.includes('amber') ? '#f59e0b' :
+                                       currentConfig.text.includes('sky') ? '#0ea5e9' :
+                                       currentConfig.text.includes('slate') ? '#64748b' :
+                                       currentConfig.text.includes('orange') ? '#f97316' :
+                                       currentConfig.text.includes('red') ? '#ef4444' : '#3b82f6' }}
         >
-            {/* Backdrop Watermark Icon */}
-            <div className="absolute -right-4 -bottom-8 opacity-[0.03] dark:opacity-[0.05] pointer-events-none transform -rotate-12 transition-transform duration-500 group-hover:scale-110 group-hover:rotate-0 z-0">
-                <span className="material-symbols-outlined text-[120px] select-none">{iconName}</span>
-            </div>
-
-            {/* Header Section */}
-            <div className="relative z-10">
-                <div className="flex items-start justify-between mb-3">
-                    <div className="flex items-center gap-3 min-w-0">
-                        <div className={`
-                            w-10 h-10 rounded-lg flex-shrink-0 shadow-sm overflow-hidden
-                            ${showLogo ? 'bg-white' : `bg-white dark:bg-white/10 flex items-center justify-center ${typeColor}`}
-                        `}>
-                            {showLogo ? (
-                                <img 
-                                    src={logoUrl!} 
-                                    alt={account.financialInstitution} 
-                                    className="w-full h-full object-cover" 
-                                    onError={() => setLogoError(true)} 
-                                />
-                            ) : (
-                                <span className="material-symbols-outlined text-xl">{iconName}</span>
-                            )}
-                        </div>
-                        <div className="min-w-0">
-                            <h3 className="font-bold text-base text-light-text dark:text-dark-text truncate leading-tight">
-                                {account.name}
-                            </h3>
-                            <p className="text-[10px] text-light-text-secondary dark:text-dark-text-secondary truncate font-semibold mt-0.5 tracking-wide uppercase">
-                                {secondaryText}
-                                {account.last4 && <span className="opacity-70 ml-1">•••• {account.last4}</span>}
-                            </p>
-                        </div>
-                    </div>
-                        <div className="flex items-start gap-1">
-                            {account.status === 'closed' && (
-                                <span className="px-2 py-0.5 rounded bg-gray-100 text-gray-700 dark:bg-gray-800 dark:text-gray-300 text-[8px] font-black uppercase tracking-widest border border-black/5 dark:border-white/5" title="Account Closed">
-                                    Closed
-                                </span>
-                            )}
-                            {isLinkedToEnableBanking && (
-                                <span className="material-symbols-outlined text-base text-emerald-500" title="Live Sync Active">link</span>
-                            )}
-                        {isIncludedInAnalytics ? (
-                             <span className="material-symbols-outlined text-base text-blue-400 dark:text-blue-500 opacity-70" title="Included in Analytics">bar_chart</span>
-                        ) : (
-                             <span className="material-symbols-outlined text-base text-gray-400" title="Hidden from Analytics">visibility_off</span>
-                        )}
-                         {account.isPrimary && (
-                            <span className="material-symbols-outlined text-base text-yellow-500" title="Primary Account">star</span>
-                        )}
-                    </div>
-                </div>
-
-                {/* Balance Section */}
-                <div>
-                    <p className="text-2xl font-extrabold tracking-tight text-light-text dark:text-dark-text privacy-blur">
-                        {formatCurrency(convertToEur(displayBalance, account.currency), 'EUR')}
-                    </p>
-                    {account.currency !== 'EUR' && (
-                        <p className="text-[10px] text-light-text-secondary dark:text-dark-text-secondary font-mono font-medium mt-0.5 privacy-blur opacity-70">
-                            {formatCurrency(displayBalance, account.currency)}
-                        </p>
-                    )}
-                </div>
-            </div>
-
-            {/* Sparkline Background */}
-            <div className="absolute bottom-0 left-0 right-0 h-16 w-full pointer-events-none opacity-30 group-hover:opacity-60 transition-opacity duration-500 z-0">
-                 <ResponsiveContainer width="100%" height="100%">
-                    <AreaChart data={sparklineData} margin={{ top: 0, right: 0, left: 0, bottom: 0 }}>
-                        <defs>
-                            <linearGradient id={gradientId} x1="0" y1="0" x2="0" y2="1">
-                                <stop offset="5%" stopColor={chartColor} stopOpacity={0.5}/>
-                                <stop offset="95%" stopColor={chartColor} stopOpacity={0}/>
-                            </linearGradient>
-                        </defs>
-                        <Area 
-                            type="monotone" 
-                            dataKey="value" 
-                            stroke={chartColor} 
-                            strokeWidth={2} 
-                            fill={`url(#${gradientId})`}
-                            isAnimationActive={false}
-                        />
-                    </AreaChart>
-                </ResponsiveContainer>
-            </div>
-            
-            {/* Quick Actions (Hover) */}
-             <div className="absolute bottom-3 right-3 flex gap-2 opacity-0 group-hover:opacity-100 transition-all duration-300 transform translate-y-2 group-hover:translate-y-0 z-20">
+            {/* Action Bar Overlay */}
+            <div className="absolute top-4 right-4 flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity z-30">
                 <button 
                     onClick={handleAdjustBalanceClick} 
-                    className="p-1.5 rounded-lg bg-white dark:bg-black/80 backdrop-blur-md text-light-text-secondary dark:text-dark-text-secondary hover:text-primary-500 shadow-md border border-black/5 dark:border-white/10 transition-all active:scale-95"
+                    className="w-8 h-8 flex items-center justify-center rounded-lg bg-black/5 dark:bg-white/5 hover:bg-black/10 dark:hover:bg-white/10 text-light-text-secondary dark:text-dark-text-secondary transition-all"
                     title="Adjust Balance"
                     disabled={isComputedAccount}
                 >
-                    <span className="material-symbols-outlined text-base block">tune</span>
+                    <span className="material-symbols-outlined text-base">tune</span>
                 </button>
                 <button 
-                     onClick={handleEditClick} 
-                     className="p-1.5 rounded-lg bg-white dark:bg-black/80 backdrop-blur-md text-light-text-secondary dark:text-dark-text-secondary hover:text-blue-500 shadow-md border border-black/5 dark:border-white/10 transition-all active:scale-95"
-                     title="Edit Account"
+                    onClick={handleEditClick} 
+                    className="w-8 h-8 flex items-center justify-center rounded-lg bg-black/5 dark:bg-white/5 hover:bg-black/10 dark:hover:bg-white/10 text-light-text-secondary dark:text-dark-text-secondary transition-all"
+                    title="Edit Account"
                 >
-                     <span className="material-symbols-outlined text-base block">edit</span>
+                    <span className="material-symbols-outlined text-base">edit</span>
                 </button>
-             </div>
-             
-             {/* Trend Badge */}
-             {transactions.length > 0 && Math.abs(trend) > 0 && (
-                <div className="absolute bottom-3 left-4 z-10 flex items-center gap-1 text-[10px] font-bold bg-white/50 dark:bg-black/20 backdrop-blur-sm px-2 py-0.5 rounded-md">
-                    <span className={isPositiveTrend ? 'text-green-600 dark:text-green-400' : 'text-red-600 dark:text-red-400'}>
-                         {isPositiveTrend ? '▲' : '▼'}
-                    </span>
-                    <span className="text-light-text-secondary dark:text-dark-text-secondary">
-                        {formatCurrency(Math.abs(trend), 'EUR', { showPlusSign: false })}
-                    </span>
-                    <span className="text-[8px] opacity-60 uppercase ml-1">30d</span>
+            </div>
+
+            <div className="relative z-10 h-full flex flex-col justify-between">
+                <div>
+                    <div className="flex items-center gap-4 mb-4">
+                        <div className={`w-12 h-12 rounded-2xl ${currentConfig.bg} ${currentConfig.text} flex items-center justify-center border ${currentConfig.border} transition-transform duration-500 group-hover:scale-110 overflow-hidden`}>
+                            {showLogo ? (
+                                <img src={logoUrl!} alt="" className="w-full h-full object-contain" onError={() => setLogoError(true)} />
+                            ) : (
+                                <span className="material-symbols-outlined text-2xl">{iconName}</span>
+                            )}
+                        </div>
+                        <div className="min-w-0">
+                            <p className="text-[10px] font-bold text-light-text-secondary dark:text-dark-text-secondary tracking-widest opacity-60 mb-0.5 truncate">
+                                {account.financialInstitution || account.type}
+                            </p>
+                            <h3 className="text-lg font-black text-light-text dark:text-dark-text tracking-tight truncate leading-tight">
+                                {account.name}
+                            </h3>
+                        </div>
+                    </div>
+
+                    <div className="space-y-0.5">
+                        <p className="text-3xl font-black text-light-text dark:text-dark-text tracking-tighter tabular-nums privacy-blur">
+                            {formatCurrency(convertToEur(displayBalance, account.currency), 'EUR')}
+                        </p>
+                        {account.currency !== 'EUR' && (
+                            <p className="text-xs font-mono font-medium text-light-text-secondary dark:text-dark-text-secondary privacy-blur">
+                                {formatCurrency(displayBalance, account.currency)}
+                            </p>
+                        )}
+                    </div>
                 </div>
-             )}
+
+                <div className="flex items-end justify-between mt-auto">
+                    <div className="flex flex-col">
+                        <span className="text-[10px] font-medium text-light-text-secondary dark:text-dark-text-secondary opacity-60">
+                            {secondaryText}
+                        </span>
+                        {account.last4 && (
+                            <span className="text-[10px] font-mono font-medium text-light-text-secondary dark:text-dark-text-secondary opacity-50">
+                                •••• {account.last4}
+                            </span>
+                        )}
+                    </div>
+
+                    <div className="flex items-center gap-3">
+                         {isLinkedToEnableBanking && (
+                             <span className="material-symbols-outlined text-emerald-500 text-lg animate-pulse" title="Live Sync Active">sync</span>
+                         )}
+                         <div className={`h-12 w-48 opacity-40 group-hover:opacity-100 transition-opacity`}>
+                             <ResponsiveContainer width="100%" height="100%">
+                                <AreaChart data={sparklineData}>
+                                    <defs>
+                                        <linearGradient id={gradientId} x1="0" y1="0" x2="0" y2="1">
+                                            <stop offset="5%" stopColor={chartColor} stopOpacity={0.3}/>
+                                            <stop offset="95%" stopColor={chartColor} stopOpacity={0}/>
+                                        </linearGradient>
+                                    </defs>
+                                    <Area type="monotone" dataKey="value" stroke={chartColor} strokeWidth={2} fill={`url(#${gradientId})`} isAnimationActive={false} />
+                                </AreaChart>
+                            </ResponsiveContainer>
+                         </div>
+                    </div>
+                </div>
+            </div>
         </div>
     );
 };
