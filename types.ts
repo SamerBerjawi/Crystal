@@ -84,7 +84,6 @@ export interface Account {
   openingDate?: string; // Date account was opened
   balanceLastSyncedAt?: string;
   balanceSource?: 'enable_banking' | 'manual';
-  showCard?: boolean;
 
   // Card specific
   expirationDate?: string; // MM/YY

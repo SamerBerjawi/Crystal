@@ -1,7 +1,6 @@
 import React, { useMemo } from 'react';
 import { Account, MileageLog, Transaction, LoanPaymentOverrides } from '../types';
 import { formatCurrency, parseLocalDate, generateAmortizationSchedule } from '../utils';
-import PageHeader from './PageHeader';
 import Card from './Card';
 import VehicleMileageChart from './VehicleMileageChart';
 import { BTN_PRIMARY_STYLE, BTN_SECONDARY_STYLE } from '../constants';
@@ -106,42 +105,50 @@ const VehicleAccountView: React.FC<VehicleAccountViewProps> = ({
   }, [account, currentMileage]);
 
   return (
-    <div className="space-y-8 pb-12">
-      <PageHeader 
-        markerIcon="directions_car"
-        markerLabel={`${account.year} ${account.make} ${account.model} • ${account.fuelType}`}
-        title={account.name}
-        subtitle={isClosed ? `Asset decommissioned on ${account.closureDetails?.date ? parseLocalDate(account.closureDetails.date).toLocaleDateString() : 'recent date'}.` : "High-fidelity asset tracking with performance insights and financial hooks."}
-        className="mb-8"
-        actions={
-          <div className="flex items-center gap-2">
-            <button 
-                onClick={onBack} 
-                className="w-10 h-10 rounded-xl bg-black/5 dark:bg-white/5 flex items-center justify-center hover:bg-black/10 dark:hover:bg-white/10 transition-all group"
-                title="Back to All Accounts"
-            >
-                <span className="material-symbols-outlined text-xl">arrow_back</span>
-            </button>
+    <div className="max-w-7xl mx-auto space-y-8 pb-12">
+      {/* Top Bar Actions */}
+      <motion.header 
+        initial={{ opacity: 0, y: -10 }}
+        animate={{ opacity: 1, y: 0 }}
+        className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 px-2"
+      >
+         <button onClick={onBack} className="group flex items-center gap-2 text-light-text-secondary dark:text-dark-text-secondary hover:text-primary-500 transition-colors">
+            <span className="material-symbols-outlined transition-transform group-hover:-translate-x-1">arrow_back</span>
+            <span className="text-sm font-bold uppercase tracking-widest">Back to Accounts</span>
+          </button>
+           <div className="flex items-center gap-2">
              {isLinkedToEnableBanking && onSyncLinkedAccount && (
-               <button onClick={onSyncLinkedAccount} className="w-10 h-10 rounded-xl bg-black/5 dark:bg-white/5 text-light-text-secondary dark:text-dark-text-secondary hover:text-primary-500 transition-colors">
+               <button onClick={onSyncLinkedAccount} className={BTN_SECONDARY_STYLE}>
                  <span className="material-symbols-outlined text-sm">sync</span>
+                 Sync
                </button>
              )}
              {!isClosed && (
-               <button onClick={onUpdateValuation || onAddTransaction} className="flex items-center gap-2 px-4 py-2.5 bg-black/5 dark:bg-white/5 text-light-text dark:text-dark-text rounded-xl font-bold text-sm hover:bg-black/10 dark:hover:bg-white/10 transition-all border border-black/5 dark:border-white/5">
-                  <span className="material-symbols-outlined text-sm font-black">edit</span>
-                  <span className="hidden sm:inline">Update Value</span>
+               <button onClick={onUpdateValuation || onAddTransaction} className={BTN_SECONDARY_STYLE}>
+                  <span className="material-symbols-outlined text-sm">edit</span>
+                  Update Value
                </button>
              )}
              {!isClosed && (
-               <button onClick={onAddTransaction} className="flex items-center gap-2 px-5 py-2.5 bg-primary-500 text-white rounded-xl font-bold text-sm shadow-lg shadow-primary-500/25 hover:bg-primary-600 transition-all">
-                  <span className="material-symbols-outlined text-sm font-black">add</span>
-                  <span className="hidden sm:inline">Transaction</span>
+               <button onClick={onAddTransaction} className={BTN_PRIMARY_STYLE}>
+                  <span className="material-symbols-outlined text-sm">add</span>
+                  Add Transaction
                </button>
              )}
-          </div>
-        }
-      />
+             {isClosed && onRevertClosure && (
+               <button onClick={onRevertClosure} className={BTN_SECONDARY_STYLE}>
+                  <span className="material-symbols-outlined text-sm">settings_backup_restore</span>
+                  Revert Closure
+               </button>
+             )}
+             {!isClosed && onCloseAsset && (
+                <button onClick={onCloseAsset} className="flex items-center gap-2 px-6 py-3 rounded-2xl bg-red-500/10 text-red-600 hover:bg-red-500 hover:text-white font-black text-xs uppercase tracking-widest transition-all shadow-lg shadow-red-500/5">
+                   <span className="material-symbols-outlined text-sm">no_accounts</span>
+                   {isLeased ? 'Return Vehicle' : 'Sell Vehicle'}
+                </button>
+             )}
+           </div>
+      </motion.header>
 
       {/* Hero Section - Immersive Design */}
       <motion.div 

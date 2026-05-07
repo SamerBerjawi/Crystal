@@ -345,41 +345,50 @@ const Accounts: React.FC<AccountsProps> = ({ accounts, transactions, saveAccount
             actions={<button onClick={() => setAddModalOpen(true)} className={`${BTN_PRIMARY_STYLE} flex items-center gap-2`}><span className="material-symbols-outlined text-xl">add</span>Add Account</button>} 
         />
 
-        {/* --- Redesigned High-End Portfolio Header --- */}
-        <div className="bg-white dark:bg-dark-card rounded-[2.5rem] p-8 border border-black/5 dark:border-white/5 shadow-sm overflow-hidden relative group">
-            {/* Ambient Background Bloom */}
-            <div className={`absolute -top-32 -left-32 w-80 h-80 blur-[100px] opacity-20 transition-colors duration-1000 bg-gradient-to-br ${heroGradient}`} />
-            <div className="absolute -bottom-32 -right-32 w-80 h-80 blur-[100px] opacity-10 transition-colors duration-1000 bg-gradient-to-br from-primary-500 to-indigo-600" />
+        {/* --- Compact Portfolio Header --- */}
+        <div className="bg-white dark:bg-dark-card rounded-3xl p-6 border border-black/5 dark:border-white/5 shadow-sm overflow-hidden relative group">
+            {/* Subtle background glow based on active segment */}
+            <div className={`absolute -top-24 -right-24 w-64 h-64 blur-3xl opacity-20 transition-colors duration-1000 bg-gradient-to-br ${heroGradient}`} />
 
-            <div className="relative z-10 flex flex-col xl:flex-row xl:items-center gap-10">
-                {/* Main Net Worth Visual */}
-                <div className="flex-1 space-y-6">
-                    <div className="space-y-1">
-                        <div className="flex items-center gap-2">
-                            <div className="w-2 h-2 rounded-full bg-primary-500 animate-pulse" />
-                            <span className="text-[10px] font-black uppercase tracking-[0.2em] text-light-text-secondary dark:text-dark-text-secondary opacity-60">Consolidated Net Worth</span>
-                        </div>
-                        <h2 className="text-5xl font-black tracking-tightest privacy-blur text-light-text dark:text-dark-text">
+            <div className="relative z-10 flex flex-col lg:flex-row lg:items-center gap-8">
+                {/* Main Net Worth Display */}
+                <div 
+                    onClick={() => setActiveSegment('all')}
+                    className="flex-1 cursor-pointer group/nw"
+                >
+                    <div className="flex items-center gap-2 mb-2">
+                        <span className="material-symbols-outlined text-primary-500 text-sm">account_balance_wallet</span>
+                        <span className="text-[10px] font-black uppercase tracking-widest text-light-text-secondary dark:text-dark-text-secondary">Portfolio Value</span>
+                    </div>
+                    <div className="flex items-baseline gap-2">
+                        <h2 className="text-4xl font-black tracking-tight privacy-blur text-light-text dark:text-dark-text group-hover/nw:text-primary-500 transition-colors">
                             {formatCurrency(segmentValues.all, 'EUR')}
                         </h2>
+                        {activeSegment === 'all' && (
+                             <motion.div layoutId="active-indicator" className="w-1.5 h-1.5 rounded-full bg-primary-500 shadow-[0_0_8px_rgba(99,102,241,0.8)]" />
+                        )}
                     </div>
-
-                    <div className="grid grid-cols-2 gap-4">
-                        <div className="p-4 rounded-2xl bg-black/[0.03] dark:bg-white/[0.03] border border-black/5 dark:border-white/5">
-                            <p className="text-[9px] font-black uppercase tracking-widest text-light-text-secondary mb-1 opacity-60">Global Assets</p>
-                            <p className="text-lg font-black tracking-tighter text-emerald-500 privacy-blur">{formatCurrency(segmentValues.cash + segmentValues.invested + segmentValues.property, 'EUR', { compact: true })}</p>
-                        </div>
-                        <div className="p-4 rounded-2xl bg-black/[0.03] dark:bg-white/[0.03] border border-black/5 dark:border-white/5">
-                            <p className="text-[9px] font-black uppercase tracking-widest text-light-text-secondary mb-1 opacity-60">Total Liabilities</p>
-                            <p className="text-lg font-black tracking-tighter text-rose-500 privacy-blur">{formatCurrency(Math.abs(segmentValues.debt), 'EUR', { compact: true })}</p>
-                        </div>
+                    {/* Compact Sparkline */}
+                    <div className="h-6 mt-3 opacity-40 group-hover/nw:opacity-80 transition-opacity">
+                        <ResponsiveContainer width="100%" height="100%">
+                            <AreaChart data={globalMetrics.trendData}>
+                                <Area 
+                                    type="monotone" 
+                                    dataKey="value" 
+                                    stroke={activeSegment === 'all' ? "#6366f1" : "#94a3b8"} 
+                                    strokeWidth={2} 
+                                    fill="transparent" 
+                                    animationDuration={2000}
+                                />
+                            </AreaChart>
+                        </ResponsiveContainer>
                     </div>
                 </div>
 
-                <div className="hidden xl:block w-px h-32 bg-black/5 dark:bg-white/10" />
+                <div className="hidden lg:block w-px h-16 bg-black/5 dark:bg-white/10" />
 
-                {/* Segment Selection - High Fidelity Tiles */}
-                <div className="flex-[1.5] grid grid-cols-2 md:grid-cols-4 gap-4">
+                {/* Segment Grid - High Density Tiles */}
+                <div className="flex-[2] grid grid-cols-2 sm:grid-cols-4 gap-4">
                     {segments.filter(s => s.id !== 'all').map(seg => {
                         const isActive = activeSegment === seg.id;
                         const val = segmentValues[seg.id as keyof typeof segmentValues];
@@ -387,18 +396,18 @@ const Accounts: React.FC<AccountsProps> = ({ accounts, transactions, saveAccount
                             <div 
                                 key={seg.id}
                                 onClick={() => setActiveSegment(seg.id)}
-                                className={`group cursor-pointer p-4 rounded-3xl transition-all duration-300 border ${isActive ? 'bg-black dark:bg-white text-white dark:text-black shadow-2xl shadow-black/20 dark:shadow-white/5 border-transparent scale-[1.02]' : 'bg-black/[0.02] dark:bg-white/[0.02] hover:bg-black/5 dark:hover:bg-white/5 border-black/5 dark:border-white/5 opacity-60 hover:opacity-100'}`}
+                                className={`group cursor-pointer p-4 rounded-2xl transition-all border ${isActive ? 'bg-primary-500/5 border-primary-500/20' : 'hover:bg-black/5 dark:hover:bg-white/5 border-transparent'}`}
                             >
-                                <div className="flex items-center justify-between mb-3">
-                                    <div className={`w-8 h-8 rounded-xl flex items-center justify-center ${isActive ? 'bg-white/20 text-white dark:text-black' : 'bg-black/5 dark:bg-white/5 text-light-text-secondary'}`}>
-                                        <span className="material-symbols-outlined text-lg leading-none">{seg.icon}</span>
+                                <div className="flex items-center justify-between mb-1.5">
+                                    <div className={`w-8 h-8 rounded-lg flex items-center justify-center ${isActive ? 'bg-primary-500/10 text-primary-500' : 'bg-gray-100 dark:bg-white/5 text-light-text-secondary'}`}>
+                                        <span className="material-symbols-outlined text-lg">{seg.icon}</span>
                                     </div>
-                                    {isActive && <div className="w-1.5 h-1.5 rounded-full bg-primary-500" />}
+                                    {isActive && <motion.div layoutId="active-indicator" className="w-1.5 h-1.5 rounded-full bg-primary-500 shadow-[0_0_6px_rgba(99,102,241,0.8)]" />}
                                 </div>
-                                <div className="space-y-0.5">
-                                    <span className="text-[9px] font-black uppercase tracking-widest block truncate opacity-60">{seg.label}</span>
-                                    <span className="text-md font-black tracking-tighter privacy-blur block truncate">
-                                        {formatCurrency(val, 'EUR', { compact: true })}
+                                <div className="flex flex-col">
+                                    <span className={`text-[10px] font-black uppercase tracking-widest ${isActive ? 'text-primary-500' : 'text-light-text-secondary dark:text-dark-text-secondary'}`}>{seg.label}</span>
+                                    <span className={`text-lg font-black tracking-tight privacy-blur ${isActive ? 'text-light-text dark:text-dark-text' : 'text-light-text-secondary group-hover:text-light-text dark:group-hover:text-dark-text'}`}>
+                                        {formatCurrency(val, 'EUR')}
                                     </span>
                                 </div>
                             </div>
@@ -408,23 +417,23 @@ const Accounts: React.FC<AccountsProps> = ({ accounts, transactions, saveAccount
             </div>
 
             {/* Integrated Details Tray */}
-            <div className="mt-8 pt-8 border-t border-black/5 dark:border-white/5">
+            <div className="mt-6 pt-6 border-t border-black/5 dark:border-white/5">
                 <AnimatePresence mode="wait">
                     <motion.div 
                         key={activeSegment}
-                        initial={{ opacity: 0, y: 10 }}
+                        initial={{ opacity: 0, y: 5 }}
                         animate={{ opacity: 1, y: 0 }}
-                        exit={{ opacity: 0, y: -10 }}
-                        className="flex flex-wrap items-center gap-x-12 gap-y-4"
+                        exit={{ opacity: 0, y: -5 }}
+                        className="flex flex-wrap items-center gap-x-10 gap-y-3"
                     >
                         {segmentMetrics.details.map((detail, i) => (
-                             <div key={i} className="flex items-center gap-4 group/detail">
-                                <div className="w-10 h-10 rounded-xl bg-black/5 dark:bg-white/5 flex items-center justify-center group-hover/detail:bg-primary-500/10 transition-colors">
-                                    <span className="material-symbols-outlined text-xl text-primary-500/60 group-hover/detail:text-primary-500 transition-colors">{detail.icon}</span>
+                             <div key={i} className="flex items-center gap-3">
+                                <div className="w-8 h-8 rounded-full bg-primary-500/5 flex items-center justify-center">
+                                    <span className="material-symbols-outlined text-base text-primary-500/70">{detail.icon}</span>
                                 </div>
                                 <div className="flex flex-col">
-                                    <span className="text-[9px] font-black uppercase tracking-widest text-light-text-secondary/60 mb-0.5 leading-none">{detail.label}</span>
-                                    <span className="text-md font-black text-light-text dark:text-dark-text tracking-tight privacy-blur leading-none">{detail.value}</span>
+                                    <span className="text-[9px] font-black uppercase tracking-widest text-light-text-secondary/70">{detail.label}</span>
+                                    <span className="text-sm font-black text-light-text dark:text-dark-text privacy-blur">{detail.value}</span>
                                 </div>
                              </div>
                         ))}

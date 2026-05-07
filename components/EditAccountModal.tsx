@@ -43,7 +43,7 @@ const EditAccountModal: React.FC<EditAccountModalProps> = ({ onClose, onSave, on
 
   // Card Details
   // Initialize hasCard based on whether any card-specific data exists for this account
-  const [hasCard, setHasCard] = useState(account.showCard ?? !!(account.cardNetwork || account.last4 || account.expirationDate || account.cardholderName || account.type === 'Credit Card'));
+  const [hasCard, setHasCard] = useState(!!(account.cardNetwork || account.last4 || account.expirationDate || account.cardholderName || account.type === 'Credit Card'));
   
   const [expirationDate, setExpirationDate] = useState(account.expirationDate || '');
   const [cardNetwork, setCardNetwork] = useState(account.cardNetwork || '');
@@ -283,7 +283,6 @@ const EditAccountModal: React.FC<EditAccountModalProps> = ({ onClose, onSave, on
       routingNumber: routingNumber || undefined,
       apy: apy !== '' ? parseFloat(apy) : undefined,
       openingDate: openingDate || undefined,
-      showCard: hasCard,
       // Card details - Only include if hasCard is true
       expirationDate: hasCard && expirationDate ? expirationDate : undefined,
       cardNetwork: hasCard && cardNetwork ? cardNetwork : undefined,

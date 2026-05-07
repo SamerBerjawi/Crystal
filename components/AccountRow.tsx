@@ -165,6 +165,7 @@ const AccountRow: React.FC<AccountRowProps> = ({ account, transactions, warrants
     
     const isIncludedInAnalytics = account.includeInAnalytics ?? true;
 
+
     // Background Gradient Logic based on Type
     let bgGradient = "bg-white dark:bg-dark-card";
     let cardTheme = "white"; // Default white theme
@@ -188,15 +189,17 @@ const AccountRow: React.FC<AccountRowProps> = ({ account, transactions, warrants
 
     const colorConfig: Record<string, { bg: string, text: string, border: string, icon: string }> = {
         Checking: { bg: 'bg-blue-500/10', text: 'text-blue-600 dark:text-blue-400', border: 'border-blue-500/20', icon: 'payments' },
-        Savings: { bg: 'bg-emerald-500/10', text: 'text-emerald-600 dark:text-emerald-400', border: 'border-emerald-500/20', icon: 'savings' },
         'Credit Card': { bg: 'bg-rose-500/10', text: 'text-rose-600 dark:text-rose-400', border: 'border-rose-500/20', icon: 'credit_card' },
         Investment: { bg: 'bg-violet-500/10', text: 'text-violet-600 dark:text-violet-400', border: 'border-violet-500/20', icon: 'trending_up' },
+        Lending: { bg: 'bg-amber-500/10', text: 'text-amber-600 dark:text-amber-400', border: 'border-amber-500/20', icon: 'account_balance' },
         Loan: { bg: 'bg-amber-500/10', text: 'text-amber-600 dark:text-amber-400', border: 'border-amber-500/20', icon: 'account_balance' },
-        Property: { bg: 'bg-sky-500/10', text: 'text-sky-600 dark:text-sky-400', border: 'border-sky-500/20', icon: 'location_on' },
-        Vehicle: { bg: 'bg-slate-500/10', text: 'text-slate-600 dark:text-slate-400', border: 'border-slate-500/20', icon: 'directions_car' },
         'Other Assets': { bg: 'bg-orange-500/10', text: 'text-orange-600 dark:text-orange-400', border: 'border-orange-500/20', icon: 'category' },
+        Property: { bg: 'bg-sky-500/10', text: 'text-sky-600 dark:text-sky-400', border: 'border-sky-500/20', icon: 'location_on' },
+        Savings: { bg: 'bg-emerald-500/10', text: 'text-emerald-600 dark:text-emerald-400', border: 'border-emerald-500/20', icon: 'savings' },
+        Vehicle: { bg: 'bg-slate-500/10', text: 'text-slate-600 dark:text-slate-400', border: 'border-slate-500/20', icon: 'directions_car' },
         'Other Liabilities': { bg: 'bg-red-500/10', text: 'text-red-600 dark:text-red-400', border: 'border-red-500/20', icon: 'warning' },
     };
+
 
     const currentConfig = colorConfig[account.type] || colorConfig['Other Assets'];
 
@@ -214,7 +217,7 @@ const AccountRow: React.FC<AccountRowProps> = ({ account, transactions, warrants
                 relative group cursor-pointer
                 w-full bg-white dark:bg-dark-card rounded-[2rem] border-l-4 border-y border-r border-black/5 dark:border-white/5
                 p-6 flex flex-col justify-between h-[210px]
-                shadow-sm hover:shadow-xl hover:-translate-y-1 transition-all duration-300
+                shadow-sm hover:shadow-xl transition-all duration-300
                 ${account.status === 'closed' ? 'opacity-60 grayscale' : ''}
                 ${dragClasses} ${dragOverClasses}
             `}
@@ -281,16 +284,27 @@ const AccountRow: React.FC<AccountRowProps> = ({ account, transactions, warrants
 
                 <div className="flex items-end justify-between mt-auto">
                     <div className="flex flex-col">
-                        <span className="text-[10px] font-medium text-light-text-secondary dark:text-dark-text-secondary opacity-60">
-                            {secondaryText}
-                        </span>
+                        {/* Trend Badge - Now part of the flow instead of absolute */}
+                        {transactions.length > 0 && Math.abs(trend) > 0 && (
+                            <div className="flex items-center gap-1 text-[12px] font-bold">
+                                <span className={isPositiveTrend ? 'text-green-600 dark:text-green-400' : 'text-red-600 dark:text-red-400'}>
+                                    {isPositiveTrend ? '▲' : '▼'}
+                                </span>
+                                <span className="text-light-text-secondary dark:text-dark-text-secondary font-mono">
+                                    {formatCurrency(Math.abs(trend), 'EUR', { showPlusSign: false })}
+                                </span>
+                                <span className="text-[10px] text-light-text-secondary dark:text-dark-text-secondary opacity-60 uppercase">
+                                    90d
+                                </span>
+                            </div>
+                        )}
+
                         {account.last4 && (
                             <span className="text-[10px] font-mono font-medium text-light-text-secondary dark:text-dark-text-secondary opacity-50">
                                 •••• {account.last4}
                             </span>
                         )}
                     </div>
-
                     <div className="flex items-center gap-3">
                          {isLinkedToEnableBanking && (
                              <span className="material-symbols-outlined text-emerald-500 text-lg animate-pulse" title="Live Sync Active">sync</span>

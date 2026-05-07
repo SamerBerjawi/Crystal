@@ -3,10 +3,9 @@ import React from 'react';
 import { Account, Transaction, LoanPaymentOverrides } from '../types';
 import { formatCurrency, generateAmortizationSchedule, parseLocalDate } from '../utils';
 import Card from './Card';
-import PageHeader from './PageHeader';
-import BankCard from './BankCard';
+import { BTN_PRIMARY_STYLE, BTN_SECONDARY_STYLE } from '../constants';
 import { ResponsiveContainer, AreaChart, Area, XAxis, YAxis, CartesianGrid, Tooltip } from 'recharts';
-import { motion, AnimatePresence } from 'motion/react';
+import { motion } from 'motion/react';
 
 interface PropertyAccountViewProps {
   account: Account;
@@ -96,303 +95,389 @@ const PropertyAccountView: React.FC<PropertyAccountViewProps> = ({
   ].filter(Boolean) as { label: string; icon: string }[];
 
   const PropertyStatItem = ({ icon, label, value }: { icon: string, label: string, value: string }) => (
-      <div className="flex items-center gap-4 p-4 rounded-3xl bg-black/[0.02] dark:bg-white/[0.02] border border-black/5 dark:border-white/5 hover:border-black/10 dark:hover:border-white/10 transition-all">
-          <div className="w-10 h-10 rounded-2xl flex items-center justify-center bg-white dark:bg-white/5 text-primary-500 shadow-sm border border-black/5 dark:border-white/5">
+      <div className="flex items-center gap-3 p-3 rounded-xl bg-light-fill dark:bg-white/5 border border-black/5 dark:border-white/5">
+          <div className="w-10 h-10 rounded-full flex items-center justify-center bg-white dark:bg-white/10 text-light-text-secondary dark:text-dark-text-secondary shadow-sm">
               <span className="material-symbols-outlined text-xl">{icon}</span>
           </div>
           <div>
-              <p className="text-[9px] font-black uppercase tracking-widest text-light-text-secondary dark:text-dark-text-secondary opacity-60 leading-none mb-1">{label}</p>
-              <p className="text-sm font-black text-light-text dark:text-dark-text tracking-tight leading-none">{value}</p>
+              <p className="text-[10px] uppercase tracking-wider font-bold text-light-text-secondary dark:text-dark-text-secondary">{label}</p>
+              <p className="font-semibold text-light-text dark:text-dark-text">{value}</p>
           </div>
       </div>
   );
 
   return (
-    <div className="space-y-8 pb-12">
-      <PageHeader 
-        markerIcon="location_on"
-        markerLabel={`${account.address || 'Location Specified'} • Asset Acquisition: ${account.purchasePrice ? formatCurrency(account.purchasePrice, account.currency, { compact: true }) : 'N/A'}`}
-        title={account.name}
-        subtitle={isClosed ? `Asset liquidated on ${account.closureDetails?.date ? parseLocalDate(account.closureDetails.date).toLocaleDateString() : 'recent date'}.` : "High-fidelity real estate tracking with equity analysis and mortgage integration."}
-        className="mb-8"
-        actions={
-          <div className="flex items-center gap-2">
-            <button 
-                onClick={onBack} 
-                className="w-10 h-10 rounded-xl bg-black/5 dark:bg-white/5 flex items-center justify-center hover:bg-black/10 dark:hover:bg-white/10 transition-all group"
-                title="Back to All Accounts"
-            >
-                <span className="material-symbols-outlined text-xl">arrow_back</span>
-            </button>
-             {!isClosed && (
-                <button onClick={onUpdateValuation || onAddTransaction} className="flex items-center gap-2 px-5 py-2.5 bg-sky-500 text-white rounded-xl font-bold text-sm shadow-lg shadow-sky-500/25 hover:bg-sky-600 transition-all">
-                    <span className="material-symbols-outlined text-lg font-black">edit_location_alt</span>
-                    <span className="hidden sm:inline">Update Value</span>
-                </button>
-             )}
-          </div>
-        }
-      />
-
+    <div className="space-y-8 animate-fade-in-up pb-12">
+      {/* Closure Details Banner */}
       {isClosed && account.closureDetails && (
         <motion.div 
-           initial={{ opacity: 0, scale: 0.98 }}
-           animate={{ opacity: 1, scale: 1 }}
-           className="bg-rose-500 text-white rounded-[2.5rem] p-8 shadow-2xl shadow-rose-500/20 relative overflow-hidden"
+           initial={{ opacity: 0, y: 20 }}
+           animate={{ opacity: 1, y: 0 }}
+           className="bg-red-50 dark:bg-red-900/10 border border-red-200 dark:border-red-800/40 rounded-[2rem] p-8 shadow-sm"
         >
-          <div className="absolute top-0 right-0 p-10 opacity-10 pointer-events-none">
-              <span className="material-symbols-outlined text-8xl">sell</span>
-          </div>
-          <div className="relative z-10 flex items-start gap-6">
-            <div className="w-16 h-16 rounded-2xl bg-white/20 flex items-center justify-center backdrop-blur-md border border-white/20">
-              <span className="material-symbols-outlined text-3xl">info</span>
+          <div className="flex items-start gap-4">
+            <div className="w-12 h-12 rounded-2xl bg-red-500 flex items-center justify-center text-white shrink-0">
+              <span className="material-symbols-outlined">info</span>
             </div>
-            <div className="space-y-4">
-              <div>
-                  <h3 className="text-xl font-black uppercase tracking-widest leading-none mb-1">Asset Divested</h3>
-                  <p className="text-sm font-bold opacity-80 leading-relaxed max-w-2xl">
-                    This property was archived as <strong className="underline underline-offset-4">{account.closureDetails.closureType}</strong> on {parseLocalDate(account.closureDetails.date).toLocaleDateString(undefined, { dateStyle: 'long' })}. 
-                  </p>
-              </div>
+            <div>
+              <h3 className="text-lg font-black text-red-900 dark:text-red-100 mb-1">Property Sold / Closed</h3>
+              <p className="text-sm text-red-700/80 dark:text-red-300/60 mb-4 font-medium leading-relaxed">
+                This asset was recorded as <strong className="text-red-900 dark:text-red-100">{account.closureDetails.closureType}</strong> on {parseLocalDate(account.closureDetails.date).toLocaleDateString(undefined, { dateStyle: 'long' })}. 
+              </p>
               {account.closureDetails.notes && (
-                <p className="text-sm italic opacity-70 bg-white/10 p-4 rounded-2xl border border-white/10">"{account.closureDetails.notes}"</p>
+                <div className="bg-white/50 dark:bg-black/20 p-4 rounded-xl mb-4 border border-red-200/50 dark:border-red-800/20 italic text-sm text-red-800 dark:text-red-200">
+                  "{account.closureDetails.notes}"
+                </div>
+              )}
+              {account.closureDetails.closureType === 'Sold' && account.closureDetails.incomeAccountId && (
+                <div className="flex items-center gap-2 text-xs font-bold text-red-800 dark:text-red-200 uppercase tracking-wider">
+                  <span className="material-symbols-outlined text-sm">payments</span>
+                  Sale proceeds deposited to {accounts.find(a => a.id === account.closureDetails?.incomeAccountId)?.name}
+                </div>
               )}
             </div>
           </div>
         </motion.div>
       )}
 
-      <div className="grid grid-cols-1 lg:grid-cols-12 gap-8">
-        {/* Left Column: Card and Core Metrics */}
-        <div className="lg:col-span-4 space-y-8">
-            <BankCard 
-                name={account.name}
-                balance={account.balance}
-                currency={account.currency}
-                last4={account.last4}
-                institution={account.financialInstitution}
-                type="Property"
-                color="sky"
-            />
-
-            <div className="grid grid-cols-1 gap-4">
-                <div className="p-8 rounded-[2.5rem] bg-white dark:bg-white/[0.03] border border-black/5 dark:border-white/5 shadow-sm relative overflow-hidden group">
-                     <div className="absolute top-0 right-0 p-8 opacity-5 pointer-events-none group-hover:scale-110 transition-transform duration-700">
-                         <span className="material-symbols-outlined text-8xl text-emerald-500">trending_up</span>
-                     </div>
-                     <p className="text-[10px] font-black uppercase tracking-widest text-light-text-secondary mb-4 opacity-60 leading-none">Total Value Gained</p>
-                     <div className="space-y-1 mb-6">
-                        <h3 className="text-4xl font-black tracking-tightest text-emerald-500 leading-none privacy-blur">
-                            {appreciation >= 0 ? '+' : ''}{formatCurrency(appreciation, account.currency)}
-                        </h3>
-                        <p className="text-xs font-bold text-emerald-500/60 uppercase tracking-widest">{appreciationPercent.toFixed(1)}% Appreciation ROI</p>
-                     </div>
-                     <div className="h-1 w-full bg-black/5 dark:bg-white/5 rounded-full overflow-hidden">
-                         <div className="h-full bg-emerald-500 rounded-full" style={{ width: '100%' }} />
-                     </div>
-                </div>
-
-                <div className="p-8 rounded-[2.5rem] bg-black text-white dark:bg-white dark:text-black shadow-2xl relative overflow-hidden group">
-                     <div className="absolute top-0 right-0 p-8 opacity-10 pointer-events-none group-hover:scale-110 transition-transform duration-700">
-                         <span className="material-symbols-outlined text-8xl">balance</span>
-                     </div>
-                     <p className="text-[10px] font-black uppercase tracking-widest opacity-40 mb-4 leading-none">Equity Distribution</p>
-                     <div className="flex items-end justify-between mb-6">
-                        <span className="text-5xl font-black tracking-tightest leading-none">{ownershipPercent.toFixed(0)}%</span>
-                        <span className="text-[10px] font-black uppercase tracking-widest opacity-60 bg-white/20 dark:bg-black/10 px-2 py-1 rounded-lg">Owned</span>
-                     </div>
-                     <div className="h-2 w-full bg-white/10 dark:bg-black/5 rounded-full overflow-hidden flex shadow-inner">
-                        <div className="h-full bg-emerald-400" style={{ width: `${ownershipPercent}%` }} />
-                        <div className="h-full bg-rose-400 opacity-50" style={{ width: `${100 - ownershipPercent}%` }} />
-                     </div>
-                </div>
-            </div>
-        </div>
-
-        {/* Right Column: Specs and History */}
-        <div className="lg:col-span-8 space-y-8">
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                 <Card className="p-8 !rounded-[2.5rem]">
-                    <div className="flex items-center gap-4 mb-8 pb-4 border-b border-black/5 dark:border-white/5">
-                        <div className="w-12 h-12 rounded-2xl bg-black/5 dark:bg-white/5 flex items-center justify-center">
-                            <span className="material-symbols-outlined text-primary-500">apartment</span>
-                        </div>
-                        <div>
-                            <h3 className="text-sm font-black uppercase tracking-widest text-light-text dark:text-dark-text leading-none mb-1">Asset Profile</h3>
-                            <p className="text-[10px] font-bold text-light-text-secondary opacity-60 uppercase tracking-widest">Property Matrix</p>
-                        </div>
-                    </div>
-                    
-                    <div className="grid grid-cols-2 gap-4">
-                        <PropertyStatItem icon="straighten" label="Lot size" value={account.propertySize ? `${account.propertySize} m²` : 'Urban'} />
-                        <PropertyStatItem icon="bed" label="Sleep" value={account.bedrooms ? `${account.bedrooms} Units` : 'Studio'} />
-                        <PropertyStatItem icon="stairs" label="Vertical" value={account.floors ? `${account.floors} Floors` : 'Ground'} />
-                        <PropertyStatItem icon="garage" label="Parking" value={(account.indoorParkingSpaces || account.outdoorParkingSpaces) ? `${(account.indoorParkingSpaces || 0) + (account.outdoorParkingSpaces || 0)} Lots` : 'N/A'} />
-                    </div>
-                 </Card>
-
-                 <Card className="p-8 !rounded-[2.5rem]">
-                    <div className="flex items-center gap-4 mb-8 pb-4 border-b border-black/5 dark:border-white/5">
-                        <div className="w-12 h-12 rounded-2xl bg-black/5 dark:bg-white/5 flex items-center justify-center">
-                            <span className="material-symbols-outlined text-rose-500">account_balance</span>
-                        </div>
-                        <div>
-                            <h3 className="text-sm font-black uppercase tracking-widest text-light-text dark:text-dark-text leading-none mb-1">Liability Ledger</h3>
-                            <p className="text-[10px] font-bold text-light-text-secondary opacity-60 uppercase tracking-widest">Mortgage Status</p>
-                        </div>
-                    </div>
-                    
-                    {linkedLoan ? (
-                        <div className="space-y-6">
-                            <div className="flex justify-between items-center group/loan">
-                                 <div className="flex items-center gap-3">
-                                    <div className="w-2 h-2 rounded-full bg-rose-500 opacity-20 group-hover/loan:opacity-100 transition-opacity" />
-                                    <span className="text-xs font-black uppercase tracking-widest text-light-text-secondary">Outstanding Debt</span>
-                                 </div>
-                                 <span className="text-lg font-black text-rose-500 tracking-tight privacy-blur">{formatCurrency(outstandingLoanBalance, account.currency)}</span>
-                            </div>
-                            <div className="flex justify-between items-center group/loan">
-                                 <div className="flex items-center gap-3">
-                                    <div className="w-2 h-2 rounded-full bg-emerald-500 opacity-20 group-hover/loan:opacity-100 transition-opacity" />
-                                    <span className="text-xs font-black uppercase tracking-widest text-light-text-secondary">Active Equity</span>
-                                 </div>
-                                 <span className="text-lg font-black text-emerald-500 tracking-tight privacy-blur">{formatCurrency(marketEquity, account.currency)}</span>
-                            </div>
-                            <button 
-                                onClick={() => setViewingAccountId(linkedLoan.id)}
-                                className="w-full py-3 mt-2 rounded-2xl bg-black/5 dark:bg-white/5 text-[10px] font-black uppercase tracking-[0.2em] hover:bg-black/10 dark:hover:bg-white/10 transition-colors"
-                            >
-                                Inspect Mortgage Details
-                            </button>
-                        </div>
-                    ) : (
-                        <div className="h-32 flex flex-col items-center justify-center text-center opacity-40">
-                             <span className="material-symbols-outlined text-3xl mb-2">link_off</span>
-                             <p className="text-[10px] font-black uppercase tracking-widest">Unleveraged Asset</p>
-                        </div>
-                    )}
-                 </Card>
-            </div>
-
-            <div className="bg-white dark:bg-dark-card rounded-[2.5rem] p-8 border border-black/5 dark:border-white/5 shadow-sm">
-                 <div className="flex items-center justify-between mb-8">
-                    <div className="flex items-center gap-4">
-                        <div className="w-10 h-10 rounded-xl bg-primary-500/10 text-primary-500 flex items-center justify-center">
-                            <span className="material-symbols-outlined">timeline</span>
-                        </div>
-                        <div>
-                            <h3 className="text-sm font-black uppercase tracking-widest text-light-text dark:text-dark-text leading-none mb-1">Strategic Valuation</h3>
-                            <p className="text-[10px] font-bold text-light-text-secondary opacity-60 uppercase tracking-widest leading-none">Historical Market Sentiment</p>
-                        </div>
-                    </div>
-                 </div>
-
-                 <div className="h-[280px]">
-                    <ResponsiveContainer width="100%" height="100%">
-                        <AreaChart data={account.priceHistory || []}>
-                            <defs>
-                                <linearGradient id="propValGradient" x1="0" y1="0" x2="0" y2="1">
-                                    <stop offset="5%" stopColor="#0ea5e9" stopOpacity={0.3}/>
-                                    <stop offset="95%" stopColor="#0ea5e9" stopOpacity={0}/>
-                                </linearGradient>
-                            </defs>
-                            <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="currentColor" opacity={0.05} />
-                            <XAxis 
-                                dataKey="date" 
-                                axisLine={false}
-                                tickLine={false}
-                                tick={{ fontSize: 10, fontWeight: 900, fill: 'currentColor', opacity: 0.4 }}
-                            />
-                            <YAxis 
-                                hide={true}
-                            />
-                            <Tooltip 
-                                contentStyle={{ 
-                                    backgroundColor: 'rgba(255, 255, 255, 0.9)', 
-                                    borderRadius: '1.5rem', 
-                                    border: 'none', 
-                                    boxShadow: '0 25px 50px -12px rgba(0, 0, 0, 0.1)',
-                                    color: '#000'
-                                }}
-                                itemStyle={{ fontSize: '14px', fontWeight: 900 }}
-                                labelStyle={{ fontSize: '9px', fontWeight: 900, color: '#666', marginBottom: '4px', textTransform: 'uppercase', letterSpacing: '0.1em' }}
-                                formatter={(value: number) => [formatCurrency(value, account.currency), 'Market Value']}
-                            />
-                            <Area 
-                                type="monotone" 
-                                dataKey="price" 
-                                stroke="#0ea5e9" 
-                                strokeWidth={4}
-                                fillOpacity={1} 
-                                fill="url(#propValGradient)" 
-                                animationDuration={2000}
-                                animationEasing="ease-in-out"
-                            />
-                        </AreaChart>
-                    </ResponsiveContainer>
-                 </div>
-            </div>
-        </div>
-      </div>
-
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-6 pt-8">
-            <Card className="p-8 !rounded-[2.5rem] space-y-6">
-                <h3 className="text-[10px] font-black uppercase tracking-[0.2em] text-light-text-secondary opacity-60">Features</h3>
-                <div className="flex flex-wrap gap-2">
-                    {features.length > 0 ? features.map((f, i) => (
-                        <div key={i} className="flex items-center gap-2 px-4 py-2 rounded-xl bg-black/[0.03] dark:bg-white/[0.03] border border-black/5 dark:border-white/5">
-                            <span className="material-symbols-outlined text-lg text-primary-500">{f.icon}</span>
-                            <span className="text-[10px] font-black uppercase tracking-widest">{f.label}</span>
-                        </div>
-                    )) : <p className="text-[10px] font-black uppercase tracking-widest opacity-40 italic">Minimalist Setup</p>}
-                </div>
-            </Card>
-
-            <Card className="p-8 !rounded-[2.5rem] space-y-6 col-span-2">
-                <h3 className="text-[10px] font-black uppercase tracking-[0.2em] text-light-text-secondary opacity-60">Maintenance Costs</h3>
-                <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-                    <div className="flex items-center gap-4">
-                        <div className="w-10 h-10 rounded-xl bg-amber-500/10 text-amber-500 flex items-center justify-center">
-                            <span className="material-symbols-outlined">gavel</span>
-                        </div>
-                        <div>
-                            <p className="text-[9px] font-black uppercase tracking-widest opacity-40">Annual Tax</p>
-                            <p className="text-sm font-black">{account.propertyTaxAmount ? formatCurrency(account.propertyTaxAmount, account.currency) : 'Exempt'}</p>
-                        </div>
-                    </div>
-                    <div className="flex items-center gap-4">
-                        <div className="w-10 h-10 rounded-xl bg-indigo-500/10 text-indigo-500 flex items-center justify-center">
-                            <span className="material-symbols-outlined">shield</span>
-                        </div>
-                        <div>
-                            <p className="text-[9px] font-black uppercase tracking-widest opacity-40">Premium</p>
-                            <p className="text-sm font-black">{account.insuranceAmount ? formatCurrency(account.insuranceAmount, account.currency) : 'Self-Insured'}</p>
-                        </div>
-                    </div>
-                    <div className="flex items-center gap-4">
-                        <div className="w-10 h-10 rounded-xl bg-purple-500/10 text-purple-500 flex items-center justify-center">
-                            <span className="material-symbols-outlined">cleaning_services</span>
-                        </div>
-                        <div>
-                            <p className="text-[9px] font-black uppercase tracking-widest opacity-40">HOA Dues</p>
-                            <p className="text-sm font-black">{account.hoaFeeAmount ? formatCurrency(account.hoaFeeAmount, account.currency) : 'N/A'}</p>
-                        </div>
-                    </div>
-                </div>
-            </Card>
-      </div>
-
-      {!isClosed && onCloseAsset && (
-        <div className="pt-12 text-center">
-            <button 
-                onClick={onCloseAsset}
-                className="inline-flex items-center gap-2 text-[10px] font-black uppercase tracking-[0.3em] text-rose-500/60 hover:text-rose-500 transition-colors"
-            >
-                <span className="material-symbols-outlined text-sm">archive</span>
-                Initiate Asset Closure Protocol
+      {/* Navigation Header */}
+      <header className="flex items-center justify-between">
+          <div className="flex items-center gap-4">
+            <button onClick={onBack} className="p-2 rounded-full hover:bg-black/5 dark:hover:bg-white/5 text-light-text-secondary dark:text-dark-text-secondary transition-colors">
+                <span className="material-symbols-outlined">arrow_back</span>
             </button>
-        </div>
-      )}
+            <div>
+                <h1 className="text-2xl font-bold text-light-text dark:text-dark-text">{account.name}</h1>
+                <p className="text-sm text-light-text-secondary dark:text-dark-text-secondary flex items-center gap-1">
+                    <span className="material-symbols-outlined text-xs">location_on</span>
+                    {account.address || 'No address set'}
+                </p>
+            </div>
+          </div>
+          <div className="flex items-center gap-2">
+              {isLinkedToEnableBanking && onSyncLinkedAccount && (
+                  <button onClick={onSyncLinkedAccount} className={BTN_SECONDARY_STYLE}>Sync</button>
+              )}
+              {isClosed && onRevertClosure && (
+                  <button onClick={onRevertClosure} className={BTN_SECONDARY_STYLE}>
+                    <span className="material-symbols-outlined mr-2 text-lg">settings_backup_restore</span>
+                    Revert Closure
+                  </button>
+              )}
+              {!isClosed && (
+                <button onClick={onUpdateValuation || onAddTransaction} className={BTN_PRIMARY_STYLE}>
+                    <span className="material-symbols-outlined mr-2 text-lg">add</span>
+                    Update Value
+                </button>
+              )}
+              {!isClosed && onCloseAsset && (
+                <button onClick={onCloseAsset} className="flex items-center gap-2 px-6 py-3 rounded-2xl bg-red-500/10 text-red-600 hover:bg-red-500 hover:text-white font-black text-xs uppercase tracking-widest transition-all shadow-lg shadow-red-500/5">
+                   <span className="material-symbols-outlined text-sm">no_accounts</span>
+                   Sell Property
+                </button>
+              )}
+          </div>
+      </header>
+
+      {/* Hero Section: Asset & Equity */}
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+          
+          {/* Main Asset Card */}
+          <div className="lg:col-span-2 relative overflow-hidden rounded-3xl bg-white dark:bg-dark-card border border-black/5 dark:border-white/5 shadow-xl min-h-[300px] flex flex-col group">
+               {/* Background Image / Placeholder */}
+               <div className="absolute inset-0 z-0">
+                   {/* Fallback pattern if no image */}
+                   <div className="w-full h-full bg-gradient-to-br from-slate-100 to-slate-200 dark:from-slate-800 dark:to-slate-900 opacity-50"></div>
+                   <div className="absolute inset-0 bg-[url('https://www.transparenttextures.com/patterns/cubes.png')] opacity-10"></div>
+               </div>
+               
+               <div className="relative z-10 p-8 flex flex-col h-full justify-between">
+                   <div className="flex justify-between items-start">
+                        <div className="flex items-center gap-3">
+                            <span className="px-3 py-1 rounded-full bg-white/80 dark:bg-black/40 backdrop-blur-md text-xs font-bold uppercase tracking-wider shadow-sm border border-black/5 dark:border-white/10">
+                                {account.propertyType || 'Property'}
+                            </span>
+                            {isClosed && (
+                              <span className="px-3 py-1 rounded-full bg-gray-100 text-gray-700 dark:bg-gray-800 dark:text-gray-300 text-xs font-bold uppercase tracking-wider shadow-sm flex items-center gap-1 border border-black/5 dark:border-white/5">
+                                  <span className="material-symbols-outlined text-sm">lock</span>
+                                  Account Closed
+                              </span>
+                            )}
+                        </div>
+                       {/* LTV Indicator */}
+                       <div className="text-right">
+                           <p className="text-xs font-bold uppercase text-light-text-secondary dark:text-dark-text-secondary mb-1">Ownership</p>
+                           <p className="text-2xl font-black text-emerald-600 dark:text-emerald-400">{ownershipPercent.toFixed(0)}%</p>
+                       </div>
+                   </div>
+
+                   <div className="mt-auto">
+                       <p className="text-sm font-bold uppercase text-light-text-secondary dark:text-dark-text-secondary mb-1">
+                         {isClosed ? 'Value at Closure' : 'Market Value'}
+                       </p>
+                       <h2 className="text-5xl font-extrabold text-light-text dark:text-dark-text tracking-tight mb-6">
+                           {formatCurrency(isClosed ? (account.closureDetails?.value || 0) : currentMarketValue, account.currency)}
+                       </h2>
+                       
+                       {/* Equity Progress Bar */}
+                       <div className="w-full h-4 bg-gray-200 dark:bg-black/30 rounded-full overflow-hidden shadow-inner relative flex">
+                           {/* Equity Part */}
+                           <div 
+                                className="h-full bg-emerald-500 relative group/bar" 
+                                style={{ width: `${ownershipPercent}%` }}
+                                title={`Equity: ${formatCurrency(marketEquity, account.currency)}`}
+                           >
+                                <div className="absolute inset-0 bg-white/20 opacity-0 group-hover/bar:opacity-100 transition-opacity"></div>
+                           </div>
+                           {/* Debt Part */}
+                           <div 
+                                className="h-full bg-red-500 relative group/bar" 
+                                style={{ width: `${100 - ownershipPercent}%` }}
+                                title={`Debt: ${formatCurrency(outstandingLoanBalance, account.currency)}`}
+                           >
+                               <div className="absolute inset-0 bg-white/20 opacity-0 group-hover/bar:opacity-100 transition-opacity"></div>
+                           </div>
+                       </div>
+                       <div className="flex justify-between mt-2 text-xs font-semibold">
+                           <span className="text-emerald-600 dark:text-emerald-400">Equity: {formatCurrency(marketEquity, account.currency)}</span>
+                           <span className="text-red-600 dark:text-red-400">Debt: {formatCurrency(outstandingLoanBalance, account.currency)}</span>
+                       </div>
+                   </div>
+               </div>
+          </div>
+
+          {/* Performance Column */}
+          <div className="flex flex-col gap-6">
+              {/* Appreciation Card */}
+              <Card className="flex-1 flex flex-col justify-center relative overflow-hidden bg-gradient-to-br from-emerald-50 to-teal-50 dark:from-emerald-900/10 dark:to-teal-900/10 border-emerald-100 dark:border-emerald-800/30">
+                  <div className="absolute top-0 right-0 p-4 opacity-10 pointer-events-none">
+                      <span className="material-symbols-outlined text-8xl text-emerald-600">trending_up</span>
+                  </div>
+                  <div className="relative z-10">
+                      <p className="text-xs font-bold uppercase tracking-wider text-emerald-800 dark:text-emerald-400 mb-1">Total Appreciation</p>
+                      <h3 className="text-3xl font-extrabold text-emerald-700 dark:text-emerald-300">
+                          {appreciation >= 0 ? '+' : ''}{formatCurrency(appreciation, account.currency)}
+                      </h3>
+                      <div className="inline-flex items-center gap-1 mt-2 px-2 py-1 rounded-md bg-emerald-100 dark:bg-emerald-800/30 text-emerald-800 dark:text-emerald-200 text-xs font-bold">
+                          <span className="material-symbols-outlined text-sm">{appreciation >= 0 ? 'arrow_upward' : 'arrow_downward'}</span>
+                          {appreciationPercent.toFixed(1)}% ROI
+                      </div>
+                  </div>
+              </Card>
+              
+              {/* Invested Capital */}
+              <Card className="flex-1 flex flex-col justify-center">
+                  <div className="flex justify-between items-start mb-2">
+                       <p className="text-xs font-bold uppercase tracking-wider text-light-text-secondary dark:text-dark-text-secondary">Purchase Price</p>
+                       <span className="material-symbols-outlined text-light-text-secondary dark:text-dark-text-secondary opacity-50">history</span>
+                  </div>
+                  <h3 className="text-2xl font-bold text-light-text dark:text-dark-text">{formatCurrency(purchasePrice, account.currency)}</h3>
+                  <div className="w-full h-px bg-black/5 dark:bg-white/5 my-3"></div>
+                  <div className="flex justify-between items-center">
+                      <p className="text-xs text-light-text-secondary dark:text-dark-text-secondary">Invested Equity</p>
+                      <p className="text-sm font-semibold text-blue-600 dark:text-blue-400">{formatCurrency(investedEquity, account.currency)}</p>
+                  </div>
+              </Card>
+          </div>
+      </div>
+
+      <div className="grid grid-cols-1 xl:grid-cols-3 gap-8">
+          
+          {/* Left Column: Details */}
+          <div className="xl:col-span-2 space-y-8">
+              {/* Property Specs */}
+              <Card>
+                  <h3 className="text-lg font-bold text-light-text dark:text-dark-text mb-6">Property Specifications</h3>
+                  <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
+                      <PropertyStatItem icon="straighten" label="Lot Size" value={account.propertySize ? `${account.propertySize} m²` : '—'} />
+                      <PropertyStatItem icon="calendar_month" label="Year Built" value={account.yearBuilt ? `${account.yearBuilt}` : '—'} />
+                      <PropertyStatItem icon="stairs" label="Floors" value={account.floors ? `${account.floors}` : '—'} />
+                      <PropertyStatItem icon="bed" label="Bedrooms" value={account.bedrooms ? `${account.bedrooms}` : '—'} />
+                      <PropertyStatItem icon="bathtub" label="Bathrooms" value={account.bathrooms ? `${account.bathrooms}` : '—'} />
+                      <PropertyStatItem icon="garage" label="Parking" value={(account.indoorParkingSpaces || account.outdoorParkingSpaces) ? `${(account.indoorParkingSpaces || 0) + (account.outdoorParkingSpaces || 0)} Spaces` : '—'} />
+                  </div>
+              </Card>
+
+              {/* Amenities */}
+              <Card>
+                  <h3 className="text-lg font-bold text-light-text dark:text-dark-text mb-4">Features & Amenities</h3>
+                  {features.length > 0 ? (
+                      <div className="flex flex-wrap gap-3">
+                          {features.map((feature, idx) => (
+                              <div key={idx} className="flex items-center gap-2 px-4 py-2 rounded-full bg-light-fill dark:bg-dark-fill border border-black/5 dark:border-white/10 hover:bg-black/5 dark:hover:bg-white/10 transition-colors">
+                                  <span className="material-symbols-outlined text-primary-500 text-lg">{feature.icon}</span>
+                                  <span className="text-sm font-medium text-light-text dark:text-dark-text">{feature.label}</span>
+                              </div>
+                          ))}
+                      </div>
+                  ) : (
+                      <p className="text-light-text-secondary dark:text-dark-text-secondary text-sm italic">No features listed. Edit account to add details.</p>
+                  )}
+              </Card>
+
+              {/* Valuation History */}
+              <Card>
+                  <div className="flex items-center justify-between mb-6">
+                      <h3 className="text-lg font-bold text-light-text dark:text-dark-text">Valuation History</h3>
+                      <div className="flex items-center gap-2 text-[10px] font-bold text-light-text-secondary dark:text-dark-text-secondary uppercase tracking-widest">
+                          <span className="w-3 h-3 rounded-full bg-primary-500"></span>
+                          Market Value
+                      </div>
+                  </div>
+                  <div className="h-[300px] w-full">
+                      {account.priceHistory && account.priceHistory.length > 1 ? (
+                          <ResponsiveContainer width="100%" height="100%">
+                              <AreaChart data={account.priceHistory}>
+                                  <defs>
+                                      <linearGradient id="colorValuation" x1="0" y1="0" x2="0" y2="1">
+                                          <stop offset="5%" stopColor="#6366F1" stopOpacity={0.3}/>
+                                          <stop offset="95%" stopColor="#6366F1" stopOpacity={0}/>
+                                      </linearGradient>
+                                  </defs>
+                                  <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="currentColor" opacity={0.1} />
+                                  <XAxis 
+                                      dataKey="date" 
+                                      axisLine={false}
+                                      tickLine={false}
+                                      tick={{ fontSize: 10, fill: 'currentColor', opacity: 0.5 }}
+                                  />
+                                  <YAxis 
+                                      axisLine={false}
+                                      tickLine={false}
+                                      tick={{ fontSize: 10, fill: 'currentColor', opacity: 0.5 }}
+                                      tickFormatter={(val) => `€${val >= 1000 ? (val/1000).toFixed(0) + 'k' : val}`}
+                                  />
+                                  <Tooltip 
+                                      contentStyle={{ 
+                                          backgroundColor: 'rgba(255, 255, 255, 0.9)', 
+                                          borderRadius: '12px', 
+                                          border: 'none', 
+                                          boxShadow: '0 10px 15px -3px rgba(0, 0, 0, 0.1)',
+                                          color: '#1f2937'
+                                      }}
+                                      itemStyle={{ fontSize: '12px', fontWeight: 'bold' }}
+                                      labelStyle={{ fontSize: '10px', color: '#6b7280', marginBottom: '4px', textTransform: 'uppercase', letterSpacing: '0.05em' }}
+                                      formatter={(value: number) => [`€${value.toLocaleString()}`, 'Value']}
+                                  />
+                                  <Area 
+                                      type="monotone" 
+                                      dataKey="price" 
+                                      stroke="#6366F1" 
+                                      strokeWidth={3}
+                                      fillOpacity={1} 
+                                      fill="url(#colorValuation)" 
+                                      animationDuration={1500}
+                                  />
+                              </AreaChart>
+                          </ResponsiveContainer>
+                      ) : (
+                          <div className="h-full flex flex-col items-center justify-center text-center p-8 bg-gray-50 dark:bg-white/5 rounded-2xl border border-dashed border-black/10 dark:border-white/10">
+                              <span className="material-symbols-outlined text-4xl text-gray-300 dark:text-gray-600 mb-2">show_chart</span>
+                              <p className="text-sm font-medium text-light-text-secondary dark:text-dark-text-secondary">Not enough data to show trend</p>
+                              <p className="text-xs text-light-text-secondary/60 dark:text-dark-text-secondary/60 mt-1">Add more valuation points to see how your asset value changes over time.</p>
+                          </div>
+                      )}
+                  </div>
+              </Card>
+          </div>
+
+          {/* Right Column: Liabilities & Costs */}
+          <div className="space-y-8">
+               {/* Linked Loan Card */}
+               {linkedLoan ? (
+                   <Card className="bg-gradient-to-br from-gray-50 to-white dark:from-dark-card dark:to-black/20 border-l-4 border-l-red-500">
+                        <div className="flex justify-between items-start mb-4">
+                            <div>
+                                <h3 className="text-lg font-bold text-light-text dark:text-dark-text">Mortgage</h3>
+                                <button onClick={() => setViewingAccountId(linkedLoan.id)} className="text-xs text-primary-500 hover:underline font-medium mt-1 flex items-center gap-1">
+                                    View Loan Details <span className="material-symbols-outlined text-[10px]">open_in_new</span>
+                                </button>
+                            </div>
+                            <div className="p-2 bg-red-100 dark:bg-red-900/30 rounded-lg text-red-600 dark:text-red-400">
+                                <span className="material-symbols-outlined text-xl">request_quote</span>
+                            </div>
+                        </div>
+                        <div className="space-y-3">
+                            <div className="flex justify-between items-center text-sm">
+                                <span className="text-light-text-secondary dark:text-dark-text-secondary">Outstanding Principal</span>
+                                <span className="font-bold text-red-600 dark:text-red-400">{formatCurrency(outstandingLoanBalance, linkedLoan.currency)}</span>
+                            </div>
+                            <div className="w-full h-px bg-black/5 dark:bg-white/5"></div>
+                            <div className="flex justify-between items-center text-sm">
+                                <span className="text-light-text-secondary dark:text-dark-text-secondary">Interest Rate</span>
+                                <span className="font-medium text-light-text dark:text-dark-text">{linkedLoan.interestRate}%</span>
+                            </div>
+                             <div className="flex justify-between items-center text-sm">
+                                <span className="text-light-text-secondary dark:text-dark-text-secondary">Monthly Payment</span>
+                                <span className="font-medium text-light-text dark:text-dark-text">{linkedLoan.monthlyPayment ? formatCurrency(linkedLoan.monthlyPayment, linkedLoan.currency) : 'N/A'}</span>
+                            </div>
+                        </div>
+                   </Card>
+               ) : (
+                   <Card className="border-dashed border-2 border-black/10 dark:border-white/10 bg-transparent flex flex-col items-center justify-center py-8 text-center">
+                        <span className="material-symbols-outlined text-4xl text-gray-300 dark:text-gray-600 mb-2">link_off</span>
+                        <p className="text-sm font-medium text-light-text-secondary dark:text-dark-text-secondary">No linked loan</p>
+                        <button className="text-xs text-primary-500 hover:underline mt-1" onClick={onAddTransaction /* Ideally open edit modal here */}>Link a mortgage</button>
+                   </Card>
+               )}
+
+               {/* Recurring Costs */}
+               <Card>
+                   <h3 className="text-base font-bold text-light-text dark:text-dark-text mb-4 uppercase tracking-wider text-xs">Operating Costs</h3>
+                   <div className="divide-y divide-black/5 dark:divide-white/5">
+                        <div className="py-3 flex justify-between items-center first:pt-0">
+                            <div className="flex items-center gap-3">
+                                <div className="w-8 h-8 rounded-lg bg-orange-100 dark:bg-orange-900/30 text-orange-600 dark:text-orange-400 flex items-center justify-center">
+                                    <span className="material-symbols-outlined text-lg">gavel</span>
+                                </div>
+                                <div>
+                                    <p className="text-sm font-semibold text-light-text dark:text-dark-text">Property Tax</p>
+                                    <p className="text-xs text-light-text-secondary dark:text-dark-text-secondary">Annual</p>
+                                </div>
+                            </div>
+                            <span className="font-medium text-light-text dark:text-dark-text">{account.propertyTaxAmount ? formatCurrency(account.propertyTaxAmount, account.currency) : '—'}</span>
+                        </div>
+
+                         <div className="py-3 flex justify-between items-center">
+                            <div className="flex items-center gap-3">
+                                <div className="w-8 h-8 rounded-lg bg-blue-100 dark:bg-blue-900/30 text-blue-600 dark:text-blue-400 flex items-center justify-center">
+                                    <span className="material-symbols-outlined text-lg">shield</span>
+                                </div>
+                                <div>
+                                    <p className="text-sm font-semibold text-light-text dark:text-dark-text">Insurance</p>
+                                    <p className="text-xs text-light-text-secondary dark:text-dark-text-secondary capitalize">{account.insuranceFrequency || '—'}</p>
+                                </div>
+                            </div>
+                            <span className="font-medium text-light-text dark:text-dark-text">{account.insuranceAmount ? formatCurrency(account.insuranceAmount, account.currency) : '—'}</span>
+                        </div>
+
+                         <div className="py-3 flex justify-between items-center last:pb-0">
+                            <div className="flex items-center gap-3">
+                                <div className="w-8 h-8 rounded-lg bg-purple-100 dark:bg-purple-900/30 text-purple-600 dark:text-purple-400 flex items-center justify-center">
+                                    <span className="material-symbols-outlined text-lg">cleaning_services</span>
+                                </div>
+                                <div>
+                                    <p className="text-sm font-semibold text-light-text dark:text-dark-text">HOA Fees</p>
+                                    <p className="text-xs text-light-text-secondary dark:text-dark-text-secondary capitalize">{account.hoaFeeFrequency || '—'}</p>
+                                </div>
+                            </div>
+                            <span className="font-medium text-light-text dark:text-dark-text">{account.hoaFeeAmount ? formatCurrency(account.hoaFeeAmount, account.currency) : '—'}</span>
+                        </div>
+                   </div>
+               </Card>
+               
+               {account.isRental && (
+                   <Card className="bg-green-50 dark:bg-green-900/10 border-green-100 dark:border-green-900/30">
+                       <div className="flex items-center justify-between mb-2">
+                           <h3 className="text-sm font-bold text-green-800 dark:text-green-300 uppercase tracking-wider">Rental Income</h3>
+                           <span className="material-symbols-outlined text-green-600 dark:text-green-400">payments</span>
+                       </div>
+                       <p className="text-2xl font-bold text-green-700 dark:text-green-400">{account.rentalIncomeAmount ? formatCurrency(account.rentalIncomeAmount, account.currency) : '—'}</p>
+                       <p className="text-xs text-green-600/80 dark:text-green-400/80 mt-1 capitalize">Per {account.rentalIncomeFrequency || 'month'}</p>
+                   </Card>
+               )}
+          </div>
+      </div>
     </div>
   );
 };

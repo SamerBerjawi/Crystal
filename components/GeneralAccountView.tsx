@@ -2,12 +2,11 @@ import React, { useMemo } from 'react';
 import { Account, DisplayTransaction, Category, Transaction, RecurringTransaction } from '../types';
 import { formatCurrency, parseLocalDate, generateSyntheticLoanPayments, generateSyntheticCreditCardPayments, generateBalanceForecast, convertToEur, generateSyntheticPropertyTransactions, calculateStatementPeriods, getCreditCardStatementDetails, getPreferredTimeZone, formatDateKey, toLocalISOString } from '../utils';
 import Card from './Card';
-import BankCard from './BankCard';
 import TransactionList from './TransactionList';
+import { BTN_PRIMARY_STYLE, ACCOUNT_TYPE_STYLES, BTN_SECONDARY_STYLE } from '../constants';
 import { AreaChart, Area, XAxis, YAxis, Tooltip, ResponsiveContainer, CartesianGrid, BarChart, Bar, Cell, Legend, ReferenceLine } from 'recharts';
 import { useGoalsContext, useScheduleContext } from '../contexts/FinancialDataContext';
 import { useAccountsContext, useTransactionsContext } from '../contexts/DomainProviders';
-import { motion } from 'motion/react';
 
 interface GeneralAccountViewProps {
   account: Account;
@@ -444,281 +443,433 @@ const GeneralAccountView: React.FC<GeneralAccountViewProps> = ({
   );
 
   return (
-    <div className="space-y-6 animate-fade-in-up pb-12">
+    <div className="space-y-6 animate-fade-in-up">
       {/* Header */}
-      <div className="flex flex-col lg:flex-row justify-between items-start lg:items-end gap-6 pb-6 border-b border-black/5 dark:border-white/5">
-        <div className="flex items-center gap-6">
-            <button 
-                onClick={onBack} 
-                className="w-10 h-10 rounded-xl bg-black/5 dark:bg-white/5 flex items-center justify-center hover:bg-black/10 dark:hover:bg-white/10 transition-all group"
-                title="Back to All Accounts"
-            >
-                <span className="material-symbols-outlined text-xl">arrow_back</span>
-            </button>
-            <div>
-                <div className="flex items-center gap-3 mb-1">
-                    <h1 className="text-4xl font-black tracking-tightest text-light-text dark:text-dark-text">{account.name}</h1>
-                </div>
-                <p className="text-[10px] font-bold text-light-text-secondary dark:text-dark-text-secondary uppercase tracking-[0.2em] opacity-60 flex items-center gap-1">
-                    <span className="material-symbols-outlined text-xs">account_balance_wallet</span>
-                    {account.financialInstitution || 'General Account'}
-                </p>
+      <header className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
+        <div className="flex items-center gap-4 flex-1 min-w-0">
+          <button onClick={onBack} className="text-light-text-secondary dark:text-dark-text-secondary p-2 rounded-full hover:bg-black/5 dark:hover:bg-white/5 flex-shrink-0">
+            <span className="material-symbols-outlined">arrow_back</span>
+          </button>
+          <div className="flex items-center gap-4 min-w-0 flex-1">
+            <div className={`w-16 h-16 rounded-xl flex-shrink-0 flex items-center justify-center ${ACCOUNT_TYPE_STYLES[account.type]?.color || 'text-gray-600'} bg-current/10 border border-current/20`}>
+              <span className="material-symbols-outlined text-4xl">{account.icon || 'wallet'}</span>
             </div>
+            <div className="min-w-0">
+              <div className="flex items-center gap-2">
+                  <h1 className="text-2xl font-bold text-light-text dark:text-dark-text truncate">{account.name}</h1>
+                  {account.financialInstitution && (
+                      <span className="text-sm font-medium text-light-text-secondary dark:text-dark-text-secondary bg-black/5 dark:bg-white/5 px-2 py-0.5 rounded flex-shrink-0">
+                          {account.financialInstitution}
+                      </span>
+                  )}
+              </div>
+              <div className="flex items-center gap-2 text-sm text-light-text-secondary dark:text-dark-text-secondary">
+                <span>{account.otherSubType || account.type}</span>
+              </div>
+            </div>
+          </div>
         </div>
-
-        <div className="flex items-center gap-3 w-full lg:w-auto">
-            {isLinkedToEnableBanking && onSyncLinkedAccount && (
-                <button onClick={onSyncLinkedAccount} className="flex-1 lg:flex-none flex items-center justify-center gap-2 px-6 py-3 bg-black text-white dark:bg-white dark:text-black rounded-2xl font-black text-xs uppercase tracking-widest hover:bg-black/90 transition-all shadow-xl shadow-black/10">
-                    <span className="material-symbols-outlined text-lg">sync</span>
-                    Sync
-                </button>
-            )}
-            <button onClick={onAddTransaction} className="flex-1 lg:flex-none flex items-center justify-center gap-2 px-6 py-3 bg-primary-600 text-white rounded-2xl font-black text-xs uppercase tracking-widest shadow-xl shadow-primary-600/20 hover:bg-primary-700 transition-all">
-                <span className="material-symbols-outlined text-lg">add</span>
-                Add Entry
+        <div className="flex-shrink-0 ml-auto md:ml-0 flex items-center gap-2">
+          {isLinkedToEnableBanking && onSyncLinkedAccount && (
+            <button onClick={onSyncLinkedAccount} className={BTN_SECONDARY_STYLE}>
+              Sync
             </button>
+          )}
+          <button onClick={onAddTransaction} className={BTN_PRIMARY_STYLE}>Add Transaction</button>
         </div>
-      </div>
-
-      <div className="grid grid-cols-1 xl:grid-cols-12 gap-6">
-        {/* LEFT COLUMN: VISUALS & METRICS */}
-        <div className="xl:col-span-8 space-y-6">
-            {/* HERO SECTION */}
-            <div className={`grid grid-cols-1 ${showVirtualCard ? 'md:grid-cols-2' : ''} gap-6`}>
-                {showVirtualCard && (
-                    <BankCard 
-                        name={account.name}
-                        balance={account.balance}
-                        currency={account.currency}
-                        last4={account.last4}
-                        institution={account.financialInstitution}
-                        type={account.type}
-                        color="primary"
-                    />
-                )}
-
-                {/* METRICS PULSE */}
-                <div className={`grid ${showVirtualCard ? 'grid-cols-2' : 'grid-cols-2 md:grid-cols-4'} gap-4 w-full`}>
-                     <div className="p-5 rounded-[2rem] bg-white dark:bg-white/[0.03] border border-black/5 dark:border-white/5 flex flex-col justify-between">
-                         <div>
-                            <span className="material-symbols-outlined text-indigo-500 mb-3 bg-indigo-500/10 p-2 rounded-xl">monitoring</span>
-                            <p className="text-[10px] font-bold text-light-text-secondary dark:text-dark-text-secondary tracking-widest mb-1">Safe to Spend</p>
-                            <h4 className="text-xl font-black text-light-text dark:text-dark-text tracking-tighter leading-none">
-                                {formatCurrency(metrics.safeToSpend, account.currency, { compact: true })}
-                            </h4>
+      </header>
+      
+      {/* Top Section: Virtual Card & Metrics */}
+      {showVirtualCard ? (
+        <div className="grid grid-cols-1 lg:grid-cols-12 gap-8">
+            {/* Virtual Card */}
+            <div className="lg:col-span-5 xl:col-span-4">
+                <div className={`aspect-[1.586/1] rounded-2xl ${getCardGradient(account.id)} p-6 sm:p-8 text-white shadow-2xl relative overflow-hidden border border-white/20 flex flex-col justify-between group transition-transform hover:scale-[1.02] duration-300`}>
+                    {/* Texture Overlay */}
+                    <div className="absolute inset-0 bg-[url('https://www.transparenttextures.com/patterns/cubes.png')] opacity-10 pointer-events-none"></div>
+                    <div className="absolute -top-24 -right-24 w-64 h-64 bg-white/10 rounded-full blur-3xl pointer-events-none"></div>
+                    
+                    <div className="flex justify-between items-start z-10">
+                        <div className="w-12 h-9 bg-white/20 rounded-md border border-white/30 backdrop-blur-md flex items-center justify-center relative overflow-hidden shadow-sm">
+                             <div className="absolute inset-0 bg-gradient-to-tr from-white/10 to-transparent"></div>
+                             <div className="w-8 h-[1px] bg-black/20 absolute top-2"></div>
+                             <div className="w-8 h-[1px] bg-black/20 absolute bottom-2"></div>
+                             <div className="w-[1px] h-5 bg-black/20 absolute left-4"></div>
+                        </div>
+                        <div className="flex flex-col items-end">
+                            <span className="material-symbols-outlined text-2xl opacity-80 mb-1">rss_feed</span>
+                            <span className="text-white/80 font-mono text-xs font-semibold uppercase tracking-wider shadow-sm">
+                                {account.financialInstitution || 'Crystal Bank'}
+                            </span>
+                        </div>
+                    </div>
+  
+                    <div className="z-10 mt-4">
+                         <div className="flex items-center gap-3 text-xl sm:text-2xl font-mono tracking-widest text-white/95 drop-shadow-md truncate">
+                             <span>••••</span> <span>••••</span> <span>••••</span> <span>{account.last4 || '0000'}</span>
                          </div>
-                         <p className="text-[9px] font-bold text-emerald-500 mt-2 flex items-center gap-1">Liquidity</p>
-                     </div>
-                     <div className="p-5 rounded-[2rem] bg-white dark:bg-white/[0.03] border border-black/5 dark:border-white/5 flex flex-col justify-between">
-                         <div>
-                            <span className="material-symbols-outlined text-rose-500 mb-3 bg-rose-500/10 p-2 rounded-xl">outbound</span>
-                            <p className="text-[10px] font-bold text-light-text-secondary dark:text-dark-text-secondary tracking-widest mb-1">Avg Outbound</p>
-                            <h4 className="text-xl font-black text-light-text dark:text-dark-text tracking-tighter leading-none">
-                                {formatCurrency(metrics.avgMonthlySpend, account.currency, { compact: true })}
-                            </h4>
-                         </div>
-                         <p className="text-[9px] font-bold text-rose-500 mt-2 flex items-center gap-1">Run Rate</p>
-                     </div>
-                     <div className={`${account.showCard ? 'col-span-2' : 'col-span-2'} p-5 rounded-[2rem] bg-white dark:bg-white/[0.03] border border-black/5 dark:border-white/5 flex items-center justify-between`}>
-                         <div className="flex items-center gap-4">
-                            <div className={`w-12 h-12 rounded-2xl flex items-center justify-center ${metrics.lowestBalanceForecast < 0 ? 'bg-rose-500/10 text-rose-500' : 'bg-primary-500/10 text-primary-500'}`}>
-                                <span className="material-symbols-outlined text-2xl">{metrics.lowestBalanceForecast < 0 ? 'warning' : 'verified_user'}</span>
-                            </div>
-                            <div>
-                                <p className="text-[10px] font-bold text-light-text-secondary dark:text-dark-text-secondary tracking-widest mb-0.5">30d Safety Floor</p>
-                                <p className={`text-xl font-black tracking-tighter leading-none ${metrics.lowestBalanceForecast < 0 ? 'text-rose-500' : 'text-light-text dark:text-dark-text'}`}>
-                                    {formatCurrency(metrics.lowestBalanceForecast, account.currency)}
-                                </p>
-                            </div>
-                         </div>
-                     </div>
+                    </div>
+  
+                    <div className="flex justify-between items-end z-10">
+                        <div className="min-w-0 flex-1 mr-4">
+                            <p className="text-[9px] text-white/70 uppercase tracking-widest mb-0.5">Cardholder</p>
+                            <p className="font-medium uppercase tracking-wide text-sm sm:text-base text-white/95 drop-shadow-sm truncate">{account.cardholderName || account.name}</p>
+                        </div>
+                        <div className="flex flex-col items-end flex-shrink-0">
+                             {account.expirationDate && (
+                                 <div className="text-center mb-2">
+                                     <p className="text-[8px] text-white/70 uppercase">Valid Thru</p>
+                                     <p className="font-mono text-sm font-semibold">{account.expirationDate}</p>
+                                 </div>
+                             )}
+                             <NetworkLogo />
+                        </div>
+                    </div>
                 </div>
             </div>
 
-            {/* BALANCE HISTORY CHART */}
-            <Card className="!p-6 overflow-hidden">
-                <div className="flex justify-between items-center mb-6">
+            {/* Metrics Grid */}
+            <div className="lg:col-span-7 xl:col-span-8 grid grid-cols-1 sm:grid-cols-2 gap-4">
+                {metricsCards}
+            </div>
+        </div>
+      ) : (
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
+             {metricsCards}
+        </div>
+      )}
+
+      {/* Account Details Card (Banking Info & Linked Cards) */}
+      {(showBankingDetails || showOtherDetails || showInvestmentDetails) && (
+        <Card className="bg-gradient-to-br from-gray-50 to-white dark:from-gray-900/50 dark:to-dark-card border border-black/5 dark:border-white/5">
+            <h3 className="text-sm font-bold uppercase tracking-wider text-light-text-secondary dark:text-dark-text-secondary mb-4 flex items-center gap-2">
+                <span className="material-symbols-outlined text-lg">info</span> Account Details
+            </h3>
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
+                {/* Banking Fields */}
+                {account.accountNumber && (
                     <div>
-                        <h3 className="text-sm font-bold text-light-text dark:text-dark-text tracking-tight">Balance Progression</h3>
-                        <p className="text-[10px] font-bold text-light-text-secondary opacity-40 tracking-widest">Last 30 Days Trajectory</p>
-                    </div>
-                </div>
-                <div className="h-[280px] w-full">
-                    <ResponsiveContainer width="100%" height="100%">
-                         <AreaChart data={balanceHistory} margin={{ top: 0, right: 0, left: -20, bottom: 0 }}>
-                            <defs>
-                                <linearGradient id="colorBalance" x1="0" y1="0" x2="0" y2="1">
-                                    <stop offset="5%" stopColor="#3b82f6" stopOpacity={0.2}/>
-                                    <stop offset="95%" stopColor="#3b82f6" stopOpacity={0}/>
-                                </linearGradient>
-                            </defs>
-                            <CartesianGrid strokeDasharray="3 3" vertical={false} strokeOpacity={0.05} />
-                            <XAxis 
-                                dataKey="date" 
-                                axisLine={false} 
-                                tickLine={false} 
-                                tick={{ fill: 'currentColor', opacity: 0.4, fontSize: 10, fontWeight: 700 }}
-                                tickFormatter={(val) => new Date(val).getDate().toString()}
-                            />
-                            <YAxis 
-                                hide={false}
-                                axisLine={false}
-                                tickLine={false}
-                                tick={{ fill: 'currentColor', opacity: 0.4, fontSize: 10, fontWeight: 700 }}
-                                tickFormatter={(val) => `${(val/1000).toFixed(0)}k`}
-                            />
-                            <Tooltip 
-                                contentStyle={{ 
-                                    backgroundColor: 'rgba(255,255,255,0.9)', 
-                                    backdropFilter: 'blur(10px)',
-                                    borderRadius: '12px',
-                                    border: '1px solid rgba(0,0,0,0.05)',
-                                    boxShadow: '0 4px 12px rgba(0,0,0,0.1)',
-                                    fontSize: '12px',
-                                    fontWeight: 'bold'
-                                }}
-                                formatter={(val: number) => [formatCurrency(val, account.currency), 'Balance']}
-                                labelFormatter={(val) => formatDateKey(new Date(val))}
-                            />
-                            <Area type="monotone" dataKey="value" stroke="#3b82f6" strokeWidth={3} fillOpacity={1} fill="url(#colorBalance)" />
-                        </AreaChart>
-                    </ResponsiveContainer>
-                </div>
-            </Card>
-
-            {/* LOWER STATS SECTION: GOALS & LINKED ACCOUNTS */}
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                {/* FINANCIAL GOALS */}
-                <Card className="!p-6">
-                    <div className="flex justify-between items-center mb-4">
-                        <h3 className="text-sm font-bold text-light-text dark:text-dark-text tracking-tight flex items-center gap-2">
-                            <span className="material-symbols-outlined text-indigo-500 text-lg">flag</span>
-                            Financial Goals
-                        </h3>
-                    </div>
-                    <div className="space-y-4">
-                        {linkedGoals.length > 0 ? linkedGoals.map(goal => (
-                            <div key={goal.id} className="p-3 rounded-2xl bg-black/5 dark:bg-white/[0.02] border border-black/5 dark:border-white/5">
-                                <div className="flex justify-between items-center mb-2">
-                                    <span className="text-xs font-bold text-light-text dark:text-dark-text">{goal.name}</span>
-                                    <span className="text-[10px] font-bold text-emerald-500">{((goal.currentAmount / goal.amount) * 100).toFixed(0)}%</span>
-                                </div>
-                                <div className="h-1.5 w-full bg-black/5 dark:bg-white/5 rounded-full overflow-hidden">
-                                    <div className="h-full bg-emerald-500 rounded-full" style={{ width: `${Math.min((goal.currentAmount/goal.amount)*100, 100)}%` }}></div>
-                                </div>
-                            </div>
-                        )) : (
-                            <div className="py-8 flex flex-col items-center justify-center text-center opacity-30">
-                                <span className="material-symbols-outlined text-4xl mb-2">flag</span>
-                                <p className="text-[10px] font-bold uppercase tracking-widest">No goals linked</p>
-                            </div>
-                        )}
-                    </div>
-                </Card>
-
-                {/* LINKED ACCOUNTS */}
-                <Card className="!p-6">
-                    <div className="flex justify-between items-center mb-4">
-                        <h3 className="text-sm font-bold text-light-text dark:text-dark-text tracking-tight flex items-center gap-2">
-                            <span className="material-symbols-outlined text-primary-500 text-lg">link</span>
-                            Linked Products
-                        </h3>
-                    </div>
-                    <div className="space-y-3">
-                        {linkedCreditCards.length > 0 ? linkedCreditCards.map(acc => (
-                            <div key={acc.id} onClick={() => setViewingAccountId(acc.id)} className="p-3 rounded-2xl bg-black/5 dark:bg-white/[0.02] border border-black/5 dark:border-white/5 flex items-center justify-between cursor-pointer hover:bg-black/10 transition-all">
-                                <div className="flex items-center gap-3">
-                                    <div className="w-8 h-8 rounded-lg bg-white dark:bg-white/10 flex items-center justify-center border border-black/5 dark:border-white/10 shrink-0 text-primary-500">
-                                        <span className="material-symbols-outlined text-lg">credit_card</span>
-                                    </div>
-                                    <div>
-                                        <p className="text-xs font-bold text-light-text dark:text-dark-text leading-tight">{acc.name}</p>
-                                        <p className="text-[9px] font-bold text-light-text-secondary dark:text-dark-text-secondary uppercase">Satellite Card</p>
-                                    </div>
-                                </div>
-                                <span className="material-symbols-outlined text-light-text-secondary/30 text-sm">chevron_right</span>
-                            </div>
-                        )) : (
-                            <div className="py-8 flex flex-col items-center justify-center text-center opacity-30">
-                                <span className="material-symbols-outlined text-4xl mb-2">link_off</span>
-                                <p className="text-[10px] font-bold uppercase tracking-widest">No satellites</p>
-                            </div>
-                        )}
-                    </div>
-                </Card>
-            </div>
-        </div>
-
-        {/* RIGHT COLUMN: RECENT & METADATA */}
-        <div className="xl:col-span-4 space-y-6">
-             {/* ACCOUNT LEDGER */}
-             <Card className="!p-0 overflow-hidden flex flex-col h-[400px]">
-                 <div className="p-6 border-b border-black/5 dark:border-white/5 bg-gray-50/50 dark:bg-white/[0.01]">
-                    <div className="flex justify-between items-center mb-1">
-                        <h3 className="text-md font-bold text-light-text dark:text-dark-text tracking-tight uppercase">Direct Activity</h3>
-                     </div>
-                 </div>
-                 <div className="flex-grow overflow-y-auto overflow-x-hidden p-2">
-                    <TransactionList 
-                        transactions={displayTransactionsList.slice(0, 20)} 
-                        allCategories={allCategories}
-                        onTransactionClick={onTransactionClick}
-                    />
-                 </div>
-                 <div className="p-4 bg-gray-50/50 dark:bg-white/[0.01] border-t border-black/5 dark:border-white/5">
-                    <button 
-                        onClick={() => setViewingAccountId(null)}
-                        className="w-full py-2.5 rounded-xl border border-black/5 dark:border-white/10 text-[10px] font-bold uppercase tracking-widest text-light-text-secondary dark:text-dark-text-secondary hover:bg-black/5 dark:hover:bg-white/5 transition-all"
-                    >
-                        View Full Ledger
-                    </button>
-                 </div>
-             </Card>
-
-             {/* BANKING DETAILS PANEL */}
-             <Card className="!p-6 bg-primary-500/[0.02] border-primary-500/10 h-min">
-                 <h3 className="text-[10px] font-bold text-primary-500 uppercase tracking-[0.2em] mb-4">Account Registry</h3>
-                 <div className="space-y-4">
-                     {account.openingDate && (
-                        <div className="flex justify-between items-center bg-black/5 dark:bg-white/5 p-2.5 rounded-xl border border-black/5 dark:border-white/5">
-                             <p className="text-[9px] font-bold text-light-text-secondary dark:text-dark-text-secondary uppercase tracking-widest opacity-60">Created At</p>
-                             <p className="text-xs font-bold text-light-text dark:text-dark-text uppercase tracking-tight">{account.openingDate}</p>
-                        </div>
-                     )}
-                     {account.accountNumber && (
-                        <div>
-                             <p className="text-[9px] font-bold text-light-text-secondary dark:text-dark-text-secondary uppercase tracking-widest opacity-60 mb-1">Identity / IBAN</p>
-                             <div className="flex items-center justify-between p-2 rounded-lg bg-black/5 dark:bg-white/5 border border-black/5 dark:border-white/5 group">
-                                  <p className="font-mono text-[10px] font-bold text-light-text dark:text-dark-text break-all truncate mr-2">{account.accountNumber}</p>
-                                  <button className="text-light-text-secondary hover:text-primary-500 transition-colors opacity-0 group-hover:opacity-100"><span className="material-symbols-outlined text-sm">content_copy</span></button>
-                             </div>
-                        </div>
-                     )}
-                     {account.routingNumber && (
-                        <div>
-                             <p className="text-[9px] font-bold text-light-text-secondary dark:text-dark-text-secondary uppercase tracking-widest opacity-60 mb-1">BIC / Protocol</p>
-                             <div className="flex items-center justify-between p-2 rounded-lg bg-black/5 dark:bg-white/5 border border-black/5 dark:border-white/5 group">
-                                  <p className="font-mono text-[10px] font-bold text-light-text dark:text-dark-text">{account.routingNumber}</p>
-                                  <button className="text-light-text-secondary hover:text-primary-500 transition-colors opacity-0 group-hover:opacity-100"><span className="material-symbols-outlined text-sm">content_copy</span></button>
-                             </div>
-                        </div>
-                     )}
-                     {account.apy !== undefined && (
-                        <div className="flex justify-between items-center pt-2">
-                             <p className="text-[9px] font-bold text-light-text-secondary dark:text-dark-text-secondary uppercase tracking-widest opacity-60">Base APY</p>
-                             <p className="text-lg font-bold text-emerald-500 leading-none">{account.apy}%</p>
-                        </div>
-                     )}
-                 </div>
-                 {account.notes && (
-                    <div className="mt-4 pt-4 border-t border-black/5 dark:border-white/5">
-                        <p className="text-[9px] font-bold text-light-text-secondary uppercase tracking-widest opacity-60 mb-1">Notes</p>
-                        <p className="text-[10px] text-light-text dark:text-dark-text italic opacity-80 leading-relaxed font-bold">{account.notes}</p>
+                        <p className="text-xs text-light-text-secondary dark:text-dark-text-secondary mb-1">Account Number / IBAN</p>
+                        <p className="font-mono font-medium text-light-text dark:text-dark-text break-all">{account.accountNumber}</p>
                     </div>
                 )}
-             </Card>
-        </div>
+                {account.routingNumber && (
+                    <div>
+                         <p className="text-xs text-light-text-secondary dark:text-dark-text-secondary mb-1">Routing / BIC</p>
+                         <p className="font-mono font-medium text-light-text dark:text-dark-text">{account.routingNumber}</p>
+                    </div>
+                )}
+                 {account.apy !== undefined && (
+                    <div>
+                         <p className="text-xs text-light-text-secondary dark:text-dark-text-secondary mb-1">APY / Interest Rate</p>
+                         <p className="font-bold text-green-600 dark:text-green-400 text-lg">{account.apy}%</p>
+                    </div>
+                )}
+                 {account.openingDate && (
+                    <div>
+                         <p className="text-xs text-light-text-secondary dark:text-dark-text-secondary mb-1">Opened On</p>
+                         <p className="font-medium text-light-text dark:text-dark-text">{parseLocalDate(account.openingDate).toLocaleDateString()}</p>
+                    </div>
+                )}
+                
+                {/* Investment Specific */}
+                {account.type === 'Investment' && (
+                    <>
+                        <div>
+                            <p className="text-xs text-light-text-secondary dark:text-dark-text-secondary mb-1">Sub-Type</p>
+                            <p className="font-medium text-light-text dark:text-dark-text">{account.subType}</p>
+                        </div>
+                        {account.subType === 'Pension Fund' && account.expectedRetirementYear && (
+                             <div>
+                                <p className="text-xs text-light-text-secondary dark:text-dark-text-secondary mb-1">Expected Retirement</p>
+                                <p className="font-medium text-light-text dark:text-dark-text">{account.expectedRetirementYear}</p>
+                             </div>
+                        )}
+                         {account.subType === 'Spare Change' && account.linkedAccountId && (
+                             <div>
+                                <p className="text-xs text-light-text-secondary dark:text-dark-text-secondary mb-1">Source Account</p>
+                                <button onClick={() => setViewingAccountId(account.linkedAccountId!)} className="font-medium text-primary-500 hover:underline text-left">
+                                    {accounts.find(a => a.id === account.linkedAccountId)?.name || 'Unknown'}
+                                </button>
+                             </div>
+                        )}
+                    </>
+                )}
+                
+                {/* Other Assets/Liabilities Fields */}
+                {account.otherSubType && (
+                    <div>
+                        <p className="text-xs text-light-text-secondary dark:text-dark-text-secondary mb-1">Sub-Type</p>
+                        <p className="font-medium text-light-text dark:text-dark-text">{account.otherSubType}</p>
+                    </div>
+                )}
+                {account.counterparty && (
+                    <div>
+                        <p className="text-xs text-light-text-secondary dark:text-dark-text-secondary mb-1">{account.type === 'Other Liabilities' ? 'Owed To' : 'Counterparty'}</p>
+                        <p className="font-medium text-light-text dark:text-dark-text">{account.counterparty}</p>
+                    </div>
+                )}
+                {account.location && (
+                    <div>
+                        <p className="text-xs text-light-text-secondary dark:text-dark-text-secondary mb-1">Location</p>
+                        <p className="font-medium text-light-text dark:text-dark-text">{account.location}</p>
+                    </div>
+                )}
+                 {account.assetCondition && (
+                    <div>
+                        <p className="text-xs text-light-text-secondary dark:text-dark-text-secondary mb-1">Condition</p>
+                        <p className="font-medium text-light-text dark:text-dark-text">{account.assetCondition}</p>
+                    </div>
+                )}
+                {account.interestRate && (
+                    <div>
+                         <p className="text-xs text-light-text-secondary dark:text-dark-text-secondary mb-1">Interest Rate</p>
+                         <p className="font-bold text-red-600 dark:text-red-400 text-lg">{account.interestRate}%</p>
+                    </div>
+                )}
+                {account.notes && (
+                    <div className="col-span-full mt-2 pt-2 border-t border-black/5 dark:border-white/5">
+                         <p className="text-xs text-light-text-secondary dark:text-dark-text-secondary mb-1">Notes</p>
+                         <p className="text-sm text-light-text dark:text-dark-text whitespace-pre-wrap">{account.notes}</p>
+                    </div>
+                )}
+
+
+                {/* Show card details only if Virtual Card is NOT shown, to avoid duplication */}
+                {!showVirtualCard && (
+                    <>
+                         {account.cardNetwork && (
+                            <div>
+                                 <p className="text-xs text-light-text-secondary dark:text-dark-text-secondary mb-1">Network</p>
+                                 <p className="font-medium text-light-text dark:text-dark-text">{account.cardNetwork}</p>
+                            </div>
+                        )}
+                         {account.cardholderName && (
+                            <div>
+                                 <p className="text-xs text-light-text-secondary dark:text-dark-text-secondary mb-1">Cardholder</p>
+                                 <p className="font-medium text-light-text dark:text-dark-text">{account.cardholderName}</p>
+                            </div>
+                        )}
+                         {account.expirationDate && (
+                            <div>
+                                 <p className="text-xs text-light-text-secondary dark:text-dark-text-secondary mb-1">Expires</p>
+                                 <p className="font-medium text-light-text dark:text-dark-text">{account.expirationDate}</p>
+                            </div>
+                        )}
+                        {account.last4 && (
+                            <div>
+                                 <p className="text-xs text-light-text-secondary dark:text-dark-text-secondary mb-1">Last 4 Digits</p>
+                                 <p className="font-medium text-light-text dark:text-dark-text font-mono">**** {account.last4}</p>
+                            </div>
+                        )}
+                    </>
+                )}
+            </div>
+            {linkedCreditCards.length > 0 && (
+                 <div className="mt-6 pt-6 border-t border-black/5 dark:border-white/5">
+                     <p className="text-xs text-light-text-secondary dark:text-dark-text-secondary mb-3 uppercase tracking-wider font-semibold">Linked Credit Cards</p>
+                     <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                         {linkedCreditCards.map(card => (
+                              <div key={card.id} className="flex items-center justify-between bg-white dark:bg-black/20 p-3 rounded-lg border border-black/5 dark:border-white/5 hover:border-primary-500/30 transition-colors group">
+                                 <div className="flex items-center gap-3">
+                                      <div className="w-8 h-8 rounded-full bg-orange-100 dark:bg-orange-900/30 flex items-center justify-center text-orange-600 dark:text-orange-400 shrink-0">
+                                         <span className="material-symbols-outlined text-sm">credit_card</span>
+                                     </div>
+                                     <div>
+                                         <button onClick={() => setViewingAccountId(card.id)} className="font-medium text-sm text-light-text dark:text-dark-text hover:text-primary-500 hover:underline text-left truncate max-w-[150px] sm:max-w-[200px] block">
+                                             {card.name}
+                                         </button>
+                                         <p className={`text-xs font-mono ${card.balance < 0 ? 'text-red-500' : 'text-light-text-secondary dark:text-dark-text-secondary'}`}>
+                                             {formatCurrency(card.balance, card.currency)}
+                                         </p>
+                                     </div>
+                                 </div>
+                                  <button onClick={() => setViewingAccountId(card.id)} className="text-light-text-secondary dark:text-dark-text-secondary hover:text-primary-500 p-1 rounded-full">
+                                      <span className="material-symbols-outlined text-lg">chevron_right</span>
+                                  </button>
+                              </div>
+                         ))}
+                     </div>
+                 </div>
+            )}
+        </Card>
+      )}
+
+      {/* Grid 2: Cash Flow Trend + Upcoming Payments */}
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+          <div className="lg:col-span-2 h-full">
+              <Card className="h-full flex flex-col min-h-[320px]">
+                  <h3 className="text-lg font-semibold text-light-text dark:text-dark-text mb-4">Monthly Cash Flow (6 Months)</h3>
+                  <div className="flex-grow w-full h-full">
+                    <ResponsiveContainer width="100%" height="100%" minWidth={0} minHeight={0}>
+                        <BarChart data={cashFlowData} margin={{ top: 10, right: 10, left: 0, bottom: 0 }} barSize={32}>
+                            <CartesianGrid strokeDasharray="3 3" strokeOpacity={0.1} vertical={false} />
+                            <XAxis dataKey="month" axisLine={false} tickLine={false} tick={{ fill: 'currentColor', opacity: 0.6, fontSize: 12 }} />
+                            <YAxis axisLine={false} tickLine={false} tick={{ fill: 'currentColor', opacity: 0.6, fontSize: 12 }} tickFormatter={(val) => `${val/1000}k`} width={30} />
+                            <Tooltip 
+                                contentStyle={{ backgroundColor: 'var(--light-card)', borderColor: 'rgba(0,0,0,0.1)', borderRadius: '8px' }}
+                                cursor={{fill: 'transparent'}}
+                                formatter={(val: number) => formatCurrency(val, account.currency)}
+                            />
+                            <Legend wrapperStyle={{ paddingTop: '10px' }}/>
+                            <Bar dataKey="income" name="Money In" fill="#22c55e" radius={[4, 4, 0, 0]} barSize={20} />
+                            <Bar dataKey="expense" name="Money Out" fill="#ef4444" radius={[4, 4, 0, 0]} barSize={20} />
+                        </BarChart>
+                    </ResponsiveContainer>
+                  </div>
+              </Card>
+          </div>
+          <div className="lg:col-span-1 h-full">
+              <Card className="h-full flex flex-col">
+                  <h3 className="text-lg font-semibold text-light-text dark:text-dark-text mb-4">Upcoming Payments</h3>
+                  <div className="flex-grow overflow-y-auto max-h-[250px] space-y-3 pr-1">
+                      {upcomingPayments.length > 0 ? upcomingPayments.map((item, idx) => (
+                          <div key={idx} className="flex items-center justify-between p-2 rounded-lg hover:bg-black/5 dark:hover:bg-white/5 transition-colors">
+                              <div className="flex items-center gap-3 min-w-0">
+                                  <div className="bg-light-fill dark:bg-dark-fill w-10 h-10 rounded-lg flex flex-col items-center justify-center text-xs flex-shrink-0">
+                                      <span className="font-bold text-light-text dark:text-dark-text">{parseLocalDate(item.date).getDate()}</span>
+                                      <span className="text-[10px] uppercase text-light-text-secondary dark:text-dark-text-secondary">{parseLocalDate(item.date).toLocaleString('default', { month: 'short' })}</span>
+                                  </div>
+                                  <div className="min-w-0">
+                                      <p className="text-sm font-medium text-light-text dark:text-dark-text truncate">{item.description}</p>
+                                      <p className="text-xs text-light-text-secondary dark:text-dark-text-secondary">{item.isRecurring ? 'Recurring' : 'Bill'}</p>
+                                  </div>
+                              </div>
+                              <p className="text-sm font-semibold text-light-text dark:text-dark-text whitespace-nowrap">{formatCurrency(item.amount, account.currency)}</p>
+                          </div>
+                      )) : (
+                          <div className="h-full flex flex-col items-center justify-center text-light-text-secondary dark:text-dark-text-secondary opacity-60">
+                              <span className="material-symbols-outlined text-4xl mb-2">event_available</span>
+                              <p className="text-sm">No upcoming payments.</p>
+                          </div>
+                      )}
+                  </div>
+              </Card>
+          </div>
       </div>
+
+      {/* Grid 3: Top Categories + Balance History */}
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+           <div className="lg:col-span-1 h-full">
+              <Card className="h-full flex flex-col min-h-[300px]">
+                  <h3 className="text-lg font-semibold text-light-text dark:text-dark-text mb-4">Top Spending (30d)</h3>
+                  <div className="flex-grow space-y-4 overflow-y-auto max-h-[250px] pr-1">
+                      {topCategories.length > 0 ? topCategories.map((cat, idx) => (
+                          <div key={idx}>
+                              <div className="flex justify-between text-sm mb-1">
+                                  <span className="font-medium text-light-text dark:text-dark-text">{cat.name}</span>
+                                  <span className="text-light-text dark:text-dark-text">{formatCurrency(cat.value, account.currency)}</span>
+                              </div>
+                              <div className="w-full bg-light-fill dark:bg-dark-fill rounded-full h-2 overflow-hidden">
+                                  <div className="h-full rounded-full" style={{ width: `${(cat.value / topCategories[0].value) * 100}%`, backgroundColor: cat.color }}></div>
+                              </div>
+                          </div>
+                      )) : (
+                          <div className="h-full flex flex-col items-center justify-center text-light-text-secondary dark:text-dark-text-secondary opacity-60">
+                              <span className="material-symbols-outlined text-4xl mb-2">pie_chart</span>
+                              <p className="text-sm">No spending data.</p>
+                          </div>
+                      )}
+                  </div>
+              </Card>
+           </div>
+           <div className="lg:col-span-2 h-full">
+                <Card className="h-full flex flex-col min-h-[300px]">
+                    <h3 className="text-lg font-semibold text-light-text dark:text-dark-text mb-4">Balance History (30 Days)</h3>
+                    <div className="flex-grow w-full h-full min-h-[250px]">
+                        <ResponsiveContainer width="100%" height="100%" minWidth={0} minHeight={0}>
+                            <AreaChart data={balanceHistory} margin={{ top: 10, right: 10, left: 0, bottom: 0 }}>
+                                <defs>
+                                    <linearGradient id="colorBalance" x1="0" y1="0" x2="0" y2="1">
+                                        <stop offset="5%" stopColor="#3b82f6" stopOpacity={0.3}/>
+                                        <stop offset="95%" stopColor="#3b82f6" stopOpacity={0}/>
+                                    </linearGradient>
+                                </defs>
+                                <CartesianGrid strokeDasharray="3 3" strokeOpacity={0.1} vertical={false} />
+                                <XAxis 
+                                    dataKey="date" 
+                                    axisLine={false} 
+                                    tickLine={false} 
+                                    tick={{ fill: 'currentColor', opacity: 0.5, fontSize: 12 }}
+                                    tickFormatter={(val) => {
+                                        const d = new Date(val);
+                                        return d.toLocaleDateString(undefined, { month: 'short', day: 'numeric' });
+                                    }}
+                                    minTickGap={30}
+                                />
+                                <YAxis 
+                                    axisLine={false} 
+                                    tickLine={false} 
+                                    tick={{ fill: 'currentColor', opacity: 0.5, fontSize: 12 }}
+                                    tickFormatter={(val) => formatCurrency(val, account.currency).replace(/[^0-9.,-]/g, '')} 
+                                    width={60}
+                                />
+                                <Tooltip 
+                                    contentStyle={{ backgroundColor: 'var(--light-card)', borderColor: 'rgba(0,0,0,0.1)', borderRadius: '8px' }}
+                                    labelStyle={{ color: 'var(--light-text)' }}
+                                    formatter={(val: number) => [formatCurrency(val, account.currency), 'Balance']}
+                                    labelFormatter={(label) => new Date(label).toLocaleDateString()}
+                                />
+                                <Area 
+                                    type="monotone" 
+                                    dataKey="value" 
+                                    stroke="#3b82f6" 
+                                    strokeWidth={2}
+                                    fillOpacity={1} 
+                                    fill="url(#colorBalance)" 
+                                />
+                            </AreaChart>
+                        </ResponsiveContainer>
+                    </div>
+                </Card>
+           </div>
+      </div>
+
+      {/* Linked Goals Section */}
+      {linkedGoals.length > 0 && (
+           <Card>
+                <div className="flex items-center gap-2 mb-4">
+                    <span className="material-symbols-outlined text-amber-500">flag</span>
+                    <h3 className="text-lg font-bold text-light-text dark:text-dark-text">Linked Goals</h3>
+                </div>
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+                    {linkedGoals.map(goal => {
+                        const progress = Math.min(100, Math.max(0, (goal.currentAmount / goal.amount) * 100));
+                        return (
+                            <div key={goal.id} className="p-4 bg-gray-50 dark:bg-white/5 rounded-xl border border-black/5 dark:border-white/5 shadow-sm">
+                                <div className="flex justify-between items-center mb-2">
+                                    <span className="font-bold text-sm text-light-text dark:text-dark-text truncate">{goal.name}</span>
+                                    <span className={`text-xs font-bold px-2 py-0.5 rounded-full ${progress >= 100 ? 'bg-green-100 text-green-700' : 'bg-amber-100 text-amber-700'}`}>
+                                        {progress.toFixed(0)}%
+                                    </span>
+                                </div>
+                                <div className="w-full bg-gray-200 dark:bg-gray-700 rounded-full h-2 overflow-hidden mb-2">
+                                    <div className="h-full bg-gradient-to-r from-amber-400 to-orange-500 rounded-full" style={{ width: `${progress}%` }}></div>
+                                </div>
+                                <div className="flex justify-between text-xs text-light-text-secondary dark:text-dark-text-secondary">
+                                    <span className="font-semibold text-light-text dark:text-dark-text">{formatCurrency(goal.currentAmount, 'EUR')}</span>
+                                    <span>Target: {formatCurrency(goal.amount, 'EUR')}</span>
+                                </div>
+                            </div>
+                        );
+                    })}
+                </div>
+           </Card>
+      )}
+
+      {/* Grid 4: Recent Transactions */}
+      <Card className="h-full flex flex-col !p-0">
+        <div className="flex justify-between items-center p-4 border-b border-black/5 dark:border-white/5">
+            <h3 className="text-lg font-semibold text-light-text dark:text-dark-text">Recent Transactions</h3>
+        </div>
+        <div className="flex-grow overflow-hidden">
+            <TransactionList 
+                transactions={displayTransactionsList.slice(0, 8)} 
+                allCategories={allCategories} 
+                onTransactionClick={onTransactionClick} 
+            />
+        </div>
+     </Card>
     </div>
   );
 };
