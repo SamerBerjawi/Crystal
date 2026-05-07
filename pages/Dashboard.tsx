@@ -1029,7 +1029,7 @@ const Dashboard: React.FC<DashboardProps> = ({ user, tasks, saveTask, onTogglePr
       name: 'Financial Overview',
       icon: 'insights',
       description: 'Key performance indicators',
-      defaultW: 2,
+      defaultW: 6,
       defaultH: 2,
       component: FinancialOverview,
       props: {
@@ -1048,7 +1048,7 @@ const Dashboard: React.FC<DashboardProps> = ({ user, tasks, saveTask, onTogglePr
         name: 'Today\'s Agenda', 
         icon: 'today',
         description: 'Upcoming tasks and payments',
-        defaultW: 2, 
+        defaultW: 6, 
         defaultH: 2, 
         component: TodayWidget, 
         props: { 
@@ -1066,7 +1066,7 @@ const Dashboard: React.FC<DashboardProps> = ({ user, tasks, saveTask, onTogglePr
       name: 'Forecast Horizon', 
       icon: 'timeline',
       description: 'Projected liquidity trends',
-      defaultW: 2, 
+      defaultW: 6, 
       defaultH: 2, 
       component: ForecastOverview, 
       props: { forecasts: lowestBalanceForecasts, currency: preferredCurrency, noCard: true } 
@@ -1076,7 +1076,7 @@ const Dashboard: React.FC<DashboardProps> = ({ user, tasks, saveTask, onTogglePr
       name: 'Credit Card Statements', 
       icon: 'credit_card',
       description: 'Recent and upcoming bills',
-      defaultW: 2, 
+      defaultW: 6, 
       defaultH: 2, 
       component: CreditCardStatementsWidget, 
       props: { statements: creditCardStatements } 
@@ -1087,7 +1087,7 @@ const Dashboard: React.FC<DashboardProps> = ({ user, tasks, saveTask, onTogglePr
       name: 'Net Worth Over Time', 
       icon: 'show_chart',
       description: 'Historical wealth progression',
-      defaultW: 4, 
+      defaultW: 12, 
       defaultH: 2, 
       component: NetWorthChart, 
       props: { 
@@ -1100,26 +1100,26 @@ const Dashboard: React.FC<DashboardProps> = ({ user, tasks, saveTask, onTogglePr
       } 
     },
     // Removed forecastChart
-    { id: 'outflowsByCategory', name: 'Outflows by Category', icon: 'pie_chart', description: 'Spending distribution', defaultW: 2, defaultH: 2, component: OutflowsChart, props: { data: outflowsByCategory, onCategoryClick: handleCategoryClick } },
-    { id: 'netWorthBreakdown', name: 'Net Worth Breakdown', icon: 'donut_large', description: 'Assets vs Liabilities', defaultW: 2, defaultH: 2, component: AssetDebtDonutChart, props: { assets: totalAssets, debt: totalDebt } },
-    { id: 'recentActivity', name: 'Recent Activity', icon: 'list_alt', description: 'Latest transactions', defaultW: 4, defaultH: 3, component: TransactionList, props: { transactions: recentTransactions, allCategories: allCategories, onTransactionClick: handleTransactionClick } },
-    { id: 'assetBreakdown', name: 'Asset Breakdown', icon: 'account_balance', description: 'Categorized asset values', defaultW: 2, defaultH: 2, component: AccountBreakdownCard, props: { title: 'Assets', totalValue: globalTotalAssets, breakdownData: globalAssetBreakdown } },
-    { id: 'liabilityBreakdown', name: 'Liability Breakdown', icon: 'payments', description: 'Categorized debt values', defaultW: 2, defaultH: 2, component: AccountBreakdownCard, props: { title: 'Liabilities', totalValue: Math.abs(globalTotalDebt), breakdownData: globalDebtBreakdown } },
-    { id: 'budgetOverview', name: 'Budget Overview', icon: 'ad_group', description: 'Spending against limits', defaultW: 2, defaultH: 2, component: BudgetOverviewWidget, props: { budgets: budgets, transactions: transactions, expenseCategories: expenseCategories, accounts: accounts, duration: duration, onBudgetClick: handleBudgetClick } },
-    { id: 'transactionMap', name: 'Transaction Map', icon: 'map', description: 'Geographic spend patterns', defaultW: 2, defaultH: 2, component: TransactionMapWidget, props: { transactions: filteredTransactions } },
-    { id: 'cashflowSankey', name: 'Cash Flow Sankey', icon: 'account_tree', description: 'Money movement visualizer', defaultW: 4, defaultH: 2, component: CashflowSankey, props: { transactions: filteredTransactions, incomeCategories, expenseCategories } },
+    { id: 'outflowsByCategory', name: 'Outflows by Category', icon: 'pie_chart', description: 'Spending distribution', defaultW: 6, defaultH: 2, component: OutflowsChart, props: { data: outflowsByCategory, onCategoryClick: handleCategoryClick } },
+    { id: 'netWorthBreakdown', name: 'Net Worth Breakdown', icon: 'donut_large', description: 'Assets vs Liabilities', defaultW: 6, defaultH: 2, component: AssetDebtDonutChart, props: { assets: totalAssets, debt: totalDebt } },
+    { id: 'recentActivity', name: 'Recent Activity', icon: 'list_alt', description: 'Latest transactions', defaultW: 12, defaultH: 3, component: TransactionList, props: { transactions: recentTransactions, allCategories: allCategories, onTransactionClick: handleTransactionClick } },
+    { id: 'assetBreakdown', name: 'Asset Breakdown', icon: 'account_balance', description: 'Categorized asset values', defaultW: 6, defaultH: 2, component: AccountBreakdownCard, props: { title: 'Assets', totalValue: globalTotalAssets, breakdownData: globalAssetBreakdown } },
+    { id: 'liabilityBreakdown', name: 'Liability Breakdown', icon: 'payments', description: 'Categorized debt values', defaultW: 6, defaultH: 2, component: AccountBreakdownCard, props: { title: 'Liabilities', totalValue: Math.abs(globalTotalDebt), breakdownData: globalDebtBreakdown } },
+    { id: 'budgetOverview', name: 'Budget Overview', icon: 'ad_group', description: 'Spending against limits', defaultW: 6, defaultH: 2, component: BudgetOverviewWidget, props: { budgets: budgets, transactions: transactions, expenseCategories: expenseCategories, accounts: accounts, duration: duration, onBudgetClick: handleBudgetClick } },
+    { id: 'transactionMap', name: 'Transaction Map', icon: 'map', description: 'Geographic spend patterns', defaultW: 6, defaultH: 2, component: TransactionMapWidget, props: { transactions: filteredTransactions } },
+    { id: 'cashflowSankey', name: 'Cash Flow Sankey', icon: 'account_tree', description: 'Money movement visualizer', defaultW: 12, defaultH: 2, component: CashflowSankey, props: { transactions: filteredTransactions, incomeCategories, expenseCategories } },
     
     // ANALYSIS WIDGETS
-    { id: 'financialRunway', name: 'Financial Runway', icon: 'flight_takeoff', description: 'Days until zero balance', defaultW: 2, defaultH: 2, component: FinancialRunwayWidget, props: { accounts, transactions: analyticsTransactions } },
-    { id: 'merchantPareto', name: 'Merchant Pareto', icon: 'bar_chart', description: 'Top spending destinations', defaultW: 2, defaultH: 2, component: MerchantParetoWidget, props: { transactions: analyticsTransactions } },
-    { id: 'wealthVelocity', name: 'Wealth Velocity', icon: 'speed', description: 'Accumulation rate insights', defaultW: 2, defaultH: 2, component: WealthVelocityWidget, props: { transactions: analyticsTransactions, accounts } }
-  ], [tasks, allRecurringItems, recurringTransactionOverrides, billsAndPayments, financialGoals, saveTask, netWorthData, netWorthTrendColor, activeGoalIds, lowestForecastPoint, selectedAccounts, outflowsByCategory, handleCategoryClick, totalAssets, totalDebt, recentTransactions, allCategories, handleTransactionClick, globalTotalAssets, globalAssetBreakdown, globalTotalDebt, globalDebtBreakdown, budgets, transactions, expenseCategories, accounts, duration, handleBudgetClick, filteredTransactions, incomeCategories, showForecast, showGoals, selectedAccountIds, analyticsTransactions]);
+    { id: 'financialRunway', name: 'Financial Runway', icon: 'flight_takeoff', description: 'Days until zero balance', defaultW: 6, defaultH: 2, component: FinancialRunwayWidget, props: { accounts, transactions: analyticsTransactions } },
+    { id: 'merchantPareto', name: 'Merchant Pareto', icon: 'bar_chart', description: 'Top spending destinations', defaultW: 6, defaultH: 2, component: MerchantParetoWidget, props: { transactions: analyticsTransactions } },
+    { id: 'wealthVelocity', name: 'Wealth Velocity', icon: 'speed', description: 'Accumulation rate insights', defaultW: 6, defaultH: 2, component: WealthVelocityWidget, props: { transactions: analyticsTransactions, accounts } }
+  ], [netWorth, income, expenses, incomeChange, expenseChange, incomeSparkline, expenseSparkline, tasks, allRecurringItems, billsAndPayments, financialGoals, recurringTransactionOverrides, saveTask, handleProcessItem, lowestBalanceForecasts, preferredCurrency, creditCardStatements, netWorthData, netWorthTrendColor, showForecast, showGoals, selectedAccountIds, outflowsByCategory, handleCategoryClick, totalAssets, totalDebt, recentTransactions, allCategories, handleTransactionClick, globalTotalAssets, globalAssetBreakdown, globalTotalDebt, globalDebtBreakdown, budgets, transactions, expenseCategories, accounts, duration, handleBudgetClick, filteredTransactions, incomeCategories, analyticsTransactions]);
 
   const initialLayouts = useMemo(() => {
     return allWidgets.map((w, index) => ({ 
       id: w.id, 
       title: w.name, 
-      x: (index % 2) * 2, 
+      x: (index % 2) * 6, 
       y: Math.floor(index / 2) * 2, 
       w: w.defaultW, 
       h: w.defaultH 
@@ -1127,7 +1127,19 @@ const Dashboard: React.FC<DashboardProps> = ({ user, tasks, saveTask, onTogglePr
   }, [allWidgets]);
 
   const widgets = useMemo(() => {
-    return preferences.dashboardLayouts?.[activeTab] || initialLayouts.filter(w => WIDGET_TABS[activeTab].includes(w.id));
+    const rawWidgets = preferences.dashboardLayouts?.[activeTab] || initialLayouts.filter(w => WIDGET_TABS[activeTab].includes(w.id));
+    
+    // Migration: Scale up old 4-column layout to 12-column layout
+    // Heuristic: If every widget is within the old 4x4 coordinate space, assume it's an old legacy layout.
+    if (rawWidgets.length > 0 && rawWidgets.every(w => w.w <= 4 && (w.x + w.w) <= 4)) {
+        return rawWidgets.map(w => ({
+            ...w,
+            x: w.x * 3,
+            w: w.w * 3
+        }));
+    }
+    
+    return rawWidgets;
   }, [preferences.dashboardLayouts, activeTab, initialLayouts]);
 
   const saveLayouts = useCallback((newWidgets: WidgetConfig[]) => {
@@ -1142,6 +1154,8 @@ const Dashboard: React.FC<DashboardProps> = ({ user, tasks, saveTask, onTogglePr
 
   // Ensure activity dashboard always includes its required widgets (including Cash Flow Sankey)
   useEffect(() => {
+    if (!widgets.length) return;
+    
     const requiredWidgets = WIDGET_TABS[activeTab];
     const currentIds = new Set(widgets.map(w => w.id));
     const missing = requiredWidgets.filter(id => !currentIds.has(id));
@@ -1151,10 +1165,11 @@ const Dashboard: React.FC<DashboardProps> = ({ user, tasks, saveTask, onTogglePr
 
     if (newWidgets.length !== widgets.length) changed = true;
     
+    // Net worth chart specifically needs more width to be readable in overview
     newWidgets = newWidgets.map(w => {
-        if (w.id === 'netWorthOverTime' && w.w !== 4) {
+        if (activeTab === 'overview' && w.id === 'netWorthOverTime' && w.w < 6) {
             changed = true;
-            return { ...w, w: 4 };
+            return { ...w, w: 12 };
         }
         return w;
     });
@@ -1165,7 +1180,7 @@ const Dashboard: React.FC<DashboardProps> = ({ user, tasks, saveTask, onTogglePr
             .map((id, index) => {
                 const widgetDef = allWidgets.find(w => w.id === id);
                 const yOffset = Math.max(0, ...newWidgets.map(w => w.y + w.h));
-                return widgetDef ? { id: widgetDef.id, title: widgetDef.name, x: (index % 2) * 2, y: yOffset + index, w: widgetDef.defaultW, h: widgetDef.defaultH } : null;
+                return widgetDef ? { id: widgetDef.id, title: widgetDef.name, x: (index % 2) * 6, y: yOffset + index, w: widgetDef.defaultW, h: widgetDef.defaultH } : null;
             })
             .filter(Boolean) as WidgetConfig[];
          newWidgets = [...newWidgets, ...additions];
@@ -1176,8 +1191,13 @@ const Dashboard: React.FC<DashboardProps> = ({ user, tasks, saveTask, onTogglePr
     }
   }, [activeTab, allWidgets, widgets, saveLayouts]);
 
+
   const removeWidget = (widgetId: string) => {
     saveLayouts(widgets.filter(w => w.id !== widgetId));
+  };
+
+  const updateWidgetWidth = (widgetId: string, newWidth: number) => {
+    saveLayouts(widgets.map(w => w.id === widgetId ? { ...w, w: newWidth } : w));
   };
 
   const addWidget = (widgetId: string) => {
@@ -1190,7 +1210,7 @@ const Dashboard: React.FC<DashboardProps> = ({ user, tasks, saveTask, onTogglePr
     setIsAddWidgetModalOpen(false);
   };
   
-  const handleLayoutChange = (currentLayout: any[]) => {
+  const handleLayoutChange = useCallback((currentLayout: any[]) => {
       const updated = widgets.map(w => {
           const layoutItem = currentLayout.find(l => l.i === w.id);
           if (layoutItem) {
@@ -1202,7 +1222,7 @@ const Dashboard: React.FC<DashboardProps> = ({ user, tasks, saveTask, onTogglePr
       if (isDifferent) {
         saveLayouts(updated);
       }
-  };
+  }, [widgets, saveLayouts]);
 
   const availableWidgetsToAdd = useMemo(() => {
     const currentWidgetIds = widgets.map(w => w.id);
@@ -1415,7 +1435,7 @@ const Dashboard: React.FC<DashboardProps> = ({ user, tasks, saveTask, onTogglePr
 
       {/* Controls Bar: Tabs & Filters */}
       <div className="mb-8">
-        <div className="flex flex-col lg:flex-row justify-between items-center gap-4 bg-white/50 dark:bg-dark-card/30 backdrop-blur-md px-4 py-3 rounded-2xl border border-black/5 dark:border-white/5 shadow-sm relative z-[60]">
+        <div className="flex flex-col lg:flex-row justify-between items-center gap-4 bg-white/50 dark:bg-dark-card/30 backdrop-blur-md px-4 py-3 rounded-2xl border border-black/5 dark:border-white/5 shadow-sm relative z-10">
              {/* Tabs */}
              <div className="flex items-center gap-1 bg-black/5 dark:bg-white/5 p-1 rounded-xl">
             {tabs.map((tab) => (
@@ -1545,7 +1565,7 @@ const Dashboard: React.FC<DashboardProps> = ({ user, tasks, saveTask, onTogglePr
                     isResizable: isEditMode
                 })) }}
                     breakpoints={{ lg: 1200, md: 996, sm: 768, xs: 480, xxs: 0 }}
-                    cols={{ lg: 4, md: 4, sm: 2, xs: 1, xxs: 1 }}
+                    cols={{ lg: 12, md: 12, sm: 6, xs: 2, xxs: 1 }}
                     rowHeight={180}
                     isDraggable={isEditMode}
                     isResizable={isEditMode}
@@ -1569,6 +1589,8 @@ const Dashboard: React.FC<DashboardProps> = ({ user, tasks, saveTask, onTogglePr
                                         subtitle={widgetDetails.description}
                                         icon={widgetDetails.icon}
                                         onRemove={() => removeWidget(widget.id)}
+                                        onWidthChange={(w) => updateWidgetWidth(widget.id, w)}
+                                        currentWidth={widget.w}
                                         isEditMode={isEditMode}
                                         isCompact={isCompactValue}
                                         className="h-full"
@@ -1703,7 +1725,7 @@ const Dashboard: React.FC<DashboardProps> = ({ user, tasks, saveTask, onTogglePr
                     isResizable: isEditMode
                 })) }}
                 breakpoints={{ lg: 1200, md: 996, sm: 768, xs: 480, xxs: 0 }}
-                cols={{ lg: 4, md: 4, sm: 2, xs: 1, xxs: 1 }}
+                cols={{ lg: 12, md: 12, sm: 6, xs: 2, xxs: 1 }}
                 rowHeight={180}
                 isDraggable={isEditMode}
                 isResizable={isEditMode}
@@ -1727,6 +1749,8 @@ const Dashboard: React.FC<DashboardProps> = ({ user, tasks, saveTask, onTogglePr
                                     subtitle={widgetDetails.description}
                                     icon={widgetDetails.icon}
                                     onRemove={() => removeWidget(widget.id)}
+                                    onWidthChange={(w) => updateWidgetWidth(widget.id, w)}
+                                    currentWidth={widget.w}
                                     isEditMode={isEditMode}
                                     isCompact={isCompactValue}
                                     className="h-full"

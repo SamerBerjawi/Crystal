@@ -214,10 +214,14 @@ const hasMaterialData = (data: Partial<FinancialData> | null | undefined) => {
 
   if (hasArrays) return true;
 
-  return MATERIAL_DATA_OBJECT_KEYS.some(key => {
+  const hasMaterialObjects = MATERIAL_DATA_OBJECT_KEYS.some(key => {
     const value = data[key];
     return value && typeof value === 'object' && !Array.isArray(value) && Object.keys(value).length > 0;
   });
+
+  if (hasMaterialObjects) return true;
+
+  return !!(data.preferences && data.preferences.dashboardLayouts && Object.keys(data.preferences.dashboardLayouts).length > 0);
 };
 const safeLocalStorage = {
   getItem: (key: string): string | null => {

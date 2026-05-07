@@ -12,7 +12,7 @@ const symbolMap: { [key in Currency]: string } = {
   'RON': 'lei'
 };
 
-export function formatCurrency(amount: number, currency: Currency, options?: { showPlusSign?: boolean }): string {
+export function formatCurrency(amount: number, currency: Currency, options?: { showPlusSign?: boolean, compact?: boolean }): string {
   if (currency === 'BTC') {
     return `${amount.toLocaleString('en-US', {
       minimumFractionDigits: 2,
@@ -21,8 +21,10 @@ export function formatCurrency(amount: number, currency: Currency, options?: { s
   }
 
   const formatter = new Intl.NumberFormat('en-US', {
-    minimumFractionDigits: 2,
-    maximumFractionDigits: 2,
+    minimumFractionDigits: options?.compact ? 0 : 2,
+    maximumFractionDigits: options?.compact ? 1 : 2,
+    notation: options?.compact ? 'compact' : 'standard',
+    compactDisplay: 'short'
   });
 
   let sign = '';
