@@ -3,6 +3,7 @@ import React, { useState, useMemo, useEffect } from 'react';
 import { Account, Transaction, Warrant, AccountType } from '../types';
 import AccountRow from './AccountRow';
 import { convertToEur, formatCurrency } from '../utils';
+import { ACCOUNT_TYPE_ACCENT_STYLES } from '../constants';
 
 interface AccountsListSectionProps {
     title: string;
@@ -130,7 +131,7 @@ const AccountsListSection: React.FC<AccountsListSectionProps> = ({
                                 expand_more
                             </span>
                         </div>
-                        <h3 className="text-sm font-black text-light-text dark:text-dark-text uppercase tracking-[0.2em]">{title}</h3>
+                        <h3 className="text-m font-black text-light-text dark:text-dark-text uppercase tracking-[0.2em]">{title}</h3>
                         <span className="bg-primary-100 dark:bg-primary-900/30 text-[10px] font-black px-2 py-0.5 rounded-full text-primary-700 dark:text-primary-300">{accounts.length}</span>
                     </div>
                     <div className="h-px flex-grow bg-black/5 dark:bg-white/5 ml-4"></div>
@@ -148,14 +149,14 @@ const AccountsListSection: React.FC<AccountsListSectionProps> = ({
                             <div key={groupName} className="space-y-4">
                                 <div onClick={() => toggleGroup(groupName)} className="flex justify-between items-center cursor-pointer group select-none px-2 py-1.5 rounded-xl hover:bg-black/5 dark:hover:bg-white/5 transition-colors">
                                     <div className="flex items-center gap-3">
-                                        <div className={`w-1.5 h-4 rounded-full bg-primary-500 transition-all duration-300 ${expandedGroups[groupName] ? 'h-4' : 'h-2 opacity-50'}`}></div>
-                                        <h4 className="font-bold text-light-text dark:text-dark-text text-sm tracking-tight">{groupName}</h4>
+                                        <div className={`w-1.5 h-4 rounded-full ${ACCOUNT_TYPE_ACCENT_STYLES[groupName as AccountType]?.bar || 'bg-primary-500'} transition-all duration-300 ${expandedGroups[groupName] ? 'h-4' : 'h-2 opacity-50'}`}></div>
+                                        <h4 className="font-bold text-light-text dark:text-dark-text text-m tracking-tight">{groupName}</h4>
                                     </div>
                                     <div className="flex items-center gap-3">
-                                        <span className="font-mono text-xs font-bold text-light-text-secondary dark:text-dark-text-secondary group-hover:text-light-text dark:group-hover:text-dark-text transition-colors">
+                                        <span className={`font-mono text-m font-bold px-2 py-0.5 rounded-full transition-colors ${ACCOUNT_TYPE_ACCENT_STYLES[groupName as AccountType]?.pill || 'bg-primary-100 text-primary-700 dark:bg-primary-900/30 dark:text-primary-300'}`}>
                                             {formatCurrency(groupTotal, 'EUR')}
                                         </span>
-                                         <span className={`material-symbols-outlined text-sm text-light-text-secondary dark:text-dark-text-secondary transition-transform duration-200 ${expandedGroups[groupName] ? 'rotate-0' : '-rotate-90'}`}>expand_more</span>
+                                         <span className={`material-symbols-outlined text-m text-light-text-secondary dark:text-dark-text-secondary transition-transform duration-200 ${expandedGroups[groupName] ? 'rotate-0' : '-rotate-90'}`}>expand_more</span>
                                     </div>
                                 </div>
                                 

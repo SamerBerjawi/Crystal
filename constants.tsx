@@ -211,14 +211,27 @@ export const QUICK_CREATE_BUDGET_OPTIONS: { value: number, label: string, shortL
 export const ACCOUNT_TYPE_STYLES: { [key in AccountType]: { icon: string; color: string } } = {
     'Checking': { icon: 'account_balance', color: 'text-blue-500' },
     'Savings': { icon: 'savings', color: 'text-green-500' },
-    'Credit Card': { icon: 'credit_card', color: 'text-orange-500' },
+    'Credit Card': { icon: 'credit_card', color: 'text-rose-500' },
     'Investment': { icon: 'show_chart', color: 'text-purple-500' },
     'Loan': { icon: 'request_quote', color: 'text-red-500' },
     'Lending': { icon: 'real_estate_agent', color: 'text-teal-500' },
-    'Property': { icon: 'home', color: 'text-yellow-500' },
-    'Vehicle': { icon: 'directions_car', color: 'text-cyan-500' },
+    'Property': { icon: 'home', color: 'text-sky-500' },
+    'Vehicle': { icon: 'directions_car', color: 'text-slate-500' },
     'Other Assets': { icon: 'category', color: 'text-lime-500' },
     'Other Liabilities': { icon: 'receipt', color: 'text-pink-500' },
+};
+
+export const ACCOUNT_TYPE_ACCENT_STYLES: { [key in AccountType]: { bar: string; pill: string } } = {
+    'Checking': { bar: 'bg-blue-500', pill: 'bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-300' },
+    'Savings': { bar: 'bg-green-500', pill: 'bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-300' },
+    'Credit Card': { bar: 'bg-rose-500', pill: 'bg-rose-100 text-rose-700 dark:bg-rose-900/30 dark:text-rose-300' },
+    'Investment': { bar: 'bg-purple-500', pill: 'bg-purple-100 text-purple-700 dark:bg-purple-900/30 dark:text-purple-300' },
+    'Loan': { bar: 'bg-red-500', pill: 'bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-300' },
+    'Lending': { bar: 'bg-teal-500', pill: 'bg-teal-100 text-teal-700 dark:bg-teal-900/30 dark:text-teal-300' },
+    'Property': { bar: 'bg-sky-500', pill: 'bg-sky-100 text-sky-700 dark:bg-sky-900/30 dark:text-sky-300' },
+    'Vehicle': { bar: 'bg-slate-500', pill: 'bg-slate-100 text-slate-700 dark:bg-slate-900/30 dark:text-slate-300' },
+    'Other Assets': { bar: 'bg-lime-500', pill: 'bg-lime-100 text-lime-700 dark:bg-lime-900/30 dark:text-lime-300' },
+    'Other Liabilities': { bar: 'bg-pink-500', pill: 'bg-pink-100 text-pink-700 dark:bg-pink-900/30 dark:text-pink-300' },
 };
 
 export const INVESTMENT_SUB_TYPE_STYLES: { [key in InvestmentSubType]: { icon: string; color: string } } = {
