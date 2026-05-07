@@ -29,7 +29,7 @@ const FinancialOverview: React.FC<FinancialOverviewProps> = ({
     const netCashFlow = income - expenses;
     const savingsRate = income > 0 ? (netCashFlow / income) * 100 : 0;
     const isPositiveNet = netCashFlow >= 0;
-    const flowIntensity = income > 0 ? (expenses / income) * 100 : 0;
+    const flowIntensity = income > 0 ? (expenses / income) * 100 : (expenses > 0 ? 100 : 0);
 
     return (
         <div className="!p-0 overflow-hidden group h-full">
@@ -132,10 +132,10 @@ const FinancialOverview: React.FC<FinancialOverviewProps> = ({
                          </div>
                          <span className="text-[8px] font-bold text-light-text-secondary/40 uppercase tracking-widest">Relative to Income</span>
                     </div>
-                    <div className="h-1.5 w-full bg-black/5 dark:bg-black/20 rounded-full overflow-hidden flex border border-black/5 dark:border-white/5 p-0.5">
+                    <div className="h-2 w-full bg-black/5 dark:bg-black/20 rounded-full overflow-hidden flex border border-black/5 dark:border-white/5 p-0.5">
                         <div 
                             className={`h-full rounded-full transition-all duration-1000 ease-out shadow-sm ${isPositiveNet ? 'bg-gradient-to-r from-primary-600 to-primary-400' : 'bg-gradient-to-r from-rose-600 to-rose-400'}`} 
-                            style={{ width: `${Math.min(flowIntensity, 100)}%` }}
+                            style={{ width: `${Math.max(Math.min(flowIntensity, 100), flowIntensity > 0 ? 2 : 0)}%` }}
                         ></div>
                     </div>
                 </div>
