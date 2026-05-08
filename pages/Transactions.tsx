@@ -148,6 +148,7 @@ const Transactions: React.FC<TransactionsProps> = ({ initialAccountFilter, initi
   const brandfetchClientId = usePreferencesSelector(p => (p.brandfetchClientId || '').trim());
   const merchantLogoOverrides = usePreferencesSelector(p => p.merchantLogoOverrides || {});
   const merchantRules = usePreferencesSelector(p => p.merchantRules || {}) as Record<string, MerchantRule>;
+  const showBalanceAdjustments = usePreferencesSelector(p => p.showBalanceAdjustments ?? true);
   const appliedInitialFiltersRef = useRef<{ account: string | null; tag: string | null } | null>(null);
 
   useEffect(() => {
@@ -499,7 +500,9 @@ const Transactions: React.FC<TransactionsProps> = ({ initialAccountFilter, initi
         const matchMinAmount = isNaN(min) || amountAbsEur >= min;
         const matchMaxAmount = isNaN(max) || amountAbsEur <= max;
 
-        return matchAccount && matchTag && matchSearch && matchType && matchStartDate && matchEndDate && matchCategory && matchMinAmount && matchMaxAmount && matchMerchant;
+        const matchBalanceAdjustment = showBalanceAdjustments || !tx.isBalanceAdjustment;
+
+        return matchAccount && matchTag && matchSearch && matchType && matchStartDate && matchEndDate && matchCategory && matchMinAmount && matchMaxAmount && matchMerchant && matchBalanceAdjustment;
       }).map(({ tx }) => tx);
     
     return transactionList.sort((a, b) => {
@@ -515,7 +518,7 @@ const Transactions: React.FC<TransactionsProps> = ({ initialAccountFilter, initi
       }
     });
 
-  }, [debouncedSearchTerm, sortBy, typeFilter, startDate, endDate, indexedTransactions, selectedAccountIds, selectedCategoryNames, selectedTagIds, minAmount, maxAmount, allCategories, accountMapByName, merchantFilter]);
+  }, [debouncedSearchTerm, sortBy, typeFilter, startDate, endDate, indexedTransactions, selectedAccountIds, selectedCategoryNames, selectedTagIds, minAmount, maxAmount, allCategories, accountMapByName, merchantFilter, showBalanceAdjustments]);
   
   type VirtualRow = { type: 'header'; date: string; total: number } | { type: 'transaction'; transaction: DisplayTransaction };
 

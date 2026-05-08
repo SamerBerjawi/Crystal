@@ -17,6 +17,7 @@ interface SavingsAccountViewProps {
   onBack: () => void;
   onSyncLinkedAccount?: () => void;
   isLinkedToEnableBanking?: boolean;
+  showBalanceAdjustments?: boolean;
 }
 
 const SavingsAccountView: React.FC<SavingsAccountViewProps> = ({
@@ -29,6 +30,7 @@ const SavingsAccountView: React.FC<SavingsAccountViewProps> = ({
   onBack,
   onSyncLinkedAccount,
   isLinkedToEnableBanking,
+  showBalanceAdjustments = true,
 }) => {
   const { financialGoals } = useGoalsContext();
   const timeZone = getPreferredTimeZone();
@@ -51,30 +53,33 @@ const SavingsAccountView: React.FC<SavingsAccountViewProps> = ({
         const endOfMonth = new Date(d.getFullYear(), d.getMonth() + 1, 0);
         
         // Filter for transactions that look like interest
-        const interestTxs = transactions.filter(({ tx, parsedDate }) => {
-             return parsedDate >= startOfMonth && 
-                    parsedDate <= endOfMonth && 
-                    tx.type === 'income' &&
-                    (tx.category.toLowerCase().includes('interest') || tx.description.toLowerCase().includes('interest'));
-        });
+        const interestTxs = transactions
+            .filter(({ tx }) => showBalanceAdjustments || !tx.isBalanceAdjustment)
+            .filter(({ tx, parsedDate }) => {
+                 return parsedDate >= startOfMonth && 
+                        parsedDate <= endOfMonth && 
+                        tx.type === 'income' &&
+                        (tx.category.toLowerCase().includes('interest') || tx.description.toLowerCase().includes('interest'));
+            });
         
         const totalInterest = interestTxs.reduce((sum, { convertedAmount }) => sum + convertedAmount, 0);
         data.push({ name: monthKey, value: totalInterest });
     }
     return data;
-  }, [transactions]);
+  }, [transactions, showBalanceAdjustments]);
 
   const totalInterestYTD = useMemo(() => {
       const now = new Date();
       const startOfYear = new Date(now.getFullYear(), 0, 1);
       return transactions
+        .filter(({ tx }) => showBalanceAdjustments || !tx.isBalanceAdjustment)
         .filter(({ tx, parsedDate }) => 
             parsedDate >= startOfYear && 
             tx.type === 'income' && 
             (tx.category.toLowerCase().includes('interest') || tx.description.toLowerCase().includes('interest'))
         )
         .reduce((sum, { convertedAmount }) => sum + convertedAmount, 0);
-  }, [transactions]);
+  }, [transactions, showBalanceAdjustments]);
 
   // --- 2. Balance History ---
   const balanceHistory = useMemo(() => {
@@ -85,7 +90,8 @@ const SavingsAccountView: React.FC<SavingsAccountViewProps> = ({
     const today = new Date();
     const endDate = new Date(today.getFullYear(), today.getMonth(), today.getDate());
     
-    const sortedTxs = [...transactions].sort((a, b) => b.parsedDate.getTime() - a.parsedDate.getTime());
+    const filteredTxs = transactions.filter(({ tx }) => showBalanceAdjustments || !tx.isBalanceAdjustment);
+    const sortedTxs = [...filteredTxs].sort((a, b) => b.parsedDate.getTime() - a.parsedDate.getTime());
     const dailyChanges: Record<string, number> = {};
     
     sortedTxs.forEach(({ tx, parsedDate }) => {

@@ -19,6 +19,7 @@ interface LoanAccountViewProps {
   onBack: () => void;
   onSyncLinkedAccount?: () => void;
   isLinkedToEnableBanking?: boolean;
+  showBalanceAdjustments?: boolean;
 }
 
 const LoanAccountView: React.FC<LoanAccountViewProps> = ({
@@ -33,11 +34,13 @@ const LoanAccountView: React.FC<LoanAccountViewProps> = ({
   onBack,
   onSyncLinkedAccount,
   isLinkedToEnableBanking,
+  showBalanceAdjustments = true,
 }) => {
   const isLending = account.type === 'Lending';
 
   const loanDetails = useMemo(() => {
-    const schedule = generateAmortizationSchedule(account, transactions, loanPaymentOverrides);
+    const filteredTxs = transactions.filter(tx => showBalanceAdjustments || !tx.isBalanceAdjustment);
+    const schedule = generateAmortizationSchedule(account, filteredTxs, loanPaymentOverrides);
     
     const totalScheduledPrincipal = schedule.reduce((sum, p) => sum + p.principal, 0);
     const totalScheduledInterest = schedule.reduce((sum, p) => sum + p.interest, 0);
@@ -81,7 +84,7 @@ const LoanAccountView: React.FC<LoanAccountViewProps> = ({
         marketEquity, 
         payoffDate 
     };
-  }, [account, transactions, loanPaymentOverrides, accounts]);
+  }, [account, transactions, loanPaymentOverrides, accounts, showBalanceAdjustments]);
 
   const payoffGradient = isLending 
     ? 'bg-gradient-to-br from-emerald-500 to-teal-600' 
@@ -203,6 +206,7 @@ const LoanAccountView: React.FC<LoanAccountViewProps> = ({
         onMakePayment={onMakePayment} 
         overrides={loanPaymentOverrides || {}} 
         onOverridesChange={onOverridesChange} 
+        showBalanceAdjustments={showBalanceAdjustments}
       />
     </div>
   );

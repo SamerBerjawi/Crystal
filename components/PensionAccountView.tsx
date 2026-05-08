@@ -17,6 +17,7 @@ interface PensionAccountViewProps {
   onAdjustBalance?: () => void;
   onSyncLinkedAccount?: () => void;
   isLinkedToEnableBanking?: boolean;
+  showBalanceAdjustments?: boolean;
 }
 
 const PensionAccountView: React.FC<PensionAccountViewProps> = ({
@@ -30,6 +31,7 @@ const PensionAccountView: React.FC<PensionAccountViewProps> = ({
   onAdjustBalance,
   onSyncLinkedAccount,
   isLinkedToEnableBanking,
+  showBalanceAdjustments = true,
 }) => {
   const timeZone = getPreferredTimeZone();
   const currentYear = new Date().getFullYear();
@@ -45,7 +47,9 @@ const PensionAccountView: React.FC<PensionAccountViewProps> = ({
     
     let contributionsLast12Months = 0;
 
-    transactions.forEach(({ tx, parsedDate, convertedAmount }) => {
+    transactions
+        .filter(({ tx }) => showBalanceAdjustments || !tx.isBalanceAdjustment)
+        .forEach(({ tx, parsedDate, convertedAmount }) => {
         if (tx.type === 'income') {
             // Exclude explicit "Interest" or "Dividend" transactions from contributions if categorized as such
             // This assumes contributions are transfers or deposits
@@ -78,7 +82,7 @@ const PensionAccountView: React.FC<PensionAccountViewProps> = ({
         annualizedReturn: simpleReturn, 
         monthlyContributionAvg: contributionsLast12Months / 12
     };
-  }, [transactions, account]);
+  }, [transactions, account, showBalanceAdjustments]);
 
   // --- 2. Projection Chart Data ---
   const chartData = useMemo(() => {
@@ -89,7 +93,8 @@ const PensionAccountView: React.FC<PensionAccountViewProps> = ({
     const openingDate = account.openingDate ? parseLocalDate(account.openingDate) : new Date(today.getFullYear() - 5, today.getMonth(), 1);
     const monthsToBackfill = (today.getFullYear() - openingDate.getFullYear()) * 12 + (today.getMonth() - openingDate.getMonth()) + 1;
 
-    const sortedTxs = [...transactions].sort((a, b) => a.parsedDate.getTime() - b.parsedDate.getTime());
+    const filteredTxs = transactions.filter(({ tx }) => showBalanceAdjustments || !tx.isBalanceAdjustment);
+    const sortedTxs = [...filteredTxs].sort((a, b) => a.parsedDate.getTime() - b.parsedDate.getTime());
     
     // Build History
     let runningBalance = 0;
@@ -116,7 +121,9 @@ const PensionAccountView: React.FC<PensionAccountViewProps> = ({
         const startOfMonth = new Date(d.getFullYear(), d.getMonth(), 1);
         const endOfMonth = new Date(d.getFullYear(), d.getMonth() + 1, 0);
         
-        const txsInMonth = transactions.filter(t => t.parsedDate >= startOfMonth && t.parsedDate <= endOfMonth);
+        const txsInMonth = transactions
+            .filter(({ tx }) => showBalanceAdjustments || !tx.isBalanceAdjustment)
+            .filter(t => t.parsedDate >= startOfMonth && t.parsedDate <= endOfMonth);
         
         txsInMonth.forEach(({ tx, convertedAmount }) => {
             currentBal -= convertedAmount; // Reverse flow
@@ -168,7 +175,7 @@ const PensionAccountView: React.FC<PensionAccountViewProps> = ({
     }
     
     return [...historicalData, ...projectionData];
-  }, [transactions, account.balance, account.currency, account.apy, account.openingDate, totalContributions, monthlyContributionAvg, yearsToRetirement]);
+  }, [transactions, account.balance, account.currency, account.apy, account.openingDate, totalContributions, monthlyContributionAvg, yearsToRetirement, showBalanceAdjustments]);
 
   const projectedValueAtRetirement = chartData.length > 0 ? chartData[chartData.length - 1].balance : 0;
 

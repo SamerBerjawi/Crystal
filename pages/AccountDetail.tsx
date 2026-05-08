@@ -10,7 +10,7 @@ import BalanceAdjustmentModal from '../components/BalanceAdjustmentModal';
 import PropertyValuationModal from '../components/PropertyValuationModal';
 import CloseAssetModal from '../components/CloseAssetModal';
 import { v4 as uuidv4 } from 'uuid';
-import { useAccountsContext, useTransactionsContext } from '../contexts/DomainProviders';
+import { useAccountsContext, usePreferencesSelector, useTransactionsContext } from '../contexts/DomainProviders';
 import { useCategoryContext, useScheduleContext, useTagsContext } from '../contexts/FinancialDataContext';
 import EnableBankingSyncModal from '../components/EnableBankingSyncModal';
 
@@ -39,6 +39,7 @@ const AccountDetail: React.FC<{
     const { transactions, saveTransaction, deleteTransactions } = useTransactionsContext();
     const { incomeCategories, expenseCategories } = useCategoryContext();
     const { tags } = useTagsContext();
+    const showBalanceAdjustments = usePreferencesSelector(p => p.showBalanceAdjustments ?? true);
     const { loanPaymentOverrides, saveLoanPaymentOverrides } = useScheduleContext();
     const ninetyDaysAgoStr = useMemo(() => toLocalISOString(new Date(Date.now() - 90 * 24 * 60 * 60 * 1000)), []);
     const todayStr = useMemo(() => toLocalISOString(new Date()), []);
@@ -158,6 +159,7 @@ const AccountDetail: React.FC<{
             type: adjustmentAmount >= 0 ? 'income' : 'expense',
             currency: account.currency,
             isMarketAdjustment,
+            isBalanceAdjustment: true,
         };
         
         saveTransaction([txData], []);
@@ -260,12 +262,13 @@ const AccountDetail: React.FC<{
     const accountTransactions = useMemo(() => {
         return transactions
             .filter(tx => tx.accountId === account.id)
+            .filter(tx => showBalanceAdjustments || !tx.isBalanceAdjustment)
             .map(tx => ({
                 tx,
                 parsedDate: parseLocalDate(tx.date),
                 convertedAmount: convertToEur(tx.amount, tx.currency)
             }));
-    }, [transactions, account.id]);
+    }, [transactions, account.id, showBalanceAdjustments]);
 
     const displayTransactionsList: DisplayTransaction[] = useMemo(() => {
         const sorted = [...accountTransactions].sort((a, b) => b.parsedDate.getTime() - a.parsedDate.getTime()).slice(0, 50);
@@ -311,6 +314,7 @@ const AccountDetail: React.FC<{
                     allCategories={allCategories}
                     onTransactionClick={handleTransactionClick}
                     onAdjustBalance={handleOpenAdjustModal}
+                    showBalanceAdjustments={showBalanceAdjustments}
                 />
             );
         }
@@ -324,6 +328,7 @@ const AccountDetail: React.FC<{
                         accounts={accounts}
                         transactions={transactions}
                         loanPaymentOverrides={loanPaymentOverrides}
+                        showBalanceAdjustments={showBalanceAdjustments}
                     />
                 );
             case 'Loan':
@@ -336,6 +341,7 @@ const AccountDetail: React.FC<{
                         loanPaymentOverrides={loanPaymentOverrides[account.id] || {}}
                         onOverridesChange={handleOverridesChange}
                         onMakePayment={handleMakePayment}
+                        showBalanceAdjustments={showBalanceAdjustments}
                     />
                 );
             case 'Vehicle':
@@ -349,6 +355,7 @@ const AccountDetail: React.FC<{
                         onAddLog={() => handleOpenMileageModal()}
                         onEditLog={handleOpenMileageModal}
                         onDeleteLog={handleDeleteMileageLog}
+                        showBalanceAdjustments={showBalanceAdjustments}
                     />
                 );
             case 'Credit Card':
@@ -359,6 +366,7 @@ const AccountDetail: React.FC<{
                         transactions={accountTransactions}
                         allCategories={allCategories}
                         onTransactionClick={handleTransactionClick}
+                        showBalanceAdjustments={showBalanceAdjustments}
                     />
                 );
             case 'Savings':
@@ -369,6 +377,7 @@ const AccountDetail: React.FC<{
                         transactions={accountTransactions}
                         allCategories={allCategories}
                         onTransactionClick={handleTransactionClick}
+                        showBalanceAdjustments={showBalanceAdjustments}
                     />
                 );
             case 'Investment':
@@ -381,6 +390,7 @@ const AccountDetail: React.FC<{
                             allCategories={allCategories}
                             onTransactionClick={handleTransactionClick}
                             onAdjustBalance={handleOpenAdjustModal}
+                            showBalanceAdjustments={showBalanceAdjustments}
                         />
                     );
                 }
@@ -393,6 +403,7 @@ const AccountDetail: React.FC<{
                             allCategories={allCategories}
                             onTransactionClick={handleTransactionClick}
                             onAdjustBalance={handleOpenAdjustModal}
+                            showBalanceAdjustments={showBalanceAdjustments}
                         />
                     );
                 }
@@ -414,6 +425,7 @@ const AccountDetail: React.FC<{
                         transactions={accountTransactions}
                         allCategories={allCategories}
                         onTransactionClick={handleTransactionClick}
+                        showBalanceAdjustments={showBalanceAdjustments}
                     />
                 );
         }

@@ -103,6 +103,7 @@ const Reports: React.FC = () => {
   const brandfetchClientId = usePreferencesSelector(p => p.brandfetchClientId);
   const merchantLogoOverrides = usePreferencesSelector(p => p.merchantLogoOverrides || {});
   const merchantRules = usePreferencesSelector(p => p.merchantRules || {}) as Record<string, MerchantRule>;
+  const showBalanceAdjustments = usePreferencesSelector(p => p.showBalanceAdjustments ?? true);
   const { budgets } = useBudgetsContext();
   const { incomeCategories, expenseCategories } = useCategoryContext();
 
@@ -182,6 +183,7 @@ const Reports: React.FC = () => {
     const merchantQuery = merchantFilter.trim().toLowerCase();
 
     return transactions.filter(tx => {
+      if (!showBalanceAdjustments && tx.isBalanceAdjustment) return false;
       if (tx.type !== 'expense' || tx.transferId) return false;
 
       const txTime = parseLocalDate(tx.date).getTime();
@@ -211,7 +213,10 @@ const Reports: React.FC = () => {
     const endTs = prevEnd.getTime();
 
     const totalSpendEur = transactions
-      .filter(tx => tx.type === 'expense' && !tx.transferId)
+      .filter(tx => {
+          if (!showBalanceAdjustments && tx.isBalanceAdjustment) return false;
+          return tx.type === 'expense' && !tx.transferId;
+      })
       .filter(tx => {
         if (accountFilter !== 'all' && tx.accountId !== accountFilter) return false;
         const txTs = parseLocalDate(tx.date).getTime();
@@ -363,7 +368,10 @@ const Reports: React.FC = () => {
     const remainingDays = Math.max(0, totalDays - elapsedDays);
 
     const mtdSpendEur = transactions
-      .filter(tx => tx.type === 'expense' && !tx.transferId)
+      .filter(tx => {
+          if (!showBalanceAdjustments && tx.isBalanceAdjustment) return false;
+          return tx.type === 'expense' && !tx.transferId;
+      })
       .filter(tx => {
         if (accountFilter !== 'all' && tx.accountId !== accountFilter) return false;
         const txDate = parseLocalDate(tx.date);
@@ -417,7 +425,10 @@ const Reports: React.FC = () => {
     const start = startDate ? parseLocalDate(startDate).getTime() : Number.NEGATIVE_INFINITY;
     const end = endDate ? parseLocalDate(endDate).getTime() : Number.POSITIVE_INFINITY;
     return transactions
-      .filter(tx => tx.type === 'income' && !tx.transferId)
+      .filter(tx => {
+          if (!showBalanceAdjustments && tx.isBalanceAdjustment) return false;
+          return tx.type === 'income' && !tx.transferId;
+      })
       .filter(tx => {
         if (accountFilter !== 'all' && tx.accountId !== accountFilter) return false;
         const txTime = parseLocalDate(tx.date).getTime();
@@ -489,7 +500,10 @@ const Reports: React.FC = () => {
     const prevEndTs = prevEnd.getTime();
 
     transactions
-      .filter(tx => tx.type === 'expense' && !tx.transferId)
+      .filter(tx => {
+          if (!showBalanceAdjustments && tx.isBalanceAdjustment) return false;
+          return tx.type === 'expense' && !tx.transferId;
+      })
       .filter(tx => {
         const txTs = parseLocalDate(tx.date).getTime();
         return txTs >= prevStartTs && txTs <= prevEndTs;

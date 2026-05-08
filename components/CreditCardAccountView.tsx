@@ -16,6 +16,7 @@ interface CreditCardAccountViewProps {
   onBack: () => void;
   onSyncLinkedAccount?: () => void;
   isLinkedToEnableBanking?: boolean;
+  showBalanceAdjustments?: boolean;
 }
 
 const CreditCardAccountView: React.FC<CreditCardAccountViewProps> = ({
@@ -28,6 +29,7 @@ const CreditCardAccountView: React.FC<CreditCardAccountViewProps> = ({
   onBack,
   onSyncLinkedAccount,
   isLinkedToEnableBanking,
+  showBalanceAdjustments = true,
 }) => {
   const timeZone = getPreferredTimeZone();
 
@@ -38,7 +40,9 @@ const CreditCardAccountView: React.FC<CreditCardAccountViewProps> = ({
       const today = new Date();
       const startOfMonth = new Date(today.getFullYear(), today.getMonth(), 1);
 
-      transactions.forEach(({ tx, parsedDate, convertedAmount }) => {
+      transactions
+        .filter(({ tx }) => showBalanceAdjustments || !tx.isBalanceAdjustment)
+        .forEach(({ tx, parsedDate, convertedAmount }) => {
           if (parsedDate >= startOfMonth) {
               if (tx.type === 'expense') {
                   spent += Math.abs(convertedAmount);
@@ -60,7 +64,7 @@ const CreditCardAccountView: React.FC<CreditCardAccountViewProps> = ({
       const available = creditLimit - balanceOwed;
 
       return { totalSpent: spent, totalPayments: payments, utilization: util, availableCredit: available };
-  }, [transactions, account.balance, account.creditLimit]);
+  }, [transactions, account.balance, account.creditLimit, showBalanceAdjustments]);
 
   // --- Chart Data ---
   const spendingHistory = useMemo(() => {
@@ -75,6 +79,7 @@ const CreditCardAccountView: React.FC<CreditCardAccountViewProps> = ({
         
         const total = transactions
             .filter(t => t.parsedDate >= startOfMonth && t.parsedDate <= endOfMonth)
+            .filter(({ tx }) => showBalanceAdjustments || !tx.isBalanceAdjustment)
             .reduce((sum, t) => {
                 if (t.tx.type === 'expense') {
                     return sum + Math.abs(t.convertedAmount);
@@ -90,7 +95,7 @@ const CreditCardAccountView: React.FC<CreditCardAccountViewProps> = ({
         data.push({ name: monthKey, value: total });
     }
     return data;
-  }, [transactions]);
+  }, [transactions, showBalanceAdjustments]);
 
   return (
     <div className="space-y-8 animate-fade-in-up">

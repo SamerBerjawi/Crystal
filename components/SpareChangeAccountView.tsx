@@ -18,6 +18,7 @@ interface SpareChangeAccountViewProps {
   onAdjustBalance?: () => void;
   onSyncLinkedAccount?: () => void;
   isLinkedToEnableBanking?: boolean;
+  showBalanceAdjustments?: boolean;
 }
 
 const SpareChangeAccountView: React.FC<SpareChangeAccountViewProps> = ({
@@ -31,6 +32,7 @@ const SpareChangeAccountView: React.FC<SpareChangeAccountViewProps> = ({
   onAdjustBalance,
   onSyncLinkedAccount,
   isLinkedToEnableBanking,
+  showBalanceAdjustments = true,
 }) => {
   const { accounts } = useAccountsContext();
   const timeZone = getPreferredTimeZone();
@@ -50,7 +52,9 @@ const SpareChangeAccountView: React.FC<SpareChangeAccountViewProps> = ({
       const now = new Date();
       const currentMonthStart = new Date(now.getFullYear(), now.getMonth(), 1);
 
-      transactions.forEach(({ tx, parsedDate, convertedAmount }) => {
+      transactions
+        .filter(({ tx }) => showBalanceAdjustments || !tx.isBalanceAdjustment)
+        .forEach(({ tx, parsedDate, convertedAmount }) => {
           if (tx.type === 'income') {
               // Only count actual deposits/transfers, ignore market gains
                if (!tx.isMarketAdjustment) {
@@ -72,7 +76,7 @@ const SpareChangeAccountView: React.FC<SpareChangeAccountViewProps> = ({
           thisMonthSaved: thisMonth,
           biggestRoundUp: max
       };
-  }, [transactions]);
+  }, [transactions, showBalanceAdjustments]);
 
   // --- 2. Monthly Chart Data ---
   const monthlyData = useMemo(() => {
@@ -87,13 +91,14 @@ const SpareChangeAccountView: React.FC<SpareChangeAccountViewProps> = ({
         const endOfMonth = new Date(d.getFullYear(), d.getMonth() + 1, 0);
         
         const total = transactions
+            .filter(({ tx }) => showBalanceAdjustments || !tx.isBalanceAdjustment)
             .filter(t => t.parsedDate >= startOfMonth && t.parsedDate <= endOfMonth && t.tx.type === 'income' && !t.tx.isMarketAdjustment)
             .reduce((sum, t) => sum + t.convertedAmount, 0);
         
         data.push({ name: monthKey, value: total });
     }
     return data;
-  }, [transactions]);
+  }, [transactions, showBalanceAdjustments]);
   
   // "Coffee Index" - fun metric
   const coffeesSaved = Math.floor(totalSaved / 4.50); // Assuming €4.50 per fancy coffee

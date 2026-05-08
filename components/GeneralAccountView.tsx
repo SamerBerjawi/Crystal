@@ -19,6 +19,7 @@ interface GeneralAccountViewProps {
   setViewingAccountId: (id: string | null) => void;
   onSyncLinkedAccount?: () => void;
   isLinkedToEnableBanking?: boolean;
+  showBalanceAdjustments?: boolean;
 }
 
 const getCardGradient = (id: string) => {
@@ -55,6 +56,7 @@ const GeneralAccountView: React.FC<GeneralAccountViewProps> = ({
   setViewingAccountId,
   onSyncLinkedAccount,
   isLinkedToEnableBanking,
+  showBalanceAdjustments = true,
 }) => {
   const { recurringTransactions, billsAndPayments, loanPaymentOverrides, recurringTransactionOverrides } = useScheduleContext();
   const { financialGoals } = useGoalsContext();
@@ -65,7 +67,9 @@ const GeneralAccountView: React.FC<GeneralAccountViewProps> = ({
 
   // Helper: Get transactions for specific timeframes
   const getTransactionsInDateRange = (startDate: Date, endDate: Date) => {
-    return transactions.filter(t => t.parsedDate >= startDate && t.parsedDate <= endDate);
+    return transactions
+      .filter(({ tx }) => showBalanceAdjustments || !tx.isBalanceAdjustment)
+      .filter(t => t.parsedDate >= startDate && t.parsedDate <= endDate);
   };
 
   const metrics = useMemo(() => {
@@ -74,7 +78,8 @@ const GeneralAccountView: React.FC<GeneralAccountViewProps> = ({
     const todayStart = new Date(now.getFullYear(), now.getMonth(), now.getDate());
 
     // 1. Sort transactions descending (Newest -> Oldest)
-    const sortedTxsDesc = [...transactions].sort((a, b) => b.parsedDate.getTime() - a.parsedDate.getTime());
+    const filteredTxs = transactions.filter(({ tx }) => showBalanceAdjustments || !tx.isBalanceAdjustment);
+    const sortedTxsDesc = [...filteredTxs].sort((a, b) => b.parsedDate.getTime() - a.parsedDate.getTime());
 
     // 2. Calculate "Real Today Balance"
     // Start with the account's current balance (source of truth).
@@ -184,7 +189,7 @@ const GeneralAccountView: React.FC<GeneralAccountViewProps> = ({
     const lowestBalanceForecast = lowestPoint.value / (conversionRate || 1);
 
     return { lowestBalanceForecast, avgMonthlySpend, safeToSpend, realTodayBalance };
-  }, [account, transactions, recurringTransactions, billsAndPayments, accounts, allTransactions, loanPaymentOverrides, financialGoals, recurringTransactionOverrides]);
+  }, [account, transactions, recurringTransactions, billsAndPayments, accounts, allTransactions, loanPaymentOverrides, financialGoals, recurringTransactionOverrides, showBalanceAdjustments]);
 
 
   // --- 2. Chart Data ---
@@ -201,7 +206,9 @@ const GeneralAccountView: React.FC<GeneralAccountViewProps> = ({
           const startOfMonth = new Date(d.getFullYear(), d.getMonth(), 1);
           const endOfMonth = new Date(d.getFullYear(), d.getMonth() + 1, 0);
           
-          const txs = transactions.filter(t => t.parsedDate >= startOfMonth && t.parsedDate <= endOfMonth);
+          const txs = transactions
+            .filter(({ tx }) => showBalanceAdjustments || !tx.isBalanceAdjustment)
+            .filter(t => t.parsedDate >= startOfMonth && t.parsedDate <= endOfMonth);
           
           let inc = 0;
           let exp = 0;
@@ -213,7 +220,7 @@ const GeneralAccountView: React.FC<GeneralAccountViewProps> = ({
           data.push({ month: monthKey, income: inc, expense: exp });
       }
       return data;
-  }, [transactions]);
+  }, [transactions, showBalanceAdjustments]);
 
   // Top Spending Categories (Last 30 Days)
   const topCategories = useMemo(() => {
@@ -223,7 +230,9 @@ const GeneralAccountView: React.FC<GeneralAccountViewProps> = ({
       const spending: Record<string, number> = {};
       let totalSpent = 0;
       
-      transactions.forEach(({ tx, parsedDate }) => {
+      transactions
+        .filter(({ tx }) => showBalanceAdjustments || !tx.isBalanceAdjustment)
+        .forEach(({ tx, parsedDate }) => {
           if (parsedDate >= thirtyDaysAgo && tx.amount < 0 && !tx.transferId) {
              // Find parent category
              const category = allCategories.find(c => c.name === tx.category);
@@ -249,7 +258,7 @@ const GeneralAccountView: React.FC<GeneralAccountViewProps> = ({
         })
         .sort((a, b) => b.value - a.value)
         .slice(0, 5);
-  }, [transactions, allCategories]);
+  }, [transactions, allCategories, showBalanceAdjustments]);
 
   // Upcoming Payments List (Next 14 Days)
   const upcomingPayments = useMemo(() => {
@@ -319,7 +328,8 @@ const GeneralAccountView: React.FC<GeneralAccountViewProps> = ({
     
     const today = new Date();
     const endDate = new Date(today.getFullYear(), today.getMonth(), today.getDate());
-    const sortedTxs = [...transactions].sort((a, b) => b.parsedDate.getTime() - a.parsedDate.getTime());
+    const filteredTxs = transactions.filter(({ tx }) => showBalanceAdjustments || !tx.isBalanceAdjustment);
+    const sortedTxs = [...filteredTxs].sort((a, b) => b.parsedDate.getTime() - a.parsedDate.getTime());
     const dailyChanges: Record<string, number> = {};
     
     sortedTxs.forEach(({ tx, parsedDate }) => {
@@ -337,7 +347,7 @@ const GeneralAccountView: React.FC<GeneralAccountViewProps> = ({
         iterDate.setDate(iterDate.getDate() - 1);
     }
     return data.reverse();
-  }, [metrics.realTodayBalance, transactions]);
+  }, [metrics.realTodayBalance, transactions, showBalanceAdjustments]);
 
   // Find credit cards linked to this account (where settlementAccountId === this account.id)
   const linkedCreditCards = useMemo(() => {

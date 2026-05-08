@@ -11,17 +11,19 @@ interface PaymentPlanTableProps {
   onMakePayment: (payment: ScheduledPayment, description: string) => void;
   overrides: Record<number, Partial<ScheduledPayment>>;
   onOverridesChange: (overrides: Record<number, Partial<ScheduledPayment>>) => void;
+  showBalanceAdjustments?: boolean;
 }
 
-const PaymentPlanTable: React.FC<PaymentPlanTableProps> = ({ account, transactions, onMakePayment, overrides, onOverridesChange }) => {
+const PaymentPlanTable: React.FC<PaymentPlanTableProps> = ({ account, transactions, onMakePayment, overrides, onOverridesChange, showBalanceAdjustments = true }) => {
     const [editingPaymentNumber, setEditingPaymentNumber] = useState<number | null>(null);
     const [editFormData, setEditFormData] = useState<Partial<Pick<ScheduledPayment, 'totalPayment' | 'principal' | 'interest'>>>({});
     const [lastEditedField, setLastEditedField] = useState<'total' | 'principal' | 'interest' | null>(null);
     const [isBulkEditOpen, setIsBulkEditOpen] = useState(false);
 
     const schedule = useMemo(() => {
-        return generateAmortizationSchedule(account, transactions, overrides);
-    }, [account, transactions, overrides]);
+        const filteredTxs = transactions.filter(tx => showBalanceAdjustments || !tx.isBalanceAdjustment);
+        return generateAmortizationSchedule(account, filteredTxs, overrides);
+    }, [account, transactions, overrides, showBalanceAdjustments]);
 
     const totals = useMemo(() => {
         return schedule.reduce((acc, payment) => {

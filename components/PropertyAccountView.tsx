@@ -20,6 +20,7 @@ interface PropertyAccountViewProps {
   isLinkedToEnableBanking?: boolean;
   onCloseAsset?: () => void;
   onRevertClosure?: () => void;
+  showBalanceAdjustments?: boolean;
 }
 
 const PropertyAccountView: React.FC<PropertyAccountViewProps> = ({
@@ -35,6 +36,7 @@ const PropertyAccountView: React.FC<PropertyAccountViewProps> = ({
   isLinkedToEnableBanking,
   onCloseAsset,
   onRevertClosure,
+  showBalanceAdjustments = true,
 }) => {
   const isClosed = account.status === 'closed';
   const linkedLoan = accounts.find(a => a.id === account.linkedLoanId) || accounts.find(a => a.type === 'Loan' && a.linkedAssetId === account.id);
@@ -47,9 +49,10 @@ const PropertyAccountView: React.FC<PropertyAccountViewProps> = ({
   let principalPaidViaLoan = 0;
 
   if (linkedLoan) {
+      const filteredTxs = transactions.filter(tx => showBalanceAdjustments || !tx.isBalanceAdjustment);
       if (linkedLoan.principalAmount && linkedLoan.duration && linkedLoan.loanStartDate && linkedLoan.interestRate !== undefined) {
           const overrides = loanPaymentOverrides[linkedLoan.id] || {};
-          const schedule = generateAmortizationSchedule(linkedLoan, transactions, overrides);
+          const schedule = generateAmortizationSchedule(linkedLoan, filteredTxs, overrides);
           
           const totalScheduledPrincipal = schedule.reduce((sum, p) => sum + p.principal, 0);
           const totalPaidPrincipal = schedule.reduce((acc, p) => p.status === 'Paid' ? acc + p.principal : acc, 0);
@@ -61,7 +64,7 @@ const PropertyAccountView: React.FC<PropertyAccountViewProps> = ({
           outstandingLoanBalance = Math.abs(linkedLoan.balance);
           
           // Estimate principal paid for manual loans (raw income transactions on loan account)
-          principalPaidViaLoan = transactions
+          principalPaidViaLoan = filteredTxs
             .filter(tx => tx.accountId === linkedLoan.id && tx.type === 'income')
             .reduce((sum, tx) => sum + (tx.principalAmount || 0), 0);
       }

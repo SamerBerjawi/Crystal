@@ -291,6 +291,7 @@ export interface Transaction {
   longitude?: number;
   // Investment helpers
   isMarketAdjustment?: boolean;
+  isBalanceAdjustment?: boolean;
 }
 
 export interface DisplayTransaction extends Transaction {
@@ -492,6 +493,7 @@ export interface AppPreferences {
   isPrivacyMode?: boolean;
   excludeTransfersFromAnalytics?: boolean;
   dashboardLayouts?: Record<string, WidgetConfig[]>;
+  showBalanceAdjustments?: boolean;
 }
 
 // New types for Bills & Payments

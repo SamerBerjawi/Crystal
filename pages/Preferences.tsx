@@ -197,6 +197,19 @@ const Preferences: React.FC<PreferencesProps> = ({ preferences, setPreferences, 
                       <span className="text-xs text-light-text-secondary dark:text-dark-text-secondary">Exclude from charts & totals</span>
                    </div>
                 </SettingRow>
+
+                <SettingRow label="Balance Adjustments" description="Show or hide manual balance adjustment transactions throughout the app.">
+                   <div className="flex items-center gap-2">
+                      <input 
+                        type="checkbox" 
+                        name="showBalanceAdjustments" 
+                        checked={preferences.showBalanceAdjustments !== false} 
+                        onChange={(e) => setPreferences({ ...preferences, showBalanceAdjustments: e.target.checked })}
+                        className={CHECKBOX_STYLE}
+                      />
+                      <span className="text-xs text-light-text-secondary dark:text-dark-text-secondary">Show manual adjustments</span>
+                   </div>
+                </SettingRow>
             </div>
           </Card>
 

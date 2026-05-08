@@ -46,6 +46,7 @@ const Merchants: React.FC<MerchantsProps> = ({ setCurrentPage }) => {
   const { accounts } = useAccountsContext();
   const { incomeCategories, expenseCategories } = useCategoryContext();
   const { preferences, setPreferences } = usePreferencesContext();
+  const showBalanceAdjustments = usePreferencesSelector(p => p.showBalanceAdjustments ?? true);
   const brandfetchClientId = usePreferencesSelector(p => (p.brandfetchClientId || '').trim());
   
   // Migrate old overrides or rules if needed (simplified: just read both)
@@ -114,6 +115,7 @@ const Merchants: React.FC<MerchantsProps> = ({ setCurrentPage }) => {
 
     // 1. Process Merchants from ALL Transactions
     transactions.forEach(tx => {
+      if (!showBalanceAdjustments && tx.isBalanceAdjustment) return;
       if (!tx.merchant) return;
       const key = normalizeMerchantKey(tx.merchant);
       if (!key) return;

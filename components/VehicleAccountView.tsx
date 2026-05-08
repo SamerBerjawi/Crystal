@@ -23,6 +23,7 @@ interface VehicleAccountViewProps {
   isLinkedToEnableBanking?: boolean;
   onCloseAsset?: () => void;
   onRevertClosure?: () => void;
+  showBalanceAdjustments?: boolean;
 }
 
 const VehicleAccountView: React.FC<VehicleAccountViewProps> = ({
@@ -41,6 +42,7 @@ const VehicleAccountView: React.FC<VehicleAccountViewProps> = ({
   isLinkedToEnableBanking,
   onCloseAsset,
   onRevertClosure,
+  showBalanceAdjustments = true,
 }) => {
   const isLeased = account.ownership === 'Leased';
   const isClosed = account.status === 'closed';
@@ -52,7 +54,8 @@ const VehicleAccountView: React.FC<VehicleAccountViewProps> = ({
   if (linkedLoan) {
       if (linkedLoan.principalAmount && linkedLoan.duration && linkedLoan.loanStartDate && linkedLoan.interestRate !== undefined) {
           const overrides = loanPaymentOverrides[linkedLoan.id] || {};
-          const schedule = generateAmortizationSchedule(linkedLoan, transactions, overrides);
+          const filteredTxs = transactions.filter(tx => showBalanceAdjustments || !tx.isBalanceAdjustment);
+          const schedule = generateAmortizationSchedule(linkedLoan, filteredTxs, overrides);
           const totalScheduledPrincipal = schedule.reduce((sum, p) => sum + p.principal, 0);
           const totalPaidPrincipal = schedule.reduce((acc, p) => p.status === 'Paid' ? acc + p.principal : acc, 0);
           outstandingLoanBalance = Math.max(0, totalScheduledPrincipal - totalPaidPrincipal);

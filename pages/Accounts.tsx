@@ -271,6 +271,7 @@ const Accounts: React.FC<AccountsProps> = ({ accounts, transactions, saveAccount
         category: adjustmentAmount >= 0 ? 'Income' : 'Miscellaneous',
         type: adjustmentAmount >= 0 ? 'income' : 'expense',
         currency: adjustingAccount.currency,
+        isBalanceAdjustment: true,
     };
     saveTransaction([txData], []);
     setAdjustingAccount(null);
@@ -469,16 +470,22 @@ const Accounts: React.FC<AccountsProps> = ({ accounts, transactions, saveAccount
             </div>
         </div>
 
-        {/* --- Filtered Content --- */}
-        <div className="space-y-8">
-                {/* 
-                    We use AccountsListSection to render the filtered accounts. 
-                    We group accounts by type logic inside the section, but here we just pass the pre-filtered list.
-                    We disable "collapsible" for the segmented view to make it cleaner, unless 'All' is selected.
-                */}
+        {/* --- Multi-Column Accounts View --- */}
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 items-start">
+            {/* Assets Column */}
+            <div className="space-y-8">
+                <div className="flex items-center gap-3 px-2">
+                    <div className="w-10 h-10 rounded-2xl bg-emerald-500/10 flex items-center justify-center">
+                        <span className="material-symbols-outlined text-emerald-500">account_balance</span>
+                    </div>
+                    <div>
+                        <h3 className="text-sm font-black uppercase tracking-[0.2em] text-light-text-secondary dark:text-dark-text-secondary">Assets</h3>
+                        <p className="text-[10px] text-light-text-secondary dark:text-dark-text-secondary opacity-60">Wealth & Resources</p>
+                    </div>
+                </div>
                 <AccountsListSection 
-                    title={activeSegment === 'all' ? 'Your Portfolio' : `${segments.find(s => s.id === activeSegment)?.label} Accounts`}
-                    accounts={filteredAccounts} 
+                    title="Assets"
+                    accounts={filteredAccounts.filter(acc => ASSET_TYPES.includes(acc.type))} 
                     transactionsByAccount={transactionsByAccount} 
                     warrants={warrants} 
                     linkedEnableBankingAccountIds={linkedEnableBankingAccountIds} 
@@ -489,34 +496,65 @@ const Accounts: React.FC<AccountsProps> = ({ accounts, transactions, saveAccount
                     accountOrder={accountOrder} 
                     setAccountOrder={setAccountOrder} 
                     onContextMenu={handleContextMenu} 
-                    isCollapsible={activeSegment === 'all'} 
+                    isCollapsible={false} 
                     defaultExpanded={true}
                     layoutMode={layoutMode} 
                 />
+            </div>
 
-                {/* Closed Accounts - Only show if relevant to filter or in All view */}
-                {closedAccounts.length > 0 && activeSegment === 'all' && (
-                    <div className="opacity-60 hover:opacity-100 transition-opacity duration-300 mt-12 pt-8 border-t border-black/5 dark:border-white/5">
-                        <AccountsListSection 
-                            title="Closed Accounts" 
-                            accounts={closedAccounts} 
-                            transactionsByAccount={transactionsByAccount} 
-                            warrants={warrants} 
-                            linkedEnableBankingAccountIds={linkedEnableBankingAccountIds} 
-                            onAccountClick={handleAccountClick} 
-                            onEditClick={openEditModal} 
-                            onAdjustBalanceClick={openAdjustModal} 
-                            sortBy={sortBy} 
-                            accountOrder={accountOrder} 
-                            setAccountOrder={setAccountOrder} 
-                            onContextMenu={handleContextMenu} 
-                            isCollapsible={true} 
-                            defaultExpanded={false} 
-                            layoutMode={layoutMode} 
-                        />
+            {/* Liabilities Column */}
+            <div className="space-y-8">
+                <div className="flex items-center gap-3 px-2">
+                    <div className="w-10 h-10 rounded-2xl bg-rose-500/10 flex items-center justify-center">
+                        <span className="material-symbols-outlined text-rose-500">money_off</span>
                     </div>
-                )}
+                    <div>
+                        <h3 className="text-sm font-black uppercase tracking-[0.2em] text-light-text-secondary dark:text-dark-text-secondary">Liabilities</h3>
+                        <p className="text-[10px] text-light-text-secondary dark:text-dark-text-secondary opacity-60">Debts & Obligations</p>
+                    </div>
+                </div>
+                <AccountsListSection 
+                    title="Liabilities"
+                    accounts={filteredAccounts.filter(acc => DEBT_TYPES.includes(acc.type))} 
+                    transactionsByAccount={transactionsByAccount} 
+                    warrants={warrants} 
+                    linkedEnableBankingAccountIds={linkedEnableBankingAccountIds} 
+                    onAccountClick={handleAccountClick} 
+                    onEditClick={openEditModal} 
+                    onAdjustBalanceClick={openAdjustModal} 
+                    sortBy={sortBy} 
+                    accountOrder={accountOrder} 
+                    setAccountOrder={setAccountOrder} 
+                    onContextMenu={handleContextMenu} 
+                    isCollapsible={false} 
+                    defaultExpanded={true}
+                    layoutMode={layoutMode} 
+                />
+            </div>
         </div>
+
+        {/* --- Closed Accounts - Only show if relevant to filter or in All view --- */}
+        {closedAccounts.length > 0 && activeSegment === 'all' && (
+            <div className="opacity-60 hover:opacity-100 transition-opacity duration-300 mt-12 pt-8 border-t border-black/5 dark:border-white/5">
+                <AccountsListSection 
+                    title="Closed Accounts" 
+                    accounts={closedAccounts} 
+                    transactionsByAccount={transactionsByAccount} 
+                    warrants={warrants} 
+                    linkedEnableBankingAccountIds={linkedEnableBankingAccountIds} 
+                    onAccountClick={handleAccountClick} 
+                    onEditClick={openEditModal} 
+                    onAdjustBalanceClick={openAdjustModal} 
+                    sortBy={sortBy} 
+                    accountOrder={accountOrder} 
+                    setAccountOrder={setAccountOrder} 
+                    onContextMenu={handleContextMenu} 
+                    isCollapsible={true} 
+                    defaultExpanded={false} 
+                    layoutMode={layoutMode} 
+                />
+            </div>
+        )}
       </div>
     </div>
   );

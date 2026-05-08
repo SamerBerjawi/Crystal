@@ -161,6 +161,7 @@ const Dashboard: React.FC<DashboardProps> = ({ user, tasks, saveTask, onTogglePr
   const { preferences, setPreferences } = usePreferencesContext();
   const preferredCurrency = usePreferencesSelector(p => (p.currency || 'EUR') as Currency);
   const conversionRates = usePreferencesSelector(p => p.conversionRates);
+  const showBalanceAdjustments = usePreferencesSelector(p => p.showBalanceAdjustments ?? true);
 
   // Dashboard Specific State
   const [showForecast, setShowForecast] = useState(true);
@@ -231,9 +232,10 @@ const Dashboard: React.FC<DashboardProps> = ({ user, tasks, saveTask, onTogglePr
   const analyticsSelectedAccounts = useMemo(() => selectedAccounts.filter(acc => acc.includeInAnalytics ?? true), [selectedAccounts]);
   const analyticsSelectedAccountIds = useMemo(() => analyticsSelectedAccounts.map(acc => acc.id), [analyticsSelectedAccounts]);
   const analyticsTransactions = useMemo(() => transactions.filter(tx => {
+      if (!showBalanceAdjustments && tx.isBalanceAdjustment) return false;
       const account = accountLookup.get(tx.accountId);
       return account ? (account.includeInAnalytics ?? true) : true;
-  }), [transactions, accountLookup]);
+  }), [transactions, accountLookup, showBalanceAdjustments]);
   const transferLookup = useMemo(() => {
     const lookup = new Map<string, Transaction[]>();
     transactions.forEach(tx => {
@@ -701,7 +703,7 @@ const Dashboard: React.FC<DashboardProps> = ({ user, tasks, saveTask, onTogglePr
   }, [analyticsTransactions, analyticsSelectedAccountIds, accountMap, transferLookup]);
   
   const { incomeSparkline, expenseSparkline } = useMemo(() => {
-    const NUM_POINTS = 30;
+    const NUM_POINTS = 90;
     const { start, end } = getDateRange(duration, transactions);
     const timeRange = end.getTime() - start.getTime();
     const interval = timeRange / NUM_POINTS;

@@ -44,7 +44,7 @@ const AccountRow: React.FC<AccountRowProps> = ({ account, transactions, warrants
     };
 
     const displayBalance = useMemo(() => {
-        if (account.type === 'Loan') {
+        if (account.type === 'Loan' || account.type === 'Lending') {
              if (account.principalAmount && account.duration && account.loanStartDate && account.interestRate !== undefined) {
                  const overrides = loanPaymentOverrides[account.id] || {};
                  const schedule = generateAmortizationSchedule(account, transactions, overrides);
@@ -57,16 +57,19 @@ const AccountRow: React.FC<AccountRowProps> = ({ account, transactions, warrants
                  const outstandingPrincipal = Math.max(0, totalScheduledPrincipal - totalPaidPrincipal);
                  const outstandingInterest = Math.max(0, totalScheduledInterest - totalPaidInterest);
                  
-                 return -(outstandingPrincipal + outstandingInterest);
+                 const totalOutstanding = outstandingPrincipal + outstandingInterest;
+                 return account.type === 'Loan' ? -totalOutstanding : totalOutstanding;
              }
 
              if (account.totalAmount) {
-                const loanPayments = transactions.filter(tx => tx.type === 'income');
+                const isLending = account.type === 'Lending';
+                const loanPayments = transactions.filter(tx => tx.type === (isLending ? 'expense' : 'income'));
                 const totalPaid = loanPayments.reduce((sum, tx) => {
                     const totalPayment = (tx.principalAmount || 0) + (tx.interestAmount || 0);
                     return sum + (totalPayment > 0 ? totalPayment : tx.amount);
                 }, 0);
-                return -(account.totalAmount - totalPaid);
+                const outstanding = account.totalAmount - totalPaid;
+                return isLending ? outstanding : -outstanding;
              }
         }
         return account.balance;
@@ -89,29 +92,21 @@ const AccountRow: React.FC<AccountRowProps> = ({ account, transactions, warrants
             txsByDate[dateStr] = (txsByDate[dateStr] || 0) + amount;
         });
 
-        const tempDate = new Date(endDate);
+        const runningDate = new Date(endDate);
         const history: number[] = [];
-        history.push(currentBal);
+        let runningBal = currentBal;
 
-        while (tempDate > startDate) {
-            const dateStr = toLocalISOString(tempDate);
+        for (let i = 0; i < NUM_POINTS; i++) {
+            history.push(runningBal);
+            const dateStr = toLocalISOString(runningDate);
             const change = txsByDate[dateStr] || 0;
-            currentBal -= change;
-            history.push(currentBal);
-            tempDate.setDate(tempDate.getDate() - 1);
+            runningBal -= change;
+            runningDate.setDate(runningDate.getDate() - 1);
         }
         
-        const chronological = history.reverse();
-        const data: { value: number }[] = [];
-        const step = Math.ceil(chronological.length / NUM_POINTS);
-        for (let i = 0; i < chronological.length; i += step) {
-            data.push({ value: Math.max(0, chronological[i]) });
-        }
-        if (data.length < NUM_POINTS || data[data.length-1].value !== convertToEur(displayBalance, account.currency)) {
-             data.push({ value: Math.max(0, convertToEur(displayBalance, account.currency)) });
-        }
+        const data = history.reverse().map(val => ({ value: Math.max(0, val) }));
 
-        const trendVal = chronological[chronological.length - 1] - chronological[0];
+        const trendVal = data[data.length - 1].value - data[0].value;
         const isPositive = trendVal >= 0;
         
         return { sparklineData: data, trend: trendVal, isPositiveTrend: isPositive };

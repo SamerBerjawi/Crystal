@@ -269,7 +269,35 @@ export function calculateAccountTotals(
         const valueEur = convertToEur(acc.balance, acc.currency);
         
         if (ASSET_TYPES.includes(acc.type)) {
-            totalAssets += valueEur;
+            let assetValue = convertToEur(acc.balance, acc.currency);
+            
+            if (acc.type === 'Lending') {
+                if (acc.principalAmount && acc.duration && acc.loanStartDate && acc.interestRate !== undefined) {
+                    const overrides = loanPaymentOverrides[acc.id] || {};
+                    const schedule = generateAmortizationSchedule(acc, transactions, overrides);
+                    
+                    const totalScheduledPrincipal = schedule.reduce((s, p) => s + p.principal, 0);
+                    const totalScheduledInterest = schedule.reduce((s, p) => s + p.interest, 0);
+
+                    const totalPaidPrincipal = schedule.reduce((a, p) => p.status === 'Paid' ? a + p.principal : a, 0);
+                    const totalPaidInterest = schedule.reduce((a, p) => p.status === 'Paid' ? a + p.interest : a, 0);
+                    
+                    const outstandingPrincipal = Math.max(0, totalScheduledPrincipal - totalPaidPrincipal);
+                    const outstandingInterest = Math.max(0, totalScheduledInterest - totalPaidInterest);
+                    
+                    assetValue = convertToEur(outstandingPrincipal + outstandingInterest, acc.currency);
+                } else if (acc.totalAmount) {
+                    const loanPayments = transactions.filter(tx => tx.accountId === acc.id && tx.type === 'expense');
+                    const totalPaid = loanPayments.reduce((s, tx) => {
+                        const totalPayment = (tx.principalAmount || 0) + (tx.interestAmount || 0);
+                        return s + (totalPayment > 0 ? totalPayment : tx.amount);
+                    }, 0);
+                    const outstanding = Math.max(0, acc.totalAmount - totalPaid);
+                    assetValue = convertToEur(outstanding, acc.currency);
+                }
+            }
+            
+            totalAssets += assetValue;
         } else if (DEBT_TYPES.includes(acc.type)) {
             let debtValue = 0;
             if (acc.type === 'Loan') {

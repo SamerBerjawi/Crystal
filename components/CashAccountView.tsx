@@ -17,6 +17,7 @@ interface CashAccountViewProps {
   onAdjustBalance: () => void;
   onSyncLinkedAccount?: () => void;
   isLinkedToEnableBanking?: boolean;
+  showBalanceAdjustments?: boolean;
 }
 
 const CashAccountView: React.FC<CashAccountViewProps> = ({
@@ -30,6 +31,7 @@ const CashAccountView: React.FC<CashAccountViewProps> = ({
   onAdjustBalance,
   onSyncLinkedAccount,
   isLinkedToEnableBanking,
+  showBalanceAdjustments = true,
 }) => {
   const timeZone = getPreferredTimeZone();
 
@@ -42,7 +44,9 @@ const CashAccountView: React.FC<CashAccountViewProps> = ({
       let outflow = 0;
       let lastRep: Date | null = null;
 
-      transactions.forEach(({ tx, parsedDate }) => {
+      transactions
+        .filter(({ tx }) => showBalanceAdjustments || !tx.isBalanceAdjustment)
+        .forEach(({ tx, parsedDate }) => {
           // Check for last replenishment (Transfer IN)
           if (tx.type === 'income' && (tx.transferId || tx.category === 'Transfer') && (!lastRep || parsedDate > lastRep)) {
               lastRep = parsedDate;
@@ -61,7 +65,7 @@ const CashAccountView: React.FC<CashAccountViewProps> = ({
           netChange: inflow - outflow,
           lastReplenishment: lastRep 
       };
-  }, [transactions]);
+  }, [transactions, showBalanceAdjustments]);
 
   // --- Chart Data (Inflow vs Outflow) ---
   const flowData = useMemo(() => {
@@ -79,6 +83,7 @@ const CashAccountView: React.FC<CashAccountViewProps> = ({
 
         transactions
             .filter(t => t.parsedDate >= startOfMonth && t.parsedDate <= endOfMonth)
+            .filter(({ tx }) => showBalanceAdjustments || !tx.isBalanceAdjustment)
             .forEach(({ tx }) => {
                  const val = Math.abs(convertToEur(tx.amount, tx.currency));
                  if (tx.amount > 0) inc += val;
@@ -88,7 +93,7 @@ const CashAccountView: React.FC<CashAccountViewProps> = ({
         data.push({ name: monthKey, income: inc, expense: exp });
     }
     return data;
-  }, [transactions]);
+  }, [transactions, showBalanceAdjustments]);
 
   // --- Calculate Burn Rate ---
   const burnRateMessage = useMemo(() => {

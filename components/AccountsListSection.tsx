@@ -111,12 +111,10 @@ const AccountsListSection: React.FC<AccountsListSectionProps> = ({
         return null;
     }
     
-    // Updated grid classes: Use auto-fill with the new fixed card width to ensure they flow correctly.
-    // 'columns' mode is treated as the primary responsive grid.
-    // 'stacked' mode is treated as a list or single column for density.
+    // Updated grid classes to achieve 2-4 columns total when combined with the parent layout in Accounts.tsx
     const gridClasses = layoutMode === 'columns' 
-        ? 'grid-cols-[repeat(auto-fill,minmax(332px,1fr))]' 
-        : 'grid-cols-1 xl:grid-cols-2';
+        ? 'grid-cols-1 sm:grid-cols-2 lg:grid-cols-1 xl:grid-cols-2' 
+        : 'grid-cols-1';
 
     return (
         <section className="animate-fade-in-up h-full flex flex-col">
