@@ -12,6 +12,7 @@ import { useAccountsContext, usePreferencesSelector, useTransactionsContext } fr
 import { useScheduleContext, useCategoryContext } from '../contexts/FinancialDataContext';
 import PageHeader from '../components/PageHeader';
 import { getMerchantLogoUrl, normalizeMerchantKey } from '../utils/brandfetch';
+import { motion, AnimatePresence } from 'motion/react';
 
 // --- Helper Types for Detection ---
 interface DetectedSubscription {
@@ -154,7 +155,7 @@ const Subscriptions: React.FC = () => {
         });
     }, [recurringTransactions]);
 
-    const { monthlySpend, yearlySpend, subscriptionCount, dueSoonCount } = useMemo(() => {
+    const { monthlySpend, yearlySpend, totalCount, dueSoonCount } = useMemo(() => {
         let monthly = 0;
         let dueSoon = 0;
         const today = new Date();
@@ -173,7 +174,7 @@ const Subscriptions: React.FC = () => {
                 dueSoon++;
             }
         });
-        return { monthlySpend: monthly, yearlySpend: monthly * 12, subscriptionCount: activeSubscriptions.length, dueSoonCount: dueSoon };
+        return { monthlySpend: monthly, yearlySpend: monthly * 12, totalCount: activeSubscriptions.length, dueSoonCount: dueSoon };
     }, [activeSubscriptions]);
     
     // Calculate which days of the month have subscriptions (1-31)
@@ -310,327 +311,339 @@ const Subscriptions: React.FC = () => {
             
             <PageHeader
                 markerIcon="autorenew"
-                markerLabel="Recurring Center"
+                markerLabel="Renewal Hub"
                 title="Subscriptions & Loyalty"
-                subtitle="Manage your recurring commitments and membership rewards in one place."
+                subtitle="Track recurring expenses and manage your membership rewards effortlessly."
                 actions={
                      activeTab === 'recurring' ? (
-                        <button onClick={() => { setSubscriptionToEdit(null); setIsModalOpen(true); }} className={`${BTN_PRIMARY_STYLE} flex items-center gap-2`}>
-                            <span className="material-symbols-outlined text-lg">add</span> Add
+                        <button onClick={() => { setSubscriptionToEdit(null); setIsModalOpen(true); }} className={`${BTN_PRIMARY_STYLE} flex items-center gap-2 group`}>
+                            <span className="material-symbols-outlined text-lg group-hover:rotate-90 transition-transform">add</span> 
+                            <span>New Subscription</span>
                         </button>
                      ) : (
-                        <button onClick={handleAddMembership} className={`${BTN_PRIMARY_STYLE} flex items-center gap-2`}>
-                             <span className="material-symbols-outlined text-lg">add</span> Add Card
+                        <button onClick={handleAddMembership} className={`${BTN_PRIMARY_STYLE} flex items-center gap-2 group`}>
+                             <span className="material-symbols-outlined text-lg group-hover:rotate-90 transition-transform">add</span> 
+                             <span>Add Card</span>
                         </button>
                      )
                 }
             />
             
-            {/* View Toggle */}
-            <div className="flex justify-center">
-                 <div className="flex bg-gray-100 dark:bg-white/5 p-1 rounded-xl">
+            {/* View Switcher */}
+            <div className="flex justify-center -mt-4">
+                 <div className="flex bg-gray-100 dark:bg-white/5 p-1 rounded-2xl border border-black/5 dark:border-white/5 backdrop-blur-md">
                     <button
                         onClick={() => setActiveTab('recurring')}
-                        className={`px-6 py-2 rounded-lg text-sm font-bold transition-all duration-200 ${activeTab === 'recurring' ? 'bg-white dark:bg-dark-card text-primary-600 dark:text-primary-400 shadow-sm' : 'text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-200'}`}
+                        className={`flex items-center gap-2 px-6 py-2 rounded-xl text-sm font-black transition-all duration-300 ${activeTab === 'recurring' ? 'bg-white dark:bg-dark-card text-primary-600 dark:text-primary-400 shadow-sm' : 'text-gray-500 hover:text-gray-900 dark:hover:text-gray-100'}`}
                     >
-                        Recurring Payments
+                        <span className="material-symbols-outlined text-lg">calendar_today</span>
+                        Payments
                     </button>
                     <button
                         onClick={() => setActiveTab('loyalty')}
-                        className={`px-6 py-2 rounded-lg text-sm font-bold transition-all duration-200 ${activeTab === 'loyalty' ? 'bg-white dark:bg-dark-card text-primary-600 dark:text-primary-400 shadow-sm' : 'text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-200'}`}
+                        className={`flex items-center gap-2 px-6 py-2 rounded-xl text-sm font-black transition-all duration-300 ${activeTab === 'loyalty' ? 'bg-white dark:bg-dark-card text-primary-600 dark:text-primary-400 shadow-sm' : 'text-gray-500 hover:text-gray-900 dark:hover:text-gray-100'}`}
                     >
-                        Loyalty Wallet
+                        <span className="material-symbols-outlined text-lg">wallet</span>
+                        Wallet
                     </button>
                 </div>
             </div>
 
-            {/* Recurring Payments Content */}
+            {/* Recurring Payments Section */}
             {activeTab === 'recurring' && (
-                <div className="space-y-8 animate-fade-in-up">
-                    {/* Detection Alert */}
-                    {detectedSubscriptions.length > 0 && (
-                        <div className="bg-gradient-to-r from-indigo-50 to-purple-50 dark:from-indigo-900/10 dark:to-purple-900/10 p-6 rounded-2xl border border-indigo-100 dark:border-indigo-800/30">
-                            <div className="flex items-center gap-3 mb-4">
-                                <div className="p-2 bg-white dark:bg-white/10 rounded-full shadow-sm">
-                                    <span className="material-symbols-outlined text-indigo-500">rule</span>
-                                </div>
-                                <div>
-                                    <h2 className="text-lg font-bold text-light-text dark:text-dark-text">Detected Subscriptions</h2>
-                                    <p className="text-xs text-light-text-secondary dark:text-dark-text-secondary">We found {detectedSubscriptions.length} recurring charges in your transactions.</p>
-                                </div>
+                <motion.div 
+                    initial={{ opacity: 0, y: 20 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    transition={{ duration: 0.4 }}
+                    className="space-y-10"
+                >
+                    {/* Metrics Bento Grid */}
+                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+                        {/* Total Monthly Spend */}
+                        <div className="bg-white dark:bg-dark-card rounded-[2rem] p-6 border border-black/5 dark:border-white/5 shadow-sm relative overflow-hidden group">
+                            <div className="absolute top-0 right-0 p-4 opacity-5 bg-primary-500 rounded-bl-[2rem] group-hover:opacity-10 transition-opacity">
+                                <span className="material-symbols-outlined text-4xl">payments</span>
                             </div>
-                            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-                                {detectedSubscriptions.map(sub => {
-                                    const logoUrl = getMerchantLogoUrl(sub.merchant, brandfetchClientId, merchantLogoOverrides, { fallback: 'lettermark', type: 'icon', width: 64, height: 64 });
-                                    const hasLogo = Boolean(logoUrl && !logoLoadErrors[logoUrl!]);
-                                    const initial = sub.merchant.charAt(0).toUpperCase();
-
-                                    return (
-                                        <div key={sub.key} className="bg-white dark:bg-dark-card rounded-xl p-4 shadow-sm border border-black/5 dark:border-white/5 flex flex-col justify-between hover:shadow-md transition-all">
-                                            <div className="flex justify-between items-start mb-3">
-                                                <div className="flex gap-3 min-w-0">
-                                                    <div className={`w-10 h-10 rounded-lg flex-shrink-0 flex items-center justify-center overflow-hidden border border-black/5 dark:border-white/10 shadow-sm ${hasLogo ? 'bg-white' : 'bg-gray-100 dark:bg-white/10'}`}>
-                                                        {hasLogo ? (
-                                                            <img 
-                                                                src={logoUrl!} 
-                                                                alt={sub.merchant} 
-                                                                className="w-full h-full object-cover block" 
-                                                                onError={() => handleLogoError(logoUrl!)}
-                                                            />
-                                                        ) : (
-                                                            <span className="text-lg font-bold text-gray-500 dark:text-gray-400">{initial}</span>
-                                                        )}
-                                                    </div>
-                                                    <div className="flex-1 min-w-0">
-                                                        <h3 className="font-bold text-light-text dark:text-dark-text truncate" title={sub.merchant}>{sub.merchant}</h3>
-                                                        <p className="text-xs text-light-text-secondary dark:text-dark-text-secondary flex items-center gap-1 mt-0.5">
-                                                            <span className="capitalize">{sub.frequency}</span>
-                                                            <span className="w-1 h-1 rounded-full bg-current opacity-50"></span>
-                                                            <span>~{sub.averageDay}{[1, 21, 31].includes(sub.averageDay) ? 'st' : [2, 22].includes(sub.averageDay) ? 'nd' : [3, 23].includes(sub.averageDay) ? 'rd' : 'th'}</span>
-                                                        </p>
-                                                    </div>
-                                                </div>
-                                                <div className="flex flex-col items-end flex-shrink-0">
-                                                        <span className="font-bold font-mono text-light-text dark:text-dark-text">{formatCurrency(sub.amount, sub.currency)}</span>
-                                                        <span className="text-[9px] bg-indigo-100 dark:bg-indigo-900/30 text-indigo-700 dark:text-indigo-300 px-1.5 py-0.5 rounded uppercase font-bold mt-1">Detected</span>
-                                                </div>
-                                            </div>
-                                            
-                                            <div className="flex gap-2 mt-auto pt-3 border-t border-black/5 dark:border-white/5">
-                                                <button onClick={() => handleIgnore(sub.key)} className="flex-1 py-1.5 rounded-lg text-xs font-semibold text-light-text-secondary dark:text-dark-text-secondary hover:bg-black/5 dark:hover:bg-white/5 transition-colors">Ignore</button>
-                                                <button onClick={() => handleTrack(sub)} className="flex-1 py-1.5 rounded-lg text-xs font-semibold bg-indigo-600 hover:bg-indigo-700 text-white transition-colors shadow-sm">Track</button>
-                                            </div>
-                                        </div>
-                                    );
-                                })}
-                            </div>
+                            <p className="text-[10px] font-black uppercase tracking-widest text-light-text-secondary dark:text-dark-text-secondary mb-1">Monthly Spend</p>
+                            <h3 className="text-3xl font-black text-light-text dark:text-dark-text tracking-tighter tabular-nums">
+                                {formatCurrency(monthlySpend, 'EUR')}
+                            </h3>
+                            <p className="text-[10px] font-bold text-light-text-secondary/60 dark:text-dark-text-secondary/60 mt-2 flex items-center gap-1">
+                                <span className="w-1 h-1 rounded-full bg-primary-500"></span>
+                                {formatCurrency(yearlySpend, 'EUR')} / Year
+                            </p>
                         </div>
-                    )}
-                    
-                    {/* Hero Grid: Calendar & Stats */}
-                    <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-                        {/* Calendar Card */}
-                        <div className="lg:col-span-2 bg-white dark:bg-dark-card rounded-3xl p-6 border border-black/5 dark:border-white/5 shadow-sm">
-                            <div className="flex justify-between items-end mb-4">
-                                <div>
-                                    <h3 className="text-lg font-bold text-light-text dark:text-dark-text">Payment Cycle</h3>
-                                    <p className="text-xs text-light-text-secondary dark:text-dark-text-secondary">Distribution of recurring charges across the month</p>
-                                </div>
-                                <div className="flex items-center gap-2 text-xs">
-                                    <div className="flex items-center gap-1">
-                                        <div className="w-2 h-2 rounded-full bg-indigo-600"></div>
-                                        <span className="text-light-text-secondary dark:text-dark-text-secondary">Due Day</span>
-                                    </div>
-                                </div>
+
+                        {/* Subscription Count */}
+                        <div className="bg-white dark:bg-dark-card rounded-[2rem] p-6 border border-black/5 dark:border-white/5 shadow-sm relative overflow-hidden group">
+                            <div className="absolute top-0 right-0 p-4 opacity-5 bg-indigo-500 rounded-bl-[2rem] group-hover:opacity-10 transition-opacity">
+                                <span className="material-symbols-outlined text-4xl">subscriptions</span>
                             </div>
-                            
-                            <div className="grid grid-cols-7 gap-y-3 gap-x-1 sm:gap-x-2 place-items-center mt-2">
-                                {Array.from({length: 31}).map((_, i) => {
-                                    const day = i + 1;
-                                    const isActive = subscriptionDays.has(day);
-                                    const isToday = new Date().getDate() === day;
-                                    
-                                    return (
-                                        <div 
+                            <p className="text-[10px] font-black uppercase tracking-widest text-light-text-secondary dark:text-dark-text-secondary mb-1">Active Services</p>
+                            <h3 className="text-3xl font-black text-light-text dark:text-dark-text tracking-tighter tabular-nums">
+                                {totalCount}
+                            </h3>
+                            <p className="text-[10px] font-bold text-light-text-secondary/60 dark:text-dark-text-secondary/60 mt-2 flex items-center gap-1">
+                                <span className="w-1 h-1 rounded-full bg-indigo-500"></span>
+                                Shared across {accounts.length} accounts
+                            </p>
+                        </div>
+
+                        {/* Upcoming Renewals */}
+                        <div className="bg-white dark:bg-dark-card rounded-[2rem] p-6 border border-black/5 dark:border-white/5 shadow-sm relative overflow-hidden group">
+                            <div className="absolute top-0 right-0 p-4 opacity-5 bg-orange-500 rounded-bl-[2rem] group-hover:opacity-10 transition-opacity">
+                                <span className="material-symbols-outlined text-4xl">event_upcoming</span>
+                            </div>
+                            <p className="text-[10px] font-black uppercase tracking-widest text-light-text-secondary dark:text-dark-text-secondary mb-1">Next 7 Days</p>
+                            <h3 className="text-3xl font-black text-light-text dark:text-dark-text tracking-tighter tabular-nums">
+                                {dueSoonCount}
+                            </h3>
+                            <p className="text-[10px] font-bold text-orange-600/60 dark:text-orange-400/60 mt-2 flex items-center gap-1">
+                                <span className="w-1 h-1 rounded-full bg-orange-500"></span>
+                                Action required soon
+                            </p>
+                        </div>
+
+                        {/* Calendar visual placeholder or Summary */}
+                        <div className="bg-white dark:bg-dark-card rounded-[2rem] p-6 border border-black/5 dark:border-white/5 shadow-sm relative overflow-hidden">
+                            <p className="text-[10px] font-black uppercase tracking-widest text-light-text-secondary dark:text-dark-text-secondary mb-3">Cycle Overview</p>
+                            <div className="flex flex-wrap gap-1.5">
+                                {Array.from({ length: 31 }).map((_, i) => (
+                                    <div 
                                         key={i} 
-                                        className={`
-                                            w-8 h-8 flex items-center justify-center text-xs font-medium rounded-full transition-all duration-300 relative
-                                            ${isActive 
-                                                ? 'bg-indigo-600 text-white shadow-md shadow-indigo-500/20 scale-110 font-bold' 
-                                                : 'text-light-text-secondary/40 dark:text-dark-text-secondary/40 hover:bg-black/5 dark:hover:bg-white/5 hover:text-light-text dark:hover:text-dark-text'
-                                            }
-                                            ${isToday ? 'ring-2 ring-emerald-400 ring-offset-2 dark:ring-offset-dark-card z-10' : ''}
-                                        `}
-                                        >
-                                            {day}
-                                            {isActive && <div className="absolute -bottom-1 w-1 h-1 bg-white/60 rounded-full"></div>}
-                                        </div>
-                                    );
-                                })}
-                            </div>
-                        </div>
-
-                        {/* Metrics Column */}
-                        <div className="flex flex-col gap-4">
-                            <div className="flex-1 bg-[#0A0A0B] rounded-3xl p-6 text-white relative overflow-hidden shadow-xl flex flex-col justify-between border border-white/5">
-                                <div className="absolute top-[-20%] right-[-10%] w-[80%] h-[120%] bg-primary-500/20 blur-[80px] rounded-full -z-1 opacity-60" />
-                                <div className="relative z-10">
-                                    <div className="flex items-center gap-2 mb-6 opacity-60">
-                                        <div className="p-1.5 bg-white/10 rounded-lg border border-white/10">
-                                            <span className="material-symbols-outlined text-[14px]">payments</span>
-                                        </div>
-                                        <p className="text-[10px] font-black uppercase tracking-wider">Commitment</p>
+                                        className={`w-4 h-4 rounded-md text-[8px] flex items-center justify-center font-bold transition-all ${subscriptionDays.has(i + 1) ? 'bg-primary-500 text-white scale-110 shadow-sm' : 'bg-black/5 dark:bg-white/5 text-transparent'}`}
+                                    >
+                                        {i+1}
                                     </div>
-                                    <p className="text-[10px] font-bold uppercase opacity-40 tracking-wider mb-1">Monthly Cash Out</p>
-                                    <p className="text-4xl font-black tracking-tighter">{formatCurrency(monthlySpend, 'EUR')}</p>
-                                </div>
-                                <div className="relative z-10 mt-6 pt-4 border-t border-white/5">
-                                    <div className="flex justify-between items-center">
-                                        <p className="text-xs font-bold text-gray-400">Yearly Projection</p>
-                                        <span className="text-sm font-black text-primary-400">{formatCurrency(yearlySpend, 'EUR')}</span>
-                                    </div>
-                                </div>
-                            </div>
-
-                            <div className="bg-white dark:bg-dark-card rounded-3xl p-6 border border-black/5 dark:border-white/5 shadow-sm flex flex-col justify-center gap-1">
-                                <div className="flex justify-between items-start">
-                                    <div className="space-y-1">
-                                        <p className="text-[10px] font-black uppercase text-light-text-secondary dark:text-dark-text-secondary tracking-wider">Renewing Soon</p>
-                                        <div className="flex items-baseline gap-2">
-                                             <p className="text-3xl font-black text-light-text dark:text-dark-text">{dueSoonCount}</p>
-                                             <span className="text-xs font-bold text-light-text-secondary dark:text-dark-text-secondary opacity-60">Items</span>
-                                        </div>
-                                    </div>
-                                    <div className="w-10 h-10 rounded-xl bg-orange-500/10 text-orange-600 dark:text-orange-400 flex items-center justify-center border border-orange-500/20">
-                                        <span className="material-symbols-outlined text-xl">event_upcoming</span>
-                                    </div>
-                                </div>
-                                <p className="text-[10px] font-bold text-orange-600/60 dark:text-orange-400/60 uppercase tracking-widest mt-2 flex items-center gap-1">
-                                    <span className="w-1 h-1 rounded-full bg-current"></span>
-                                    Next 7 Days
-                                </p>
+                                ))}
                             </div>
                         </div>
                     </div>
+
+                    {/* Detection Alert Section */}
+                    <AnimatePresence>
+                        {detectedSubscriptions.length > 0 && (
+                            <motion.div 
+                                initial={{ opacity: 0, scale: 0.95 }}
+                                animate={{ opacity: 1, scale: 1 }}
+                                exit={{ opacity: 0, scale: 0.8 }}
+                                className="bg-gradient-to-br from-indigo-600 via-indigo-700 to-primary-700 p-8 rounded-[2.5rem] shadow-2xl relative overflow-hidden border border-white/10"
+                            >
+                                <div className="absolute top-0 right-0 w-[400px] h-[400px] bg-white/10 rounded-full -translate-y-1/2 translate-x-1/4 blur-[100px] pointer-events-none" />
+                                
+                                <div className="relative z-10">
+                                    <div className="flex items-center gap-3 mb-6 bg-white/10 w-fit px-4 py-1.5 rounded-full backdrop-blur-xl border border-white/20">
+                                        <span className="material-symbols-outlined text-sm text-yellow-300">verified</span>
+                                        <h3 className="text-xs font-black uppercase tracking-widest text-white/90">Smart Detection</h3>
+                                    </div>
+
+                                    <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-8 mb-8">
+                                        <div>
+                                            <h2 className="text-3xl font-black text-white tracking-tighter leading-none mb-2">We found potential subscriptions.</h2>
+                                            <p className="text-white/60 font-medium text-sm">Automated analysis identified {detectedSubscriptions.length} recurring payment patterns.</p>
+                                        </div>
+                                    </div>
+
+                                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                                        {detectedSubscriptions.map((sub, idx) => {
+                                            const logoUrl = getMerchantLogoUrl(sub.merchant, brandfetchClientId, merchantLogoOverrides, { fallback: 'lettermark', type: 'icon', width: 64, height: 64 });
+                                            const hasLogo = Boolean(logoUrl && !logoLoadErrors[logoUrl!]);
+
+                                            return (
+                                                <motion.div 
+                                                    key={sub.key} 
+                                                    initial={{ opacity: 0, x: -20 }}
+                                                    animate={{ opacity: 1, x: 0 }}
+                                                    transition={{ delay: idx * 0.1 }}
+                                                    className="bg-white/10 backdrop-blur-2xl px-5 py-4 rounded-3xl border border-white/10 flex flex-col justify-between group hover:bg-white/20 transition-all cursor-default"
+                                                >
+                                                    <div className="flex items-start justify-between gap-4 mb-4">
+                                                        <div className="flex items-center gap-3 min-w-0">
+                                                            <div className={`w-12 h-12 rounded-2xl flex-shrink-0 flex items-center justify-center overflow-hidden border border-white/20 shadow-xl ${hasLogo ? 'bg-white' : 'bg-white/10'}`}>
+                                                                {hasLogo ? (
+                                                                    <img src={logoUrl!} alt="" className="w-full h-full object-contain" onError={() => handleLogoError(logoUrl!)} />
+                                                                ) : (
+                                                                    <span className="text-xl font-black text-white/40">{sub.merchant.charAt(0).toUpperCase()}</span>
+                                                                )}
+                                                            </div>
+                                                            <div className="min-w-0">
+                                                                <h4 className="text-white font-black text-lg tracking-tight truncate leading-none mb-1">{sub.merchant}</h4>
+                                                                <div className="flex items-center gap-2">
+                                                                    <span className="text-[10px] font-black uppercase text-white/50 tracking-widest">{sub.frequency}</span>
+                                                                    <div className="w-1 h-1 rounded-full bg-white/20"></div>
+                                                                    <span className="text-[10px] font-black text-white/50">DAY {sub.averageDay}</span>
+                                                                </div>
+                                                            </div>
+                                                        </div>
+                                                        <div className="text-right flex-shrink-0">
+                                                            <p className="text-lg font-black text-white tracking-tighter">{formatCurrency(sub.amount, sub.currency)}</p>
+                                                        </div>
+                                                    </div>
+                                                    
+                                                    <div className="flex gap-2">
+                                                        <button 
+                                                            onClick={() => handleIgnore(sub.key)} 
+                                                            className="flex-1 py-2 text-[10px] font-black uppercase tracking-widest text-white/40 hover:text-white/100 hover:bg-white/10 rounded-xl transition-all"
+                                                        >
+                                                            Dismiss
+                                                        </button>
+                                                        <button 
+                                                            onClick={() => handleTrack(sub)} 
+                                                            className="flex-1 py-2 text-[10px] font-black uppercase tracking-widest bg-white text-indigo-700 rounded-xl hover:scale-[1.03] active:scale-[0.98] transition-all shadow-lg"
+                                                        >
+                                                            Start Tracking
+                                                        </button>
+                                                    </div>
+                                                </motion.div>
+                                            );
+                                        })}
+                                    </div>
+                                </div>
+                            </motion.div>
+                        )}
+                    </AnimatePresence>
                     
-                    {/* Full Width List */}
-                    <Card className="p-0 overflow-hidden">
-                        <div className="divide-y divide-black/5 dark:divide-white/5">
+                    {/* Active Subscriptions List */}
+                    <div className="space-y-6 mt-12 bg-white dark:bg-dark-card rounded-[2.5rem] p-8 border border-black/5 dark:border-white/5 shadow-sm">
+                        <div className="flex items-center justify-between pb-6 border-b border-black/5 dark:border-white/5">
+                            <div>
+                                <h2 className="text-2xl font-black text-light-text dark:text-dark-text tracking-tighter">Active Services</h2>
+                                <p className="text-sm font-bold text-light-text-secondary/60 dark:text-dark-text-secondary/60">Managed recurring commitments</p>
+                            </div>
+                        </div>
+                        <div className="space-y-4 pt-6">
                             {activeSubscriptions.length === 0 ? (
                                 <div className="p-12 text-center text-light-text-secondary dark:text-dark-text-secondary italic">
                                     No active subscriptions.
                                 </div>
                             ) : (
-                                activeSubscriptions.map(sub => {
+                                activeSubscriptions.map((sub, idx) => {
                                     const nextDueDate = parseLocalDate(sub.nextDueDate);
                                     const daysUntil = Math.ceil((nextDueDate.getTime() - new Date().getTime()) / (1000 * 60 * 60 * 24));
-                                    const isDueSoon = daysUntil >= 0 && daysUntil <= 7;
+                                    const isDueSoon = daysUntil >= 0 && daysUntil <= 3;
+                                    const isOverdue = daysUntil < 0;
                                     
                                     const merchantName = sub.merchant || sub.description;
                                     const logoUrl = getMerchantLogoUrl(merchantName, brandfetchClientId, merchantLogoOverrides, { fallback: 'lettermark', type: 'icon', width: 64, height: 64 });
                                     const hasLogo = Boolean(logoUrl && !logoLoadErrors[logoUrl!]);
                                     const initial = merchantName.charAt(0).toUpperCase();
 
-                                    // Calculate cycle progress (approximate)
                                     let cycleLength = 30;
                                     if (sub.frequency === 'weekly') cycleLength = 7;
                                     if (sub.frequency === 'yearly') cycleLength = 365;
-                                    const daysElapsed = cycleLength - daysUntil;
-                                    const progress = Math.max(0, Math.min(100, (daysElapsed / cycleLength) * 100));
+                                    const progress = Math.max(0, Math.min(100, ((cycleLength - daysUntil) / cycleLength) * 100));
 
                                     return (
-                                        <div key={sub.id} className="group p-5 sm:px-8 hover:bg-black/[0.02] dark:hover:bg-white/[0.02] transition-all flex items-center gap-6 border-b border-black/5 dark:border-white/5 last:border-0 relative">
-                                            {/* Progress indicator strip */}
-                                            <div className="absolute left-0 top-0 bottom-0 w-1 bg-primary-500 opacity-0 group-hover:opacity-100 transition-opacity"></div>
-                                            
-                                            {/* Logo */}
-                                            <div className={`w-14 h-14 rounded-2xl flex-shrink-0 flex items-center justify-center overflow-hidden shadow-sm border border-black/5 dark:border-white/10 ${hasLogo ? 'bg-white' : 'bg-gray-100 dark:bg-white/10'}`}>
+                                        <motion.div 
+                                            key={sub.id} 
+                                            initial={{ opacity: 0, x: -10 }}
+                                            animate={{ opacity: 1, x: 0 }}
+                                            transition={{ delay: idx * 0.05 }}
+                                            className="group relative bg-gray-50/50 dark:bg-white/[0.02] rounded-[2rem] p-5 flex flex-col md:flex-row md:items-center gap-6 border border-black/5 dark:border-white/5 shadow-sm hover:shadow-md transition-all duration-300 overflow-hidden"
+                                        >
+                                            <div className={`absolute left-0 top-0 bottom-0 w-1.5 transition-all ${isOverdue ? 'bg-rose-500' : isDueSoon ? 'bg-orange-500' : 'bg-primary-500 opacity-20'}`} />
+                                            <div className={`w-14 h-14 rounded-[1.25rem] flex-shrink-0 flex items-center justify-center overflow-hidden border border-black/5 dark:border-white/10 ${hasLogo ? 'bg-white' : 'bg-gray-100 dark:bg-white/10'}`}>
                                                 {hasLogo ? (
-                                                    <img 
-                                                        src={logoUrl!} 
-                                                        alt={merchantName} 
-                                                        className="w-full h-full object-cover block" 
-                                                        onError={() => handleLogoError(logoUrl!)}
-                                                    />
+                                                    <img src={logoUrl!} alt="" className="w-8 h-8 object-contain" onError={() => handleLogoError(logoUrl!)} />
                                                 ) : (
-                                                    <span className="text-xl font-bold text-gray-400 dark:text-gray-500">{initial}</span>
+                                                    <span className="text-xl font-black text-gray-400 dark:text-gray-600">{initial}</span>
                                                 )}
                                             </div>
 
-                                            {/* Info */}
-                                            <div className="flex-grow min-w-0 grid grid-cols-1 lg:grid-cols-2 gap-4">
-                                                <div className="space-y-1">
-                                                    <div className="flex items-center gap-3">
-                                                        <h4 className="font-black text-lg text-light-text dark:text-dark-text truncate tracking-tight">{sub.merchant || sub.description}</h4>
-                                                        <span className="text-[9px] font-black uppercase tracking-widest bg-primary-500/10 text-primary-600 dark:text-primary-400 px-2 py-0.5 rounded-full border border-primary-500/20">{sub.frequency}</span>
+                                            {/* Details Section */}
+                                            <div className="flex-grow min-w-0 grid grid-cols-1 lg:grid-cols-12 gap-5 items-center">
+                                                <div className="lg:col-span-5 min-w-0">
+                                                    <h4 className="text-lg font-black text-light-text dark:text-dark-text tracking-tight truncate leading-none mb-1.5">{merchantName}</h4>
+                                                    <span className="px-2 py-0.5 rounded-lg bg-black/5 dark:bg-white/5 text-[10px] font-black uppercase text-light-text-secondary dark:text-dark-text-secondary tracking-widest">{sub.frequency}</span>
+                                                </div>
+
+                                                <div className="lg:col-span-4">
+                                                    <div className="flex justify-between items-center text-[10px] font-black uppercase tracking-widest mb-2 overflow-hidden items-center">
+                                                        <span className={isOverdue ? 'text-rose-500' : isDueSoon ? 'text-orange-500' : 'opacity-40 text-light-text-secondary dark:text-dark-text-secondary'}>
+                                                            {isOverdue ? 'Overdue' : isDueSoon ? `${daysUntil}d left` : `Due: ${nextDueDate.toLocaleDateString()}`}
+                                                        </span>
+                                                        <span className="opacity-40 text-light-text-secondary dark:text-dark-text-secondary font-bold">{Math.round(progress)}%</span>
                                                     </div>
-                                                    <div className="text-xs font-medium text-light-text-secondary dark:text-dark-text-secondary truncate flex items-center gap-2">
-                                                         <span className="opacity-60">{sub.description !== sub.merchant ? sub.description : accounts.find(a => a.id === sub.accountId)?.name}</span>
-                                                         {isDueSoon && <span className="w-1.5 h-1.5 rounded-full bg-orange-500 animate-pulse"></span>}
+                                                    <div className="w-full h-1.5 bg-black/5 dark:bg-white/5 rounded-full overflow-hidden">
+                                                        <motion.div initial={{ width: 0 }} animate={{ width: `${progress}%` }} className={`h-full ${isOverdue ? 'bg-rose-500' : isDueSoon ? 'bg-orange-500' : 'bg-primary-500'}`} />
                                                     </div>
                                                 </div>
-                                                
-                                                <div className="flex flex-col justify-center gap-1.5">
-                                                    <div className="flex justify-between items-center text-[10px] font-black uppercase tracking-widest">
-                                                        <span className={isDueSoon ? 'text-orange-600 dark:text-orange-400' : 'text-light-text-secondary dark:text-dark-text-secondary opacity-40'}>
-                                                            {isDueSoon ? `Action Required: Due In ${daysUntil}d` : `Scheduled: ${nextDueDate.toLocaleDateString()}`}
-                                                        </span>
-                                                        <span className="text-light-text-secondary dark:text-dark-text-secondary opacity-40">Progress</span>
-                                                    </div>
-                                                    <div className="w-full h-1.5 bg-gray-100 dark:bg-white/5 rounded-full overflow-hidden shadow-inner">
-                                                        <div className={`h-full rounded-full transition-all duration-1000 ${isDueSoon ? 'bg-gradient-to-r from-orange-400 to-orange-600' : 'bg-gradient-to-r from-primary-400 to-primary-600'}`} style={{ width: `${progress}%` }}></div>
-                                                    </div>
+
+                                                <div className="lg:col-span-3 text-left lg:text-right">
+                                                    <p className="text-xl font-black text-light-text dark:text-dark-text tracking-tighter tabular-nums">{formatCurrency(sub.amount, sub.currency)}</p>
                                                 </div>
                                             </div>
 
-                                            {/* Amount & Actions */}
-                                            <div className="text-right flex-shrink-0 flex flex-col items-end gap-2 ml-4">
-                                                <span className="font-mono font-black text-xl text-light-text dark:text-dark-text tracking-tighter">{formatCurrency(sub.amount, sub.currency)}</span>
-                                                
-                                                <div className="flex gap-2">
-                                                    <button onClick={() => handleEditActive(sub)} className="w-8 h-8 rounded-lg bg-gray-50 dark:bg-white/5 flex items-center justify-center text-light-text-secondary dark:text-dark-text-secondary hover:text-primary-500 hover:bg-primary-500/10 transition-all" title="Edit">
-                                                        <span className="material-symbols-outlined text-lg">edit_square</span>
-                                                    </button>
-                                                    <button onClick={() => handleDeleteActive(sub.id)} className="w-8 h-8 rounded-lg bg-gray-50 dark:bg-white/5 flex items-center justify-center text-light-text-secondary dark:text-dark-text-secondary hover:text-rose-500 hover:bg-rose-500/10 transition-all" title="Delete">
-                                                        <span className="material-symbols-outlined text-lg">delete</span>
-                                                    </button>
-                                                </div>
+                                            {/* Actions */}
+                                            <div className="flex gap-2">
+                                                <button onClick={() => handleEditActive(sub)} className="w-10 h-10 rounded-2xl bg-black/5 dark:bg-white/5 hover:bg-primary-500 hover:text-white flex items-center justify-center transition-all duration-300">
+                                                    <span className="material-symbols-outlined text-xl">settings</span>
+                                                </button>
+                                                <button onClick={() => handleDeleteActive(sub.id)} className="w-10 h-10 rounded-2xl bg-black/5 dark:bg-white/5 hover:bg-rose-500 hover:text-white flex items-center justify-center transition-all duration-300">
+                                                    <span className="material-symbols-outlined text-xl">delete</span>
+                                                </button>
                                             </div>
-                                        </div>
+                                        </motion.div>
                                     );
                                 })
                             )}
                         </div>
-                    </Card>
-                </div>
+                    </div>
+                </motion.div>
             )}
 
-            {/* Loyalty Wallet Content */}
+            {/* Loyalty Wallet Section */}
             {activeTab === 'loyalty' && (
-                <div className="space-y-8 animate-fade-in-up">
-                    {/* Metrics Row */}
-                    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
-                         <div className="bg-white dark:bg-dark-card rounded-2xl p-5 border border-black/5 dark:border-white/5 shadow-sm flex items-center gap-4">
-                             <div className="w-12 h-12 rounded-xl bg-blue-100 dark:bg-blue-900/30 text-blue-600 dark:text-blue-400 flex items-center justify-center">
-                                 <span className="material-symbols-outlined text-2xl">style</span>
-                             </div>
-                             <div>
-                                 <p className="text-xs font-bold uppercase text-light-text-secondary dark:text-dark-text-secondary tracking-wider mb-0.5">Total Cards</p>
-                                 <p className="font-black text-2xl text-light-text dark:text-dark-text">{memberships.length}</p>
-                             </div>
+                <motion.div 
+                    initial={{ opacity: 0, y: 20 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    transition={{ duration: 0.4 }}
+                    className="space-y-10"
+                >
+                    {/* Metrics Bento Grid */}
+                    <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+                        <div className="bg-white dark:bg-dark-card rounded-[2.5rem] p-6 border border-black/5 dark:border-white/5 shadow-sm relative overflow-hidden group">
+                            <div className="absolute top-0 right-0 p-4 opacity-5 bg-blue-500 rounded-bl-[2rem]">
+                                <span className="material-symbols-outlined text-4xl">style</span>
+                            </div>
+                            <p className="text-[10px] font-black uppercase tracking-widest text-light-text-secondary dark:text-dark-text-secondary mb-1">Total Cards</p>
+                            <h3 className="text-3xl font-black text-light-text dark:text-dark-text tracking-tighter tabular-nums">
+                                {memberships.length}
+                            </h3>
+                            <p className="text-[10px] font-bold text-light-text-secondary/60 dark:text-dark-text-secondary/60 mt-2 flex items-center gap-1">
+                                <span className="w-1 h-1 rounded-full bg-blue-500"></span>
+                                Membership assets
+                            </p>
                         </div>
-                        <div className="bg-white dark:bg-dark-card rounded-2xl p-5 border border-black/5 dark:border-white/5 shadow-sm flex items-center gap-4">
-                             <div className="w-12 h-12 rounded-xl bg-amber-100 dark:bg-amber-900/30 text-amber-600 dark:text-amber-400 flex items-center justify-center">
-                                 <span className="material-symbols-outlined text-2xl">timer</span>
-                             </div>
-                             <div>
-                                 <p className="text-xs font-bold uppercase text-light-text-secondary dark:text-dark-text-secondary tracking-wider mb-0.5">Expiring Soon</p>
-                                 <p className="font-black text-2xl text-light-text dark:text-dark-text">{expiringMemberships}</p>
-                             </div>
-                        </div>
-                         {/* Placeholder metrics for future expansion */}
-                        <div className="bg-white dark:bg-dark-card rounded-2xl p-5 border border-black/5 dark:border-white/5 shadow-sm flex items-center gap-4 opacity-60">
-                             <div className="w-12 h-12 rounded-xl bg-gray-100 dark:bg-white/10 text-gray-500 flex items-center justify-center">
-                                 <span className="material-symbols-outlined text-2xl">stars</span>
-                             </div>
-                             <div>
-                                 <p className="text-xs font-bold uppercase text-light-text-secondary dark:text-dark-text-secondary tracking-wider mb-0.5">Total Points</p>
-                                 <p className="font-black text-2xl text-light-text dark:text-dark-text">—</p>
-                             </div>
+
+                        <div className="bg-white dark:bg-dark-card rounded-[2.5rem] p-6 border border-black/5 dark:border-white/5 shadow-sm relative overflow-hidden group">
+                            <div className="absolute top-0 right-0 p-4 opacity-5 bg-amber-500 rounded-bl-[2rem]">
+                                <span className="material-symbols-outlined text-4xl">timer</span>
+                            </div>
+                            <p className="text-[10px] font-black uppercase tracking-widest text-light-text-secondary dark:text-dark-text-secondary mb-1">Expiring Soon</p>
+                            <h3 className="text-3xl font-black text-light-text dark:text-dark-text tracking-tighter tabular-nums">
+                                {expiringMemberships}
+                            </h3>
+                            <p className="text-[10px] font-bold text-amber-600/60 dark:text-amber-400/60 mt-2 flex items-center gap-1">
+                                <span className="w-1 h-1 rounded-full bg-amber-500"></span>
+                                Attention needed
+                            </p>
                         </div>
                     </div>
 
                     {memberships.length > 0 ? (
-                        <div className="space-y-8">
+                        <div className="space-y-12">
                             {sortedMembershipCategories.map(category => {
                                 const cards = groupedMemberships[category];
                                 return (
-                                    <div key={category}>
-                                        <h4 className="text-sm font-bold uppercase tracking-wider text-light-text-secondary dark:text-dark-text-secondary mb-4 pl-1 border-b border-black/5 dark:border-white/5 pb-2 flex justify-between">
-                                            <span>{category}</span>
-                                            <span className="opacity-60">{cards.length}</span>
-                                        </h4>
-                                        <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-6">
+                                    <div key={category} className="space-y-6">
+                                        <div className="flex items-center justify-between pb-2 border-b border-black/5 dark:border-white/5">
+                                            <h4 className="text-sm font-black uppercase tracking-[0.2em] text-light-text-secondary dark:text-dark-text-secondary flex items-center gap-2">
+                                                {category}
+                                                <span className="w-5 h-5 rounded-full bg-black/5 dark:bg-white/5 text-[10px] flex items-center justify-center font-bold">{cards.length}</span>
+                                            </h4>
+                                        </div>
+                                        <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-8">
                                             {cards.map(m => (
                                                 <LoyaltyCard 
                                                     key={m.id}
@@ -645,16 +658,18 @@ const Subscriptions: React.FC = () => {
                             })}
                         </div>
                     ) : (
-                         <div className="flex flex-col items-center justify-center py-20 text-center bg-light-card/50 dark:bg-dark-card/30 rounded-3xl border-2 border-dashed border-black/10 dark:border-white/10">
-                             <span className="material-symbols-outlined text-6xl text-light-text-secondary dark:text-dark-text-secondary opacity-30 mb-4">loyalty</span>
-                             <h3 className="text-xl font-bold text-light-text dark:text-dark-text">Wallet Empty</h3>
-                             <p className="text-sm text-light-text-secondary dark:text-dark-text-secondary max-w-xs mt-2 mb-6">
-                                 Keep your frequent flyer numbers, store cards, and reward programs handy.
-                             </p>
-                             <button onClick={handleAddMembership} className={BTN_PRIMARY_STYLE}>Add First Card</button>
+                        <div className="py-32 text-center bg-gray-50/50 dark:bg-white/5 rounded-[3rem] border-2 border-dashed border-black/5 dark:border-white/5">
+                            <div className="w-24 h-24 bg-white dark:bg-white/5 rounded-[2.5rem] flex items-center justify-center mx-auto mb-6 shadow-sm border border-black/5 dark:border-white/10">
+                                <span className="material-symbols-outlined text-5xl text-gray-300 dark:text-gray-700">loyalty</span>
+                            </div>
+                            <h3 className="text-xl font-black text-light-text dark:text-dark-text tracking-tighter">Your wallet is empty</h3>
+                            <p className="text-sm text-light-text-secondary dark:text-dark-text-secondary max-w-xs mx-auto mt-2 font-medium">
+                                Keep your membership numbers and reward programs organized in one place.
+                            </p>
+                            <button onClick={handleAddMembership} className={`${BTN_PRIMARY_STYLE} mt-8`}>Add First Card</button>
                         </div>
                     )}
-                </div>
+                </motion.div>
             )}
         </div>
     );

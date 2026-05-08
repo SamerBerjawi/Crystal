@@ -312,11 +312,6 @@ const Accounts: React.FC<AccountsProps> = ({ accounts, transactions, saveAccount
 
   return (
     <div className="relative">
-      {/* Decorative Layered Background - Fixed and behind content */}
-      <div className="fixed inset-0 pointer-events-none z-0">
-          <div className="absolute top-0 inset-x-0 h-[600px] bg-gradient-to-b from-blue-100/50 via-indigo-50/30 to-transparent dark:from-blue-900/20 dark:via-indigo-900/10 dark:to-transparent" />
-      </div>
-
       <div className="relative z-10 space-y-6 pb-12 animate-fade-in-up">
         {isAddModalOpen && <AddAccountModal onClose={() => setAddModalOpen(false)} onAdd={handleAddAccount} accounts={accounts} />}
         {isEditModalOpen && editingAccount && <EditAccountModal onClose={() => setEditModalOpen(false)} onSave={handleUpdateAccount} onDelete={(accountId) => { setEditModalOpen(false); setDeletingAccount(editingAccount);}} account={editingAccount} accounts={accounts} warrants={warrants} onToggleStatus={onToggleAccountStatus} />}
