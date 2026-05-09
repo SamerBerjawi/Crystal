@@ -198,6 +198,21 @@ const AccountRow: React.FC<AccountRowProps> = ({ account, transactions, warrants
 
     const currentConfig = colorConfig[account.type] || colorConfig['Other Assets'];
 
+    const glowColors: Record<string, string> = {
+        Checking: 'rgba(59, 130, 246, 0.25)', // Blue
+        'Credit Card': 'rgba(244, 63, 94, 0.25)', // Rose
+        Investment: 'rgba(139, 92, 246, 0.25)', // Violet
+        Lending: 'rgba(20, 184, 166, 0.25)', // Teal
+        Loan: 'rgba(239, 68, 68, 0.25)', // Red
+        'Other Assets': 'rgba(132, 204, 22, 0.25)', // Lime
+        Property: 'rgba(14, 165, 233, 0.25)', // Sky
+        Savings: 'rgba(16, 185, 129, 0.25)', // Emerald
+        Vehicle: 'rgba(100, 116, 139, 0.25)', // Slate
+        'Other Liabilities': 'rgba(236, 72, 153, 0.25)', // Pink
+    };
+
+    const glowColor = glowColors[account.type] || 'rgba(156, 163, 175, 0.25)';
+
     return (
         <div 
             draggable={isDraggable}
@@ -212,21 +227,24 @@ const AccountRow: React.FC<AccountRowProps> = ({ account, transactions, warrants
                 relative group cursor-pointer
                 w-full bg-white dark:bg-dark-card rounded-[2rem] border-l-4 border-y border-r border-black/5 dark:border-white/5
                 p-6 flex flex-col justify-between h-[210px]
-                shadow-sm hover:shadow-xl transition-all duration-300
+                transition-all duration-300 hover:-translate-y-1
                 ${account.status === 'closed' ? 'opacity-60 grayscale' : ''}
                 ${dragClasses} ${dragOverClasses}
             `}
-            style={{ borderLeftColor: currentConfig.text.includes('blue') ? '#3b82f6' : 
-                                       currentConfig.text.includes('emerald') ? '#10b981' :
-                                       currentConfig.text.includes('rose') ? '#f43f5e' :
-                                       currentConfig.text.includes('violet') ? '#8b5cf6' :
-                                       currentConfig.text.includes('amber') ? '#f59e0b' :
-                                       currentConfig.text.includes('teal') ? '#14b8a6' :
-                                       currentConfig.text.includes('sky') ? '#0ea5e9' :
-                                       currentConfig.text.includes('slate') ? '#64748b' :
-                                       currentConfig.text.includes('orange') ? '#f97316' :
-                                       currentConfig.text.includes('lime') ? '#84cc16' :
-                                       currentConfig.text.includes('red') ? '#ef4444' : '#3b82f6' }}
+            style={{ 
+                borderLeftColor: currentConfig.text.includes('blue') ? '#3b82f6' : 
+                                currentConfig.text.includes('emerald') ? '#10b981' :
+                                currentConfig.text.includes('rose') ? '#f43f5e' :
+                                currentConfig.text.includes('violet') ? '#8b5cf6' :
+                                currentConfig.text.includes('amber') ? '#f59e0b' :
+                                currentConfig.text.includes('teal') ? '#14b8a6' :
+                                currentConfig.text.includes('sky') ? '#0ea5e9' :
+                                currentConfig.text.includes('slate') ? '#64748b' :
+                                currentConfig.text.includes('orange') ? '#f97316' :
+                                currentConfig.text.includes('lime') ? '#84cc16' :
+                                currentConfig.text.includes('red') ? '#ef4444' : '#3b82f6',
+                boxShadow: `0 10px 40px -10px ${glowColor}`
+            }}
         >
             {/* Action Bar Overlay */}
             <div className="absolute top-4 right-4 flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity z-30">

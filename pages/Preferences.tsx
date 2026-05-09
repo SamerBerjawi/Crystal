@@ -2,7 +2,7 @@
 import React from 'react';
 import { AppPreferences, Theme, Page } from '../types';
 import Card from '../components/Card';
-import { SELECT_WRAPPER_STYLE, INPUT_BASE_STYLE, SELECT_ARROW_STYLE, CURRENCY_OPTIONS, TIMEZONE_OPTIONS, COUNTRY_OPTIONS, DURATION_OPTIONS, DEFAULT_ACCOUNT_ORDER_OPTIONS, QUICK_CREATE_BUDGET_OPTIONS, FORECAST_DURATION_OPTIONS, CHECKBOX_STYLE } from '../constants';
+import { SELECT_WRAPPER_STYLE, INPUT_BASE_STYLE, SELECT_STYLE, SELECT_ARROW_STYLE, CURRENCY_OPTIONS, TIMEZONE_OPTIONS, COUNTRY_OPTIONS, DURATION_OPTIONS, DEFAULT_ACCOUNT_ORDER_OPTIONS, QUICK_CREATE_BUDGET_OPTIONS, FORECAST_DURATION_OPTIONS, CHECKBOX_STYLE } from '../constants';
 import PageHeader from '../components/PageHeader';
 
 interface PreferencesProps {
@@ -111,7 +111,7 @@ const Preferences: React.FC<PreferencesProps> = ({ preferences, setPreferences, 
             <div className="space-y-2">
               <SettingRow label="Primary Currency" description="The default currency used for dashboard summaries and reports.">
                 <div className={SELECT_WRAPPER_STYLE}>
-                  <select name="currency" value={preferences.currency} onChange={handleChange} className={INPUT_BASE_STYLE}>
+                  <select name="currency" value={preferences.currency} onChange={handleChange} className={SELECT_STYLE}>
                     {CURRENCY_OPTIONS.map(c => <option key={c} value={c}>{c}</option>)}
                   </select>
                   <div className={SELECT_ARROW_STYLE}><span className="material-symbols-outlined">expand_more</span></div>
@@ -146,7 +146,7 @@ const Preferences: React.FC<PreferencesProps> = ({ preferences, setPreferences, 
              <div className="space-y-2">
                 <SettingRow label="Default Dashboard Period" description="The time range initially selected on the dashboard.">
                   <div className={SELECT_WRAPPER_STYLE}>
-                    <select name="defaultPeriod" value={preferences.defaultPeriod} onChange={handleChange} className={INPUT_BASE_STYLE}>
+                    <select name="defaultPeriod" value={preferences.defaultPeriod} onChange={handleChange} className={SELECT_STYLE}>
                       {DURATION_OPTIONS.map(opt => <option key={opt.value} value={opt.value}>{opt.label}</option>)}
                     </select>
                     <div className={SELECT_ARROW_STYLE}><span className="material-symbols-outlined">expand_more</span></div>
@@ -159,7 +159,7 @@ const Preferences: React.FC<PreferencesProps> = ({ preferences, setPreferences, 
                       name="defaultForecastPeriod"
                       value={preferences.defaultForecastPeriod || '1Y'}
                       onChange={handleChange}
-                      className={INPUT_BASE_STYLE}
+                      className={SELECT_STYLE}
                     >
                       {FORECAST_DURATION_OPTIONS.map(opt => <option key={opt.value} value={opt.value}>{opt.label}</option>)}
                     </select>
@@ -169,7 +169,7 @@ const Preferences: React.FC<PreferencesProps> = ({ preferences, setPreferences, 
 
                 <SettingRow label="Default Account Sorting" description="How accounts are ordered on the Accounts page.">
                   <div className={SELECT_WRAPPER_STYLE}>
-                    <select name="defaultAccountOrder" value={preferences.defaultAccountOrder} onChange={handleChange} className={INPUT_BASE_STYLE}>
+                    <select name="defaultAccountOrder" value={preferences.defaultAccountOrder} onChange={handleChange} className={SELECT_STYLE}>
                       {DEFAULT_ACCOUNT_ORDER_OPTIONS.map(opt => <option key={opt.value} value={opt.value}>{opt.label}</option>)}
                     </select>
                     <div className={SELECT_ARROW_STYLE}><span className="material-symbols-outlined">expand_more</span></div>
@@ -178,7 +178,7 @@ const Preferences: React.FC<PreferencesProps> = ({ preferences, setPreferences, 
 
                 <SettingRow label="Budget Quick Create Basis" description="Months of history used when auto-generating budgets.">
                   <div className={SELECT_WRAPPER_STYLE}>
-                      <select name="defaultQuickCreatePeriod" value={preferences.defaultQuickCreatePeriod || 3} onChange={handleChange} className={INPUT_BASE_STYLE}>
+                      <select name="defaultQuickCreatePeriod" value={preferences.defaultQuickCreatePeriod || 3} onChange={handleChange} className={SELECT_STYLE}>
                           {QUICK_CREATE_BUDGET_OPTIONS.map(opt => <option key={opt.value} value={opt.value}>{opt.label}</option>)}
                       </select>
                       <div className={SELECT_ARROW_STYLE}><span className="material-symbols-outlined">expand_more</span></div>

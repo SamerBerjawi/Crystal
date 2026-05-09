@@ -7,6 +7,8 @@ import { ACCOUNT_TYPE_ACCENT_STYLES } from '../constants';
 
 interface AccountsListSectionProps {
     title: string;
+    headerIcon?: React.ReactNode;
+    headerSubtitle?: string;
     accounts: Account[];
     transactionsByAccount: Record<string, Transaction[]>;
     warrants: Warrant[];
@@ -21,10 +23,13 @@ interface AccountsListSectionProps {
     isCollapsible?: boolean;
     defaultExpanded?: boolean;
     layoutMode: 'stacked' | 'columns';
+    showCollapseAll?: boolean;
 }
 
 const AccountsListSection: React.FC<AccountsListSectionProps> = ({ 
     title, 
+    headerIcon,
+    headerSubtitle,
     accounts, 
     transactionsByAccount, 
     warrants, 
@@ -38,7 +43,8 @@ const AccountsListSection: React.FC<AccountsListSectionProps> = ({
     onContextMenu, 
     isCollapsible = true, 
     defaultExpanded = true, 
-    layoutMode 
+    layoutMode,
+    showCollapseAll = false
 }) => {
     const [isExpanded, setIsExpanded] = useState(defaultExpanded);
     const [draggedId, setDraggedId] = useState<string | null>(null);
@@ -87,6 +93,15 @@ const AccountsListSection: React.FC<AccountsListSectionProps> = ({
 
     const toggleGroup = (groupName: string) => setExpandedGroups(prev => ({ ...prev, [groupName]: !prev[groupName] }));
 
+    const isAnyExpanded = Object.values(expandedGroups).some(Boolean);
+    const toggleAll = () => {
+        const next: Record<string, boolean> = {};
+        groupOrder.forEach(key => {
+            next[key] = !isAnyExpanded;
+        });
+        setExpandedGroups(next);
+    };
+
     const handleDragStart = (e: React.DragEvent, accountId: string) => { if (sortBy === 'manual') setDraggedId(accountId); };
     const handleDragOver = (e: React.DragEvent, accountId: string) => { if (sortBy === 'manual') { e.preventDefault(); if (draggedId && draggedId !== accountId) setDragOverId(accountId); }};
     const handleDragLeave = () => setDragOverId(null);
@@ -132,12 +147,40 @@ const AccountsListSection: React.FC<AccountsListSectionProps> = ({
                         <h3 className="text-m font-black text-light-text dark:text-dark-text uppercase tracking-[0.2em]">{title}</h3>
                         <span className="bg-primary-100 dark:bg-primary-900/30 text-[10px] font-black px-2 py-0.5 rounded-full text-primary-700 dark:text-primary-300">{accounts.length}</span>
                     </div>
-                    <div className="h-px flex-grow bg-black/5 dark:bg-white/5 ml-4"></div>
+                    <div className="h-px flex-grow bg-black/5 dark:bg-white/5 ml-4 mr-4"></div>
+                    {showCollapseAll && groupOrder.length > 1 && (
+                        <button 
+                            onClick={(e) => { e.stopPropagation(); toggleAll(); }}
+                            className="flex items-center justify-center w-8 h-8 rounded-lg transition-all bg-white/50 dark:bg-black/20 hover:bg-white dark:hover:bg-black/40 border border-transparent hover:border-black/5 dark:hover:border-white/5 text-light-text-secondary dark:text-dark-text-secondary hover:text-primary-500"
+                            title={isAnyExpanded ? 'Collapse All Categories' : 'Expand All Categories'}
+                        >
+                            <span className="material-symbols-outlined text-base">{isAnyExpanded ? 'unfold_less' : 'unfold_more'}</span>
+                        </button>
+                    )}
+                </div>
+            ) : (headerIcon || title) ? (
+                <div className="flex justify-between items-center mb-6 px-2 select-none">
+                    <div className="flex items-center gap-3">
+                        {headerIcon}
+                        <div>
+                            <h3 className="text-sm font-black uppercase tracking-[0.2em] text-light-text-secondary dark:text-dark-text-secondary">{title}</h3>
+                            {headerSubtitle && <p className="text-[10px] text-light-text-secondary dark:text-dark-text-secondary opacity-60">{headerSubtitle}</p>}
+                        </div>
+                    </div>
+                    {showCollapseAll && groupOrder.length > 1 && (
+                        <button 
+                            onClick={toggleAll}
+                            className="flex items-center justify-center w-8 h-8 rounded-lg transition-all bg-white/50 dark:bg-black/20 hover:bg-white dark:hover:bg-black/40 border border-transparent hover:border-black/5 dark:hover:border-white/5 text-light-text-secondary dark:text-dark-text-secondary hover:text-primary-500"
+                            title={isAnyExpanded ? 'Collapse All Categories' : 'Expand All Categories'}
+                        >
+                            <span className="material-symbols-outlined text-base">{isAnyExpanded ? 'unfold_less' : 'unfold_more'}</span>
+                        </button>
+                    )}
                 </div>
             ) : null}
             
             {isExpanded && (
-                <div className="space-y-10 flex-1">
+                <div className="space-y-6 flex-1">
                     {groupOrder.length > 0 ? groupOrder.map(groupName => {
                         const accountsInGroup = groupedAccounts[groupName as AccountType];
                         const groupTotal = accountsInGroup

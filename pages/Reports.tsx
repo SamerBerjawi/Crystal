@@ -16,7 +16,7 @@ import {
 } from 'recharts';
 import { useTransactionSelector, usePreferencesSelector, useAccountSelector } from '../contexts/DomainProviders';
 import { useBudgetsContext, useCategoryContext } from '../contexts/FinancialDataContext';
-import { BTN_PRIMARY_STYLE, BTN_SECONDARY_STYLE, INPUT_BASE_STYLE } from '../constants';
+import { BTN_PRIMARY_STYLE, BTN_SECONDARY_STYLE, INPUT_BASE_STYLE, SELECT_STYLE } from '../constants';
 import { Category, Account, MerchantRule } from '../types';
 import { convertToEur, parseLocalDate, toLocalISOString } from '../utils';
 import { getMerchantLogoUrl, normalizeMerchantKey } from '../utils/brandfetch';
@@ -790,7 +790,7 @@ const Reports: React.FC = () => {
           <div className="grid grid-cols-1 md:grid-cols-3 lg:grid-cols-6 gap-4">
             <div className="space-y-1">
               <label className="block text-[10px] font-bold uppercase tracking-widest text-light-text-secondary dark:text-dark-text-secondary">Account</label>
-              <select value={accountFilter} onChange={(e) => setAccountFilter(e.target.value)} className={`${INPUT_BASE_STYLE} !bg-white dark:!bg-neutral-800`}>
+              <select value={accountFilter} onChange={(e) => setAccountFilter(e.target.value)} className={`${SELECT_STYLE} !bg-white dark:!bg-neutral-800`}>
                 <option value="all">All Accounts</option>
                 {accounts.map(acc => (
                   <option key={acc.id} value={acc.id}>{acc.name}</option>
@@ -811,7 +811,7 @@ const Reports: React.FC = () => {
             </div>
             <div className="space-y-1">
               <label className="block text-[10px] font-bold uppercase tracking-widest text-light-text-secondary dark:text-dark-text-secondary">Category</label>
-              <select value={categoryFilter} onChange={(e) => setCategoryFilter(e.target.value)} className={`${INPUT_BASE_STYLE} !bg-white dark:!bg-neutral-800`}>
+              <select value={categoryFilter} onChange={(e) => setCategoryFilter(e.target.value)} className={`${SELECT_STYLE} !bg-white dark:!bg-neutral-800`}>
                 <option value="all">All Categories</option>
                 <optgroup label="Expenses">
                   {expenseCategories.map(cat => (
@@ -827,7 +827,7 @@ const Reports: React.FC = () => {
             </div>
             <div className="space-y-1">
               <label className="block text-[10px] font-bold uppercase tracking-widest text-light-text-secondary dark:text-dark-text-secondary">Group By</label>
-              <select value={groupBy} onChange={(e) => setGroupBy(e.target.value as GroupBy)} className={`${INPUT_BASE_STYLE} !bg-white dark:!bg-neutral-800`}>
+              <select value={groupBy} onChange={(e) => setGroupBy(e.target.value as GroupBy)} className={`${SELECT_STYLE} !bg-white dark:!bg-neutral-800`}>
                 <option value="merchant">Merchant</option>
                 <option value="category">Category</option>
               </select>

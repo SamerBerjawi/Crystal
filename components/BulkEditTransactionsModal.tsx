@@ -1,7 +1,7 @@
 import React, { useState, useMemo, useRef, useEffect } from 'react';
 import Modal from './Modal';
 import { Transaction, Account, Category, Tag } from '../types';
-import { INPUT_BASE_STYLE, BTN_PRIMARY_STYLE, BTN_SECONDARY_STYLE, SELECT_WRAPPER_STYLE, SELECT_ARROW_STYLE, CHECKBOX_STYLE } from '../constants';
+import { INPUT_BASE_STYLE, BTN_PRIMARY_STYLE, BTN_SECONDARY_STYLE, SELECT_STYLE, SELECT_WRAPPER_STYLE, SELECT_ARROW_STYLE, CHECKBOX_STYLE } from '../constants';
 import LocationAutocomplete from './LocationAutocomplete';
 import { toLocalISOString } from '../utils';
 
@@ -193,7 +193,7 @@ const BulkEditTransactionsModal: React.FC<BulkEditTransactionsModalProps> = ({
             
             <CheckboxField field="accountId" label="Transfer to Account" isChecked={fieldsToUpdate.accountId} onToggle={handleToggle}>
                  <div className={SELECT_WRAPPER_STYLE}>
-                    <select value={updatedValues.accountId} onChange={e => handleChange('accountId', e.target.value)} className={`${INPUT_BASE_STYLE} h-11 pl-4 cursor-pointer`}>
+                    <select value={updatedValues.accountId} onChange={e => handleChange('accountId', e.target.value)} className={`${SELECT_STYLE} h-11 pl-4 cursor-pointer`}>
                        {accounts.map(acc => <option className="bg-white dark:bg-gray-900 text-black dark:text-white" key={acc.id} value={acc.id}>{acc.name}</option>)}
                     </select>
                     <div className={SELECT_ARROW_STYLE}><span className="material-symbols-outlined">expand_more</span></div>
@@ -216,7 +216,7 @@ const BulkEditTransactionsModal: React.FC<BulkEditTransactionsModalProps> = ({
             
             <CheckboxField field="category" label="Categorize As" isChecked={fieldsToUpdate.category} onToggle={handleToggle}>
                 <div className={SELECT_WRAPPER_STYLE}>
-                    <select value={updatedValues.category} onChange={e => handleChange('category', e.target.value)} className={`${INPUT_BASE_STYLE} h-11 pl-4 cursor-pointer`} >
+                    <select value={updatedValues.category} onChange={e => handleChange('category', e.target.value)} className={`${SELECT_STYLE} h-11 pl-4 cursor-pointer`} >
                          <option className="bg-white dark:bg-gray-900 text-black dark:text-white" value="" disabled>Select a category</option>
                          <optgroup className="bg-gray-100 dark:bg-gray-800 text-gray-700 dark:text-gray-300 font-bold text-[10px] uppercase tracking-[0.2em] h-10" label="Outgoing"></optgroup>
                          <CategoryOptions categories={expenseCategories} />

@@ -2,7 +2,7 @@
 
 import React, { useState, useEffect } from 'react';
 import { Account, Category, AccountType, Currency, User, AppPreferences, FinancialGoal, RecurringTransaction } from '../types';
-import { CrystalLogo, BTN_PRIMARY_STYLE, BTN_SECONDARY_STYLE, INPUT_BASE_STYLE, SELECT_WRAPPER_STYLE, SELECT_ARROW_STYLE, CURRENCIES, ACCOUNT_TYPE_STYLES, ALL_ACCOUNT_TYPES, CURRENCY_OPTIONS } from '../constants';
+import { CrystalLogo, BTN_PRIMARY_STYLE, BTN_SECONDARY_STYLE, INPUT_BASE_STYLE, SELECT_STYLE, SELECT_WRAPPER_STYLE, SELECT_ARROW_STYLE, CURRENCIES, ACCOUNT_TYPE_STYLES, ALL_ACCOUNT_TYPES, CURRENCY_OPTIONS } from '../constants';
 import Card from './Card';
 import { toLocalISOString } from '../utils';
 
@@ -167,7 +167,7 @@ const OnboardingModal: React.FC<OnboardingModalProps> = ({
               This will be the default currency for your reports and summaries.
             </p>
             <div className={SELECT_WRAPPER_STYLE}>
-              <select name="currency" value={currencyPref} onChange={e => setCurrencyPref(e.target.value)} className={INPUT_BASE_STYLE}>
+              <select name="currency" value={currencyPref} onChange={e => setCurrencyPref(e.target.value)} className={SELECT_STYLE}>
                 {CURRENCY_OPTIONS.map(c => <option key={c} value={c}>{c}</option>)}
               </select>
               <div className={SELECT_ARROW_STYLE}><span className="material-symbols-outlined">expand_more</span></div>
@@ -189,7 +189,7 @@ const OnboardingModal: React.FC<OnboardingModalProps> = ({
                 <div>
                   <label className="block text-sm font-medium text-light-text-secondary dark:text-dark-text-secondary mb-1">Account Type</label>
                   <div className={SELECT_WRAPPER_STYLE}>
-                      <select value={accountType} onChange={e => setAccountType(e.target.value as AccountType)} className={INPUT_BASE_STYLE}>
+                      <select value={accountType} onChange={e => setAccountType(e.target.value as AccountType)} className={SELECT_STYLE}>
                           {ALL_ACCOUNT_TYPES.map(type => <option key={type} value={type}>{type}</option>)}
                       </select>
                       <div className={SELECT_ARROW_STYLE}><span className="material-symbols-outlined">expand_more</span></div>
@@ -203,7 +203,7 @@ const OnboardingModal: React.FC<OnboardingModalProps> = ({
                   <div>
                     <label className="block text-sm font-medium text-light-text-secondary dark:text-dark-text-secondary mb-1">Currency</label>
                     <div className={SELECT_WRAPPER_STYLE}>
-                      <select value={accountCurrency} onChange={e => setAccountCurrency(e.target.value as Currency)} className={INPUT_BASE_STYLE}>
+                      <select value={accountCurrency} onChange={e => setAccountCurrency(e.target.value as Currency)} className={SELECT_STYLE}>
                           {CURRENCIES.map(c => <option key={c} value={c}>{c}</option>)}
                       </select>
                       <div className={SELECT_ARROW_STYLE}><span className="material-symbols-outlined">expand_more</span></div>
@@ -238,7 +238,7 @@ const OnboardingModal: React.FC<OnboardingModalProps> = ({
                 <div>
                   <label className="block text-sm font-medium text-light-text-secondary dark:text-dark-text-secondary mb-1">Payment Account (Optional)</label>
                   <div className={SELECT_WRAPPER_STYLE}>
-                      <select value={paymentAccountId} onChange={e => setPaymentAccountId(e.target.value)} className={INPUT_BASE_STYLE}>
+                      <select value={paymentAccountId} onChange={e => setPaymentAccountId(e.target.value)} className={SELECT_STYLE}>
                           <option value="">None</option>
                           {accounts.map(acc => <option key={acc.id} value={acc.id}>{acc.name}</option>)}
                       </select>
@@ -273,7 +273,7 @@ const OnboardingModal: React.FC<OnboardingModalProps> = ({
                     <div>
                         <label className="block text-sm font-medium text-light-text-secondary dark:text-dark-text-secondary mb-1">Category</label>
                          <div className={SELECT_WRAPPER_STYLE}>
-                            <select value={rtCategory} onChange={e => setRtCategory(e.target.value)} className={INPUT_BASE_STYLE}>
+                            <select value={rtCategory} onChange={e => setRtCategory(e.target.value)} className={SELECT_STYLE}>
                                 <option value="">Select...</option>
                                 {activeCategories.filter(c => !c.parentId).map(c => <option key={c.id} value={c.name}>{c.name}</option>)}
                             </select>

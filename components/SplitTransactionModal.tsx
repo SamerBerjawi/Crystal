@@ -3,7 +3,7 @@ import React, { useState, useMemo } from 'react';
 import Modal from './Modal';
 import { Transaction, Category, Currency } from '../types';
 import { formatCurrency } from '../utils';
-import { BTN_PRIMARY_STYLE, BTN_SECONDARY_STYLE, INPUT_BASE_STYLE, SELECT_WRAPPER_STYLE, SELECT_ARROW_STYLE } from '../constants';
+import { BTN_PRIMARY_STYLE, BTN_SECONDARY_STYLE, INPUT_BASE_STYLE, SELECT_STYLE, SELECT_WRAPPER_STYLE, SELECT_ARROW_STYLE } from '../constants';
 
 interface SplitTransactionModalProps {
   onClose: () => void;
@@ -117,7 +117,7 @@ const SplitTransactionModal: React.FC<SplitTransactionModalProps> = ({
                   <select
                     value={split.category}
                     onChange={e => handleUpdateSplit(split.id, { category: e.target.value })}
-                    className={`${INPUT_BASE_STYLE} pr-8`}
+                    className={`${SELECT_STYLE} pr-8`}
                   >
                     <option value="">Select Category</option>
                     {flatCategories.map(cat => (

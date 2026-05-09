@@ -59,26 +59,26 @@ const MultiSelectFilter: React.FC<MultiSelectFilterProps> = ({ options, selected
       <button
         type="button"
         onClick={() => setIsOpen(!isOpen)}
-        className={`${INPUT_BASE_STYLE} !w-auto min-w-[10rem] flex items-center justify-between text-left whitespace-nowrap bg-light-fill/80 dark:bg-dark-fill/80 backdrop-blur-md transition-all duration-200`}
+        className={`${INPUT_BASE_STYLE} !w-auto min-w-[10rem] flex items-center justify-between text-left whitespace-nowrap !font-bold text-[10px] uppercase tracking-widest !pl-4 !pr-2 bg-light-fill dark:bg-dark-fill transition-all duration-200`}
       >
         <span className="mr-2 truncate max-w-[12rem]">{buttonText}</span>
-        <span className={`material-symbols-outlined transition-transform duration-200 ${isOpen ? 'rotate-180' : ''}`}>expand_more</span>
+        <span className={`material-symbols-outlined text-sm transition-transform duration-200 ${isOpen ? 'rotate-180' : ''}`}>expand_more</span>
       </button>
       {isOpen && (
-        <div className="absolute top-full left-0 mt-1 w-full min-w-[14rem] bg-light-card/95 dark:bg-dark-card/95 backdrop-blur-xl rounded-lg shadow-lg border border-black/10 dark:border-white/10 z-50 p-2">
+        <div className="absolute top-full left-0 mt-2 w-full min-w-[14rem] bg-white/95 dark:bg-gray-800/95 backdrop-blur-xl rounded-2xl shadow-2xl border border-black/5 dark:border-white/10 z-50 p-3 animate-fade-in-up">
           <input
             type="text"
             value={searchTerm}
             onChange={(e) => setSearchTerm(e.target.value)}
             placeholder="Search..."
-            className={`${INPUT_BASE_STYLE} mb-2`}
+            className={`${INPUT_BASE_STYLE} !h-9 !text-xs !px-3 mb-3 font-semibold`}
             autoFocus
           />
-          <div className="flex justify-between items-center text-xs px-2 mb-1">
-            <button type="button" onClick={handleToggleAll} className="font-semibold text-primary-500 hover:underline">
+          <div className="flex justify-between items-center text-[10px] uppercase tracking-widest font-bold px-1 mb-2 text-light-text-secondary dark:text-dark-text-secondary">
+            <button type="button" onClick={handleToggleAll} className="text-primary-600 dark:text-primary-400 hover:opacity-80 transition-opacity">
               {selectedValues.length === options.length ? 'Deselect All' : 'Select All'}
             </button>
-            <span className="text-light-text-secondary dark:text-dark-text-secondary">{selectedValues.length} / {options.length}</span>
+            <span>{selectedValues.length} / {options.length}</span>
           </div>
           <div className="max-h-48 overflow-y-auto space-y-1">
             {filteredOptions.map(option => (

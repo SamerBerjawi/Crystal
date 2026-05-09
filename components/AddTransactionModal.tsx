@@ -3,7 +3,7 @@
 import React, { useState, useMemo, useEffect, useRef, useId } from 'react';
 import Modal from './Modal';
 import { Account, Category, Transaction, Tag, Currency } from '../types';
-import { INPUT_BASE_STYLE, BTN_PRIMARY_STYLE, BTN_SECONDARY_STYLE, SELECT_WRAPPER_STYLE, SELECT_ARROW_STYLE, CHECKBOX_STYLE, ALL_ACCOUNT_TYPES } from '../constants';
+import { INPUT_BASE_STYLE, BTN_PRIMARY_STYLE, BTN_SECONDARY_STYLE, SELECT_STYLE, SELECT_WRAPPER_STYLE, SELECT_ARROW_STYLE, CHECKBOX_STYLE, ALL_ACCOUNT_TYPES } from '../constants';
 import { v4 as uuidv4 } from 'uuid';
 import LocationAutocomplete from './LocationAutocomplete';
 import { toLocalISOString, formatCurrency, fuzzySearch } from '../utils';
@@ -770,7 +770,7 @@ const AddTransactionModal: React.FC<AddTransactionModalProps> = ({ onClose, onSa
                              <div className="flex-1 w-full">
                                 <label className={labelStyle}>{type === 'income' ? 'Recipient Account' : 'Source Account'}</label>
                                 <div className={SELECT_WRAPPER_STYLE}>
-                                    <select id="tx-account-1" value={type === 'income' ? toAccountId : fromAccountId} onChange={e => type === 'income' ? setToAccountId(e.target.value) : setFromAccountId(e.target.value)} className={`${INPUT_BASE_STYLE} h-11 pl-4`} required>
+                                    <select id="tx-account-1" value={type === 'income' ? toAccountId : fromAccountId} onChange={e => type === 'income' ? setToAccountId(e.target.value) : setFromAccountId(e.target.value)} className={SELECT_STYLE} required>
                                         <option className="bg-white dark:bg-gray-900 text-black dark:text-white" value="" disabled>Select account</option>
                                         <AccountOptions accounts={accounts} />
                                     </select>
@@ -786,7 +786,7 @@ const AddTransactionModal: React.FC<AddTransactionModalProps> = ({ onClose, onSa
                                     <div className="flex-1 w-full">
                                         <label className={labelStyle}>Destination Account</label>
                                         <div className={SELECT_WRAPPER_STYLE}>
-                                            <select id="tx-account-2" value={toAccountId} onChange={e => setToAccountId(e.target.value)} className={`${INPUT_BASE_STYLE} h-11 pl-4`} required>
+                                            <select id="tx-account-2" value={toAccountId} onChange={e => setToAccountId(e.target.value)} className={SELECT_STYLE} required>
                                                 <option className="bg-white dark:bg-gray-900 text-black dark:text-white" value="" disabled>Select account</option>
                                                 <AccountOptions accounts={accounts.filter(a => a.id !== fromAccountId)} />
                                             </select>
@@ -802,7 +802,7 @@ const AddTransactionModal: React.FC<AddTransactionModalProps> = ({ onClose, onSa
                         <div>
                              <label className={labelStyle}>Category</label>
                              <div className={SELECT_WRAPPER_STYLE}>
-                                <select id="tx-category" value={category} onChange={e => setCategory(e.target.value)} className={`${INPUT_BASE_STYLE} h-11 pl-4`} required>
+                                <select id="tx-category" value={category} onChange={e => setCategory(e.target.value)} className={SELECT_STYLE} required>
                                     <CategoryOptions categories={activeCategories} />
                                 </select>
                                 <div className={SELECT_ARROW_STYLE}><span className="material-symbols-outlined">expand_more</span></div>
@@ -896,14 +896,14 @@ const AddTransactionModal: React.FC<AddTransactionModalProps> = ({ onClose, onSa
                                      <div className="grid grid-cols-2 gap-6 pt-2">
                                          <div>
                                              <label className="text-[10px] font-bold text-cyan-800 dark:text-cyan-400 uppercase mb-2 block">Rounding Strategy</label>
-                                             <div className="flex bg-white dark:bg-gray-900 p-1 rounded-lg border border-cyan-100 dark:border-cyan-800">
-                                                 <button type="button" onClick={() => setRoundUpBehavior('skip')} className={`flex-1 py-1.5 text-[10px] font-bold rounded-md transition-all ${roundUpBehavior === 'skip' ? 'bg-cyan-500 text-white shadow-sm' : 'text-cyan-600'}`}>Skip Whole</button>
-                                                 <button type="button" onClick={() => setRoundUpBehavior('unit')} className={`flex-1 py-1.5 text-[10px] font-bold rounded-md transition-all ${roundUpBehavior === 'unit' ? 'bg-cyan-500 text-white shadow-sm' : 'text-cyan-600'}`}>+1.00 if Exact</button>
+                                             <div className="flex bg-white dark:bg-gray-900 p-1 rounded-xl border border-cyan-100 dark:border-cyan-800 shadow-inner">
+                                                 <button type="button" onClick={() => setRoundUpBehavior('skip')} className={`flex-1 py-2 text-[10px] font-bold rounded-lg uppercase tracking-wider transition-all duration-200 ${roundUpBehavior === 'skip' ? 'bg-cyan-500 text-white shadow-sm' : 'text-cyan-600 hover:text-cyan-700'}`}>Skip Whole</button>
+                                                 <button type="button" onClick={() => setRoundUpBehavior('unit')} className={`flex-1 py-2 text-[10px] font-bold rounded-lg uppercase tracking-wider transition-all duration-200 ${roundUpBehavior === 'unit' ? 'bg-cyan-500 text-white shadow-sm' : 'text-cyan-600 hover:text-cyan-700'}`}>+1.00 if Exact</button>
                                              </div>
                                          </div>
                                          <div>
                                              <label className="text-[10px] font-bold text-cyan-800 dark:text-cyan-400 uppercase mb-2 block">Multiplier</label>
-                                             <input type="number" step="1" min="1" value={roundUpMultiplier} onChange={e => setRoundUpMultiplier(e.target.value)} className="w-full h-9 bg-white dark:bg-gray-900 rounded-lg px-3 text-xs font-bold text-cyan-900 dark:text-cyan-100 border border-cyan-100 dark:border-cyan-800 focus:ring-2 focus:ring-cyan-500" />
+                                             <input type="number" step="1" min="1" value={roundUpMultiplier} onChange={e => setRoundUpMultiplier(e.target.value)} className={`${INPUT_BASE_STYLE} !h-9 !px-3 font-bold text-cyan-900 dark:text-cyan-100 border border-cyan-100 dark:border-cyan-800 focus:ring-cyan-500`} />
                                          </div>
                                      </div>
                                      <div className="flex items-center justify-between p-3 rounded-xl bg-cyan-500/10 border border-cyan-500/20">

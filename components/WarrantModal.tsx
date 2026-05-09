@@ -2,7 +2,7 @@
 import React, { useState, useEffect } from 'react';
 import Modal from './Modal';
 import { Warrant, PaymentTerm } from '../types';
-import { INPUT_BASE_STYLE, BTN_PRIMARY_STYLE, BTN_SECONDARY_STYLE, SELECT_STYLE } from '../constants';
+import { INPUT_BASE_STYLE, BTN_PRIMARY_STYLE, BTN_SECONDARY_STYLE, SELECT_STYLE, SELECT_WRAPPER_STYLE, SELECT_ARROW_STYLE } from '../constants';
 import { toLocalISOString, formatCurrency } from '../utils';
 import { v4 as uuidv4 } from 'uuid';
 
@@ -139,14 +139,17 @@ const WarrantModal: React.FC<WarrantModalProps> = ({ onClose, onSave, warrantToE
                     <div className="grid grid-cols-2 gap-4">
                         <div>
                             <label className={labelStyle}>Tax Type</label>
-                            <select 
-                                value={taxType} 
-                                onChange={e => setTaxType(e.target.value as 'amount' | 'percentage')}
-                                className={SELECT_STYLE}
-                            >
-                                <option value="percentage">Percentage (%)</option>
-                                <option value="amount">Fixed Amount (€)</option>
-                            </select>
+                            <div className={SELECT_WRAPPER_STYLE}>
+                                <select 
+                                    value={taxType} 
+                                    onChange={e => setTaxType(e.target.value as 'amount' | 'percentage')}
+                                    className={SELECT_STYLE}
+                                >
+                                    <option value="percentage">Percentage (%)</option>
+                                    <option value="amount">Fixed Amount (€)</option>
+                                </select>
+                                <div className={SELECT_ARROW_STYLE}><span className="material-symbols-outlined text-sm">expand_more</span></div>
+                            </div>
                         </div>
                         <div>
                             <label className={labelStyle}>{taxType === 'percentage' ? 'Tax Percentage' : 'Tax Amount'}</label>

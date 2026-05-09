@@ -2,7 +2,7 @@
 import React, { useState, useEffect, useMemo, useCallback } from 'react';
 import Modal from './Modal';
 import { Account, InvestmentTransaction, Transaction, InvestmentSubType, HoldingSummary } from '../types';
-import { INPUT_BASE_STYLE, BTN_PRIMARY_STYLE, BTN_SECONDARY_STYLE, SELECT_WRAPPER_STYLE, SELECT_ARROW_STYLE, INVESTMENT_SUB_TYPES, ALL_ACCOUNT_TYPES } from '../constants';
+import { INPUT_BASE_STYLE, SELECT_STYLE, BTN_PRIMARY_STYLE, BTN_SECONDARY_STYLE, SELECT_WRAPPER_STYLE, SELECT_ARROW_STYLE, INVESTMENT_SUB_TYPES, ALL_ACCOUNT_TYPES } from '../constants';
 import { formatCurrency, toLocalISOString } from '../utils';
 import { usePreferencesSelector } from '../contexts/DomainProviders';
 import { fetchSymbolMetadata } from '../src/services/twelveDataService';
@@ -326,7 +326,7 @@ const AddInvestmentTransactionModal: React.FC<AddInvestmentTransactionModalProps
                                     <div>
                                         <label htmlFor="inv-subtype" className={labelStyle}>Asset Category</label>
                                         <div className={SELECT_WRAPPER_STYLE}>
-                                            <select id="inv-subtype" value={newAccountSubType} onChange={e => setNewAccountSubType(e.target.value as InvestmentSubType)} className={`${INPUT_BASE_STYLE} h-10 pl-4`} required>
+                                            <select id="inv-subtype" value={newAccountSubType} onChange={e => setNewAccountSubType(e.target.value as InvestmentSubType)} className={SELECT_STYLE} required>
                                                 {INVESTMENT_SUB_TYPES.map(subType => (
                                                     <option key={subType} value={subType}>{subType}</option>
                                                 ))}
@@ -380,7 +380,7 @@ const AddInvestmentTransactionModal: React.FC<AddInvestmentTransactionModalProps
                                 <div className="animate-fade-in pt-4 border-t border-primary-200 dark:border-primary-800/20">
                                     <label htmlFor="cash-account" className={labelStyle}>Select Funding Account</label>
                                     <div className={SELECT_WRAPPER_STYLE}>
-                                        <select id="cash-account" value={cashAccountId} onChange={e => setCashAccountId(e.target.value)} className={`${INPUT_BASE_STYLE} h-11 pl-4`} required>
+                                        <select id="cash-account" value={cashAccountId} onChange={e => setCashAccountId(e.target.value)} className={SELECT_STYLE} required>
                                             <option className="bg-white dark:bg-gray-900 text-black dark:text-white" value="">Select cash account</option>
                                             {ALL_ACCOUNT_TYPES.map(type => {
                                                 const group = groupedCashAccounts[type];

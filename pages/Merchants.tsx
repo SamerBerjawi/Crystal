@@ -346,7 +346,7 @@ const Merchants: React.FC<MerchantsProps> = ({ setCurrentPage }) => {
                    <select 
                         value={sortBy} 
                         onChange={(e) => setSortBy(e.target.value as any)} 
-                        className={`${SELECT_STYLE} pr-8 !py-2 h-10 text-sm font-medium`}
+                        className={`${SELECT_STYLE} pr-8`}
                    >
                        <option value="count">Most Frequent</option>
                        <option value="value">Highest Value</option>

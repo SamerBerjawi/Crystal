@@ -2,7 +2,7 @@
 import React, { useState, useEffect, useMemo, useRef } from 'react';
 import Modal from './Modal';
 import { Account, AccountType, Currency, InvestmentSubType, PropertyType, Warrant, FuelType, VehicleOwnership, MileageLog, RecurrenceFrequency, OtherAssetSubType, OtherLiabilitySubType } from '../types';
-import { ALL_ACCOUNT_TYPES, CURRENCIES, ACCOUNT_TYPE_STYLES, INPUT_BASE_STYLE, BTN_PRIMARY_STYLE, BTN_SECONDARY_STYLE, BTN_DANGER_STYLE, SELECT_ARROW_STYLE, SELECT_WRAPPER_STYLE, ACCOUNT_ICON_LIST, INVESTMENT_SUB_TYPES, PROPERTY_TYPES, INVESTMENT_SUB_TYPE_STYLES, FUEL_TYPES, VEHICLE_OWNERSHIP_TYPES, CHECKBOX_STYLE, FREQUENCIES, ALL_ACCOUNT_TYPES as ALL_TYPES_CONST, CARD_NETWORKS, OTHER_ASSET_SUB_TYPES, OTHER_LIABILITY_SUB_TYPES, OTHER_ASSET_SUB_TYPE_STYLES, OTHER_LIABILITY_SUB_TYPE_STYLES } from '../constants';
+import { ALL_ACCOUNT_TYPES, CURRENCIES, ACCOUNT_TYPE_STYLES, INPUT_BASE_STYLE, BTN_PRIMARY_STYLE, BTN_SECONDARY_STYLE, BTN_DANGER_STYLE, SELECT_STYLE, SELECT_ARROW_STYLE, SELECT_WRAPPER_STYLE, ACCOUNT_ICON_LIST, INVESTMENT_SUB_TYPES, PROPERTY_TYPES, INVESTMENT_SUB_TYPE_STYLES, FUEL_TYPES, VEHICLE_OWNERSHIP_TYPES, CHECKBOX_STYLE, FREQUENCIES, ALL_ACCOUNT_TYPES as ALL_TYPES_CONST, CARD_NETWORKS, OTHER_ASSET_SUB_TYPES, OTHER_LIABILITY_SUB_TYPES, OTHER_ASSET_SUB_TYPE_STYLES, OTHER_LIABILITY_SUB_TYPE_STYLES } from '../constants';
 import IconPicker from './IconPicker';
 import { v4 as uuidv4 } from 'uuid';
 import { toLocalISOString } from '../utils';
@@ -428,7 +428,7 @@ const EditAccountModal: React.FC<EditAccountModalProps> = ({ onClose, onSave, on
                     id="account-type"
                     value={type}
                     onChange={(e) => setType(e.target.value as AccountType)}
-                    className={INPUT_BASE_STYLE}
+                    className={SELECT_STYLE}
                   >
                     {ALL_ACCOUNT_TYPES.map(t => <option key={t} value={t}>{t}</option>)}
                   </select>
@@ -454,7 +454,7 @@ const EditAccountModal: React.FC<EditAccountModalProps> = ({ onClose, onSave, on
                         <select
                           value={currency}
                           onChange={(e) => setCurrency(e.target.value as Currency)}
-                          className={`${INPUT_BASE_STYLE} rounded-l-none bg-gray-50 dark:bg-white/5 border-l border-black/10 dark:border-white/10`}
+                          className={`${SELECT_STYLE} rounded-l-none bg-gray-50 dark:bg-white/5 border-l border-black/10 dark:border-white/10`}
                           disabled={isComputedAccount}
                         >
                           {CURRENCIES.map(c => <option key={c} value={c}>{c}</option>)}
@@ -532,7 +532,7 @@ const EditAccountModal: React.FC<EditAccountModalProps> = ({ onClose, onSave, on
                         <div>
                             <label htmlFor="cardNetwork" className={labelStyle}>Card Network</label>
                             <div className={SELECT_WRAPPER_STYLE}>
-                                <select id="cardNetwork" value={cardNetwork} onChange={e => setCardNetwork(e.target.value)} className={INPUT_BASE_STYLE}>
+                                <select id="cardNetwork" value={cardNetwork} onChange={e => setCardNetwork(e.target.value)} className={SELECT_STYLE}>
                                     <option value="">Select Network</option>
                                     {CARD_NETWORKS.map(net => <option key={net} value={net}>{net}</option>)}
                                 </select>
@@ -573,7 +573,7 @@ const EditAccountModal: React.FC<EditAccountModalProps> = ({ onClose, onSave, on
                     <div>
                       <label htmlFor="subType" className={labelStyle}>Investment Type</label>
                       <div className={SELECT_WRAPPER_STYLE}>
-                        <select id="subType" value={subType} onChange={(e) => setSubType(e.target.value as InvestmentSubType)} className={INPUT_BASE_STYLE}>
+                        <select id="subType" value={subType} onChange={(e) => setSubType(e.target.value as InvestmentSubType)} className={SELECT_STYLE}>
                           {INVESTMENT_SUB_TYPES.map(st => <option key={st} value={st}>{st}</option>)}
                         </select>
                         <div className={SELECT_ARROW_STYLE}><span className="material-symbols-outlined">expand_more</span></div>
@@ -596,7 +596,7 @@ const EditAccountModal: React.FC<EditAccountModalProps> = ({ onClose, onSave, on
                         <div>
                           <label htmlFor="linkedAccountId" className={labelStyle}>Source Account (Round-ups)</label>
                           <div className={SELECT_WRAPPER_STYLE}>
-                              <select id="linkedAccountId" value={linkedAccountId} onChange={e => setLinkedAccountId(e.target.value)} className={INPUT_BASE_STYLE}>
+                              <select id="linkedAccountId" value={linkedAccountId} onChange={e => setLinkedAccountId(e.target.value)} className={SELECT_STYLE}>
                                   <option value="">None</option>
                                   {ALL_ACCOUNT_TYPES.map(type => {
                                       const group = groupedDebitAccounts[type];
@@ -626,7 +626,7 @@ const EditAccountModal: React.FC<EditAccountModalProps> = ({ onClose, onSave, on
                     <div>
                         <label htmlFor="otherAssetSubType" className={labelStyle}>Sub-Type</label>
                         <div className={SELECT_WRAPPER_STYLE}>
-                        <select id="otherAssetSubType" value={otherAssetSubType} onChange={e => setOtherAssetSubType(e.target.value as OtherAssetSubType)} className={INPUT_BASE_STYLE}>
+                        <select id="otherAssetSubType" value={otherAssetSubType} onChange={e => setOtherAssetSubType(e.target.value as OtherAssetSubType)} className={SELECT_STYLE}>
                             {OTHER_ASSET_SUB_TYPES.map(st => <option key={st} value={st}>{st}</option>)}
                         </select>
                         <div className={SELECT_ARROW_STYLE}><span className="material-symbols-outlined">expand_more</span></div>
@@ -659,7 +659,7 @@ const EditAccountModal: React.FC<EditAccountModalProps> = ({ onClose, onSave, on
                         <div>
                             <label htmlFor="otherLiabilitySubType" className={labelStyle}>Sub-Type</label>
                             <div className={SELECT_WRAPPER_STYLE}>
-                            <select id="otherLiabilitySubType" value={otherLiabilitySubType} onChange={e => setOtherLiabilitySubType(e.target.value as OtherLiabilitySubType)} className={INPUT_BASE_STYLE}>
+                            <select id="otherLiabilitySubType" value={otherLiabilitySubType} onChange={e => setOtherLiabilitySubType(e.target.value as OtherLiabilitySubType)} className={SELECT_STYLE}>
                                 {OTHER_LIABILITY_SUB_TYPES.map(st => <option key={st} value={st}>{st}</option>)}
                             </select>
                             <div className={SELECT_ARROW_STYLE}><span className="material-symbols-outlined">expand_more</span></div>
@@ -716,7 +716,7 @@ const EditAccountModal: React.FC<EditAccountModalProps> = ({ onClose, onSave, on
                    <div className="mt-4">
                         <label htmlFor="linkedAccountId" className={labelStyle}>Linked Debit Account</label>
                         <div className={SELECT_WRAPPER_STYLE}>
-                            <select id="linkedAccountId" value={linkedAccountId} onChange={e => setLinkedAccountId(e.target.value)} className={INPUT_BASE_STYLE}>
+                            <select id="linkedAccountId" value={linkedAccountId} onChange={e => setLinkedAccountId(e.target.value)} className={SELECT_STYLE}>
                                 <option value="">None</option>
                                 {ALL_ACCOUNT_TYPES.map(type => {
                                     const group = groupedDebitAccounts[type];
@@ -735,7 +735,7 @@ const EditAccountModal: React.FC<EditAccountModalProps> = ({ onClose, onSave, on
                         <div className="mt-4">
                             <label htmlFor="linkedAssetId" className={labelStyle}>Associated Asset (Property/Vehicle)</label>
                             <div className={SELECT_WRAPPER_STYLE}>
-                                <select id="linkedAssetId" value={linkedAssetId} onChange={e => setLinkedAssetId(e.target.value)} className={INPUT_BASE_STYLE}>
+                                <select id="linkedAssetId" value={linkedAssetId} onChange={e => setLinkedAssetId(e.target.value)} className={SELECT_STYLE}>
                                     <option value="">None</option>
                                     {assetAccounts.map(acc => (
                                         <option key={acc.id} value={acc.id}>{acc.name} ({acc.type})</option>
@@ -782,7 +782,7 @@ const EditAccountModal: React.FC<EditAccountModalProps> = ({ onClose, onSave, on
                      <div>
                         <label htmlFor="fuel" className={labelStyle}>Fuel Type</label>
                         <div className={SELECT_WRAPPER_STYLE}>
-                            <select id="fuel" value={fuelType} onChange={e => setFuelType(e.target.value as FuelType)} className={INPUT_BASE_STYLE}>
+                            <select id="fuel" value={fuelType} onChange={e => setFuelType(e.target.value as FuelType)} className={SELECT_STYLE}>
                                 {FUEL_TYPES.map(f => <option key={f} value={f}>{f}</option>)}
                             </select>
                             <div className={SELECT_ARROW_STYLE}><span className="material-symbols-outlined">expand_more</span></div>
@@ -791,9 +791,9 @@ const EditAccountModal: React.FC<EditAccountModalProps> = ({ onClose, onSave, on
                   </div>
                    <div className="mt-4">
                         <label className={labelStyle}>Ownership Status</label>
-                        <div className="flex bg-light-fill dark:bg-dark-fill p-1 rounded-lg">
+                        <div className="flex bg-light-fill dark:bg-dark-fill p-1 rounded-xl shadow-inner border border-black/5 dark:border-white/5">
                              {VEHICLE_OWNERSHIP_TYPES.map(o => (
-                                 <button key={o} type="button" onClick={() => setVehicleOwnership(o)} className={`flex-1 py-1.5 rounded-md text-xs font-bold uppercase transition-all ${vehicleOwnership === o ? 'bg-white dark:bg-dark-card shadow-sm text-primary-600' : 'text-gray-500'}`}>{o}</button>
+                                 <button key={o} type="button" onClick={() => setVehicleOwnership(o)} className={`flex-1 py-1.5 rounded-lg text-[10px] font-bold uppercase tracking-wider transition-all duration-200 ${vehicleOwnership === o ? 'bg-white dark:bg-gray-700 shadow-sm text-primary-600 dark:text-primary-400' : 'text-gray-500 hover:text-gray-700 dark:hover:text-gray-300'}`}>{o}</button>
                              ))}
                         </div>
                    </div>
@@ -815,7 +815,7 @@ const EditAccountModal: React.FC<EditAccountModalProps> = ({ onClose, onSave, on
                                 <div className="col-span-2">
                                     <label htmlFor="leasePaymentAccountId" className={labelStyle}>Payment Account</label>
                                     <div className={SELECT_WRAPPER_STYLE}>
-                                        <select id="leasePaymentAccountId" value={leasePaymentAccountId} onChange={e => setLeasePaymentAccountId(e.target.value)} className={INPUT_BASE_STYLE}>
+                                        <select id="leasePaymentAccountId" value={leasePaymentAccountId} onChange={e => setLeasePaymentAccountId(e.target.value)} className={SELECT_STYLE}>
                                             <option value="">None</option>
                                             {ALL_ACCOUNT_TYPES.map(type => {
                                                 const group = groupedDebitAccounts[type];
@@ -863,7 +863,7 @@ const EditAccountModal: React.FC<EditAccountModalProps> = ({ onClose, onSave, on
                         <div>
                           <label htmlFor="propertyType" className={labelStyle}>Property Type</label>
                           <div className={SELECT_WRAPPER_STYLE}>
-                            <select id="propertyType" value={propertyType} onChange={e => setPropertyType(e.target.value as PropertyType)} className={INPUT_BASE_STYLE}>
+                            <select id="propertyType" value={propertyType} onChange={e => setPropertyType(e.target.value as PropertyType)} className={SELECT_STYLE}>
                               {PROPERTY_TYPES.map(pt => <option key={pt} value={pt}>{pt}</option>)}
                             </select>
                              <div className={SELECT_ARROW_STYLE}><span className="material-symbols-outlined">expand_more</span></div>
@@ -930,7 +930,7 @@ const EditAccountModal: React.FC<EditAccountModalProps> = ({ onClose, onSave, on
                           <div>
                             <label htmlFor="linkedLoanId" className={labelStyle}>Linked Loan</label>
                             <div className={SELECT_WRAPPER_STYLE}>
-                                <select id="linkedLoanId" value={linkedLoanId} onChange={e => setLinkedLoanId(e.target.value)} className={INPUT_BASE_STYLE}>
+                                <select id="linkedLoanId" value={linkedLoanId} onChange={e => setLinkedLoanId(e.target.value)} className={SELECT_STYLE}>
                                     <option value="">None</option>
                                     {ALL_ACCOUNT_TYPES.map(type => {
                                         const group = groupedLoanAccounts[type];
@@ -975,7 +975,7 @@ const EditAccountModal: React.FC<EditAccountModalProps> = ({ onClose, onSave, on
                                     <div>
                                         <label htmlFor="insFreq" className={labelStyle}>Frequency</label>
                                         <div className={SELECT_WRAPPER_STYLE}>
-                                            <select id="insFreq" value={insuranceFrequency} onChange={e => setInsuranceFrequency(e.target.value as RecurrenceFrequency)} className={INPUT_BASE_STYLE}>
+                                            <select id="insFreq" value={insuranceFrequency} onChange={e => setInsuranceFrequency(e.target.value as RecurrenceFrequency)} className={SELECT_STYLE}>
                                                 {FREQUENCIES.map(f => <option key={f.value} value={f.value}>{f.label}</option>)}
                                             </select>
                                             <div className={SELECT_ARROW_STYLE}><span className="material-symbols-outlined">expand_more</span></div>
@@ -991,7 +991,7 @@ const EditAccountModal: React.FC<EditAccountModalProps> = ({ onClose, onSave, on
                                 <div>
                                     <label htmlFor="hoaFreq" className={labelStyle}>Frequency</label>
                                     <div className={SELECT_WRAPPER_STYLE}>
-                                        <select id="hoaFreq" value={hoaFeeFrequency} onChange={e => setHoaFeeFrequency(e.target.value as RecurrenceFrequency)} className={INPUT_BASE_STYLE}>
+                                        <select id="hoaFreq" value={hoaFeeFrequency} onChange={e => setHoaFeeFrequency(e.target.value as RecurrenceFrequency)} className={SELECT_STYLE}>
                                             {FREQUENCIES.map(f => <option key={f.value} value={f.value}>{f.label}</option>)}
                                         </select>
                                         <div className={SELECT_ARROW_STYLE}><span className="material-symbols-outlined">expand_more</span></div>
@@ -1014,7 +1014,7 @@ const EditAccountModal: React.FC<EditAccountModalProps> = ({ onClose, onSave, on
                                         <div>
                                             <label htmlFor="rentFreq" className={labelStyle}>Frequency</label>
                                             <div className={SELECT_WRAPPER_STYLE}>
-                                                <select id="rentFreq" value={rentalIncomeFrequency} onChange={e => setRentalIncomeFrequency(e.target.value as RecurrenceFrequency)} className={INPUT_BASE_STYLE}>
+                                                <select id="rentFreq" value={rentalIncomeFrequency} onChange={e => setRentalIncomeFrequency(e.target.value as RecurrenceFrequency)} className={SELECT_STYLE}>
                                                     {FREQUENCIES.map(f => <option key={f.value} value={f.value}>{f.label}</option>)}
                                                 </select>
                                                 <div className={SELECT_ARROW_STYLE}><span className="material-symbols-outlined">expand_more</span></div>
@@ -1030,7 +1030,7 @@ const EditAccountModal: React.FC<EditAccountModalProps> = ({ onClose, onSave, on
             {(type === 'Other Assets' || type === 'Other Liabilities') && (
               <div className="bg-gray-50 dark:bg-white/5 rounded-xl p-5 border border-black/5 dark:border-white/5">
                 <label htmlFor="notes" className={labelStyle}>Notes</label>
-                <textarea id="notes" value={notes} onChange={e=>setNotes(e.target.value)} className={INPUT_BASE_STYLE} rows={2} placeholder="Additional details..."></textarea>
+                <textarea id="notes" value={notes} onChange={e=>setNotes(e.target.value)} className={`${INPUT_BASE_STYLE} !h-auto !py-2`} rows={2} placeholder="Additional details..."></textarea>
               </div>
             )}
 
@@ -1047,7 +1047,7 @@ const EditAccountModal: React.FC<EditAccountModalProps> = ({ onClose, onSave, on
                   <div className="mt-4">
                       <label htmlFor="settlement-account" className={labelStyle}>Settlement Account</label>
                       <div className={SELECT_WRAPPER_STYLE}>
-                           <select id="settlement-account" value={settlementAccountId} onChange={(e) => setSettlementAccountId(e.target.value)} className={INPUT_BASE_STYLE}>
+                           <select id="settlement-account" value={settlementAccountId} onChange={(e) => setSettlementAccountId(e.target.value)} className={SELECT_STYLE}>
                               <option value="">Select an account</option>
                               {ALL_ACCOUNT_TYPES.map(type => {
                                   const group = groupedDebitAccounts[type];

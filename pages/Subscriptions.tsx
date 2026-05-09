@@ -511,9 +511,9 @@ const Subscriptions: React.FC = () => {
                                 <p className="text-sm font-bold text-light-text-secondary/60 dark:text-dark-text-secondary/60">Managed recurring commitments</p>
                             </div>
                         </div>
-                        <div className="space-y-4 pt-6">
+                        <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-6 pt-6">
                             {activeSubscriptions.length === 0 ? (
-                                <div className="p-12 text-center text-light-text-secondary dark:text-dark-text-secondary italic">
+                                <div className="col-span-full p-12 text-center text-light-text-secondary dark:text-dark-text-secondary italic">
                                     No active subscriptions.
                                 </div>
                             ) : (
@@ -527,60 +527,62 @@ const Subscriptions: React.FC = () => {
                                     const logoUrl = getMerchantLogoUrl(merchantName, brandfetchClientId, merchantLogoOverrides, { fallback: 'lettermark', type: 'icon', width: 64, height: 64 });
                                     const hasLogo = Boolean(logoUrl && !logoLoadErrors[logoUrl!]);
                                     const initial = merchantName.charAt(0).toUpperCase();
-
+ 
                                     let cycleLength = 30;
                                     if (sub.frequency === 'weekly') cycleLength = 7;
                                     if (sub.frequency === 'yearly') cycleLength = 365;
                                     const progress = Math.max(0, Math.min(100, ((cycleLength - daysUntil) / cycleLength) * 100));
-
+ 
                                     return (
                                         <motion.div 
                                             key={sub.id} 
-                                            initial={{ opacity: 0, x: -10 }}
-                                            animate={{ opacity: 1, x: 0 }}
+                                            initial={{ opacity: 0, scale: 0.95 }}
+                                            animate={{ opacity: 1, scale: 1 }}
                                             transition={{ delay: idx * 0.05 }}
-                                            className="group relative bg-gray-50/50 dark:bg-white/[0.02] rounded-[2rem] p-5 flex flex-col md:flex-row md:items-center gap-6 border border-black/5 dark:border-white/5 shadow-sm hover:shadow-md transition-all duration-300 overflow-hidden"
+                                            className="group relative bg-gray-50/50 dark:bg-white/[0.02] rounded-[2.5rem] p-6 flex flex-col gap-6 border border-black/5 dark:border-white/5 shadow-sm hover:shadow-md transition-all duration-300 overflow-hidden"
                                         >
                                             <div className={`absolute left-0 top-0 bottom-0 w-1.5 transition-all ${isOverdue ? 'bg-rose-500' : isDueSoon ? 'bg-orange-500' : 'bg-primary-500 opacity-20'}`} />
-                                            <div className={`w-14 h-14 rounded-[1.25rem] flex-shrink-0 flex items-center justify-center overflow-hidden border border-black/5 dark:border-white/10 ${hasLogo ? 'bg-white' : 'bg-gray-100 dark:bg-white/10'}`}>
-                                                {hasLogo ? (
-                                                    <img src={logoUrl!} alt="" className="w-8 h-8 object-contain" onError={() => handleLogoError(logoUrl!)} />
-                                                ) : (
-                                                    <span className="text-xl font-black text-gray-400 dark:text-gray-600">{initial}</span>
-                                                )}
-                                            </div>
-
-                                            {/* Details Section */}
-                                            <div className="flex-grow min-w-0 grid grid-cols-1 lg:grid-cols-12 gap-5 items-center">
-                                                <div className="lg:col-span-5 min-w-0">
-                                                    <h4 className="text-lg font-black text-light-text dark:text-dark-text tracking-tight truncate leading-none mb-1.5">{merchantName}</h4>
-                                                    <span className="px-2 py-0.5 rounded-lg bg-black/5 dark:bg-white/5 text-[10px] font-black uppercase text-light-text-secondary dark:text-dark-text-secondary tracking-widest">{sub.frequency}</span>
-                                                </div>
-
-                                                <div className="lg:col-span-4">
-                                                    <div className="flex justify-between items-center text-[10px] font-black uppercase tracking-widest mb-2 overflow-hidden items-center">
-                                                        <span className={isOverdue ? 'text-rose-500' : isDueSoon ? 'text-orange-500' : 'opacity-40 text-light-text-secondary dark:text-dark-text-secondary'}>
-                                                            {isOverdue ? 'Overdue' : isDueSoon ? `${daysUntil}d left` : `Due: ${nextDueDate.toLocaleDateString()}`}
-                                                        </span>
-                                                        <span className="opacity-40 text-light-text-secondary dark:text-dark-text-secondary font-bold">{Math.round(progress)}%</span>
+                                            
+                                            <div className="flex items-start justify-between">
+                                                <div className="flex items-center gap-4">
+                                                    <div className={`w-14 h-14 rounded-2xl flex-shrink-0 flex items-center justify-center overflow-hidden border border-black/5 dark:border-white/10 ${hasLogo ? 'bg-white shadow-sm' : 'bg-gray-100 dark:bg-white/10'}`}>
+                                                        {hasLogo ? (
+                                                            <img src={logoUrl!} alt="" className="w-8 h-8 object-contain" onError={() => handleLogoError(logoUrl!)} />
+                                                        ) : (
+                                                            <span className="text-xl font-black text-gray-400 dark:text-gray-600">{initial}</span>
+                                                        )}
                                                     </div>
-                                                    <div className="w-full h-1.5 bg-black/5 dark:bg-white/5 rounded-full overflow-hidden">
-                                                        <motion.div initial={{ width: 0 }} animate={{ width: `${progress}%` }} className={`h-full ${isOverdue ? 'bg-rose-500' : isDueSoon ? 'bg-orange-500' : 'bg-primary-500'}`} />
+                                                    <div className="min-w-0">
+                                                        <h4 className="text-lg font-black text-light-text dark:text-dark-text tracking-tight truncate leading-none mb-1.5">{merchantName}</h4>
+                                                        <span className="px-2 py-0.5 rounded-lg bg-black/5 dark:bg-white/5 text-[9px] font-black uppercase text-light-text-secondary dark:text-dark-text-secondary tracking-widest">{sub.frequency}</span>
                                                     </div>
                                                 </div>
-
-                                                <div className="lg:col-span-3 text-left lg:text-right">
+                                                <div className="text-right">
                                                     <p className="text-xl font-black text-light-text dark:text-dark-text tracking-tighter tabular-nums">{formatCurrency(sub.amount, sub.currency)}</p>
                                                 </div>
                                             </div>
-
+ 
+                                            {/* Progress Section */}
+                                            <div className="space-y-2">
+                                                <div className="flex justify-between items-center text-[9px] font-black uppercase tracking-widest overflow-hidden items-center">
+                                                    <span className={isOverdue ? 'text-rose-500' : isDueSoon ? 'text-orange-500' : 'opacity-40 text-light-text-secondary dark:text-dark-text-secondary'}>
+                                                        {isOverdue ? 'Overdue' : isDueSoon ? `${daysUntil}d left` : `Due: ${nextDueDate.toLocaleDateString()}`}
+                                                    </span>
+                                                    <span className="opacity-40 text-light-text-secondary dark:text-dark-text-secondary font-bold">{Math.round(progress)}%</span>
+                                                </div>
+                                                <div className="w-full h-1.5 bg-black/5 dark:bg-white/5 rounded-full overflow-hidden">
+                                                    <motion.div initial={{ width: 0 }} animate={{ width: `${progress}%` }} className={`h-full ${isOverdue ? 'bg-rose-500' : isDueSoon ? 'bg-orange-500' : 'bg-primary-500'}`} />
+                                                </div>
+                                            </div>
+ 
                                             {/* Actions */}
-                                            <div className="flex gap-2">
-                                                <button onClick={() => handleEditActive(sub)} className="w-10 h-10 rounded-2xl bg-black/5 dark:bg-white/5 hover:bg-primary-500 hover:text-white flex items-center justify-center transition-all duration-300">
-                                                    <span className="material-symbols-outlined text-xl">settings</span>
+                                            <div className="flex gap-2 pt-2">
+                                                <button onClick={() => handleEditActive(sub)} className="flex-1 h-10 rounded-2xl bg-black/5 dark:bg-white/5 hover:bg-primary-500 hover:text-white flex items-center justify-center gap-2 text-[10px] font-black uppercase tracking-widest transition-all duration-300">
+                                                    <span className="material-symbols-outlined text-lg">settings</span>
+                                                    Edit
                                                 </button>
                                                 <button onClick={() => handleDeleteActive(sub.id)} className="w-10 h-10 rounded-2xl bg-black/5 dark:bg-white/5 hover:bg-rose-500 hover:text-white flex items-center justify-center transition-all duration-300">
-                                                    <span className="material-symbols-outlined text-xl">delete</span>
+                                                    <span className="material-symbols-outlined text-lg">delete</span>
                                                 </button>
                                             </div>
                                         </motion.div>

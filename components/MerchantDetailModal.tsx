@@ -2,7 +2,7 @@
 import React, { useState, useEffect, useMemo } from 'react';
 import Modal from './Modal';
 import { Category, MerchantRule } from '../types';
-import { BTN_PRIMARY_STYLE, BTN_SECONDARY_STYLE, INPUT_BASE_STYLE, SELECT_ARROW_STYLE, SELECT_WRAPPER_STYLE, CHECKBOX_STYLE } from '../constants';
+import { BTN_PRIMARY_STYLE, BTN_SECONDARY_STYLE, INPUT_BASE_STYLE, SELECT_STYLE, SELECT_ARROW_STYLE, SELECT_WRAPPER_STYLE, CHECKBOX_STYLE } from '../constants';
 import { formatCurrency, parseLocalDate } from '../utils';
 import { BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer } from 'recharts';
 import { getMerchantLogoUrl } from '../utils/brandfetch';
@@ -165,7 +165,7 @@ const MerchantDetailModal: React.FC<MerchantDetailModalProps> = ({
                                 <select 
                                     value={category} 
                                     onChange={e => setCategory(e.target.value)} 
-                                    className={INPUT_BASE_STYLE}
+                                    className={SELECT_STYLE}
                                 >
                                     <CategoryOptions categories={allCategories} />
                                 </select>

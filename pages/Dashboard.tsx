@@ -1399,9 +1399,9 @@ const Dashboard: React.FC<DashboardProps> = ({ user, tasks, saveTask, onTogglePr
                     {isEditMode && (
                         <button 
                             onClick={() => setIsAddWidgetModalOpen(true)}
-                            className="h-9 px-4 flex items-center gap-2 bg-black/5 dark:bg-white/5 text-xs font-semibold text-light-text-secondary dark:text-dark-text-secondary hover:bg-black/10 dark:hover:bg-white/10 rounded-xl transition-all"
+                            className="h-9 px-4 flex items-center gap-2 bg-black/5 dark:bg-white/5 text-[10px] font-bold uppercase tracking-wider text-light-text-secondary dark:text-dark-text-secondary hover:bg-black/10 dark:hover:bg-white/10 rounded-xl transition-all"
                         >
-                            <span className="material-symbols-outlined text-lg">add_circle</span>
+                            <span className="material-symbols-outlined text-base">add_circle</span>
                             <span className="hidden sm:inline">Add Widget</span>
                         </button>
                     )}
@@ -1415,18 +1415,18 @@ const Dashboard: React.FC<DashboardProps> = ({ user, tasks, saveTask, onTogglePr
                                 if (syncBtn) (syncBtn as HTMLElement).click();
                             }
                         }}
-                        className="h-9 px-4 flex items-center gap-2 text-xs font-semibold text-emerald-600 dark:text-emerald-400 bg-emerald-500/10 hover:bg-emerald-500/20 rounded-xl transition-all border border-emerald-500/10"
+                        className="h-9 px-4 flex items-center gap-2 text-[10px] font-bold uppercase tracking-wider text-emerald-600 dark:text-emerald-400 bg-emerald-500/10 hover:bg-emerald-500/20 rounded-xl transition-all border border-emerald-500/10"
                         title="Sync Banks"
                     >
-                        <span className={`material-symbols-outlined text-lg ${isSyncingBanks ? 'animate-spin' : ''}`}>sync</span>
+                        <span className={`material-symbols-outlined text-base ${isSyncingBanks ? 'animate-spin' : ''}`}>sync</span>
                         <span className="hidden sm:inline">{isSyncingBanks ? 'Syncing...' : 'Sync Banks'}</span>
                     </button>
 
                     <button 
                         onClick={() => handleOpenTransactionModal()}
-                        className="h-9 px-5 flex items-center gap-2 bg-primary-500 text-white text-xs font-semibold rounded-xl hover:scale-[1.02] active:scale-[0.98] transition-all shadow-lg shadow-primary-500/10"
+                        className="h-9 px-5 flex items-center gap-2 bg-primary-700 text-white text-[10px] font-bold uppercase tracking-widest rounded-xl hover:scale-[1.02] active:scale-[0.98] transition-all shadow-lg shadow-primary-700/20"
                     >
-                        <span className="material-symbols-outlined text-lg">add</span>
+                        <span className="material-symbols-outlined text-base">add</span>
                         <span className="hidden sm:inline">Add Transaction</span>
                     </button>
                 </div>
@@ -1444,16 +1444,16 @@ const Dashboard: React.FC<DashboardProps> = ({ user, tasks, saveTask, onTogglePr
                 <button
                     key={tab}
                     onClick={() => setActiveTab(tab)}
-                    className={`px-4 py-2 rounded-lg text-sm font-semibold transition-all duration-300 flex items-center gap-2 ${
+                    className={`px-4 py-2 rounded-xl text-[10px] font-bold uppercase tracking-widest transition-all duration-300 flex items-center gap-2 ${
                         activeTab === tab
                         ? 'bg-white dark:bg-gray-700 shadow-md text-primary-600 dark:text-primary-400 translate-y-[-1px]'
                         : 'text-gray-500 hover:text-gray-900 dark:text-gray-400 dark:hover:text-white hover:bg-black/5 dark:hover:bg-white/5'
                     }`}
                 >
-                    <span className="material-symbols-outlined text-lg leading-none">
+                    <span className="material-symbols-outlined text-base leading-none">
                         {tab === 'overview' ? 'grid_view' : tab === 'analysis' ? 'monitoring' : 'history'}
                     </span>
-                    <span className="hidden sm:inline">{tab.charAt(0).toUpperCase() + tab.slice(1)}</span>
+                    <span className="hidden sm:inline">{tab}</span>
                 </button>
             ))}
           </div>
@@ -1463,37 +1463,35 @@ const Dashboard: React.FC<DashboardProps> = ({ user, tasks, saveTask, onTogglePr
               {/* Forecast Controls (Only visible in overview) */}
               {activeTab === 'overview' && (
                   <div className="flex items-center gap-1 bg-black/5 dark:bg-white/5 p-1 rounded-xl border border-black/5 dark:border-white/5">
-                      <div className="relative group">
+                      <div className={SELECT_WRAPPER_STYLE}>
                           <select 
                             value={forecastDuration} 
                             onChange={(e) => setForecastDuration(e.target.value as ForecastDuration)} 
-                            className="appearance-none bg-transparent pl-3 pr-8 py-1.5 text-xs font-semibold text-light-text dark:text-dark-text focus:outline-none cursor-pointer"
+                            className={`${SELECT_STYLE} !bg-transparent !w-auto !h-10 !py-1 text-xs`}
                           >
                              {FORECAST_DURATION_OPTIONS.map(opt => (
                                  <option key={opt.value} value={opt.value} className="bg-white dark:bg-dark-card">{opt.label}</option>
                              ))}
                           </select>
-                          <div className="absolute right-2 top-1/2 -translate-y-1/2 pointer-events-none opacity-50">
-                            <span className="material-symbols-outlined text-sm">expand_more</span>
-                          </div>
+                          <div className={SELECT_ARROW_STYLE}><span className="material-symbols-outlined text-sm">expand_more</span></div>
                       </div>
                       
                       <div className="w-px h-4 bg-black/10 dark:bg-white/10 mx-1"></div>
                       
                        <button 
                         onClick={() => setShowForecast(!showForecast)}
-                        className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg transition-all ${showForecast ? 'bg-primary-500/10 text-primary-600 dark:text-primary-400' : 'text-gray-400 hover:text-gray-600'}`}
+                        className={`flex items-center gap-1.5 px-3 h-10 rounded-xl transition-all ${showForecast ? 'bg-primary-500/10 text-primary-600 dark:text-primary-400 font-bold' : 'text-gray-400 hover:text-gray-600 font-semibold'}`}
                       >
                          <span className={`material-symbols-outlined text-sm ${showForecast ? 'filled-icon' : ''}`}>show_chart</span>
-                         <span className="text-xs font-semibold">Forecast</span>
+                         <span className="text-[10px] uppercase tracking-widest">Forecast</span>
                       </button>
 
                       <button 
                         onClick={() => setShowGoals(!showGoals)}
-                        className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg transition-all ${showGoals ? 'bg-primary-500/10 text-primary-600 dark:text-primary-400' : 'text-gray-400 hover:text-gray-600'}`}
+                        className={`flex items-center gap-1.5 px-3 h-10 rounded-xl transition-all ${showGoals ? 'bg-primary-500/10 text-primary-600 dark:text-primary-400 font-bold' : 'text-gray-400 hover:text-gray-600 font-semibold'}`}
                       >
                          <span className={`material-symbols-outlined text-sm ${showGoals ? 'filled-icon' : ''}`}>flag</span>
-                         <span className="text-xs font-semibold">Goals</span>
+                         <span className="text-[10px] uppercase tracking-widest">Goals</span>
                       </button>
                   </div>
               )}

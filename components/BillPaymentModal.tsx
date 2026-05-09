@@ -2,7 +2,7 @@
 import React, { useState, useMemo } from 'react';
 import Modal from './Modal';
 import { Account, BillPayment } from '../types';
-import { BTN_PRIMARY_STYLE, BTN_SECONDARY_STYLE, INPUT_BASE_STYLE, SELECT_WRAPPER_STYLE, SELECT_ARROW_STYLE, LIQUID_ACCOUNT_TYPES, ALL_ACCOUNT_TYPES } from '../constants';
+import { BTN_PRIMARY_STYLE, BTN_SECONDARY_STYLE, INPUT_BASE_STYLE, SELECT_STYLE, SELECT_WRAPPER_STYLE, SELECT_ARROW_STYLE, LIQUID_ACCOUNT_TYPES, ALL_ACCOUNT_TYPES } from '../constants';
 import { toLocalISOString } from '../utils';
 
 interface BillPaymentModalProps {
@@ -105,7 +105,7 @@ const BillPaymentModal: React.FC<BillPaymentModalProps> = ({ bill, onSave, onClo
                         <div>
                             <label htmlFor="bill-account" className={labelStyle}>Account (Optional)</label>
                             <div className={SELECT_WRAPPER_STYLE}>
-                                <select id="bill-account" value={accountId} onChange={e => setAccountId(e.target.value)} className={INPUT_BASE_STYLE}>
+                                <select id="bill-account" value={accountId} onChange={e => setAccountId(e.target.value)} className={SELECT_STYLE}>
                                     <option value="">Default (Primary)</option>
                                     {ALL_ACCOUNT_TYPES.map(type => {
                                         const group = groupedPaymentAccounts[type];

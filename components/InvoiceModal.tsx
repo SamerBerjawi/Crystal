@@ -2,7 +2,7 @@
 import React, { useState, useEffect, useMemo } from 'react';
 import Modal from './Modal';
 import { Invoice, InvoiceItem, InvoiceType, InvoiceDirection, InvoiceStatus, Currency, PaymentTerm } from '../types';
-import { INPUT_BASE_STYLE, BTN_PRIMARY_STYLE, BTN_SECONDARY_STYLE, SELECT_WRAPPER_STYLE, SELECT_ARROW_STYLE } from '../constants';
+import { INPUT_BASE_STYLE, SELECT_STYLE, BTN_PRIMARY_STYLE, BTN_SECONDARY_STYLE, SELECT_WRAPPER_STYLE, SELECT_ARROW_STYLE } from '../constants';
 import { v4 as uuidv4 } from 'uuid';
 import { formatCurrency, toLocalISOString } from '../utils';
 import { usePreferencesSelector } from '../contexts/DomainProviders';
@@ -158,7 +158,7 @@ const InvoiceModal: React.FC<InvoiceModalProps> = ({ isOpen, onClose, onSave, in
                         </div>
                         <div>
                              <div className={SELECT_WRAPPER_STYLE}>
-                                <select value={status} onChange={e => setStatus(e.target.value as InvoiceStatus)} className={`${INPUT_BASE_STYLE} !py-1 !text-sm font-bold uppercase w-32`}>
+                                <select value={status} onChange={e => setStatus(e.target.value as InvoiceStatus)} className={`${SELECT_STYLE} !py-1 !text-sm font-bold uppercase w-32`}>
                                     {STATUS_OPTIONS.map(s => <option key={s} value={s}>{s}</option>)}
                                 </select>
                                 <div className={SELECT_ARROW_STYLE}><span className="material-symbols-outlined text-sm">expand_more</span></div>
@@ -168,7 +168,7 @@ const InvoiceModal: React.FC<InvoiceModalProps> = ({ isOpen, onClose, onSave, in
                     
                     <div className="flex items-center gap-3">
                          <div className={SELECT_WRAPPER_STYLE}>
-                            <select value={currency} onChange={e => setCurrency(e.target.value as Currency)} className={`${INPUT_BASE_STYLE} !py-1 !text-sm w-24 text-right font-mono`}>
+                            <select value={currency} onChange={e => setCurrency(e.target.value as Currency)} className={`${SELECT_STYLE} !py-1 !text-sm w-24 text-right font-mono`}>
                                 <option value="EUR">EUR</option>
                                 <option value="USD">USD</option>
                                 <option value="GBP">GBP</option>

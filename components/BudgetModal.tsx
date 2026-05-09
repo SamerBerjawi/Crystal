@@ -2,7 +2,7 @@
 import React, { useState, useEffect } from 'react';
 import Modal from './Modal';
 import { Budget, Category, Currency } from '../types';
-import { INPUT_BASE_STYLE, BTN_PRIMARY_STYLE, BTN_SECONDARY_STYLE, SELECT_ARROW_STYLE, SELECT_WRAPPER_STYLE } from '../constants';
+import { INPUT_BASE_STYLE, BTN_PRIMARY_STYLE, BTN_SECONDARY_STYLE, SELECT_ARROW_STYLE, SELECT_WRAPPER_STYLE, SELECT_STYLE } from '../constants';
 
 interface BudgetModalProps {
     onClose: () => void;
@@ -94,7 +94,7 @@ const BudgetModal: React.FC<BudgetModalProps> = ({ onClose, onSave, budgetToEdit
                             id="budget-category"
                             value={categoryName}
                             onChange={e => setCategoryName(e.target.value)}
-                            className={`${INPUT_BASE_STYLE} !text-lg font-medium`}
+                            className={`${SELECT_STYLE} !text-lg font-medium`}
                             required
                             disabled={isEditing || !!categoryNameToCreate}
                         >

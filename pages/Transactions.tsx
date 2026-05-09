@@ -1266,7 +1266,7 @@ const Transactions: React.FC<TransactionsProps> = ({ initialAccountFilter, initi
                       <div>
                           <label htmlFor="type-filter" className={labelStyle}>Type</label>
                           <div className={SELECT_WRAPPER_STYLE}>
-                              <select id="type-filter" value={typeFilter} onChange={(e) => setTypeFilter(e.target.value as any)} className={`${INPUT_BASE_STYLE} py-2 pr-10`}>
+                              <select id="type-filter" value={typeFilter} onChange={(e) => setTypeFilter(e.target.value as any)} className={`${SELECT_STYLE} pr-10`}>
                                   {typeFilterOptions.map(opt => <option key={opt.value} value={opt.value}>{opt.label}</option>)}
                               </select>
                               <div className={SELECT_ARROW_STYLE}><span className="material-symbols-outlined">expand_more</span></div>
@@ -1275,7 +1275,7 @@ const Transactions: React.FC<TransactionsProps> = ({ initialAccountFilter, initi
                       <div>
                           <label htmlFor="sort-by" className={labelStyle}>Sort By</label>
                           <div className={SELECT_WRAPPER_STYLE}>
-                              <select id="sort-by" value={sortBy} onChange={(e) => setSortBy(e.target.value)} className={`${INPUT_BASE_STYLE} py-2 pr-10`}>
+                              <select id="sort-by" value={sortBy} onChange={(e) => setSortBy(e.target.value)} className={`${SELECT_STYLE} pr-10`}>
                                 <option value="date-desc">Date (Newest)</option>
                                 <option value="date-asc">Date (Oldest)</option>
                                 <option value="amount-desc">Amount (High)</option>

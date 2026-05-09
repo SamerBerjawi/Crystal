@@ -1099,10 +1099,40 @@ const Forecasting: React.FC = () => {
             <ForecastOverview forecasts={lowestBalanceForecasts} currency="EUR" />
 
             <Card>
-                <div className="flex justify-between items-center mb-4">
-                    <h3 className="text-xl font-semibold text-light-text dark:text-dark-text">Cash Flow Forecast</h3>
-                    <div className="text-sm text-light-text-secondary dark:text-dark-text-secondary">
-                        <span className="font-semibold">{forecastData.length}</span> data points
+                <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 mb-6">
+                    <div>
+                        <h3 className="text-xl font-black text-light-text dark:text-dark-text tracking-tight">Cash Flow Forecast</h3>
+                        <p className="text-[10px] font-black uppercase tracking-widest text-light-text-secondary dark:text-dark-text-secondary opacity-60">
+                            {formatCurrency(startBalance, 'EUR')} → {formatCurrency(endBalance, 'EUR')}
+                        </p>
+                    </div>
+                    <div className="flex items-center gap-3 w-full sm:w-auto">
+                        <div className="flex bg-light-fill dark:bg-dark-fill p-1 rounded-xl flex-1 sm:flex-initial">
+                            <button 
+                                onClick={() => setShowIndividualLines(false)}
+                                className={`flex-1 sm:px-4 py-1.5 text-[10px] font-black uppercase tracking-widest rounded-lg transition-all ${!showIndividualLines ? 'bg-white dark:bg-dark-card shadow-sm text-primary-500' : 'text-light-text-secondary hover:text-light-text dark:hover:text-dark-text'}`}
+                            >
+                                Combined
+                            </button>
+                            <button 
+                                onClick={() => setShowIndividualLines(true)}
+                                className={`flex-1 sm:px-4 py-1.5 text-[10px] font-black uppercase tracking-widest rounded-lg transition-all ${showIndividualLines ? 'bg-white dark:bg-dark-card shadow-sm text-primary-500' : 'text-light-text-secondary hover:text-light-text dark:hover:text-dark-text'}`}
+                            >
+                                Split
+                            </button>
+                        </div>
+
+                        <div className="h-6 w-px bg-black/10 dark:bg-white/10 hidden sm:block"></div>
+
+                        <label className="flex items-center gap-2 px-3 py-1.5 bg-light-fill dark:bg-dark-fill rounded-xl cursor-pointer select-none hover:bg-black/5 dark:hover:bg-white/5 transition-colors">
+                            <input 
+                                type="checkbox" 
+                                checked={showGoalLines} 
+                                onChange={(e) => setShowGoalLines(e.target.checked)} 
+                                className={CHECKBOX_STYLE} 
+                            />
+                            <span className="text-[10px] font-black uppercase tracking-widest text-light-text-secondary dark:text-dark-text-secondary">Goals</span>
+                        </label>
                     </div>
                 </div>
                 <ForecastChart 

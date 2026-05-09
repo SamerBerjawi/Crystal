@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import Modal from './Modal';
 import { Category } from '../types';
-import { INPUT_BASE_STYLE, BTN_PRIMARY_STYLE, BTN_SECONDARY_STYLE, SELECT_WRAPPER_STYLE, SELECT_ARROW_STYLE } from '../constants';
+import { INPUT_BASE_STYLE, SELECT_STYLE, BTN_PRIMARY_STYLE, BTN_SECONDARY_STYLE, SELECT_WRAPPER_STYLE, SELECT_ARROW_STYLE } from '../constants';
 
 interface BulkCategorizeModalProps {
     onClose: () => void;
@@ -61,7 +61,7 @@ const BulkCategorizeModal: React.FC<BulkCategorizeModalProps> = ({ onClose, onSa
                             id="bulk-category"
                             value={selectedCategory}
                             onChange={(e) => setSelectedCategory(e.target.value)}
-                            className={INPUT_BASE_STYLE}
+                            className={SELECT_STYLE}
                             required
                         >
                             <option value="" disabled>Select a category</option>

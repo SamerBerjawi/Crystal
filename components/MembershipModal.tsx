@@ -2,7 +2,7 @@
 import React, { useState, useEffect } from 'react';
 import Modal from './Modal';
 import { Membership } from '../types';
-import { INPUT_BASE_STYLE, BTN_PRIMARY_STYLE, BTN_SECONDARY_STYLE, CATEGORY_ICON_LIST, SELECT_WRAPPER_STYLE, SELECT_ARROW_STYLE } from '../constants';
+import { INPUT_BASE_STYLE, SELECT_STYLE, BTN_PRIMARY_STYLE, BTN_SECONDARY_STYLE, CATEGORY_ICON_LIST, SELECT_WRAPPER_STYLE, SELECT_ARROW_STYLE } from '../constants';
 import IconPicker from './IconPicker';
 
 interface MembershipModalProps {
@@ -138,7 +138,7 @@ const MembershipModal: React.FC<MembershipModalProps> = ({ onClose, onSave, memb
               <div>
                 <label htmlFor="category" className={labelStyle}>Category</label>
                 <div className={SELECT_WRAPPER_STYLE}>
-                    <select id="category" value={category} onChange={e => setCategory(e.target.value)} className={INPUT_BASE_STYLE}>
+                    <select id="category" value={category} onChange={e => setCategory(e.target.value)} className={SELECT_STYLE}>
                         {MEMBERSHIP_CATEGORIES.map(cat => (
                             <option key={cat} value={cat}>{cat}</option>
                         ))}

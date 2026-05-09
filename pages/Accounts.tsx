@@ -46,6 +46,7 @@ const Accounts: React.FC<AccountsProps> = ({ accounts, transactions, saveAccount
   const [deletingAccount, setDeletingAccount] = useState<Account | null>(null);
   const contextMenuRef = useRef<HTMLDivElement>(null);
   const [layoutMode, setLayoutMode] = useLocalStorage<'stacked' | 'columns'>('crystal_accounts_section_layout', 'columns');
+  const [splitAssetsLiabilities, setSplitAssetsLiabilities] = useLocalStorage<boolean>('crystal_split_assets_liabilities', true);
   const [sortBy, setSortBy] = useState<'name' | 'balance' | 'manual'>(initialSortBy);
   const { loanPaymentOverrides } = useScheduleContext();
   const preferredCurrency = usePreferencesSelector(p => (p.currency || 'EUR') as any);
@@ -333,94 +334,99 @@ const Accounts: React.FC<AccountsProps> = ({ accounts, transactions, saveAccount
             </div>
         )}
 
-        <PageHeader 
-            markerIcon="account_balance" 
-            markerLabel="Money Map" 
-            title="Accounts" 
-            subtitle="Manage your assets and liabilities with a unified, real-time portfolio view." 
-            actions={<button onClick={() => setAddModalOpen(true)} className={`${BTN_PRIMARY_STYLE} flex items-center gap-2`}><span className="material-symbols-outlined text-xl">add</span>Add Account</button>} 
-        />
-
-        {/* --- Compact Portfolio Header --- */}
+        {/* --- Consolidated Header & Portfolio --- */}
         <div className="bg-white dark:bg-dark-card rounded-3xl p-6 border border-black/5 dark:border-white/5 shadow-sm overflow-hidden relative group">
             {/* Subtle background glow based on active segment */}
             <div className={`absolute -top-24 -right-24 w-64 h-64 blur-3xl opacity-20 transition-colors duration-1000 bg-gradient-to-br ${heroGradient}`} />
 
-            <div className="relative z-10 flex flex-col lg:flex-row lg:items-center gap-8">
-                {/* Main Net Worth Display */}
-                <div 
-                    onClick={() => setActiveSegment('all')}
-                    className="flex-1 cursor-pointer group/nw"
-                >
-                    <div className="flex items-center gap-2 mb-2">
-                        <span className="material-symbols-outlined text-primary-500 text-sm">account_balance_wallet</span>
-                        <span className="text-[10px] font-black uppercase tracking-widest text-light-text-secondary dark:text-dark-text-secondary">Portfolio Value</span>
+            <div className="relative z-10 flex flex-col lg:flex-row lg:items-start justify-between gap-8">
+                {/* Left Side: Portfolio Display */}
+                <div className="flex flex-col lg:flex-row lg:items-center gap-8 flex-1">
+                    <div 
+                        onClick={() => setActiveSegment('all')}
+                        className="cursor-pointer group/nw"
+                    >
+                        <div className="flex items-center gap-2 mb-2">
+                            <span className="material-symbols-outlined text-primary-500 text-sm">account_balance_wallet</span>
+                            <span className="text-[10px] font-black uppercase tracking-widest text-light-text-secondary dark:text-dark-text-secondary">Portfolio Value</span>
+                        </div>
+                        <div className="flex items-baseline gap-2">
+                            <h2 className="text-4xl font-black tracking-tight privacy-blur text-light-text dark:text-dark-text group-hover/nw:text-primary-500 transition-colors">
+                                {formatCurrency(segmentValues.all, 'EUR')}
+                            </h2>
+                            {activeSegment === 'all' && (
+                                <motion.div layoutId="active-indicator" className="w-1.5 h-1.5 rounded-full bg-primary-500 shadow-[0_0_8px_rgba(99,102,241,0.8)]" />
+                            )}
+                        </div>
+                        {/* Compact Sparkline */}
+                        <div className="h-6 mt-3 opacity-40 group-hover/nw:opacity-80 transition-opacity">
+                            <ResponsiveContainer width="100%" height="100%">
+                                <AreaChart data={globalMetrics.trendData}>
+                                    <Area 
+                                        type="monotone" 
+                                        dataKey="value" 
+                                        stroke={activeSegment === 'all' ? "#6366f1" : "#94a3b8"} 
+                                        strokeWidth={2} 
+                                        fill="transparent" 
+                                        animationDuration={2000}
+                                    />
+                                </AreaChart>
+                            </ResponsiveContainer>
+                        </div>
                     </div>
-                    <div className="flex items-baseline gap-2">
-                        <h2 className="text-4xl font-black tracking-tight privacy-blur text-light-text dark:text-dark-text group-hover/nw:text-primary-500 transition-colors">
-                            {formatCurrency(segmentValues.all, 'EUR')}
-                        </h2>
-                        {activeSegment === 'all' && (
-                             <motion.div layoutId="active-indicator" className="w-1.5 h-1.5 rounded-full bg-primary-500 shadow-[0_0_8px_rgba(99,102,241,0.8)]" />
-                        )}
-                    </div>
-                    {/* Compact Sparkline */}
-                    <div className="h-6 mt-3 opacity-40 group-hover/nw:opacity-80 transition-opacity">
-                        <ResponsiveContainer width="100%" height="100%">
-                            <AreaChart data={globalMetrics.trendData}>
-                                <Area 
-                                    type="monotone" 
-                                    dataKey="value" 
-                                    stroke={activeSegment === 'all' ? "#6366f1" : "#94a3b8"} 
-                                    strokeWidth={2} 
-                                    fill="transparent" 
-                                    animationDuration={2000}
-                                />
-                            </AreaChart>
-                        </ResponsiveContainer>
+
+                    <div className="hidden lg:block w-px h-16 bg-black/5 dark:bg-white/10" />
+
+                    {/* Segment Grid - High Density Tiles */}
+                    <div className="flex-[2] grid grid-cols-2 sm:grid-cols-4 gap-4">
+                        {segments.filter(s => s.id !== 'all').map(seg => {
+                            const isActive = activeSegment === seg.id;
+                            const val = segmentValues[seg.id as keyof typeof segmentValues];
+                            return (
+                                <div 
+                                    key={seg.id}
+                                    onClick={() => setActiveSegment(seg.id)}
+                                    className={`group cursor-pointer p-4 rounded-2xl transition-all border ${isActive ? 'bg-primary-500/5 border-primary-500/20' : 'hover:bg-black/5 dark:hover:bg-white/5 border-transparent'}`}
+                                >
+                                    <div className="flex items-center justify-between mb-1.5">
+                                        <div className={`w-8 h-8 rounded-lg flex items-center justify-center ${isActive ? 'bg-primary-500/10 text-primary-500' : 'bg-gray-100 dark:bg-white/5 text-light-text-secondary'}`}>
+                                            <span className="material-symbols-outlined text-lg">{seg.icon}</span>
+                                        </div>
+                                        {isActive && <motion.div layoutId="active-indicator" className="w-1.5 h-1.5 rounded-full bg-primary-500 shadow-[0_0_6px_rgba(99,102,241,0.8)]" />}
+                                    </div>
+                                    <div className="flex flex-col">
+                                        <span className={`text-[10px] font-black uppercase tracking-widest ${isActive ? 'text-primary-500' : 'text-light-text-secondary dark:text-dark-text-secondary'}`}>{seg.label}</span>
+                                        <span className={`text-lg font-black tracking-tight privacy-blur ${isActive ? 'text-light-text dark:text-dark-text' : 'text-light-text-secondary group-hover:text-light-text dark:group-hover:text-dark-text'}`}>
+                                            {formatCurrency(val, 'EUR')}
+                                        </span>
+                                    </div>
+                                </div>
+                            )
+                        })}
                     </div>
                 </div>
 
-                <div className="hidden lg:block w-px h-16 bg-black/5 dark:bg-white/10" />
-
-                {/* Segment Grid - High Density Tiles */}
-                <div className="flex-[2] grid grid-cols-2 sm:grid-cols-4 gap-4">
-                    {segments.filter(s => s.id !== 'all').map(seg => {
-                        const isActive = activeSegment === seg.id;
-                        const val = segmentValues[seg.id as keyof typeof segmentValues];
-                        return (
-                            <div 
-                                key={seg.id}
-                                onClick={() => setActiveSegment(seg.id)}
-                                className={`group cursor-pointer p-4 rounded-2xl transition-all border ${isActive ? 'bg-primary-500/5 border-primary-500/20' : 'hover:bg-black/5 dark:hover:bg-white/5 border-transparent'}`}
-                            >
-                                <div className="flex items-center justify-between mb-1.5">
-                                    <div className={`w-8 h-8 rounded-lg flex items-center justify-center ${isActive ? 'bg-primary-500/10 text-primary-500' : 'bg-gray-100 dark:bg-white/5 text-light-text-secondary'}`}>
-                                        <span className="material-symbols-outlined text-lg">{seg.icon}</span>
-                                    </div>
-                                    {isActive && <motion.div layoutId="active-indicator" className="w-1.5 h-1.5 rounded-full bg-primary-500 shadow-[0_0_6px_rgba(99,102,241,0.8)]" />}
-                                </div>
-                                <div className="flex flex-col">
-                                    <span className={`text-[10px] font-black uppercase tracking-widest ${isActive ? 'text-primary-500' : 'text-light-text-secondary dark:text-dark-text-secondary'}`}>{seg.label}</span>
-                                    <span className={`text-lg font-black tracking-tight privacy-blur ${isActive ? 'text-light-text dark:text-dark-text' : 'text-light-text-secondary group-hover:text-light-text dark:group-hover:text-dark-text'}`}>
-                                        {formatCurrency(val, 'EUR')}
-                                    </span>
-                                </div>
-                            </div>
-                        )
-                    })}
+                {/* Main Action - Add Account */}
+                <div className="shrink-0">
+                    <button 
+                        onClick={() => setAddModalOpen(true)} 
+                        className={`${BTN_PRIMARY_STYLE} flex items-center gap-2 group/add`}
+                    >
+                        <span className="material-symbols-outlined text-xl transition-transform group-hover/add:rotate-90">add</span>
+                        <span className="hidden sm:inline">Add Account</span>
+                    </button>
                 </div>
             </div>
 
-            {/* Integrated Details Tray */}
-            <div className="mt-6 pt-6 border-t border-black/5 dark:border-white/5">
+            {/* Integrated Details Tray & Controls */}
+            <div className="mt-6 pt-6 border-t border-black/5 dark:border-white/5 flex flex-wrap items-center justify-between gap-6">
                 <AnimatePresence mode="wait">
                     <motion.div 
                         key={activeSegment}
-                        initial={{ opacity: 0, y: 5 }}
-                        animate={{ opacity: 1, y: 0 }}
-                        exit={{ opacity: 0, y: -5 }}
-                        className="flex flex-wrap items-center gap-x-10 gap-y-3"
+                        initial={{ opacity: 0, x: -5 }}
+                        animate={{ opacity: 1, x: 0 }}
+                        exit={{ opacity: 0, x: 5 }}
+                        className="flex flex-wrap items-center gap-x-8 gap-y-3"
                     >
                         {segmentMetrics.details.map((detail, i) => (
                              <div key={i} className="flex items-center gap-3">
@@ -435,23 +441,22 @@ const Accounts: React.FC<AccountsProps> = ({ accounts, transactions, saveAccount
                         ))}
                     </motion.div>
                 </AnimatePresence>
-            </div>
-        </div>
 
+                {/* Consolidated Controls */}
+                <div className="flex items-center gap-3 flex-wrap">
+                    <div className="flex bg-light-fill dark:bg-dark-fill p-1 rounded-xl items-center text-[10px] font-bold uppercase tracking-widest text-light-text-secondary dark:text-dark-text-secondary gap-0.5">
+                        <button onClick={() => setSplitAssetsLiabilities(true)} className={`flex items-center gap-1.5 p-1.5 px-3 rounded-lg transition-all ${splitAssetsLiabilities ? 'bg-white dark:bg-dark-card shadow-sm text-primary-500' : 'hover:text-primary-500'}`} title="Split Assets & Liabilities">
+                            <span className="material-symbols-outlined text-[16px]">vertical_split</span>
+                            <span className="hidden md:inline">Split</span>
+                        </button>
+                        <button onClick={() => setSplitAssetsLiabilities(false)} className={`flex items-center gap-1.5 p-1.5 px-3 rounded-lg transition-all ${!splitAssetsLiabilities ? 'bg-white dark:bg-dark-card shadow-sm text-primary-500' : 'hover:text-primary-500'}`} title="Combined View">
+                            <span className="material-symbols-outlined text-[16px]">view_agenda</span>
+                            <span className="hidden md:inline">Combined</span>
+                        </button>
+                    </div>
 
-        {/* --- Controls Bar --- */}
-        <div className="flex flex-col xl:flex-row justify-between items-center gap-4 bg-white dark:bg-dark-card p-2 rounded-2xl border border-black/5 dark:border-white/5 shadow-sm sticky top-4 z-20 backdrop-blur-md bg-opacity-90 dark:bg-opacity-90">
-            <div className="flex items-center gap-2 px-3">
-                <span className="material-symbols-outlined text-primary-500">filter_list</span>
-                <span className="text-xs font-bold uppercase tracking-widest text-light-text-secondary">
-                    Viewing: {segments.find(s => s.id === activeSegment)?.label}
-                </span>
-            </div>
-
-            {/* View & Sort Controls */}
-            <div className="flex items-center gap-3 w-full xl:w-auto justify-end px-1">
-                    <div className={`${SELECT_WRAPPER_STYLE} !w-auto`}>
-                        <select value={sortBy} onChange={(e) => setSortBy(e.target.value as any)} className={`${SELECT_STYLE} !py-2 !text-sm pr-8`}>
+                    <div className={`${SELECT_WRAPPER_STYLE} !w-auto h-9`}>
+                        <select value={sortBy} onChange={(e) => setSortBy(e.target.value as any)} className={`${SELECT_STYLE} !py-1 !text-[10px] !font-bold !uppercase !tracking-widest pr-8 h-full bg-light-fill dark:bg-dark-fill border-none rounded-xl`}>
                             <option value="manual">Sort: Manual</option>
                             <option value="name">Sort: Name</option>
                             <option value="balance">Sort: Balance</option>
@@ -459,63 +464,75 @@ const Accounts: React.FC<AccountsProps> = ({ accounts, transactions, saveAccount
                         <div className={SELECT_ARROW_STYLE}><span className="material-symbols-outlined text-sm">expand_more</span></div>
                     </div>
                     
-                    <div className="flex bg-light-fill dark:bg-dark-fill p-1 rounded-lg">
-                        <button onClick={() => setLayoutMode('columns')} className={`p-1.5 rounded-md transition-all ${layoutMode === 'columns' ? 'bg-white dark:bg-dark-card shadow text-primary-500' : 'text-gray-400 hover:text-gray-600 dark:hover:text-gray-200'}`}>
-                            <span className="material-symbols-outlined text-xl">grid_view</span>
+                    <div className="flex bg-light-fill dark:bg-dark-fill p-1 rounded-xl gap-0.5">
+                        <button onClick={() => setLayoutMode('columns')} className={`p-1.5 rounded-lg transition-all ${layoutMode === 'columns' ? 'bg-white dark:bg-dark-card shadow-sm text-primary-500' : 'text-gray-400 hover:text-gray-600 dark:hover:text-gray-200'}`} title="Grid Layout">
+                            <span className="material-symbols-outlined text-[18px]">grid_view</span>
                         </button>
-                        <button onClick={() => setLayoutMode('stacked')} className={`p-1.5 rounded-md transition-all ${layoutMode === 'stacked' ? 'bg-white dark:bg-dark-card shadow text-primary-500' : 'text-gray-400 hover:text-gray-600 dark:hover:text-gray-200'}`}>
-                            <span className="material-symbols-outlined text-xl">view_list</span>
+                        <button onClick={() => setLayoutMode('stacked')} className={`p-1.5 rounded-lg transition-all ${layoutMode === 'stacked' ? 'bg-white dark:bg-dark-card shadow-sm text-primary-500' : 'text-gray-400 hover:text-gray-600 dark:hover:text-gray-200'}`} title="List Layout">
+                            <span className="material-symbols-outlined text-[18px]">view_list</span>
                         </button>
                     </div>
+                </div>
             </div>
         </div>
+
 
         {/* --- Multi-Column Accounts View --- */}
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 items-start">
-            {/* Assets Column */}
-            <div className="space-y-8">
-                <div className="flex items-center gap-3 px-2">
-                    <div className="w-10 h-10 rounded-2xl bg-emerald-500/10 flex items-center justify-center">
-                        <span className="material-symbols-outlined text-emerald-500">account_balance</span>
-                    </div>
-                    <div>
-                        <h3 className="text-sm font-black uppercase tracking-[0.2em] text-light-text-secondary dark:text-dark-text-secondary">Assets</h3>
-                        <p className="text-[10px] text-light-text-secondary dark:text-dark-text-secondary opacity-60">Wealth & Resources</p>
-                    </div>
+        {splitAssetsLiabilities ? (
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 items-start">
+                {/* Assets Column */}
+                <div className="space-y-8">
+                    <AccountsListSection 
+                        title="Assets"
+                        headerIcon={<div className="w-10 h-10 rounded-2xl bg-emerald-500/10 flex items-center justify-center shrink-0"><span className="material-symbols-outlined text-emerald-500">account_balance</span></div>}
+                        headerSubtitle="Wealth & Resources"
+                        accounts={filteredAccounts.filter(acc => ASSET_TYPES.includes(acc.type))} 
+                        transactionsByAccount={transactionsByAccount} 
+                        warrants={warrants} 
+                        linkedEnableBankingAccountIds={linkedEnableBankingAccountIds} 
+                        onAccountClick={handleAccountClick} 
+                        onEditClick={openEditModal} 
+                        onAdjustBalanceClick={openAdjustModal} 
+                        sortBy={sortBy} 
+                        accountOrder={accountOrder} 
+                        setAccountOrder={setAccountOrder} 
+                        onContextMenu={handleContextMenu} 
+                        isCollapsible={false} 
+                        defaultExpanded={true}
+                        layoutMode={layoutMode} 
+                        showCollapseAll={true}
+                    />
                 </div>
-                <AccountsListSection 
-                    title="Assets"
-                    accounts={filteredAccounts.filter(acc => ASSET_TYPES.includes(acc.type))} 
-                    transactionsByAccount={transactionsByAccount} 
-                    warrants={warrants} 
-                    linkedEnableBankingAccountIds={linkedEnableBankingAccountIds} 
-                    onAccountClick={handleAccountClick} 
-                    onEditClick={openEditModal} 
-                    onAdjustBalanceClick={openAdjustModal} 
-                    sortBy={sortBy} 
-                    accountOrder={accountOrder} 
-                    setAccountOrder={setAccountOrder} 
-                    onContextMenu={handleContextMenu} 
-                    isCollapsible={false} 
-                    defaultExpanded={true}
-                    layoutMode={layoutMode} 
-                />
-            </div>
 
-            {/* Liabilities Column */}
-            <div className="space-y-8">
-                <div className="flex items-center gap-3 px-2">
-                    <div className="w-10 h-10 rounded-2xl bg-rose-500/10 flex items-center justify-center">
-                        <span className="material-symbols-outlined text-rose-500">money_off</span>
-                    </div>
-                    <div>
-                        <h3 className="text-sm font-black uppercase tracking-[0.2em] text-light-text-secondary dark:text-dark-text-secondary">Liabilities</h3>
-                        <p className="text-[10px] text-light-text-secondary dark:text-dark-text-secondary opacity-60">Debts & Obligations</p>
-                    </div>
+                {/* Liabilities Column */}
+                <div className="space-y-8">
+                    <AccountsListSection 
+                        title="Liabilities"
+                        headerIcon={<div className="w-10 h-10 rounded-2xl bg-rose-500/10 flex items-center justify-center shrink-0"><span className="material-symbols-outlined text-rose-500">money_off</span></div>}
+                        headerSubtitle="Debts & Obligations"
+                        accounts={filteredAccounts.filter(acc => DEBT_TYPES.includes(acc.type))} 
+                        transactionsByAccount={transactionsByAccount} 
+                        warrants={warrants} 
+                        linkedEnableBankingAccountIds={linkedEnableBankingAccountIds} 
+                        onAccountClick={handleAccountClick} 
+                        onEditClick={openEditModal} 
+                        onAdjustBalanceClick={openAdjustModal} 
+                        sortBy={sortBy} 
+                        accountOrder={accountOrder} 
+                        setAccountOrder={setAccountOrder} 
+                        onContextMenu={handleContextMenu} 
+                        isCollapsible={false} 
+                        defaultExpanded={true}
+                        layoutMode={layoutMode} 
+                        showCollapseAll={true}
+                    />
                 </div>
+            </div>
+        ) : (
+            <div className="space-y-8">
                 <AccountsListSection 
-                    title="Liabilities"
-                    accounts={filteredAccounts.filter(acc => DEBT_TYPES.includes(acc.type))} 
+                    title={activeSegment === 'all' ? 'Your Portfolio' : `${segments.find(s => s.id === activeSegment)?.label} Accounts`}
+                    accounts={filteredAccounts} 
                     transactionsByAccount={transactionsByAccount} 
                     warrants={warrants} 
                     linkedEnableBankingAccountIds={linkedEnableBankingAccountIds} 
@@ -529,9 +546,10 @@ const Accounts: React.FC<AccountsProps> = ({ accounts, transactions, saveAccount
                     isCollapsible={false} 
                     defaultExpanded={true}
                     layoutMode={layoutMode} 
+                    showCollapseAll={true}
                 />
             </div>
-        </div>
+        )}
 
         {/* --- Closed Accounts - Only show if relevant to filter or in All view --- */}
         {closedAccounts.length > 0 && activeSegment === 'all' && (

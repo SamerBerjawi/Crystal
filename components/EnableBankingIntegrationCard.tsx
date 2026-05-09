@@ -1,7 +1,7 @@
 
 import React, { useEffect, useMemo, useState } from 'react';
 import Card from './Card';
-import { INPUT_BASE_STYLE, BTN_PRIMARY_STYLE, BTN_SECONDARY_STYLE } from '../constants';
+import { INPUT_BASE_STYLE, SELECT_STYLE, BTN_PRIMARY_STYLE, BTN_SECONDARY_STYLE, SELECT_WRAPPER_STYLE, SELECT_ARROW_STYLE } from '../constants';
 import {
   Account,
   AccountType,
@@ -401,18 +401,21 @@ const EnableBankingIntegrationCard: React.FC<EnableBankingIntegrationCardProps> 
                    <p className="text-sm text-light-text-secondary dark:text-dark-text-secondary mb-4">Select a bank from the loaded list to start an authorization flow.</p>
                    
                    <div className="flex flex-col sm:flex-row gap-3">
-                        <select
-                            name="selectedBank"
-                            value={formState.selectedBank}
-                            onChange={handleFormChange}
-                            className={`${INPUT_BASE_STYLE} flex-1`}
-                            disabled={banksLoading || bankOptions.length === 0}
-                        >
-                            {bankOptions.length === 0 && <option value="">Load banks first...</option>}
-                            {bankOptions.map(option => (
-                                <option key={option.id} value={option.id}>{option.name}{option.country ? ` (${option.country})` : ''}</option>
-                            ))}
-                        </select>
+                        <div className={`${SELECT_WRAPPER_STYLE} flex-1`}>
+                            <select
+                                name="selectedBank"
+                                value={formState.selectedBank}
+                                onChange={handleFormChange}
+                                className={SELECT_STYLE}
+                                disabled={banksLoading || bankOptions.length === 0}
+                            >
+                                {bankOptions.length === 0 && <option value="">Load banks first...</option>}
+                                {bankOptions.map(option => (
+                                    <option key={option.id} value={option.id}>{option.name}{option.country ? ` (${option.country})` : ''}</option>
+                                ))}
+                            </select>
+                            <div className={SELECT_ARROW_STYLE}><span className="material-symbols-outlined">expand_more</span></div>
+                        </div>
                         <button
                             onClick={handleCreate}
                             className={`${BTN_PRIMARY_STYLE} whitespace-nowrap`}
@@ -573,24 +576,30 @@ const EnableBankingIntegrationCard: React.FC<EnableBankingIntegrationCardProps> 
                                                     </div>
 
                                                     {(rowState.mode || 'existing') === 'existing' ? (
-                                                        <select
-                                                            className={`${INPUT_BASE_STYLE} !text-sm`}
-                                                            value={rowState.accountId || ''}
-                                                            onChange={(e) => handleLinkChange(rowKey, { accountId: e.target.value })}
-                                                        >
-                                                            <option value="">Select account to link...</option>
-                                                            {accounts.map(acc => (
-                                                                <option key={acc.id} value={acc.id} disabled={linkedAccounts.has(acc.id) && acc.id !== account.linkedAccountId}>
-                                                                {acc.name} ({acc.currency})
-                                                                </option>
-                                                            ))}
-                                                        </select>
+                                                        <div className={SELECT_WRAPPER_STYLE}>
+                                                            <select
+                                                                className={`${SELECT_STYLE} !text-sm`}
+                                                                value={rowState.accountId || ''}
+                                                                onChange={(e) => handleLinkChange(rowKey, { accountId: e.target.value })}
+                                                            >
+                                                                <option value="">Select account to link...</option>
+                                                                {accounts.map(acc => (
+                                                                    <option key={acc.id} value={acc.id} disabled={linkedAccounts.has(acc.id) && acc.id !== account.linkedAccountId}>
+                                                                    {acc.name} ({acc.currency})
+                                                                    </option>
+                                                                ))}
+                                                            </select>
+                                                            <div className={SELECT_ARROW_STYLE}><span className="material-symbols-outlined">expand_more</span></div>
+                                                        </div>
                                                     ) : (
                                                         <div className="space-y-2 animate-fade-in-up">
                                                             <input type="text" className={`${INPUT_BASE_STYLE} !text-sm`} value={rowState.newAccountName || ''} onChange={(e) => handleLinkChange(rowKey, { newAccountName: e.target.value })} placeholder="New account name" />
-                                                            <select className={`${INPUT_BASE_STYLE} !text-sm`} value={rowState.newAccountType || 'Checking'} onChange={(e) => handleLinkChange(rowKey, { newAccountType: e.target.value as AccountType})}>
-                                                                {accountTypeOptions.map(type => <option key={type} value={type}>{type}</option>)}
-                                                            </select>
+                                                            <div className={SELECT_WRAPPER_STYLE}>
+                                                                <select className={`${SELECT_STYLE} !text-sm`} value={rowState.newAccountType || 'Checking'} onChange={(e) => handleLinkChange(rowKey, { newAccountType: e.target.value as AccountType})}>
+                                                                    {accountTypeOptions.map(type => <option key={type} value={type}>{type}</option>)}
+                                                                </select>
+                                                                <div className={SELECT_ARROW_STYLE}><span className="material-symbols-outlined">expand_more</span></div>
+                                                            </div>
                                                         </div>
                                                     )}
                                                     {linkedAccount && (rowState.mode || 'existing') === 'existing' && (
@@ -639,7 +648,7 @@ const EnableBankingIntegrationCard: React.FC<EnableBankingIntegrationCardProps> 
                                                                 });
                                                             }
                                                         }}
-                                                        className="w-full flex items-center justify-center gap-2 py-2.5 rounded-lg bg-primary-600 hover:bg-primary-700 text-white text-sm font-bold shadow-md transition-all active:scale-95"
+                                                        className={`${BTN_PRIMARY_STYLE} w-full gap-2`}
                                                     >
                                                         <span className="material-symbols-outlined text-lg">link</span>
                                                         Save link

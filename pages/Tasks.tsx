@@ -219,7 +219,7 @@ const Tasks: React.FC<TasksProps> = ({ tasks, saveTask, deleteTask, taskOrder, s
                 <div className="flex items-center gap-3 w-full md:w-auto px-1 md:px-0">
                      <span className="text-sm font-medium text-light-text-secondary dark:text-dark-text-secondary whitespace-nowrap hidden sm:block">Sort by:</span>
                      <div className={`${SELECT_WRAPPER_STYLE} !w-auto`}>
-                        <select value={sortBy} onChange={e => setSortBy(e.target.value as any)} className={`${SELECT_STYLE} !py-2 !text-sm pr-8 min-w-[140px]`}>
+                        <select value={sortBy} onChange={e => setSortBy(e.target.value as any)} className={`${SELECT_STYLE} pr-8 min-w-[140px]`}>
                             <option value="manual">Manual (Drag)</option>
                             <option value="priority-desc">Priority</option>
                             <option value="dueDate-asc">Due Date</option>

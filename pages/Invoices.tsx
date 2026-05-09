@@ -186,7 +186,7 @@ const InvoicesPage: React.FC = () => {
                              />
                          </div>
                          <div className={SELECT_WRAPPER_STYLE}>
-                             <select value={statusFilter} onChange={e => setStatusFilter(e.target.value as any)} className={`${SELECT_STYLE} !py-2 !h-10 text-sm`}>
+                             <select value={statusFilter} onChange={e => setStatusFilter(e.target.value as any)} className={`${SELECT_STYLE}`}>
                                  <option value="all">All Status</option>
                                  {Object.keys(STATUS_COLORS).map(s => <option key={s} value={s}>{s.charAt(0).toUpperCase() + s.slice(1)}</option>)}
                              </select>

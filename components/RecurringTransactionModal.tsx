@@ -2,7 +2,7 @@
 import React, { useState, useMemo, useEffect } from 'react';
 import Modal from './Modal';
 import { Account, Category, RecurringTransaction, RecurrenceFrequency, WeekendAdjustment } from '../types';
-import { INPUT_BASE_STYLE, BTN_PRIMARY_STYLE, BTN_SECONDARY_STYLE, SELECT_WRAPPER_STYLE, SELECT_ARROW_STYLE, FREQUENCIES, WEEKEND_ADJUSTMENTS, ALL_ACCOUNT_TYPES } from '../constants';
+import { INPUT_BASE_STYLE, SELECT_STYLE, BTN_PRIMARY_STYLE, BTN_SECONDARY_STYLE, SELECT_WRAPPER_STYLE, SELECT_ARROW_STYLE, FREQUENCIES, WEEKEND_ADJUSTMENTS, ALL_ACCOUNT_TYPES } from '../constants';
 import { parseLocalDate, toLocalISOString } from '../utils';
 
 interface RecurringTransactionModalProps {
@@ -228,7 +228,7 @@ const RecurringTransactionModal: React.FC<RecurringTransactionModalProps> = ({ o
                         <div>
                             <label htmlFor="rec-category" className={labelStyle}>Category</label>
                             <div className={SELECT_WRAPPER_STYLE}>
-                                <select id="rec-category" value={category} onChange={e => setCategory(e.target.value)} className={INPUT_BASE_STYLE} required>
+                                <select id="rec-category" value={category} onChange={e => setCategory(e.target.value)} className={SELECT_STYLE} required>
                                     <CategoryOptions categories={activeCategories} />
                                 </select>
                                 <div className={SELECT_ARROW_STYLE}><span className="material-symbols-outlined">expand_more</span></div>
@@ -262,7 +262,7 @@ const RecurringTransactionModal: React.FC<RecurringTransactionModalProps> = ({ o
                         <div className="flex-1">
                             <label htmlFor="rec-from-account" className={labelStyle}>From</label>
                             <div className={SELECT_WRAPPER_STYLE}>
-                                <select id="rec-from-account" value={accountId} onChange={e => setAccountId(e.target.value)} className={INPUT_BASE_STYLE} required>
+                                <select id="rec-from-account" value={accountId} onChange={e => setAccountId(e.target.value)} className={SELECT_STYLE} required>
                                     <option value="" disabled>Select account</option>
                                     <AccountOptions accounts={availableAccounts.filter(a => a.id !== toAccountId)} />
                                 </select>
@@ -275,7 +275,7 @@ const RecurringTransactionModal: React.FC<RecurringTransactionModalProps> = ({ o
                         <div className="flex-1">
                             <label htmlFor="rec-to-account" className={labelStyle}>To</label>
                             <div className={SELECT_WRAPPER_STYLE}>
-                                <select id="rec-to-account" value={toAccountId} onChange={e => setToAccountId(e.target.value)} className={INPUT_BASE_STYLE} required>
+                                <select id="rec-to-account" value={toAccountId} onChange={e => setToAccountId(e.target.value)} className={SELECT_STYLE} required>
                                     <option value="" disabled>Select account</option>
                                     <AccountOptions accounts={availableAccounts.filter(a => a.id !== accountId)} />
                                 </select>
@@ -287,7 +287,7 @@ const RecurringTransactionModal: React.FC<RecurringTransactionModalProps> = ({ o
                     <div>
                         <label htmlFor="rec-account" className={labelStyle}>Account</label>
                         <div className={SELECT_WRAPPER_STYLE}>
-                            <select id="rec-account" value={accountId} onChange={e => setAccountId(e.target.value)} className={INPUT_BASE_STYLE} required>
+                            <select id="rec-account" value={accountId} onChange={e => setAccountId(e.target.value)} className={SELECT_STYLE} required>
                                 <option value="" disabled>Select an account</option>
                                 <AccountOptions accounts={availableAccounts} />
                             </select>
@@ -309,7 +309,7 @@ const RecurringTransactionModal: React.FC<RecurringTransactionModalProps> = ({ o
                             <div className="flex items-center gap-2">
                                 {frequency !== 'daily' && <input type="number" value={frequencyInterval} onChange={e => setFrequencyInterval(e.target.value)} className={`${INPUT_BASE_STYLE} w-20 text-center font-bold`} min="1" />}
                                 <div className={`${SELECT_WRAPPER_STYLE} flex-1`}>
-                                    <select id="rec-frequency" value={frequency} onChange={e => setFrequency(e.target.value as RecurrenceFrequency)} className={`${INPUT_BASE_STYLE} font-medium`}>
+                                    <select id="rec-frequency" value={frequency} onChange={e => setFrequency(e.target.value as RecurrenceFrequency)} className={`${SELECT_STYLE} font-medium`}>
                                         {FREQUENCIES.map(f => <option key={f.value} value={f.value}>{f.label}</option>)}
                                     </select>
                                     <div className={SELECT_ARROW_STYLE}><span className="material-symbols-outlined">expand_more</span></div>
@@ -319,7 +319,7 @@ const RecurringTransactionModal: React.FC<RecurringTransactionModalProps> = ({ o
                          <div>
                             <label htmlFor="rec-weekend-adjustment" className={labelStyle}>Weekend Behavior</label>
                              <div className={SELECT_WRAPPER_STYLE}>
-                                <select id="rec-weekend-adjustment" value={weekendAdjustment} onChange={e => setWeekendAdjustment(e.target.value as WeekendAdjustment)} className={INPUT_BASE_STYLE}>
+                                <select id="rec-weekend-adjustment" value={weekendAdjustment} onChange={e => setWeekendAdjustment(e.target.value as WeekendAdjustment)} className={SELECT_STYLE}>
                                     {WEEKEND_ADJUSTMENTS.map(o => <option key={o.value} value={o.value}>{o.label}</option>)}
                                 </select>
                                 <div className={SELECT_ARROW_STYLE}><span className="material-symbols-outlined">expand_more</span></div>

@@ -2,7 +2,7 @@
 import React, { useState, useMemo } from 'react';
 import Modal from './Modal';
 import { Account, Category, Prediction, PredictionType, InvestmentTransaction, Warrant } from '../types';
-import { BTN_PRIMARY_STYLE, BTN_SECONDARY_STYLE, INPUT_BASE_STYLE, SELECT_ARROW_STYLE, SELECT_WRAPPER_STYLE, ALL_ACCOUNT_TYPES } from '../constants';
+import { BTN_PRIMARY_STYLE, BTN_SECONDARY_STYLE, INPUT_BASE_STYLE, SELECT_STYLE, SELECT_ARROW_STYLE, SELECT_WRAPPER_STYLE, ALL_ACCOUNT_TYPES } from '../constants';
 import { toLocalISOString } from '../utils';
 
 interface PredictionModalProps {
@@ -126,7 +126,7 @@ const PredictionModal: React.FC<PredictionModalProps> = ({ onClose, onSave, acco
                         <select 
                             value={targetId} 
                             onChange={e => setTargetId(e.target.value)} 
-                            className={INPUT_BASE_STYLE}
+                            className={SELECT_STYLE}
                             required
                         >
                             <option value="">Select target...</option>

@@ -2,7 +2,7 @@
 import React, { useState, useEffect, useMemo } from 'react';
 import Modal from './Modal';
 import { FinancialGoal, GoalType, GoalCategory, RecurrenceFrequency, Account } from '../types';
-import { INPUT_BASE_STYLE, BTN_PRIMARY_STYLE, BTN_SECONDARY_STYLE, SELECT_WRAPPER_STYLE, SELECT_ARROW_STYLE, FREQUENCIES, ALL_ACCOUNT_TYPES } from '../constants';
+import { INPUT_BASE_STYLE, SELECT_STYLE, BTN_PRIMARY_STYLE, BTN_SECONDARY_STYLE, SELECT_WRAPPER_STYLE, SELECT_ARROW_STYLE, FREQUENCIES, ALL_ACCOUNT_TYPES } from '../constants';
 import { toLocalISOString } from '../utils';
 
 interface GoalScenarioModalProps {
@@ -203,7 +203,7 @@ const GoalScenarioModal: React.FC<GoalScenarioModalProps> = ({ onClose, onSave, 
                          <div>
                              <label className={labelStyle}>Goal Type</label>
                              <div className={SELECT_WRAPPER_STYLE}>
-                                 <select value={goalCategory} onChange={e => setGoalCategory(e.target.value as GoalCategory)} className={INPUT_BASE_STYLE}>
+                                 <select value={goalCategory} onChange={e => setGoalCategory(e.target.value as GoalCategory)} className={SELECT_STYLE}>
                                      <option value="savings">Saving goal</option>
                                      <option value="expense">Spending target</option>
                                      <option value="income">Income target</option>
@@ -225,7 +225,7 @@ const GoalScenarioModal: React.FC<GoalScenarioModalProps> = ({ onClose, onSave, 
                                     <div>
                                         <label htmlFor="goal-frequency" className={labelStyle}>Frequency</label>
                                         <div className={SELECT_WRAPPER_STYLE}>
-                                            <select id="goal-frequency" value={frequency} onChange={e => setFrequency(e.target.value as RecurrenceFrequency)} className={INPUT_BASE_STYLE}>
+                                            <select id="goal-frequency" value={frequency} onChange={e => setFrequency(e.target.value as RecurrenceFrequency)} className={SELECT_STYLE}>
                                                 {FREQUENCIES.map(f => <option key={f.value} value={f.value}>{f.label}</option>)}
                                             </select>
                                             <div className={SELECT_ARROW_STYLE}><span className="material-symbols-outlined">expand_more</span></div>
@@ -274,7 +274,7 @@ const GoalScenarioModal: React.FC<GoalScenarioModalProps> = ({ onClose, onSave, 
                         <div>
                             <label htmlFor="goal-payment-account" className={labelStyle}>Linked Account (Optional)</label>
                             <div className={SELECT_WRAPPER_STYLE}>
-                                <select id="goal-payment-account" value={paymentAccountId || ''} onChange={e => setPaymentAccountId(e.target.value || undefined)} className={INPUT_BASE_STYLE}>
+                                <select id="goal-payment-account" value={paymentAccountId || ''} onChange={e => setPaymentAccountId(e.target.value || undefined)} className={SELECT_STYLE}>
                                     <option value="">None</option>
                                     {ALL_ACCOUNT_TYPES.map(type => {
                                         const group = groupedAccounts[type];
@@ -295,7 +295,7 @@ const GoalScenarioModal: React.FC<GoalScenarioModalProps> = ({ onClose, onSave, 
                             <div>
                                 <label htmlFor="goal-parent" className={labelStyle}>Parent Goal (Optional)</label>
                                 <div className={SELECT_WRAPPER_STYLE}>
-                                    <select id="goal-parent" value={parentId || ''} onChange={e => setParentId(e.target.value || undefined)} className={INPUT_BASE_STYLE} disabled={!!preselectedParentId}>
+                                    <select id="goal-parent" value={parentId || ''} onChange={e => setParentId(e.target.value || undefined)} className={SELECT_STYLE} disabled={!!preselectedParentId}>
                                         <option value="">None (Top-level goal)</option>
                                         {parentGoalOptions.map(goal => (
                                             <option key={goal.id} value={goal.id}>{goal.name}</option>
