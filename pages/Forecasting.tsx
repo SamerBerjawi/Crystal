@@ -331,21 +331,20 @@ const Forecasting: React.FC = () => {
         const periodEndBalance = forecastDataForPeriod.length > 0 ? forecastDataForPeriod[forecastDataForPeriod.length - 1].value : 0;
 
         const historyData: typeof forecastDataForPeriod = [];
-        let currentHistoryBal = periodStartBalance;
+        let runningAccountBalances = selectedAccounts.reduce((acc, a) => {
+            acc[a.id] = convertToEur(a.balance, a.currency);
+            return acc;
+        }, {} as Record<string, number>);
         const today = new Date();
         const todayStr = toLocalISOString(today);
 
-        const txsByDate = new Map<string, number>();
+        const txsByDateAndAccount = new Map<string, Map<string, number>>();
         transactions.forEach(tx => {
-             if (selectedAccountIds.includes(tx.accountId) && !tx.transferId) {
-                  const d = tx.date;
-                  txsByDate.set(d, (txsByDate.get(d) || 0) + convertToEur(tx.amount, tx.currency));
-             } else if (tx.transferId) {
-                 if (selectedAccountIds.includes(tx.accountId)) {
-                     const d = tx.date;
-                     txsByDate.set(d, (txsByDate.get(d) || 0) + convertToEur(tx.amount, tx.currency));
-                 }
-             }
+             if (!selectedAccountIds.includes(tx.accountId)) return;
+             const d = tx.date;
+             if (!txsByDateAndAccount.has(d)) txsByDateAndAccount.set(d, new Map());
+             const accMap = txsByDateAndAccount.get(d)!;
+             accMap.set(tx.accountId, (accMap.get(tx.accountId) || 0) + convertToEur(tx.amount, tx.currency));
         });
 
         for (let i = 0; i <= 10; i++) {
@@ -359,15 +358,20 @@ const Forecasting: React.FC = () => {
              dateForChangeLookup.setDate(today.getDate() - i);
              const lookupDateStr = toLocalISOString(dateForChangeLookup);
              
-             const change = txsByDate.get(lookupDateStr) || 0;
-             currentHistoryBal -= change; 
+             const dayChanges = txsByDateAndAccount.get(lookupDateStr);
+             if (dayChanges) {
+                 dayChanges.forEach((amt, accId) => {
+                     runningAccountBalances[accId] = (runningAccountBalances[accId] || 0) - amt;
+                 });
+             }
              
              const dPrev = new Date(d);
              dPrev.setDate(d.getDate() - 1);
              
              historyData.push({ 
                  date: toLocalISOString(dPrev), 
-                 value: currentHistoryBal,
+                 value: Object.values(runningAccountBalances).reduce((a, b) => a + b, 0),
+                 ...runningAccountBalances,
                  dailySummary: [], 
                  isHistory: true
             });
@@ -1107,18 +1111,20 @@ const Forecasting: React.FC = () => {
                         </p>
                     </div>
                     <div className="flex items-center gap-3 w-full sm:w-auto">
-                        <div className="flex bg-light-fill dark:bg-dark-fill p-1 rounded-xl flex-1 sm:flex-initial">
+                        <div className="flex bg-light-fill dark:bg-dark-fill p-1 rounded-xl flex-1 sm:flex-initial shadow-inner">
                             <button 
                                 onClick={() => setShowIndividualLines(false)}
-                                className={`flex-1 sm:px-4 py-1.5 text-[10px] font-black uppercase tracking-widest rounded-lg transition-all ${!showIndividualLines ? 'bg-white dark:bg-dark-card shadow-sm text-primary-500' : 'text-light-text-secondary hover:text-light-text dark:hover:text-dark-text'}`}
+                                className={`flex-1 sm:px-6 py-2 text-[10px] font-black uppercase tracking-widest rounded-lg transition-all flex items-center justify-center gap-2 ${!showIndividualLines ? 'bg-white dark:bg-dark-card shadow-md text-primary-500 scale-105 z-10' : 'text-light-text-secondary hover:text-light-text dark:hover:text-dark-text opacity-70'}`}
                             >
+                                <span className="material-symbols-outlined text-xs">stacked_line_chart</span>
                                 Combined
                             </button>
                             <button 
                                 onClick={() => setShowIndividualLines(true)}
-                                className={`flex-1 sm:px-4 py-1.5 text-[10px] font-black uppercase tracking-widest rounded-lg transition-all ${showIndividualLines ? 'bg-white dark:bg-dark-card shadow-sm text-primary-500' : 'text-light-text-secondary hover:text-light-text dark:hover:text-dark-text'}`}
+                                className={`flex-1 sm:px-6 py-2 text-[10px] font-black uppercase tracking-widest rounded-lg transition-all flex items-center justify-center gap-2 ${showIndividualLines ? 'bg-white dark:bg-dark-card shadow-md text-primary-500 scale-105 z-10' : 'text-light-text-secondary hover:text-light-text dark:hover:text-dark-text opacity-70'}`}
                             >
-                                Split
+                                <span className="material-symbols-outlined text-xs">multiline_chart</span>
+                                Split Accounts
                             </button>
                         </div>
 

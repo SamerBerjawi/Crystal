@@ -246,6 +246,15 @@ const AccountRow: React.FC<AccountRowProps> = ({ account, transactions, warrants
                 boxShadow: `0 10px 40px -10px ${glowColor}`
             }}
         >
+            {/* Inner Glow Effect */}
+            <div 
+                className="absolute inset-0 pointer-events-none rounded-[2rem] overflow-hidden"
+                style={{ 
+                    background: `radial-gradient(circle at 0% 0%, ${glowColor} 0%, transparent 50%)`,
+                    opacity: 0.6
+                }}
+            />
+
             {/* Action Bar Overlay */}
             <div className="absolute top-4 right-4 flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity z-30">
                 <button 

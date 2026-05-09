@@ -118,6 +118,21 @@ const AccountCard: React.FC<AccountCardProps> = ({
     const isAsset = displayBalance >= 0;
     const sparklineColor = isPositiveTrend ? '#10B981' : '#F43F5E';
     
+    const glowColors: Record<string, string> = {
+        Checking: 'rgba(59, 130, 246, 0.25)', // Blue
+        'Credit Card': 'rgba(244, 63, 94, 0.25)', // Rose
+        Investment: 'rgba(139, 92, 246, 0.25)', // Violet
+        Lending: 'rgba(20, 184, 166, 0.25)', // Teal
+        Loan: 'rgba(239, 68, 68, 0.25)', // Red
+        'Other Assets': 'rgba(132, 204, 22, 0.25)', // Lime
+        Property: 'rgba(14, 165, 233, 0.25)', // Sky
+        Savings: 'rgba(16, 185, 129, 0.25)', // Emerald
+        Vehicle: 'rgba(100, 116, 139, 0.25)', // Slate
+        'Other Liabilities': 'rgba(236, 72, 153, 0.25)', // Pink
+    };
+
+    const glowColor = glowColors[account.type] || 'rgba(156, 163, 175, 0.25)';
+    
     let style = ACCOUNT_TYPE_STYLES[account.type];
     if (account.type === 'Other Assets' && account.otherSubType) {
         style = OTHER_ASSET_SUB_TYPE_STYLES[account.otherSubType as OtherAssetSubType] || style;
@@ -161,7 +176,16 @@ const AccountCard: React.FC<AccountCardProps> = ({
                 className={`flex items-center justify-between h-full hover:shadow-lg transition-shadow duration-200 cursor-pointer group ${dragClasses}`} 
                 onClick={onClick}
             >
-                <div className="flex items-center flex-1 min-w-0">
+                {/* Inner Glow Effect */}
+                <div 
+                    className="absolute inset-0 pointer-events-none rounded-xl overflow-hidden"
+                    style={{ 
+                        background: `radial-gradient(circle at 0% 0%, ${glowColor} 0%, transparent 60%)`,
+                        opacity: 0.5
+                    }}
+                />
+                
+                <div className="flex items-center flex-1 min-w-0 relative z-10">
                     <div className={`text-3xl mr-4 flex items-center justify-center w-12 h-12 shrink-0 ${style.color}`}>
                         <span className="material-symbols-outlined" style={{ fontSize: '36px' }}>
                             {account.icon || style.icon}
@@ -175,7 +199,7 @@ const AccountCard: React.FC<AccountCardProps> = ({
                     </div>
                 </div>
 
-                <div className="flex items-center gap-4 ml-4">
+                <div className="flex items-center gap-4 ml-4 relative z-10">
                     <div className="w-24 h-10 shrink-0">
                         <ResponsiveContainer minWidth={0} minHeight={0} debounce={50}>
                             <LineChart width={96} height={60} data={sparklineData}>
