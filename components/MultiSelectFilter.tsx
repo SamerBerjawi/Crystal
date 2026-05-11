@@ -59,7 +59,7 @@ const MultiSelectFilter: React.FC<MultiSelectFilterProps> = ({ options, selected
       <button
         type="button"
         onClick={() => setIsOpen(!isOpen)}
-        className={`${INPUT_BASE_STYLE} !w-auto min-w-[10rem] flex items-center justify-between text-left whitespace-nowrap !font-bold text-[10px] uppercase tracking-widest !pl-4 !pr-2 bg-light-fill dark:bg-dark-fill transition-all duration-200`}
+        className={`${INPUT_BASE_STYLE} !w-auto min-w-[10rem] flex items-center justify-between text-left whitespace-nowrap font-semibold text-[11px] !pl-4 !pr-2 bg-light-fill dark:bg-dark-fill transition-all duration-200`}
       >
         <span className="mr-2 truncate max-w-[12rem]">{buttonText}</span>
         <span className={`material-symbols-outlined text-sm transition-transform duration-200 ${isOpen ? 'rotate-180' : ''}`}>expand_more</span>
@@ -74,9 +74,9 @@ const MultiSelectFilter: React.FC<MultiSelectFilterProps> = ({ options, selected
             className={`${INPUT_BASE_STYLE} !h-9 !text-xs !px-3 mb-3 font-semibold`}
             autoFocus
           />
-          <div className="flex justify-between items-center text-[10px] uppercase tracking-widest font-bold px-1 mb-2 text-light-text-secondary dark:text-dark-text-secondary">
+          <div className="flex justify-between items-center text-[10px] font-semibold px-1 mb-2 text-light-text-secondary dark:text-dark-text-secondary">
             <button type="button" onClick={handleToggleAll} className="text-primary-600 dark:text-primary-400 hover:opacity-80 transition-opacity">
-              {selectedValues.length === options.length ? 'Deselect All' : 'Select All'}
+              {selectedValues.length === options.length ? 'Deselect all' : 'Select all'}
             </button>
             <span>{selectedValues.length} / {options.length}</span>
           </div>

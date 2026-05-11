@@ -58,7 +58,7 @@ const CreditCardStatementCard: React.FC<CreditCardStatementCardProps> = ({
         return (
             <div className={`p-3 rounded-xl border ${isHighlight ? 'bg-blue-50 dark:bg-blue-900/10 border-blue-100 dark:border-blue-800/30' : 'bg-gray-50 dark:bg-white/5 border-transparent'}`}>
                 <div className="flex justify-between items-center mb-1.5">
-                    <h4 className={`text-xs font-bold uppercase tracking-wider ${isHighlight ? 'text-blue-700 dark:text-blue-300' : 'text-light-text-secondary dark:text-dark-text-secondary'}`}>{title}</h4>
+                    <h4 className={`text-xs font-semibold tracking-wider ${isHighlight ? 'text-blue-700 dark:text-blue-300' : 'text-light-text-secondary dark:text-dark-text-secondary'}`}>{title}</h4>
                 </div>
                 <div className="space-y-0.5">
                     <div className="flex justify-between items-end">
@@ -75,7 +75,7 @@ const CreditCardStatementCard: React.FC<CreditCardStatementCardProps> = ({
                         <div className="flex items-center gap-2 text-[10px]">
                             <span className="text-light-text-secondary dark:text-dark-text-secondary">{isPreviousCredit ? 'Prev. Credit' : 'Prev. Bill'}</span>
                             {isPaid && (
-                                <span className="flex items-center gap-1 font-bold uppercase bg-green-100 dark:bg-green-900/30 text-green-700 dark:text-green-400 px-1.5 py-0.5 rounded scale-90 origin-left">
+                                <span className="flex items-center gap-1 font-semibold bg-green-100 dark:bg-green-900/30 text-green-700 dark:text-green-400 px-1.5 py-0.5 rounded scale-90 origin-left">
                                     <span className="material-symbols-outlined text-[10px]">check</span> Paid
                                 </span>
                             )}
@@ -95,7 +95,7 @@ const CreditCardStatementCard: React.FC<CreditCardStatementCardProps> = ({
                     <div className="w-6 h-6 rounded-lg bg-primary-100 dark:bg-primary-900/30 text-primary-600 dark:text-primary-400 flex items-center justify-center shrink-0">
                         <span className="material-symbols-outlined text-[14px]">credit_card</span>
                     </div>
-                    <h3 className="font-bold text-[14px] text-light-text dark:text-dark-text truncate">{accountName}</h3>
+                    <h3 className="font-semibold text-[14px] text-light-text dark:text-dark-text truncate">{accountName}</h3>
                 </div>
                 
                 {creditLimit && creditLimit > 0 && (

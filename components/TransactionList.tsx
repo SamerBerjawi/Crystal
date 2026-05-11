@@ -9,6 +9,7 @@ interface TransactionListProps {
   transactions: DisplayTransaction[];
   allCategories: Category[];
   onTransactionClick?: (transaction: DisplayTransaction) => void;
+  density?: 'default' | 'high';
 }
 
 const buildCategoryDetailsMap = (categories: Category[]) => {
@@ -27,7 +28,7 @@ const buildCategoryDetailsMap = (categories: Category[]) => {
   return detailsMap;
 };
 
-const TransactionList: React.FC<TransactionListProps> = ({ transactions, allCategories, onTransactionClick }) => {
+const TransactionList: React.FC<TransactionListProps> = ({ transactions, allCategories, onTransactionClick, density = 'default' }) => {
   const brandfetchClientId = usePreferencesSelector(p => (p.brandfetchClientId || '').trim());
   const merchantLogoOverrides = usePreferencesSelector(p => p.merchantLogoOverrides || {});
   const merchantRules = usePreferencesSelector(p => p.merchantRules || {}) as Record<string, MerchantRule>;
@@ -64,10 +65,14 @@ const TransactionList: React.FC<TransactionListProps> = ({ transactions, allCate
           ? formatCurrency(tx.amount, tx.currency)
           : formatCurrency(convertToEur(tx.amount, tx.currency), 'EUR');
         
-        const catDetails = categoryDetailsMap.get(tx.category) || {};
+            const catDetails = categoryDetailsMap.get(tx.category) || {};
         const icon = isTransfer ? 'swap_horiz' : (catDetails.icon || catDetails.parentIcon || 'sell');
         const categoryColor = isTransfer ? '#64748B' : (catDetails.color || '#A0AEC0');
         
+        const accentColor = isTransfer 
+          ? 'rgba(59, 130, 246, 0.4)' 
+          : (tx.type === 'income' ? 'rgba(16, 185, 129, 0.4)' : 'rgba(244, 63, 94, 0.4)');
+
         const merchantKey = normalizeMerchantKey(tx.merchant);
         const merchantLogoUrl = merchantKey ? getMerchantLogoUrl(tx.merchant, brandfetchClientId, effectiveMerchantLogoOverrides, { fallback: 'lettermark', type: 'icon', width: 80, height: 80 }) : null;
         const merchantInitial = tx.merchant?.trim().charAt(0)?.toUpperCase();
@@ -80,7 +85,8 @@ const TransactionList: React.FC<TransactionListProps> = ({ transactions, allCate
           description, 
           amountDisplay, 
           icon, 
-          categoryColor, 
+          categoryColor,
+          accentColor,
           isTransfer, 
           formattedDate, 
           spareAmountEur,
@@ -94,7 +100,7 @@ const TransactionList: React.FC<TransactionListProps> = ({ transactions, allCate
   const containerRef = useRef<HTMLDivElement>(null);
   const [scrollTop, setScrollTop] = useState(0);
   const [viewportHeight, setViewportHeight] = useState(640);
-  const ROW_HEIGHT = 72;
+  const ROW_HEIGHT = density === 'high' ? 68 : 80;
   const OVERSCAN = 8;
 
   const handleScroll = useThrottledCallback((position: number) => setScrollTop(position), 100);
@@ -126,17 +132,31 @@ const TransactionList: React.FC<TransactionListProps> = ({ transactions, allCate
       <div ref={containerRef} className="space-y-2 h-full w-full overflow-y-auto relative p-2" role="list">
         <div style={{ height: preparedTransactions.length * ROW_HEIGHT }} aria-hidden />
         <ul className="absolute inset-0" style={{ transform: `translateY(${offsetY}px)` }}>
-          {visibleTransactions.map(({ tx, description, amountDisplay, icon, categoryColor, isTransfer, formattedDate, spareAmountEur, merchantLogoUrl, merchantInitial }) => {
+          {visibleTransactions.map(({ tx, description, amountDisplay, icon, categoryColor, accentColor, isTransfer, spareAmountEur, merchantLogoUrl, merchantInitial }) => {
             const showMerchantLogo = Boolean(merchantLogoUrl && !logoLoadErrors.has(merchantLogoUrl));
             return (
               <li
                 key={tx.id}
-                className="flex items-center justify-between group cursor-pointer hover:bg-light-fill dark:hover:bg-dark-fill p-2 rounded-lg transition-all duration-200 hover:shadow-sm"
+                className="flex items-center justify-between group cursor-pointer hover:bg-black/[0.02] dark:hover:bg-white/[0.02] p-3 rounded-[1.5rem] transition-all duration-300 border border-transparent hover:border-black/5 dark:hover:border-white/5 relative"
+                style={{ 
+                    height: density === 'high' ? '60px' : '72px',
+                    boxShadow: `hover: 0 10px 30px -10px ${accentColor.replace('0.4', '0.15')}`
+                }}
                 onClick={() => onTransactionClick?.(tx)}
               >
-                <div className="flex items-center min-w-0">
+                {/* Glow Effect */}
+                <div className="absolute inset-x-2 inset-y-1 pointer-events-none rounded-[1.5rem] overflow-hidden opacity-0 group-hover:opacity-100 transition-opacity duration-500 z-0">
+                    <div 
+                        className="absolute inset-0"
+                        style={{ 
+                            background: `radial-gradient(circle at 0% 50%, ${accentColor.replace('0.4', '0.08')} 0%, transparent 60%)`,
+                        }}
+                    />
+                </div>
+
+                <div className="flex items-center min-w-0 flex-1 relative z-10">
                   <div 
-                    className={`flex-shrink-0 h-10 w-10 rounded-xl flex items-center justify-center overflow-hidden shadow-sm ${showMerchantLogo ? 'bg-white dark:bg-dark-card' : 'border border-black/5 dark:border-white/10'}`}
+                    className={`flex-shrink-0 ${density === 'high' ? 'h-9 w-9' : 'h-11 w-11'} rounded-2xl flex items-center justify-center overflow-hidden shadow-sm ring-1 ring-black/5 dark:ring-white/10 ${showMerchantLogo ? 'bg-white' : ''}`}
                     style={showMerchantLogo ? undefined : { backgroundColor: isTransfer ? undefined : categoryColor }}
                   >
                     {showMerchantLogo && merchantLogoUrl ? (
@@ -144,51 +164,60 @@ const TransactionList: React.FC<TransactionListProps> = ({ transactions, allCate
                         src={merchantLogoUrl}
                         alt=""
                         className="w-full h-full object-cover"
+                        referrerPolicy="no-referrer"
                         onError={() => handleLogoError(merchantLogoUrl)}
                       />
-                    ) : merchantInitial && !isTransfer ? (
-                      <span className="text-sm font-bold text-white uppercase">{merchantInitial}</span>
                     ) : (
-                      <span className={`material-symbols-outlined ${isTransfer ? 'text-light-text-secondary dark:text-dark-text-secondary' : 'text-white'}`}>
+                      <span className={`material-symbols-outlined text-2xl ${isTransfer ? 'text-light-text-secondary dark:text-dark-text-secondary' : 'text-white'}`}>
                         {icon}
                       </span>
                     )}
                   </div>
-                  <div className="ml-4 min-w-0">
-                    <p className="text-base font-medium text-light-text dark:text-dark-text flex items-center gap-2 truncate">
-                        {description}
-                        {tx.isMarketAdjustment && <span className="text-[10px] uppercase font-bold bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-300 px-1.5 py-0.5 rounded shrink-0">Market</span>}
-                    </p>
-                    <p className="text-xs text-light-text-secondary dark:text-dark-text-secondary flex items-center gap-1.5">
-                        <span>{formattedDate}</span>
-                        <span className="w-1 h-1 rounded-full bg-gray-300 dark:bg-white/20"></span>
-                        <span className="truncate">{tx.category}</span>
+                  <div className="ml-4 min-w-0 overflow-hidden flex-1">
+                    <div className="flex items-center gap-2">
+                        <p className={`${density === 'high' ? 'text-[14px]' : 'text-[16px]'} font-medium text-light-text dark:text-dark-text truncate tracking-tight`}>
+                            {description}
+                        </p>
+                        {tx.isMarketAdjustment && <span className="text-[9px] font-medium bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-300 px-1.5 py-0.5 rounded-full shrink-0">Market</span>}
+                    </div>
+                    <div className="flex items-center gap-2 mt-0.5">
+                        <span className="text-[11px] px-2 py-0.5 rounded-lg font-medium tracking-tight flex items-center gap-1" style={{ backgroundColor: `${categoryColor}15`, color: categoryColor }}>
+                            <span className="w-1 h-1 rounded-full" style={{ backgroundColor: categoryColor }}></span>
+                            {tx.category}
+                        </span>
                         {tx.tagIds && tx.tagIds.length > 0 && (
-                            <span className="text-[10px] bg-primary-500/10 text-primary-600 dark:text-primary-400 px-1 rounded font-bold">
+                            <span className="text-[11px] bg-primary-500/10 text-primary-600 dark:text-primary-400 px-2 py-0.5 rounded-lg font-medium tracking-tight">
                                 {tx.tagIds.length} tags
                             </span>
                         )}
-                        {tx.notes && <span className="material-symbols-outlined text-[14px] text-primary-500">notes</span>}
-                    </p>
+                        {tx.accountName && (
+                            <div className="flex items-center gap-1.5 px-2 py-0.5 bg-black/5 dark:bg-white/5 rounded-lg opacity-60">
+                                <span className="text-[10px] font-medium text-light-text-secondary dark:text-dark-text-secondary tracking-tight">
+                                    {tx.accountName}
+                                </span>
+                            </div>
+                        )}
+                        {tx.notes && <span className="material-symbols-outlined text-[14px] text-primary-500/50">description</span>}
+                    </div>
                   </div>
                 </div>
-                <div className="flex items-center gap-2 text-right shrink-0">
-                  <div>
+                <div className="flex items-center gap-4 text-right shrink-0 relative z-10">
+                  <div className="flex flex-col items-end">
                     <p
-                      className={`text-base font-semibold privacy-blur ${
-                        isTransfer ? 'text-light-text dark:text-dark-text' : (tx.type === 'income' ? 'text-semantic-green' : 'text-semantic-red')
+                      className={`${density === 'high' ? 'text-[15px]' : 'text-[17px]'} font-medium tracking-tighter privacy-blur ${
+                        isTransfer ? 'text-light-text dark:text-dark-text' : (tx.type === 'income' ? 'text-emerald-600 dark:text-emerald-400' : 'text-rose-600 dark:text-rose-400')
                       }`}
                     >
                       {amountDisplay}
                     </p>
                     {spareAmountEur && (
-                      <p className="text-[10px] font-bold text-light-text-secondary dark:text-dark-text-secondary flex items-center justify-end gap-0.5 opacity-80">
-                        <span className="material-symbols-outlined text-[12px]">savings</span>
-                        {spareAmountEur}
-                      </p>
+                      <div className="flex items-center gap-1 mt-0.5">
+                        <span className="material-symbols-outlined text-[12px] text-emerald-500">savings</span>
+                        <span className="text-[11px] font-medium text-emerald-600 dark:text-emerald-400 tracking-tight">{spareAmountEur}</span>
+                      </div>
                     )}
                   </div>
-                  <span className="material-symbols-outlined text-light-text-secondary dark:text-dark-text-secondary opacity-0 group-hover:opacity-100 transition-opacity">
+                  <span className="material-symbols-outlined text-light-text-secondary dark:text-dark-text-secondary opacity-0 group-hover:opacity-40 transition-opacity">
                     chevron_right
                   </span>
                 </div>

@@ -150,7 +150,7 @@ const TodayWidget: React.FC<TodayWidgetProps> = ({
                 <div className="w-16 h-16 bg-white dark:bg-white/10 rounded-full flex items-center justify-center mb-4 shadow-sm">
                     <span className="material-symbols-outlined text-4xl text-blue-500">wb_sunny</span>
                 </div>
-                <h3 className="text-lg font-bold text-blue-900 dark:text-blue-100">Nothing Due Today</h3>
+                <h3 className="text-lg font-semibold text-blue-900 dark:text-blue-100">Nothing due today</h3>
                 <p className="text-sm text-blue-700/70 dark:text-blue-300/70 mt-1">
                     You have no tasks or payments scheduled for today.
                 </p>

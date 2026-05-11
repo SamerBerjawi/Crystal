@@ -1,10 +1,10 @@
 import React, { useMemo } from 'react';
 import { Account, Transaction, DisplayTransaction, Category } from '../types';
-import { formatCurrency, parseLocalDate, convertToEur, getPreferredTimeZone, toLocalISOString } from '../utils';
-import Card from './Card';
+import { formatCurrency, convertToEur, getPreferredTimeZone } from '../utils';
 import TransactionList from './TransactionList';
 import { BTN_PRIMARY_STYLE, BTN_SECONDARY_STYLE } from '../constants';
-import { ResponsiveContainer, BarChart, CartesianGrid, XAxis, YAxis, Tooltip, Bar, Cell, ReferenceLine } from 'recharts';
+import { ResponsiveContainer, CartesianGrid, XAxis, YAxis, Tooltip, BarChart, Bar, Cell } from 'recharts';
+import { motion } from 'motion/react';
 
 interface CashAccountViewProps {
   account: Account;
@@ -19,6 +19,48 @@ interface CashAccountViewProps {
   isLinkedToEnableBanking?: boolean;
   showBalanceAdjustments?: boolean;
 }
+
+const MetricTile = ({ label, value, icon, subValue, trend, colorClass = 'primary' }: { 
+    label: string; 
+    value: string; 
+    icon: string; 
+    subValue?: string;
+    trend?: { val: string; positive: boolean };
+    colorClass?: 'primary' | 'emerald' | 'rose' | 'amber' | 'blue' | 'indigo' | 'orange' | 'purple';
+}) => {
+    const colors = {
+        primary: 'bg-primary-500/10 text-primary-500',
+        emerald: 'bg-emerald-500/10 text-emerald-500',
+        rose: 'bg-rose-500/10 text-rose-500',
+        amber: 'bg-amber-500/10 text-amber-500',
+        blue: 'bg-blue-500/10 text-blue-500',
+        indigo: 'bg-indigo-500/10 text-indigo-500',
+        orange: 'bg-orange-500/10 text-orange-500',
+        purple: 'bg-purple-500/10 text-purple-500',
+    };
+
+    return (
+        <div className="bg-white dark:bg-dark-card border border-black/5 dark:border-white/5 rounded-[2rem] p-6 relative overflow-hidden group hover:shadow-xl hover:shadow-black/5 dark:hover:shadow-white/5 transition-all duration-500 h-full">
+            <div className={`absolute top-0 right-0 w-24 h-24 -mr-8 -mt-8 rounded-full blur-3xl opacity-20 transition-opacity group-hover:opacity-40 ${colors[colorClass].split(' ')[1].replace('text-', 'bg-')}`}></div>
+            <div className="flex justify-between items-start relative z-10">
+                <div className={`w-12 h-12 rounded-2xl flex items-center justify-center ${colors[colorClass]}`}>
+                    <span className="material-symbols-outlined text-2xl">{icon}</span>
+                </div>
+                {trend && (
+                    <div className={`flex items-center gap-1 text-[10px] font-black px-2 py-1 rounded-lg ${trend.positive ? 'bg-emerald-500/10 text-emerald-500' : 'bg-rose-500/10 text-rose-500'}`}>
+                         <span className="material-symbols-outlined text-[10px]">{trend.positive ? 'trending_up' : 'trending_down'}</span>
+                         {trend.val}
+                    </div>
+                )}
+            </div>
+            <div className="mt-6 relative z-10">
+                <p className="text-[10px] font-bold tracking-wider text-light-text-secondary/70 dark:text-dark-text-secondary/90 mb-1">{label}</p>
+                <h4 className="text-2xl font-black text-light-text dark:text-dark-text tracking-tight tabular-nums">{value}</h4>
+                {subValue && <p className="text-[11px] font-bold text-light-text-secondary/50 dark:text-dark-text-secondary/70 mt-1 tracking-tight">{subValue}</p>}
+            </div>
+        </div>
+    );
+};
 
 const CashAccountView: React.FC<CashAccountViewProps> = ({
   account,
@@ -47,7 +89,6 @@ const CashAccountView: React.FC<CashAccountViewProps> = ({
       transactions
         .filter(({ tx }) => showBalanceAdjustments || !tx.isBalanceAdjustment)
         .forEach(({ tx, parsedDate }) => {
-          // Check for last replenishment (Transfer IN)
           if (tx.type === 'income' && (tx.transferId || tx.category === 'Transfer') && (!lastRep || parsedDate > lastRep)) {
               lastRep = parsedDate;
           }
@@ -67,14 +108,12 @@ const CashAccountView: React.FC<CashAccountViewProps> = ({
       };
   }, [transactions, showBalanceAdjustments]);
 
-  // --- Chart Data (Inflow vs Outflow) ---
   const flowData = useMemo(() => {
     const data = [];
     const today = new Date();
     for (let i = 5; i >= 0; i--) {
         const d = new Date(today.getFullYear(), today.getMonth() - i, 1);
         const monthKey = d.toLocaleString('default', { month: 'short' });
-        
         const startOfMonth = new Date(d.getFullYear(), d.getMonth(), 1);
         const endOfMonth = new Date(d.getFullYear(), d.getMonth() + 1, 0);
         
@@ -95,179 +134,190 @@ const CashAccountView: React.FC<CashAccountViewProps> = ({
     return data;
   }, [transactions, showBalanceAdjustments]);
 
-  // --- Calculate Burn Rate ---
   const burnRateMessage = useMemo(() => {
-      if (account.balance <= 0) return "Balance depleted";
-      const avgDailySpend = totalOutflow / 30; // Rough 30 day avg
-      if (avgDailySpend <= 0) return "No recent spending";
+      if (account.balance <= 0) return "Reserve depleted";
+      const avgDailySpend = totalOutflow / 30;
+      if (avgDailySpend <= 0) return "Stagnant reserve";
       const daysLeft = account.balance / avgDailySpend;
-      if (daysLeft < 3) return "Low cash warning";
-      if (daysLeft > 60) return "High cash reserve";
-      return `~${Math.floor(daysLeft)} days coverage`;
+      if (daysLeft < 3) return "Low reserve warning";
+      if (daysLeft > 60) return "Robust liquidity";
+      return `~${Math.floor(daysLeft)} days runway`;
   }, [account.balance, totalOutflow]);
 
   return (
-    <div className="space-y-8 animate-fade-in-up">
-      {/* Header */}
-      <header className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
-        <div className="flex items-center gap-4 w-full">
-          <button onClick={onBack} className="text-light-text-secondary dark:text-dark-text-secondary p-2 rounded-full hover:bg-black/5 dark:hover:bg-white/5 flex-shrink-0 -ml-2">
-            <span className="material-symbols-outlined">arrow_back</span>
-          </button>
-          <div className="flex items-center gap-4 w-full">
-            <div className="w-16 h-16 rounded-2xl flex items-center justify-center bg-emerald-100 dark:bg-emerald-900/30 text-emerald-600 dark:text-emerald-400 border border-emerald-200 dark:border-emerald-800">
-              <span className="material-symbols-outlined text-4xl">payments</span>
-            </div>
-            <div>
-              <h1 className="text-3xl font-bold text-light-text dark:text-dark-text tracking-tight">{account.name}</h1>
-              <div className="flex items-center gap-2 text-sm text-light-text-secondary dark:text-dark-text-secondary font-medium">
-                <span className="flex items-center gap-1">
-                    <span className="material-symbols-outlined text-sm">location_on</span>
-                    {account.location || 'Unspecified Location'}
-                </span>
-                <span>•</span>
-                <span>Physical Cash</span>
+    <div className="space-y-10 animate-fade-in-up pb-10">
+      {/* Dynamic Header */}
+      <header className="flex flex-col md:flex-row justify-between items-start md:items-end gap-6 relative">
+          <div className="flex items-center gap-6">
+              <button 
+                  onClick={onBack}
+                  className="w-12 h-12 rounded-2xl bg-white dark:bg-dark-card border border-black/5 dark:border-white/5 flex items-center justify-center hover:bg-primary-500 hover:text-white transition-all shadow-sm group active:scale-95"
+              >
+                  <span className="material-symbols-outlined transition-transform group-hover:-translate-x-1">arrow_back</span>
+              </button>
+              <div>
+                  <div className="flex items-center gap-2 mb-1">
+                       <span className="text-[10px] font-bold text-emerald-500 bg-emerald-500/10 px-2 py-0.5 rounded-lg border border-emerald-500/20">Cash Asset</span>
+                       <span className="text-[10px] font-bold text-light-text-secondary/30 dark:text-dark-text-secondary/30">•</span>
+                       <span className="text-[10px] font-bold text-light-text-secondary/60 dark:text-dark-text-secondary/80">{account.currency} Physical Reserve</span>
+                  </div>
+                  <h1 className="text-4xl font-black text-light-text dark:text-dark-text tracking-tighter flex items-center gap-3">
+                      {account.name}
+                      <span className="material-symbols-outlined text-light-text-secondary/20 dark:text-dark-text-secondary/20">payments</span>
+                  </h1>
               </div>
-            </div>
           </div>
-        </div>
-        <div className="flex gap-3 w-full md:w-auto items-center">
-             {isLinkedToEnableBanking && onSyncLinkedAccount && (
-                <button onClick={onSyncLinkedAccount} className={`${BTN_SECONDARY_STYLE} flex-1 md:flex-none`}>Sync</button>
-             )}
-             <button onClick={onAdjustBalance} className={`${BTN_SECONDARY_STYLE} flex-1 md:flex-none`}>
-                <span className="material-symbols-outlined text-lg mr-2">fact_check</span>
-                Count Cash
-            </button>
-            <button onClick={onAddTransaction} className={`${BTN_PRIMARY_STYLE} flex-1 md:flex-none`}>
-                <span className="material-symbols-outlined text-lg mr-2">add</span>
-                Add Log
-            </button>
-        </div>
+          
+          <div className="flex gap-3 w-full md:w-auto">
+              <button onClick={onAdjustBalance} className={`${BTN_SECONDARY_STYLE} rounded-2xl !px-6 h-12 shadow-sm border-black/5 dark:border-white/5 bg-white dark:bg-dark-card`}>
+                  <span className="material-symbols-outlined text-lg mr-2">balance</span>
+                  Adjust Balance
+              </button>
+              <button onClick={onAddTransaction} className={`${BTN_PRIMARY_STYLE} rounded-2xl !px-6 h-12 shadow-lg shadow-primary-500/20`}>
+                  <span className="material-symbols-outlined text-lg mr-2">add</span>
+                  Log Transaction
+              </button>
+          </div>
       </header>
 
-      <div className="grid grid-cols-1 lg:grid-cols-12 gap-8">
-          {/* Hero Section - The "Safe" */}
-          <div className="lg:col-span-5 xl:col-span-4">
-              <div className="relative h-full min-h-[280px] rounded-3xl bg-gradient-to-br from-emerald-600 to-teal-800 text-white p-8 shadow-2xl overflow-hidden flex flex-col justify-between border border-white/10 group">
-                  {/* Background Texture */}
-                  <div className="absolute inset-0 bg-[url('https://www.transparenttextures.com/patterns/cubes.png')] opacity-20 pointer-events-none"></div>
-                  <div className="absolute -right-10 -bottom-10 opacity-10 pointer-events-none">
-                       <span className="material-symbols-outlined text-[12rem]">lock</span>
-                  </div>
+      {/* Hero Financial Grid */}
+      <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 items-stretch">
+           {/* Immersive Safe Card */}
+           <div className="lg:col-span-5 xl:col-span-4">
+               <motion.div 
+                   initial={{ opacity: 0, y: 20 }}
+                   animate={{ opacity: 1, y: 0 }}
+                   className="relative h-full min-h-[440px] rounded-[3rem] bg-gradient-to-br from-slate-800 to-slate-950 text-white p-10 shadow-2xl overflow-hidden flex flex-col justify-between border border-white/10 group"
+               >
+                   <div className="absolute inset-0 bg-[radial-gradient(circle_at_top_right,rgba(255,255,255,0.05),transparent)]"></div>
+                   <div className="absolute -right-20 -bottom-20 w-80 h-80 bg-emerald-500/10 rounded-full blur-[100px] animate-pulse"></div>
+                   <div className="absolute inset-0 bg-[url('https://www.transparenttextures.com/patterns/black-linen.png')] opacity-20 pointer-events-none"></div>
+                   
+                   <div className="relative z-10">
+                        <div className="flex justify-between items-start mb-12">
+                             <div className="w-16 h-16 rounded-2xl bg-white/5 backdrop-blur-md border border-white/10 flex items-center justify-center shadow-lg">
+                                  <span className="material-symbols-outlined text-3xl text-emerald-400 font-light">lock</span>
+                             </div>
+                             <div className="text-right">
+                                  <p className="text-[10px] font-bold tracking-wider text-slate-400 mb-1">Status</p>
+                                  <p className="text-xs font-black text-emerald-400 tracking-widest drop-shadow-sm italic">Synchronized</p>
+                             </div>
+                        </div>
+                        
+                        <p className="text-[10px] font-bold text-slate-400 mb-2">Total Managed Cash</p>
+                        <h2 className="text-6xl font-black tracking-tighter tabular-nums drop-shadow-lg mb-8 italic">
+                            {formatCurrency(account.balance, account.currency)}
+                        </h2>
+                        
+                        <div className="inline-flex items-center gap-3 px-4 py-2 rounded-2xl bg-white/5 backdrop-blur-md border border-white/5 shadow-inner">
+                             <div className="w-2 h-2 rounded-full bg-emerald-500 shadow-[0_0_10px_rgba(16,185,129,0.5)]"></div>
+                             <span className="text-[11px] font-bold tracking-wider text-emerald-300 drop-shadow-sm">{burnRateMessage}</span>
+                        </div>
+                   </div>
 
-                  <div className="relative z-10">
-                       <p className="text-emerald-100 font-bold uppercase tracking-widest text-xs mb-2 flex items-center gap-2">
-                           <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse"></span>
-                           Current Balance
-                       </p>
-                       <h2 className="text-5xl font-extrabold tracking-tighter drop-shadow-sm">
-                           {formatCurrency(account.balance, account.currency)}
-                       </h2>
-                       <p className="text-emerald-100/80 text-sm mt-2 font-medium bg-black/20 inline-block px-3 py-1 rounded-lg backdrop-blur-sm border border-white/10">
-                           {burnRateMessage}
-                       </p>
-                  </div>
-
-                  <div className="relative z-10 mt-8 pt-6 border-t border-white/10 grid grid-cols-2 gap-4">
+                   <div className="relative z-10 pt-10 border-t border-white/5 grid grid-cols-2 gap-8">
                        <div>
-                           <p className="text-[10px] uppercase tracking-wider text-emerald-200 font-bold mb-1">Last Replenished</p>
-                           <p className="font-semibold text-lg">
-                               {lastReplenishment ? lastReplenishment.toLocaleDateString(undefined, { month: 'short', day: 'numeric' }) : 'Never'}
+                           <p className="text-[10px] tracking-wider text-slate-500 font-bold mb-1">MTD Delta</p>
+                           <p className={`font-black text-xl flex items-center gap-1 ${netChange >= 0 ? 'text-white' : 'text-rose-400'}`}>
+                               {netChange >= 0 ? '↑' : '↓'} {formatCurrency(Math.abs(netChange), account.currency)}
                            </p>
                        </div>
                        <div>
-                           <p className="text-[10px] uppercase tracking-wider text-emerald-200 font-bold mb-1">Net Change (30d)</p>
-                           <p className={`font-semibold text-lg flex items-center gap-1 ${netChange >= 0 ? 'text-white' : 'text-red-200'}`}>
-                               {netChange >= 0 ? '+' : ''}{formatCurrency(netChange, 'EUR')}
+                           <p className="text-[10px] tracking-wider text-slate-500 font-bold mb-1">Last Intake</p>
+                           <p className="font-black text-xl text-white tabular-nums opacity-60">
+                                {lastReplenishment ? lastReplenishment.toLocaleDateString(undefined, { day: '2-digit', month: 'short' }) : '—'}
                            </p>
                        </div>
-                  </div>
-              </div>
-          </div>
+                   </div>
+               </motion.div>
+           </div>
 
-          {/* Analytics & History */}
-          <div className="lg:col-span-7 xl:col-span-8 flex flex-col gap-8">
-               {/* Quick Stats */}
-               <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                    <Card className="flex items-center justify-between p-5 border-l-4 border-l-emerald-500">
-                        <div>
-                            <p className="text-xs font-bold uppercase text-light-text-secondary dark:text-dark-text-secondary tracking-wider mb-1">Replenished (30d)</p>
-                            <p className="text-2xl font-bold text-emerald-600 dark:text-emerald-400">{formatCurrency(totalInflow, 'EUR')}</p>
-                        </div>
-                        <div className="w-10 h-10 rounded-full bg-emerald-100 dark:bg-emerald-900/30 flex items-center justify-center text-emerald-600 dark:text-emerald-400">
-                             <span className="material-symbols-outlined">arrow_downward</span>
-                        </div>
-                    </Card>
-                    <Card className="flex items-center justify-between p-5 border-l-4 border-l-rose-500">
-                        <div>
-                            <p className="text-xs font-bold uppercase text-light-text-secondary dark:text-dark-text-secondary tracking-wider mb-1">Spent Cash (30d)</p>
-                            <p className="text-2xl font-bold text-rose-600 dark:text-rose-400">{formatCurrency(totalOutflow, 'EUR')}</p>
-                        </div>
-                         <div className="w-10 h-10 rounded-full bg-rose-100 dark:bg-rose-900/30 flex items-center justify-center text-rose-600 dark:text-rose-400">
-                             <span className="material-symbols-outlined">payments</span>
-                        </div>
-                    </Card>
-               </div>
+           {/* Metrics & Analytics */}
+           <div className="lg:col-span-7 xl:col-span-8 flex flex-col gap-8">
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+                    <MetricTile 
+                        label="Replenished" 
+                        value={formatCurrency(totalInflow, account.currency)} 
+                        icon="input" 
+                        colorClass="emerald"
+                        subValue="New capital (30d)"
+                    />
+                    <MetricTile 
+                        label="Expended" 
+                        value={formatCurrency(totalOutflow, account.currency)} 
+                        icon="output" 
+                        colorClass="rose"
+                        subValue="Withdrawals (30d)"
+                    />
+                    <MetricTile 
+                        label="Reserve Index" 
+                        value={burnRateMessage.split(' ')[0]} 
+                        icon="analytics" 
+                        colorClass="blue"
+                        subValue="Stability forecast"
+                    />
+                </div>
 
-               {/* Cash Flow Chart */}
-               <Card className="flex-grow min-h-[300px] flex flex-col">
-                    <div className="flex justify-between items-center mb-4">
-                         <h3 className="font-bold text-light-text dark:text-dark-text text-lg">Cash Velocity</h3>
-                         <p className="text-xs text-light-text-secondary dark:text-dark-text-secondary">Inflow vs Outflow (6 Months)</p>
+                {/* Flow Velocity Chart */}
+                <div className="bg-white dark:bg-dark-card rounded-[2.5rem] border border-black/5 dark:border-white/5 p-8 flex-grow flex flex-col group relative overflow-hidden">
+                    <div className="absolute top-0 right-0 p-8 opacity-5">
+                         <span className="material-symbols-outlined text-8xl">compare_arrows</span>
                     </div>
-                    <div className="flex-grow w-full min-h-0">
-                         <ResponsiveContainer width="100%" height="100%">
-                             <BarChart data={flowData} margin={{ top: 10, right: 0, left: -20, bottom: 0 }} barSize={32}>
-                                <CartesianGrid strokeDasharray="3 3" strokeOpacity={0.06} vertical={false} />
-                                <XAxis dataKey="name" axisLine={false} tickLine={false} tick={{ fill: 'currentColor', opacity: 0.6, fontSize: 12 }} />
-                                <YAxis axisLine={false} tickLine={false} tick={{ fill: 'currentColor', opacity: 0.6, fontSize: 12 }} tickFormatter={(val) => `${val}`} />
-                                <Tooltip 
-                                    cursor={{ fill: 'rgba(128, 128, 128, 0.05)', radius: 4 }}
-                                    content={({ active, payload, label }) => {
-                                        if (active && payload && payload.length) {
-                                            return (
-                                                <div className="bg-white dark:bg-dark-card border border-black/5 dark:border-white/10 p-3 rounded-xl shadow-xl backdrop-blur-md">
-                                                    <p className="text-xs font-bold text-light-text-secondary dark:text-dark-text-secondary mb-1 uppercase tracking-wider">{label}</p>
-                                                    <div className="space-y-1">
-                                                        {payload.map((entry, idx) => (
-                                                            <div key={idx} className="flex items-center justify-between gap-4">
-                                                                <span className="text-xs font-medium" style={{ color: entry.fill }}>{entry.name}:</span>
-                                                                <span className="text-xs font-bold text-light-text dark:text-dark-text">
-                                                                    {formatCurrency(entry.value as number, account.currency)}
-                                                                </span>
-                                                            </div>
-                                                        ))}
-                                                    </div>
-                                                </div>
-                                            );
-                                        }
-                                        return null;
-                                    }}
+                    <div className="flex justify-between items-center mb-10 relative z-10">
+                        <div>
+                             <h3 className="text-xl font-black text-light-text dark:text-dark-text tracking-tight">Flow Lifecycle</h3>
+                             <p className="text-xs font-bold text-light-text-secondary/60 dark:text-dark-text-secondary/80 mt-1 tracking-wider">Inflow vs Outflow velocity</p>
+                        </div>
+                    </div>
+                    
+                    <div className="flex-grow w-full h-full min-h-[220px] relative z-10">
+                        <ResponsiveContainer width="100%" height="100%">
+                            <BarChart data={flowData} margin={{ top: 10, right: 0, left: -20, bottom: 0 }} barSize={32}>
+                                <CartesianGrid strokeDasharray="3 3" strokeOpacity={0.06} vertical={false} stroke="currentColor" />
+                                <XAxis 
+                                    dataKey="name" 
+                                    axisLine={false} 
+                                    tickLine={false} 
+                                    tick={{ fill: 'currentColor', opacity: 0.3, fontSize: 10, fontWeight: 900 }} 
                                 />
-                                <ReferenceLine y={0} stroke="#E5E7EB" />
-                                <Bar dataKey="income" name="Replenish" stackId="a" fill="#10B981" radius={[0, 0, 4, 4]} />
-                                <Bar dataKey="expense" name="Spend" stackId="a" fill="#F43F5E" radius={[4, 4, 0, 0]} />
-                             </BarChart>
-                         </ResponsiveContainer>
+                                <YAxis axisLine={false} tickLine={false} tick={{ fill: 'currentColor', opacity: 0.3, fontSize: 10, fontWeight: 900 }} />
+                                <Tooltip 
+                                    cursor={{ fill: 'rgba(110, 110, 110, 0.05)', radius: 12 }}
+                                    contentStyle={{ backgroundColor: 'rgba(255,255,255,0.8)', darkBackgroundColor: 'rgba(30,30,30,0.8)', backdropFilter: 'blur(20px)', borderRadius: '24px', border: 'none', boxShadow: '0 25px 50px -12px rgba(0,0,0,0.1)' }}
+                                    itemStyle={{ fontSize: '14px', fontWeight: '900' }}
+                                    labelStyle={{ fontSize: '10px', fontWeight: '900', color: '#94a3b8', marginBottom: '8px', letterSpacing: '0.05em' }}
+                                />
+                                <Bar dataKey="income" name="Intake" stackId="a" fill="#10B981" radius={[0, 0, 12, 12]} />
+                                <Bar dataKey="expense" name="Spend" stackId="a" fill="#F43F5E" radius={[12, 12, 0, 0]} />
+                            </BarChart>
+                        </ResponsiveContainer>
                     </div>
-               </Card>
-          </div>
+                </div>
+           </div>
       </div>
 
-      {/* Recent Ledger */}
-      <Card className="flex flex-col h-full max-h-[500px] !p-0">
-          <div className="flex justify-between items-center p-4 border-b border-black/5 dark:border-white/5">
-              <h3 className="text-lg font-semibold text-light-text dark:text-dark-text">Cash Ledger</h3>
-          </div>
-          <div className="flex-grow overflow-hidden">
-              <TransactionList
-                  transactions={displayTransactionsList}
-                  allCategories={allCategories}
-                  onTransactionClick={onTransactionClick}
-              />
-          </div>
-      </Card>
+      {/* Ledger Section */}
+      <div className="grid grid-cols-1 gap-8">
+            <div className="bg-white dark:bg-dark-card rounded-[2.5rem] border border-black/5 dark:border-white/5 shadow-2xl shadow-black/[0.02] overflow-hidden flex flex-col h-full group">
+                <div className="p-10 border-b border-black/5 dark:border-white/5 flex justify-between items-center bg-gray-50/30 dark:bg-white/[0.01]">
+                    <div>
+                        <h3 className="text-2xl font-black tracking-tight text-light-text dark:text-dark-text tracking-tight italic">Reserve Journal</h3>
+                        <p className="text-xs font-bold text-light-text-secondary/60 dark:text-dark-text-secondary/80 mt-1 tracking-widest">Complete history of manual flow logs</p>
+                    </div>
+                    <button className="text-[10px] font-black tracking-[0.2em] px-4 py-2 rounded-xl bg-black/5 dark:bg-white/5 hover:bg-black/10 dark:hover:bg-white/10 transition-colors">
+                        Reconcile Ledger
+                    </button>
+                </div>
+                <div className="flex-grow min-h-[400px]">
+                    <TransactionList
+                        transactions={displayTransactionsList}
+                        allCategories={allCategories}
+                        onTransactionClick={onTransactionClick}
+                        density="high"
+                    />
+                </div>
+           </div>
+      </div>
     </div>
   );
 };

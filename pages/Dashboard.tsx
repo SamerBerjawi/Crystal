@@ -137,14 +137,15 @@ const WIDGET_TABS: Record<DashboardTab, string[]> = {
 };
 
 const AnalysisStatCard: React.FC<{ title: string; value: string; subtext: string; icon: string; colorClass: string }> = ({ title, value, subtext, icon, colorClass }) => (
-    <div className="bg-white dark:bg-dark-card p-6 rounded-3xl border border-black/5 dark:border-white/5 shadow-sm flex items-center gap-5 hover:shadow-md transition-all duration-200">
-        <div className={`w-14 h-14 rounded-2xl flex items-center justify-center ${colorClass} shrink-0`}>
-            <span className="material-symbols-outlined text-3xl">{icon}</span>
+    <div className="bg-white dark:bg-dark-card p-4 rounded-3xl border border-black/5 dark:border-white/5 shadow-sm flex items-center gap-4 hover:shadow-lg hover:-translate-y-0.5 transition-all duration-300 relative overflow-hidden group">
+        <div className="absolute inset-0 bg-gradient-to-br from-primary-500/5 to-transparent opacity-0 group-hover:opacity-100 transition-opacity pointer-events-none" />
+        <div className={`w-12 h-12 rounded-2xl flex items-center justify-center ${colorClass} shrink-0 border border-black/5 dark:border-white/5 shadow-sm`}>
+            <span className="material-symbols-outlined text-2xl">{icon}</span>
         </div>
-        <div>
-            <p className="text-[11px] font-semibold text-light-text-secondary dark:text-dark-text-secondary mb-1">{title}</p>
-            <p className="text-2xl font-extrabold text-light-text dark:text-dark-text privacy-blur">{value}</p>
-            <p className="text-xs text-light-text-secondary dark:text-dark-text-secondary mt-1 font-medium">{subtext}</p>
+        <div className="min-w-0 relative z-10">
+            <p className="text-[10px] font-semibold tracking-wider text-light-text-secondary dark:text-dark-text-secondary opacity-60">{title}</p>
+            <p className="text-xl font-semibold text-light-text dark:text-dark-text privacy-blur tracking-tight mt-0.5 leading-tight">{value}</p>
+            <p className="text-[10px] text-light-text-secondary dark:text-dark-text-secondary mt-1 font-medium truncate opacity-40">{subtext}</p>
         </div>
     </div>
 );
@@ -1367,30 +1368,30 @@ const Dashboard: React.FC<DashboardProps> = ({ user, tasks, saveTask, onTogglePr
       {selectedForecastDate && <ForecastDayModal isOpen={!!selectedForecastDate} onClose={() => setSelectedForecastDate(null)} date={selectedForecastDate} items={selectedDayItems} onEditItem={handleEditForecastItem} onAddTransaction={handleAddNewToDate} />}
       
       {/* Header Section */}
-      <div className="mb-8 mt-4 md:mt-0">
+      <div className="mb-6 mt-4 md:mt-0">
         <PageHeader
           markerIcon="analytics"
           markerLabel="Command Center"
           title="Dashboard"
-          subtitle="A pulse view of your cash, investments, and commitments with quick jumps to what matters today."
+          subtitle="Real-time financial pulse across accounts, investments, and commitments."
           actions={
-            <div className="flex items-center p-1 bg-white/50 dark:bg-dark-card/30 backdrop-blur-md rounded-2xl border border-black/5 dark:border-white/5 shadow-sm overflow-hidden">
+            <div className="flex items-center p-1 bg-white/50 dark:bg-dark-card/30 backdrop-blur-md rounded-xl border border-black/5 dark:border-white/5 shadow-sm overflow-hidden">
                 {/* Global Controls Group */}
                 <div className="flex items-center gap-1 pr-2 mr-2 border-r border-black/5 dark:border-white/10 ml-1">
                     <button 
                         onClick={() => setIsEditMode(!isEditMode)}
-                        className={`w-9 h-9 flex items-center justify-center rounded-xl transition-all group ${isEditMode ? 'bg-primary-500 text-white' : 'text-light-text-secondary dark:text-dark-text-secondary hover:bg-black/5 dark:hover:bg-white/5'}`}
+                        className={`w-8 h-8 flex items-center justify-center rounded-lg transition-all group ${isEditMode ? 'bg-primary-500 text-white' : 'text-light-text-secondary dark:text-dark-text-secondary hover:bg-black/5 dark:hover:bg-white/5'}`}
                         title={isEditMode ? "Finish Editing" : "Edit Layout"}
                     >
-                        <span className="material-symbols-outlined text-xl">{isEditMode ? 'done' : 'dashboard_customize'}</span>
+                        <span className="material-symbols-outlined text-lg">{isEditMode ? 'done' : 'dashboard_customize'}</span>
                     </button>
 
                     <button 
                         onClick={() => window.dispatchEvent(new KeyboardEvent('keydown', { key: 'k', metaKey: true }))}
-                        className="w-9 h-9 flex items-center justify-center text-light-text-secondary dark:text-dark-text-secondary hover:bg-black/5 dark:hover:bg-white/5 rounded-xl transition-all group"
+                        className="w-8 h-8 flex items-center justify-center text-light-text-secondary dark:text-dark-text-secondary hover:bg-black/5 dark:hover:bg-white/5 rounded-lg transition-all group"
                         title="Command Center"
                     >
-                        <span className="material-symbols-outlined text-xl group-hover:text-blue-500">terminal</span>
+                        <span className="material-symbols-outlined text-lg group-hover:text-blue-500">terminal</span>
                     </button>
                 </div>
 
@@ -1399,9 +1400,9 @@ const Dashboard: React.FC<DashboardProps> = ({ user, tasks, saveTask, onTogglePr
                     {isEditMode && (
                         <button 
                             onClick={() => setIsAddWidgetModalOpen(true)}
-                            className="h-9 px-4 flex items-center gap-2 bg-black/5 dark:bg-white/5 text-[10px] font-bold uppercase tracking-wider text-light-text-secondary dark:text-dark-text-secondary hover:bg-black/10 dark:hover:bg-white/10 rounded-xl transition-all"
+                            className="h-8 px-3 flex items-center gap-1.5 bg-black/5 dark:bg-white/5 text-[10px] font-bold text-light-text-secondary dark:text-dark-text-secondary hover:bg-black/10 dark:hover:bg-white/10 rounded-lg transition-all"
                         >
-                            <span className="material-symbols-outlined text-base">add_circle</span>
+                            <span className="material-symbols-outlined text-sm">add_circle</span>
                             <span className="hidden sm:inline">Add Widget</span>
                         </button>
                     )}
@@ -1415,19 +1416,19 @@ const Dashboard: React.FC<DashboardProps> = ({ user, tasks, saveTask, onTogglePr
                                 if (syncBtn) (syncBtn as HTMLElement).click();
                             }
                         }}
-                        className="h-9 px-4 flex items-center gap-2 text-[10px] font-bold uppercase tracking-wider text-emerald-600 dark:text-emerald-400 bg-emerald-500/10 hover:bg-emerald-500/20 rounded-xl transition-all border border-emerald-500/10"
+                        className={`${BTN_SECONDARY_STYLE} !h-10 !px-4 !bg-emerald-500/10 !text-emerald-600 dark:!text-emerald-400 hover:!bg-emerald-500/20 border border-emerald-500/10`}
                         title="Sync Banks"
                     >
-                        <span className={`material-symbols-outlined text-base ${isSyncingBanks ? 'animate-spin' : ''}`}>sync</span>
-                        <span className="hidden sm:inline">{isSyncingBanks ? 'Syncing...' : 'Sync Banks'}</span>
+                        <span className={`material-symbols-outlined text-lg ${isSyncingBanks ? 'animate-spin' : ''}`}>sync</span>
+                        <span className="hidden sm:inline">{isSyncingBanks ? 'Syncing...' : 'Sync banks'}</span>
                     </button>
 
                     <button 
                         onClick={() => handleOpenTransactionModal()}
-                        className="h-9 px-5 flex items-center gap-2 bg-primary-700 text-white text-[10px] font-bold uppercase tracking-widest rounded-xl hover:scale-[1.02] active:scale-[0.98] transition-all shadow-lg shadow-primary-700/20"
+                        className={`${BTN_PRIMARY_STYLE} !h-10 !px-4`}
                     >
-                        <span className="material-symbols-outlined text-base">add</span>
-                        <span className="hidden sm:inline">Add Transaction</span>
+                        <span className="material-symbols-outlined text-lg">add</span>
+                        <span className="hidden sm:inline">New transaction</span>
                     </button>
                 </div>
             </div>
@@ -1435,70 +1436,78 @@ const Dashboard: React.FC<DashboardProps> = ({ user, tasks, saveTask, onTogglePr
         />
       </div>
 
-      {/* Controls Bar: Tabs & Filters */}
+
+
+      {/* Redesigned Controls Bar: Tabs & Filters */}
       <div className="mb-8">
-        <div className="flex flex-col lg:flex-row justify-between items-center gap-4 bg-white/50 dark:bg-dark-card/30 backdrop-blur-md px-4 py-3 rounded-2xl border border-black/5 dark:border-white/5 shadow-sm relative z-10">
-             {/* Tabs */}
-             <div className="flex items-center gap-1 bg-black/5 dark:bg-white/5 p-1 rounded-xl">
-            {tabs.map((tab) => (
-                <button
-                    key={tab}
-                    onClick={() => setActiveTab(tab)}
-                    className={`px-4 py-2 rounded-xl text-[10px] font-bold uppercase tracking-widest transition-all duration-300 flex items-center gap-2 ${
-                        activeTab === tab
-                        ? 'bg-white dark:bg-gray-700 shadow-md text-primary-600 dark:text-primary-400 translate-y-[-1px]'
-                        : 'text-gray-500 hover:text-gray-900 dark:text-gray-400 dark:hover:text-white hover:bg-black/5 dark:hover:bg-white/5'
-                    }`}
-                >
-                    <span className="material-symbols-outlined text-base leading-none">
-                        {tab === 'overview' ? 'grid_view' : tab === 'analysis' ? 'monitoring' : 'history'}
-                    </span>
-                    <span className="hidden sm:inline">{tab}</span>
-                </button>
-            ))}
-          </div>
+        <div className="flex flex-col lg:flex-row justify-between items-center gap-6 bg-white/50 dark:bg-dark-card/30 backdrop-blur-md px-4 py-2 rounded-[2rem] border border-black/5 dark:border-white/5 shadow-sm relative z-10">
+             {/* Redesigned Tabs (Accounts Style) */}
+             <div className="flex items-center gap-1.5 bg-black/5 dark:bg-white/5 p-1.5 rounded-2xl">
+            {tabs.map((tab) => {
+                const tabConfig = {
+                    overview: { icon: 'dashboard', label: 'Overview' },
+                    analysis: { icon: 'insights', label: 'Analysis' },
+                    activity: { icon: 'history', label: 'Activity' }
+                }[tab] || { icon: 'circle', label: tab };
+
+                return (
+                    <button
+                        key={tab}
+                        onClick={() => setActiveTab(tab)}
+                        className={`px-4 py-2 rounded-xl text-[11px] font-semibold tracking-wider transition-all duration-300 flex items-center gap-2.5 ${
+                            activeTab === tab
+                            ? 'bg-white dark:bg-gray-800 shadow-sm text-primary-600 dark:text-primary-400 -translate-y-px'
+                            : 'text-light-text-secondary dark:text-dark-text-secondary hover:text-light-text dark:hover:text-white hover:bg-black/5'
+                        }`}
+                    >
+                        <span className={`material-symbols-outlined text-base ${activeTab === tab ? 'filled-icon' : ''}`}>{tabConfig.icon}</span>
+                        <span>{tabConfig.label}</span>
+                    </button>
+                );
+            })}
+             </div>
 
           {/* Filters */}
-          <div className="flex flex-wrap items-center gap-3 w-full lg:w-auto justify-end">
+          <div className="flex flex-wrap items-center gap-4 w-full lg:w-auto justify-end">
               {/* Forecast Controls (Only visible in overview) */}
               {activeTab === 'overview' && (
-                  <div className="flex items-center gap-1 bg-black/5 dark:bg-white/5 p-1 rounded-xl border border-black/5 dark:border-white/5">
-                      <div className={SELECT_WRAPPER_STYLE}>
+                  <div className="flex items-center gap-1.5 bg-black/5 dark:bg-white/5 p-1 rounded-2xl border border-black/5 dark:border-white/5">
+                      <div className={`${SELECT_WRAPPER_STYLE} !w-auto !h-9`}>
                           <select 
                             value={forecastDuration} 
                             onChange={(e) => setForecastDuration(e.target.value as ForecastDuration)} 
-                            className={`${SELECT_STYLE} !bg-transparent !w-auto !h-10 !py-1 text-xs`}
+                            className={`${SELECT_STYLE} !bg-transparent !w-auto !h-full !py-0 !px-3 text-[11px] font-semibold tracking-wider`}
                           >
                              {FORECAST_DURATION_OPTIONS.map(opt => (
-                                 <option key={opt.value} value={opt.value} className="bg-white dark:bg-dark-card">{opt.label}</option>
+                                 <option key={opt.value} value={opt.value} className="bg-white dark:bg-dark-card text-light-text dark:text-dark-text">{opt.label}</option>
                              ))}
                           </select>
                           <div className={SELECT_ARROW_STYLE}><span className="material-symbols-outlined text-sm">expand_more</span></div>
                       </div>
                       
-                      <div className="w-px h-4 bg-black/10 dark:bg-white/10 mx-1"></div>
+                      <div className="w-[1px] h-4 bg-black/10 dark:bg-white/10 mx-1"></div>
                       
                        <button 
                         onClick={() => setShowForecast(!showForecast)}
-                        className={`flex items-center gap-1.5 px-3 h-10 rounded-xl transition-all ${showForecast ? 'bg-primary-500/10 text-primary-600 dark:text-primary-400 font-bold' : 'text-gray-400 hover:text-gray-600 font-semibold'}`}
+                        className={`w-9 h-9 flex items-center justify-center rounded-xl transition-all ${showForecast ? 'bg-white dark:bg-gray-800 shadow-sm text-primary-600 dark:text-primary-400' : 'text-light-text-secondary hover:text-light-text dark:hover:text-white'}`}
+                        title={showForecast ? "Hide Forecast" : "Show Forecast"}
                       >
-                         <span className={`material-symbols-outlined text-sm ${showForecast ? 'filled-icon' : ''}`}>show_chart</span>
-                         <span className="text-[10px] uppercase tracking-widest">Forecast</span>
+                         <span className={`material-symbols-outlined text-lg ${showForecast ? 'filled-icon' : ''}`}>show_chart</span>
                       </button>
 
                       <button 
                         onClick={() => setShowGoals(!showGoals)}
-                        className={`flex items-center gap-1.5 px-3 h-10 rounded-xl transition-all ${showGoals ? 'bg-primary-500/10 text-primary-600 dark:text-primary-400 font-bold' : 'text-gray-400 hover:text-gray-600 font-semibold'}`}
+                        className={`w-9 h-9 flex items-center justify-center rounded-xl transition-all ${showGoals ? 'bg-white dark:bg-gray-800 shadow-sm text-primary-600 dark:text-primary-400' : 'text-light-text-secondary hover:text-light-text dark:hover:text-white'}`}
+                        title={showGoals ? "Hide Goals" : "Show Goals"}
                       >
-                         <span className={`material-symbols-outlined text-sm ${showGoals ? 'filled-icon' : ''}`}>flag</span>
-                         <span className="text-[10px] uppercase tracking-widest">Goals</span>
+                         <span className={`material-symbols-outlined text-lg ${showGoals ? 'filled-icon' : ''}`}>flag</span>
                       </button>
                   </div>
               )}
 
-              <div className="h-8 w-px bg-black/5 dark:bg-white/5 mx-1 hidden lg:block"></div>
+              <div className="h-6 w-px bg-black/5 dark:bg-white/10 mx-1 hidden lg:block"></div>
 
-              <div className="flex items-center gap-2">
+              <div className="flex items-center gap-3">
                   <MultiAccountFilter accounts={accounts} selectedAccountIds={selectedAccountIds} setSelectedAccountIds={setSelectedAccountIds} />
                   <DurationFilter selectedDuration={duration} onDurationChange={setDuration} />
               </div>
@@ -1605,10 +1614,10 @@ const Dashboard: React.FC<DashboardProps> = ({ user, tasks, saveTask, onTogglePr
                 </ResponsiveGridLayout>
               )}
 
-              <Card className="overflow-hidden rounded-3xl">
+              <Card className="overflow-hidden rounded-[2.5rem] p-8 mt-8">
                   <div className="flex flex-col lg:flex-row gap-8">
                       <div className="lg:w-1/3 flex flex-col justify-center border-b lg:border-b-0 lg:border-r border-black/5 dark:border-white/5 pb-8 lg:pb-0 lg:pr-8">
-                          <h3 className="text-lg font-bold text-light-text dark:text-dark-text mb-6 self-start">Asset Allocation</h3>
+                          <h3 className="text-[10px] font-black uppercase tracking-widest text-light-text dark:text-dark-text mb-8 self-start opacity-60">Asset Allocation</h3>
                           <div className="h-64 w-full relative">
                               <ResponsiveContainer width="100%" height="100%">
                                   <PieChart>
@@ -1616,9 +1625,9 @@ const Dashboard: React.FC<DashboardProps> = ({ user, tasks, saveTask, onTogglePr
                                           data={assetAllocationData}
                                           cx="50%"
                                           cy="50%"
-                                          innerRadius={60}
-                                          outerRadius={80}
-                                          paddingAngle={5}
+                                          innerRadius={70}
+                                          outerRadius={95}
+                                          paddingAngle={4}
                                           dataKey="value"
                                       >
                                           {assetAllocationData.map((entry: any, index: number) => (
@@ -1628,79 +1637,83 @@ const Dashboard: React.FC<DashboardProps> = ({ user, tasks, saveTask, onTogglePr
                                   </PieChart>
                               </ResponsiveContainer>
                               <div className="absolute inset-0 flex flex-col items-center justify-center pointer-events-none">
-                                  <span className="text-[10px] font-medium text-gray-500 dark:text-gray-400">Net Worth</span>
-                                  <span className="text-2xl font-bold text-gray-900 dark:text-white privacy-blur">{formatCurrency(convertCurrency(globalTotalAssets - Math.abs(globalTotalDebt), 'EUR', preferredCurrency, conversionRates), preferredCurrency)}</span>
+                                  <span className="text-[10px] font-black uppercase tracking-widest text-light-text-secondary opacity-40">Net Worth</span>
+                                  <span className="text-2xl font-black text-light-text dark:text-dark-text tracking-tight privacy-blur leading-tight">{formatCurrency(convertCurrency(globalTotalAssets - Math.abs(globalTotalDebt), 'EUR', preferredCurrency, conversionRates), preferredCurrency)}</span>
                               </div>
                           </div>
-                          <div className="w-full mt-8 grid grid-cols-2 gap-4">
-                              <div className="p-3 rounded-2xl bg-green-50 dark:bg-green-900/20 border border-green-100 dark:border-green-900/30 text-center">
-                                  <p className="text-[11px] text-green-600 dark:text-green-400 font-semibold mb-1">Assets</p>
-                                  <p className="text-lg font-bold text-green-700 dark:text-green-300 privacy-blur">{formatCurrency(convertCurrency(globalTotalAssets, 'EUR', preferredCurrency, conversionRates), preferredCurrency)}</p>
+                          <div className="w-full mt-10 grid grid-cols-2 gap-4">
+                              <div className="p-4 rounded-2xl bg-emerald-500/5 border border-emerald-500/10 text-center">
+                                  <p className="text-[9px] text-emerald-600 dark:text-emerald-400 font-black uppercase tracking-widest mb-1 opacity-60">Assets</p>
+                                  <p className="text-lg font-black text-emerald-600 dark:text-emerald-400 privacy-blur tracking-tight">{formatCurrency(convertCurrency(globalTotalAssets, 'EUR', preferredCurrency, conversionRates), preferredCurrency)}</p>
                               </div>
-                              <div className="p-3 rounded-2xl bg-red-50 dark:bg-red-900/20 border border-red-100 dark:border-red-900/30 text-center">
-                                  <p className="text-[11px] text-red-600 dark:text-red-400 font-semibold mb-1">Liabilities</p>
-                                  <p className="text-lg font-bold text-red-700 dark:text-red-300 privacy-blur">{formatCurrency(convertCurrency(Math.abs(globalTotalDebt), 'EUR', preferredCurrency, conversionRates), preferredCurrency)}</p>
+                              <div className="p-4 rounded-2xl bg-rose-500/5 border border-rose-500/10 text-center">
+                                  <p className="text-[9px] text-rose-600 dark:text-rose-400 font-black uppercase tracking-widest mb-1 opacity-60">Liabilities</p>
+                                  <p className="text-lg font-black text-rose-600 dark:text-rose-400 privacy-blur tracking-tight">{formatCurrency(convertCurrency(Math.abs(globalTotalDebt), 'EUR', preferredCurrency, conversionRates), preferredCurrency)}</p>
                               </div>
                           </div>
                       </div>
 
-                      <div className="lg:w-2/3 grid grid-cols-1 sm:grid-cols-2 gap-8">
+                      <div className="lg:w-2/3 grid grid-cols-1 sm:grid-cols-2 gap-10">
                           <div>
-                              <h4 className="text-[13px] font-bold text-light-text-secondary dark:text-dark-text-secondary mb-4">Assets Breakdown</h4>
-                              <div className="space-y-4">
+                              <h4 className="text-[10px] font-semibold text-light-text-secondary dark:text-dark-text-secondary mb-6 opacity-60">Assets breakdown</h4>
+                              <div className="space-y-5">
                                   {Object.entries(assetGroups as Record<string, { value: number; color: string; icon: string }>).map(([name, group]) => {
                                       if (group.value === 0) return null;
                                       return (
                                         <div key={name} className="group">
-                                            <div className="flex justify-between text-sm mb-1.5">
-                                                <div className="flex items-center gap-2">
-                                                    <div className="w-6 h-6 rounded-md flex items-center justify-center text-white shadow-sm" style={{ backgroundColor: group.color }}>
-                                                        <span className="material-symbols-outlined text-[14px]">{group.icon}</span>
+                                            <div className="flex justify-between text-sm mb-2">
+                                                <div className="flex items-center gap-3">
+                                                    <div className="w-7 h-7 rounded-lg flex items-center justify-center text-white shadow-sm ring-1 ring-white/10" style={{ backgroundColor: group.color }}>
+                                                        <span className="material-symbols-outlined text-[16px]">{group.icon}</span>
                                                     </div>
-                                                    <span className="font-medium text-gray-700 dark:text-gray-200">{name}</span>
+                                                    <span className="font-bold text-light-text dark:text-dark-text tracking-tight">{name}</span>
                                                 </div>
-                                                <span className="font-mono font-medium text-gray-900 dark:text-white privacy-blur">{formatCurrency(convertCurrency(group.value, 'EUR', preferredCurrency, conversionRates), preferredCurrency)}</span>
+                                                <span className="font-black text-light-text dark:text-dark-text privacy-blur tracking-tight">{formatCurrency(convertCurrency(group.value, 'EUR', preferredCurrency, conversionRates), preferredCurrency)}</span>
                                             </div>
-                                            <div className="w-full bg-gray-100 dark:bg-white/10 rounded-full h-2 overflow-hidden">
-                                                <div className="h-full rounded-full" style={{ width: `${(group.value / globalTotalAssets) * 100}%`, backgroundColor: group.color }}></div>
+                                            <div className="w-full bg-black/5 dark:bg-white/5 rounded-full h-1.5 overflow-hidden">
+                                                <div className="h-full rounded-full transition-all duration-1000 ease-out" style={{ width: `${(group.value / globalTotalAssets) * 100}%`, backgroundColor: group.color }}></div>
                                             </div>
-                                            <p className="text-[10px] text-right text-gray-400 mt-1 opacity-0 group-hover:opacity-100 transition-opacity">
-                                                {((group.value / globalTotalAssets) * 100).toFixed(1)}%
-                                            </p>
+                                            <div className="flex justify-end mt-1">
+                                                <span className="text-[9px] font-bold text-light-text-secondary opacity-0 group-hover:opacity-40 transition-opacity">
+                                                    {((group.value / globalTotalAssets) * 100).toFixed(1)}%
+                                                </span>
+                                            </div>
                                         </div>
                                       );
                                   })}
-                                  {globalTotalAssets === 0 && <p className="text-sm text-light-text-secondary dark:text-dark-text-secondary italic">No assets found.</p>}
+                                  {globalTotalAssets === 0 && <p className="text-sm text-light-text-secondary dark:text-dark-text-secondary">No assets found.</p>}
                               </div>
                           </div>
 
                           <div>
-                              <h4 className="text-[13px] font-bold text-light-text-secondary dark:text-dark-text-secondary mb-4">Liabilities Breakdown</h4>
-                              <div className="space-y-4">
+                              <h4 className="text-[10px] font-black uppercase tracking-widest text-light-text-secondary dark:text-dark-text-secondary mb-6 opacity-60">Liabilities Breakdown</h4>
+                              <div className="space-y-5">
                                   {Object.entries(liabilityGroups as Record<string, { value: number; color: string; icon: string }>).map(([name, group]) => {
                                       if (group.value === 0) return null;
                                       return (
                                           <div key={name} className="group">
-                                              <div className="flex justify-between text-sm mb-1.5">
-                                                   <div className="flex items-center gap-2">
-                                                        <div className="w-6 h-6 rounded-md flex items-center justify-center text-white shadow-sm" style={{ backgroundColor: group.color }}>
-                                                            <span className="material-symbols-outlined text-[14px]">{group.icon}</span>
+                                              <div className="flex justify-between text-sm mb-2">
+                                                   <div className="flex items-center gap-3">
+                                                        <div className="w-7 h-7 rounded-lg flex items-center justify-center text-white shadow-sm ring-1 ring-white/10" style={{ backgroundColor: group.color }}>
+                                                            <span className="material-symbols-outlined text-[16px]">{group.icon}</span>
                                                         </div>
-                                                        <span className="font-medium text-gray-700 dark:text-gray-200">{name}</span>
+                                                        <span className="font-bold text-light-text dark:text-dark-text tracking-tight">{name}</span>
                                                     </div>
-                                                  <span className="font-mono font-medium text-gray-900 dark:text-white privacy-blur">{formatCurrency(convertCurrency(group.value, 'EUR', preferredCurrency, conversionRates), preferredCurrency)}</span>
+                                                  <span className="font-black text-light-text dark:text-dark-text privacy-blur tracking-tight">{formatCurrency(convertCurrency(group.value, 'EUR', preferredCurrency, conversionRates), preferredCurrency)}</span>
                                               </div>
-                                              <div className="w-full bg-gray-100 dark:bg-white/10 rounded-full h-2 overflow-hidden">
-                                                  <div className="h-full rounded-full" style={{ width: `${(group.value / Math.abs(globalTotalDebt)) * 100}%`, backgroundColor: group.color }}></div>
+                                              <div className="w-full bg-black/5 dark:bg-white/5 rounded-full h-1.5 overflow-hidden">
+                                                  <div className="h-full rounded-full transition-all duration-1000 ease-out" style={{ width: `${(group.value / Math.abs(globalTotalDebt)) * 100}%`, backgroundColor: group.color }}></div>
                                               </div>
-                                              <p className="text-[10px] text-right text-gray-400 mt-1 opacity-0 group-hover:opacity-100 transition-opacity">
-                                                  {((group.value / Math.abs(globalTotalDebt)) * 100).toFixed(1)}%
-                                              </p>
+                                              <div className="flex justify-end mt-1">
+                                                <span className="text-[9px] font-bold text-light-text-secondary opacity-0 group-hover:opacity-40 transition-opacity">
+                                                    {((group.value / Math.abs(globalTotalDebt)) * 100).toFixed(1)}%
+                                                </span>
+                                              </div>
                                           </div>
                                       );
                                   })}
                                   {globalTotalDebt === 0 && (
-                                      <div className="p-4 text-center text-sm text-gray-400 italic bg-gray-50 dark:bg-gray-800/50 rounded-lg">
+                                      <div className="p-6 text-center text-xs text-light-text-secondary bg-black/5 dark:bg-white/5 rounded-2xl border border-dashed border-black/10">
                                           No liabilities recorded.
                                       </div>
                                   )}

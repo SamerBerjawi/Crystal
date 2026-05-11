@@ -177,7 +177,7 @@ const Budgeting: React.FC<BudgetingProps> = ({ budgets, transactions, expenseCat
   };
 
   return (
-    <div className="space-y-8 pb-12 animate-fade-in-up">
+    <div className="space-y-6 pb-8 animate-fade-in-up">
       {isModalOpen && (
         <BudgetModal 
           onClose={handleCloseModal}
@@ -202,174 +202,233 @@ const Budgeting: React.FC<BudgetingProps> = ({ budgets, transactions, expenseCat
         title="Budgeting"
         subtitle="Set envelopes, guardrails, and spending alerts that adapt as your cash flow evolves."
         actions={
-          <button onClick={() => handleOpenModal()} className={`${BTN_PRIMARY_STYLE} whitespace-nowrap`}>
-            <span className="material-symbols-outlined text-lg mr-1">add</span>
+          <button onClick={() => handleOpenModal()} className="flex items-center gap-2 px-6 py-3 bg-black dark:bg-white text-white dark:text-black rounded-2xl font-black text-[10px] uppercase tracking-[0.2em] shadow-xl hover:scale-105 transition-all">
+            <span className="material-symbols-outlined text-lg">add</span>
             Create Budget
           </button>
         }
       />
 
-      <div className="flex flex-col md:flex-row justify-between items-center gap-4 bg-white dark:bg-dark-card p-1.5 rounded-2xl border border-black/5 dark:border-white/5 shadow-sm">
-           <div className="flex items-center gap-3 bg-light-fill dark:bg-dark-fill p-1.5 rounded-xl w-full md:w-auto justify-between md:justify-start">
-                <button onClick={() => handleMonthChange(-1)} className="p-1.5 rounded-lg hover:bg-white dark:hover:bg-white/10 transition-colors shadow-sm">
-                    <span className="material-symbols-outlined text-lg">chevron_left</span>
+      <div className="flex flex-col md:flex-row justify-between items-center gap-4 bg-black/5 dark:bg-white/5 p-2 rounded-[2rem] border border-black/5 dark:border-white/5 shadow-2xl relative z-10">
+           <div className="flex items-center gap-2 bg-white/50 dark:bg-black/50 p-1 rounded-2xl w-full md:w-auto justify-between md:justify-start border border-black/5 dark:border-white/5 shadow-lg">
+                <button onClick={() => handleMonthChange(-1)} className="p-2.5 rounded-xl hover:bg-black/5 dark:hover:bg-white/10 transition-all active:scale-95 group">
+                    <span className="material-symbols-outlined text-lg leading-none group-hover:-translate-x-1 transition-transform">chevron_left</span>
                 </button>
-                <span className="text-sm font-bold px-4 min-w-[120px] text-center">{monthName}</span>
-                <button onClick={() => handleMonthChange(1)} className="p-1.5 rounded-lg hover:bg-white dark:hover:bg-white/10 transition-colors shadow-sm">
-                    <span className="material-symbols-outlined text-lg">chevron_right</span>
+                <div className="flex flex-col items-center px-6 min-w-[140px]">
+                    <span className="text-[10px] font-black uppercase tracking-[0.2em] opacity-40 leading-none mb-1">Active Cycle</span>
+                    <span className="text-xs font-black uppercase tracking-widest leading-none">{monthName}</span>
+                </div>
+                <button onClick={() => handleMonthChange(1)} className="p-2.5 rounded-xl hover:bg-black/5 dark:hover:bg-white/10 transition-all active:scale-95 group">
+                    <span className="material-symbols-outlined text-lg leading-none group-hover:translate-x-1 transition-transform">chevron_right</span>
                 </button>
            </div>
            
-           <div className="flex items-center gap-2 w-full md:w-auto">
-                <div className="flex rounded-lg shadow-sm bg-light-card dark:bg-dark-card border border-black/5 dark:border-white/5">
+           <div className="flex items-center gap-2 w-full md:w-auto group">
+                <div className="flex rounded-2xl shadow-lg bg-white/50 dark:bg-black/50 border border-black/5 dark:border-white/5 overflow-hidden">
                     <button
                         onClick={handleQuickCreateDefault}
-                        className={`${BTN_SECONDARY_STYLE} flex items-center gap-2 rounded-r-none !bg-transparent border-none hover:bg-black/5 dark:hover:bg-white/5 !px-3`}
+                        className="flex items-center gap-3 px-6 py-3 hover:bg-primary-500/10 transition-colors group/btn"
                         title={`Create/update budgets based on the ${defaultQuickCreateOption.label}`}
                     >
-                        <span className="material-symbols-outlined text-lg text-primary-500">bolt</span>
-                        <span className="whitespace-nowrap">Quick Budget</span>
+                        <span className="material-symbols-outlined text-lg text-primary-500 group-hover/btn:scale-125 transition-transform">bolt</span>
+                        <span className="text-[10px] font-black uppercase tracking-[0.2em] whitespace-nowrap">Quick Budget</span>
                     </button>
-                    <div className="w-px bg-black/5 dark:bg-white/10 my-2"></div>
+                    <div className="w-[1px] bg-black/5 dark:bg-white/10"></div>
                     <button
                         onClick={() => setQuickBudgetModalOpen(true)}
-                        className={`${BTN_SECONDARY_STYLE} px-2 rounded-l-none !bg-transparent border-none hover:bg-black/5 dark:hover:bg-white/5`}
+                        className="px-4 py-3 hover:bg-black/5 dark:hover:bg-white/5 transition-colors"
                         title="More Quick Create Options"
                     >
-                        <span className="material-symbols-outlined text-lg">expand_more</span>
+                        <span className="material-symbols-outlined text-lg leading-none">expand_more</span>
                     </button>
                 </div>
            </div>
       </div>
 
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-          <div className="md:col-span-2 bg-gradient-to-br from-primary-600 to-primary-800 dark:from-primary-800 dark:to-primary-900 rounded-3xl p-6 text-white shadow-lg relative overflow-hidden flex flex-col justify-between min-h-[200px]">
-                <div className="absolute top-0 right-0 p-6 opacity-10 pointer-events-none">
-                    <span className="material-symbols-outlined text-9xl">account_balance_wallet</span>
-                </div>
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-4 relative z-10">
+          <div className="md:col-span-2 bg-[#121214] dark:bg-dark-card rounded-2xl p-6 text-white shadow-2xl relative overflow-hidden flex flex-col justify-between min-h-[200px] border border-white/5 group">
+                <div className="absolute top-0 right-0 w-[500px] h-[500px] bg-primary-500/10 rounded-full blur-[120px] -mr-64 -mt-64 transition-opacity group-hover:opacity-20"></div>
+                <div className="absolute bottom-0 left-0 w-[400px] h-[400px] bg-purple-500/10 rounded-full blur-[100px] -ml-40 -mb-40 transition-opacity group-hover:opacity-20"></div>
+                
                 <div className="relative z-10">
                     <div className="flex justify-between items-start">
                         <div>
-                            <p className="text-white/70 font-bold uppercase tracking-wider text-xs mb-1">Remaining Budget</p>
-                            <h2 className="text-4xl font-bold tracking-tight">{formatCurrency(totalRemaining, 'EUR')}</h2>
+                            <h2 className="text-[10px] font-black uppercase tracking-[0.3em] text-white/40 mb-2 block">Available Liquidity</h2>
+                            <h2 className="text-4xl font-black tracking-tighter leading-none mb-2">{formatCurrency(totalRemaining, 'EUR')}</h2>
+                            <div className="flex items-center gap-2">
+                                <div className={`w-2 h-2 rounded-full ${totalRemaining >= 0 ? 'bg-emerald-500 shadow-[0_0_10px_rgba(16,185,129,0.5)]' : 'bg-rose-500 shadow-[0_0_10px_rgba(244,63,94,0.5)]'} animate-pulse`}></div>
+                                <span className={`text-[10px] font-black uppercase tracking-[0.1em] ${totalRemaining >= 0 ? 'text-emerald-400' : 'text-rose-400'}`}>
+                                    {totalRemaining >= 0 ? 'Surplus Projection' : 'Deficit Expected'}
+                                </span>
+                            </div>
                         </div>
-                        <div className={`px-3 py-1 rounded-full text-xs font-bold uppercase backdrop-blur-md bg-white/20 ${totalRemaining >= 0 ? 'text-green-200' : 'text-red-200'}`}>
-                            {totalRemaining >= 0 ? 'On Track' : 'Over Budget'}
+                        <div className="flex flex-col items-end">
+                            <div className="w-12 h-12 rounded-xl bg-white/5 border border-white/10 flex items-center justify-center mb-4 group-hover:rotate-6 transition-transform">
+                                <span className="material-symbols-outlined text-2xl opacity-40">account_balance_wallet</span>
+                            </div>
                         </div>
                     </div>
                 </div>
 
-                <div className="relative z-10 mt-6 grid grid-cols-2 gap-8">
+                <div className="relative z-10 grid grid-cols-2 gap-8 mt-6 bg-white/5 p-4 rounded-xl border border-white/5 backdrop-blur-md">
                      <div>
-                        <p className="text-white/60 text-xs font-bold uppercase mb-0.5">Total Budgeted</p>
-                        <p className="text-xl font-semibold">{formatCurrency(totalBudgeted, 'EUR')}</p>
+                        <p className="text-white/30 text-[10px] font-black uppercase tracking-[0.2em] mb-1">Total Budgeted</p>
+                        <p className="text-xl font-black tracking-tight">{formatCurrency(totalBudgeted, 'EUR')}</p>
                      </div>
                      <div>
-                        <p className="text-white/60 text-xs font-bold uppercase mb-0.5">Total Spent</p>
-                        <p className="text-xl font-semibold text-white/90">{formatCurrency(totalSpent, 'EUR')}</p>
+                        <p className="text-white/30 text-[10px] font-black uppercase tracking-[0.2em] mb-1">Total Spent</p>
+                        <p className="text-xl font-black tracking-tight opacity-100">{formatCurrency(totalSpent, 'EUR')}</p>
                      </div>
                 </div>
                 
                 <div className="relative z-10 mt-6">
-                     <div className="w-full bg-black/20 rounded-full h-1.5 overflow-hidden">
+                     <div className="w-full bg-white/5 rounded-full h-2 overflow-hidden border border-white/10 p-[1px]">
                         <div 
-                            className={`h-full rounded-full ${overallProgress > 100 ? 'bg-red-400' : 'bg-white'}`} 
+                            className={`h-full rounded-full transition-all duration-1000 ease-out shadow-[0_0_15px_rgba(255,255,255,0.1)] ${overallProgress > 100 ? 'bg-rose-500' : 'bg-primary-500'}`} 
                             style={{ width: `${Math.min(overallProgress, 100)}%` }}
                         ></div>
                     </div>
-                     <div className="flex justify-between text-[10px] font-medium text-white/60 mt-1.5">
-                        <span>{overallProgress.toFixed(0)}% utilized</span>
-                        {daysRemaining > 0 && <span>{daysRemaining} days left</span>}
+                     <div className="flex justify-between items-center mt-3">
+                        <div className="flex items-center gap-2">
+                             <span className="text-[10px] font-black uppercase tracking-[0.2em] text-white/40">Utilization</span>
+                             <span className="text-[13px] font-black tracking-tight">{overallProgress.toFixed(0)}%</span>
+                        </div>
+                        {daysRemaining > 0 ? (
+                           <div className="flex items-center gap-2">
+                                <span className="text-[10px] font-black uppercase tracking-[0.2em] text-white/40">Active Range</span>
+                                <span className="text-[13px] font-black tracking-tight">{daysRemaining} DAYS REMAINING</span>
+                           </div>
+                        ) : (
+                           <span className="text-[10px] font-black uppercase tracking-[0.2em] text-white/40">Cycle Closed</span>
+                        )}
                     </div>
                 </div>
           </div>
 
-          <div className="bg-white dark:bg-dark-card rounded-3xl p-6 shadow-sm border border-black/5 dark:border-white/5 flex flex-col justify-center relative overflow-hidden">
-              <div className="absolute -right-4 -top-4 w-24 h-24 bg-green-500/10 rounded-full blur-2xl"></div>
-              <div className="relative z-10 text-center">
-                  <p className="text-light-text-secondary dark:text-dark-text-secondary text-xs font-bold uppercase tracking-wider mb-2">Daily Safe Spend</p>
-                  <h3 className="text-3xl font-bold text-light-text dark:text-dark-text mb-1">{formatCurrency(dailySafeSpend, 'EUR')}</h3>
-                  <p className="text-xs text-light-text-secondary dark:text-dark-text-secondary">per day for {daysRemaining} days</p>
+          <div className="bg-white dark:bg-dark-card rounded-2xl p-6 shadow-2xl border border-black/5 dark:border-white/5 flex flex-col justify-center relative overflow-hidden group">
+              <div className="absolute -right-24 -top-24 w-64 h-64 bg-emerald-500/5 rounded-full blur-[80px] pointer-events-none group-hover:opacity-40 transition-opacity"></div>
+              <div className="relative z-10 text-center flex flex-col items-center">
+                  <div className="w-12 h-12 rounded-xl bg-emerald-500/10 text-emerald-500 flex items-center justify-center mb-4 shadow-inner">
+                        <span className="material-symbols-outlined text-2xl">local_atm</span>
+                  </div>
+                  <p className="text-[10px] font-black uppercase tracking-[0.2em] opacity-40 mb-1">Daily Safe Spend</p>
+                  <h3 className="text-3xl font-black tracking-tighter text-light-text dark:text-dark-text mb-2">{formatCurrency(dailySafeSpend, 'EUR')}</h3>
+                  <div className="px-3 py-1 rounded-full bg-black/5 dark:bg-white/5 border border-black/5 dark:border-white/5">
+                    <p className="text-[8px] font-black uppercase tracking-[0.2em] opacity-60 leading-none italic">
+                        Available per day / {daysRemaining}d
+                    </p>
+                  </div>
               </div>
           </div>
       </div>
 
-      <div className="grid grid-cols-1 xl:grid-cols-3 gap-8">
+      <div className="grid grid-cols-1 xl:grid-cols-3 gap-6 relative z-10">
           <div className="xl:col-span-2 space-y-6">
-              <div className="flex items-center gap-2 pb-2 border-b border-black/5 dark:border-white/5">
-                 <span className="material-symbols-outlined text-primary-500">category</span>
-                 <h3 className="text-lg font-bold text-light-text dark:text-dark-text">Budget Breakdown</h3>
+              <div className="flex items-center gap-4 pb-4 border-b border-black/5 dark:border-white/5">
+                 <div className="w-10 h-10 rounded-xl bg-primary-500/10 text-primary-500 flex items-center justify-center">
+                    <span className="material-symbols-outlined text-xl">category</span>
+                 </div>
+                 <div>
+                    <h3 className="text-base font-black uppercase tracking-tight text-light-text dark:text-dark-text">Control Center</h3>
+                    <p className="text-[9px] font-black uppercase tracking-[0.2em] opacity-40 leading-none">Category Allocation & Performance</p>
+                 </div>
               </div>
 
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                {expenseCategories.filter(c => !c.parentId).map(category => {
-                  const budget = budgets.find(b => b.categoryName === category.name);
-                  const spent = spendingByCategory[category.name] || 0;
-                  
-                  return (
-                    <BudgetProgressCard 
-                      key={category.id}
-                      category={category}
-                      budgeted={budget?.amount || 0}
-                      spent={spent}
-                      onEdit={() => handleOpenModal(budget, category.name)}
-                    />
-                  );
-                })}
+                {expenseCategories.filter(c => !c.parentId)
+                  .sort((a, b) => {
+                    const budgetA = budgets.find(bu => bu.categoryName === a.name)?.amount || 0;
+                    const budgetB = budgets.find(bu => bu.categoryName === b.name)?.amount || 0;
+                    return budgetB - budgetA;
+                  })
+                  .map(category => {
+                    const budget = budgets.find(b => b.categoryName === category.name);
+                    const spent = spendingByCategory[category.name] || 0;
+                    
+                    return (
+                      <BudgetProgressCard 
+                        key={category.id}
+                        category={category}
+                        budgeted={budget?.amount || 0}
+                        spent={spent}
+                        onEdit={() => handleOpenModal(budget, category.name)}
+                      />
+                    );
+                  })}
               </div>
               
                {expenseCategories.filter(c => !c.parentId).length === 0 && (
-                 <div className="text-center py-12 text-light-text-secondary dark:text-dark-text-secondary bg-light-card dark:bg-dark-card rounded-2xl border border-dashed border-black/10 dark:border-white/10">
-                    <span className="material-symbols-outlined text-4xl mb-2 opacity-50">savings</span>
-                    <p className="font-medium">No categories found.</p>
-                    <p className="text-sm">Go to Settings to set up your expense categories.</p>
+                 <div className="text-center py-24 text-light-text-secondary dark:text-dark-text-secondary bg-black/5 dark:bg-white/5 rounded-[2.5rem] border border-dashed border-black/10 dark:border-white/10 shadow-inner">
+                    <div className="w-20 h-20 rounded-[2rem] bg-white dark:bg-dark-card border border-black/5 dark:border-white/5 mx-auto mb-6 flex items-center justify-center shadow-lg">
+                        <span className="material-symbols-outlined text-4xl opacity-20">savings</span>
+                    </div>
+                    <p className="text-xs font-black uppercase tracking-[0.2em] mb-2 opacity-60">No financial guardrails detected</p>
+                    <p className="text-[11px] font-bold opacity-30 max-w-[240px] mx-auto text-center">Your spending categories are currently unmapped. Initialize them in settings to start tracking.</p>
                  </div>
               )}
           </div>
 
-          <div className="space-y-6">
-              <Card className="h-96 flex flex-col">
-                  <h3 className="text-base font-bold text-light-text dark:text-dark-text mb-4">Allocation</h3>
-                  <div className="flex-grow min-h-0">
+          <div className="space-y-4">
+              <Card className="flex flex-col !p-6 rounded-2xl border border-black/5 dark:border-white/5 bg-white dark:bg-dark-card shadow-2xl relative overflow-hidden group min-h-[320px]">
+                  <div className="absolute top-0 left-0 w-32 h-32 bg-primary-500/5 rounded-full blur-[60px] -ml-16 -mt-16 pointer-events-none"></div>
+                  
+                  <div className="flex items-center justify-between mb-6 relative z-10">
+                    <div>
+                        <p className="text-[10px] font-black uppercase tracking-[0.2em] opacity-40 mb-0.5">Portfolio</p>
+                        <h3 className="text-xs font-black uppercase tracking-tight text-light-text dark:text-dark-text leading-none">Allocation</h3>
+                    </div>
+                    <span className="material-symbols-outlined opacity-20 group-hover:rotate-45 transition-transform text-lg">pie_chart</span>
+                  </div>
+
+                  <div className="flex-grow min-h-[160px] relative z-10">
                     <ResponsiveContainer width="100%" height="100%" minWidth={0} minHeight={0}>
                         <PieChart>
                             <Pie
                                 data={allocationData}
                                 cx="50%"
                                 cy="50%"
-                                innerRadius={60}
-                                outerRadius={80}
-                                paddingAngle={5}
+                                innerRadius={55}
+                                outerRadius={75}
+                                paddingAngle={6}
                                 dataKey="value"
                             >
                                 {allocationData.map(entry => (
-                                    <Cell key={entry.name} fill={entry.color} stroke="none" />
+                                    <Cell key={entry.name} fill={entry.color} stroke="none" className="transition-all hover:opacity-80" />
                                 ))}
                             </Pie>
                             <RechartsTooltip 
                                 formatter={(value: number) => formatCurrency(value, 'EUR')}
-                                contentStyle={{ backgroundColor: 'var(--light-card)', borderColor: 'rgba(0,0,0,0.1)', borderRadius: '8px' }}
-                                itemStyle={{ color: 'var(--light-text)' }}
-                            />
-                            <Legend 
-                                layout="horizontal" 
-                                verticalAlign="bottom" 
-                                align="center"
-                                iconSize={8}
-                                wrapperStyle={{ fontSize: '11px', paddingTop: '10px' }}
+                                contentStyle={{ backgroundColor: 'black', border: 'none', borderRadius: '12px', color: 'white', fontWeight: 'bold', fontSize: '10px', boxShadow: '0 20px 40px rgba(0,0,0,0.2)' }}
+                                itemStyle={{ color: 'white' }}
                             />
                         </PieChart>
                     </ResponsiveContainer>
+                    <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 text-center pointer-events-none">
+                         <p className="text-[8px] font-black uppercase tracking-[0.2em] opacity-30 leading-none mb-1">Total</p>
+                         <p className="text-lg font-black tracking-tighter leading-none">€{(totalBudgeted/1000).toFixed(1)}k</p>
+                    </div>
                   </div>
-                  <div className="text-center mt-2">
-                       <span className="text-xs text-light-text-secondary dark:text-dark-text-secondary">Total Budgeted: <span className="font-bold text-light-text dark:text-dark-text">{formatCurrency(totalBudgeted, 'EUR')}</span></span>
+                  
+                  <div className="grid grid-cols-2 gap-2 mt-4 relative z-10">
+                       {allocationData.slice(0, 4).map(item => (
+                            <div key={item.name} className="flex items-center gap-1.5 font-bold">
+                                <div className="w-1 h-1 rounded-full" style={{ backgroundColor: item.color }}></div>
+                                <span className="text-[8px] font-black uppercase tracking-wider opacity-40 truncate">{item.name}</span>
+                            </div>
+                       ))}
                   </div>
               </Card>
 
-              <Card>
-                  <h3 className="text-base font-bold text-light-text dark:text-dark-text mb-4">Watchlist</h3>
-                  <p className="text-xs text-light-text-secondary dark:text-dark-text-secondary mb-3">Categories &gt; 80% utilized</p>
-                  <div className="space-y-3">
+              <Card className="!p-6 rounded-2xl border border-black/5 dark:border-white/5 bg-white dark:bg-dark-card shadow-2xl relative overflow-hidden group">
+                  <div className="flex items-center justify-between mb-6">
+                    <div>
+                        <p className="text-[10px] font-black uppercase tracking-[0.2em] opacity-40 mb-0.5">Critical</p>
+                        <h3 className="text-xs font-black uppercase tracking-tight text-light-text dark:text-dark-text leading-none">Watchlist</h3>
+                    </div>
+                    <div className="w-1.5 h-1.5 rounded-full bg-rose-500 animate-pulse shadow-[0_0_10px_rgba(244,63,94,0.5)]"></div>
+                  </div>
+                  
+                  <div className="space-y-2">
                       {budgets.filter(b => {
                            const spent = spendingByCategory[b.categoryName] || 0;
                            return (spent / b.amount) > 0.8;
@@ -382,18 +441,19 @@ const Budgeting: React.FC<BudgetingProps> = ({ budgets, transactions, expenseCat
                                 const pct = (b.spent / b.amount) * 100;
                                 const isOver = pct > 100;
                                 return (
-                                    <div key={b.id} className="flex justify-between items-center p-2 bg-red-50 dark:bg-red-900/20 rounded-lg border border-red-100 dark:border-red-900/30">
-                                        <span className="text-sm font-medium text-red-900 dark:text-red-200 truncate max-w-[120px]">{b.categoryName}</span>
-                                        <span className={`text-xs font-bold ${isOver ? 'text-red-600 dark:text-red-400' : 'text-orange-600 dark:text-orange-400'}`}>
-                                            {pct.toFixed(0)}%
-                                        </span>
+                                    <div key={b.id} className="flex justify-between items-center p-3 bg-black/5 dark:bg-white/5 rounded-xl border border-black/5 dark:border-white/5 hover:scale-[1.01] transition-transform duration-300">
+                                        <span className="text-[10px] font-black uppercase tracking-tight truncate max-w-[140px] leading-none">{b.categoryName}</span>
+                                        <div className={`flex items-center gap-2 px-2 py-0.5 rounded-lg ${isOver ? 'bg-rose-500/10 text-rose-600' : 'bg-amber-500/10 text-amber-600'}`}>
+                                            <span className="text-[10px] font-black tracking-tighter leading-none">{pct.toFixed(0)}</span>
+                                            <span className="text-[7px] font-black opacity-30">%</span>
+                                        </div>
                                     </div>
                                 );
                             })
                       ) : (
-                          <div className="text-center py-4">
-                              <span className="material-symbols-outlined text-green-500 text-2xl mb-1">check_circle</span>
-                              <p className="text-xs text-light-text-secondary dark:text-dark-text-secondary">All budgets are healthy!</p>
+                          <div className="text-center py-6 opacity-30 flex flex-col items-center gap-2">
+                              <span className="material-symbols-outlined text-2xl">verified_user</span>
+                              <p className="text-[9px] font-black uppercase tracking-[0.2em]">Safely within limits</p>
                           </div>
                       )}
                   </div>

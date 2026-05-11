@@ -660,7 +660,7 @@ const AddTransactionModal: React.FC<AddTransactionModalProps> = ({ onClose, onSa
 
   const modalTitle = isEditing ? 'Edit Transaction' : 'New Transaction';
   const saveButtonText = isEditing ? 'Save Changes' : 'Add Transaction';
-  const labelStyle = "block text-xs font-bold text-light-text-secondary dark:text-dark-text-secondary uppercase tracking-wider mb-2";
+  const labelStyle = "block text-xs font-semibold text-light-text-secondary dark:text-dark-text-secondary tracking-wider mb-2";
 
   return (
     <Modal onClose={onClose} title={modalTitle} size="lg">
@@ -705,7 +705,7 @@ const AddTransactionModal: React.FC<AddTransactionModalProps> = ({ onClose, onSa
              {isLoanPayment && (
                  <div className="flex items-center gap-2 bg-blue-50 dark:bg-blue-900/20 text-blue-700 dark:text-blue-300 px-3 py-1 rounded-full mt-1 border border-blue-100 dark:border-blue-800/30">
                      <span className="material-symbols-outlined text-[18px]">account_balance</span>
-                     <span className="text-[11px] font-bold uppercase tracking-wider">Loan Payment detected</span>
+                     <span className="text-[11px] font-bold tracking-wider">Loan Payment detected</span>
                  </div>
              )}
         </div>
@@ -715,7 +715,7 @@ const AddTransactionModal: React.FC<AddTransactionModalProps> = ({ onClose, onSa
              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                  {/* Basic Info Section */}
                  <div className="md:col-span-2 bg-gray-50 dark:bg-white/5 p-6 rounded-2xl border border-black/5 dark:border-white/5 grid grid-cols-1 sm:grid-cols-2 gap-6 relative">
-                     <div className="absolute -top-3 left-6 px-2 bg-light-card dark:bg-dark-card text-[10px] font-bold text-gray-400 uppercase tracking-[0.2em] border border-black/5 dark:border-white/5 rounded-md">Transaction Details</div>
+                     <div className="absolute -top-3 left-6 px-2 bg-light-card dark:bg-dark-card text-[10px] font-bold text-gray-400 tracking-[0.2em] border border-black/5 dark:border-white/5 rounded-md">Transaction Details</div>
                      
                      <div>
                         <label className={labelStyle}>Date</label>
@@ -844,7 +844,7 @@ const AddTransactionModal: React.FC<AddTransactionModalProps> = ({ onClose, onSa
                      {isLoanPayment && (
                          <div className="bg-blue-50/50 dark:bg-blue-900/10 p-6 rounded-2xl border border-blue-100 dark:border-blue-800/30 animate-fade-in-up">
                             <div className="flex justify-between items-center mb-4">
-                                <h4 className="text-sm font-bold text-blue-900 dark:text-blue-300 flex items-center gap-2 uppercase tracking-wider">
+                                <h4 className="text-sm font-bold text-blue-900 dark:text-blue-300 flex items-center gap-2 tracking-wider">
                                     <span className="material-symbols-outlined text-lg">payments</span>
                                     Repayment Split
                                 </h4>
@@ -855,14 +855,14 @@ const AddTransactionModal: React.FC<AddTransactionModalProps> = ({ onClose, onSa
                             </div>
                             <div className="grid grid-cols-2 gap-4">
                                 <div>
-                                    <label className="text-[10px] font-bold text-blue-800 dark:text-blue-400 uppercase mb-1 block">Principal</label>
+                                    <label className="text-[10px] font-bold text-blue-800 dark:text-blue-400 mb-1 block">Principal</label>
                                     <div className="relative group">
                                         <span className="absolute left-3 top-1/2 -translate-y-1/2 text-blue-400 dark:text-blue-600 font-bold text-sm">{currencySymbol}</span>
                                         <input type="number" step="0.01" value={principalPayment} onChange={handlePrincipalChange} className="w-full h-10 bg-white dark:bg-gray-900 rounded-lg pl-8 pr-3 text-sm font-bold text-blue-900 dark:text-blue-100 border border-blue-200 dark:border-blue-800 focus:ring-2 focus:ring-blue-500 transition-all" />
                                     </div>
                                 </div>
                                 <div>
-                                    <label className="text-[10px] font-bold text-blue-800 dark:text-blue-400 uppercase mb-1 block">Interest</label>
+                                    <label className="text-[10px] font-bold text-blue-800 dark:text-blue-400 mb-1 block">Interest</label>
                                     <div className="relative group">
                                         <span className="absolute left-3 top-1/2 -translate-y-1/2 text-blue-400 dark:text-blue-600 font-bold text-sm">{currencySymbol}</span>
                                         <input type="number" step="0.01" value={interestPayment} onChange={handleInterestChange} className="w-full h-10 bg-white dark:bg-gray-900 rounded-lg pl-8 pr-3 text-sm font-bold text-blue-900 dark:text-blue-100 border border-blue-200 dark:border-blue-800 focus:ring-2 focus:ring-blue-500 transition-all" />
@@ -895,14 +895,14 @@ const AddTransactionModal: React.FC<AddTransactionModalProps> = ({ onClose, onSa
                                  <div className="space-y-4 animate-fade-in">
                                      <div className="grid grid-cols-2 gap-6 pt-2">
                                          <div>
-                                             <label className="text-[10px] font-bold text-cyan-800 dark:text-cyan-400 uppercase mb-2 block">Rounding Strategy</label>
+                                             <label className="text-[10px] font-bold text-cyan-800 dark:text-cyan-400 mb-2 block">Rounding Strategy</label>
                                              <div className="flex bg-white dark:bg-gray-900 p-1 rounded-xl border border-cyan-100 dark:border-cyan-800 shadow-inner">
-                                                 <button type="button" onClick={() => setRoundUpBehavior('skip')} className={`flex-1 py-2 text-[10px] font-bold rounded-lg uppercase tracking-wider transition-all duration-200 ${roundUpBehavior === 'skip' ? 'bg-cyan-500 text-white shadow-sm' : 'text-cyan-600 hover:text-cyan-700'}`}>Skip Whole</button>
-                                                 <button type="button" onClick={() => setRoundUpBehavior('unit')} className={`flex-1 py-2 text-[10px] font-bold rounded-lg uppercase tracking-wider transition-all duration-200 ${roundUpBehavior === 'unit' ? 'bg-cyan-500 text-white shadow-sm' : 'text-cyan-600 hover:text-cyan-700'}`}>+1.00 if Exact</button>
+                                                 <button type="button" onClick={() => setRoundUpBehavior('skip')} className={`flex-1 py-2 text-[10px] font-bold rounded-lg tracking-wider transition-all duration-200 ${roundUpBehavior === 'skip' ? 'bg-cyan-500 text-white shadow-sm' : 'text-cyan-600 hover:text-cyan-700'}`}>Skip Whole</button>
+                                                 <button type="button" onClick={() => setRoundUpBehavior('unit')} className={`flex-1 py-2 text-[10px] font-bold rounded-lg tracking-wider transition-all duration-200 ${roundUpBehavior === 'unit' ? 'bg-cyan-500 text-white shadow-sm' : 'text-cyan-600 hover:text-cyan-700'}`}>+1.00 if Exact</button>
                                              </div>
                                          </div>
                                          <div>
-                                             <label className="text-[10px] font-bold text-cyan-800 dark:text-cyan-400 uppercase mb-2 block">Multiplier</label>
+                                             <label className="text-[10px] font-bold text-cyan-800 dark:text-cyan-400 mb-2 block">Multiplier</label>
                                              <input type="number" step="1" min="1" value={roundUpMultiplier} onChange={e => setRoundUpMultiplier(e.target.value)} className={`${INPUT_BASE_STYLE} !h-9 !px-3 font-bold text-cyan-900 dark:text-cyan-100 border border-cyan-100 dark:border-cyan-800 focus:ring-cyan-500`} />
                                          </div>
                                      </div>
@@ -920,7 +920,7 @@ const AddTransactionModal: React.FC<AddTransactionModalProps> = ({ onClose, onSa
                          <button type="button" onClick={() => setShowDetails(!showDetails)} className="w-full flex items-center justify-between p-4 hover:bg-black/5 dark:hover:bg-white/5 transition-colors">
                             <div className="flex items-center gap-3">
                                 <span className={`material-symbols-outlined text-gray-400 transition-transform ${showDetails ? 'rotate-90' : ''}`}>chevron_right</span>
-                                <span className="text-sm font-bold text-light-text-secondary dark:text-dark-text-secondary uppercase tracking-wider">Advanced Details</span>
+                                <span className="text-sm font-bold text-light-text-secondary dark:text-dark-text-secondary tracking-wider">Advanced Details</span>
                             </div>
                             <div className="flex gap-2">
                                 {tagIds.length > 0 && <span className="text-[10px] font-bold bg-primary-100 dark:bg-primary-900/30 text-primary-600 dark:text-primary-400 px-2 py-0.5 rounded-full">{tagIds.length} Tags</span>}

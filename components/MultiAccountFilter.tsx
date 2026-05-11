@@ -12,7 +12,7 @@ interface MultiAccountFilterProps {
 const QuickFilterButton: React.FC<{ onClick: () => void; children: React.ReactNode }> = ({ onClick, children }) => (
   <button
     onClick={onClick}
-    className="w-full text-center text-[10px] font-bold uppercase tracking-wider py-2 px-2 rounded-lg transition-all bg-black/5 dark:bg-white/5 hover:bg-black/10 dark:hover:bg-white/10 text-light-text-secondary dark:text-dark-text-secondary hover:text-light-text dark:hover:text-dark-text whitespace-nowrap"
+    className="w-full text-center text-[10px] font-semibold tracking-wider py-2 px-2 rounded-lg transition-all bg-black/5 dark:bg-white/5 hover:bg-black/10 dark:hover:bg-white/10 text-light-text-secondary dark:text-dark-text-secondary hover:text-light-text dark:hover:text-dark-text whitespace-nowrap"
   >
     {children}
   </button>
@@ -108,7 +108,7 @@ const MultiAccountFilter: React.FC<MultiAccountFilterProps> = ({ accounts, selec
         <div className="absolute top-full left-0 mt-2 w-80 max-w-[90vw] bg-white/95 dark:bg-gray-800/95 backdrop-blur-xl rounded-2xl shadow-2xl border border-black/5 dark:border-white/10 z-50 overflow-hidden animate-fade-in-up">
           {/* Quick Filters */}
           <div className="p-4 bg-black/5 dark:bg-white/5">
-            <h4 className="px-1 pb-3 text-[10px] font-bold text-light-text-secondary dark:text-dark-text-secondary uppercase tracking-widest">Quick Filters</h4>
+            <h4 className="px-1 pb-3 text-[10px] font-semibold text-light-text-secondary dark:text-dark-text-secondary tracking-widest">Quick filters</h4>
             <div className="grid grid-cols-2 gap-2">
               <QuickFilterButton onClick={handleSelectAll}>All Accounts</QuickFilterButton>
               <QuickFilterButton onClick={handleSelectLiquid}>Liquid Only</QuickFilterButton>
@@ -129,7 +129,7 @@ const MultiAccountFilter: React.FC<MultiAccountFilterProps> = ({ accounts, selec
                 if (!groupAccounts || groupAccounts.length === 0) return null;
                 return (
                     <div key={type} className="mb-3">
-                        <h4 className="px-2 py-1 text-[9px] font-bold text-light-text-secondary dark:text-dark-text-secondary uppercase tracking-widest mb-1 opacity-70">{type}</h4>
+                        <h4 className="px-2 py-1 text-[9px] font-semibold text-light-text-secondary dark:text-dark-text-secondary tracking-widest mb-1 opacity-70">{type}</h4>
                         {groupAccounts.map(account => <AccountCheckbox key={account.id} account={account} />)}
                     </div>
                 );
@@ -137,7 +137,7 @@ const MultiAccountFilter: React.FC<MultiAccountFilterProps> = ({ accounts, selec
             
             {closedAccounts.length > 0 && (
               <div className="mt-3 pt-3 border-t border-black/5 dark:border-white/5">
-                <h4 className="px-2 py-1 text-[9px] font-bold text-light-text-secondary dark:text-dark-text-secondary uppercase tracking-widest mb-1 opacity-70">Closed Accounts</h4>
+                <h4 className="px-2 py-1 text-[9px] font-semibold text-light-text-secondary dark:text-dark-text-secondary tracking-widest mb-1 opacity-70">Closed accounts</h4>
                 {closedAccounts.map(account => <AccountCheckbox key={account.id} account={account} />)}
               </div>
             )}

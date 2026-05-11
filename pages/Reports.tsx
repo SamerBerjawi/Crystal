@@ -96,6 +96,41 @@ const ChartTooltip = ({ active, payload, label }: any) => {
   return null;
 };
 
+const MetricCard = React.memo(function MetricCard({ label, value, colorClass = "text-light-text dark:text-dark-text", icon, subtitle, glowColor = "rgba(99, 102, 241, 0.15)" }: { label: string; value: string; colorClass?: string; icon: string; subtitle?: string; glowColor?: string }) {
+    return (
+        <div className="group relative bg-white dark:bg-dark-card p-5 rounded-2xl border border-black/5 dark:border-white/5 flex flex-col justify-between transition-all duration-300 hover:-translate-y-0.5 overflow-hidden h-full shadow-sm"
+             style={{ boxShadow: `0 8px 30px -10px ${glowColor}` }}>
+            {/* Inner Glow Effect */}
+            <div 
+                className="absolute inset-0 pointer-events-none rounded-2xl overflow-hidden"
+                style={{ 
+                    background: `radial-gradient(circle at 0% 0%, ${glowColor} 0%, transparent 50%)`,
+                    opacity: 0.6
+                }}
+            />
+            
+            <div className="relative z-10">
+                <div className="flex items-center gap-3 mb-3">
+                    <div className="w-9 h-9 rounded-xl bg-black/5 dark:bg-white/5 flex items-center justify-center text-light-text-secondary dark:text-dark-text-secondary border border-black/5 dark:border-white/5 transition-transform group-hover:scale-110">
+                        <span className="material-symbols-outlined text-lg">{icon}</span>
+                    </div>
+                    <p className="text-[10px] font-bold text-light-text-secondary dark:text-dark-text-secondary">{label}</p>
+                </div>
+                
+                <div className="flex flex-col">
+                    <p className={`text-xl font-black tracking-tight ${colorClass}`}>{value}</p>
+                    {subtitle && <p className="text-[10px] text-light-text-secondary dark:text-dark-text-secondary mt-1 font-bold opacity-60">{subtitle}</p>}
+                </div>
+            </div>
+            
+            {/* Background Icon Accent */}
+            <div className="absolute -right-4 -bottom-4 text-current opacity-[0.03] dark:opacity-[0.05] transition-transform group-hover:scale-110 duration-500 pointer-events-none">
+                <span className="material-symbols-outlined text-8xl">{icon}</span>
+            </div>
+        </div>
+    );
+});
+
 const Reports: React.FC = () => {
   const transactions = useTransactionSelector(tx => tx);
   const accounts = useAccountSelector(acc => acc);
@@ -677,7 +712,7 @@ const Reports: React.FC = () => {
   };
 
   return (
-    <div className="space-y-6 pb-12 animate-fade-in-up">
+    <div className="space-y-6 pb-8 animate-fade-in-up">
       <PageHeader
         markerIcon="analytics"
         markerLabel="Insights"
@@ -686,76 +721,61 @@ const Reports: React.FC = () => {
       />
 
       {/* Hero Section: Key Metrics */}
-      <section className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-4">
-        <div className="relative overflow-hidden rounded-2xl bg-white dark:bg-[#1E1E20] p-6 shadow-sm border border-black/5 dark:border-neutral-800 group transition-all hover:shadow-md">
-          <div className="absolute top-0 right-0 p-3 opacity-10 group-hover:opacity-20 transition-opacity">
-            <span className="material-symbols-outlined text-6xl">payments</span>
-          </div>
-          <p className="text-xs font-bold uppercase tracking-widest text-light-text-secondary dark:text-dark-text-secondary mb-1">Total Spend</p>
-          <div className="flex items-baseline gap-2">
-            <h3 className="text-3xl font-black tracking-tight">€{totals.totalSpendEur.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</h3>
-          </div>
-          <div className="mt-4 flex items-center gap-2">
-            <div className={`flex items-center px-2 py-0.5 rounded-full text-[10px] font-bold uppercase ${(totals.changePct ?? 0) <= 0 ? 'bg-emerald-100 dark:bg-emerald-900/30 text-emerald-700 dark:text-emerald-400' : 'bg-rose-100 dark:bg-rose-900/30 text-rose-700 dark:text-rose-400'}`}>
-              <span className="material-symbols-outlined text-[14px] mr-1">
-                {(totals.changePct ?? 0) <= 0 ? 'trending_down' : 'trending_up'}
-              </span>
-              {totals.changePct === null ? '0%' : `${Math.abs(totals.changePct).toFixed(1)}%`}
-            </div>
-            <span className="text-[10px] text-light-text-secondary dark:text-dark-text-secondary font-medium uppercase tracking-wider">vs last period</span>
-          </div>
-        </div>
+      <section className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-6">
+        <MetricCard
+          label="Total Spend"
+          value={`€${totals.totalSpendEur.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`}
+          icon="payments"
+          subtitle={`vs last period`}
+          colorClass="text-light-text dark:text-dark-text"
+          glowColor="rgba(99, 102, 241, 0.15)"
+        />
 
-        <div className="relative overflow-hidden rounded-2xl bg-white dark:bg-[#1E1E20] p-6 shadow-sm border border-black/5 dark:border-neutral-800 group transition-all hover:shadow-md">
-          <div className="absolute top-0 right-0 p-3 opacity-10 group-hover:opacity-20 transition-opacity">
-            <span className="material-symbols-outlined text-6xl">savings</span>
-          </div>
-          <p className="text-xs font-bold uppercase tracking-widest text-light-text-secondary dark:text-dark-text-secondary mb-1">Savings Rate</p>
-          <div className="flex items-baseline gap-2">
-            <h3 className={`text-3xl font-black tracking-tight ${savingsRate >= 20 ? 'text-emerald-500' : savingsRate > 0 ? 'text-primary-500' : 'text-rose-500'}`}>
-              {savingsRate.toFixed(1)}%
-            </h3>
-          </div>
-          <p className="mt-4 text-[10px] text-light-text-secondary dark:text-dark-text-secondary font-medium uppercase tracking-wider">
-            {savingsRate >= 20 ? 'Excellent saving habits' : 'Aim for 20% target'}
-          </p>
-        </div>
+        <MetricCard
+          label="Savings Rate"
+          value={`${savingsRate.toFixed(1)}%`}
+          icon="savings"
+          subtitle={savingsRate >= 20 ? 'Excellent saving' : 'Aim for 20% target'}
+          colorClass={savingsRate >= 20 ? 'text-emerald-500' : savingsRate > 0 ? 'text-primary-500' : 'text-rose-500'}
+          glowColor={savingsRate >= 20 ? "rgba(16, 185, 129, 0.15)" : "rgba(99, 102, 241, 0.15)"}
+        />
 
-        <div className="relative overflow-hidden rounded-2xl bg-white dark:bg-[#1E1E20] p-6 shadow-sm border border-black/5 dark:border-neutral-800 group transition-all hover:shadow-md">
-          <div className="absolute top-0 right-0 p-3 opacity-10 group-hover:opacity-20 transition-opacity">
-            <span className="material-symbols-outlined text-6xl">receipt_long</span>
-          </div>
-          <p className="text-xs font-bold uppercase tracking-widest text-light-text-secondary dark:text-dark-text-secondary mb-1">Transactions</p>
-          <h3 className="text-3xl font-black tracking-tight">{totals.transactionCount}</h3>
-          <p className="mt-4 text-[10px] text-light-text-secondary dark:text-dark-text-secondary font-medium uppercase tracking-wider">Processed in range</p>
-        </div>
+        <MetricCard
+          label="Transactions"
+          value={totals.transactionCount.toString()}
+          icon="receipt_long"
+          subtitle="Processed in range"
+          glowColor="rgba(99, 102, 241, 0.15)"
+        />
 
-        <div className="relative overflow-hidden rounded-2xl bg-white dark:bg-[#1E1E20] p-6 shadow-sm border border-black/5 dark:border-neutral-800 group transition-all hover:shadow-md">
-          <div className="absolute top-0 right-0 p-3 opacity-10 group-hover:opacity-20 transition-opacity">
-            <span className="material-symbols-outlined text-6xl">calculate</span>
-          </div>
-          <p className="text-xs font-bold uppercase tracking-widest text-light-text-secondary dark:text-dark-text-secondary mb-1">Avg. Transaction</p>
-          <h3 className="text-3xl font-black tracking-tight">€{totals.averageEur.toFixed(2)}</h3>
-          <p className="mt-4 text-[10px] text-light-text-secondary dark:text-dark-text-secondary font-medium uppercase tracking-wider">Per expense item</p>
-        </div>
+        <MetricCard
+          label="Avg. Transaction"
+          value={`€${totals.averageEur.toFixed(2)}`}
+          icon="calculate"
+          subtitle="Per expense item"
+          glowColor="rgba(99, 102, 241, 0.15)"
+        />
 
-        <div className="relative overflow-hidden rounded-2xl bg-white dark:bg-[#1E1E20] p-6 shadow-sm border border-black/5 dark:border-neutral-800 group transition-all hover:shadow-md">
-          <div className="absolute top-0 right-0 p-3 opacity-10 group-hover:opacity-20 transition-opacity">
-            <span className="material-symbols-outlined text-6xl">event_repeat</span>
-          </div>
-          <p className="text-xs font-bold uppercase tracking-widest text-light-text-secondary dark:text-dark-text-secondary mb-1">Recurring Impact</p>
-          <h3 className="text-3xl font-black tracking-tight">
-            €{(recurringCandidates.reduce((sum, c) => sum + c.estimatedMonthlyEur, 0)).toFixed(0)}
-          </h3>
-          <p className="mt-4 text-[10px] text-light-text-secondary dark:text-dark-text-secondary font-medium uppercase tracking-wider">Est. Monthly Total</p>
-        </div>
+        <MetricCard
+          label="Recurring Impact"
+          value={`€${(recurringCandidates.reduce((sum, c) => sum + c.estimatedMonthlyEur, 0)).toFixed(0)}`}
+          icon="event_repeat"
+          subtitle="Est. Monthly Total"
+          glowColor="rgba(244, 63, 94, 0.15)"
+        />
       </section>
 
       {/* Filters & Saved Views */}
-      <Card className="!p-0 overflow-hidden border border-black/5 dark:border-neutral-800 shadow-sm">
-        <div className="bg-gray-50/50 dark:bg-white/5 p-4 border-b border-black/5 dark:border-white/10">
-          <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-4 mb-6">
-            <h2 className="text-xs font-bold uppercase tracking-widest text-light-text-secondary dark:text-dark-text-secondary">Report Configuration</h2>
+      <Card className="!p-0 overflow-hidden border border-black/5 dark:border-white/5 shadow-2xl rounded-[2rem]">
+        <div className="bg-black/5 dark:bg-white/5 p-8 border-b border-black/5 dark:border-white/10 relative">
+          <div className="absolute top-0 right-0 w-32 h-32 bg-primary-500/10 rounded-full blur-3xl -mr-16 -mt-16 pointer-events-none"></div>
+          
+          <div className="flex flex-col lg:flex-row lg:items-center justify-between gap-6 mb-10 relative z-10">
+            <div>
+              <h2 className="text-[10px] font-black uppercase tracking-[0.2em] text-light-text-secondary dark:text-dark-text-secondary opacity-60 mb-1">Configuration</h2>
+              <p className="text-sm font-bold text-light-text dark:text-dark-text uppercase tracking-tight">Report Parameters</p>
+            </div>
+            
             <div className="flex flex-wrap gap-2">
               {[
                 { label: 'Last 7 Days', value: 'last7' },
@@ -768,50 +788,60 @@ const Reports: React.FC = () => {
                 <button
                   key={p.value}
                   onClick={() => setPredefinedPeriod(p.value)}
-                  className="px-3 py-1 rounded-full bg-white dark:bg-dark-card border border-black/5 dark:border-white/10 text-[10px] font-bold uppercase tracking-wider hover:border-primary-500 transition-all"
+                  className="px-4 py-2 rounded-xl bg-white dark:bg-dark-card border border-black/5 dark:border-white/10 text-[10px] font-black uppercase tracking-[0.15em] hover:border-primary-500 hover:text-primary-500 transition-all shadow-sm"
                 >
                   {p.label}
                 </button>
               ))}
             </div>
           </div>
+
           {savedViews.length > 0 && (
-            <div className="flex flex-wrap gap-2 mb-6">
+            <div className="flex flex-wrap gap-3 mb-4 relative z-10">
               {savedViews.map(view => (
-                <div key={view.id} className="group flex items-center gap-1 bg-white dark:bg-dark-card border border-black/5 dark:border-white/10 rounded-full pl-3 pr-1 py-1 shadow-sm transition-all hover:border-primary-500/50">
-                  <button onClick={() => applyView(view)} className="text-[10px] font-bold uppercase tracking-wider hover:text-primary-500">{view.name}</button>
-                  <button onClick={() => deleteView(view.id)} className="w-5 h-5 flex items-center justify-center rounded-full text-light-text-secondary hover:bg-rose-500 hover:text-white transition-colors">
-                    <span className="material-symbols-outlined text-[14px]">close</span>
+                <div key={view.id} className="group flex items-center gap-2 bg-white dark:bg-dark-card border border-black/5 dark:border-white/10 rounded-xl pl-4 pr-2 py-2 shadow-sm transition-all hover:border-primary-500/50 hover:shadow-lg hover:shadow-primary-500/10">
+                  <button 
+                    onClick={() => applyView(view)} 
+                    className="text-[10px] font-black uppercase tracking-[0.15em] text-light-text dark:text-dark-text hover:text-primary-500 transition-colors"
+                  >
+                    {view.name}
+                  </button>
+                  <button 
+                    onClick={() => deleteView(view.id)} 
+                    className="w-6 h-6 flex items-center justify-center rounded-lg text-light-text-secondary dark:text-dark-text-secondary hover:bg-rose-500 hover:text-white transition-all transform scale-90 group-hover:scale-100"
+                  >
+                    <span className="material-symbols-outlined text-[16px]">close</span>
                   </button>
                 </div>
               ))}
             </div>
           )}
-          <div className="grid grid-cols-1 md:grid-cols-3 lg:grid-cols-6 gap-4">
-            <div className="space-y-1">
-              <label className="block text-[10px] font-bold uppercase tracking-widest text-light-text-secondary dark:text-dark-text-secondary">Account</label>
-              <select value={accountFilter} onChange={(e) => setAccountFilter(e.target.value)} className={`${SELECT_STYLE} !bg-white dark:!bg-neutral-800`}>
+
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 xl:grid-cols-6 gap-4 relative z-10">
+            <div className="space-y-2">
+              <label className="block text-[10px] font-black uppercase tracking-[0.2em] text-light-text-secondary dark:text-dark-text-secondary opacity-60">Account</label>
+              <select value={accountFilter} onChange={(e) => setAccountFilter(e.target.value)} className={`${SELECT_STYLE} !bg-white dark:!bg-dark-card !rounded-xl !border-black/10 dark:!border-white/10 !text-[12px] font-bold uppercase tracking-tight`}>
                 <option value="all">All Accounts</option>
                 {accounts.map(acc => (
                   <option key={acc.id} value={acc.id}>{acc.name}</option>
                 ))}
               </select>
             </div>
-            <div className="space-y-1">
-              <label className="block text-[10px] font-bold uppercase tracking-widest text-light-text-secondary dark:text-dark-text-secondary">Start Date</label>
-              <input type="date" value={startDate} onChange={(e) => setStartDate(e.target.value)} className={`${INPUT_BASE_STYLE} !bg-white dark:!bg-neutral-800`} />
+            <div className="space-y-2">
+              <label className="block text-[10px] font-black uppercase tracking-[0.2em] text-light-text-secondary dark:text-dark-text-secondary opacity-60">Start Date</label>
+              <input type="date" value={startDate} onChange={(e) => setStartDate(e.target.value)} className={`${INPUT_BASE_STYLE} !bg-white dark:!bg-dark-card !rounded-xl !border-black/10 dark:!border-white/10 !text-[12px] font-bold uppercase tracking-tight`} />
             </div>
-            <div className="space-y-1">
-              <label className="block text-[10px] font-bold uppercase tracking-widest text-light-text-secondary dark:text-dark-text-secondary">End Date</label>
-              <input type="date" value={endDate} onChange={(e) => setEndDate(e.target.value)} className={`${INPUT_BASE_STYLE} !bg-white dark:!bg-neutral-800`} />
+            <div className="space-y-2">
+              <label className="block text-[10px] font-black uppercase tracking-[0.2em] text-light-text-secondary dark:text-dark-text-secondary opacity-60">End Date</label>
+              <input type="date" value={endDate} onChange={(e) => setEndDate(e.target.value)} className={`${INPUT_BASE_STYLE} !bg-white dark:!bg-dark-card !rounded-xl !border-black/10 dark:!border-white/10 !text-[12px] font-bold uppercase tracking-tight`} />
             </div>
-            <div className="space-y-1">
-              <label className="block text-[10px] font-bold uppercase tracking-widest text-light-text-secondary dark:text-dark-text-secondary">Merchant</label>
-              <input type="text" value={merchantFilter} onChange={(e) => setMerchantFilter(e.target.value)} placeholder="Filter by name..." className={`${INPUT_BASE_STYLE} !bg-white dark:!bg-neutral-800`} />
+            <div className="space-y-2">
+              <label className="block text-[10px] font-black uppercase tracking-[0.2em] text-light-text-secondary dark:text-dark-text-secondary opacity-60">Merchant</label>
+              <input type="text" value={merchantFilter} onChange={(e) => setMerchantFilter(e.target.value)} placeholder="Filter by name..." className={`${INPUT_BASE_STYLE} !bg-white dark:!bg-dark-card !rounded-xl !border-black/10 dark:!border-white/10 !text-[12px] font-bold uppercase tracking-tight`} />
             </div>
-            <div className="space-y-1">
-              <label className="block text-[10px] font-bold uppercase tracking-widest text-light-text-secondary dark:text-dark-text-secondary">Category</label>
-              <select value={categoryFilter} onChange={(e) => setCategoryFilter(e.target.value)} className={`${SELECT_STYLE} !bg-white dark:!bg-neutral-800`}>
+            <div className="space-y-2">
+              <label className="block text-[10px] font-black uppercase tracking-[0.2em] text-light-text-secondary dark:text-dark-text-secondary opacity-60">Category</label>
+              <select value={categoryFilter} onChange={(e) => setCategoryFilter(e.target.value)} className={`${SELECT_STYLE} !bg-white dark:!bg-dark-card !rounded-xl !border-black/10 dark:!border-white/10 !text-[12px] font-bold uppercase tracking-tight`}>
                 <option value="all">All Categories</option>
                 <optgroup label="Expenses">
                   {expenseCategories.map(cat => (
@@ -825,95 +855,106 @@ const Reports: React.FC = () => {
                 </optgroup>
               </select>
             </div>
-            <div className="space-y-1">
-              <label className="block text-[10px] font-bold uppercase tracking-widest text-light-text-secondary dark:text-dark-text-secondary">Group By</label>
-              <select value={groupBy} onChange={(e) => setGroupBy(e.target.value as GroupBy)} className={`${SELECT_STYLE} !bg-white dark:!bg-neutral-800`}>
+            <div className="space-y-2">
+              <label className="block text-[10px] font-black uppercase tracking-[0.2em] text-light-text-secondary dark:text-dark-text-secondary opacity-60">Group By</label>
+              <select value={groupBy} onChange={(e) => setGroupBy(e.target.value as GroupBy)} className={`${SELECT_STYLE} !bg-white dark:!bg-dark-card !rounded-xl !border-black/10 dark:!border-white/10 !text-[12px] font-bold uppercase tracking-tight`}>
                 <option value="merchant">Merchant</option>
                 <option value="category">Category</option>
               </select>
             </div>
           </div>
         </div>
-        <div className="p-4 bg-white dark:bg-dark-card flex flex-col md:flex-row gap-3 items-center">
-          <div className="relative flex-1 w-full">
-            <span className="absolute left-3 top-1/2 -translate-y-1/2 material-symbols-outlined text-light-text-secondary text-[18px]">bookmark</span>
-            <input 
-              type="text" 
-              value={reportName} 
-              onChange={(e) => setReportName(e.target.value)} 
-              className={`${INPUT_BASE_STYLE} !pl-10 !bg-white dark:!bg-neutral-800`} 
-              placeholder="Name this report view to save it..." 
-            />
+
+        <div className="p-4 bg-white dark:bg-dark-card flex flex-col md:flex-row gap-4 items-center">
+          <div className="relative flex-1 w-full space-y-2">
+            <label className="block text-[10px] font-black uppercase tracking-[0.2em] text-light-text-secondary dark:text-dark-text-secondary opacity-60">Save Report Settings</label>
+            <div className="relative">
+              <span className="absolute left-4 top-1/2 -translate-y-1/2 material-symbols-outlined text-light-text-secondary text-[18px]">bookmark</span>
+              <input 
+                type="text" 
+                value={reportName} 
+                onChange={(e) => setReportName(e.target.value)} 
+                className={`${INPUT_BASE_STYLE} !pl-12 !bg-black/5 dark:!bg-white/5 !border-none !rounded-xl !text-[12px] font-bold uppercase tracking-tight h-12`} 
+                placeholder="Name this report view to save it..." 
+              />
+            </div>
           </div>
-          <button onClick={handleSaveView} className={`${BTN_PRIMARY_STYLE} w-full md:w-auto whitespace-nowrap`}>
-            <span className="material-symbols-outlined text-[18px] mr-2">save</span>
-            Save Report
+          <button onClick={handleSaveView} className={`${BTN_PRIMARY_STYLE} w-full md:w-auto h-12 !rounded-xl !px-8 flex items-center justify-center gap-2 group`}>
+            <span className="material-symbols-outlined text-[20px] transition-transform group-hover:rotate-12">save</span>
+            <span className="text-[11px] font-black uppercase tracking-widest">Save Settings</span>
           </button>
         </div>
       </Card>
 
-      {/* Visual Spending Dashboard */}
       <section className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-        <Card className="lg:col-span-2 flex flex-col border border-black/5 dark:border-neutral-800">
-          <div className="flex items-center justify-between mb-6">
+        <Card className="lg:col-span-2 flex flex-col border border-black/5 dark:border-white/5 rounded-2xl shadow-xl p-5 relative overflow-hidden group">
+          <div className="absolute top-0 right-0 w-64 h-64 bg-primary-500/5 rounded-full blur-[100px] -mr-32 -mt-32 pointer-events-none group-hover:bg-primary-500/10 transition-colors duration-500"></div>
+          
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between mb-6 relative z-10 gap-4">
             <div>
-              <h2 className="text-sm font-black uppercase tracking-widest">Spending Velocity</h2>
-              <p className="text-[10px] text-light-text-secondary dark:text-dark-text-secondary font-bold uppercase tracking-wider">Daily intensity vs previous period</p>
+              <h2 className="text-[10px] font-black uppercase tracking-[0.2em] text-light-text-secondary dark:text-dark-text-secondary opacity-60 mb-1">Spending Velocity</h2>
+              <p className="text-sm font-black text-light-text dark:text-dark-text uppercase tracking-tight">Daily intensity vs previous period</p>
             </div>
-            <div className="flex items-center gap-4">
-              <div className="flex items-center gap-1.5">
-                <div className="w-2 h-2 rounded-full bg-primary-500" />
-                <span className="text-[10px] font-bold uppercase tracking-wider opacity-60">Current</span>
+            <div className="flex items-center gap-6 bg-black/5 dark:bg-white/5 p-3 rounded-2xl border border-black/5 dark:border-white/5">
+              <div className="flex items-center gap-2">
+                <div className="w-3 h-1.5 rounded-full bg-primary-500 shadow-sm shadow-primary-500/40" />
+                <span className="text-[10px] font-black uppercase tracking-widest text-light-text dark:text-dark-text opacity-60">Current</span>
               </div>
-              <div className="flex items-center gap-1.5">
-                <div className="w-2 h-2 rounded-full bg-gray-300 dark:bg-white/20" />
-                <span className="text-[10px] font-bold uppercase tracking-wider opacity-60">Previous</span>
+              <div className="flex items-center gap-2">
+                <div className="w-3 h-1.5 rounded-full bg-gray-300 dark:bg-white/20" />
+                <span className="text-[10px] font-black uppercase tracking-widest text-light-text dark:text-dark-text opacity-60">Previous</span>
               </div>
             </div>
           </div>
-          <div className="h-[250px] w-full flex-1">
+          <div className="h-[300px] w-full flex-1 relative z-10">
             <ResponsiveContainer width="100%" height="100%">
-              <AreaChart data={velocityData} margin={{ top: 0, right: 0, left: 0, bottom: 0 }}>
+              <AreaChart data={velocityData} margin={{ top: 10, right: 10, left: -20, bottom: 0 }}>
                 <defs>
                   <linearGradient id="colorCurrent" x1="0" y1="0" x2="0" y2="1">
-                    <stop offset="5%" stopColor="#6366F1" stopOpacity={0.3}/>
+                    <stop offset="5%" stopColor="#6366F1" stopOpacity={0.2}/>
                     <stop offset="95%" stopColor="#6366F1" stopOpacity={0}/>
                   </linearGradient>
                 </defs>
-                <CartesianGrid strokeDasharray="3 3" vertical={false} strokeOpacity={0.1} />
+                <CartesianGrid strokeDasharray="3 3" vertical={false} strokeOpacity={0.05} />
                 <XAxis 
                   dataKey="day" 
                   axisLine={false} 
                   tickLine={false} 
                   fontSize={10} 
-                  tickFormatter={(val) => `Day ${val}`}
-                  opacity={0.5}
+                  tickFormatter={(val) => `D${val}`}
+                  tick={{ fill: 'currentColor', opacity: 0.4, fontWeight: 'bold' }}
                 />
-                <YAxis axisLine={false} tickLine={false} fontSize={10} opacity={0.5} tickFormatter={(val) => `€${val.toLocaleString(undefined, { minimumFractionDigits: 0, maximumFractionDigits: 0 })}`} />
-                <Tooltip content={<ChartTooltip />} />
-                <Area type="monotone" dataKey="previous" name="Previous Period" stroke="#94a3b8" fill="transparent" strokeDasharray="5 5" strokeWidth={1} />
-                <Area type="monotone" dataKey="current" name="Current Period" stroke="#6366F1" fillOpacity={1} fill="url(#colorCurrent)" strokeWidth={3} />
+                <YAxis axisLine={false} tickLine={false} fontSize={10} tick={{ fill: 'currentColor', opacity: 0.4, fontWeight: 'bold' }} tickFormatter={(val) => `€${val >= 1000 ? (val/1000).toFixed(1) + 'k' : val}`} />
+                <Tooltip content={<ChartTooltip />} cursor={{ stroke: 'rgba(99, 102, 241, 0.2)', strokeWidth: 2 }} />
+                <Area type="monotone" dataKey="previous" name="Previous Period" stroke="currentColor" fill="transparent" strokeDasharray="6 4" strokeWidth={1.5} opacity={0.2} />
+                <Area type="monotone" dataKey="current" name="Current Period" stroke="#6366F1" fillOpacity={1} fill="url(#colorCurrent)" strokeWidth={3} animationDuration={1500} />
               </AreaChart>
             </ResponsiveContainer>
           </div>
         </Card>
 
-        <Card className="flex flex-col border border-black/5 dark:border-neutral-800">
-          <h2 className="text-sm font-black uppercase tracking-widest mb-1">Allocation</h2>
-          <p className="text-[10px] text-light-text-secondary dark:text-dark-text-secondary font-bold uppercase tracking-wider mb-6">Top categories by volume</p>
-          <div className="h-[250px] w-full relative">
+        <Card className="flex flex-col border border-black/5 dark:border-white/5 rounded-2xl shadow-xl p-5 relative overflow-hidden group">
+          <div className="absolute top-0 left-0 w-64 h-64 bg-emerald-500/5 rounded-full blur-[100px] -ml-32 -mt-32 pointer-events-none group-hover:bg-emerald-500/10 transition-colors duration-500"></div>
+          
+          <div className="mb-6 relative z-10">
+            <h2 className="text-[10px] font-black uppercase tracking-[0.2em] text-light-text-secondary dark:text-dark-text-secondary opacity-60 mb-1">Allocation</h2>
+            <p className="text-sm font-black text-light-text dark:text-dark-text uppercase tracking-tight">Top categories by volume</p>
+          </div>
+
+          <div className="h-[240px] w-full relative z-10">
             <ResponsiveContainer width="100%" height="100%">
               <PieChart>
                 <Pie
                   data={categoryTotals.slice(0, 5)}
                   cx="50%"
                   cy="50%"
-                  innerRadius={60}
-                  outerRadius={80}
-                  paddingAngle={5}
+                  innerRadius={70}
+                  outerRadius={95}
+                  paddingAngle={8}
                   dataKey="totalEur"
                   nameKey="category"
                   stroke="none"
+                  animationDuration={1500}
                 >
                   {categoryTotals.slice(0, 5).map((entry, index) => (
                     <Cell key={`cell-${index}`} fill={['#6366F1', '#10B981', '#F59E0B', '#EC4899', '#8B5CF6'][index % 5]} />
@@ -923,18 +964,19 @@ const Reports: React.FC = () => {
               </PieChart>
             </ResponsiveContainer>
             <div className="absolute inset-0 flex flex-col items-center justify-center pointer-events-none">
-              <span className="text-[10px] font-bold uppercase tracking-widest opacity-40">Total</span>
-              <span className="text-lg font-black tracking-tighter">€{totals.totalSpendEur.toFixed(0)}</span>
+              <span className="text-[9px] font-black uppercase tracking-[0.2em] opacity-40">Total</span>
+              <span className="text-2xl font-black tracking-tighter">€{totals.totalSpendEur.toFixed(0)}</span>
             </div>
           </div>
-          <div className="mt-4 space-y-2">
-            {categoryTotals.slice(0, 3).map((cat, i) => (
-              <div key={cat.category} className="flex items-center justify-between text-[10px] font-bold uppercase tracking-wider">
-                <div className="flex items-center gap-2">
-                  <div className="w-2 h-2 rounded-full" style={{ backgroundColor: ['#6366F1', '#10B981', '#F59E0B'][i] }} />
-                  <span className="opacity-60">{cat.category}</span>
+
+          <div className="mt-8 space-y-3 relative z-10">
+            {categoryTotals.slice(0, 4).map((cat, i) => (
+              <div key={cat.category} className="flex items-center justify-between p-3 rounded-2xl bg-black/5 dark:bg-white/5 border border-black/5 dark:border-white/5 group/row hover:bg-white dark:hover:bg-dark-card transition-colors duration-300">
+                <div className="flex items-center gap-3">
+                  <div className="w-2.5 h-2.5 rounded-full shadow-sm" style={{ backgroundColor: ['#6366F1', '#10B981', '#F59E0B', '#EC4899'][i % 4] }} />
+                  <span className="text-[10px] font-black uppercase tracking-wider text-light-text dark:text-dark-text opacity-60 group-hover/row:opacity-100 transition-opacity">{cat.category}</span>
                 </div>
-                <span>€{cat.totalEur.toFixed(0)}</span>
+                <span className="text-[11px] font-black text-light-text dark:text-dark-text">€{cat.totalEur.toFixed(0)}</span>
               </div>
             ))}
           </div>
@@ -942,43 +984,45 @@ const Reports: React.FC = () => {
       </section>
 
       {/* Behavioral Insights & Merchant Loyalty */}
-      <section className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-        <Card className="flex flex-col border border-black/5 dark:border-neutral-800">
-          <div className="flex items-center justify-between mb-6">
+      <section className="grid grid-cols-1 lg:grid-cols-2 gap-4">
+        <Card className="flex flex-col border border-black/5 dark:border-white/5 rounded-2xl shadow-xl p-6 relative overflow-hidden group">
+          <div className="absolute top-0 right-0 w-64 h-64 bg-primary-500/5 rounded-full blur-[100px] -mr-32 -mt-32 pointer-events-none transition-colors duration-500"></div>
+          
+          <div className="flex items-center justify-between mb-6 relative z-10">
             <div>
-              <h2 className="text-sm font-black uppercase tracking-widest">Needs vs. Wants</h2>
-              <p className="text-[10px] text-light-text-secondary dark:text-dark-text-secondary font-bold uppercase tracking-wider">50/30/20 Rule Analysis</p>
+              <h2 className="text-[10px] font-black uppercase tracking-[0.2em] text-light-text-secondary dark:text-dark-text-secondary opacity-60 mb-1">Needs vs. Wants</h2>
+              <p className="text-sm font-black text-light-text dark:text-dark-text uppercase tracking-tight">50/30/20 Rule Analysis</p>
             </div>
-            <div className={`px-3 py-1 rounded-full text-[10px] font-black uppercase tracking-widest ${savingsRate >= 20 ? 'bg-emerald-500/10 text-emerald-600' : 'bg-rose-500/10 text-rose-600'}`}>
+            <div className={`px-4 py-2 rounded-xl text-[10px] font-black uppercase tracking-[0.15em] border border-black/5 dark:border-white/5 ${savingsRate >= 20 ? 'bg-emerald-500/10 text-emerald-600' : 'bg-rose-500/10 text-rose-600 shadow-sm shadow-rose-500/10'}`}>
               {savingsRate >= 20 ? 'Balanced' : 'Over-Spending'}
             </div>
           </div>
-          <div className="space-y-6">
+          <div className="space-y-8 relative z-10">
             {needsWantsData.map(item => {
               const share = totals.totalSpendEur > 0 ? (item.value / totals.totalSpendEur) * 100 : 0;
               const isOver = share > item.target && item.name !== 'Others';
               return (
-                <div key={item.name} className="space-y-2 group/item">
+                <div key={item.name} className="space-y-3 group/item">
                   <div className="flex justify-between items-end">
-                    <div>
-                      <div className="flex items-center gap-2">
-                        <span className="text-xs font-black uppercase tracking-widest">{item.name}</span>
-                        <div className="opacity-0 group-hover/item:opacity-100 transition-opacity">
-                          <span className="text-[9px] font-bold text-light-text-secondary dark:text-dark-text-secondary bg-black/5 dark:bg-white/5 px-1.5 py-0.5 rounded">
+                    <div className="flex flex-col">
+                      <div className="flex items-center gap-2 mb-1">
+                        <span className="text-[11px] font-black uppercase tracking-[0.1em] text-light-text dark:text-dark-text">{item.name}</span>
+                        <div className="opacity-0 group-hover/item:opacity-100 transition-opacity duration-300">
+                          <span className="text-[8px] font-black text-light-text-secondary dark:text-dark-text-secondary bg-black/5 dark:bg-white/5 px-2 py-0.5 rounded-lg border border-black/5 dark:border-white/5 uppercase tracking-wider">
                             {(item as any).description}
                           </span>
                         </div>
                       </div>
-                      <p className="text-[10px] opacity-50 font-bold uppercase tracking-widest">Target: {item.target}%</p>
+                      <p className="text-[9px] opacity-40 font-black uppercase tracking-widest leading-none">Target: {item.target}%</p>
                     </div>
-                    <div className="text-right">
-                      <span className={`text-sm font-black ${isOver ? 'text-rose-500' : 'text-light-text dark:text-dark-text'}`}>{share.toFixed(1)}%</span>
-                      <p className="text-[10px] opacity-50 font-bold uppercase tracking-widest">€{item.value.toFixed(0)}</p>
+                    <div className="text-right flex flex-col items-end gap-1">
+                      <span className={`text-base font-black tracking-tighter ${isOver ? 'text-rose-500 animate-pulse' : 'text-light-text dark:text-dark-text'}`}>{share.toFixed(1)}%</span>
+                      <p className="text-[9px] opacity-40 font-black uppercase tracking-widest leading-none">€{item.value.toLocaleString(undefined, { maximumFractionDigits: 0 })}</p>
                     </div>
                   </div>
-                  <div className="h-2 w-full bg-gray-100 dark:bg-white/5 rounded-full overflow-hidden flex">
+                  <div className="h-2 w-full bg-black/5 dark:bg-white/5 rounded-full overflow-hidden flex shadow-inner">
                     <div 
-                      className="h-full transition-all duration-500" 
+                      className="h-full transition-all duration-1000 ease-out shadow-[0_0_15px_rgba(0,0,0,0.1)]" 
                       style={{ width: `${share}%`, backgroundColor: item.color }} 
                     />
                   </div>
@@ -986,66 +1030,76 @@ const Reports: React.FC = () => {
               );
             })}
           </div>
-          <div className="mt-8 p-4 bg-gray-50 dark:bg-white/5 rounded-xl border border-black/5 dark:border-white/5">
-            <p className="text-xs font-medium leading-relaxed opacity-80 italic">
-              {(() => {
-                const wants = needsWantsData.find(d => d.name === 'Wants');
-                const wantsShare = wants ? (wants.value / totals.totalSpendEur) * 100 : 0;
-                const needs = needsWantsData.find(d => d.name === 'Needs');
-                const needsShare = needs ? (needs.value / totals.totalSpendEur) * 100 : 0;
+          <div className="mt-auto pt-10">
+            <div className="p-5 bg-black/5 dark:bg-white/5 rounded-[1.5rem] border border-dashed border-black/10 dark:border-white/10 relative group-hover:border-primary-500/30 transition-colors">
+              <div className="absolute top-4 right-4 text-primary-500/20 group-hover:text-primary-500/40 transition-colors">
+                <span className="material-symbols-outlined text-2xl">auto_awesome</span>
+              </div>
+              <p className="text-[11px] font-bold leading-relaxed text-light-text-secondary dark:text-dark-text-secondary opacity-70 group-hover:opacity-100 transition-opacity">
+                {(() => {
+                  const wants = needsWantsData.find(d => d.name === 'Wants');
+                  const wantsShare = wants ? (wants.value / totals.totalSpendEur) * 100 : 0;
+                  const needs = needsWantsData.find(d => d.name === 'Needs');
+                  const needsShare = needs ? (needs.value / totals.totalSpendEur) * 100 : 0;
 
-                if (wantsShare > 30) {
-                  const targetValue = totals.totalSpendEur * 0.3;
-                  const potentialSavings = wants!.value - targetValue;
-                  return `Your "Wants" spending is ${wantsShare.toFixed(1)}%, which is above the 30% target. Reducing this to the target level could save you €${potentialSavings.toFixed(0)} per month.`;
-                } else if (needsShare > 50) {
-                  return `Your "Needs" are ${needsShare.toFixed(1)}% of your expenses. Since these are often fixed costs, consider reviewing your recurring bills or subscriptions to bring this closer to the 50% benchmark.`;
-                } else if (totals.totalSpendEur > 0) {
-                  return `Great job! Your spending is well-balanced according to the 50/30/20 rule. You're maintaining a healthy ratio between essentials and lifestyle choices.`;
-                }
-                return "Start tracking your expenses to see your personalized 50/30/20 rule analysis.";
-              })()}
-            </p>
+                  if (wantsShare > 30) {
+                    const targetValue = totals.totalSpendEur * 0.3;
+                    const potentialSavings = wants!.value - targetValue;
+                    return `Your "Wants" spending is ${wantsShare.toFixed(1)}%, which is above the 30% target. Reducing this to the target level could save you €${potentialSavings.toFixed(0)} per month.`;
+                  } else if (needsShare > 50) {
+                    return `Your "Needs" are ${needsShare.toFixed(1)}% of your expenses. Consider reviewing recurring bills to bring this closer to the 50% benchmark.`;
+                  } else if (totals.totalSpendEur > 0) {
+                    return `Excellent balance! Your spending follows the 50/30/20 rule perfectly. You're maintaining a healthy ratio.`;
+                  }
+                  return "Start tracking your expenses to see your personalized analysis.";
+                })()}
+              </p>
+            </div>
           </div>
         </Card>
 
-        <Card className="flex flex-col border border-black/5 dark:border-neutral-800">
-          <h2 className="text-sm font-black uppercase tracking-widest mb-1">Merchant Loyalty</h2>
-          <p className="text-[10px] text-light-text-secondary dark:text-dark-text-secondary font-bold uppercase tracking-wider mb-6">Frequency vs. Impact Leaderboard</p>
-          <div className="space-y-4">
+        <Card className="flex flex-col border border-black/5 dark:border-white/5 rounded-[2rem] shadow-xl p-8 relative overflow-hidden group">
+          <div className="absolute top-0 right-0 w-64 h-64 bg-amber-500/5 rounded-full blur-[100px] -mr-32 -mt-32 pointer-events-none transition-colors duration-500"></div>
+          
+          <div className="mb-10 relative z-10">
+            <h2 className="text-[10px] font-black uppercase tracking-[0.2em] text-light-text-secondary dark:text-dark-text-secondary opacity-60 mb-1">Merchant Loyalty</h2>
+            <p className="text-sm font-black text-light-text dark:text-dark-text uppercase tracking-tight">Frequency vs. Impact Leaderboard</p>
+          </div>
+          
+          <div className="space-y-5 relative z-10">
             {merchantLoyalty.map((m, i) => {
               const { merchantLogoUrl, showMerchantLogo, merchantInitial } = merchantVisual(m.label);
               return (
-                <div key={m.label} className="flex items-center justify-between group">
+                <div key={m.label} className="flex items-center justify-between p-4 rounded-2xl bg-black/5 dark:bg-white/5 border border-black/5 dark:border-white/5 group/row hover:bg-white dark:hover:bg-dark-card transition-all duration-300 hover:shadow-xl hover:shadow-black/5">
                   <div className="flex items-center gap-4">
-                    <div className="text-lg font-black opacity-10 group-hover:opacity-30 transition-opacity w-4">{i + 1}</div>
-                    <div className={`w-10 h-10 rounded-xl shrink-0 flex items-center justify-center overflow-hidden border border-black/5 dark:border-white/10 ${showMerchantLogo ? 'bg-white dark:bg-dark-card' : 'bg-primary-500/10 text-primary-600'}`}>
+                    <div className="text-xs font-black opacity-20 group-hover/row:opacity-50 transition-opacity w-3">{i + 1}</div>
+                    <div className={`w-12 h-12 rounded-[1rem] shrink-0 flex items-center justify-center overflow-hidden border border-black/5 dark:border-white/10 shadow-sm ${showMerchantLogo ? 'bg-white dark:bg-dark-card' : 'bg-primary-500/10 text-primary-600'}`}>
                       {showMerchantLogo && merchantLogoUrl ? (
                         <img src={merchantLogoUrl} alt="" className="w-full h-full object-cover" referrerPolicy="no-referrer" onError={() => handleLogoError(merchantLogoUrl)} />
                       ) : (
-                        <span className="text-sm font-bold">{merchantInitial}</span>
+                        <span className="text-base font-black uppercase">{merchantInitial}</span>
                       )}
                     </div>
                     <div>
-                      <h4 className="text-sm font-bold truncate max-w-[150px]">{m.label}</h4>
-                      <div className="flex items-center gap-2">
-                        <span className="text-[10px] font-bold uppercase tracking-widest opacity-50">{m.count} visits</span>
-                        <span className="w-1 h-1 rounded-full bg-gray-300" />
-                        <span className="text-[10px] font-bold uppercase tracking-widest opacity-50">€{m.avgPerVisit.toFixed(0)} avg</span>
+                      <h4 className="text-[13px] font-black uppercase tracking-tight truncate max-w-[150px] leading-none mb-2">{m.label}</h4>
+                      <div className="flex items-center gap-3">
+                        <span className="text-[9px] font-black uppercase tracking-widest opacity-40">{m.count} visits</span>
+                        <span className="w-0.5 h-0.5 rounded-full bg-black/20 dark:bg-white/20" />
+                        <span className="text-[9px] font-black uppercase tracking-widest opacity-40">€{m.avgPerVisit.toFixed(0)} avg</span>
                       </div>
                     </div>
                   </div>
-                  <div className="text-right">
-                    <div className="text-sm font-black tracking-tighter">€{m.totalEur.toFixed(0)}</div>
-                    <div className="text-[10px] font-black text-primary-500 uppercase tracking-widest">Score: {m.loyaltyScore.toFixed(0)}</div>
+                  <div className="text-right flex flex-col items-end justify-center">
+                    <div className="text-base font-black tracking-tighter leading-none mb-1">€{m.totalEur.toFixed(0)}</div>
+                    <div className="text-[8px] font-black text-primary-500 uppercase tracking-widest px-2 py-0.5 rounded-full bg-primary-500/10">Score: {m.loyaltyScore.toFixed(0)}</div>
                   </div>
                 </div>
               );
             })}
           </div>
-          <div className="mt-auto pt-6">
-            <button className="w-full py-2 rounded-xl border border-dashed border-black/10 dark:border-white/10 text-[10px] font-black uppercase tracking-widest opacity-60 hover:opacity-100 transition-opacity">
-              View All Merchant Insights
+          <div className="mt-10 relative z-10">
+            <button className="w-full py-4 rounded-2xl border border-dashed border-black/10 dark:border-white/10 text-[9px] font-black uppercase tracking-[0.2em] opacity-40 hover:opacity-100 hover:border-primary-500/50 hover:bg-primary-500/5 transition-all">
+              View Detailed Profile Leaderboard
             </button>
           </div>
         </Card>
@@ -1054,22 +1108,24 @@ const Reports: React.FC = () => {
 
 
       {/* Main Content Grid */}
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 relative z-10 mb-8">
         {/* Left Column: Detailed Breakdowns */}
-        <div className="space-y-6">
-          <Card className="!p-0 overflow-hidden border border-black/5 dark:border-neutral-800">
-            <div className="p-4 border-b border-black/5 dark:border-white/10 flex items-center justify-between bg-gray-50/30 dark:bg-white/5">
-              <h2 className="font-bold text-sm uppercase tracking-widest">Spend Breakdown</h2>
-              <span className="text-[10px] font-bold uppercase tracking-widest text-light-text-secondary">By {groupBy}</span>
+        <div className="space-y-8">
+          <Card className="!p-0 overflow-hidden border border-black/5 dark:border-white/5 rounded-[2rem] shadow-xl">
+            <div className="p-8 border-b border-black/5 dark:border-white/10 flex items-center justify-between bg-black/5 dark:bg-white/5">
+              <div>
+                <h2 className="text-[10px] font-black uppercase tracking-[0.2em] text-light-text-secondary dark:text-dark-text-secondary opacity-60 mb-1">Spend Breakdown</h2>
+                <p className="text-sm font-black text-light-text dark:text-dark-text uppercase tracking-tight">By {groupBy}</p>
+              </div>
             </div>
             <div className="overflow-x-auto">
-              <table className="w-full text-left border-collapse text-sm">
+              <table className="w-full text-left border-collapse">
                 <thead>
-                  <tr className="border-b border-black/5 dark:border-white/10 bg-gray-50/50 dark:bg-white/5">
-                    <th className="py-3 px-4 font-bold text-[10px] uppercase tracking-widest text-light-text-secondary dark:text-dark-text-secondary">{groupBy}</th>
-                    <th className="py-3 px-4 font-bold text-[10px] uppercase tracking-widest text-light-text-secondary dark:text-dark-text-secondary text-right">Count</th>
-                    <th className="py-3 px-4 font-bold text-[10px] uppercase tracking-widest text-light-text-secondary dark:text-dark-text-secondary text-right">Total</th>
-                    <th className="py-3 px-4 font-bold text-[10px] uppercase tracking-widest text-light-text-secondary dark:text-dark-text-secondary text-right">Share</th>
+                  <tr className="border-b border-black/5 dark:border-white/10 bg-black/5 dark:bg-white/5">
+                    <th className="py-5 px-8 font-black text-[10px] uppercase tracking-[0.2em] text-light-text-secondary dark:text-dark-text-secondary opacity-60">{groupBy}</th>
+                    <th className="py-5 px-8 font-black text-[10px] uppercase tracking-[0.2em] text-light-text-secondary dark:text-dark-text-secondary opacity-60 text-right">Qty</th>
+                    <th className="py-5 px-8 font-black text-[10px] uppercase tracking-[0.2em] text-light-text-secondary dark:text-dark-text-secondary opacity-60 text-right">Total</th>
+                    <th className="py-5 px-8 font-black text-[10px] uppercase tracking-[0.2em] text-light-text-secondary dark:text-dark-text-secondary opacity-60 text-right">Share</th>
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-black/5 dark:divide-white/5">
@@ -1078,36 +1134,36 @@ const Reports: React.FC = () => {
                     const category = findCategoryByName(row.label, allCategories);
                     const { merchantLogoUrl, showMerchantLogo, merchantInitial } = merchantVisual(row.label);
                     return (
-                      <tr key={row.label} className="group hover:bg-black/5 dark:hover:bg-white/5 transition-colors">
-                        <td className="py-3 px-4">
+                      <tr key={row.label} className="group hover:bg-black/5 dark:hover:bg-white/5 transition-all duration-300">
+                        <td className="py-4 px-8">
                           {groupBy === 'merchant' ? (
-                            <div className="flex items-center gap-3">
-                              <div className={`w-8 h-8 rounded-lg shrink-0 flex items-center justify-center overflow-hidden border border-black/5 dark:border-white/10 ${showMerchantLogo ? 'bg-white dark:bg-dark-card' : 'bg-primary-500/10 text-primary-600'}`}>
+                            <div className="flex items-center gap-4">
+                              <div className={`w-10 h-10 rounded-xl shrink-0 flex items-center justify-center overflow-hidden border border-black/5 dark:border-white/10 shadow-sm ${showMerchantLogo ? 'bg-white dark:bg-dark-card' : 'bg-primary-500/10 text-primary-600'}`}>
                                 {showMerchantLogo && merchantLogoUrl ? (
-                                  <img src={merchantLogoUrl} alt="" className="w-full h-full object-cover" referrerPolicy="no-referrer" onError={() => handleLogoError(merchantLogoUrl)} />
+                                  <img src={merchantLogoUrl} alt="" className="w-full h-full object-cover shadow-inner" referrerPolicy="no-referrer" onError={() => handleLogoError(merchantLogoUrl)} />
                                 ) : (
-                                  <span className="text-xs font-bold">{merchantInitial}</span>
+                                  <span className="text-xs font-black uppercase tracking-widest">{merchantInitial}</span>
                                 )}
                               </div>
-                              <span className="font-medium truncate max-w-[150px]">{row.label}</span>
+                              <span className="text-[13px] font-black uppercase tracking-tight text-light-text dark:text-dark-text truncate max-w-[150px]">{row.label}</span>
                             </div>
                           ) : (
-                            <div className="flex items-center gap-3">
-                              <div className="w-8 h-8 rounded-lg bg-gray-100 dark:bg-white/10 flex items-center justify-center text-light-text-secondary">
-                                <span className="material-symbols-outlined text-[18px]">{category?.icon || 'category'}</span>
+                            <div className="flex items-center gap-4">
+                              <div className="w-10 h-10 rounded-xl bg-black/5 dark:bg-white/5 border border-black/5 dark:border-white/10 flex items-center justify-center text-light-text-secondary">
+                                <span className="material-symbols-outlined text-[20px]" style={{ color: category?.color }}>{category?.icon || 'category'}</span>
                               </div>
-                              <span className="font-medium">{row.label}</span>
+                              <span className="text-[13px] font-black uppercase tracking-tight text-light-text dark:text-dark-text">{row.label}</span>
                             </div>
                           )}
                         </td>
-                        <td className="py-3 px-4 text-right font-mono text-xs text-light-text-secondary">{row.count}</td>
-                        <td className="py-3 px-4 text-right font-bold privacy-blur">€{row.totalEur.toLocaleString(undefined, { minimumFractionDigits: 2 })}</td>
-                        <td className="py-3 px-4 text-right">
-                          <div className="flex items-center justify-end gap-2">
-                            <div className="w-12 h-1.5 rounded-full bg-gray-100 dark:bg-white/10 overflow-hidden">
-                              <div className="h-full bg-primary-500" style={{ width: `${share}%` }} />
+                        <td className="py-4 px-8 text-right font-black text-xs opacity-40 uppercase tracking-widest">{row.count}</td>
+                        <td className="py-4 px-8 text-right font-black text-sm tracking-tighter privacy-blur uppercase tracking-widest">€{row.totalEur.toLocaleString(undefined, { minimumFractionDigits: 0, maximumFractionDigits: 0 })}</td>
+                        <td className="py-4 px-8 text-right">
+                          <div className="flex items-center justify-end gap-4">
+                            <div className="w-16 h-1.5 rounded-full bg-black/5 dark:bg-white/5 border border-black/5 dark:border-white/5 overflow-hidden shadow-inner">
+                              <div className="h-full bg-primary-500 shadow-sm shadow-primary-500/40" style={{ width: `${share}%` }} />
                             </div>
-                            <span className="text-[10px] font-bold text-light-text-secondary w-8">{share.toFixed(0)}%</span>
+                            <span className="text-[10px] font-black text-light-text-secondary w-8 tracking-widest opacity-60">{share.toFixed(0)}%</span>
                           </div>
                         </td>
                       </tr>
@@ -1115,155 +1171,207 @@ const Reports: React.FC = () => {
                   })}
                 </tbody>
               </table>
-              {groupedRows.length === 0 && <p className="text-sm text-light-text-secondary p-8 text-center">No transactions found for this period.</p>}
+              {groupedRows.length === 0 && (
+                <div className="p-20 text-center flex flex-col items-center gap-4 opacity-30">
+                  <span className="material-symbols-outlined text-6xl">search_off</span>
+                  <p className="text-[10px] font-black uppercase tracking-[0.2em]">No transactions matched filters</p>
+                </div>
+              )}
             </div>
           </Card>
         </div>
 
         {/* Right Column: Insights & Forecasts */}
-        <div className="space-y-6">
-          <Card className="bg-primary-600 text-white border-none shadow-lg relative overflow-hidden">
-            <div className="absolute top-0 right-0 p-4 opacity-10">
-              <span className="material-symbols-outlined text-8xl">lightbulb</span>
+        <div className="space-y-4">
+          <Card className="bg-primary-600 dark:bg-primary-800 text-white border-none shadow-2xl rounded-2xl p-6 relative overflow-hidden group">
+            <div className="absolute top-0 right-0 p-8 opacity-10 transition-transform group-hover:scale-125 duration-700">
+              <span className="material-symbols-outlined text-[8rem]">lightbulb</span>
             </div>
-            <h2 className="font-bold text-sm uppercase tracking-widest mb-4 relative z-10">Smart Insights</h2>
-            <div className="space-y-3 relative z-10">
-              {insights.map(item => (
-                <div key={item.id} className="flex items-start gap-3 bg-white/10 backdrop-blur-sm rounded-xl p-3 border border-white/10">
-                  <span className="material-symbols-outlined text-[20px] shrink-0 mt-0.5">
-                    {item.tone === 'warning' ? 'warning' : item.tone === 'positive' ? 'check_circle' : 'info'}
-                  </span>
-                  <p className="text-sm font-medium leading-relaxed privacy-blur">{item.text}</p>
+            <div className="absolute bottom-0 left-0 w-48 h-48 bg-white/5 rounded-full blur-[100px] -ml-24 -mb-24"></div>
+            
+            <div className="mb-4 relative z-10">
+              <h2 className="text-[10px] font-black uppercase tracking-[0.2em] text-white/60 mb-1">Smart Engine</h2>
+              <p className="text-sm font-black uppercase tracking-tight text-white">AI-Powered Insights</p>
+            </div>
+            
+            <div className="space-y-2 relative z-10">
+              {insights.map((item, idx) => (
+                <div key={item.id} className="flex items-start gap-4 bg-white/10 backdrop-blur-3xl rounded-xl p-4 border border-white/10 shadow-lg shadow-black/10 transition-transform hover:scale-[1.02] duration-300" 
+                     style={{ animationDelay: `${idx * 150}ms` }}>
+                  <div className={`w-8 h-8 rounded-lg flex items-center justify-center shrink-0 border border-white/10 ${item.tone === 'warning' ? 'bg-amber-500/20 text-amber-300' : item.tone === 'positive' ? 'bg-emerald-500/20 text-emerald-300' : 'bg-white/20 text-white'}`}>
+                    <span className="material-symbols-outlined text-base">
+                      {item.tone === 'warning' ? 'warning' : item.tone === 'positive' ? 'check_circle' : 'info'}
+                    </span>
+                  </div>
+                  <p className="text-xs font-bold leading-relaxed privacy-blur drop-shadow-sm">{item.text}</p>
                 </div>
               ))}
-              {insights.length === 0 && <p className="text-sm opacity-80 italic">Gathering more data to generate insights...</p>}
+              {insights.length === 0 && <p className="text-[11px] font-black uppercase tracking-widest opacity-60 text-center py-6">Listening for financial signals...</p>}
             </div>
           </Card>
 
-          <Card className="!p-0 overflow-hidden border border-black/5 dark:border-neutral-800">
-            <div className="p-4 border-b border-black/5 dark:border-white/10 bg-gray-50/30 dark:bg-white/5">
-              <h2 className="font-bold text-sm uppercase tracking-widest">Month-End Forecast</h2>
+          <Card className="!p-0 overflow-hidden border border-black/5 dark:border-white/5 bg-white dark:bg-dark-card rounded-2xl shadow-xl group">
+            <div className="p-5 border-b border-black/5 dark:border-white/10 bg-black/5 dark:bg-white/5 flex items-center justify-between">
+              <p className="text-[10px] font-black uppercase tracking-[0.2em] text-light-text-secondary dark:text-dark-text-secondary opacity-60">Month-End Forecast</p>
+              <div className="w-2 h-2 rounded-full bg-primary-500 animate-pulse shadow-sm shadow-primary-500/50"></div>
             </div>
-            <div className="p-6">
+            <div className="p-5 relative">
+              <div className="absolute top-0 right-0 w-24 h-24 bg-primary-500/5 rounded-full blur-[60px] pointer-events-none"></div>
               {forecast ? (
-                <div className="space-y-6">
+                <div className="space-y-6 relative z-10">
                   <div className="flex items-center justify-between">
                     <div>
-                      <p className="text-[10px] font-bold uppercase tracking-widest text-light-text-secondary mb-1">Projected Total</p>
-                      <h4 className="text-3xl font-black tracking-tight privacy-blur">€{forecast.projectedMonthEnd.toLocaleString(undefined, { maximumFractionDigits: 0 })}</h4>
+                      <p className="text-[10px] font-black uppercase tracking-[0.2em] text-light-text-secondary mb-1 opacity-60">Projected Total</p>
+                      <h4 className="text-3xl font-black tracking-tighter privacy-blur leading-none">€{forecast.projectedMonthEnd.toLocaleString(undefined, { maximumFractionDigits: 0 })}</h4>
                     </div>
                     <div className="text-right">
-                      <p className="text-[10px] font-bold uppercase tracking-widest text-light-text-secondary mb-1">Daily Burn Rate</p>
-                      <p className="text-xl font-bold privacy-blur">€{forecast.dailyAverage.toFixed(0)}<span className="text-xs font-normal opacity-60">/day</span></p>
+                      <p className="text-[10px] font-black uppercase tracking-[0.2em] text-light-text-secondary mb-1 opacity-60">Daily Burn</p>
+                      <p className="text-xl font-black tracking-tighter privacy-blur leading-none">€{forecast.dailyAverage.toFixed(0)}<span className="text-[10px] font-black opacity-30 tracking-widest uppercase ml-1">/d</span></p>
                     </div>
                   </div>
                   
                   <div className="space-y-2">
-                    <div className="flex justify-between text-[10px] font-bold uppercase tracking-widest privacy-blur">
-                      <span>MTD: €{forecast.mtdSpendEur.toFixed(0)}</span>
-                      <span>Remaining: €{(forecast.projectedMonthEnd - forecast.mtdSpendEur).toFixed(0)}</span>
+                    <div className="flex justify-between text-[9px] font-black uppercase tracking-[0.15em] opacity-60 privacy-blur">
+                      <span>MTD: €{forecast.mtdSpendEur.toLocaleString()}</span>
+                      <span>Runway: €{(forecast.projectedMonthEnd - forecast.mtdSpendEur).toLocaleString()}</span>
                     </div>
-                    <div className="h-3 rounded-full bg-gray-100 dark:bg-white/5 overflow-hidden flex">
-                      <div className="h-full bg-primary-500" style={{ width: `${(forecast.mtdSpendEur / forecast.projectedMonthEnd) * 100}%` }} />
+                    <div className="h-1.5 rounded-full bg-black/5 dark:bg-white/5 border border-black/5 dark:border-white/5 overflow-hidden flex shadow-inner">
+                      <div className="h-full bg-primary-500 shadow-sm shadow-primary-500/40 transition-all duration-1000" style={{ width: `${(forecast.mtdSpendEur / forecast.projectedMonthEnd) * 100}%` }} />
                     </div>
-                    <p className="text-[10px] text-center text-light-text-secondary font-medium uppercase tracking-wider">
-                      {forecast.remainingDays} days remaining in billing cycle
-                    </p>
+                    <div className="flex items-center justify-center gap-2">
+                       <span className="material-symbols-outlined text-[12px] opacity-30">calendar_month</span>
+                       <p className="text-[8px] text-light-text-secondary font-black uppercase tracking-[0.2em] opacity-40">
+                         {forecast.remainingDays} Days remaining in cycle
+                       </p>
+                    </div>
                   </div>
                 </div>
               ) : (
-                <p className="text-sm text-light-text-secondary text-center py-4 italic">Forecast unavailable for current selection.</p>
+                <div className="p-6 text-center flex flex-col items-center gap-2 opacity-30">
+                  <span className="material-symbols-outlined text-3xl">query_stats</span>
+                  <p className="text-[10px] font-black uppercase tracking-[0.2em]">Projection data pending</p>
+                </div>
               )}
             </div>
           </Card>
 
-          <Card className="!p-0 overflow-hidden border border-black/5 dark:border-neutral-800">
-            <div className="p-4 border-b border-black/5 dark:border-white/10 bg-gray-50/30 dark:bg-white/5">
-              <h2 className="font-bold text-sm uppercase tracking-widest">Anomalies & Outliers</h2>
+          <Card className="!p-0 overflow-hidden border border-black/5 dark:border-white/5 bg-white dark:bg-dark-card rounded-2xl shadow-xl group">
+            <div className="p-5 border-b border-black/5 dark:border-white/10 bg-black/5 dark:bg-white/5 flex items-center justify-between">
+              <p className="text-[10px] font-black uppercase tracking-[0.2em] text-light-text-secondary dark:text-dark-text-secondary opacity-60">Anomalies & Outliers</p>
+              <div className="w-10 h-1 rounded-full bg-rose-500/20"></div>
             </div>
-            <div className="p-4 space-y-3">
+            <div className="p-4 space-y-2">
               {anomalyCandidates.map(row => (
-                <div key={row.id} className="flex items-center justify-between p-3 rounded-xl border border-black/5 dark:border-white/5 hover:bg-gray-50 dark:hover:bg-white/5 transition-colors">
+                <div key={row.id} className="flex items-center justify-between p-3 rounded-xl border border-black/5 dark:border-white/5 bg-black/5 dark:bg-white/5 hover:bg-white dark:hover:bg-dark-card transition-all duration-300 hover:shadow-lg hover:shadow-black/5 group/anomaly">
                   <div className="flex items-center gap-3">
-                    <div className="w-10 h-10 rounded-full bg-rose-500/10 text-rose-600 flex items-center justify-center shrink-0">
-                      <span className="material-symbols-outlined text-[20px]">warning</span>
+                    <div className="w-9 h-9 rounded-lg bg-rose-500/10 text-rose-500 flex items-center justify-center shrink-0 border border-rose-500/10 group-hover/anomaly:scale-110 transition-transform">
+                      <span className="material-symbols-outlined text-xl">warning</span>
                     </div>
                     <div>
-                      <p className="text-sm font-bold truncate max-w-[120px]">{row.merchant}</p>
-                      <p className="text-[10px] text-light-text-secondary uppercase font-bold tracking-wider">{row.date}</p>
+                      <p className="text-xs font-black uppercase tracking-tight truncate max-w-[120px] leading-none mb-1">{row.merchant}</p>
+                      <p className="text-[8px] text-light-text-secondary uppercase font-black tracking-widest opacity-40">{row.date}</p>
                     </div>
                   </div>
-                  <div className="text-right">
-                    <p className="text-sm font-black privacy-blur">€{row.amountEur.toFixed(2)}</p>
-                    <p className="text-[10px] text-rose-500 font-bold uppercase tracking-widest">{row.zScore.toFixed(1)}σ Outlier</p>
+                  <div className="text-right flex flex-col items-end">
+                    <p className="text-xs font-black tracking-tighter privacy-blur leading-none">€{row.amountEur.toFixed(2)}</p>
+                    <p className="text-[7px] text-rose-500 font-black uppercase tracking-widest px-1.5 py-0.5 rounded-full bg-rose-500/10 mt-1">{row.zScore.toFixed(1)}σ</p>
                   </div>
                 </div>
               ))}
-              {anomalyCandidates.length === 0 && <p className="text-sm text-light-text-secondary text-center py-4 italic">No significant outliers detected.</p>}
+              {anomalyCandidates.length === 0 && (
+                <div className="p-6 text-center flex flex-col items-center gap-2 opacity-30">
+                  <span className="material-symbols-outlined text-3xl">verified</span>
+                  <p className="text-[10px] font-black uppercase tracking-[0.2em]">All data within normal range</p>
+                </div>
+              )}
             </div>
           </Card>
 
-          <Card className="!p-0 overflow-hidden border border-black/5 dark:border-neutral-800">
-            <div className="p-4 border-b border-black/5 dark:border-white/10 bg-gray-50/30 dark:bg-white/5">
-              <h2 className="font-bold text-sm uppercase tracking-widest">Recurring Patterns</h2>
+          <Card className="!p-0 overflow-hidden border border-black/5 dark:border-white/5 bg-white dark:bg-dark-card rounded-2xl shadow-xl group">
+            <div className="p-5 border-b border-black/5 dark:border-white/10 bg-black/5 dark:bg-white/5 flex items-center justify-between">
+              <p className="text-[10px] font-black uppercase tracking-[0.2em] text-light-text-secondary dark:text-dark-text-secondary opacity-60">Recurring Patterns</p>
+              <span className="material-symbols-outlined text-base opacity-20">autorenew</span>
             </div>
-            <div className="p-4 space-y-4">
+            <div className="p-5 space-y-4">
               {recurringCandidates.slice(0, 5).map(candidate => (
-                <div key={candidate.merchant} className="flex items-center justify-between">
+                <div key={candidate.merchant} className="flex items-center justify-between group/recurring">
                   <div className="flex items-center gap-3">
-                    <div className="w-8 h-8 rounded-lg bg-primary-500/10 text-primary-600 flex items-center justify-center shrink-0">
-                      <span className="material-symbols-outlined text-[18px]">event_repeat</span>
+                    <div className="w-8 h-8 rounded-lg bg-primary-500/10 text-primary-500 flex items-center justify-center shrink-0 border border-primary-500/10 group-hover/recurring:rotate-12 transition-transform">
+                      <span className="material-symbols-outlined text-base">event_repeat</span>
                     </div>
                     <div>
-                      <p className="text-sm font-bold">{candidate.merchant}</p>
-                      <p className="text-[10px] text-light-text-secondary uppercase font-bold tracking-wider">{candidate.frequency}</p>
+                      <p className="text-xs font-black uppercase tracking-tight leading-none mb-1">{candidate.merchant}</p>
+                      <p className="text-[8px] text-light-text-secondary uppercase font-black tracking-widest opacity-40">{candidate.frequency}</p>
                     </div>
                   </div>
-                  <div className="text-right">
-                    <p className="text-sm font-black privacy-blur">€{candidate.estimatedMonthlyEur.toFixed(0)}<span className="text-[10px] font-normal opacity-60">/mo</span></p>
-                    <p className="text-[10px] text-light-text-secondary font-bold uppercase tracking-widest">{candidate.occurrences} hits</p>
+                  <div className="text-right flex flex-col items-end">
+                    <p className="text-xs font-black tracking-tighter privacy-blur leading-none">€{candidate.estimatedMonthlyEur.toFixed(0)}<span className="text-[8px] font-black opacity-30 ml-0.5">/MO</span></p>
+                    <p className="text-[7px] text-light-text-secondary font-black uppercase tracking-widest opacity-40 mt-1">{candidate.occurrences} hits</p>
                   </div>
                 </div>
               ))}
-              {recurringCandidates.length === 0 && <p className="text-sm text-light-text-secondary text-center py-4 italic">No recurring patterns found.</p>}
+              {recurringCandidates.length === 0 && (
+                <div className="p-6 text-center flex flex-col items-center gap-2 opacity-30">
+                  <span className="material-symbols-outlined text-3xl">fingerprint</span>
+                  <p className="text-[10px] font-black uppercase tracking-[0.2em]">Monitoring for patterns</p>
+                </div>
+              )}
             </div>
           </Card>
-          <Card className="!p-0 overflow-hidden border border-black/5 dark:border-neutral-800">
-            <div className="p-4 border-b border-black/5 dark:border-white/10 flex items-center justify-between bg-gray-50/30 dark:bg-white/5">
-              <h2 className="font-bold text-sm uppercase tracking-widest">Budget vs Actual</h2>
-              <button onClick={() => { setCategoryFilter('all'); setMerchantFilter(''); }} className="text-[10px] font-bold uppercase tracking-widest text-primary-500 hover:underline">Reset Filters</button>
+          <Card className="!p-0 overflow-hidden border border-black/5 dark:border-white/5 bg-white dark:bg-dark-card rounded-2xl shadow-xl relative group">
+            <div className="absolute top-0 right-0 w-24 h-24 bg-primary-500/5 rounded-full blur-[60px] pointer-events-none"></div>
+            <div className="p-6 border-b border-black/5 dark:border-white/10 flex items-center justify-between bg-black/5 dark:bg-white/5">
+               <div className="relative z-10">
+                <p className="text-[10px] font-black uppercase tracking-[0.2em] text-light-text-secondary dark:text-dark-text-secondary opacity-60 mb-0.5">Performance</p>
+                <h2 className="text-xs font-black uppercase tracking-tight">Budget vs Actual</h2>
+              </div>
+              <button 
+                onClick={() => { setCategoryFilter('all'); setMerchantFilter(''); }} 
+                className="relative z-10 text-[9px] font-black uppercase tracking-[0.1em] text-primary-500 hover:text-primary-600 bg-primary-500/5 px-3 py-1.5 rounded-lg transition-all hover:bg-primary-500/10 active:scale-95"
+              >
+                Reset
+              </button>
             </div>
-            <div className="overflow-x-auto">
-              <table className="w-full text-left border-collapse text-sm">
+            <div className="overflow-x-auto relative z-10">
+              <table className="w-full text-left border-collapse">
                 <thead>
-                  <tr className="border-b border-black/5 dark:border-white/10 bg-gray-50/50 dark:bg-white/5">
-                    <th className="py-3 px-4 font-bold text-[10px] uppercase tracking-widest text-light-text-secondary dark:text-dark-text-secondary">Category</th>
-                    <th className="py-3 px-4 font-bold text-[10px] uppercase tracking-widest text-light-text-secondary dark:text-dark-text-secondary text-right">Budget</th>
-                    <th className="py-3 px-4 font-bold text-[10px] uppercase tracking-widest text-light-text-secondary dark:text-dark-text-secondary text-right">Actual</th>
-                    <th className="py-3 px-4 font-bold text-[10px] uppercase tracking-widest text-light-text-secondary dark:text-dark-text-secondary text-right">Variance</th>
+                  <tr className="border-b border-black/5 dark:border-white/10 bg-black/5 dark:bg-white/5">
+                    <th className="py-2 px-4 font-black text-[9px] uppercase tracking-[0.15em] text-light-text-secondary opacity-60">Category</th>
+                    <th className="py-2 px-4 font-black text-[9px] uppercase tracking-[0.15em] text-light-text-secondary opacity-60 text-right">Limit</th>
+                    <th className="py-2 px-4 font-black text-[9px] uppercase tracking-[0.15em] text-light-text-secondary opacity-60 text-right">Actual</th>
+                    <th className="py-2 px-4 font-black text-[9px] uppercase tracking-[0.15em] text-light-text-secondary opacity-60 text-right">Delta</th>
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-black/5 dark:divide-white/5">
                   {budgetVsActual.map(row => (
-                    <tr key={row.categoryName} className="group hover:bg-black/5 dark:hover:bg-white/5 transition-colors">
-                      <td className="py-3 px-4">
+                    <tr key={row.categoryName} className="group hover:bg-black/5 dark:hover:bg-white/5 transition-all duration-300">
+                      <td className="py-2 px-4">
                         <div className="flex items-center gap-3">
-                          <span className="material-symbols-outlined text-[18px] text-light-text-secondary">
-                            {findCategoryByName(row.categoryName, allCategories)?.icon || 'category'}
-                          </span>
-                          <span className="font-medium">{row.categoryName}</span>
+                          <div className="w-8 h-8 rounded-lg bg-black/5 dark:bg-white/5 border border-black/5 dark:border-white/10 flex items-center justify-center text-light-text-secondary group-hover:bg-white dark:group-hover:bg-neutral-800 transition-colors shadow-sm">
+                            <span className="material-symbols-outlined text-[16px]">
+                              {findCategoryByName(row.categoryName, allCategories)?.icon || 'category'}
+                            </span>
+                          </div>
+                          <span className="text-xs font-black uppercase tracking-tight">{row.categoryName}</span>
                         </div>
                       </td>
-                      <td className="py-3 px-4 text-right font-mono text-xs text-light-text-secondary">€{row.budgetEur.toFixed(0)}</td>
-                      <td className="py-3 px-4 text-right font-bold">€{row.actualEur.toFixed(0)}</td>
-                      <td className={`py-3 px-4 text-right font-bold ${row.varianceEur >= 0 ? 'text-emerald-600' : 'text-rose-600'}`}>
-                        {row.varianceEur >= 0 ? '+' : ''}€{row.varianceEur.toFixed(0)}
+                      <td className="py-2 px-4 text-right font-black text-[10px] opacity-40 uppercase tracking-widest">€{row.budgetEur.toFixed(0)}</td>
+                      <td className="py-2 px-4 text-right font-black text-xs tracking-tighter">€{row.actualEur.toFixed(0)}</td>
+                      <td className={`py-2 px-4 text-right`}>
+                        <div className={`inline-flex items-center px-2 py-0.5 rounded-full text-[9px] font-black uppercase tracking-widest shadow-sm ${row.varianceEur >= 0 ? 'bg-emerald-500/10 text-emerald-600 border border-emerald-500/10' : 'bg-rose-500/10 text-rose-600 border border-rose-500/10'}`}>
+                          {row.varianceEur >= 0 ? '+' : ''}€{row.varianceEur.toFixed(0)}
+                        </div>
                       </td>
                     </tr>
                   ))}
                 </tbody>
               </table>
-              {budgetVsActual.length === 0 && <p className="text-sm text-light-text-secondary p-8 text-center">No budgets configured.</p>}
+              {budgetVsActual.length === 0 && (
+                <div className="p-10 text-center flex flex-col items-center gap-3 opacity-30">
+                  <span className="material-symbols-outlined text-4xl">list_alt_off</span>
+                  <p className="text-[10px] font-black uppercase tracking-[0.2em]">No budget configurations detected</p>
+                </div>
+              )}
             </div>
           </Card>
         </div>

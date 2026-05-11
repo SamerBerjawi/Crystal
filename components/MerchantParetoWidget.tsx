@@ -78,10 +78,10 @@ const MerchantParetoWidget: React.FC<MerchantParetoWidgetProps> = ({ transaction
       <div className="bg-primary-50 dark:bg-primary-900/10 p-3 rounded-xl border border-primary-100 dark:border-primary-800/30">
         <div className="flex items-center gap-2 mb-1">
           <span className="material-symbols-outlined text-primary-500 text-sm">info</span>
-          <span className="text-[10px] font-bold uppercase tracking-wider text-primary-700 dark:text-primary-300">Pareto Insight</span>
+          <span className="text-[10px] font-semibold tracking-wider text-primary-700 dark:text-primary-300">Pareto insight</span>
         </div>
         <p className="text-xs text-primary-900 dark:text-primary-100 leading-relaxed">
-          Your top 3 merchants account for <span className="font-bold">{topThreePercent.toFixed(0)}%</span> of your discretionary outflows. Cutting costs here will have the highest impact.
+          Your top 3 merchants account for <span className="font-semibold">{topThreePercent.toFixed(0)}%</span> of your discretionary outflows. Cutting costs here will have the highest impact.
         </p>
       </div>
     </div>

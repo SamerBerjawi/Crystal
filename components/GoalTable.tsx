@@ -109,9 +109,9 @@ const GoalTable: React.FC<GoalTableProps> = ({ goals, accounts, onGoalClick, onE
             <div>
               <p className="font-bold text-sm text-light-text dark:text-dark-text group-hover:text-primary-500 transition-colors cursor-pointer" onClick={() => onGoalClick(goal)}>{goal.name}</p>
               <div className="flex items-center gap-2">
-                <p className="text-[10px] text-light-text-secondary dark:text-dark-text-secondary uppercase font-bold">{getAccountName(goal.paymentAccountId)}</p>
+                <p className="text-[10px] text-light-text-secondary/60 dark:text-dark-text-secondary/80 font-bold tracking-wider">{getAccountName(goal.paymentAccountId)}</p>
                 <span className="w-1 h-1 rounded-full bg-black/10 dark:bg-white/10" />
-                <p className="text-[10px] text-light-text-secondary dark:text-dark-text-secondary uppercase font-bold">{category === 'savings' ? 'Saving' : category === 'expense' ? 'Expense' : 'Income'}</p>
+                <p className="text-[10px] text-light-text-secondary/60 dark:text-dark-text-secondary/80 font-bold tracking-wider">{category === 'savings' ? 'Saving' : category === 'expense' ? 'Expense' : 'Income'}</p>
               </div>
             </div>
           </div>
@@ -124,7 +124,7 @@ const GoalTable: React.FC<GoalTableProps> = ({ goals, accounts, onGoalClick, onE
         </td>
         <td className="py-4 px-4">
           <div className="space-y-1">
-            <div className="flex justify-between items-center text-[9px] font-bold uppercase text-light-text-secondary dark:text-dark-text-secondary">
+            <div className="flex justify-between items-center text-[9px] font-bold text-light-text-secondary/60 dark:text-dark-text-secondary/80 tracking-wider">
               <span>{progress.toFixed(0)}%</span>
             </div>
             <div className="w-full h-1.5 bg-black/5 dark:bg-white/5 rounded-full overflow-hidden">
@@ -149,11 +149,11 @@ const GoalTable: React.FC<GoalTableProps> = ({ goals, accounts, onGoalClick, onE
         </td>
         <td className="py-4 px-4">
            {!isCompleted ? (
-              <div className={`px-2 py-1 rounded-md text-[10px] font-bold uppercase tracking-wider text-center ${status.color}`}>
+              <div className={`px-2 py-1 rounded-md text-[10px] font-bold tracking-wider text-center ${status.color}`}>
                 {status.text}
               </div>
            ) : (
-             <div className="px-2 py-1 rounded-md text-[10px] font-bold uppercase tracking-wider text-center bg-emerald-500 text-white">
+             <div className="px-2 py-1 rounded-md text-[10px] font-bold tracking-wider text-center bg-emerald-500 text-white shadow-sm">
                 Completed
              </div>
            )}
@@ -193,25 +193,25 @@ const GoalTable: React.FC<GoalTableProps> = ({ goals, accounts, onGoalClick, onE
         <table className="w-full text-left border-collapse">
           <thead>
             <tr className="bg-black/[0.02] dark:bg-white/[0.02] border-b border-black/5 dark:border-white/5">
-              <th className="py-4 px-4 text-[10px] font-black uppercase tracking-widest text-light-text-secondary dark:text-neutral-300 cursor-pointer hover:text-primary-500" onClick={() => handleSort('name')}>
+              <th className="py-4 px-4 text-[10px] font-bold tracking-wider text-light-text-secondary dark:text-neutral-400 cursor-pointer hover:text-primary-500" onClick={() => handleSort('name')}>
                  <div className="flex items-center gap-1">Goal {renderSortIcon('name')}</div>
               </th>
-              <th className="py-4 px-4 text-right text-[10px] font-black uppercase tracking-widest text-light-text-secondary dark:text-neutral-300 cursor-pointer hover:text-primary-500" onClick={() => handleSort('amount')}>
+              <th className="py-4 px-4 text-right text-[10px] font-bold tracking-wider text-light-text-secondary dark:text-neutral-400 cursor-pointer hover:text-primary-500" onClick={() => handleSort('amount')}>
                  <div className="flex items-center justify-end gap-1">Target {renderSortIcon('amount')}</div>
               </th>
-              <th className="py-4 px-4 text-right text-[10px] font-black uppercase tracking-widest text-light-text-secondary dark:text-neutral-300 cursor-pointer hover:text-primary-500" onClick={() => handleSort('currentAmount')}>
+              <th className="py-4 px-4 text-right text-[10px] font-bold tracking-wider text-light-text-secondary dark:text-neutral-400 cursor-pointer hover:text-primary-500" onClick={() => handleSort('currentAmount')}>
                  <div className="flex items-center justify-end gap-1">Saved {renderSortIcon('currentAmount')}</div>
               </th>
-              <th className="py-4 px-4 text-[10px] font-black uppercase tracking-widest text-light-text-secondary dark:text-neutral-300 cursor-pointer hover:text-primary-500" onClick={() => handleSort('progress')}>
+              <th className="py-4 px-4 text-[10px] font-bold tracking-wider text-light-text-secondary dark:text-neutral-400 cursor-pointer hover:text-primary-500" onClick={() => handleSort('progress')}>
                  <div className="flex items-center gap-1">Progress {renderSortIcon('progress')}</div>
               </th>
-              <th className="py-4 px-4 text-[10px] font-black uppercase tracking-widest text-light-text-secondary text-center dark:text-neutral-300 cursor-pointer hover:text-primary-500" onClick={() => handleSort('date')}>
+              <th className="py-4 px-4 text-[10px] font-bold tracking-wider text-light-text-secondary text-center dark:text-neutral-400 cursor-pointer hover:text-primary-500" onClick={() => handleSort('date')}>
                  <div className="flex items-center justify-center gap-1">Due Date {renderSortIcon('date')}</div>
               </th>
-              <th className="py-4 px-4 text-[10px] font-black uppercase tracking-widest text-light-text-secondary text-center dark:text-neutral-300 cursor-pointer hover:text-primary-500">
+              <th className="py-4 px-4 text-[10px] font-bold tracking-wider text-light-text-secondary text-center dark:text-neutral-400 cursor-pointer hover:text-primary-500">
                  <div className="flex items-center justify-center gap-1">Projected</div>
               </th>
-              <th className="py-4 px-4 text-[10px] font-black uppercase tracking-widest text-light-text-secondary text-center dark:text-neutral-300 cursor-pointer hover:text-primary-500" onClick={() => handleSort('status')}>
+              <th className="py-4 px-4 text-[10px] font-bold tracking-wider text-light-text-secondary text-center dark:text-neutral-400 cursor-pointer hover:text-primary-500" onClick={() => handleSort('status')}>
                  <div className="flex items-center justify-center gap-1">Status {renderSortIcon('status')}</div>
               </th>
               <th className="py-4 px-4"></th>
@@ -228,7 +228,7 @@ const GoalTable: React.FC<GoalTableProps> = ({ goals, accounts, onGoalClick, onE
                       <td colSpan={8} className="py-2 px-4 border-b border-black/5 dark:border-white/5">
                         <div className="flex items-center gap-2">
                            <span className="material-symbols-outlined text-sm text-indigo-500">folder</span>
-                           <span className="text-[10px] font-black uppercase tracking-widest text-indigo-500">{bucket.name}</span>
+                           <span className="text-[10px] font-bold tracking-wider text-indigo-500">{bucket.name}</span>
                         </div>
                       </td>
                     </tr>
@@ -241,7 +241,7 @@ const GoalTable: React.FC<GoalTableProps> = ({ goals, accounts, onGoalClick, onE
                     <td colSpan={8} className="py-2 px-4 border-b border-black/5 dark:border-white/5">
                       <div className="flex items-center gap-2">
                          <span className="material-symbols-outlined text-sm text-gray-400">label_off</span>
-                         <span className="text-[10px] font-black uppercase tracking-widest text-gray-400">Unassigned</span>
+                         <span className="text-[10px] font-bold tracking-wider text-gray-400">Unassigned</span>
                       </div>
                     </td>
                   </tr>

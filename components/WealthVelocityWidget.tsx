@@ -44,12 +44,12 @@ const WealthVelocityWidget: React.FC<WealthVelocityWidgetProps> = ({ transaction
     <div className="flex flex-col h-full space-y-4">
       <div className="flex justify-between items-center px-1">
         <div>
-          <p className="text-[10px] font-black uppercase tracking-widest text-light-text-secondary opacity-60">Growth Momentum</p>
+          <p className="text-[10px] font-semibold tracking-wider text-light-text-secondary/60 dark:text-dark-text-secondary/80">Growth momentum</p>
           <div className="flex items-center gap-2">
-            <h3 className={`text-2xl font-black ${currentDelta >= 0 ? 'text-emerald-500' : 'text-rose-500'}`}>
+            <h3 className={`text-2xl font-semibold ${currentDelta >= 0 ? 'text-emerald-500' : 'text-rose-500'}`}>
               {currentDelta >= 0 ? '+' : ''}{formatCurrency(currentDelta, 'EUR')}
             </h3>
-            <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full ${isAccelerating ? 'bg-emerald-100 text-emerald-700' : 'bg-gray-100 text-gray-600'}`}>
+            <span className={`text-[10px] font-semibold px-2 py-0.5 rounded-full ${isAccelerating ? 'bg-emerald-500/10 text-emerald-600 dark:text-emerald-400' : 'bg-gray-500/10 text-gray-500 dark:text-gray-400'}`}>
               {isAccelerating ? 'Accelerating' : 'Stabilizing'}
             </span>
           </div>
@@ -74,7 +74,7 @@ const WealthVelocityWidget: React.FC<WealthVelocityWidgetProps> = ({ transaction
         </ResponsiveContainer>
       </div>
       
-      <p className="text-[10px] italic text-light-text-secondary opacity-60 text-center">
+      <p className="text-[10px] italic text-light-text-secondary/60 dark:text-dark-text-secondary/80 text-center font-medium">
         Dashed line represents your 3-month trailing growth average.
       </p>
     </div>

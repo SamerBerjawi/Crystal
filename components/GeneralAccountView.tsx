@@ -1,10 +1,10 @@
 import React, { useMemo } from 'react';
-import { Account, DisplayTransaction, Category, Transaction, RecurringTransaction } from '../types';
-import { formatCurrency, parseLocalDate, generateSyntheticLoanPayments, generateSyntheticCreditCardPayments, generateBalanceForecast, convertToEur, generateSyntheticPropertyTransactions, calculateStatementPeriods, getCreditCardStatementDetails, getPreferredTimeZone, formatDateKey, toLocalISOString } from '../utils';
-import Card from './Card';
+import { Account, DisplayTransaction, Category, Transaction } from '../types';
+import { formatCurrency, parseLocalDate, generateSyntheticLoanPayments, generateSyntheticCreditCardPayments, generateBalanceForecast, convertToEur, generateSyntheticPropertyTransactions, getPreferredTimeZone, toLocalISOString } from '../utils';
 import TransactionList from './TransactionList';
 import { BTN_PRIMARY_STYLE, ACCOUNT_TYPE_STYLES, BTN_SECONDARY_STYLE } from '../constants';
-import { AreaChart, Area, XAxis, YAxis, Tooltip, ResponsiveContainer, CartesianGrid, BarChart, Bar, Cell, Legend, ReferenceLine } from 'recharts';
+import { AreaChart, Area, XAxis, YAxis, Tooltip, ResponsiveContainer, CartesianGrid } from 'recharts';
+import { motion } from 'motion/react';
 import { useGoalsContext, useScheduleContext } from '../contexts/FinancialDataContext';
 import { useAccountsContext, useTransactionsContext } from '../contexts/DomainProviders';
 
@@ -45,6 +45,50 @@ const getCardGradient = (id: string) => {
     return `bg-gradient-to-br ${gradients[index]}`;
 };
 
+const MetricTile = ({ label, value, icon, subValue, trend, colorClass = 'primary' }: { 
+    label: string; 
+    value: string; 
+    icon: string; 
+    subValue?: string;
+    trend?: { val: string; positive: boolean };
+    colorClass?: 'primary' | 'emerald' | 'rose' | 'amber' | 'blue' | 'indigo' | 'orange' | 'purple' | 'cyan' | 'slate';
+}) => {
+    const colors = {
+        primary: 'bg-primary-500/10 text-primary-500',
+        emerald: 'bg-emerald-500/10 text-emerald-500',
+        rose: 'bg-rose-500/10 text-rose-500',
+        amber: 'bg-amber-500/10 text-amber-500',
+        blue: 'bg-blue-500/10 text-blue-500',
+        indigo: 'bg-indigo-500/10 text-indigo-500',
+        orange: 'bg-orange-500/10 text-orange-500',
+        purple: 'bg-purple-500/10 text-purple-500',
+        cyan: 'bg-cyan-500/10 text-cyan-500',
+        slate: 'bg-slate-500/10 text-slate-500',
+    };
+
+    return (
+        <div className="bg-white dark:bg-dark-card border border-black/5 dark:border-white/5 rounded-[2rem] p-6 relative overflow-hidden group hover:shadow-xl hover:shadow-black/5 dark:hover:shadow-white/5 transition-all duration-500 h-full">
+            <div className={`absolute top-0 right-0 w-24 h-24 -mr-8 -mt-8 rounded-full blur-3xl opacity-20 transition-opacity group-hover:opacity-40 ${colors[colorClass].split(' ')[1].replace('text-', 'bg-')}`}></div>
+            <div className="flex justify-between items-start relative z-10">
+                <div className={`w-12 h-12 rounded-2xl flex items-center justify-center ${colors[colorClass]}`}>
+                    <span className="material-symbols-outlined text-2xl">{icon}</span>
+                </div>
+                {trend && (
+                    <div className={`flex items-center gap-1 text-[10px] font-black px-2 py-1 rounded-lg ${trend.positive ? 'bg-emerald-500/10 text-emerald-500' : 'bg-rose-500/10 text-rose-500'}`}>
+                         <span className="material-symbols-outlined text-[10px]">{trend.positive ? 'trending_up' : 'trending_down'}</span>
+                         {trend.val}
+                    </div>
+                )}
+            </div>
+            <div className="mt-6 relative z-10">
+                <p className="text-[10px] font-bold tracking-wider text-light-text-secondary/70 dark:text-dark-text-secondary/90 mb-1">{label}</p>
+                <h4 className="text-2xl font-black text-light-text dark:text-dark-text tracking-tight tabular-nums privacy-blur">{value}</h4>
+                {subValue && <p className="text-[11px] font-bold text-light-text-secondary/50 dark:text-dark-text-secondary/70 mt-1 tracking-tight">{subValue}</p>}
+            </div>
+        </div>
+    );
+};
+
 const GeneralAccountView: React.FC<GeneralAccountViewProps> = ({
   account,
   displayTransactionsList,
@@ -62,89 +106,47 @@ const GeneralAccountView: React.FC<GeneralAccountViewProps> = ({
   const { financialGoals } = useGoalsContext();
   const { accounts } = useAccountsContext();
   const { transactions: allTransactions } = useTransactionsContext();
+  const timeZone = getPreferredTimeZone();
 
   // --- 1. Key Metrics Calculations ---
-
-  // Helper: Get transactions for specific timeframes
-  const getTransactionsInDateRange = (startDate: Date, endDate: Date) => {
-    return transactions
-      .filter(({ tx }) => showBalanceAdjustments || !tx.isBalanceAdjustment)
-      .filter(t => t.parsedDate >= startDate && t.parsedDate <= endDate);
-  };
-
   const metrics = useMemo(() => {
     const now = new Date();
-    // Normalize "Today" to end of day for inclusion, but keep 'now' for future checks
     const todayStart = new Date(now.getFullYear(), now.getMonth(), now.getDate());
-
-    // 1. Sort transactions descending (Newest -> Oldest)
     const filteredTxs = transactions.filter(({ tx }) => showBalanceAdjustments || !tx.isBalanceAdjustment);
     const sortedTxsDesc = [...filteredTxs].sort((a, b) => b.parsedDate.getTime() - a.parsedDate.getTime());
-
-    // 2. Calculate "Real Today Balance"
-    // Start with the account's current balance (source of truth).
-    // If there are transactions dated in the future included in this balance, 
-    // we must reverse them to find the actual balance available *right now*.
     let realTodayBalance = account.balance;
     
     sortedTxsDesc.forEach(({ tx, parsedDate }) => {
-        if (parsedDate > now) {
-             // Reverse future transaction:
-             // If it was income (+), we subtract it. If expense (-), we add it.
-             realTodayBalance -= tx.amount;
-        }
+        if (parsedDate > now) realTodayBalance -= tx.amount;
     });
 
-    // --- A. Average Monthly Spend (Last 3 Months) ---
     const threeMonthsAgo = new Date(todayStart);
     threeMonthsAgo.setMonth(threeMonthsAgo.getMonth() - 3);
-    threeMonthsAgo.setDate(1); // Start of 3 months ago
+    threeMonthsAgo.setDate(1);
     const endOfLastMonth = new Date(todayStart.getFullYear(), todayStart.getMonth(), 0);
-    
-    const last3MonthsTxs = getTransactionsInDateRange(threeMonthsAgo, endOfLastMonth);
+    const last3MonthsTxs = filteredTxs.filter(t => t.parsedDate >= threeMonthsAgo && t.parsedDate <= endOfLastMonth);
     const totalSpend3Months = last3MonthsTxs.reduce((sum, { tx }) => {
         if (tx.amount < 0 && !tx.transferId) return sum + Math.abs(tx.amount);
         return sum;
     }, 0);
     const avgMonthlySpend = totalSpend3Months / 3;
 
-
-    // --- B. Prepare Recurring Items for Forecast (Safe-to-Spend & Lowest Balance) ---
-    // Generate synthetic payments (loans, credit cards, properties)
     const syntheticLoans = generateSyntheticLoanPayments(accounts, allTransactions, loanPaymentOverrides);
     const syntheticCC = generateSyntheticCreditCardPayments(accounts, allTransactions);
     const syntheticProperty = generateSyntheticPropertyTransactions(accounts);
-    
-    const allRecurringItems = [
-        ...recurringTransactions, 
-        ...syntheticLoans, 
-        ...syntheticCC, 
-        ...syntheticProperty
-    ];
+    const allRecurringItems = [...recurringTransactions, ...syntheticLoans, ...syntheticCC, ...syntheticProperty];
 
-    // --- C. Safe to Spend (Real Today Balance - Upcoming Payments in next 7 days) ---
     const next7Days = new Date(todayStart);
     next7Days.setDate(next7Days.getDate() + 7);
-    
     let upcomingOutflows = 0;
-
-    // 1. Recurring Check (Simple check for Safe-to-Spend)
-    const relevantRecurringForSafeSpend = allRecurringItems.filter(rt => 
-        rt.accountId === account.id && (rt.type === 'expense' || rt.type === 'transfer')
-    );
-    
+    const relevantRecurringForSafeSpend = allRecurringItems.filter(rt => rt.accountId === account.id && (rt.type === 'expense' || rt.type === 'transfer'));
     relevantRecurringForSafeSpend.forEach(rt => {
         let nextDue = parseLocalDate(rt.nextDueDate);
         const interval = rt.frequencyInterval || 1;
-        
-        // Check occurrences within next 7 days
         let safety = 0;
         while (nextDue <= next7Days && safety < 50) { 
              safety++;
-             if (nextDue >= todayStart) {
-                 upcomingOutflows += rt.amount;
-             }
-             // Advance
+             if (nextDue >= todayStart) upcomingOutflows += rt.amount;
              const d = new Date(nextDue);
              if (rt.frequency === 'monthly') d.setMonth(d.getMonth() + interval);
              else if (rt.frequency === 'weekly') d.setDate(d.getDate() + (7 * interval));
@@ -153,191 +155,37 @@ const GeneralAccountView: React.FC<GeneralAccountViewProps> = ({
              nextDue = d;
         }
     });
-
-    // 2. Bills
     billsAndPayments.forEach(bill => {
         if (bill.accountId === account.id && bill.status === 'unpaid' && bill.type === 'payment') {
             const due = parseLocalDate(bill.dueDate);
-            if (due >= todayStart && due <= next7Days) {
-                upcomingOutflows += Math.abs(bill.amount);
-            }
+            if (due >= todayStart && due <= next7Days) upcomingOutflows += Math.abs(bill.amount);
         }
     });
-
     const safeToSpend = realTodayBalance - upcomingOutflows;
-
-    // --- D. Forecast Lowest Balance (Next 30 Days) ---
     const forecastEndDate = new Date(todayStart);
     forecastEndDate.setDate(forecastEndDate.getDate() + 30);
-
-    // Create a temporary account object with the "Real Today Balance"
-    // This ensures the forecast engine starts from the correct effective funds available now.
     const accountForForecast = { ...account, balance: realTodayBalance };
-
-    const { lowestPoint } = generateBalanceForecast(
-        [accountForForecast],
-        allRecurringItems,
-        financialGoals,
-        billsAndPayments,
-        forecastEndDate,
-        recurringTransactionOverrides
-    );
-    
-    // `generateBalanceForecast` works in EUR. Convert the result back to the account's currency.
-    // If account currency is same as base (EUR), rate is 1.
+    const { lowestPoint } = generateBalanceForecast([accountForForecast], allRecurringItems, financialGoals, billsAndPayments, forecastEndDate, recurringTransactionOverrides);
     const conversionRate = convertToEur(1, account.currency);
     const lowestBalanceForecast = lowestPoint.value / (conversionRate || 1);
 
     return { lowestBalanceForecast, avgMonthlySpend, safeToSpend, realTodayBalance };
   }, [account, transactions, recurringTransactions, billsAndPayments, accounts, allTransactions, loanPaymentOverrides, financialGoals, recurringTransactionOverrides, showBalanceAdjustments]);
 
-
   // --- 2. Chart Data ---
-  
-  // Cash Flow Trend (Last 6 Months)
-  const cashFlowData = useMemo(() => {
-      const data: { month: string; income: number; expense: number }[] = [];
-      const today = new Date();
-      
-      for (let i = 5; i >= 0; i--) {
-          const d = new Date(today.getFullYear(), today.getMonth() - i, 1);
-          const monthKey = d.toLocaleString('default', { month: 'short' });
-          
-          const startOfMonth = new Date(d.getFullYear(), d.getMonth(), 1);
-          const endOfMonth = new Date(d.getFullYear(), d.getMonth() + 1, 0);
-          
-          const txs = transactions
-            .filter(({ tx }) => showBalanceAdjustments || !tx.isBalanceAdjustment)
-            .filter(t => t.parsedDate >= startOfMonth && t.parsedDate <= endOfMonth);
-          
-          let inc = 0;
-          let exp = 0;
-          txs.forEach(({ tx }) => {
-             if (tx.amount > 0) inc += tx.amount;
-             else exp += Math.abs(tx.amount);
-          });
-          
-          data.push({ month: monthKey, income: inc, expense: exp });
-      }
-      return data;
-  }, [transactions, showBalanceAdjustments]);
-
-  // Top Spending Categories (Last 30 Days)
-  const topCategories = useMemo(() => {
-      const thirtyDaysAgo = new Date();
-      thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
-      
-      const spending: Record<string, number> = {};
-      let totalSpent = 0;
-      
-      transactions
-        .filter(({ tx }) => showBalanceAdjustments || !tx.isBalanceAdjustment)
-        .forEach(({ tx, parsedDate }) => {
-          if (parsedDate >= thirtyDaysAgo && tx.amount < 0 && !tx.transferId) {
-             // Find parent category
-             const category = allCategories.find(c => c.name === tx.category);
-             let parentName = category ? category.name : tx.category;
-             
-             if (category && category.parentId) {
-                 const parent = allCategories.find(c => c.id === category.parentId);
-                 if (parent) {
-                     parentName = parent.name;
-                 }
-             }
-             
-             spending[parentName] = (spending[parentName] || 0) + Math.abs(tx.amount);
-             totalSpent += Math.abs(tx.amount);
-          }
-      });
-      
-      return Object.entries(spending)
-        .map(([name, value]) => {
-             // Re-find color
-             const cat = allCategories.find(c => c.name === name);
-             return { name, value, color: cat?.color || '#cbd5e1' };
-        })
-        .sort((a, b) => b.value - a.value)
-        .slice(0, 5);
-  }, [transactions, allCategories, showBalanceAdjustments]);
-
-  // Upcoming Payments List (Next 14 Days)
-  const upcomingPayments = useMemo(() => {
-      const list: { date: string; description: string; amount: number; isRecurring: boolean }[] = [];
-      const now = new Date();
-      const todayLocal = new Date(now.getFullYear(), now.getMonth(), now.getDate());
-      const horizon = new Date(todayLocal);
-      horizon.setDate(horizon.getDate() + 14);
-
-      // Recurring
-      const relevantRecurring = recurringTransactions.filter(rt => 
-        rt.accountId === account.id && (rt.type === 'expense' || rt.type === 'transfer')
-      );
-      // Synthetic
-      const syntheticLoans = generateSyntheticLoanPayments(accounts, allTransactions, loanPaymentOverrides).filter(rt => rt.accountId === account.id);
-      const syntheticCC = generateSyntheticCreditCardPayments(accounts, allTransactions).filter(rt => rt.accountId === account.id);
-      
-      [...relevantRecurring, ...syntheticLoans, ...syntheticCC].forEach(rt => {
-          let nextDue = parseLocalDate(rt.nextDueDate);
-          const interval = rt.frequencyInterval || 1;
-          
-          // Find occurrences in window
-          let safety = 0;
-          while (nextDue <= horizon && safety < 100) {
-             safety++;
-             if (nextDue >= todayLocal) {
-                 list.push({
-                     date: toLocalISOString(nextDue),
-                     description: rt.description,
-                     amount: Math.abs(rt.amount),
-                     isRecurring: true
-                 });
-             }
-             // Advance logic
-             const d = new Date(nextDue);
-             if (rt.frequency === 'monthly') d.setMonth(d.getMonth() + interval);
-             else if (rt.frequency === 'weekly') d.setDate(d.getDate() + (7 * interval));
-             else if (rt.frequency === 'daily') d.setDate(d.getDate() + interval);
-             else if (rt.frequency === 'yearly') d.setFullYear(d.getFullYear() + interval);
-             nextDue = d;
-          }
-      });
-
-      // Bills
-      billsAndPayments.forEach(bill => {
-        if (bill.accountId === account.id && bill.status === 'unpaid' && bill.type === 'payment') {
-             const due = parseLocalDate(bill.dueDate);
-             if (due >= todayLocal && due <= horizon) {
-                 list.push({
-                     date: bill.dueDate,
-                     description: bill.description,
-                     amount: Math.abs(bill.amount),
-                     isRecurring: false
-                 });
-             }
-        }
-      });
-      
-      return list.sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime()).slice(0, 5);
-  }, [recurringTransactions, billsAndPayments, accounts, account.id, allTransactions, loanPaymentOverrides]);
-
-  // Balance History (30 Days)
   const balanceHistory = useMemo(() => {
     const data = [];
-    // Use the calculated "Real Today Balance" so future transactions don't skew the history chart
     let currentBalance = metrics.realTodayBalance;
-    
     const today = new Date();
     const endDate = new Date(today.getFullYear(), today.getMonth(), today.getDate());
     const filteredTxs = transactions.filter(({ tx }) => showBalanceAdjustments || !tx.isBalanceAdjustment);
     const sortedTxs = [...filteredTxs].sort((a, b) => b.parsedDate.getTime() - a.parsedDate.getTime());
     const dailyChanges: Record<string, number> = {};
-    
     sortedTxs.forEach(({ tx, parsedDate }) => {
-         if (parsedDate > today) return; // Ignore future
-        const dateStr = toLocalISOString(parsedDate);
+         if (parsedDate > today) return; 
+         const dateStr = toLocalISOString(parsedDate);
          dailyChanges[dateStr] = (dailyChanges[dateStr] || 0) + tx.amount;
     });
-
     let iterDate = new Date(endDate);
     for (let i = 0; i <= 30; i++) {
         const dateStr = toLocalISOString(iterDate);
@@ -349,537 +197,323 @@ const GeneralAccountView: React.FC<GeneralAccountViewProps> = ({
     return data.reverse();
   }, [metrics.realTodayBalance, transactions, showBalanceAdjustments]);
 
-  // Find credit cards linked to this account (where settlementAccountId === this account.id)
+  const upcomingPayments = useMemo(() => {
+      const list: { date: string; description: string; amount: number; isRecurring: boolean }[] = [];
+      const now = new Date();
+      const todayLocal = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+      const horizon = new Date(todayLocal);
+      horizon.setDate(horizon.getDate() + 14);
+
+      const relevantRecurring = recurringTransactions.filter(rt => rt.accountId === account.id && (rt.type === 'expense' || rt.type === 'transfer'));
+      const syntheticLoans = generateSyntheticLoanPayments(accounts, allTransactions, loanPaymentOverrides).filter(rt => rt.accountId === account.id);
+      const syntheticCC = generateSyntheticCreditCardPayments(accounts, allTransactions).filter(rt => rt.accountId === account.id);
+      
+      [...relevantRecurring, ...syntheticLoans, ...syntheticCC].forEach(rt => {
+          let nextDue = parseLocalDate(rt.nextDueDate);
+          const interval = rt.frequencyInterval || 1;
+          let safety = 0;
+          while (nextDue <= horizon && safety < 100) {
+             safety++;
+             if (nextDue >= todayLocal) {
+                 list.push({ date: toLocalISOString(nextDue), description: rt.description, amount: Math.abs(rt.amount), isRecurring: true });
+             }
+             const d = new Date(nextDue);
+             if (rt.frequency === 'monthly') d.setMonth(d.getMonth() + interval);
+             else if (rt.frequency === 'weekly') d.setDate(d.getDate() + (7 * interval));
+             else if (rt.frequency === 'daily') d.setDate(d.getDate() + interval);
+             else if (rt.frequency === 'yearly') d.setFullYear(d.getFullYear() + interval);
+             nextDue = d;
+          }
+      });
+      billsAndPayments.forEach(bill => {
+        if (bill.accountId === account.id && bill.status === 'unpaid' && bill.type === 'payment') {
+             const due = parseLocalDate(bill.dueDate);
+             if (due >= todayLocal && due <= horizon) {
+                 list.push({ date: bill.dueDate, description: bill.description, amount: Math.abs(bill.amount), isRecurring: false });
+             }
+        }
+      });
+      return list.sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime()).slice(0, 5);
+  }, [recurringTransactions, billsAndPayments, accounts, account.id, allTransactions, loanPaymentOverrides]);
+
   const linkedCreditCards = useMemo(() => {
-    return accounts.filter(acc => 
-      acc.type === 'Credit Card' && 
-      acc.settlementAccountId === account.id
-    );
+    return accounts.filter(acc => acc.type === 'Credit Card' && acc.settlementAccountId === account.id);
   }, [accounts, account.id]);
   
-  // Find Linked Goals
   const linkedGoals = useMemo(() => {
       return financialGoals.filter(g => g.paymentAccountId === account.id);
   }, [financialGoals, account.id]);
 
-  const hasCardDetails = account.cardNetwork || account.last4 || account.expirationDate || account.cardholderName;
-  const showVirtualCard = (account.type === 'Checking' || account.type === 'Savings') || hasCardDetails;
-  const showInvestmentDetails = account.type === 'Investment';
-  
-  const showBankingDetails = useMemo(() => {
-      const hasDetails = !!(account.accountNumber || account.routingNumber || account.apy || account.openingDate || account.expirationDate || account.cardNetwork || account.cardholderName || account.last4);
-      const hasLinkedCards = linkedCreditCards.length > 0;
-      if (showVirtualCard) {
-          // If showing virtual card, check if there are ANY details that are NOT on the card OR if there are linked cards
-          return !!(account.accountNumber || account.routingNumber || account.apy || account.openingDate) || hasLinkedCards;
-      }
-      return hasDetails || hasLinkedCards;
-  }, [account, showVirtualCard, linkedCreditCards.length]);
-  
-  // Show "Other" specific details if applicable
-  const showOtherDetails = (account.type === 'Other Assets' || account.type === 'Other Liabilities');
-
-  const NetworkLogo = () => {
-      const network = account.cardNetwork?.toLowerCase() || '';
-      if (network.includes('visa')) return <span className="font-bold text-2xl italic text-white">VISA</span>;
-      if (network.includes('master')) return (
-          <div className="flex">
-              <div className="w-6 h-6 rounded-full bg-red-500/90"></div>
-              <div className="w-6 h-6 rounded-full bg-yellow-500/90 -ml-3"></div>
-          </div>
-      );
-      if (network.includes('amex') || network.includes('american')) return <span className="font-bold text-lg text-blue-300 tracking-tighter border-2 border-blue-300 px-1 rounded">AMEX</span>;
-      return <span className="font-bold text-xl text-white tracking-widest opacity-60">DEBIT</span>;
-  };
-
-  const metricsCards = (
-    <>
-        {/* Current Balance */}
-        <Card className="relative overflow-hidden">
-             <div className="absolute right-0 top-0 p-4 opacity-10 pointer-events-none">
-                 <span className="material-symbols-outlined text-6xl">account_balance_wallet</span>
-            </div>
-            <p className="text-xs font-medium uppercase text-light-text-secondary dark:text-dark-text-secondary tracking-wider mb-1">Current Balance</p>
-            <p className="text-2xl font-bold text-light-text dark:text-dark-text">{formatCurrency(account.balance, account.currency)}</p>
-        </Card>
-
-        {/* Safe To Spend */}
-        <Card>
-            <div className="flex justify-between items-start">
-                <div>
-                    <p className="text-xs font-medium uppercase text-light-text-secondary dark:text-dark-text-secondary tracking-wider mb-1">Safe to Spend (7d)</p>
-                    <p className={`text-2xl font-bold ${metrics.safeToSpend < 0 ? 'text-red-500' : 'text-green-500'}`}>
-                        {formatCurrency(metrics.safeToSpend, account.currency)}
-                    </p>
-                </div>
-                <div className={`w-8 h-8 rounded-full flex items-center justify-center ${metrics.safeToSpend < 0 ? 'bg-red-100 text-red-600' : 'bg-green-100 text-green-600'}`}>
-                    <span className="material-symbols-outlined text-lg">
-                        {metrics.safeToSpend < 0 ? 'warning' : 'verified'}
-                    </span>
-                </div>
-            </div>
-        </Card>
-
-        {/* Avg Monthly Spend */}
-        <Card>
-            <p className="text-xs font-medium uppercase text-light-text-secondary dark:text-dark-text-secondary tracking-wider mb-1">Avg Monthly Spend</p>
-            <p className="text-2xl font-bold text-light-text dark:text-dark-text">{formatCurrency(metrics.avgMonthlySpend, account.currency)}</p>
-        </Card>
-
-        {/* Lowest Forecast */}
-        <Card>
-            <div className="flex justify-between items-start">
-                <div>
-                    <p className="text-xs font-medium uppercase text-light-text-secondary dark:text-dark-text-secondary tracking-wider mb-1">Lowest Forecast (30d)</p>
-                    <p className={`text-2xl font-bold ${metrics.lowestBalanceForecast < 0 ? 'text-red-500' : 'text-light-text dark:text-dark-text'}`}>
-                        {formatCurrency(metrics.lowestBalanceForecast, account.currency)}
-                    </p>
-                </div>
-                 {metrics.lowestBalanceForecast < 0 ? (
-                    <div className="w-8 h-8 rounded-full flex items-center justify-center bg-red-100 text-red-600" title="Projected overdraft">
-                        <span className="material-symbols-outlined text-lg">trending_down</span>
-                    </div>
-                ) : (
-                     <div className="w-8 h-8 rounded-full flex items-center justify-center bg-primary-100 dark:bg-primary-900/50 text-primary-600 dark:text-primary-400">
-                        <span className="material-symbols-outlined text-lg">timeline</span>
-                    </div>
-                )}
-            </div>
-             <p className="text-xs text-light-text-secondary dark:text-dark-text-secondary mt-1">
-                Minimum projected balance
-            </p>
-        </Card>
-    </>
-  );
+  const style = ACCOUNT_TYPE_STYLES[account.type] || { color: 'text-primary-500', icon: 'wallet' };
+  const cardGradient = getCardGradient(account.id);
 
   return (
-    <div className="space-y-6 animate-fade-in-up">
-      {/* Header */}
-      <header className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4">
-        <div className="flex items-center gap-4 flex-1 min-w-0">
-          <button onClick={onBack} className="text-light-text-secondary dark:text-dark-text-secondary p-2 rounded-full hover:bg-black/5 dark:hover:bg-white/5 flex-shrink-0">
-            <span className="material-symbols-outlined">arrow_back</span>
-          </button>
-          <div className="flex items-center gap-4 min-w-0 flex-1">
-            <div className={`w-16 h-16 rounded-xl flex-shrink-0 flex items-center justify-center ${ACCOUNT_TYPE_STYLES[account.type]?.color || 'text-gray-600'} bg-current/10 border border-current/20`}>
-              <span className="material-symbols-outlined text-4xl">{account.icon || 'wallet'}</span>
-            </div>
-            <div className="min-w-0">
-              <div className="flex items-center gap-2">
-                  <h1 className="text-2xl font-bold text-light-text dark:text-dark-text truncate">{account.name}</h1>
-                  {account.financialInstitution && (
-                      <span className="text-sm font-medium text-light-text-secondary dark:text-dark-text-secondary bg-black/5 dark:bg-white/5 px-2 py-0.5 rounded flex-shrink-0">
-                          {account.financialInstitution}
-                      </span>
-                  )}
+    <div className="space-y-10 animate-fade-in-up pb-10">
+      {/* Dynamic Header */}
+      <header className="flex flex-col md:flex-row justify-between items-start md:items-end gap-6 relative">
+          <div className="flex items-center gap-6">
+              <button 
+                  onClick={onBack}
+                  className="w-12 h-12 rounded-2xl bg-white dark:bg-dark-card border border-black/5 dark:border-white/5 flex items-center justify-center hover:bg-primary-500 hover:text-white transition-all shadow-sm group active:scale-95"
+              >
+                  <span className="material-symbols-outlined transition-transform group-hover:-translate-x-1">arrow_back</span>
+              </button>
+              <div>
+                  <div className="flex items-center gap-2 mb-1">
+                       <span className="text-[10px] font-bold text-primary-500 bg-primary-500/10 px-2 py-0.5 rounded-lg border border-primary-500/20">{account.type} Asset</span>
+                       <span className="text-[10px] font-bold text-light-text-secondary/30 dark:text-dark-text-secondary/30">•</span>
+                       <span className="text-[10px] font-bold text-light-text-secondary/60 dark:text-dark-text-secondary/80">{account.financialInstitution || 'Vault'}</span>
+                  </div>
+                  <h1 className="text-4xl font-black text-light-text dark:text-dark-text tracking-tighter flex items-center gap-3">
+                      {account.name}
+                      <span className="material-symbols-outlined text-light-text-secondary/20 dark:text-dark-text-secondary/20 font-light">{account.icon || style.icon}</span>
+                  </h1>
               </div>
-              <div className="flex items-center gap-2 text-sm text-light-text-secondary dark:text-dark-text-secondary">
-                <span>{account.otherSubType || account.type}</span>
-              </div>
-            </div>
           </div>
-        </div>
-        <div className="flex-shrink-0 ml-auto md:ml-0 flex items-center gap-2">
-          {isLinkedToEnableBanking && onSyncLinkedAccount && (
-            <button onClick={onSyncLinkedAccount} className={BTN_SECONDARY_STYLE}>
-              Sync
-            </button>
-          )}
-          <button onClick={onAddTransaction} className={BTN_PRIMARY_STYLE}>Add Transaction</button>
-        </div>
+          
+          <div className="flex gap-3 w-full md:w-auto">
+              {isLinkedToEnableBanking && onSyncLinkedAccount && (
+                  <button onClick={onSyncLinkedAccount} className={`${BTN_SECONDARY_STYLE} rounded-2xl !px-6 h-12 shadow-sm border-black/5 dark:border-white/5 bg-white dark:bg-dark-card`}>
+                      <span className="material-symbols-outlined text-lg mr-2">sync</span>
+                      Sync
+                  </button>
+              )}
+              <button onClick={onAddTransaction} className={`${BTN_PRIMARY_STYLE} rounded-2xl !px-6 h-12 shadow-lg shadow-primary-500/20`}>
+                  <span className="material-symbols-outlined text-lg mr-2">add</span>
+                  Transaction
+              </button>
+          </div>
       </header>
-      
-      {/* Top Section: Virtual Card & Metrics */}
-      {showVirtualCard ? (
-        <div className="grid grid-cols-1 lg:grid-cols-12 gap-8">
-            {/* Virtual Card */}
-            <div className="lg:col-span-5 xl:col-span-4">
-                <div className={`aspect-[1.586/1] rounded-2xl ${getCardGradient(account.id)} p-6 sm:p-8 text-white shadow-2xl relative overflow-hidden border border-white/20 flex flex-col justify-between group transition-transform hover:scale-[1.02] duration-300`}>
-                    {/* Texture Overlay */}
-                    <div className="absolute inset-0 bg-[url('https://www.transparenttextures.com/patterns/cubes.png')] opacity-10 pointer-events-none"></div>
-                    <div className="absolute -top-24 -right-24 w-64 h-64 bg-white/10 rounded-full blur-3xl pointer-events-none"></div>
-                    
-                    <div className="flex justify-between items-start z-10">
-                        <div className="w-12 h-9 bg-white/20 rounded-md border border-white/30 backdrop-blur-md flex items-center justify-center relative overflow-hidden shadow-sm">
-                             <div className="absolute inset-0 bg-gradient-to-tr from-white/10 to-transparent"></div>
-                             <div className="w-8 h-[1px] bg-black/20 absolute top-2"></div>
-                             <div className="w-8 h-[1px] bg-black/20 absolute bottom-2"></div>
-                             <div className="w-[1px] h-5 bg-black/20 absolute left-4"></div>
-                        </div>
-                        <div className="flex flex-col items-end">
-                            <span className="material-symbols-outlined text-2xl opacity-80 mb-1">rss_feed</span>
-                            <span className="text-white/80 font-mono text-xs font-semibold uppercase tracking-wider shadow-sm">
-                                {account.financialInstitution || 'Crystal Bank'}
-                            </span>
-                        </div>
-                    </div>
-  
-                    <div className="z-10 mt-4">
-                         <div className="flex items-center gap-3 text-xl sm:text-2xl font-mono tracking-widest text-white/95 drop-shadow-md truncate">
-                             <span>••••</span> <span>••••</span> <span>••••</span> <span>{account.last4 || '0000'}</span>
-                         </div>
-                    </div>
-  
-                    <div className="flex justify-between items-end z-10">
-                        <div className="min-w-0 flex-1 mr-4">
-                            <p className="text-[9px] text-white/70 uppercase tracking-widest mb-0.5">Cardholder</p>
-                            <p className="font-medium uppercase tracking-wide text-sm sm:text-base text-white/95 drop-shadow-sm truncate">{account.cardholderName || account.name}</p>
-                        </div>
-                        <div className="flex flex-col items-end flex-shrink-0">
-                             {account.expirationDate && (
-                                 <div className="text-center mb-2">
-                                     <p className="text-[8px] text-white/70 uppercase">Valid Thru</p>
-                                     <p className="font-mono text-sm font-semibold">{account.expirationDate}</p>
-                                 </div>
-                             )}
-                             <NetworkLogo />
-                        </div>
-                    </div>
-                </div>
-            </div>
 
-            {/* Metrics Grid */}
-            <div className="lg:col-span-7 xl:col-span-8 grid grid-cols-1 sm:grid-cols-2 gap-4">
-                {metricsCards}
-            </div>
-        </div>
-      ) : (
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
-             {metricsCards}
-        </div>
-      )}
-
-      {/* Account Details Card (Banking Info & Linked Cards) */}
-      {(showBankingDetails || showOtherDetails || showInvestmentDetails) && (
-        <Card className="bg-gradient-to-br from-gray-50 to-white dark:from-gray-900/50 dark:to-dark-card border border-black/5 dark:border-white/5">
-            <h3 className="text-sm font-bold uppercase tracking-wider text-light-text-secondary dark:text-dark-text-secondary mb-4 flex items-center gap-2">
-                <span className="material-symbols-outlined text-lg">info</span> Account Details
-            </h3>
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
-                {/* Banking Fields */}
-                {account.accountNumber && (
-                    <div>
-                        <p className="text-xs text-light-text-secondary dark:text-dark-text-secondary mb-1">Account Number / IBAN</p>
-                        <p className="font-mono font-medium text-light-text dark:text-dark-text break-all">{account.accountNumber}</p>
-                    </div>
-                )}
-                {account.routingNumber && (
-                    <div>
-                         <p className="text-xs text-light-text-secondary dark:text-dark-text-secondary mb-1">Routing / BIC</p>
-                         <p className="font-mono font-medium text-light-text dark:text-dark-text">{account.routingNumber}</p>
-                    </div>
-                )}
-                 {account.apy !== undefined && (
-                    <div>
-                         <p className="text-xs text-light-text-secondary dark:text-dark-text-secondary mb-1">APY / Interest Rate</p>
-                         <p className="font-bold text-green-600 dark:text-green-400 text-lg">{account.apy}%</p>
-                    </div>
-                )}
-                 {account.openingDate && (
-                    <div>
-                         <p className="text-xs text-light-text-secondary dark:text-dark-text-secondary mb-1">Opened On</p>
-                         <p className="font-medium text-light-text dark:text-dark-text">{parseLocalDate(account.openingDate).toLocaleDateString()}</p>
-                    </div>
-                )}
-                
-                {/* Investment Specific */}
-                {account.type === 'Investment' && (
-                    <>
-                        <div>
-                            <p className="text-xs text-light-text-secondary dark:text-dark-text-secondary mb-1">Sub-Type</p>
-                            <p className="font-medium text-light-text dark:text-dark-text">{account.subType}</p>
-                        </div>
-                        {account.subType === 'Pension Fund' && account.expectedRetirementYear && (
-                             <div>
-                                <p className="text-xs text-light-text-secondary dark:text-dark-text-secondary mb-1">Expected Retirement</p>
-                                <p className="font-medium text-light-text dark:text-dark-text">{account.expectedRetirementYear}</p>
+      {/* Hero Financial Grid */}
+      <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 items-stretch">
+           {/* Immersive Dynamic Card */}
+           <div className="lg:col-span-5 xl:col-span-4">
+               <div 
+                   className={`relative h-full min-h-[440px] rounded-[3rem] ${cardGradient} text-white p-10 shadow-2xl overflow-hidden flex flex-col justify-between border border-white/10 group`}
+               >
+                   <div className="absolute inset-0 bg-[radial-gradient(circle_at_top_right,rgba(255,255,255,0.05),transparent)]"></div>
+                   <div className="absolute -right-20 -bottom-20 w-80 h-80 bg-white/10 rounded-full blur-[100px] animate-pulse"></div>
+                   
+                   <div className="relative z-10">
+                        <div className="flex justify-between items-start mb-12">
+                             <div className="w-16 h-16 rounded-2xl bg-white/10 backdrop-blur-md border border-white/10 flex items-center justify-center shadow-lg">
+                                  <span className="material-symbols-outlined text-3xl font-light italic">credit_card</span>
                              </div>
-                        )}
-                         {account.subType === 'Spare Change' && account.linkedAccountId && (
-                             <div>
-                                <p className="text-xs text-light-text-secondary dark:text-dark-text-secondary mb-1">Source Account</p>
-                                <button onClick={() => setViewingAccountId(account.linkedAccountId!)} className="font-medium text-primary-500 hover:underline text-left">
-                                    {accounts.find(a => a.id === account.linkedAccountId)?.name || 'Unknown'}
-                                </button>
+                             <div className="text-right">
+                                  <p className="text-[10px] font-bold tracking-wider text-white/60 mb-1">{account.financialInstitution || 'Crystal'}</p>
+                                  <p className="text-xs font-black text-white/90 tracking-widest italic">{account.accountNumber ? `•••• ${account.accountNumber.slice(-4)}` : 'Active'}</p>
                              </div>
-                        )}
-                    </>
-                )}
-                
-                {/* Other Assets/Liabilities Fields */}
-                {account.otherSubType && (
-                    <div>
-                        <p className="text-xs text-light-text-secondary dark:text-dark-text-secondary mb-1">Sub-Type</p>
-                        <p className="font-medium text-light-text dark:text-dark-text">{account.otherSubType}</p>
-                    </div>
-                )}
-                {account.counterparty && (
-                    <div>
-                        <p className="text-xs text-light-text-secondary dark:text-dark-text-secondary mb-1">{account.type === 'Other Liabilities' ? 'Owed To' : 'Counterparty'}</p>
-                        <p className="font-medium text-light-text dark:text-dark-text">{account.counterparty}</p>
-                    </div>
-                )}
-                {account.location && (
-                    <div>
-                        <p className="text-xs text-light-text-secondary dark:text-dark-text-secondary mb-1">Location</p>
-                        <p className="font-medium text-light-text dark:text-dark-text">{account.location}</p>
-                    </div>
-                )}
-                 {account.assetCondition && (
-                    <div>
-                        <p className="text-xs text-light-text-secondary dark:text-dark-text-secondary mb-1">Condition</p>
-                        <p className="font-medium text-light-text dark:text-dark-text">{account.assetCondition}</p>
-                    </div>
-                )}
-                {account.interestRate && (
-                    <div>
-                         <p className="text-xs text-light-text-secondary dark:text-dark-text-secondary mb-1">Interest Rate</p>
-                         <p className="font-bold text-red-600 dark:text-red-400 text-lg">{account.interestRate}%</p>
-                    </div>
-                )}
-                {account.notes && (
-                    <div className="col-span-full mt-2 pt-2 border-t border-black/5 dark:border-white/5">
-                         <p className="text-xs text-light-text-secondary dark:text-dark-text-secondary mb-1">Notes</p>
-                         <p className="text-sm text-light-text dark:text-dark-text whitespace-pre-wrap">{account.notes}</p>
-                    </div>
-                )}
+                        </div>
+                        
+                        <p className="text-[10px] font-bold text-white/70 mb-2 italic">Managed Capital</p>
+                        <h2 className="text-6xl font-black tracking-tighter tabular-nums drop-shadow-lg privacy-blur italic">
+                            {formatCurrency(account.balance, account.currency)}
+                        </h2>
+                   </div>
 
-
-                {/* Show card details only if Virtual Card is NOT shown, to avoid duplication */}
-                {!showVirtualCard && (
-                    <>
-                         {account.cardNetwork && (
-                            <div>
-                                 <p className="text-xs text-light-text-secondary dark:text-dark-text-secondary mb-1">Network</p>
-                                 <p className="font-medium text-light-text dark:text-dark-text">{account.cardNetwork}</p>
-                            </div>
-                        )}
-                         {account.cardholderName && (
-                            <div>
-                                 <p className="text-xs text-light-text-secondary dark:text-dark-text-secondary mb-1">Cardholder</p>
-                                 <p className="font-medium text-light-text dark:text-dark-text">{account.cardholderName}</p>
-                            </div>
-                        )}
-                         {account.expirationDate && (
-                            <div>
-                                 <p className="text-xs text-light-text-secondary dark:text-dark-text-secondary mb-1">Expires</p>
-                                 <p className="font-medium text-light-text dark:text-dark-text">{account.expirationDate}</p>
-                            </div>
-                        )}
-                        {account.last4 && (
-                            <div>
-                                 <p className="text-xs text-light-text-secondary dark:text-dark-text-secondary mb-1">Last 4 Digits</p>
-                                 <p className="font-medium text-light-text dark:text-dark-text font-mono">**** {account.last4}</p>
-                            </div>
-                        )}
-                    </>
-                )}
-            </div>
-            {linkedCreditCards.length > 0 && (
-                 <div className="mt-6 pt-6 border-t border-black/5 dark:border-white/5">
-                     <p className="text-xs text-light-text-secondary dark:text-dark-text-secondary mb-3 uppercase tracking-wider font-semibold">Linked Credit Cards</p>
-                     <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                         {linkedCreditCards.map(card => (
-                              <div key={card.id} className="flex items-center justify-between bg-white dark:bg-black/20 p-3 rounded-lg border border-black/5 dark:border-white/5 hover:border-primary-500/30 transition-colors group">
-                                 <div className="flex items-center gap-3">
-                                      <div className="w-8 h-8 rounded-full bg-orange-100 dark:bg-orange-900/30 flex items-center justify-center text-orange-600 dark:text-orange-400 shrink-0">
-                                         <span className="material-symbols-outlined text-sm">credit_card</span>
-                                     </div>
-                                     <div>
-                                         <button onClick={() => setViewingAccountId(card.id)} className="font-medium text-sm text-light-text dark:text-dark-text hover:text-primary-500 hover:underline text-left truncate max-w-[150px] sm:max-w-[200px] block">
-                                             {card.name}
-                                         </button>
-                                         <p className={`text-xs font-mono ${card.balance < 0 ? 'text-red-500' : 'text-light-text-secondary dark:text-dark-text-secondary'}`}>
-                                             {formatCurrency(card.balance, card.currency)}
-                                         </p>
-                                     </div>
-                                 </div>
-                                  <button onClick={() => setViewingAccountId(card.id)} className="text-light-text-secondary dark:text-dark-text-secondary hover:text-primary-500 p-1 rounded-full">
-                                      <span className="material-symbols-outlined text-lg">chevron_right</span>
-                                  </button>
-                              </div>
-                         ))}
-                     </div>
-                 </div>
-            )}
-        </Card>
-      )}
-
-      {/* Grid 2: Cash Flow Trend + Upcoming Payments */}
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-          <div className="lg:col-span-2 h-full">
-              <Card className="h-full flex flex-col min-h-[320px]">
-                  <h3 className="text-lg font-semibold text-light-text dark:text-dark-text mb-4">Monthly Cash Flow (6 Months)</h3>
-                  <div className="flex-grow w-full h-full">
-                    <ResponsiveContainer width="100%" height="100%" minWidth={0} minHeight={0}>
-                        <BarChart data={cashFlowData} margin={{ top: 10, right: 10, left: 0, bottom: 0 }} barSize={32}>
-                            <CartesianGrid strokeDasharray="3 3" strokeOpacity={0.1} vertical={false} />
-                            <XAxis dataKey="month" axisLine={false} tickLine={false} tick={{ fill: 'currentColor', opacity: 0.6, fontSize: 12 }} />
-                            <YAxis axisLine={false} tickLine={false} tick={{ fill: 'currentColor', opacity: 0.6, fontSize: 12 }} tickFormatter={(val) => `${val/1000}k`} width={30} />
-                            <Tooltip 
-                                contentStyle={{ backgroundColor: 'var(--light-card)', borderColor: 'rgba(0,0,0,0.1)', borderRadius: '8px' }}
-                                cursor={{fill: 'transparent'}}
-                                formatter={(val: number) => formatCurrency(val, account.currency)}
-                            />
-                            <Legend wrapperStyle={{ paddingTop: '10px' }}/>
-                            <Bar dataKey="income" name="Money In" fill="#22c55e" radius={[4, 4, 0, 0]} barSize={20} />
-                            <Bar dataKey="expense" name="Money Out" fill="#ef4444" radius={[4, 4, 0, 0]} barSize={20} />
-                        </BarChart>
-                    </ResponsiveContainer>
-                  </div>
-              </Card>
-          </div>
-          <div className="lg:col-span-1 h-full">
-              <Card className="h-full flex flex-col">
-                  <h3 className="text-lg font-semibold text-light-text dark:text-dark-text mb-4">Upcoming Payments</h3>
-                  <div className="flex-grow overflow-y-auto max-h-[250px] space-y-3 pr-1">
-                      {upcomingPayments.length > 0 ? upcomingPayments.map((item, idx) => (
-                          <div key={idx} className="flex items-center justify-between p-2 rounded-lg hover:bg-black/5 dark:hover:bg-white/5 transition-colors">
-                              <div className="flex items-center gap-3 min-w-0">
-                                  <div className="bg-light-fill dark:bg-dark-fill w-10 h-10 rounded-lg flex flex-col items-center justify-center text-xs flex-shrink-0">
-                                      <span className="font-bold text-light-text dark:text-dark-text">{parseLocalDate(item.date).getDate()}</span>
-                                      <span className="text-[10px] uppercase text-light-text-secondary dark:text-dark-text-secondary">{parseLocalDate(item.date).toLocaleString('default', { month: 'short' })}</span>
-                                  </div>
-                                  <div className="min-w-0">
-                                      <p className="text-sm font-medium text-light-text dark:text-dark-text truncate">{item.description}</p>
-                                      <p className="text-xs text-light-text-secondary dark:text-dark-text-secondary">{item.isRecurring ? 'Recurring' : 'Bill'}</p>
-                                  </div>
-                              </div>
-                              <p className="text-sm font-semibold text-light-text dark:text-dark-text whitespace-nowrap">{formatCurrency(item.amount, account.currency)}</p>
-                          </div>
-                      )) : (
-                          <div className="h-full flex flex-col items-center justify-center text-light-text-secondary dark:text-dark-text-secondary opacity-60">
-                              <span className="material-symbols-outlined text-4xl mb-2">event_available</span>
-                              <p className="text-sm">No upcoming payments.</p>
-                          </div>
-                      )}
-                  </div>
-              </Card>
-          </div>
-      </div>
-
-      {/* Grid 3: Top Categories + Balance History */}
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-           <div className="lg:col-span-1 h-full">
-              <Card className="h-full flex flex-col min-h-[300px]">
-                  <h3 className="text-lg font-semibold text-light-text dark:text-dark-text mb-4">Top Spending (30d)</h3>
-                  <div className="flex-grow space-y-4 overflow-y-auto max-h-[250px] pr-1">
-                      {topCategories.length > 0 ? topCategories.map((cat, idx) => (
-                          <div key={idx}>
-                              <div className="flex justify-between text-sm mb-1">
-                                  <span className="font-medium text-light-text dark:text-dark-text">{cat.name}</span>
-                                  <span className="text-light-text dark:text-dark-text">{formatCurrency(cat.value, account.currency)}</span>
-                              </div>
-                              <div className="w-full bg-light-fill dark:bg-dark-fill rounded-full h-2 overflow-hidden">
-                                  <div className="h-full rounded-full" style={{ width: `${(cat.value / topCategories[0].value) * 100}%`, backgroundColor: cat.color }}></div>
-                              </div>
-                          </div>
-                      )) : (
-                          <div className="h-full flex flex-col items-center justify-center text-light-text-secondary dark:text-dark-text-secondary opacity-60">
-                              <span className="material-symbols-outlined text-4xl mb-2">pie_chart</span>
-                              <p className="text-sm">No spending data.</p>
-                          </div>
-                      )}
-                  </div>
-              </Card>
+                   <div className="relative z-10 pt-10 border-t border-white/5 flex justify-between items-end">
+                       <div>
+                           <p className="text-[10px] tracking-wider text-white/50 font-bold mb-1">Verified Holder</p>
+                           <p className="font-black text-xs text-white tracking-widest">{account.cardholderName || account.name}</p>
+                       </div>
+                       <span className="text-[10px] font-bold bg-white/10 px-2 py-1 rounded-lg border border-white/10 italic">{account.currency}</span>
+                   </div>
+               </div>
            </div>
-           <div className="lg:col-span-2 h-full">
-                <Card className="h-full flex flex-col min-h-[300px]">
-                    <h3 className="text-lg font-semibold text-light-text dark:text-dark-text mb-4">Balance History (30 Days)</h3>
-                    <div className="flex-grow w-full h-full min-h-[250px]">
-                        <ResponsiveContainer width="100%" height="100%" minWidth={0} minHeight={0}>
-                            <AreaChart data={balanceHistory} margin={{ top: 10, right: 10, left: 0, bottom: 0 }}>
+
+           {/* Metrics & Analytics */}
+           <div className="lg:col-span-12 xl:col-span-8 flex flex-col gap-8">
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 xl:grid-cols-2 gap-6">
+                    <MetricTile 
+                        label="Safe to Spend" 
+                        value={formatCurrency(metrics.safeToSpend, account.currency)} 
+                        icon="verified" 
+                        colorClass="emerald"
+                        subValue="Post-upcoming outflows"
+                    />
+                    <MetricTile 
+                        label="Lowest Forecast" 
+                        value={formatCurrency(metrics.lowestBalanceForecast, account.currency)} 
+                        icon="timeline" 
+                        colorClass="amber"
+                        subValue="30-day projected floor"
+                    />
+                    <MetricTile 
+                        label="Monthly Velocity" 
+                        value={formatCurrency(metrics.avgMonthlySpend, account.currency)} 
+                        icon="analytics" 
+                        colorClass="blue"
+                        subValue="90-day spend average"
+                    />
+                    <MetricTile 
+                        label="Effective Liquidity" 
+                        value={formatCurrency(metrics.realTodayBalance, account.currency)} 
+                        icon="water_drop" 
+                        colorClass="indigo"
+                        subValue="Current cleared funds"
+                    />
+                </div>
+
+                {/* Liquidity Trajectory Chart */}
+                <div className="bg-white dark:bg-dark-card rounded-[2.5rem] border border-black/5 dark:border-white/5 p-8 flex-grow flex flex-col group relative overflow-hidden h-full min-h-[300px]">
+                    <div className="absolute top-0 right-0 p-8 opacity-5">
+                         <span className="material-symbols-outlined text-8xl">show_chart</span>
+                    </div>
+                    <div className="flex justify-between items-center mb-10 relative z-10">
+                        <div>
+                             <h3 className="text-xl font-black text-light-text dark:text-dark-text tracking-tight italic">Liquidity Trajectory</h3>
+                             <p className="text-xs font-bold text-light-text-secondary/60 dark:text-dark-text-secondary/70 mt-1 tracking-wider">30-day cleared balance cycle</p>
+                        </div>
+                        <div className="text-right">
+                             <p className="text-[10px] font-bold text-emerald-500 tracking-wider bg-emerald-500/10 px-2 py-1 rounded-lg">Real-Time Sync</p>
+                        </div>
+                    </div>
+                    
+                    <div className="flex-grow w-full h-full relative z-10">
+                        <ResponsiveContainer width="100%" height="100%">
+                            <AreaChart data={balanceHistory}>
                                 <defs>
-                                    <linearGradient id="colorBalance" x1="0" y1="0" x2="0" y2="1">
-                                        <stop offset="5%" stopColor="#3b82f6" stopOpacity={0.3}/>
+                                    <linearGradient id="generalLineGradient" x1="0" y1="0" x2="0" y2="1">
+                                        <stop offset="5%" stopColor="#3b82f6" stopOpacity={0.1}/>
                                         <stop offset="95%" stopColor="#3b82f6" stopOpacity={0}/>
                                     </linearGradient>
                                 </defs>
-                                <CartesianGrid strokeDasharray="3 3" strokeOpacity={0.1} vertical={false} />
+                                <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="currentColor" opacity={0.06} />
                                 <XAxis 
                                     dataKey="date" 
                                     axisLine={false} 
                                     tickLine={false} 
-                                    tick={{ fill: 'currentColor', opacity: 0.5, fontSize: 12 }}
-                                    tickFormatter={(val) => {
-                                        const d = new Date(val);
-                                        return d.toLocaleDateString(undefined, { month: 'short', day: 'numeric' });
-                                    }}
+                                    tick={{ fill: 'currentColor', opacity: 0.3, fontSize: 10, fontWeight: 900 }} 
+                                    tickFormatter={(val) => parseLocalDate(val).toLocaleDateString(undefined, { month: 'short', day: 'numeric' })}
                                     minTickGap={30}
                                 />
-                                <YAxis 
-                                    axisLine={false} 
-                                    tickLine={false} 
-                                    tick={{ fill: 'currentColor', opacity: 0.5, fontSize: 12 }}
-                                    tickFormatter={(val) => formatCurrency(val, account.currency).replace(/[^0-9.,-]/g, '')} 
-                                    width={60}
-                                />
+                                <YAxis axisLine={false} tickLine={false} tick={{ fill: 'currentColor', opacity: 0.3, fontSize: 10, fontWeight: 900 }} tickFormatter={(val) => `€${(val/1000).toFixed(0)}k`} width={40} />
                                 <Tooltip 
-                                    contentStyle={{ backgroundColor: 'var(--light-card)', borderColor: 'rgba(0,0,0,0.1)', borderRadius: '8px' }}
-                                    labelStyle={{ color: 'var(--light-text)' }}
-                                    formatter={(val: number) => [formatCurrency(val, account.currency), 'Balance']}
-                                    labelFormatter={(label) => new Date(label).toLocaleDateString()}
+                                    contentStyle={{ backgroundColor: 'rgba(255,255,255,0.8)', backdropFilter: 'blur(20px)', borderRadius: '24px', border: 'none', boxShadow: '0 25px 50px -12px rgba(0,0,0,0.1)' }}
+                                    itemStyle={{ fontSize: '14px', fontWeight: '900', color: '#3b82f6' }}
+                                    labelStyle={{ fontSize: '10px', fontWeight: '900', color: '#94a3b8', marginBottom: '8px', letterSpacing: '0.05em' }}
                                 />
-                                <Area 
-                                    type="monotone" 
-                                    dataKey="value" 
-                                    stroke="#3b82f6" 
-                                    strokeWidth={2}
-                                    fillOpacity={1} 
-                                    fill="url(#colorBalance)" 
-                                />
+                                <Area type="monotone" dataKey="value" stroke="#3b82f6" strokeWidth={4} fill="url(#generalLineGradient)" />
                             </AreaChart>
                         </ResponsiveContainer>
                     </div>
-                </Card>
+                </div>
            </div>
       </div>
 
-      {/* Linked Goals Section */}
-      {linkedGoals.length > 0 && (
-           <Card>
-                <div className="flex items-center gap-2 mb-4">
-                    <span className="material-symbols-outlined text-amber-500">flag</span>
-                    <h3 className="text-lg font-bold text-light-text dark:text-dark-text">Linked Goals</h3>
+      <div className="grid grid-cols-1 xl:grid-cols-12 gap-8">
+           {/* Detailed Activity Sidebar */}
+           <div className="xl:col-span-8 flex flex-col gap-8">
+                <div className="bg-white dark:bg-dark-card rounded-[2.5rem] border border-black/5 dark:border-white/5 overflow-hidden flex flex-col group h-full min-h-[600px]">
+                    <div className="p-10 border-b border-black/5 dark:border-white/5 flex justify-between items-center bg-gray-50/30 dark:bg-white/[0.01]">
+                        <div>
+                            <h3 className="text-2xl font-black tracking-tight text-light-text dark:text-dark-text tracking-tight italic">Account Ledger</h3>
+                            <p className="text-xs font-bold text-light-text-secondary/60 dark:text-dark-text-secondary/80 mt-1 tracking-widest">Complete history of financial flows</p>
+                        </div>
+                    </div>
+                    <div className="flex-grow overflow-hidden">
+                        <TransactionList
+                            transactions={displayTransactionsList}
+                            allCategories={allCategories}
+                            onTransactionClick={onTransactionClick}
+                            density="high"
+                        />
+                    </div>
                 </div>
-                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-                    {linkedGoals.map(goal => {
-                        const progress = Math.min(100, Math.max(0, (goal.currentAmount / goal.amount) * 100));
-                        return (
-                            <div key={goal.id} className="p-4 bg-gray-50 dark:bg-white/5 rounded-xl border border-black/5 dark:border-white/5 shadow-sm">
-                                <div className="flex justify-between items-center mb-2">
-                                    <span className="font-bold text-sm text-light-text dark:text-dark-text truncate">{goal.name}</span>
-                                    <span className={`text-xs font-bold px-2 py-0.5 rounded-full ${progress >= 100 ? 'bg-green-100 text-green-700' : 'bg-amber-100 text-amber-700'}`}>
-                                        {progress.toFixed(0)}%
-                                    </span>
-                                </div>
-                                <div className="w-full bg-gray-200 dark:bg-gray-700 rounded-full h-2 overflow-hidden mb-2">
-                                    <div className="h-full bg-gradient-to-r from-amber-400 to-orange-500 rounded-full" style={{ width: `${progress}%` }}></div>
-                                </div>
-                                <div className="flex justify-between text-xs text-light-text-secondary dark:text-dark-text-secondary">
-                                    <span className="font-semibold text-light-text dark:text-dark-text">{formatCurrency(goal.currentAmount, 'EUR')}</span>
-                                    <span>Target: {formatCurrency(goal.amount, 'EUR')}</span>
-                                </div>
-                            </div>
-                        );
-                    })}
-                </div>
-           </Card>
-      )}
+           </div>
 
-      {/* Grid 4: Recent Transactions */}
-      <Card className="h-full flex flex-col !p-0">
-        <div className="flex justify-between items-center p-4 border-b border-black/5 dark:border-white/5">
-            <h3 className="text-lg font-semibold text-light-text dark:text-dark-text">Recent Transactions</h3>
-        </div>
-        <div className="flex-grow overflow-hidden">
-            <TransactionList 
-                transactions={displayTransactionsList.slice(0, 8)} 
-                allCategories={allCategories} 
-                onTransactionClick={onTransactionClick} 
-            />
-        </div>
-     </Card>
+           {/* Metrics & Metadata Sidebar */}
+           <div className="xl:col-span-4 flex flex-col gap-8">
+                {/* Upcoming Obligations */}
+                <div className="bg-white dark:bg-dark-card rounded-[2.5rem] border border-black/5 dark:border-white/5 p-10 group relative overflow-hidden h-full">
+                    <h3 className="text-xl font-black text-light-text dark:text-dark-text tracking-tight mb-8">Upcoming Obligations</h3>
+                    <div className="space-y-6">
+                        {upcomingPayments.length > 0 ? (
+                            upcomingPayments.map((p, idx) => (
+                                <div key={idx} className="flex items-center gap-4 group/item">
+                                    <div className="w-12 h-12 rounded-2xl bg-black/5 dark:bg-white/5 flex flex-col items-center justify-center border border-transparent group-hover/item:border-primary-500/20 transition-all">
+                                        <span className="text-[9px] font-bold text-light-text-secondary/60 dark:text-dark-text-secondary/80 leading-none mb-1">{new Date(p.date).toLocaleString(undefined, { month: 'short' })}</span>
+                                        <span className="text-lg font-black leading-none">{new Date(p.date).getDate()}</span>
+                                    </div>
+                                    <div className="flex-grow min-w-0">
+                                        <p className="text-sm font-black text-light-text dark:text-dark-text truncate">{p.description}</p>
+                                        <p className="text-[10px] font-bold text-light-text-secondary/40 dark:text-dark-text-secondary/60 tracking-widest">{p.isRecurring ? 'Recurring' : 'One-time'}</p>
+                                    </div>
+                                    <p className="text-sm font-black text-rose-500 tabular-nums">-{formatCurrency(p.amount, account.currency)}</p>
+                                </div>
+                            ))
+                        ) : (
+                                <div className="py-20 flex flex-col items-center justify-center text-center opacity-30">
+                                    <span className="material-symbols-outlined text-5xl mb-2">event_available</span>
+                                    <p className="text-[10px] font-black uppercase tracking-widest">Clear Horizon</p>
+                                </div>
+                        )}
+                    </div>
+                </div>
+
+                {/* Linked Assets/Liabilities */}
+                {(linkedCreditCards.length > 0 || linkedGoals.length > 0) && (
+                    <div className="bg-white dark:bg-dark-card rounded-[2.5rem] border border-black/5 dark:border-white/5 p-10 group overflow-hidden">
+                        <h3 className="text-sm font-bold tracking-wider text-light-text-secondary/70 dark:text-dark-text-secondary/90 mb-8 underline underline-offset-8 decoration-primary-500/20">Interconnected Assets</h3>
+                        <div className="space-y-4">
+                            {linkedCreditCards.map(c => (
+                                <button key={c.id} onClick={() => setViewingAccountId(c.id)} className="w-full flex items-center justify-between p-4 rounded-3xl bg-black/5 dark:bg-white/5 hover:bg-rose-500/10 transition-colors group/link border border-transparent hover:border-rose-500/20">
+                                    <div className="flex items-center gap-4">
+                                        <span className="material-symbols-outlined text-rose-500">credit_card</span>
+                                        <div className="text-left">
+                                            <p className="text-sm font-black text-light-text dark:text-dark-text">{c.name}</p>
+                                            <p className="text-[10px] font-bold text-light-text-secondary/40 dark:text-dark-text-secondary/60">Liable Shield</p>
+                                        </div>
+                                    </div>
+                                    <span className="material-symbols-outlined text-light-text-secondary/20 group-hover/link:translate-x-1 transition-transform">chevron_right</span>
+                                </button>
+                            ))}
+                            {linkedGoals.map(g => (
+                                <div key={g.id} className="p-4 rounded-3xl bg-black/5 dark:bg-white/5 border border-transparent">
+                                    <div className="flex items-center justify-between mb-2">
+                                        <div className="flex items-center gap-4">
+                                            <span className="material-symbols-outlined text-emerald-500">target</span>
+                                            <div className="text-left">
+                                                <p className="text-sm font-black text-light-text dark:text-dark-text">{g.name}</p>
+                                                <p className="text-[10px] font-bold text-light-text-secondary/40 dark:text-dark-text-secondary/60">Capital Target</p>
+                                            </div>
+                                        </div>
+                                        <p className="text-xs font-black text-emerald-500">{((g.currentAmount / g.amount) * 100).toFixed(0)}%</p>
+                                    </div>
+                                    <div className="w-full h-1.5 bg-black/5 dark:bg-white/10 rounded-full overflow-hidden">
+                                        <div className="h-full bg-emerald-500 rounded-full" style={{ width: `${Math.min(100, (g.currentAmount / g.amount) * 100)}%` }}></div>
+                                    </div>
+                                </div>
+                            ))}
+                        </div>
+                    </div>
+                )}
+
+                {/* Infrastructure Metadata */}
+                <div className="bg-white dark:bg-dark-card border border-black/5 dark:border-white/5 rounded-[2.5rem] p-10 group overflow-hidden">
+                    <h3 className="text-[10px] font-bold tracking-wider text-light-text-secondary/70 dark:text-dark-text-secondary/90 mb-8 italic">Infrastructure Configuration</h3>
+                    <div className="space-y-8 divide-y divide-black/5 dark:divide-white/5">
+                        {[
+                            { label: 'Clearing Institution', value: account.financialInstitution },
+                            { label: 'Asset Architecture', value: account.type },
+                            { label: 'Settlement Engine', value: account.currency },
+                            { label: 'Origin Epoch', value: account.openingDate ? parseLocalDate(account.openingDate).toLocaleDateString() : '—' },
+                            { label: 'Logical Serial', value: account.accountNumber, isMono: true },
+                            { label: 'Routing Directive', value: account.routingNumber, isMono: true },
+                            { label: 'Yield Maturity', value: account.apy ? `${account.apy}% APY` : '—' }
+                        ].filter(i => i.value).map((item, idx) => (
+                            <div key={idx} className="pt-6 first:pt-0">
+                                <p className="text-[10px] font-bold tracking-wider text-light-text-secondary/50 dark:text-dark-text-secondary/70 mb-1">{item.label}</p>
+                                <p className={`text-sm font-black text-light-text dark:text-dark-text tracking-tight ${item.isMono ? 'font-mono opacity-60' : ''}`}>
+                                    {item.value}
+                                </p>
+                            </div>
+                        ))}
+                    </div>
+                </div>
+           </div>
+      </div>
     </div>
   );
 };

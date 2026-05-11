@@ -62,17 +62,16 @@ const MortgageAmortizationChart: React.FC<MortgageAmortizationChartProps> = ({ s
   };
 
   return (
-    <Card className="h-full flex flex-col">
-      <h3 className="text-lg font-semibold text-light-text dark:text-dark-text mb-4">Amortization Schedule (Yearly)</h3>
+    <div className="w-full h-full flex flex-col">
       <div className="flex-grow" style={{ width: '100%', minHeight: '200px' }}>
         <ResponsiveContainer width="100%" height="100%" minWidth={0} minHeight={0}>
           <BarChart
             data={yearlyData}
             margin={{
               top: 20,
-              right: 30,
-              left: 20,
-              bottom: 5,
+              right: 10,
+              left: 10,
+              bottom: 0,
             }}
           >
             <CartesianGrid strokeDasharray="3 3" strokeOpacity={0.1} vertical={false} />
@@ -93,7 +92,7 @@ const MortgageAmortizationChart: React.FC<MortgageAmortizationChartProps> = ({ s
           </BarChart>
         </ResponsiveContainer>
       </div>
-    </Card>
+    </div>
   );
 };
 

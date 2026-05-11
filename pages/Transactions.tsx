@@ -2,6 +2,7 @@
 import React, { useState, useMemo, useRef, useEffect, useCallback } from 'react';
 import { INPUT_BASE_STYLE, SELECT_WRAPPER_STYLE, SELECT_ARROW_STYLE, BTN_PRIMARY_STYLE, BTN_SECONDARY_STYLE, SELECT_STYLE, CHECKBOX_STYLE, ALL_ACCOUNT_TYPES } from '../constants';
 import { Transaction, Account, DisplayTransaction, RecurringTransaction, Category, AccountType, MerchantRule } from '../types';
+import { motion } from 'motion/react';
 import Card from '../components/Card';
 import { formatCurrency, fuzzySearch, convertToEur, arrayToCSV, downloadCSV, parseLocalDate, toLocalISOString } from '../utils';
 import AddTransactionModal from '../components/AddTransactionModal';
@@ -26,30 +27,37 @@ interface TransactionsProps {
   onClearInitialFilters?: () => void;
 }
 
-const MetricCard = React.memo(function MetricCard({ label, value, colorClass = "text-light-text dark:text-dark-text", icon, subtitle }: { label: string; value: string; colorClass?: string; icon: string; subtitle?: string }) {
+const MetricCard = React.memo(function MetricCard({ label, value, colorClass = "text-light-text dark:text-dark-text", icon, subtitle, glowColor = "rgba(99, 102, 241, 0.15)" }: { label: string; value: string; colorClass?: string; icon: string; subtitle?: string; glowColor?: string }) {
     return (
-        <div className="group relative bg-white dark:bg-dark-card p-5 rounded-2xl shadow-sm border border-black/5 dark:border-white/5 flex flex-col justify-between transition-all duration-300 hover:shadow-md hover:border-primary-500/20 overflow-hidden h-full">
-            {/* Background Accent */}
-            <div className={`absolute -right-4 -top-4 w-24 h-24 rounded-full opacity-[0.03] dark:opacity-[0.05] transition-transform group-hover:scale-110 duration-500 flex items-center justify-center`}>
-                <span className="material-symbols-outlined text-8xl">{icon}</span>
-            </div>
+        <div className="group relative bg-white dark:bg-dark-card p-5 rounded-2xl border border-black/5 dark:border-white/5 flex flex-col justify-between transition-all duration-300 hover:-translate-y-0.5 overflow-hidden h-full shadow-sm"
+             style={{ boxShadow: `0 8px 30px -10px ${glowColor}` }}>
+            {/* Inner Glow Effect */}
+            <div 
+                className="absolute inset-0 pointer-events-none rounded-2xl overflow-hidden"
+                style={{ 
+                    background: `radial-gradient(circle at 0% 0%, ${glowColor} 0%, transparent 50%)`,
+                    opacity: 0.6
+                }}
+            />
             
             <div className="relative z-10">
-                <div className="flex items-center gap-2 mb-3">
-                    <div className="w-8 h-8 rounded-lg bg-gray-50 dark:bg-white/5 flex items-center justify-center text-light-text-secondary dark:text-dark-text-secondary">
+                <div className="flex items-center gap-3 mb-3">
+                    <div className="w-9 h-9 rounded-xl bg-black/5 dark:bg-white/5 flex items-center justify-center text-light-text-secondary dark:text-dark-text-secondary border border-black/5 dark:border-white/5 transition-transform group-hover:scale-110">
                         <span className="material-symbols-outlined text-lg">{icon}</span>
                     </div>
-                    <p className="text-[10px] font-black uppercase tracking-[0.15em] text-light-text-secondary dark:text-dark-text-secondary">{label}</p>
+                    <p className="text-[10px] font-semibold text-light-text-secondary dark:text-dark-text-secondary">{label}</p>
                 </div>
                 
                 <div className="flex flex-col">
-                    <p className={`text-2xl font-mono font-bold tracking-tighter ${colorClass}`}>{value}</p>
-                    {subtitle && <p className="text-[10px] text-light-text-secondary dark:text-dark-text-secondary mt-1 font-medium">{subtitle}</p>}
+                    <p className={`text-xl font-semibold tracking-tight ${colorClass}`}>{value}</p>
+                    {subtitle && <p className="text-[10px] text-light-text-secondary dark:text-dark-text-secondary mt-1 font-medium opacity-60">{subtitle}</p>}
                 </div>
             </div>
             
-            {/* Bottom Accent Line */}
-            <div className="absolute bottom-0 left-0 w-full h-1 bg-gradient-to-r from-transparent via-primary-500/10 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300"></div>
+            {/* Background Icon Accent */}
+            <div className="absolute -right-4 -bottom-4 text-current opacity-[0.03] dark:opacity-[0.05] transition-transform group-hover:scale-110 duration-500 pointer-events-none">
+                <span className="material-symbols-outlined text-8xl">{icon}</span>
+            </div>
         </div>
     );
 });
@@ -105,17 +113,17 @@ const ColumnHeader = React.memo(function ColumnHeader({
     return (
         <div className={`flex items-center gap-2 ${className} ${alignRight ? 'justify-end' : 'justify-start'}`} ref={filterRef}>
             <div 
-                className={`flex items-center gap-1.5 select-none cursor-pointer group/sort py-1 px-1.5 -ml-1.5 rounded-lg hover:bg-black/5 dark:hover:bg-white/5 transition-all duration-200`} 
+                className={`flex items-center gap-2 select-none cursor-pointer group/sort py-1.5 px-2.5 -ml-2 rounded-xl hover:bg-black/5 dark:hover:bg-white/5 transition-all duration-300`} 
                 onClick={handleSort}
             >
-                <span className={`text-[10px] font-black uppercase tracking-[0.1em] transition-colors ${isSorted ? 'text-primary-600 dark:text-primary-400' : 'text-light-text-secondary dark:text-dark-text-secondary group-hover/sort:text-light-text dark:group-hover/sort:text-dark-text'}`}>
+                <span className={`text-[10px] font-semibold transition-colors ${isSorted ? 'text-primary-600 dark:text-primary-400' : 'text-light-text-secondary dark:text-dark-text-secondary group-hover/sort:text-light-text dark:group-hover/sort:text-dark-text'}`}>
                     {label}
                 </span>
                 
                 {sortKey && (
-                    <div className={`flex flex-col gap-[1px] ${isSorted ? 'opacity-100' : 'opacity-0 group-hover/sort:opacity-40'} transition-opacity duration-200`}>
+                    <div className={`flex flex-col gap-[1px] ${isSorted ? 'opacity-100' : 'opacity-0 group-hover/sort:opacity-40'} transition-opacity duration-300`}>
                         <span className={`material-symbols-outlined text-[10px] leading-none ${isSorted && isAsc ? 'text-primary-500' : 'text-gray-400'}`}>arrow_drop_up</span>
-                        <span className={`material-symbols-outlined text--[10px] leading-none -mt-1 ${isSorted && !isAsc ? 'text-primary-500' : 'text-gray-400'}`}>arrow_drop_down</span>
+                        <span className={`material-symbols-outlined text-[10px] leading-none -mt-1 ${isSorted && !isAsc ? 'text-primary-500' : 'text-gray-400'}`}>arrow_drop_down</span>
                     </div>
                 )}
             </div>
@@ -123,14 +131,17 @@ const ColumnHeader = React.memo(function ColumnHeader({
                 <div className="relative">
                     <button 
                         onClick={(e) => { e.stopPropagation(); setIsFilterOpen(!isFilterOpen); }}
-                        className={`w-5 h-5 flex items-center justify-center rounded transition-all duration-200 ${isFilterActive || isFilterOpen ? 'bg-primary-100 text-primary-600 dark:bg-primary-900/30 dark:text-primary-400' : 'text-light-text-secondary dark:text-dark-text-secondary hover:text-primary-500 hover:bg-primary-50 dark:hover:bg-primary-900/10'}`}
+                        className={`w-6 h-6 flex items-center justify-center rounded-xl transition-all duration-300 ${isFilterActive || isFilterOpen ? 'bg-primary-500 text-white shadow-lg shadow-primary-500/20' : 'text-light-text-secondary dark:text-dark-text-secondary hover:text-light-text dark:hover:text-dark-text hover:bg-black/5 dark:hover:bg-white/5'}`}
                         title="Filter"
                     >
                         <span className={`material-symbols-outlined text-[14px] ${isFilterActive ? 'filled-icon' : ''}`}>filter_alt</span>
                     </button>
                     {isFilterOpen && (
-                        <div className={`absolute top-full mt-2 ${alignRight ? 'right-0' : 'left-0'} z-50 w-64 bg-white/90 dark:bg-dark-card/90 backdrop-blur-xl rounded-xl shadow-xl border border-black/5 dark:border-white/10 p-3 animate-fade-in-up cursor-default text-left normal-case font-normal text-light-text dark:text-dark-text`} onClick={e => e.stopPropagation()}>
-                            {filterContent}
+                        <div className={`absolute top-full mt-3 ${alignRight ? 'right-0' : 'left-0'} z-50 w-72 bg-white/95 dark:bg-dark-card/95 backdrop-blur-2xl rounded-2xl shadow-2xl border border-black/5 dark:border-white/10 p-5 animate-fade-in-up cursor-default text-left normal-case font-normal text-light-text dark:text-dark-text overflow-hidden`} onClick={e => e.stopPropagation()}>
+                            <div className="absolute inset-0 pointer-events-none bg-gradient-to-br from-primary-500/5 to-transparent"></div>
+                            <div className="relative z-10">
+                                {filterContent}
+                            </div>
                         </div>
                     )}
                 </div>
@@ -173,6 +184,10 @@ const Transactions: React.FC<TransactionsProps> = ({ initialAccountFilter, initi
   }, [accounts, initialAccountFilter, initialTagFilter, onClearInitialFilters]);
 
   const [searchTerm, setSearchTerm] = useState('');
+  const formatDate = (dateString: string) => {
+    const d = parseLocalDate(dateString);
+    return d.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
+  };
   const debouncedSearchTerm = useDebounce(searchTerm, 300);
   const [sortBy, setSortBy] = useState('date-desc');
   const [typeFilter, setTypeFilter] = useState<'all' | 'income' | 'expense' | 'transfer'>('all');
@@ -410,7 +425,7 @@ const Transactions: React.FC<TransactionsProps> = ({ initialAccountFilter, initi
                     fromAccountName: accountMap[pair.expense.accountId]?.name,
                     toAccountName: accountMap[pair.income.accountId]?.name,
                     category: 'Transfer',
-                    description: 'Account Transfer',
+                    description: pair.expense.description || 'Account Transfer',
                     spareChangeAmount,
                     transferExpenseAmount: Math.abs(pair.expense.amount),
                     transferExpenseCurrency: pair.expense.currency,
@@ -1203,28 +1218,39 @@ const Transactions: React.FC<TransactionsProps> = ({ initialAccountFilter, initi
       />
 
       {/* Metrics Summary */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-        <div className="group relative bg-primary-600 dark:bg-primary-700 p-5 rounded-2xl shadow-lg shadow-primary-500/20 border-none text-white overflow-hidden flex flex-col justify-between h-full transition-all duration-300 hover:scale-[1.02]">
-            <div className="absolute inset-0 bg-gradient-to-br from-white/10 to-transparent pointer-events-none"></div>
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
+        <div 
+            className="group relative bg-primary-600 dark:bg-primary-700 p-5 rounded-2xl shadow-lg shadow-primary-500/20 border-none text-white overflow-hidden flex flex-col justify-between h-full transition-all duration-300 hover:-translate-y-0.5"
+        >
+            <div className="absolute inset-0 bg-gradient-to-br from-white/20 to-transparent pointer-events-none"></div>
             {/* Texture Overlay */}
             <div className="absolute inset-0 bg-[url('https://www.transparenttextures.com/patterns/cubes.png')] opacity-10 pointer-events-none"></div>
             
+            {/* Inner Glow */}
+            <div 
+                className="absolute inset-0 pointer-events-none rounded-2xl"
+                style={{ 
+                    background: `radial-gradient(circle at 0% 0%, rgba(255,255,255,0.2) 0%, transparent 60%)`,
+                    opacity: 0.8
+                }}
+            />
+
             <div className="relative z-10">
-                <div className="flex items-center gap-2 mb-3">
-                    <div className="w-8 h-8 rounded-lg bg-white/20 flex items-center justify-center text-white">
+                <div className="flex items-center gap-3 mb-3">
+                    <div className="w-9 h-9 rounded-xl bg-white/20 flex items-center justify-center text-white border border-white/10 transition-transform group-hover:scale-110">
                         <span className="material-symbols-outlined text-lg">receipt_long</span>
                     </div>
-                    <p className="text-[10px] font-black uppercase tracking-[0.15em] text-white/80">Total Transactions</p>
+                    <p className="text-[10px] font-semibold text-white/80">Total transactions</p>
                 </div>
                 
                 <div className="flex flex-col">
-                    <p className="text-3xl font-mono font-black tracking-tighter">{filteredTransactions.length}</p>
-                    <p className="text-[10px] text-white/70 mt-1 font-medium">in selected period</p>
+                    <p className="text-2xl font-black tracking-tight">{filteredTransactions.length}</p>
+                    <p className="text-[10px] text-white/70 mt-1 font-semibold">in selected period</p>
                 </div>
             </div>
             
-            <div className="absolute -right-6 -bottom-6 text-white opacity-10 transition-transform group-hover:scale-110 duration-500">
-                <span className="material-symbols-outlined text-9xl">receipt_long</span>
+            <div className="absolute -right-4 -bottom-4 text-white opacity-10 transition-transform group-hover:scale-110 duration-500">
+                <span className="material-symbols-outlined text-8xl">receipt_long</span>
             </div>
         </div>
         <MetricCard 
@@ -1233,6 +1259,7 @@ const Transactions: React.FC<TransactionsProps> = ({ initialAccountFilter, initi
             colorClass="text-green-600 dark:text-green-400" 
             icon="arrow_downward" 
             subtitle="Cash inflows"
+            glowColor="rgba(16, 185, 129, 0.15)"
         />
         <MetricCard 
             label="Total Expenses" 
@@ -1240,6 +1267,7 @@ const Transactions: React.FC<TransactionsProps> = ({ initialAccountFilter, initi
             colorClass="text-red-600 dark:text-red-400" 
             icon="arrow_upward" 
             subtitle="Cash outflows"
+            glowColor="rgba(244, 63, 94, 0.15)"
         />
         <MetricCard 
             label="Net Cash Flow" 
@@ -1247,41 +1275,45 @@ const Transactions: React.FC<TransactionsProps> = ({ initialAccountFilter, initi
             colorClass={netFlow >= 0 ? 'text-green-600 dark:text-green-400' : 'text-red-600 dark:text-red-400'} 
             icon="account_balance_wallet" 
             subtitle="Net difference"
+            glowColor={netFlow >= 0 ? "rgba(16, 185, 129, 0.15)" : "rgba(244, 63, 94, 0.15)"}
         />
       </div>
       
       {/* Filter Toolbar */}
-      <div className={`p-4 bg-gray-50 dark:bg-dark-card rounded-2xl border border-black/5 dark:border-white/5 shadow-sm transition-all duration-300`}>
-          <div className="flex flex-col gap-4">
+      <div className={`p-6 bg-white dark:bg-dark-card rounded-[2rem] border border-black/5 dark:border-white/5 shadow-sm transition-all duration-300 relative`}>
+          {/* Subtle Glow */}
+          <div className="absolute inset-0 pointer-events-none" style={{ background: 'radial-gradient(circle at 100% 0%, rgba(99, 102, 241, 0.05) 0%, transparent 40%)' }}></div>
+          
+          <div className="relative z-10 flex flex-col gap-6">
               {/* Main Row */}
-              <div className="flex flex-col xl:flex-row gap-4 items-start xl:items-end">
+              <div className="flex flex-col xl:flex-row gap-6 items-start xl:items-end">
                  <div className="flex-grow w-full xl:w-auto">
-                      <label htmlFor="search" className={labelStyle}>Search</label>
+                      <label htmlFor="search" className={labelStyle}>Search registry</label>
                       <div className="relative">
-                          <span className="material-symbols-outlined absolute left-3 top-1/2 -translate-y-1/2 text-light-text-secondary dark:text-dark-text-secondary pointer-events-none">search</span>
-                          <input ref={searchInputRef} type="text" id="search" placeholder="Description, category, account..." value={searchTerm} onChange={(e) => setSearchTerm(e.target.value)} className={`${INPUT_BASE_STYLE} pl-10`} />
+                          <span className="material-symbols-outlined absolute left-3 top-1/2 -translate-y-1/2 text-light-text-secondary dark:text-dark-text-secondary pointer-events-none opacity-50">search</span>
+                          <input ref={searchInputRef} type="text" id="search" placeholder="Type to search transactions, merchants, categories..." value={searchTerm} onChange={(e) => setSearchTerm(e.target.value)} className={`${INPUT_BASE_STYLE} pl-10`} />
                       </div>
                  </div>
                  <div className="grid grid-cols-2 md:grid-cols-4 gap-4 w-full xl:w-auto">
                       <div>
-                          <label htmlFor="type-filter" className={labelStyle}>Type</label>
-                          <div className={SELECT_WRAPPER_STYLE}>
-                              <select id="type-filter" value={typeFilter} onChange={(e) => setTypeFilter(e.target.value as any)} className={`${SELECT_STYLE} pr-10`}>
+                          <label htmlFor="type-filter" className={labelStyle}>Transfer type</label>
+                          <div className={`${SELECT_WRAPPER_STYLE} !rounded-2xl`}>
+                              <select id="type-filter" value={typeFilter} onChange={(e) => setTypeFilter(e.target.value as any)} className={`${SELECT_STYLE} !rounded-2xl pr-10`}>
                                   {typeFilterOptions.map(opt => <option key={opt.value} value={opt.value}>{opt.label}</option>)}
                               </select>
                               <div className={SELECT_ARROW_STYLE}><span className="material-symbols-outlined">expand_more</span></div>
                           </div>
                       </div>
                       <div>
-                          <label htmlFor="sort-by" className={labelStyle}>Sort By</label>
-                          <div className={SELECT_WRAPPER_STYLE}>
-                              <select id="sort-by" value={sortBy} onChange={(e) => setSortBy(e.target.value)} className={`${SELECT_STYLE} pr-10`}>
-                                <option value="date-desc">Date (Newest)</option>
-                                <option value="date-asc">Date (Oldest)</option>
-                                <option value="amount-desc">Amount (High)</option>
-                                <option value="amount-asc">Amount (Low)</option>
-                                <option value="merchant-asc">Merchant (A-Z)</option>
-                                <option value="merchant-desc">Merchant (Z-A)</option>
+                          <label htmlFor="sort-by" className={labelStyle}>Display order</label>
+                          <div className={`${SELECT_WRAPPER_STYLE} !rounded-2xl`}>
+                              <select id="sort-by" value={sortBy} onChange={(e) => setSortBy(e.target.value)} className={`${SELECT_STYLE} !rounded-2xl pr-10`}>
+                                <option value="date-desc">Date (Newest First)</option>
+                                <option value="date-asc">Date (Oldest First)</option>
+                                <option value="amount-desc">Value (Highest First)</option>
+                                <option value="amount-asc">Value (Lowest First)</option>
+                                <option value="merchant-asc">Merchant (Alphabetical)</option>
+                                <option value="merchant-desc">Merchant (Reverse)</option>
                                 <option value="category-asc">Category (A-Z)</option>
                                 <option value="category-desc">Category (Z-A)</option>
                               </select>
@@ -1291,10 +1323,10 @@ const Transactions: React.FC<TransactionsProps> = ({ initialAccountFilter, initi
                       <div className="col-span-2 md:col-span-2 flex items-end">
                          <button 
                             onClick={() => setIsFiltersExpanded(!isFiltersExpanded)}
-                            className={`w-full flex items-center justify-center gap-2 py-2 rounded-lg font-semibold text-sm transition-colors ${isFiltersExpanded ? 'bg-primary-100 dark:bg-primary-900/30 text-primary-700 dark:text-primary-300' : 'bg-light-fill dark:bg-dark-fill text-light-text-secondary dark:text-dark-text-secondary hover:text-light-text dark:hover:text-dark-text'}`}
+                            className={`w-full h-[42px] flex items-center justify-center gap-2 rounded-2xl font-semibold text-[11px] tracking-wider transition-all ${isFiltersExpanded ? 'bg-primary-500 text-white shadow-lg shadow-primary-500/20' : 'bg-black/5 dark:bg-white/5 text-light-text-secondary dark:text-dark-text-secondary hover:bg-black/10 dark:hover:bg-white/10'}`}
                         >
-                            <span className="material-symbols-outlined text-lg">tune</span>
-                            {isFiltersExpanded ? 'Less Filters' : 'More Filters'}
+                            <span className="material-symbols-outlined text-lg">{isFiltersExpanded ? 'keyboard_double_arrow_up' : 'tune'}</span>
+                            {isFiltersExpanded ? 'Collapse filters' : 'Advanced filters'}
                          </button>
                       </div>
                  </div>
@@ -1302,34 +1334,35 @@ const Transactions: React.FC<TransactionsProps> = ({ initialAccountFilter, initi
               
               {/* Expanded Filters */}
               {isFiltersExpanded && (
-                <div className="pt-4 border-t border-black/5 dark:border-white/5 grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-4 animate-fade-in-up">
+                <div className="pt-6 border-t border-black/5 dark:border-white/5 grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-6 animate-fade-in-up">
                   <div>
-                      <label className={labelStyle}>Account</label>
+                      <label className={labelStyle}>Source account</label>
                       <MultiAccountFilter accounts={accounts} selectedAccountIds={selectedAccountIds} setSelectedAccountIds={setSelectedAccountIds}/>
                   </div>
                   <div>
-                      <label className={labelStyle}>Category</label>
+                      <label className={labelStyle}>Accounting category</label>
                       <MultiSelectFilter options={categoryOptions} selectedValues={selectedCategoryNames} onChange={setSelectedCategoryNames} placeholder="All Categories"/>
                   </div>
                   <div>
-                      <label className={labelStyle}>Tags</label>
+                      <label className={labelStyle}>Organization tags</label>
                       <MultiSelectFilter options={tagOptions} selectedValues={selectedTagIds} onChange={setSelectedTagIds} placeholder="All Tags"/>
                   </div>
                   <div>
-                      <label htmlFor="merchant-filter" className={labelStyle}>Merchant</label>
-                      <input id="merchant-filter" type="text" placeholder="e.g., Amazon" value={merchantFilter} onChange={(e) => setMerchantFilter(e.target.value)} className={`${INPUT_BASE_STYLE}`} />
+                      <label htmlFor="merchant-filter" className={labelStyle}>Merchant entity</label>
+                      <input id="merchant-filter" type="text" placeholder="Search by merchant name..." value={merchantFilter} onChange={(e) => setMerchantFilter(e.target.value)} className={`${INPUT_BASE_STYLE} !rounded-2xl`} />
                   </div>
 
-                  <div className="md:col-span-2 flex items-end gap-2">
-                      <div className="flex-1"><label htmlFor="start-date" className={labelStyle}>From Date</label><input id="start-date" type="date" value={startDate} onChange={e => setStartDate(e.target.value)} className={`${INPUT_BASE_STYLE}`}/></div>
-                      <div className="flex-1"><label htmlFor="end-date" className={labelStyle}>To Date</label><input id="end-date" type="date" value={endDate} onChange={e => setEndDate(e.target.value)} className={`${INPUT_BASE_STYLE}`}/></div>
+                  <div className="md:col-span-2 flex items-end gap-3">
+                      <div className="flex-1"><label htmlFor="start-date" className={labelStyle}>From date</label><input id="start-date" type="date" value={startDate} onChange={e => setStartDate(e.target.value)} className={`${INPUT_BASE_STYLE} !rounded-2xl`}/></div>
+                      <div className="flex-1"><label htmlFor="end-date" className={labelStyle}>To date</label><input id="end-date" type="date" value={endDate} onChange={e => setEndDate(e.target.value)} className={`${INPUT_BASE_STYLE} !rounded-2xl`}/></div>
                   </div>
-                  <div className="md:col-span-2 flex items-end gap-2">
-                      <div className="flex-1"><label htmlFor="min-amount" className={labelStyle}>Min Amount</label><input id="min-amount" type="number" placeholder="0.00" value={minAmount} onChange={e => setMinAmount(e.target.value)} className={`${INPUT_BASE_STYLE}`}/></div>
-                      <div className="flex-1"><label htmlFor="max-amount" className={labelStyle}>Max Amount</label><input id="max-amount" type="number" placeholder="1000.00" value={maxAmount} onChange={e => setMaxAmount(e.target.value)} className={`${INPUT_BASE_STYLE}`}/></div>
+                  <div className="md:col-span-2 flex items-end gap-3">
+                      <div className="flex-1"><label htmlFor="min-amount" className={labelStyle}>Min threshold</label><input id="min-amount" type="number" placeholder="0.00" value={minAmount} onChange={e => setMinAmount(e.target.value)} className={`${INPUT_BASE_STYLE} !rounded-2xl`}/></div>
+                      <div className="flex-1"><label htmlFor="max-amount" className={labelStyle}>Max threshold</label><input id="max-amount" type="number" placeholder="No limit" value={maxAmount} onChange={e => setMaxAmount(e.target.value)} className={`${INPUT_BASE_STYLE} !rounded-2xl`}/></div>
                   </div>
-                  <div className="xl:col-span-4 flex justify-end">
-                      <button onClick={clearFilters} className="text-sm text-primary-500 hover:underline font-medium">Clear All Filters</button>
+                  <div className="xl:col-span-4 flex justify-between items-center py-2">
+                      <p className="text-[10px] font-semibold text-light-text-secondary dark:text-dark-text-secondary opacity-40 tracking-wider">Fine-tune your activity feed</p>
+                      <button onClick={clearFilters} className="text-[10px] font-semibold tracking-wider text-primary-500 hover:text-primary-600 transition-colors">Reset all parameters</button>
                   </div>
                 </div>
               )}
@@ -1338,20 +1371,22 @@ const Transactions: React.FC<TransactionsProps> = ({ initialAccountFilter, initi
       
       {/* Transaction List Card */}
       <div className="flex-1 min-w-0 relative">
-        <Card className="!p-0 h-full flex flex-col relative overflow-hidden border border-black/5 dark:border-white/5 shadow-sm rounded-2xl bg-gray-50 dark:bg-dark-card">
-            <div className="overflow-x-auto">
-              <div className="min-w-[900px] flex flex-col">
-                <div className={`transition-all duration-300 ease-in-out overflow-hidden ${selectedIds.size > 0 ? 'h-[60px] opacity-100' : 'h-0 opacity-0 pointer-events-none'}`}>
-                  <div className={`${selectedIds.size > 0 ? 'bg-primary-600 dark:bg-primary-800 text-white' : 'bg-gray-100 dark:bg-white/5 text-light-text-secondary dark:text-dark-text-secondary'} px-6 flex justify-between items-center h-[60px] z-[40] relative shadow-sm transition-colors duration-300 pointer-events-auto`}>
-                     <div className="flex items-center gap-4">
-                         <div className="flex items-center gap-3">
-                             <input type="checkbox" onChange={handleSelectAll} checked={isAllSelected} className={CHECKBOX_STYLE} aria-label="Select all transactions"/>
-                             <span className="font-bold text-sm tracking-tight">{selectedIds.size} selected</span>
+        <Card className="!p-0 h-full flex flex-col relative border border-black/5 dark:border-white/5 shadow-sm rounded-[2rem] bg-white dark:bg-dark-card">
+            <div className="flex flex-col h-full"> {/* Container to avoid inner overflow-x issue */}
+                <div className={`transition-all duration-500 ease-[cubic-bezier(0.4,0,0.2,1)] overflow-hidden ${selectedIds.size > 0 ? 'h-[72px] opacity-100' : 'h-0 opacity-0 pointer-events-none'}`}>
+                  <div className={`${selectedIds.size > 0 ? 'bg-indigo-600 dark:bg-indigo-900 text-white' : 'bg-gray-100 dark:bg-white/5 text-light-text-secondary dark:text-dark-text-secondary'} px-8 flex justify-between items-center h-[72px] z-[40] relative transition-colors duration-500`}>
+                     <div className="flex items-center gap-6">
+                         <div className="flex items-center gap-4">
+                             <input type="checkbox" onChange={handleSelectAll} checked={isAllSelected} className={`${CHECKBOX_STYLE} border-white/30 checked:bg-white checked:text-indigo-600`} aria-label="Select all transactions"/>
+                             <div className="flex flex-col">
+                                <span className="font-semibold text-lg tracking-tight leading-none">{selectedIds.size}</span>
+                                <span className="text-[10px] font-semibold tracking-widest opacity-70">records selected</span>
+                             </div>
                          </div>
                          {selectedIds.size > 0 && (
                              <button 
                                 onClick={() => setSelectedIds(new Set())} 
-                                className={`p-1 rounded-full ${selectedIds.size > 0 ? 'hover:bg-white/20 text-white' : 'hover:bg-black/5 text-gray-400'} transition-colors`}
+                                className="w-8 h-8 flex items-center justify-center rounded-xl bg-white/10 hover:bg-white/20 text-white transition-all"
                                 aria-label="Deselect all"
                              >
                                  <span className="material-symbols-outlined text-lg">close</span>
@@ -1359,56 +1394,44 @@ const Transactions: React.FC<TransactionsProps> = ({ initialAccountFilter, initi
                          )}
                      </div>
                     <div className="flex gap-2">
-                        <button 
-                            type="button" 
-                            onClick={() => setBulkEditModalOpen(true)} 
-                            disabled={selectedIds.size === 0}
-                            className={`py-1.5 px-3 rounded-lg text-xs font-semibold transition-all backdrop-blur-sm ${selectedIds.size > 0 ? 'bg-white/20 hover:bg-white/30 text-white' : 'bg-gray-200 dark:bg-white/10 text-gray-400 dark:text-gray-500 cursor-not-allowed opacity-50'}`}
-                        >
-                            Edit
-                        </button>
-                        <button 
-                            type="button" 
-                            onClick={handleOpenCategorizeModal} 
-                            disabled={selectedIds.size === 0}
-                            className={`py-1.5 px-3 rounded-lg text-xs font-semibold transition-all backdrop-blur-sm ${selectedIds.size > 0 ? 'bg-white/20 hover:bg-white/30 text-white' : 'bg-gray-200 dark:bg-white/10 text-gray-400 dark:text-gray-500 cursor-not-allowed opacity-50'}`}
-                        >
-                            Categorize
-                        </button>
-                        <button 
-                            type="button" 
-                            onClick={handleOpenSplitModal} 
-                            disabled={selectedIds.size !== 1}
-                            className={`py-1.5 px-3 rounded-lg text-xs font-semibold transition-all backdrop-blur-sm ${selectedIds.size === 1 ? 'bg-white/20 hover:bg-white/30 text-white' : 'bg-gray-200 dark:bg-white/10 text-gray-400 dark:text-gray-500 cursor-not-allowed opacity-50'}`}
-                        >
-                            Split
-                        </button>
-                        <button 
-                            type="button" 
-                            onClick={() => handleMakeRecurring()} 
-                            disabled={selectedIds.size !== 1}
-                            className={`py-1.5 px-3 rounded-lg text-xs font-semibold transition-all backdrop-blur-sm ${selectedIds.size === 1 ? 'bg-white/20 hover:bg-white/30 text-white' : 'bg-gray-200 dark:bg-white/10 text-gray-400 dark:text-gray-500 cursor-not-allowed opacity-50'}`}
-                        >
-                            Recurring
-                        </button>
-                        <button 
-                            type="button" 
-                            onClick={handleOpenDeleteModal} 
-                            disabled={selectedIds.size === 0}
-                            className={`py-1.5 px-3 rounded-lg text-xs font-semibold transition-all backdrop-blur-sm ${selectedIds.size > 0 ? 'bg-red-500/80 hover:bg-red-500 text-white' : 'bg-gray-200 dark:bg-white/10 text-gray-400 dark:text-gray-500 cursor-not-allowed opacity-50'}`}
-                        >
-                            Delete
-                        </button>
+                        {[
+                            { label: 'Edit', icon: 'edit', onClick: () => setBulkEditModalOpen(true), disabled: selectedIds.size === 0 },
+                            { label: 'Categorize', icon: 'category', onClick: handleOpenCategorizeModal, disabled: selectedIds.size === 0 },
+                            { label: 'Split', icon: 'splitscreen', onClick: handleOpenSplitModal, disabled: selectedIds.size !== 1 },
+                            { label: 'Recurring', icon: 'repeat', onClick: () => handleMakeRecurring(), disabled: selectedIds.size !== 1 },
+                            { label: 'Delete', icon: 'delete', onClick: handleOpenDeleteModal, disabled: selectedIds.size === 0, danger: true }
+                        ].map((btn) => (
+                            <button 
+                                key={btn.label}
+                                type="button" 
+                                onClick={btn.onClick} 
+                                disabled={btn.disabled}
+                                className={`
+                                    h-10 px-4 rounded-2xl flex items-center gap-2 text-[11px] font-semibold tracking-wider transition-all
+                                    ${btn.disabled 
+                                        ? 'opacity-40 cursor-not-allowed grayscale' 
+                                        : btn.danger
+                                            ? 'bg-rose-500 hover:bg-rose-600 text-white shadow-lg shadow-rose-500/20'
+                                            : 'bg-white/10 hover:bg-white/20 text-white'
+                                    }
+                                `}
+                            >
+                                <span className="material-symbols-outlined text-base">{btn.icon}</span>
+                                <span className="hidden md:inline">{btn.label}</span>
+                            </button>
+                        ))}
                     </div>
                 </div>
               </div>
                 
-                <div className="px-5 py-3 border-b border-black/5 dark:border-white/5 flex items-center gap-3 bg-gray-50/50 dark:bg-white/[0.02] sticky top-0 z-[30] backdrop-blur-md">
-                    <div className="flex items-center justify-center w-5"></div>
-                    <div className="flex-1 grid grid-cols-12 gap-3 ml-3 items-center">
-                        <div className="col-span-5">
+                <div className="px-8 py-4 border-b border-black/5 dark:border-white/5 flex items-center gap-4 bg-white/50 dark:bg-dark-card/50 sticky top-0 z-[30] backdrop-blur-xl">
+                    <div className="flex items-center justify-center w-6">
+                         <input type="checkbox" onChange={handleSelectAll} checked={isAllSelected} className={CHECKBOX_STYLE} aria-label="Select all visible transactions"/>
+                    </div>
+                    <div className="flex-1 grid grid-cols-12 gap-4 items-center">
+                        <div className="col-span-4">
                             <ColumnHeader
-                                label="Description & Merchant"
+                                label="Transaction Details"
                                 currentSort={sortBy}
                                 onSort={setSortBy}
                                 isFilterActive={!!merchantFilter}
@@ -1424,7 +1447,7 @@ const Transactions: React.FC<TransactionsProps> = ({ initialAccountFilter, initi
                                 filterContent={accountFilterContent}
                              />
                         </div>
-                        <div className="col-span-2">
+                        <div className="col-span-3">
                             <ColumnHeader
                                 label="Category"
                                 sortKey="category"
@@ -1436,7 +1459,7 @@ const Transactions: React.FC<TransactionsProps> = ({ initialAccountFilter, initi
                         </div>
                         <div className="col-span-2">
                             <ColumnHeader
-                                label="Context Tags"
+                                label="Tags"
                                 currentSort={sortBy}
                                 onSort={setSortBy}
                                 isFilterActive={selectedTagIds.length > 0}
@@ -1492,7 +1515,7 @@ const Transactions: React.FC<TransactionsProps> = ({ initialAccountFilter, initi
                                     <div className="flex items-center justify-center w-5">
                                         <input type="checkbox" className={CHECKBOX_STYLE} checked={allSelected} onChange={handleSelectDay} aria-label={`Select all for ${row.date}`} onClick={e => e.stopPropagation()} />
                                     </div>
-                                    <span className="text-[10px] font-black text-light-text-secondary dark:text-dark-text-secondary uppercase tracking-[0.2em] ml-3">
+                                    <span className="text-[10px] font-medium text-light-text-secondary dark:text-dark-text-secondary tracking-[0.2em] ml-3">
                                         {parseLocalDate(row.date).toLocaleDateString(undefined, { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' })}
                                     </span>
                                 </div>
@@ -1534,136 +1557,188 @@ const Transactions: React.FC<TransactionsProps> = ({ initialAccountFilter, initi
 
                     const institutionLogoUrl = account?.financialInstitution ? getMerchantLogoUrl(account.financialInstitution, brandfetchClientId, effectiveMerchantLogoOverrides, { fallback: 'lettermark', type: 'icon', width: 64, height: 64 }) : null;
                     const showInstitutionLogo = Boolean(institutionLogoUrl && !logoLoadErrors[institutionLogoUrl]);
+                    
+                    const accentColor = tx.isTransfer 
+                        ? 'rgba(59, 130, 246, 0.4)' 
+                        : (tx.type === 'income' ? 'rgba(16, 185, 129, 0.4)' : 'rgba(244, 63, 94, 0.4)');
 
                     return (
                       <div
                         key={tx.id}
                         style={style}
-                        className="flex items-center group hover:bg-gray-50 dark:hover:bg-white/5 transition-colors px-4 py-3 cursor-default relative border-b border-black/5 dark:border-white/5"
-                        onClick={() => { /* handle row click if needed */ }}
-                        onDoubleClick={() => {
-                          setEditingTransaction(transactions.find(t => t.id === (tx.isTransfer ? tx.originalId : tx.id)) || null);
-                          setTransactionModalOpen(true);
-                        }}
-                        onContextMenu={(e) => openContextMenu(e, tx)}
+                        className="px-6 py-2"
                       >
-                        <div className="flex items-center gap-4">
-                          <input type="checkbox" className={CHECKBOX_STYLE} checked={selectedIds.has(tx.id)} onChange={(e) => { e.stopPropagation(); handleSelectOne(tx.id); }} onClick={e => e.stopPropagation()} aria-label={`Select transaction ${tx.description}`} />
-                        </div>
-
-                        <div className="flex-1 grid grid-cols-12 gap-3 items-center ml-3 min-w-0">
-                          
-                          {/* Column 1: Description (Expanded) */}
-                            <div className="col-span-5 flex items-center gap-3 min-w-0">
-                              <div
-                                className={`w-10 h-10 rounded-xl flex items-center justify-center text-white shadow-sm shrink-0 overflow-hidden ${showMerchantLogo ? 'bg-white dark:bg-dark-card' : ''}`}
-                                style={showMerchantLogo ? undefined : { backgroundColor: categoryColor }}
-                              >
-                                {showMerchantLogo && merchantLogoUrl ? (
-                                  <img
-                                    src={merchantLogoUrl}
-                                    alt={tx.merchant ? `${tx.merchant} logo` : 'Merchant logo'}
-                                    className="w-full h-full object-cover"
-                                    onError={() => handleLogoError(merchantLogoUrl)}
-                                  />
-                                ) : merchantInitial ? (
-                                  <span className="text-sm font-semibold tracking-wide">{merchantInitial}</span>
-                                ) : (
-                                  <span className="material-symbols-outlined text-[20px]">{categoryIcon}</span>
-                                )}
-                              </div>
-                            <div className="min-w-0">
-                              <p className="font-bold text-base text-light-text dark:text-dark-text truncate max-w-[30ch] lg:max-w-[40ch]">{tx.description}</p>
-                              <p className="text-sm text-light-text-secondary dark:text-dark-text-secondary flex items-center gap-2 truncate whitespace-nowrap">
-                                  <span className="truncate">{tx.merchant || (tx.isTransfer ? 'Transfer' : '—')}</span>
-                                  {tx.notes && <span className="material-symbols-outlined text-[14px] text-primary-500 shrink-0" title="Has notes">notes</span>}
-                              </p>
+                         <motion.div
+                            initial={false}
+                            whileHover={{ y: -1 }}
+                            className={`
+                                group relative h-full flex items-center gap-4 px-4 rounded-[1.5rem] border transition-all duration-300 cursor-default
+                                ${selectedIds.has(tx.id)
+                                    ? 'bg-primary-500/5 dark:bg-primary-500/10 border-primary-500/30 shadow-lg shadow-primary-500/5'
+                                    : 'bg-white dark:bg-dark-card border-black/5 dark:border-white/5 hover:border-black/10 dark:hover:border-white/10 shadow-sm'
+                                }
+                            `}
+                            style={{
+                                boxShadow: selectedIds.has(tx.id) ? `0 10px 30px -10px ${accentColor.replace('0.4', '0.15')}` : undefined
+                            }}
+                            onDoubleClick={() => {
+                              setEditingTransaction(transactions.find(t => t.id === (tx.isTransfer ? tx.originalId : tx.id)) || null);
+                              setTransactionModalOpen(true);
+                            }}
+                            onContextMenu={(e) => openContextMenu(e, tx)}
+                         >
+                            {/* Inner Glow Effect */}
+                            <div className="absolute inset-0 pointer-events-none rounded-[1.5rem] overflow-hidden opacity-0 group-hover:opacity-100 transition-opacity duration-500">
+                                <div 
+                                    className="absolute inset-0"
+                                    style={{ 
+                                        background: `radial-gradient(circle at 0% 50%, ${accentColor.replace('0.4', '0.08')} 0%, transparent 60%)`,
+                                    }}
+                                />
                             </div>
-                          </div>
 
-                          {/* Column 2: Account */}
-                          <div className="col-span-2 flex items-center gap-3 min-w-0">
-                                <div className="shrink-0">
-                                   {showInstitutionLogo ? (
-                                        <img 
-                                            src={institutionLogoUrl!} 
-                                            alt={account?.financialInstitution || 'Bank'} 
-                                            className="w-10 h-10 object-contain rounded-xl shadow-sm bg-white dark:bg-white/10" 
-                                            onError={() => handleLogoError(institutionLogoUrl!)}
-                                        />
-                                   ) : (
-                                        <div className="w-10 h-7 flex items-center justify-center bg-gray-100 dark:bg-white/10 rounded overflow-hidden shadow-sm shrink-0 border border-black/5 dark:border-white/10">
-                                            {account ? getCardIcon(cardNetwork || '') : <span className="material-symbols-outlined text-xs text-gray-400">account_balance</span>}
+                            <div className="flex items-center justify-center w-6 z-10 shrink-0">
+                                <input 
+                                    type="checkbox" 
+                                    className={`${CHECKBOX_STYLE} w-5 h-5 !rounded-lg border-black/10 dark:border-white/10`} 
+                                    checked={selectedIds.has(tx.id)} 
+                                    onChange={(e) => { e.stopPropagation(); handleSelectOne(tx.id); }} 
+                                    onClick={e => e.stopPropagation()} 
+                                    aria-label={`Select transaction ${tx.description}`} 
+                                />
+                            </div>
+
+                            <div className="flex-1 grid grid-cols-12 gap-4 items-center min-w-0 z-10">
+                                {/* Column 1: Description */}
+                                <div className="col-span-4 flex items-center gap-4 min-w-0">
+                                    <div className="relative group/logo shrink-0">
+                                        <div className="absolute -inset-1 bg-gradient-to-tr from-primary-500/20 to-transparent rounded-xl opacity-0 group-hover/logo:opacity-100 transition-opacity"></div>
+                                        <div
+                                            className={`w-12 h-12 rounded-2xl flex items-center justify-center text-white border border-black/5 dark:border-white/5 bg-white dark:bg-dark-card relative overflow-hidden transition-transform group-hover/logo:scale-105 duration-300`}
+                                            style={showMerchantLogo ? undefined : { backgroundColor: categoryColor }}
+                                        >
+                                            {showMerchantLogo && merchantLogoUrl ? (
+                                                <img
+                                                    src={merchantLogoUrl}
+                                                    alt=""
+                                                    className="w-full h-full object-cover"
+                                                    referrerPolicy="no-referrer"
+                                                    onError={() => handleLogoError(merchantLogoUrl)}
+                                                />
+                                            ) : merchantInitial ? (
+                                                <span className="text-sm font-black tracking-widest">{merchantInitial}</span>
+                                            ) : (
+                                                <span className="material-symbols-outlined text-2xl">{categoryIcon}</span>
+                                            )}
                                         </div>
-                                   )}
-                                </div>
-                                <div className="min-w-0">
-                                    <p className="text-base font-bold text-light-text dark:text-dark-text truncate">{accountName}</p>
-                                    <p className="text-sm text-light-text-secondary dark:text-dark-text-secondary font-mono truncate">{accountSub}</p>
-                                </div>
-                          </div>
-
-                          {/* Column 3: Category */}
-                          <div className="col-span-2">
-                             <span 
-                                className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full text-sm font-medium border border-transparent truncate max-w-full"
-                                style={{ backgroundColor: `${categoryColor}15`, color: categoryColor }}
-                             >
-                                 <span className="material-symbols-outlined text-[16px] shrink-0">{categoryIcon}</span>
-                                 <span className="truncate">{tx.category}</span>
-                             </span>
-                          </div>
-
-                          {/* Column 4: Tag */}
-                          <div className="col-span-2">
-                            {tx.tagIds && tx.tagIds.length > 0 ? (
-                                <div className="flex flex-wrap gap-1">
-                                    {tx.tagIds.slice(0, 1).map(tagId => {
-                                        const tag = tags.find(t => t.id === tagId);
-                                        if (!tag) return null;
-                                        return (
-                                            <span key={tag.id} className="inline-flex items-center px-2 py-0.5 rounded-full text-sm font-medium" style={{ backgroundColor: `${tag.color}20`, color: tag.color }}>
-                                                {tag.name}
+                                    </div>
+                                    <div className="min-w-0 flex-grow">
+                                        <div className="flex items-center gap-2 mb-0.5">
+                                            <p className="font-semibold text-[16px] text-light-text dark:text-dark-text truncate tracking-tight">{tx.description}</p>
+                                            {tx.recurringSourceId && <span className="material-symbols-outlined text-[14px] text-primary-500">repeat</span>}
+                                            {tx.notes && <span className="material-symbols-outlined text-[14px] text-primary-500/40 shrink-0">notes</span>}
+                                        </div>
+                                        <div className="flex items-center gap-2">
+                                            <span className="text-[12px] font-medium text-light-text-secondary dark:text-dark-text-secondary tracking-tight opacity-100">
+                                                {tx.merchant || (tx.isTransfer ? 'Transfer' : 'Activity record')}
                                             </span>
-                                        );
-                                    })}
-                                    {tx.tagIds.length > 1 && (
-                                        <span className="text-sm text-light-text-secondary dark:text-dark-text-secondary">+{tx.tagIds.length - 1}</span>
+                                        </div>
+                                    </div>
+                                </div>
+
+                                {/* Column 2: Account */}
+                                <div className="col-span-2 flex items-center gap-4 min-w-0">
+                                    <div className="shrink-0 group/inst transition-transform group-hover:scale-110">
+                                        {showInstitutionLogo ? (
+                                            <img 
+                                                src={institutionLogoUrl!} 
+                                                alt="" 
+                                                className="w-12 h-12 object-contain rounded-2xl shadow-sm bg-white dark:bg-white/10 border border-black/5 dark:border-white/10" 
+                                                referrerPolicy="no-referrer"
+                                                onError={() => handleLogoError(institutionLogoUrl!)}
+                                            />
+                                        ) : (
+                                            <div className="w-12 h-12 flex items-center justify-center bg-black/5 dark:bg-white/5 rounded-2xl border border-black/5 dark:border-white/10">
+                                                <span className="material-symbols-outlined text-2xl text-light-text-secondary dark:text-dark-text-secondary opacity-40">account_balance</span>
+                                            </div>
+                                        )}
+                                    </div>
+                                    <div className="min-w-0">
+                                        <p className="text-[15px] font-semibold text-light-text dark:text-dark-text truncate tracking-tight leading-tight">{accountName}</p>
+                                        <p className="text-[12px] font-medium text-light-text-secondary dark:text-dark-text-secondary opacity-40 leading-tight tracking-tighter">{accountSub}</p>
+                                    </div>
+                                </div>
+
+                                {/* Column 3: Category */}
+                                <div className="col-span-3 overflow-hidden">
+                                    <div 
+                                        className="inline-flex items-center gap-2 px-3 py-1.5 rounded-lg transition-colors duration-300 max-w-full cursor-pointer overflow-hidden font-bold text-[12px]"
+                                        style={{ backgroundColor: `${categoryColor}15`, color: categoryColor }}
+                                        onClick={(e) => { e.stopPropagation(); setSelectedIds(new Set([tx.id])); setIsCategorizeModalOpen(true); }}
+                                    >
+                                        <span className="material-symbols-outlined text-[16px] shrink-0" style={{ color: categoryColor }}>{categoryIcon}</span>
+                                        <span className="truncate">
+                                            {tx.category || 'Uncategorized'}
+                                        </span>
+                                    </div>
+                                </div>
+
+                                {/* Column 4: Tags */}
+                                <div className="col-span-2 overflow-hidden">
+                                    {tx.tagIds && tx.tagIds.length > 0 ? (
+                                        <div className="flex flex-wrap gap-1.5">
+                                            {tx.tagIds.slice(0, 1).map(tagId => {
+                                                const tag = tags.find(t => t.id === tagId);
+                                                if (!tag) return null;
+                                                return (
+                                                    <span key={tag.id} className="px-2.5 py-1 rounded-lg bg-primary-500/10 text-[12px] font-bold text-primary-600 dark:text-primary-400">
+                                                        {tag.name}
+                                                    </span>
+                                                );
+                                            })}
+                                            {tx.tagIds.length > 1 && (
+                                                <span className="text-[12px] font-black text-primary-500">+{tx.tagIds.length - 1}</span>
+                                            )}
+                                        </div>
+                                    ) : (
+                                        <span className="text-[12px] font-semibold text-light-text-secondary dark:text-dark-text-secondary opacity-30">No tags</span>
                                     )}
                                 </div>
-                            ) : (
-                                <span className="text-sm text-light-text-secondary dark:text-dark-text-secondary italic">—</span>
-                            )}
-                          </div>
 
-                          {/* Column 5: Amount */}
-                          <div className="col-span-1 text-right min-w-0">
-                            <p className={`font-mono font-bold text-base whitespace-nowrap ${amountColor}`}>
-                                {displayAmount}
-                            </p>
-                            {tx.spareChangeAmount ? (
-                                <p className="text-[11px] font-mono font-bold text-light-text-secondary dark:text-dark-text-secondary mt-1 flex items-center justify-end gap-1">
-                                    <span className="material-symbols-outlined text-[12px] opacity-70">savings</span>
-                                    {formatCurrency(convertToEur(Math.abs(tx.spareChangeAmount), tx.currency), 'EUR')}
-                                </p>
-                            ) : null}
-                          </div>
-                        </div>
+                                {/* Column 5: Amount */}
+                                <div className="col-span-1 text-right flex flex-col items-end">
+                                    <span className={`text-base font-semibold tracking-tighter ${amountColor}`}>
+                                        {displayAmount}
+                                    </span>
+                                    {tx.spareChangeAmount ? (
+                                        <div className="flex items-center justify-end gap-1 px-1.5 py-0.5 rounded-md bg-green-500/10 text-green-600 dark:text-green-500 animate-pulse">
+                                            <span className="material-symbols-outlined text-[12px]">savings</span>
+                                            <span className="text-[11px] font-semibold tracking-widest">{formatCurrency(convertToEur(Math.abs(tx.spareChangeAmount), tx.currency), 'EUR')}</span>
+                                        </div>
+                                    ) : (
+                                        <div className="flex items-center gap-1 opacity-0 group-hover:opacity-60 transition-opacity">
+                                            <span className="text-[8px] font-semibold tracking-widest text-light-text-secondary dark:text-dark-text-secondary">Verified</span>
+                                            <span className="material-symbols-outlined text-[10px] text-green-500">verified</span>
+                                        </div>
+                                    )}
+                                </div>
+                            </div>
 
-                        {/* Action Button */}
-                        <div className="w-8 flex justify-end opacity-0 group-hover:opacity-100 transition-opacity duration-200">
-                          <button
-                            className="p-1.5 rounded-full hover:bg-black/10 dark:hover:bg-white/10 text-light-text-secondary dark:text-dark-text-secondary"
-                            onClick={(e) => {
-                              e.preventDefault();
-                              e.stopPropagation();
-                              openContextMenu(e, tx);
-                            }}
-                            aria-label="Actions"
-                          >
-                            <span className="material-symbols-outlined text-xl">more_vert</span>
-                          </button>
-                        </div>
+                            {/* Action Button */}
+                            <div className="w-8 flex justify-end opacity-0 group-hover:opacity-100 transition-all transform translate-x-2 group-hover:translate-x-0 duration-300 z-20">
+                                <button
+                                    className="w-8 h-8 rounded-xl hover:bg-black/5 dark:hover:bg-white/10 text-light-text-secondary dark:text-dark-text-secondary flex items-center justify-center transition-colors"
+                                    onClick={(e) => {
+                                        e.preventDefault();
+                                        e.stopPropagation();
+                                        openContextMenu(e, tx);
+                                    }}
+                                    aria-label="Actions"
+                                >
+                                    <span className="material-symbols-outlined text-xl">more_vert</span>
+                                </button>
+                            </div>
+                         </motion.div>
                       </div>
                     );
                   }}
@@ -1676,7 +1751,6 @@ const Transactions: React.FC<TransactionsProps> = ({ initialAccountFilter, initi
                   )}
                 </div>
               </div>
-            </div>
           </Card>
       </div>
     </div>

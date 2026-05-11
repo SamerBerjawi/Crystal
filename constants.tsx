@@ -80,11 +80,11 @@ export function CrystalLogo({ showText = true }: { showText?: boolean; }) {
 }
 
 // Common Styles based on Apple HIG
-export const BTN_PRIMARY_STYLE = "h-10 flex items-center justify-center bg-primary-700 text-white font-bold text-[11px] uppercase tracking-widest px-6 rounded-xl hover:bg-primary-600 shadow-lg shadow-primary-700/20 transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-primary-500 focus:ring-offset-2 focus:ring-offset-light-bg dark:focus:ring-offset-dark-card active:scale-95 whitespace-nowrap";
-export const BTN_SECONDARY_STYLE = "h-10 flex items-center justify-center bg-light-fill dark:bg-dark-fill text-light-text dark:text-dark-text font-bold text-[11px] uppercase tracking-widest px-6 rounded-xl border-none hover:bg-black/5 dark:hover:bg-white/5 transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-primary-500 active:scale-95 whitespace-nowrap";
-export const BTN_DANGER_STYLE = "h-10 flex items-center justify-center text-semantic-red hover:bg-semantic-red/10 font-bold text-[11px] uppercase tracking-widest px-6 rounded-xl transition-colors active:scale-95 whitespace-nowrap";
+export const BTN_PRIMARY_STYLE = "h-10 flex items-center justify-center bg-primary-700 text-white font-semibold text-[11px] tracking-wider px-6 rounded-xl hover:bg-primary-600 shadow-lg shadow-primary-700/20 transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-primary-500 focus:ring-offset-2 focus:ring-offset-light-bg dark:focus:ring-offset-dark-card active:scale-95 whitespace-nowrap";
+export const BTN_SECONDARY_STYLE = "h-10 flex items-center justify-center bg-light-fill dark:bg-dark-fill text-light-text dark:text-dark-text font-semibold text-[11px] tracking-wider px-6 rounded-xl border-none hover:bg-black/5 dark:hover:bg-white/5 transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-primary-500 active:scale-95 whitespace-nowrap";
+export const BTN_DANGER_STYLE = "h-10 flex items-center justify-center text-semantic-red hover:bg-semantic-red/10 font-semibold text-[11px] tracking-wider px-6 rounded-xl transition-colors active:scale-95 whitespace-nowrap";
 export const INPUT_BASE_STYLE = "h-10 w-full appearance-none bg-light-fill dark:bg-dark-fill text-light-text dark:text-dark-text rounded-xl px-4 border-none hover:bg-black/5 dark:hover:bg-white/5 focus:outline-none focus:ring-2 focus:ring-primary-500 transition-all duration-200";
-export const SELECT_STYLE = "h-10 w-full appearance-none bg-light-fill dark:bg-dark-fill text-light-text dark:text-dark-text font-bold text-[10px] uppercase tracking-widest pl-4 pr-10 rounded-xl border-none hover:bg-black/5 dark:hover:bg-white/5 transition-colors duration-200 focus:outline-none focus:ring-2 focus:ring-primary-500 whitespace-nowrap cursor-pointer";
+export const SELECT_STYLE = "h-10 w-full appearance-none bg-light-fill dark:bg-dark-fill text-light-text dark:text-dark-text font-semibold text-[11px] tracking-wider pl-4 pr-10 rounded-xl border-none hover:bg-black/5 dark:hover:bg-white/5 transition-colors duration-200 focus:outline-none focus:ring-2 focus:ring-primary-500 whitespace-nowrap cursor-pointer";
 export const SELECT_WRAPPER_STYLE = "relative w-full";
 export const SELECT_ARROW_STYLE = "pointer-events-none absolute inset-y-0 right-0 flex items-center px-3 text-light-text-secondary dark:text-dark-text-secondary";
 export const CHECKBOX_STYLE = "h-4 w-4 rounded text-white bg-light-bg dark:bg-dark-fill border border-gray-400 dark:border-gray-500 focus:ring-2 focus:ring-offset-2 focus:ring-offset-light-card dark:focus:ring-offset-dark-card focus:ring-primary-500 checked:bg-primary-500 checked:border-transparent cursor-pointer";
@@ -176,15 +176,15 @@ export const COUNTRY_OPTIONS = [
 
 export const DURATION_OPTIONS: { label: string; value: Duration }[] = [
   { label: 'Today', value: 'TODAY' },
-  { label: 'Week to Date', value: 'WTD' },
-  { label: 'Month to Date', value: 'MTD' },
-  { label: '30 Days', value: '30D' },
-  { label: '60 Days', value: '60D' },
-  { label: '90 Days', value: '90D' },
-  { label: '6 Months', value: '6M' },
-  { label: 'Year to Date', value: 'YTD' },
-  { label: '1 Year', value: '1Y' },
-  { label: 'All Time', value: 'ALL' },
+  { label: 'Week to date', value: 'WTD' },
+  { label: 'Month to date', value: 'MTD' },
+  { label: '30 days', value: '30D' },
+  { label: '60 days', value: '60D' },
+  { label: '90 days', value: '90D' },
+  { label: '6 months', value: '6M' },
+  { label: 'Year to date', value: 'YTD' },
+  { label: '1 year', value: '1Y' },
+  { label: 'All time', value: 'ALL' },
 ];
 
 export const FORECAST_DURATION_OPTIONS: { label: string; value: ForecastDuration }[] = [
