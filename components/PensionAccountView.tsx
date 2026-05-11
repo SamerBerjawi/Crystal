@@ -196,7 +196,7 @@ const PensionAccountView: React.FC<PensionAccountViewProps> = ({
                        <span className="text-[10px] font-bold text-light-text-secondary/30 dark:text-dark-text-secondary/30">•</span>
                        <span className="text-[10px] font-bold text-light-text-secondary/60 dark:text-dark-text-secondary/80">Targeted Maturity: {retirementYear}</span>
                   </div>
-                  <h1 className="text-4xl font-black text-light-text dark:text-dark-text tracking-tighter flex items-center gap-3">
+                  <h1 className="text-4xl font-bold text-light-text dark:text-dark-text tracking-tighter flex items-center gap-3">
                       {account.name}
                       <span className="material-symbols-outlined text-light-text-secondary/20 dark:text-dark-text-secondary/20 font-light">{account.icon || 'elderly'}</span>
                   </h1>
@@ -238,17 +238,17 @@ const PensionAccountView: React.FC<PensionAccountViewProps> = ({
                    <div className="relative z-10 flex flex-col md:flex-row justify-between gap-12">
                         <div className="flex-grow">
                              <p className="text-[10px] font-bold tracking-wider text-indigo-200/80 mb-2">Total Pot Capitalization</p>
-                             <h2 className="text-6xl md:text-7xl font-black tracking-tighter tabular-nums drop-shadow-lg mb-8 italic">
+                             <h2 className="text-6xl md:text-7xl font-bold tracking-tighter tabular-nums drop-shadow-lg mb-8">
                                  {formatCurrency(account.balance, account.currency)}
                              </h2>
                              <div className="flex gap-10">
-                                <div>
+                                 <div>
                                     <p className="text-[10px] font-bold tracking-wider text-indigo-200/40 mb-1">Maturity Age Target</p>
-                                    <p className="font-black text-2xl text-white drop-shadow-sm">{retirementYear}</p>
+                                    <p className="font-bold text-2xl text-white drop-shadow-sm">{retirementYear}</p>
                                 </div>
                                 <div>
                                     <p className="text-[10px] font-bold tracking-wider text-indigo-200/40 mb-1">Runway</p>
-                                    <p className="font-black text-2xl text-indigo-300 drop-shadow-sm">{yearsToRetirement} Years</p>
+                                    <p className="font-bold text-2xl text-indigo-300 drop-shadow-sm">{yearsToRetirement} Years</p>
                                 </div>
                              </div>
                         </div>
@@ -256,7 +256,7 @@ const PensionAccountView: React.FC<PensionAccountViewProps> = ({
                         <div className="md:w-64 flex flex-col justify-between text-right border-l border-white/10 md:pl-10">
                              <div>
                                  <p className="text-[10px] font-bold tracking-wider text-indigo-200/40 mb-2">Forecasted Value</p>
-                                 <p className="text-3xl font-black text-white tabular-nums tracking-tight">{formatCurrency(projectedValueAtRetirement, account.currency)}</p>
+                                 <p className="text-3xl font-bold text-white tabular-nums tracking-tight">{formatCurrency(projectedValueAtRetirement, account.currency)}</p>
                                  <p className="text-[10px] font-bold text-indigo-300 mt-1">At {account.apy || 5}% Growth Rate</p>
                              </div>
                              <div className="mt-8 space-y-3">
@@ -340,7 +340,7 @@ const PensionAccountView: React.FC<PensionAccountViewProps> = ({
 
                 <div className="bg-white dark:bg-dark-card rounded-[3rem] border border-black/5 dark:border-white/5 overflow-hidden flex flex-col group h-[600px]">
                     <div className="p-10 border-b border-black/5 dark:border-white/5 bg-gray-50/30 dark:bg-white/[0.01]">
-                        <h3 className="text-xl font-black tracking-tight text-light-text dark:text-dark-text italic">Capital Infusions</h3>
+                        <h3 className="text-xl font-bold tracking-tight text-light-text dark:text-dark-text">Capital infusions</h3>
                     </div>
                     <div className="flex-grow overflow-hidden">
                         <TransactionList
@@ -369,7 +369,7 @@ const PensionAccountView: React.FC<PensionAccountViewProps> = ({
                         ].filter(i => i.value).map((item, idx) => (
                             <div key={idx} className="pt-8 first:pt-0">
                                 <p className="text-[10px] font-bold tracking-wider text-light-text-secondary/50 dark:text-dark-text-secondary/70 mb-1">{item.label}</p>
-                                <p className={`text-base font-black text-light-text dark:text-dark-text tracking-tight ${item.isMono ? 'font-mono opacity-60' : ''}`}>
+                                <p className={`text-base font-bold text-light-text dark:text-dark-text tracking-tight ${item.isMono ? 'font-mono opacity-60' : ''}`}>
                                     {item.value}
                                 </p>
                             </div>

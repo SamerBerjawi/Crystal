@@ -168,7 +168,7 @@ const SavingsAccountView: React.FC<SavingsAccountViewProps> = ({
                        <span className="text-[10px] font-bold text-light-text-secondary/30 dark:text-dark-text-secondary/30">•</span>
                        <span className="text-[10px] font-bold text-light-text-secondary/60 dark:text-dark-text-secondary/80">{account.financialInstitution || 'Vault'}</span>
                   </div>
-                  <h1 className="text-4xl font-black text-light-text dark:text-dark-text tracking-tighter flex items-center gap-3">
+                  <h1 className="text-4xl font-bold text-light-text dark:text-dark-text tracking-tighter flex items-center gap-3">
                       {account.name}
                       <span className="material-symbols-outlined text-light-text-secondary/20 dark:text-dark-text-secondary/20 font-light">{account.icon || 'savings'}</span>
                   </h1>
@@ -208,13 +208,13 @@ const SavingsAccountView: React.FC<SavingsAccountViewProps> = ({
                              {apy > 0 && (
                                 <div className="text-right">
                                     <p className="text-[10px] font-bold tracking-wider text-emerald-100/80 mb-1">Yield</p>
-                                    <p className="text-3xl font-black tabular-nums">{apy}% <span className="text-xs opacity-60">APY</span></p>
+                                    <p className="text-3xl font-bold tabular-nums">{apy}% <span className="text-xs opacity-60">APY</span></p>
                                 </div>
                              )}
                         </div>
                         
                         <p className="text-[10px] font-bold text-emerald-100/90 mb-2">Current Total Balance</p>
-                        <h2 className="text-5xl font-black tracking-tight tabular-nums drop-shadow-sm mb-12 italic">
+                        <h2 className="text-5xl font-bold tracking-tight tabular-nums drop-shadow-sm mb-12">
                             {formatCurrency(account.balance, account.currency)}
                         </h2>
                         
@@ -279,7 +279,7 @@ const SavingsAccountView: React.FC<SavingsAccountViewProps> = ({
                     </div>
                     <div className="flex justify-between items-center mb-10 relative z-10">
                         <div>
-                             <h3 className="text-xl font-black text-light-text dark:text-dark-text tracking-tight">Financial Trajectory</h3>
+                             <h3 className="text-xl font-bold text-light-text dark:text-dark-text tracking-tight">Financial trajectory</h3>
                              <p className="text-xs font-bold text-light-text-secondary/60 dark:text-dark-text-secondary/80 mt-1 tracking-wider">90-day balance progression</p>
                         </div>
                         <div className="text-right">

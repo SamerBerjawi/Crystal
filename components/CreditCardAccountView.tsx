@@ -153,7 +153,7 @@ const CreditCardAccountView: React.FC<CreditCardAccountViewProps> = ({
                        <span className="text-[10px] font-bold text-light-text-secondary/30 dark:text-dark-text-secondary/30">•</span>
                        <span className="text-[10px] font-bold text-light-text-secondary/60 dark:text-dark-text-secondary/80">{account.currency} Credit Line</span>
                   </div>
-                  <h1 className="text-4xl font-black text-light-text dark:text-dark-text tracking-tighter flex items-center gap-3">
+                  <h1 className="text-4xl font-bold text-light-text dark:text-dark-text tracking-tighter flex items-center gap-3">
                       {account.name}
                       <span className="text-[10px] font-bold tracking-wider bg-gray-100 dark:bg-white/10 px-2 py-1 rounded text-gray-400">
                           {account.cardNetwork || 'CREDIT'}
@@ -196,16 +196,16 @@ const CreditCardAccountView: React.FC<CreditCardAccountViewProps> = ({
                                        <div className="absolute inset-0 bg-[repeating-linear-gradient(90deg,transparent,transparent_4px,rgba(0,0,0,0.1)_4px,rgba(0,0,0,0.1)_8px)]"></div>
                                   </div>
                              </div>
-                             <span className="text-xl font-black italic tracking-widest text-white/40 drop-shadow-sm">{account.cardNetwork || 'PLATINUM'}</span>
+                             <span className="text-xl font-bold tracking-widest text-white/40 drop-shadow-sm">{account.cardNetwork || 'PLATINUM'}</span>
                         </div>
                         
                         <p className="text-[10px] font-bold tracking-wider text-slate-400 mb-2">Total Outstanding Liability</p>
-                        <h2 className={`text-5xl font-black tracking-tight tabular-nums drop-shadow-sm mb-12 ${account.balance < 0 ? 'text-rose-400' : 'text-emerald-400'}`}>
+                        <h2 className={`text-5xl font-bold tracking-tight tabular-nums drop-shadow-sm mb-12 ${account.balance < 0 ? 'text-rose-400' : 'text-emerald-400'}`}>
                             {formatCurrency(account.balance, account.currency)}
                         </h2>
                         
                         {account.last4 && (
-                            <p className="text-lg font-black tracking-[0.3em] text-slate-200 drop-shadow-md font-mono mb-8 opacity-80 decoration-slate-500/50 underline-offset-8">
+                            <p className="text-lg font-bold tracking-[0.3em] text-slate-200 drop-shadow-md font-mono mb-8 opacity-80 decoration-slate-500/50 underline-offset-8">
                                 •••• •••• •••• {account.last4}
                             </p>
                         )}
@@ -213,13 +213,13 @@ const CreditCardAccountView: React.FC<CreditCardAccountViewProps> = ({
                        <div className="flex justify-between items-end">
                             <div className="space-y-1">
                                 <p className="text-[10px] tracking-wider text-slate-500 font-bold">Credit Limit Utilization</p>
-                                <p className={`text-3xl font-black tabular-nums leading-none ${utilization > 80 ? 'text-rose-400' : 'text-emerald-400'}`}>
+                                <p className={`text-3xl font-bold tabular-nums leading-none ${utilization > 80 ? 'text-rose-400' : 'text-emerald-400'}`}>
                                     {utilization.toFixed(0)}%
                                 </p>
                             </div>
                             <div className="text-right">
                                 <p className="text-[10px] tracking-wider text-slate-500 font-bold mb-1">Limit</p>
-                                <p className="font-black text-xl text-white tabular-nums opacity-60 decoration-slate-500/50 underline-offset-4">{formatCurrency(account.creditLimit || 0, account.currency)}</p>
+                                <p className="font-bold text-xl text-white tabular-nums opacity-60 decoration-slate-500/50 underline-offset-4">{formatCurrency(account.creditLimit || 0, account.currency)}</p>
                             </div>
                        </div>
                        <div className="w-full h-2 bg-white/5 rounded-full overflow-hidden">
@@ -268,7 +268,7 @@ const CreditCardAccountView: React.FC<CreditCardAccountViewProps> = ({
                     </div>
                     <div className="flex justify-between items-center mb-10 relative z-10">
                         <div>
-                             <h3 className="text-xl font-black text-light-text dark:text-dark-text tracking-tight">Spend Velocity</h3>
+                             <h3 className="text-xl font-bold text-light-text dark:text-dark-text tracking-tight">Spend velocity</h3>
                              <p className="text-xs font-bold text-light-text-secondary/60 dark:text-dark-text-secondary/80 mt-1 tracking-wider">Monthly credit utilization history</p>
                         </div>
                     </div>
@@ -310,8 +310,8 @@ const CreditCardAccountView: React.FC<CreditCardAccountViewProps> = ({
            {/* Billing Details Sidebar */}
            <div className="xl:col-span-4 flex flex-col gap-8">
                 <div className="bg-white dark:bg-dark-card rounded-[2.5rem] border border-black/5 dark:border-white/5 p-10 h-full flex flex-col group">
-                    <h3 className="text-xl font-black text-light-text dark:text-dark-text tracking-tight mb-8 flex items-center gap-3">
-                        Billing Engine
+                    <h3 className="text-xl font-bold text-light-text dark:text-dark-text tracking-tight mb-8 flex items-center gap-3">
+                        Billing engine
                         <span className="material-symbols-outlined text-slate-300">settings</span>
                     </h3>
                     <div className="space-y-10">
@@ -321,7 +321,7 @@ const CreditCardAccountView: React.FC<CreditCardAccountViewProps> = ({
                             </div>
                             <div className="space-y-1">
                                 <p className="text-[10px] font-bold tracking-wider text-light-text-secondary/40 dark:text-dark-text-secondary/50">Statement Open</p>
-                                <p className="font-black text-lg text-light-text dark:text-dark-text tracking-tight tabular-nums">
+                                <p className="font-bold text-lg text-light-text dark:text-dark-text tracking-tight tabular-nums">
                                     {account.statementStartDate ? `Day ${account.statementStartDate} of Month` : 'Unconfigured'}
                                 </p>
                             </div>
@@ -332,7 +332,7 @@ const CreditCardAccountView: React.FC<CreditCardAccountViewProps> = ({
                             </div>
                             <div className="space-y-1">
                                 <p className="text-[10px] font-bold tracking-wider text-light-text-secondary/40 dark:text-dark-text-secondary/50">Settlement Due</p>
-                                <p className="font-black text-lg text-light-text dark:text-dark-text tracking-tight tabular-nums">
+                                <p className="font-bold text-lg text-light-text dark:text-dark-text tracking-tight tabular-nums">
                                     {account.paymentDate ? `Day ${account.paymentDate} of Month` : 'Unconfigured'}
                                 </p>
                             </div>
@@ -366,7 +366,7 @@ const CreditCardAccountView: React.FC<CreditCardAccountViewProps> = ({
                 <div className="bg-white dark:bg-dark-card rounded-[2.5rem] border border-black/5 dark:border-white/5 shadow-2xl shadow-black/[0.02] overflow-hidden flex flex-col h-full group">
                     <div className="p-10 border-b border-black/5 dark:border-white/5 flex justify-between items-center bg-gray-50/30 dark:bg-white/[0.01]">
                         <div>
-                            <h3 className="text-2xl font-black tracking-tight text-light-text dark:text-dark-text">Statement Activity</h3>
+                            <h3 className="text-2xl font-bold tracking-tight text-light-text dark:text-dark-text">Statement activity</h3>
                             <p className="text-xs font-bold text-light-text-secondary/60 dark:text-dark-text-secondary/80 mt-1 tracking-wider">Active billing cycle transactions</p>
                         </div>
                         <button className="text-xs font-bold tracking-wider text-primary-500 hover:text-primary-600 transition-colors underline underline-offset-8">

@@ -140,7 +140,7 @@ const PropertyAccountView: React.FC<PropertyAccountViewProps> = ({
                   </div>
                   <h1 className="text-4xl font-semibold text-light-text dark:text-dark-text tracking-tighter flex items-center gap-3">
                       {account.name}
-                      <span className="material-symbols-outlined text-light-text-secondary/20 dark:text-dark-text-secondary/20 font-light">home</span>
+                      <span className="material-symbols-outlined text-light-text-secondary/40 dark:text-dark-text-secondary/40 font-light">home</span>
                   </h1>
               </div>
           </div>

@@ -193,7 +193,7 @@ const AccountCard: React.FC<AccountCardProps> = ({
                     </div>
                     <div className="min-w-0">
                         <p className="font-semibold text-lg text-light-text dark:text-dark-text truncate leading-tight">{account.name}</p>
-                        <div className="flex items-center gap-2 mt-1 text-xs text-light-text-secondary/70 dark:text-dark-text-secondary/80 font-medium">
+                        <div className="flex items-center gap-2 mt-1 text-xs text-light-text-secondary/90 dark:text-dark-text-secondary font-medium">
                            <span>{secondaryText} {account.last4 ? `•••• ${account.last4}` : ''}</span>
                         </div>
                     </div>

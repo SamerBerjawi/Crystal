@@ -111,46 +111,46 @@ const PaymentPlanTable: React.FC<PaymentPlanTableProps> = ({ account, transactio
             </div>
             <div className="flex-grow overflow-auto border border-black/5 dark:border-white/10 rounded-lg bg-light-bg dark:bg-dark-bg scrollbar-thin scrollbar-thumb-gray-300 dark:scrollbar-thumb-gray-600">
                 <table className="w-full text-sm text-left relative border-collapse">
-                    <thead className="text-xs uppercase bg-light-fill dark:bg-dark-fill text-light-text-secondary dark:text-dark-text-secondary font-semibold sticky top-0 z-10 backdrop-blur-md">
+                    <thead className="text-[10px] bg-light-fill dark:bg-dark-fill text-light-text-secondary dark:text-dark-text-secondary font-semibold sticky top-0 z-10 backdrop-blur-md">
                         <tr>
-                            <th className="p-3 whitespace-nowrap border-b border-black/5 dark:border-white/5">#</th>
-                            <th className="p-3 whitespace-nowrap border-b border-black/5 dark:border-white/5">Date</th>
-                            <th className="p-3 whitespace-nowrap text-right border-b border-black/5 dark:border-white/5">Total</th>
-                            <th className="p-3 whitespace-nowrap text-right border-b border-black/5 dark:border-white/5">Principal</th>
-                            <th className="p-3 whitespace-nowrap text-right border-b border-black/5 dark:border-white/5">Interest</th>
-                            <th className="p-3 whitespace-nowrap text-right border-b border-black/5 dark:border-white/5">Balance</th>
-                            <th className="p-3 whitespace-nowrap text-center border-b border-black/5 dark:border-white/5">Status</th>
-                            <th className="p-3 whitespace-nowrap text-right border-b border-black/5 dark:border-white/5">Action</th>
+                            <th className="p-4 whitespace-nowrap border-b border-black/5 dark:border-white/5 tracking-wider">#</th>
+                            <th className="p-4 whitespace-nowrap border-b border-black/5 dark:border-white/5 tracking-wider">Date</th>
+                            <th className="p-4 whitespace-nowrap text-right border-b border-black/5 dark:border-white/5 tracking-wider">Total</th>
+                            <th className="p-4 whitespace-nowrap text-right border-b border-black/5 dark:border-white/5 tracking-wider">Principal</th>
+                            <th className="p-4 whitespace-nowrap text-right border-b border-black/5 dark:border-white/5 tracking-wider">Interest</th>
+                            <th className="p-4 whitespace-nowrap text-right border-b border-black/5 dark:border-white/5 tracking-wider">Balance</th>
+                            <th className="p-4 whitespace-nowrap text-center border-b border-black/5 dark:border-white/5 tracking-wider">Status</th>
+                            <th className="p-4 whitespace-nowrap text-right border-b border-black/5 dark:border-white/5 tracking-wider">Action</th>
                         </tr>
                     </thead>
                     <tbody className="divide-y divide-black/5 dark:divide-white/5">
                         {schedule.map(payment => {
                             const isEditing = editingPaymentNumber === payment.paymentNumber;
                             return (
-                            <tr key={payment.paymentNumber} className={`group hover:bg-black/5 dark:hover:bg-white/5 transition-colors ${isEditing ? 'bg-primary-500/10' : ''}`}>
-                                <td className="p-3 font-mono text-xs opacity-70">{payment.paymentNumber}</td>
-                                <td className="p-3">{parseLocalDate(payment.date).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}</td>
+                            <tr key={payment.paymentNumber} className={`group hover:bg-black/[0.02] dark:hover:bg-white/[0.02] transition-colors ${isEditing ? 'bg-primary-500/10' : ''}`}>
+                                <td className="p-4 font-mono text-xs opacity-40">{payment.paymentNumber}</td>
+                                <td className="p-4 font-medium">{parseLocalDate(payment.date).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}</td>
                                 
                                 {isEditing ? (
                                     <>
-                                        <td className="p-1 text-right"><input type="number" step="0.01" value={editFormData.totalPayment} onChange={e => handleEditFormChange('totalPayment', e.target.value)} className={`${INPUT_BASE_STYLE} !h-8 text-right`} /></td>
-                                        <td className="p-1 text-right"><input type="number" step="0.01" value={editFormData.principal} onChange={e => handleEditFormChange('principal', e.target.value)} className={`${INPUT_BASE_STYLE} !h-8 text-right`} /></td>
-                                        <td className="p-1 text-right"><input type="number" step="0.01" value={editFormData.interest} onChange={e => handleEditFormChange('interest', e.target.value)} className={`${INPUT_BASE_STYLE} !h-8 text-right`} /></td>
+                                        <td className="p-2 text-right"><input type="number" step="0.01" value={editFormData.totalPayment} onChange={e => handleEditFormChange('totalPayment', e.target.value)} className={`${INPUT_BASE_STYLE} !h-9 text-right`} /></td>
+                                        <td className="p-2 text-right"><input type="number" step="0.01" value={editFormData.principal} onChange={e => handleEditFormChange('principal', e.target.value)} className={`${INPUT_BASE_STYLE} !h-9 text-right`} /></td>
+                                        <td className="p-2 text-right"><input type="number" step="0.01" value={editFormData.interest} onChange={e => handleEditFormChange('interest', e.target.value)} className={`${INPUT_BASE_STYLE} !h-9 text-right`} /></td>
                                     </>
                                 ) : (
                                     <>
-                                        <td className="p-3 text-right font-medium">{formatCurrency(payment.totalPayment, account.currency)}</td>
-                                        <td className="p-3 text-right text-light-text-secondary dark:text-dark-text-secondary">{formatCurrency(payment.principal, account.currency)}</td>
-                                        <td className="p-3 text-right text-light-text-secondary dark:text-dark-text-secondary">{formatCurrency(payment.interest, account.currency)}</td>
+                                        <td className="p-4 text-right font-semibold">{formatCurrency(payment.totalPayment, account.currency)}</td>
+                                        <td className="p-4 text-right text-light-text-secondary/60 dark:text-dark-text-secondary/60 font-medium">{formatCurrency(payment.principal, account.currency)}</td>
+                                        <td className="p-4 text-right text-light-text-secondary/60 dark:text-dark-text-secondary/60 font-medium">{formatCurrency(payment.interest, account.currency)}</td>
                                     </>
                                 )}
                                 
-                                <td className="p-3 text-right font-mono">{formatCurrency(payment.outstandingBalance, account.currency)}</td>
-                                <td className="p-3 text-center">
-                                    <span className={`px-2 py-1 text-xs font-bold rounded-full border ${
-                                        payment.status === 'Paid' ? 'bg-green-100 dark:bg-green-900/30 text-green-700 dark:text-green-400 border-green-200 dark:border-green-900' :
-                                        payment.status === 'Overdue' ? 'bg-red-100 dark:bg-red-900/30 text-red-700 dark:text-red-400 border-red-200 dark:border-red-900' :
-                                        'bg-gray-100 dark:bg-gray-800 text-gray-600 dark:text-gray-400 border-gray-200 dark:border-gray-700'
+                                <td className="p-4 text-right font-mono text-light-text-secondary dark:text-dark-text-secondary">{formatCurrency(payment.outstandingBalance, account.currency)}</td>
+                                <td className="p-4 text-center">
+                                    <span className={`px-3 py-1 text-[10px] font-semibold rounded-lg border ${
+                                        payment.status === 'Paid' ? 'bg-emerald-500/10 dark:bg-emerald-500/20 text-emerald-600 dark:text-emerald-400 border-emerald-500/20' :
+                                        payment.status === 'Overdue' ? 'bg-rose-500/10 dark:bg-rose-500/20 text-rose-600 dark:text-rose-400 border-rose-500/20' :
+                                        'bg-slate-500/5 dark:bg-white/5 text-slate-500 dark:text-slate-400 border-slate-500/10'
                                     }`}>{payment.status}</span>
                                 </td>
                                 <td className="p-3 text-right">

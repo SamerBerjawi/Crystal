@@ -348,10 +348,10 @@ const Accounts: React.FC<AccountsProps> = ({ accounts, transactions, saveAccount
                     >
                         <div className="flex items-center gap-2 mb-2">
                             <span className="material-symbols-outlined text-primary-500 text-sm">account_balance_wallet</span>
-                            <span className="text-[10px] font-black uppercase tracking-widest text-light-text-secondary dark:text-dark-text-secondary">Portfolio Value</span>
+                            <span className="text-[10px] font-semibold tracking-wider text-light-text-secondary dark:text-dark-text-secondary">Portfolio Value</span>
                         </div>
                         <div className="flex items-baseline gap-2">
-                            <h2 className="text-4xl font-black tracking-tight privacy-blur text-light-text dark:text-dark-text group-hover/nw:text-primary-500 transition-colors">
+                            <h2 className="text-4xl font-bold tracking-tight privacy-blur text-light-text dark:text-dark-text group-hover/nw:text-primary-500 transition-colors">
                                 {formatCurrency(segmentValues.all, 'EUR')}
                             </h2>
                             {activeSegment === 'all' && (
@@ -395,8 +395,8 @@ const Accounts: React.FC<AccountsProps> = ({ accounts, transactions, saveAccount
                                         {isActive && <motion.div layoutId="active-indicator" className="w-1.5 h-1.5 rounded-full bg-primary-500 shadow-[0_0_6px_rgba(99,102,241,0.8)]" />}
                                     </div>
                                     <div className="flex flex-col">
-                                        <span className={`text-[10px] font-black uppercase tracking-widest ${isActive ? 'text-primary-500' : 'text-light-text-secondary dark:text-dark-text-secondary'}`}>{seg.label}</span>
-                                        <span className={`text-lg font-black tracking-tight privacy-blur ${isActive ? 'text-light-text dark:text-dark-text' : 'text-light-text-secondary group-hover:text-light-text dark:group-hover:text-dark-text'}`}>
+                                        <span className={`text-[10px] font-semibold tracking-wider ${isActive ? 'text-primary-500' : 'text-light-text-secondary dark:text-dark-text-secondary'}`}>{seg.label}</span>
+                                        <span className={`text-lg font-bold tracking-tight privacy-blur ${isActive ? 'text-light-text dark:text-dark-text' : 'text-light-text-secondary group-hover:text-light-text dark:group-hover:text-dark-text'}`}>
                                             {formatCurrency(val, 'EUR')}
                                         </span>
                                     </div>
@@ -434,7 +434,7 @@ const Accounts: React.FC<AccountsProps> = ({ accounts, transactions, saveAccount
                                     <span className="material-symbols-outlined text-base text-primary-500/70">{detail.icon}</span>
                                 </div>
                                 <div className="flex flex-col">
-                                    <span className="text-[9px] font-black uppercase tracking-widest text-light-text-secondary/70">{detail.label}</span>
+                                    <span className="text-[9px] font-black tracking-widest text-light-text-secondary/70">{detail.label}</span>
                                     <span className="text-sm font-black text-light-text dark:text-dark-text privacy-blur">{detail.value}</span>
                                 </div>
                              </div>
@@ -444,7 +444,7 @@ const Accounts: React.FC<AccountsProps> = ({ accounts, transactions, saveAccount
 
                 {/* Consolidated Controls */}
                 <div className="flex items-center gap-3 flex-wrap">
-                    <div className="flex bg-light-fill dark:bg-dark-fill p-1 rounded-xl items-center text-[10px] font-bold uppercase tracking-widest text-light-text-secondary dark:text-dark-text-secondary gap-0.5">
+                    <div className="flex bg-light-fill dark:bg-dark-fill p-1 rounded-xl items-center text-[10px] font-semibold tracking-widest text-light-text-secondary dark:text-dark-text-secondary gap-0.5">
                         <button onClick={() => setSplitAssetsLiabilities(true)} className={`flex items-center gap-1.5 p-1.5 px-3 rounded-lg transition-all ${splitAssetsLiabilities ? 'bg-white dark:bg-dark-card shadow-sm text-primary-500' : 'hover:text-primary-500'}`} title="Split Assets & Liabilities">
                             <span className="material-symbols-outlined text-[16px]">vertical_split</span>
                             <span className="hidden md:inline">Split</span>
@@ -456,7 +456,7 @@ const Accounts: React.FC<AccountsProps> = ({ accounts, transactions, saveAccount
                     </div>
 
                     <div className={`${SELECT_WRAPPER_STYLE} !w-auto h-9`}>
-                        <select value={sortBy} onChange={(e) => setSortBy(e.target.value as any)} className={`${SELECT_STYLE} !py-1 !text-[10px] !font-bold !uppercase !tracking-widest pr-8 h-full bg-light-fill dark:bg-dark-fill border-none rounded-xl`}>
+                        <select value={sortBy} onChange={(e) => setSortBy(e.target.value as any)} className={`${SELECT_STYLE} !py-1 !text-[10px] !font-semibold pr-8 h-full bg-light-fill dark:bg-dark-fill border-none rounded-xl`}>
                             <option value="manual">Sort: Manual</option>
                             <option value="name">Sort: Name</option>
                             <option value="balance">Sort: Balance</option>

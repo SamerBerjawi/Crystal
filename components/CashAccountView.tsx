@@ -161,7 +161,7 @@ const CashAccountView: React.FC<CashAccountViewProps> = ({
                        <span className="text-[10px] font-bold text-light-text-secondary/30 dark:text-dark-text-secondary/30">•</span>
                        <span className="text-[10px] font-bold text-light-text-secondary/60 dark:text-dark-text-secondary/80">{account.currency} Physical Reserve</span>
                   </div>
-                  <h1 className="text-4xl font-black text-light-text dark:text-dark-text tracking-tighter flex items-center gap-3">
+                  <h1 className="text-4xl font-bold text-light-text dark:text-dark-text tracking-tighter flex items-center gap-3">
                       {account.name}
                       <span className="material-symbols-outlined text-light-text-secondary/20 dark:text-dark-text-secondary/20">payments</span>
                   </h1>
@@ -200,12 +200,12 @@ const CashAccountView: React.FC<CashAccountViewProps> = ({
                              </div>
                              <div className="text-right">
                                   <p className="text-[10px] font-bold tracking-wider text-slate-400 mb-1">Status</p>
-                                  <p className="text-xs font-black text-emerald-400 tracking-widest drop-shadow-sm italic">Synchronized</p>
+                                  <p className="text-xs font-bold text-emerald-400 tracking-widest drop-shadow-sm">Synchronized</p>
                              </div>
                         </div>
                         
                         <p className="text-[10px] font-bold text-slate-400 mb-2">Total Managed Cash</p>
-                        <h2 className="text-6xl font-black tracking-tighter tabular-nums drop-shadow-lg mb-8 italic">
+                        <h2 className="text-6xl font-bold tracking-tighter tabular-nums drop-shadow-lg mb-8">
                             {formatCurrency(account.balance, account.currency)}
                         </h2>
                         
@@ -265,7 +265,7 @@ const CashAccountView: React.FC<CashAccountViewProps> = ({
                     </div>
                     <div className="flex justify-between items-center mb-10 relative z-10">
                         <div>
-                             <h3 className="text-xl font-black text-light-text dark:text-dark-text tracking-tight">Flow Lifecycle</h3>
+                             <h3 className="text-xl font-bold text-light-text dark:text-dark-text tracking-tight">Flow lifecycle</h3>
                              <p className="text-xs font-bold text-light-text-secondary/60 dark:text-dark-text-secondary/80 mt-1 tracking-wider">Inflow vs Outflow velocity</p>
                         </div>
                     </div>
@@ -301,7 +301,7 @@ const CashAccountView: React.FC<CashAccountViewProps> = ({
             <div className="bg-white dark:bg-dark-card rounded-[2.5rem] border border-black/5 dark:border-white/5 shadow-2xl shadow-black/[0.02] overflow-hidden flex flex-col h-full group">
                 <div className="p-10 border-b border-black/5 dark:border-white/5 flex justify-between items-center bg-gray-50/30 dark:bg-white/[0.01]">
                     <div>
-                        <h3 className="text-2xl font-black tracking-tight text-light-text dark:text-dark-text tracking-tight italic">Reserve Journal</h3>
+                        <h3 className="text-2xl font-bold tracking-tight text-light-text dark:text-dark-text">Reserve journal</h3>
                         <p className="text-xs font-bold text-light-text-secondary/60 dark:text-dark-text-secondary/80 mt-1 tracking-widest">Complete history of manual flow logs</p>
                     </div>
                     <button className="text-[10px] font-black tracking-[0.2em] px-4 py-2 rounded-xl bg-black/5 dark:bg-white/5 hover:bg-black/10 dark:hover:bg-white/10 transition-colors">

@@ -192,20 +192,20 @@ const SpareChangeAccountView: React.FC<SpareChangeAccountViewProps> = ({
                    <div className="relative z-10 flex flex-col md:flex-row justify-between gap-12 h-full">
                         <div className="flex-grow flex flex-col justify-between">
                              <div>
-                                 <p className="text-[10px] font-bold text-cyan-100/80 mb-2 italic">Automated Micro-Savings</p>
-                                 <h2 className="text-6xl md:text-8xl font-black tracking-tighter tabular-nums drop-shadow-lg italic">
+                                 <p className="text-[10px] font-bold text-cyan-100/80 mb-2">Automated micro-savings</p>
+                                 <h2 className="text-6xl md:text-8xl font-bold tracking-tighter tabular-nums drop-shadow-lg">
                                      {formatCurrency(account.balance, account.currency)}
                                  </h2>
                              </div>
                              
                              <div className="flex gap-10 mt-8">
                                 <div className="bg-white/10 backdrop-blur-md px-6 py-4 rounded-[2rem] border border-white/10">
-                                    <p className="text-[10px] tracking-wide text-cyan-100/70 font-bold mb-1">Total Round-ups</p>
-                                    <p className="font-black text-2xl text-white italic">{totalRoundUps}</p>
+                                    <p className="text-[10px] tracking-wide text-cyan-100/70 font-bold mb-1">Total round-ups</p>
+                                    <p className="font-bold text-2xl text-white">{totalRoundUps}</p>
                                 </div>
                                 <div className="bg-white/10 backdrop-blur-md px-6 py-4 rounded-[2rem] border border-white/10">
-                                    <p className="text-[10px] tracking-wide text-cyan-100/70 font-bold mb-1">MTD Intake</p>
-                                    <p className="font-black text-2xl text-white italic">+{formatCurrency(thisMonthSaved, account.currency)}</p>
+                                    <p className="text-[10px] tracking-wide text-cyan-100/70 font-bold mb-1">MTD intake</p>
+                                    <p className="font-bold text-2xl text-white">+{formatCurrency(thisMonthSaved, account.currency)}</p>
                                 </div>
                              </div>
                         </div>
@@ -217,10 +217,10 @@ const SpareChangeAccountView: React.FC<SpareChangeAccountViewProps> = ({
                                       <span className="text-4xl">☕</span>
                                  </div>
                              </div>
-                             <h3 className="text-xl font-black text-white italic">Coffee Index</h3>
+                             <h3 className="text-xl font-bold text-white">Coffee index</h3>
                              <p className="text-[10px] font-bold text-cyan-200/80 tracking-wide mt-2">Saved value in caffeine</p>
-                             <p className="text-5xl font-black text-orange-400 mt-4 tabular-nums italic drop-shadow-sm">{coffeesSaved}</p>
-                             <p className="text-[10px] font-bold text-orange-400/80 tracking-wide mt-1 italic">Venti Units</p>
+                             <p className="text-5xl font-bold text-orange-400 mt-4 tabular-nums drop-shadow-sm">{coffeesSaved}</p>
+                             <p className="text-[10px] font-bold text-orange-400/80 tracking-wide mt-1">Venti units</p>
                         </div>
                    </div>
                </motion.div>
@@ -278,7 +278,7 @@ const SpareChangeAccountView: React.FC<SpareChangeAccountViewProps> = ({
 
                 <div className="bg-white dark:bg-dark-card rounded-[3rem] border border-black/5 dark:border-white/5 overflow-hidden flex flex-col group h-[500px]">
                     <div className="p-10 border-b border-black/5 dark:border-white/5 bg-gray-50/30 dark:bg-white/[0.01]">
-                        <h3 className="text-xl font-black tracking-tight text-light-text dark:text-dark-text italic">Recent Captures</h3>
+                        <h3 className="text-xl font-bold tracking-tight text-light-text dark:text-dark-text">Recent captures</h3>
                     </div>
                     <div className="flex-grow overflow-hidden">
                         <TransactionList

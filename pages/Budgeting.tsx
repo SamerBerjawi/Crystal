@@ -202,9 +202,9 @@ const Budgeting: React.FC<BudgetingProps> = ({ budgets, transactions, expenseCat
         title="Budgeting"
         subtitle="Set envelopes, guardrails, and spending alerts that adapt as your cash flow evolves."
         actions={
-          <button onClick={() => handleOpenModal()} className="flex items-center gap-2 px-6 py-3 bg-black dark:bg-white text-white dark:text-black rounded-2xl font-black text-[10px] uppercase tracking-[0.2em] shadow-xl hover:scale-105 transition-all">
+          <button onClick={() => handleOpenModal()} className="flex items-center gap-2 px-6 py-3 bg-black dark:bg-white text-white dark:text-black rounded-2xl font-bold text-[10px] tracking-[0.2em] shadow-xl hover:scale-105 transition-all">
             <span className="material-symbols-outlined text-lg">add</span>
-            Create Budget
+            Create budget
           </button>
         }
       />
@@ -215,8 +215,8 @@ const Budgeting: React.FC<BudgetingProps> = ({ budgets, transactions, expenseCat
                     <span className="material-symbols-outlined text-lg leading-none group-hover:-translate-x-1 transition-transform">chevron_left</span>
                 </button>
                 <div className="flex flex-col items-center px-6 min-w-[140px]">
-                    <span className="text-[10px] font-black uppercase tracking-[0.2em] opacity-40 leading-none mb-1">Active Cycle</span>
-                    <span className="text-xs font-black uppercase tracking-widest leading-none">{monthName}</span>
+                    <span className="text-[10px] font-bold tracking-[0.2em] opacity-40 leading-none mb-1">Active cycle</span>
+                    <span className="text-xs font-bold tracking-widest leading-none">{monthName}</span>
                 </div>
                 <button onClick={() => handleMonthChange(1)} className="p-2.5 rounded-xl hover:bg-black/5 dark:hover:bg-white/10 transition-all active:scale-95 group">
                     <span className="material-symbols-outlined text-lg leading-none group-hover:translate-x-1 transition-transform">chevron_right</span>
@@ -231,7 +231,7 @@ const Budgeting: React.FC<BudgetingProps> = ({ budgets, transactions, expenseCat
                         title={`Create/update budgets based on the ${defaultQuickCreateOption.label}`}
                     >
                         <span className="material-symbols-outlined text-lg text-primary-500 group-hover/btn:scale-125 transition-transform">bolt</span>
-                        <span className="text-[10px] font-black uppercase tracking-[0.2em] whitespace-nowrap">Quick Budget</span>
+                        <span className="text-[10px] font-bold tracking-[0.2em] whitespace-nowrap">Quick budget</span>
                     </button>
                     <div className="w-[1px] bg-black/5 dark:bg-white/10"></div>
                     <button
@@ -272,12 +272,12 @@ const Budgeting: React.FC<BudgetingProps> = ({ budgets, transactions, expenseCat
 
                 <div className="relative z-10 grid grid-cols-2 gap-8 mt-6 bg-white/5 p-4 rounded-xl border border-white/5 backdrop-blur-md">
                      <div>
-                        <p className="text-white/30 text-[10px] font-black uppercase tracking-[0.2em] mb-1">Total Budgeted</p>
-                        <p className="text-xl font-black tracking-tight">{formatCurrency(totalBudgeted, 'EUR')}</p>
+                        <p className="text-white/30 text-[10px] font-bold tracking-[0.2em] mb-1">Total budgeted</p>
+                        <p className="text-xl font-bold tracking-tight">{formatCurrency(totalBudgeted, 'EUR')}</p>
                      </div>
                      <div>
-                        <p className="text-white/30 text-[10px] font-black uppercase tracking-[0.2em] mb-1">Total Spent</p>
-                        <p className="text-xl font-black tracking-tight opacity-100">{formatCurrency(totalSpent, 'EUR')}</p>
+                        <p className="text-white/30 text-[10px] font-bold tracking-[0.2em] mb-1">Total spent</p>
+                        <p className="text-xl font-bold tracking-tight opacity-100">{formatCurrency(totalSpent, 'EUR')}</p>
                      </div>
                 </div>
                 
@@ -290,16 +290,16 @@ const Budgeting: React.FC<BudgetingProps> = ({ budgets, transactions, expenseCat
                     </div>
                      <div className="flex justify-between items-center mt-3">
                         <div className="flex items-center gap-2">
-                             <span className="text-[10px] font-black uppercase tracking-[0.2em] text-white/40">Utilization</span>
-                             <span className="text-[13px] font-black tracking-tight">{overallProgress.toFixed(0)}%</span>
+                             <span className="text-[10px] font-bold tracking-[0.2em] text-white/40">Utilization</span>
+                             <span className="text-[13px] font-bold tracking-tight">{overallProgress.toFixed(0)}%</span>
                         </div>
                         {daysRemaining > 0 ? (
                            <div className="flex items-center gap-2">
-                                <span className="text-[10px] font-black uppercase tracking-[0.2em] text-white/40">Active Range</span>
-                                <span className="text-[13px] font-black tracking-tight">{daysRemaining} DAYS REMAINING</span>
+                                <span className="text-[10px] font-bold tracking-[0.2em] text-white/40">Active range</span>
+                                <span className="text-[13px] font-bold tracking-tight">{daysRemaining} DAYS REMAINING</span>
                            </div>
                         ) : (
-                           <span className="text-[10px] font-black uppercase tracking-[0.2em] text-white/40">Cycle Closed</span>
+                           <span className="text-[10px] font-bold tracking-[0.2em] text-white/40">Cycle closed</span>
                         )}
                     </div>
                 </div>
@@ -311,10 +311,10 @@ const Budgeting: React.FC<BudgetingProps> = ({ budgets, transactions, expenseCat
                   <div className="w-12 h-12 rounded-xl bg-emerald-500/10 text-emerald-500 flex items-center justify-center mb-4 shadow-inner">
                         <span className="material-symbols-outlined text-2xl">local_atm</span>
                   </div>
-                  <p className="text-[10px] font-black uppercase tracking-[0.2em] opacity-40 mb-1">Daily Safe Spend</p>
-                  <h3 className="text-3xl font-black tracking-tighter text-light-text dark:text-dark-text mb-2">{formatCurrency(dailySafeSpend, 'EUR')}</h3>
+                  <p className="text-[10px] font-bold tracking-[0.2em] opacity-40 mb-1">Daily safe spend</p>
+                  <h3 className="text-3xl font-bold tracking-tighter text-light-text dark:text-dark-text mb-2">{formatCurrency(dailySafeSpend, 'EUR')}</h3>
                   <div className="px-3 py-1 rounded-full bg-black/5 dark:bg-white/5 border border-black/5 dark:border-white/5">
-                    <p className="text-[8px] font-black uppercase tracking-[0.2em] opacity-60 leading-none italic">
+                    <p className="text-[8px] font-bold tracking-[0.2em] opacity-60 leading-none">
                         Available per day / {daysRemaining}d
                     </p>
                   </div>

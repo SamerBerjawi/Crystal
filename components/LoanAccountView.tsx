@@ -51,7 +51,7 @@ const MetricTile = ({ label, value, icon, subValue, colorClass = 'primary' }: {
                 ) : <div />}
             </div>
             <div className="mt-4 relative z-10">
-                <p className="text-[10px] font-semibold tracking-wider text-light-text-secondary/70 dark:text-dark-text-secondary/90 mb-1">{label}</p>
+                <p className="text-[10px] font-semibold tracking-wider text-light-text-secondary/70 dark:text-dark-text-secondary mb-1">{label}</p>
                 <h4 className="text-xl font-semibold text-light-text dark:text-dark-text tracking-tight tabular-nums">{value}</h4>
                 {subValue && <p className="text-[10px] font-medium text-light-text-secondary/50 dark:text-dark-text-secondary/70 mt-1 tracking-tight">{subValue}</p>}
             </div>
@@ -140,7 +140,7 @@ const LoanAccountView: React.FC<LoanAccountViewProps> = ({
                   </div>
                   <h1 className="text-4xl font-semibold text-light-text dark:text-dark-text tracking-tighter flex items-center gap-3">
                       {account.name}
-                      <span className={`material-symbols-outlined font-light ${isLending ? 'text-emerald-500/20' : 'text-rose-500/20'}`}>
+                      <span className={`material-symbols-outlined font-light ${isLending ? 'text-emerald-500/60 dark:text-emerald-400/80' : 'text-rose-500/60 dark:text-rose-400/80'}`}>
                           {isLending ? 'real_estate_agent' : 'contract'}
                       </span>
                   </h1>
@@ -214,11 +214,11 @@ const LoanAccountView: React.FC<LoanAccountViewProps> = ({
                    <div className="relative z-10 pt-10 border-t border-white/5 grid grid-cols-2 gap-8">
                        <div>
                            <p className="text-[10px] tracking-wider text-slate-500 font-semibold mb-1">Monthly cost</p>
-                           <p className="font-black text-xl text-white tabular-nums">{formatCurrency(account.monthlyPayment || 0, account.currency)}</p>
+                           <p className="font-semibold text-xl text-white tabular-nums">{formatCurrency(account.monthlyPayment || 0, account.currency)}</p>
                        </div>
                        <div>
                            <p className="text-[10px] tracking-wider text-slate-500 font-semibold mb-1">Target end</p>
-                           <p className="font-black text-xl text-white tabular-nums">{loanDetails.payoffDate ? loanDetails.payoffDate.toLocaleDateString(undefined, { month: 'short', year: 'numeric' }) : 'N/A'}</p>
+                           <p className="font-semibold text-xl text-white tabular-nums">{loanDetails.payoffDate ? loanDetails.payoffDate.toLocaleDateString(undefined, { month: 'short', year: 'numeric' }) : 'N/A'}</p>
                        </div>
                    </div>
                </motion.div>
@@ -295,7 +295,8 @@ const LoanAccountView: React.FC<LoanAccountViewProps> = ({
            </div>
 
            {/* Linked Details Column */}
-           <div className="xl:col-span-4 space-y-8"                 {loanDetails.linkedAsset && (
+           <div className="xl:col-span-4 space-y-8">
+                {loanDetails.linkedAsset && (
                     <motion.div 
                         initial={{ opacity: 0, x: 20 }}
                         whileInView={{ opacity: 1, x: 0 }}

@@ -1617,7 +1617,7 @@ const Dashboard: React.FC<DashboardProps> = ({ user, tasks, saveTask, onTogglePr
               <Card className="overflow-hidden rounded-[2.5rem] p-8 mt-8">
                   <div className="flex flex-col lg:flex-row gap-8">
                       <div className="lg:w-1/3 flex flex-col justify-center border-b lg:border-b-0 lg:border-r border-black/5 dark:border-white/5 pb-8 lg:pb-0 lg:pr-8">
-                          <h3 className="text-[10px] font-black uppercase tracking-widest text-light-text dark:text-dark-text mb-8 self-start opacity-60">Asset Allocation</h3>
+                          <h3 className="text-[10px] font-semibold tracking-wider text-light-text dark:text-dark-text mb-8 self-start opacity-60">Asset allocation</h3>
                           <div className="h-64 w-full relative">
                               <ResponsiveContainer width="100%" height="100%">
                                   <PieChart>
@@ -1637,18 +1637,18 @@ const Dashboard: React.FC<DashboardProps> = ({ user, tasks, saveTask, onTogglePr
                                   </PieChart>
                               </ResponsiveContainer>
                               <div className="absolute inset-0 flex flex-col items-center justify-center pointer-events-none">
-                                  <span className="text-[10px] font-black uppercase tracking-widest text-light-text-secondary opacity-40">Net Worth</span>
+                                  <span className="text-[10px] font-semibold tracking-wider text-light-text-secondary opacity-40">Net worth</span>
                                   <span className="text-2xl font-black text-light-text dark:text-dark-text tracking-tight privacy-blur leading-tight">{formatCurrency(convertCurrency(globalTotalAssets - Math.abs(globalTotalDebt), 'EUR', preferredCurrency, conversionRates), preferredCurrency)}</span>
                               </div>
                           </div>
                           <div className="w-full mt-10 grid grid-cols-2 gap-4">
                               <div className="p-4 rounded-2xl bg-emerald-500/5 border border-emerald-500/10 text-center">
-                                  <p className="text-[9px] text-emerald-600 dark:text-emerald-400 font-black uppercase tracking-widest mb-1 opacity-60">Assets</p>
-                                  <p className="text-lg font-black text-emerald-600 dark:text-emerald-400 privacy-blur tracking-tight">{formatCurrency(convertCurrency(globalTotalAssets, 'EUR', preferredCurrency, conversionRates), preferredCurrency)}</p>
+                                  <p className="text-[9px] text-emerald-600 dark:text-emerald-400 font-semibold tracking-wider mb-1 opacity-60">Assets</p>
+                                  <p className="text-lg font-semibold text-emerald-600 dark:text-emerald-400 privacy-blur tracking-tight">{formatCurrency(convertCurrency(globalTotalAssets, 'EUR', preferredCurrency, conversionRates), preferredCurrency)}</p>
                               </div>
                               <div className="p-4 rounded-2xl bg-rose-500/5 border border-rose-500/10 text-center">
-                                  <p className="text-[9px] text-rose-600 dark:text-rose-400 font-black uppercase tracking-widest mb-1 opacity-60">Liabilities</p>
-                                  <p className="text-lg font-black text-rose-600 dark:text-rose-400 privacy-blur tracking-tight">{formatCurrency(convertCurrency(Math.abs(globalTotalDebt), 'EUR', preferredCurrency, conversionRates), preferredCurrency)}</p>
+                                  <p className="text-[9px] text-rose-600 dark:text-rose-400 font-semibold tracking-wider mb-1 opacity-60">Liabilities</p>
+                                  <p className="text-lg font-semibold text-rose-600 dark:text-rose-400 privacy-blur tracking-tight">{formatCurrency(convertCurrency(Math.abs(globalTotalDebt), 'EUR', preferredCurrency, conversionRates), preferredCurrency)}</p>
                               </div>
                           </div>
                       </div>
@@ -1686,7 +1686,7 @@ const Dashboard: React.FC<DashboardProps> = ({ user, tasks, saveTask, onTogglePr
                           </div>
 
                           <div>
-                              <h4 className="text-[10px] font-black uppercase tracking-widest text-light-text-secondary dark:text-dark-text-secondary mb-6 opacity-60">Liabilities Breakdown</h4>
+                              <h4 className="text-[10px] font-semibold text-light-text-secondary dark:text-dark-text-secondary mb-6 opacity-60">Liabilities breakdown</h4>
                               <div className="space-y-5">
                                   {Object.entries(liabilityGroups as Record<string, { value: number; color: string; icon: string }>).map(([name, group]) => {
                                       if (group.value === 0) return null;
