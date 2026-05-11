@@ -283,7 +283,7 @@ const CashAccountView: React.FC<CashAccountViewProps> = ({
                                 <YAxis axisLine={false} tickLine={false} tick={{ fill: 'currentColor', opacity: 0.3, fontSize: 10, fontWeight: 900 }} />
                                 <Tooltip 
                                     cursor={{ fill: 'rgba(110, 110, 110, 0.05)', radius: 12 }}
-                                    contentStyle={{ backgroundColor: 'rgba(255,255,255,0.8)', darkBackgroundColor: 'rgba(30,30,30,0.8)', backdropFilter: 'blur(20px)', borderRadius: '24px', border: 'none', boxShadow: '0 25px 50px -12px rgba(0,0,0,0.1)' }}
+                                    contentStyle={{ backgroundColor: 'white', backdropFilter: 'blur(20px)', borderRadius: '24px', border: 'none', boxShadow: '0 25px 50px -12px rgba(0,0,0,0.1)' }}
                                     itemStyle={{ fontSize: '14px', fontWeight: '900' }}
                                     labelStyle={{ fontSize: '10px', fontWeight: '900', color: '#94a3b8', marginBottom: '8px', letterSpacing: '0.05em' }}
                                 />

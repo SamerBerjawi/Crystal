@@ -1333,7 +1333,9 @@ const Forecasting: React.FC = () => {
                                             style={{ width: `${globalIncomeGoalTarget > 0 ? Math.min(100, (globalIncomeGoalCurrent / globalIncomeGoalTarget) * 100) : 0}%` }} 
                                         />
                                     </div>
-                                </div>                                 {/* Total Savings Bar */}
+                                </div>
+
+                                {/* Total Savings Bar */}
                                 <div className="space-y-3">
                                     <div className="flex justify-between items-end">
                                         <div className="space-y-1">
@@ -1346,14 +1348,16 @@ const Forecasting: React.FC = () => {
                                             <span className="text-xs font-bold">{globalSavingsGoalTarget > 0 ? ((globalSavingsGoalCurrent / globalSavingsGoalTarget) * 100).toFixed(0) : 0}%</span>
                                             <p className="text-[9px] font-bold opacity-50 tracking-widest">of {formatCurrency(globalSavingsGoalTarget, 'EUR')}</p>
                                         </div>
-                                    </div>v>
+                                    </div>
                                     <div className="h-1.5 w-full bg-black/5 dark:bg-white/10 rounded-full overflow-hidden">
                                         <div 
                                             className="h-full bg-primary-500 transition-all duration-1000" 
                                             style={{ width: `${globalSavingsGoalTarget > 0 ? Math.min(100, (globalSavingsGoalCurrent / globalSavingsGoalTarget) * 100) : 0}%` }} 
                                         />
                                     </div>
-                                </div>                                 {/* Total Expense Bar */}
+                                </div>
+
+                                {/* Total Expense Bar */}
                                 <div className="space-y-3">
                                     <div className="flex justify-between items-end">
                                         <div className="space-y-1">
@@ -1366,14 +1370,16 @@ const Forecasting: React.FC = () => {
                                             <span className="text-xs font-bold">{globalExpenseGoalTarget > 0 ? ((globalExpenseGoalCurrent / globalExpenseGoalTarget) * 100).toFixed(0) : 0}%</span>
                                             <p className="text-[9px] font-bold opacity-50 tracking-widest">of {formatCurrency(globalExpenseGoalTarget, 'EUR')}</p>
                                         </div>
-                                    </div>v>
+                                    </div>
                                     <div className="h-1.5 w-full bg-black/5 dark:bg-white/10 rounded-full overflow-hidden">
                                         <div 
                                             className="h-full bg-rose-500 transition-all duration-1000" 
                                             style={{ width: `${globalExpenseGoalTarget > 0 ? Math.min(100, (globalExpenseGoalCurrent / globalExpenseGoalTarget) * 100) : 0}%` }} 
                                         />
                                     </div>
-                                </div>                                 {/* Account Specific Section */}
+                                </div>
+
+                                {/* Account Specific Section */}
                                 <div className="pt-5 border-t border-black/5 dark:border-white/10 space-y-4">
                                     <div className="flex justify-between items-center">
                                         <p className="text-[10px] font-bold tracking-widest text-light-text dark:text-dark-text">Account Breakdown</p>
@@ -1444,7 +1450,7 @@ const Forecasting: React.FC = () => {
                                                                 />
                                                             </div>
                                                         </div>
-                                                    )})}
+                                                    )}
                                                 </div>
                                             );
                                         })}
@@ -1616,7 +1622,8 @@ const Forecasting: React.FC = () => {
                                                     </td>
                                                     <td className={`px-6 py-2 text-right font-mono text-[12px] ${amountClass}`}>
                                                         {formatCurrency(row.amount, 'EUR', { showPlusSign: true })}
-                                                    </td                                                     <td className={`px-6 py-2 text-right font-mono text-[12px] ${isLowest ? 'text-red-600 dark:text-red-400 font-bold' : isMonthlyLowest ? 'text-amber-600 dark:text-amber-400 font-bold' : 'font-bold text-light-text dark:text-dark-text'}`}>
+                                                    </td>
+                                                    <td className={`px-6 py-2 text-right font-mono text-[12px] ${isLowest ? 'text-red-600 dark:text-red-400 font-bold' : isMonthlyLowest ? 'text-amber-600 dark:text-amber-400 font-bold' : 'font-bold text-light-text dark:text-dark-text'}`}>
                                                         <div className="flex items-center justify-end gap-1.5">
                                                             {isMonthlyLowest && !isLowest && (
                                                                 <span className="material-symbols-outlined text-[14px] text-amber-500 font-bold" title="Monthly Lowest Balance">arrow_downward</span>
@@ -1639,7 +1646,6 @@ const Forecasting: React.FC = () => {
                                                             {row.type === 'Financial Goal' ? 'Goal' : row.type === 'Bill/Payment' ? 'Bill' : 'Recurring'}
                                                         </span>
                                                     </td>
-                                                </tr>d>
                                                 </tr>
                                             );
                                         })}
